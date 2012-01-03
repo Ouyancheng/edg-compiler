@@ -2281,6 +2281,7 @@ Dump a statement kind, for debug purposes.
     case stmk_block:           s = "block";             break;
     case stmk_end_test_while:  s = "end-test-while";    break;
     case stmk_for:             s = "for";               break;
+    case stmk_range_based_for: s = "range-based-for";   break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case stmk_for_each:        s = "for each";          break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2476,6 +2477,10 @@ the dump (this one counts as the first).
         case stmk_for:
           db_statement_list(sp->variant.for_loop.statement, indent+2, "",
                             how_deep-1);
+          break;
+        case stmk_range_based_for:
+          db_statement_list(sp->variant.range_based_for_loop.statement,
+                            indent+2, "", how_deep-1);
           break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case stmk_for_each:

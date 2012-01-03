@@ -21,7 +21,7 @@ disambig.h -- Declarations related to disambig.c (having to with
 /*
 Type of the bit vector used to pass flags into the disambiguation routines.
 */
-typedef a_byte a_disambig_flag_set;
+typedef uint16_t a_disambig_flag_set;
 
 #define DFS_NO_FLAGS			0x00
 			/* An empty flag set. */
@@ -48,6 +48,8 @@ typedef a_byte a_disambig_flag_set;
 #define DFS_IS_TEMPLATE_ARGUMENT	0x80
 			/* This is a template argument that is being
 			   prescanned. */
+#define DFS_IS_FOR_INIT			0x100
+			/* Disambiguation is for a for-init statement. */
 
 extern a_boolean is_decl_not_expr(a_disambig_flag_set flags);
 

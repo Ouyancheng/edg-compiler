@@ -16361,6 +16361,7 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
                                        &selector,
                                        arg_operand_list,
                                        /*do_arg_dep_lookup=*/FALSE,
+                                       /*use_std_for_arg_dep_lookup=*/FALSE,
                                        /*try_surrogate_functions=*/FALSE,
                                        /*is_property=*/TRUE,
                                        ec_no_matching_function,
@@ -16529,25 +16530,26 @@ to TRUE and *result becomes an error operand.
       arg_operand_list->operand = *rhs;
       /* Do overload resolution to determine the function to call. */
       if (select_and_prepare_to_call_overloaded_function(
-                                            accessor_sym,
-                                            /*is_template_id=*/FALSE,
-                                            (a_template_arg_ptr)NULL,
-                                            have_selector,
-                                            &selector,
-                                            arg_operand_list,
-                                            /*do_arg_dep_lookup=*/FALSE,
-                                            /*try_surrogate_functions=*/FALSE,
-                                            /*is_property=*/FALSE,
-                                            ec_no_matching_function,
-                                            ec_ambiguous_overloaded_function,
-                                            (an_operand *)NULL,
-                                            operator_pos,
-                                            (a_token_sequence_number)0,
-                                            (a_source_position *)NULL,
-                                            (a_boolean *)NULL,
-                                            (a_boolean *)NULL,
-                                            &function_operand,
-                                            &argument_list) == NULL) {
+                                          accessor_sym,
+                                          /*is_template_id=*/FALSE,
+                                          (a_template_arg_ptr)NULL,
+                                          have_selector,
+                                          &selector,
+                                          arg_operand_list,
+                                          /*do_arg_dep_lookup=*/FALSE,
+                                          /*use_std_for_arg_dep_lookup=*/FALSE,
+                                          /*try_surrogate_functions=*/FALSE,
+                                          /*is_property=*/FALSE,
+                                          ec_no_matching_function,
+                                          ec_ambiguous_overloaded_function,
+                                          (an_operand *)NULL,
+                                          operator_pos,
+                                          (a_token_sequence_number)0,
+                                          (a_source_position *)NULL,
+                                          (a_boolean *)NULL,
+                                          (a_boolean *)NULL,
+                                          &function_operand,
+                                          &argument_list) == NULL) {
         /* Some error. */
         err = TRUE;
       } else {

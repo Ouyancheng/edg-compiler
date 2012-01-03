@@ -607,6 +607,27 @@ nullptr_enabled.
 #endif /* DEFAULT_NULLPTR_ENABLED && !CPP11_IL_EXTENSIONS_SUPPORTED */
 
 /*
+Flag that is TRUE if the C++11 range-based-for statement should be enabled in
+other C++ modes by default (it is, of course, always enabled in C++11 mode).
+This macro is used for the initialization of the global variable
+range_based_for_enabled.
+*/
+#ifndef DEFAULT_RANGE_BASED_FOR_ENABLED
+#if CPP11_IL_EXTENSIONS_SUPPORTED
+#define DEFAULT_RANGE_BASED_FOR_ENABLED FALSE /* Okay to change. */
+#else /* !CPP11_IL_EXTENSIONS_SUPPORTED */
+#define DEFAULT_RANGE_BASED_FOR_ENABLED FALSE /* Do not change. */
+#endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
+#endif /* DEFAULT_RANGE_BASED_FOR_ENABLED */
+#if DEFAULT_RANGE_BASED_FOR_ENABLED && !CPP11_IL_EXTENSIONS_SUPPORTED && \
+    !DO_IL_LOWERING
+/* The range-based-for feature requires support from a back end (unless
+   lowering is enabled). */
+ #error -- Cannot set DEFAULT_RANGE_BASED_FOR_ENABLED to TRUE when \
+           CPP11_IL_EXTENSIONS_SUPPORTED is FALSE and DO_IL_LOWERING is FALSE
+#endif /* DEFAULT_RANGE_BASED_FOR_ENABLED && !CPP11_IL_EXTENSIONS_... */
+
+/*
 Flag that is TRUE if extensions added to the C++11 standard should be
 enabled by default.  This is the default value of the global variable
 cpp11_mode.

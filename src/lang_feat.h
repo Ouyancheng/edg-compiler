@@ -2199,6 +2199,11 @@ EXTERN a_boolean
 			   access checking errors are ignored and do not cause
 			   deduction failure. */
 
+EXTERN a_boolean
+		range_based_for_enabled;
+			/* When TRUE, the C++11 range-based-for statement
+			   is enabled. */
+
 /*
 Flag that determines the value of variadic_templates_enabled in C++ modes
 other than C++11 (where it is by default TRUE).  Does not affect the value

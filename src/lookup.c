@@ -5914,9 +5914,10 @@ symbol found by the normal lookup.
 
 
 a_symbol_list_entry_ptr argument_dependent_lookup(
-					a_symbol_ptr		normal_sym,
-					a_symbol_locator	*locator,
-					a_type_list_entry_ptr	*type_list)
+                                  a_symbol_ptr		normal_sym,
+                                  a_symbol_locator	*locator,
+                                  a_type_list_entry_ptr	*type_list,
+                                  a_boolean		include_std_namespace)
 /*
 Perform C++ argument-dependent lookup as specified in 3.4.2
 [basic.lookup.koenig] of the C++ standard.  normal_sym is the result
@@ -5924,7 +5925,9 @@ of a normal lookup of the function name in the context of the call and
 may be NULL.  type_list is a list of argument types to be used to
 produce a list of associated classes and namespaces from which
 candidate functions should be considered.  locator is the symbol
-locator associated with the name that is being looked up.
+locator associated with the name that is being looked up.  When
+include_std_namespace is TRUE, the std namespace is included in the
+lookup as an associated namespace (e.g., for range-based-for).
 
 normal_sym, if not NULL, is included in the symbol list that is returned
 and must be the first entry on the list.
@@ -5951,6 +5954,12 @@ is set to NULL.
                                      tlep->type, &namespace_list,
                                      &class_list);
   }  /* for */
+  if (include_std_namespace) {
+    check_assertion(symbol_for_namespace_std != NULL);
+    add_namespace_to_namespace_list(
+                          symbol_for_namespace_std->variant.namespace_info.ptr,
+                          &namespace_list);
+  }  /* if */
   if (microsoft_mode && microsoft_version >= 1310 && normal_sym != NULL) {
     /* The Microsoft compiler does not do an ADL lookup in namespaces that
        were searched by the normal lookup. */

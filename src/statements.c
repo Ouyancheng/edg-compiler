@@ -497,6 +497,7 @@ dump_control_flow has been enabled at the command line.
     case ssk_while:      str = "while";      break;
     case ssk_do:         str = "do";         break;
     case ssk_for:        str = "for";        break;
+    case ssk_range_based_for: str = "range-based-for"; break;
     case ssk_try_block:  str = "try_block";  break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case ssk_for_each:   str = "for each";   break;
@@ -1577,10 +1578,19 @@ should be set to TRUE.
 #endif /* UPC_EXTENSIONS_ALLOWED */
       case stmk_for:
         if (sssep->for_init) {
+          /* Note that this is also used when scanning a range-based-for
+             statement (before we know it's not an stmk_for), so the decl
+             statement is placed here. */
           head_ptr = &ssp->variant.for_loop.extra_info->initialization;
         } else {
           head_ptr = &ssp->variant.for_loop.statement;
         }  /* if */
+        break;
+      case stmk_range_based_for:
+        /* The decl statement is parsed when the statement type is still
+           stmk_for; other statements are dependent. */
+        check_assertion(!sssep->for_init);
+        head_ptr = &ssp->variant.range_based_for_loop.statement;
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case stmk_for_each:
@@ -1848,15 +1858,33 @@ over.
 }  /* record_trivial_init_control_flow */
 
 
-static void decl_statement(a_boolean  marked_as_gnu_extension)
+/*
+Macro to provide default arguments for the typical invocation of
+decl_statement_full where a range-based-for declaration is not being parsed.
+*/
+#define decl_statement(marked_as_gnu_extension)                              \
+  decl_statement_full(marked_as_gnu_extension, (a_boolean *)NULL,            \
+                      (a_symbol_ptr *)NULL)
+
+
+static void decl_statement_full(a_boolean    marked_as_gnu_extension,
+                                a_boolean    *is_range_based_for,
+                                a_symbol_ptr *range_based_for_iterator)
 /*
 Parse a declaration statement.  An stmk_decl statement is created for the
 statement and the declared entities are recorded in it (except for entities
 declared in embedded scopes, like function prototype scopes or block scopes
 for GNU statement expressions).  If marked_as_gnu_extension is TRUE, the
 __extension__ keyword was scanned just before the upcoming declaration.
+In configurations where a range-based-for is allowed, *is_range_based_for
+will be set (if non-NULL) to indicate whether the scanned declaration
+statement indicates that the declaration is the beginning of a range-based-for.
+If range_based_for_iterator is non-NULL, *range_based_for_iterator is set
+to the symbol pointer of the variable just scanned (which may be NULL in
+some error cases).
 */
 {
+  a_decl_parse_state             dps;
   a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
 
   sssep->curr_decl_statement = add_statement((a_statement_kind)stmk_decl);
@@ -1864,12 +1892,15 @@ __extension__ keyword was scanned just before the upcoming declaration.
   add_to_source_sequence_list((char*)sssep->curr_decl_statement,
                               (an_il_entry_kind)iek_statement);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  local_declaration(marked_as_gnu_extension);
+  init_decl_parse_state(&dps);
+  dps.marked_as_gnu_extension = marked_as_gnu_extension;
+  dps.is_for_init_decl = sssep->for_init;
+  scan_nonmember_declaration(&dps, (a_source_range *)NULL);
   /* Re-load sssep since the call to local_declaration may have caused the
      statement stack to be reallocated. */
   sssep = &struct_stmt_stack[depth_stmt_stack];
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (sssep->for_init) {
+  if (sssep->for_init && !dps.range_based_for) {
     /* Add a source sequence entry marking the end of the for-init
        declaration.  This marker is necessary in case what immediately
        follows in the source sequence list is an entry for a condition
@@ -1882,7 +1913,9 @@ __extension__ keyword was scanned just before the upcoming declaration.
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   sssep->curr_decl_statement = NULL;
-}  /* decl_statement */
+  if (is_range_based_for != NULL) *is_range_based_for = dps.range_based_for;
+  if (range_based_for_iterator != NULL) *range_based_for_iterator = dps.sym;
+}  /* decl_statement_full */
 
 
 void record_entity_in_decl_stmt_if_needed(a_symbol_ptr  sym)
@@ -2646,8 +2679,7 @@ statement is the top block of a GNU statement expression ({ ... }).
   sssep->switch_has_dependent_case
                                = FALSE;
   sssep->contains_user_label   = FALSE;
-  sssep->contains_active_switch_case
-                               = FALSE;
+  sssep->contains_active_switch_case = FALSE;
   sssep->statement             = sp;
   sssep->prefix_attributes     = NULL;
   sssep->switch_max_case_value = NULL;
@@ -2689,11 +2721,11 @@ statement is the top block of a GNU statement expression ({ ... }).
   }  /* if */
   sssep->start_reachable      = curr_reachability;
   set_unreachable(sssep->end_reachable);  /* So far. */
-  if (kind == ssk_while || kind == ssk_do || kind == ssk_for
+  if (kind == ssk_while || kind == ssk_do || kind == ssk_for ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      || kind == ssk_for_each
+      kind == ssk_for_each ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                             ) {
+      kind == ssk_range_based_for) {
     /* The bodies of loops are reachable in that the bottom can branch to
        the top. */
     set_reachable(curr_reachability);
@@ -2767,6 +2799,22 @@ Interface to push_stmt_stack_full for the usual case.
 */
 #define push_stmt_stack(kind, sp, olp) \
   push_stmt_stack_full((kind), (sp), (olp), /*is_statement_expr=*/FALSE);
+
+
+static void change_statement_kind_on_stack(a_statement_ptr    sp,
+                                           a_statement_kind   stmk_kind,
+                                           a_struct_stmt_kind ssk_kind)
+/*
+While parsing a statement that has already been pushed onto the statement
+stack, the "kind" of statement needs updating.  Change the statement's "kind"
+to stmk_kind and update the statement stack entry (that should be topmost on
+the stack) to reflect the new ssk_kind.
+*/
+{
+  check_assertion(struct_stmt_stack[depth_stmt_stack].statement == sp);
+  struct_stmt_stack[depth_stmt_stack].kind = ssk_kind;
+  set_statement_kind(sp, stmk_kind);
+}  /* change_statement_kind_on_stack */
 
 
 static void end_stmt_sequence(a_struct_stmt_stack_entry_ptr sssep)
@@ -2843,15 +2891,13 @@ if the truth cannot be discovered, is FALSE.
   a_boolean        is_inf_loop = FALSE;
   an_expr_node_ptr expr;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* The test for a for-each loop varies depending on the type of for-each
-     loop that has been detected.  For array iteration, we're assured that
-     the loop is finite; for other types various expressions could be
-     examined, but the expressions all involve calls of some sort and since
-     they haven't been inlined yet, this code is too simplistic to determine
-     whether the call would always return true.  Therefore, assume for-each
-     loops are never infinite. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* The test for an enhanced-for (i.e., a for-each or range-based-for) loop
+     varies depending on the type of enhanced-for loop that has been detected.
+     For array iteration, we're assured that the loop is finite; for other
+     types various expressions could be examined, but the expressions all
+     involve calls of some sort and since they haven't been inlined yet, this
+     code is too simplistic to determine whether the call would always return
+     true.  Therefore, assume enhanced-for loops are never infinite. */
   if (stmt->kind == (a_statement_kind)stmk_while ||
       stmt->kind == (a_statement_kind)stmk_end_test_while ||
 #if UPC_EXTENSIONS_ALLOWED
@@ -2976,20 +3022,20 @@ a structured statement has ended.
   term_stmt_clause(sssep);
   /* Determine whether or not the code following the statement is reachable,
      and set curr_reachability appropriately. */
-  if (kind == ssk_while || kind == ssk_for || kind == ssk_do
+  if (kind == ssk_while || kind == ssk_for || kind == ssk_do ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      || kind == ssk_for_each
+      kind == ssk_for_each ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                             ) {
+      kind == ssk_range_based_for) {
     /* A loop. */
     if (is_infinite_loop(sp)) {
       /* An infinite loop.  The code after the loop is not reachable. */
       set_unreachable(curr_reachability);
-    } else if (kind == ssk_while || kind == ssk_for
+    } else if (kind == ssk_while || kind == ssk_for ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
-               || kind == ssk_for_each
+               kind == ssk_for_each ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                      ) {
+               kind == ssk_range_based_for) {
       /* A top-test loop.  The code after the loop is reachable if the current
          location is reachable or if the start of the loop is reachable. */
       merge_reachability(&sssep->start_reachable, &curr_reachability);
@@ -3139,7 +3185,8 @@ was found.
     if (find_switch && kind == ssk_switch) {
       goto found;
     } else if (find_loop &&
-               (kind == ssk_while || kind == ssk_do || kind == ssk_for
+               (kind == ssk_while || kind == ssk_do || kind == ssk_for ||
+                kind == ssk_range_based_for
 #if MICROSOFT_EXTENSIONS_ALLOWED
                 || kind == ssk_for_each
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3218,7 +3265,8 @@ block under the "try" in a function try block.
     push_block_scope_with_lifetime(function_try_lifetime);
     /* Set appropriate flags in the scope stack entry. */
     kind = struct_stmt_stack[depth_stmt_stack].kind;
-    if (kind == ssk_while || kind == ssk_do || kind == ssk_for
+    if (kind == ssk_while || kind == ssk_do || kind == ssk_for ||
+        kind == ssk_range_based_for
 #if MICROSOFT_EXTENSIONS_ALLOWED
         || kind == ssk_for_each
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3281,9 +3329,9 @@ the block statement.
 
 static void dependent_statement(void)
 /*
-Scan the dependent statement of an if, switch, while, do-while, for, or
-"for each" statement.  In C++ and C99, such a dependent statement implicitly
-defines a local scope.
+Scan the dependent statement of an if, switch, while, do-while, for,
+"for each", or range-based-for statement.  In C++ and C99, such a dependent
+statement implicitly defines a local scope.
 */
 {
   a_boolean         block_added;
@@ -3383,80 +3431,42 @@ Do processing required upon completion of a condition "block".
   db_exit();
 }  /* finish_condition_block */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void start_for_each_scope(a_statement_ptr sp)
-/*
-Start the scope added to surround a "for each" statement.
-*/
-{
-  a_scope_ptr               scope;
-  a_control_flow_descr_ptr  cfdp;
-
-  /* Push the new scope, and record it in the statement. */
-  push_block_scope((a_scope_pointers_block_ptr)NULL);
-  scope = ensure_il_scope_exists(&scope_stack_top());
-  sp->variant.for_each_loop.extra_info->for_each_scope = scope;
-  /* Add a control flow entry to represent the "for each" scope. */
-  cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
-  cfdp->source_pos = pos_curr_token;
-  cfdp->variant.block.object_lifetime = curr_object_lifetime;
-  add_to_control_flow_descr_list(cfdp);
-}  /* start_for_each_scope */
-
-
-static void finish_for_each_scope(void)
-/*
-Do processing required upon completion of a "for each" scope.
-*/
-{
-  /* Terminate the control flow block that was started when the "for each"
-     scope was started. */
-  add_to_control_flow_descr_list(
-       alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
-  /* Pop the for-each scope. */
-  pop_block_scope(/*is_final_pop=*/TRUE);
-}  /* finish_for_each_scope */
-
-
-static void start_for_each_iterator_scope(
-                                     a_statement_ptr            sp,
+static a_scope_ptr start_new_block_scope(
                                      a_scope_pointers_block_ptr pointers_block)
 /*
-Start the iterator scope for a "for each" statement.  pointers_block
-is the pointers block to be used on the creation of the scope, needed
-so that scope can be reactivated later.
+Start a new block scope and return it.  pointers_block is the pointers block to
+be used on the creation of the scope, needed so that scope can be reactivated
+later (may be NULL).
 */
 {
   a_scope_ptr               scope;
   a_control_flow_descr_ptr  cfdp;
 
-  /* Push the new scope, and record it in the statement. */
+  /* Push the new scope. */
   push_block_scope(pointers_block);
   scope = ensure_il_scope_exists(&scope_stack_top());
-  sp->variant.for_each_loop.extra_info->iterator_scope = scope;
   /* Add a control flow entry to represent the iterator scope. */
   cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
   cfdp->source_pos = pos_curr_token;
   cfdp->variant.block.object_lifetime = curr_object_lifetime;
   add_to_control_flow_descr_list(cfdp);
-}  /* start_for_each_iterator_scope */
+  return scope;
+}  /* start_new_block_scope */
 
 
-static void finish_for_each_iterator_scope(void)
+static void finish_block_scope(void)
 /*
-Do processing required upon completion of a "for each" iterator scope.
+Do processing required when done with a block scope.
 */
 {
-  /* Terminate the control flow block that was started when the "for each"
-     iterator scope was started. */
+  /* Terminate the control flow block that was previously started. */
   add_to_control_flow_descr_list(
        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
-  /* Pop the iterator scope. */
+  /* Pop the block scope. */
   pop_block_scope(/*is_final_pop=*/TRUE);
-}  /* finish_for_each_iterator_scope */
+}  /* finish_block_scope */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_condition(a_statement_ptr  sp,
                            a_boolean        *is_condition_decl)
@@ -4313,9 +4323,12 @@ the statement was preceded by the GNU C __extension__ keyword.
 }  /* expression_statement */
 
 
-static void start_for_init_block(a_statement_ptr  sp)
+static void start_for_init_block(a_statement_ptr            sp,
+                                 a_scope_pointers_block_ptr pointers_block)
 /*
-Start a new scope for a for-init declaration (C++ only).
+Start a new scope for a for-init declaration (C++ only).  A scope stack
+pointers block can be specified for cases where an iterator scope is pushed and
+needs to be reactivated.  pointers_block can be NULL.
 */
 {
   a_control_flow_descr_ptr  cfdp;
@@ -4323,7 +4336,8 @@ Start a new scope for a for-init declaration (C++ only).
   db_enter(3, "start_for_init_block");
   /* Push a block scope to represent the name scope in which a for-init
      declaration appears and record the IL scope in the for-loop supplement. */
-  sp->variant.for_loop.extra_info->for_init_scope = push_for_init_scope();
+  sp->variant.for_loop.extra_info->for_init_scope =
+                                           push_for_init_scope(pointers_block);
   /* Add a control flow entry to represent the for-init block. */
   cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
   cfdp->source_pos = pos_curr_token;
@@ -4349,10 +4363,18 @@ Terminate the for-init block scope.
 }  /* finish_for_init_block */
 
 
-static void for_init_statement(void)
+static void for_init_statement(a_scope_pointers_block_ptr pointers_block,
+                               a_boolean                  *is_range_based_for,
+                               a_symbol_ptr               *iterator_sym)
 /*
 Scan the initializing expression or, in C++ or C99, declaration of a for
-statement.
+statement.  A scope stack pointers block can be specified for cases where
+an iterator scope is pushed and needs to be reactivated.  pointers_block
+can be NULL.  *is_range_based_for is set to indicate whether the scanned
+declaration statement indicates that the "for" statement is a range-based-for
+(in configurations where that's allowed).  If non-NULL, iterator_sym specifies
+an address to be updated with a pointer to a symbol for the range-based-for
+iterator variable (which may be NULL in some error cases).
 */
 {
   a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
@@ -4361,7 +4383,9 @@ statement.
   /* Let add_statement know this is a for_init so that the statement is
      attached in the right place. */
   sssep->for_init = TRUE;
-  if ((!C_mode() && is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) ||
+  *is_range_based_for = FALSE;
+  if ((!C_mode() && is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED |
+                                     DFS_IS_FOR_INIT)) ||
       (c99_mode &&
        is_decl_start(IDS_EXPR_CONTEXT | IDS_REAL_DECLARATOR_ALLOWED))) {
     /* Scan a declaration (C++ or C99). */
@@ -4376,10 +4400,11 @@ statement.
          in effect, that the for-init declaration have its own scope, nested
          within the containing scope.) */
       if (!use_nonstandard_for_init_scope) {
-        start_for_init_block(sssep->statement);
+        start_for_init_block(sssep->statement, pointers_block);
       }  /* if */
     }  /* if */
-    decl_statement(/*marked_as_gnu_extension=*/FALSE);
+    decl_statement_full(/*marked_as_gnu_extension=*/FALSE, is_range_based_for,
+                        iterator_sym);
   } else {
     /* Scan an expression.  It may be omitted. */
     if (curr_token != tok_semicolon) expression_statement(
@@ -4399,8 +4424,8 @@ statement.
 
 static void for_statement(void)
 /*
-Scan a "for" statement and add it to the current statement sequence.
-The syntax is:
+Scan a "for" or range-based-for statement and add it to the current statement
+sequence.  The syntax is:
 
 3.6.5  iteration-statement:
     for ( expr    ; expr    ; expr    ) statement
@@ -4411,6 +4436,10 @@ See also 3.6.5.3.
 In C++ the first expression is replaced by for-init-statement, which is
 either an expression statement or a declaration statement.
 
+The range-based-for syntax ([stmt.ranged]) is:
+
+  for ( for-range-declaration : expression ) statement
+
 In UPC mode, the "upc_forall" construct is also accepted.  It looks much
 like the standard "for" statement, except for the fourth expression.
     for ( expr    ; expr    ; expr    ; affinity    ) statement
@@ -4419,15 +4448,21 @@ like the standard "for" statement, except for the fourth expression.
 The affinity can be an expression or the keyword "continue".
 */
 {
-  a_statement_ptr    sp;
-  a_boolean          saved_flag, assume_loop_reachable;
-  a_boolean          is_condition_decl = FALSE;
-  a_boolean          processing_upc_forall = FALSE;
+  a_statement_ptr            sp;
+  a_boolean                  saved_flag, assume_loop_reachable;
+  a_boolean                  is_condition_decl = FALSE;
+  a_boolean                  processing_upc_forall = FALSE;
+  a_boolean                  is_range_based_for = FALSE;
 #if UPC_EXTENSIONS_ALLOWED
-  an_expr_node_ptr   affinity_expr = NULL;
-  a_statement_ptr    saved_innermost_forall_loop;
+  an_expr_node_ptr           affinity_expr = NULL;
+  a_statement_ptr            saved_innermost_forall_loop;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  a_source_position  stmt_pos;
+  a_source_position          stmt_pos;
+  a_scope_ptr                outer_scope, middle_scope;
+  a_token_sequence_number    expr_tok_seq_number;
+  a_range_based_for_loop_ptr rbflp;
+  a_scope_pointers_block     iterator_pointers_block, middle_pointers_block;
+  a_symbol_ptr               iterator_sym = NULL;
 
   db_enter(3, "for_statement");
 
@@ -4446,6 +4481,8 @@ The affinity can be an expression or the keyword "continue".
 #endif /* UPC_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
   {
+    /* Assume we're scanning a "for" statement -- this may be changed later
+       if we discover we're scanning a range-based-for instead. */
     sp = add_statement((a_statement_kind)stmk_for);
   }  /* if */
   stmt_update_source_sequence_list(sp);
@@ -4462,56 +4499,116 @@ The affinity can be an expression or the keyword "continue".
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   add_stop_token(tok_semicolon);
+  if (range_based_for_enabled) {
+    /* In configurations where we may find a range-based-for, add ":" as
+       a stop token and push two additional scopes.  In cases where a
+       range-based-for is not found, these empty scopes will be discarded. */
+    add_stop_token(tok_colon);
+    outer_scope = start_new_block_scope((a_scope_pointers_block_ptr)NULL);
+    middle_scope = start_new_block_scope(&middle_pointers_block);
+  } /* if */
   /* Scan the initializing expression or declaration if it is present.  It
      will be added to the correct place in the stmk_for entry. */
-  for_init_statement();
-  if (curr_token == tok_semicolon) {
-    /* Controlling expression was omitted. */
-  } else {
-    /* Scan the condition, which in C++ may be a condition declaration. */
-    scan_condition(sp, &is_condition_decl);
-  }  /* if */
-  (void)required_token(tok_semicolon, ec_exp_semicolon);
-  if (!processing_upc_forall) {
-    remove_stop_token(tok_semicolon);
-  }  /* if */
-  /* Scan the incrementing expression if it is present. */
-  /* coverity[dead_error_condition] */
-  if (curr_token != tok_rparen &&
-      !(processing_upc_forall && curr_token == tok_semicolon)) {
-    a_reachability_summary saved_reachability;
-    saved_reachability = curr_reachability;
-    set_reachable(curr_reachability);
-    /* Be sure that no used-before-set warnings are issued in scanning
-       the increment expression -- after all, a variable it references could
-       be set within the body of the loop. */
-    saved_flag = suppress_used_before_set_warnings;
-    suppress_used_before_set_warnings = TRUE;
-    sp->variant.for_loop.extra_info->increment =
-                      scan_void_expression(/*repeated_in_loop=*/TRUE,
-                                           /*marked_as_gnu_extension=*/FALSE,
-                                           /*is_statement_expr=*/FALSE);
-    /* Restore the global variable. */
-    suppress_used_before_set_warnings = saved_flag;
-    curr_reachability = saved_reachability;
-  }  /* if */
-#if UPC_EXTENSIONS_ALLOWED
-  /* Process the affinity expression. */
-  if (processing_upc_forall) {
-    /* Go past the required semicolon. */
-    (void)required_token(tok_semicolon, ec_exp_semicolon);
-    remove_stop_token(tok_semicolon);
-    if (curr_token == tok_rparen) {
-      /* Affinity expression was omitted. */
-    } else if (curr_token == tok_continue) {
-      /* Skip the "continue" and treat as an omitted affinity expression. */
-      (void)get_token();
-    } else {
-      /* Scan the affinity expression. */
-      affinity_expr = scan_upc_forall_affinity();
+  for_init_statement(&iterator_pointers_block, &is_range_based_for,
+                     &iterator_sym);
+  if (range_based_for_enabled) {
+    remove_stop_token(tok_colon);
+  } /* if */
+  if (is_range_based_for) {
+    /* A range-based-for statement has been detected; change the assumed
+       "for" statement into a range-based-for statement and capture
+       necessary data in the IL supplement. */
+    /* Copy any information that's been put in the supplemental information
+       for the "for" statement before we change the statement kind. */
+    a_scope_ptr     iterator_scope =
+                               sp->variant.for_loop.extra_info->for_init_scope;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    a_statement_ptr decl = sp->variant.for_loop.extra_info->initialization;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    change_statement_kind_on_stack(sp, stmk_range_based_for,
+                                   ssk_range_based_for);
+    rbflp = sp->variant.range_based_for_loop.extra_info;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    rbflp->decl_statement = decl;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    rbflp->range_based_for_scope = outer_scope;
+    rbflp->begin_end_scope = middle_scope;
+    rbflp->iterator_scope = iterator_scope;
+    if (iterator_sym != NULL) {
+      check_assertion(iterator_sym->kind == (a_symbol_kind)sk_variable);
+      rbflp->iterator = iterator_sym->variant.variable.ptr;
+      if (rbflp->iterator != NULL) {
+        rbflp->iterator->is_enhanced_for_iterator = TRUE;
+      }  /* if */
     }  /* if */
-  }  /* if */
+    /* Pop two scopes to get back to the scope where the expression needs to
+       be scanned.  The scopes will be re-activated after the expression
+       is scanned. */
+    pop_block_scope(/*is_final_pop=*/FALSE);
+    pop_block_scope(/*is_final_pop=*/FALSE);
+    (void)required_token(tok_colon, ec_exp_colon);
+    remove_stop_token(tok_semicolon);
+    /* Scan the expression. */
+    expr_tok_seq_number = curr_token_sequence_number;
+    scan_range_based_for_expression(sp);
+    /* Build the IL. */
+    check_range_based_for_statement(sp,
+                                    expr_tok_seq_number,
+                                    &middle_pointers_block,
+                                    &iterator_pointers_block);
+    /* Return to the iterator scope for the dependent statement. */
+    push_block_reactivation_scope(middle_scope, &middle_pointers_block);
+    push_block_reactivation_scope(iterator_scope, &iterator_pointers_block);
+  } else {
+    /* A plain-old-for loop (or a UPC forall). */
+    if (curr_token == tok_semicolon) {
+      /* Controlling expression was omitted. */
+    } else {
+      /* Scan the condition, which in C++ may be a condition declaration. */
+      scan_condition(sp, &is_condition_decl);
+    }  /* if */
+    (void)required_token(tok_semicolon, ec_exp_semicolon);
+    if (!processing_upc_forall) {
+      remove_stop_token(tok_semicolon);
+    }  /* if */
+    /* Scan the incrementing expression if it is present. */
+    /* coverity[dead_error_condition] */
+    if (curr_token != tok_rparen &&
+        !(processing_upc_forall && curr_token == tok_semicolon)) {
+      a_reachability_summary saved_reachability;
+      saved_reachability = curr_reachability;
+      set_reachable(curr_reachability);
+      /* Be sure that no used-before-set warnings are issued in scanning
+         the increment expression -- after all, a variable it references could
+         be set within the body of the loop. */
+      saved_flag = suppress_used_before_set_warnings;
+      suppress_used_before_set_warnings = TRUE;
+      sp->variant.for_loop.extra_info->increment =
+                        scan_void_expression(/*repeated_in_loop=*/TRUE,
+                                             /*marked_as_gnu_extension=*/FALSE,
+                                             /*is_statement_expr=*/FALSE);
+      /* Restore the global variable. */
+      suppress_used_before_set_warnings = saved_flag;
+      curr_reachability = saved_reachability;
+    }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+    /* Process the affinity expression. */
+    if (processing_upc_forall) {
+      /* Go past the required semicolon. */
+      (void)required_token(tok_semicolon, ec_exp_semicolon);
+      remove_stop_token(tok_semicolon);
+      if (curr_token == tok_rparen) {
+        /* Affinity expression was omitted. */
+      } else if (curr_token == tok_continue) {
+        /* Skip the "continue" and treat as an omitted affinity expression. */
+        (void)get_token();
+      } else {
+        /* Scan the affinity expression. */
+        affinity_expr = scan_upc_forall_affinity();
+      }  /* if */
+    }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  }  /* if */
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -4552,11 +4649,38 @@ The affinity can be an expression or the keyword "continue".
   define_continue_label();
   /* End the condition block, if necessary. */
   if (is_condition_decl) finish_condition_block();
-  /* If the for-loop supplement contains a non-NULL scope pointer, it means
-     a block scope was pushed for a for-init declaration. */
-  if (sp->variant.for_loop.extra_info->for_init_scope != NULL) {
-    /* Terminate the for-init scope. */
-    finish_for_init_block();
+  if (is_range_based_for) {
+    /* Pop the iterator scope. */
+    finish_block_scope();
+  } else {
+    /* If the for-loop supplement contains a non-NULL scope pointer, it means
+       a block scope was pushed for a for-init declaration. */
+    if (sp->variant.for_loop.extra_info->for_init_scope != NULL) {
+      /* Terminate the for-init scope. */
+      finish_for_init_block();
+    }  /* if */
+  }  /* if */
+  if (range_based_for_enabled) {
+    /* Pop (and possibly discard) the block scopes that were pushed in
+       preparation for a possible range-based-for statement. */
+    finish_block_scope();
+    if (!is_range_based_for) {
+      /* This scope is about to be discarded; move any pragmas to the
+         appropriate scope (the scope that encloses outer_scope). */
+      a_pragma_ptr pragma = middle_scope->pragmas, pragma_next;
+      for (;pragma != NULL; pragma = pragma_next) {
+        pragma_next = pragma->next;
+        pragma->next = NULL;
+        add_to_pragma_list(pragma, depth_scope_stack-1,
+                           (a_source_correspondence *)NULL);
+      }  /* if */
+    }  /* if */
+    finish_block_scope();
+    if (!is_range_based_for) {
+      /* There should be no pragmas in the outer scope (since it only
+         contains the compiler-generated middle scope). */
+      check_assertion(outer_scope->pragmas == NULL);
+    }  /* if */
   }  /* if */
   /* Pop the structured statement stack. */
   pop_stmt_stack();
@@ -4569,7 +4693,7 @@ The affinity can be an expression or the keyword "continue".
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Pop a scope in C99 mode. */
   pop_c99_statement_scope();
-  if (microsoft_mode) {
+  if (microsoft_mode && !is_range_based_for) {
     /* Microsoft compilers allow declarations in loop scopes to conflict
        with associated condition-scope and for-init-scope declarations when
        a "for" (but not a "for each") loop previously appeared in the loop
@@ -4639,9 +4763,10 @@ Where "in" is a context-sensitive keyword.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Push the outer scope. */
-  start_for_each_scope(sp);
+  felp->for_each_scope =
+                       start_new_block_scope((a_scope_pointers_block_ptr)NULL);
   /* Push the iterator scope. */
-  start_for_each_iterator_scope(sp, &pointers_block);
+  felp->iterator_scope = start_new_block_scope(&pointers_block);
   if (curr_token == tok_identifier &&
       next_token_full((a_token_sequence_number *)NULL, &sym_hdr) ==
                                                               tok_identifier &&
@@ -4682,9 +4807,9 @@ Where "in" is a context-sensitive keyword.
   define_continue_label();
   /* Pop the iterator scope.  We want the continue label to transfer to
      any destruction required for the iterator variable. */
-  finish_for_each_iterator_scope();
+  finish_block_scope();
   /* Pop the for-each scope. */
-  finish_for_each_scope();
+  finish_block_scope();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
   /* If a label appeared in the context of the statement that was just
@@ -6423,7 +6548,7 @@ rescan_statement:
     /* The upc_forall statement is similar to the standard for statement. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case tok_for:
-      /* For statement (3.6.5). */
+      /* For statement (3.6.5) and range-based-for ([stmt.ranged]). */
       for_statement();
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED

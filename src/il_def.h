@@ -514,6 +514,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_label,		/* a_label */
   iek_expr_node,	/* an_expr_node */
   iek_for_loop,         /* a_for_loop */
+  iek_range_based_for_loop,
+                        /* a_range_based_for_loop */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   iek_for_each_loop,    /* a_for_each_loop */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -701,6 +703,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_label */				"label",
 /* iek_expr_node */			"expr-node",
 /* iek_for_loop */			"for-loop",
+/* iek_range_based_for_loop */		"range-based-for-loop",
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* iek_for_each_loop */			"for-each-loop",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8787,10 +8790,11 @@ typedef struct a_variable {
 			   appeared on the declaration of this static data
 			   member (C++/CLI only).  (Always FALSE for entries
 			   that do not represent a static data member.) */
-  a_bit_field	is_for_each_iterator:1;
-			/* TRUE for the iterator variable of a for-each
-			   loop in Microsoft or C++/CLI modes. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_bit_field	is_enhanced_for_iterator:1;
+			/* TRUE for the iterator variable of a for-each
+			   loop (in Microsoft or C++/CLI modes) or a
+			   range-based-for (in C++11 modes). */
   a_bit_field	initializer_in_class:1;
 			/* TRUE for static data members with in-class
 			   initializers. */
@@ -14143,6 +14147,7 @@ enum a_statement_kind_tag {
 			   own declarations and scope. */
   stmk_end_test_while,	/* Loop, test at bottom. */
   stmk_for,		/* For loop. */
+  stmk_range_based_for,	/* Range-based-for loop. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   stmk_for_each,	/* For each loop. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -14258,7 +14263,100 @@ typedef struct a_for_loop {
 } a_for_loop;
 
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Information about a range-based-for statement ([stmt.ranged]), pointed to from
+a stmk_range_based_for statement.  The range-based-for statement takes the
+form:
+
+  for ( for-range-declaration : expression ) statement
+
+which is implemented as:
+
+  {
+    auto && __range = (expression);
+    for ( auto __begin = begin-expr,
+               __end = end-expr;
+          __begin != __end;
+          ++__begin ) {
+      for-range-declaration = *__begin;
+      statement
+    }
+  }
+
+The expressions for begin-expr and end-expr depend on the type of "expression",
+and can have the following forms (see the standard for specifics):
+
+  type      begin-expr        end-expr
+  ----      ----------        --------
+  array     __range           __range + bound
+  class     __range.begin()   __range.end()
+  other     begin(__range)    end(__range)
+
+Note that the (dynamically) initialized variables don't have associated
+stmk_init statements because there is no block yet for those statements.
+*/
+typedef struct a_range_based_for_loop *a_range_based_for_loop_ptr;
+typedef struct a_range_based_for_loop {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_statement_ptr
+                decl_statement;
+                        /* A pointer to the "declaration" statement for the
+                           range-based-for loop variable.  This statement is
+                           generated during generic "for" loop processing
+                           (before it's determined that the "for" loop is
+                           actually a range-based-for) and queued on the
+                           list of source sequence entries (though unused
+                           in range-based-for processing). */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_variable_ptr
+                iterator;
+                        /* Pointer to the iteration variable declared in
+                           for-range-declaration.  Dynamically initialized
+                           to *__begin. */
+  a_variable_ptr
+                range;
+                        /* Pointer to the __range temporary variable above.
+                           Initialized to (expression). */
+  a_scope_ptr   range_based_for_scope;
+                        /* An sck_block scope added to surround the
+                           range-based-for statement.  It corresponds to the
+                           outermost set of braces shown above, and the
+                           __range variable is declared in this scope.
+                           The expression is also evaluated in this scope. */
+  a_scope_ptr   begin_end_scope;
+                        /* An sck_block scope added to surround the
+                           __begin and __end variables. */
+  a_scope_ptr   iterator_scope;
+                        /* An sck_block scope added immediately inside the
+                           loop, in which the iterator variable is declared.
+                           The dependent statement of the loop is enclosed by
+                           this scope.  When a variable from the surrounding
+                           context is used as the iterator variable (see
+                           uses_prev_decl_iterator), the scope is still
+                           present but the iterator variable is not declared
+                           there. */
+  a_variable_ptr
+                begin;
+                        /* Pointer to the variable representing the temporary
+                           variable __begin above.  Dynamically initialized to
+                           one of: __range, __range.begin(), or begin(__range)
+                           as appropriate.  NULL if there was an error. */
+  a_variable_ptr
+                end;
+                        /* Pointer to the variable representing the temporary
+                           variable __end above.  Dynamically initialized to
+                           one of: __range + __bound, __range.end(), or
+                           end(__range) as appropriate.  NULL if there was an
+                           error. */
+  an_expr_node_ptr
+                ne_call_expr;
+                        /* Expression for the "__begin != __end" test. */
+  an_expr_node_ptr
+                incr_call_expr;
+                        /* Expression for the "++__begin" increment. */
+} a_range_based_for_loop;
+
+/* FIXME: logically: #if MICROSOFT_EXTENSIONS_ALLOWED */
 /*
 Kind of pattern for a collection type in a for-each statement. 
 */
@@ -14478,7 +14576,7 @@ typedef struct a_for_each_loop {
   } variant;
 } a_for_each_loop;
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+/* FIXME: logically: #endif // MICROSOFT_EXTENSIONS_ALLOWED */
 
 typedef struct a_switch_case_entry *a_switch_case_entry_ptr;
 typedef struct a_switch_case_entry {
@@ -14763,6 +14861,20 @@ typedef struct a_statement {
 			   to from the expr field).  A separate entry is used
 			   to keep the size of a_statement down. */
     } for_loop;
+    /* When kind == stmk_range_based_for: */
+    struct {
+      a_statement_ptr
+                statement;
+                        /* Pointer to the statement that is the body of the
+                           loop (commonly but not necessarily an stmk_block)
+                           that is to be executed on each iteration of the
+                           loop; NULL if there is none. */
+      a_range_based_for_loop_ptr
+                extra_info;
+                        /* Information about the loop control constructs
+                           used in the range-based-for.  The expr field in
+                           the statement is unused. */
+    } range_based_for_loop;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* When kind == stmk_for_each: */
     struct {
@@ -16811,6 +16923,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_label),
   sizeof(an_expr_node),
   sizeof(a_for_loop),
+  sizeof(a_range_based_for_loop),
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sizeof(a_for_each_loop),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

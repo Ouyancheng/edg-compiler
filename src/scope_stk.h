@@ -1777,21 +1777,20 @@ extern void push_file_scope(a_boolean	is_reactivation);
 
 extern void push_block_scope_with_lifetime(an_object_lifetime_ptr olp);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-extern void push_block_scope(a_scope_pointers_block_ptr	pointers_block);
-
 extern void push_block_reactivation_scope(
 			a_scope_ptr			scope,
 			a_scope_pointers_block_ptr	pointers_block);
 
 extern void pop_block_scope(a_boolean	is_final_pop);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+extern void push_block_scope(a_scope_pointers_block_ptr	pointers_block);
 
 extern void push_template_declaration_scope(
 		a_template_decl_info_ptr	decl_info,
 		a_boolean			is_template_param_rescan);
 
-extern a_scope_ptr push_for_init_scope(void);
+extern a_scope_ptr push_for_init_scope(
+                                    a_scope_pointers_block_ptr pointers_block);
 
 extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
                                         a_namespace_ptr assoc_namespace);

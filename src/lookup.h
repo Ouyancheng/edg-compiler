@@ -311,9 +311,10 @@ void add_to_arg_dependent_lookup_list(a_type_ptr		arg_type,
 				      a_type_list_entry_ptr	*type_list);
 
 extern a_symbol_list_entry_ptr argument_dependent_lookup(
-					a_symbol_ptr		normal_sym,
-					a_symbol_locator	*locator,
-					a_type_list_entry_ptr	*type_list);
+				a_symbol_ptr		normal_sym,
+				a_symbol_locator	*locator,
+				a_type_list_entry_ptr	*type_list,
+				a_boolean		include_std_namespace);
 
 extern
 a_type_ptr proxy_class_for_template_param(a_type_ptr   templ_param_type);

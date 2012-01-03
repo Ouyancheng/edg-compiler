@@ -1529,6 +1529,12 @@ types separated by commas (when single_type_required is FALSE).
           /* Condition statements (except in for statements) must end
              with a right parenthesis. */
           if (curr_token != tok_rparen) state.may_be_decl = FALSE;
+        } else if ((flags & DFS_IS_FOR_INIT) && curr_token == tok_colon) {
+          /* If range-based for-statements are permitted, the declaration of
+             the iteration variable may be followed by a colon.  Even if they
+             are not permitted, a colon here would not make a valid expression
+             and error recovery is improved by proceeding with declaration
+             processing. */
         } else {
           /* All other declarations must end in a semicolon. */
           if (curr_token != tok_semicolon) state.may_be_decl = FALSE;

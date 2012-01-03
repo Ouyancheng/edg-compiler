@@ -2123,6 +2123,7 @@ running them through the indicated remapping function.
   remap_orphan_entry_first(iek_label);
   remap_orphan_entry_first(iek_expr_node);
   remap_orphan_entry_first(iek_for_loop);
+  remap_orphan_entry_first(iek_range_based_for_loop);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   remap_orphan_entry_first(iek_for_each_loop);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2224,6 +2225,7 @@ running them through the indicated remapping function.
   remap_orphan_entry_last(iek_label);
   remap_orphan_entry_last(iek_expr_node);
   remap_orphan_entry_last(iek_for_loop);
+  remap_orphan_entry_last(iek_range_based_for_loop);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   remap_orphan_entry_last(iek_for_each_loop);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3379,6 +3381,26 @@ as specified in the control block.
         }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
       }
+      break;
+    case stmk_range_based_for:
+      if (statement->expr != NULL) {
+        traverse_expr(statement->expr, tblock);
+        if (tblock->terminate) goto end_of_routine;
+      }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (statement->variant.range_based_for_loop.extra_info->decl_statement
+                                                                    != NULL) {
+        traverse_statement(
+            statement->variant.range_based_for_loop.extra_info->decl_statement,
+            tblock);
+        if (tblock->terminate) goto end_of_routine;
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      if (statement->variant.range_based_for_loop.statement != NULL) {
+        traverse_statement(statement->variant.range_based_for_loop.statement,
+                           tblock);
+        if (tblock->terminate) goto end_of_routine;
+      }  /* if */
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case stmk_for_each:

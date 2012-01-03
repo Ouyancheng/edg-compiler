@@ -3411,32 +3411,6 @@ processing is done.
                         PS_NO_OPTIONS);
 }  /* push_block_scope_with_lifetime */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-void push_block_scope(a_scope_pointers_block_ptr	pointers_block)
-/*
-Push a block scope and use pointers_block as the pointers block of the
-scope stack entry so that the scope can be reactivated later.
-This routine only needs to be used when a pointers_block is being
-supplied, but it can also be used with a NULL pointers_block.
-If a pointers block is provided, it is cleared by this routine.
-*/
-{
-  if (pointers_block != NULL) {
-    /* Clear the pointers block provided by the caller. */
-    clear_scope_pointers_block(pointers_block);
-  }  /* if */
-  (void)push_scope_full((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
-                        (a_type_ptr)NULL, (a_routine_ptr)NULL,
-                        (a_namespace_ptr)NULL,
-                        (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
-                        (a_template_arg_ptr)NULL,
-                        (a_template_decl_info_ptr)NULL,
-                        (an_object_lifetime_ptr)NULL,
-                        (a_scope_ptr)NULL, pointers_block,
-                        PS_NO_OPTIONS);
-}  /* push_block_scope */
-
 
 void push_block_reactivation_scope(
 				a_scope_ptr			scope,
@@ -3485,19 +3459,42 @@ block scopes.
   pop_scope_full(is_final_pop ? PS_NO_OPTIONS : PS_NOT_FINAL_POP);
 }  /* pop_block_scope */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-a_scope_ptr push_for_init_scope(void)
+void push_block_scope(a_scope_pointers_block_ptr	pointers_block)
+/*
+Push a block scope and use pointers_block as the pointers block of the
+scope stack entry so that the scope can be reactivated later.
+This routine only needs to be used when a pointers_block is being
+supplied, but it can also be used with a NULL pointers_block.
+If a pointers block is provided, it is cleared by this routine.
+*/
+{
+  if (pointers_block != NULL) {
+    /* Clear the pointers block provided by the caller. */
+    clear_scope_pointers_block(pointers_block);
+  }  /* if */
+  (void)push_scope_full((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                        (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                        (a_namespace_ptr)NULL,
+                        (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                        (a_template_arg_ptr)NULL,
+                        (a_template_decl_info_ptr)NULL,
+                        (an_object_lifetime_ptr)NULL,
+                        (a_scope_ptr)NULL, pointers_block,
+                        PS_NO_OPTIONS);
+}  /* push_block_scope */
+
+
+a_scope_ptr push_for_init_scope(a_scope_pointers_block_ptr pointers_block)
 /*
 Push a block scope for a for-init declaration and return a pointer to the IL
-scope.
+scope.  A pointers block to be used for the scope may be specified (or NULL).
 */
 {
   a_scope_stack_entry_ptr  ssep;
   a_scope_ptr              sp;
 
-  (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
-                   (a_type_ptr)NULL, (a_routine_ptr)NULL);
+  push_block_scope(pointers_block);
   ssep = &scope_stack[depth_scope_stack];
   ssep->is_for_init_block = TRUE;
   sp = ensure_il_scope_exists(ssep);
@@ -5389,14 +5386,12 @@ curr_routine points to the routine entry; otherwise, it is NULL.
         get_variable_initializer(var_ptr,
                                  scope_stack[depth_scope_stack].il_scope,
                                  &init_kind, &ip);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (var_ptr->is_for_each_iterator) {
-          /* Iterator variables of C++/CLI "for each" statements shouldn't
-             get warnings if unreferenced.  The loop itself might be the
-             side effect. */
+        if (var_ptr->is_enhanced_for_iterator) {
+          /* Iterator variables of C++/CLI "for each" statements or
+             range-based-for statements shouldn't get warnings if unreferenced.
+             The loop itself might be the side effect. */
           severity = es_remark;
         } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         if (init_kind == (an_init_kind)initk_dynamic) {
           a_dynamic_init_ptr dip = ip->dynamic;

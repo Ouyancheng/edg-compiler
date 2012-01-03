@@ -2532,8 +2532,8 @@ Display the indicated variable.
   if (ptr->is_initonly) {
     disp_boolean("is_initonly", TRUE);
   }  /* if */
-  if (ptr->is_for_each_iterator) {
-    disp_boolean("is_for_each_iterator", TRUE);
+  if (ptr->is_enhanced_for_iterator) {
+    disp_boolean("is_enhanced_for_iterator", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->initializer_in_class) {
@@ -4263,6 +4263,43 @@ Display the indicated block.
   }  /* if */
 }  /* disp_block */
 
+
+static void disp_range_based_for_statement(a_statement_ptr ptr)
+/*
+Display a range-based-for statement.
+*/
+{
+  a_range_based_for_loop_ptr extra_info =
+                                  ptr->variant.range_based_for_loop.extra_info;
+
+  (void)printf("stmk_range_based_for\n");
+  disp_ptr("statement",
+           (char *)ptr->variant.range_based_for_loop.statement,
+           iek_statement);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  disp_ptr("decl_statement", (char *)extra_info->decl_statement,
+           iek_statement);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  disp_ptr("iterator", (char *)extra_info->iterator,
+           iek_variable);
+  disp_ptr("range", (char *)extra_info->range,
+           iek_variable);
+  disp_ptr("range_based_for_scope", (char *)extra_info->range_based_for_scope,
+           iek_scope);
+  disp_ptr("begin_end_scope", (char *)extra_info->begin_end_scope,
+           iek_scope);
+  disp_ptr("iterator_scope", (char *)extra_info->iterator_scope,
+           iek_scope);
+  disp_ptr("begin", (char *)extra_info->begin,
+           iek_variable);
+  disp_ptr("end", (char *)extra_info->end,
+           iek_variable);
+  disp_ptr("ne_call_expr", (char *)extra_info->ne_call_expr,
+           iek_expr_node);
+  disp_ptr("incr_call_expr", (char *)extra_info->incr_call_expr,
+           iek_expr_node);
+}  /* disp_range_based_for_statement */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void disp_for_each_statement(a_statement_ptr ptr)
@@ -4475,6 +4512,9 @@ do_label:
                  (char *)ptr->variant.for_loop.extra_info->for_init_scope,
                  iek_scope);
       }  /* if */
+      break;
+    case stmk_range_based_for:
+      disp_range_based_for_statement(ptr);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case stmk_for_each:
@@ -6454,6 +6494,7 @@ This routine is called during IL walking.
     case iek_microsoft_try_supplement:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_for_loop:
+    case iek_range_based_for_loop:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_for_each_loop:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

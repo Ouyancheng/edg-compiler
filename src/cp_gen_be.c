@@ -11731,6 +11731,38 @@ Generate code for the indicated "for" statement.
   if (for_init_scope != NULL) pop_name_context();
 }  /* gen_for_statement */
 
+
+static void gen_range_based_for_statement(a_statement_ptr statement)
+/*
+Generate code for the indicated range-based-for statement.
+*/
+{
+  a_range_based_for_loop_ptr rbflp =
+                            statement->variant.range_based_for_loop.extra_info;
+  a_variable_ptr      ref_var;
+
+  write_tok_str("for (");
+  /* Advance past the decl-statement entry. */
+  adv_curr_source_sequence_entry();
+  /* Generate the iteration variable. */
+  gen_variable_decl(/*is_condition=*/FALSE, /*is_iterator=*/TRUE,
+                    /*for_init=*/FALSE, /*suppress_specifiers=*/FALSE,
+                    (a_boolean *)NULL);
+  write_tok_str(" : ");
+  /* Generate the expression.  It's the initializer for the range variable. */
+  ref_var = rbflp->range;
+  check_assertion(ref_var->init_kind == (an_init_kind)initk_dynamic);
+  gen_dynamic_init(ref_var->initializer.dynamic,
+                   ref_var->type,
+                   /*parenthesized_init=*/FALSE,
+                   /*force_parens=*/FALSE,
+                   /*obj_expr_of_mfunc_operator=*/FALSE,
+                   /*is_static_cast=*/FALSE);
+  write_tok_str(") ");
+  /* Generate the dependent statement. */
+  gen_statement(statement->variant.range_based_for_loop.statement);
+}  /* gen_range_based_for_statement */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void gen_for_each_statement(a_statement_ptr statement)
@@ -13358,6 +13390,10 @@ one that yields the value) of a statement expression.
       /* "for" statement. */
       gen_for_statement(statement);
       break;
+    case stmk_range_based_for:
+      /* range-based-for statement. */
+      gen_range_based_for_statement(statement);
+      break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case stmk_for_each:
       /* "for each" statement. */
@@ -14108,8 +14144,8 @@ static void gen_variable_decl(a_boolean is_condition,
 Generate a declaration of the variable indicated by the current source
 sequence entry.  If is_condition is TRUE, this variable is declared in
 a condition declaration.  If is_iterator is TRUE, this variable is declared
-as an iteration variable in a "for each" statement.  for_init is TRUE if
-this variable is in a for-init.  suppress_specifiers and
+as an iteration variable in a "for each" or range-based-for statement.
+for_init is TRUE if this variable is in a for-init.  suppress_specifiers and
 another_decl_in_comma_list deal with comma lists: suppress_specifiers is
 TRUE if the current declaration is a continuation of a comma list, and
 *another_decl_in_comma_list is returned TRUE if the declaration following
@@ -14207,7 +14243,7 @@ this one is such a continuation.
     consider_initialization = TRUE;
   }  /* if */
   /* Do not generate the initializer for an iterator variable of a for-each
-     statement as the initializer is compiler generated. */
+     or range-based-for statement as the initializer is compiler generated. */
   if (is_iterator) consider_initialization = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (embedded_constructs) {
@@ -14305,8 +14341,8 @@ this one is such a continuation.
       }  /* if */
     } else if ((is_condition || is_iterator) &&
                storage_class == (a_storage_class)sc_auto) {
-      /* Condition declarations and "for each" statement iteration variables
-         do not allow a storage class. */
+      /* Condition declarations, "for each", and range-based-for statement
+         iteration variables do not allow a storage class. */
     } else if (var->declared_with_auto_type_specifier &&
                storage_class == (a_storage_class)sc_auto) {
       /* The "auto" type specifier cannot be combined with "auto" used as a
@@ -14400,7 +14436,7 @@ this one is such a continuation.
     adv_curr_source_sequence_entry();
   }  /* if */
   /* Output the semicolon or comma at the end of the declaration, but not
-     for a condition or a "for each" iterator. */
+     for a condition, "for each" or range-based-for iterator. */
   if (!is_condition && !is_iterator) {
     a_boolean  use_comma_terminator = FALSE;
     /* See if there are comma-separated declarations attached to this one. */

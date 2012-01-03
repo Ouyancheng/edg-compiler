@@ -184,6 +184,12 @@ extern an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop,
 extern an_expr_node_ptr scan_typed_expression(a_type_ptr    required_type,
 					      an_error_code err_code);
 
+extern void check_range_based_for_statement(
+                          a_statement_ptr            statement,
+                          a_token_sequence_number    tok_seq_number,
+                          a_scope_pointers_block_ptr begin_end_pointers_block,
+                          a_scope_pointers_block_ptr iterator_pointers_block);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern
 void check_for_each_statement(a_statement_ptr            statement,
@@ -195,6 +201,8 @@ extern void scan_previously_decl_iterator_name(
                                       a_for_each_loop_ptr felp,
                                       an_operand_ptr      prev_decl_iterator);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+extern void scan_range_based_for_expression(a_statement_ptr statement);
 
 extern void scan_default_arg_expr(a_param_type_ptr ptp);
 

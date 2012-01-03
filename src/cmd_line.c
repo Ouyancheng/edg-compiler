@@ -2041,6 +2041,17 @@ by a command line option.
     if (!option_kind_used[(int)optk_cpp11_sfinae_ignore_access]) {
       if (cpp11_sfinae_enabled) cpp11_sfinae_ignore_access = FALSE;
     }  /* if */
+    range_based_for_enabled = (microsoft_version >= 1700 || cppcli_enabled);
+#if !CPP11_IL_EXTENSIONS_SUPPORTED
+#if DO_IL_LOWERING
+    /* If the back end doesn't support range-based-for, make sure we're
+       lowering. */
+    range_based_for_enabled = range_based_for_enabled && !suppress_il_lowering;
+#else /* !DO_IL_LOWERING */
+    /* No lowering and no back-end support. */
+    range_based_for_enabled = FALSE;
+#endif /* DO_IL_LOWERING */
+#endif /* !CPP11_IL_EXTENSIONS_SUPPORTED */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
      looking up names in elaborated type specifiers.  This flag causes
@@ -2363,6 +2374,7 @@ process.
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
   char16_t_and_char32_t_are_keywords = FALSE;
+  range_based_for_enabled = FALSE;
 }  /* set_c_mode_flags */
 
 
@@ -2611,6 +2623,7 @@ mode (e.g., exception handling).
        char16_t/char32_t keywords. */
     uliterals_enabled = TRUE;
   }  /* if */
+  range_based_for_enabled = TRUE;
 }  /* check_and_set_cpp11_mode_options */
 
 
@@ -4846,6 +4859,11 @@ file.
   comment_undefined_macro_name(
                      DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE);
 #endif /* defined(DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE) */
+#if defined(DEFAULT_RANGE_BASED_FOR_ENABLED)
+  define_numeric_valued_macro(DEFAULT_RANGE_BASED_FOR_ENABLED);
+#else /* !defined(DEFAULT_RANGE_BASED_FOR_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_RANGE_BASED_FOR_ENABLED);
+#endif /* defined(DEFAULT_RANGE_BASED_FOR_ENABLED) */
 #if defined(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE)
   define_numeric_valued_macro(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE);
 #else /* !defined(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE) */
@@ -8878,8 +8896,15 @@ enable_microsoft_mode:
 #else /* !CPP11_IL_EXTENSIONS_SUPPORTED */
   /* Verify that no feature requiring C++11 back end support is enabled. */
   check_assertion(!(cpp11_mode || static_assert_enabled || lambdas_enabled ||
+                    (range_based_for_enabled
+#if DO_IL_LOWERING
+                                             && suppress_il_lowering
+#endif /* DO_IL_LOWERING */
+                                                                    ) ||
                     rvalue_references_enabled || nullptr_enabled));
 #endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
+  /* Range-based-for relies on the std namespace being enabled. */
+  check_assertion(namespaces_enabled || !range_based_for_enabled);
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */
@@ -9628,6 +9653,7 @@ variables declared in cmd_line.h.
   gnu_c89_inlining = FALSE;
   packing_applies_to_base_classes =
                      TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES;
+  range_based_for_enabled = DEFAULT_RANGE_BASED_FOR_ENABLED;
 }  /* cmd_line_static_var_init */
 
 

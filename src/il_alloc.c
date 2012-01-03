@@ -2156,8 +2156,8 @@ Clear the fields of the given variable to default values.
   vp->is_pack_element             = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   vp->is_initonly                 = FALSE;
-  vp->is_for_each_iterator        = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  vp->is_enhanced_for_iterator    = FALSE;
   vp->initializer_in_class        = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
   /* One of the variant fields, chosen arbitrarily, is initialized. */
@@ -3170,6 +3170,26 @@ Return a pointer to the entry.
 }  /* alloc_lowered_eh_construct_node */
 
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+
+static void clear_range_based_for_loop(a_range_based_for_loop_ptr rbflp)
+/*
+Clear the indicated range-based-for loop entry.
+*/
+{
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  rbflp->decl_statement = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  rbflp->iterator = NULL;
+  rbflp->range = NULL;
+  rbflp->range_based_for_scope = NULL;
+  rbflp->begin_end_scope = NULL;
+  rbflp->iterator_scope = NULL;
+  rbflp->begin = NULL;
+  rbflp->end = NULL;
+  rbflp->ne_call_expr = NULL;
+  rbflp->incr_call_expr = NULL;
+}  /* clear_range_based_for_loop */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void set_for_each_loop_kind(a_for_each_loop_ptr     felp,
@@ -3331,6 +3351,8 @@ fields to default values.
 {
   a_block_ptr          bp;
   a_for_loop_ptr       flip;
+  a_range_based_for_loop_ptr
+                       rbflp;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_for_each_loop_ptr  felp;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3380,6 +3402,12 @@ fields to default values.
 #if UPC_EXTENSIONS_ALLOWED
       flip->affinity = NULL;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+      break;
+    case stmk_range_based_for:
+      sp->variant.range_based_for_loop.statement = NULL;
+      sp->variant.range_based_for_loop.extra_info = rbflp =
+         (a_range_based_for_loop_ptr)alloc_cil(sizeof(a_range_based_for_loop));
+      clear_range_based_for_loop(rbflp);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case stmk_for_each:

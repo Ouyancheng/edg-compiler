@@ -138,6 +138,8 @@ be restored).
     dps->has_cli_literal_keyword = FALSE;
     dps->initializer_is_single_expr = FALSE;
     dps->is_explicit_instantiation = FALSE;
+    dps->is_for_init_decl = FALSE;
+    dps->range_based_for = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
@@ -154,6 +156,7 @@ be restored).
     dps->auto_type = NULL;
     dps->deduced_auto_type = NULL;
     dps->param_id = NULL;
+    dps->param_id_list = NULL;
     dps->upc_block_size = UPC_BLOCK_SIZE_NONE;
     dps->p_postfix_entities = NULL;
     dps->assoc_func_decl_state = NULL;
@@ -11295,8 +11298,7 @@ return TRUE and set *kind to the corresponding name-linkage kind.
 }  /* scan_name_linkage_string */
 
 
-static void linkage_specification(a_decl_parse_state  *dps,
-                                  a_param_id_ptr      param_id_list)
+static void linkage_specification(a_decl_parse_state  *dps)
 /*
 The caller has determined that we are at the start of a C++ linkage
 specification -- that is, the current token is "extern" and it is followed
@@ -11359,7 +11361,7 @@ specifier is restored.  dps describes the linkage-specification declaration.
       declaration(dps->function_definition_allowed,
                   dps->is_old_style_param_decl,
                   /*is_top_level_declaration=*/FALSE,
-                  /*marked_as_gnu_extension=*/FALSE, param_id_list,
+                  /*marked_as_gnu_extension=*/FALSE, dps->param_id_list,
                   (a_source_range *)NULL);
     }  /* while */
     /* Restore the default linkage to the value it had before the declaration
@@ -11399,7 +11401,7 @@ specifier is restored.  dps describes the linkage-specification declaration.
       scope_stack_top().decl_parse_state = dps;
       declaration(dps->function_definition_allowed,
                   dps->is_old_style_param_decl, dps->is_top_level_declaration,
-                  /*marked_as_gnu_extension=*/FALSE, param_id_list,
+                  /*marked_as_gnu_extension=*/FALSE, dps->param_id_list,
                   &linkage_spec_range);
       scope_stack_top().decl_parse_state = saved_dps;
       /* pop_name_linkage will already have been called in declaration
@@ -12083,7 +12085,7 @@ Return a pointer to the variable that is declared.
          are not scanned here. */
       a_for_each_loop_ptr felp = 
                           for_each_statement->variant.for_each_loop.extra_info;
-      vp->is_for_each_iterator = TRUE;
+      vp->is_enhanced_for_iterator = TRUE;
       felp->uses_prev_decl_iterator = FALSE;
       felp->iterator.variable = vp;
     } else
@@ -13991,15 +13993,13 @@ prototype scope associated with func_info to the current scope.
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 static void prep_old_style_param_decl(a_decl_parse_state  *state,
                                       a_func_info_block   *func_info,
-                                      a_param_id_ptr      param_id_list,
                                       a_symbol_locator    *locator)
 /*
 The current declaration -- described by state, func_info, and locator -- is
 (apparently) an old-style C parameter declaration.  Perform various checks
 and updates prior to handling it as a variable declaration in the
 "variable_declaration()" function (or as a typedef declaration in some error
-cases).  param_id_list describes the parameter names that were scanned in the
-preceding function declarator.
+cases).
 */
 {
   a_param_id_ptr  param_id;
@@ -14020,7 +14020,7 @@ preceding function declarator.
     param_id = NULL;
   } else {
     /* Check that the name declared was mentioned in the parameter list. */
-    param_id = param_id_on_list(locator, param_id_list);
+    param_id = param_id_on_list(locator, state->param_id_list);
     if (param_id == NULL) {
       /* The identifier was not found on the list.  Issue an error.  Leaving
          param_id set to NULL, ensures the declaration will be treated as a
@@ -14644,6 +14644,7 @@ if prior declarations specified an alignment attribute.
 
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
+
 static void variable_declaration(a_decl_parse_state  *state,
                                  a_symbol_locator    *locator,
                                  a_decl_pos_block    *decl_pos_block)
@@ -14728,6 +14729,11 @@ if one is present.
   } else if (curr_token == tok_assign) {
     has_initializer = TRUE;
     decl_pos_block->var_init_range.start = pos_curr_token;
+  } else if (range_based_for_enabled && state->is_for_init_decl &&
+             curr_token == tok_colon) {
+    /* The for-init declaration of a range-based "for" loop: Stop here and let
+       statement processing handle the colon and what follows. */
+    state->range_based_for = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
   } else if (gpp_mode && gnu_version >= 40400 && curr_token == tok_lbrace &&
              is_aggregate_or_union_type(state->type)) {
@@ -14817,6 +14823,7 @@ if one is present.
         is_variable_def = TRUE;
       }  /* if */
       srk_flags |= SRK_INITIALIZATION;
+    is_variable_def = TRUE;
     } else if (C_dialect == C_dialect_cplusplus) {
       /* Variable declaration in C++ mode with no explicit initializer. */
       if (microsoft_mode &&
@@ -14828,6 +14835,11 @@ if one is present.
            definition. */
         is_tentative_def = TRUE;
         srk_flags |= SRK_TENTATIVE_DEF;
+      } else if (state->range_based_for) {
+        /* The variable declaration in a for-init declaration for a range-based
+           "for" loop is always a definition and it implies initialization. */
+        is_variable_def = TRUE;
+        srk_flags |= SRK_INITIALIZATION;
       } else if (state->storage_class != (a_storage_class)sc_extern) {
         /* In C++ all other variable declarations are definitions, except
            those with a storage class of extern. */
@@ -14988,6 +15000,8 @@ if one is present.
     }  /* if */
   } else if (state->is_old_style_param_decl) {
     /* Don't worry about a missing initializer. */
+  } else if (state->range_based_for) {
+    /* Initialization is handled by statement processing. */
   } else if (is_variable_def && !is_error_locator(*locator) &&
              var_ptr->init_kind == (an_init_kind)initk_none) {
     /* An uninitialized variable or static data member is being defined, but
@@ -15176,19 +15190,16 @@ decl_pos_block.
 
 
 static an_end_of_decl_action
-             check_special_declaration_form(a_decl_parse_state  *state,
-                                            a_param_id_ptr      param_id_list,
-                                            a_token_kind        *final_token)
+              check_special_declaration_form(a_decl_parse_state  *state,
+                                             a_token_kind        *final_token)
 /*
 A helper routine for "declaration(...)" (see below) that handles various forms
 of declarations (like templates, namespaces, etc.) that do not start with a
 decl-specifier or a declarator.  The declaration is described by state.
-param_id_list describes the names of parameters listed in the preceding
-function declarator if the current declaration looks like an old-style C
-parameter list.  *final_token (which should be set to tok_semicolon by the
-caller) may be set to a different token if a form not ending with a semicolon
-is processed.  This function is called from "declaration" and its return value
-indicates how processing should proceed after the call.
+*final_token (which should be set to tok_semicolon by the caller) may be set
+to a different token if a form not ending with a semicolon is processed.  This
+function is called from "declaration" and its return value indicates how
+processing should proceed after the call.
 */
 {
   an_end_of_decl_action  end_of_decl_action = eoda_not_at_end;
@@ -15226,7 +15237,7 @@ indicates how processing should proceed after the call.
         }  /* if */
         state->prefix_attributes = NULL;
       }  /* if */
-      linkage_specification(state, param_id_list);
+      linkage_specification(state);
       end_of_decl_action = eoda_done;
     } else if (curr_token == tok_template ||
                curr_token == tok_export ||
@@ -15420,7 +15431,13 @@ based on the current mode and the given declaration parsing state.
                                DSI_REGISTER_ID_ALLOWED;
 
   if (!state->is_asm_function) {
-    dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+    if (!(state->is_for_init_decl && range_based_for_enabled)) {
+      /* FIXME: Not sure we want to disable this for all "for" statements,
+         but we want to disable it for range-based-for statements, and it's
+         too early to tell the difference (i.e., state->range_based_for is
+         FALSE at this point). */
+      dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+    }  /* if */
     dsi_flags |= DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
     /* Within a non-block linkage specification no storage class (except
        typedef?) is allowed (inferred from ARM 7.4). */
@@ -15693,6 +15710,7 @@ to the "auto" type specifier used to introduce a trailing return type.
 */
 {
   if (dps->auto_type_specifier_seen && !dps->has_trailing_return_type &&
+      !dps->range_based_for &&
       (!dps->has_initializer || !dps->auto_type_allowed) &&
       !(dps->type != NULL && is_error_type(dps->type))) {
     /* The "auto" type specifier was seen, but we never saw an initializer
@@ -15754,33 +15772,28 @@ to the "auto" type specifier used to introduce a trailing return type.
 }  /* f_check_use_of_auto_type */
 
 
-void declaration(a_boolean       function_definition_allowed,
-                 a_boolean       is_old_style_param_decl,
-                 a_boolean       is_top_level_declaration,
-                 a_boolean       marked_as_gnu_extension,
-                 a_param_id_ptr  param_id_list,
-                 a_source_range  *linkage_spec_range_ptr)
+void scan_nonmember_declaration(a_decl_parse_state  *dps,
+                                a_source_range      *linkage_spec_range_ptr)
 /*
 This routine scans declarations in the following scope kinds: file scope,
 namespace scope, function scope, and block scope.  It is also used to scan
-old-style C parameter declarations (in which case is_old_style_param_decl is
-TRUE and param_id_list will list the parameter names in the associated
-function declarator).  Declarations in class scope are handled by the similar
-routine "class_member_declaration".  Ordinary (as opposed to old-style)
-function parameter declarations are scanned by function_declarator, and
-template parameters are scanned by scan_a_template_parameter_declaration.
+old-style C parameter declarations (in which case dps->is_old_style_param_decl
+is TRUE and dps->param_id_list will list the parameter names in the associated
+function declarator).
 
-function_definition_allowed is TRUE if a function definition may be parsed
-(i.e., in file and namespace scopes).  is_top_level_declaration is TRUE when
-a declaration appears at file scope and is not part of any other declarative
-structure; it is used for precompiled-header processing.
+*dps tracks the properties of the declaration being parsed.  The caller can
+set some of its fields to direct processing (e.g., dps->is_old_style_param_decl
+should be set to TRUE and dps->param_id_list should list the parameter names in
+the associated function declarator to scan old-style parameter definitions),
+while other fields will be set so the caller can inspect the outcome of the
+declaration (e.g., dps->sym points to the principal symbol, if any, entered for
+the declaration).
+
 linkage_spec_range_ptr is non-NULL when this declaration includes an explicit
 linkage specification, but is otherwise NULL, even when it is part of a block
 of declarations governed by a linkage specification (i.e., it is non-NULL for
 `extern "C" void f()' and NULL for `extern "C" { void f() }'); when it is
 non-NULL, it indicates the source range of the linkage specifier.
-marked_as_gnu_extension indicates that the caller already scanned the GNU
-keyword __extension__.
 
 Broadly speaking, three kinds of declarations are handled here:
   1. Declarations consisting of "declarators" optionally preceded by some
@@ -15798,6 +15811,11 @@ Broadly speaking, three kinds of declarations are handled here:
      include namespace declarations, using-declarations, template declarations,
      static_assert constructs, and so forth.  These cases are treated by the
      call to "check_special_declaration_form".
+
+Declarations in class scope are handled by the similar routine
+"class_member_declaration".  Ordinary (as opposed to old-style) function
+parameter declarations are scanned by function_declarator, and template
+parameters are scanned by scan_a_template_parameter_declaration.
 */
 {
   a_decl_flag_set              dsi_flags, di_flags;
@@ -15807,36 +15825,27 @@ Broadly speaking, three kinds of declarations are handled here:
   a_boolean                    first_declarator = TRUE;
   a_boolean                    access_checks_deferred = FALSE;
   a_token_kind                 final_token = tok_semicolon;
-  a_decl_parse_state           state;
   a_statement_ptr              decl_stmt = NULL;
   a_decl_pos_block             decl_pos_block;
   a_type_qualifier_set         saved_qualifiers;
   a_source_position            saved_qualifiers_pos;
+  a_boolean                    is_old_style_param_decl =
+                                                 dps->is_old_style_param_decl;
 
-  db_enter(3, "declaration");
   set_err_pos_to_curr_token();
-  /* Initialize structures to hold information about the declaration to be
-     parsed. */
-  init_decl_parse_state(&state);
-  state.auto_type_allowed = auto_type_specifier_enabled;
-  copy_source_position(pos_curr_token, state.start_pos);
-  state.function_definition_allowed = function_definition_allowed;
-  state.is_old_style_param_decl = is_old_style_param_decl;
-  state.is_top_level_declaration = is_top_level_declaration;
+  dps->auto_type_allowed = auto_type_specifier_enabled;
+  copy_source_position(pos_curr_token, dps->start_pos);
   clear_decl_pos_block(&decl_pos_block);
-  if (gnu_mode) {
-    if (marked_as_gnu_extension) {
-      state.marked_as_gnu_extension = TRUE;
-    } else if (curr_token == tok_extension) {
-      /* Record the GNU C __extension__ annotation. */
-      (void)get_token();
-      state.marked_as_gnu_extension = TRUE;
-    }  /* if */
+  if (gnu_mode && !dps->marked_as_gnu_extension &&
+      curr_token == tok_extension) {
+    /* Record the GNU C __extension__ annotation. */
+    (void)get_token();
+    dps->marked_as_gnu_extension = TRUE;
   }  /* if */
   if (depth_stmt_stack >= 0) {
     decl_stmt = struct_stmt_stack[depth_stmt_stack].curr_decl_statement;
     if (decl_stmt != NULL) {
-      state.p_postfix_entities = &decl_stmt->variant.decl.entities;
+      dps->p_postfix_entities = &decl_stmt->variant.decl.entities;
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -15853,13 +15862,13 @@ Broadly speaking, three kinds of declarations are handled here:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (linkage_spec_range_ptr != NULL) {
     /* The caller has already scanned the linkage specifier. */
-    state.is_linkage_spec_decl = TRUE;
-    state.restore_name_linkage = TRUE;
+    dps->is_linkage_spec_decl = TRUE;
+    dps->restore_name_linkage = TRUE;
     /* The caller already has a declaration parse state.  It may have Microsoft
        attributes; if so, move them to the current state. */
     check_assertion(scope_stack_top().decl_parse_state != NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    state.ms_attributes = scope_stack_top().decl_parse_state->ms_attributes;
+    dps->ms_attributes = scope_stack_top().decl_parse_state->ms_attributes;
     scope_stack_top().decl_parse_state->ms_attributes = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Called in the midst of an ``extern "C"'' declaration, so
@@ -15873,7 +15882,7 @@ Broadly speaking, three kinds of declarations are handled here:
     decl_pos_block.specifiers_range.start = linkage_spec_range_ptr->start;
     decl_pos_block.specifiers_range.end = linkage_spec_range_ptr->end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  } else if (!function_definition_allowed) {
+  } else if (!dps->function_definition_allowed) {
     /* Called while processing a routine -- select_curr_construct_pragmas
        will already have been called. */
   } else {
@@ -15882,18 +15891,17 @@ Broadly speaking, three kinds of declarations are handled here:
        processing. */
     (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
   }  /* if */
-  if (function_definition_allowed) {
+  if (dps->function_definition_allowed) {
     /* This is a file scope or namespace scope declaration.  Indicate
        that access checking should be deferred until the declarator has
        been scanned. */
     begin_deferral_of_access_checks();
     access_checks_deferred = TRUE;
   }  /* if */
-  state.prefix_attributes = scan_attributes(al_prefix);
+  dps->prefix_attributes = scan_attributes(al_prefix);
   /* Handle any cases that don't start with a decl-specifier or a
      declarator. */
-  switch (check_special_declaration_form(&state, param_id_list,
-                                         &final_token)) {
+  switch (check_special_declaration_form(dps, &final_token)) {
     case eoda_not_at_end:        break;
     case eoda_done:              goto return_point;
     case eoda_skip_final_token:  goto advance_past_final_token;
@@ -15901,22 +15909,22 @@ Broadly speaking, three kinds of declarations are handled here:
     default:                     unexpected_condition();
   }  /* switch */
   add_stop_token(tok_semicolon);
-  state.need_semicolon_remove_stop_token = TRUE;
+  dps->need_semicolon_remove_stop_token = TRUE;
   /* Set the flags for calling decl_specifiers. */
-  dsi_flags = get_decl_specifiers_flags(&state);
+  dsi_flags = get_decl_specifiers_flags(dps);
   /* Scan the initial declaration specifiers (including storage class,
      type specifiers, and type qualifiers).  For a function definition,
      the specifiers can be omitted entirely. */
-  decl_specifiers(dsi_flags, &state, &decl_pos_block);
-  switch (prep_for_declarator(&state, &di_flags)) {
+  decl_specifiers(dsi_flags, dps, &decl_pos_block);
+  switch (prep_for_declarator(dps, &di_flags)) {
     case eoda_not_at_end:        break;
     case eoda_skip_final_token:  goto advance_past_final_token;
     case eoda_deferred_actions:  goto deferred_fixups;
     default:                     unexpected_condition();
   }  /* switch */
   /* Save some state that must be restored for each declarator. */
-  saved_qualifiers = state.qualifiers;
-  saved_qualifiers_pos = state.qualifiers_pos;
+  saved_qualifiers = dps->qualifiers;
+  saved_qualifiers_pos = dps->qualifiers_pos;
   /* Scan the declarator list. */
   do {
     an_il_entity_list_entry_ptr  saved_entities = NULL;
@@ -15924,23 +15932,23 @@ Broadly speaking, three kinds of declarations are handled here:
       /* We've just skipped a comma separating two declarators. */
       /* Before parsing the next declaration, run any end-of-parse actions
          needed for the previous declarator. */
-      run_end_of_parse_actions(&state);
+      run_end_of_parse_actions(dps);
       /* Reinitialize the declarator-specific parts of the parse state. */
-      start_secondary_declarator(&state);
-      state.qualifiers = saved_qualifiers;
-      state.qualifiers_pos = saved_qualifiers_pos;
-      /* Re-initialize state.is_old_style_param_decl for every declarator,
+      start_secondary_declarator(dps);
+      dps->qualifiers = saved_qualifiers;
+      dps->qualifiers_pos = saved_qualifiers_pos;
+      /* Re-initialize dps->is_old_style_param_decl for every declarator,
          because it might have been modified during the processing of the prior
          declarator (e.g., as an error recovery strategy). */
-      state.is_old_style_param_decl = is_old_style_param_decl;
+      dps->is_old_style_param_decl = is_old_style_param_decl;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode && !C_mode() && microsoft_version >= 1000 &&
           !is_abstract_or_real_declarator_start() &&
           is_decl_start(IDS_MS_ATTRIB_NOT_ALLOWED)) {
         /* Microsoft C++ compilers allow decl-specifiers to appear after the
            comma separating two declarators.  E.g.: "int i, char *s;" */
-        state.auto_type_allowed = FALSE;
-        scan_microsoft_secondary_decl_specifiers(dsi_flags, &state,
+        dps->auto_type_allowed = FALSE;
+        scan_microsoft_secondary_decl_specifiers(dsi_flags, dps,
                                                  &decl_pos_block);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -15961,94 +15969,95 @@ Broadly speaking, three kinds of declarations are handled here:
          the specifier attributes.  GNU versions prior to 3.1 treated all
          prefix attributes as specifier attributes; we emulate the more
          recent (GNU C/C++ 3.1 and later) behavior. */
-      scan_gnu_declarator_attributes(&state);
+      scan_gnu_declarator_attributes(dps);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     add_stop_token(tok_comma);
-    state.need_comma_remove_stop_token = TRUE;
+    dps->need_comma_remove_stop_token = TRUE;
     add_stop_token(tok_assign);
-    state.need_assign_remove_stop_token = TRUE;
-    if (function_definition_allowed) {
+    dps->need_assign_remove_stop_token = TRUE;
+    if (dps->function_definition_allowed) {
       add_stop_token(tok_lbrace);
-      state.need_lbrace_remove_stop_token = TRUE;
+      dps->need_lbrace_remove_stop_token = TRUE;
     }  /* if */
     clear_func_info(&func_info);
 #if ASM_FUNCTION_ALLOWED
-    if (state.declared_storage_class == (a_storage_class)sc_asm) {
+    if (dps->declared_storage_class == (a_storage_class)sc_asm) {
       func_info.is_asm_function = TRUE;
     }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
-    declarator(di_flags, &state, /*member_parent_type=*/(a_type_ptr)NULL,
+    declarator(di_flags, dps, /*member_parent_type=*/(a_type_ptr)NULL,
                &locator, &func_info, &decl_pos_block);
-    is_function = (state.declared_storage_class !=
+    is_function = (dps->declared_storage_class !=
                                                 (a_storage_class)sc_typedef &&
                    !is_old_style_param_decl &&
-                   is_function_type(state.type));
+                   is_function_type(dps->type));
 #if GNU_EXTENSIONS_ALLOWED
-    scan_gnu_asm_name(&state);
-    scan_gnu_declarator_attributes(&state);
+    scan_gnu_asm_name(dps);
+    scan_gnu_declarator_attributes(dps);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    if (state.p_postfix_entities != NULL) {
+    if (dps->p_postfix_entities != NULL) {
       /* If we are in a declaration statement, temporarily put aside any
          associated entities that were declared after the last declarator-id.
          They will be appended (below) after the entity associated with that
          declarator-id. */
-      saved_entities = *state.p_postfix_entities;
-      *state.p_postfix_entities = NULL;
+      saved_entities = *dps->p_postfix_entities;
+      *dps->p_postfix_entities = NULL;
     }  /* if */
     if (is_old_style_param_decl) {
-      prep_old_style_param_decl(&state, &func_info, param_id_list, &locator);
+      prep_old_style_param_decl(dps, &func_info, &locator);
     }  /* if */
-    check_for_definition_in_return_type(&state);
+    check_for_definition_in_return_type(dps);
     if (is_function && any_cfront_mode()) {
       /* Check for the declaration with a "member function typedef" type -- it
          is only supposed to be used for pointer-to-member declarations (only
          in cfront compatibility mode). */
-      if (check_member_function_typedef(state.type, &state.start_pos)) {
+      if (check_member_function_typedef(dps->type, &dps->start_pos)) {
         is_function = FALSE;
-        invalidate_type(&state);
+        invalidate_type(dps);
       }  /* if */
     }  /* if */
-    if (state.need_lbrace_remove_stop_token) {
+    if (dps->need_lbrace_remove_stop_token) {
       remove_stop_token(tok_lbrace);
-      state.need_lbrace_remove_stop_token = FALSE;
+      dps->need_lbrace_remove_stop_token = FALSE;
     }  /* if */
     remove_stop_token(tok_assign);
-    state.need_assign_remove_stop_token = FALSE;
+    dps->need_assign_remove_stop_token = FALSE;
     if (is_function) {
-      switch (function_declaration(&state, &func_info, &locator,
+      switch (function_declaration(dps, &func_info, &locator,
                                    &decl_pos_block, &final_token)) {
         case eoda_not_at_end:        break;
         case eoda_skip_final_token:  goto advance_past_final_token;
         case eoda_done:              goto return_point;
         default:                     unexpected_condition();
       }  /* switch */
-    } else if (state.declared_storage_class != (a_storage_class)sc_typedef) {
-      variable_declaration(&state, &locator, &decl_pos_block);
+    } else if (dps->declared_storage_class != (a_storage_class)sc_typedef) {
+      variable_declaration(dps, &locator, &decl_pos_block);
+      if (dps->range_based_for) goto advance_past_final_token;
     } else {
-      typedef_declaration(&state, &locator, &decl_pos_block);
+      typedef_declaration(dps, &locator, &decl_pos_block);
     }  /* if */
     done_with_func_info(func_info);
     if (saved_entities != NULL) {
       /* Append entities declared after the declarator-id (e.g., in an array
          dimension) to the list of entities associated with the current
          declaration statement. */
-      while (*state.p_postfix_entities != NULL) {
-        state.p_postfix_entities = &(*state.p_postfix_entities)->next;
+      while (*dps->p_postfix_entities != NULL) {
+        dps->p_postfix_entities = &(*dps->p_postfix_entities)->next;
       }  /* while */
-      *state.p_postfix_entities = saved_entities;
+      *dps->p_postfix_entities = saved_entities;
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    wrapup_sse_for_simple_decl(&state);
+    wrapup_sse_for_simple_decl(dps);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     remove_stop_token(tok_comma);
-    state.need_comma_remove_stop_token = FALSE;
+    dps->need_comma_remove_stop_token = FALSE;
     first_declarator = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (state.ms_attributes != NULL) {
+    if (dps->ms_attributes != NULL) {
       /* Microsoft attributes were specified, but they were not applicable
          to this declaration.  Issue an error and clean up as needed. */
-      dispose_of_unapplied_attributes(&state.ms_attributes,
+      dispose_of_unapplied_attributes(&dps->ms_attributes,
                                       ec_ms_attr_not_allowed);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -16076,21 +16085,23 @@ advance_past_final_token:
   if (decl_stmt != NULL) decl_stmt->end_position = end_pos_curr_token;
   curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (state.is_linkage_spec_decl) {
+  if (dps->is_linkage_spec_decl) {
     pop_name_linkage();
-    state.restore_name_linkage = FALSE;
+    dps->restore_name_linkage = FALSE;
   }  /* if */
   if (curr_token == final_token) {
     /* Advance past the final token of the declaration (which should be a
        ';' or '}').  However, if the current declaration is a top-level
        declaration, set a global flag to enable checking for a header stop. */
-    if (is_top_level_declaration) next_token_is_top_level_decl_start = TRUE;
+    if (dps->is_top_level_declaration) {
+      next_token_is_top_level_decl_start = TRUE;
+    }  /* if */
     (void)get_token();
     next_token_is_top_level_decl_start = FALSE;
   }  /* if */
 return_point:
-  run_end_of_parse_actions(&state);
-  check_pending_qualifiers_used(&state);
+  run_end_of_parse_actions(dps);
+  check_pending_qualifiers_used(dps);
   if (access_checks_deferred) {
     /* We are processing a declaration for which access checks were deferred.
        In some cases (like out-of-class member definitions) deferred checks
@@ -16098,38 +16109,59 @@ return_point:
        now. */
     end_deferral_of_access_checks();
   }  /* if */
-  if (state.is_linkage_spec_decl) {
+  if (dps->is_linkage_spec_decl) {
     /* Unless restore_name_linkage is TRUE, pop_name_linkage will already
        have been called. */
-    if (state.restore_name_linkage) pop_name_linkage();
+    if (dps->restore_name_linkage) pop_name_linkage();
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (state.ms_attributes != NULL) {
+  if (dps->ms_attributes != NULL) {
     /* Microsoft attributes were specified, but they were not applicable
        to this declaration.  Issue an error and clean up as needed. */
-    dispose_of_unapplied_attributes(&state.ms_attributes,
+    dispose_of_unapplied_attributes(&dps->ms_attributes,
                                     ec_ms_attr_not_allowed);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */
-  remove_all_local_stop_tokens(&state);
+  remove_all_local_stop_tokens(dps);
+}  /* scan_nonmember_declaration */
+
+
+void declaration(a_boolean       function_definition_allowed,
+                 a_boolean       is_old_style_param_decl,
+                 a_boolean       is_top_level_declaration,
+                 a_boolean       marked_as_gnu_extension,
+                 a_param_id_ptr  param_id_list,
+                 a_source_range  *linkage_spec_range_ptr)
+/*
+Wrapper function for scan_nonmember_declaration that sets up a declaration
+parse state with fields described by the corresponding given parameters.
+*/
+{
+  a_decl_parse_state  dps;
+
+  db_enter(3, "declaration");
+  /* Initialize structures to hold information about the declaration to be
+     parsed. */
+  init_decl_parse_state(&dps);
+  dps.function_definition_allowed = function_definition_allowed;
+  dps.is_old_style_param_decl = is_old_style_param_decl;
+  dps.is_top_level_declaration = is_top_level_declaration;
+  if (gnu_mode) {
+    if (marked_as_gnu_extension) {
+      dps.marked_as_gnu_extension = TRUE;
+    } else if (curr_token == tok_extension) {
+      /* Record the GNU C __extension__ annotation. */
+      (void)get_token();
+      dps.marked_as_gnu_extension = TRUE;
+    }  /* if */
+  }  /* if */
+  dps.param_id_list = param_id_list;
+  scan_nonmember_declaration(&dps, linkage_spec_range_ptr);
   db_exit();
   return;
 }  /* declaration */
-
-
-void local_declaration(a_boolean  marked_as_gnu_extension)
-/*
-Scan a block-level declaration.
-*/
-{
-  declaration(/*function_definition_allowed=*/FALSE,
-              /*is_old_style_param_decl=*/FALSE,
-              /*is_top_level_declaration=*/FALSE,
-              marked_as_gnu_extension,
-              (a_param_id_ptr)NULL, (a_source_range *)NULL);
-}  /* local_declaration */
 
 
 void translation_unit(void)

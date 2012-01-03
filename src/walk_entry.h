@@ -1681,6 +1681,24 @@ do_set_proper_definition_needed_flag:
 #endif /* UPC_EXTENSIONS_ALLOWED */
       }
       break;
+    case iek_range_based_for_loop:
+      {
+        a_range_based_for_loop_ptr ptr = (a_range_based_for_loop_ptr)entry_ptr;
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        walk_ptr(ptr->decl_statement, a_statement_ptr, iek_statement);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        remap_ptr(ptr->iterator, a_variable_ptr, iek_variable);
+        remap_ptr(ptr->range, a_variable_ptr, iek_variable);
+        walk_ptr(ptr->range_based_for_scope, a_scope_ptr, iek_scope);
+        walk_ptr(ptr->begin_end_scope, a_scope_ptr, iek_scope);
+        walk_ptr(ptr->iterator_scope, a_scope_ptr, iek_scope);
+        remap_ptr(ptr->begin, a_variable_ptr, iek_variable);
+        remap_ptr(ptr->end, a_variable_ptr, iek_variable);
+        walk_ptr(ptr->ne_call_expr, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(ptr->incr_call_expr, an_expr_node_ptr, iek_expr_node);
+      }
+      break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_for_each_loop:
       {
@@ -1894,6 +1912,12 @@ do_set_proper_definition_needed_flag:
                      iek_for_loop);
             walk_ptr(ptr->variant.for_loop.statement, a_statement_ptr,
                      iek_statement);
+            break;
+          case stmk_range_based_for:
+            walk_ptr(ptr->variant.range_based_for_loop.extra_info,
+                     a_range_based_for_loop_ptr, iek_range_based_for_loop);
+            walk_ptr(ptr->variant.range_based_for_loop.statement,
+                     a_statement_ptr, iek_statement);
             break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           case stmk_for_each:
@@ -3454,6 +3478,8 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(a_label_ptr, iek_label);
   walk_orphan_entry_list_for_entry_kind(an_expr_node_ptr, iek_expr_node);
   walk_orphan_entry_list_for_entry_kind(a_for_loop_ptr, iek_for_loop);
+  walk_orphan_entry_list_for_entry_kind(a_range_based_for_loop_ptr,
+                                        iek_range_based_for_loop);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   walk_orphan_entry_list_for_entry_kind(a_for_each_loop_ptr,
                                         iek_for_each_loop);

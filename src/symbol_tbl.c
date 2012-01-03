@@ -5690,7 +5690,6 @@ the corresponding symbol header.)
   link_symbol_into_symbol_table(sym, NO_SCOPE_DEPTH, /*suppress_error=*/FALSE);
 }  /* enter_symbol_into_completed_class */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void reenter_block_scope_symbol(a_symbol_ptr  sym)
 /*
@@ -5702,7 +5701,6 @@ symbol back to the active list.
                                 /*suppress_error=*/FALSE);
 }  /* reenter_block_scope_symbol */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr enter_copy_of_symbol(a_symbol_ptr     orig_sym,
                                   a_scope_depth    scope_depth,

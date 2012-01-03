@@ -2385,6 +2385,7 @@ arg_list, and no source is scanned.  arg_list is freed after it's used.
                                           (an_operand *)NULL,
                                           arg_operand_list,
                                           /*do_arg_dep_lookup=*/FALSE,
+                                          /*use_std_for_arg_dep_lookup=*/FALSE,
                                           /*force_dependent=*/FALSE,
                                           ec_no_matching_constructor,
                                           ec_ambiguous_constructor,
@@ -4692,26 +4693,27 @@ are expected to be NULL in that case.
     /* Choose the proper function out of a set of overloaded functions based
        on the argument types. */
     routine_type = select_and_prepare_to_call_overloaded_function(
-                                            overloaded_function_symbol,
-                                            (a_boolean)operand->is_template_id,
-                                            operand->template_arg_list,
-                                            operand->bound_function ||
-                                                       try_surrogate_functions,
-                                            bound_function_selector,
-                                            arg_operand_list,
-                                            do_arg_dep_lookup,
-                                            try_surrogate_functions,
-                                            /*is_property=*/FALSE,
-                                            ec_no_matching_function,
-                                            ec_ambiguous_overloaded_function,
-                                            &orig_operand,
-                                            &call_position,
-                                            opening_paren_tok_seq_number,
-                                            &closing_paren_position,
-                                            &unknown_dependent_function,
-                                            &found_through_adl,
-                                            operand,
-                                            &argument_list);
+                                          overloaded_function_symbol,
+                                          (a_boolean)operand->is_template_id,
+                                          operand->template_arg_list,
+                                          operand->bound_function ||
+                                                     try_surrogate_functions,
+                                          bound_function_selector,
+                                          arg_operand_list,
+                                          do_arg_dep_lookup,
+                                          /*use_std_for_arg_dep_lookup=*/FALSE,
+                                          try_surrogate_functions,
+                                          /*is_property=*/FALSE,
+                                          ec_no_matching_function,
+                                          ec_ambiguous_overloaded_function,
+                                          &orig_operand,
+                                          &call_position,
+                                          opening_paren_tok_seq_number,
+                                          &closing_paren_position,
+                                          &unknown_dependent_function,
+                                          &found_through_adl,
+                                          operand,
+                                          &argument_list);
     if (unknown_dependent_function) {
       /* The routine to be called cannot be determined because one or more
          of the arguments has a template-dependent type.  Use a generic
@@ -15018,6 +15020,7 @@ expression, and return the result in *result (or an error indication in
                                           (an_operand *)NULL,
                                           arg_operand_list,
                                           /*do_arg_dep_lookup=*/FALSE,
+                                          /*use_std_for_arg_dep_lookup=*/FALSE,
                                           force_dependent,
                                           ec_no_matching_new_function,
                                           ec_ambiguous_overloaded_function,
@@ -24256,16 +24259,14 @@ where the use of "x" within its own declaration is invalid.
   a_boolean auto_decl_underway =
                               (var_ptr->declared_with_auto_type_specifier &&
                                var_ptr->init_kind == (an_init_kind)initk_none);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (auto_decl_underway && var_ptr->is_for_each_iterator &&
+  if (auto_decl_underway && var_ptr->is_enhanced_for_iterator &&
       symbol_for(var_ptr)->variant.variable.value_has_been_set) {
-    /* In C++/CLI, the iterator variable in a for-each statement does not
-       get an initializer even after its deduction is finished.
+    /* In for-each or range-based-for statements, the iterator variable does
+       not get an initializer even after its deduction is finished.
        Conclude from the fact that the variable is set that we're no
        longer in the initializer expression. */
     auto_decl_underway = FALSE;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return auto_decl_underway;
 }  /* variable_auto_decl_underway */
 
@@ -28083,16 +28084,17 @@ Return a pointer to the expression.
   return expression;
 }  /* scan_typed_expression */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_symbol_ptr look_up_for_each_member_function(a_type_ptr       type,
+static a_symbol_ptr lookup_enhanced_for_member_function(
+                                                     a_type_ptr       type,
                                                      char             *name,
                                                      a_symbol_locator *locator)
 /*
-This is a helper function that looks up a function name (name) within a class
-scope (type) or base class.  If a member function is found, the corresponding
-symbol is returned and *locator is set to to the symbol locator; otherwise,
-NULL is returned.
+This is a helper function used when parsing an enhanced-for (i.e., a
+range-based-for or a for-each) that looks up a function name (name) within a
+class scope (type) or base class.  If a member function is found, the
+corresponding symbol is returned and *locator is set to to the symbol locator;
+otherwise, NULL is returned.
 */
 {
   a_symbol_ptr symbol;
@@ -28106,8 +28108,696 @@ NULL is returned.
     symbol = NULL;
   }  /* if */
   return symbol;
-}  /* look_up_for_each_member_function */
+}  /* lookup_enhanced_for_member_function */
 
+
+static a_boolean has_range_based_for_begin_or_end_member(a_type_ptr type)
+/*
+Returns TRUE if lookups for the "begin" or "end" member functions are
+successful within the class scope; returns FALSE otherwise.
+*/
+{
+  a_boolean        passed = FALSE;
+  a_symbol_locator locator;
+  
+  if (lookup_enhanced_for_member_function(type, "begin", &locator) != NULL ||
+      lookup_enhanced_for_member_function(type, "end", &locator) != NULL) {
+    passed = TRUE;
+  }  /* if */
+  return passed;
+}  /* has_range_based_for_begin_or_end_member */
+
+
+static a_boolean make_enhanced_for_user_defined_function_call(
+                              an_operand              *bound_function_selector,
+                              a_symbol_ptr            symbol,
+                              a_source_position       *pos,
+                              a_token_sequence_number tok_seq_number,
+                              an_operand              *argument,
+                              an_operand              *result,
+                              a_boolean               is_for_each)
+/*
+This routine performs overload resolution and generates the expression for
+a call to the member function represented by symbol as part of a "for each"
+statement.  *bound_function_selector is the selector object.  *pos is the
+source position where the call to this function is considered to occur
+(usually the position of the collection expression).  tok_seq_number is the
+sequence number of the first token of the collection expression.  The function
+is called with an empty argument list (a function with only default arguments
+is valid here although Visual C++ rejects it), unless argument is non-NULL,
+in which case that is used as a single argument for the call.
+Return TRUE if the member function is found and all semantic checks
+pass, FALSE otherwise.  *result is set to an operand for the function
+call expression.  is_for_each is TRUE if the statement being parsed is
+a for-each (otherwise it's a range-based-for).
+*/
+{
+  a_boolean          passed = FALSE;
+  a_boolean          member_function_found = FALSE;
+  an_expr_node_ptr   argument_list;
+  an_operand         function_operand;
+  an_expr_node_ptr   func_call_node;
+  a_boolean          dependent_function = FALSE;
+  an_arg_operand_ptr arg_operand_list = NULL;
+
+  if (argument != NULL) {
+    arg_operand_list = alloc_arg_operand();
+    copy_operand(argument, &arg_operand_list->operand);
+    /* select_and_prepare_to_call_overloaded_function will free the list. */
+  }  /* if */
+  /* Determine which function will be called. */
+  if (select_and_prepare_to_call_overloaded_function(
+                                        symbol,
+                                        /*is_template_id=*/FALSE,
+                                        (a_template_arg_ptr)NULL,
+                                        /*have_selector=*/TRUE,
+                                        bound_function_selector,
+                                        arg_operand_list,
+                                        /*do_arg_dep_lookup=*/FALSE,
+                                        /*use_std_for_arg_dep_lookup=*/FALSE,
+                                        /*try_surrogate_functions=*/FALSE,
+                                        /*is_property=*/FALSE,
+                                        ec_for_each_no_matching_overload,
+                                        ec_ambiguous_overloaded_function,
+                                        (an_operand *)NULL,
+                                        pos,
+                                        tok_seq_number,
+                                        (a_source_position *)NULL,
+                                        &dependent_function,
+                                        (a_boolean *)NULL,
+                                        &function_operand,
+                                        &argument_list) != NULL) {
+    /* Generate the expression for the member function call. */
+    assemble_function_call(&function_operand, 
+                           bound_function_selector, 
+                           argument_list,
+                           /*compiler_generated=*/TRUE,
+                           /*arg_dep_lookup_suppressed=*/FALSE,
+                           /*is_qualified_name=*/FALSE,
+                           /*found_through_adl=*/FALSE,
+                           /*uses_operator_syntax=*/FALSE,
+                           pos, 
+                           result,
+                           &func_call_node);
+    result->position = *pos;
+    if (func_call_node != NULL) {
+      member_function_found = TRUE;
+    }  /* if */
+  }  /* if */
+  if (member_function_found) {
+    a_routine_ptr rp;
+    a_type_ptr    rout_type;
+    a_symbol_ptr  rout_symbol;
+
+    /* Extract the called member function from the operand. */
+    rp = routine_from_function_operand(&function_operand);
+    if (rp != NULL) {
+      rout_type = rp->type;
+      rout_symbol = symbol_for(rp);
+      check_assertion(rout_symbol != NULL && 
+                      rout_symbol->kind == (a_symbol_kind)sk_member_function);
+      if (is_for_each &&
+          !routine_type_is_nonstatic_member_function(rout_type)) {
+        /* This is a static member function so it can't be used. */
+        pos_sy_error(ec_for_each_static_function, pos, rout_symbol);
+      } else {
+        /* Semantic checks passed. */
+        passed = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return passed;
+}  /* make_enhanced_for_user_defined_function_call */
+
+
+static a_boolean check_enhanced_for_user_defined_function(
+                              an_operand              *bound_function_selector,
+                              char                    *function_name,
+                              a_source_position       *pos,
+                              a_token_sequence_number tok_seq_number,
+                              an_operand              *argument,
+                              an_operand              *result,
+                              a_boolean               is_for_each)
+/*
+This routine attempts to look up a member function named function_name in
+the class or struct specified by a selector object as part of handling an
+enhanced-for statement.  If lookup is successful, it also performs
+overload resolution and generates the expression for the call to the
+member function.  *bound_function_selector is the selector object; it
+can be a handle.  *pos is the source position where the call to this
+function is considered to occur (usually the position of the
+expression).  tok_seq_number is the sequence number of the
+first token of the expression.  The function is called with
+an empty argument list (a function with only default arguments is
+valid here although Visual C++ rejects it), unless argument is non-NULL,
+in which case that is used as a single argument for the call.
+Return TRUE if the member function is found and all semantic checks
+pass, FALSE otherwise.  Also return FALSE for a case where a non-real
+function is found.  *result is set to an operand for the function call
+expression.  is_for_each is TRUE if the statement being parsed is
+a for-each statement (otherwise it's a range-based-for statement).
+*/
+{
+  a_symbol_ptr     symbol;
+  a_symbol_locator locator;
+  a_boolean        passed = FALSE;
+  a_type_ptr       type = bound_function_selector->type;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_for_each && is_handle_type(type)) {
+    type = type_pointed_to(type);
+    conv_lvalue_to_rvalue(bound_function_selector);
+    bound_function_selector->selector_is_object_pointer = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  symbol = lookup_enhanced_for_member_function(type, function_name, &locator);
+  if (symbol == NULL) {
+    /* Look up failed. */
+    pos_stty_error(is_for_each ? ec_for_each_missing_function :
+                                 ec_range_based_for_missing_function,
+                   pos, function_name, type);
+  } else if (symbol->is_nonreal_member) {
+    /* The symbol is a member of a nonreal class, the function call will be
+       generated later for the real instantiation. */
+  } else {
+    passed = make_enhanced_for_user_defined_function_call(
+                                                      bound_function_selector,
+                                                      locator.specific_symbol, 
+                                                      pos, tok_seq_number,
+                                                      argument,
+                                                      result,
+                                                      is_for_each);
+  }  /* if */
+  return passed;
+}  /* check_enhanced_for_user_defined_function */
+
+
+static void deduce_auto_type_in_enhanced_for_if_needed(
+                                               a_variable_ptr iterator,
+                                               an_operand     *element_operand)
+/*
+When the iterator variable of a for-each or range-based-for statement
+is declared with "auto", this routine performs the type deduction from the
+type of element_operand and sets the variable type to the deduced type.
+*/
+{
+  a_type_ptr deduced_type;
+  a_type_ptr deduced_auto_type;
+  a_boolean  still_dependent;
+
+  if (iterator != NULL &&
+      iterator->declared_with_auto_type_specifier) {
+    /* The iterator variable is declared with "auto".  Perform the type
+       deduction. */
+    if (deduce_auto_type(iterator->type,
+                         /*auto_type=*/(a_type_ptr)NULL,
+                         element_operand,
+                         &iterator->source_corresp.decl_position,
+                         &deduced_type,
+                         &deduced_auto_type,
+                         &still_dependent)) {
+      /* Deduction succeeded. */
+      iterator->type = deduced_type;
+    } else if (still_dependent) {
+      /* The type is still dependent, so leave the iterator variable
+         type as it is. */
+    } else {
+      /* Deduction failed. */
+      pos_error(ec_cannot_deduce_auto_type,
+                &iterator->source_corresp.decl_position);
+      iterator->type = error_type();
+    }  /* if */
+  }  /* if */
+}  /* deduce_auto_type_in_enhanced_for_if_needed */
+
+
+static void make_enhanced_for_expression_operand(a_variable_ptr  expr_ref_var,
+                                                 an_operand      *operand)
+/*
+Build an operand for the expression of the enhanced-for (i.e., a for-each
+or range-based-for) statement identified by expr_ref_var and return it in
+*operand.  More precisely, generate an operand for the expression by
+indirecting through the reference variable that is pointing at the expression.
+Because of that, each operand generated refers to the original expression,
+and not a copy or re-evaluation thereof.
+*/
+{
+  an_expr_node_ptr  expr = var_rvalue_expr(expr_ref_var);
+
+  /* No indirection if the expression was saved as a handle. */
+  if (is_any_reference_type(expr->type)) {
+    expr = add_ref_indirection_to_node(expr);
+  }  /* if */
+  make_lvalue_or_rvalue_expression_operand(expr, operand);
+  set_operand_position(operand,
+                       &expr_ref_var->source_corresp.decl_position,
+                       &expr_ref_var->source_corresp.decl_position,
+                       (a_source_position *)NULL);
+}  /* make_enhanced_for_expression_operand */
+
+
+static void set_variable_initializer(a_variable_ptr vp,
+                                     an_operand_ptr  operand)
+/*
+Set the initializer for the variable vp from the operand "operand".
+*/
+{
+  a_dynamic_init_ptr dip;
+
+  if (is_class_struct_union_type(vp->type)) {
+    /* See if we can elide the copy for class-typed variables. */
+    prep_elision_initializer_operand(operand, vp->type,
+                                     /*fill_in_dtor=*/TRUE,
+                                     CCO_INITIALIZING_VARIABLE,
+                                     ec_bad_initializer_type, &dip);
+  } else {
+    prep_initializer_operand(operand, vp->type,
+                             /*is_transparent=*/(a_boolean *)NULL,
+                             /*conversion=*/(a_conv_descr_ptr)NULL,
+                             /*is_copy_initialization=*/TRUE,
+                             CCO_INITIALIZING_VARIABLE,
+                             ec_bad_initializer_type);
+    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+    dip->variant.expression = make_node_from_operand(operand);
+  }  /* if */
+  wrap_up_dynamic_init_full_expression(dip);
+  if (dip != NULL) {
+    vp->init_kind = (an_init_kind)initk_dynamic;
+    vp->initializer.dynamic = dip;
+    dip->variable = vp;
+    record_end_of_lifetime_destruction(
+            dip,
+            /*static_lifetime=*/has_static_storage_duration(vp->storage_class),
+            /*block_lifetime=*/TRUE);
+  }  /* if */
+}  /* set_variable_initializer */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void deduce_auto_type_in_for_each_if_needed(
+                                          a_for_each_loop_ptr felp,
+                                          an_operand          *element_operand)
+/*
+When the iterator variable of a for-each statement (identified by felp)
+is declared with "auto", this routine performs the type deduction from the
+type of element_operand and sets the variable type to the deduced type.
+*/
+{
+  /* Do not do deduction if the loop uses a previously-declared iterator
+     variable. */
+  if (!felp->uses_prev_decl_iterator) {
+    deduce_auto_type_in_enhanced_for_if_needed(felp->iterator.variable,
+                                               element_operand);
+  }  /* if */
+}  /* deduce_auto_type_in_for_each_if_needed */
+
+
+static void set_iterator_variable_initializer(
+                                     a_for_each_loop_ptr     felp,
+                                     an_operand              *iterator_operand,
+                                     a_token_sequence_number tok_seq_number,
+                                     an_operand              *operand)
+/*
+Set the initializer for the iterator variable of the for-each loop
+identified by felp to "operand".  If the for-each loop uses a previously-
+declared variable, create and record an assignment expression instead of
+an initializer; iterator_operand gives an operand for the variable in
+that case.  tok_seq_number gives the token sequence number for the
+collection expression.
+*/
+{
+  if (felp->uses_prev_decl_iterator) {
+    /* Make an assignment expression for a previously-declared iterator. */
+    an_operand       assign_operand;
+    an_expr_node_ptr assign_expr;
+    process_simple_assignment(iterator_operand, operand,
+                              &iterator_operand->position,
+                              tok_seq_number,
+                              /*check_for_overloading=*/TRUE,
+                              &assign_operand);
+    assign_expr = make_node_from_operand(&assign_operand);
+    assign_expr = wrap_up_full_expression(assign_expr);
+    set_expr_result_not_used(assign_expr);
+    felp->iterator.prev_decl.assign_expr = assign_expr;
+  } else {
+    /* Set the initializer for the normal case of a declared iterator
+       variable. */
+    set_variable_initializer(felp->iterator.variable, operand);
+  }  /* if */
+}  /* set_iterator_variable_initializer */
+
+
+static a_type_ptr iterator_type(a_for_each_loop_ptr felp,
+                                an_operand          *prev_decl_iterator)
+/*
+Return the type of the iterator variable of the for-each loop indicated
+by felp.  In the case where the loop uses a previously-declared variable
+as the iterator variable, prev_decl_iterator gives an operand for that
+variable.
+*/
+{
+  a_type_ptr type;
+
+  if (felp->uses_prev_decl_iterator) {
+    if (!is_property_ref_operand(prev_decl_iterator)) {
+      type = prev_decl_iterator->type;
+    } else {
+      /* For a property reference, get the type from the property. */
+      if (felp->iterator.prev_decl.variable != NULL) {
+        type = felp->iterator.prev_decl.variable->type;
+      } else {
+        check_assertion(felp->iterator.prev_decl.field != NULL);
+        type = felp->iterator.prev_decl.field->type;
+      }  /* if */
+    }  /* if */
+  } else {
+    type = felp->iterator.variable->type;
+  }  /* if */
+  return type;
+}  /* iterator_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static void fill_in_enhanced_for_loop_constructs(
+                                a_for_each_loop_ptr        felp,
+                                a_range_based_for_loop_ptr rbflp,
+                                an_operand                 *prev_decl_iterator,
+                                a_token_sequence_number    tok_seq_number,
+                                a_scope_pointers_block_ptr pointers_block)
+/*
+Generate and fill in the IL necessary for the looping constructs of an
+"enhanced-for" (either a range-based-for or a for-each) statement.  Only
+for-each statements whose kind is sfepk_stl_pattern or sfepk_array_pattern are
+considered here.
+
+The IL generated for the loop portion of the two enhanced-for statements is
+very similar:
+
+  // range-based-for:                     // for-each:
+  {                                       {
+    auto && __range = (expression);         I *cend = END;
+    for ( auto __begin = begin-expr,        I *i = INIT;
+               __end = end-expr;            for (;
+          __begin != __end;                      i != cend;
+          ++__begin ) {                          ++i) {
+      for-range-declaration = *__begin;       T t = *i;
+      <statement>                             <statement>
+    }                                       }
+  }                                       }
+
+Where __begin, __end, begin-expr, and end-expr in the range-based-for case
+map directly to i, cend, END, and INIT, respectively for the for-each case.
+This routine creates expressions for "__begin != __end" and "++__begin" and
+sets the appropriate fields in the IL structure.  It also
+creates an expression for "*__begin" and sets the appropriate iterator variable
+(found through rbflp or felp as appropriate) to be dynamically initialized by
+the result (in some for-each cases, the expression is set aside to be assigned
+rather than initialized).
+
+This routine should be called with the proper scope in which to declare the
+loop variables (i.e., __begin, __end) already on the stack.  A diagnostic is
+emitted (in which case *ne_call_expr and/or *incr_call_expr may not be filled
+in) if an error is found.
+
+prev_decl_iterator is an operand for the previously-declared variable
+for the iterator when one is indicated in the for-each loop entry.
+tok_seq_number is the sequence number of the first token of the
+collection expression.  pointers_block is the pointers block for the
+iterator scope previously created, needed to reactivate that scope.
+*/
+{
+  an_operand          operand1, operand2, operand;
+  a_boolean           processed, passed = TRUE, has_predef_meaning = FALSE;
+  an_expr_stack_entry expr_stack_entry;
+  a_variable_ptr      begin_var, end_var;
+  an_expr_node_ptr    *ne_call_expr, *incr_call_expr;
+  a_scope_ptr         iterator_scope;
+  a_source_position   pos;
+
+  /* Set local variables based on the type of enhanced-for statement. */
+  if (felp != NULL) {
+    /* For-each statement. */
+    check_assertion(felp->kind == (a_for_each_pattern_kind)sfepk_stl_pattern ||
+                    felp->kind ==
+                                 (a_for_each_pattern_kind)sfepk_array_pattern);
+    begin_var = felp->temporary_variable;
+    end_var = felp->variant.stl_array_pattern.end_variable;
+    ne_call_expr = &(felp->variant.stl_array_pattern.ne_call_expr);
+    incr_call_expr = &(felp->variant.stl_array_pattern.incr_call_expr);
+    iterator_scope = felp->iterator_scope;
+    pos = felp->collection_expr_ref->source_corresp.decl_position;
+  } else if (rbflp != NULL) {
+    /* Range-based-for statement. */
+    check_assertion(prev_decl_iterator == NULL);
+    begin_var = rbflp->begin;
+    end_var = rbflp->end;
+    ne_call_expr = &(rbflp->ne_call_expr);
+    incr_call_expr = &(rbflp->incr_call_expr);
+    iterator_scope = rbflp->iterator_scope;
+    pos = rbflp->range->source_corresp.decl_position;
+  } else {
+    unexpected_condition();
+  }  /* if */
+  check_assertion(types_are_compatible(begin_var->type, end_var->type));
+  /* Make the "i != cend" or "__begin != __end" expression. */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  make_lvalue_variable_operand(begin_var,
+                               &null_source_position, &null_source_position,
+                               &operand1, (a_ref_entry *)NULL);
+  make_lvalue_variable_operand(end_var,
+                               &null_source_position, &null_source_position,
+                               &operand2, (a_ref_entry *)NULL);
+  processed = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) has_predef_meaning = is_handle_type(operand1.type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (is_overloadable_first_operand_type(operand1.type)) {
+    check_for_operator_overloading((an_opname_kind)onk_ne,
+                                   /*is_unary_op=*/FALSE,
+                                   /*must_be_member_function=*/FALSE,
+                                   /*try_conversions=*/TRUE,
+                                   has_predef_meaning,
+                                   &operand1, &operand2, &pos,
+                                   tok_seq_number,
+                                   (a_nondependent_call_depth)1,
+                                   &pos, &operand, &processed);
+  }  /* if */
+  if (processed) {
+    /* An overloaded operator!= was used (or there was an error). */
+  } else {
+    /* Try a non-overloaded "!=" operator. */
+    if (!is_pointer_or_handle_type(operand1.type)) {
+      pos_ty_error(felp != NULL ? ec_missing_notequal_on_for_each_type :
+                                  ec_missing_notequal_on_range_based_for_type,
+                   &pos, operand1.type);
+      passed = FALSE;
+    } else {
+      /* Make the "!=" operator node. */
+      conv_lvalue_to_rvalue(&operand1);
+      conv_lvalue_to_rvalue(&operand2);
+      build_binary_result_operand(&operand1, &operand2,
+                                  (an_expr_operator_kind)eok_ne,
+                                  boolean_result_type(),
+                                  &operand);
+    }  /* if */
+  }  /* if */
+  if (passed) {
+    if (is_error_operand(&operand)) {
+      passed = FALSE;
+    } else {
+      *ne_call_expr = make_node_from_operand(&operand);
+      *ne_call_expr = wrap_up_full_expression(*ne_call_expr);
+    }  /* if */
+  }  /* if */
+  /* Done with the "i != cend" or "__begin != __end" expression. */
+  pop_expr_stack();
+  /* Make the "++i" or "++__begin" expression. */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  make_lvalue_variable_operand(begin_var,
+                               &null_source_position, &null_source_position,
+                               &operand1, (a_ref_entry *)NULL);
+  processed = FALSE;
+  if (is_overloadable_first_operand_type(operand1.type)) {
+    check_for_operator_overloading((an_opname_kind)onk_plus_plus,
+                                   /*is_unary_op=*/TRUE,
+                                   /*must_be_member_function=*/FALSE,
+                                   /*try_conversions=*/TRUE,
+                                   /*has_predef_meaning=*/FALSE,
+                                   &operand1, (an_operand *)NULL, &pos,
+                                   tok_seq_number,
+                                   (a_nondependent_call_depth)2,
+                                   &pos, &operand, &processed);
+  }  /* if */
+  if (processed) {
+    /* An overloaded operator++ was used (or there was an error). */
+  } else {
+    /* Try a non-overloaded "++" operator. */
+    if (!is_pointer_type(operand1.type)) {
+      pos_ty_error(felp != NULL ? ec_missing_incr_on_for_each_type :
+                                  ec_missing_incr_on_range_based_for_type,
+                   &pos, operand1.type);
+      passed = FALSE;
+    } else {
+      /* Make the "++" operator node. */
+      build_unary_result_operand(&operand1,
+                                 (an_expr_operator_kind)eok_pre_incr,
+                                 rvalue_type(operand1.type), &operand);
+    }  /* if */
+  }  /* if */
+  if (passed) {
+    if (is_error_operand(&operand)) {
+      passed = FALSE;
+    } else {
+      *incr_call_expr = make_node_from_operand(&operand);
+      *incr_call_expr = wrap_up_full_expression(*incr_call_expr);
+    }  /* if */
+  }  /* if */
+  /* Done with the "++i" or "++__begin" expression. */
+  pop_expr_stack();
+  /* Re-push the iterator scope because the initialization of the iterator
+     variable has to be handled in that scope. */
+  push_block_reactivation_scope(iterator_scope, pointers_block);
+  /* Make the "*i" or "*__begin" expression. */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  make_lvalue_variable_operand(begin_var,
+                               &null_source_position, &null_source_position,
+                               &operand1, (a_ref_entry *)NULL);
+  processed = FALSE;
+  if (is_overloadable_first_operand_type(operand1.type)) {
+    check_for_operator_overloading((an_opname_kind)onk_star,
+                                   /*is_unary_op=*/TRUE,
+                                   /*must_be_member_function=*/FALSE,
+                                   /*try_conversions=*/TRUE,
+                                   has_predef_meaning,
+                                   &operand1, (an_operand *)NULL, &pos,
+                                   tok_seq_number,
+                                   (a_nondependent_call_depth)3,
+                                   &pos, &operand, &processed);
+  }  /* if */
+  if (processed) {
+    /* An overloaded operator* was used (or there was an error). */
+  } else {
+    /* Try a non-overloaded "*" operator. */
+    if (!is_pointer_or_handle_type(operand1.type)) {
+      pos_ty_error(felp != NULL ? ec_missing_indirect_on_for_each_type :
+                                  ec_missing_indirect_on_range_based_for_type,
+                   &pos, operand1.type);
+      passed = FALSE;
+    } else {
+      /* Make the "*" operator node. */
+      an_expr_node_ptr expr;
+      conv_lvalue_to_rvalue(&operand1);
+      expr = add_indirection_to_node(make_node_from_operand(&operand1));
+      make_lvalue_expression_operand(expr, &operand);
+    }  /* if */
+  }  /* if */
+  if (passed) {
+    if (is_error_operand(&operand)) {
+      passed = FALSE;
+    } else {
+      /* Add the initializer to the iterator variable. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (felp != NULL) {
+        /* for-each case. */
+        if (!felp->uses_prev_decl_iterator &&
+            felp->iterator.variable == NULL) {
+          /* Previous error. */
+          passed = FALSE;
+        } else {
+          a_type_ptr itype;
+          deduce_auto_type_in_for_each_if_needed(felp, &operand);
+          /* Check conversion and generate IL for the conversion from
+             "*i" to "T". */
+          itype = iterator_type(felp, prev_decl_iterator);
+          if (!cast_identical_types(itype, operand.type)) {
+            a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
+            process_static_cast(itype, &operand, &pos, &pos,
+                                /*is_safe_cast=*/FALSE, &ruled_out_expr_kinds);
+          }  /* if */
+          set_iterator_variable_initializer(felp,
+                                            prev_decl_iterator,
+                                            tok_seq_number,
+                                            &operand);
+        }  /* if */
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        /* Range-based-for case. */
+        check_assertion(rbflp != NULL);
+        if (rbflp->iterator != NULL) {
+          deduce_auto_type_in_enhanced_for_if_needed(rbflp->iterator,
+                                                     &operand);
+          set_variable_initializer(rbflp->iterator, &operand);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  pop_expr_stack();
+  /* Pop the iterator scope off the scope stack. */
+  pop_block_scope(/*is_final_pop=*/FALSE);
+}  /* fill_in_enhanced_for_loop_constructs */
+
+
+static a_boolean make_enhanced_for_initializer_for_call_to_member_function(
+                                        a_variable_ptr          selector_var,
+                                        a_variable_ptr          *loop_var,
+                                        a_type_ptr              *type,
+                                        char                    *function_name,
+                                        a_boolean               is_for_each,
+                                        a_token_sequence_number tok_seq_number)
+/*
+This routine is used during the processing of an enhanced-for (i.e., a
+range-based-for or for-each) statement to create, and return in *loop_var,
+a variable whose initial value (as set in its initializer) is a call to
+the member function whose name is specified by function_name.  selector_var
+is the selector object; it can be a handle.  *type is set to indicate the
+return type of the member call expression (which may be an error type).
+is_for_each is TRUE if the statement being processed is a for-each statement
+(otherwise it's a range-based-for statement).  tok_seq_number is the token
+for the start of the loop expression.  Returns TRUE (and creates *loop_var
+with the appropriate initializer) if an appropriate member function is
+found; otherwise issues an error message (and *loop_var is unmodified).
+*/
+{
+  an_expr_stack_entry expr_stack_entry;
+  an_operand          bound_function_selector, member_call_operand;
+  a_boolean           result = TRUE;
+  a_source_position   pos;
+
+  /* Make an expression for "selector_var.function_name()". */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  make_enhanced_for_expression_operand(selector_var, &bound_function_selector);
+  pos = bound_function_selector.position;
+  if (check_enhanced_for_user_defined_function(&bound_function_selector,
+                                               function_name,
+                                               &pos,
+                                               tok_seq_number,
+                                               (an_operand *)NULL,
+                                               &member_call_operand,
+                                               is_for_each)) {
+    /* Make the variable and initialize it from the expression just made. */
+    *loop_var = alloc_temporary_variable(member_call_operand.type,
+                                         /*force_static=*/FALSE);
+    set_variable_initializer(*loop_var, &member_call_operand);
+  } else {
+    result = FALSE;
+  }  /* if */
+  /* Set type (may be error type). */
+  *type = member_call_operand.type;
+  pop_expr_stack();
+  return result;
+}  /* make_enhanced_for_initializer_for_call_to_member_function */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean is_stl_collection_pattern_candidate(
                                                     a_type_ptr collection_type)
@@ -28120,10 +28810,10 @@ successful within the class scope; returns FALSE otherwise.
   a_boolean        passed = FALSE;
   a_symbol_locator locator;
   
-  if (look_up_for_each_member_function(collection_type,
-                                       "begin", &locator) != NULL &&
-      look_up_for_each_member_function(collection_type,
-                                       "end", &locator) != NULL) {
+  if (lookup_enhanced_for_member_function(collection_type,
+                                          "begin", &locator) != NULL &&
+      lookup_enhanced_for_member_function(collection_type,
+                                          "end", &locator) != NULL) {
     passed = TRUE;
   }  /* if */
   return passed;
@@ -28193,166 +28883,15 @@ set it to NULL.
     /* The collection type implements one of the IEnumerable interfaces,
        so the CLI collection pattern can be used. */
     result = TRUE;
-  } else if (look_up_for_each_member_function(collection_type, "GetEnumerator",
-                                              &locator) != NULL) {
+  } else if (lookup_enhanced_for_member_function(collection_type,
+                                                 "GetEnumerator",
+                                                 &locator) != NULL) {
     /* There is a GetEnumerator member function, so the type is eligible
        that way. */
     result = TRUE;
   }  /* if */
   return result;
 }  /* is_cli_collection_pattern_candidate */
-
-
-static a_boolean make_for_each_user_defined_function_call(
-                              an_operand              *bound_function_selector,
-                              a_symbol_ptr            symbol,
-                              a_source_position       *pos,
-                              a_token_sequence_number tok_seq_number,
-                              an_operand              *argument,
-                              an_operand              *result)
-/*
-This routine performs overload resolution and generates the expression for
-a call to the member function represented by symbol as part of a "for each"
-statement.  *bound_function_selector is the selector object.  *pos is the
-source position where the call to this function is considered to occur
-(usually the position of the collection expression).  tok_seq_number is the
-sequence number of the first token of the collection expression.  The function
-is called with an empty argument list (a function with only default arguments
-is valid here although Visual C++ rejects it), unless argument is non-NULL,
-in which case that is used as a single argument for the call.
-Return TRUE if the member function is found and all semantic checks
-pass, FALSE otherwise.  *result is set to an operand for the function
-call expression.
-*/
-{
-  a_boolean          passed = FALSE;
-  a_boolean          member_function_found = FALSE;
-  an_expr_node_ptr   argument_list;
-  an_operand         function_operand;
-  an_expr_node_ptr   func_call_node;
-  a_boolean          dependent_function = FALSE;
-  an_arg_operand_ptr arg_operand_list = NULL;
-
-  if (argument != NULL) {
-    arg_operand_list = alloc_arg_operand();
-    copy_operand(argument, &arg_operand_list->operand);
-    /* select_and_prepare_to_call_overloaded_function will free the list. */
-  }  /* if */
-  /* Determine which function will be called. */
-  if (select_and_prepare_to_call_overloaded_function(
-                                        symbol,
-                                        /*is_template_id=*/FALSE,
-                                        (a_template_arg_ptr)NULL,
-                                        /*have_selector=*/TRUE,
-                                        bound_function_selector,
-                                        arg_operand_list,
-                                        /*do_arg_dep_lookup=*/FALSE,
-                                        /*try_surrogate_functions=*/FALSE,
-                                        /*is_property=*/FALSE,
-                                        ec_for_each_no_matching_overload,
-                                        ec_ambiguous_overloaded_function,
-                                        (an_operand *)NULL,
-                                        pos,
-                                        tok_seq_number,
-                                        (a_source_position *)NULL,
-                                        &dependent_function,
-                                        (a_boolean *)NULL,
-                                        &function_operand,
-                                        &argument_list) != NULL) {
-    /* Generate the expression for the member function call. */
-    assemble_function_call(&function_operand, 
-                           bound_function_selector, 
-                           argument_list,
-                           /*compiler_generated=*/TRUE,
-                           /*arg_dep_lookup_suppressed=*/FALSE,
-                           /*is_qualified_name=*/FALSE,
-                           /*found_through_adl=*/FALSE,
-                           /*uses_operator_syntax=*/FALSE,
-                           pos, 
-                           result,
-                           &func_call_node);
-    result->position = *pos;
-    if (func_call_node != NULL) {
-      member_function_found = TRUE;
-    }  /* if */
-  }  /* if */
-  if (member_function_found) {
-    a_routine_ptr rp;
-    a_type_ptr    rout_type;
-    a_symbol_ptr  rout_symbol;
-
-    /* Extract the called member function from the operand. */
-    rp = routine_from_function_operand(&function_operand);
-    if (rp != NULL) {
-      rout_type = rp->type;
-      rout_symbol = symbol_for(rp);
-      check_assertion(rout_symbol != NULL && 
-                      rout_symbol->kind == (a_symbol_kind)sk_member_function);
-      if (!routine_type_is_nonstatic_member_function(rout_type)) {
-        /* This is a static member function so it can't be used. */
-        pos_sy_error(ec_for_each_static_function, pos, rout_symbol);
-      } else {
-        /* Semantic checks passed. */
-        passed = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return passed;
-}  /* make_for_each_user_defined_function_call */
-
-
-static a_boolean check_for_each_user_defined_function(
-                              an_operand              *bound_function_selector,
-                              char                    *function_name,
-                              a_source_position       *pos,
-                              a_token_sequence_number tok_seq_number,
-                              an_operand              *argument,
-                              an_operand              *result)
-/*
-This routine attempts to look up a function named function_name in the
-class or struct specified by a selector object as part of handling a
-"for each" statement.  If lookup is successful, it also performs
-overload resolution and generates the expression for the call to the
-member function.  *bound_function_selector is the selector object; it
-can be a handle.  *pos is the source position where the call to this
-function is considered to occur (usually the position of the
-collection expression).  tok_seq_number is the sequence number of the
-first token of the collection expression.  The function is called with
-an empty argument list (a function with only default arguments is
-valid here although Visual C++ rejects it), unless argument is non-NULL,
-in which case that is used as a single argument for the call.
-Return TRUE if the member function is found and all semantic checks
-pass, FALSE otherwise.  Also return FALSE for a case where a non-real
-function is found.  *result is set to an operand for the function call
-expression.
-*/
-{
-  a_symbol_ptr     symbol;
-  a_symbol_locator locator;
-  a_boolean        passed = FALSE;
-  a_type_ptr       type = bound_function_selector->type;
-
-  if (is_handle_type(type)) {
-    type = type_pointed_to(type);
-    conv_lvalue_to_rvalue(bound_function_selector);
-    bound_function_selector->selector_is_object_pointer = TRUE;
-  }  /* if */
-  symbol = look_up_for_each_member_function(type, function_name, &locator);
-  if (symbol == NULL) {
-    /* Look up failed. */
-    pos_stty_error(ec_for_each_missing_function, pos, function_name, type);
-  } else if (symbol->is_nonreal_member) {
-    /* The symbol is a member of a nonreal class, the function call will be
-       generated later for the real instantiation. */
-  } else {
-    passed = make_for_each_user_defined_function_call(bound_function_selector,
-                                                      locator.specific_symbol, 
-                                                      pos, tok_seq_number,
-                                                      argument,
-                                                      result);
-  }  /* if */
-  return passed;
-}  /* check_for_each_user_defined_function */
 
 
 static a_boolean check_for_each_user_defined_property(
@@ -28418,189 +28957,15 @@ property is found.  *result is set to an expression operand for the
 }  /* check_for_each_user_defined_property */
 
 
-static
-void deduce_auto_type_in_for_each_if_needed(
-                                          a_for_each_loop_ptr felp,
-                                          an_operand          *element_operand)
-/*
-When the iterator variable of a for-each statement (identified by felp)
-is declared with "auto", this routine performs the type deduction from the
-type of element_operand and sets the variable type to the deduced type.
-*/
-{
-  /* Do not do deduction if the loop uses a previously-declared iterator
-     variable. */
-  if (!felp->uses_prev_decl_iterator) {
-    a_variable_ptr iterator = felp->iterator.variable;
-    a_type_ptr deduced_type;
-    a_type_ptr deduced_auto_type;
-    a_boolean  still_dependent;
-
-    if (iterator == NULL) {
-      /* There was a previous error. */
-    } else if (iterator->declared_with_auto_type_specifier) {
-      /* The iterator variable is declared with "auto".  Perform the type
-         deduction. */
-      if (deduce_auto_type(iterator->type,
-                           /*auto_type=*/(a_type_ptr)NULL,
-                           element_operand,
-                           &iterator->source_corresp.decl_position,
-                           &deduced_type,
-                           &deduced_auto_type,
-                           &still_dependent)) {
-        /* Deduction succeeded. */
-        iterator->type = deduced_type;
-      } else if (still_dependent) {
-        /* The type is still dependent, so leave the iterator variable
-           type as it is. */
-      } else {
-        /* Deduction failed. */
-        pos_error(ec_cannot_deduce_auto_type, 
-                  &iterator->source_corresp.decl_position);
-        iterator->type = error_type();
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* deduce_auto_type_in_for_each_if_needed */
-
-
-static void set_variable_initializer(a_variable_ptr vp,
-                                     an_operand_ptr  operand)
-/*
-Set the initializer for the variable vp from the operand "operand".
-*/
-{
-  a_dynamic_init_ptr dip;
-
-  if (is_class_struct_union_type(vp->type)) {
-    /* See if we can elide the copy for class-typed variables. */
-    prep_elision_initializer_operand(operand, vp->type,
-                                     /*fill_in_dtor=*/TRUE,
-                                     CCO_INITIALIZING_VARIABLE,
-                                     ec_bad_initializer_type, &dip);
-  } else {
-    prep_initializer_operand(operand, vp->type,
-                             /*is_transparent=*/(a_boolean *)NULL,
-                             /*conversion=*/(a_conv_descr_ptr)NULL,
-                             /*is_copy_initialization=*/TRUE,
-                             CCO_INITIALIZING_VARIABLE,
-                             ec_bad_initializer_type);
-    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-    dip->variant.expression = make_node_from_operand(operand);
-  }  /* if */
-  wrap_up_dynamic_init_full_expression(dip);
-  if (dip != NULL) {
-    vp->init_kind = (an_init_kind)initk_dynamic;
-    vp->initializer.dynamic = dip;
-    dip->variable = vp;
-    record_end_of_lifetime_destruction(
-            dip,
-            /*static_lifetime=*/has_static_storage_duration(vp->storage_class),
-            /*block_lifetime=*/TRUE);
-  }  /* if */
-}  /* set_variable_initializer */
-
-
-static void set_iterator_variable_initializer(
-                                     a_for_each_loop_ptr     felp,
-                                     an_operand              *iterator_operand,
-                                     a_token_sequence_number tok_seq_number,
-                                     an_operand              *operand)
-/*
-Set the initializer for the iterator variable of the for-each loop
-identified by felp to "operand".  If the for-each loop uses a previously-
-declared variable, create and record an assignment expression instead of
-an initializer; iterator_operand gives an operand for the variable in
-that case.  tok_seq_number gives the token sequence number for the
-collection expression.
-*/
-{
-  if (felp->uses_prev_decl_iterator) {
-    /* Make an assignment expression for a previously-declared iterator. */
-    an_operand       assign_operand;
-    an_expr_node_ptr assign_expr;
-    process_simple_assignment(iterator_operand, operand,
-                              &iterator_operand->position,
-                              tok_seq_number,
-                              /*check_for_overloading=*/TRUE,
-                              &assign_operand);
-    assign_expr = make_node_from_operand(&assign_operand);
-    assign_expr = wrap_up_full_expression(assign_expr);
-    set_expr_result_not_used(assign_expr);
-    felp->iterator.prev_decl.assign_expr = assign_expr;
-  } else {
-    /* Set the initializer for the normal case of a declared iterator
-       variable. */
-    set_variable_initializer(felp->iterator.variable, operand);
-  }  /* if */
-}  /* set_iterator_variable_initializer */
-
-
-static a_type_ptr iterator_type(a_for_each_loop_ptr felp,
-                                an_operand          *prev_decl_iterator)
-/*
-Return the type of the iterator variable of the for-each loop indicated
-by felp.  In the case where the loop uses a previously-declared variable
-as the iterator variable, prev_decl_iterator gives an operand for that
-variable.
-*/
-{
-  a_type_ptr type;
-
-  if (felp->uses_prev_decl_iterator) {
-    if (!is_property_ref_operand(prev_decl_iterator)) {
-      type = prev_decl_iterator->type;
-    } else {
-      /* For a property reference, get the type from the property. */
-      if (felp->iterator.prev_decl.variable != NULL) {
-        type = felp->iterator.prev_decl.variable->type;
-      } else {
-        check_assertion(felp->iterator.prev_decl.field != NULL);
-        type = felp->iterator.prev_decl.field->type;
-      }  /* if */
-    }  /* if */
-  } else {
-    type = felp->iterator.variable->type;
-  }  /* if */
-  return type;
-}  /* iterator_type */
-
-
-static void make_collection_expression_operand(a_for_each_loop_ptr felp,
-                                               an_operand          *operand)
-/*
-Build an operand for the collection expression of the for-each loop
-identified by felp and return it in *operand.  More precisely,
-generate an operand for the collection expression by indirecting
-through the reference variable that is pointing at the collection
-expression.  Because of that, each operand generated refers to the
-original collection, and not a copy or re-evaluation thereof.
-*/
-{
-  a_variable_ptr    collection_var = felp->collection_expr_ref;
-  an_expr_node_ptr  expr = var_rvalue_expr(collection_var);
-
-  /* No indirection if the collection expression was saved as a handle. */
-  if (is_any_reference_type(expr->type)) {
-    expr = add_ref_indirection_to_node(expr);
-  }  /* if */
-  make_lvalue_or_rvalue_expression_operand(expr, operand);
-  set_operand_position(operand,
-                       &collection_var->source_corresp.decl_position,
-                       &collection_var->source_corresp.decl_position,
-                       (a_source_position *)NULL);
-}  /* make_collection_expression_operand */
-
-
 static void make_collection_expression_operand_for_cli_array(
                                                a_for_each_loop_ptr felp,
                                                an_operand          *operand)
 /*
-Like make_collection_expression_operand, but makes an operand specifically
+Like make_enhanced_for_expression_operand, but makes an operand specifically
 for a for-each loop operating on a CLI array.
 */
 {
-  make_collection_expression_operand(felp, operand);
+  make_enhanced_for_expression_operand(felp->collection_expr_ref, operand);
   if (is_handle_type(operand->type)) {
     a_type_ptr under_type = type_pointed_to(operand->type);
     if (is_qualified_type(under_type)) {
@@ -28691,7 +29056,8 @@ created, needed to reactivate that scope.
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  make_collection_expression_operand(felp, &bound_function_selector);
+  make_enhanced_for_expression_operand(felp->collection_expr_ref,
+                                       &bound_function_selector);
   pos = bound_function_selector.position;
   collection_type = bound_function_selector.type;
   /* The collection type may be a handle type.  If so, dereference it
@@ -28711,12 +29077,13 @@ created, needed to reactivate that scope.
   }  /* if */
   /* Look up the "GetEnumerator" member function and generate IL for
      the function call. */
-  if (!check_for_each_user_defined_function(&bound_function_selector,
-                                            "GetEnumerator",
-                                            &pos,
-                                            tok_seq_number,
-                                            (an_operand *)NULL,
-                                            &getenumerator_operand)) {
+  if (!check_enhanced_for_user_defined_function(&bound_function_selector,
+                                                "GetEnumerator",
+                                                &pos,
+                                                tok_seq_number,
+                                                (an_operand *)NULL,
+                                                &getenumerator_operand,
+                                                /*is_for_each=*/TRUE)) {
     /* Diagnostic was already issued, or a dependent case. */
     passed = FALSE;
   } else {
@@ -28754,12 +29121,13 @@ created, needed to reactivate that scope.
                                  &null_source_position,
                                  &null_source_position,
                                  &operand, (a_ref_entry *)NULL);
-    if (!check_for_each_user_defined_function(&operand,
-                                              "MoveNext",
-                                              &pos,
-                                              tok_seq_number,
-                                              (an_operand *)NULL,
-                                              &movenext_call_operand)) {
+    if (!check_enhanced_for_user_defined_function(&operand,
+                                                  "MoveNext",
+                                                  &pos,
+                                                  tok_seq_number,
+                                                  (an_operand *)NULL,
+                                                  &movenext_call_operand,
+                                                  /*is_for_each=*/TRUE)) {
       passed = FALSE;
     } else {
       /* The return type of "MoveNext" is required to be bool. */
@@ -28925,15 +29293,16 @@ created, needed to reactivate that scope.
                                       (a_host_large_integer)bound);
         /* Look up the "GetLowerBound" or "GetUpperBound" member function
            and generate IL for the function call. */
-        if (!check_for_each_user_defined_function(&bound_function_selector,
-                                                  (outer == 0) ?
-                                                      (char *)"GetUpperBound" :
-                                                      (char *)"GetLowerBound",
-                                                  &bound_function_selector
+        if (!check_enhanced_for_user_defined_function(&bound_function_selector,
+                                                      (outer == 0) ?
+                                                       (char *)"GetUpperBound":
+                                                       (char *)"GetLowerBound",
+                                                      &bound_function_selector
                                                                      .position,
-                                                  tok_seq_number,
-                                                  &bound_num_operand,
-                                                  &operand)) {
+                                                      tok_seq_number,
+                                                      &bound_num_operand,
+                                                      &operand,
+                                                      /*is_for_each=*/TRUE)) {
           /* Diagnostic was already issued, or a dependent case. */
           passed = FALSE;
         } else {
@@ -29036,233 +29405,6 @@ created, needed to reactivate that scope.
 }  /* check_for_each_cli_array_pattern */
 
 
-static void fill_in_for_each_il(a_for_each_loop_ptr        felp,
-                                an_operand                 *prev_decl_iterator,
-                                a_for_each_pattern_kind    kind,
-                                a_token_sequence_number    tok_seq_number,
-                                a_scope_pointers_block_ptr pointers_block)
-/*
-Fill in the IL (in felp) for the particular "for each" pattern
-(either sfepk_stl_pattern or sfepk_array_pattern -- as indicated by "kind").
-The IL generated for these two cases is very similar, differing only in the
-initial and terminating loop conditions.
-
-  {
-    I *cend = END;
-    I *i = INIT;
-    for (; i != cend; ++i) {
-      T t = *i;
-      <statement>
-    }
-  }
-
-(In the STL case cend and i are iterator objects, not pointers.)
-
-The caller has generated the END and INIT expressions and the
-initializations of the cend and i variables.  The variables have
-been recorded as fields in felp.
-
-This routine generates expressions for "i != cend" and "++i", and
-creates a dynamic initialization for the iterator variable ("t = *i").
-A diagnostic is emitted (and *felp is not filled in) if an error is
-found.
-
-prev_decl_iterator is an operand for the previously-declared variable
-for the iterator when one is indicated in the for-each loop entry.
-tok_seq_number is the sequence number of the first token of the
-collection expression.  pointers_block is the pointers block for the
-iterator scope previously created, needed to reactivate that scope.
-*/
-{
-  an_operand          operand1, operand2, operand;
-  an_expr_node_ptr    ne_call_expr = NULL;
-  an_expr_node_ptr    incr_call_expr = NULL;
-  a_boolean           processed, passed = TRUE;
-  a_source_position   pos =
-                       felp->collection_expr_ref->source_corresp.decl_position;
-  a_variable_ptr      temp_var = felp->temporary_variable;
-  a_variable_ptr      cend_var;
-  an_expr_stack_entry expr_stack_entry;
-
-  check_assertion(kind == (a_for_each_pattern_kind)sfepk_stl_pattern ||
-                  kind == (a_for_each_pattern_kind)sfepk_array_pattern);
-  cend_var = felp->variant.stl_array_pattern.end_variable;
-  check_assertion(types_are_compatible(temp_var->type, cend_var->type));
-  /* We should be in the for-each scope at this point. */
-  check_assertion(felp->for_each_scope == scope_stack_top().il_scope);
-  /* Make the "i != cend" expression. */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  make_lvalue_variable_operand(temp_var,
-                               &null_source_position, &null_source_position,
-                               &operand1, (a_ref_entry *)NULL);
-  make_lvalue_variable_operand(cend_var,
-                               &null_source_position, &null_source_position,
-                               &operand2, (a_ref_entry *)NULL);
-  processed = FALSE;
-  if (is_overloadable_first_operand_type(operand1.type)) {
-    check_for_operator_overloading((an_opname_kind)onk_ne,
-                                   /*is_unary_op=*/FALSE,
-                                   /*must_be_member_function=*/FALSE,
-                                   /*try_conversions=*/TRUE,
-                                   /*has_predef_meaning=*/
-                                                 is_handle_type(operand1.type),
-                                   &operand1, &operand2, &pos,
-                                   tok_seq_number,
-                                   (a_nondependent_call_depth)1,
-                                   &pos, &operand, &processed);
-  }  /* if */
-  if (processed) {
-    /* An overloaded operator!= was used (or there was an error). */
-  } else {
-    /* Try a non-overloaded "!=" operator. */
-    if (!is_pointer_or_handle_type(operand1.type)) {
-      pos_ty_error(ec_missing_notequal_on_for_each_type, &pos,
-                   operand1.type);
-      passed = FALSE;
-    } else {
-      /* Make the "!=" operator node. */
-      conv_lvalue_to_rvalue(&operand1);
-      conv_lvalue_to_rvalue(&operand2);
-      build_binary_result_operand(&operand1, &operand2,
-                                  (an_expr_operator_kind)eok_ne,
-                                  boolean_result_type(),
-                                  &operand);
-    }  /* if */
-  }  /* if */
-  if (passed) {
-    if (is_error_operand(&operand)) {
-      passed = FALSE;
-    } else {
-      ne_call_expr = make_node_from_operand(&operand);
-      ne_call_expr = wrap_up_full_expression(ne_call_expr);
-    }  /* if */
-  }  /* if */
-  /* Done with the "i != cend" expression. */
-  pop_expr_stack();
-  /* Make the "++i" expression. */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  make_lvalue_variable_operand(temp_var,
-                               &null_source_position, &null_source_position,
-                               &operand1, (a_ref_entry *)NULL);
-  processed = FALSE;
-  if (is_overloadable_first_operand_type(operand1.type)) {
-    check_for_operator_overloading((an_opname_kind)onk_plus_plus,
-                                   /*is_unary_op=*/TRUE,
-                                   /*must_be_member_function=*/FALSE,
-                                   /*try_conversions=*/TRUE,
-                                   /*has_predef_meaning=*/FALSE,
-                                   &operand1, (an_operand *)NULL, &pos,
-                                   tok_seq_number,
-                                   (a_nondependent_call_depth)2,
-                                   &pos, &operand, &processed);
-  }  /* if */
-  if (processed) {
-    /* An overloaded operator++ was used (or there was an error). */
-  } else {
-    /* Try a non-overloaded "++" operator. */
-    if (!is_pointer_type(operand1.type)) {
-      pos_ty_error(ec_missing_incr_on_for_each_type, &pos,
-                   operand1.type);
-      passed = FALSE;
-    } else {
-      /* Make the "++" operator node. */
-      build_unary_result_operand(&operand1,
-                                 (an_expr_operator_kind)eok_pre_incr,
-                                 rvalue_type(operand1.type), &operand);
-    }  /* if */
-  }  /* if */
-  if (passed) {
-    if (is_error_operand(&operand)) {
-      passed = FALSE;
-    } else {
-      incr_call_expr = make_node_from_operand(&operand);
-      incr_call_expr = wrap_up_full_expression(incr_call_expr);
-    }  /* if */
-  }  /* if */
-  /* Done with the "++i" expression. */
-  pop_expr_stack();
-  /* Re-push the iterator scope because the initialization of the iterator
-     variable has to be handled in that scope. */
-  push_block_reactivation_scope(felp->iterator_scope, pointers_block);
-  /* Make the "*i" expression. */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  make_lvalue_variable_operand(temp_var,
-                               &null_source_position, &null_source_position,
-                               &operand1, (a_ref_entry *)NULL);
-  processed = FALSE;
-  if (is_overloadable_first_operand_type(operand1.type)) {
-    check_for_operator_overloading((an_opname_kind)onk_star,
-                                   /*is_unary_op=*/TRUE,
-                                   /*must_be_member_function=*/FALSE,
-                                   /*try_conversions=*/TRUE,
-                                   /*has_predef_meaning=*/
-                                                 is_handle_type(operand1.type),
-                                   &operand1, (an_operand *)NULL, &pos,
-                                   tok_seq_number,
-                                   (a_nondependent_call_depth)3,
-                                   &pos, &operand, &processed);
-  }  /* if */
-  if (processed) {
-    /* An overloaded operator* was used (or there was an error). */
-  } else {
-    /* Try a non-overloaded "*" operator. */
-    if (!is_pointer_or_handle_type(operand1.type)) {
-      pos_ty_error(ec_missing_indirect_on_for_each_type, &pos,
-                   operand1.type);
-      passed = FALSE;
-    } else {
-      /* Make the "*" operator node. */
-      an_expr_node_ptr expr;
-      conv_lvalue_to_rvalue(&operand1);
-      expr = add_indirection_to_node(make_node_from_operand(&operand1));
-      make_lvalue_expression_operand(expr, &operand);
-    }  /* if */
-  }  /* if */
-  if (passed) {
-    if (is_error_operand(&operand)) {
-      passed = FALSE;
-    } else {
-      /* Add the initializer to the iterator variable. */
-      if (!felp->uses_prev_decl_iterator && felp->iterator.variable == NULL) {
-        /* Previous error. */
-        passed = FALSE;
-      } else {
-        a_type_ptr itype;
-        deduce_auto_type_in_for_each_if_needed(felp, &operand);
-        /* Check conversion and generate IL for the conversion from
-           "*i" to "T". */
-        itype = iterator_type(felp, prev_decl_iterator);
-        if (!cast_identical_types(itype, operand.type)) {
-          a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
-          process_static_cast(itype, &operand, &pos, &pos,
-                              /*is_safe_cast=*/FALSE, &ruled_out_expr_kinds);
-        }  /* if */
-        set_iterator_variable_initializer(felp,
-                                          prev_decl_iterator,
-                                          tok_seq_number,
-                                          &operand);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  pop_expr_stack();
-  /* Pop the iterator scope off the scope stack. */
-  pop_block_scope(/*is_final_pop=*/FALSE);
-  if (passed) {
-    /* Fill the a_for_each_loop IL supplement. */
-    set_for_each_loop_kind(felp, kind);
-    felp->variant.stl_array_pattern.end_variable = cend_var;
-    felp->variant.stl_array_pattern.ne_call_expr = ne_call_expr;
-    felp->variant.stl_array_pattern.incr_call_expr = incr_call_expr;
-  }  /* if */
-}  /* fill_in_for_each_il */
-
-
 static void check_for_each_stl_collection_pattern(
                                 a_for_each_loop_ptr        felp,
                                 an_operand                 *prev_decl_iterator,
@@ -29290,14 +29432,10 @@ pointers_block is the pointers block for the iterator scope previously
 created, needed to reactivate that scope.
 */
 {
-  an_operand          bound_function_selector;
-  an_operand          begin_call_operand;
-  an_operand          end_call_operand;
   a_boolean           passed = TRUE;
   a_source_position   pos;
   a_type_ptr          collection_type, begin_type, end_type;
-  an_expr_stack_entry expr_stack_entry;
-  a_variable_ptr      temp_var, cend_var;
+  a_variable_ptr      temp_var = NULL, cend_var = NULL;
 
   /* We should be in the for-each scope at this point. */
   check_assertion(felp->for_each_scope == scope_stack_top().il_scope);
@@ -29313,50 +29451,25 @@ created, needed to reactivate that scope.
        }
   */
   /* Make "cref.end()". */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  make_collection_expression_operand(felp, &bound_function_selector);
-  pos = bound_function_selector.position;
-  collection_type = bound_function_selector.type;
-  if (!check_for_each_user_defined_function(&bound_function_selector,
-                                            "end",
-                                            &pos,
-                                            tok_seq_number,
-                                            (an_operand *)NULL,
-                                            &end_call_operand)) {
+  if (!make_enhanced_for_initializer_for_call_to_member_function(
+                                                    felp->collection_expr_ref,
+                                                    &cend_var,
+                                                    &end_type,
+                                                    "end",
+                                                    /*is_for_each=*/TRUE,
+                                                    tok_seq_number)) {
     passed = FALSE;
   }  /* if */
-  /* Make the cend variable and initialize it from the expression just made. */
-  cend_var = alloc_temporary_variable(end_call_operand.type,
-                                      /*force_static=*/FALSE);
-  felp->variant.stl_array_pattern.end_variable = cend_var;
-  end_type = end_call_operand.type;
-  set_variable_initializer(cend_var, &end_call_operand);
-  /* Done with "cref.end()". */
-  pop_expr_stack();
   /* Make "cref.begin()". */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  make_collection_expression_operand(felp, &bound_function_selector);
-  if (!check_for_each_user_defined_function(&bound_function_selector,
-                                            "begin",
-                                            &pos,
-                                            tok_seq_number,
-                                            (an_operand *)NULL,
-                                            &begin_call_operand)) {
+  if (!make_enhanced_for_initializer_for_call_to_member_function(
+                                                    felp->collection_expr_ref,
+                                                    &temp_var,
+                                                    &begin_type,
+                                                    "begin",
+                                                    /*is_for_each=*/TRUE,
+                                                    tok_seq_number)) {
     passed = FALSE;
   }  /* if */
-  /* Make the loop temporary variable and initialize it from the expression
-     just made. */
-  temp_var = alloc_temporary_variable(begin_call_operand.type,
-                                      /*force_static=*/FALSE);
-  felp->temporary_variable = temp_var;
-  begin_type = begin_call_operand.type;
-  set_variable_initializer(temp_var, &begin_call_operand);
-  /* Done with "cref.begin()". */
-  pop_expr_stack();
   if (passed) {
     if (!types_are_compatible(begin_type, end_type) ||
         (!is_overloadable_first_operand_type(begin_type) &&
@@ -29364,15 +29477,24 @@ created, needed to reactivate that scope.
       /* The return types of "begin" and "end" are not compatible.  Or,
          the return type is not overloadable and it's not a pointer or
          handle. */
+      collection_type = felp->collection_expr_ref->type;
+      if (is_any_reference_type(collection_type) ||
+          is_handle_type(collection_type)) {
+        collection_type = type_pointed_to(collection_type);
+      }  /* if */
+      pos = felp->collection_expr_ref->source_corresp.decl_position;
       pos_ty_error(ec_for_each_incompatible_type, &pos, collection_type);
-      passed = FALSE;
     } else {
       /* Fill in the appropriate IL for the STL version of the "for each"
          statement. */
-      fill_in_for_each_il(felp, prev_decl_iterator,
-                          (a_for_each_pattern_kind)sfepk_stl_pattern,
-                          tok_seq_number,
-                          pointers_block);
+      set_for_each_loop_kind(felp, (a_for_each_pattern_kind)sfepk_stl_pattern);
+      felp->temporary_variable = temp_var;
+      felp->variant.stl_array_pattern.end_variable = cend_var;
+      fill_in_enhanced_for_loop_constructs(felp,
+                                           (a_range_based_for_loop_ptr)NULL,
+                                           prev_decl_iterator,
+                                           tok_seq_number,
+                                           pointers_block);
     }  /* if */
   }  /* if */
 }  /* check_for_each_stl_collection_pattern */
@@ -29419,7 +29541,7 @@ created, needed to reactivate that scope.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   need_expr_stack_pop = TRUE;
-  make_collection_expression_operand(felp, &operand);
+  make_enhanced_for_expression_operand(felp->collection_expr_ref, &operand);
   collection_type = operand.type;
   check_assertion(is_array_type(collection_type));
   element_type = array_element_type(collection_type);
@@ -29450,7 +29572,7 @@ created, needed to reactivate that scope.
        also no possibility of overloading here, given pointer operands. */
     /* Make the "&cref[0]+c_num_elements" expression. */
     /* push_expr_stack done above. */
-    /* make_collection_expression_operand(felp, &operand); --done above.*/
+    /* make_enhanced_for_expression_operand(..., &operand); --done above.*/
     /* Convert the array to a decayed rvalue pointer.  For a multi-dimensional
        array, use a cast to get to a pointer to the ultimate element type.
        Using the conv_array_... routine in both cases deals with rvalue
@@ -29473,7 +29595,6 @@ created, needed to reactivate that scope.
     /* Make the cend variable and initialize it from the expression just
        made. */
     cend_var = alloc_temporary_variable(operand.type, /*force_static=*/FALSE);
-    felp->variant.stl_array_pattern.end_variable = cend_var;
     set_variable_initializer(cend_var, &operand);
     /* Done with "&cref[0]+c_num_elements". */
     pop_expr_stack();
@@ -29482,7 +29603,8 @@ created, needed to reactivate that scope.
     push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
-    make_collection_expression_operand(felp, &operand);
+    make_enhanced_for_expression_operand(felp->collection_expr_ref,
+                                         &operand);
     /* Convert the array to a decayed rvalue pointer, as above. */
     conv_array_operand_to_pointer_operand(&operand);
     if (multi_dim) {
@@ -29498,10 +29620,13 @@ created, needed to reactivate that scope.
     pop_expr_stack();
     /* Fill in the appropriate IL for the array version of the "for each"
        statement. */
-    fill_in_for_each_il(felp, prev_decl_iterator,
-                        (a_for_each_pattern_kind)sfepk_array_pattern,
-                        tok_seq_number,
-                        pointers_block);
+    set_for_each_loop_kind(felp, (a_for_each_pattern_kind)sfepk_array_pattern);
+    felp->variant.stl_array_pattern.end_variable = cend_var;
+    fill_in_enhanced_for_loop_constructs(felp,
+                                         (a_range_based_for_loop_ptr)NULL,
+                                         prev_decl_iterator,
+                                         tok_seq_number,
+                                         pointers_block);
   }  /* if */
   /* Pop the expression stack for error cases. */
   if (need_expr_stack_pop) pop_expr_stack();
@@ -29854,6 +29979,471 @@ On return, the current token is the "in".
 }  /* scan_previously_decl_iterator_name */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static a_boolean check_range_based_for_array_case(
+                                              a_range_based_for_loop_ptr rbflp)
+/*
+The expression in a range-based-for has an array type; generate the appropriate
+IL (in rbflp) to loop through the array elements.  Note that if the range
+expression has a multi-dimensional array type, the code generated here only
+loops through the outer-most dimension of the array.  Returns TRUE and
+fills in the appropriate fields in rbflp if there is no error; otherwise
+issues an error and returns FALSE.
+*/
+{
+  a_type_ptr          expr_type;
+  a_type_ptr          element_type;
+  an_operand          operand, size_operand;
+  a_constant          size_constant;
+  a_variable_ptr      begin_var, end_var;
+  an_expr_stack_entry expr_stack_entry;
+  a_boolean           need_expr_stack_pop = FALSE, passed = TRUE;
+
+  /* We should be in the begin_end_scope at this point. */
+  check_assertion(rbflp->begin_end_scope == scope_stack_top().il_scope);
+  /* Make an expression operand early so we can get its type and position. */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  need_expr_stack_pop = TRUE;
+  make_enhanced_for_expression_operand(rbflp->range, &operand);
+  expr_type = operand.type;
+  check_assertion(is_array_type(expr_type));
+  element_type = array_element_type(expr_type);
+  if (is_incomplete_array_type(expr_type) || 
+      is_incomplete_type(element_type)) {
+    /* The array has an unknown bound or the element type is incomplete. */
+    pos_ty_error(ec_range_based_for_incompatible_type, &operand.position,
+                 expr_type);
+    passed = FALSE;
+  } else {
+    /* For the array pattern of a range-based-for, begin-expr is "__range" and
+       end-expr is "__range + bound"; create temporary variables for these and
+       set their initializers appropriately. */
+    /* Make the "__range" expression. */
+    /* push_expr_stack done above. */
+    /* make_enhanced_for_expression_operand(..., &operand); --done above.*/
+    /* Convert the array to a decayed rvalue pointer. */
+    conv_array_operand_to_pointer_operand(&operand);
+    /* Make the "begin" temporary variable and initialize it from the
+       expression just made. */
+    begin_var = alloc_temporary_variable(operand.type, /*force_static=*/FALSE);
+    rbflp->begin = begin_var;
+    set_variable_initializer(begin_var, &operand);
+    /* Done with "__range". */
+    pop_expr_stack();
+    need_expr_stack_pop = FALSE;
+    /* Make the "__range + __bound" expression. */
+    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    make_enhanced_for_expression_operand(rbflp->range, &operand);
+    /* Convert the array to a decayed rvalue pointer. */
+    conv_array_operand_to_pointer_operand(&operand);
+    set_integer_constant(&size_constant,
+                         (a_host_large_integer)expr_type->
+                                      variant.array.variant.number_of_elements,
+                         targ_size_t_int_kind);
+    make_constant_operand(&size_constant, &size_operand);
+    build_binary_result_operand(&operand, &size_operand,
+                                (an_expr_operator_kind)eok_padd,
+                                operand.type, &operand);
+    /* Make the end variable and initialize it from the expression just
+       made. */
+    end_var = alloc_temporary_variable(operand.type, /*force_static=*/FALSE);
+    rbflp->end = end_var;
+    set_variable_initializer(end_var, &operand);
+    /* Done with "__range + __bound". */
+    pop_expr_stack();
+  }  /* if */
+  /* Pop the expression stack for error cases. */
+  if (need_expr_stack_pop) pop_expr_stack();
+  return passed;
+}  /* check_range_based_for_array_case */
+
+
+static a_boolean check_range_based_for_member_case(
+                                     a_range_based_for_loop_ptr rbflp,
+                                     a_token_sequence_number    tok_seq_number)
+/*
+The expression in a range-based-for has a class type; if that class has
+suitable "begin()" and "end()" members, generate IL (in rbflp) to create and
+initialize the __begin and __end variables appropriately.  tok_seq_number is
+the sequence number for the expression in the range-based-for.  If suitable
+member functions are found, fields in rbflp are updated and the routine returns
+TRUE; otherwise an error is issued and FALSE is returned.
+*/
+{
+  a_type_ptr        begin_type, end_type;
+  a_boolean         passed = TRUE;
+
+  /* Make "__range.begin()". */
+  if (!make_enhanced_for_initializer_for_call_to_member_function(
+                                                         rbflp->range,
+                                                         &rbflp->begin,
+                                                         &begin_type,
+                                                         "begin",
+                                                         /*is_for_each=*/FALSE,
+                                                         tok_seq_number)) {
+    passed = FALSE;
+  }  /* if */
+  /* Make "__range.end()". */
+  if (!make_enhanced_for_initializer_for_call_to_member_function(
+                                                         rbflp->range,
+                                                         &rbflp->end,
+                                                         &end_type,
+                                                         "end",
+                                                         /*is_for_each=*/FALSE,
+                                                         tok_seq_number)) {
+    passed = FALSE;
+  }  /* if */
+  /* Type compatibility of these variables is checked by the caller. */
+  return passed;
+}  /* check_range_based_for_member_case */
+
+
+static a_boolean create_range_based_for_variable_for_function_call(
+                                        a_variable_ptr          range_var,
+                                        a_variable_ptr          *variable,
+                                        char                    *function_name,
+                                        a_token_sequence_number tok_seq_number)
+/*
+This utility is used during processing of a range-based-for to create a
+variable (returned in *variable) whose initializer is a call to the function
+specified by function_name.  range_var is the sole argument in the function
+call, and argument-dependent lookup is used (with namespace std as an
+associated namespace) for the purposes of the lookup.  tok_seq_number is
+the sequence number of the range-based-for expression.  Returns TRUE
+(and creates *variable with a proper initializer) if an appropriate function
+was found; otherwise reports an error and returns FALSE (with *variable
+unmodified).
+*/
+{
+  a_symbol_locator        locator;
+  a_symbol_ptr            symbol;
+  a_type_list_entry_ptr   type_list = NULL;
+  a_symbol_list_entry_ptr symbol_list;
+  an_operand              range_operand, result;
+  a_source_position       *pos = &range_var->source_corresp.decl_position;
+  an_expr_stack_entry     expr_stack_entry;
+  a_type_ptr              range_type;
+  a_boolean               passed = FALSE;
+  a_boolean               found = TRUE;
+
+  range_type = range_var->type;
+  if (is_any_reference_type(range_type)) {
+    range_type = type_pointed_to(range_type);
+  }  /* if */
+  if (is_error_type(range_type)) {
+    /* Do nothing. */
+    found = FALSE;
+  } else {
+    /* Use argument-dependent lookup with std as an associated namespace
+       to find the appropriate function to call. */
+    clear_locator(&locator, &null_source_position);
+    (void)find_symbol(function_name, strlen(function_name), &locator);
+    add_to_arg_dependent_lookup_list(range_type, &type_list);
+    symbol_list = argument_dependent_lookup(NULL, &locator, &type_list,
+                                            /*include_std_namespace=*/TRUE);
+    if (symbol_list == NULL) {
+      /* ADL look up failed. */
+      symbol = NULL;
+      if (microsoft_mode) {
+        /* FIXME: Unclear whether the normal lookup takes place before or
+           after; waiting for direction from Microsoft as we don't have a
+           version of MSVC that we can test against. */
+        /* Microsoft appears to use a normal lookup as well. */
+        symbol = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+      }  /* if */
+      if (symbol == NULL) {
+        pos_stty_error(ec_range_based_for_missing_function, pos, function_name,
+                       range_type);
+        found = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (found) {
+    an_expr_node_ptr   argument_list;
+    an_operand         function_operand;
+    an_expr_node_ptr   func_call_node;
+    a_boolean          dependent_function = FALSE, found_through_adl = FALSE;
+    an_arg_operand_ptr arg_operand_list = NULL;
+
+    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    make_enhanced_for_expression_operand(range_var, &range_operand);
+    arg_operand_list = alloc_arg_operand();
+    copy_operand(&range_operand, &arg_operand_list->operand);
+    /* select_and_prepare_to_call_overloaded_function will free the list. */
+    /* Determine which function will be called. */
+    if (select_and_prepare_to_call_overloaded_function(
+                                          locator.specific_symbol,
+                                          /*is_template_id=*/FALSE,
+                                          (a_template_arg_ptr)NULL,
+                                          /*have_selector=*/FALSE,
+                                          (an_operand *)NULL,
+                                          arg_operand_list,
+                                          /*do_arg_dep_lookup=*/TRUE,
+                                          /*use_std_for_arg_dep_lookup=*/TRUE,
+                                          /*try_surrogate_functions=*/FALSE,
+                                          /*is_property=*/FALSE,
+                                          ec_for_each_no_matching_overload,
+                                          ec_ambiguous_overloaded_function,
+                                          (an_operand *)NULL,
+                                          pos,
+                                          tok_seq_number,
+                                          (a_source_position *)NULL,
+                                          &dependent_function,
+                                          &found_through_adl,
+                                          &function_operand,
+                                          &argument_list) != NULL) {
+      /* Generate the expression for the function call. */
+      assemble_function_call(&function_operand, 
+                             (an_operand *)NULL,
+                             argument_list,
+                             /*compiler_generated=*/TRUE,
+                             /*arg_dep_lookup_suppressed=*/FALSE,
+                             /*is_qualified_name=*/FALSE,
+                             found_through_adl,
+                             /*uses_operator_syntax=*/FALSE,
+                             pos, 
+                             &result,
+                             &func_call_node);
+      result.position = *pos;
+      if (func_call_node != NULL) {
+        /* FIXME: Do we need any further checks here? */
+        /* Make the variable and initialize it with the result of the call
+           just made. */
+        *variable = alloc_temporary_variable(result.type,
+                                             /*force_static=*/FALSE);
+        set_variable_initializer(*variable, &result);
+        passed = TRUE;
+      }  /* if */
+    }  /* if */
+    pop_expr_stack();
+  }  /* if */
+  return passed;
+}  /* create_range_based_for_variable_for_function_call */
+
+
+static a_boolean check_range_based_for_default_case(
+                                    a_range_based_for_loop_ptr rbflp,
+                                    a_token_sequence_number    tok_seq_number)
+/*
+Called during range-based-for processing for the "default" case, that is,
+in the case where the range expression isn't an array and isn't a class with
+"begin" or "end" member functions.  In this case, use argument-dependent
+lookup to find suitable "begin(__range)" and "end(__range)" calls, if
+the exist.  rbflp is the associated information for the range-based-for
+statement.  tok_seq_number is the sequence number associated with the
+range-based-for expression.  Returns TRUE and creates the __begin and __end
+variables with suitable initialization if suitable functions have been found;
+issues a diagnostic and returns FALSE otherwise.
+*/
+{
+  a_boolean       passed = TRUE;
+
+  /* Find a suitable "begin" function. */
+  if (!create_range_based_for_variable_for_function_call(rbflp->range,
+                                                         &rbflp->begin,
+                                                         "begin",
+                                                         tok_seq_number)) {
+    passed = FALSE;
+  }  /* if */
+  /* Even if we didn't find a suitable "begin", look also for an "end". */
+  if (!create_range_based_for_variable_for_function_call(rbflp->range,
+                                                         &rbflp->end,
+                                                         "end",
+                                                         tok_seq_number)) {
+    passed = FALSE;
+  }  /* if */
+  return passed;
+}  /* check_range_based_for_default_case */
+
+
+void check_range_based_for_statement(
+                           a_statement_ptr            statement,
+                           a_token_sequence_number    tok_seq_number,
+                           a_scope_pointers_block_ptr begin_end_pointers_block,
+                           a_scope_pointers_block_ptr iterator_pointers_block)
+/*
+Perform semantic checks on the range-based-for statement pointed to by
+"statement".  tok_seq_number is the sequence number of the first token of the
+expression.  begin_end_pointers_block and iterator_pointers_block are the
+pointer blocks for the begin_end_scope and iterator_scope which have been
+previously created, needed to reactivate those scopes.
+
+The range-based-for statement takes the form:
+
+  for ( for-range-declaration : expression ) statement
+
+which is implemented as:
+
+  {
+    auto && __range = (expression);
+    for ( auto __begin = begin-expr,
+               __end = end-expr;
+          __begin != __end;
+          ++__begin ) {
+      for-range-declaration = *__begin;
+      statement
+    }
+  }
+
+The expressions for begin-expr and end-expr depend on the type of "expression",
+and can have the following forms (see [stmt.ranged] for specifics):
+
+  type      begin-expr        end-expr
+  ----      ----------        --------
+  array     __range           __range + bound
+  class     __range.begin()   __range.end()
+  other     begin(__range)    end(__range)
+*/
+{
+  a_range_based_for_loop_ptr rbflp =
+                            statement->variant.range_based_for_loop.extra_info;
+  a_type_ptr          expr_type;
+  an_expr_stack_entry *saved_expr_stack;
+  a_boolean           processed = FALSE, passed = FALSE;
+  a_boolean           dependent_case = FALSE;
+  
+  db_enter(3, "check_range_based_for_statement");
+  /* We should be in the outermost scope at this point. */
+  check_assertion(rbflp->range_based_for_scope == scope_stack_top().il_scope);
+  save_expr_stack(&saved_expr_stack);
+  expr_type = rbflp->range->type;
+  if (is_any_reference_type(expr_type)) {
+    expr_type = type_pointed_to(expr_type);
+  }  /* if */
+  complete_type_is_needed(expr_type);
+  /* Re-activate the block where the __begin and __end variables are
+     defined. */
+  push_block_reactivation_scope(rbflp->begin_end_scope,
+                                begin_end_pointers_block);
+  /* Determine which of the three types of range-based-for we have here.
+     Each of these routines (when successful) sets the "__begin" and "__end"
+     variables as appropriate.  If an error is encountered, an error message
+     is issued and (at least one of) the "__begin" or "__end" variables is
+     NULL.  */
+  if (is_error_type(expr_type)) {
+    /* Do nothing here (to prevent cascading diagnostics). */
+    processed = TRUE;
+  } else if (is_array_type(expr_type)) {
+    /* begin-expr is __range, end-expr is __range + bound. */
+    passed = check_range_based_for_array_case(rbflp);
+    processed = TRUE;
+  } else if (is_class_struct_union_type(expr_type) &&
+             has_range_based_for_begin_or_end_member(expr_type)) {
+    /* begin-expr is __range.begin(), end-expr is __range.end(). */
+    passed = check_range_based_for_member_case(rbflp, tok_seq_number);
+    processed = TRUE;
+  }  /* if */
+  if (!processed) {
+    if (is_template_dependent_type(expr_type)) {
+      /* The expression type is not known; do not attempt to validate it. */
+      dependent_case = TRUE;
+    } else {
+      /* begin-expr is begin(__range), end-expr is end(__range). */
+      passed = check_range_based_for_default_case(rbflp, tok_seq_number);
+    }  /* if */
+  }  /* if */
+  if (passed) {
+    if (!types_are_compatible(rbflp->begin->type, rbflp->end->type)) {
+      /* The types of "__begin" and "__end" are not compatible. */
+      pos_ty2_error(ec_begin_end_type_mismatch_in_range_based_for,
+                    &rbflp->range->source_corresp.decl_position,
+                    rbflp->begin->type, rbflp->end->type);
+      passed = FALSE;
+    }  /* if */
+  }  /* if */
+  if (passed) {
+    check_assertion(rbflp->begin != NULL &&
+                    rbflp->end != NULL &&
+                    rbflp->iterator != NULL);
+    /* Fill in the remainder of the IL required for the range-based-for,
+       i.e., the iterator variable, the "__begin != __end" expression,
+       and the "++__begin" expression.  The expressions are built in the
+       begin_end scope and the iterator is built in the iterator scope. */
+    fill_in_enhanced_for_loop_constructs((a_for_each_loop_ptr)NULL,
+                                         rbflp,
+                                         (an_operand *)NULL,
+                                         tok_seq_number,
+                                         iterator_pointers_block);
+
+  } else if (rbflp->iterator != NULL &&
+             rbflp->iterator->declared_with_auto_type_specifier &&
+             is_auto_type(find_bottom_of_type(rbflp->iterator->type))) {
+    /* We failed to resolve the auto type of the iterator variable, so
+       make it an error type (or an unknown dependent type). */
+    rbflp->iterator->type = dependent_case ?
+                              type_of_unknown_templ_param_nontype :
+                              error_type();
+  }  /* if */
+  if (rbflp->iterator != NULL) {
+    /* Mark the iterator variable as having a value. */
+    mark_variable_value_set(symbol_for(rbflp->iterator));
+  }  /* if */
+  /* Return to the outermost scope. */
+  pop_block_scope(/*is_final=*/FALSE);
+  restore_expr_stack(saved_expr_stack);
+  db_exit();
+}  /* check_range_based_for_statement */
+
+
+void scan_range_based_for_expression(a_statement_ptr statement)
+/*
+Scan the expression of a range-based-for statement and put information
+about it in the range-based-for statement IL entry pointed to by statement.
+*/
+{
+  a_range_based_for_loop_ptr rbflp =
+                            statement->variant.range_based_for_loop.extra_info;
+  an_operand          result;
+  an_expr_stack_entry *saved_expr_stack;
+  an_expr_stack_entry expr_stack_entry;
+  a_transformation_options_set
+                      options;
+  a_type_ptr          ref_type, expr_type;
+  a_variable_ptr      ref_var;
+
+  db_enter(3, "scan_range_based_for_expression");
+  /* We should be in the outer scope of the range-based-for at this point. */
+  check_assertion(rbflp->range_based_for_scope == scope_stack_top().il_scope);
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  /* Scan the expression. */
+  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  /* We don't want to have arrays decay to pointers. */
+  options = TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION;
+  do_operand_transformations(&result, options);
+  /* Determine the type for the reference variable to use to refer to the
+     expression. */
+  expr_type = result.type;
+  if (is_an_rvalue(&result)) {
+    ref_type = make_rvalue_reference_type(expr_type);
+  } else if (is_template_param_type(expr_type)) {
+    /* Template-dependent type.  Consider okay. */
+    ref_type = type_of_unknown_templ_param_nontype;
+  } else {
+    /* FIXME: Not sure if this is right. */
+    ref_type = make_reference_type(expr_type);
+  }  /* if */
+  /* Make the expression reference variable. */
+  ref_var = alloc_temporary_variable(ref_type, /*force_static=*/FALSE);
+  rbflp->range = ref_var;
+  ref_var->source_corresp.decl_position = result.position;
+  set_variable_initializer(ref_var, &result);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  db_exit();
+}  /* scan_range_based_for_expression */
+
 
 void scan_default_arg_expr(a_param_type_ptr ptp)
 /*

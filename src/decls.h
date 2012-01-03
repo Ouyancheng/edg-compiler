@@ -640,6 +640,12 @@ typedef struct a_decl_parse_state {
   a_bit_field	vla_field_treated_as_zero_length_array:1;
 			/* TRUE if this declaration is an explicit
 			   instantiation directive. */
+  a_bit_field	is_for_init_decl:1;
+			/* TRUE if this is a for-init declaration. */
+  a_bit_field	range_based_for:1;
+			/* TRUE if this is a for-init declaration and the
+			   colon indicating a range-based "for" loop has been
+			   seen. */
   an_attribute_ptr
 		prefix_attributes;
 			/* A list of non-type-transforming attributes scanned
@@ -736,6 +742,12 @@ typedef struct a_decl_parse_state {
 			   old-style C parameter definition.  May be NULL even
 			   when is_old_style_param_decl is TRUE in error
 			   cases. */
+  a_param_id_ptr
+		param_id_list;
+			/* When calling scan_nonmember_declaration to parse an
+			   old-style C parameter definition this points to the
+			   list of parameter id entries encountered in the
+			   associated function declarator.  Otherwise, NULL. */
   a_targ_alignment
 		alignment;
 			/* The explicit alignment specified for the declared
@@ -962,14 +974,16 @@ extern void report_gnu_postfix_attributes_on_function_definition(
 extern void add_src_seq_end_of_variable_if_needed(a_decl_parse_state  *dps);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+extern void scan_nonmember_declaration(
+                                 a_decl_parse_state  *dps,
+                                 a_source_range      *linkage_spec_range_ptr);
+
 extern void declaration(a_boolean       function_definition_allowed,
                         a_boolean       is_old_style_param_decl,
                         a_boolean       is_top_level_declaration,
                         a_boolean       marked_as_gnu_extension,
                         a_param_id_ptr  param_id_list,
                         a_source_range  *linkage_spec_range_ptr);
-
-extern void local_declaration(a_boolean  marked_as_gnu_extension);
 
 extern void translation_unit(void);
 
