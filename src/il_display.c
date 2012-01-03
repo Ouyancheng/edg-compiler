@@ -2057,6 +2057,7 @@ Display the indicated type entry.
       }  /* if */
       if (ptr->variant.class_struct_union.inc_class_used_in_array_type) {
         disp_boolean("inc_class_used_in_array_type", TRUE);
+      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       if (ptr->variant.class_struct_union.is_transparent) {
         disp_boolean("is_transparent", TRUE);
