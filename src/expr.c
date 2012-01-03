@@ -30164,7 +30164,7 @@ unmodified).
   }  /* if */
   if (found) {
     an_expr_node_ptr   argument_list;
-    an_operand         function_operand;
+    an_operand         function_operand, dummy_bound_function_selector;
     an_expr_node_ptr   func_call_node;
     a_boolean          dependent_function = FALSE, found_through_adl = FALSE;
     an_arg_operand_ptr arg_operand_list = NULL;
@@ -30199,8 +30199,12 @@ unmodified).
                                           &function_operand,
                                           &argument_list) != NULL) {
       /* Generate the expression for the function call. */
+#ifdef _lint
+      /* We pass dummy_bound_function_selector rather than a null pointer
+         constant to avoid a spurious diagnostic by Gimpel lint. */
+#endif /* ifdef _lint */
       assemble_function_call(&function_operand, 
-                             (an_operand *)NULL,
+                             &dummy_bound_function_selector,
                              argument_list,
                              /*compiler_generated=*/TRUE,
                              /*arg_dep_lookup_suppressed=*/FALSE,

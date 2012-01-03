@@ -14823,7 +14823,7 @@ if one is present.
         is_variable_def = TRUE;
       }  /* if */
       srk_flags |= SRK_INITIALIZATION;
-    is_variable_def = TRUE;
+      is_variable_def = TRUE;
     } else if (C_dialect == C_dialect_cplusplus) {
       /* Variable declaration in C++ mode with no explicit initializer. */
       if (microsoft_mode &&
