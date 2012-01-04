@@ -14366,7 +14366,7 @@ typedef struct a_range_based_for_loop {
                         /* Expression for the "++__begin" increment. */
 } a_range_based_for_loop;
 
-/* FIXME: logically: #if MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 Kind of pattern for a collection type in a for-each statement. 
 */
@@ -14586,7 +14586,7 @@ typedef struct a_for_each_loop {
   } variant;
 } a_for_each_loop;
 
-/* FIXME: logically: #endif // MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 typedef struct a_switch_case_entry *a_switch_case_entry_ptr;
 typedef struct a_switch_case_entry {

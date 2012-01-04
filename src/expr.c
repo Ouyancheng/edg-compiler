@@ -28478,17 +28478,18 @@ variable.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void fill_in_enhanced_for_loop_constructs(
-                                a_for_each_loop_ptr        felp,
-                                a_range_based_for_loop_ptr rbflp,
-                                an_operand                 *prev_decl_iterator,
-                                a_token_sequence_number    tok_seq_number,
-                                a_scope_pointers_block_ptr pointers_block)
+static void generate_enhanced_for_ne_and_incr_expressions(
+                                       a_variable_ptr          begin_var,
+                                       a_variable_ptr          end_var,
+                                       an_expr_node_ptr        *ne_call_expr,
+                                       an_expr_node_ptr        *incr_call_expr,
+                                       a_source_position       pos,
+                                       a_token_sequence_number tok_seq_number,
+                                       a_boolean               is_for_each)
 /*
-Generate and fill in the IL necessary for the looping constructs of an
-"enhanced-for" (either a range-based-for or a for-each) statement.  Only
-for-each statements whose kind is sfepk_stl_pattern or sfepk_array_pattern are
-considered here.
+Generate the "!=" and "++" expressions necessary for an "enhanced-for" (either
+a range-based-for or a for-each) statement.  Only for-each statements whose
+kind is sfepk_stl_pattern or sfepk_array_pattern are considered here.
 
 The IL generated for the loop portion of the two enhanced-for statements is
 very similar:
@@ -28506,58 +28507,29 @@ very similar:
   }                                       }
 
 Where __begin, __end, begin-expr, and end-expr in the range-based-for case
-map directly to i, cend, END, and INIT, respectively for the for-each case.
+map directly to i, cend, END, and INIT, respectively in the for-each case.
 This routine creates expressions for "__begin != __end" and "++__begin" and
-sets the appropriate fields in the IL structure.  It also
-creates an expression for "*__begin" and sets the appropriate iterator variable
-(found through rbflp or felp as appropriate) to be dynamically initialized by
-the result (in some for-each cases, the expression is set aside to be assigned
-rather than initialized).
+sets the appropriate fields in the IL structure.  The IL for the iterator
+initialization is handled by the caller.
+
+begin_var and end_var are the __begin/i and __end/cend variables for
+range-based-for and for-each statements respectively.  *ne_call_expr and
+*incr_call_expr are returned expressions for the "!=" and "++" operations.
+pos is the source position for the enhanced-for expression.  tok_seq_number
+is the sequence number of the first token of the enhanced-for expression.
+is_for_each is TRUE when parsing a for-each statement and FALSE when parsing
+a range-based-for statement.
 
 This routine should be called with the proper scope in which to declare the
 loop variables (i.e., __begin, __end) already on the stack.  A diagnostic is
 emitted (in which case *ne_call_expr and/or *incr_call_expr may not be filled
 in) if an error is found.
-
-prev_decl_iterator is an operand for the previously-declared variable
-for the iterator when one is indicated in the for-each loop entry.
-tok_seq_number is the sequence number of the first token of the
-collection expression.  pointers_block is the pointers block for the
-iterator scope previously created, needed to reactivate that scope.
 */
 {
   an_operand          operand1, operand2, operand;
   a_boolean           processed, passed = TRUE, has_predef_meaning = FALSE;
   an_expr_stack_entry expr_stack_entry;
-  a_variable_ptr      begin_var, end_var;
-  an_expr_node_ptr    *ne_call_expr, *incr_call_expr;
-  a_scope_ptr         iterator_scope;
-  a_source_position   pos;
 
-  /* Set local variables based on the type of enhanced-for statement. */
-  if (felp != NULL) {
-    /* For-each statement. */
-    check_assertion(felp->kind == (a_for_each_pattern_kind)sfepk_stl_pattern ||
-                    felp->kind ==
-                                 (a_for_each_pattern_kind)sfepk_array_pattern);
-    begin_var = felp->temporary_variable;
-    end_var = felp->variant.stl_array_pattern.end_variable;
-    ne_call_expr = &(felp->variant.stl_array_pattern.ne_call_expr);
-    incr_call_expr = &(felp->variant.stl_array_pattern.incr_call_expr);
-    iterator_scope = felp->iterator_scope;
-    pos = felp->collection_expr_ref->source_corresp.decl_position;
-  } else if (rbflp != NULL) {
-    /* Range-based-for statement. */
-    check_assertion(prev_decl_iterator == NULL);
-    begin_var = rbflp->begin;
-    end_var = rbflp->end;
-    ne_call_expr = &(rbflp->ne_call_expr);
-    incr_call_expr = &(rbflp->incr_call_expr);
-    iterator_scope = rbflp->iterator_scope;
-    pos = rbflp->range->source_corresp.decl_position;
-  } else {
-    unexpected_condition();
-  }  /* if */
   check_assertion(types_are_compatible(begin_var->type, end_var->type));
   /* Make the "i != cend" or "__begin != __end" expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
@@ -28589,8 +28561,8 @@ iterator scope previously created, needed to reactivate that scope.
   } else {
     /* Try a non-overloaded "!=" operator. */
     if (!is_pointer_or_handle_type(operand1.type)) {
-      pos_ty_error(felp != NULL ? ec_missing_notequal_on_for_each_type :
-                                  ec_missing_notequal_on_range_based_for_type,
+      pos_ty_error(is_for_each ? ec_missing_notequal_on_for_each_type :
+                                 ec_missing_notequal_on_range_based_for_type,
                    &pos, operand1.type);
       passed = FALSE;
     } else {
@@ -28637,8 +28609,8 @@ iterator scope previously created, needed to reactivate that scope.
   } else {
     /* Try a non-overloaded "++" operator. */
     if (!is_pointer_type(operand1.type)) {
-      pos_ty_error(felp != NULL ? ec_missing_incr_on_for_each_type :
-                                  ec_missing_incr_on_range_based_for_type,
+      pos_ty_error(is_for_each ? ec_missing_incr_on_for_each_type :
+                                 ec_missing_incr_on_range_based_for_type,
                    &pos, operand1.type);
       passed = FALSE;
     } else {
@@ -28658,14 +28630,45 @@ iterator scope previously created, needed to reactivate that scope.
   }  /* if */
   /* Done with the "++i" or "++__begin" expression. */
   pop_expr_stack();
+}  /* generate_enhanced_for_ne_and_incr_expressions */
+
+
+static void fill_in_range_based_for_loop_constructs(
+                                     a_range_based_for_loop_ptr rbflp,
+                                     a_token_sequence_number    tok_seq_number,
+                                     a_scope_pointers_block_ptr pointers_block)
+/*
+Generate and fill in the IL necessary for the looping constructs of a
+range-based-for statement.  rbflp points to the IL associated with the
+range-based-for statement.  tok_seq_number is the sequence number of the first
+token of the expression.  pointers_block is the pointers block for the iterator
+scope previously created, needed to reactivate that scope.  This routine should
+be called with the proper scope in which to declare the loop variables (i.e.,
+__begin, __end) already on the stack.
+*/
+{
+  an_operand          operand1, operand;
+  a_boolean           processed, passed = TRUE, has_predef_meaning = FALSE;
+  an_expr_stack_entry expr_stack_entry;
+  a_source_position   pos;
+
+  pos = rbflp->range->source_corresp.decl_position;
+  /* Generate the "__begin != __end" and "++__begin" expressions. */
+  generate_enhanced_for_ne_and_incr_expressions(rbflp->begin,
+                                                rbflp->end,
+                                                &rbflp->ne_call_expr,
+                                                &rbflp->incr_call_expr,
+                                                pos,
+                                                tok_seq_number,
+                                                /*is_for_each=*/FALSE);
   /* Re-push the iterator scope because the initialization of the iterator
      variable has to be handled in that scope. */
-  push_block_reactivation_scope(iterator_scope, pointers_block);
-  /* Make the "*i" or "*__begin" expression. */
+  push_block_reactivation_scope(rbflp->iterator_scope, pointers_block);
+  /* Make the "*__begin" expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  make_lvalue_variable_operand(begin_var,
+  make_lvalue_variable_operand(rbflp->begin,
                                &null_source_position, &null_source_position,
                                &operand1, (a_ref_entry *)NULL);
   processed = FALSE;
@@ -28685,8 +28688,7 @@ iterator scope previously created, needed to reactivate that scope.
   } else {
     /* Try a non-overloaded "*" operator. */
     if (!is_pointer_or_handle_type(operand1.type)) {
-      pos_ty_error(felp != NULL ? ec_missing_indirect_on_for_each_type :
-                                  ec_missing_indirect_on_range_based_for_type,
+      pos_ty_error(ec_missing_indirect_on_range_based_for_type,
                    &pos, operand1.type);
       passed = FALSE;
     } else {
@@ -28702,48 +28704,123 @@ iterator scope previously created, needed to reactivate that scope.
       passed = FALSE;
     } else {
       /* Add the initializer to the iterator variable. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (felp != NULL) {
-        /* for-each case. */
-        if (!felp->uses_prev_decl_iterator &&
-            felp->iterator.variable == NULL) {
-          /* Previous error. */
-          passed = FALSE;
-        } else {
-          a_type_ptr itype;
-          deduce_auto_type_in_for_each_if_needed(felp, &operand);
-          /* Check conversion and generate IL for the conversion from
-             "*i" to "T". */
-          itype = iterator_type(felp, prev_decl_iterator);
-          if (!cast_identical_types(itype, operand.type)) {
-            a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
-            process_static_cast(itype, &operand, &pos, &pos,
-                                /*is_safe_cast=*/FALSE, &ruled_out_expr_kinds);
-          }  /* if */
-          set_iterator_variable_initializer(felp,
-                                            prev_decl_iterator,
-                                            tok_seq_number,
-                                            &operand);
-        }  /* if */
-      } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      {
-        /* Range-based-for case. */
-        check_assertion(rbflp != NULL);
-        if (rbflp->iterator != NULL) {
-          deduce_auto_type_in_enhanced_for_if_needed(rbflp->iterator,
-                                                     &operand);
-          set_variable_initializer(rbflp->iterator, &operand);
-        }  /* if */
+      if (rbflp->iterator != NULL) {
+        deduce_auto_type_in_enhanced_for_if_needed(rbflp->iterator, &operand);
+        set_variable_initializer(rbflp->iterator, &operand);
       }  /* if */
     }  /* if */
   }  /* if */
   pop_expr_stack();
   /* Pop the iterator scope off the scope stack. */
   pop_block_scope(/*is_final_pop=*/FALSE);
-}  /* fill_in_enhanced_for_loop_constructs */
+}  /* fill_in_range_based_for_loop_constructs */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void fill_in_for_each_loop_constructs(
+                                a_for_each_loop_ptr        felp,
+                                an_operand                 *prev_decl_iterator,
+                                a_token_sequence_number    tok_seq_number,
+                                a_scope_pointers_block_ptr pointers_block)
+/*
+Generate and fill in the IL necessary for the looping constructs of a
+for-each statement.  Only for-each statements whose kind is sfepk_stl_pattern
+or sfepk_array_pattern are considered here.  This routine should be called with
+the proper scope in which to declare the loop variables (i.e., i, cend) already
+on the stack.  felp points to the IL entry associated with the for-each
+statement.  prev_decl_iterator is an operand for the previously-declared
+variable for the iterator when one is indicated in the for-each loop entry.
+tok_seq_number is the sequence number of the first token of the collection
+expression.  pointers_block is the pointers block for the iterator scope
+previously created, needed to reactivate that scope.
+*/
+{
+  an_operand          operand1, operand;
+  a_boolean           processed, passed = TRUE, has_predef_meaning = FALSE;
+  an_expr_stack_entry expr_stack_entry;
+  a_source_position   pos;
+
+  check_assertion(felp->kind == (a_for_each_pattern_kind)sfepk_stl_pattern ||
+                  felp->kind == (a_for_each_pattern_kind)sfepk_array_pattern);
+  pos = felp->collection_expr_ref->source_corresp.decl_position;
+  /* Generate "i != cend" and "++i" expressions. */
+  generate_enhanced_for_ne_and_incr_expressions(
+                               felp->temporary_variable,
+                               felp->variant.stl_array_pattern.end_variable,
+                               &felp->variant.stl_array_pattern.ne_call_expr,
+                               &felp->variant.stl_array_pattern.incr_call_expr,
+                               pos,
+                               tok_seq_number,
+                               /*is_for_each=*/TRUE);
+  /* Re-push the iterator scope because the initialization of the iterator
+     variable has to be handled in that scope. */
+  push_block_reactivation_scope(felp->iterator_scope, pointers_block);
+  /* Make the "*i" expression. */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  make_lvalue_variable_operand(felp->temporary_variable,
+                               &null_source_position, &null_source_position,
+                               &operand1, (a_ref_entry *)NULL);
+  processed = FALSE;
+  if (is_overloadable_first_operand_type(operand1.type)) {
+    check_for_operator_overloading((an_opname_kind)onk_star,
+                                   /*is_unary_op=*/TRUE,
+                                   /*must_be_member_function=*/FALSE,
+                                   /*try_conversions=*/TRUE,
+                                   has_predef_meaning,
+                                   &operand1, (an_operand *)NULL, &pos,
+                                   tok_seq_number,
+                                   (a_nondependent_call_depth)3,
+                                   &pos, &operand, &processed);
+  }  /* if */
+  if (processed) {
+    /* An overloaded operator* was used (or there was an error). */
+  } else {
+    /* Try a non-overloaded "*" operator. */
+    if (!is_pointer_or_handle_type(operand1.type)) {
+      pos_ty_error(ec_missing_indirect_on_for_each_type, &pos, operand1.type);
+      passed = FALSE;
+    } else {
+      /* Make the "*" operator node. */
+      an_expr_node_ptr expr;
+      conv_lvalue_to_rvalue(&operand1);
+      expr = add_indirection_to_node(make_node_from_operand(&operand1));
+      make_lvalue_expression_operand(expr, &operand);
+    }  /* if */
+  }  /* if */
+  if (passed) {
+    if (is_error_operand(&operand)) {
+      passed = FALSE;
+    } else {
+      /* Add the initializer to the iterator variable. */
+      if (!felp->uses_prev_decl_iterator && felp->iterator.variable == NULL) {
+        /* Previous error. */
+        passed = FALSE;
+      } else {
+        a_type_ptr itype;
+        deduce_auto_type_in_for_each_if_needed(felp, &operand);
+        /* Check conversion and generate IL for the conversion from
+           "*i" to "T". */
+        itype = iterator_type(felp, prev_decl_iterator);
+        if (!cast_identical_types(itype, operand.type)) {
+          a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
+          process_static_cast(itype, &operand, &pos, &pos,
+                              /*is_safe_cast=*/FALSE, &ruled_out_expr_kinds);
+        }  /* if */
+        set_iterator_variable_initializer(felp,
+                                          prev_decl_iterator,
+                                          tok_seq_number,
+                                          &operand);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  pop_expr_stack();
+  /* Pop the iterator scope off the scope stack. */
+  pop_block_scope(/*is_final_pop=*/FALSE);
+}  /* fill_in_for_each_loop_constructs */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean make_enhanced_for_initializer_for_call_to_member_function(
                                         a_variable_ptr          selector_var,
@@ -29490,11 +29567,10 @@ created, needed to reactivate that scope.
       set_for_each_loop_kind(felp, (a_for_each_pattern_kind)sfepk_stl_pattern);
       felp->temporary_variable = temp_var;
       felp->variant.stl_array_pattern.end_variable = cend_var;
-      fill_in_enhanced_for_loop_constructs(felp,
-                                           (a_range_based_for_loop_ptr)NULL,
-                                           prev_decl_iterator,
-                                           tok_seq_number,
-                                           pointers_block);
+      fill_in_for_each_loop_constructs(felp,
+                                       prev_decl_iterator,
+                                       tok_seq_number,
+                                       pointers_block);
     }  /* if */
   }  /* if */
 }  /* check_for_each_stl_collection_pattern */
@@ -29622,11 +29698,10 @@ created, needed to reactivate that scope.
        statement. */
     set_for_each_loop_kind(felp, (a_for_each_pattern_kind)sfepk_array_pattern);
     felp->variant.stl_array_pattern.end_variable = cend_var;
-    fill_in_enhanced_for_loop_constructs(felp,
-                                         (a_range_based_for_loop_ptr)NULL,
-                                         prev_decl_iterator,
-                                         tok_seq_number,
-                                         pointers_block);
+    fill_in_for_each_loop_constructs(felp,
+                                     prev_decl_iterator,
+                                     tok_seq_number,
+                                     pointers_block);
   }  /* if */
   /* Pop the expression stack for error cases. */
   if (need_expr_stack_pop) pop_expr_stack();
@@ -30369,11 +30444,9 @@ and can have the following forms (see [stmt.ranged] for specifics):
        i.e., the iterator variable, the "__begin != __end" expression,
        and the "++__begin" expression.  The expressions are built in the
        begin_end scope and the iterator is built in the iterator scope. */
-    fill_in_enhanced_for_loop_constructs((a_for_each_loop_ptr)NULL,
-                                         rbflp,
-                                         (an_operand *)NULL,
-                                         tok_seq_number,
-                                         iterator_pointers_block);
+    fill_in_range_based_for_loop_constructs(rbflp,
+                                            tok_seq_number,
+                                            iterator_pointers_block);
 
   } else if (rbflp->iterator != NULL &&
              rbflp->iterator->declared_with_auto_type_specifier &&
