@@ -2333,7 +2333,7 @@ ec_range_based_for_missing_function;;"to be used with range-based \"for\" statem
 ec_missing_notequal_on_range_based_for_type;;"there is no appropriate \"!=\" operator defined for the type %t in this range-based \"for\" statement"
 ec_missing_incr_on_range_based_for_type;;"there is no appropriate \"++\" operator defined for the type %t in this range-based \"for\" statement"
 ec_missing_indirect_on_range_based_for_type;;"there is no appropriate indirection operator defined for the type %t in this range-based \"for\" statement"
-ec_range_based_for_incompatible_type;;"a range-based \"for\" statement cannot operate on an expression of type %t"
+ec_range_based_for_incomplete_array_type;;"a range-based \"for\" statement cannot operate on an array of unknown size or incomplete type %t"
 ec_begin_end_type_mismatch_in_range_based_for;;"return types for \"begin\" and \"end\" functions used in a range-based \"for\" statement must be the same (\"begin\" return type is %t1, \"end\" return type is %t2)"
 ###############################################################################
 #                                                             \  ___  /       #

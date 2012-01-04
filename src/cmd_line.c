@@ -2050,7 +2050,7 @@ by a command line option.
        lowering. */
     range_based_for_enabled = range_based_for_enabled && !suppress_il_lowering;
 #else /* !DO_IL_LOWERING */
-    /* No lowering and no back-end support. */
+    /* No lowering and no back end support. */
     range_based_for_enabled = FALSE;
 #endif /* DO_IL_LOWERING */
 #endif /* !CPP11_IL_EXTENSIONS_SUPPORTED */

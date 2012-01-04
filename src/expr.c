@@ -30013,7 +30013,7 @@ issues an error and returns FALSE.
   if (is_incomplete_array_type(expr_type) || 
       is_incomplete_type(element_type)) {
     /* The array has an unknown bound or the element type is incomplete. */
-    pos_ty_error(ec_range_based_for_incompatible_type, &operand.position,
+    pos_ty_error(ec_range_based_for_incomplete_array_type, &operand.position,
                  expr_type);
     passed = FALSE;
   } else {
