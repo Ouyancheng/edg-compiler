@@ -2041,7 +2041,9 @@ by a command line option.
     if (!option_kind_used[(int)optk_cpp11_sfinae_ignore_access]) {
       if (cpp11_sfinae_enabled) cpp11_sfinae_ignore_access = FALSE;
     }  /* if */
-    range_based_for_enabled = (microsoft_version >= 1700 || cppcli_enabled);
+    if (microsoft_version >= 1700 || cppcli_enabled) {
+      range_based_for_enabled = TRUE;
+    }  /* if */
 #if !CPP11_IL_EXTENSIONS_SUPPORTED
 #if DO_IL_LOWERING
     /* If the back end doesn't support range-based-for, make sure we're
