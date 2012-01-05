@@ -4330,20 +4330,31 @@ declaration.
      proxy class (because there is no such scope).  So explicitly test for the
      class member friend case. */
   a_type_ptr  enclosing_class = curr_name_context->class_type;
-  if (!scp->is_class_member && !scp->qualification_needed &&
+  if (!scp->is_class_member &&
+      !(scp->qualification_needed && !omit_template_args &&
+        (template_arguments_for_name(
+                                 scp, iek_routine,
+                                 /*insert_space=*/(a_boolean *)NULL) != NULL ||
+         ((a_routine_ptr)scp)->expl_template_arg_list_used)) &&
       enclosing_class != NULL &&
       !enclosing_class->source_corresp.is_local_to_function &&
       scp_parent_namespace_or_null(scp) == innermost_namespace_parent_of(
                                           &enclosing_class->source_corresp)) {
-    /* The name is declared in the innermost nonclass scope, so an unqualified
-       name can be used. In some cases, a qualified name cannot be used.
-       For example, in
+    /* The name is declared in the innermost nonclass scope, so an
+       unqualified name can be used. In some cases, a qualified name cannot
+       be used.  For example, in
+
          class N::A::B { friend void f(); };
-       with A and B class types and N a namespace, f is a member of N but it
-       may not have been declared explicitly in N so that N::f is invalid.
-       Template arguments are omitted if the friend declaration is also a
-       definition.
-       */
+
+       with A and B class types and N a namespace, f is a member of N but
+       it may not have been declared explicitly in N so that N::f is
+       invalid.  Conversely, if the name is a template-id (has template
+       arguments that are not suppressed) and the outer declaration is
+       hidden (scp->qualification_needed is TRUE), the qualification must
+       not be suppressed in order that the following "<" will be treated as
+       the beginning of a template argument list and not a less-than
+       operator.  Template arguments are omitted if the friend declaration
+       is also a definition. */
     gen_bare_name(scp, iek_routine);
     if (!omit_template_args) {
       gen_template_arguments(scp, iek_routine, -1L);
