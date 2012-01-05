@@ -4330,7 +4330,7 @@ declaration.
      proxy class (because there is no such scope).  So explicitly test for the
      class member friend case. */
   a_type_ptr  enclosing_class = curr_name_context->class_type;
-  if (!scp->is_class_member &&
+  if (!scp->is_class_member && !scp->qualification_needed &&
       enclosing_class != NULL &&
       !enclosing_class->source_corresp.is_local_to_function &&
       scp_parent_namespace_or_null(scp) == innermost_namespace_parent_of(

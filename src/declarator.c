@@ -5017,10 +5017,14 @@ declared entity is known to not be a function.
           /* This is a template declaration. */
           is_template_decl = TRUE;
           ssep--;
-        } else if (gpp_mode && (input_flags & DI_IS_FRIEND_DECL)) {
+        } else if (gpp_mode && (input_flags & DI_IS_FRIEND_DECL) &&
+                   !locator_for_curr_id.is_template_id) {
           /* An unqualified friend declarator would declare a member of the
              nearest enclosing namespace scope.  GNU C++ compilers therefore
-             ignore qualifiers that refer to that scope. */
+             ignore qualifiers that refer to that scope.  If a friend
+             declaration is a qualified template-id, however, the template
+             must already have been declared in that namespace, so this
+             processing is not needed. */
           ssep = &scope_stack[depth_innermost_namespace_scope];
         }  /* if */
         if (locator_for_curr_id.is_error) {

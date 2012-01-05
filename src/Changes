@@ -1,5 +1,24 @@
 Version 4.5
 
+1/4/12   [EDGcpfe/12541]
+C++-generating back end: qualified dependent friend declaration
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+C++-generating back end failed to add the necessary qualification in a
+friend declaration in which the friend is a dependent template instance
+and the name of the template is hidden by declaration in a nested scope.
+This is now fixed.  For example:
+
+  namespace X {
+    template <class T> class P;
+    template <class T> void foo(const P<T>&);
+    template <class T> struct V {
+      void foo ();                        // Hides X::foo
+      friend void X::foo<>(const P<T>&);  // Previously omitted "X::"
+    };
+  }
+
+
 1/4/12   [EDGcpfe/9255,EDGcpfe/11021]
 C++11 range-based "for" statement
 

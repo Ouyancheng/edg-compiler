@@ -8954,6 +8954,12 @@ instantiations are recorded in the IL.
   rp->is_prototype_instantiation = TRUE;
   sym->variant.routine.ptr = rp;
   set_source_corresp(&rp->source_corresp, sym);
+#if BACK_END_IS_CP_GEN_BE
+  /* Because this symbol is not linked into the symbol table, the normal
+     hidden name processing will not work.  The presence of a qualifier
+     must therefore be recorded in the IL entry here. */
+  rp->source_corresp.qualification_needed = locator->is_qualified_name;
+#endif /* BACK_END_IS_CP_GEN_BE */
   /* If a special function is named as a friend, adjust the placeholder entry
      accordingly. */
   if (decl_info->is_constructor) {
