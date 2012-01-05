@@ -1,5 +1,32 @@
 Version 4.5
 
+1/5/12   [EDGcpfe/12537]
+Name for linkage purposes in unnamed member type of class template
+
+Standard C++ allows unnamed class types to have a "name for linkage purposes"
+through typedef declarations.  For example:
+
+  typedef class {} C;  // "C" is the name for linkage purposes of the
+                       // class type being defined.
+
+This name for linkage purposes is recorded in the a_type entry for the class.
+Member class or enum types of a class template have an associated "nonreal
+type" entry (in addition to the ordinary type entry representing the class or
+enum type), but that entry previously never acquired a name for linkage
+purposes resulting from a typedef construct like the one above.  That caused
+the C++-generating back end to incorrectly render certain references to the
+unnamed type (in some modes and configurations).  For example:
+
+  template<typename T> struct A { };
+  template<typename T> struct B {
+    typedef enum { e0 } E;
+    typedef A<E> AE;  // "A<E>" was previously incorrectly rendered in some
+  };                  // circumstances.
+  B<int> bi;
+
+This is now fixed.
+
+
 1/4/12   [EDGcpfe/12541]
 C++-generating back end: qualified dependent friend declaration
 

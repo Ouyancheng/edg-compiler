@@ -9763,7 +9763,7 @@ symbol entry, and return a pointer to it in state->sym.
        typedef name will serve as the "name for linkage purposes" (WP 7.1.3
        [dcl.typedef]).  If so, set the name pointer in the type entry to
        point to the same name as the current typedef name. */
-    a_type_ptr  type_to_check = type_ptr;
+    a_type_ptr  type_to_check = type_ptr, assoc_template_param = NULL;
     a_boolean   is_class_or_enum, via_typeof = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
     if (gpp_mode) {
@@ -9792,6 +9792,7 @@ symbol entry, and return a pointer to it in state->sym.
       if (type_sym != NULL) {
         nested_sym = type_sym->corresp_nonreal_or_nested_type;
         if (nested_sym != NULL) {
+          assoc_template_param = type_to_check;
           type_to_check =  type_symbol_type(nested_sym);
         }  /* if */
       }  /* if */
@@ -9894,6 +9895,13 @@ symbol entry, and return a pointer to it in state->sym.
           }  /* if */
 #endif /* NEED_NAME_MANGLING */
           set_source_corresp_name(&tp->source_corresp, locator->symbol_header);
+          if (assoc_template_param != NULL &&
+              !has_name(assoc_template_param)) {
+            /* Also apply the name to the corresponding nonreal type in
+               prototype instantiation contexts. */
+            set_source_corresp_name(&assoc_template_param->source_corresp,
+                                    locator->symbol_header);
+          }  /* if */
 #if NEED_NAME_MANGLING
           if (recompute_discriminator) {
             /* The new name may cause a collision of its own: Compute a new
