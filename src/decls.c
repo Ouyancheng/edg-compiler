@@ -8917,6 +8917,9 @@ definition of a member function of a class template.
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
+  if (decl_state->is_template_friend && func_info->is_definition) {
+    rout_ptr->defined_in_friend_decl = TRUE;
+  }  /* if */
   attach_decl_attributes(dps, func_info->is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (dps->ms_attributes != NULL) {

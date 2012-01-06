@@ -1,5 +1,23 @@
 Version 4.5
 
+1/6/12   [EDGcpfe/12542]
+C++-generating back end: Missing "friend" keyword for some friend templates
+
+The C++-generating back end dropped the "friend" keyword when rendering a
+friend template declaration that is also definition in a mode that defers
+prototype instantiation (this requires that PROTOTYPE_INSTANTIATIONS_IN_IL and
+FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED both be TRUE; see also the
+Changes entry of 12/13/05).  For example:
+
+  struct S {
+    template<typename T> friend void f(T) {}  // "friend" was previously
+    void g(){ f(3.0); }                       // lost by the C++-generating
+  };                                          // back end when deferring
+                                              // prototype instantiation.
+
+This is now fixed.
+
+
 1/6/12   [EDGcpfe/10600,EDGcpfe/10601,EDGcpfe/12030]
 Remove function pointers from PCH files (an issue with ASLR)
 
