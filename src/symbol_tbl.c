@@ -2056,8 +2056,10 @@ header is returned if one exists.  Otherwise, a new header is created.
   if (prop_or_event_accessor_header_hash_table == NULL) {
     prop_or_event_accessor_header_hash_table =
                alloc_hash_table(FRONT_END_REGION_NUMBER,
-                              (a_hash_table_size)100,
-                              fp_hash_prop_or_event_accessor_header_lookup,
+                           (a_hash_table_size)100,
+                           (a_function_pointer_entry)
+                                  fp_hash_prop_or_event_accessor_header_lookup,
+                           (a_function_pointer_entry)
                               fp_compare_prop_or_event_accessor_header_lookup);
   }  /* if */
   /* Create an entry to be used as the lookup key. */
@@ -5030,8 +5032,10 @@ it.
       break;
   }  /* switch */
   hash_table = alloc_hash_table(FRONT_END_REGION_NUMBER, size,
-                                fp_hash_symbol_header_lookup_entry,
-                                fp_compare_symbol_header_lookup_entry);
+                                (a_function_pointer_entry)
+                                            fp_hash_symbol_header_lookup_entry,
+                                (a_function_pointer_entry)
+                                        fp_compare_symbol_header_lookup_entry);
   return hash_table;
 }  /* create_name_lookup_table */
 

@@ -486,7 +486,7 @@ pointer of the appropriate type.
 */
 #if CHECKING
 #define index_to_function_pointer(index) \
-  (check_assertion((unsigned int)(index) <= fp_last), \
+  (check_assertion((unsigned int)(index) <= (unsigned int)fp_last), \
    function_pointers[(unsigned int)index])
 #else /* !CHECKING */
 #define index_to_function_pointer(index) \

@@ -19380,9 +19380,9 @@ are handled in lexical_init.)
   register_trans_unit_variable(curr_token_sequence_number);
   register_trans_unit_variable(curr_cached_token_handle);
   include_search_hash_table = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
-                                             (a_hash_table_size)1024,
-                                             fp_hash_include_search_result,
-                                             fp_compare_include_search_result);
+                   (a_hash_table_size)1024,
+                   (a_function_pointer_entry)fp_hash_include_search_result,
+                   (a_function_pointer_entry)fp_compare_include_search_result);
 #if DEBUG
   num_include_search_results_allocated = 0;
 #endif /* DEBUG */
@@ -19456,10 +19456,10 @@ Initialize variables that are specific to a given translation unit.
      since it is related to tokenization. */
   next_token_is_top_level_decl_start = FALSE;
   include_file_history_hash_table = alloc_hash_table(
-                                             FRONT_END_REGION_NUMBER,
-                                             (a_hash_table_size)1024,
-                                             fp_hash_include_file_history,
-                                             fp_compare_include_file_history);
+                    FRONT_END_REGION_NUMBER,
+                    (a_hash_table_size)1024,
+                    (a_function_pointer_entry)fp_hash_include_file_history,
+                    (a_function_pointer_entry)fp_compare_include_file_history);
   trigraph_diagnostic_issued = FALSE;
   trigraph_column = 0;
   curr_stop_token_stack_entry = NULL;
