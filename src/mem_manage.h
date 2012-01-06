@@ -415,8 +415,10 @@ typedef enum a_function_pointer_entry_tag {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   fp_hash_instantiation,
   fp_compare_instantiation,
+#if MICROSOFT_EXTENSIONS_ALLOWED
   fp_hash_prop_or_event_accessor_header_lookup,
   fp_compare_prop_or_event_accessor_header_lookup,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   fp_hash_symbol_header_lookup_entry,
   fp_compare_symbol_header_lookup_entry,
   fp_record_arg_pragma,

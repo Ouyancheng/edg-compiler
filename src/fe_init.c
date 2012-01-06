@@ -173,8 +173,10 @@ EXTERN a_function_pointer function_pointers[(int)fp_last+1]
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   (a_function_pointer)hash_instantiation,
   (a_function_pointer)compare_instantiation,
+#if MICROSOFT_EXTENSIONS_ALLOWED
   (a_function_pointer)hash_prop_or_event_accessor_header_lookup,
   (a_function_pointer)compare_prop_or_event_accessor_header_lookup,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   (a_function_pointer)hash_symbol_header_lookup_entry,
   (a_function_pointer)compare_symbol_header_lookup_entry,
   (a_function_pointer)record_arg_pragma,
