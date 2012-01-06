@@ -5732,12 +5732,14 @@ void db_hash_statistics(a_hash_table_ptr	table);
 
 extern a_hash_value hash_source_string(a_void_ptr  key);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_hash_value hash_prop_or_event_accessor_header_lookup(
 						       a_void_ptr	key);
 
 extern a_boolean compare_prop_or_event_accessor_header_lookup(
 						       a_void_ptr	entry,
 						       a_void_ptr	key);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_hash_value hash_symbol_header_lookup_entry(a_void_ptr	key);
 

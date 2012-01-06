@@ -105,13 +105,6 @@ typedef a_preproc_immediate_pragma_function
                                     *a_preproc_immediate_pragma_function_ptr;
 
 /*
-Typedef used for a pragma processing function pointer that may point to
-any one of the various processing function types.
-*/
-typedef void a_generic_pragma_function(a_pending_pragma_ptr ppp, ...);
-typedef a_generic_pragma_function *a_generic_pragma_function_ptr;
-
-/*
 For each pragma that is defined, there exists an a_pragma_kind_description
 record that indicates how that pragma is to be handled by the front
 end.

@@ -335,10 +335,12 @@ extern void preproc_init(void);
 extern unsigned long show_preproc_space_used(void);
 #endif /* DEBUG*/
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_hash_value hash_include_alias(a_void_ptr	key);
 
 extern a_boolean compare_include_alias(a_void_ptr	entry,
                                        a_void_ptr	key);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef PREPROC_H */
 

@@ -396,7 +396,7 @@ When adding an entry in this enumeration, also make a similar change
 in function_pointers (in fe_init.c).
 */
 
-typedef enum a_function_pointer_entry_tag {
+enum a_function_pointer_entry_tag {
   fp_null,                             /* Indicates a NULL function pointer. */
   fp_hash_attribute_kind,
   fp_compare_for_attr_corresp_checking_map,
@@ -469,7 +469,7 @@ typedef enum a_function_pointer_entry_tag {
   fp_microsoft_include_alias_pragma,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   fp_last
-} a_function_pointer_entry_tag;
+};
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_function_pointer_entry;
 

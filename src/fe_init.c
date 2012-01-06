@@ -1225,14 +1225,14 @@ after the command-line processing has been done.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Verify that the type used to store a function pointer index is
      large enough. */
-  if (1 << (sizeof(a_function_pointer_entry)*CHAR_BIT) < (int)fp_last) 
-                                                               /*lint !e506*/ {
+  if (1 << (sizeof(a_function_pointer_entry)*CHAR_BIT) < (int)fp_last) {
+                                                                 /*lint !e506*/
     internal_error("a_function_pointer_entry is too small");
   }  /* if */
   /* Make sure first and last entries are correct. */
   if (index_to_function_pointer(fp_null) != (a_function_pointer)NULL ||
-      index_to_function_pointer(fp_last) != (a_function_pointer)NULL)
-                                                               /*lint !e506*/ {
+      index_to_function_pointer(fp_last) != (a_function_pointer)NULL) {
+                                                                 /*lint !e506*/
     internal_error("function_pointers is incorrectly initialized");
   }  /* if */
 }  /* fe_one_time_init */

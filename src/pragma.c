@@ -1495,7 +1495,7 @@ has been reached.
 
 #if DEBUG
 
-extern void db_opt_pragma(a_pending_pragma_ptr	ppp)
+void db_opt_pragma(a_pending_pragma_ptr	ppp)
 /*
 The routine called when a db_opt pragma is encountered.  Process the
 pragma argument as if it were a debug option specified on the command-line.
@@ -1522,7 +1522,7 @@ pragma argument as if it were a debug option specified on the command-line.
   }  /* if */
 }  /* db_opt_pragma */
 
-extern void db_name_pragma(a_pending_pragma_ptr	ppp)
+void db_name_pragma(a_pending_pragma_ptr	ppp)
 /*
 The routine called when a db_name pragma is encountered.  Process the
 pragma argument as if it were a debug option specified on the command-line.
