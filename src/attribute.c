@@ -768,8 +768,8 @@ static an_attr_corresp_checking_map_entry
 			   the buckets in a fixed array. */
 
 
-static a_boolean compare_for_attr_corresp_checking_map(a_void_ptr  entry,
-                                                       a_void_ptr  key)
+a_boolean compare_for_attr_corresp_checking_map(a_void_ptr  entry,
+                                                a_void_ptr  key)
 /*
 Compare the attribute kind associated with entry (entry is a pointer to an
 object of type an_attr_corresp_checking_map_entry) to the attribute kind
@@ -783,7 +783,7 @@ pointed to by key.  Return TRUE if they are equal.
 }  /* compare_for_attr_corresp_checking_map */
 
 
-static a_hash_value hash_attribute_kind(a_void_ptr  key)
+a_hash_value hash_attribute_kind(a_void_ptr  key)
 /*
 key points to an attribute kind.  Return that value (which is trivially
 suitable as a hash).
@@ -802,8 +802,8 @@ Initialize the attribute correspondence checking map.
 
   attr_corresp_checking_map = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
                                  (a_hash_table_size)ATTR_CORRESP_TABLE_LENGTH,
-                                 hash_attribute_kind,
-                                 compare_for_attr_corresp_checking_map);
+                                 fp_hash_attribute_kind,
+                                 fp_compare_for_attr_corresp_checking_map);
   for (k = 0; k<ATTR_CORRESP_TABLE_LENGTH; ++k) {
     an_attr_corresp_checking_map_entry_ptr  *p_ep;
     an_attribute_kind                       kind = attr_corresp_table[k].kind;
@@ -921,8 +921,8 @@ static an_attr_name_map_entry
 			   fixed, we can store the buckets in a fixed array. */
 
 
-static a_boolean compare_for_attr_name_map(a_void_ptr  entry,
-                                           a_void_ptr  key)
+a_boolean compare_for_attr_name_map(a_void_ptr  entry,
+                                    a_void_ptr  key)
 /*
 Compare the attribute name associated with entry (entry is a pointer to an
 entry of type an_attr_name_map_entry) to the given key (key is a pointer to a
@@ -944,8 +944,8 @@ Initialize the attribute name map.
 
   attr_name_map = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
                                    (a_hash_table_size)KNOWN_ATTR_TABLE_LENGTH,
-                                   hash_source_string,
-                                   compare_for_attr_name_map);
+                                   fp_hash_source_string,
+                                   fp_compare_for_attr_name_map);
   for (k = 0; k<KNOWN_ATTR_TABLE_LENGTH; ++k) {
     an_attr_name_map_entry_ptr  *ep;
     char                        *name = known_attr_table[k].name;
@@ -6583,8 +6583,8 @@ static a_hash_table_ptr
 	asm_name_map;
 
 
-static a_boolean compare_for_asm_name_map(a_void_ptr  entry,
-                                          a_void_ptr  key)
+a_boolean compare_for_asm_name_map(a_void_ptr  entry,
+                                   a_void_ptr  key)
 /*
 Compare the asm name associated with entry (entry is a symbol pointer) to the
 given key (key is a pointer to a character string).  Return TRUE if they are
@@ -7023,8 +7023,9 @@ translation unit.
 {
 #if GNU_EXTENSIONS_ALLOWED
   asm_name_map = alloc_hash_table(FRONT_END_REGION_NUMBER,
-                                  (a_hash_table_size)1000, hash_source_string,
-                                  compare_for_asm_name_map);
+                                  (a_hash_table_size)1000,
+                                  fp_hash_source_string,
+                                  fp_compare_for_asm_name_map);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   unscanned_attributes = NULL;
   unscanned_attributes_active = FALSE;

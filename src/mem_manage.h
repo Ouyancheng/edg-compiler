@@ -380,6 +380,117 @@ extern void db_prefix(char  *entry);
 extern an_il_entry_prefix_ptr db_prefix_ptr(char  *entry);
 #endif /* DEBUG */
 
+/*
+Data structures which can be saved in a pre-compiled header file cannot
+contain pointers to functions (as Address Space Layout Randomization
+will ensure that addresses vary from invocation to invocation).
+Define an enumeration of the functions which are pointed to by such
+data structures and use the enumerators as array indices (into the
+function_pointers array) so that PCH files can be used on systems that
+implement ASLR.
+
+Currently, these function pointer indices are used in the a_hash_table and
+a_pragma_kind_description data structures.
+
+When adding an entry in this enumeration, also make a similar change
+in function_pointers (in fe_init.c).
+*/
+
+typedef enum a_function_pointer_entry_tag {
+  fp_null,                             /* Indicates a NULL function pointer. */
+  fp_hash_attribute_kind,
+  fp_compare_for_attr_corresp_checking_map,
+  fp_hash_source_string,
+  fp_compare_for_attr_name_map,
+#if GNU_EXTENSIONS_ALLOWED
+  fp_compare_for_asm_name_map,
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  fp_hash_include_search_result,
+  fp_compare_include_search_result,
+  fp_hash_include_file_history,
+  fp_compare_include_file_history,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  fp_hash_include_alias,
+  fp_compare_include_alias,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  fp_hash_instantiation,
+  fp_compare_instantiation,
+  fp_hash_prop_or_event_accessor_header_lookup,
+  fp_compare_prop_or_event_accessor_header_lookup,
+  fp_hash_symbol_header_lookup_entry,
+  fp_compare_symbol_header_lookup_entry,
+  fp_record_arg_pragma,
+  fp_instantiation_pragma,
+#if USER_CONTROL_OF_STRUCT_PACKING
+  fp_pack_pragma,
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if IDENT_DIRECTIVE_AND_PRAGMA
+  fp_ident_pragma,
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+  fp_once_pragma,
+  fp_hdrstop_or_no_pch_pragma,
+  fp_define_type_info_pragma,
+  fp_stdc_pragma,
+#if UPC_EXTENSIONS_ALLOWED
+  fp_upc_pragma,
+#endif /* UPC_EXTENSIONS_ALLOWED */
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+  fp_redefine_extname_pragma,
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if SUN_EXTENSIONS_ALLOWED
+  fp_ldscope_pragma,
+#endif /* SUN_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  fp_gcc_pragma,
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  fp_diag_pragma,
+#if INCLUDE_EDG_TEST_PRAGMAS
+  fp_test_immediate_pragma,
+#endif /* INCLUDE_EDG_TEST_PRAGMAS */
+#if DEBUG
+  fp_db_opt_pragma,
+  fp_db_name_pragma,
+#endif /* DEBUG */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  fp_if_exists_pragma,
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  fp_push_macro_pragma,
+  fp_pop_macro_pragma,
+  fp_microsoft_start_map_region_pragma,
+  fp_microsoft_stop_map_region_pragma,
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+  fp_setlocale_pragma,
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+  fp_microsoft_comment_pragma,
+  fp_microsoft_conform_pragma,
+  fp_microsoft_include_alias_pragma,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  fp_last
+} a_function_pointer_entry_tag;
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_function_pointer_entry;
+
+/* Generic function pointer type. */
+typedef void (*a_function_pointer)();
+
+/* Declare the array of function pointers that map to the enumeration above. */
+extern a_function_pointer function_pointers[(int)fp_last+1];
+
+/*
+A macro to convert a function pointer enumerator (a_function_pointer_entry_tag)
+into a function pointer.  The caller must cast the result to a function
+pointer of the appropriate type.
+*/
+#if CHECKING
+#define index_to_function_pointer(index) \
+  (check_assertion((unsigned int)(index) <= fp_last), \
+   function_pointers[(unsigned int)index])
+#else /* !CHECKING */
+#define index_to_function_pointer(index) \
+  function_pointers[(unsigned int)index]
+#endif /* CHECKING */
+
 #endif /* ifndef MEM_MANAGE_H */
 
 /******************************************************************************

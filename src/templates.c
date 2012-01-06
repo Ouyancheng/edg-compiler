@@ -6052,7 +6052,7 @@ typedef struct an_instantiation_key {
 
 
 
-static a_hash_value hash_instantiation(a_void_ptr	key)
+a_hash_value hash_instantiation(a_void_ptr	key)
 /*
 Produce a hash value for a instantiation of a class or alias template.
 The key is an_instantiation_key_ptr that is used to fetch the template
@@ -6074,8 +6074,8 @@ argument list for the instantiation to be found.
 }  /* hash_instantiation */
 
 
-static a_boolean compare_instantiation(a_void_ptr	entry,
-				       a_void_ptr	key)
+a_boolean compare_instantiation(a_void_ptr	entry,
+                                a_void_ptr	key)
 /*
 Compare an entry in an instantiation hash table with an entry to be
 found.  "entry" is a symbol pointer and "key" is an_instantiation_key
@@ -6129,8 +6129,8 @@ of the hash table is returned, or NULL is no entry is found.
     tssp->variant.class_template.instantiation_hash_table =
 				alloc_hash_table(FRONT_END_REGION_NUMBER,
 					         (a_hash_table_size)11,
-					         hash_instantiation,
-					         compare_instantiation);
+					         fp_hash_instantiation,
+					         fp_compare_instantiation);
   }  /* if */
   sym_in_table = (a_symbol_ptr*)hash_find(
                          tssp->variant.class_template.instantiation_hash_table,

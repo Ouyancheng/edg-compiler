@@ -3959,7 +3959,7 @@ a pointer.
 }  /* alloc_include_file_history */
 
 
-static a_hash_value hash_include_file_history(a_void_ptr	key)
+a_hash_value hash_include_file_history(a_void_ptr	key)
 /*
 Produce a hash value for an include file history entry.  The key is
 a pointer to an include file history entry.
@@ -3983,8 +3983,8 @@ a pointer to an include file history entry.
 }  /* hash_include_file_history */
 
 
-static a_boolean compare_include_file_history(a_void_ptr	entry,
-					      a_void_ptr	key)
+a_boolean compare_include_file_history(a_void_ptr	entry,
+                                       a_void_ptr	key)
 /*
 Compare an entry in the include file history hash table with an entry to be
 found.  "entry" is of type an_include_file_history_ptr.  "key" is char *.
@@ -4536,7 +4536,7 @@ return a pointer to it.
 }  /* alloc_include_search_result */
 
 
-static a_hash_value hash_include_search_result(a_void_ptr	key)
+a_hash_value hash_include_search_result(a_void_ptr	key)
 /*
 Produce a hash value for an include search result entry.  The key is
 an_include_search_result_ptr.
@@ -4552,8 +4552,8 @@ an_include_search_result_ptr.
 }  /* hash_include_search_result */
 
 
-static a_boolean compare_include_search_result(a_void_ptr	entry,
-					       a_void_ptr	key)
+a_boolean compare_include_search_result(a_void_ptr	entry,
+                                        a_void_ptr	key)
 /*
 Compare an entry in the include search result hash table with an entry to be
 found.  "entry" and "key" are of type an_include_search_result_ptr.
@@ -19380,9 +19380,9 @@ are handled in lexical_init.)
   register_trans_unit_variable(curr_token_sequence_number);
   register_trans_unit_variable(curr_cached_token_handle);
   include_search_hash_table = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
-					       (a_hash_table_size)1024,
-					       hash_include_search_result,
-					       compare_include_search_result);
+                                             (a_hash_table_size)1024,
+                                             fp_hash_include_search_result,
+                                             fp_compare_include_search_result);
 #if DEBUG
   num_include_search_results_allocated = 0;
 #endif /* DEBUG */
@@ -19458,8 +19458,8 @@ Initialize variables that are specific to a given translation unit.
   include_file_history_hash_table = alloc_hash_table(
                                              FRONT_END_REGION_NUMBER,
                                              (a_hash_table_size)1024,
-                                             hash_include_file_history,
-                                             compare_include_file_history);
+                                             fp_hash_include_file_history,
+                                             fp_compare_include_file_history);
   trigraph_diagnostic_issued = FALSE;
   trigraph_column = 0;
   curr_stop_token_stack_entry = NULL;

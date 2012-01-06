@@ -1,5 +1,22 @@
 Version 4.5
 
+1/6/12   [EDGcpfe/10600,EDGcpfe/10601,EDGcpfe/12030]
+Remove function pointers from PCH files (an issue with ASLR)
+
+Many recent versions of operating systems implement some form of Address
+Space Layout Randomization (ASLR) where the addresses of various portions
+of a process' address space vary from invocation to invocation.
+This had caused problems when using pre-compiled header files because
+certain front end data structures written to PCH files contained function
+pointers which were no longer valid when used in subsequent invocations
+of the front end.  These function pointers have now been replaced by
+indices which are used to index into the new function_pointers array,
+thereby eliminating the problem.  Customers who have added their own pragma
+processing will need to add a new enumerator in a_function_pointer_entry_tag
+and a corresponding entry in function_pointers for each function pointer that
+had been passed to add_pragma_kind_description.
+
+
 1/5/12   [EDGcpfe/12537]
 Name for linkage purposes in unnamed member type of class template
 

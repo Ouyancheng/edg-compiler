@@ -239,6 +239,19 @@ extern a_type_ptr copy_gnu_type_properties(a_type_ptr  dst,
                                            a_type_ptr  src);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+extern a_hash_value hash_attribute_kind(a_void_ptr  key);
+
+extern a_boolean compare_for_attr_corresp_checking_map(a_void_ptr  entry,
+                                                       a_void_ptr  key);
+
+extern a_boolean compare_for_attr_name_map(a_void_ptr  entry,
+                                           a_void_ptr  key);
+
+#if GNU_EXTENSIONS_ALLOWED
+extern a_boolean compare_for_asm_name_map(a_void_ptr  entry,
+                                          a_void_ptr  key);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 extern void attribute_one_time_init(void);
 
 extern void attribute_trans_unit_init(void);

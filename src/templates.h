@@ -986,6 +986,10 @@ Stub version for use when Microsoft extensions are not enabled.
 extern unsigned long db_show_template_space_used(unsigned long grand_total);
 #endif /* DEBUG */
 
+extern a_hash_value hash_instantiation(a_void_ptr	key);
+
+extern a_boolean compare_instantiation(a_void_ptr	entry,
+                                       a_void_ptr	key);
 #endif /* TEMPLATES_H */
 
 /******************************************************************************

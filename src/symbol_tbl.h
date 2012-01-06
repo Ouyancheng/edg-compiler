@@ -5689,14 +5689,16 @@ typedef a_void_ptr
 A general-purpose hash table.
 */
 typedef struct a_hash_table {
-  a_hash_function_ptr
-		hash_function;
-			/* Pointer to the function used to produce a hash
+  a_function_pointer_entry
+		hash_function_index;
+			/* An index to a function pointer (of type
+			   a_hash_function_ptr) used to produce a hash
 			   value for a key. */
-  a_hash_compare_function_ptr
-		compare_function;
-			/* Pointer to the function used to compare a key with
-		           an entry in the hash table. */
+  a_function_pointer_entry
+		compare_function_index;
+			/* An index to a function pointer (of type
+			   a_hash_compare_function_ptr) used to compare a key
+			   with an entry in the hash table. */
   a_memory_region_number
 		memory_region;
 			/* The memory region in which hash table entries are
@@ -5715,10 +5717,10 @@ typedef struct a_hash_table {
 } a_hash_table;
 
 extern a_hash_table_ptr alloc_hash_table(
-			a_memory_region_number		memory_region,
-			a_hash_table_size		num_elements,
-			a_hash_function_ptr		hash_function,
-			a_hash_compare_function_ptr	compare_function);
+		a_memory_region_number		memory_region,
+		a_hash_table_size		num_elements,
+		a_function_pointer_entry	hash_function_index,
+		a_function_pointer_entry	compare_function_index);
 
 extern a_hash_data_ptr *hash_find(a_hash_table_ptr	table,
 			    a_void_ptr		key,
@@ -5729,6 +5731,18 @@ void db_hash_statistics(a_hash_table_ptr	table);
 #endif /* DEBUG */
 
 extern a_hash_value hash_source_string(a_void_ptr  key);
+
+extern a_hash_value hash_prop_or_event_accessor_header_lookup(
+						       a_void_ptr	key);
+
+extern a_boolean compare_prop_or_event_accessor_header_lookup(
+						       a_void_ptr	entry,
+						       a_void_ptr	key);
+
+extern a_hash_value hash_symbol_header_lookup_entry(a_void_ptr	key);
+
+extern a_boolean compare_symbol_header_lookup_entry(a_void_ptr	entry,
+                                                    a_void_ptr	key);
 
 #endif /* ifndef SYMBOL_TBL_H */
 

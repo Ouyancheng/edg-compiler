@@ -144,6 +144,92 @@ been included by the inclusion of fe_common.h.
 #endif /* DO_IL_LOWERING */
 
 /*
+Statically initialize the list of function pointers that corresponds to
+the a_function_pointer_entry_tag enumeration.  This is a list of functions
+that are referred to by data structures that might appear in a pre-compiled
+header file, and therefore whose address might change from one invocation
+of the front end to another on operating systems that implement
+Address Space Layout Randomization (ASLR).
+*/
+
+EXTERN a_function_pointer function_pointers[(int)fp_last+1]
+#if VAR_INITIALIZERS
+= {
+  (a_function_pointer)NULL,              /* fp_null */
+  (a_function_pointer)hash_attribute_kind,
+  (a_function_pointer)compare_for_attr_corresp_checking_map,
+  (a_function_pointer)hash_source_string,
+  (a_function_pointer)compare_for_attr_name_map,
+#if GNU_EXTENSIONS_ALLOWED
+  (a_function_pointer)compare_for_asm_name_map,
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  (a_function_pointer)hash_include_search_result,
+  (a_function_pointer)compare_include_search_result,
+  (a_function_pointer)hash_include_file_history,
+  (a_function_pointer)compare_include_file_history,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  (a_function_pointer)hash_include_alias,
+  (a_function_pointer)compare_include_alias,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  (a_function_pointer)hash_instantiation,
+  (a_function_pointer)compare_instantiation,
+  (a_function_pointer)hash_prop_or_event_accessor_header_lookup,
+  (a_function_pointer)compare_prop_or_event_accessor_header_lookup,
+  (a_function_pointer)hash_symbol_header_lookup_entry,
+  (a_function_pointer)compare_symbol_header_lookup_entry,
+  (a_function_pointer)record_arg_pragma,
+  (a_function_pointer)instantiation_pragma,
+#if USER_CONTROL_OF_STRUCT_PACKING
+  (a_function_pointer)pack_pragma,
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if IDENT_DIRECTIVE_AND_PRAGMA
+  (a_function_pointer)ident_pragma,
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+  (a_function_pointer)once_pragma,
+  (a_function_pointer)hdrstop_or_no_pch_pragma,
+  (a_function_pointer)define_type_info_pragma,
+  (a_function_pointer)stdc_pragma,
+#if UPC_EXTENSIONS_ALLOWED
+  (a_function_pointer)upc_pragma,
+#endif /* UPC_EXTENSIONS_ALLOWED */
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+  (a_function_pointer)redefine_extname_pragma,
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if SUN_EXTENSIONS_ALLOWED
+  (a_function_pointer)ldscope_pragma,
+#endif /* SUN_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  (a_function_pointer)gcc_pragma,
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  (a_function_pointer)diag_pragma,
+#if INCLUDE_EDG_TEST_PRAGMAS
+  (a_function_pointer)test_immediate_pragma,
+#endif /* INCLUDE_EDG_TEST_PRAGMAS */
+#if DEBUG
+  (a_function_pointer)db_opt_pragma,
+  (a_function_pointer)db_name_pragma,
+#endif /* DEBUG */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  (a_function_pointer)if_exists_pragma,
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  (a_function_pointer)push_macro_pragma,
+  (a_function_pointer)pop_macro_pragma,
+  (a_function_pointer)microsoft_start_map_region_pragma,
+  (a_function_pointer)microsoft_stop_map_region_pragma,
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+  (a_function_pointer)setlocale_pragma,
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+  (a_function_pointer)microsoft_comment_pragma,
+  (a_function_pointer)microsoft_conform_pragma,
+  (a_function_pointer)microsoft_include_alias_pragma,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  (a_function_pointer)NULL               /* fp_last */
+}
+#endif /* VAR_INITIALIZERS */
+;
+
+/*
 Date/time of compilation, in ctime format ("Sun Sep 16 01:03:52 1973\n"):
 */
 static char	curr_date_time[128];
@@ -1135,6 +1221,16 @@ after the command-line processing has been done.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ms_attrib_one_time_init();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Verify that the type used to store a function pointer index is
+     large enough. */
+  if (1 << (sizeof(a_function_pointer_entry)*CHAR_BIT) < (int)fp_last) {
+    internal_error("a_function_pointer_entry is too small");
+  }  /* if */
+  /* Make sure first and last entries are correct. */
+  if (index_to_function_pointer(fp_null) != (a_function_pointer)NULL ||
+      index_to_function_pointer(fp_last) != (a_function_pointer)NULL) {
+    internal_error("function_pointers is incorrectly initialized");
+  }  /* if */
 }  /* fe_one_time_init */
 
 

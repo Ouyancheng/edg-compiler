@@ -136,7 +136,7 @@ pointer to it.
 }  /* alloc_include_alias */
 
 
-static a_hash_value hash_include_alias(a_void_ptr	key)
+a_hash_value hash_include_alias(a_void_ptr	key)
 /*
 Produce a hash value for an include alias entry.  The key is
 an_include_alias_ptr.
@@ -151,8 +151,8 @@ an_include_alias_ptr.
 }  /* hash_include_alias */
 
 
-static a_boolean compare_include_alias(a_void_ptr	entry,
-				       a_void_ptr	key)
+a_boolean compare_include_alias(a_void_ptr	entry,
+                                a_void_ptr	key)
 /*
 Compare an entry in the include alias hash table with an entry to be
 found.  "entry" and "key" are of type an_include_alias_ptr.  Return TRUE
@@ -2203,7 +2203,8 @@ being scanned is a Microsoft __pragma operator.
        entities as fine-grained as tokens or preprocessing tokens, the
        representation of these pragmas may not be entirely precise. */
     a_preproc_immediate_pragma_function_ptr pipfp;
-    pipfp = pkdp->variant.preproc_immediate_processing_function;
+    pipfp = (a_preproc_immediate_pragma_function_ptr)index_to_function_pointer(
+                                              pkdp->processing_function_index);
     if (pipfp != NULL) (*pipfp)(ppp);
     if (pkdp->automatically_include_in_il) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -2298,8 +2299,8 @@ short_name.
        encountered. */
     include_alias_hash_table = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
 					        (a_hash_table_size)128,
-					        hash_include_alias,
-					        compare_include_alias);
+					        fp_hash_include_alias,
+					        fp_compare_include_alias);
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("include_alias")) {

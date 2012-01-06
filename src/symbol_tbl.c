@@ -1998,8 +1998,7 @@ its fields and return a pointer to it.
 }  /* alloc_prop_or_event_accessor_header_lookup */
 
 
-static a_hash_value hash_prop_or_event_accessor_header_lookup(
-							a_void_ptr	key)
+a_hash_value hash_prop_or_event_accessor_header_lookup(a_void_ptr	key)
 /*
 Produce a hash value for a property or event accessor header lookup
 entry.  The key is a pointer to a property or event accessor header
@@ -2018,9 +2017,8 @@ lookup entry.
 }  /* hash_prop_or_event_accessor_header_lookup */
 
 
-static a_boolean compare_prop_or_event_accessor_header_lookup(
-							a_void_ptr	entry,
-							a_void_ptr	key)
+a_boolean compare_prop_or_event_accessor_header_lookup(a_void_ptr	entry,
+						       a_void_ptr	key)
 /*
 Compare an entry in the property or event accessor header lookup table
 with an entry to be found.  "entry" and "key" are of type
@@ -2058,9 +2056,9 @@ header is returned if one exists.  Otherwise, a new header is created.
   if (prop_or_event_accessor_header_hash_table == NULL) {
     prop_or_event_accessor_header_hash_table =
                alloc_hash_table(FRONT_END_REGION_NUMBER,
-                                (a_hash_table_size)100,
-                                hash_prop_or_event_accessor_header_lookup,
-                                compare_prop_or_event_accessor_header_lookup);
+                              (a_hash_table_size)100,
+                              fp_hash_prop_or_event_accessor_header_lookup,
+                              fp_compare_prop_or_event_accessor_header_lookup);
   }  /* if */
   /* Create an entry to be used as the lookup key. */
   clear_prop_or_event_accessor_header_lookup(&peahlp_key);
@@ -4962,7 +4960,7 @@ checked for and ignored. Finally, injected class names are also allowed.
 }  /* member_name_conflicts_with_class_name */
 
 
-static a_hash_value hash_symbol_header_lookup_entry(a_void_ptr	key)
+a_hash_value hash_symbol_header_lookup_entry(a_void_ptr	key)
 /*
 Produce a hash value for a symbol header.  The key is a pointer to a
 symbol header lookup entry.
@@ -4977,8 +4975,8 @@ symbol header lookup entry.
 }  /* hash_symbol_header_lookup_entry */
 
 
-static a_boolean compare_symbol_header_lookup_entry(a_void_ptr	entry,
-						    a_void_ptr	key)
+a_boolean compare_symbol_header_lookup_entry(a_void_ptr	entry,
+                                             a_void_ptr	key)
 /*
 Compare an entry in the symbol header lookup hash table with an entry to be
 found.  "entry" and "key" are of type a_symbol_header_lookup_entry_ptr.
@@ -5032,8 +5030,8 @@ it.
       break;
   }  /* switch */
   hash_table = alloc_hash_table(FRONT_END_REGION_NUMBER, size,
-                                hash_symbol_header_lookup_entry,
-                                compare_symbol_header_lookup_entry);
+                                fp_hash_symbol_header_lookup_entry,
+                                fp_compare_symbol_header_lookup_entry);
   return hash_table;
 }  /* create_name_lookup_table */
 
@@ -14139,18 +14137,18 @@ allocated or NO_MEMORY_REGION_NUMBER if general memory should be used.
 a_hash_table_ptr alloc_hash_table(
 			a_memory_region_number		memory_region,
 			a_hash_table_size		num_elements,
-			a_hash_function_ptr		hash_function,
-			a_hash_compare_function_ptr	compare_function)
+			a_function_pointer_entry	hash_function_index,
+			a_function_pointer_entry	compare_function_index)
 /*
 Allocate a hash table, initialize its fields, and return a pointer to
 the table.  "memory_region" is the memory region in which the table and its
 entries should be allocated or NO_MEMORY_REGION_NUMBER if general memory
 should be used.  "num_elements" is the number of elements expected (i.e., the
 number of elements on which the hash table size should be based).  This value
-is rounded up to one of a set of prime values.  "hash_function" is the function
-to be used to produce a hash value from a key.  "compare_function" is
-the function to be used to compare a key value with an element of the
-table.
+is rounded up to one of a set of prime values.  "hash_function_index" is the
+index of a function to be used to produce a hash value from a key.
+"compare_function_index" is the index of a function to be used to compare a key
+value with an element of the table.
 */
 {
   a_hash_table_ptr	htp;
@@ -14158,8 +14156,8 @@ table.
   a_hash_table_size	buckets;
 
   htp = alloc_general_or_in_region_of_type(memory_region, a_hash_table);
-  htp->hash_function = hash_function;
-  htp->compare_function = compare_function;
+  htp->hash_function_index = hash_function_index;
+  htp->compare_function_index = compare_function_index;
   htp->memory_region = memory_region;
   /* Select a table size based on the number of elements. */
   buckets = select_hash_table_size(num_elements);
@@ -14252,14 +14250,20 @@ appropriate user-defined entry.
   a_hash_table_entry_ptr	htep;
   a_void_ptr			result;
   a_hash_value			hash_value;
+  a_hash_function_ptr		hash_function;
+  a_hash_compare_function_ptr	compare_function;
 
-  hash_value = table->hash_function(key);
+  /* Convert function indices into pointers. */
+  hash_function = (a_hash_function_ptr)
+                         index_to_function_pointer(table->hash_function_index);
+  compare_function = (a_hash_compare_function_ptr)
+                      index_to_function_pointer(table->compare_function_index);
+  hash_value = hash_function(key);
   bucket = hash_value % (a_hash_value)table->num_buckets;
   /* Look for a matching entry in this bucket. */
   for (htep = table->table[bucket]; htep != NULL; htep = htep->next) {
     check_assertion(htep->data != NULL);
-    if (htep->hash_value == hash_value &&
-        table->compare_function(htep->data, key)) {
+    if (htep->hash_value == hash_value && compare_function(htep->data, key)) {
       break;
     }  /* if */
   }  /* for */

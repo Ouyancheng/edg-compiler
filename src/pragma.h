@@ -128,31 +128,22 @@ typedef struct a_pragma_kind_description {
 		binding_kind;
 			/* The binding kind indicates when and how the pragma
 			   should be scanned by the front end. */
-  union {
-    /* When binding_kind == pbk_next_construct */
-    a_next_construct_pragma_function_ptr
-		next_construct_processing_function;
-			/* Pointer to the function to be called to
-			   do any special processing required for this
-			   pragma.  May be NULL. */
-    /* When binding_kind == pbk_next_token */
-    a_next_token_pragma_function_ptr
-		next_token_processing_function;
-                        /* Processing function for immediate pragmas. */
-    /* When binding_kind == pbk_immediate */
-    an_immediate_pragma_function_ptr
-		immediate_processing_function;
-                        /* Processing function for immediate pragmas. */
-    /* When binding_kind == pbk_other */
-    an_other_pragma_function_ptr
-		other_processing_function;
-                        /* Processing function for other pragmas. */
-    /* When binding_kind == pbk_preproc_immediate */
-    a_preproc_immediate_pragma_function_ptr
-		preproc_immediate_processing_function;
-                        /* Processing function for preprocessing immediate
-			   pragmas. */
-  } variant;
+  a_function_pointer_entry
+		processing_function_index;
+			/* An index that indicates which function to be
+			   called to process this particular pragma.  The
+			   resulting function pointer needs to be cast to
+			   the appropriate type depending on the kind:
+			      pbk_next_construct
+			          -> a_next_construct_pragma_function_ptr
+			      pbk_next_token
+			          -> a_next_token_pragma_function_ptr
+			      pbk_immediate
+			          -> an_immediate_pragma_function_ptr
+			      pbk_other
+			          -> an_other_pragma_function_ptr
+			      pbk_preproc_immediate
+			          -> a_preproc_immediate_pragma_function_ptr */
   a_bit_field	may_bind_to_decl:1;
 			/* For pbk_next_construct pragmas, TRUE if this
 			   pragma can bind to a declaration. */
@@ -372,6 +363,10 @@ extern void db_pragma_list(a_pragma_ptr pp);
 
 extern void db_scope_pragmas(a_scope_ptr scope);
 
+extern void db_opt_pragma(a_pending_pragma_ptr	ppp);
+
+extern void db_name_pragma(a_pending_pragma_ptr	ppp);
+
 /*
 Counts of tables allocated, to track total use of memory.  These are
 initialized and the results reported in lexical.c.
@@ -380,6 +375,10 @@ EXTERN unsigned long
 		num_pending_pragmas_allocated,
                 num_pragma_descriptions_allocated;
 #endif /* DEBUG */
+
+#if INCLUDE_EDG_TEST_PRAGMAS
+extern void test_immediate_pragma(a_pending_pragma_ptr ppp);
+#endif /* INCLUDE_EDG_TEST_PRAGMAS */
 
 extern a_pending_pragma_ptr alloc_pending_pragma
 					(a_pragma_kind_description_ptr pkdp);
