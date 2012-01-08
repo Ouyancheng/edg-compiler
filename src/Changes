@@ -1,5 +1,26 @@
 Version 4.5
 
+1/8/12   [EDGcpfe/12568]
+Assertion failure in complex macro expansion
+
+The change for EDGcpfe/11932 caused an abort when processing some complex
+macro expansions.  This is now fixed.  For example, the front end aborted
+with an assertion failure when compiling the following in Microsoft mode:
+
+  #define CAT(a, b) CAT_OO((a, b))
+  #define CAT_OO(par) CAT_I ## par
+  #define CAT_I(a, b) CAT_II(a ## b)
+  #define CAT_II(res) res
+
+  #define X(seq) CAT(X, Y seq)
+  #define ZERO(unused) 0
+  #define XY ZERO(
+
+  void f() {
+    (CAT(X, Y a)));
+  }
+
+
 1/8/12   [EDGcpfe/12521]
 Name qualifier entries reused for references to enumerators
 

@@ -2695,6 +2695,17 @@ invocations.
 {
   a_source_line_modif_ptr slmp;
 
+  if (line_loc != NULL && *line_loc == ATTENTION_MARKER) {
+    /* There is already a modification at this location. */
+    slmp = nested_source_line_modif(line_loc);
+    if (slmp->num_chars_to_delete == num_chars_to_delete) {
+      /* The modification to be added will be a replacement for the earlier
+         one, so remove it.  (This can happen with deletions added by
+         skip_white_space.) */
+      rem_source_line_modif(slmp);
+      free_source_line_modif(&slmp);
+    }  /* if */
+  }  /* if */
   if (avail_source_line_modifs != NULL) {
     /* Reuse a freed entry. */
     slmp = avail_source_line_modifs;
