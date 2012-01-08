@@ -15059,6 +15059,10 @@ original type or namespace that was specified.
     a_class_symbol_supplement_ptr	cssp;
     cssp = symbol_supplement_for_class(qualifier_type);
     qualifier_list = &cssp->name_qualifiers;
+  } else if (qualifier_type != NULL && is_scoped_enum_type(qualifier_type)) {
+    an_enum_symbol_supplement_ptr       essp;
+    essp = symbol_supplement_for_enum(qualifier_type);
+    qualifier_list = &essp->name_qualifiers;
   } else if (qualifier_namespace != NULL) {
     a_namespace_symbol_supplement_ptr	nssp;
     nssp = symbol_supplement_for_namespace(qualifier_namespace);

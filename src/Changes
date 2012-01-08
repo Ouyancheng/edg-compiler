@@ -1,5 +1,26 @@
 Version 4.5
 
+1/8/12   [EDGcpfe/12521]
+Name qualifier entries reused for references to enumerators
+
+In configurations where DEFAULT_RECORD_FORM_OF_NAME_REFERENCE is TRUE,
+name qualifier entries for references to enumerators were not reused.
+This used extra space and could result in a long list of name reference
+entries being attached to the source correspondence entry for the
+enumerator constant.  Now fixed.
+
+  // Compile in --c++11 or --cppcli mode
+  enum class E { e0 };
+  void func(E f) { }
+  #define X1 func(E::e0);
+  #define X10 X1 X1 X1 X1 X1 X1 X1 X1 X1 X1
+  #define X100 X10 X10 X10 X10 X10 X10 X10 X10 X10 X10
+  #define X1000 X100 X100 X100 X100 X100 X100 X100 X100 X100 X100
+  int main() {
+    X1000
+  }
+
+
 1/7/12   [EDGcpfe/12532]
 Typedefs no longer dropped from destructor names
 

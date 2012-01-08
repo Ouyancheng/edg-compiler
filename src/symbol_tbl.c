@@ -3483,6 +3483,7 @@ state.
 #endif /* DEBUG */
         sym_ptr->variant.enumeration.extra_info = essp;
         essp->dependent_type_fixup_list = NULL;
+        essp->name_qualifiers = NULL;
 #if NEED_NAME_MANGLING
         essp->discriminator = 0;
 #endif /* NEED_NAME_MANGLING */

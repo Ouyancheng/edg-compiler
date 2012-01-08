@@ -1275,6 +1275,12 @@ typedef struct an_enum_symbol_supplement {
 			   dependent on it and require fixup when it is
 			   completed.  Once the enum is defined, the pointer
 			   is cleared. */
+  a_name_qualifier_ptr
+		name_qualifiers;
+			/* Points to a list of the various forms of name
+			   qualifiers used to name this enum.  This is used
+			   to find a previously allocated entry so that it
+			   can be reused. */
 #if NEED_NAME_MANGLING
   a_discriminator
 		discriminator;
@@ -5468,6 +5474,14 @@ which is_class_struct_union_type is TRUE.
 #define symbol_supplement_for_class(tp)                              \
   (((a_symbol_ptr)(skip_typerefs(tp))->source_corresp.assoc_info)->  \
                             variant.class_struct_union.extra_info)
+
+/*
+Extract a pointer to the enum symbol supplement for a given type for
+which is_enum_type is TRUE.
+*/
+#define symbol_supplement_for_enum(tp)                              \
+  (((a_symbol_ptr)(skip_typerefs(tp))->source_corresp.assoc_info)->  \
+                            variant.enumeration.extra_info)
 
 /*
 Given a namespace pointer, return a pointer to the namespace symbol
