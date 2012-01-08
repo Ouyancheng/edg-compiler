@@ -12921,7 +12921,11 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
             locator_for_curr_id = normal_locator;
           } else {
             if (is_template_param_type(normal_tp) ||
+                qualifier_type == NULL ||
+                !identical_types(qualifier_type, normal_tp) ||
                 find_base_class_of(field_sel_type, normal_tp) == NULL) {
+              /* A base class is only allowed for qualified names and in a
+                 reference like X::~Y, X and Y must be the same type. */
               normal_sym = NULL;
             }  /* if */
           }  /* if */
@@ -12953,9 +12957,7 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
               dtor_or_finalizer_okay = TRUE;
               locator_for_curr_id = other_locator;
             } else {
-              if (find_base_class_of(field_sel_type, other_tp) == NULL) {
-                other_sym = NULL;
-              }  /* if */
+              other_sym = NULL;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -13003,7 +13005,13 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
            found point to different types. */
         tp = NULL;
         clear_specific_symbol(locator_for_curr_id);
-        base_sym = dtor_matches_base_class(field_sel_type);
+        if (qualifier_type != NULL &&
+            is_template_dependent_type(qualifier_type)) {
+          /* When processing something like X<n>::~X<n>, we can't rely on
+             lookup to find an injected class name, so we go through the base
+             class list. */
+          base_sym = dtor_matches_base_class(field_sel_type);
+        }  /* if */
         if (base_sym != NULL) tp = type_symbol_type(base_sym);
         if (base_sym != NULL) type_sym = base_sym;
         /* Use the normal symbol if the base name lookup failed. */
@@ -13071,7 +13079,6 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
         if (orig_type_sym == NULL) orig_type_sym = type_sym;
         tp = type_symbol_type(type_sym);
         type_for_locator = tp;
-        tp = skip_typerefs_not_dependent_decltypes(tp);
         if (symbol_for(tp) != NULL) {
           /* In some error cases involving aliases the underlying type may
              not have a symbol.  In such cases, use the symbol from the
@@ -15152,6 +15159,13 @@ a previously created entry that can be reused.
        be needed for name mangling purposes. */
     goto done;
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("name_refs")) {
+    fprintf(f_debug, "Looking for allocated name reference for: ");
+    db_name_reference(entry_to_copy);
+    fprintf(f_debug, "  scp name=%s\n", scp->name);
+  }  /* if */
+#endif /* DEBUG */
   /* Look for a previously created name reference that matches the
      information in the locator. */
   for (nrp = scp->name_references; nrp != NULL; nrp = nrp->next) {
@@ -17085,19 +17099,6 @@ selection operator, in which case it points to the type of the left operand.
             /* Set the class type to NULL as an indicator to the
 	       coalesce routine that an error has occurred. */
              qualifier_type = NULL;
-          } else if (!is_template_dependent_type(dtor_or_finalizer_type) &&
-                     !destructor_name_matches_class_name(class_sym)) {
-            if (!in_if_exists) {
-              pos_ty_error(locator_for_curr_id.is_destructor_name ?
-                                                 ec_destructor_name_mismatch
-                                               : ec_finalizer_name_mismatch,
-                           &dtor_or_finalizer_position,
-                           qualifier_type);
-            }  /* if */
-  	    err = TRUE;
-            /* Set the class type to NULL as an indicator to the
-	       coalesce routine that an error has occurred. */
-	    qualifier_type = NULL;
           }  /* if */
         }  /* if */
       } else {
@@ -17380,6 +17381,14 @@ See also coalesce_and_lookup_generalized_identifier.
               pos_error(ec_incomplete_type_not_allowed, &pos_curr_token);
             }  /* if */
           } else {
+            a_class_symbol_supplement_ptr	cssp_for_dtor = NULL;
+            /* For destructors, get the class symbol supplement for use
+               below. */
+            if (locator_for_curr_id.is_destructor_name &&
+                qualifier_is_type &&
+                is_class_struct_union_type(qualifier_type)) {
+              cssp_for_dtor = symbol_supplement_for_class(qualifier_type);
+            }  /* if */
             /* Don't try to look up a vacuous destructor name. */
             if (is_vacuous_dtor_or_finalizer) {
               /* If qualifier_type is NULL an error occurred while processing
@@ -17404,6 +17413,12 @@ See also coalesce_and_lookup_generalized_identifier.
                          super_qualified_id_lookup(&locator_for_curr_id,
                                                    idl_options) != NULL) {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+              } else if (cssp_for_dtor != NULL &&
+                         cssp_for_dtor->destructor != NULL) {
+                /* Get the destructor name for the class.  The validity of
+                   the name was checked earlier. */
+                locator_for_curr_id.specific_symbol =
+                                                     cssp_for_dtor->destructor;
               } else if (qualifier_is_type && !qualifier_is_enum_type &&
                   class_qualified_id_lookup(&locator_for_curr_id,
                                             qualifier_type,

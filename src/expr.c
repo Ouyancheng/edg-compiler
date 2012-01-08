@@ -5538,15 +5538,12 @@ qualified_name_check:
                This is a vacuous destructor case if the types match.
                Note that we do not allow ~A to be in a base class of the
                class pointed to by p, because destructor names are not
-               inherited. */
-            a_symbol_ptr class_sym =
-              (a_symbol_ptr)class_struct_union_type->source_corresp.assoc_info;
-            if (destructor_name_matches_class_name(class_sym)) {
-              locator_for_curr_id.is_vacuous_destructor_reference = TRUE;
-              locator_for_curr_id.parent.class_type = class_struct_union_type;
-              locator_for_curr_id.is_class_member = TRUE;
-              need_member_sym_check = FALSE;
-            }  /* if */
+               inherited.  The validity of the destructor name was checked
+               when the identifier was coalesced. */
+            locator_for_curr_id.is_vacuous_destructor_reference = TRUE;
+            locator_for_curr_id.parent.class_type = class_struct_union_type;
+            locator_for_curr_id.is_class_member = TRUE;
+            need_member_sym_check = FALSE;
           } else if (member_sym != NULL &&
                      member_sym->kind == (a_symbol_kind)sk_class_template) {
             /* For a member template, coalesce the template reference.

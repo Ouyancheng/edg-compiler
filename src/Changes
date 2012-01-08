@@ -1,5 +1,26 @@
 Version 4.5
 
+1/7/12   [EDGcpfe/12532]
+Typedefs no longer dropped from destructor names
+
+The IL for destructor calls dropped typedefs that were used to name the
+destructor.  This could result in incorrect name reference entries (e.g.,
+in the example below the reference to "~B_T" was recorded as a reference
+to "type" without a qualifier.  This caused the C++-generating back end
+to produce incorrect output.  Now fixed.
+
+  struct A {};
+  template <class T> struct B { typedef T type; };
+  template<class T> inline void f(T& t) {
+    typedef typename B<T>::type B_T;
+    t.~B_T();  // Was formerly rendered as "t.~type()"
+  }
+  int main() {
+    A a;
+    f(a);
+  }
+
+
 1/6/12   [EDGcpfe/12542]
 C++-generating back end: Missing "friend" keyword for some friend templates
 
