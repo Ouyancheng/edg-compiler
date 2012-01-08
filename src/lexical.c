@@ -17089,9 +17089,6 @@ selection operator, in which case it points to the type of the left operand.
         if (qualifier_type != NULL) {
           /* If this is a vacuous destructor/finalizer reference, just make
              sure the name of the destructor matches the name of the class. */
-          a_symbol_ptr	class_sym;
-          /* coverity[dead_error_begin] */  /* Coverity bug. */
-          class_sym = (a_symbol_ptr)qualifier_type->source_corresp.assoc_info;
           if (is_error_locator(locator_for_curr_id)) {
              /* An error occurred earlier while checking the destructor/
                 finalizer. */
