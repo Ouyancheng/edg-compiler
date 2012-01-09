@@ -48,9 +48,10 @@ output that would fail to compile.  Now fixed.
 1/8/12   [EDGcpfe/12568]
 Assertion failure in complex macro expansion
 
-The change for EDGcpfe/11932 caused an abort when processing some complex
-macro expansions.  This is now fixed.  For example, the front end aborted
-with an assertion failure when compiling the following in Microsoft mode:
+The change for EDGcpfe/11932 (which was included in version 4.4) caused an
+abort when processing some complex macro expansions.  This is now fixed.
+For example, the front end aborted with an assertion failure when compiling
+the following in Microsoft mode:
 
   #define CAT(a, b) CAT_OO((a, b))
   #define CAT_OO(par) CAT_I ## par
