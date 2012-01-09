@@ -23388,6 +23388,7 @@ classes.
 #endif /* DO_IL_LOWERING && IA64_ABI */
   a_source_position               end_pos;
   a_boolean                       access_checks_deferred = FALSE;
+  a_scope_depth                   access_check_depth = NO_SCOPE_DEPTH;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_member_decl_info              pe_info;
   a_symbol_locator                pe_loc;
@@ -23547,16 +23548,19 @@ classes.
       need_restore_pack_alignment_statate = TRUE;
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    if ((cpp11_mode || microsoft_mode) &&
+    if ((cpp11_mode || microsoft_mode ||
+         (gpp_mode && gnu_version >= 30400 && is_template_instantiation)) &&
         !scope_stack_top().defer_access_checks) {
        /* Access checking of the base specifiers must be done in the context
           of the complete class.  Defer checks in the current scope if this
           is not already being done.  See the comments at the call of
           perform_deferred_access_checks_at_depth below for more
-          information. */
+          information.  g++ (3.4 and newer) ignore the access of base
+          specifiers in class template declarations. */
        begin_deferral_of_access_checks();
        access_checks_deferred = TRUE;
     }  /* if */
+    access_check_depth = curr_deferred_access_scope;
     if (use_microsoft_specialization_scope && !is_in_class_specialization &&
         is_real_template_instance_specific_def_symbol(tag_sym)) {
       /* The Microsoft compiler permits a class specialization to reference
@@ -24054,8 +24058,16 @@ next_declaration:
             struct E: B, X<B::N> {};
         As an approximation of that behavior we use the C++11 rules in
         Microsoft C++ mode. */
-    if (cpp11_mode || microsoft_mode) {
-      perform_deferred_access_checks_at_depth(depth_scope_stack-1);
+    if (gpp_mode && gnu_version >= 30400 && is_template_instantiation) {
+      /* g++ has a bug that simply ignores access errors in the base
+         specifier list of a class template. */
+      if (access_check_depth != NO_SCOPE_DEPTH) {
+        f_discard_deferred_access_checks(access_check_depth);
+      }  /* if */
+    } else if (cpp11_mode || microsoft_mode) {
+      if (access_check_depth != NO_SCOPE_DEPTH) {
+        perform_deferred_access_checks_at_depth(access_check_depth);
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* Now that the class scope has been established, perform any constraint
          checks that may have been deferred. */

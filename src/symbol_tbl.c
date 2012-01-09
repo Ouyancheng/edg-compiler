@@ -11054,16 +11054,17 @@ routine entry of the function that was declared.
 }  /* perform_deferred_access_checks_for_function */
 
 
-void f_discard_deferred_access_checks(void)
+void f_discard_deferred_access_checks(a_scope_depth	depth)
 /*
 Free any deferred access checks that may have been created and clear
-the list pointers.
+the list pointers.  depth is the scope depth at which the deferred
+access check list should be discarded.
 */
 {
   a_scope_stack_entry_ptr	ssep;
 
-  check_assertion(curr_deferred_access_scope != NO_SCOPE_DEPTH);
-  ssep = &scope_stack[curr_deferred_access_scope];
+  check_assertion(depth != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[depth];
   if (ssep->deferred_access_checks != NULL) {
     an_access_error_descr_ptr	aedp = ssep->deferred_access_checks;
     an_access_error_descr_ptr	next_aedp;

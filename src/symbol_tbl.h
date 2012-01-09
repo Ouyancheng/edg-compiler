@@ -4569,7 +4569,7 @@ extern void perform_deferred_access_checks_at_depth(a_scope_depth	depth);
 
 extern void perform_deferred_access_checks_for_function(a_routine_ptr rp);
 
-extern void f_discard_deferred_access_checks(void);
+extern void f_discard_deferred_access_checks(a_scope_depth	depth);
 
 extern void discard_declarator_access_errors(void);
 
@@ -4684,7 +4684,7 @@ Throw away any deferred access entries.
   if (scope_stack[curr_deferred_access_scope].			\
                                            deferred_access_checks != NULL) { \
     /* Only make this call if there are entries on the list. */	       	\
-    f_discard_deferred_access_checks();				\
+    f_discard_deferred_access_checks(curr_deferred_access_scope);	\
   }  /* if */								\
 }
 
