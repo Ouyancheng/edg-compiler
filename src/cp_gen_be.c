@@ -11730,8 +11730,6 @@ Generate code for the indicated range-based-for statement.
   a_variable_ptr      ref_var;
 
   write_tok_str("for (");
-  /* Advance past the decl-statement entry. */
-  adv_curr_source_sequence_entry();
   /* Generate the iteration variable. */
   gen_variable_decl(/*is_condition=*/FALSE, /*is_iterator=*/TRUE,
                     /*for_init=*/FALSE, /*suppress_specifiers=*/FALSE,

@@ -3177,9 +3177,6 @@ static void clear_range_based_for_loop(a_range_based_for_loop_ptr rbflp)
 Clear the indicated range-based-for loop entry.
 */
 {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  rbflp->for_init_decl_statement = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   rbflp->iterator = NULL;
   rbflp->range = NULL;
   rbflp->range_based_for_scope = NULL;

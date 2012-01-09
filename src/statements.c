@@ -1900,16 +1900,21 @@ some error cases).
      statement stack to be reallocated. */
   sssep = &struct_stmt_stack[depth_stmt_stack];
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (sssep->for_init && !dps.range_based_for) {
-    /* Add a source sequence entry marking the end of the for-init
-       declaration.  This marker is necessary in case what immediately
-       follows in the source sequence list is an entry for a condition
-       declaration.  E.g., without the marker, there would be no
-       distinction between "for (int i = 0; int j = 3; --j);" and
-       "for (int i = 0, j = 3; ; --j);". */
-    add_end_of_construct_source_sequence_entry(
+  if (sssep->for_init) {
+    if (!dps.range_based_for) {
+      /* Add a source sequence entry marking the end of the for-init
+         declaration.  This marker is necessary in case what immediately
+         follows in the source sequence list is an entry for a condition
+         declaration.  E.g., without the marker, there would be no distinction
+         between "for (int i = 0; int j = 3; --j);" and
+         "for (int i = 0, j = 3; ; --j);". */
+      add_end_of_construct_source_sequence_entry(
                                          (char *)sssep->curr_decl_statement,
                                          (a_byte_il_entry_kind)iek_statement);
+    } else {
+      /* A range-based for declaration: The declaration statement will be
+         discarded. */
+    }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   sssep->curr_decl_statement = NULL;
@@ -4523,14 +4528,18 @@ The affinity can be an expression or the keyword "continue".
     a_scope_ptr     iterator_scope =
                                sp->variant.for_loop.extra_info->for_init_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    a_statement_ptr decl = sp->variant.for_loop.extra_info->initialization;
+    if (!source_sequence_entries_disallowed) {
+      /* A decl-statement was created for what was assumed to be a for-init
+         construct.  Since it turned out to be a range-based for, discard the
+         source sequence entry. */
+      a_statement_ptr  init = sp->variant.for_loop.extra_info->initialization;
+      remove_from_src_seq_list(init->source_sequence_entry);
+      init->source_sequence_entry = NULL;
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     change_statement_kind_on_stack(sp, (a_statement_kind)stmk_range_based_for,
                                    ssk_range_based_for);
     rbflp = sp->variant.range_based_for_loop.extra_info;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    rbflp->for_init_decl_statement = decl;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     rbflp->range_based_for_scope = outer_scope;
     rbflp->begin_end_scope = middle_scope;
     rbflp->iterator_scope = iterator_scope;

@@ -4279,11 +4279,6 @@ Display a range-based-for statement.
   disp_ptr("statement",
            (char *)ptr->variant.range_based_for_loop.statement,
            iek_statement);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  disp_ptr("for_init_decl_statement",
-           (char *)extra_info->for_init_decl_statement,
-           iek_statement);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   disp_ptr("iterator", (char *)extra_info->iterator,
            iek_variable);
   disp_ptr("range", (char *)extra_info->range,

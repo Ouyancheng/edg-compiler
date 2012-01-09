@@ -3387,17 +3387,6 @@ as specified in the control block.
         traverse_expr(statement->expr, tblock);
         if (tblock->terminate) goto end_of_routine;
       }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (statement->
-               variant.range_based_for_loop.extra_info->for_init_decl_statement
-                                                                    != NULL) {
-        traverse_statement(
-            statement->
-              variant.range_based_for_loop.extra_info->for_init_decl_statement,
-            tblock);
-        if (tblock->terminate) goto end_of_routine;
-      }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (statement->variant.range_based_for_loop.statement != NULL) {
         traverse_statement(statement->variant.range_based_for_loop.statement,
                            tblock);

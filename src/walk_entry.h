@@ -1685,9 +1685,6 @@ do_set_proper_definition_needed_flag:
       {
         a_range_based_for_loop_ptr ptr = (a_range_based_for_loop_ptr)entry_ptr;
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        walk_ptr(ptr->for_init_decl_statement, a_statement_ptr, iek_statement);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         remap_ptr(ptr->iterator, a_variable_ptr, iek_variable);
         remap_ptr(ptr->range, a_variable_ptr, iek_variable);
         walk_ptr(ptr->range_based_for_scope, a_scope_ptr, iek_scope);
