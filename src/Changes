@@ -1,5 +1,19 @@
 Version 4.5
 
+1/9/12   [EDGcpfe/12525]
+GNU C++ compatibility: base class access ignored on class template
+
+g++ (versions 3.4 and newer) allow an inaccessible class to be used as
+a base class of a class template.  We now emulate this behavior in g++
+mode when gnu_version >= 30400.
+
+  class A {
+    class B {};
+  };
+  template <typename T> class C : A::B {};
+  C<int> c;
+
+
 1/9/12   [EDGcpfe/12506]
 C++-generating back end: missing qualifier for typedef to decltype or typeof
 
