@@ -6804,25 +6804,6 @@ Render the given delegate type as a C++/CLI delegate definition.  E.g.:
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static int push_scope_and_parents_if_needed(a_scope_ptr sp)
-/*
-If sp is not on the name context stack, push it and any of its parents that
-are not on the stack and return the total number of entries pushed.
-*/
-{
-  int num_pushed = 0;
-
-  if (sp != NULL && !scope_is_in_name_context_stack(sp)) {
-    /* The scope is not currently on the stack.  Recursively call this
-       routine to push any needed parent scopes and then push this one. */
-    num_pushed = push_scope_and_parents_if_needed(sp->parent);
-    push_name_context(sp);
-    ++num_pushed;
-  }  /* if */
-  return num_pushed;
-}  /* push_scope_and_parents_if_needed */
-
-
 static void gen_class_definition(a_type_ptr type)
 /*
 Output the definition of the indicated class type.  This is in the form of
@@ -6832,8 +6813,7 @@ is the one associated with the definition of the class.
 {
   a_class_type_supplement_ptr
                     ctsp = type->variant.class_struct_union.extra_info;
-  int num_parent_contexts_pushed;
-  int i;
+
   type->has_been_declared = TRUE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   construct_pragma_pack_if_needed(type);
@@ -6911,8 +6891,7 @@ is the one associated with the definition of the class.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Put out the class definition. */
-  num_parent_contexts_pushed =
-           push_scope_and_parents_if_needed(type->source_corresp.parent_scope);
+  push_name_context_if_member(&type->source_corresp);
   if (il_header.source_language == sl_Cplusplus &&
       ctsp->base_classes != NULL) {
     /* Put out the base class list. */
@@ -6974,9 +6953,7 @@ is the one associated with the definition of the class.
   }
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
   write_tok_ch('}');
-  for (i = 0; i < num_parent_contexts_pushed; ++i) {
-    pop_name_context();
-  }  /* for */
+  pop_name_context_if_member(&type->source_corresp);
   gen_attributes(type->source_corresp.attributes, al_post_tag_definition,
                  /*primary_only=*/TRUE);
 }  /* gen_class_definition */
