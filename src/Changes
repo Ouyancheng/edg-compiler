@@ -167,7 +167,8 @@ unnamed type (in some modes and configurations).  For example:
   };                  // circumstances.
   B<int> bi;
 
-This is now fixed.
+This is now fixed (i.e., the associated nonreal type now also acquired the
+typedef name for linkage purposes).
 
 
 1/4/12   [EDGcpfe/12541]
