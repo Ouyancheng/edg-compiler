@@ -1,5 +1,20 @@
 Version 4.5
 
+1/9/12   [EDGcpfe/12582]
+C++11: Access checking of base classes of nested classes of class templates
+
+In C++11 mode the access to a base class name is the same as access to
+a name used in the definition of the class (see 9/14/11 entry).  The checking
+of nested classes of class templates was not done correctly, resulting in
+spurious errors. Now fixed.
+
+  class B { protected: class N {}; };
+  template <class T> struct A {
+    class D: B::N, B {};
+  };
+  A<int>::D ai;  // access error in the instantiation of A<int>::D
+
+
 1/9/12   [EDGcpfe/12525]
 GNU C++ compatibility: base class access ignored on class template
 
