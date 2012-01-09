@@ -159,7 +159,8 @@ type" entry (in addition to the ordinary type entry representing the class or
 enum type), but that entry previously never acquired a name for linkage
 purposes resulting from a typedef construct like the one above.  That caused
 the C++-generating back end to incorrectly render certain references to the
-unnamed type (in some modes and configurations).  For example:
+unnamed type (in some modes and when PROTOTYPE_INSTANTIATION_IN_IL is TRUE).
+For example:
 
   template<typename T> struct A { };
   template<typename T> struct B {
