@@ -7036,9 +7036,10 @@ typedef struct a_typeref_type_supplement {
 			   this points to the corresponding "proxy" class.
                            This is needed if the decltype is used in a
 			   context in which a class type is required
-			   (e.g., decltype(...)::X). NULL for other
-			   kinds of typerefs or if no class use has been
-			   encountered. */
+			   (e.g., decltype(...)::X).  This is also used for
+			   a typedef that refer to a dependent decltype.
+			   NULL for other kinds of typerefs or if no class
+			   use has been encountered. */
   a_type_ptr	operator_type_arg;
 			/* The type that originally appeared as the argument
 			   to the __underlying_type or typeof operator. */

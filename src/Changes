@@ -1,5 +1,21 @@
 Version 4.5
 
+1/9/12   [EDGcpfe/12506]
+C++-generating back end: missing qualifier for typedef to decltype or typeof
+
+When a typedef to a type specified using decltype or __typeof__ was used
+as a qualifier in a qualified name the associated proxy class was not
+given a name, causing the qualifier to be omitted in the output of the
+C++-generating back end.  This resulted in C++-generating back end
+output that would fail to compile.  Now fixed.
+
+   template<typename T> T f(T);
+   template<typename T> void g(T t) {
+     typedef __typeof__(f(t)) ft;
+     typedef typename ft::type x;  // formerly rendered as "typedef type x"
+   }
+
+
 1/8/12   [EDGcpfe/12568]
 Assertion failure in complex macro expansion
 

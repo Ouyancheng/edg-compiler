@@ -16379,14 +16379,6 @@ selection operator, in which case it points to the type of the left operand.
                last qualifier of a vacuous destructor/finalizer.  Set class
                type to the type pointed to. */
             qualifier_type = type_symbol_type(qualifier_sym);
-            if (!is_vacuous_dtor_or_finalizer) {
-              /* Qualifiers need to be preserved for vacuous destructors (or
-                 vacuous finalizers) because the type must match the type
-                 specified for the destructor/finalizer name.  Don't skip past
-                 a dependent decltype. */
-              qualifier_type =
-                         skip_typerefs_not_dependent_decltypes(qualifier_type);
-            }  /* if */
             qualifier_is_type = TRUE;
             qualifier_type_is_class = FALSE;
             check_assertion(is_template_param_type(qualifier_type) ||

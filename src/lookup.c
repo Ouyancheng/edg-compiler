@@ -4011,6 +4011,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
   a_boolean    dependent_conversion_operator = FALSE;
   a_boolean    is_prototype_instantiation_lookup = FALSE;
   a_boolean    is_typename_lookup = (options & IDL_TYPENAME_LOOKUP) != 0;
+  a_type_ptr   orig_class_type = class_type;
 
 /* Local macro that tests whether or not a symbol is acceptable.  An
    injected class name symbol is only acceptable when the injected symbol
@@ -4072,6 +4073,11 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
        proxy class will be found -- if it doesn't already exist, a symbol
        entry will be created for it. */
     /* Use the proxy class in place of the template parameter type. */
+    if (class_type->kind == (a_type_kind)tk_typeref) {
+      /* If the original class type was a typedef to a decltype, use the
+         original class type because we need the name for the proxy class. */
+      class_type = orig_class_type;
+    }  /* if */
     class_type = proxy_class_for_template_param(class_type);
     is_proxy_or_nonreal_class_lookup = TRUE;
   } else {
