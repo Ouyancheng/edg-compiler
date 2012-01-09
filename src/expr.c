@@ -5529,10 +5529,22 @@ qualified_name_check:
           need_member_sym_check = FALSE;
         } else {
           /* Normal case: not qualified member name. */
-          /* Look up this identifier in the scope of the class, struct, or
-             union. */
-          member_sym = look_up_selection_name(&locator_for_curr_id,
-                                              class_struct_union_type);
+          if (locator_for_curr_id.is_destructor_name) {
+            /* For destructors, don't attempt to look up the destructor name.
+               The lookup will have been done, and the type verified earlier.
+               If the class has a destructor, this is a real call, otherwise
+               it is vacuous. */
+            a_class_symbol_supplement_ptr	cssp_for_dtor;
+            cssp_for_dtor =
+                          symbol_supplement_for_class(class_struct_union_type);
+            member_sym = cssp_for_dtor->destructor;
+            locator_for_curr_id.specific_symbol = member_sym;
+          } else {
+            /* Look up this identifier in the scope of the class, struct, or
+               union. */
+            member_sym = look_up_selection_name(&locator_for_curr_id,
+                                                class_struct_union_type);
+          }  /* if */
           if (member_sym == NULL && locator_for_curr_id.is_destructor_name) {
             /* This is a case like p->~A where the class has no destructor.
                This is a vacuous destructor case if the types match.
