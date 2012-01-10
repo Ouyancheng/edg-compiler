@@ -2524,9 +2524,18 @@ typedef struct a_source_correspondence {
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
   a_bit_field	qualification_needed:1;
-			/* A qualified name should be used when referring to
-			   this entity.  Set/used only within the
-			   C++-generating back end. */
+			/* A qualified name should be used when referring
+			   to this entity in the generated code.  This flag
+			   is generally set and cleared within the
+			   C++-generating back end while processing the
+			   hidden name information associated with the
+			   various scopes, except in certain cases with
+			   PROTOTYPE_INSTANTIATIONS_IN_IL; in those cases,
+			   the hiding is not reflected in the hidden name
+			   table and this flag is set during the front end
+			   processing to reflect the presence or absence of
+			   a qualifier in the corresponding source
+			   reference. */
   a_bit_field	partially_hidden_by_microsoft_injected_class_name:1;
 			/* Used in Microsoft mode only, for injected class
 			   names.  They require qualification unless used
