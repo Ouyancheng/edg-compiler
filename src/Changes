@@ -59,7 +59,7 @@ mode when gnu_version >= 30400.
 C++-generating back end: missing qualifier for typedef to decltype or typeof
 
 When a typedef to a type specified using decltype or __typeof__ was used
-as a qualifier in a qualified name the associated proxy class was not
+as a qualifier in a qualified name, the associated proxy class was not
 given a name, causing the qualifier to be omitted in the output of the
 C++-generating back end.  This resulted in C++-generating back end
 output that would fail to compile.  Now fixed.
