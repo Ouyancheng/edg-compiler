@@ -5529,11 +5529,14 @@ qualified_name_check:
           need_member_sym_check = FALSE;
         } else {
           /* Normal case: not qualified member name. */
-          if (locator_for_curr_id.is_destructor_name) {
+          if (locator_for_curr_id.is_destructor_name &&
+              !is_template_dependent_type(class_struct_union_type)) {
             /* For destructors, don't attempt to look up the destructor name.
                The lookup will have been done, and the type verified earlier.
                If the class has a destructor, this is a real call, otherwise
-               it is vacuous. */
+               it is vacuous.  An exception is made for dependent types.
+               In such cases, a lookup is done as a nonreal member may
+               be created. */
             a_class_symbol_supplement_ptr	cssp_for_dtor;
             cssp_for_dtor =
                           symbol_supplement_for_class(class_struct_union_type);
