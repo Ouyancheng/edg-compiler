@@ -396,97 +396,97 @@ When adding an entry in this enumeration, also make a similar change
 in function_pointers (in fe_init.c).
 */
 
-enum a_function_pointer_entry_tag {
-  fp_null,                             /* Indicates a NULL function pointer. */
-  fp_hash_attribute_kind,
-  fp_compare_for_attr_corresp_checking_map,
-  fp_hash_source_string,
-  fp_compare_for_attr_name_map,
+enum a_function_tag {
+  fn_null,                             /* Indicates a NULL function pointer. */
+  fn_hash_attribute_kind,
+  fn_compare_for_attr_corresp_checking_map,
+  fn_hash_source_string,
+  fn_compare_for_attr_name_map,
 #if GNU_EXTENSIONS_ALLOWED
-  fp_compare_for_asm_name_map,
+  fn_compare_for_asm_name_map,
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  fp_hash_include_search_result,
-  fp_compare_include_search_result,
-  fp_hash_include_file_history,
-  fp_compare_include_file_history,
+  fn_hash_include_search_result,
+  fn_compare_include_search_result,
+  fn_hash_include_file_history,
+  fn_compare_include_file_history,
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  fp_hash_include_alias,
-  fp_compare_include_alias,
+  fn_hash_include_alias,
+  fn_compare_include_alias,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  fp_hash_instantiation,
-  fp_compare_instantiation,
+  fn_hash_instantiation,
+  fn_compare_instantiation,
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  fp_hash_prop_or_event_accessor_header_lookup,
-  fp_compare_prop_or_event_accessor_header_lookup,
+  fn_hash_prop_or_event_accessor_header_lookup,
+  fn_compare_prop_or_event_accessor_header_lookup,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  fp_hash_symbol_header_lookup_entry,
-  fp_compare_symbol_header_lookup_entry,
-  fp_record_arg_pragma,
-  fp_instantiation_pragma,
+  fn_hash_symbol_header_lookup_entry,
+  fn_compare_symbol_header_lookup_entry,
+  fn_record_arg_pragma,
+  fn_instantiation_pragma,
 #if USER_CONTROL_OF_STRUCT_PACKING
-  fp_pack_pragma,
+  fn_pack_pragma,
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
-  fp_ident_pragma,
+  fn_ident_pragma,
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
-  fp_once_pragma,
-  fp_hdrstop_or_no_pch_pragma,
-  fp_define_type_info_pragma,
-  fp_stdc_pragma,
+  fn_once_pragma,
+  fn_hdrstop_or_no_pch_pragma,
+  fn_define_type_info_pragma,
+  fn_stdc_pragma,
 #if UPC_EXTENSIONS_ALLOWED
-  fp_upc_pragma,
+  fn_upc_pragma,
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
-  fp_redefine_extname_pragma,
+  fn_redefine_extname_pragma,
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if SUN_EXTENSIONS_ALLOWED
-  fp_ldscope_pragma,
+  fn_ldscope_pragma,
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  fp_gcc_pragma,
+  fn_gcc_pragma,
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  fp_diag_pragma,
+  fn_diag_pragma,
 #if INCLUDE_EDG_TEST_PRAGMAS
-  fp_test_immediate_pragma,
+  fn_test_immediate_pragma,
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
 #if DEBUG
-  fp_db_opt_pragma,
-  fp_db_name_pragma,
+  fn_db_opt_pragma,
+  fn_db_name_pragma,
 #endif /* DEBUG */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-  fp_if_exists_pragma,
+  fn_if_exists_pragma,
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  fp_push_macro_pragma,
-  fp_pop_macro_pragma,
-  fp_microsoft_start_map_region_pragma,
-  fp_microsoft_stop_map_region_pragma,
+  fn_push_macro_pragma,
+  fn_pop_macro_pragma,
+  fn_microsoft_start_map_region_pragma,
+  fn_microsoft_stop_map_region_pragma,
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-  fp_setlocale_pragma,
+  fn_setlocale_pragma,
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
-  fp_microsoft_comment_pragma,
-  fp_microsoft_conform_pragma,
-  fp_microsoft_include_alias_pragma,
+  fn_microsoft_comment_pragma,
+  fn_microsoft_conform_pragma,
+  fn_microsoft_include_alias_pragma,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  fp_last
+  fn_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_function_pointer_entry;
+typedef a_byte a_function_tag_entry;
 
 /* Generic function pointer type. */
 typedef void (*a_function_pointer)();
 
 /* Declare the array of function pointers that map to the enumeration above. */
-extern a_function_pointer function_pointers[(int)fp_last+1];
+extern a_function_pointer function_pointers[(int)fn_last+1];
 
 /*
-A macro to convert a function pointer enumerator (a_function_pointer_entry_tag)
+A macro to convert a function pointer enumerator (a_function_tag)
 into a function pointer.  The caller must cast the result to a function
 pointer of the appropriate type.
 */
 #if CHECKING
 #define index_to_function_pointer(index) \
-  (check_assertion((unsigned int)(index) <= (unsigned int)fp_last), \
+  (check_assertion((unsigned int)(index) <= (unsigned int)fn_last), \
    function_pointers[(unsigned int)index])
 #else /* !CHECKING */
 #define index_to_function_pointer(index) \

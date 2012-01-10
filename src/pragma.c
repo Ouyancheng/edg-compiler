@@ -81,8 +81,7 @@ Display the pragma list for a scope for debugging purposes.
 static a_pragma_kind_description_ptr add_pragma_kind_description
                       (a_pragma_kind 	     kind,
 		       a_pragma_binding_kind binding_kind,
-		       a_function_pointer_entry
-					     processing_function_index,
+		       a_function_tag_entry  processing_function_index,
 		       a_boolean	     is_pseudo_pragma,
 		       a_boolean	     may_bind_to_decl,
 		       a_boolean	     may_bind_to_stmt,
@@ -180,8 +179,7 @@ which function to call to process this pragma.
 
 static a_pragma_kind_description_ptr add_next_construct_pragma_kind_description
                       (a_pragma_kind 	     kind,
-		       a_function_pointer_entry
-					     processing_function_index,
+		       a_function_tag_entry  processing_function_index,
 		       a_boolean	     is_pseudo_pragma,
 		       a_boolean	     may_bind_to_decl,
 		       a_boolean	     may_bind_to_stmt,
@@ -217,8 +215,7 @@ used for creating pbk_next_construct pragmas.
 
 static a_pragma_kind_description_ptr add_next_token_pragma_kind_description
                       (a_pragma_kind 	     kind,
-		       a_function_pointer_entry
-					     processing_function_index,
+		       a_function_tag_entry  processing_function_index,
 		       a_boolean	     is_pseudo_pragma,
 		       a_boolean	     global,
 		       a_boolean	     automatically_include_in_il,
@@ -248,8 +245,7 @@ used for creating pbk_next_token pragmas.
 
 static a_pragma_kind_description_ptr add_immediate_pragma_kind_description
                       (a_pragma_kind 	     kind,
-		       a_function_pointer_entry
-					     processing_function_index,
+		       a_function_tag_entry  processing_function_index,
 		       a_boolean	     global,
 		       a_boolean	     automatically_include_in_il,
 		       a_boolean	     record_pragma_text,
@@ -279,8 +275,7 @@ used for creating pbk_immediate pragmas.
 
 static a_pragma_kind_description_ptr add_other_pragma_kind_description
                       (a_pragma_kind 	     kind,
-		       a_function_pointer_entry
-					     processing_function_index,
+		       a_function_tag_entry  processing_function_index,
 		       a_boolean	     is_pseudo_pragma,
 		       a_boolean	     global,
 		       a_boolean	     automatically_include_in_il,
@@ -312,7 +307,7 @@ used for creating pbk_other pragmas.
 static
 a_pragma_kind_description_ptr add_preproc_immediate_pragma_kind_description(
                        a_pragma_kind 	          kind,
-                       a_function_pointer_entry	  processing_function_index,
+                       a_function_tag_entry	  processing_function_index,
 		       a_boolean		  record_pragma_text,
 		       a_boolean		  il_info_is_complete,
                        a_boolean                  automatically_include_in_il,
@@ -1612,7 +1607,7 @@ Initialize the pragma description table.
   pragma_kind_descriptions = NULL;
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_printf_args,
-		 (a_function_pointer_entry)fp_record_arg_pragma,
+		 (a_function_tag_entry)fn_record_arg_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/FALSE,
@@ -1627,7 +1622,7 @@ Initialize the pragma description table.
                  es_warning);
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_scanf_args,
-	         (a_function_pointer_entry)fp_record_arg_pragma,
+	         (a_function_tag_entry)fn_record_arg_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/FALSE,
@@ -1642,7 +1637,7 @@ Initialize the pragma description table.
                  es_warning);
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_lint_argsused,
-		 (a_function_pointer_entry)fp_null,
+		 (a_function_tag_entry)fn_null,
 		 /*is_pseudo_pragma=*/TRUE,
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/FALSE,
@@ -1657,7 +1652,7 @@ Initialize the pragma description table.
                  es_none);
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_lint_varargs_count,
-		 (a_function_pointer_entry)fp_null,
+		 (a_function_tag_entry)fn_null,
 		 /*is_pseudo_pragma=*/TRUE,
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/FALSE,
@@ -1672,7 +1667,7 @@ Initialize the pragma description table.
                  es_none);
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_lint_notreached,
-		 (a_function_pointer_entry)fp_null,
+		 (a_function_tag_entry)fn_null,
 		 /*is_pseudo_pragma=*/TRUE,
 		 /*may_bind_to_decl=*/FALSE,
 		 /*may_bind_to_stmt=*/TRUE,
@@ -1688,7 +1683,7 @@ Initialize the pragma description table.
   if (!C_mode()) {
     (void)add_next_token_pragma_kind_description
  		((a_pragma_kind)pk_instantiate,
-	         (a_function_pointer_entry)fp_instantiation_pragma,
+	         (a_function_tag_entry)fn_instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -1702,7 +1697,7 @@ Initialize the pragma description table.
                  es_error);
     (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_do_not_instantiate,
-		 (a_function_pointer_entry)fp_instantiation_pragma,
+		 (a_function_tag_entry)fn_instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -1716,7 +1711,7 @@ Initialize the pragma description table.
                  es_error);
     (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_can_instantiate,
-		 (a_function_pointer_entry)fp_instantiation_pragma,
+		 (a_function_tag_entry)fn_instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*global=*/FALSE,
 		 /*automatically_include_in_il=*/FALSE,
@@ -1732,7 +1727,7 @@ Initialize the pragma description table.
 #if USER_CONTROL_OF_STRUCT_PACKING
   (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_pack,
-                 (a_function_pointer_entry)fp_pack_pragma,
+                 (a_function_tag_entry)fn_pack_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/BACK_END_IS_CP_GEN_BE,
@@ -1748,7 +1743,7 @@ Initialize the pragma description table.
 #if IDENT_DIRECTIVE_AND_PRAGMA
   (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_ident,
-                 (a_function_pointer_entry)fp_ident_pragma,
+                 (a_function_tag_entry)fn_ident_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/TRUE,
                  /*automatically_include_in_il=*/FALSE,
@@ -1764,7 +1759,7 @@ Initialize the pragma description table.
 #if PRAGMA_WEAK_ALLOWED
   (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_weak,
-		 (a_function_pointer_entry)fp_null,
+		 (a_function_tag_entry)fn_null,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/TRUE,
@@ -1779,7 +1774,7 @@ Initialize the pragma description table.
 #endif /* PRAGMA_WEAK_ALLOWED */
   (void)add_preproc_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_once,
-                 (a_function_pointer_entry)fp_once_pragma,
+                 (a_function_tag_entry)fn_once_pragma,
                  /*record_pragma_text=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -1788,7 +1783,7 @@ Initialize the pragma description table.
 		 /*read_string_as_header_name=*/FALSE);
   (void)add_preproc_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_hdrstop,
-                 (a_function_pointer_entry)fp_hdrstop_or_no_pch_pragma,
+                 (a_function_tag_entry)fn_hdrstop_or_no_pch_pragma,
                  /*record_pragma_text=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -1797,7 +1792,7 @@ Initialize the pragma description table.
 		 /*read_string_as_header_name=*/FALSE);
   (void)add_preproc_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_no_pch,
-                 (a_function_pointer_entry)fp_hdrstop_or_no_pch_pragma,
+                 (a_function_tag_entry)fn_hdrstop_or_no_pch_pragma,
                  /*record_pragma_text=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -1807,7 +1802,7 @@ Initialize the pragma description table.
   if (!C_mode()) {
     (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_define_type_info,
-		 (a_function_pointer_entry)fp_define_type_info_pragma,
+		 (a_function_tag_entry)fn_define_type_info_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/FALSE,
@@ -1824,7 +1819,7 @@ Initialize the pragma description table.
   if (c99_mode || fixed_point_enabled) {
     (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_stdc,
-                 (a_function_pointer_entry)fp_stdc_pragma,
+                 (a_function_tag_entry)fn_stdc_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -1841,8 +1836,7 @@ Initialize the pragma description table.
   if (upc_mode) {
     (void)add_next_token_pragma_kind_description(
                                          (a_pragma_kind)pk_upc,
-                                         (a_function_pointer_entry)
-                                                                 fp_upc_pragma,
+                                         (a_function_tag_entry)fn_upc_pragma,
                                          /*is_pseudo_pragma=*/FALSE,
                                          /*global=*/TRUE,
                                          /*automatically_include_in_il=*/FALSE,
@@ -1859,8 +1853,8 @@ Initialize the pragma description table.
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
   (void)add_next_token_pragma_kind_description(
                                          (a_pragma_kind)pk_redefine_extname,
-                                         (a_function_pointer_entry)
-                                                    fp_redefine_extname_pragma,
+                                         (a_function_tag_entry)
+                                                    fn_redefine_extname_pragma,
                                          /*is_pseudo_pragma=*/FALSE,
                                          /*global=*/TRUE,
                                          /*automatically_include_in_il=*/FALSE,
@@ -1877,8 +1871,8 @@ Initialize the pragma description table.
   if (sun_linker_scope_allowed) {
     (void)add_preproc_immediate_pragma_kind_description(
                                         (a_pragma_kind)pk_enable_ldscope,
-                                        (a_function_pointer_entry)
-                                                             fp_ldscope_pragma,
+                                        (a_function_tag_entry)
+                                                             fn_ldscope_pragma,
 		                        /*record_pragma_text=*/TRUE,
                                         /*il_info_is_complete=*/TRUE,
                                         /*automatically_include_in_il=*/TRUE,
@@ -1887,8 +1881,8 @@ Initialize the pragma description table.
                                         /*read_string_as_header_name=*/FALSE);
     (void)add_preproc_immediate_pragma_kind_description(
                                         (a_pragma_kind)pk_disable_ldscope,
-                                        (a_function_pointer_entry)
-                                                            fp_ldscope_pragma,
+                                        (a_function_tag_entry)
+                                                             fn_ldscope_pragma,
 		                        /*record_pragma_text=*/TRUE,
                                         /*il_info_is_complete=*/TRUE,
                                         /*automatically_include_in_il=*/TRUE,
@@ -1901,7 +1895,7 @@ Initialize the pragma description table.
   if (gnu_mode && gnu_version >= 40200) {
     (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_gcc,
-                 (a_function_pointer_entry)fp_gcc_pragma,
+                 (a_function_tag_entry)fn_gcc_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -1917,7 +1911,7 @@ Initialize the pragma description table.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_suppress,
-                 (a_function_pointer_entry)fp_diag_pragma,
+                 (a_function_tag_entry)fn_diag_pragma,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -1930,7 +1924,7 @@ Initialize the pragma description table.
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_remark,
-                 (a_function_pointer_entry)fp_diag_pragma,
+                 (a_function_tag_entry)fn_diag_pragma,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -1943,7 +1937,7 @@ Initialize the pragma description table.
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_warning,
-                 (a_function_pointer_entry)fp_diag_pragma,
+                 (a_function_tag_entry)fn_diag_pragma,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -1956,7 +1950,7 @@ Initialize the pragma description table.
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_error,
-                 (a_function_pointer_entry)fp_diag_pragma,
+                 (a_function_tag_entry)fn_diag_pragma,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -1969,7 +1963,7 @@ Initialize the pragma description table.
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_once,
-                 (a_function_pointer_entry)fp_diag_pragma,
+                 (a_function_tag_entry)fn_diag_pragma,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -1982,7 +1976,7 @@ Initialize the pragma description table.
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_default,
-                 (a_function_pointer_entry)fp_diag_pragma,
+                 (a_function_tag_entry)fn_diag_pragma,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -1996,7 +1990,7 @@ Initialize the pragma description table.
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,
-		 (a_function_pointer_entry)fp_null,
+		 (a_function_tag_entry)fn_null,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/FALSE,
@@ -2011,7 +2005,7 @@ Initialize the pragma description table.
                  es_error);
   (void)add_next_construct_pragma_kind_description
  		((a_pragma_kind)pk_test_next_statement,
-		 (a_function_pointer_entry)fp_null,
+		 (a_function_tag_entry)fn_null,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/FALSE,
 		 /*may_bind_to_stmt=*/TRUE,
@@ -2026,7 +2020,7 @@ Initialize the pragma description table.
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_test_immediate,
-                 (a_function_pointer_entry)fp_test_immediate_pragma,
+                 (a_function_tag_entry)fn_test_immediate_pragma,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -2039,7 +2033,7 @@ Initialize the pragma description table.
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_test_immediate_text,
-                 (a_function_pointer_entry)fp_null,
+                 (a_function_tag_entry)fn_null,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/TRUE,
@@ -2052,7 +2046,7 @@ Initialize the pragma description table.
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_test_immediate_pp_text,
-                 (a_function_pointer_entry)fp_null,
+                 (a_function_tag_entry)fn_null,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/TRUE,
                  /*record_pragma_text=*/TRUE,
@@ -2065,7 +2059,7 @@ Initialize the pragma description table.
                  es_error);
   (void)add_other_pragma_kind_description
 		((a_pragma_kind)pk_test_other,
-                 (a_function_pointer_entry)fp_null,
+                 (a_function_tag_entry)fn_null,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/TRUE,
@@ -2079,7 +2073,7 @@ Initialize the pragma description table.
                  es_warning);
   (void)add_next_construct_pragma_kind_description
  		((a_pragma_kind)pk_test_bind_next_pass,
-                 (a_function_pointer_entry)fp_null,
+                 (a_function_tag_entry)fn_null,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/TRUE,
@@ -2096,7 +2090,7 @@ Initialize the pragma description table.
 #if ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_checking_pragma,
-                 (a_function_pointer_entry)fp_null,
+                 (a_function_tag_entry)fn_null,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/TRUE,
@@ -2113,7 +2107,7 @@ Initialize the pragma description table.
 #if DEBUG
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_db_opt,
-                 (a_function_pointer_entry)fp_db_opt_pragma,
+                 (a_function_tag_entry)fn_db_opt_pragma,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/TRUE,
@@ -2126,7 +2120,7 @@ Initialize the pragma description table.
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_db_name,
-                 (a_function_pointer_entry)fp_db_name_pragma,
+                 (a_function_tag_entry)fn_db_name_pragma,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/TRUE,
@@ -2142,7 +2136,7 @@ Initialize the pragma description table.
   if (microsoft_mode) {
     (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_if_exists,
-                 (a_function_pointer_entry)fp_if_exists_pragma,
+                 (a_function_tag_entry)fn_if_exists_pragma,
 		 /*is_pseudo_pragma=*/TRUE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -2160,7 +2154,7 @@ Initialize the pragma description table.
   if (microsoft_mode) {
     (void)add_preproc_immediate_pragma_kind_description
 		((a_pragma_kind)pk_push_macro,
-                 (a_function_pointer_entry)fp_push_macro_pragma,
+                 (a_function_tag_entry)fn_push_macro_pragma,
                  /*record_pragma_text=*/FALSE,
 		 /*il_info_is_complete=*/TRUE,
                  /*automatically_include_in_il=*/TRUE,
@@ -2169,7 +2163,7 @@ Initialize the pragma description table.
 		 /*read_string_as_header_name=*/FALSE);
     (void)add_preproc_immediate_pragma_kind_description
 		((a_pragma_kind)pk_pop_macro,
-                 (a_function_pointer_entry)fp_pop_macro_pragma,
+                 (a_function_tag_entry)fn_pop_macro_pragma,
                  /*record_pragma_text=*/FALSE,
 		 /*il_info_is_complete=*/TRUE,
                  /*automatically_include_in_il=*/TRUE,
@@ -2178,8 +2172,7 @@ Initialize the pragma description table.
 		 /*read_string_as_header_name=*/FALSE);
     (void)add_next_token_pragma_kind_description
                 ((a_pragma_kind)pk_start_map_region,
-                 (a_function_pointer_entry)
-                                          fp_microsoft_start_map_region_pragma,
+                 (a_function_tag_entry)fn_microsoft_start_map_region_pragma,
                  /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -2193,7 +2186,7 @@ Initialize the pragma description table.
                  es_warning);
     (void)add_next_token_pragma_kind_description
                 ((a_pragma_kind)pk_stop_map_region,
-                 (a_function_pointer_entry)fp_microsoft_stop_map_region_pragma,
+                 (a_function_tag_entry)fn_microsoft_stop_map_region_pragma,
                  /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -2208,7 +2201,7 @@ Initialize the pragma description table.
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
     (void)add_next_token_pragma_kind_description
                 ((a_pragma_kind)pk_setlocale,
-                 (a_function_pointer_entry)fp_setlocale_pragma,
+                 (a_function_tag_entry)fn_setlocale_pragma,
                  /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -2226,7 +2219,7 @@ Initialize the pragma description table.
        argument. */
     (void)add_next_token_pragma_kind_description
                 ((a_pragma_kind)pk_comment,
-                 (a_function_pointer_entry)fp_microsoft_comment_pragma,
+                 (a_function_tag_entry)fn_microsoft_comment_pragma,
                  /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -2240,7 +2233,7 @@ Initialize the pragma description table.
                  es_warning);
     (void)add_next_token_pragma_kind_description
                 ((a_pragma_kind)pk_conform,
-                 (a_function_pointer_entry)fp_microsoft_conform_pragma,
+                 (a_function_tag_entry)fn_microsoft_conform_pragma,
                  /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -2254,7 +2247,7 @@ Initialize the pragma description table.
                  es_warning);
     (void)add_preproc_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_include_alias,
-                 (a_function_pointer_entry)fp_microsoft_include_alias_pragma,
+                 (a_function_tag_entry)fn_microsoft_include_alias_pragma,
                  /*record_pragma_text=*/FALSE,
 		 /*il_info_is_complete=*/TRUE,
                  /*automatically_include_in_il=*/TRUE,
@@ -2281,7 +2274,7 @@ Initialize the pragma description table.
      contexts. */
   (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_unrecognized,
-                 (a_function_pointer_entry)fp_null,
+                 (a_function_tag_entry)fn_null,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*global=*/FALSE,
                  /*automatically_include_in_il=*/TRUE,  /* Do not change. */
@@ -2308,7 +2301,7 @@ Initialize the pragma description table.
      pragmas in a given scope will come out together. */
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_unrecognized,
-                 (a_function_pointer_entry)fp_null,
+                 (a_function_tag_entry)fn_null,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/TRUE,

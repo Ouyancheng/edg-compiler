@@ -802,10 +802,10 @@ Initialize the attribute correspondence checking map.
 
   attr_corresp_checking_map = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
                                  (a_hash_table_size)ATTR_CORRESP_TABLE_LENGTH,
-                                 (a_function_pointer_entry)
-                                                        fp_hash_attribute_kind,
-                                 (a_function_pointer_entry)
-                                     fp_compare_for_attr_corresp_checking_map);
+                                 (a_function_tag_entry)
+                                                        fn_hash_attribute_kind,
+                                 (a_function_tag_entry)
+                                     fn_compare_for_attr_corresp_checking_map);
   for (k = 0; k<ATTR_CORRESP_TABLE_LENGTH; ++k) {
     an_attr_corresp_checking_map_entry_ptr  *p_ep;
     an_attribute_kind                       kind = attr_corresp_table[k].kind;
@@ -946,10 +946,10 @@ Initialize the attribute name map.
 
   attr_name_map = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
                                    (a_hash_table_size)KNOWN_ATTR_TABLE_LENGTH,
-                                   (a_function_pointer_entry)
-                                                         fp_hash_source_string,
-                                   (a_function_pointer_entry)
-                                                 fp_compare_for_attr_name_map);
+                                   (a_function_tag_entry)
+                                                         fn_hash_source_string,
+                                   (a_function_tag_entry)
+                                                 fn_compare_for_attr_name_map);
   for (k = 0; k<KNOWN_ATTR_TABLE_LENGTH; ++k) {
     an_attr_name_map_entry_ptr  *ep;
     char                        *name = known_attr_table[k].name;
@@ -7028,10 +7028,10 @@ translation unit.
 #if GNU_EXTENSIONS_ALLOWED
   asm_name_map = alloc_hash_table(FRONT_END_REGION_NUMBER,
                                   (a_hash_table_size)1000,
-                                  (a_function_pointer_entry)
-                                                         fp_hash_source_string,
-                                  (a_function_pointer_entry)
-                                                  fp_compare_for_asm_name_map);
+                                  (a_function_tag_entry)
+                                                         fn_hash_source_string,
+                                  (a_function_tag_entry)
+                                                  fn_compare_for_asm_name_map);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   unscanned_attributes = NULL;
   unscanned_attributes_active = FALSE;

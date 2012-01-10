@@ -5703,12 +5703,12 @@ typedef a_void_ptr
 A general-purpose hash table.
 */
 typedef struct a_hash_table {
-  a_function_pointer_entry
+  a_function_tag_entry
 		hash_function_index;
 			/* An index to a function pointer (of type
 			   a_hash_function_ptr) used to produce a hash
 			   value for a key. */
-  a_function_pointer_entry
+  a_function_tag_entry
 		compare_function_index;
 			/* An index to a function pointer (of type
 			   a_hash_compare_function_ptr) used to compare a key
@@ -5733,8 +5733,8 @@ typedef struct a_hash_table {
 extern a_hash_table_ptr alloc_hash_table(
 		a_memory_region_number		memory_region,
 		a_hash_table_size		num_elements,
-		a_function_pointer_entry	hash_function_index,
-		a_function_pointer_entry	compare_function_index);
+		a_function_tag_entry		hash_function_index,
+		a_function_tag_entry		compare_function_index);
 
 extern a_hash_data_ptr *hash_find(a_hash_table_ptr	table,
 			    a_void_ptr		key,

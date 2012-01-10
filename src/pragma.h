@@ -121,7 +121,7 @@ typedef struct a_pragma_kind_description {
 		binding_kind;
 			/* The binding kind indicates when and how the pragma
 			   should be scanned by the front end. */
-  a_function_pointer_entry
+  a_function_tag_entry
 		processing_function_index;
 			/* An index that indicates which function to be
 			   called to process this particular pragma.  The
