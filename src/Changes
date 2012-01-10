@@ -1,5 +1,16 @@
 Version 4.5
 
+1/10/12  [EDGcpfe/12588]
+Missing skip_typerefs in local_entities_should_be_promoted
+
+A missing call to skip_typerefs in local_entities_should_be_promoted
+might cause undefined behavior in some configurations and is now fixed.
+This example (with --microsoft_16) had aborted in a configuration where
+unions are defined as structs:
+
+  void __far f() {}
+
+
 1/9/12   [EDGcpfe/12518]
 Meaningless type qualifiers in template instantiations
 

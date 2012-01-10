@@ -18077,8 +18077,9 @@ by things that will be in the file scope.
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
     if (scope->kind == (a_scope_kind)sck_function) {
       a_routine_ptr routine = scope->variant.routine.ptr;
+      a_type_ptr    routine_type = skip_typerefs(routine->type);
       a_type_ptr    return_type = skip_typerefs(
-                                   routine->type->variant.routine.return_type);
+                                   routine_type->variant.routine.return_type);
       if (return_type->source_corresp.is_local_to_function &&
           enclosing_routine_for_local_type_or_null(return_type) == routine) {
         /* A function is returning a type that is local to the function (which
