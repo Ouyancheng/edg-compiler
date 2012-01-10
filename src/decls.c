@@ -506,8 +506,13 @@ now having had an effect.  For example:
 */
 {
   if (state->unused_qualifiers) {
-    pos_warning(ec_useless_type_qualifiers_in_type_name,
-                &state->qualifiers_pos);
+    an_error_severity  sev = es_warning;
+    if (scope_stack_top().depth_innermost_instantiation_scope &&
+        !scope_stack_top().in_prototype_instantiation) {
+      sev = es_remark;
+    }  /* if */
+    pos_diagnostic(sev, ec_useless_type_qualifiers_in_type_name,
+                   &state->qualifiers_pos);
     /* Discard the qualifiers to avoid duplicating diagnostics or confusing
        later operations that expect a cv-qualified type when state->qualifiers
        is not TQ_NONE. */

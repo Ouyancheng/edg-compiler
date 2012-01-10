@@ -1,5 +1,20 @@
 Version 4.5
 
+1/9/12   [EDGcpfe/12518]
+Meaningless type qualifiers in template instantiations
+
+The front end issues a warning when a const and/or volatile type qualifier has
+no effect (e.g., because it is applied to a typedef for a reference type).
+Now, such warnings are reduced to a remark when this occurs as part of a
+template instantiation (that is not a prototype instantiation).  For example:
+
+  template<typename T> struct A { typedef T& R; };
+  template<typename T> struct S {
+    typedef typename A<T>::R const R;  // Previously triggered a warning
+  };                                   // during the instantiation of S<int>;
+  template struct S<int>;              // now only a remark is issued.
+
+
 1/9/12   [EDGcpfe/12582]
 C++11: Access checking of base classes of nested classes of class templates
 
