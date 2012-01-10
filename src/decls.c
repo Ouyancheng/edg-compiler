@@ -507,8 +507,8 @@ now having had an effect.  For example:
 {
   if (state->unused_qualifiers) {
     an_error_severity  sev = es_warning;
-    if (scope_stack_top().depth_innermost_instantiation_scope &&
-        !scope_stack_top().in_prototype_instantiation) {
+    if (is_real_instantiation_context() &&
+        is_nonspecialized_instantiation_context()) {
       sev = es_remark;
     }  /* if */
     pos_diagnostic(sev, ec_useless_type_qualifiers_in_type_name,
