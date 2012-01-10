@@ -18962,8 +18962,9 @@ transparent union parameter.  If it is okay, the first field that satisfies
 the requirement is returned.  Otherwise, NULL is returned.
 */
 {
-  a_type_ptr  source_type;
-  a_field_ptr f;
+  a_type_ptr       source_type;
+  a_field_ptr      f;
+  a_std_conv_descr std_conv;
 
   db_enter(3, "transparent_union_conversion_possible");
   union_type = skip_typerefs(union_type);
@@ -18974,16 +18975,21 @@ the requirement is returned.  Otherwise, NULL is returned.
        f = f->next) {
     a_type_ptr dest_type = f->type;
     /* Try every field type in turn.  Note that a more-or-less exact type
-       match is required, not a conversion, except for null pointer
-       constants, and except that a "void *" can be converted to/from a pointer
-       type. */
+       match is required, not a conversion, except for pointers. */
     if (types_are_compatible(source_type, dest_type) ||
         (is_pointer_type(dest_type) &&
-         ((is_constant_operand(source_operand) &&
-           is_null_pointer_constant(&source_operand->variant.constant)) ||
-          (is_pointer_type(source_type) &&
-           (is_void_type(type_pointed_to(source_type)) ||
-            is_void_type(type_pointed_to(dest_type))))))) {
+         impl_pointer_conversion(source_type,
+                                 is_constant_operand(source_operand),
+                                 (a_boolean)source_operand->
+                                                      is_simple_string_literal,
+                                 operand_is_function(source_operand),
+                                 &source_operand->variant.constant,
+                                 dest_type,
+                                 /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                 /*suppress_extensions=*/FALSE,
+                                 ec_bad_cast,
+                                 &std_conv) &&
+         std_conv.warning_suggested == (an_error_code)ec_no_error)) {
       /* source_operand can be converted to the type of this member. */
       break;
     } /* if */
