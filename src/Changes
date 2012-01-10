@@ -195,7 +195,7 @@ For example:
   };                  // circumstances.
   B<int> bi;
 
-This is now fixed (i.e., the associated nonreal type now also acquired the
+This is now fixed (i.e., the associated nonreal type now also acquires the
 typedef name for linkage purposes).
 
 
