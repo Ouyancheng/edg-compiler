@@ -1,5 +1,28 @@
 Version 4.5
 
+1/10/12  [EDGcpfe/12577]
+C++/CLI for-each loop with collection of type IEnumerable<X>^
+
+A C++/CLI for-each loop with a collection expression of type
+System::Collections::Generic::IEnumerable<X>^ for some type X was not
+handled correctly.  It was treated as if it had the non-generic
+System::Collections::IEnumerable type.  One consequence of that
+is that "auto" deduction for a case like the following deduced
+a type of System::Object^ for the iterator variable (instead of
+the correct "int"):
+
+  ref class R {
+  public:
+    void f(int i);
+    void g() {
+      System::Collections::Generic::IEnumerable<int>^ e;
+      for each(auto i in e) {
+        f(i);  // Formerly got spurious error
+      }
+    }
+  };
+
+
 1/10/12  [EDGcpfe/12588]
 Missing skip_typerefs in local_entities_should_be_promoted
 

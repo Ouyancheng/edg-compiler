@@ -28922,32 +28922,39 @@ If so, also return in *p_bcp the base class for the interface implemented.
 
   type = skip_typerefs(type);
   check_assertion(is_immediate_class_type(type));
-  for (bcp = base_classes_of(type);
-       bcp != NULL;
-       bcp = bcp->next) {
-    if (bcp->direct || bcp->is_virtual) {
-      a_type_ptr base_type = bcp->type;
-      if (is_immediate_cli_interface_type(base_type)) {
-        char *name = unmangled_name_of(&base_type->source_corresp);
-        if (name != NULL && strcmp(name, "IEnumerable") == 0) {
-          a_type_ptr  ienumerable =
+  if (is_generic_cli_ienumerable_type(type, (a_type *)NULL)) {
+    /* If type is itself a generic IEnumerable type, don't look at its base
+       classes, because we would find the non-generic IEnumerable and we
+       don't want to use that. */
+    bcp = NULL;
+  } else {
+    for (bcp = base_classes_of(type);
+         bcp != NULL;
+         bcp = bcp->next) {
+      if (bcp->direct || bcp->is_virtual) {
+        a_type_ptr base_type = bcp->type;
+        if (is_immediate_cli_interface_type(base_type)) {
+          char *name = unmangled_name_of(&base_type->source_corresp);
+          if (name != NULL && strcmp(name, "IEnumerable") == 0) {
+            a_type_ptr  ienumerable =
                         cli_class_type_for(csk_system_collections_ienumerable);
-          if (same_entities(base_type, ienumerable)) {
-            /* This is the non-generic IEnumerable.  Save it and use it if
-               no generic version turns up. */
-            non_generic_bcp = bcp;
-          } else if (is_generic_cli_ienumerable_type(base_type,
-                                                     (a_type *)NULL)) {
-            /* This is a generic IEnumerable.  Take it (even if it does
-               not match the iterator type and will get errors later). */
-            goto done;
+            if (same_entities(base_type, ienumerable)) {
+              /* This is the non-generic IEnumerable.  Save it and use it if
+                 no generic version turns up. */
+              non_generic_bcp = bcp;
+            } else if (is_generic_cli_ienumerable_type(base_type,
+                                                       (a_type *)NULL)) {
+              /* This is a generic IEnumerable.  Take it (even if it does
+                 not match the iterator type and will get errors later). */
+              goto done;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
-    }  /* if */
-  }  /* for */
-  /* Take a non-generic IEnumerable if there was no generic one. */
-  bcp = non_generic_bcp;
+    }  /* for */
+    /* Take a non-generic IEnumerable if there was no generic one. */
+    bcp = non_generic_bcp;
+  }  /* if */
 done:
   *p_bcp = bcp;
   return (bcp != NULL);
