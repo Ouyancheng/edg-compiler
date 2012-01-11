@@ -1453,7 +1453,7 @@ The following option formats are supported:
   a_boolean			is_keyword_option = FALSE;
   sizeof_t			keyword_length = 0;
   an_option_description_ptr	odp = NULL;
-  char				*after_keyword;
+  char				*after_keyword = NULL;
 
   /* See if a new argument must be begun (i.e., there is not
      part of an existing option to finish). */
@@ -1550,6 +1550,10 @@ The following option formats are supported:
     opt_ind++;
   } else {
     /* The option does not take an argument. */
+    if (after_keyword != NULL && *after_keyword != '\0') {
+      /* User mistakenly gave an argument to a option that doesn't take one. */
+      invalid_argument_error(argc, argv);
+    }  /* if */
     opt_arg = NULL;
     if (is_keyword_option) {
       /* Skip to the next element of argv. */
