@@ -17387,9 +17387,12 @@ See also coalesce_and_lookup_generalized_identifier.
           } else {
             a_class_symbol_supplement_ptr	cssp_for_dtor = NULL;
             /* For destructors, get the class symbol supplement for use
-               below. */
+               below.  In declarators we still do the lookup below because
+               typedef names cannot be used to define destructors (except in
+               Microsoft bugs mode). */
             if (locator_for_curr_id.is_destructor_name &&
                 qualifier_is_type &&
+                (ilm != ilm_declarator || microsoft_bugs) &&
                 is_class_struct_union_type(qualifier_type)) {
               cssp_for_dtor = symbol_supplement_for_class(qualifier_type);
             }  /* if */
