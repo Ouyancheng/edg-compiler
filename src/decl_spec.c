@@ -8827,6 +8827,7 @@ process_enum_specifier:
               /* The Microsoft compiler ignores certain typename specifiers in
                  instantiations, so forget that we have seen a specifier. */
               count_as_specifier_seen = FALSE;
+              specifier_allows_vacuous_decl = TRUE;
             }  /* if */
             goto no_get_token;
           }  /* if */

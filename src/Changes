@@ -1,5 +1,27 @@
 Version 4.5
 
+1/11/12  [EDGcpfe/12115]
+Microsoft compatibility: typename before nested class of class template
+
+The Microsoft compiler allows the "typename" keyword to be used before
+the declaration of a nested class of a class template (such usage is
+non-standard).  We accepted such usage, but during a real instantiation
+of the class the nested class name was not considered to be a member of
+the enclosing instantiation (it was treated in a way similar to
+"friend struct N").  This resulted in spurious errors in examples
+such as the one below.  Now fixed.
+
+  template <class T> class A {
+    typename struct N {
+      N *x;
+    };
+    void f(N*);
+  };
+  void A<int>::f(N* p) {
+    N *n = p->x;  // p considered to point to an incomplete type ::N
+  }
+
+
 1/11/12  [EDGcpfe/12576]
 C++/CLI: cost of conversion to Object^ after boxing
 
