@@ -1,5 +1,19 @@
 Version 4.5
 
+1/11/12  [EDGcpfe/12576]
+C++/CLI: cost of conversion to Object^ after boxing
+
+Overload resolution now considers the cost of a conversion to Object^ after
+boxing as making a conversion worse than the similar conversion with
+boxing and no conversion.
+
+  void f(System::Object^);
+  int f(int^);
+  int main() {
+    int i = f(123);  // Formerly got a spurious ambiguity error
+  }
+
+
 1/10/12  [EDGcpfe/12558]
 Regression in handling of GNU transparent unions
 
