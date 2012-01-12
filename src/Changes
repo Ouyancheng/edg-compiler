@@ -14,8 +14,9 @@ hadn't resulted in an error and do now.  For example (had intended
 Microsoft compatibility: typename before nested class of class template
 
 The Microsoft compiler allows the "typename" keyword to be used before
-the declaration of a nested class of a class template (such usage is
-non-standard).  We accepted such usage, but during a real instantiation
+the declaration of a nested class of a class template (this is invalid
+according to the standard because "typename" is required to be followed by
+an identifier).  We accepted such usage, but during a real instantiation
 of the class the nested class name was not considered to be a member of
 the enclosing instantiation (it was treated in a way similar to
 "friend struct N").  This resulted in spurious errors in examples
@@ -28,7 +29,8 @@ such as the one below.  Now fixed.
     void f(N*);
   };
   void A<int>::f(N* p) {
-    N *n = p->x;  // p considered to point to an incomplete type ::N
+    N *n = p->x;  // p was formerly considered to point to an incomplete
+                  // type ::N, now correctly points to A<int>::N
   }
 
 
