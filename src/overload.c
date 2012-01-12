@@ -5275,15 +5275,15 @@ in [over.ics.rank].
            conversion is possible).  A base class cast is preferable to a
            cast to "void *", so conv2 is better. */
         cmp = -1;
-      } else if (conv1->pointer_normalization_needed !=
+      } else if (conv1->boxing_conversion &&
+                 conv2->boxing_conversion &&
+                 conv1->pointer_normalization_needed !=
                  conv2->pointer_normalization_needed) {
-        /* If one requires a pointer normalization and the other does not,
-           the one without the pointer normalization is better.  This comes up
-           in C++/CLI after a boxing conversion.  If one matches exactly
-           after boxing, and the other requires an additional conversion to
-           System::Object^, the one that matches exactly is better.  Note that
-           both bcp_1 and bcp_2 are NULL here, so there are no other base class
-           conversions in play. */
+        /* If both are boxing conversions, and one requires a pointer
+           normalization (i.e., a conversion to System::Object^) and the
+           other does not, the one without the pointer normalization is
+           better.  Note that both bcp_1 and bcp_2 are NULL here, so there
+           are no other base class conversions in play. */
         if (conv1->pointer_normalization_needed) {
           cmp = -1;
         } else {
