@@ -5533,7 +5533,7 @@ qualified_name_check:
               !is_template_dependent_type(class_struct_union_type)) {
             /* For destructors, don't attempt to look up the destructor name.
                The lookup will have been done, and the type verified earlier.
-               If the class has a destructor, this is a real call, otherwise
+               If the class has a destructor, this is a real call; otherwise
                it is vacuous.  An exception is made for dependent types.
                In such cases, a lookup is done as a nonreal member may
                be created. */
