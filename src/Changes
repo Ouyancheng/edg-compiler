@@ -92,10 +92,10 @@ the correct "int"):
 1/10/12  [EDGcpfe/12588]
 Missing skip_typerefs in local_entities_should_be_promoted
 
-A missing call to skip_typerefs in local_entities_should_be_promoted
-might cause undefined behavior in some configurations and is now fixed.
-This example (with --microsoft_16) had aborted in a configuration where
-unions are defined as structs:
+A missing call to skip_typerefs in local_entities_should_be_promoted might
+cause undefined behavior in some configurations (the wrong member of a union
+had inadvertently been used).  This example (with --microsoft_16) had aborted
+in some configurations:
 
   void __far f() {}
 
