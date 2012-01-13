@@ -1,5 +1,19 @@
 Version 4.5
 
+1/13/12  [EDGcpfe/12456]
+GNU computed goto: allow const void * expression
+
+The front end now accepts an expression of type "const void *" on a GNU
+computed goto, in addition to the usual "void *" mandated by the GNU
+documentation.
+
+  int main() {
+    const void *p = &&L;
+  L:
+    goto *p;  // Now accepted in GNU C or C++ mode
+  }
+
+
 1/11/12  [EDGcpfe/12590]
 Invalid command line option mistakenly accepted
 

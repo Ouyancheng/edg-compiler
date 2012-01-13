@@ -5303,8 +5303,12 @@ GNU allows a syntax similar to Fortran's assigned goto:
     if (curr_token != tok_star) internal_error("goto_statement: expected '*'");
 #endif /* CHECKING */
     (void)get_token();
-    /* Scan the expression following, which must have type (void *). */
+    /* Scan the expression following, which must have type (void *).
+       const void * is also acceptable. */
     sp->expr = scan_typed_expression(make_pointer_type(void_type()),
+                                     make_pointer_type(
+                                       make_qualified_type(void_type(),
+                                                           TQ_CONST)),
 				     ec_assigned_goto_requires_void_ptr);
   } else
 #endif /* GNU_EXTENSIONS_ALLOWED */

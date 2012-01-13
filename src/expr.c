@@ -28050,11 +28050,13 @@ expression.
 
 
 an_expr_node_ptr scan_typed_expression(a_type_ptr         required_type,
+                                       a_type_ptr         alternate_type,
                                        an_error_code      err_code)
 /*
 Scan a top-level expression and convert it to the type required_type;
 issue the error err_code if it cannot be converted to that type.
-Return a pointer to the expression.
+Return a pointer to the expression.  If alternate_type is non-NULL,
+the expression is also allowed to have that type.
 */
 {
   an_expr_node_ptr    expression;
@@ -28073,6 +28075,10 @@ Return a pointer to the expression.
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
 
   /* Convert to the required type. */
+  if (alternate_type != NULL &&
+      identical_types(alternate_type, result.type)) {
+    required_type = alternate_type;
+  }  /* if */
   prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
                            (a_conv_descr_ptr)NULL,
                            /*is_copy_initialization=*/FALSE,
