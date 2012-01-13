@@ -8912,22 +8912,20 @@ exception specifications are not checked.
       okay = FALSE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (is_integral_or_enum(source_type) && is_enum_type(dest_type)) {
+  } else if (is_enum_type(dest_type) &&
+             (is_integral_or_enum(source_type) ||
+              is_floating_type(source_type))) {
     /* Core Issue 128 makes enum --> enum a valid static_cast.  This also
-       covers the case of integer --> scoped enum (the unscoped case is a
-       normal inverse of an implicit conversion). */
+       covers integer --> scoped enum (the unscoped case is a normal
+       inverse of an implicit conversion), and bool --> enum (both scoped
+       and unscoped). */
+    /* Core Issue 1094 makes floating --> scoped enum valid. */
     okay = TRUE;
-  } else if (is_enum_type(source_type) && is_integral_type(dest_type)) {
+  } else if (is_enum_type(source_type) &&
+             (is_integral_type(dest_type) ||
+              is_floating_type(dest_type))) {
     /* Similarly, Core Issue 671 makes scoped enum --> integer valid. */
-    okay = TRUE;
-  } else if (is_enum_type(source_type) && is_floating_type(dest_type)) {
     /* And Core Issue 833 makes scoped enum --> floating valid. */
-    okay = TRUE;
-  } else if (!C_mode() &&
-             is_bool_type(source_type) && is_enum_type(dest_type)) {
-    /* Allow bool --> enum.  [expr.static.cast] paragraphs 6 and 7
-       strictly speaking seem to disallow it, but that's probably a mistake
-       in the standard. */
     okay = TRUE;
   }  /* if */
   return okay;

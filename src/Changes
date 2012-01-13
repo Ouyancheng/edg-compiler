@@ -1,5 +1,16 @@
 Version 4.5
 
+1/13/12  [EDGcpfe/11672]
+Cast of floating-point value to scoped enumeration type
+
+Core Issue 1094 clarified that a value of a floating-point type can
+be explicitly converted to a scoped enum type.  The front end now accepts
+such casts.
+
+  enum class E { e0 };
+  E e = static_cast<E>(1.0);
+
+
 1/13/12  [EDGcpfe/12456]
 GNU computed goto: allow const void * expression
 
