@@ -2695,17 +2695,6 @@ invocations.
 {
   a_source_line_modif_ptr slmp;
 
-  if (line_loc != NULL && *line_loc == ATTENTION_MARKER) {
-    /* There is already a modification at this location. */
-    slmp = nested_source_line_modif(line_loc);
-    if (slmp->num_chars_to_delete == num_chars_to_delete) {
-      /* The modification to be added will be a replacement for the earlier
-         one, so remove it.  (This can happen with deletions added by
-         skip_white_space.) */
-      rem_source_line_modif(slmp);
-      free_source_line_modif(&slmp);
-    }  /* if */
-  }  /* if */
   if (avail_source_line_modifs != NULL) {
     /* Reuse a freed entry. */
     slmp = avail_source_line_modifs;
@@ -7401,20 +7390,11 @@ white_space_loop:
       goto white_space_loop;
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
     case ATTENTION_MARKER:
-      /* Marker placed into source text to provide a cue to the fact that
-         a source modification (probably a text replacement due to a
-         macro expansion) begins here. */
-      if (delete_source_from_loc != NULL) {
-        /* Source from the indicated position to the current position
-           is to be deleted.  This is typically because a macro
-           invocation argument list is being scanned. */
-        add_deletion_source_line_modif(delete_source_from_loc,
-                                       curr_char_loc-delete_source_from_loc,
-                                       /*for_comment=*/FALSE);
-      }  /* if */
-      /* Find the appropriate source line modification entry, and begin
-         scanning text in that entry.  kind_skipped is not set, since this
-         is not white space. */
+      /* Marker placed into source text to provide a cue to the fact that a
+         source modification (probably a text replacement due to a macro
+         expansion) begins here.  Find the appropriate source line
+         modification entry, and begin scanning text in that entry.
+         kind_skipped is not set, since this is not white space. */
       saved_curr_char_loc = curr_char_loc;
       go_into_insertion(slmp, curr_char_loc);
       if (slmp->is_isolated_text) {
@@ -7426,9 +7406,17 @@ white_space_loop:
         curr_char_loc = saved_curr_char_loc;
         goto end_skip;
       }  /* if */
-      /* If the hanging deletion flag is set, reset it to the new
-         current position. */
       if (delete_source_from_loc != NULL) {
+        /* Source from the indicated position to the current position is to
+           be deleted.  Add a deletion source line modification and reset
+           the deletion location to the new current position.  (We avoid
+           doing this for the macro argument case because such deletions
+           will be either superseded by the expanded text or removed when
+           the scanning of the macro argument is completed.) */
+        add_deletion_source_line_modif(
+                                    delete_source_from_loc,
+                                    saved_curr_char_loc-delete_source_from_loc,
+                                    /*for_comment=*/FALSE);
         delete_source_from_loc = curr_char_loc;
       }  /* if */
       goto white_space_loop;
