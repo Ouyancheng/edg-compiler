@@ -6127,12 +6127,10 @@ of the hash table is returned, or NULL is no entry is found.
   /* If no hash table exists for this template, create one now. */
   if (tssp->variant.class_template.instantiation_hash_table == NULL) {
     tssp->variant.class_template.instantiation_hash_table =
-				alloc_hash_table(FRONT_END_REGION_NUMBER,
-					         (a_hash_table_size)11,
-					         (a_function_tag_entry)
-                                                         fn_hash_instantiation,
-					         (a_function_tag_entry)
-                                                     fn_compare_instantiation);
+                      alloc_hash_table(FRONT_END_REGION_NUMBER,
+                                       (a_hash_table_size)11,
+                                       fn_for_function(hash_instantiation),
+                                       fn_for_function(compare_instantiation));
   }  /* if */
   sym_in_table = (a_symbol_ptr*)hash_find(
                          tssp->variant.class_template.instantiation_hash_table,

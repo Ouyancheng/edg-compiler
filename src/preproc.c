@@ -2298,9 +2298,9 @@ short_name.
     /* Allocate a hash table for include aliases when the first one is
        encountered. */
     include_alias_hash_table = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
-                               (a_hash_table_size)128,
-                               (a_function_tag_entry)fn_hash_include_alias,
-                               (a_function_tag_entry)fn_compare_include_alias);
+                                       (a_hash_table_size)128,
+                                       fn_for_function(hash_include_alias),
+                                       fn_for_function(compare_include_alias));
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("include_alias")) {

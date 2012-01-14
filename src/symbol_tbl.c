@@ -2056,11 +2056,9 @@ header is returned if one exists.  Otherwise, a new header is created.
   if (prop_or_event_accessor_header_hash_table == NULL) {
     prop_or_event_accessor_header_hash_table =
                alloc_hash_table(FRONT_END_REGION_NUMBER,
-                           (a_hash_table_size)100,
-                           (a_function_tag_entry)
-                                  fn_hash_prop_or_event_accessor_header_lookup,
-                           (a_function_tag_entry)
-                              fn_compare_prop_or_event_accessor_header_lookup);
+                (a_hash_table_size)100,
+                fn_for_function(hash_prop_or_event_accessor_header_lookup),
+                fn_for_function(compare_prop_or_event_accessor_header_lookup));
   }  /* if */
   /* Create an entry to be used as the lookup key. */
   clear_prop_or_event_accessor_header_lookup(&peahlp_key);
@@ -5033,10 +5031,8 @@ it.
       break;
   }  /* switch */
   hash_table = alloc_hash_table(FRONT_END_REGION_NUMBER, size,
-                                (a_function_tag_entry)
-                                            fn_hash_symbol_header_lookup_entry,
-                                (a_function_tag_entry)
-                                        fn_compare_symbol_header_lookup_entry);
+                          fn_for_function(hash_symbol_header_lookup_entry),
+                          fn_for_function(compare_symbol_header_lookup_entry));
   return hash_table;
 }  /* create_name_lookup_table */
 
@@ -14143,8 +14139,8 @@ allocated or NO_MEMORY_REGION_NUMBER if general memory should be used.
 a_hash_table_ptr alloc_hash_table(
 			a_memory_region_number		memory_region,
 			a_hash_table_size		num_elements,
-			a_function_tag_entry		hash_function_index,
-			a_function_tag_entry		compare_function_index)
+			a_function_number		hash_function_index,
+			a_function_number		compare_function_index)
 /*
 Allocate a hash table, initialize its fields, and return a pointer to
 the table.  "memory_region" is the memory region in which the table and its

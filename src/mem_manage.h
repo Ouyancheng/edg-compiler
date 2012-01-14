@@ -396,7 +396,7 @@ When adding an entry in this enumeration, also make a similar change
 in function_pointers (in fe_init.c).
 */
 
-enum a_function_tag {
+enum a_function_number_tag {
   fn_null,                             /* Indicates a NULL function pointer. */
   fn_hash_attribute_kind,
   fn_compare_for_attr_corresp_checking_map,
@@ -471,7 +471,7 @@ enum a_function_tag {
   fn_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_function_tag_entry;
+typedef a_byte a_function_number;
 
 /* Generic function pointer type. */
 typedef void (*a_function_pointer)();
@@ -480,13 +480,22 @@ typedef void (*a_function_pointer)();
 extern a_function_pointer function_pointers[(int)fn_last+1];
 
 /*
-A macro to convert a function pointer enumerator (a_function_tag)
+This token pasting macro converts a function name into an enumerator
+in a_function_number_tag (by prepending "fn_" to the function name).
+Callers must ensure that the appropriate enumerator has been added to the
+a_function_number_tag enumeration (as well as the definition of
+function_pointers in fe_init.c).
+*/
+#define fn_for_function(name) ((a_function_number)(fn_##name))
+
+/*
+A macro to convert a function pointer enumerator (a_function_number_tag)
 into a function pointer.  The caller must cast the result to a function
 pointer of the appropriate type.
 */
 #if CHECKING
 #define index_to_function_pointer(index) \
-  (check_assertion((unsigned int)(index) <= (unsigned int)fn_last), \
+  (check_assertion((unsigned int)(index) < (unsigned int)fn_last), \
    function_pointers[(unsigned int)index])
 #else /* !CHECKING */
 #define index_to_function_pointer(index) \
