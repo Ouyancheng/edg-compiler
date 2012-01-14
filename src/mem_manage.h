@@ -486,7 +486,12 @@ Callers must ensure that the appropriate enumerator has been added to the
 a_function_number_tag enumeration (as well as the definition of
 function_pointers in fe_init.c).
 */
+#if defined(__STDC__) || defined(__cplusplus) || defined(__CENTERLINE__) ||   \
+    (defined(_lint) && !defined(SUNOS)) || defined(_MSC_VER)
 #define fn_for_function(name) ((a_function_number)(fn_##name))
+#else /* !(defined(__STDC__) || defined(__cplusplus) || ...) */
+#define fn_for_function(name) ((a_function_number)(fn_/**/name))
+#endif /* defined(__STDC__) || defined(__cplusplus) || ... */
 
 /*
 A macro to convert a function pointer enumerator (a_function_number_tag)
