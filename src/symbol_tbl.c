@@ -10070,10 +10070,10 @@ for a description of virtual_step_stack.
        path. */
 #if CHECKING
     if (proj_sym == NULL) {
-      internal_error("have_access_across_path: proj_sym is NULL");
+      internal_error("access_across_path: proj_sym is NULL");
     }  /* if */
     if (proj_sym->kind != (a_symbol_kind)sk_projection) {
-      internal_error("have_access_across_path: proj_sym not projection");
+      internal_error("access_across_path: proj_sym not projection");
     }  /* if */
 #endif /* CHECKING */
     /* Note that in the overloaded function case proj_sym is a projection
@@ -10168,9 +10168,9 @@ path is the derivation path from viewpoint_class to sym;
 it is NULL if sym is in viewpoint_class.  If non-NULL, it is part of
 the path of the base class derivation bcdp.  proj_sym is the projection
 symbol from which we started this access check, or an updated one picked
-up during the recursive descent through the derivation; it is ignored if
-path == NULL, but otherwise it must be a projection symbol (although
-its fundamental symbol might not be sym, i.e., in the overloaded
+up during the recursive descent through the derivation; if path == NULL
+it might not be a projection symbol, but otherwise it must be one
+(although its fundamental symbol might not be sym, i.e., in the overloaded
 function case; in that case sym might be a projection symbol as well).
 virtual_step_stack is a pointer to a linked list that describes a stack
 of virtual steps being expanded by invocations of this routine above
@@ -10219,6 +10219,15 @@ this one.
        additional checking in the expression routines is needed to enforce
        that restriction. */
     have_access = TRUE;
+  } else if (!(strict_ansi_mode || (gpp_mode && gnu_version < 30400)) &&
+             proj_sym->kind == (a_symbol_kind)sk_projection &&
+             proj_sym->variant.projection.is_using_decl) {
+    /* We do not have access to the member in this class, and the symbol
+       here is a using-declaration.  Core Issue 360 suggests that we should
+       not look for access in a base class.  Since that issue is still
+       open (January 2012), the standard still requires the base class
+       access check, so we do it in strict mode. */
+    /* have_access = FALSE;  -- already set. */
   } else {
     /* We do not have access to the member in this class, but perhaps we
        have access to it in a base class.  This would be because of some

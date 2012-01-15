@@ -17675,10 +17675,16 @@ is the access specifier applicable to the new declaration.
   a_source_position  decl_pos;
 
   decl_pos = locator_for_curr_id.source_position;
-  if (!have_access_to_symbol(sym)) {
+  if (!have_access_to_symbol(sym) &&
+      !(microsoft_mode &&
+        sym->kind == (a_symbol_kind)sk_projection &&
+        sym->variant.projection.is_using_decl &&
+        is_function_symbol(fund_sym))) {
     /* The specified symbol (either the explicitly declared symbol or
        a member of the overload set the symbol refers to) is inaccessible.
        Issue an error instead of creating the projection symbol. */
+    /* MSVC doesn't seem to check access on using-declarations for
+       functions. */
     pos_sy_error(ec_no_access_to_name, &decl_pos, sym);
   } else if (sym->kind == (a_symbol_kind)sk_member_function &&
              sym->variant.routine.ptr->compiler_generated &&

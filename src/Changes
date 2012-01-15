@@ -1,5 +1,52 @@
 Version 4.5
 
+1/15/12  [EDGcpfe/7622,EDGcpfe/11486,EDGcpfe/12215,EDGcpfe/12584]
+Using-declarations that reduce access preclude access via base class
+
+Core Issue 360 suggests that, in spite of what the access wording in
+the standard says, a using-declaration that reduces the access to
+a member of a base class should prevent use of that member by
+consumers of the derived class.  (The standard specifies that, if a
+pointer to the derived class can be cast to a base class where access
+is available, the restriction of the using-declaration should be
+ignored.)  This is now implemented in non-strict modes.  (Since
+Core Issue 360 is still open, the standard hasn't been changed yet,
+so strict modes must remain as they were.  However, MSVC and g++ use
+the approach recommended by Core Issue 360, so it seems wise to
+follow that in default mode, as well as in Microsoft and GNU C++ modes.)
+
+  struct base {
+    int member;
+  };
+  class deriv : public base {
+  private:
+    using base::member;
+  };
+  void f(deriv &d) {
+    d.member = 1;  // Now an error except in strict modes
+  }
+
+In Microsoft mode, if a using-declaration imports a using-declaration
+from a base class, and that imported using-declaration names one or
+more functions, no error is now issued if the imported using-declaration
+is not accessible.  This change was necessitated by the above change,
+in order to keep existing Microsoft-mode code working.
+
+  struct A {
+  public:
+    int f();
+  };
+  struct B : public A {
+  private:
+    using A::f;
+  };
+  struct C : public B {
+  private:
+    using B::f;  // Still okay in Microsoft mode even though B::f is
+                 // inaccessible
+  };
+
+
 1/13/12  [EDGcpfe/11672]
 Cast of floating-point value to scoped enumeration type
 
