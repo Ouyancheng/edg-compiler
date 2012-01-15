@@ -4979,6 +4979,8 @@ end_arg_expansion:;
                                    (sizeof_t)(start_of_curr_token -
                                                        delete_source_from_loc),
                                    (char *)NULL, (char *)NULL);
+      adjust_deletion_counts(delete_source_from_loc,
+                             slmp->num_chars_to_delete);
       /* Put the null replacement string (for a deletion) in the
          source line modification's inboard inserted_chars array. */
       *slmp->inserted_chars   = LE_ESCAPE;
