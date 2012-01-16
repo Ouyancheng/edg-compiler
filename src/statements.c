@@ -1899,8 +1899,13 @@ some error cases).
   /* Re-load sssep since the call to local_declaration may have caused the
      statement stack to be reallocated. */
   sssep = &struct_stmt_stack[depth_stmt_stack];
-#if GENERATE_SOURCE_SEQUENCE_LISTS
   if (sssep->for_init) {
+    if (dps.range_based_for &&
+        dps.declared_storage_class != (a_storage_class)sc_unspecified) {
+      /* A storage class is not allowed on a for-range-declaration. */
+      pos_error(ec_storage_class_not_allowed, &dps.storage_class_pos);
+    }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     if (!dps.range_based_for) {
       /* Add a source sequence entry marking the end of the for-init
          declaration.  This marker is necessary in case what immediately
@@ -1915,8 +1920,8 @@ some error cases).
       /* A range-based for declaration: The declaration statement will be
          discarded. */
     }  /* if */
-  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
   sssep->curr_decl_statement = NULL;
   if (is_range_based_for != NULL) *is_range_based_for = dps.range_based_for;
   if (range_based_for_iterator != NULL) *range_based_for_iterator = dps.sym;

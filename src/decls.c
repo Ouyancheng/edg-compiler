@@ -15446,13 +15446,7 @@ based on the current mode and the given declaration parsing state.
                                DSI_REGISTER_ID_ALLOWED;
 
   if (!state->is_asm_function) {
-    if (!(state->is_for_init_decl && range_based_for_enabled)) {
-      /* FIXME: Not sure we want to disable this for all "for" statements,
-         but we want to disable it for range-based-for statements, and it's
-         too early to tell the difference (i.e., state->range_based_for is
-         FALSE at this point). */
-      dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
-    }  /* if */
+    dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
     dsi_flags |= DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
     /* Within a non-block linkage specification no storage class (except
        typedef?) is allowed (inferred from ARM 7.4). */
