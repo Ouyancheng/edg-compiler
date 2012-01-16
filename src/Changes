@@ -1,5 +1,24 @@
 Version 4.5
 
+1/16/12  [EDGcpfe/12592]
+Elided destructor must be accessible and not deleted
+
+The C++ standard (in [class.temporary] paragraph 1) says that, when a
+temporary is elided, any destructor that would be used to destroy the
+temporary must be accessible and not deleted.  The front end now
+does those checks.  In addition, g++ seems to instantiate the destructor,
+so the front end now does that as well in g++ mode if the destructor
+is inline.
+
+  template<typename T> struct A {
+  private:
+    ~A() {}
+  };
+  extern template class A<char>;
+  A<char> g();
+  A<char> f() { return g(); } // Error now on inaccessible destructor
+
+
 1/16/12  [EDGcpfe/12604]
 GNU C++ mode: Tweak on instantiating statically named function in virtual call
 

@@ -16583,6 +16583,54 @@ is_transparent.  conv_context describes the context of the conversion.
 }  /* prep_conversion_operand */
 
 
+static void handle_elided_destructor(a_type_ptr        type,
+                                     a_source_position *err_pos)
+/*
+"type" is the type of an expression for which copy constructor elision is
+being done (at least conceptually).  If there's some need also to do something
+about a destructor call that is being elided, do that now.  err_pos is the
+source position to be used for any errors.
+*/
+{
+  a_type_ptr class_type = skip_typerefs(type);
+
+  /* See [class.temporary] paragraph 1 for the C++ standard's requirement that
+     the elided destructor be accessible and not deleted. */
+  if (!C_mode() && is_immediate_class_type(class_type)) {
+    a_symbol_ptr dtor_sym= symbol_supplement_for_class(class_type)->destructor;
+    if (dtor_sym != NULL) {
+      a_routine_ptr dtor = dtor_sym->variant.routine.ptr;
+      /* g++ seems to instantiate the destructor even if the temporary is
+         elided, at least if the destructor is inline. */
+      if (gpp_mode && rout_is_inline(dtor) &&
+          curr_expr_is_potentially_evaluated()) {
+        set_instance_required(dtor_sym, TRUE, SIR_NONE);
+      }  /* if */
+      if (expr_access_checking_should_be_done() &&
+          !have_access_to_symbol(dtor_sym)) {
+        /* The destructor is inaccessible. */
+        an_error_severity sev = (an_error_severity)es_warning;
+        a_boolean         error_detected = FALSE;
+        a_boolean         *p_error_detected = NULL;
+        /* If errors are suppressed, get a returned variable instead of
+           issuing any error. */
+        if (expr_stack->suppress_diagnostics) {
+          p_error_detected = &error_detected;
+        }  /* if */
+        if (strict_ansi_mode) sev = strict_ansi_discretionary_severity; 
+        record_access_error(dtor_sym, (a_symbol_ptr)NULL, (a_type_ptr)NULL,
+                            err_pos, (a_symbol_locator*)NULL, sev,
+                            ec_inaccessible_elided_dtor, p_error_detected);
+        if (error_detected) record_suppressed_error();
+      }  /* if */
+      check_use_of_deleted_function(dtor_sym,
+                                    /*elided_ref=*/TRUE,
+                                    err_pos);
+    }  /* if */
+  }  /* if */
+}  /* handle_elided_destructor */
+
+
 static void handle_elided_copy_constructor_no_guard(
                                                 a_type_ptr        source_type,
                                                 a_routine_ptr     elided_cctor,
@@ -16608,6 +16656,7 @@ cases.
 
   /* Avoid problems when the source is an error. */
   if (!is_error_type(source_type)) {
+    check_assertion(is_immediate_class_type(class_type));
     if (elided_cctor != NULL) {
       cctor_sym = symbol_for(elided_cctor);
       { a_param_type_ptr     ptp = elided_cctor->type->
@@ -16689,6 +16738,8 @@ cases.
       }  /* if */
       check_use_of_deleted_function(cctor_sym, /*elided_ref=*/TRUE, err_pos);
     }  /* if */
+    /* Do anything required for the elided destructor. */
+    handle_elided_destructor(class_type, err_pos);
   }  /* if */
 }  /* handle_elided_copy_constructor_no_guard */
 
@@ -18684,6 +18735,12 @@ describes the context of the conversion.
                             conv_context,
                             incompatible_err,
                             &source_operand->position);
+  }  /* if */
+  if (is_copy_initialization) {
+    /* If the expression has a class type, conceptually a copy to a
+       temporary was elided here.  If the class has a destructor, the
+       destructor is supposed to be accessible and not deleted. */
+    handle_elided_destructor(source_operand->type, &source_operand->position);
   }  /* if */
   if (expr_stack->favor_constant_result) {
     force_operand_to_constant_if_possible(source_operand);
