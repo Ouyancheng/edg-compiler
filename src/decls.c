@@ -16042,7 +16042,10 @@ parameters are scanned by scan_a_template_parameter_declaration.
       }  /* switch */
     } else if (dps->declared_storage_class != (a_storage_class)sc_typedef) {
       variable_declaration(dps, &locator, &decl_pos_block);
-      if (dps->range_based_for) goto advance_past_final_token;
+      if (dps->range_based_for) {
+        check_assertion(curr_token == tok_colon);
+        goto advance_past_final_token;
+      }  /* if */
     } else {
       typedef_declaration(dps, &locator, &decl_pos_block);
     }  /* if */
