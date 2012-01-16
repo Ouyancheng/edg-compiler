@@ -1,6 +1,6 @@
 Version 4.5
 
-1/16/12/ [EDGcpfe/12604]
+1/16/12  [EDGcpfe/12604]
 GNU C++ mode: Tweak on instantiating statically named function in virtual call
 
 A minor adjustment to the change made for EDGcpfe/12531: an inline
