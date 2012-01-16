@@ -1,5 +1,27 @@
 Version 4.5
 
+1/16/12  [EDGcpfe/12105]
+GNU C++ compatibility: lookup of template vs. base class member function
+
+g++ sometimes finds a member of a dependent base class when the standard
+specifies that either nothing should be found or a namespace scope symbol
+should be found.  Our emulation of the g++ behavior produced an incorrect
+result when a normal lookup would find a function template in a namespace
+scope.  We incorrectly found the base class member.  Now fixed.  A change
+made in version 4.4 fixes this (among other things) when gnu_version
+is >= 40100 (see 10/11/11 entry).  This change fixes the problem for
+when gnu_version < 40100.
+
+  template<typename T> struct A {
+    void f();
+  };
+  template<typename T> void f(T);
+  template<typename T> class B: public A<T> {
+    friend void f<>(T);  // formerly spurious "f is not a template"
+  };
+  B<int> a;
+
+
 1/16/12  [EDGcpfe/12592]
 Elided destructor must be accessible and not deleted
 

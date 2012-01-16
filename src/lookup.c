@@ -3571,13 +3571,14 @@ C and C++.
       lookup_state.force_lookup_in_dependent_bases = FALSE;
       fund_sym = sym == NULL ? NULL : fundamental_symbol_of(sym);
       if (sym == NULL ||
-          (gnu_version < 40100 && is_function_or_template_symbol(fund_sym))) {
+          (gnu_version < 40100 && is_function_symbol(fund_sym))) {
         sym = new_sym;
       } else if (sym != NULL && gnu_version >= 40100) {
         /* Use the existing sym. */
       } else if (new_sym != NULL) {
         a_symbol_ptr	fund_new_sym = fundamental_symbol_of(new_sym);
-        if (is_function_or_template_symbol(fund_new_sym)) {
+        if (is_function_symbol(fund_new_sym) &&
+            fund_sym != NULL && !is_template_symbol(fund_sym)) {
           sym = new_sym;
         } else if (gnu_version < 30400 &&
                    fund_new_sym->kind == (a_symbol_kind)sk_field &&
