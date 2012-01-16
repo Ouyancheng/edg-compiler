@@ -320,7 +320,11 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
             tag_symbol = NULL;
             break;
           }  /* if */
-          tag_symbol = sym;
+          /* If a tag symbol is followed by a projection to a different tag,
+             use the first symbol. */
+          check_assertion(tag_symbol == NULL ||
+                          symbol_is(sym, sk_projection));
+          if (tag_symbol == NULL) tag_symbol = sym;
         }  /* if */
       }  /* for */
       /* We reached the end of the list.  If there is a tag symbol saved
@@ -2291,7 +2295,11 @@ lookup processing.
            the same scope. */
         if (lookup_state->must_be_tag &&
             fund_sym->kind == (a_symbol_kind)sk_type) {
-          type_tag_symbol = active_sym;
+          /* If a tag symbol is followed by a projection to a different tag,
+             use the first symbol. */
+          check_assertion(type_tag_symbol == NULL ||
+                          symbol_is(active_sym, sk_projection));
+          if (type_tag_symbol == NULL) type_tag_symbol = active_sym;
         } else {
           /* Use this symbol. */
           sym = active_sym;
@@ -2425,7 +2433,11 @@ that do normal id lookup processing.
               if (!lookup_state->must_be_tag) {
                 /* A normal lookup. */
                 if (is_tag_symbol(fund_sym)) {
-                  tag_symbol = sym;
+                  /* If a tag symbol is followed by a projection to a
+                     different tag, use the first symbol. */
+                  check_assertion(tag_symbol == NULL ||
+                                  symbol_is(sym, sk_projection));
+                  if (tag_symbol == NULL) tag_symbol = sym;
                 } else {
                   if (is_namespace_symbol(sym) &&
                       gnu_namespace_and_class_in_same_scope) {
@@ -2442,7 +2454,11 @@ that do normal id lookup processing.
               } else {
                 /* A tag lookup. */
                 if (sym->kind == (a_symbol_kind)sk_type) {
-                  type_tag_symbol = sym;
+                  /* If a tag symbol is followed by a projection to a
+                     different tag, use the first symbol. */
+                  check_assertion(type_tag_symbol == NULL ||
+                                  symbol_is(sym, sk_projection));
+                  if (type_tag_symbol == NULL) type_tag_symbol = sym;
                 } else {
                   /* Take the symbol. */
                   break;
@@ -4198,7 +4214,11 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
             if (!must_be_tag) {
               /* A normal lookup. */
               if (is_tag_symbol(fund_sym)) {
-                tag_symbol = sym;
+                /* If a tag symbol is followed by a projection to a
+                   different tag, use the first symbol. */
+                check_assertion(tag_symbol == NULL ||
+                                symbol_is(sym, sk_projection));
+                if (tag_symbol == NULL) tag_symbol = sym;
               } else {
                 /* Take the symbol. */
                 goto end_lookup;
@@ -4206,7 +4226,11 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
             } else {
               /* A tag lookup. */
               if (sym->kind == (a_symbol_kind)sk_type) {
-                type_tag_symbol = sym;
+                /* If a tag symbol is followed by a projection to a
+                   different tag, use the first symbol. */
+                check_assertion(tag_symbol == NULL ||
+                                symbol_is(sym, sk_projection));
+                if (tag_symbol == NULL) tag_symbol = sym;
               } else {
                 /* Take the symbol. */
                 goto end_lookup;
@@ -4923,6 +4947,7 @@ namespace_qualified_id_lookup.
       if (!must_be_tag) {
         /* A normal lookup. */
         if (is_tag_symbol(fund_sym)) {
+          check_assertion(tag_symbol == NULL);
           tag_symbol = sym;
         } else {
           if (is_namespace_symbol(sym) &&
@@ -4940,6 +4965,7 @@ namespace_qualified_id_lookup.
       } else {
         /* A tag lookup. */
         if (sym->kind == (a_symbol_kind)sk_type) {
+          check_assertion(type_tag_symbol == NULL);
           type_tag_symbol = sym;
         } else {
           /* Take the symbol. */
@@ -5129,6 +5155,7 @@ file scope.
            by a must-be-tag lookup, keep searching for a "real" tag in
            the same scope. */
         if (must_be_tag && fund_sym->kind == (a_symbol_kind)sk_type) {
+          check_assertion(type_tag_symbol == NULL);
           type_tag_symbol = sym;
         } else {
           /* Use this symbol. */
@@ -5161,6 +5188,7 @@ file scope.
           if (!must_be_tag) {
             /* A normal lookup. */
             if (is_tag_symbol(fund_sym)) {
+              check_assertion(tag_symbol == NULL);
               tag_symbol = sym;
             } else {
               /* Take the symbol. */
@@ -5169,6 +5197,7 @@ file scope.
           } else {
             /* A tag lookup. */
             if (sym->kind == (a_symbol_kind)sk_type) {
+              check_assertion(tag_symbol == NULL);
               type_tag_symbol = sym;
             } else {
               /* Take the symbol. */

@@ -1,5 +1,26 @@
 Version 4.5
 
+1/16/12  [EDGcpfe/12433]
+Incorrect lookup with base class and nested class with the same name
+
+If a class contained both a nested class of a given name and a projection
+symbol to a base class member with the same name that was also a class,
+an incorrect lookup result could be returned for lookups that require
+that a tag or type symbol be returned.  This apparently does not occur
+as often as one might expect as the problem was introduced by version
+2.41 in March of 1999 and was only recently discovered.  Now fixed.
+
+  template <class T> struct C { };
+  struct B { B(int){} };
+  struct A : B {
+    void f(C<B>);
+    struct B { B(); };
+  };
+  int main() {
+    A::B val;
+  }
+
+
 1/16/12  [EDGcpfe/12105]
 GNU C++ compatibility: lookup of template vs. base class member function
 
