@@ -644,6 +644,12 @@ definition of the routine is needed, and not just the declaration.
         }  /* if */
       }  /* if */
     }  /* if */
+    if (special_kind_is(rout, sfk_lambda_entry_point)) {
+      /* Needing the definition of the lambda entry point amounts to needing
+         the definition of the lambda's call operator. */
+      check_assertion(rout->variant.lambda_call_operator != NULL);
+      set_routine_definition_needed(rout->variant.lambda_call_operator);
+    }  /* if */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
     if (rout->overriding_function_for_wrapper != NULL) {
       /* For a thunk, set the definition needed on the actual routine

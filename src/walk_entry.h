@@ -1285,6 +1285,10 @@ the file scope, do not process it (but record an orphan in the latter case).
                     iek_property_or_event_descr);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        if (special_kind_is(ptr, sfk_lambda_entry_point)) {
+          remap_ptr(ptr->variant.lambda_call_operator, a_routine_ptr,
+                    iek_routine);
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_list(ptr->overridden_functions, an_il_entity_list_entry_ptr,
                   iek_il_entity_list_entry);

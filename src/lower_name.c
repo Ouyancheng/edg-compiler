@@ -9472,6 +9472,7 @@ constructors and conversion functions.
 #endif /* !IA64_ABI */
 
   if (special_kind == (a_special_function_kind)sfk_none
+      || special_kind == (a_special_function_kind)sfk_lambda_entry_point
 #if MICROSOFT_EXTENSIONS_ALLOWED
       || special_kind == (a_special_function_kind)sfk_idisposable_dispose
       || special_kind == (a_special_function_kind)sfk_dispose_bool

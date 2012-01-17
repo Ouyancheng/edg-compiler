@@ -2762,6 +2762,7 @@ Print the name of a special function kind.
     case sfk_destructor:         s = "sfk_destructor";         break;
     case sfk_conversion:         s = "sfk_conversion";         break;
     case sfk_operator:           s = "sfk_operator";           break;
+    case sfk_lambda_entry_point: s = "sfk_lambda_entry_point"; break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case sfk_static_constructor: s = "sfk_static_constructor"; break;
     case sfk_property_get:       s = "sfk_property_get";       break;
@@ -2979,18 +2980,19 @@ Display the indicated routine.
   disp_name("declared_storage_class");
   disp_storage_class_name(ptr->declared_storage_class);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (ptr->special_kind != (a_special_function_kind)sfk_none) {
+  if (special_kind_is(ptr, sfk_none)) {
     disp_name("special_kind");
     disp_special_function_kind_name(ptr->special_kind);
     (void)printf("\n");
   }  /* if */
-  if (ptr->special_kind == (a_special_function_kind)sfk_operator) {
+  if (special_kind_is(ptr, sfk_operator)) {
     disp_name("opname_kind");
     disp_opname_kind_name(ptr->variant.opname_kind);
     (void)printf("\n");
+  } else if (special_kind_is(ptr, sfk_lambda_entry_point)) {
 #if IA64_ABI && DO_IL_LOWERING
-  } else if (ptr->special_kind == (a_special_function_kind)sfk_constructor ||
-             ptr->special_kind == (a_special_function_kind)sfk_destructor) {
+  } else if (special_kind_is(ptr, sfk_constructor) ||
+             special_kind_is(ptr, sfk_destructor)) {
     /* Do not print out alternate_entry_points, which is used only
        during IL lowering. */
     disp_unsigned_long("base_name_offset",
@@ -3003,7 +3005,7 @@ Display the indicated routine.
              iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (ptr->special_kind == (a_special_function_kind)sfk_none &&
+  } else if (special_kind_is(ptr, sfk_none) &&
              ptr->variant.builtin_function_kind != 
                                            (a_builtin_function_kind)bfk_none) {
     disp_name("builtin_function_kind");

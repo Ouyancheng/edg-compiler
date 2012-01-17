@@ -9068,6 +9068,12 @@ enum a_special_function_kind_tag {
   sfk_destructor,	/* A destructor. */
   sfk_conversion,	/* A conversion operator function. */
   sfk_operator,		/* Any other operator function. */
+  sfk_lambda_entry_point,
+			/* A static member representing an alternative entry
+			   point for the invocation of a lambda with no capture
+			   fields.  (A pointer to this entry point is returned
+			   by the conversion function declared in such a
+			   lambda.) */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sfk_static_constructor,
 			/* A C++/CLI static constructor. */
@@ -9099,6 +9105,7 @@ EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
 #if VAR_INITIALIZERS
 = {
    "none", "constructor", "destructor", "conversion", "operator",
+   "lambda entry point",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "static constructor", "finalizer",
    "IDisposable::Dispose implementation", "Dispose(bool)",
@@ -11846,6 +11853,11 @@ typedef struct a_routine {
 			/* Pointer to the description of the associated
 			   property or event. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* When special_kind == sfk_lambda_entry_point. */
+    a_routine_ptr
+		lambda_call_operator;
+			/* The lambda call operator for which this entry is
+			   an alternate entry point. */
   } variant;
   a_bit_field	address_taken:1;
 			/* TRUE if the address of this routine has been

@@ -1854,6 +1854,38 @@ member declaration (allowed in some Microsoft modes only).
 }  /* define_member_function */
 
 
+void define_lambda_conversion_function(a_routine_ptr  conv_op)
+/*
+conv_op points to the entry for a conversion function of a closure type
+(generated for a lambda expression).  conv_op->next points to a static member
+that represents an alternate entry point for the closure's call operator.
+Add a definition to conv_op that returns the address of the conv_op->next
+routine.
+*/
+{
+  a_routine_ptr    static_entry_pt = conv_op->next;
+  a_statement_ptr  block_stmt, return_stmt;
+  a_scope_ptr      fn_scope;
+
+  conv_op->storage_class = sc_unspecified;
+  fn_scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
+                        (a_type_ptr)NULL, conv_op);
+  fn_scope->variant.routine.this_param_variable =
+                             make_implicit_this_param_variable(conv_op->type); 
+  conv_op->assoc_scope = curr_il_region_number;
+  conv_op->type->variant.routine.extra_info->assoc_routine = conv_op;
+  check_assertion(special_kind_is(static_entry_pt, sfk_lambda_entry_point));
+  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt->expr = function_addr_expr(static_entry_pt);
+  block_stmt = alloc_statement((a_statement_kind)stmk_block);
+  block_stmt->variant.block.statements = return_stmt;
+  fn_scope->assoc_block = block_stmt;
+  pop_scope();
+  check_assertion(conv_op->is_inline);
+  if (instantiate_extern_inline) add_to_inline_function_list(conv_op);
+}  /* define_lambda_conversion_function */
+
+
 void scan_defaulted_or_deleted_definition(a_decl_parse_state    *dps,
                                           a_func_info_block     *func_info)
 /*

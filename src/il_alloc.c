@@ -2429,6 +2429,9 @@ value.  Also clear related variant fields to default values.
       check_assertion(cppcli_enabled);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case sfk_lambda_entry_point:
+      rp->variant.lambda_call_operator = NULL;
+      break;
     default:
       unexpected_condition_str("set_routine_special_kind: bad kind");
   }  /* switch */

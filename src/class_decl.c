@@ -10435,6 +10435,7 @@ set to FALSE (and FALSE is always returned).
       case sfk_object_finalize:
         check_assertion(rtn->compiler_generated);
         break;
+      case sfk_lambda_entry_point:
       default:
         unexpected_condition();
     }  /* switch */
@@ -24620,6 +24621,80 @@ Set *p_lambda to NULL in such cases.
 }  /* finish_lambda_routine_processing */
 
 
+static a_routine_ptr generate_lambda_conversion_function(
+                                                a_lambda_ptr       lambda,
+                                                a_class_def_state  *cdsp,
+                                                a_func_info_block  *func_info)
+/*
+Add a conversion function to the closure type (described by *cdsp) for the
+given lambda.  The caller has already determined that the given lambda doesn't
+have a capture list or default capture mode, and hence the synthesized
+"operator()" does not make use its "this" parameter.  The conversion function
+returns the address of a static member of the closure type that represents an
+alternative entry point for "operator()": It is also generated here.
+Return a pointer to the conversion function; a body will be added later.
+(No separate body is generated in the IL for the alternative entry point, but
+the C-generating back end may generate one if needed.)
+*func_info describes properties of the lambda's "operator()".
+*/
+{
+  a_routine_ptr       call_op = lambda->lambda_routine, conv_op;
+  a_source_position   *pos = &call_op->source_corresp.decl_position;
+  a_type_ptr          call_type, ptr_type, conv_type;
+  a_member_decl_info  decl_info;
+  a_symbol_locator    member_loc;
+  a_symbol_ptr        sym;
+  a_func_info_block   local_func_info;
+
+  /* Create a call type without an implicit "this" parameter. */
+  call_type = copy_routine_type_with_param_types(skip_typerefs(call_op->type),
+                                                 /*copy_default_args=*/FALSE);
+  call_type->variant.routine.extra_info->this_class = NULL;
+  call_type->variant.routine.extra_info->qualifiers = TQ_NONE;
+  call_type->variant.routine.extra_info->assoc_routine = NULL;
+  /* Generate a declaration for the conversion function. */
+  ptr_type = make_pointer_type(call_type);
+  make_type_conversion_locator(ptr_type, &member_loc, pos);
+  initialize_member_decl_info(&decl_info, pos);
+  conv_type = make_routine_type(ptr_type, /*param1_type=*/NULL,
+                                /*param2_type=*/NULL, /*param3_type=*/NULL,
+                                /*param4_type=*/NULL);
+  conv_type->variant.routine.extra_info->this_class = parent_class_of(call_op);
+  conv_type->variant.routine.extra_info->qualifiers = TQ_CONST;
+  decl_info.decl_state.type = conv_type;
+  decl_info.decl_state.declared_type = conv_type;
+  clear_func_info(&local_func_info);
+  local_func_info.is_inline = TRUE;
+  decl_member_function(&member_loc, &local_func_info, cdsp, &decl_info,
+                       /*compiler_generated=*/TRUE);
+  conv_op = decl_info.decl_state.sym->variant.routine.ptr;
+  /* Generate the alternative entry point (we call it _FUN because that's what
+     GCC does, and this can be an ABI issue): This is a static member function
+     (i.e., no "this" parameter). */
+  clear_locator(&member_loc, pos);
+  (void)find_symbol("_FUN", sizeof("_FUN")-1, &member_loc);
+  initialize_member_decl_info(&decl_info, pos);
+  decl_info.decl_state.type = call_type;
+  decl_info.decl_state.declared_type = call_type;
+  local_func_info = *func_info;
+  local_func_info.is_inline = FALSE;
+  local_func_info.is_definition = FALSE;
+  decl_member_function(&member_loc, &local_func_info, cdsp, &decl_info,
+                       /*compiler_generated=*/TRUE);
+  sym = decl_info.decl_state.sym;
+  /* The alternative entry point for the lambda should be an implementation
+     detail not visible to user code, but with GCC it is possible to refer to
+     that entry point. */
+  sym->is_invisible = !gpp_mode;
+  if (symbol_is(sym, sk_member_function)) {
+    set_routine_special_kind(sym->variant.routine.ptr,
+                             (a_special_function_kind)sfk_lambda_entry_point);
+    sym->variant.routine.ptr->variant.lambda_call_operator = call_op;
+  }  /* if */
+  return conv_op;
+}  /* generate_lambda_conversion_function */
+
+
 static void scan_lambda_body(a_lambda_ptr       lambda,
                              a_func_info_block  *func_info)
 /*
@@ -24691,6 +24766,7 @@ For example:
   a_func_info_block    func_info;
   a_member_decl_info   decl_info;
   a_boolean            bad_scope;
+  a_routine_ptr        conv_op = NULL;
 
   /* Start a new stop token context. */
   push_stop_token_stack();
@@ -24733,12 +24809,20 @@ For example:
   /* Fill in the capture fields information for the explicit captures. */
   decl_lambda_capture_fields(lambda);
   scan_lambda_body(lambda, &func_info);
+  if (lambda->capture_list == NULL && !lambda->has_capture_default &&
+      lambda->lambda_routine != NULL) {
+    conv_op = generate_lambda_conversion_function(lambda, &class_state,
+                                                  &func_info);
+  }  /* if */
   generate_default_constructor(&class_state, /*is_deleted=*/TRUE);
   generate_assignment_operator(&class_state, /*is_deleted=*/TRUE, TQ_CONST);
   /* Record the capture list and complete the closure class. */
   complete_class_definition(closure_class, decl_level, &class_state);
   pop_scope();
   finish_lambda_routine_processing(&lambda);
+  if (conv_op != NULL) {
+    define_lambda_conversion_function(conv_op);
+  }  /* if */
   /* Restore the previous default declaration scope. */
   decl_scope_level = saved_decl_scope_level;
   /* Restore the previous stop token context. */
