@@ -14746,7 +14746,7 @@ if one is present.
     has_initializer = TRUE;
     decl_pos_block->var_init_range.start = pos_curr_token;
   } else if (range_based_for_enabled && state->is_for_init_decl &&
-             curr_token == tok_colon) {
+             curr_token == tok_colon && !state->secondary_declarator) {
     /* The for-init declaration of a range-based "for" loop: Stop here and let
        statement processing handle the colon and what follows. */
     state->range_based_for = TRUE;
