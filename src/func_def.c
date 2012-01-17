@@ -1867,7 +1867,7 @@ routine.
   a_statement_ptr  block_stmt, return_stmt;
   a_scope_ptr      fn_scope;
 
-  conv_op->storage_class = sc_unspecified;
+  conv_op->storage_class = (a_storage_class)sc_unspecified;
   fn_scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
                         (a_type_ptr)NULL, conv_op);
   fn_scope->variant.routine.this_param_variable =
