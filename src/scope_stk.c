@@ -5772,6 +5772,9 @@ curr_routine points to the routine entry; otherwise, it is NULL.
               pos_sy_warning(ec_undefined_static_function_treated_as_extern,
                              &sym->decl_position, sym);
             }  /* if */
+          } else if (gpp_mode && gnu_version >= 40400) {
+            /* g++ 4.4 and later only warn about this. */
+            pos_sy_warning(ec_never_defined, &sym->decl_position, sym);
           } else {
             pos_sy_error(ec_never_defined, &sym->decl_position, sym);
           }  /* if */

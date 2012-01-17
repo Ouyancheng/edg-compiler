@@ -1,5 +1,15 @@
 Version 4.5
 
+1/17/12  [EDGcpfe/12609]
+GNU C++ compatibility: Undefined-but-used functions with internal linkage
+
+In GNU C++ mode with gnu_version >= 40400, the front end now accepts (with a
+warning) a function with internal linkage that is used without being defined.
+For example:
+
+    static void foo();  // Now accepted with a warning
+    void bar(void) { if (0) foo(); }
+  
 
 1/17/12  [EDGcpfe/10612,EDGcpfe/11770,EDGcpfe/12243]
 Conversion of a no-capture lambda to a function pointer
