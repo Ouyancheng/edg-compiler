@@ -15768,7 +15768,7 @@ to the "auto" type specifier used to introduce a trailing return type.
           p_type = &dps->sym->variant.routine.ptr->type;
           break;
         default:
-          unexpected_condition_str("f_check_use_of_auto_type: bad symbol");
+          unexpected_condition_str("check_use_of_auto_type: bad symbol");
       }  /* switch */
       if (p_type != NULL) {
         *p_type = dps->type;
@@ -15778,7 +15778,7 @@ to the "auto" type specifier used to introduce a trailing return type.
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* f_check_use_of_auto_type */
+}  /* check_use_of_auto_type */
 
 
 void scan_nonmember_declaration(a_decl_parse_state  *dps,
