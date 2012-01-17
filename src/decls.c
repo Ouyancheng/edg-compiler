@@ -16154,21 +16154,12 @@ parse state with fields described by the corresponding given parameters.
   a_decl_parse_state  dps;
 
   db_enter(3, "declaration");
-  /* Initialize structures to hold information about the declaration to be
-     parsed. */
+  /* Initialize a structure tracking the state of declaration processing. */
   init_decl_parse_state(&dps);
   dps.function_definition_allowed = function_definition_allowed;
   dps.is_old_style_param_decl = is_old_style_param_decl;
   dps.is_top_level_declaration = is_top_level_declaration;
-  if (gnu_mode) {
-    if (marked_as_gnu_extension) {
-      dps.marked_as_gnu_extension = TRUE;
-    } else if (curr_token == tok_extension) {
-      /* Record the GNU C __extension__ annotation. */
-      (void)get_token();
-      dps.marked_as_gnu_extension = TRUE;
-    }  /* if */
-  }  /* if */
+  dps.marked_as_gnu_extension = marked_as_gnu_extension;
   dps.param_id_list = param_id_list;
   scan_nonmember_declaration(&dps, linkage_spec_range_ptr);
   db_exit();

@@ -1896,8 +1896,8 @@ some error cases).
   dps.marked_as_gnu_extension = marked_as_gnu_extension;
   dps.is_for_init_decl = sssep->for_init;
   scan_nonmember_declaration(&dps, (a_source_range *)NULL);
-  /* Re-load sssep since the call to local_declaration may have caused the
-     statement stack to be reallocated. */
+  /* Re-load sssep since the call to scan_nonmember_declaration may have
+     caused the statement stack to be reallocated. */
   sssep = &struct_stmt_stack[depth_stmt_stack];
   if (sssep->for_init) {
     if (dps.range_based_for &&
