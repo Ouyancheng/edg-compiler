@@ -51,7 +51,7 @@ should be found.  Our emulation of the g++ behavior produced an incorrect
 result when a normal lookup would find a function template in a namespace
 scope.  We incorrectly found the base class member.  Now fixed.  A change
 made in version 4.4 fixes this (among other things) when gnu_version
-is >= 40100 (see 10/11/11 entry).  This change fixes the problem for
+is >= 40100 (see 10/11/11 entry).  This change fixes the problem 
 when gnu_version < 40100.
 
   template<typename T> struct A {
