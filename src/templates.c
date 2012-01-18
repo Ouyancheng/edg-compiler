@@ -20817,6 +20817,7 @@ instance, or NULL if no instance is found.
   a_boolean			any_templates = FALSE;
   a_partial_order_candidate_ptr	candidates_list = NULL;
   a_symbol_ptr			member_sym = NULL;
+  a_boolean			is_list;
 
   orig_sym = sym;
   if (sym->is_class_member && !explicit_arg_list_present) {
@@ -20835,7 +20836,6 @@ instance, or NULL if no instance is found.
      and find an instance that matches the specified function type.
      If none exists, a new one is generated, if possible.  If more
      than one exists (or can be generated) an error is issued. */
-  a_boolean		is_list;
   if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
     sym = sym->variant.overloaded_function.symbols;
     is_list = TRUE;
