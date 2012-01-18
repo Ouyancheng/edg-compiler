@@ -1338,13 +1338,15 @@ name table.
     a_routine_ptr  routine = sp->variant.routine.ptr;
     if (routine->is_prototype_instantiation &&
         !routine->source_corresp.is_local_to_function &&
+        !routine->compiler_generated &&
         !routine->is_lambda_body) {
       /* Note that member functions of local classes of prototype
          instantiations are also marked as prototype instantiations
          (but they don't have template parameters to worry about).
-         The same goes for ordinary friends in class templates and also
-         for non-local lambda bodies (these can occur in a prototype
-         instantiation in contexts such as static data member initializers). */
+         The same goes for compiler-generated members (including lambda
+         conversion functions) and for non-local lambda bodies (these can
+         occur in a prototype instantiation in contexts such as static data
+         member initializers). */
       a_symbol_ptr  sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
       a_template_instance_ptr
                     instance = sym->variant.routine.instance_ptr;

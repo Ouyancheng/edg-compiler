@@ -5808,7 +5808,16 @@ in a default argument of a function.
     a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
     check_assertion(cssp != NULL);
     if (cssp->lambda_immediately_inside_default_arg_expression) {
-      result = TRUE;
+      a_class_type_supplement_ptr  ctsp = class_type_supp(type);
+      check_assertion(!ctsp->defined_in_static_data_member_initializer);
+      if (ctsp->lambda_parent.routine != NULL) {
+        result = TRUE;
+      } else {
+        /* The lambda was recorded as appearing in a default argument, but the
+           function whose default argument it is was not recorded.  This can
+           happen in severe error cases. */
+        check_assertion(total_errors != 0);
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
