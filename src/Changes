@@ -1,5 +1,20 @@
 Version 4.5
 
+1/18/12  [EDGcpfe/12244]
+Specialization should prefer matching template vs. non-template member
+
+If a class contained both a normal member function and a member function
+template that matched the type specified in an explicit specialization,
+the front end was incorrectly treating it as an invalid attempt to specialize
+the member instead of a valid specialization of the template.  Now fixed.
+
+  struct A {
+    A(int);
+    template<typename T> A(T);
+  };
+  template<> A::A(int i){}  // spurious "not an entity that can be specialized"
+
+
 1/17/12  [EDGcpfe/12609]
 GNU C++ compatibility: Undefined-but-used functions with internal linkage
 

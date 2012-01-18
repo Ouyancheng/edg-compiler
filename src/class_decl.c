@@ -9282,6 +9282,7 @@ possibility.
                                sym, function_type, locator->template_arg_list,
                                (a_boolean)locator->is_template_id,
                                /*in_class_specialization=*/FALSE,
+                               NO_NESTING_DEPTH,
                                es_error);
       if (sym == NULL) {
         /* This is a member function, but one with a type that doesn't
