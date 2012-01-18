@@ -9366,7 +9366,6 @@ the symbol through dps->sym and its linkage (which is always "none") through
     a_type_ptr           tp = sym_parent_class(sym);
     a_symbol_header_ptr  hdr = locator->symbol_header;
     a_variable_ptr       vp;
-
     /* Record the symbol declaration, using the original symbol, even
        though there was an error.  This will make it show up on a cross
        reference listing. */
@@ -9384,6 +9383,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
     vp = make_variable(error_type(), (a_storage_class)sc_static,
                        depth_innermost_namespace_scope);
     sym->variant.static_data_member.variable = vp;
+    set_source_corresp(&(vp->source_corresp), sym);
     /* Make the error symbol a class member -- it is expected of
        sk_static_data_member symbols downstream. */
     set_class_membership(sym, (a_source_correspondence*)NULL, tp);
