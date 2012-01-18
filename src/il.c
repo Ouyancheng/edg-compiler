@@ -9309,29 +9309,30 @@ This routine is called when forming a pointer-to-member type.  If
 member_type is a function type, be sure it is represented as a nonstatic
 member function of class_type -- that is, set the implicit-this parameter
 type if necessary.  Also verify that the name linkage on the member type
-is not "C".
+is not "C".  Return the resulting member type.
 */
 {
-  a_routine_type_supplement_ptr  rtsp;
-  a_type_ptr                     tp;
-
   check_assertion(class_type != NULL && member_type != NULL);
-  tp = skip_typerefs(member_type);
-  if (is_function_type(tp)) {
-    rtsp = tp->variant.routine.extra_info;
+  if (is_function_type(member_type)) {
+    a_type_ptr                     ftype = skip_typerefs(member_type);
+    a_routine_type_supplement_ptr  rtsp = ftype->variant.routine.extra_info;
+    a_type_qualifier_set           qualifiers;
+    qualifiers = get_type_qualifiers(class_type);
     if (rtsp->this_class == NULL ||
+        any_qualifier_in_set_missing(rtsp->qualifiers, qualifiers) ||
         rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external) {
-      /* Before updating it, copy the routine type if it might be shared. */
-      if (tp->variant.routine.return_type != NULL) {
-        /* If the return type is not set, the type is still under construction
-           and hence certainly not shared. */
-        member_type =
-           copy_routine_type_with_param_types(tp, /*copy_default_args=*/TRUE);
+      /* Make a copy of the function type, in case it is shared.  However, if
+         the return type is not set, the type is still under construction and
+         hence certainly not shared. */
+      if (ftype->variant.routine.return_type != NULL) {
+        member_type = copy_routine_type_with_param_types(
+                                           ftype, /*copy_default_args=*/TRUE);
         rtsp = member_type->variant.routine.extra_info;
       }  /* if */
       if (rtsp->this_class == NULL) {
-        rtsp->this_class = class_type;
+        rtsp->this_class = skip_typerefs(class_type);
       }  /* if */
+      rtsp->qualifiers |= qualifiers;
       if (rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external) {
         /* Change from C linkage to C++ linkage: */
         rtsp->routine_name_linkage =
@@ -9350,8 +9351,11 @@ a_type_ptr ptr_to_member_type_full(a_type_ptr              member_type,
 Allocate and return a pointer-to-member type, initializing its fields based on
 the specified member and class types.  Attempt to find and reuse an existing
 type entry.  modifiers describes the pointer modifiers (like "__ptr32", a
-Microsoft extension) that are requested.  (member_type may be NULL, e.g., when
-building a type from nested declarators outward.  class_type must be non-NULL.)
+Microsoft extension) that are requested.  member_type may be NULL, e.g., when
+building a type from nested declarators outward.  class_type must be non-NULL
+and should usually be an unqualified class type; an exception are certain
+template instantiation cases in GNU and Microsoft modes (where any class type
+qualifiers may be transferred to a member function type).
 */
 {
   a_type_ptr         tp;
@@ -9361,18 +9365,23 @@ building a type from nested declarators outward.  class_type must be non-NULL.)
     /* The class type is a template parameter.  Substitute the template
        parameter's proxy class. */
     class_type = proxy_class_for_template_param(class_type);
-  } else {
-    class_type = skip_typerefs(class_type);
   }  /* if */
-  if (member_type != NULL && is_function_type(member_type)) {
-    /* This is a pointer-to-member-function type.  Be sure the implicit this
-       parameter is set.  If not, create it based on class_type. */
-    member_type = check_ptr_to_member_function_type(member_type, class_type);
-  }  /* if */
-  /* Check if this is an incomplete type being formed. */
   if (member_type != NULL) {
     check_assertion(!is_void_type(member_type) &&
                     !is_reference_type(member_type));
+    if (is_function_type(member_type)) {
+      /* This is a pointer-to-member-function type.  Be sure the implicit this
+         parameter is set.  If not, create it based on class_type. */
+      member_type = check_ptr_to_member_function_type(member_type, class_type);
+    }  /* if */
+    if (!is_immediate_class_type(class_type)) {
+      /* In GNU and Microsoft modes, class_type is sometimes qualified.  The
+         qualifiers matter in certain template instantiation cases that result
+         in pointer-to-member-function types (handled in the call to
+         check_ptr_to_member_function_type above) and can now be dropped. */
+      check_assertion(microsoft_mode || gpp_mode);
+      class_type = skip_typerefs(class_type);
+    }  /* if */
     /* See if a pointer-to-member type such as the one being requested has
        already been allocated.  If one was allocated, a pointer to it is
        stored in the based_types list of the member type, and the pointer

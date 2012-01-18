@@ -1079,6 +1079,7 @@ the specifiers and declarator that formed the new type.
         (*bottom_derived_type)->variant.pointer.type = new_type_ptr;
       } else if (is_ptr_to_member_type(*bottom_derived_type)) {
         /* Pointer-to-member type. */
+        a_type_ptr  pmt = *bottom_derived_type;
         if (is_member_function_typedef) {
           /* A cfront member function typedef type can only be used in
              forming a pointer-to-member type. */
@@ -1090,12 +1091,19 @@ the specifiers and declarator that formed the new type.
           /* This is a pointer-to-member-function type.  Be sure the
              implicit this parameter is set.  If not, create it based on
              the class type. */
-          a_type_ptr  class_type = (*bottom_derived_type)->variant.
-                                      ptr_to_member.class_of_which_a_member;
-          new_type_ptr = check_ptr_to_member_function_type(new_type_ptr,
-                                                           class_type);
+          new_type_ptr = check_ptr_to_member_function_type(
+                           new_type_ptr,
+                           pmt->variant.ptr_to_member.class_of_which_a_member);
         }  /* if */
         if (err) new_type_ptr = error_type();
+        if (gpp_mode || microsoft_mode) {
+          /* In GNU and C++ mode, the class type potentially included
+             qualifiers to be transferred to the member function type in
+             check_ptr_to_member_function_type.  Any such qualifiers can be
+             dropped now. */
+          pmt->variant.ptr_to_member.class_of_which_a_member =
+             skip_typerefs(pmt->variant.ptr_to_member.class_of_which_a_member);
+        }  /* if */
         check_for_restrict_qualifier_on_derived_type(new_type_ptr,
                                                      derived_type,
                                                      bottom_derived_type);
@@ -1943,6 +1951,7 @@ this is a helper function.
      class type are encoded separately.  E.g. in
         typedef void CF() const;
      this_class == NULL but qualifiers != TQ_NONE. */
+  if (this_class != NULL) this_class = skip_typerefs(this_class);
   rtsp->this_class = this_class;
   if (!qualifier_err) {
     /* The traditional "const" and "volatile" function qualifiers really apply
@@ -4583,6 +4592,23 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         /* A valid pointer-to-member declarator. */
         if (complete_type != NULL && !check_pm_member_type(complete_type)) {
           complete_type = error_type();
+        }  /* if */
+        if (gpp_mode || microsoft_mode) {
+          /* In Microsoft and GNU modes, qualifiers on the class type that
+             appear through template rescanning (and, in GNU mode, through
+             substitution) are transferred to the member type if that member
+             type is a function type.  I.e., "R (T::*)(X)" rescanned with
+             T replaced by "C const" results in a type "R (C::*)(X) const". */
+          a_symbol_ptr  type_sym = locator_for_curr_id.specific_symbol;
+          if (type_sym != NULL && type_sym->is_template_param) {
+            /* Retrieve the type in its original form (possibly with type
+               qualifiers). */
+            a_type_ptr  orig_type = type_symbol_type(type_sym);
+            if (orig_type != class_type) {
+              check_assertion(class_type == skip_typerefs(orig_type));
+              class_type = orig_type;
+            }  /* if */
+          }  /* if */
         }  /* if */
         complete_type = ptr_to_member_type(complete_type, class_type);
       }  /* if */
