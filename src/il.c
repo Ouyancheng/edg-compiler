@@ -9307,15 +9307,17 @@ a_type_ptr make_partial_ptr_to_member_type(a_type_ptr  class_type)
 Allocate and return a pointer-to-member type for members of the given class
 type.  The type produced must eventually be "completed" by a call to
 update_ptr_to_member_type (which records the member type).
-Ordinarily, the given type cannot be a typeref: In GNU and Microsoft mode, an
-exception is made to emulate a peculiar behavior in template instantiation
-contexts, but a later call to update_ptr_to_member_type will replace any
-typerefs by the underlying class type entry in such cases.
+Ordinarily, the given type cannot be a typeref, but in GNU and Microsoft modes,
+an exception is made to emulate a peculiar behavior in template instantiation
+contexts; a later call to update_ptr_to_member_type will replace any typerefs
+by the underlying class type entry in such cases.
 */
 {
   a_type_ptr  result = alloc_type((a_type_kind)tk_ptr_to_member);
 
   check_assertion(class_type != NULL);
+  check_assertion(class_type->kind != (a_type_kind)tk_typeref ||
+                  gpp_mode || microsoft_mode);
   result->variant.ptr_to_member.class_of_which_a_member = class_type;
   return result;
 }  /* make_partial_ptr_to_member_type */
@@ -9401,6 +9403,7 @@ needed to obtain a valid type entry (e.g., if it previously was a template
 parameter, the associated proxy class is used instead).
 */
 {
+  check_assertion(ptr_mem_type->kind == (a_type_kind)tk_ptr_to_member);
   adjust_component_types_of_ptr_to_member_type(
                  &ptr_mem_type->variant.ptr_to_member.class_of_which_a_member,
                  &member_type);
