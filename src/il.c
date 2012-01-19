@@ -9302,26 +9302,64 @@ is already an entry of the indicated kind on the list.
 }  /* add_based_type_list_member */
 
 
-a_type_ptr check_ptr_to_member_function_type(a_type_ptr  member_type,
-                                             a_type_ptr  class_type)
+a_type_ptr make_partial_ptr_to_member_type(a_type_ptr  class_type)
 /*
-This routine is called when forming a pointer-to-member-function type.  If
-member_type is a function type, be sure it is represented as a nonstatic
-member function of class_type -- that is, set the implicit-this parameter type
-if necessary.  Also verify that the name linkage on the member type is not "C".
-In GNU and Microsoft modes, class_type is sometimes a qualified type: In that
-case, the qualifiers should be applied to the function type (e.g, if the member
-type is "int C::() const" and class_type is a typedef for "C volatile",
-produce a new member type "int C::() const volatile").
-Return the resulting member type.
+Allocate and return a pointer-to-member type for members of the given class
+type.  The type produced must eventually be "completed" by a call to
+update_ptr_to_member_type (which records the member type).
+Ordinarily, the given type cannot be a typeref: In GNU and Microsoft mode, an
+exception is made to emulate a peculiar behavior in template instantiation
+contexts, but a later call to update_ptr_to_member_type will replace any
+typerefs by the underlying class type entry in such cases.
 */
 {
+  a_type_ptr  result = alloc_type((a_type_kind)tk_ptr_to_member);
+
+  check_assertion(class_type != NULL);
+  result->variant.ptr_to_member.class_of_which_a_member = class_type;
+  return result;
+}  /* make_partial_ptr_to_member_type */
+
+
+static void adjust_component_types_of_ptr_to_member_type(
+                                                   a_type_ptr  *p_class_type,
+                                                   a_type_ptr  *p_member_type)
+/*
+*p_class_type and *p_member_type are about to be used to form a pointer to
+member type.  Adjust *p_class_type as follows:
+  - If *p_class_type is a template parameter type, replace it by the
+    corresponding proxy class.
+  - If *p_class_type is a typeref (only allowed in GNU and Microsoft modes),
+    replace it by the underlying class type entry.
+and if *p_member_type is a function type, adjust it as follows:
+  - Ensure its "this" class is set to the adjusted "*p_class_type".
+  - Ensure its name linkage is "C++".
+  - If the original *p_class_type was qualified (only allowed in GNU and
+    Microsoft modes), apply those qualifiers to the function type (e.g, if the
+    function type is "int C::() const" and the original *p_class_type is a
+    "C volatile", set *p_member_type to "int C::() const volatile").
+*/
+{
+  a_type_ptr            class_type = *p_class_type,
+                        member_type = *p_member_type;
+  a_type_qualifier_set  qualifiers = TQ_NONE;
+
   check_assertion(class_type != NULL && member_type != NULL);
+  if (is_template_param_type(class_type)) {
+    /* The class type is a template parameter.  Substitute the template
+       parameter's proxy class. */
+    class_type = proxy_class_for_template_param(class_type);
+    *p_class_type = class_type;
+  } else if (!is_immediate_class_type(class_type)) {
+    check_assertion(gpp_mode || microsoft_mode);
+    qualifiers = get_type_qualifiers(class_type);
+    class_type = skip_typerefs(class_type);
+    check_assertion(is_immediate_class_type(class_type));
+    *p_class_type = class_type;
+  }  /* if */
   if (is_function_type(member_type)) {
     a_type_ptr                     ftype = skip_typerefs(member_type);
     a_routine_type_supplement_ptr  rtsp = ftype->variant.routine.extra_info;
-    a_type_qualifier_set           qualifiers;
-    qualifiers = get_type_qualifiers(class_type);
     if (rtsp->this_class == NULL ||
         any_qualifier_in_set_missing(rtsp->qualifiers, qualifiers) ||
         rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external) {
@@ -9334,104 +9372,94 @@ Return the resulting member type.
         rtsp = member_type->variant.routine.extra_info;
       }  /* if */
       if (rtsp->this_class == NULL) {
+        /* Ensure that the function type is a member function type. */
         rtsp->this_class = skip_typerefs(class_type);
       }  /* if */
-      if (gpp_mode || microsoft_mode) {
-        /* Merge in any missing qualifiers. */
+      if (qualifiers != TQ_NONE) {
+        /* Merge in qualifiers in some Microsoft/GNU instantiation contexts. */
         rtsp->qualifiers |= qualifiers;
-      } else {
-        check_assertion(qualifiers == TQ_NONE);
       }  /* if */
       if (rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external) {
         /* Change from C linkage to C++ linkage: */
         rtsp->routine_name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
       }  /* if */
+      /* Update the caller's type. */
+      *p_member_type = member_type;
     }  /* if */
   }  /* if */
-  return member_type;
-}  /* check_ptr_to_member_function_type */
+}  /* adjust_component_types_of_ptr_to_member_type */
+
+
+void update_ptr_to_member_type(a_type_ptr  ptr_mem_type,
+                               a_type_ptr  member_type)
+/*
+Set the member type recorded in the given pointer to member type to the given
+member type (after any needed adjustments if member type is a function type).
+The class type associated with the pointer to member type is also adjusted if
+needed to obtain a valid type entry (e.g., if it previously was a template
+parameter, the associated proxy class is used instead).
+*/
+{
+  adjust_component_types_of_ptr_to_member_type(
+                 &ptr_mem_type->variant.ptr_to_member.class_of_which_a_member,
+                 &member_type);
+  ptr_mem_type->variant.ptr_to_member.type = member_type;
+}  /* update_ptr_to_member_type */
 
 
 a_type_ptr ptr_to_member_type_full(a_type_ptr              member_type,
                                    a_type_ptr              class_type,
                                    a_pointer_modifier_set  modifiers)
 /*
-Allocate and return a pointer-to-member type, initializing its fields based on
-the specified member and class types.  Attempt to find and reuse an existing
-type entry.  modifiers describes the pointer modifiers (like "__ptr32", a
-Microsoft extension) that are requested.  member_type may be NULL, e.g., when
-building a type from nested declarators outward.  class_type must be non-NULL
-and should usually not be a typeref; an exception are certain template
-instantiation cases in GNU and Microsoft modes (where any class type
-qualifiers may be transferred to a member function type).
+Return a pointer-to-member type, initializing its fields based on the specified
+member and class types.  Attempt to find and reuse an existing type entry;
+otherwise a new entry is allocated.  modifiers describes the pointer modifiers
+(like "__ptr32", a Microsoft extension) that are requested.  member_type and
+class_type must be both be non-NULL and should usually not be a typeref; an
+exception are certain template instantiation cases in GNU and Microsoft modes
+(where any class type qualifiers may be transferred to a member function type).
 */
 {
   a_type_ptr         tp;
   a_based_type_kind  kind = (a_based_type_kind)btk_ptr_to_member;
 
-  if (is_template_param_type(class_type)) {
-    /* The class type is a template parameter.  Substitute the template
-       parameter's proxy class. */
-    class_type = proxy_class_for_template_param(class_type);
-  }  /* if */
-  if (member_type != NULL) {
-    check_assertion(!is_void_type(member_type) &&
-                    !is_reference_type(member_type));
-    if (is_function_type(member_type)) {
-      /* This is a pointer-to-member-function type.  Be sure the implicit this
-         parameter is set.  If not, create it based on class_type. */
-      member_type = check_ptr_to_member_function_type(member_type, class_type);
-    }  /* if */
-    if (!is_immediate_class_type(class_type)) {
-      /* In GNU and Microsoft modes, class_type is sometimes qualified.  The
-         qualifiers matter in certain template instantiation cases that result
-         in pointer-to-member-function types (handled in the call to
-         check_ptr_to_member_function_type above) and can now be dropped. */
-      check_assertion(microsoft_mode || gpp_mode);
-      class_type = skip_typerefs(class_type);
-    }  /* if */
-    /* See if a pointer-to-member type such as the one being requested has
+  adjust_component_types_of_ptr_to_member_type(&class_type, &member_type);
+  check_assertion(!is_void_type(member_type) &&
+                  !is_reference_type(member_type));
+  /* See if a pointer-to-member type such as the one being requested has
        already been allocated.  If one was allocated, a pointer to it is
        stored in the based_types list of the member type, and the pointer
        can be reused. */
-    tp = get_based_type(member_type, kind, TQ_NONE, modifiers,
-                        /*expl_mem_attr_implicit=*/FALSE, class_type,
-                        UPC_BLOCK_SIZE_NONE);
-  }  /* if */
-  if (member_type == NULL || tp == NULL) {
-    /* No member type (as of yet) or no previously allocated entry, need to
-       allocate one. */
+  tp = get_based_type(member_type, kind, TQ_NONE, modifiers,
+                      /*expl_mem_attr_implicit=*/FALSE, class_type,
+                      UPC_BLOCK_SIZE_NONE);
+  if (tp == NULL) {
+    /* No previously allocated entry: Allocate one. */
     tp = alloc_type((a_type_kind)tk_ptr_to_member);
     tp->variant.ptr_to_member.type = member_type;
     tp->variant.ptr_to_member.class_of_which_a_member = class_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     tp->variant.ptr_to_member.modifiers = modifiers;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* If member_type is NULL we are creating an incomplete type; otherwise,
-       set its type and alignment. */
-    if (member_type != NULL) {
-      set_type_size(tp);
-      add_based_type_list_member(member_type,
-                                 (a_based_type_kind)btk_ptr_to_member, tp);
+    set_type_size(tp);
+    add_based_type_list_member(member_type, kind, tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode) {
-        /* A pointer-to-member declaration involving a given class type
-           locks in the inheritance kind (i.e., the pointer-to-member
-           representation). */
-        a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
-        /* Force instantiation of template class. */
-        instantiate_template_class(class_type);
-        if (ctsp->inheritance_kind == (an_inheritance_kind)ihk_none) {
-          if (!is_incomplete_type(class_type)) {
-            check_inheritance_kind(class_type, default_inheritance_kind,
-                                   &error_position);
-          }  /* if */
-          ctsp->inheritance_kind = default_inheritance_kind;
+    if (microsoft_mode) {
+      /* A pointer-to-member declaration involving a given class type locks in
+         the inheritance kind (i.e., the pointer-to-member representation). */
+      a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
+      /* Force instantiation of template class. */
+      instantiate_template_class(class_type);
+      if (ctsp->inheritance_kind == (an_inheritance_kind)ihk_none) {
+        if (!is_incomplete_type(class_type)) {
+          check_inheritance_kind(class_type, default_inheritance_kind,
+                                 &error_position);
         }  /* if */
+        ctsp->inheritance_kind = default_inheritance_kind;
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return tp;
 }  /* ptr_to_member_type_full */

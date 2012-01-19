@@ -1079,7 +1079,6 @@ the specifiers and declarator that formed the new type.
         (*bottom_derived_type)->variant.pointer.type = new_type_ptr;
       } else if (is_ptr_to_member_type(*bottom_derived_type)) {
         /* Pointer-to-member type. */
-        a_type_ptr  pmt = *bottom_derived_type;
         if (is_member_function_typedef) {
           /* A cfront member function typedef type can only be used in
              forming a pointer-to-member type. */
@@ -1087,27 +1086,12 @@ the specifiers and declarator that formed the new type.
           err = TRUE;
         } else if (!check_pm_member_type(new_type_ptr)) {
           err = TRUE;
-        } else if (is_function_type(new_type_ptr)) {
-          /* This is a pointer-to-member-function type.  Be sure the
-             implicit this parameter is set.  If not, create it based on
-             the class type. */
-          new_type_ptr = check_ptr_to_member_function_type(
-                           new_type_ptr,
-                           pmt->variant.ptr_to_member.class_of_which_a_member);
         }  /* if */
         if (err) new_type_ptr = error_type();
-        if (gpp_mode || microsoft_mode) {
-          /* In GNU and C++ mode, the class type potentially included
-             qualifiers to be transferred to the member function type in
-             check_ptr_to_member_function_type.  Any such qualifiers can be
-             dropped now. */
-          pmt->variant.ptr_to_member.class_of_which_a_member =
-             skip_typerefs(pmt->variant.ptr_to_member.class_of_which_a_member);
-        }  /* if */
         check_for_restrict_qualifier_on_derived_type(new_type_ptr,
                                                      derived_type,
                                                      bottom_derived_type);
-        (*bottom_derived_type)->variant.ptr_to_member.type = new_type_ptr;
+        update_ptr_to_member_type(*bottom_derived_type, new_type_ptr);
       } else {
         /* Function type. */
         check_assertion(tkind == (a_type_kind)tk_routine);
@@ -4173,9 +4157,16 @@ __w64 annotation, and __based variable specifiers).  The given type must be a
       ptr_mods->based_var = NULL;
     } else {
       check_assertion(plain_type->kind == (a_type_kind)tk_ptr_to_member);
-      copy = ptr_to_member_type_full(pm_member_type(plain_type),
-                                     pm_class_type(plain_type),
-                                     ptr_mods->modifiers);
+      if (pm_member_type(plain_type) == NULL) {
+        /* The type is under construction.  We can therefore just modified it
+           "in place". */
+        copy = plain_type;
+        copy->variant.ptr_to_member.modifiers = ptr_mods->modifiers;
+      } else {
+        copy = ptr_to_member_type_full(pm_member_type(plain_type),
+                                       pm_class_type(plain_type),
+                                       ptr_mods->modifiers);
+      }  /* if */
       /* Issue an error if this was preceded by __based. */
       based_not_allowed_here(ptr_mods->based_var, ptr_mods->based_pos);
       if (ptr_mods->microsoft_w64) {
@@ -4610,7 +4601,14 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
             }  /* if */
           }  /* if */
         }  /* if */
-        complete_type = ptr_to_member_type(complete_type, class_type);
+        if (complete_type == NULL) {
+          /* We cannot create a valid pointer-to-member type yet: Create a
+             partially-filled-in entry that will be completed by calling
+             update_ptr_to_member_type later on. */
+          complete_type = make_partial_ptr_to_member_type(class_type);
+        } else {
+          complete_type = ptr_to_member_type(complete_type, class_type);
+        }  /* if */
       }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

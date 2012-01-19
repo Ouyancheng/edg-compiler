@@ -892,8 +892,10 @@ extern a_type_ptr managed_nullptr_type(void);
 
 extern a_type_ptr standard_nullptr_type(void);
 
-extern a_type_ptr check_ptr_to_member_function_type(a_type_ptr  member_type,
-                                                    a_type_ptr  class_type);
+extern void update_ptr_to_member_type(a_type_ptr  ptr_mem_type,
+                                      a_type_ptr  member_type);
+
+extern a_type_ptr make_partial_ptr_to_member_type(a_type_ptr  class_type);
 
 extern a_type_ptr ptr_to_member_type_full(a_type_ptr              member_type,
                                           a_type_ptr              class_type,
