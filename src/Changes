@@ -1,5 +1,19 @@
 Version 4.5
 
+1/19/12  [EDGcpfe/12593]
+Spurious error on redeclaration with a GNU calling convention attribute
+
+The changes for EDGcpfe/11928 (see Changes entry of 7/15/11) inadvertently
+introduced a regression on function redeclarations with a "cdecl" or "stdcall"
+attribute, causing a spurious error to be emitted in such cases.  For example:
+
+  void __attribute__((stdcall)) f();
+  void __attribute__((stdcall)) f() {}  // Triggered an incompatibility error
+                                        // in release 4.4.
+
+This is now fixed.
+
+
 1/18/12  [EDGcpfe/12214]
 GNU and Microsoft compatibility: Instantiated pointer-to-member functions
 

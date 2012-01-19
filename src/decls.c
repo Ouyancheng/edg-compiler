@@ -7395,7 +7395,9 @@ for use in generating cross-reference output describing this declaration.
            checked that the routine types are compatible.  "main" cannot
            be overloaded, so it was not checked. */
         if ((C_mode() || func_info->is_main_function) &&
-            !types_are_compatible(routine_ptr->type, type_ptr)) {
+            !f_types_are_compatible(routine_ptr->type, type_ptr,
+                                    TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                    TCF_IGNORE_CALLING_CONVENTIONS)) {
           /* Error -- redeclaration requires type compatibility. */
           routines_compat = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
