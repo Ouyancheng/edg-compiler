@@ -8150,7 +8150,9 @@ typedef struct a_type {
       a_type_ptr
 		class_of_which_a_member;
 			/* Type of the class to which the member pointed to
-			   belongs. */
+			   belongs.  This cannot be a typeref (but the front
+			   occasionally temporarily makes this point to a
+			   typeref until "type" is set). */
       a_type_ptr
 		type;
 			/* Type of the member pointed to. */

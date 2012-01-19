@@ -9305,11 +9305,15 @@ is already an entry of the indicated kind on the list.
 a_type_ptr check_ptr_to_member_function_type(a_type_ptr  member_type,
                                              a_type_ptr  class_type)
 /*
-This routine is called when forming a pointer-to-member type.  If
+This routine is called when forming a pointer-to-member-function type.  If
 member_type is a function type, be sure it is represented as a nonstatic
-member function of class_type -- that is, set the implicit-this parameter
-type if necessary.  Also verify that the name linkage on the member type
-is not "C".  Return the resulting member type.
+member function of class_type -- that is, set the implicit-this parameter type
+if necessary.  Also verify that the name linkage on the member type is not "C".
+In GNU and Microsoft modes, class_type is sometimes a qualified type: In that
+case, the qualifiers should be applied to the function type (e.g, if the member
+type is "int C::() const" and class_type is a typedef for "C volatile",
+produce a new member type "int C::() const volatile").
+Return the resulting member type.
 */
 {
   check_assertion(class_type != NULL && member_type != NULL);
@@ -9332,7 +9336,12 @@ is not "C".  Return the resulting member type.
       if (rtsp->this_class == NULL) {
         rtsp->this_class = skip_typerefs(class_type);
       }  /* if */
-      rtsp->qualifiers |= qualifiers;
+      if (gpp_mode || microsoft_mode) {
+        /* Merge in any missing qualifiers. */
+        rtsp->qualifiers |= qualifiers;
+      } else {
+        check_assertion(qualifiers == TQ_NONE);
+      }  /* if */
       if (rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external) {
         /* Change from C linkage to C++ linkage: */
         rtsp->routine_name_linkage =
@@ -9353,8 +9362,8 @@ the specified member and class types.  Attempt to find and reuse an existing
 type entry.  modifiers describes the pointer modifiers (like "__ptr32", a
 Microsoft extension) that are requested.  member_type may be NULL, e.g., when
 building a type from nested declarators outward.  class_type must be non-NULL
-and should usually be an unqualified class type; an exception are certain
-template instantiation cases in GNU and Microsoft modes (where any class type
+and should usually not be a typeref; an exception are certain template
+instantiation cases in GNU and Microsoft modes (where any class type
 qualifiers may be transferred to a member function type).
 */
 {
