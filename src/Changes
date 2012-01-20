@@ -66,6 +66,10 @@ For example:
 
     static void foo();  // Now accepted with a warning
     void bar(void) { if (0) foo(); }
+
+Such a situation is likely to result in a linker error later on, unless a
+code generator optimizes away the use of the undefined function (as it likely
+could in the example above).
   
 
 1/17/12  [EDGcpfe/10612,EDGcpfe/11770,EDGcpfe/12243]
