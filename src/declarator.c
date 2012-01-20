@@ -4158,7 +4158,7 @@ __w64 annotation, and __based variable specifiers).  The given type must be a
     } else {
       check_assertion(plain_type->kind == (a_type_kind)tk_ptr_to_member);
       if (pm_member_type(plain_type) == NULL) {
-        /* The type is under construction.  We can therefore just modified it
+        /* The type is under construction.  We can therefore just modify it
            "in place". */
         copy = plain_type;
         copy->variant.ptr_to_member.modifiers = ptr_mods->modifiers;
