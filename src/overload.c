@@ -7383,10 +7383,12 @@ a_symbol_ptr select_overloaded_function(
                          an_operand               *bound_function_selector,
                          an_arg_operand_ptr       arg_operand_list,
                          a_boolean                do_arg_dep_lookup,
+                         a_boolean                use_pure_arg_dep_lookup,
                          a_boolean                use_std_for_arg_dep_lookup,
                          a_boolean                force_dependent,
                          an_error_code            err_none_applies,
                          an_error_code            err_ambiguous,
+                         an_error_code            err_undefined_identifier,
                          a_source_position        *call_position,
                          a_token_sequence_number  paren_tok_seq_number,
                          a_boolean                *single_function,
@@ -7412,10 +7414,13 @@ selector is an object pointer, FALSE if it is an object.
 do_arg_dep_lookup is TRUE if argument-dependent lookup should be done;
 if it is TRUE, overloaded_function_symbol may be an sk_undefined
 symbol, indicating that nothing was found on a normal id lookup of the
-function name.  When using argument-dependent lookup,
-use_std_for_arg_dep_lookup can be set to TRUE to add the std namespace
-as an associated namespace (e.g., for range-based-for).  force_dependent is
-TRUE if the call should be treated as dependent even when argument-dependent
+function name.  When use_pure_arg_dep_lookup is TRUE, only argument-dependent
+lookup is used (and overloaded_function_symbol must be an sk_undefined
+symbol whose locator is used to identify the function being looked up).
+When using argument-dependent lookup, use_std_for_arg_dep_lookup
+can be set to TRUE to add the std namespace as an associated namespace
+(e.g., for range-based-for).  force_dependent is TRUE if the call
+should be treated as dependent even when argument-dependent
 lookup is not done (that would usually force the call to be treated as
 nondependent).  call_position is the source position of the call.
 paren_tok_seq_number is the token sequence number of the opening
@@ -7424,9 +7429,10 @@ do_arg_dep_lookup is TRUE; it can be zero otherwise.  If an error of
 some sort is detected, issue an error at that position and return
 NULL.  err_none_applies is the error code to use when no function
 applies, and err_ambiguous is the error code to use when more than one
-function applies.  If there is no error, an argument match list is
-returned in *arg_match_list (the caller must free this) and the symbol
-selected is returned.  If single_function is non-NULL and the set of
+function applies.  err_undefined_identifier is the error code to use when the
+symbol is undefined and no function applies.  If there is no error, an argument
+match list is returned in *arg_match_list (the caller must free this) and the
+symbol selected is returned.  If single_function is non-NULL and the set of
 functions to be considered (the symbol passed in, if not undefined,
 plus any symbols added by argument-dependent lookup) contains exactly
 one function, set *single_function to TRUE and return the function,
@@ -7474,7 +7480,15 @@ and return NULL.  This routine is called only in C++ mode.
   /* The "single function" processing is not compatible with trying
      surrogate functions. */
   if (surrogate_function_conv_sym != NULL) single_function = NULL;
-  if (overloaded_function_symbol != NULL) {
+  if (use_pure_arg_dep_lookup) {
+    /* Use a "pure" argument-dependent lookup; that is, there is no normal
+       unqualified lookup so the symbol we're looking up should be undefined
+       and its locator gives the identifier information. */
+    check_assertion(do_arg_dep_lookup &&
+                    overloaded_function_symbol != NULL &&
+                    overloaded_function_symbol->kind ==
+                                                  (a_symbol_kind)sk_undefined);
+  } else if (overloaded_function_symbol != NULL) {
     sym_is_undefined = (overloaded_function_symbol->kind ==
                                                   (a_symbol_kind)sk_undefined);
     if (do_arg_dep_lookup && !sym_is_undefined) {
@@ -7669,7 +7683,8 @@ in_instantiation:
       /* Do argument-dependent lookup, producing a list of symbols to
          be considered as candidate functions. */
       make_locator_for_symbol(overloaded_function_symbol, &locator);
-      normal_lookup_function_symbol = sym_is_undefined ?
+      normal_lookup_function_symbol = (sym_is_undefined ||
+                                       use_pure_arg_dep_lookup) ?
                                                     NULL :
                                                     overloaded_function_symbol;
       symbol_list = argument_dependent_lookup(normal_lookup_function_symbol,
@@ -7784,7 +7799,14 @@ in_instantiation:
         enter_undefined_symbol(overloaded_function_symbol);
       }  /* if */
       if (expr_error_should_be_issued()) {
-        pos_st_error(ec_undefined_identifier, call_position,
+        pos_st_error(err_undefined_identifier, call_position,
+                     overloaded_function_symbol->header->identifier);
+      }  /* if */
+    } else if (use_pure_arg_dep_lookup) {
+      /* No functions were found with "pure" argument-dependent lookup;
+         don't enter the function symbol (a dummy) into the symbol table. */
+      if (expr_error_should_be_issued()) {
+        pos_st_error(err_undefined_identifier, call_position,
                      overloaded_function_symbol->header->identifier);
       }  /* if */
     } else if (overloaded_function_symbol == NULL) {
@@ -7845,6 +7867,7 @@ in_instantiation:
       /* For a case involving a single function name that's ambiguous
          by inheritance, use a simpler message. */
       if (expr_error_should_be_issued()) {
+        check_assertion(overloaded_function_symbol != NULL);
         pos_sy_error(ec_ambiguous_name, call_position,
                      overloaded_function_symbol);
       }  /* if */
@@ -11031,11 +11054,13 @@ a_type_ptr select_and_prepare_to_call_overloaded_function(
                            an_operand              *bound_function_selector,
                            an_arg_operand_ptr      arg_operand_list,
                            a_boolean               do_arg_dep_lookup,
+                           a_boolean               use_pure_arg_dep_lookup,
                            a_boolean               use_std_for_arg_dep_lookup,
                            a_boolean               try_surrogate_functions,
                            a_boolean               is_property,
                            an_error_code           err_none_applies,
                            an_error_code           err_ambiguous,
+                           an_error_code           err_undefined_identifier,
                            an_operand              *orig_function_operand,
                            a_source_position       *call_position,
                            a_token_sequence_number paren_tok_seq_number,
@@ -11072,14 +11097,18 @@ supplied, call_position is assumed to be a better position for the
 call.  If an error of some sort is detected, issue an error at
 the indicated position and return NULL.  err_none_applies is the error
 code to use when no function applies, and err_ambiguous is the error
-code to use when more than one function applies.  If there is no
-error, an operand for the function is built in *function_operand, an
-expression-form argument list is built and returned in *arg_expr_list
-(with the arguments cast to the proper types), and the type of the
-routine selected is returned.  do_arg_dep_lookup is TRUE if
+code to use when more than one function applies.  err_undefined_identifier
+is the error code to use when the symbol is undefined and no function applies.
+If there is no error, an operand for the function is built in
+*function_operand, an expression-form argument list is built and returned in
+*arg_expr_list (with the arguments cast to the proper types), and the type
+of the routine selected is returned.  do_arg_dep_lookup is TRUE if
 argument-dependent lookup should be done; if it is TRUE,
 overloaded_function_symbol may be an sk_undefined symbol, indicating
 that nothing was found on a normal id lookup of the function name.
+When use_pure_arg_dep_lookup is TRUE, only argument-dependent
+lookup is used (and overloaded_function_symbol must be an sk_undefined
+symbol whose locator is used to identify the function being looked up).
 When using argument-dependent lookup, use_std_for_arg_dep_lookup
 can be set to TRUE to add the std namespace as an associated
 namespace for the lookup (e.g., for range-based-for).
@@ -11123,10 +11152,12 @@ routine.
                                                bound_function_selector,
                                                arg_operand_list,
                                                do_arg_dep_lookup,
+                                               use_pure_arg_dep_lookup,
                                                use_std_for_arg_dep_lookup,
                                                /*force_dependent=*/FALSE,
                                                err_none_applies,
                                                err_ambiguous,
+                                               err_undefined_identifier,
                                                call_position,
                                                paren_tok_seq_number,
                                                &single_function,

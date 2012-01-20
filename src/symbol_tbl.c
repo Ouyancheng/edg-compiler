@@ -3718,6 +3718,30 @@ already been created.
 }  /* get_error_symbol_header */
 
 
+static void init_symbol(a_symbol_ptr        sym_ptr,
+                        a_symbol_kind       kind,
+                        a_symbol_header_ptr hdr_ptr,
+                        a_source_position   *position)
+/*
+Initialize the fields of sym_ptr to a safe state.  Set the
+kind to kind, the header to hdr_ptr, and the decl_position to *position.
+hdr_ptr == NULL indicates that an error symbol should be constructed.
+*/
+{
+  /* Set the shared fields to default values, set the kind, and initialize
+     its variant fields. */
+  clear_symbol(sym_ptr, kind);
+  /* Set the header. */
+  if (hdr_ptr == NULL) {
+    /* Use the error symbol header. */
+    hdr_ptr = get_error_symbol_header();
+  }  /* if */
+  sym_ptr->header = hdr_ptr;
+  /* Set the declaration source position. */
+  sym_ptr->decl_position = *position;
+}  /* alloc_symbol */
+
+
 a_symbol_ptr alloc_symbol(a_symbol_kind       kind,
                           a_symbol_header_ptr hdr_ptr,
                           a_source_position   *position)
@@ -3737,18 +3761,37 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
 #endif /* DEBUG */
   /* Set the shared fields to default values, set the kind, and initialize
      its variant fields. */
-  clear_symbol(sym_ptr, kind);
-  /* Set the header. */
-  if (hdr_ptr == NULL) {
-    /* Use the error symbol header. */
-    hdr_ptr = get_error_symbol_header();
-  }  /* if */
-  sym_ptr->header = hdr_ptr;
-  /* Set the declaration source position. */
-  sym_ptr->decl_position = *position;
+  init_symbol(sym_ptr, kind, hdr_ptr, position);
   db_exit();
   return sym_ptr;
 }  /* alloc_symbol */
+
+
+/*
+A pointer to an sk_undefined symbol.  This symbol is never entered into
+the symbol table.
+*/
+static a_symbol_ptr dummy_undefined_symbol;
+
+
+a_symbol_ptr make_dummy_undefined_symbol(a_symbol_header_ptr hdr_ptr,
+                                         a_source_position   *position)
+/*
+Create if necessary and return an sk_undefined symbol for temporary use.
+The same symbol is returned each time, so the caller should not store its
+address.  The symbol is re-initialized each time and the header is set
+to hdr_ptr and decl_position to *position.
+*/
+{
+  if (dummy_undefined_symbol == NULL) {
+    dummy_undefined_symbol = alloc_symbol((a_symbol_kind)sk_undefined, hdr_ptr,
+                                    position);
+  } else {
+    init_symbol(dummy_undefined_symbol, (a_symbol_kind)sk_undefined, hdr_ptr,
+                position);
+  }  /* if */
+  return dummy_undefined_symbol;
+}  /* make_dummy_undefined_symbol */
 
 
 void unlink_symbol_from_symbol_table(a_symbol_ptr sym_ptr)
@@ -14677,6 +14720,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.avoid_codecenter_warnings         = FALSE;
   */
 #endif /* CENTERLINE_CHECKING */
+  dummy_undefined_symbol = NULL;
   size_of_trans_unit_for_scope = 0;
   trans_unit_for_scope = NULL;
   /* Save variables from symbol_tbl.h and symbol_tbl.c that are needed for

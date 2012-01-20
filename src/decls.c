@@ -14662,7 +14662,6 @@ if prior declarations specified an alignment attribute.
 
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
-
 static void variable_declaration(a_decl_parse_state  *state,
                                  a_symbol_locator    *locator,
                                  a_decl_pos_block    *decl_pos_block)

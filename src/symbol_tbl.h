@@ -4387,6 +4387,9 @@ extern a_symbol_ptr alloc_symbol(a_symbol_kind       kind,
                                  a_symbol_header_ptr hdr_ptr,
                                  a_source_position   *position);
 
+extern a_symbol_ptr make_dummy_undefined_symbol(a_symbol_header_ptr hdr_ptr,
+                                                a_source_position   *position);
+
 extern void remove_symbol_from_overload_set(a_symbol_ptr  sym,
                                             a_symbol_ptr  ovl_set);
 

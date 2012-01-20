@@ -2312,7 +2312,7 @@ ec_no_packing_of_non_POD_field;;"packing is ignored for this field of non-POD ty
 ec_nonpublic_implicit_interface_match;;"%nd not implemented because this declaration is not public and has no named override specifier"
 ec_missing_gnu_inline_attr_on_redeclaration;;"this declaration is missing the gnu_inline attribute specified in the previous declaration %p"
 ec_managed_member_function_cannot_have_ellipsis_parameter;;"a member function of a managed class cannot have an ellipsis parameter"
-ec_invalid_prev_decl_iterator;;"previously-declared %n invalid as iterator of for-each statement"
+ec_invalid_prev_decl_iterator;;"previously-declared %n invalid as iterator of \"for each\" statement"
 ec_generic_parameter_requires_clrcall;;"calling convention ignored because the function type involves a generic parameter; __clrcall used instead"
 ec_generic_parameter_does_not_permit_varargs;;"a function type involving a generic parameter cannot have an ellipsis parameter"
 ec_virtual_required_for_base_override;;"\"virtual\" is required to override the matching %nd"
@@ -2336,6 +2336,9 @@ ec_missing_indirect_on_range_based_for_type;;"there is no appropriate indirectio
 ec_range_based_for_incomplete_array_type;;"a range-based \"for\" statement cannot operate on an array of unknown size or incomplete type %t"
 ec_begin_end_type_mismatch_in_range_based_for;;"return types for \"begin\" and \"end\" functions used in a range-based \"for\" statement must be the same (\"begin\" return type is %t1, \"end\" return type is %t2)"
 ec_inaccessible_elided_dtor;;"%nfd, required to destroy temporary that was eliminated, is inaccessible"
+ec_range_based_for_no_matching_overload;;"in this range-based \"for\" statement, no instance of %no matches the argument list"
+ec_range_based_for_undefined_identifier;;"this range-based \"for\" statement requires a suitable %sq function and none was found"
+ec_for_each_undefined_identifier;;"this \"for each\" statement requires a suitable %sq function and none was found"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

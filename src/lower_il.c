@@ -17015,7 +17015,12 @@ static void lower_range_based_for_statement(a_statement_ptr statement)
 /*
 Do IL lowering of the indicated range-based-for statement and everything under
 it.  There are several variants of the range-based-for statement (see
-[stmt.ranged]), but the IL that is generated is the same for all:
+[stmt.ranged]), but the IL that is generated is the same for all.  For this
+source:
+
+  for ( for-range-declaration : expression ) statement
+
+the following lowered C code is generated:
 
   {
     auto && __range = (expression);
@@ -17033,7 +17038,6 @@ Notes:
     created here to match the range_based_for_scope, begin_end_scope, and
     iterator_scope in the range-based-for IL.  Note that the begin_end_scope
     block is implied above (it includes the for-init portion of the for loop).
-  - statement->expr is not used (or lowered) in this configuration.
 */
 {
   a_range_based_for_loop_ptr rbflp =
@@ -17052,6 +17056,7 @@ Notes:
   an_expr_node_ptr   ne_call_expr, incr_call_expr;
   a_for_loop_ptr     flip;
 
+  check_assertion(statement->expr == NULL);
   /* Push the outermost scope (which contains the range variable and its
      initialization). */
   push_context(&range_based_for_context, range_based_for_scope,
@@ -17126,13 +17131,14 @@ Notes:
   /* Turn the original range-based-for statement into a for statement (make
      sure there's no further reference to the range_based_for_loop variant
      beyond this point). */
+  rbflp = NULL;
   set_statement_kind(range_based_for_stmt, (a_statement_kind)stmk_for);
   flip = range_based_for_stmt->variant.for_loop.extra_info;
   flip->increment = incr_call_expr;
   range_based_for_stmt->expr = ne_call_expr;
   range_based_for_stmt->variant.for_loop.statement = inner_block;
   set_expr_result_not_used(incr_call_expr);
-  /* Perform cleanup for middle scope. */
+  /* Perform cleanup for the middle scope. */
   if (begin_end_scope->lifetime != NULL) {
     /* Insert any needed destructions for the middle scope after the
        lowered range-based-for (now a "for"). */
@@ -17141,7 +17147,7 @@ Notes:
   }  /* if */
   /* Pop the context pushed for the middle scope. */
   pop_context();
-  /* Perform cleanup for outer scope. */
+  /* Perform cleanup for the outer scope. */
   if (range_based_for_scope->lifetime != NULL) {
     /* Insert any needed destructions after the middle block. */
     set_insert_location(middle_block, &outer_insert_location);
@@ -17175,6 +17181,7 @@ over C++ arrays or appropriate STL-like collections) are currently lowered.
 
   check_assertion(felp->kind == (a_for_each_pattern_kind)sfepk_stl_pattern ||
                   felp->kind == (a_for_each_pattern_kind)sfepk_array_pattern);
+  check_assertion(statement->expr == NULL);
   /* For this input:
 
        for each (T t in c) <statement>
@@ -17208,7 +17215,6 @@ over C++ arrays or appropriate STL-like collections) are currently lowered.
     Notes:
       - The blocks listed above don't exist in the un-lowered IL -- they are
         created here to match the for_each_scope and iterator_scope in the IL.
-      - statement->expr is not used (or lowered) in this configuration.
   */
   /* Push the for-each scope (which contains the collection_expr_ref and
      temporary variable). */
@@ -17283,6 +17289,7 @@ over C++ arrays or appropriate STL-like collections) are currently lowered.
   /* Turn the original for-each statement into a for statement (make sure
      there's no further reference to the for_each_loop variant beyond
      this point). */
+  felp = NULL;
   set_statement_kind(for_each_stmt, (a_statement_kind)stmk_for);
   flip = for_each_stmt->variant.for_loop.extra_info;
   flip->increment = incr_call_expr;

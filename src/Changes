@@ -553,8 +553,8 @@ Default support for range-based "for" statements is controlled by the new
 configuration macro DEFAULT_RANGE_BASED_FOR_ENABLED.  Initializer lists have
 not yet been implemented in the front end, so the initializer list variation
 of the range-based "for" statement is not yet available.  Range-based "for"
-statements are lowered in configurations where lowering is enabled.  For
-example:
+statements are lowered in configurations where lowering is enabled.  This is
+an example of a range-based "for" statement:
 
   int main() {
     int sum = 0, array[5] = { 1, 2, 3, 4, 5 };

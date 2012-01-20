@@ -1863,7 +1863,7 @@ Macro to provide default arguments for the typical invocation of
 decl_statement_full where a range-based-for declaration is not being parsed.
 */
 #define decl_statement(marked_as_gnu_extension)                              \
-  decl_statement_full(marked_as_gnu_extension, (a_boolean *)NULL,            \
+  decl_statement_full((marked_as_gnu_extension), (a_boolean *)NULL,          \
                       (a_symbol_ptr *)NULL)
 
 
@@ -1917,7 +1917,7 @@ some error cases).
                                          (char *)sssep->curr_decl_statement,
                                          (a_byte_il_entry_kind)iek_statement);
     } else {
-      /* A range-based for declaration: The declaration statement will be
+      /* A range-based-for declaration: The declaration statement will be
          discarded. */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -3442,7 +3442,7 @@ Do processing required upon completion of a condition "block".
 }  /* finish_condition_block */
 
 
-static a_scope_ptr start_new_block_scope(
+static a_scope_ptr start_fabricated_block_scope_for_enhanced_for(
                                      a_scope_pointers_block_ptr pointers_block)
 /*
 Start a new block scope and return it.  pointers_block is the pointers block to
@@ -3456,16 +3456,16 @@ later (may be NULL).
   /* Push the new scope. */
   push_block_scope(pointers_block);
   scope = ensure_il_scope_exists(&scope_stack_top());
-  /* Add a control flow entry to represent the iterator scope. */
+  /* Add a control flow entry to represent the new scope. */
   cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
   cfdp->source_pos = pos_curr_token;
   cfdp->variant.block.object_lifetime = curr_object_lifetime;
   add_to_control_flow_descr_list(cfdp);
   return scope;
-}  /* start_new_block_scope */
+}  /* start_fabricated_block_scope_for_enhanced_for */
 
 
-static void finish_block_scope(void)
+static void finish_block_scope_for_enhanced_for(void)
 /*
 Do processing required when done with a block scope.
 */
@@ -3475,7 +3475,7 @@ Do processing required when done with a block scope.
        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
   /* Pop the block scope. */
   pop_block_scope(/*is_final_pop=*/TRUE);
-}  /* finish_block_scope */
+}  /* finish_block_scope_for_enhanced_for */
 
 
 static void scan_condition(a_statement_ptr  sp,
@@ -4514,8 +4514,10 @@ The affinity can be an expression or the keyword "continue".
        a stop token and push two additional scopes.  In cases where a
        range-based-for is not found, these empty scopes will be discarded. */
     add_stop_token(tok_colon);
-    outer_scope = start_new_block_scope((a_scope_pointers_block_ptr)NULL);
-    middle_scope = start_new_block_scope(&middle_pointers_block);
+    outer_scope = start_fabricated_block_scope_for_enhanced_for(
+                                             (a_scope_pointers_block_ptr)NULL);
+    middle_scope = start_fabricated_block_scope_for_enhanced_for(
+                                                       &middle_pointers_block);
   } /* if */
   /* Scan the initializing expression or declaration if it is present.  It
      will be added to the correct place in the stmk_for entry. */
@@ -4565,7 +4567,7 @@ The affinity can be an expression or the keyword "continue".
     /* Scan the expression. */
     expr_tok_seq_number = curr_token_sequence_number;
     scan_range_based_for_expression(sp);
-    /* Build the IL. */
+    /* Perform the semantic checks and build the IL. */
     check_range_based_for_statement(sp,
                                     expr_tok_seq_number,
                                     &middle_pointers_block,
@@ -4665,7 +4667,7 @@ The affinity can be an expression or the keyword "continue".
   if (is_condition_decl) finish_condition_block();
   if (is_range_based_for) {
     /* Pop the iterator scope. */
-    finish_block_scope();
+    finish_block_scope_for_enhanced_for();
   } else {
     /* If the for-loop supplement contains a non-NULL scope pointer, it means
        a block scope was pushed for a for-init declaration. */
@@ -4677,10 +4679,12 @@ The affinity can be an expression or the keyword "continue".
   if (range_based_for_enabled) {
     /* Pop (and possibly discard) the block scopes that were pushed in
        preparation for a possible range-based-for statement. */
-    finish_block_scope();
+    finish_block_scope_for_enhanced_for();
     if (!is_range_based_for) {
       /* This scope is about to be discarded; move any pragmas to the
-         appropriate scope (the scope that encloses outer_scope). */
+         appropriate scope (the scope that encloses outer_scope).  Pragmas
+         attached to the dependent statement end up in this scope (and
+         need to be moved). */
       a_pragma_ptr pragma = middle_scope->pragmas, pragma_next;
       for (;pragma != NULL; pragma = pragma_next) {
         pragma_next = pragma->next;
@@ -4688,8 +4692,8 @@ The affinity can be an expression or the keyword "continue".
         add_to_pragma_list(pragma, depth_scope_stack-1,
                            (a_source_correspondence *)NULL);
       }  /* if */
-    }  /* if */
-    finish_block_scope();
+    }  /* for */
+    finish_block_scope_for_enhanced_for();
     if (!is_range_based_for) {
       /* There should be no pragmas in the outer scope (since it only
          contains the compiler-generated middle scope). */
@@ -4777,10 +4781,11 @@ Where "in" is a context-sensitive keyword.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Push the outer scope. */
-  felp->for_each_scope =
-                       start_new_block_scope((a_scope_pointers_block_ptr)NULL);
+  felp->for_each_scope = start_fabricated_block_scope_for_enhanced_for(
+                                             (a_scope_pointers_block_ptr)NULL);
   /* Push the iterator scope. */
-  felp->iterator_scope = start_new_block_scope(&pointers_block);
+  felp->iterator_scope = start_fabricated_block_scope_for_enhanced_for(
+                                                              &pointers_block);
   if (curr_token == tok_identifier &&
       next_token_full((a_token_sequence_number *)NULL, &sym_hdr) ==
                                                               tok_identifier &&
@@ -4821,9 +4826,9 @@ Where "in" is a context-sensitive keyword.
   define_continue_label();
   /* Pop the iterator scope.  We want the continue label to transfer to
      any destruction required for the iterator variable. */
-  finish_block_scope();
+  finish_block_scope_for_enhanced_for();
   /* Pop the for-each scope. */
-  finish_block_scope();
+  finish_block_scope_for_enhanced_for();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
   /* If a label appeared in the context of the statement that was just

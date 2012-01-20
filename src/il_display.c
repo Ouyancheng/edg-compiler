@@ -2535,10 +2535,10 @@ Display the indicated variable.
   if (ptr->is_initonly) {
     disp_boolean("is_initonly", TRUE);
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->is_enhanced_for_iterator) {
     disp_boolean("is_enhanced_for_iterator", TRUE);
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->initializer_in_class) {
     disp_boolean("initializer_in_class", TRUE);
   }  /* if */

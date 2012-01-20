@@ -3294,6 +3294,25 @@ list.
 }  /* traverse_local_expr_node_ref_list */
 
 
+static void traverse_variable_init(a_variable_ptr                      var,
+                                   an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+The specified variable (which may be NULL) may have a dynamic initialization
+that is not pointed to by a stmk_init statement, if so, traverse that
+dynamic initialization.  Call user-provided routines as specified in the
+control block.
+*/
+{
+  if (var != NULL) {
+    if (var->initializer.dynamic != NULL) {
+      /* These variables should only have dynamic initialization. */
+      check_assertion(var->init_kind == (an_init_kind)initk_dynamic);
+      traverse_dynamic_init(var->initializer.dynamic, tblock);
+    }  /* if */
+  }  /* if */
+}  /* traverse_variable_init */
+
+
 void traverse_statement(a_statement_ptr                     statement,
                         an_expr_or_stmt_traversal_block_ptr tblock)
 /*
@@ -3389,26 +3408,89 @@ as specified in the control block.
       }
       break;
     case stmk_range_based_for:
-      if (statement->expr != NULL) {
-        traverse_expr(statement->expr, tblock);
-        if (tblock->terminate) goto end_of_routine;
-      }  /* if */
-      if (statement->variant.range_based_for_loop.statement != NULL) {
-        traverse_statement(statement->variant.range_based_for_loop.statement,
-                           tblock);
-        if (tblock->terminate) goto end_of_routine;
-      }  /* if */
+      { a_range_based_for_loop_ptr rbflp =
+                            statement->variant.range_based_for_loop.extra_info;
+        check_assertion(statement->expr == NULL);
+        /* The dynamic initializations pointed to by variables in a
+           range-based-for statement aren't pointed to by stmk_inits, so they
+           must be walked here. */
+        traverse_variable_init(rbflp->iterator, tblock);
+        traverse_variable_init(rbflp->range, tblock);
+        traverse_variable_init(rbflp->begin, tblock);
+        traverse_variable_init(rbflp->end, tblock);
+        if (rbflp->ne_call_expr != NULL) {
+          traverse_expr(rbflp->ne_call_expr, tblock);
+        }  /* if */
+        if (rbflp->incr_call_expr != NULL) {
+          traverse_expr(rbflp->incr_call_expr, tblock);
+        }  /* if */
+        if (statement->variant.range_based_for_loop.statement != NULL) {
+          traverse_statement(statement->variant.range_based_for_loop.statement,
+                             tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+      }
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case stmk_for_each:
-      if (statement->expr != NULL) {
-        traverse_expr(statement->expr, tblock);
-        if (tblock->terminate) goto end_of_routine;
-      }  /* if */
-      if (statement->variant.for_each_loop.statement != NULL) {
-        traverse_statement(statement->variant.for_each_loop.statement, tblock);
-        if (tblock->terminate) goto end_of_routine;
-      }  /* if */
+      { a_for_each_loop_ptr felp = statement->variant.for_each_loop.extra_info;
+        check_assertion(statement->expr == NULL);
+        /* The dynamic initializations pointed to by variables in a
+           for-each statement aren't pointed to by stmk_inits, so they must be
+           walked here. */
+        if (felp->uses_prev_decl_iterator) {
+          traverse_variable_init(felp->iterator.prev_decl.variable, tblock);
+          if (felp->iterator.prev_decl.assign_expr != NULL) {
+            traverse_expr(felp->iterator.prev_decl.assign_expr, tblock);
+          }  /* if */
+        } else {
+          traverse_variable_init(felp->iterator.variable, tblock);
+        }  /* if */
+        traverse_variable_init(felp->collection_expr_ref, tblock);
+        traverse_variable_init(felp->temporary_variable, tblock);
+        switch (felp->kind) {
+          case sfepk_stl_pattern:
+          case sfepk_array_pattern:
+            traverse_variable_init(
+                                  felp->variant.stl_array_pattern.end_variable,
+                                  tblock);
+            if (felp->variant.stl_array_pattern.ne_call_expr != NULL) {
+              traverse_expr(felp->variant.stl_array_pattern.ne_call_expr,
+                            tblock);
+            }  /* if */
+            if (felp->variant.stl_array_pattern.incr_call_expr != NULL) {
+              traverse_expr(felp->variant.stl_array_pattern.incr_call_expr,
+                            tblock);
+            }  /* if */
+            break;
+          case sfepk_cli_pattern:
+            if (felp->variant.cli_pattern.movenext_call_expression != NULL) {
+              traverse_expr(felp->variant.cli_pattern.movenext_call_expression,
+                            tblock);
+            }  /* if */
+            break;
+          case sfepk_cli_array_pattern:
+            { a_variable_ptr  var;
+              /* Note that this loop covers both upper_bounds_vars and
+                 loop_vars since they are linked together. */
+              for (var = felp->variant.cli_array_pattern.upper_bound_vars;
+                   var != NULL;
+                   var = var->next) {
+                traverse_variable_init(var, tblock);
+              }  /* for */
+            }
+            break;
+#if CHECKING
+          default:
+            unexpected_condition();
+#endif /* CHECKING */
+        }  /* switch */
+        if (statement->variant.for_each_loop.statement != NULL) {
+          traverse_statement(statement->variant.for_each_loop.statement,
+                             tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+      }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case stmk_switch_case:

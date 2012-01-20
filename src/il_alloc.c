@@ -3392,8 +3392,7 @@ fields to default values.
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case stmk_for:
       sp->variant.for_loop.statement = NULL;
-      sp->variant.for_loop.extra_info = flip =
-                      (a_for_loop_ptr)alloc_cil(sizeof(a_for_loop));
+      sp->variant.for_loop.extra_info = flip = alloc_cil_of_type(a_for_loop);
 #if DEBUG
       num_for_loops_allocated++;
 #endif /* DEBUG */
@@ -3407,7 +3406,7 @@ fields to default values.
     case stmk_range_based_for:
       sp->variant.range_based_for_loop.statement = NULL;
       sp->variant.range_based_for_loop.extra_info = rbflp =
-         (a_range_based_for_loop_ptr)alloc_cil(sizeof(a_range_based_for_loop));
+                                     alloc_cil_of_type(a_range_based_for_loop);
       clear_range_based_for_loop(rbflp);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED

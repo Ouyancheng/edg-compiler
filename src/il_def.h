@@ -14306,14 +14306,16 @@ form:
 
 which is implemented as:
 
-  {
+  {  // range_based_for_scope:
     auto && __range = (expression);
-    for ( auto __begin = begin-expr,
-               __end = end-expr;
-          __begin != __end;
-          ++__begin ) {
-      for-range-declaration = *__begin;
-      statement
+    {  // begin_end_scope:
+      for ( auto __begin = begin-expr,
+                 __end = end-expr;
+            __begin != __end;
+            ++__begin ) {  // iterator_scope:
+        for-range-declaration = *__begin;
+        statement
+      }
     }
   }
 
@@ -14353,11 +14355,7 @@ typedef struct a_range_based_for_loop {
                         /* An sck_block scope added immediately inside the
                            loop, in which the iterator variable is declared.
                            The dependent statement of the loop is enclosed by
-                           this scope.  When a variable from the surrounding
-                           context is used as the iterator variable (see
-                           uses_prev_decl_iterator), the scope is still
-                           present but the iterator variable is not declared
-                           there. */
+                           this scope. */
   a_variable_ptr
                 begin;
                         /* Pointer to the variable representing the temporary
