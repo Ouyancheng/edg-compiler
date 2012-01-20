@@ -1797,7 +1797,7 @@ to default values.
       pte->variant.ptr_to_member.class_of_which_a_member = NULL;
       pte->variant.ptr_to_member.type                    = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      pte->variant.pointer.modifiers = PM_NONE;
+      pte->variant.ptr_to_member.modifiers = PM_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case tk_template_param:
