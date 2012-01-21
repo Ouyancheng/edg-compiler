@@ -1,5 +1,23 @@
 Version 4.5
 
+1/21/12  [EDGcpfe/12621]
+Deduction on conversion function returning reference to array or function
+
+In accordance with Core Issues 913 and 976, a template conversion function
+that returns a reference to array or a reference to function now undergoes
+deduction on the basis of the decayed version of the underlying type.
+
+  int a_[2];
+  template<class T> using A = T(&)[2];
+  struct B_ {
+    template<class T> operator A<T>() { return a_; }
+  };
+  int main(int argc, char *argv[]) {
+    B_ b;
+    int* p = b;  // Deduction now works with T = int
+  }
+
+
 1/19/12  [EDGcpfe/12593]
 Spurious error on redeclaration with a GNU calling convention attribute
 

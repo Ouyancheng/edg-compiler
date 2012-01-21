@@ -11498,19 +11498,33 @@ are considered).  conv_context describes the context of the conversion.
          conversion template.  If normal deduction fails, check whether a
          qualification conversion can be used to obtain the desired type. */
       /* See [temp.deduct.conv] in the standard for the rules on dropping
-         cv-qualifiers.  The "P" of that section is return_type (except that
+         cv-qualifiers.  The "P" of that section is return_type (and
          return_type is already reduced to the underlying type if the function
          returns a reference) and the "A" of that section is eff_dest_type
          (ditto for a reference type; is_reference_binding indicates that
          has happened). */
-      /* g++ uses old [temp.deduct.conv] rules predating core issue 976
-         and therefore doesn't drop the cv-qualifiers on P when A is not
-         a reference (because at that point in the old rules, P had not
-         been changed to the underlying type if it was a reference).
-         Checked in 4.4. */
-      if (gpp_mode && !is_reference_binding &&
-          is_reference_type(il_return_type_of(conv_routine_type))) {
-        weird_gpp_case = TRUE;
+      if (!is_reference_binding) {
+        /* If A is not a reference type, do array-to-pointer and
+           function-to-pointer decay on P, or drop cv-qualifiers on P
+           (that last bit is done directly in the call below).
+           See Core Issue 913. */
+        if (is_array_type(return_type)) {
+          return_type = type_after_array_to_pointer_transformation(
+                                                                  return_type);
+        } else if (is_function_type(return_type)) {
+          return_type = type_after_function_to_pointer_transformation(
+                                                           return_type,
+                                                           (an_operand *)NULL);
+        }  /* if */
+        /* g++ uses old [temp.deduct.conv] rules predating core issue 976
+           and therefore doesn't drop the cv-qualifiers on P when A is not
+           a reference (because at that point in the old rules, P had not
+           been changed to the underlying type if it was a reference).
+           Checked in 4.4. */
+        if (gpp_mode &&
+            is_reference_type(il_return_type_of(conv_routine_type))) {
+          weird_gpp_case = TRUE;
+        }  /* if */
       }  /* if */
       if (matches_template_type(is_reference_binding ?
                                                   eff_dest_type :
