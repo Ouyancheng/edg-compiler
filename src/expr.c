@@ -28172,9 +28172,10 @@ in which case that is used as a single argument for the call.  Note that
 functions with default arguments are considered in all cases even though
 Microsoft doesn't consider such functions in the for-each case.
 Return TRUE if the member function is found and all semantic checks
-pass, FALSE otherwise.  *result is set to an operand for the function
-call expression.  is_for_each is TRUE if the statement being parsed is
-a for-each (otherwise it's a range-based-for).
+pass, FALSE otherwise.  Also returns FALSE (without issuing any errors) for
+the template dependent case.  *result is set to an operand for the function
+call expression.  is_for_each is TRUE if the statement being parsed is a
+for-each (otherwise it's a range-based-for).
 */
 {
   a_boolean          passed = FALSE;
@@ -28742,13 +28743,9 @@ __begin, __end) already on the stack.
       /* Add the initializer to the iterator variable. */
       if (rbflp->iterator != NULL) {
         deduce_auto_type_in_enhanced_for_if_needed(rbflp->iterator, &operand);
-        /* Check conversion and generate IL for the conversion from
-           "*__begin" to the type of the iterator. */
-        if (!cast_identical_types(rbflp->iterator->type, operand.type)) {
-          a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
-          process_static_cast(rbflp->iterator->type, &operand, &pos, &pos,
-                              /*is_safe_cast=*/FALSE, &ruled_out_expr_kinds);
-        }  /* if */
+        /* There may be an implicit conversion here, but
+           prep_initializer_operand in set_variable_initializer will handle
+           that. */
         set_variable_initializer(rbflp->iterator, &operand);
       }  /* if */
     }  /* if */
@@ -28886,6 +28883,8 @@ is_for_each is TRUE if the statement being processed is a for-each statement
 for the start of the loop expression.  Returns TRUE (and creates *loop_var
 with the appropriate initializer) if an appropriate member function is
 found; otherwise issues an error message (and *loop_var is unmodified).
+Returns FALSE (without issuing any error messages) in the template
+dependent case.
 */
 {
   an_expr_stack_entry expr_stack_entry;
@@ -30113,7 +30112,7 @@ On return, the current token is the "in".
 static a_boolean check_range_based_for_array_case(
                                               a_range_based_for_loop_ptr rbflp)
 /*
-This routine handles the first type of range-based-for case: when the
+This routine handles the first kind of range-based-for: when the
 expression has an array type.  Generate the appropriate IL (in rbflp) for
 the array case of a range-based-for.  Note that the standard mandates that a
 range-based-for statement that operates on a multi-dimensional range expression
@@ -30197,13 +30196,13 @@ static a_boolean check_range_based_for_member_case(
                                      a_range_based_for_loop_ptr rbflp,
                                      a_token_sequence_number    tok_seq_number)
 /*
-Check for the second type of range-based-for statement: where the expression
-has a class type and that class has suitable "begin()" and "end()" members.
-In that case, generate IL (in rbflp) to create and initialize the __begin and
-__end variables appropriately.  tok_seq_number is the sequence number for the
-expression in the range-based-for.  If suitable member functions are found,
-fields in rbflp are updated and the routine returns TRUE; otherwise an error is
-issued and FALSE is returned.
+This routine handles the second kind of range-based-for statement: where the
+expression has a class type and that class has suitable "begin()" and "end()"
+members.  In that case, generate IL (in rbflp) to create and initialize the
+__begin and __end variables appropriately.  tok_seq_number is the sequence
+number for the expression in the range-based-for.  If suitable member functions
+are found, fields in rbflp are updated and the routine returns TRUE; otherwise
+an error is issued and FALSE is returned.
 */
 {
   a_type_ptr        begin_type, end_type;
@@ -30248,7 +30247,7 @@ associated namespace) for the purposes of the lookup.  tok_seq_number is
 the sequence number of the range-based-for expression.  Returns TRUE
 (and creates *variable with a proper initializer) if an appropriate function
 was found; otherwise reports an error and returns FALSE (with *variable
-unmodified).  Note also that this routine may return FALSE (and not issue any
+unmodified).  Note also that this routine will return FALSE (and not issue any
 errors) in the case where the expression is template dependent.
 */
 {
@@ -30373,7 +30372,7 @@ statement.  tok_seq_number is the sequence number associated with the
 range-based-for expression.  Returns TRUE and creates the __begin and __end
 variables with suitable initialization if suitable functions have been found;
 issues a diagnostic and returns FALSE otherwise.  Note also that this routine
-may return FALSE (and not issue any errors) in the case where the expression
+will return FALSE (and not issue any errors) in the case where the expression
 is template dependent.
 */
 {
@@ -30440,7 +30439,7 @@ and can have the following forms (see [stmt.ranged] for specifics):
                             statement->variant.range_based_for_loop.extra_info;
   a_type_ptr          expr_type;
   an_expr_stack_entry *saved_expr_stack;
-  a_boolean           processed = FALSE, passed = FALSE;
+  a_boolean           passed = FALSE;
   a_boolean           dependent_case = FALSE;
   
   db_enter(3, "check_range_based_for_statement");
@@ -30463,22 +30462,17 @@ and can have the following forms (see [stmt.ranged] for specifics):
      NULL.  */
   if (is_error_type(expr_type)) {
     /* Do nothing here (to prevent cascading diagnostics). */
-    processed = TRUE;
   } else if (is_template_dependent_type(expr_type)) {
     /* The expression type is not known; do not attempt to validate it. */
     dependent_case = TRUE;
-    processed = TRUE;
   } else if (is_array_type(expr_type)) {
     /* begin-expr is __range, end-expr is __range + bound. */
     passed = check_range_based_for_array_case(rbflp);
-    processed = TRUE;
   } else if (is_class_struct_union_type(expr_type) &&
              has_range_based_for_begin_or_end_member(expr_type)) {
     /* begin-expr is __range.begin(), end-expr is __range.end(). */
     passed = check_range_based_for_member_case(rbflp, tok_seq_number);
-    processed = TRUE;
-  }  /* if */
-  if (!processed) {
+  } else {
     /* begin-expr is begin(__range), end-expr is end(__range). */
     passed = check_range_based_for_default_case(rbflp, tok_seq_number);
   }  /* if */

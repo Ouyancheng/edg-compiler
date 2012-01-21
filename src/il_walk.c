@@ -3297,9 +3297,9 @@ list.
 static void traverse_variable_init(a_variable_ptr                      var,
                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-The specified variable (which may be NULL) may have a dynamic initialization
-that is not pointed to by a stmk_init statement, if so, traverse that
-dynamic initialization.  Call user-provided routines as specified in the
+The specified variable (which may be NULL) may have a dynamic initialization.
+Such dynamic initializations are not pointed to by stmk_init statements, so
+they are traversed here.  Call user-provided routines as specified in the
 control block.
 */
 {

@@ -7416,7 +7416,7 @@ if it is TRUE, overloaded_function_symbol may be an sk_undefined
 symbol, indicating that nothing was found on a normal id lookup of the
 function name.  When use_pure_arg_dep_lookup is TRUE, only argument-dependent
 lookup is used (and overloaded_function_symbol must be an sk_undefined
-symbol whose locator is used to identify the function being looked up).
+symbol whose symbol header is used to identify the function being looked up).
 When using argument-dependent lookup, use_std_for_arg_dep_lookup
 can be set to TRUE to add the std namespace as an associated namespace
 (e.g., for range-based-for).  force_dependent is TRUE if the call
@@ -7483,7 +7483,7 @@ and return NULL.  This routine is called only in C++ mode.
   if (use_pure_arg_dep_lookup) {
     /* Use a "pure" argument-dependent lookup; that is, there is no normal
        unqualified lookup so the symbol we're looking up should be undefined
-       and its locator gives the identifier information. */
+       and its symbol header gives the identifier information. */
     check_assertion(do_arg_dep_lookup &&
                     overloaded_function_symbol != NULL &&
                     overloaded_function_symbol->kind ==
@@ -11108,7 +11108,7 @@ overloaded_function_symbol may be an sk_undefined symbol, indicating
 that nothing was found on a normal id lookup of the function name.
 When use_pure_arg_dep_lookup is TRUE, only argument-dependent
 lookup is used (and overloaded_function_symbol must be an sk_undefined
-symbol whose locator is used to identify the function being looked up).
+symbol whose symbol header is used to identify the function being looked up).
 When using argument-dependent lookup, use_std_for_arg_dep_lookup
 can be set to TRUE to add the std namespace as an associated
 namespace for the lookup (e.g., for range-based-for).
