@@ -2939,20 +2939,13 @@ an otherwise implicitly enabled C++11 mode.
 
 static void exclude_cpp98_mode(an_error_code  error_code)
 /*
-C++98 mode is incompatible with other settings.  Either issue the given
-diagnostic (error_code) if the conflict is explicit, or silently turn off
-an otherwise implicitly enabled C++98 mode.
+C++98 mode is incompatible with other settings.  Issue the given
+diagnostic (error_code) if the conflict is explicit.
 */
 {
-  if (!cpp11_mode) {
-    if (option_kind_used[(int)optk_cpp98_mode]) {
-      /* C++98 mode was enabled by a command line option. */
-      command_line_error(error_code);
-    } else {
-      /* C++98 mode was disabled by default.  Silently enable it since an
-         explicit mode setting on the command line overrides it. */
-      cpp11_mode = TRUE;
-    }  /* if */
+  if (option_kind_used[(int)optk_cpp98_mode]) {
+    /* C++98 mode was enabled by a command line option. */
+    command_line_error(error_code);
   }  /* if */
 }  /* exclude_cpp98_mode */
 
