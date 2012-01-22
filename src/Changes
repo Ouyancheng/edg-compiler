@@ -1,5 +1,13 @@
 Version 4.5
 
+1/22/12  [EDGcpfe/12622]
+Add --c++98 command line option
+
+A --c++98 command line option has been added to enable parsing of C++ code
+that adheres to the ISO/IEC 14882:1998 standard.  This option is useful
+in configurations that enable C++11 mode by default.
+
+
 1/21/12  [EDGcpfe/12621]
 Deduction on conversion function returning reference to array or function
 

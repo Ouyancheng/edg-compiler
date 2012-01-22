@@ -1325,6 +1325,8 @@ Initialize the option information table.
                          "no_token_separators_in_pp_output", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
+  add_option_description(optk_cpp98_mode, "c++98", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2935,6 +2937,26 @@ an otherwise implicitly enabled C++11 mode.
 }  /* exclude_cpp11_mode */
 
 
+static void exclude_cpp98_mode(an_error_code  error_code)
+/*
+C++98 mode is incompatible with other settings.  Either issue the given
+diagnostic (error_code) if the conflict is explicit, or silently turn off
+an otherwise implicitly enabled C++98 mode.
+*/
+{
+  if (!cpp11_mode) {
+    if (option_kind_used[(int)optk_cpp98_mode]) {
+      /* C++98 mode was enabled by a command line option. */
+      command_line_error(error_code);
+    } else {
+      /* C++98 mode was disabled by default.  Silently enable it since an
+         explicit mode setting on the command line overrides it. */
+      cpp11_mode = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* exclude_cpp98_mode */
+
+
 static void check_and_set_ansi_mode_options(void)
 /*
 Both for strict ANSI C and C++ modes, check that no command-line setting
@@ -3816,6 +3838,7 @@ order of development of this front end, and is inconsistent and strange.
     exclude_sun_mode(ec_cl_sun_mode_only_in_cplusplus);
     exclude_gpp_mode(ec_cl_incompatible_language_modes);
     exclude_cpp11_mode(ec_cl_incompatible_language_modes);
+    exclude_cpp98_mode(ec_cl_incompatible_language_modes);
   }  /* if */
   if (C_dialect == C_dialect_pcc) {
     /* Issue an error for specifying a language mode that is valid only
@@ -8440,6 +8463,13 @@ enable_microsoft_mode:
       case optk_cpp11_mode:
         /* Enable or disable C++ features added as part of C++11. */
         cpp11_mode = opt_value;
+        C_dialect = C_dialect_cplusplus;
+        break;
+      case optk_cpp98_mode:
+        /* Compile ISO/IEC 14882:1998 C++ code.  This option is convenient
+           if C++11 mode is selected by default. */
+        check_assertion(opt_value == TRUE);
+        cpp11_mode = FALSE;
         C_dialect = C_dialect_cplusplus;
         break;
       case optk_list_macros:
