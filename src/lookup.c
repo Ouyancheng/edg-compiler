@@ -3750,6 +3750,7 @@ in a friend declaration.
 {
   a_symbol_ptr              assoc_symbol;
   an_id_lookup_options_set  options = IDL_MUST_BE_TAG;
+  a_boolean                 class_template_ignored = FALSE;
 
   /* Look up the current token.  Note that a qualified name is not allowed. */
   if (is_friend_decl) options |= IDL_FRIEND_LOOKUP;
@@ -3776,8 +3777,9 @@ in a friend declaration.
       assoc_symbol->kind == (a_symbol_kind)sk_class_template) {
     assoc_symbol = NULL;
     clear_specific_symbol(*locator);
+    class_template_ignored = TRUE;
   }  /* if */
-  if (assoc_symbol == NULL && !is_friend_decl) {
+  if (assoc_symbol == NULL && (!is_friend_decl || class_template_ignored)) {
     /* If the symbol was not found using a normal lookup above, look again
        using a linkage lookup which will return an invisible symbol. */
     assoc_symbol = normal_id_lookup(locator, options | IDL_LINKAGE_LOOKUP);
