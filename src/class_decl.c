@@ -9282,6 +9282,8 @@ possibility.
                                sym, function_type, locator->template_arg_list,
                                (a_boolean)locator->is_template_id,
                                /*in_class_specialization=*/FALSE,
+                               /*prefer_template=*/!gpp_mode &&
+                                                   !microsoft_mode,
                                NO_NESTING_DEPTH,
                                es_error);
       if (sym == NULL) {

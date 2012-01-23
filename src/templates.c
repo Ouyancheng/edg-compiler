@@ -20803,6 +20803,7 @@ a_symbol_ptr find_matching_template_instance(
 		a_template_arg_ptr		explicit_arg_list,
 		a_boolean			explicit_arg_list_present,
 		a_boolean			in_class_specialization,
+		a_boolean			prefer_template,
 		a_template_nesting_depth	nesting_depth,
 		an_error_severity		severity_if_not_found)
 /*
@@ -20810,12 +20811,13 @@ sym is some kind of function symbol.  type is the type declared for a
 function template instance.  explicit_arg_list is an explicitly specified
 template argument list, which may be NULL.  explicit_arg_list_present
 is TRUE if an explicit argument list was provided, even an empty one
-(in which case explicit_arg_list would be NULL).  nesting_depth is the
-nesting depth specified on a specialization declaration and a matching
-template must match this depth, or NO_NESTING_DEPTH if the depth should
-not be checked.  severity_if_not_found is the severity of the diagnostic
-to be issued if no matching instance is found.  Return the symbol for the
-instance, or NULL if no instance is found.
+(in which case explicit_arg_list would be NULL).  prefer_template is TRUE
+if a template instance should be preferred over a matching non-template
+member.  nesting_depth is the nesting depth specified on a specialization
+declaration and a matching template must match this depth, or
+NO_NESTING_DEPTH if the depth should not be checked.  severity_if_not_found
+is the severity of the diagnostic to be issued if no matching instance is
+found.  Return the symbol for the instance, or NULL if no instance is found.
 */
 {
   a_symbol_ptr  		orig_sym, other_match = NULL;
@@ -20824,7 +20826,6 @@ instance, or NULL if no instance is found.
   a_boolean			any_templates = FALSE;
   a_partial_order_candidate_ptr	candidates_list = NULL;
   a_symbol_ptr			member_sym = NULL;
-  a_boolean			is_list;
 
   orig_sym = sym;
   if (sym->is_class_member && !explicit_arg_list_present) {
@@ -20838,66 +20839,69 @@ instance, or NULL if no instance is found.
                                             &other_match);
     if (member_sym != NULL) any_found = TRUE;
   }  /* if */
-  /* A regular function name that is expected to represent one or
-     more function templates.  Loop through the function templates
-     and find an instance that matches the specified function type.
-     If none exists, a new one is generated, if possible.  If more
-     than one exists (or can be generated) an error is issued. */
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    sym = sym->variant.overloaded_function.symbols;
-    is_list = TRUE;
-  } else {
-    is_list = FALSE;
-  }  /* if */
-  for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-    /* If this is a function template symbol, use it to find a function
-       that matches the type we are looking for. */
-    if (sym->kind != (a_symbol_kind)sk_function_template) continue;
-    if (!any_templates && nesting_depth != NO_NESTING_DEPTH) {
-      /* When we encounter the first template, if a nesting depth was
-         supplied, make sure this matches the supplied depth. */
-      a_template_nesting_depth		depth_of_template;
-      a_template_symbol_supplement_ptr	tssp;
-      a_template_param_ptr		param_list;
-      tssp = sym->variant.template_info;
-      param_list = tssp->cache.decl_info->parameters;
-      depth_of_template = nesting_depth_of_template_param(param_list);
-      if (nesting_depth != depth_of_template) break;
-    }  /* if */
-    any_templates = TRUE;
-    if (has_matching_template_function(sym, type, explicit_arg_list,
-                                       /*is_decl_context=*/TRUE)) {
-      /* This template can generate an instance of the appropriate
-       type.  Add the matching template to a list of matching
-         candidates. */
-      add_to_partial_order_candidates_list(&candidates_list, sym,
-                                           (a_template_arg_ptr)NULL);
-    }  /* if */
-  }  /* for */
-  if (candidates_list != NULL) {
-    /* If any of the templates matched, select the best one using
-       the partial ordering rules.  If a best match cannot be selected,
-       an arbitrary member of the unordered set of templates will be
-       returned and the ambiguous flag will be set. */
-    a_template_arg_ptr	templ_arg_list;
-    a_boolean		ambiguous;
-    any_found = TRUE;
-    select_best_partial_order_candidate(candidates_list, (a_symbol_ptr)NULL,
-                                        &sym, &templ_arg_list,
-                                        &ambiguous);
-    /* Look for a match on the list of instantiations. */
-    if (ambiguous) {
-      sym_error(ec_ambiguous_overloaded_function, orig_sym);
-      new_sym = NULL;
+  if (!any_found || nesting_depth != NO_NESTING_DEPTH || prefer_template) {
+    /* A regular function name that is expected to represent one or
+       more function templates.  Loop through the function templates
+       and find an instance that matches the specified function type.
+       If none exists, a new one is generated, if possible.  If more
+       than one exists (or can be generated) an error is issued. */
+    a_boolean		is_list;
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      sym = sym->variant.overloaded_function.symbols;
+      is_list = TRUE;
     } else {
-      a_boolean  is_new_template_instance;
-      new_sym = matching_template_function(sym, type, explicit_arg_list,
-                                           explicit_arg_list_present,
-                                           /*is_decl_context=*/TRUE,
-                                           in_class_specialization,
-                                           &is_new_template_instance);
+      is_list = FALSE;
     }  /* if */
-  }  /* for */
+    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+      /* If this is a function template symbol, use it to find a function
+         that matches the type we are looking for. */
+      if (sym->kind != (a_symbol_kind)sk_function_template) continue;
+      if (!any_templates && nesting_depth != NO_NESTING_DEPTH) {
+        /* When we encounter the first template, if a nesting depth was
+           supplied, make sure this matches the supplied depth. */
+        a_template_nesting_depth		depth_of_template;
+        a_template_symbol_supplement_ptr	tssp;
+        a_template_param_ptr		param_list;
+        tssp = sym->variant.template_info;
+        param_list = tssp->cache.decl_info->parameters;
+        depth_of_template = nesting_depth_of_template_param(param_list);
+        if (nesting_depth != depth_of_template) break;
+      }  /* if */
+      any_templates = TRUE;
+      if (has_matching_template_function(sym, type, explicit_arg_list,
+                                         /*is_decl_context=*/TRUE)) {
+        /* This template can generate an instance of the appropriate
+           type.  Add the matching template to a list of matching
+           candidates. */
+        add_to_partial_order_candidates_list(&candidates_list, sym,
+                                             (a_template_arg_ptr)NULL);
+      }  /* if */
+    }  /* for */
+    if (candidates_list != NULL) {
+      /* If any of the templates matched, select the best one using
+         the partial ordering rules.  If a best match cannot be selected,
+         an arbitrary member of the unordered set of templates will be
+         returned and the ambiguous flag will be set. */
+      a_template_arg_ptr	templ_arg_list;
+      a_boolean			ambiguous;
+      any_found = TRUE;
+      select_best_partial_order_candidate(candidates_list, (a_symbol_ptr)NULL,
+					  &sym, &templ_arg_list,
+					  &ambiguous);
+      /* Look for a match on the list of instantiations. */
+      if (ambiguous) {
+        sym_error(ec_ambiguous_overloaded_function, orig_sym);
+        new_sym = NULL;
+      } else {
+        a_boolean  is_new_template_instance;
+        new_sym = matching_template_function(sym, type, explicit_arg_list,
+					     explicit_arg_list_present,
+                                             /*is_decl_context=*/TRUE,
+					     in_class_specialization,
+                                             &is_new_template_instance);
+      }  /* if */
+    }  /* for */
+  }  /* if */
   /* If no template matches were found, but a member function match was found,
      use the member function. */
   if (new_sym == NULL) new_sym = member_sym;
@@ -21318,6 +21322,7 @@ that follows.
                         sym, dps->type, locator.template_arg_list,
                         (a_boolean)locator.is_template_id,
 		        /*in_class_specialization=*/decl_state->is_member_decl,
+                        /*prefer_template=*/TRUE,
                         decl_state->nesting_depth + decl_state->friend_depth,
 			es_error);
         if (sym == NULL) {
@@ -27523,6 +27528,7 @@ instantiation.
                                    sym, state.type, locator.template_arg_list,
                                    (a_boolean)locator.is_template_id,
                                    /*in_class_specialization=*/FALSE,
+                                   /*prefer_template=*/TRUE,
                                    NO_NESTING_DEPTH,
                                    severity_if_not_found);
       if (new_sym != NULL) {

@@ -75,6 +75,12 @@ If a class contained both a normal member function and a member function
 template that matched the type specified in an explicit specialization,
 the front end was incorrectly treating it as an invalid attempt to specialize
 the member instead of a valid specialization of the template.  Now fixed.
+This change also affects other uses of function types, such as in friend
+declarations and explicit instantiation directives.  The Microsoft and
+g++ compilers prefer a non-template friend to a matching template
+instance (despite the fact that the standard specifies the opposite
+behavior), so we preserve the existing behavior in Microsoft and g++
+modes.
 
   struct A {
     A(int);
