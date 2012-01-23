@@ -8983,6 +8983,7 @@ parameter.  Returns TRUE if the expression was replaced.
                                              (an_expr_operator_kind)eok_call) {
       /* Standalone call expression. */
       call_node = expr;
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
     } else if (is_operation_node(expr) &&
                expr->variant.operation.kind ==
                                            (an_expr_operator_kind)eok_assign &&
@@ -8997,6 +8998,7 @@ parameter.  Returns TRUE if the expression was replaced.
                         (an_expr_node_kind)enk_result_of_overriding_function) {
       /* Standalone enk_result_of_overriding_function. */
       replacing_roof = TRUE;
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     }  /* if */
     if (replacing_roof ||
         (call_node != NULL &&
