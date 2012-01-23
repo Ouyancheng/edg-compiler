@@ -1,5 +1,27 @@
 Version 4.5
 
+1/13/12  [EDGcpfe/12283]
+Abort on use in prototype instantiation of function inherited via using-decl
+
+The front end aborted (on a pointer deference in add_base_class_casts)
+while processing, during a prototype instantiation (i.e., in a mode that
+parses templates), a reference to a member function of a base class
+inherited via a using-declaration, when another base class is
+dependent.  Now fixed.
+
+  struct A {
+    int f();
+  };
+  template <class T> struct AA { };
+  template <class T> struct B : AA<T>, A {
+    using A::f;
+    void f(int);
+    void g() {
+      f();  // Caused abort with --strict
+    }
+  };
+
+
 1/22/12  [EDGcpfe/12622]
 Add --c++98 command line option
 

@@ -920,6 +920,11 @@ no error.
       pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
     }  /* if */
     set_error_constant(result);
+  } else if (bcp->derivation == NULL) {
+    /* Do not fold in the case of a dummy base class invented for a projection
+       of a member of a nonreal class into another class, e.g., via a
+       using-declaration. */
+    *did_not_fold = TRUE;
   } else {
     an_expr_node_ptr expr = constant_1->expr;
     constant_1->expr = NULL;

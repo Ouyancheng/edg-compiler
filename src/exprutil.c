@@ -4776,10 +4776,18 @@ appropriately and error_detected can be NULL.
     }  /* if */
     curr_type = skip_typerefs(curr_type);
     check_assertion(is_immediate_class_type(curr_type));
-    for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
-      base_class = dsp->base_class;
+    /* Note that dsp can be NULL in the case of a dummy base class invented
+       for a projection of a member of a nonreal class into another class,
+       e.g., via a using-declaration. */
+    if (bcp->derivation == NULL) {
+      dsp = NULL;
+    } else {
+      dsp = cast_derivation_path_of(bcp);
+    }  /* if */
+    for (;;) {
+      base_class = (dsp != NULL) ? dsp->base_class : bcp;
       /* Check that the base class is accessible from the current class. */
-      if (check_cast_access) {
+      if (check_cast_access && dsp != NULL) {
         if (!is_accessible_imm_base_class(base_class, curr_type)) {
           /* The base class is inaccessible.  Keep going, but issue the
              error only once. */
@@ -4817,9 +4825,12 @@ appropriately and error_detected can be NULL.
       (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
       (*p_node)->variant.operation.implicit_in_member_naming =
                                                             implicit_in_naming;
-      if (!is_implicit_cast && dsp->next != NULL) {
+      if (!is_implicit_cast && dsp != NULL && dsp->next != NULL) {
         (*p_node)->variant.operation.implicit_step_of_explicit_cast = TRUE;
       }  /* if */
+      if (dsp == NULL) break;
+      dsp = dsp->next;
+      if (dsp == NULL) break;
     }  /* for */
   }  /* if */
 }  /* add_base_class_casts */
