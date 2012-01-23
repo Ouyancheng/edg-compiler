@@ -3669,10 +3669,9 @@ be inserted.
 }  /* insert_epilogue_cleanup_state */
 
 
-static void define_default_version_of_routine(
-                                            a_routine_ptr    routine,
-                                            a_routine_ptr    new_routine,
-                                            an_expr_node_ptr default_arg_list)
+void define_default_version_of_routine(a_routine_ptr    routine,
+                                       a_routine_ptr    new_routine,
+                                       an_expr_node_ptr default_arg_list)
 /*
 Define new_routine, which is an alternate entry point for routine, with fewer
 arguments.  Replacements for trailing arguments in routine are given by the
@@ -3681,7 +3680,9 @@ HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS is TRUE, this routine is called
 twice (for classes that have virtual bases), once early to define the complete
 constructor/destructor so that ctor_inits may be moved (or copied) into the
 scope, and a second time during regular processing.  In the second case no
-action is necessary (since the routine has already been defined).
+action is necessary (since the routine has already been defined).  It is
+also called to define the alternate (static) entry point for the call
+operator of a no-capture lambda.
 */
 {
   an_expr_node_ptr implied_arg_list = NULL, end_implied_arg_list = NULL;
@@ -3689,6 +3690,7 @@ action is necessary (since the routine has already been defined).
   a_scope_ptr      new_routine_scope;
   a_type_ptr       routine_type = skip_typerefs(routine->type);
   a_type_ptr       this_param_type;
+  a_param_type_ptr first_actual_param_type;
   a_param_type_ptr src_param_type, param_type;
   a_routine_type_supplement_ptr
                    rtsp, new_rtsp;
@@ -3718,7 +3720,16 @@ action is necessary (since the routine has already been defined).
   if (new_routine->assoc_scope == NULL_region_number) {
     rtsp = routine->type->variant.routine.extra_info;
     new_rtsp = new_routine->type->variant.routine.extra_info;
-    this_param_type = new_rtsp->param_type_list->type;
+    if (new_routine->special_kind ==
+                             (a_special_function_kind)sfk_lambda_entry_point) {
+      /* The alternate entry point of a lambda call operator is a static
+         function and has no "this" parameter. */
+      this_param_type = rtsp->param_type_list->type;
+      first_actual_param_type = new_rtsp->param_type_list;
+    } else {
+      this_param_type = new_rtsp->param_type_list->type;
+      first_actual_param_type = new_rtsp->param_type_list->next;
+    }  /* if */
     /* This routine doesn't handle the extra argument for a return via
        copy constructor or additional parameter.  It could be changed
        to do so. */
@@ -3732,12 +3743,17 @@ action is necessary (since the routine has already been defined).
                                     &insert_location);
     push_generated_routine_context(new_routine_scope, new_routine_il_region,
                                    &grcontext);
-    /* Make a parameter variable for the "this" parameter (in lowered
-       form as a normal parameter). */
-    new_routine_scope->variant.routine.parameters = this_param_var =
+    if (new_routine->special_kind !=
+                             (a_special_function_kind)sfk_lambda_entry_point) {
+      /* Make a parameter variable for the "this" parameter (in lowered
+         form as a normal parameter). */
+      new_routine_scope->variant.routine.parameters = this_param_var =
                                   make_lowered_param_variable(this_param_type);
-    this_param_var->is_this_parameter = TRUE;
-    last_param_var = this_param_var;
+      this_param_var->is_this_parameter = TRUE;
+      last_param_var = this_param_var;
+    } else {
+      last_param_var = NULL;
+    }  /* if */
     /* Make expression lists for constructor or destructor implied
        arguments. */
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
@@ -3819,12 +3835,17 @@ action is necessary (since the routine has already been defined).
     }  /* if */
     /* Do not process parameters with default argument values, since they
        are removed from the routine's interface. */
-    for (param_type = new_rtsp->param_type_list->next; 
+    for (param_type = first_actual_param_type;
          param_type != NULL;
          param_type = param_type->next) {
       param_var = make_lowered_param_variable(param_type->type);
       param_var->assoc_param_type = param_type;
-      last_param_var->next = param_var;
+      if (last_param_var == NULL) {
+        last_param_var = param_var;
+        new_routine_scope->variant.routine.parameters = param_var;
+      } else {
+        last_param_var->next = param_var;
+      }  /* if */
       /* Add a reference to the parameter to the argument list to be used
          to call the original function.  This passes the parameter through
          unchanged.  Note that parameters of this type follow the
@@ -3915,7 +3936,15 @@ action is necessary (since the routine has already been defined).
     }  /* if */
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
     /* Add the "this" parameter at the front of the argument list. */
-    this_arg = var_rvalue_expr(this_param_var);
+    if (new_routine->special_kind ==
+                             (a_special_function_kind)sfk_lambda_entry_point) {
+      /* Pass NULL as the "this" argument. */
+      a_constant null_this;
+      make_zero_of_proper_type(this_param_type, &null_this);
+      this_arg = alloc_node_for_constant(&null_this);
+    } else {
+      this_arg = var_rvalue_expr(this_param_var);
+    }  /* if */
     this_arg->next = default_arg_list;
     /* Make a call node that calls the original routine with all
        the implicit arguments, i.e., that passes all the extra arguments

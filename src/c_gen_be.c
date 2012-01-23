@@ -307,13 +307,14 @@ static a_scope_ptr
 static a_scope_ptr
 		master_routine_scope;
 			/* If non-NULL, we are expanding the body of an
-			   overriding virtual function with a covariant return
-			   type, a thunk, or an alternate entry point for a
-			   constructor or destructor in the IA-64 ABI.
-			   This is the top-level scope of the underlying
-			   function for which entry_routine_scope gives the
-			   entry/wrapper function scope. */
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+			   overriding virtual function with a covariant
+			   return type, a thunk, an alternate entry point
+			   for a constructor or destructor in the IA-64
+			   ABI, or the alternate entry for a no-capture
+			   lambda call operator.  This is the top-level
+			   scope of the underlying function for which
+			   entry_routine_scope gives the entry/wrapper
+			   function scope. */
 static a_variable_ptr
 		master_routine_return_variable;
 			/* If non-NULL, we are expanding the body of a
@@ -328,7 +329,6 @@ static char
 			/* Label used to indicate the end of a master routine.
 			   Used as a target for "inlined" returns from the
 			   master routine. */
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 static int	num_master_params_added;
 			/* The number of additional parameters that the
 			   master routine has relative to the entry/wrapper
@@ -608,9 +608,7 @@ static void dump_asm_function_body(char *p);
 static a_constant_ptr constant_initializer(a_variable_ptr variable,
                                            an_init_kind   *init_kind);
 
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 static a_boolean replace_call_to_master_routine(an_expr_node_ptr expr);
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
 static void clear_output_file_position(an_output_file_position *ofp)
 /*
@@ -8320,12 +8318,8 @@ statement expression, i.e., ({...}).
         check_result_not_used_flag(statement->expr);
       }  /* if */
 #endif /* CHECKING */
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
       /* See if we need to "inline" a call to a master routine. */
-      if (!replace_call_to_master_routine(statement->expr))
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-      /* Do not insert code. */
-      {
+      if (!replace_call_to_master_routine(statement->expr)) {
         dump_expression(statement->expr);
         write_tok_ch(';');
       }  /* if */
@@ -8461,7 +8455,6 @@ statement expression, i.e., ({...}).
     case stmk_return:
       check_assertion_str(statement->variant.return_dynamic_init == NULL,
                           "dump_statement_full: return with dyn init");
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
       if (master_routine_scope != NULL &&
           innermost_function_scope == master_routine_scope) {
         /* We're "inlining" a master routine within an alternate entry routine
@@ -8488,10 +8481,7 @@ statement expression, i.e., ({...}).
         write_tok_str("goto ");
         write_tok_str(end_of_master_routine_label);
         write_tok_ch(';');
-      } else
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-      /* Do not insert code. */
-      {
+      } else {
         /* Do not put out an implicit return. */
         if (!is_implicit_return(statement)) {
           write_tok_str("return");
@@ -8935,7 +8925,6 @@ Set *region_number to the function memory region number.
   return scope;
 }  /* get_scope_for_routine_definition */
 
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 #if IA64_ABI
 
 static unsigned long num_parameters(a_scope_ptr scope)
@@ -9070,7 +9059,6 @@ parameter.  Returns TRUE if the expression was replaced.
   return replaced;
 }  /* replace_call_to_master_routine */
 
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
 static void dump_routine_definition(a_routine_ptr rout)
 /*
@@ -9081,47 +9069,52 @@ by dump_routine_decl.
 {
   a_memory_region_number scope_region_number;
   a_scope_ptr            scope, saved_curr_scope = curr_scope;
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
   a_routine_ptr          master_routine = NULL;
   a_memory_region_number master_scope_region_number = NO_SCOPE_NUMBER;
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
   /* Get the top-level scope for the routine definition.  Read it in if
      necessary. */
   scope = get_scope_for_routine_definition(rout, &scope_region_number);
   innermost_function_scope = curr_scope = scope;
+  if (skip_typerefs(rout->type)->variant.routine.extra_info->has_ellipsis) {
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-  /* Note that ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN is always
-     TRUE when IA64_ABI is TRUE. */
-  if (rout->overriding_function_for_wrapper != NULL &&
-      skip_typerefs(rout->type)->variant.routine.extra_info->has_ellipsis) {
-    /* This routine is a wrapper with a variable number of arguments.
-       Wrapper functions are used (in the IA-64 ABI) as thunks to adjust
-       the "this" pointer or, in the case of an overriding virtual function
-       with a covariant return type, to adjust the return type.  Expand the
-       overriding function reference (effectively "inlining" it) during the
-       code generation for the wrapper. */
-    /* We could do this for all wrappers, but we choose to do it only
-       when it's necessary, i.e., for routines with variable arguments.
-       Doing it in all cases causes code bloat, especially for IA-64 ABI
-       destructor thunks. */
-    master_routine = rout->overriding_function_for_wrapper;
+    /* Note that ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN is always
+       TRUE when IA64_ABI is TRUE. */
+    if (rout->overriding_function_for_wrapper != NULL) {
+      /* This routine is a wrapper with a variable number of arguments.
+         Wrapper functions are used (in the IA-64 ABI) as thunks to adjust
+         the "this" pointer or, in the case of an overriding virtual function
+         with a covariant return type, to adjust the return type.  Expand the
+         overriding function reference (effectively "inlining" it) during the
+         code generation for the wrapper. */
+      /* We could do this for all wrappers, but we choose to do it only
+         when it's necessary, i.e., for routines with variable arguments.
+         Doing it in all cases causes code bloat, especially for IA-64 ABI
+         destructor thunks. */
+      master_routine = rout->overriding_function_for_wrapper;
 #if IA64_ABI
-  } else if (rout->primary_ctor_or_dtor != NULL) {
-    /* This routine is an alternate entry point for a constructor or
-       destructor in the IA-64 ABI.  If the routine is a constructor with
-       an ellipsis, expand the body of the underlying constructor because
-       otherwise we have no way of passing the arguments through.
-       The body of the alternate entry point is simply a call to the
-       underlying routine, but may we have to assign values to some
-       parameters. */
-    /* Note that we definitely don't want to do this for the deleting
-       destructor, since it contains additional deletion code in addition
-       to the call to the underlying routine. */
-    if (skip_typerefs(rout->type)->variant.routine.extra_info->has_ellipsis) {
+    } else if (rout->primary_ctor_or_dtor != NULL) {
+      /* This routine is an alternate entry point for a constructor or
+         destructor in the IA-64 ABI with an ellipsis.  Expand the body of
+         the underlying constructor because otherwise we have no way of
+         passing the arguments through.  The body of the alternate entry
+         point is simply a call to the underlying routine, but may we have
+         to assign values to some parameters. */
+      /* Note that we definitely don't want to do this for the deleting
+         destructor, since it contains additional deletion code in addition
+         to the call to the underlying routine. */
       master_routine = rout->primary_ctor_or_dtor;
-    }  /* if */
 #endif /* IA64_ABI */
+    } else
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+    /* Do not insert code here. */
+    if (rout->special_kind ==
+                             (a_special_function_kind)sfk_lambda_entry_point) {
+      /* This routine is the alternate entry point for the call operator of
+         a no-capture lambda with an ellipsis.  As above, we will need to
+         expand the body of the call routine inline. */
+      master_routine = rout->variant.lambda_call_operator;
+    }  /* if */
   }  /* if */
   if (master_routine != NULL) {
     /* This is a wrapper routine.  Get the body of the underlying routine. */
@@ -9138,7 +9131,6 @@ by dump_routine_decl.
     }  /* if */
 #endif /* IA64_ABI */
   }  /* if */
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   octl.suppress_local_typedefs = FALSE;
   /* Generate the routine name and the parameter declarations. */
   dump_func_definition_type(rout, scope);
@@ -9151,7 +9143,6 @@ by dump_routine_decl.
   /* Now that we're done with the function, free its IL information. */
   free_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
   if (master_routine != NULL) {
     /* Finished a wrapper routine. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
@@ -9162,7 +9153,6 @@ by dump_routine_decl.
     master_routine_return_variable = NULL;
     num_master_params_added = 0;
   }  /* if */
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 }  /* dump_routine_definition */
 
 
@@ -9896,9 +9886,7 @@ must be redone for each generated C file.
                                                   &wide_string_constant_marker;
   entry_routine_scope = NULL;
   master_routine_scope = NULL;
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
   master_routine_return_variable = NULL;
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   num_master_params_added = 0;
 #if ASM_FUNCTION_ALLOWED
   within_asm_function_definition = FALSE;

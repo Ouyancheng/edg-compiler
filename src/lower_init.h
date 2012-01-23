@@ -210,6 +210,10 @@ extern void define_construction_vtbls_array(a_type_ptr              class_type,
                                             a_variable_ptr          var,
                                             a_construction_vtbl_ptr elements);
 
+extern void define_default_version_of_routine(
+                                            a_routine_ptr    routine,
+                                            a_routine_ptr    new_routine,
+                                            an_expr_node_ptr default_arg_list);
 extern void set_primary_ctor_or_dtor_kind(a_routine_ptr routine);
 
 extern a_routine_ptr alternate_entry_point(a_routine_ptr       routine,

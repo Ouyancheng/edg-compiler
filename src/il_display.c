@@ -2980,7 +2980,7 @@ Display the indicated routine.
   disp_name("declared_storage_class");
   disp_storage_class_name(ptr->declared_storage_class);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (special_kind_is(ptr, sfk_none)) {
+  if (!special_kind_is(ptr, sfk_none)) {
     disp_name("special_kind");
     disp_special_function_kind_name(ptr->special_kind);
     (void)printf("\n");
@@ -2990,6 +2990,8 @@ Display the indicated routine.
     disp_opname_kind_name(ptr->variant.opname_kind);
     (void)printf("\n");
   } else if (special_kind_is(ptr, sfk_lambda_entry_point)) {
+    disp_ptr("lambda_call_operator",
+             (char *)ptr->variant.lambda_call_operator, iek_routine);
 #if IA64_ABI && DO_IL_LOWERING
   } else if (special_kind_is(ptr, sfk_constructor) ||
              special_kind_is(ptr, sfk_destructor)) {

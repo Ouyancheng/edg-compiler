@@ -9449,6 +9449,12 @@ not include the function scope memory region, if any.
       }  /* for */
     }  /* if */
 #endif /* IA64_ABI */
+    if (routine->special_kind ==
+                             (a_special_function_kind)sfk_lambda_entry_point) {
+      /* Define the alternate entry point of the lambda call operator now. */
+      define_default_version_of_routine(routine->variant.lambda_call_operator,
+                                        routine, (an_expr_node_ptr)NULL);
+    }  /* if */
   }  /* if */
 }  /* lower_routine */
 
