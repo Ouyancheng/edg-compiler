@@ -3849,7 +3849,6 @@ operator of a no-capture lambda.
       param_var = make_lowered_param_variable(param_type->type);
       param_var->assoc_param_type = param_type;
       if (last_param_var == NULL) {
-        last_param_var = param_var;
         new_routine_scope->variant.routine.parameters = param_var;
       } else {
         last_param_var->next = param_var;
