@@ -507,7 +507,9 @@ generate a name for it and return TRUE (FALSE otherwise).
                                           rp->type->variant.routine.extra_info;
         a_param_type_ptr              this_param;
         this_param = rtsp->param_type_list;
-        rtsp->param_type_list = this_param->next;
+        if (this_param != NULL) {
+          rtsp->param_type_list = this_param->next;
+        }  /* if */
         form_type(rp->type, octl);
         rtsp->param_type_list = this_param;
       }  /* if */
