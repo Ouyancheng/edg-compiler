@@ -111,6 +111,7 @@ Clear an output control block to default values.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   octl->suppress_template_args    = FALSE;
   octl->suppress_ptr_to_data_member_parens = FALSE;
+  octl->suppress_compiler_generated_parameters = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -475,24 +476,6 @@ for a lambda closure class.
 }  /* scp_is_lambda_closure_class */
 
 
-static a_boolean is_this_param_for(a_type_ptr       type,
-                                   a_param_type_ptr param_ptr)
-/*
-Return TRUE if param_ptr designates a parameter that is a pointer to type,
-i.e., could be the "this" parameter for a non-static member function of
-type.
-*/
-{
-  a_boolean result = FALSE;
-  if (is_pointer_type(param_ptr->type)) {
-    a_type_ptr underlying_type =
-                             f_skip_typerefs(type_pointed_to(param_ptr->type));
-    result = same_entities(type, underlying_type);
-  }  /* if */
-  return result;
-}  /* is_this_param_for */
-
-
 static
 a_boolean form_name_if_lambda(a_source_correspondence               *scp,
                               an_il_entry_kind                      entry_kind,
@@ -518,39 +501,17 @@ generate a name for it and return TRUE (FALSE otherwise).
          called after the closure class has been created but before the
          complete lambda parameter list and return type have been scanned. */
       if (rp != NULL) {
-        a_routine_type_supplement_ptr rtsp =
-                                          rp->type->variant.routine.extra_info;
-        a_param_type_ptr              possible_this_param =
-                                                         rtsp->param_type_list;
-        a_param_type_ptr              *param_to_restore = NULL;
-        /* The routine type may or may not have a "this" parameter,
-           depending on the current state of processing, and if it does, it
-           might be either the first or the second parameter, depending on
-           the ABI and the characteristics of the type of the return value.
-           If it does have a "this" parameter, we must temporarily remove
-           it from the routine type to avoid an infinite recursion: the
-           "this" parameter points to the closure class and thus an attempt
-           to form its type would pass through here again. */
-        if (possible_this_param != NULL) {
-          if (is_this_param_for(type, possible_this_param)) {
-            /* "this" is the first parameter. */
-            param_to_restore = &rtsp->param_type_list;
-          } else if (possible_this_param->next != NULL &&
-                     is_this_param_for(type, possible_this_param->next)) {
-            /* "this" is the second parameter. */
-            param_to_restore = &possible_this_param->next;
-            possible_this_param = possible_this_param->next;
-          }  /* if */
-          if (param_to_restore != NULL) {
-            /* Temporarily remove the "this" parameter from the list. */
-            *param_to_restore = possible_this_param->next;
-          }  /* if */
-        }  /* if */
+        /* Avoid parameters added by lowering such as "this" and a pointer
+           to the return value.  This both causes the result to look more
+           like it would before lowering and also avoids a potential
+           infinite recursion on the "this" parameter: since "this" is a
+           pointer to the closure class, displaying its type would invoke
+           this code again. */
+        a_boolean saved_suppress_flag =
+                                  octl->suppress_compiler_generated_parameters;
+        octl->suppress_compiler_generated_parameters = TRUE;
         form_type(rp->type, octl);
-        if (param_to_restore != NULL) {
-          /* Put the "this" parameter back into the list. */
-          *param_to_restore = possible_this_param;
-        }  /* if */
+        octl->suppress_compiler_generated_parameters = saved_suppress_flag;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2333,18 +2294,26 @@ in the way described by octl.
         }  /* if */
       } else {
         /* List the parameter types. */
-        for (;;) {
+        for (; param != NULL; param = param->next) {
+          if (octl->suppress_compiler_generated_parameters &&
+              param->param_num == 0) {
+            /* This parameter was added by lowering and thus should not be
+               put out. */
+          } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (param->is_cli_param_array) octl->output_str("... ", octl);
+            if (param->is_cli_param_array) octl->output_str("... ", octl);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          form_type(param->type, octl);
-          if (param->is_parameter_pack) octl->output_str("...", octl);
-          /* Default argument expressions are not put out. */
-          param = param->next;
-          if (param == NULL) break;
-          /* There are more parameters, so output a separator and keep
-             looping. */
-          octl->output_str(", ", octl);
+            form_type(param->type, octl);
+            if (param->is_parameter_pack) octl->output_str("...", octl);
+            /* Default argument expressions are not put out. */
+            if (param->next != NULL &&
+                !(octl->suppress_compiler_generated_parameters &&
+                  param->next->param_num == 0)) {
+              /* There is another unsuppressed parameter, so output a
+                 separator. */
+              octl->output_str(", ", octl);
+            }  /* if */
+          }  /* if */
         }  /* for */
         /* Put out the ellipsis if there is one. */
         if (rtsp->has_ellipsis) octl->output_str(", ...", octl);

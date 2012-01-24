@@ -291,6 +291,13 @@ typedef struct an_il_to_str_output_control_block {
 			   are not permitted (or needed) in a
 			   conversion-type-id and must be suppressed in
 			   that context. */
+  a_byte_boolean
+	suppress_compiler_generated_parameters;
+			/* If TRUE, form_function_declarator will put out
+			   only those parameters that were present in the
+			   source; parameters added by lowering, such as
+			   "this" and pointers to return values, will be
+			   omitted. */
 } an_il_to_str_output_control_block;
 
 /*
