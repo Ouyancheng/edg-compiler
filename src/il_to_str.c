@@ -500,18 +500,25 @@ generate a name for it and return TRUE (FALSE otherwise).
          called after the closure class has been created but before the
          complete lambda parameter list and return type have been scanned. */
       if (rp != NULL) {
-        /* Temporarily remove the "this" parameter in order to prevent an
-           infinite recursion: trying to print the name of the type it
-           points to would end up back here again. */
+        /* The routine type may or may not have a "this" parameter at this
+           point.  Check to see if it does. */
         a_routine_type_supplement_ptr rtsp =
                                           rp->type->variant.routine.extra_info;
-        a_param_type_ptr              this_param;
-        this_param = rtsp->param_type_list;
-        if (this_param != NULL) {
-          rtsp->param_type_list = this_param->next;
+        a_param_type_ptr              first_param;
+        first_param = rtsp->param_type_list;
+        if (first_param != NULL && is_pointer_type(first_param->type)) {
+          a_type_ptr underlying_type =
+                           f_skip_typerefs(type_pointed_to(first_param->type));
+          if (is_immediate_class_type(underlying_type) &&
+              underlying_type == type) {
+            /* Temporarily remove the "this" parameter in order to prevent
+               an infinite recursion: trying to print the name of the type
+               it points to would end up back here again. */
+            rtsp->param_type_list = first_param->next;
+          }  /* if */
         }  /* if */
         form_type(rp->type, octl);
-        rtsp->param_type_list = this_param;
+        rtsp->param_type_list = first_param;
       }  /* if */
     }  /* if */
   }  /* if */
