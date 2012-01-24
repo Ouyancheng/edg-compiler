@@ -12646,8 +12646,11 @@ there was an error type somewhere in the type.
   if (is_array_type(uuidof_type)) {
     /* Reduce an array type to the underlying element type. */
     uuidof_type = underlying_array_element_type(uuidof_type);
-  } else if (is_pointer_type(uuidof_type)) {
-    /* Reduce a pointer to the underlying type. */
+  } else if (is_cli_array_type(uuidof_type)) {
+    /* Reduce a C++/CLI array type to the underlying element type. */
+    uuidof_type = cli_array_element_type(uuidof_type);
+  } else if (is_pointer_or_handle_type(uuidof_type)) {
+    /* Reduce a pointer or handle to the underlying type. */
     uuidof_type = type_pointed_to(uuidof_type);
   }  /* if */
   uuidof_type = skip_typerefs(uuidof_type);

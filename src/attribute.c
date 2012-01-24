@@ -5931,7 +5931,7 @@ the type.
              (a_cpp_cli_token)unsigned_value_of_integer_constant(arg2, &ovflo);
   check_assertion(!ovflo);
   /* Apply the values to the various il entries. */
-  if (is_class_or_struct(tp) && !cli_class_type_kind_is(tp, cctk_standard)) {
+  if (is_class_or_struct(tp)) {
     class_type_supp(tp)->assembly_index = assembly_index;
     class_type_supp(tp)->metadata_type_def_token = metadata_type_def_token;
   } else if (is_immediate_enum_type(tp)) {

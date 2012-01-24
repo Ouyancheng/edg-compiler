@@ -41,6 +41,7 @@ http://code.msdn.microsoft.com/alink
 
 #include <string>
 #include <map>
+#include <set>
 #include <vector>
 #include <stack>
 #include <sstream>
@@ -54,8 +55,12 @@ EXTERN_C_BLOCK_IN_CPP_FILE
 #include "fe_common.h"
 END_EXTERN_C_BLOCK_IN_CPP_FILE
 
-
 using namespace std;
+
+#define WIDEN2(x) L ## x
+#define WIDEN(x) WIDEN2(x)
+#define MAKE_CLASS_STRING(name) (L"System::" WIDEN(#name))
+#define CLI_NAMESPACE (L"cli::")
 
 /* The carriage return character is used because the new line character,
    ATTENTION_MARKER, has special meaning. */
@@ -154,6 +159,13 @@ public:
   }  /* GetScopeProps */
 
   using IMetaDataImport2::GetTypeDefProps;
+  HRESULT GetTypeDefProps(mdTypeDef td,
+                          DWORD     *pdwTypeDefFlags,
+                          mdToken   *ptkExtends = nullptr) {
+    return GetTypeDefProps(td, /*szTypeDef=*/nullptr, /*cchTypeDef=*/0,
+                           /*pchTypeDef=*/0, pdwTypeDefFlags,
+                           ptkExtends);
+  }  /* GetTypeDefProps */
   HRESULT GetTypeDefProps(mdTypeDef td,
                           wstring   &name,
                           DWORD     *pdwTypeDefFlags,
@@ -378,6 +390,47 @@ typedef a_generic_param_or_arg_list a_generic_argument_list;
 typedef vector<const wstring> a_constraint_clause_list;
 /* An empty list of generic constraints. */
 const a_constraint_clause_list no_generic_constraints;
+/* A list of generic types that have been declared with a pending constraint
+   clause. */
+typedef vector<mdTypeDef> a_pending_constraint_type_list;
+
+void escape_invalid_identifier(wstring            &identifier,
+                               bool               force = false,
+                               wstring::size_type chars_to_skip = 0)
+/*
+If 'identifier' is not a valid C++ identifier, wrap it with
+"__identifier("...")".  If chars_to_skip is nonzero, only wrap the portion
+of the given string that starts that the position indicated by chars_to_skip.
+If force is true, do the wrapping regardless of the contents of the string
+(this is used in contexts where identifiers spelled like C++ keywords can
+appear, because this function does not currently recognize such keywords).
+*/
+{
+  check_assertion(identifier.length() > chars_to_skip);
+  auto iter = identifier.begin() + chars_to_skip;
+  auto ch = *iter++;
+  if (!force && (ch == L'_' ||
+                 (ch >= L'a' && ch <= L'z') ||
+                 (ch >= L'A' && ch <= L'Z'))) {
+    for (; iter != identifier.end(); ++iter) {
+      ch = *iter;
+      if (!(ch == L'_' ||
+            (ch >= L'a' && ch <= L'z') ||
+            (ch >= L'A' && ch <= L'Z') ||
+            (ch >= L'0' && ch <= L'9'))) {
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (iter != identifier.end()) {
+    if (chars_to_skip == 0) {
+      identifier = L"__identifier(\"" + identifier + L"\")";
+    } else {
+      identifier = identifier.substr(0, chars_to_skip) + L"__identifier(\"" +
+                                identifier.substr(chars_to_skip + 1) + L"\")";
+    }  /* if */
+  }  /* if */
+}  /* */
 
 
 BYTE strip_generic_arity(wstring &type_name)
@@ -399,37 +452,28 @@ Strip the generic arity encoded after the last backtick in the type name.
 }  /* strip_generic_arity */
 
 
-static void expand_generic_type_name(
-                wstring                           &type_name,
-                const a_generic_param_or_arg_list &generic_params_or_args,
-                a_generic_param_or_arg_iterator   &generic_params_or_args_end)
+static void append_generic_params_or_args(
+                 wstring                         &type_name,
+                 a_generic_param_or_arg_iterator generic_params_or_args_begin,
+                 a_generic_param_or_arg_iterator generic_params_or_args_end)
 /*
-Strip the generic arity encoded after the last backtick in type_name and
-replace it with the generic parameters or arguments from the list provided in
-generic_params_or_args.  Upon return, generic_params_or_args_end refers to the
-last generic parameter or argument consumed by the expansion.
+Append the generic parameters or arguments to the type name.
 */
 {
-  BYTE generic_arity = strip_generic_arity(type_name);
-  if (generic_arity != 0) {
-    /* The generic parameter names or arguments associated with this
-       generic type or instantiation are at the end of the list. */
-    check_assertion(generic_arity <=
-                              distance(generic_params_or_args.begin(),
-                                        generic_params_or_args_end));
-    type_name += L'<';
-    for (auto iter = generic_params_or_args_end - generic_arity;
-         iter != generic_params_or_args_end;
-         ++iter) {
-      const wstring &param_or_arg_name = *iter;
-      type_name += param_or_arg_name;
-      if (iter + 1 != generic_params_or_args_end)
-        type_name += L", ";
-    }  /* for */
-    type_name += L'>';
-    generic_params_or_args_end = generic_params_or_args_end - generic_arity;
-  }  /* if */
-}  /* expand_generic_type_name */
+  check_assertion(distance(generic_params_or_args_begin,
+                           generic_params_or_args_end) > 0);
+  type_name += L'<';
+  for (auto iter = generic_params_or_args_begin;
+       iter != generic_params_or_args_end;
+       ++iter) {
+    const wstring &param_or_arg_name = *iter;
+    type_name += param_or_arg_name;
+    if (iter + 1 != generic_params_or_args_end) {
+      type_name += L", ";
+    }  /* if */
+  }  /* for */
+  type_name += L'>';
+}  /* append_generic_params_or_args */
 
 
 /*
@@ -482,6 +526,551 @@ private:
 /* A list of method parameters. */
 typedef vector<const a_method_parameter> a_method_parameter_list;
 
+class a_type_wrapper;
+typedef std::shared_ptr<a_type_wrapper> a_type_wrapper_ptr;
+typedef std::shared_ptr<const a_type_wrapper> a_const_type_wrapper_ptr;
+class a_class_type_wrapper;
+typedef std::shared_ptr<a_class_type_wrapper> a_class_type_wrapper_ptr;
+typedef std::shared_ptr<const a_class_type_wrapper>
+                                               a_const_class_type_wrapper_ptr;
+class a_type_indirection;
+typedef std::shared_ptr<a_type_indirection> a_type_indirection_ptr;
+typedef std::shared_ptr<const a_type_indirection>
+                                                 a_const_type_indirection_ptr;
+class a_function_type_wrapper;
+typedef std::shared_ptr<a_function_type_wrapper> a_function_type_wrapper_ptr;
+typedef std::shared_ptr<const a_function_type_wrapper>
+                                            a_const_function_type_wrapper_ptr;
+
+class a_type_wrapper
+/*
+A class that represents types imported from metadata.  Instances of the
+a_type_wrapper class represent fundamental types.  Instances of derived
+classes are used to represent other kinds of types.
+*/
+{
+public:
+  enum a_kind
+  {
+    twk_invalid,
+    twk_void,
+    twk_cxx_udt_return,
+    twk_copy_ctor,
+    twk_bool,
+    twk_char,
+    twk_signed_char,
+    twk_unsigned_char,
+    twk_short,
+    twk_unsigned_short,
+    twk_wchar_t,
+    twk_int,
+    twk_unsigned_int,
+    twk_long,
+    twk_unsigned_long,
+    twk_long_long,
+    twk_unsigned_long_long,
+    twk_float,
+    twk_double,
+    twk_long_double,
+    twk_class,
+    twk_indirection,
+    twk_function
+  };
+
+  typedef unsigned char a_qualifier_flag_set;
+  enum a_qualifier_flag : a_qualifier_flag_set
+  {
+    qf_none     = 0x0,
+    qf_const    = 0x1,
+    qf_volatile = 0x2
+  };
+
+  a_type_wrapper(a_kind kind)
+    : kind_(kind)
+    , qualifier_flags_(qf_none)
+  {
+  }  /* Constructor. */
+
+  a_type_wrapper(const a_type_wrapper &other)
+    : kind_(other.kind_)
+    , qualifier_flags_(other.qualifier_flags_)
+  {
+  }  /* Copy constructor. */
+
+  a_type_wrapper(a_type_wrapper &&other)
+    : kind_(twk_invalid)
+    , qualifier_flags_(qf_none)
+  {
+    other.swap(*this);
+  }  /* Move constructor. */
+
+  virtual ~a_type_wrapper()
+  {
+  }  /* Destructor. */
+
+  a_type_wrapper &operator=(a_type_wrapper other) {
+    other.swap(*this);
+    return *this;
+  }  /* Assignment operator. */
+
+  void swap(a_type_wrapper &other) {
+    std::swap(kind_, other.kind_);
+    std::swap(qualifier_flags_, other.qualifier_flags_);
+  }  /* swap */
+
+  virtual a_type_wrapper_ptr copy() const {
+    return make_shared<a_type_wrapper>(*this);
+  }  /* copy */
+
+  a_kind kind() const { return kind_; }
+  void set_kind(a_kind kind) { kind_ = kind; }
+  bool is_of_kind(a_kind kind) const { return kind_ == kind; }
+
+  a_qualifier_flag_set qualifier_flags() const { return qualifier_flags_; }
+  void set_qualifier_flags(a_qualifier_flag_set qualifier_flags) {
+    qualifier_flags_ = qualifier_flags;
+  } /* set_qualifier_flags */
+  void add_qualifier_flags(a_qualifier_flag_set qualifier_flags) {
+    qualifier_flags_ |= qualifier_flags;
+  } /* set_qualifier_flags */
+
+  virtual a_class_type_wrapper_ptr as_class() {
+    check_assertion(!is_of_kind(twk_class));
+    return nullptr;
+  }  /* as_class */
+
+  virtual a_const_class_type_wrapper_ptr as_class() const {
+    check_assertion(!is_of_kind(twk_class));
+    return nullptr;
+  }  /* as_class */
+
+  virtual a_type_indirection_ptr as_indirection() {
+    check_assertion(!is_of_kind(twk_indirection));
+    return nullptr;
+  }  /* as_pointer */
+
+  virtual a_const_type_indirection_ptr as_indirection() const {
+    check_assertion(!is_of_kind(twk_indirection));
+    return nullptr;
+  }  /* as_pointer */
+
+  virtual a_function_type_wrapper_ptr as_function() {
+    check_assertion(!is_of_kind(twk_function));
+    return nullptr;
+  }  /* as_function */
+
+  virtual a_const_function_type_wrapper_ptr as_function() const {
+    check_assertion(!is_of_kind(twk_function));
+    return nullptr;
+  }  /* as_function */
+
+  wstring get_string(const wstring &declarator = wstring()) const {
+    wostringstream buffer;
+    write_first_part(buffer);
+    if (!declarator.empty()) {
+      buffer << L' ' << declarator;
+    }  /* if */
+    write_second_part(buffer);
+    return buffer.str();
+  }  /* get_string */
+
+  void write_qualifiers(wostringstream &buffer) const {
+    if ((qualifier_flags_ & qf_const) != 0) {
+      buffer << L"const";
+    }  /* if */
+    if ((qualifier_flags_ & qf_volatile) != 0) {
+      buffer << L"volatile";
+    }  /* if */
+  }  /* write_qualifiers */
+
+  virtual void write_first_part(wostringstream &buffer) const {
+    write_qualifiers(buffer);
+    if (qualifier_flags() != qf_none) {
+      buffer << L' ';
+    }  /* if */
+    switch (kind_) {
+      case twk_void:               buffer << L"void"; break;
+      case twk_bool:               buffer << L"bool"; break;
+      case twk_char:               buffer << L"char"; break;
+      case twk_signed_char:        buffer << L"signed char"; break;
+      case twk_unsigned_char:      buffer << L"unsigned char"; break;
+      case twk_short:              buffer << L"short"; break;
+      case twk_unsigned_short:     buffer << L"unsigned short"; break;
+      case twk_wchar_t:            buffer << L"__wchar_t"; break;
+      case twk_int:                buffer << L"int"; break;
+      case twk_unsigned_int:       buffer << L"unsigned int"; break;
+      case twk_long:               buffer << L"long"; break;
+      case twk_unsigned_long:      buffer << L"unsigned long"; break;
+      case twk_long_long:          buffer << L"long long"; break;
+      case twk_unsigned_long_long: buffer << L"unsigned long long"; break;
+      case twk_float:              buffer << L"float"; break;
+      case twk_double:             buffer << L"double"; break;
+      case twk_long_double:        buffer << L"long double"; break;
+      default:
+        unexpected_condition();
+        buffer << L"__error_type";
+        break;
+    }  /* switch */
+  }  /* write_first_part */
+
+  virtual void write_second_part(wostringstream &buffer) const {
+  }  /* write_second_part */
+
+private:
+  a_kind kind_;
+  a_qualifier_flag_set qualifier_flags_;
+};  /* a_type_wrapper */
+
+
+class a_class_type_wrapper
+  : public a_type_wrapper
+  , public enable_shared_from_this<a_class_type_wrapper>
+/*
+A class that represents types imported from metadata that aren't fundamental,
+function, pointer, or reference types.
+*/
+{
+public:
+  enum a_class_kind
+  {
+    ck_invalid,
+    ck_class,
+    ck_array,
+    ck_value_class,
+    ck_generic_parameter
+  };
+
+  static a_class_type_wrapper_ptr create_array(
+                                    const a_type_wrapper_ptr &underlying_type,
+                                    DWORD                    param_attributes,
+                                    ULONG                    rank = 1)
+  {
+    wstringstream type_name;
+    type_name << L"cli::array<";
+    type_name << underlying_type->get_string();
+    if (rank > 1) {
+      type_name << L", " << rank;
+    }  /* if */
+    type_name << L">";
+    return make_shared<a_class_type_wrapper>(ck_array, type_name.str());
+  }  /* create_array */
+
+  a_class_type_wrapper(a_class_kind kind, wstring name)
+    : a_type_wrapper(twk_class)
+    , class_kind_(kind)
+    , name_(move(name))
+  {
+  }  /* Constructor. */
+
+  a_class_type_wrapper(const a_class_type_wrapper &other)
+    : a_type_wrapper(other)
+    , class_kind_(other.class_kind_)
+    , name_(other.name_)
+  {
+  }  /* Copy constructor. */
+
+  a_class_type_wrapper(a_class_type_wrapper &&other)
+    : a_type_wrapper(twk_class)
+    , class_kind_(ck_invalid)
+  {
+    other.swap(*this);
+  }  /* Move constructor. */
+
+  a_class_type_wrapper &operator=(a_class_type_wrapper other) {
+    other.swap(*this);
+    return *this;
+  }  /* Assignment operator. */
+
+  void swap(a_class_type_wrapper &other) {
+    a_type_wrapper::swap(other);
+    std::swap(class_kind_, other.class_kind_);
+    std::swap(name_, other.name_);
+  }  /* swap */
+
+  virtual a_type_wrapper_ptr copy() const {
+    return make_shared<a_class_type_wrapper>(*this);
+  }  /* copy */
+
+  a_class_kind class_kind() const { return class_kind_; }
+  void set_class_kind(a_class_kind kind) { class_kind_ = kind; }
+  bool is_of_class_kind(a_class_kind kind) const
+  { return class_kind_ == kind; }
+
+  const wstring &name() const { return name_; }
+  void set_name(wstring name) { name_ = move(name); }
+
+  virtual a_class_type_wrapper_ptr as_class() {
+    check_assertion(is_of_kind(twk_class));
+    return shared_from_this();
+  }  /* as_class */
+
+  virtual a_const_class_type_wrapper_ptr as_class() const {
+    check_assertion(is_of_kind(twk_class));
+    return shared_from_this();
+  }  /* as_class */
+
+  virtual void write_first_part(wostringstream &buffer) const {
+    if (!is_of_class_kind(ck_invalid)) {
+      write_qualifiers(buffer);
+      if (qualifier_flags() != qf_none) {
+        buffer << L' ';
+      }  /* if */
+      buffer << name_;
+    } else {
+      unexpected_condition();
+      buffer << L"__error_type";
+    }  /* if */
+  }  /* write_first_part */
+
+private:
+  a_class_kind class_kind_;
+  wstring      name_;
+};  /* a_class_type_wrapper */
+
+
+class a_type_indirection
+  : public a_type_wrapper
+  , public enable_shared_from_this<a_type_indirection>
+/*
+A class that represents pointer and reference types imported from metadata.
+*/
+{
+public:
+  enum an_indirection_kind
+  {
+    tik_invalid,
+    tik_pointer,
+    tik_interior_pointer,
+    tik_handle,
+    tik_reference,
+    tik_rvalue_reference,
+    tik_tracking_reference
+  };
+
+  a_type_indirection(an_indirection_kind indirection_kind,
+                     a_type_wrapper_ptr  underlying_type)
+    : a_type_wrapper(twk_indirection)
+    , indirection_kind_(indirection_kind)
+    , underlying_type_(move(underlying_type))
+  {
+    check_assertion(underlying_type_ != nullptr);
+  }  /* Constructor. */
+
+  a_type_indirection(const a_type_indirection &other)
+    : a_type_wrapper(other)
+    , indirection_kind_(other.indirection_kind_)
+    , underlying_type_(other.underlying_type_)
+  {
+  }  /* Copy constructor. */
+
+  a_type_indirection(a_type_indirection &&other)
+    : a_type_wrapper(twk_indirection)
+    , indirection_kind_(tik_invalid)
+  {
+    other.swap(*this);
+  }  /* Move constructor. */
+
+  a_type_indirection &operator=(a_type_indirection other) {
+    other.swap(*this);
+    return *this;
+  }  /* Assignment operator. */
+
+  void swap(a_type_indirection &other) {
+    a_type_wrapper::swap(other);
+    std::swap(indirection_kind_, other.indirection_kind_);
+    std::swap(underlying_type_, other.underlying_type_);
+  }  /* swap */
+
+  virtual a_type_wrapper_ptr copy() const {
+    return make_shared<a_type_indirection>(*this);
+  }  /* copy */
+
+  an_indirection_kind indirection_kind() const { return indirection_kind_; }
+  void set_indirection_kind(an_indirection_kind indirection_kind)
+  { indirection_kind_ = indirection_kind; }
+  bool is_of_indirection_kind(an_indirection_kind indirection_kind) const
+  { return indirection_kind_ == indirection_kind; }
+
+  a_type_wrapper_ptr underlying_type() {
+    return underlying_type_;
+  }  /* underlying_type */
+
+  a_const_type_wrapper_ptr underlying_type() const {
+    return underlying_type_;
+  }  /* underlying_type */
+
+  a_type_indirection_ptr as_indirection() {
+    check_assertion(is_of_kind(twk_indirection));
+    return shared_from_this();
+  }  /* as_indirection */
+
+  a_const_type_indirection_ptr as_indirection() const {
+    check_assertion(is_of_kind(twk_indirection));
+    return shared_from_this();
+  }  /* as_indirection */
+
+  virtual void write_first_part(wostringstream &buffer) const {
+    if (underlying_type_) {
+      wstring kind_string;
+      switch (indirection_kind_) {
+        case tik_interior_pointer:
+          if (!underlying_type_->is_of_kind(a_type_wrapper::twk_function) &&
+              qualifier_flags() == qf_none) {
+            buffer << L"interior_ptr<" << underlying_type_->get_string()
+                   << L'>';
+          } else {
+            unexpected_condition();
+            buffer << L"__error_type";
+          }  /* if */
+          break;
+        case tik_pointer:            kind_string = L'*';  goto have_string;
+        case tik_handle:             kind_string = L'^';  goto have_string;
+        case tik_reference:          kind_string = L'&';  goto have_string;
+        case tik_rvalue_reference:   kind_string = L"&&"; goto have_string;
+        case tik_tracking_reference: kind_string = L'%';
+have_string:
+          underlying_type_->write_first_part(buffer);
+          if (underlying_type_->is_of_kind(a_type_wrapper::twk_function)) {
+            buffer << L" (";
+          }  /* if */
+          buffer << kind_string;
+          if (qualifier_flags() != qf_none) {
+            buffer << L' ';
+            write_qualifiers(buffer);
+          }  /* if */
+          break;
+        default:
+          unexpected_condition();
+          buffer << L"__error_type";
+          break;
+      }  /* switch */
+    } else {
+      unexpected_condition();
+      buffer << L"__error_type";
+    }  /* if */
+  }  /* write_first_part */
+
+  virtual void write_second_part(wostringstream &buffer) const {
+    if (underlying_type_) {
+      switch (indirection_kind_) {
+        case tik_interior_pointer:
+          break;
+        case tik_pointer:
+        case tik_handle:
+        case tik_reference:
+        case tik_rvalue_reference:
+        case tik_tracking_reference:
+          if (underlying_type_->is_of_kind(a_type_wrapper::twk_function)) {
+            buffer << L")";
+          }  /* if */
+          underlying_type_->write_second_part(buffer);
+          break;
+        default:
+          unexpected_condition();
+          break;
+      }  /* switch */
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* write_second_part */
+
+private:
+  an_indirection_kind indirection_kind_;
+  a_type_wrapper_ptr  underlying_type_;
+};  /* a_type_indirection */
+
+
+class a_function_type_wrapper
+  : public a_type_wrapper
+  , public enable_shared_from_this<a_function_type_wrapper>
+/*
+A class that represents function types imported from metadata.
+*/
+{
+public:
+  a_function_type_wrapper(a_type_wrapper_ptr return_type,
+                          wstring            parameter_list,
+                          wstring            generic_header)
+    : a_type_wrapper(twk_function)
+    , return_type_(move(return_type))
+    , parameter_list_(move(parameter_list))
+    , generic_header_(move(generic_header))
+  {
+  }  /* Constructor. */
+
+  a_function_type_wrapper(const a_function_type_wrapper &other)
+    : a_type_wrapper(other)
+    , return_type_(other.return_type_)
+    , parameter_list_(other.parameter_list_)
+    , generic_header_(other.generic_header_)
+  {
+  }  /* Copy constructor. */
+
+  a_function_type_wrapper(a_function_type_wrapper &&other)
+    : a_type_wrapper(twk_function)
+  {
+    other.swap(*this);
+  }  /* Move constructor. */
+
+  a_function_type_wrapper &operator=(a_function_type_wrapper other) {
+    other.swap(*this);
+    return *this;
+  }  /* Assignment operator. */
+
+  void swap(a_function_type_wrapper &other) {
+    a_type_wrapper::swap(other);
+    std::swap(return_type_, other.return_type_);
+    std::swap(parameter_list_, other.parameter_list_);
+    std::swap(generic_header_, other.generic_header_);
+  }  /* swap */
+
+  virtual a_type_wrapper_ptr copy() const {
+    return make_shared<a_function_type_wrapper>(*this);
+  }  /* copy */
+
+  a_const_type_wrapper_ptr return_type() const {
+    return return_type_;
+  }  /* underlying_type */
+
+  wstring parameter_list() const { return parameter_list_; }
+
+  wstring generic_header() const { return generic_header_; }
+
+  virtual a_function_type_wrapper_ptr as_function() {
+    check_assertion(is_of_kind(twk_function));
+    return shared_from_this();
+  }  /* as_function */
+
+  virtual a_const_function_type_wrapper_ptr as_function() const {
+    check_assertion(is_of_kind(twk_function));
+    return shared_from_this();
+  }  /* as_function */
+
+protected:
+  virtual void write_first_part(wostringstream &buffer) const {
+    if (return_type_ != nullptr) {
+      buffer << return_type_->get_string();
+    }  /* if */
+  }  /* write_first_part */
+
+  virtual void write_second_part(wostringstream &buffer) const {
+    if (!parameter_list_.empty()) {
+      buffer << parameter_list_;
+      if (qualifier_flags() != qf_none) {
+        buffer << L' ';
+        write_qualifiers(buffer);
+      }  /* if */
+    } else {
+      unexpected_condition();
+      buffer << L"()";
+    }  /* if */
+  }  /* write_second_part */
+
+private:
+  a_type_wrapper_ptr return_type_;
+  wstring            parameter_list_;
+  wstring            generic_header_;
+};  /* a_function_type_wrapper */
 
 /*
 A class to decode a CLR signature.  It returns the result as a std::wstring.
@@ -489,41 +1078,46 @@ A class to decode a CLR signature.  It returns the result as a std::wstring.
 class a_signature_decoder {
 public:
   a_signature_decoder(
-               const an_import_scope&         import_scope,
-               mdToken                        token,
-               PCCOR_SIGNATURE                signature,
-               ULONG                          bytes_in_signature,
-               const a_generic_parameter_list &generic_type_parameters,
-               const a_generic_parameter_list &generic_method_parameters,
-               a_boolean                      is_system_string_member)
+                   an_import_scope                &import_scope,
+                   PCCOR_SIGNATURE                signature,
+                   ULONG                          bytes_in_signature,
+                   const a_generic_parameter_list &generic_type_parameters,
+                   const a_generic_parameter_list &generic_method_parameters,
+                   a_boolean                      is_system_string_member)
     : import_scope_(import_scope),
-      token_(token),
       signature_(signature),
       bytes_in_signature_(bytes_in_signature),
       generic_type_parameters_(generic_type_parameters),
       generic_method_parameters_(generic_method_parameters),
       is_system_string_member_(is_system_string_member),
-      index_(0)
+      index_(0),
+      contains_unknown_optional_type_modifiers_(false)
   {
   }  /* constructor */
 
-  wstring decode_type(bool add_handle_to_class = true);
+  a_type_wrapper_ptr decode_modified_type(
+                               CorElementType element_type,
+                               DWORD          param_attributes/*=0*/);
 
-  a_method_parameter_list get_method_parameters(ULONG number_of_parameters);
+  a_type_wrapper_ptr decode_type(DWORD param_attributes = 0);
 
-  wstring decode_return_type();
+  a_method_parameter_list get_method_parameters(mdToken token,
+                                                ULONG   number_of_parameters);
 
-  wstring decode_method_signature(const wstring       &name,
-                                  DWORD               method_attributes,
-                                  bool                omit_return_type,
-                                  bool                is_for_property,
-                                  a_cli_operator_kind cok);
+  wstring decode_return_type(mdToken token);
 
-  wstring decode_field_signature()
+  a_type_wrapper_ptr decode_method_signature(mdProperty token);
+
+  a_type_wrapper_ptr decode_field_signature()
   {
     skip_calling_convention(IMAGE_CEE_CS_CALLCONV_FIELD);
     return decode_type();
   }  /* decode_field_signature */
+
+  a_boolean contains_unknown_optional_type_modifiers()
+  {
+    return contains_unknown_optional_type_modifiers_;
+  }  /* contains_unknown_optional_type_modifiers */
 
 private:
   BYTE read_one_byte()
@@ -579,11 +1173,9 @@ private:
   a_generic_argument_list decode_generic_arguments();
 
 private:
-  const an_import_scope
+  an_import_scope
                 &import_scope_;
                         /* The import scope associated with this signature. */
-  mdToken       token_;
-                        /* The token for the method. */
   const PCCOR_SIGNATURE
                 signature_;
                         /* The signature we want to decode. */
@@ -592,16 +1184,19 @@ private:
   const a_generic_parameter_list
                 &generic_type_parameters_;
                         /* Any generic type parameters associated with this
-                           method signature. */
+                           signature. */
   a_generic_parameter_list
                 generic_method_parameters_;
                         /* Any generic method parameters associated with this
-                           method signature. */
+                           signature. */
   a_boolean     is_system_string_member_;
                         /* TRUE if this signature is for a member of
                            System::String. */
   ULONG         index_;
                         /* The current index into the signature. */
+  a_boolean     contains_unknown_optional_type_modifiers_;
+                        /* TRUE if this signature contains any unknown
+                           optional type modifiers (modopts). */
 }; /* a_signature_decoder */
 
 
@@ -736,6 +1331,11 @@ cast to the appropriate type.
         buffer << L'\"' << dec;
         break;
       } /* case ELEMENT_TYPE_STRING */
+    case ELEMENT_TYPE_CLASS:
+      /* The nullptr constant. */
+      check_assertion(convert_to<unsigned int>(constant_value_) == 0);
+      buffer << L"nullptr";
+      break;
     default:
       unexpected_condition();
       break;
@@ -887,6 +1487,11 @@ enum a_top_level_kind {
 };  /* a_top_level_kind */
 
 /*
+a_type_definition forward declaration.
+*/
+class a_type_definition;
+
+/*
 The representation of a single import scope.  Each assembly can contain one
 or more import scope - though only one import scope has the metadata for
 types.
@@ -922,42 +1527,57 @@ public:
   void import_one_type(
                 ostringstream                  &buffer,
                 mdTypeDef                      typedef_token,
-                bool                           at_top_level,
-                const a_generic_parameter_list &enclosing_type_generic_params,
+                const a_type_definition        *enclosing_type_definition,
                 bool                           want_definition,
-                bool                           class_body_only);
+                bool                           class_body_only,
+                a_pending_constraint_type_list *pending_constraint_types);
+
+private:
+  wstring resolve_typedef_token(
+       mdTypeDef                         token,
+       const a_generic_param_or_arg_list &generic_type_params_or_args,
+       a_generic_param_or_arg_iterator   generic_type_params_or_args_end,
+       bool                              omit_generic_params_or_args = false);
+  wstring resolve_typeref_token(
+              mdTypeRef                         token,
+              const a_generic_param_or_arg_list &generic_type_params_or_args);
+public:
   wstring resolve_type_token(
-             mdToken                           token,
-             const a_generic_param_or_arg_list &generic_type_params_or_args,
-             const a_generic_param_or_arg_list &generic_method_params_or_args,
-             bool                              replaces_dots) const;
-  wstring resolve_type_token(
-            mdToken                           token,
-            const a_generic_param_or_arg_list &generic_type_params_or_args,
-            a_generic_param_or_arg_iterator   generic_type_params_or_args_end,
-            const a_generic_param_or_arg_list &generic_method_params_or_args,
-            bool                              replaces_dots) const;
-  void get_generic_parameters_and_constraints(
+      mdToken                           token,
+      const a_generic_param_or_arg_list &generic_type_params_or_args,
+      const a_generic_param_or_arg_list &generic_method_params_or_args,
+      bool                              omit_generic_params_or_args = false);
+
+  BYTE get_generic_parameter_count(mdTypeDef token) const;
+  BYTE get_generic_parameters_and_constraints(
            mdToken                        token,
            const a_generic_parameter_list &generic_type_parameters_for_method,
-           BYTE                           generic_arity,
+           BYTE                           enclosing_type_generic_params_count,
            a_generic_parameter_list       &generic_parameters,
-           a_constraint_clause_list       &generic_constraints) const;
+           a_constraint_clause_list       &generic_constraints,
+           a_pending_constraint_type_list *pending_constraint_types);
   void get_generic_constraints(
       mdToken                             token,
       const a_generic_parameter_list      &generic_type_parameters_for_method,
       BYTE                                generic_arity,
       const a_generic_parameter_info_list &generic_parameters_info,
       const a_generic_parameter_list      &generic_parameters,
-      a_constraint_clause_list            &generic_constraints) const;
+      a_constraint_clause_list            &generic_constraints,
+      a_pending_constraint_type_list      *pending_constraint_types);
+  wstring form_full_generic_parameter_list(
+                mdTypeDef                       typedef_token,
+                DWORD                           type_attributes,
+                a_generic_param_or_arg_iterator generic_parameters_begin,
+                a_generic_param_or_arg_iterator generic_parameters_end) const;
   wstring form_generic_type_header(
-                   mdTypeDef                         typedef_token,
-                   DWORD                             type_attributes,
-                   BYTE                              generic_arity,
-                   const a_generic_param_or_arg_list &generic_parameters,
-                   a_generic_param_or_arg_iterator   generic_parameters_end,
-                   const a_constraint_clause_list    &generic_constraints,
-                   a_boolean                         out_of_class_definition);
+        mdTypeDef                         typedef_token,
+        DWORD                             type_attributes,
+        BYTE                              generic_arity,
+        mdTypeDef                         enclosing_type_token,
+        DWORD                             enclosing_type_attributes,
+        const a_generic_param_or_arg_list &generic_parameters,
+        const a_constraint_clause_list    &generic_constraints,
+        a_boolean                         out_of_class_definition) const;
   void cleanup();
 
 private:
@@ -1001,9 +1621,9 @@ private:
   vector<wstring>
                 namespace_stack_;
                         /* The stack of active namespaces. */
-  map<mdTypeDef, wstring>
+  map<mdToken, wstring>
                 map_of_tokens_to_names_;
-                        /* A mapping from a mdTypeDef to the name of the type:
+                        /* A mapping from a mdToken to the name of the type:
                            useful when we want the name of a type we have
                            already imported. */
 }; /* an_import_scope */
@@ -1020,6 +1640,7 @@ scope that we will need later.  Currently this is just the name of the scope.
 {
   HRESULT hr;
 
+  import_interface_->AddRef();
   hr = import_interface_->GetScopeProps(scope_name_, /*pmvid=*/nullptr);
   CHECK_API_RESULT(hr, GetScopeProps);
 }  /* an_import_scope::an_import_scope */
@@ -1039,10 +1660,20 @@ void an_import_scope::import_all_types(ostringstream& buffer)
 Import all the types from an import scope.
 */
 {
-  HCORENUM  enum_typedefs = nullptr;
-  mdTypeDef typedefs[64];
-  ULONG     count_of_typedefs;
+  HCORENUM                       enum_typedefs = nullptr;
+  mdTypeDef                      typedefs[64];
+  ULONG                          count_of_typedefs;
+  auto                           import_flags =
+                                         containing_assembly_.import_flags();
+  bool                           use_pending_constraint_clauses;
+  a_pending_constraint_type_list pending_constraint_types;
 
+  /* Only use the pending constraint clause for generic types if we're not
+     defining all types.  Doing so wouldn't have any benefit because the
+     constraint clause on nested generic types or methods may refer to
+     other types that have not been imported. */
+  use_pending_constraint_clauses =
+                               (import_flags & cpp_cli_define_all_types) == 0;
   do {
     HRESULT hr = import_interface_->EnumTypeDefs(&enum_typedefs, typedefs,
                                                  _countof(typedefs),
@@ -1050,12 +1681,27 @@ Import all the types from an import scope.
 
     CHECK_API_RESULT(hr, EnumTypeDefs);
     for (ULONG i = 0; i < count_of_typedefs; ++i) {
-      import_one_type(buffer, typedefs[i], /*at_top_level=*/true,
-                      no_generic_type_parameters, /*want_definition=*/false,
-                      /*class_body_only=*/false);
+      import_one_type(buffer, typedefs[i],
+                      /*enclosing_type_definition=*/nullptr,
+                      /*want_definition=*/false,
+                      /*class_body_only=*/false,
+                      use_pending_constraint_clauses ?
+                                         &pending_constraint_types : nullptr);
     }  /* for */
   } while (count_of_typedefs > 0);
   import_interface_->CloseEnum(enum_typedefs);
+  /* Now that all types have been imported, re-declare all generic types that
+     were declared with a pending constraint clause, this time with the
+     complete constraint clause. */
+  for (auto pending_constraint_types_iter = pending_constraint_types.begin();
+       pending_constraint_types_iter != pending_constraint_types.end();
+       ++pending_constraint_types_iter) {
+    import_one_type(buffer, *pending_constraint_types_iter,
+                    /*enclosing_type_definition=*/nullptr,
+                    /*want_definition=*/false,
+                    /*class_body_only=*/false,
+                    /*pending_constraint_types=*/nullptr);
+  }  /* for */
   close_all_namespace_scopes(buffer);
 }  /* an_import_scope::import_all_types */
 
@@ -1066,14 +1712,7 @@ void an_import_scope::open_namespace(ostringstream& buffer,
 Emit the text to open a namespace scope.
 */
 {
-  buffer << "namespace ";
-  if (namespace_name.find(L'<') != wstring::npos) {
-    /* Use the __identifier keyword. */
-    buffer << "__identifier(\"" << namespace_name << "\")";
-  } else {
-    buffer << namespace_name;
-  }  /* if */
-  buffer << " {" << END_OF_LINE;
+  buffer << "namespace " << namespace_name << " {" << END_OF_LINE;
 }  /* an_import_scope::open_namespace */
 
 
@@ -1178,19 +1817,17 @@ Open one or more namespace scopes.
 */
 {
   /* Determine whether this is a single namespace or multiple namespaces. */
-  if (namespace_name.find(L'.') == wstring::npos) {
+  if (namespace_name.find(L"::") == wstring::npos) {
     open_single_namespace_scope(buffer, namespace_name);
   } else {
     /* Multiple namespaces - split the name into its individual elements. */
     vector<wstring> namespaces;
     string::size_type start = 0;
-
     for (;;) {
-      auto end = namespace_name.find(L'.', start);
-
+      auto end = namespace_name.find(L"::", start);
       if (end != wstring::npos) {
         namespaces.push_back(wstring(namespace_name, start, end - start));
-        start = end + 1;
+        start = end + _countof(L"::") - 1;
       } else {
         namespaces.push_back(wstring(namespace_name, start));
         break;
@@ -1228,21 +1865,20 @@ attributes associated with the type and/or the type that this type extends.
 
   if (IsTdInterface(attributes)) {
     kind = tlk_interface;
-  } else if (full_type_name == L"System.Enum" ||
-             full_type_name == L"System.MulticastDelegate") {
+  } else if (full_type_name == MAKE_CLASS_STRING(Enum) ||
+             full_type_name == MAKE_CLASS_STRING(MulticastDelegate)) {
     kind = tlk_ref_class;
   } else if (!IsNilToken(extends_token)) {
     wstring extends_class_name = resolve_type_token(
-                                                 extends_token,
-                                                 generic_type_parameters,
-                                                 no_generic_method_parameters,
-                                                 /*replaces_dots=*/false);
-    if (extends_class_name == L"System.ValueType") {
+                                                extends_token,
+                                                generic_type_parameters,
+                                                no_generic_method_parameters);
+    if (extends_class_name == MAKE_CLASS_STRING(ValueType)) {
       kind = tlk_value_type;
-    } else if (extends_class_name == L"System.Enum") {
+    } else if (extends_class_name == MAKE_CLASS_STRING(Enum)) {
       kind = tlk_enumeration;
-    } else if (extends_class_name == L"System.Delegate" ||
-               extends_class_name == L"System.MulticastDelegate") {
+    } else if (extends_class_name == MAKE_CLASS_STRING(Delegate) ||
+               extends_class_name == MAKE_CLASS_STRING(MulticastDelegate)) {
       kind = tlk_delegate;
     } else {
       /* Not one of the above so this must be a ref-class. */
@@ -1300,7 +1936,7 @@ import scope will contain any interesting metadata.
 */
 {
   bool processed_an_interesting_scope = false;
-  bool result = true;
+  bool result = false;
 
   for (DWORD scope_index = 0; scope_index < count_of_scopes_; ++scope_index) {
     IMetaDataImport  *md_import_inferface  = nullptr;
@@ -1311,10 +1947,10 @@ import scope will contain any interesting metadata.
                                     &md_import_inferface);
     if (FAILED(hr)) {
       result = false;
-      break;
+      goto next;
     } else if ((hr == S_FALSE) || (md_import_inferface == nullptr)) {
       /* There are no types in this scope.  Skip it. */
-      continue;
+      goto next;
     }  /* if */
     check_assertion(!processed_an_interesting_scope);
     /* Query interface to the new, improved interface. */
@@ -1323,14 +1959,17 @@ import scope will contain any interesting metadata.
                                                       &md_import2_inferface));
     if (FAILED(hr)) {
       result = false;
-      break;
+      goto next;
     }  /* if */
-    /* Release old interface. */
-    md_import_inferface->Release();
     /* Create an import scope and import all the types. */
     imported_scopes_.push_back(an_import_scope(
              static_cast<an_import_interface*>(md_import2_inferface), *this));
     processed_an_interesting_scope = true;
+    result = true;
+next:
+    if (md_import_inferface != NULL) md_import_inferface->Release();
+    if (md_import2_inferface != NULL) md_import2_inferface->Release();
+    if (!result) break;
   }  /* for */
   return result;
 }  /* an_assembly::import_all_scopes */
@@ -1404,20 +2043,23 @@ Import the definition of an enumeration and emit the code for the definition.
       if (member_name == L"value__") {
         /* This is the special member: its type is the underlying type of the
            enumeration. */
-        a_signature_decoder decoder(*this, members[i], signature,
-                                    bytes_in_signature,
+        a_signature_decoder decoder(*this, signature, bytes_in_signature,
                                     generic_type_parameters,
                                     no_generic_method_parameters,
                                     /*is_system_string_member=*/FALSE);
         check_assertion(IsFdRTSpecialName(attributes) != 0);
         check_assertion(constant_type == ELEMENT_TYPE_VOID);
         check_assertion(underlying_type.empty());
-        underlying_type = decoder.decode_field_signature();
+        underlying_type = decoder.decode_field_signature()->get_string();
+        if (underlying_type.empty()) {
+          break;
+        }  /* if */
       } else {
         a_constant_decoder decoder(constant_type, constant_value,
                                    characters_in_constant);
 
         /* Get the constant value associated with it. */
+        escape_invalid_identifier(member_name);
         enumerators.push_back(an_enumerator(member_name, decoder.decode()));
       }  /* if */
     }  /* for */
@@ -1426,25 +2068,26 @@ Import the definition of an enumeration and emit the code for the definition.
   /* Now we have all the information we need, we can emit the definition of
      the enumeration.  Note, we emit the value of an enumerator as a
      hexadecimal constant cast to the underlying type of the enumeration. */
-  check_assertion(!underlying_type.empty());
-  buffer << enumeration_name << " : " << underlying_type << " {"
-         << END_OF_LINE;
-  for (auto enum_iter = enumerators.begin();
-       enum_iter != enumerators.end();
-       ++enum_iter) {
-    const an_enumerator &enumerator = *enum_iter;
-    buffer << enumerator.first << " = static_cast<" << underlying_type << ">("
-           << enumerator.second << ')';
-    if (enum_iter + 1 != enumerators.end()) {
-      buffer << ",";
-    }  /* if */
-    buffer << END_OF_LINE;
-  }  /* for */
-  buffer << "};";
+  if (!underlying_type.empty()) {
+    buffer << enumeration_name << " : " << underlying_type << " {"
+           << END_OF_LINE;
+    for (auto enum_iter = enumerators.begin();
+         enum_iter != enumerators.end();
+         ++enum_iter) {
+      const an_enumerator &enumerator = *enum_iter;
+      buffer << enumerator.first << " = static_cast<" << underlying_type;
+      buffer << ">(" << enumerator.second << ')';
+      if (enum_iter + 1 != enumerators.end()) {
+        buffer << ",";
+      }  /* if */
+      buffer << END_OF_LINE;
+    }  /* for */
+    buffer << "};";
 #if DEBUG
-  buffer << "  /* enum " << enumeration_name << " */";
+    buffer << "  /* enum " << enumeration_name << " */";
 #endif /* DEBUG */
-  buffer << END_OF_LINE;
+    buffer << END_OF_LINE;
+  }  /* if */
 }  /* an_import_scope::import_enum_definition */
 
 
@@ -1483,17 +2126,17 @@ the Invoke method - which every delegate must have.
                                            /*pdwImplFlags=*/nullptr);
     CHECK_API_RESULT(hr, GetMethodProps);
     check_assertion(method_name == L"Invoke");
-    a_signature_decoder decoder(*this, methods[0], signature,
-                                bytes_in_signature, generic_type_parameters,
+    a_signature_decoder decoder(*this, signature, bytes_in_signature,
+                                generic_type_parameters,
                                 no_generic_method_parameters,
                                 /*is_system_string_member=*/FALSE);
-    buffer << decoder.decode_method_signature(delegate_name,
-                                              method_attributes &
-                                                         ~(mdStatic|mdVirtual),
-                                              /*omit_return_type=*/false,
-                                              /*is_for_property=*/false,
-                                              cok_none);
-    buffer << ';' << END_OF_LINE;
+    a_type_wrapper_ptr type = decoder.decode_method_signature(methods[0]);
+    if (type != nullptr) {
+      auto method_type = type->as_function();
+      check_assertion(method_type != nullptr);
+      buffer << method_type->generic_header() << END_OF_LINE;
+      buffer << method_type->get_string(delegate_name) << ';' << END_OF_LINE;
+    }  /* if */
   } else {
     unexpected_condition();
   }  /* if */
@@ -1501,17 +2144,46 @@ the Invoke method - which every delegate must have.
 }  /* an_import_scope::import_delegate_definition */
 
 
-void an_import_scope::get_generic_parameters_and_constraints(
-           mdToken                        token,
-           const a_generic_parameter_list &generic_type_parameters_for_method,
-           BYTE                           generic_arity,
-           a_generic_parameter_list       &generic_parameters,
-           a_constraint_clause_list       &generic_constraints) const
+BYTE an_import_scope::get_generic_parameter_count(mdTypeDef token) const
 /*
-Fill-in the generic parameters and constraints associated with this type or
-method.
+Return the number of generic parameters associated with the specified type
+token.  For nested types, this may differ from the generic arity, as generic
+parameters from enclosing types are included in the count.
 */
 {
+  BYTE           generic_param_count = 0;
+  HRESULT        hr;
+  HCORENUM       enum_parameters = nullptr;
+  mdGenericParam parameters[8];
+  ULONG          count_of_parameters;
+
+  check_assertion(TypeFromToken(token) == mdtTypeDef);
+  do {
+    hr = import_interface_->EnumGenericParams(&enum_parameters,
+                                              token, parameters,
+                                              _countof(parameters),
+                                              &count_of_parameters);
+    CHECK_API_RESULT(hr, EnumGenericParams);
+    generic_param_count += static_cast<BYTE>(count_of_parameters);
+  } while (count_of_parameters > 0);
+  import_interface_->CloseEnum(enum_parameters);
+  return generic_param_count;
+}  /* an_import_scope::get_generic_parameter_count */
+
+
+BYTE an_import_scope::get_generic_parameters_and_constraints(
+           mdToken                        token,
+           const a_generic_parameter_list &generic_type_parameters_for_method,
+           BYTE                           enclosing_type_generic_params_count,
+           a_generic_parameter_list       &generic_parameters,
+           a_constraint_clause_list       &generic_constraints,
+           a_pending_constraint_type_list *pending_constraint_types)
+/*
+Fill-in the generic parameters and constraints associated with this type or
+method and return its generic arity.
+*/
+{
+  BYTE                          generic_arity = 0;
   a_generic_parameter_info_list generic_parameters_info;
 
   if (TypeFromToken(token) == mdtTypeDef ||
@@ -1545,6 +2217,7 @@ method.
                                                      param_name);
         CHECK_API_RESULT(hr, GetGenericParamProps);
         check_assertion(generic_parameters.size() == param_index);
+        escape_invalid_identifier(param_name);
         generic_parameters_info.push_back(
                             a_generic_parameter_info(parameter, param_flags));
         generic_parameters.push_back(move(param_name));
@@ -1576,7 +2249,10 @@ method.
          };
        To handle this case, rename any duplicate generic parameter names
        associated with any enclosing generic classes. */
-    check_assertion(generic_arity <= generic_parameters.size());
+    check_assertion(enclosing_type_generic_params_count <=
+                                                   generic_parameters.size());
+    generic_arity = generic_parameters.size() -
+                                          enclosing_type_generic_params_count;
     for (auto param_iter = generic_parameters.begin();
          param_iter != generic_parameters.end() - generic_arity;
          ++param_iter) {
@@ -1611,7 +2287,7 @@ method.
          };
        To handle this case, rename any duplicate generic parameter names
        associated with the generic method. */
-    check_assertion(generic_arity == generic_parameters.size());
+    generic_arity = generic_parameters.size();
     for (auto param_iter = generic_parameters.begin();
          param_iter != generic_parameters.end();
          ++param_iter) {
@@ -1623,21 +2299,24 @@ method.
       }  /* if */
     }  /* for */
   }  /* if */
-  if (generic_arity != 0) {
+  if (generic_arity > 0) {
     get_generic_constraints(token, generic_type_parameters_for_method,
                             generic_arity, generic_parameters_info,
-                            generic_parameters, generic_constraints);
+                            generic_parameters, generic_constraints,
+                            pending_constraint_types);
   }
+  return generic_arity;
 }  /* an_import_scope::get_generic_parameters_and_constraints */
 
 
 void an_import_scope::get_generic_constraints(
-      mdToken                             token,
-      const a_generic_parameter_list      &generic_type_parameters_for_method,
-      BYTE                                generic_arity,
-      const a_generic_parameter_info_list &generic_parameters_info,
-      const a_generic_parameter_list      &generic_parameters,
-      a_constraint_clause_list            &generic_constraints) const
+     mdToken                              token,
+     const a_generic_parameter_list       &generic_type_parameters_for_method,
+     BYTE                                 generic_arity,
+     const a_generic_parameter_info_list  &generic_parameters_info,
+     const a_generic_parameter_list       &generic_parameters,
+     a_constraint_clause_list             &generic_constraints,
+     a_pending_constraint_type_list       *pending_constraint_types)
 /*
 Return the constraint clauses associated with this generic type or method.
 */
@@ -1654,6 +2333,8 @@ Return the constraint clauses associated with this generic type or method.
   check_assertion(generic_arity != 0 &&
                   generic_arity <= generic_parameters_info.size() &&
                   generic_parameters_info.size()==generic_parameters.size());
+  check_assertion(TypeFromToken(token) == mdtTypeDef ||
+                  pending_constraint_types == nullptr);
   generic_constraints.reserve(generic_arity);
   /* The generic parameters associated with this generic type are at the end
      of the parameter list. */
@@ -1682,6 +2363,7 @@ Return the constraint clauses associated with this generic type or method.
         constraint_items += L"value class, ";
       }  /* if */
     }  /* switch */
+    bool use_pending_constraint_clause = false;
     do {
       hr = import_interface_->EnumGenericParamConstraints(
                                                        &enum_constraints,
@@ -1690,6 +2372,10 @@ Return the constraint clauses associated with this generic type or method.
                                                        _countof(constraints),
                                                        &count_of_constraints);
       CHECK_API_RESULT(hr, EnumGenericParamConstraints);
+      if (pending_constraint_types != nullptr && count_of_constraints > 0) {
+        use_pending_constraint_clause = true;
+        break;
+      }  /* if */
       for (ULONG constraint_index = 0;
            constraint_index < count_of_constraints;
            ++constraint_index) {
@@ -1704,12 +2390,21 @@ Return the constraint clauses associated with this generic type or method.
         check_assertion(constraint_param == param_info.token());
         constraint_items += resolve_type_token(constraint_item,
                                                generic_type_parameters,
-                                               generic_method_parameters,
-                                               /*replace_dots=*/true);
+                                               generic_method_parameters);
         constraint_items += L", ";
       }  /* for */
     } while (count_of_constraints > 0);
     import_interface_->CloseEnum(enum_constraints);
+    if (use_pending_constraint_clause) {
+      /* This type has a generic constraint that refers to another type that
+         may not yet have been imported.  Declare the type with a pending
+         constraint clause and add it to the list of generic types to
+         re-declare after all other types have been imported. */
+      generic_constraints.clear();
+      generic_constraints.push_back(L"...");
+      pending_constraint_types->push_back(token);
+      break;
+    }  /* if */
     if (!constraint_items.empty()) {
       wstring constraint_clause = L"where " + param_name + L" : ";
       constraint_clause.append(constraint_items, 0,
@@ -1721,112 +2416,178 @@ Return the constraint clauses associated with this generic type or method.
 }  /* an_import_scope::get_generic_constraints */
 
 
-wstring an_import_scope::resolve_type_token(
-             mdToken                           token,
-             const a_generic_param_or_arg_list &generic_type_params_or_args,
-             const a_generic_param_or_arg_list &generic_method_params_or_args,
-             bool                              replace_dots) const
+void convert_type_name(wstring &type_name)
 /*
-Resolve the type given by the token.  Get the name of the type and replace
-any "." in the name with the C++ scope operator, "::".
+Replace any "." in the name with the C++ scope operator, "::", and ensure that
+every identifier in the type name is a valid C++ identifier.
 */
 {
-  return resolve_type_token(token, generic_type_params_or_args,
-                            generic_type_params_or_args.end(),
-                            generic_method_params_or_args, replace_dots);
-}  /* an_import_scope::resolve_type_token */
+  wstring::size_type start = 0;
+  auto               dot_index = type_name.find(L'.', start);
+  if (dot_index != wstring::npos) {
+    wostringstream buffer;
+    while (dot_index != wstring::npos) {
+      check_assertion(dot_index > start &&
+                      dot_index < type_name.length() - 1);
+      wstring identifier = type_name.substr(start, dot_index - start);
+      escape_invalid_identifier(identifier);
+      buffer << identifier << L"::";
+      start = dot_index + 1;
+      dot_index = type_name.find(L'.', start);
+    }  /* while */
+    wstring identifier = type_name.substr(start);
+    escape_invalid_identifier(identifier);
+    buffer << identifier;
+    type_name = buffer.str();
+  } else {
+    escape_invalid_identifier(type_name);
+  }  /* if */
+}  /* convert_type_name */
+
+
+wstring an_import_scope::resolve_typedef_token(
+      mdTypeDef                         token,
+      const a_generic_param_or_arg_list &generic_type_params_or_args,
+      a_generic_param_or_arg_iterator   generic_type_params_or_args_end,
+      bool                              omit_generic_params_or_args/*=false*/)
+{
+  wstring type_name;
+  HRESULT hr;
+  wstring enclosing_type_name;
+  DWORD   type_flags;
+  BYTE    generic_arity = get_generic_parameter_count(token);
+  hr = import_interface_->GetTypeDefProps(token, type_name,
+                                          &type_flags,
+                                          /*ptkExtends=*/nullptr);
+  CHECK_API_RESULT(hr, GetTypeDefProps);
+  if (IsTdNested(type_flags)) {
+    mdTypeDef enclosing_typedef;
+    BYTE      enclosing_type_generic_param_count;
+    hr = import_interface_->GetNestedClassProps(token,
+                                                &enclosing_typedef);
+    CHECK_API_RESULT(hr, GetNestedClassProps);
+    enclosing_type_generic_param_count =
+                               get_generic_parameter_count(enclosing_typedef);
+    /* Adjust the generic arity to account for the params/args
+       consumed by the enclosing type. */
+    check_assertion(generic_arity >= enclosing_type_generic_param_count);
+    generic_arity -= enclosing_type_generic_param_count;
+    enclosing_type_name = resolve_typedef_token(
+                             enclosing_typedef,
+                             generic_type_params_or_args,
+                             generic_type_params_or_args_end - generic_arity);
+  }  /* if */
+  if (generic_arity > 0) {
+    strip_generic_arity(type_name);
+  }  /* if */
+  convert_type_name(type_name);
+  if (generic_arity > 0 && !omit_generic_params_or_args) {
+    append_generic_params_or_args(
+                              type_name,
+                              generic_type_params_or_args_end - generic_arity,
+                              generic_type_params_or_args_end);
+  }  /* if */
+  if (IsTdNested(type_flags)) {
+    type_name = enclosing_type_name + L"::" + type_name;
+  }  /* if */
+  return type_name;
+}  /* an_import_scope::resolve_typedef_token */
+
+
+wstring an_import_scope::resolve_typeref_token(
+               mdTypeRef                         token,
+               const a_generic_param_or_arg_list &generic_type_params_or_args)
+{
+  wstring type_name;
+  HRESULT hr;
+  mdToken resolution_scope;
+  hr = import_interface_->GetTypeRefProps(token,
+                                          &resolution_scope,
+                                          type_name);
+  CHECK_API_RESULT(hr, GetTypeRefProps);
+  BYTE generic_arity = strip_generic_arity(type_name);
+  convert_type_name(type_name);
+  if (IsNilToken(resolution_scope)) {
+    /* FIXME: Exported types are not yet supported.  In this case,
+       there shall be a row in the ExportedType table for this Type.
+       Its Implementation field shall contain a File token or an
+       AssemblyRef token that says where the type is defined.  */
+  } else {
+    switch (TypeFromToken(resolution_scope)) {
+      case mdtTypeRef:
+        { /* The type is a nested type and resolution_scope indicates
+             the enclosing type. */
+          wstring enclosing_type_name = resolve_type_token(
+                           resolution_scope,
+                           generic_type_params_or_args,
+                           no_generic_method_parameters);
+          type_name = enclosing_type_name + L"::" + type_name;
+          break;
+        }  /* case mdtTypeRef */
+      case mdtModuleRef:
+        /* The type is defined in another module within the same
+           assembly; no special handling required. */
+        break;
+      case mdtModule:
+        /* The type is defined in the current module; no special
+           handling required. */
+        break;
+      case mdtAssemblyRef:
+        /* FIXME: The type is defined in a different assembly;
+           additional work needs to be done to issue an error if the
+           assembly isn't referenced. */
+        break;
+      default:
+        unexpected_condition();
+        break;
+    }  /* switch */
+  }  /* if */
+  if (generic_arity > 0) {
+    append_generic_params_or_args(
+                            type_name,
+                            generic_type_params_or_args.end() - generic_arity,
+                            generic_type_params_or_args.end());
+  }  /* if */
+  return type_name;
+}  /* an_import_scope::resolve_typeref_token */
 
 
 wstring an_import_scope::resolve_type_token(
-            mdToken                           token,
-            const a_generic_param_or_arg_list &generic_type_params_or_args,
-            a_generic_param_or_arg_iterator   generic_type_params_or_args_end,
-            const a_generic_param_or_arg_list &generic_method_params_or_args,
-            bool                              replace_dots) const
+      mdToken                           token,
+      const a_generic_param_or_arg_list &generic_type_params_or_args,
+      const a_generic_param_or_arg_list &generic_method_params_or_args,
+      bool                              omit_generic_params_or_args/*=false*/)
 /*
 Resolve the type given by the token.  Get the name of the type and replace
 any "." in the name with the C++ scope operator, "::".
 */
 {
   wstring type_name;
-  /* First check if this token is a typedef token for a type we have already
-     imported within the current scope. */
-  auto iter = map_of_tokens_to_names_.find(token);
+  check_assertion(!omit_generic_params_or_args ||
+                  TypeFromToken(token) == mdtTypeDef);
+  /* First check if this token is a token was cached by a previous call.
+     If is a generic type, we can't cache the name because the generic
+     parameters and arguments may differ in different contexts. */
+  bool can_cache_name = (TypeFromToken(token) != mdtTypeSpec &&
+                         generic_type_params_or_args.begin()
+                                        == generic_type_params_or_args.end());
+  auto iter = can_cache_name ? map_of_tokens_to_names_.find(token)
+                             : map_of_tokens_to_names_.end();
   if (iter != map_of_tokens_to_names_.end()) {
     type_name = iter->second;
   } else {
     HRESULT hr;
     switch (TypeFromToken(token)) {
       case mdtTypeDef:
-        { DWORD type_flags;
-          hr = import_interface_->GetTypeDefProps(token, type_name,
-                                                  &type_flags,
-                                                  /*ptkExtends=*/nullptr);
-          CHECK_API_RESULT(hr, GetTypeDefProps);
-          expand_generic_type_name(type_name, generic_type_params_or_args,
-                                   generic_type_params_or_args_end);
-          if (IsTdNested(type_flags)) {
-            mdTypeDef enclosing_typedef;
-            hr = import_interface_->GetNestedClassProps(token,
-                                                        &enclosing_typedef);
-            CHECK_API_RESULT(hr, GetNestedClassProps);
-            wstring enclosing_type_name = resolve_type_token(
-                                              enclosing_typedef,
-                                              generic_type_params_or_args,
-                                              generic_type_params_or_args_end,
-                                              generic_method_params_or_args,
-                                              replace_dots);
-            type_name = enclosing_type_name + L"::" + type_name;
-          }  /* if */
-          break;
-        }  /* case mdtTypeDef */
+        type_name = resolve_typedef_token(token,
+                                          generic_type_params_or_args,
+                                          generic_type_params_or_args.end(),
+                                          omit_generic_params_or_args);
+        break;
       case mdtTypeRef:
-        { mdToken resolution_scope;
-          hr = import_interface_->GetTypeRefProps(token,
-                                                  &resolution_scope,
-                                                  type_name);
-          CHECK_API_RESULT(hr, GetTypeRefProps);
-          expand_generic_type_name(type_name, generic_type_params_or_args,
-                                   generic_type_params_or_args_end);
-          if (IsNilToken(resolution_scope)) {
-            /* FIXME: Exported types are not yet supported.  In this case,
-               there shall be a row in the ExportedType table for this Type.
-               Its Implementation field shall contain a File token or an
-               AssemblyRef token that says where the type is defined.  */
-          } else {
-            switch (TypeFromToken(resolution_scope)) {
-              case mdtTypeRef:
-                { /* The type is a nested type and resolution_scope indicates
-                     the enclosing type. */
-                  wstring enclosing_type_name =
-                           resolve_type_token(resolution_scope,
-                                              generic_type_params_or_args,
-                                              generic_type_params_or_args_end,
-                                              generic_method_params_or_args,
-                                              replace_dots);
-                  type_name = enclosing_type_name + L"::" + type_name;
-                  break;
-                }  /* case mdtTypeRef */
-              case mdtModuleRef:
-                /* The type is defined in another module within the same
-                   assembly; no special handling required. */
-                break;
-              case mdtModule:
-                /* The type is defined in the current module; no special
-                   handling required. */
-                break;
-              case mdtAssemblyRef:
-                /* FIXME: The type is defined in a different assembly;
-                   additional work needs to be done to issue an error if the
-                   assembly isn't referenced. */
-                break;
-              default:
-                unexpected_condition();
-                break;
-            }  /* switch */
-          }  /* if */
-          break;
-        }  /* case mdtTypeRef */
+        type_name = resolve_typeref_token(token,
+                                          generic_type_params_or_args);
+        break;
       case mdtInterfaceImpl:
         /* If this is an interface-impl token then get the token for the
            interface definition and then attempt to resolve that token. */
@@ -1836,39 +2597,48 @@ any "." in the name with the C++ scope operator, "::".
         CHECK_API_RESULT(hr, GetInterfaceImplProps);
         type_name = resolve_type_token(token,
                                        generic_type_params_or_args,
-                                       generic_method_params_or_args,
-                                       replace_dots);
+                                       generic_method_params_or_args);
         break;
       case mdtTypeSpec:
         { PCCOR_SIGNATURE signature;
           ULONG           bytes_in_signature;
-
           hr = import_interface_->GetTypeSpecFromToken(token, &signature,
                                                        &bytes_in_signature);
           CHECK_API_RESULT(hr, GetTypeSpecFromToken);
-          a_signature_decoder decoder(*this, token, signature,
-                                      bytes_in_signature,
+          a_signature_decoder decoder(*this, signature, bytes_in_signature,
                                       generic_type_params_or_args,
                                       generic_method_params_or_args,
                                       /*is_system_string_member=*/FALSE);
-          type_name = decoder.decode_type(/*add_handle_to_class=*/false);
+          a_type_wrapper_ptr type = decoder.decode_type();
+          if (type != nullptr) {
+            a_const_class_type_wrapper_ptr class_type = type->as_class();
+            if (class_type == nullptr) {
+              a_type_indirection_ptr indirection = type->as_indirection();
+              if (indirection != nullptr) {
+                /* Ref class types are decoded as handle types, so we must get
+                   the class type from the underlying type. */
+                check_assertion(indirection->is_of_indirection_kind(
+                                             a_type_indirection::tik_handle));
+                class_type = indirection->underlying_type()->as_class();
+              }  /* if */
+            }  /* if */
+            if (class_type != nullptr) {
+              type_name = class_type->name();
+            } else {
+              unexpected_condition();
+            }  /* if */
+          } else {
+            unexpected_condition();
+          }  /* if */
           break;
         }  /* case mdtTypeSpec */
       default:
         unexpected_condition();
         break;
     }  /* switch */
-  }  /* if */
-  /* If necessary replace any "." in the type-name with the C++ token "::". */
-  if (replace_dots) {
-    wstring::size_type start = 0;
-    auto               dot   = type_name.find(L'.', start);
-
-    while (dot != wstring::npos) {
-      type_name.replace(dot, 1, L"::");
-      start = dot + 2;
-      dot = type_name.find(L'.', start);
-    }  /* while */
+    if (can_cache_name) {
+      map_of_tokens_to_names_[token] = type_name;
+    }  /* if */
   }  /* if */
   return type_name;
 }  /* an_import_scope::resolve_type_token */
@@ -1884,192 +2654,6 @@ an_import_scope& an_import_scope::operator=(an_import_scope&& other)
 }  /* an_import_scope::operator= */
 
 
-class an_accessibility
-{
-public:
-  an_accessibility() : access_(access_none) {}
-  an_accessibility(mdToken token, DWORD attributes)
-  {
-    check_assertion(!IsNilToken(token));
-    switch (TypeFromToken(token)) {
-      case mdtTypeDef:
-        switch (attributes & tdVisibilityMask) {
-          case tdNotPublic:
-            access_ = access_private;
-            break;
-          case tdPublic:
-            access_ = access_public;
-            break;
-          case tdNestedPublic:
-            access_ = access_public;
-            break;
-          case tdNestedPrivate:
-            access_ = access_private;
-            break;
-          case tdNestedFamily:
-            access_ = access_family;
-            break;
-          case tdNestedAssembly:
-            access_ = access_assembly;
-            break;
-          case tdNestedFamANDAssem:
-            access_ = access_family_and_assembly;
-            break;
-          case tdNestedFamORAssem:
-            access_ = access_family_or_assembly;
-            break;
-          default:
-            unexpected_condition();
-            break;
-        }  /* switch */
-        break;
-      case mdtFieldDef:
-        switch (attributes & fdFieldAccessMask) {
-          case fdPrivateScope:
-            access_ = access_none;
-            break;
-          case fdPrivate:
-            access_ = access_private;
-            break;
-          case fdFamANDAssem:
-            access_ = access_family_and_assembly;
-            break;
-          case fdAssembly:
-            access_ = access_assembly;
-            break;
-          case fdFamily:
-            access_ = access_family;
-            break;
-          case fdFamORAssem:
-            access_ = access_family_or_assembly;
-            break;
-          case fdPublic:
-            access_ = access_public;
-            break;
-          default:
-            unexpected_condition();
-            break;
-        }  /* switch */
-        break;
-      case mdtMethodDef:
-        switch (attributes & mdMemberAccessMask) {
-          case mdPrivateScope:
-            access_ = access_none;
-            break;
-          case mdPrivate:
-            access_ = access_private;
-            break;
-          case mdFamANDAssem:
-            access_ = access_family_and_assembly;
-            break;
-          case mdAssem:
-            access_ = access_assembly;
-            break;
-          case mdFamily:
-            access_ = access_family;
-            break;
-          case mdFamORAssem:
-            access_ = access_family_or_assembly;
-            break;
-          case mdPublic:
-            access_ = access_public;
-            break;
-          default:
-            unexpected_condition();
-            break;
-        }  /* switch */
-        break;
-      default:
-        unexpected_condition();
-        break;
-    }  /* switch */
-  }  /* constructor */
-
-  wstring get_string(bool as_friend) const
-  {
-    wstring result;
-    switch (access_) {
-      case access_none:
-        /* We should not be emitting this accessibility. */
-        unexpected_condition();
-        break;
-      case access_private:
-        /* Accessible only by the parent type */
-        result = L"private";
-        break;
-      case access_family_and_assembly:
-        /* Accessible by subtypes only in the assembly. */
-        if (as_friend) {
-          result = L"protected";
-        } else {
-          result = L"private protected";
-        }  /* if */
-        break;
-      case access_family:
-        /* Accessible only by type and subtypes. */
-        result = L"protected";
-        break;
-      case access_assembly:
-        /* Accessibly by anyone in the assembly. */
-        if (as_friend) {
-          result = L"public";
-        } else {
-          result = L"internal";
-        }  /* if */
-        break;
-      case access_family_or_assembly:
-        /* Accessible by derived classes and by other types in the
-            assembly. */
-        if (as_friend) {
-          result = L"public";
-        } else {
-          result = L"protected public";
-        }  /* if */
-        break;
-      case access_public:
-        /* Accessible by all types with access to the scope. */
-        result = L"public";
-        break;
-      default:
-        unexpected_condition();
-        break;
-    }  /* switch */
-    return result;
-  }  /* get_string */
-
-  bool is_accessible() const { return access_ != access_none; }
-
-  bool operator==(const an_accessibility &access) const
-  {
-    return access_ == access.access_;
-  }  /* operator== */
-
-  static an_accessibility wider_accessibility(
-                                            const an_accessibility &access1,
-                                            const an_accessibility &access2)
-  /*
-    "access1" has wider access than "access2 if "access1" permits more
-    access than "access2" both within the assembly and outside the assembly.
-  */
-  {
-    return access1.access_ > access2.access_ ? access1 : access2;
-  }
-
-private:
-  enum access_kind {
-                                /* within assembly  outside assembly */
-    access_none,                /* none             none             */
-    access_private,             /* private          private          */
-    access_family_and_assembly, /* protected        private          */
-    access_family,              /* protected        protected        */
-    access_assembly,            /* public           private          */
-    access_family_or_assembly,  /* public           protected        */
-    access_public               /* public           public           */
-  } access_;
-
-  an_accessibility(access_kind access) : access_(access) {}
-};  /* an_accessibility */
-
 /*
 The representation of a single type definition.  This could be either a
 ref-class, a value-type or an interface.
@@ -2081,47 +2665,54 @@ private:
   */
   class a_method_def {
   public:
-    a_method_def() : token_(mdMethodDefNil) {}
+    a_method_def()
+      : type_definition_(nullptr)
+      , token_(mdMethodDefNil)
+      , attributes_(0)
+    {
+    }  /* Default constructor */
 
-    a_method_def(mdMethodDef token, wstring &&name, DWORD attributes)
-      : token_(token),
-        name_(move(name)),
+    a_method_def(a_type_definition *type_definition, mdMethodDef token,
+                 DWORD attributes)
+      : type_definition_(type_definition),
+        token_(token),
         attributes_(attributes)
     {
       check_assertion(!IsNilToken(token) &&
                       TypeFromToken(token) == mdtMethodDef);
-    }  /* constructor */
+    }  /* Constructor */
 
-    a_method_def(a_method_def&& other)
-      : token_(move(other.token_)),
-        name_(move(other.name_)),
-        attributes_(move(other.attributes_))
+    a_method_def(a_method_def &&other)
+      : type_definition_(nullptr)
+      , token_(mdMethodDefNil)
+      , attributes_(0)
     {
-    }  /* constructor */
+      other.swap(*this);
+    }  /* Move constructor */
 
-    a_method_def& operator=(a_method_def &&other)
+    a_method_def& operator=(a_method_def other)
     {
-      token_ = move(other.token_);
-      name_ = move(other.name_);
-      attributes_ = move(other.attributes_);
+      other.swap(*this);
       return *this;
-    }  /* operator= */
+    }  /* Assignment operator */
+
+    void swap(a_method_def &other) {
+      std::swap(type_definition_, other.type_definition_);
+      std::swap(token_, other.token_);
+      std::swap(attributes_, other.attributes_);
+    }  /* swap */
 
     mdMethodDef token() const
     {
       return token_;
     }  /* token */
 
-    an_accessibility accessibility() const
-    {
-      return exists() ? an_accessibility(token_, attributes_)
-                      : an_accessibility();
-    }  /* accessibility */
+    class an_accessibility accessibility() const;
 
     DWORD attributes() const
     {
       return exists() ? attributes_ : 0;
-    }
+    } /* attributes */
 
     bool exists() const
     {
@@ -2129,11 +2720,11 @@ private:
     }  /* exists */
 
   private:
-    mdMethodDef token_;
+    a_type_definition *type_definition_;
+                        /* The type_definition containing this method. */
+    mdMethodDef       token_;
                         /* The token associated with this method. */
-    wstring     name_;
-                        /* The name of the method. */
-    DWORD       attributes_;
+    DWORD             attributes_;
                         /* The attributes for this method. */
   };  /* a_method_def */
 
@@ -2154,9 +2745,10 @@ public:
       import_scope_(import_scope),
       import_interface_(import_scope_.import_interface()),
       kind_(kind),
-      is_system_string_type_(full_type_name == L"System.String"),
+      is_system_string_type_(full_type_name == MAKE_CLASS_STRING(String)),
       is_first_base_class_processed(false)
   {
+    check_assertion(!IsNilToken(typedef_token_));
     a_cpp_cli_import_flag_set import_flags = import_scope_.
                                          containing_assembly().import_flags();
 
@@ -2165,12 +2757,40 @@ public:
 
   void import_definition(ostringstream& buffer);
 
+  mdMethodDef token() const
+  {
+    return typedef_token_;
+  }  /* token */
+
+  DWORD attributes() const
+  {
+    return attributes_;
+  }  /* attributes */
+
+  const a_generic_parameter_list &generic_parameters() const
+  {
+    return generic_parameters_;
+  }  /* generic_parameters */
+
+  bool is_named_override(mdToken method_token) const
+  /*
+  Returns TRUE if the method is a named override for a method from a base
+  class or interface.
+  */
+  {
+     auto method_impls_range = method_impls_.equal_range(method_token);
+     return method_impls_range.first != method_impls_range.second;
+  }  /* is_named_override */
+
 private:
   void process_extends(ostringstream& buffer);
   void process_interfaces(ostringstream& buffer);
   void get_method_impls();
   void import_nested_classes(ostringstream& buffer);
   void import_all_methods(ostringstream &buffer);
+  void write_method_decl_specifiers(ostringstream &buffer,
+                                    mdToken       token,
+                                    DWORD         method_attributes);
   void import_one_method(ostringstream &buffer,
                          mdMethodDef   method_token,
                          DWORD         method_semantics);
@@ -2228,10 +2848,262 @@ private:
                            override syntax should be used in the
                            declaration of that method. */
   typedef multimap<mdToken, mdToken>::value_type a_method_impl_entry;
+  set<mdMethodDef>
+                property_and_event_methods_;
+                        /* If this type definition is a class, this set
+                           contains the methods associated with any properties
+                           or events.  It is used to skip importing those
+                           methods as ordinary member functions. */
   bool          import_as_friend_;
                         /* True if this type should be imported as a
                            friend. */
 };  /* a_type_definition */
+
+
+class an_accessibility
+{
+public:
+  an_accessibility() : access_(access_none), import_as_friend_(false) {}
+  an_accessibility(const a_type_definition *type_definition, mdToken token,
+                   DWORD attributes, bool import_as_friend)
+    : import_as_friend_(import_as_friend)
+  {
+    check_assertion(!IsNilToken(token));
+    switch (TypeFromToken(token)) {
+      case mdtTypeDef:
+        switch (attributes & tdVisibilityMask) {
+          case tdNotPublic:
+            access_ = import_as_friend ? access_private_as_friend
+                                       : access_private;
+            break;
+          case tdPublic:
+            access_ = access_public;
+            break;
+          case tdNestedPublic:
+            access_ = access_public;
+            break;
+          case tdNestedPrivate:
+            access_ = access_private;
+            break;
+          case tdNestedFamily:
+            access_ = access_family;
+            break;
+          case tdNestedAssembly:
+            access_ = import_as_friend ? access_assembly_as_friend
+                                       : access_assembly;
+            break;
+          case tdNestedFamANDAssem:
+            access_ = import_as_friend ? access_family_and_assembly_as_friend
+                                       : access_family_and_assembly;
+            break;
+          case tdNestedFamORAssem:
+            access_ = import_as_friend ? access_family_or_assembly_as_friend
+                                       : access_family_or_assembly;
+            break;
+          default:
+            unexpected_condition();
+            break;
+        }  /* switch */
+        break;
+      case mdtFieldDef:
+        switch (attributes & fdFieldAccessMask) {
+          case fdPrivateScope:
+            access_ = access_none;
+            break;
+          case fdPrivate:
+            access_ = access_private;
+            break;
+          case fdFamANDAssem:
+            access_ = import_as_friend ? access_family_and_assembly_as_friend
+                                       : access_family_and_assembly;
+            break;
+          case fdAssembly:
+            access_ = import_as_friend ? access_family_and_assembly_as_friend
+                                       : access_family_and_assembly;
+            break;
+          case fdFamily:
+            access_ = access_family;
+            break;
+          case fdFamORAssem:
+            access_ = import_as_friend ? access_family_or_assembly_as_friend
+                                       : access_family_or_assembly;
+            break;
+          case fdPublic:
+            access_ = access_public;
+            break;
+          default:
+            unexpected_condition();
+            break;
+        }  /* switch */
+        break;
+      case mdtMethodDef:
+        switch (attributes & mdMemberAccessMask) {
+          case mdPrivateScope:
+            access_ = access_none;
+            break;
+          case mdPrivate:
+            /* Private methods are not usually imported; however, a private
+               method that is a named override of a method from a base
+               interface must still be imported to satisfy the interface's
+               contract. */
+            /* FIXME: There still seems to be a problem with this approach;
+               see test cases decl_security_regress_00[34].C.  This is
+               Microsoft issue #344396. */
+            access_ = type_definition->is_named_override(token)
+                                   ? access_imported_private : access_private;
+            break;
+          case mdFamANDAssem:
+            access_ = import_as_friend ? access_family_and_assembly_as_friend
+                                       : access_family_and_assembly;
+            break;
+          case mdAssem:
+            access_ = import_as_friend ? access_family_and_assembly_as_friend
+                                       : access_family_and_assembly;
+            break;
+          case mdFamily:
+            access_ = access_family;
+            break;
+          case mdFamORAssem:
+            access_ = import_as_friend ? access_family_or_assembly_as_friend
+                                       : access_family_or_assembly;
+            break;
+          case mdPublic:
+            access_ = access_public;
+            break;
+          default:
+            unexpected_condition();
+            break;
+        }  /* switch */
+        break;
+      default:
+        unexpected_condition();
+        break;
+    }  /* switch */
+    switch (access_) {
+      case access_private:
+        break;
+      case access_family_and_assembly:
+        if (import_as_friend) access_ = access_family_and_assembly_as_friend;
+        break;
+      case access_assembly:
+        if (import_as_friend) access_ = access_assembly_as_friend;
+        break;
+      case access_family_or_assembly:
+        if (import_as_friend) access_ = access_family_or_assembly_as_friend;
+        break;
+      default:
+        break;
+    }  /* switch */
+
+  }  /* constructor */
+
+  wstring get_string() const
+  {
+    wstring result;
+    switch (access_) {
+      case access_none:
+      case access_private:
+        /* We should not be emitting this accessibility. */
+        unexpected_condition();
+        break;
+      case access_imported_private:
+        /* Accessible only by the parent type */
+        result = L"private";
+        break;
+      case access_private_as_friend:
+        result = L"public";
+        break;
+      case access_family_and_assembly:
+        /* Accessible by subtypes only in the assembly. */
+        result = L"private protected";
+        break;
+      case access_family_and_assembly_as_friend:
+        result = L"protected";
+        break;
+      case access_family:
+        /* Accessible only by type and subtypes. */
+        result = L"protected";
+        break;
+      case access_assembly:
+        /* Accessibly by anyone in the assembly. */
+        result = L"internal";
+        break;
+      case access_assembly_as_friend:
+        result = L"public";
+        break;
+      case access_family_or_assembly:
+        /* Accessible by derived classes and by other types in the
+            assembly. */
+        result = L"protected public";
+        break;
+      case access_family_or_assembly_as_friend:
+        result = L"public";
+        break;
+      case access_public:
+        /* Accessible by all types with access to the scope. */
+        result = L"public";
+        break;
+      default:
+        unexpected_condition();
+        break;
+    }  /* switch */
+    return result;
+  }  /* get_string */
+
+  bool is_accessible() const
+  {
+    return access_ >= access_family || access_ == access_imported_private ||
+           (import_as_friend_ && access_ >= access_private_as_friend);
+  }
+
+  bool operator==(const an_accessibility &access) const
+  {
+    return access_ == access.access_;
+  }  /* operator== */
+
+  static an_accessibility wider_accessibility(
+                                            const an_accessibility &access1,
+                                            const an_accessibility &access2)
+  /*
+    "access1" has wider access than "access2 if "access1" permits more
+    access than "access2" both within the assembly and outside the assembly.
+  */
+  {
+    return access1.access_ > access2.access_ ? access1 : access2;
+  }
+
+private:
+  enum access_kind {
+                                       /* within assembly  outside assembly */
+    access_none,                       /* none             none             */
+    access_private,                    /* private          private          */
+    access_imported_private,
+    /* A special case of access_private used to indicate that a private method
+       must be imported due to the fact that it is a named override of a
+       method from a base interface. */
+    access_private_as_friend,
+    access_family_and_assembly,        /* protected        private          */
+    access_family_and_assembly_as_friend,
+    access_assembly,                   /* public           private          */
+    access_assembly_as_friend,
+    access_family,                     /* protected        protected        */
+    access_family_or_assembly,         /* public           protected        */
+    access_family_or_assembly_as_friend,
+    access_public                      /* public           public           */
+  } access_;
+
+  an_accessibility(access_kind access) : access_(access) {}
+
+  bool import_as_friend_;
+};  /* an_accessibility */
+
+an_accessibility a_type_definition::a_method_def::accessibility() const
+{
+  return exists() ? an_accessibility(type_definition_, token_,
+                                     attributes_,
+                                     type_definition_->import_as_friend_)
+                  : an_accessibility();
+}  /* a_type_definition::a_method_def::accessibility */
 
 
 void a_type_definition::process_extends(ostringstream& buffer)
@@ -2241,18 +3113,18 @@ Decode the extends token and emit the appropriate text.
 {
   if (!IsNilToken(extends_token_)) {
     wstring extends_name = import_scope_.resolve_type_token(
-                                                 extends_token_,
-                                                 generic_parameters_,
-                                                 no_generic_method_parameters,
-                                                 /*replaces_dots=*/true);
+                                                extends_token_,
+                                                generic_parameters_,
+                                                no_generic_method_parameters);
     if (kind_ == tlk_value_type) {
       /* By definition all value types extend System.ValueType so there is no
          need to explicitly add it as a base-class. */
-      check_assertion(extends_name == L"System::ValueType");
+      check_assertion(extends_name == MAKE_CLASS_STRING(ValueType));
     } else if (!extends_name.empty()) {
       /* Similarly with ref classes: by definition they all extend (directly
          or indirectly) System.Object. */
-      if ((kind_ != tlk_ref_class) || (extends_name != L"System::Object")) {
+      if ((kind_ != tlk_ref_class) ||
+          (extends_name != MAKE_CLASS_STRING(Object))) {
         buffer << " : " << extends_name;
         is_first_base_class_processed = true;
       }  /* if */
@@ -2279,10 +3151,9 @@ Decode the interface tokens (if there are any) and emit the appropriate text.
     CHECK_API_RESULT(hr, EnumInterfaceImpls);
     for (ULONG i = 0; i < count_of_interfaces; ++i) {
       wstring interface_name = import_scope_.resolve_type_token(
-                                                 interfaces[i],
-                                                 generic_parameters_,
-                                                 no_generic_method_parameters,
-                                                 /*replaces_dots=*/true);
+                                                interfaces[i],
+                                                generic_parameters_,
+                                                no_generic_method_parameters);
       auto    back_tick = interface_name.find(L'`');
       if (is_first_base_class_processed) {
         buffer << ", ";
@@ -2426,6 +3297,7 @@ an override specifier.
                 break;
             }  /* switch */
             check_assertion(!event_or_property_name.empty());
+            escape_invalid_identifier(event_or_property_name);
             /* Determine which kind of event or property method it is. */
             DWORD method_semantics;
             hr = import_interface_->GetMethodSemantics(
@@ -2443,17 +3315,18 @@ an override specifier.
             if (cok == cok_implicit || cok == cok_explicit) {
               /* Obtain the method's return type to handle user-defined
                  conversion operators. */
-              a_signature_decoder decoder(import_scope_, method_token,
+              a_signature_decoder decoder(import_scope_,
                                           signature, bytes_in_signature,
                                           generic_parameters_,
                                           no_generic_method_parameters,
                                           is_system_string_type_);
-              method_name = L"operator " + decoder.decode_return_type();
+              method_name = L"operator " + decoder.decode_return_type(
+                                                                method_token);
             }  /* if */
           }  /* if */
         } else {
-          /* Methods associated with properties or events should be marked with
-             the mdSpecialName attribute. */
+          /* Methods associated with properties or events should be marked
+             with the mdSpecialName attribute. */
           check_assertion(IsNilToken(get_associated_event_or_property(
                                                               method_token)));
         }  /* if */
@@ -2465,12 +3338,14 @@ an override specifier.
                                                   &signature,
                                                   &bytes_in_signature);
         CHECK_API_RESULT(hr, GetMemberRefProps);
-        /* FIXME: There needs to be an extra level of indirection here to match
-           a member function of an instantiated generic type back to the
+        /* FIXME: There needs to be an extra level of indirection here to
+           match a member function of an instantiated generic type back to the
            corresponding method in the generic type so that we can determine
            if it is the get/set/add/remove/raise method of a property/event
            or a CLI operator name.  The following is a workaround for the lack
-           of this functionality. */
+           of this functionality.  Also note that this code doesn't correctly
+           call escape_invalid_identifier on the property's name to handle
+           invalid C++ identifiers. */
         /* The overridden name of a CLI operator is the corresponding
            C++/CLI operator name. */
         a_cli_operator_kind cok = rename_cli_operator(method_name,
@@ -2478,12 +3353,13 @@ an override specifier.
         if (cok == cok_implicit || cok == cok_explicit) {
           /* Obtain the method's return type to handle user-defined
              conversion operators. */
-          a_signature_decoder decoder(import_scope_, method_token,
+          a_signature_decoder decoder(import_scope_,
                                       signature, bytes_in_signature,
                                       generic_parameters_,
                                       no_generic_method_parameters,
                                       is_system_string_type_);
-          method_name = L"operator " + decoder.decode_return_type();
+          method_name = L"operator " + decoder.decode_return_type(
+                                                                method_token);
         } else if (cok == cok_none) {
           wstring::size_type method_name_index = 0;
           wstring::size_type last_dot_index = method_name.rfind(L'.');
@@ -2520,10 +3396,10 @@ an override specifier.
   }  /* switch */
   wstring type = import_scope_.resolve_type_token(
                                             parent_token, generic_parameters_,
-                                            no_generic_method_parameters,
-                                            /*replace_dots=*/true);
+                                            no_generic_method_parameters);
+  check_assertion(!type.empty());
   return type + L"::" + method_name;
-}  /* get_method_def_or_member_ref_name */
+}  /* a_type_definition::get_overridden_name */
 
 
 a_cli_operator_kind a_type_definition::rename_cli_operator(
@@ -2591,8 +3467,67 @@ require additional processing, as their names contain the method's return type.
 }  /* rename_cli_operator */
 
 
+void a_type_definition::write_method_decl_specifiers(
+                                             ostringstream &buffer,
+                                             mdToken       token,
+                                             DWORD         method_attributes)
+/*
+Write the decl specifiers for a property or method.
+*/
+{
+  if ((import_scope_.containing_assembly().import_flags()
+                                       & cpp_cli_declspec_member_info) != 0) {
+    buffer << "__declspec(member_info(";
+    buffer << "0x" << setw(8) << setfill('0') << hex << token;
+    buffer << ")) ";
+  }  /* if */
+  /* Emit any decl specifiers. */
+  if (IsMdStatic(method_attributes)) {
+    buffer << "static ";
+    check_assertion(!IsMdVirtual(method_attributes));
+  } else if (IsMdVirtual(method_attributes)) {
+    buffer << "virtual ";
+  }  /* if */
+}  /* a_type_definition::write_method_decl_specifiers */
+
+
+bool fixup_destructor_or_finalizer_name(const wstring &type_name,
+                                        wstring       &method_name)
+/*
+Returns TRUE if 'method_name' is a destructor or finalizer for the type named
+type_name and adjusts 'method_name' accordingly if the type name is an invalid
+C++ identifer.
+*/
+{
+  bool is_destructor_or_finalizer = false;
+  wchar_t first_char = method_name[0];
+  if (first_char == L'~' || first_char == L'!') {
+    wstring::size_type chars_to_skip = 1;
+    if (type_name.compare(0, _countof(L"__identifier(") - 1,
+                          L"__identifier(")) {
+      wstring temp_method_name = method_name;
+      escape_invalid_identifier(temp_method_name, /*force=*/false,
+                                chars_to_skip);
+      if (temp_method_name.compare(chars_to_skip, wstring::npos,
+                                   type_name) == 0) {
+        is_destructor_or_finalizer = true;
+        /* Modify the name to be of the form "~__identifier(...)" or
+           "!__identifier(...)". */
+        method_name = temp_method_name;
+      }  /* if */
+    } else {
+      if (method_name.compare(chars_to_skip, wstring::npos,
+                              type_name) == 0) {
+        is_destructor_or_finalizer = true;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_destructor_or_finalizer;
+}  /* fixup_destructor_or_finalizer_name */
+
+
 void a_type_definition::import_one_method(ostringstream &buffer,
-                                          mdTypeDef     method_token,
+                                          mdMethodDef   method_token,
                                           DWORD         method_semantics)
 /*
 Import a single member of a type.
@@ -2606,7 +3541,6 @@ Import a single member of a type.
   DWORD                 method_attributes;
   PCCOR_SIGNATURE       signature;
   wstring               method_name;
-  wostringstream        declaration;
   an_accessibility      accessibility;
 
   hr = import_interface_->GetMethodProps(method_token, /*pClass=*/nullptr,
@@ -2616,76 +3550,110 @@ Import a single member of a type.
                                          /*pdwImplFlags=*/nullptr);
   CHECK_API_RESULT(hr, GetMethodProps);
   /* Get the accessibility.  Skip those methods that are not accessible. */
-  accessibility = an_accessibility(method_token, method_attributes);
+  accessibility = an_accessibility(this, method_token, method_attributes,
+                                   import_as_friend_);
   skip_member = !accessibility.is_accessible();
-  /* Handle special members methods such as constructors (both instance and
-     class) and property accessor methods. */
-  if (IsMdInstanceInitializerW(method_attributes, method_name.c_str()) ||
-      IsMdClassConstructorW(method_attributes, method_name.c_str())) {
-    method_name = type_name_;
-    omit_return_type = true;
-  } else if (method_name == (L"~" + type_name_) ||
-             method_name == (L"!" + type_name_)) {
-    /* A return type should not be emitted for destructors or finalizers. */
-    omit_return_type = true;
-  } else if (method_semantics != 0) {
-    /* Any event or property method should be marked as having a special
-       name. */
-    check_assertion(IsMdSpecialName(method_attributes));
-    method_name = name_from_method_semantics(method_semantics);
-  } else if (!skip_member && IsMdSpecialName(method_attributes)) {
-    /* Determine if this member is an event or property method. */
-    mdToken event_or_property_token =
+  if (!skip_member) {
+    /* Handle special members methods such as constructors (both instance and
+       class) and property accessor methods. */
+    if (IsMdInstanceInitializerW(method_attributes, method_name.c_str()) ||
+        IsMdClassConstructorW(method_attributes, method_name.c_str())) {
+      method_name = type_name_;
+      omit_return_type = true;
+    } else if (fixup_destructor_or_finalizer_name(type_name_, method_name)) {
+      /* A return type should not be emitted for destructors or finalizers. */
+      omit_return_type = true;
+    } else if (method_semantics != 0) {
+      /* Record that this method was imported as a property/event method. */
+      property_and_event_methods_.insert(method_token);
+      method_name = name_from_method_semantics(method_semantics);
+    } else if (IsMdSpecialName(method_attributes)) {
+      /* Determine if this member is an event or property method. */
+      mdToken event_or_property_token =
                                get_associated_event_or_property(method_token);
-    if (!IsNilToken(event_or_property_token)) {
-      /* This method is associated with an event or property.  These methods
-         are skipped here because import_one_event and import_one_property
-         generate the appropriate add/remove/raise or get/set methods. */
+      if (!IsNilToken(event_or_property_token)) {
+        /* This method is associated with an event or property.  These methods
+           are skipped here because import_one_event and import_one_property
+           generate the appropriate add/remove/raise or get/set methods. */
+        skip_member = true;
+      } else {
+        /* Rename any CLI operators to their corresponding C++/CLI operator
+           name. */
+        cok = rename_cli_operator(method_name, method_attributes);
+        if (cok == cok_none) {
+          escape_invalid_identifier(method_name);
+        }  /* if */
+      }  /* if */
+    } else if (property_and_event_methods_.find(method_token)
+                                       != property_and_event_methods_.end()) {
+      /* Skip any members that were already imported as a property/event
+         method but weren't also marked with the mdSpecialName attribute. */
       skip_member = true;
     } else {
-      /* Rename any CLI operators to their corresponding C++/CLI operator
-         name. */
-      cok = rename_cli_operator(method_name, method_attributes);
-    }  /* if */
-  }  /* if  */
+      escape_invalid_identifier(method_name);
+    }  /* if  */
+  }  /* if */
   if (!skip_member) {
-    declaration << accessibility.get_string(import_as_friend_) << L": ";
     /* Decode the signature and create the appropriate declaration.  This
        can either be a method or a field. */
-    a_signature_decoder decoder(import_scope_, method_token, signature,
-                                bytes_in_signature, generic_parameters_,
+    a_signature_decoder decoder(import_scope_, signature, bytes_in_signature,
+                                generic_parameters_,
                                 no_generic_method_parameters,
                                 is_system_string_type_);
-    declaration << decoder.decode_method_signature(method_name,
-                                                   method_attributes,
-                                                   omit_return_type,
-                                                   /*is_for_property=*/false,
-                                                   cok);
-    if (IsMdFinal(method_attributes)) {
-      declaration << L" sealed";
-    }  /* if */
-    if (IsMdNewSlot(method_attributes)) {
-      if (kind_ != tlk_interface) {
-        declaration << L" new";
-      }  /* if */
-    } else if (IsMdVirtual(method_attributes)) {
-      declaration << L" override";
-    }  /* if */
-    /* Emit any named overrides. */
-    if (IsMdVirtual(method_attributes)) {
-      auto method_impls_range = method_impls_.equal_range(method_token);
-      for (auto method_impls_iterator = method_impls_range.first;
-            method_impls_iterator != method_impls_range.second;
-            ++method_impls_iterator) {
-        if (method_impls_iterator == method_impls_range.first) {
-            declaration << L" = ";
+    a_type_wrapper_ptr type = decoder.decode_method_signature(method_token);
+    if (type != nullptr) {
+      auto method_type = type->as_function();
+      check_assertion(method_type != nullptr);
+      buffer << accessibility.get_string() << ": ";
+      buffer << method_type->generic_header() << END_OF_LINE;
+      write_method_decl_specifiers(buffer, method_token,
+                                   method_attributes);
+      if (cok == cok_implicit || cok == cok_explicit) {
+        /* Emit an implicit or explicit user-defined conversion operator. */
+        if (cok == cok_explicit) buffer << "explicit ";
+        /* Obtain the method's return type to handle user-defined conversion
+           operators. */
+        auto return_type = method_type->return_type();
+        if (return_type != nullptr) {
+          method_name = L"operator " + return_type->get_string();
         } else {
-            declaration << L", ";
+          method_name = L"operator __error_type";
         }  /* if */
-        declaration << get_overridden_name(method_impls_iterator->second);
-      }  /* for */
-    }  /* if */
-    buffer << declaration.str() << ';' << END_OF_LINE;
+        omit_return_type = true;
+      }  /* if */
+      if (omit_return_type) {
+        method_type = make_shared<a_function_type_wrapper>(
+                                               a_type_wrapper_ptr(),
+                                               method_type->parameter_list(),
+                                               method_type->generic_header());
+      }  /* if */
+      buffer << method_type->get_string(method_name);
+      if (IsMdFinal(method_attributes)) {
+        buffer << " sealed";
+      }  /* if */
+      if (IsMdNewSlot(method_attributes)) {
+        if (kind_ != tlk_interface) {
+          buffer << " new";
+        }  /* if */
+      } else if (IsMdVirtual(method_attributes)) {
+        buffer << " override";
+      }  /* if */
+      /* Emit any named overrides. */
+      if (IsMdVirtual(method_attributes)) {
+        auto method_impls_range = method_impls_.equal_range(method_token);
+        for (auto method_impls_iterator = method_impls_range.first;
+              method_impls_iterator != method_impls_range.second;
+              ++method_impls_iterator) {
+          if (method_impls_iterator == method_impls_range.first) {
+              buffer << " = ";
+          } else {
+              buffer << ", ";
+          }  /* if */
+          buffer << get_overridden_name(method_impls_iterator->second);
+        }  /* for */
+      }  /* if */
+      buffer << ';' << END_OF_LINE;
+    }
   }  /* if */
 }  /* a_type_definition::import_one_member */
 
@@ -2765,7 +3733,6 @@ Import a single field of a type.
   PCCOR_SIGNATURE           signature;
   UVCP_CONSTANT             constant_value;
   wstring                   field_name;
-  wostringstream            declaration;
   an_accessibility          accessibility;
   a_cpp_cli_import_flag_set import_flags;
 
@@ -2777,58 +3744,54 @@ Import a single field of a type.
                                         &characters_in_constant);
   CHECK_API_RESULT(hr, GetMemberProps);
   /* Get the accessibility.  Skip those fields that are not accessible. */
-  accessibility = an_accessibility(field_token, field_attributes);
+  accessibility = an_accessibility(this, field_token, field_attributes,
+                                   import_as_friend_);
   skip_member = !accessibility.is_accessible();
   if (!skip_member && IsFdSpecialName(field_attributes)) {
     skip_member = true;
   }  /* if  */
   if (!skip_member) {
-    declaration << accessibility.get_string(import_as_friend_) << L": ";
-    if ((import_flags & cpp_cli_declspec_member_info) != 0) {
-      declaration << L"__declspec(member_info(";
-      declaration << L"0x" << setw(8) << setfill(L'0') << hex << field_token;
-      declaration << L")) ";
-    }  /* if */
     /* Decode the signature and create the appropriate declaration.  This
        can either be a method or a field. */
-    a_signature_decoder decoder(import_scope_, field_token, signature,
-                                bytes_in_signature, generic_parameters_,
+    a_signature_decoder decoder(import_scope_, signature, bytes_in_signature,
+                                generic_parameters_,
                                 no_generic_method_parameters,
                                 is_system_string_type_);
-    wstring field_type;
-
-    if (IsFdInitOnly(field_attributes)) {
-      declaration << L"initonly ";
-    } else if (IsFdLiteral(field_attributes)) {
-      declaration << L"literal ";
-    }  /* if */
-    field_type = decoder.decode_field_signature();
-    /* Emit the storage class.  "literal" implies "static". */
-    if (IsFdStatic(field_attributes) && !IsFdLiteral(field_attributes)) {
-      declaration << L"static ";
-    }  /* if */
-    declaration << field_type << L' ';
-    if (field_name.find(L'<') != wstring::npos) {
-      /* Use the __identifier keyword. */
-      declaration << L"__identifier(\"" << field_name << L"\")";
-    } else {
-      declaration << field_name;
-    }  /* if */
-    if (IsFdHasDefault(field_attributes)) {
-      /* Note: we emit the value as a hexadecimal constant cast to the
-         appropriate type.  This seems to work best for some corner
-         cases. */
-      a_constant_decoder decoder(constant_type, constant_value,
-                                 characters_in_constant);
-      if (constant_type == ELEMENT_TYPE_STRING) {
-        /* FIXME: String literal conversions are not yet supported. */
-        declaration << L" = nullptr /*" << decoder.decode() << L"*/";
-      } else {
-        declaration << L" = static_cast<" << field_type << L">("
-                    << decoder.decode() << L')';
+    a_type_wrapper_ptr field_type = decoder.decode_field_signature();
+    if (field_type) {
+      escape_invalid_identifier(field_name, /*force=*/true);
+      buffer << accessibility.get_string() << ": ";
+      if ((import_flags & cpp_cli_declspec_member_info) != 0) {
+        buffer << "__declspec(member_info(";
+        buffer << "0x" << setw(8) << setfill('0') << hex << field_token;
+        buffer << ")) ";
       }  /* if */
-    }
-    buffer << declaration.str() << ';' << END_OF_LINE;
+      if (IsFdInitOnly(field_attributes)) {
+        buffer << "initonly ";
+      } else if (IsFdLiteral(field_attributes)) {
+        buffer << "literal ";
+      }  /* if */
+      /* Emit the storage class.  "literal" implies "static". */
+      if (IsFdStatic(field_attributes) && !IsFdLiteral(field_attributes)) {
+        buffer << "static ";
+      }  /* if */
+      buffer << field_type->get_string(field_name);
+      if (IsFdHasDefault(field_attributes)) {
+        /* Note: we emit the value as a hexadecimal constant cast to the
+           appropriate type.  This seems to work best for some corner
+           cases. */
+        a_constant_decoder decoder(constant_type, constant_value,
+                                   characters_in_constant);
+        if (constant_type == ELEMENT_TYPE_STRING ||
+            constant_type == ELEMENT_TYPE_CLASS) {
+          buffer << " = " << decoder.decode();
+        } else {
+          buffer << " = static_cast<" << field_type->get_string() << ">(";
+          buffer << decoder.decode() << ')';
+        }  /* if */
+      }  /* if */
+      buffer << ';' << END_OF_LINE;
+    }  /* if */
   }  /* if */
 }  /* a_type_definition::import_one_field */
 
@@ -2863,17 +3826,18 @@ Import the definition of a property accessor method.
 */
 {
   HRESULT hr;
-  wstring method_name;
   DWORD   attributes;
 
   hr = import_interface_->GetMethodProps(method_token, /*pClass=*/nullptr,
-                                         method_name, &attributes,
+                                         /*szMethod=*/nullptr,
+                                         /*cchMethod=*/0,
+                                         /*pchMethod=*/0, &attributes,
                                          /*ppvSigBlob=*/nullptr,
                                          /*pcbSigBlob=*/nullptr,
                                          /*pulCodeRVA=*/nullptr,
                                          /*pdwImplFlags=*/nullptr);
   CHECK_API_RESULT(hr, GetMethodProps);
-  return a_method_def(method_token, move(method_name), attributes);
+  return a_method_def(this, method_token, attributes);
 }  /* a_type_definition::import_property_method */
 
 
@@ -2893,7 +3857,7 @@ itself and its associated accessor methods.
   wstring             property_name;
   a_method_def        set_method;
   a_method_def        get_method;
-  an_accessibility    property_accessibility;
+  an_accessibility    accessibility;
 
   hr = import_interface_->GetPropertyProps(property_token, /*pClass=*/nullptr,
                                            property_name,
@@ -2919,15 +3883,14 @@ itself and its associated accessor methods.
   /* Set the accessibility of the property itself.  The accessibility of the
      property itself is the wider accessibility of its associated accessor
      methods. */
-  property_accessibility = an_accessibility::wider_accessibility(
+  accessibility = an_accessibility::wider_accessibility(
                                                   get_method.accessibility(),
                                                   set_method.accessibility());
-  if (property_accessibility.is_accessible()) {
+  if (accessibility.is_accessible()) {
     /* Now that we have everything we need emit the definition of the
        property. */
-    ostringstream       declaration;
-    a_signature_decoder decoder(import_scope_, property_token, signature,
-                                bytes_in_signature, generic_parameters_,
+    a_signature_decoder decoder(import_scope_, signature, bytes_in_signature,
+                                generic_parameters_,
                                 no_generic_method_parameters,
                                 is_system_string_type_);
     DWORD               method_attributes_mask = mdStatic;
@@ -2941,24 +3904,22 @@ itself and its associated accessor methods.
     } else if (set_method.exists()) {
       method_attributes = set_method.attributes() & method_attributes_mask;
     }  /* if */
-    declaration << property_accessibility.get_string(
-                                                   import_as_friend_) << ": ";
-    declaration << decoder.decode_method_signature(
-                                                 property_name,
-                                                 method_attributes,
-                                                 /*omit_return_type=*/false,
-                                                 /*is_for_property=*/true,
-                                                 cok_none);
-    declaration << " {" << END_OF_LINE;
-    /* Import the get and/or set method. */
-    if (get_method.exists()) {
-      import_one_method(declaration, get_method.token(), msGetter);
+    auto type = decoder.decode_method_signature(property_token);
+    if (type) {
+      buffer << accessibility.get_string() << ": ";
+      write_method_decl_specifiers(buffer, property_token, method_attributes);
+      escape_invalid_identifier(property_name);
+      buffer << "property " << type->get_string(property_name);
+      buffer << " {" << END_OF_LINE;
+      /* Import the get and/or set method. */
+      if (get_method.exists()) {
+        import_one_method(buffer, get_method.token(), msGetter);
+      }  /* if */
+      if (set_method.exists()) {
+        import_one_method(buffer, set_method.token(), msSetter);
+      }  /* if */
+      buffer << '}' << END_OF_LINE;
     }  /* if */
-    if (set_method.exists()) {
-      import_one_method(declaration, set_method.token(), msSetter);
-    }  /* if */
-    declaration << '}' << END_OF_LINE;
-    buffer << declaration.str();
   }  /* if */
 }  /* a_type_definition::import_one_property */
 
@@ -2995,17 +3956,18 @@ Import the definition of an event method.
 */
 {
   HRESULT hr;
-  wstring method_name;
   DWORD   attributes;
 
   hr = import_interface_->GetMethodProps(method_token, /*pClass=*/nullptr,
-                                         method_name, &attributes,
+                                         /*szMethod=*/nullptr,
+                                         /*cchMethod=*/0,
+                                         /*pchMethod=*/0, &attributes,
                                          /*ppvSigBlob=*/nullptr,
                                          /*pcbSigBlob=*/nullptr,
                                          /*pulCodeRVA=*/nullptr,
                                          /*pdwImplFlags=*/nullptr);
   CHECK_API_RESULT(hr, GetMethodProps);
-  return a_method_def(method_token, move(method_name), attributes);
+  return a_method_def(this, method_token, attributes);
 }  /* a_type_definition::import_event_method */
 
 
@@ -3043,12 +4005,13 @@ itself and its associated methods.
   if (!IsNilToken(raise_method_token)) {
     raise_method = import_event_method(raise_method_token);
   }  /* if */
-  check_assertion(add_method.accessibility() ==
-                                              remove_method.accessibility() &&
-                  (IsNilToken(raise_method_token) ||
-                   add_method.accessibility() ==
-                                               raise_method.accessibility()));
-  accessibility = add_method.accessibility();
+  /* Set the accessibility of the event itself.  While is it expected that the
+     add and remove methods have the same accessibility, if that isn't the
+     case, we'll use the wider accessibility of the two. */
+  check_assertion(add_method.accessibility() == remove_method.accessibility());
+  accessibility = an_accessibility::wider_accessibility(
+                                               add_method.accessibility(),
+                                               remove_method.accessibility());
   DWORD method_attributes_mask = mdStatic | mdVirtual;
   check_assertion((add_method.attributes() & method_attributes_mask) ==
                       (remove_method.attributes() & method_attributes_mask) &&
@@ -3059,37 +4022,29 @@ itself and its associated methods.
   if (accessibility.is_accessible()) {
     /* Now that we have everything we need emit the definition of the
        event. */
-    ostringstream declaration;
-    wstring event_type;
-
-    declaration << accessibility.get_string(import_as_friend_) << ": ";
-    if (IsMdStatic(method_attributes)) {
-      check_assertion(!IsMdVirtual(method_attributes));
-      declaration << "static ";
-    } else if (IsMdVirtual(method_attributes)) {
-      declaration << "virtual ";
+    wstring event_type = import_scope_.resolve_type_token(
+                                                event_type_token,
+                                                generic_parameters_,
+                                                no_generic_method_parameters);
+    if (!event_type.empty()) {
+      escape_invalid_identifier(event_name);
+      buffer << accessibility.get_string() << ": ";
+      if (IsMdStatic(method_attributes)) {
+        check_assertion(!IsMdVirtual(method_attributes));
+        buffer << "static ";
+      } else if (IsMdVirtual(method_attributes)) {
+        buffer << "virtual ";
+      }  /* if */
+      buffer << "event ";
+      buffer << event_type << "^ " << event_name;
+      buffer << " {" << END_OF_LINE;
+      import_one_method(buffer, add_method.token(), msAddOn);
+      import_one_method(buffer, remove_method.token(), msRemoveOn);
+      if (raise_method.exists()) {
+        import_one_method(buffer, raise_method.token(), msFire);
+      }  /* if */
+      buffer << '}' << END_OF_LINE;
     }  /* if */
-    declaration << "event ";
-    event_type = import_scope_.resolve_type_token(
-                                                 event_type_token,
-                                                 generic_parameters_,
-                                                 no_generic_method_parameters,
-                                                 /*replaces_dots=*/true);
-    declaration << event_type << "^ ";
-    if (event_name.find(L'.') != wstring::npos) {
-      /* The event name contains a dot; use __identifier to emit it. */
-      declaration << "__identifier(\"" << event_name << "\")";
-    } else {
-      declaration << event_name;
-    }  /* if */
-    declaration << " {" << END_OF_LINE;
-    import_one_method(declaration, add_method.token(), msAddOn);
-    import_one_method(declaration, remove_method.token(), msRemoveOn);
-    if (raise_method.exists()) {
-      import_one_method(declaration, raise_method.token(), msFire);
-    }  /* if */
-    declaration << '}' << END_OF_LINE;
-    buffer << declaration.str();
   }  /* if */
 }  /* a_type_definition::import_one_event */
 
@@ -3122,9 +4077,10 @@ void a_type_definition::import_nested_classes(ostringstream &buffer)
 Import all the nested classes enclosed by this type.
 */
 {
-  HCORENUM  enum_typedefs = nullptr;
-  mdTypeDef typedefs[64];
-  ULONG     count_of_typedefs;
+  HCORENUM                       enum_typedefs = nullptr;
+  mdTypeDef                      typedefs[64];
+  ULONG                          count_of_typedefs;
+  a_pending_constraint_type_list pending_constraint_types;
 
   do {
     HRESULT hr = import_interface_->EnumTypeDefs(&enum_typedefs, typedefs,
@@ -3132,30 +4088,31 @@ Import all the nested classes enclosed by this type.
                                                  &count_of_typedefs);
     CHECK_API_RESULT(hr, EnumTypeDefs);
     for (ULONG i = 0; i < count_of_typedefs; ++i) {
-      DWORD attributes;
-      hr = import_interface_->GetTypeDefProps(
-                                     typedefs[i], /*szTypeDef=*/nullptr,
-                                     /*cchTypeDef=*/0, /*pchTypeDef=*/nullptr,
-                                     &attributes, /*ptkExtends=*/nullptr);
-      if (IsTdNested(attributes)) {
-        an_accessibility accessibility(typedefs[i], attributes);
-        mdTypeDef enclosing_typedef;
-        hr = import_interface_->GetNestedClassProps(typedefs[i],
-                                                    &enclosing_typedef);
-        if (enclosing_typedef == typedef_token_ &&
-            accessibility.is_accessible()) {
-          buffer << accessibility.get_string(import_as_friend_) << ": ";
-          import_scope_.import_one_type(buffer,
-                                        typedefs[i],
-                                        /*at_top_level=*/false,
-                                        generic_parameters_,
-                                        /*want_definition=*/false,
-                                        /*class_body_only=*/false);
-        }  /* if */
+      mdTypeDef enclosing_typedef;
+      hr = import_interface_->GetNestedClassProps(typedefs[i],
+                                                  &enclosing_typedef);
+      if (SUCCEEDED(hr) && enclosing_typedef == typedef_token_) {
+        import_scope_.import_one_type(buffer,
+                                      typedefs[i],
+                                      this,
+                                      /*want_definition=*/false,
+                                      /*class_body_only=*/false,
+                                      &pending_constraint_types);
       }  /* if */
     }  /* for */
   } while (count_of_typedefs > 0);
   import_interface_->CloseEnum(enum_typedefs);
+  /* Now that all nested types have been imported, re-declare all nested
+     generic types that were declared with a pending constraint clause, this
+     time with the complete constraint clause. */
+  for (auto pending_constraint_types_iter = pending_constraint_types.begin();
+       pending_constraint_types_iter != pending_constraint_types.end();
+       ++pending_constraint_types_iter) {
+    import_scope_.import_one_type(buffer, *pending_constraint_types_iter,
+                                  this, /*want_definition=*/false,
+                                  /*class_body_only=*/false,
+                                  /*pending_constraint_types=*/nullptr);
+  }  /* for */
 }  /* a_type_definition::import_nested_classes */
 
 
@@ -3174,10 +4131,15 @@ Create the definition for the current type.
   process_interfaces(buffer);
   buffer << " {" << END_OF_LINE;
   import_nested_classes(buffer);
-  import_all_methods(buffer);
   import_all_fields(buffer);
+  get_method_impls();
   import_properties(buffer);
   import_events(buffer);
+  /* Import the methods after all properties and events have been imported
+     so that property/event methods that are not marked with the mdSpecialName
+     attribute are not imported as ordinary member functions; see
+     property_and_event_methods_. */
+  import_all_methods(buffer);
   buffer << "};";
 #if DEBUG
   buffer << "  /* " << type_name_ << " */";
@@ -3218,17 +4180,16 @@ Return the appropriate string for the specified top level kind.
 
 
 wstring form_generic_parameter_list(
-                       BYTE                            generic_arity,
-                       a_generic_param_or_arg_iterator generic_parameters_end)
+                     a_generic_param_or_arg_iterator generic_parameters_begin,
+                     a_generic_param_or_arg_iterator generic_parameters_end)
 /*
 Return a generic parameter list for a generic type or method.
 */
 {
   wstring parameter_list;
 
-  check_assertion(generic_arity > 0);
   parameter_list = L"generic<";
-  for (auto iter = generic_parameters_end - generic_arity;
+  for (auto iter = generic_parameters_begin;
        iter != generic_parameters_end;
        ++iter) {
     const wstring &param_name = *iter;
@@ -3271,8 +4232,10 @@ Return the generic header associated with this generic method.
 {
   wstring generic_header;
 
-  generic_header = form_generic_parameter_list(generic_arity,
-                                               generic_parameters.end());
+  check_assertion(generic_parameters.size() >= generic_arity);
+  generic_header = form_generic_parameter_list(
+                                     generic_parameters.end() - generic_arity,
+                                     generic_parameters.end());
   if (!generic_constraints.empty()) {
     generic_header += form_generic_constraint_clause_list(
                                                          generic_constraints);
@@ -3281,14 +4244,60 @@ Return the generic header associated with this generic method.
 }  /* form_generic_method_header */
 
 
+wstring an_import_scope::form_full_generic_parameter_list(
+                 mdTypeDef                       typedef_token,
+                 DWORD                           type_attributes,
+                 a_generic_param_or_arg_iterator generic_parameters_begin,
+                 a_generic_param_or_arg_iterator generic_parameters_end) const
+/*
+Return the generic header associated with this generic type.
+*/
+{
+  wstring generic_header;
+  BYTE    generic_arity = distance(generic_parameters_begin,
+                                   generic_parameters_end);
+
+  if (IsTdNested(type_attributes)) {
+    HRESULT   hr;
+    mdTypeDef enclosing_type_token;
+    BYTE      enclosing_type_generic_param_count = 0;
+    hr = import_interface_->GetNestedClassProps(typedef_token,
+                                                &enclosing_type_token);
+    CHECK_API_RESULT(hr, GetNestedClassProps);
+    enclosing_type_generic_param_count =
+                            get_generic_parameter_count(enclosing_type_token);
+    if (enclosing_type_generic_param_count > 0) {
+      DWORD enclosing_type_attributes;
+      check_assertion(enclosing_type_generic_param_count <= generic_arity);
+      generic_arity -= enclosing_type_generic_param_count;
+      hr = import_interface_->GetTypeDefProps(enclosing_type_token,
+                                              &enclosing_type_attributes);
+      CHECK_API_RESULT(hr, GetTypeDefProps);
+      generic_header = form_full_generic_parameter_list(
+                                      enclosing_type_token,
+                                      enclosing_type_attributes,
+                                      generic_parameters_begin,
+                                      generic_parameters_end - generic_arity);
+    }  /* if */
+  }  /* if */
+  if (generic_arity > 0) {
+    generic_header += form_generic_parameter_list(
+                                       generic_parameters_end - generic_arity,
+                                       generic_parameters_end);
+  }  /* if */
+  return generic_header;
+}  /* an_import_scope::form_full_generic_parameter_list */
+
+
 wstring an_import_scope::form_generic_type_header(
-                    mdTypeDef                         typedef_token,
-                    DWORD                             type_attributes,
-                    BYTE                              generic_arity,
-                    const a_generic_param_or_arg_list &generic_parameters,
-                    a_generic_param_or_arg_iterator   generic_parameters_end,
-                    const a_constraint_clause_list    &generic_constraints,
-                    a_boolean                         out_of_class_definition)
+        mdTypeDef                         typedef_token,
+        DWORD                             type_attributes,
+        BYTE                              generic_arity,
+        mdTypeDef                         enclosing_type_token,
+        DWORD                             enclosing_type_attributes,
+        const a_generic_param_or_arg_list &generic_parameters,
+        const a_constraint_clause_list    &generic_constraints,
+        a_boolean                         out_of_class_definition) const
 /*
 Return the generic header associated with this generic type.
 */
@@ -3296,41 +4305,23 @@ Return the generic header associated with this generic type.
   wstring generic_header;
 
   /* When obtaining the definition of a type that is directly or indirectly a
-     generic type, the generated code should be in the form of an
-     out-of-class definition.  If this is a nested type and all of the generic
-     parameters are not directly associated with it, then recursively generate
-     the generic header for the enclosing generic type(s). */
-  if (out_of_class_definition && IsTdNested(type_attributes) &&
-      generic_arity < distance(generic_parameters.begin(),
-                               generic_parameters_end)) {
-    HRESULT   hr;
-    mdTypeDef enclosing_typedef_token;
-    wstring   enclosing_type_name;
-    DWORD     enclosing_type_attributes;
-    BYTE      enclosing_type_generic_arity;
-    hr = import_interface_->GetNestedClassProps(typedef_token,
-                                                &enclosing_typedef_token);
-    CHECK_API_RESULT(hr, GetNestedClassProps);
-    hr = import_interface_->GetTypeDefProps(enclosing_typedef_token,
-                                            enclosing_type_name,
-                                            &enclosing_type_attributes,
-                                            /*ptkExtends=*/nullptr);
-    CHECK_API_RESULT(hr, GetTypeDefProps);
-    enclosing_type_generic_arity = strip_generic_arity(enclosing_type_name);
-    generic_header = form_generic_type_header(
-                                       enclosing_typedef_token,
-                                       enclosing_type_attributes,
-                                       enclosing_type_generic_arity,
-                                       generic_parameters,
-                                       generic_parameters_end - generic_arity,
-                                       no_generic_constraints,
-                                       out_of_class_definition);
+     generic type, the generated code should be in the form of an out-of-class
+     definition.  If this is a nested type and all of the generic parameters
+     are not directly associated with it, then generate the generic parameter
+     list for all enclosing generic type(s). */
+  check_assertion(IsTdNested(type_attributes) ||
+                  generic_arity == generic_parameters.size());
+  if (out_of_class_definition && generic_arity < generic_parameters.size()) {
+    generic_header = form_full_generic_parameter_list(
+                                    enclosing_type_token,
+                                    enclosing_type_attributes,
+                                    generic_parameters.begin(),
+                                    generic_parameters.end() - generic_arity);
   }  /* if */
   if (generic_arity > 0) {
-    check_assertion(generic_arity <= distance(generic_parameters.begin(),
-                                              generic_parameters_end));
-    generic_header += form_generic_parameter_list(generic_arity,
-                                                  generic_parameters_end);
+    generic_header += form_generic_parameter_list(
+                                     generic_parameters.end() - generic_arity,
+                                     generic_parameters.end());
     if (!generic_constraints.empty()) {
       generic_header += form_generic_constraint_clause_list(
                                                          generic_constraints);
@@ -3341,12 +4332,12 @@ Return the generic header associated with this generic type.
 
 
 void an_import_scope::import_one_type(
-                ostringstream                  &buffer,
-                mdTypeDef                      typedef_token,
-                bool                           at_top_level,
-                const a_generic_parameter_list &enclosing_type_generic_params,
-                bool                           want_definition,
-                bool                           class_body_only)
+                    ostringstream                  &buffer,
+                    mdTypeDef                      typedef_token,
+                    const a_type_definition        *enclosing_type_definition,
+                    bool                           want_definition,
+                    bool                           class_body_only,
+                    a_pending_constraint_type_list *pending_constraint_types)
 /*
 Import a single type from an import scope and create either a declaration or
 a definition for the type depending on want_definition.  Note, in some cases
@@ -3359,55 +4350,70 @@ If class_body_only is true, the class head and the namespace scopes will be
 omitted.
 */
 {
-  HRESULT                   hr;
-  DWORD                     attributes;
-  mdToken                   extends_token;
-  wstring                   full_type_name;
-  a_generic_parameter_list  this_type_generic_parameters;
-  a_constraint_clause_list  generic_constraints;
-  a_top_level_kind          kind;
-  bool                      skip_type = false;
-  a_cpp_cli_import_flag_set import_flags =
-                                          containing_assembly_.import_flags();
-  bool                      define_all_types =
+  HRESULT          hr;
+  DWORD            attributes;
+  mdToken          extends_token;
+  a_top_level_kind kind;
+  auto             import_flags = containing_assembly_.import_flags();
+  bool             define_all_types =
                                (import_flags & cpp_cli_define_all_types) != 0;
+  bool             import_as_friend =
+                             (import_flags & cpp_cli_as_friend_assembly) != 0;
+  bool             at_top_level = enclosing_type_definition == nullptr;
 
-  hr = import_interface_->GetTypeDefProps(typedef_token, full_type_name,
+  hr = import_interface_->GetTypeDefProps(typedef_token,
                                           &attributes, &extends_token);
   CHECK_API_RESULT(hr, GetTypeDefProps);
-  BYTE generic_arity = strip_generic_arity(full_type_name);
-  /* Get the generic parameters and constraints for this type if it is a
-     generic type.  Also do this when obtaining the body of nested classes
-     as they may be nested within a generic type. */
-  if (generic_arity != 0 || (IsTdNested(attributes) && at_top_level &&
-                             class_body_only)) {
-    get_generic_parameters_and_constraints(typedef_token,
-                                           no_generic_type_parameters,
-                                           generic_arity,
-                                           this_type_generic_parameters,
-                                           generic_constraints);
-  }  /* if */
-  const a_generic_parameter_list &generic_type_parameters =
-                                          this_type_generic_parameters.empty()
-                                               ? enclosing_type_generic_params
-                                               : this_type_generic_parameters;
-  /* Check whether this type should be emitted based on the supported
-     features. */
-  if (IsTdNested(attributes)) {
-    if (at_top_level && !class_body_only) {
-      /* Do not emit nested types at top level scopes.  Nested types are
-         emitted in their enclosing type. */
-      skip_type = true;
+  if (IsTdNested(attributes) && at_top_level && !class_body_only) {
+    /* Do not emit nested types at top level scopes.  Nested types are
+       emitted in their enclosing type. */
+  } else {
+    an_accessibility accessibility(enclosing_type_definition, typedef_token,
+                                   attributes, import_as_friend);
+    if (!accessibility.is_accessible()) {
+      /* Do not emit private types. */
+      goto done;
+    } /* if */
+    mdTypeDef enclosing_type_token = mdTypeDefNil;
+    DWORD     enclosing_type_attributes = 0;
+    BYTE      enclosing_type_generic_param_count = 0;
+    if (at_top_level) {
+      if (IsTdNested(attributes)) {
+        hr = import_interface_->GetNestedClassProps(typedef_token,
+                                                    &enclosing_type_token);
+        CHECK_API_RESULT(hr, GetNestedClassProps);
+        enclosing_type_generic_param_count =
+                            get_generic_parameter_count(enclosing_type_token);
+        hr = import_interface_->GetTypeDefProps(enclosing_type_token,
+                                                &enclosing_type_attributes);
+        CHECK_API_RESULT(hr, GetTypeDefProps);
+      }  /* if */
+    } else {
+      enclosing_type_token = enclosing_type_definition->token();
+      enclosing_type_attributes = enclosing_type_definition->attributes();
+      enclosing_type_generic_param_count = enclosing_type_definition
+                                                ->generic_parameters().size();
     }  /* if */
-  } else if (full_type_name[0] == L'<') {
-    /* Skip types such as "<CrtImplementationDetails>" and
-       "<CppImplementationDetails>". */
-    skip_type = true;
-  } else if (full_type_name == L"_GUID") {
-    /* _GUID is a built-in type in Microsoft mode.  Skip it. */
-    skip_type = true;
-  }  /* if */
-  if (!skip_type) {
+    /* Get the generic parameters and constraints for this type. */
+    a_generic_parameter_list generic_type_parameters;
+    a_constraint_clause_list generic_constraints;
+    BYTE                     generic_arity;
+    generic_arity = get_generic_parameters_and_constraints(
+                                           typedef_token,
+                                           no_generic_type_parameters,
+                                           enclosing_type_generic_param_count,
+                                           generic_type_parameters,
+                                           generic_constraints,
+                                           pending_constraint_types);
+    wstring full_type_name = resolve_type_token(
+                                        typedef_token,
+                                        generic_type_parameters,
+                                        no_generic_method_parameters,
+                                        /*omit_generic_params_or_args=*/true);
+    if (full_type_name == L"_GUID") {
+      /* _GUID is a built-in type in Microsoft mode.  Skip it. */
+      goto done;
+    }  /* if */
     /* Classify the type - ref class, value class, interface etc. */
     kind = classify_type(full_type_name, attributes, generic_type_parameters,
                          extends_token);
@@ -3417,24 +4423,20 @@ omitted.
          declaration ordering problems. */
       kind = tlk_ref_class;
     }  /* if */
-  }  /* if */
-  if (!skip_type) {
-    wstring::size_type last_dot_index;
-    wstring            namespace_name;
-    wstring            type_name;
     /* Split the full type name into a namespace and a type-name. */
-    last_dot_index = full_type_name.rfind(L'.');
-    check_assertion(last_dot_index != 0 &&
-                    last_dot_index != full_type_name.length());
-    if (last_dot_index != wstring::npos) {
-      namespace_name = full_type_name.substr(0, last_dot_index);
-    }  /* if */
-    type_name = full_type_name.substr(last_dot_index + 1);
-    if (type_name.find(L'<') != wstring::npos) {
-      /* The type name contains angle brackets.  This is a template
-         specialization.  For example, "Foo<int>."  Use __identifier to emit
-         the type name. */
-      type_name = wstring(L"__identifier(\"") + type_name + wstring(L"\")");
+    wstring namespace_name;
+    wstring type_name;
+    size_t  namespace_separator_length = sizeof("::") - 1;
+    auto    namespace_separator_index = full_type_name.rfind(L"::");
+    if (namespace_separator_index != wstring::npos) {
+      check_assertion(namespace_separator_index > 0 &&
+                      namespace_separator_index <
+                        full_type_name.length() - namespace_separator_length);
+      namespace_name = full_type_name.substr(0, namespace_separator_index);
+      type_name = full_type_name.substr(namespace_separator_index +
+                                                  namespace_separator_length);
+    } else {
+      type_name = full_type_name;
     }  /* if */
     /* Emit the namespace scopes and class head if required.  These are
        present on the original declaration and also on the definitions of
@@ -3448,6 +4450,10 @@ omitted.
           close_all_namespace_scopes(buffer);
         }  /* if */
       }  /* if */
+      if (!at_top_level) {
+        /* Emit the access specifier for nested types. */
+        buffer << accessibility.get_string() << ": ";
+      }  /* if */
       /* Emit the generic header if this is directly or indirectly a generic
          type.  When obtaining the body of such a type, the generated code
          should be in the form of an out-of-class definition. */
@@ -3455,17 +4461,15 @@ omitted.
         a_boolean out_of_class_definition = at_top_level && class_body_only;
         buffer << form_generic_type_header(typedef_token, attributes,
                                            generic_arity,
+                                           enclosing_type_token,
+                                           enclosing_type_attributes,
                                            generic_type_parameters,
-                                           generic_type_parameters.end(),
                                            generic_constraints,
                                            out_of_class_definition);
       }  /* if */
       /* Emit the assembly level visibility - either public or private. */
-      if (at_top_level && want_definition) {
-        bool import_as_friend = (import_flags &
-                                             cpp_cli_as_friend_assembly) != 0;
-        buffer << an_accessibility(typedef_token, attributes).
-                                          get_string(import_as_friend) << ' ';
+      if (at_top_level && want_definition && !IsTdNested(attributes)) {
+        buffer << accessibility.get_string() << ' ';
       }  /* if */
       /* Emit the tokens that represent the kind. */
       buffer << top_level_kind_as_wstring(kind) << ' ';
@@ -3503,19 +4507,10 @@ omitted.
         /* Emit the enclosing type name qualifiers for definitions of nested
            generic types. */
         if (class_body_only && at_top_level && IsTdNested(attributes)) {
-          mdTypeDef enclosing_typedef;
-          hr = import_interface_->GetNestedClassProps(typedef_token,
-                                                      &enclosing_typedef);
-          CHECK_API_RESULT(hr, GetNestedClassProps);
-          wstring enclosing_type_name = resolve_type_token(
-                                enclosing_typedef,
-                                generic_type_parameters,
-                                generic_type_parameters.end() - generic_arity,
-                                no_generic_method_parameters,
-                                /*replace_dots=*/TRUE);
-          buffer << enclosing_type_name << "::";
+          buffer << full_type_name;
+        } else {
+          buffer << type_name;
         }  /* if */
-        buffer << type_name;
       }  /* if */
       if (want_definition || define_all_types) {
         a_type_definition type_definition(typedef_token, full_type_name,
@@ -3531,18 +4526,9 @@ omitted.
         close_all_namespace_scopes(buffer);
       }  /* if */
     }  /* if */
-    if (!want_definition && !IsTdNested(attributes) && generic_arity == 0) {
-      /* If this is for a declaration we need to remember the mapping from
-         the def-token to the name as this will make it easier to find any
-         future references to this token.  If this declaration is for a nested
-         type, we can't cache the name because full_type_name does not include
-         the enclosing class scopes.  If this declaration is for a generic
-         type, we can't cache the name because the generic parameters may
-         differ in different contexts. */
-      map_of_tokens_to_names_.insert(make_pair(typedef_token,
-                                               move(full_type_name)));
-    }  /* if */
   }  /* if */
+done:
+  return;
 }  /* an_import_scope::import_one_type */
 
 
@@ -3568,7 +4554,7 @@ Return TRUE if the method parameter is a parameter array.
 a_generic_argument_list a_signature_decoder::decode_generic_arguments()
 /*
 Decode the generic arguments associated with a type.  Note, it is the caller's
-responsibility to ensure that there is at least one generic argument.
+responsiblity to ensure that there is at least one generic argument.
 */
 {
   a_generic_argument_list generic_arguments;
@@ -3577,17 +4563,362 @@ responsibility to ensure that there is at least one generic argument.
   check_assertion(count_of_generic_arguments > 0);
   generic_arguments.reserve(count_of_generic_arguments);
   for (BYTE i = 0; i < count_of_generic_arguments; ++i) {
-    generic_arguments.push_back(decode_type());
+    a_type_wrapper_ptr type = decode_type();
+    generic_arguments.push_back(type != nullptr ? type->get_string()
+                                                : L"__error_type");
   }  /* for */
   return generic_arguments;
 }  /* a_signature_decoder::decode_generic_arguments */
 
 
-wstring a_signature_decoder::decode_type(bool add_handle_to_class/*=true*/)
+typedef unsigned int a_type_modifier_flag_set;
+enum a_type_modifier_flag : a_type_modifier_flag_set
+{
+  tmf_none                       = 0x0000,
+  tmf_compiler_marshal_override  = 0x0001,
+  tmf_is_boxed                   = 0x0002,
+  tmf_is_by_value                = 0x0004,
+  tmf_is_const                   = 0x0008,
+  tmf_is_copy_ctor               = 0x0010,
+  tmf_is_cxx_reference           = 0x0020,
+  tmf_is_cxx_udt_return          = 0x0040,
+  tmf_is_explicitly_dereferenced = 0x0080,
+  tmf_is_implicitly_dereferenced = 0x0100,
+  tmf_is_long                    = 0x0200,
+  tmf_is_rvalue_reference        = 0x0400,
+  tmf_is_signed                  = 0x0800,
+  tmf_is_sign_unspecified_byte   = 0x1000,
+  tmf_is_volatile                = 0x2000,
+  tmf_unknown                    = 0x4000,
+};
+
+
+a_type_modifier_flag type_name_to_modifier_flag(const wstring &name)
+/*
+Return the type modifier flag that corresponds to the specified class name, or
+tmf_unknown if no such mapping exists.
+*/
+{
+  static const struct a_type_name_to_modifier_flag_map
+  {
+    LPCWSTR              name;
+    a_type_modifier_flag modifier_flag;
+  } type_name_to_modifier_flag_map[] = {
+    { L"Microsoft::VisualC::IsMarshalWorkaround",
+                                              tmf_compiler_marshal_override },
+    { L"System::Runtime::CompilerServices::CompilerMarshalOverride",
+                                              tmf_compiler_marshal_override },
+    { L"Microsoft::VisualC::IsBoxedModifier",       tmf_is_boxed },
+    { L"System::Runtime::CompilerServices::IsBoxed", tmf_is_boxed },
+    { L"Microsoft::VisualC::IsByValueModifier",       tmf_is_by_value },
+    { L"System::Runtime::CompilerServices::IsByValue", tmf_is_by_value },
+    { L"Microsoft::VisualC::IsConstModifier",       tmf_is_const },
+    { L"System::Runtime::CompilerServices::IsConst", tmf_is_const },
+    { L"Microsoft::VisualC::IsCopyCtorModifier", tmf_is_copy_ctor },
+    { L"Microsoft::VisualC::IsCXXReferenceModifier", tmf_is_cxx_reference },
+    { L"Microsoft::VisualC::CxxUdtReturnStyleModifier",
+                                                      tmf_is_cxx_udt_return },
+    { L"System::Runtime::CompilerServices::IsUdtReturn",
+                                                      tmf_is_cxx_udt_return },
+    { L"Microsoft::VisualC::IsCXXPointerModifier",
+                                             tmf_is_explicitly_dereferenced },
+    { L"System::Runtime::CompilerServices::IsExplicitlyDereferenced",
+                                             tmf_is_explicitly_dereferenced },
+    { L"Microsoft::VisualC::IsImplicitlyDereferencedModifier",
+                                             tmf_is_implicitly_dereferenced },
+    { L"System::Runtime::CompilerServices::IsImplicitlyDereferenced",
+                                             tmf_is_implicitly_dereferenced },
+    { L"Microsoft::VisualC::IsLongModifier",       tmf_is_long },
+    { L"System::Runtime::CompilerServices::IsLong", tmf_is_long },
+    { L"Microsoft::VisualC::IsSignedModifier", tmf_is_signed },
+    { L"Microsoft::VisualC::NoSignSpecifiedModifier",
+                                               tmf_is_sign_unspecified_byte },
+    { L"System::Runtime::CompilerServices::IsSignUnspecifiedByte",
+                                               tmf_is_sign_unspecified_byte },
+    { L"Microsoft::VisualC::IsVolatileModifier",       tmf_is_volatile },
+    { L"System::Runtime::CompilerServices::IsVolatile", tmf_is_volatile },
+  };
+  a_type_modifier_flag modifier_flag = tmf_unknown;
+
+  for (int i = 0; i < _countof(type_name_to_modifier_flag_map); ++i) {
+    if (name == type_name_to_modifier_flag_map[i].name) {
+      modifier_flag = type_name_to_modifier_flag_map[i].modifier_flag;
+      break;
+    }  /* if */
+  }  /* for */
+  return modifier_flag;
+}  /* type_name_to_modifier_flag */
+
+a_type_wrapper_ptr a_signature_decoder::decode_modified_type(
+                                  CorElementType element_type,
+                                  DWORD          param_attributes/*=0*/)
+/*
+Decode a type signature that is modified with a custom type modifier.
+*/
+{
+  a_type_modifier_flag_set modifier_flags = tmf_none;
+  a_type_wrapper_ptr       type;
+  a_type_wrapper_ptr       boxed_type;
+
+  /* Accumulate the type modifiers. */
+  check_assertion(element_type == ELEMENT_TYPE_CMOD_REQD ||
+                  element_type == ELEMENT_TYPE_CMOD_OPT);
+  for(;;) {
+    a_type_modifier_flag modifier_flag = tmf_unknown;
+    mdToken type_token = read_token();
+    if (TypeFromToken(type_token) == mdtTypeDef ||
+        TypeFromToken(type_token) == mdtTypeRef) {
+      wstring type_name = import_scope_.resolve_type_token(
+                                                  type_token,
+                                                  generic_type_parameters_,
+                                                  generic_method_parameters_);
+      modifier_flag = type_name_to_modifier_flag(type_name);
+    }  /* if */
+    if (modifier_flag == tmf_unknown) {
+      if (element_type == ELEMENT_TYPE_CMOD_REQD) {
+        /* This is an unknown required type modifier. */
+        goto done;
+      } else {
+        /* Ignore any unknown optional type modifiers, but keep track of the
+           fact that one was encountered. */
+        contains_unknown_optional_type_modifiers_ = true;
+      }  /* if */
+    } else if (modifier_flag == tmf_is_implicitly_dereferenced &&
+               (modifier_flags & tmf_is_implicitly_dereferenced) != 0) {
+      /* This is the second "IsImplicitlyDereferenced" modifier we have
+         encountered, which indicates it is an rvalue reference. */
+      modifier_flags |= tmf_is_rvalue_reference;
+    } else {
+      modifier_flags |= modifier_flag;
+    }  /* if */
+    if (modifier_flag == tmf_is_boxed) {
+      /* This is the "IsBoxed" modifier.  The next modifier is the boxed enum
+         or value class type. */
+      element_type = get_element_type();
+      check_assertion(element_type == ELEMENT_TYPE_CMOD_OPT);
+      mdToken boxed_type_token = read_token();
+      wstring boxed_type_name = import_scope_.resolve_type_token(
+                                                  boxed_type_token,
+                                                  generic_type_parameters_,
+                                                  generic_method_parameters_);
+      boxed_type = make_shared<a_class_type_wrapper>(
+                                         a_class_type_wrapper::ck_value_class,
+                                         move(boxed_type_name));
+      /* All of the modifiers that apply to the handle to System::Object,
+         System::ValueType, or System::Enum that follows have already been
+         accumulated.  Break out of the loop now so that any other modifiers
+         are applied to the boxed type itself.  This is necessary to
+         differentiate "const V^" from "V^ const":
+         const V^:
+           modopt(Boxed) modopt(V) modopt(Const) Class System::ValueType
+         V^ const:
+           modopt(Const) modopt(Boxed) modopt(V) Class System::ValueType */
+      break;
+    } /* if */
+    element_type = peek_element_type();
+    if (element_type != ELEMENT_TYPE_CMOD_REQD &&
+        element_type != ELEMENT_TYPE_CMOD_OPT) {
+      break;
+    }  /* if */
+    element_type = get_element_type();
+  }  /* for */
+  /* Decode the modified type. */
+  type = decode_type(param_attributes);
+  if (type == nullptr) goto done;
+  /* Apply the the modifiers to the decoded type. */
+  if ((modifier_flags & tmf_is_boxed) != 0) {
+    check_assertion(boxed_type);
+    auto indirection = type->as_indirection();
+    if (indirection &&
+        indirection->is_of_indirection_kind(a_type_indirection::tik_handle)) {
+      auto class_type = indirection->underlying_type()->as_class();
+      if (class_type &&
+          (class_type->name() == MAKE_CLASS_STRING(Object) ||
+           class_type->name() == MAKE_CLASS_STRING(ValueType) ||
+           class_type->name() == MAKE_CLASS_STRING(Enum))) {
+        /* Any cv-qualifiers on the System::Object, System::ValueType, or
+           System::Enum handle apply to the boxed handle type. */
+        auto qualifier_flags = type->qualifier_flags();
+        type = make_shared<a_type_indirection>(a_type_indirection::tik_handle,
+                                               move(boxed_type));
+        type->set_qualifier_flags(qualifier_flags);
+      } else {
+        unexpected_condition();
+        type.reset();
+        goto done;
+      }  /* if */
+    } else {
+      unexpected_condition();
+      type.reset();
+      goto done;
+    }  /* if */
+  }  /* if */
+  if ((modifier_flags & tmf_is_long) != 0) {
+    if ((modifier_flags &
+         (tmf_is_signed | tmf_is_sign_unspecified_byte)) != 0) {
+      unexpected_condition();
+      type.reset();
+      goto done;
+    } else if (type->is_of_kind(a_type_wrapper::twk_int)) {
+      type->set_kind(a_type_wrapper::twk_long);
+    } else if (type->is_of_kind(a_type_wrapper::twk_unsigned_int)) {
+      type->set_kind(a_type_wrapper::twk_unsigned_long);
+    } else if (type->is_of_kind(a_type_wrapper::twk_double)) {
+      type->set_kind(a_type_wrapper::twk_long_double);
+    } else {
+      unexpected_condition();
+      type.reset();
+      goto done;
+    }  /* */
+  } else if ((modifier_flags & tmf_is_signed) != 0) {
+    if ((modifier_flags & tmf_is_sign_unspecified_byte) != 0) {
+      unexpected_condition();
+      type.reset();
+      goto done;
+    } else if (type->is_of_kind(a_type_wrapper::twk_char)) {
+      type->set_kind(a_type_wrapper::twk_signed_char);
+    } else {
+      unexpected_condition();
+      type.reset();
+      goto done;
+    }  /* */
+  } else if ((modifier_flags & tmf_is_sign_unspecified_byte) != 0) {
+    if (type->is_of_kind(a_type_wrapper::twk_signed_char) ||
+        type->is_of_kind(a_type_wrapper::twk_unsigned_char)) {
+      type->set_kind(a_type_wrapper::twk_char);
+    } else {
+      unexpected_condition();
+      type.reset();
+      goto done;
+    }  /* */
+  }  /* if */
+  if ((modifier_flags & tmf_is_implicitly_dereferenced) != 0) {
+    /* Reference types are encoded as implicitly dereferenced handles or
+       pointers. */
+    auto indirection = type->as_indirection();
+    if (indirection != nullptr &&
+        (indirection->is_of_indirection_kind(
+                                           a_type_indirection::tik_pointer) ||
+         indirection->is_of_indirection_kind(
+                                           a_type_indirection::tik_handle))) {
+      a_type_wrapper_ptr underlying_type = indirection->underlying_type();
+      /* Any cv-qualifiers apply to the underlying type, not the type
+         indirection, so apply them here rather than below. */
+      if ((modifier_flags & tmf_is_const) != 0) {
+        underlying_type->add_qualifier_flags(a_type_wrapper::qf_const);
+        modifier_flags &= ~tmf_is_const;
+      }  /* if */
+      if ((modifier_flags & tmf_is_volatile) != 0) {
+        underlying_type->add_qualifier_flags(a_type_wrapper::qf_volatile);
+        modifier_flags &= ~tmf_is_volatile;
+      }  /* if */
+      if (indirection->is_of_indirection_kind(
+                                            a_type_indirection::tik_handle)) {
+        /* A tracking reference is encoded as an implicitly dereferenced
+           handle. */
+        indirection->set_indirection_kind(
+                                  a_type_indirection::tik_tracking_reference);
+      } else {
+        check_assertion(indirection->is_of_indirection_kind(
+                                            a_type_indirection::tik_pointer));
+        if ((modifier_flags & tmf_is_rvalue_reference) != 0) {
+          /* An rvalue reference is encoded as a twice implicitly dereferenced
+             pointer. */
+          indirection->set_indirection_kind(
+                                    a_type_indirection::tik_rvalue_reference);
+        } else {
+          /* A reference is encoded as an implicitly dereferenced pointer. */
+          indirection->set_indirection_kind(
+                                           a_type_indirection::tik_reference);
+        }  /* if */
+      }  /* if */
+    } else {
+      unexpected_condition();
+      type.reset();
+      goto done;
+    }  /* if */
+  }  /* if */
+  if ((modifier_flags & tmf_is_by_value) != 0) {
+    /* A ref class passed by value is encoded as a handle with the
+       IsByValue modifier. */
+    auto indirection = type->as_indirection();
+    if (indirection != nullptr &&
+        indirection->is_of_indirection_kind(a_type_indirection::tik_handle) &&
+        indirection->underlying_type()->is_of_kind(
+                                                 a_type_wrapper::twk_class)) {
+      type = indirection->underlying_type();
+    } else {
+      unexpected_condition();
+      type.reset();
+      goto done;
+    }  /* if */
+  }  /* if */
+  if ((modifier_flags & tmf_is_const) != 0) {
+    type->add_qualifier_flags(a_type_wrapper::qf_const);
+  }  /* if */
+  if ((modifier_flags & tmf_is_volatile) != 0) {
+    type->add_qualifier_flags(a_type_wrapper::qf_volatile);
+  }  /* if */
+  if ((modifier_flags & tmf_is_cxx_reference) != 0) {
+    /* FIXME: This modifier was formerly used to encode reference types when
+       compiling with Microsoft's Managed Extensions for C++ (now superseded
+       by C++/CLI).  Importing such metadata is not yet supported. */
+  }  /* if */
+  if ((modifier_flags & tmf_is_explicitly_dereferenced) != 0) {
+    /* An interior_ptr is encoded as an explicitly dereferenced tracking
+       reference. */
+    auto indirection = type->as_indirection();
+    if (indirection != nullptr &&
+        indirection->is_of_indirection_kind(
+                                a_type_indirection::tik_tracking_reference)) {
+      indirection->set_indirection_kind(
+                                    a_type_indirection::tik_interior_pointer);
+    } else {
+      unexpected_condition();
+      type.reset();
+      goto done;
+    }  /* if */
+  }  /* if */
+  if ((modifier_flags & tmf_compiler_marshal_override) != 0) {
+    if (type->is_of_kind(a_type_wrapper::twk_unsigned_char)) {
+      type->set_kind(a_type_wrapper::twk_bool);
+    } else if (type->is_of_kind(a_type_wrapper::twk_unsigned_short)) {
+      type->set_kind(a_type_wrapper::twk_wchar_t);
+    } else {
+      unexpected_condition();
+      type.reset();
+      goto done;
+    }  /* if */
+  }  /* if */
+  if ((modifier_flags & tmf_is_cxx_udt_return) != 0) {
+    if (type->is_of_kind(a_type_wrapper::twk_void)) {
+      type->set_kind(a_type_wrapper::twk_cxx_udt_return);
+    } else {
+      unexpected_condition();
+      type.reset();
+      goto done;
+    }  /* if */
+  }  /* if */
+  if ((modifier_flags & tmf_is_copy_ctor) != 0) {
+    if (type->is_of_kind(a_type_wrapper::twk_void)) {
+      type->set_kind(a_type_wrapper::twk_copy_ctor);
+    } else {
+      unexpected_condition();
+      type.reset();
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return type;
+}  /* a_signature_decoder::decode_modified_type */
+
+a_type_wrapper_ptr a_signature_decoder::decode_type(
+                                                 DWORD param_attributes/*=0*/)
 /*
 Decode a type signature and return it as a std::wstring.
 */
 {
+  a_type_wrapper_ptr type;
   wostringstream buffer;
   bool           is_generic;
   CorElementType element_type = get_element_type();
@@ -3600,172 +4931,224 @@ Decode a type signature and return it as a std::wstring.
   }  /* if  */
   switch (element_type) {
     case ELEMENT_TYPE_VOID:
-      buffer << L"void";
+      type = make_shared<a_type_wrapper>(a_type_wrapper::twk_void);
       break;
     case ELEMENT_TYPE_BOOLEAN:
-      buffer << L"bool";
+      type = make_shared<a_type_wrapper>(a_type_wrapper::twk_bool);
       break;
     case ELEMENT_TYPE_CHAR:
       if ((import_scope_.containing_assembly().import_flags()
                                          & cpp_cli_wchar_t_is_keyword) != 0) {
-        buffer << L"wchar_t";
+        type = make_shared<a_type_wrapper>(a_type_wrapper::twk_wchar_t);
       } else {
-        buffer << L"unsigned short";
+        type = make_shared<a_type_wrapper>(
+                                          a_type_wrapper::twk_unsigned_short);
       }  /* if */
       break;
     case ELEMENT_TYPE_I1:
-      buffer << L"signed char";
+      type = make_shared<a_type_wrapper>(a_type_wrapper::twk_signed_char);
       break;
     case ELEMENT_TYPE_U1:
-      buffer << L"unsigned char";
+      type = make_shared<a_type_wrapper>(a_type_wrapper::twk_unsigned_char);
       break;
     case ELEMENT_TYPE_I2:
-      buffer << L"short";
+      type = make_shared<a_type_wrapper>(a_type_wrapper::twk_short);
       break;
     case ELEMENT_TYPE_U2:
-      buffer << L"unsigned short";
+      type = make_shared<a_type_wrapper>(a_type_wrapper::twk_unsigned_short);
       break;
     case ELEMENT_TYPE_I4:
-      buffer << L"int";
+      type = make_shared<a_type_wrapper>(a_type_wrapper::twk_int);
       break;
     case ELEMENT_TYPE_U4:
-      buffer << L"unsigned int";
+      type = make_shared<a_type_wrapper>(a_type_wrapper::twk_unsigned_int);
       break;
     case ELEMENT_TYPE_I8:
-      buffer << L"long long";
+      type = make_shared<a_type_wrapper>(a_type_wrapper::twk_long_long);
       break;
     case ELEMENT_TYPE_U8:
-      buffer << L"unsigned long long";
+      type = make_shared<a_type_wrapper>(
+                                      a_type_wrapper::twk_unsigned_long_long);
       break;
     case ELEMENT_TYPE_R4:
-      buffer << L"float";
+      type = make_shared<a_type_wrapper>(a_type_wrapper::twk_float);
       break;
     case ELEMENT_TYPE_R8:
-      buffer << L"double";
+      type = make_shared<a_type_wrapper>(a_type_wrapper::twk_double);
       break;
     case ELEMENT_TYPE_STRING:
-      buffer << L"System::String^";
-      break;
+      { auto string_type = make_shared<a_class_type_wrapper>(
+                                               a_class_type_wrapper::ck_class,
+                                               MAKE_CLASS_STRING(String));
+        type = make_shared<a_type_indirection>(a_type_indirection::tik_handle,
+                                               move(string_type));
+        break;
+      }
     case ELEMENT_TYPE_PTR:
-      if (is_system_string_member_) {
+      { a_type_wrapper_ptr underlying_type;
         /* If we are decoding a type signature associated with a member of
            System::String, then we should perform the following conversions:
-           ELEMENT_TYPE_PTR ELEMENT_TYPE_I1   -> 'const char*'
-           ELEMENT_TYPE_PTR ELEMENT_TYPE_CHAR -> 'const wchar_t*' or
-                                                 'const unsigned short*' */
-        if (peek_element_type() == ELEMENT_TYPE_I1) {
+            ELEMENT_TYPE_PTR ELEMENT_TYPE_I1   -> 'const char*'
+            ELEMENT_TYPE_PTR ELEMENT_TYPE_CHAR -> 'const __wchar_t*' */
+        if (is_system_string_member_ &&
+            peek_element_type() == ELEMENT_TYPE_I1) {
           /* ELEMENT_TYPE_I1 would normally be converted to "signed char", but
-             we only want "char", so we don't recursively call decode_type
-             in this case. */
+              we only want "char", so we don't recursively call decode_type
+              in this case. */
           (void)get_element_type();
-          buffer << L"const char*";
-          break;
-        } else if (peek_element_type() == ELEMENT_TYPE_CHAR) {
-          buffer << L"const ";
+          underlying_type = make_shared<a_type_wrapper>(
+                                                    a_type_wrapper::twk_char);
+          underlying_type->add_qualifier_flags(a_type_wrapper::qf_const);
+        } else if (is_system_string_member_ &&
+                   peek_element_type() == ELEMENT_TYPE_CHAR) {
+          underlying_type = decode_type();
+          underlying_type->add_qualifier_flags(a_type_wrapper::qf_const);
+        } else {
+          underlying_type = decode_type();
         }  /* if */
-      }  /* if */
-      /* Decode the pointee type and append a '*'. */
-      buffer << decode_type() << L'*';
-      break;
+        if (underlying_type != nullptr) {
+          type = make_shared<a_type_indirection>(
+                                              a_type_indirection::tik_pointer,
+                                              move(underlying_type));
+        }  /* if */
+        break;
+      }
     case ELEMENT_TYPE_BYREF:
-      /* Decode the referenced type and append a "%". */
-      buffer << decode_type() << L'%';
-      break;
+      { a_type_wrapper_ptr underlying_type = decode_type();
+        if (underlying_type != nullptr) {
+          type = make_shared<a_type_indirection>(
+                                   a_type_indirection::tik_tracking_reference,
+                                   move(underlying_type));
+        }  /* if */
+        break;
+      }
     case ELEMENT_TYPE_VALUETYPE:
     case ELEMENT_TYPE_CLASS:
       { mdToken token = read_token();
         check_assertion(TypeFromToken(token) == mdtTypeDef ||
                         TypeFromToken(token) == mdtTypeRef);
-        buffer << import_scope_.resolve_type_token(
+        wstring name = import_scope_.resolve_type_token(
                                        token,
                                        is_generic ? decode_generic_arguments()
                                                   : generic_type_parameters_,
-                                       generic_method_parameters_,
-                                       /*replaces_dots=*/true);
+                                       generic_method_parameters_);
+        if (element_type == ELEMENT_TYPE_CLASS) {
+          auto class_type = make_shared<a_class_type_wrapper>(
+                                               a_class_type_wrapper::ck_class,
+                                               move(name));
+          type = make_shared<a_type_indirection>(
+                                               a_type_indirection::tik_handle,
+                                               move(class_type));
+        } else {
+          type = make_shared<a_class_type_wrapper>(
+                                         a_class_type_wrapper::ck_value_class,
+                                         move(name));
+        }  /* if */
         break;
-      }  /* case */
+      }
     case ELEMENT_TYPE_VAR:
-      buffer << generic_type_parameters_[read_one_byte()];
-      break;
+      { wstring generic_type_parameter =
+                                    generic_type_parameters_[read_one_byte()];
+        type = make_shared<a_class_type_wrapper>(
+                                   a_class_type_wrapper::ck_generic_parameter,
+                                   move(generic_type_parameter));
+        break;
+      }
     case ELEMENT_TYPE_TYPEDBYREF:
-      buffer << L"System::TypedReference";
+      type = make_shared<a_class_type_wrapper>(
+                                         a_class_type_wrapper::ck_value_class,
+                                         MAKE_CLASS_STRING(TypedReference));
       break;
     case ELEMENT_TYPE_I:
-      buffer << L"System::IntPtr";
+      type = make_shared<a_class_type_wrapper>(
+                                         a_class_type_wrapper::ck_value_class,
+                                         MAKE_CLASS_STRING(IntPtr));
       break;
     case ELEMENT_TYPE_U:
-      buffer << L"System::UIntPtr";
+      type = make_shared<a_class_type_wrapper>(
+                                         a_class_type_wrapper::ck_value_class,
+                                         MAKE_CLASS_STRING(UIntPtr));
       break;
     case ELEMENT_TYPE_OBJECT:
-      buffer << L"System::Object^";
-      break;
-    case ELEMENT_TYPE_SZARRAY:
-      /* Decode the element type and wrap it in our array syntax. */
-      buffer << L"cli::array<" << decode_type() << L">^";
-      break;
-    case ELEMENT_TYPE_ARRAY:
-      {
-        ULONG rank, num_of_sizes, num_of_lower_bounds;
-
-        buffer << L"cli::array<" << decode_type() << ", ";
-        /* Get the Rank of the array. */
-        rank = read_four_bytes();
-        buffer << rank;
-        num_of_sizes = read_four_bytes();
-        for (ULONG i = 0; i < num_of_sizes; ++i) {
-          /* We don't need the sizes.  They don't affect the typename.
-             However, we need to consume these bytes in the signature blob. */
-          (void)read_four_bytes();
-        }  /* if */
-        num_of_lower_bounds = read_four_bytes();
-        for (ULONG i = 0; i < num_of_lower_bounds; ++i) {
-          /* We don't need the lower bounds.  They don't affect the typename.
-             However, we need to consume these bytes in the signature
-             blob. */
-          (void)read_four_bytes();
-        }  /* if */
-        buffer << L">^";
+      { auto object_type = make_shared<a_class_type_wrapper>(
+                                               a_class_type_wrapper::ck_class,
+                                               MAKE_CLASS_STRING(Object));
+        type = make_shared<a_type_indirection>(a_type_indirection::tik_handle,
+                                               move(object_type));
         break;
-      }  /* ELEMENT_TYPE_ARRAY */
+      }
+    case ELEMENT_TYPE_SZARRAY:
+      { a_type_wrapper_ptr underlying_type = decode_type();
+        if (underlying_type != nullptr) {
+          a_type_wrapper_ptr array_type =
+                         a_class_type_wrapper::create_array(underlying_type,
+                                                            param_attributes);
+          type = make_shared<a_type_indirection>(
+                                               a_type_indirection::tik_handle,
+                                               move(array_type));
+        }  /* if */
+        break;
+      }
+    case ELEMENT_TYPE_ARRAY:
+      { /* Get the underlying type. */
+        a_type_wrapper_ptr underlying_type = decode_type();
+        if (underlying_type != nullptr) {
+          /* Get the Rank of the array. */
+          ULONG rank, num_of_sizes, num_of_lower_bounds;
+          rank = read_four_bytes();
+          num_of_sizes = read_four_bytes();
+          for (ULONG i = 0; i < num_of_sizes; ++i) {
+            /* We don't need the sizes.  They don't affect the type name.
+               However, we need to consume these bytes in the signature
+               blob. */
+            (void)read_four_bytes();
+          }  /* if */
+          num_of_lower_bounds = read_four_bytes();
+          for (ULONG i = 0; i < num_of_lower_bounds; ++i) {
+            /* We don't need the lower bounds.  They don't affect the
+               type name.  However, we need to consume these bytes in the
+               signature blob. */
+            (void)read_four_bytes();
+          }  /* if */
+          a_type_wrapper_ptr array_type =
+                          a_class_type_wrapper::create_array(underlying_type,
+                                                             param_attributes,
+                                                             rank);
+          type = make_shared<a_type_indirection>(
+                                               a_type_indirection::tik_handle,
+                                               move(array_type));
+        }  /* if */
+        break;
+      }
     case ELEMENT_TYPE_MVAR:
-      buffer << generic_method_parameters_[read_one_byte()];
+      type = make_shared<a_class_type_wrapper>(
+                                 a_class_type_wrapper::ck_generic_parameter,
+                                 generic_method_parameters_[read_one_byte()]);
       break;
     case ELEMENT_TYPE_CMOD_REQD:
-      buffer << "/* CMOD_REQD ";
-      buffer << import_scope_.resolve_type_token(read_token(),
-                                                 generic_type_parameters_,
-                                                 generic_method_parameters_,
-                                                 /*replaces_dots=*/true);
-      buffer << " */ ";
-      buffer << decode_type();
-      break;
     case ELEMENT_TYPE_CMOD_OPT:
-      buffer << "/* CMOD_OPT ";
-      buffer << import_scope_.resolve_type_token(read_token(),
-                                                 generic_type_parameters_,
-                                                 generic_method_parameters_,
-                                                 /*replaces_dots=*/true);
-      buffer << " */ ";
-      buffer << decode_type();
+      type = decode_modified_type(element_type, param_attributes);
       break;
     case ELEMENT_TYPE_INTERNAL:
-#if DEBUG
-      buffer << "/* TYPE_INTERNAL " << " */ ";
-#endif /* DEBUG */
       break;
+    case ELEMENT_TYPE_FNPTR:
+      { a_type_wrapper_ptr function_type = decode_method_signature(mdTokenNil);
+        type = make_shared<a_type_indirection>(
+                                              a_type_indirection::tik_pointer,
+                                              move(function_type));
+        break;
+      }
     default:
       unexpected_condition();
       break;
   }  /* switch */
-  if (element_type == ELEMENT_TYPE_CLASS && add_handle_to_class) {
-    buffer << L'^';
-  }  /* if */
-  return buffer.str();
+  return type;
 }  /* a_signature_decoder::decode_type */
 
 
 a_method_parameter_list a_signature_decoder::get_method_parameters(
-                                                   ULONG number_of_parameters)
+                                                 mdToken token,
+                                                 ULONG   number_of_parameters)
 /*
 Return a list of the method's parameters.
 */
@@ -3777,11 +5160,12 @@ Return a list of the method's parameters.
   mdParamDef              parameter_tokens[8];
   ULONG                   count_of_parameters;
 
+  check_assertion(TypeFromToken(token) == mdtMethodDef);
   method_parameters.reserve(number_of_parameters);
   do {
     hr = import_scope_.import_interface()->EnumParams(
                                                    &enum_parameters,
-                                                   token_, parameter_tokens,
+                                                   token, parameter_tokens,
                                                    _countof(parameter_tokens),
                                                    &count_of_parameters);
     CHECK_API_RESULT(hr, EnumParams);
@@ -3803,11 +5187,12 @@ Return a list of the method's parameters.
                                            &constant_value,
                                            &characters_in_constant);
       CHECK_API_RESULT(hr, GetParamProps);
-      check_assertion(method_token == token_);
+      check_assertion(method_token == token);
       /* A param_index of 0 refers to the method's return type, which we don't
          want included in the method parameter list. */
       if (param_index != 0) {
         check_assertion(param_index <= number_of_parameters);
+        escape_invalid_identifier(param_name, /*force*/true);
         a_method_parameter method_parameter(param_token,
                                             param_name,
                                             param_attributes);
@@ -3828,7 +5213,7 @@ Return a list of the method's parameters.
 }  /* a_signature_decoder::get_method_parameters */
 
 
-wstring a_signature_decoder::decode_return_type()
+wstring a_signature_decoder::decode_return_type(mdToken token)
 /*
 Decode a function signature to obtain the return type.
 */
@@ -3836,7 +5221,7 @@ Decode a function signature to obtain the return type.
   BYTE                    first_byte;
   BYTE                    calling_convention;
   ULONG                   number_of_parameters;
-  wstring                 return_type;
+  a_type_wrapper_ptr      return_type;
   BYTE                    generic_arity;
   a_method_parameter_list method_parameters;
 
@@ -3844,29 +5229,26 @@ Decode a function signature to obtain the return type.
   calling_convention = first_byte & IMAGE_CEE_CS_CALLCONV_MASK;
   /* If this is a generic method, read the count of generic parameters. */
   if ((first_byte & IMAGE_CEE_CS_CALLCONV_GENERIC) != 0) {
+    check_assertion(TypeFromToken(token) == mdtMethodDef);
     generic_arity = read_one_byte();
     a_constraint_clause_list generic_method_constraints;
     check_assertion(generic_method_parameters_.empty());
     import_scope_.get_generic_parameters_and_constraints(
-                                                  token_,
-                                                  generic_type_parameters_,
-                                                  generic_arity,
-                                                  generic_method_parameters_,
-                                                  generic_method_constraints);
+                                        token,
+                                        generic_type_parameters_,
+                                        generic_arity,
+                                        generic_method_parameters_,
+                                        generic_method_constraints,
+                                        /*pending_constraint_types=*/nullptr);
     check_assertion(generic_arity == generic_method_parameters_.size());
   }  /* if */
   number_of_parameters = read_four_bytes();
   return_type = decode_type();
-  return return_type;
+  return return_type != nullptr ? return_type->get_string() : L"__error_type";
 }  /* decode_return_type */
 
 
-wstring a_signature_decoder::decode_method_signature(
-                           const wstring                  &name,
-                           DWORD                          method_attributes,
-                           bool                           omit_return_type,
-                           bool                           is_for_property,
-                           a_cli_operator_kind            cok)
+a_type_wrapper_ptr a_signature_decoder::decode_method_signature(mdToken token)
 /*
 Decode a function signature and then combine the various elements along with
 the name of the function to create a declaration which we return as a
@@ -3874,127 +5256,163 @@ std::wstring.  Note: this function also handles decoding a property signature
 which is almost the same as a method signature.
 */
 {
+  a_type_wrapper_ptr      type;
+  a_type_wrapper_ptr      return_type;
   BYTE                    first_byte;
   BYTE                    calling_convention;
-  wostringstream          declaration;
   ULONG                   number_of_parameters;
-  wstring                 return_type;
   BYTE                    generic_arity;
   a_method_parameter_list method_parameters;
+  bool                    is_for_method;
+  bool                    is_for_property;
+  wstring                 generic_header;
 
-  /* The return type should never be omitted for property methods. */
-  check_assertion(!omit_return_type || !is_for_property);
+  is_for_method = TypeFromToken(token) == mdtMethodDef;
+  is_for_property = TypeFromToken(token) == mdtProperty;
   first_byte = read_one_byte();
   calling_convention = first_byte & IMAGE_CEE_CS_CALLCONV_MASK;
-  check_assertion(!is_for_property ||
-                  (calling_convention == IMAGE_CEE_CS_CALLCONV_PROPERTY));
+  check_assertion(IsNilToken(token) || is_for_method ||
+                  (is_for_property &&
+                   calling_convention == IMAGE_CEE_CS_CALLCONV_PROPERTY));
+
   /* If this is a generic method, read the count of generic parameters.
      Note that this will differ from generic_parameters_.size() for
      generic types or methods nested within generic types. */
   if ((first_byte & IMAGE_CEE_CS_CALLCONV_GENERIC) != 0) {
+    check_assertion(is_for_method);
     generic_arity = read_one_byte();
     a_constraint_clause_list generic_method_constraints;
     check_assertion(generic_method_parameters_.empty());
     import_scope_.get_generic_parameters_and_constraints(
-                                                  token_,
-                                                  generic_type_parameters_,
-                                                  generic_arity,
-                                                  generic_method_parameters_,
-                                                  generic_method_constraints);
+                                        token,
+                                        generic_type_parameters_,
+                                        generic_type_parameters_.size(),
+                                        generic_method_parameters_,
+                                        generic_method_constraints,
+                                        /*pending_constraint_types=*/nullptr);
     check_assertion(generic_arity == generic_method_parameters_.size());
-    declaration << form_generic_method_header(generic_arity,
-                                              generic_method_parameters_,
-                                              generic_method_constraints);
+    generic_header = form_generic_method_header(generic_arity,
+                                                generic_method_parameters_,
+                                                generic_method_constraints);
   }  /* if */
   number_of_parameters = read_four_bytes();
-  if (!is_for_property && number_of_parameters > 0) {
-    method_parameters = get_method_parameters(number_of_parameters);
-  }  /* if */
-  if ((import_scope_.containing_assembly().import_flags()
-                                       & cpp_cli_declspec_member_info) != 0) {
-    declaration << L"__declspec(member_info(";
-    declaration << L"0x" << setw(8) << setfill(L'0') << hex << token_;
-    declaration << L")) ";
-  }  /* if */
-  /* Emit any decl specifiers. */
-  if (IsMdStatic(method_attributes)) {
-    declaration << L"static ";
-    check_assertion(!IsMdVirtual(method_attributes));
-  } else if (IsMdVirtual(method_attributes)) {
-    declaration << L"virtual ";
+  if (is_for_method && number_of_parameters > 0) {
+    method_parameters = get_method_parameters(token, number_of_parameters);
   }  /* if */
   return_type = decode_type();
-  if (cok == cok_implicit || cok == cok_explicit) {
-    /* Emit an implicit or explicit user-defined conversion operator. */
-    if (cok == cok_explicit) declaration << L"explicit ";
-    declaration << L"operator " << return_type;
-  } else {
-    if (is_for_property) declaration << L"property ";
-    /* Constructors, destructors, and finalizers don't have a (visible) return
-       type. */
-    if (omit_return_type) {
-      check_assertion(return_type == L"void");
-    } else {
-      declaration << return_type << L' ';
+  if (return_type != nullptr) {
+    if (return_type->is_of_kind(a_type_wrapper::twk_cxx_udt_return)) {
+      check_assertion(number_of_parameters > 0);
+    } else if (return_type->is_of_kind(a_type_wrapper::twk_copy_ctor)) {
+      /* Legacy encodings of the copy constructor encoded it as a regular
+         function (not a .ctor) with a void return type marked with the
+         IsCopyCtorModifier modifier. */
+      return_type.reset();
     }  /* if */
-    if (name.find(L'.') != wstring::npos) {
-      /* The type name contains a dot; use __identifier to emit it. */
-      declaration << L"__identifier(\"" << name << L"\")";
-    } else {
-      declaration << name;
-    }  /* if */
-  }  /* if */
-  /* We only emit parameters for methods and parameterized properties (and we
-     use "[]" instead of "()" for parameterized properties).  Simple
-     properties do not have any parameters. */
-  if (is_for_property) {
-    if (number_of_parameters > 0) {
-      declaration << L'[';
-    }  /* if */
-  } else {
-    declaration << L'(';
-  }  /* if */
-  for (ULONG i = 0; i < number_of_parameters; ++i) {
-    if (i > 0) {
-      declaration << L", ";
-    }  /* if */
-    if (!is_for_property && i == number_of_parameters - 1 &&
-        (peek_element_type() == ELEMENT_TYPE_SZARRAY ||
-         peek_element_type() == ELEMENT_TYPE_ARRAY) &&
-        method_parameters[i].is_parameter_array(import_scope_)) {
-      declaration << L"... ";
-    }  /* if */
-    declaration << decode_type();
-    if (!is_for_property) {
-      declaration << L" __identifier(\"";
-      declaration << method_parameters[i].name();
-      declaration << L"\")";
-    }  /* if */
-  }  /* for */
-  switch (calling_convention) {
-    case IMAGE_CEE_CS_CALLCONV_DEFAULT:
-    case IMAGE_CEE_CS_CALLCONV_PROPERTY:
-      break;
-    case IMAGE_CEE_CS_CALLCONV_VARARG:
+    wostringstream parameter_list;
+    /* We only emit parameters for methods and parameterized properties (and
+       we use "[]" instead of "()" for parameterized properties).  Simple
+       properties do not have any parameters. */
+    if (is_for_property) {
       if (number_of_parameters > 0) {
-        declaration << L", ";
+        parameter_list << L'[';
       }  /* if */
-      declaration << L"...";
-      break;
-    default:
-      unexpected_condition();
-      break;
-  }  /* switch */
-  /* Close the parameter list: see above for the special rules for
-     properties. */
-  if (is_for_property) {
-    if (number_of_parameters > 0) {
-      declaration << L']';
+    } else {
+      parameter_list << L'(';
     }  /* if */
-  } else {
-    declaration << L')';
+    bool has_any_parameters = false;
+    for (ULONG i = 0; i < number_of_parameters; ++i) {
+      a_type_wrapper_ptr param_type = decode_type(is_for_method ?
+                                       method_parameters[i].attributes() : 0);
+      if (param_type == nullptr) {
+        type.reset();
+        goto done;
+      }  /* if */
+      if (i == 0 && return_type != nullptr &&
+          return_type->is_of_kind(a_type_wrapper::twk_cxx_udt_return)) {
+        /* A function that returns a ref class by value is encoded as a
+           function with a void return type (marked with the IsUdtReturn
+           modifier) and who's first parameter is a tracking reference to
+           a handle to the ref class.  */
+        auto indirection = param_type->as_indirection();
+        if (indirection != nullptr &&
+            indirection->is_of_indirection_kind(
+                                a_type_indirection::tik_tracking_reference)) {
+          auto handle_type = indirection->underlying_type()->as_indirection();
+          if (handle_type != nullptr &&
+              handle_type->is_of_indirection_kind(
+                                            a_type_indirection::tik_handle)) {
+            auto class_type = handle_type->underlying_type()->as_class();
+            if (class_type != nullptr &&
+                class_type->is_of_class_kind(
+                                            a_class_type_wrapper::ck_class)) {
+              return_type = class_type;
+              continue;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        unexpected_condition();
+        type.reset();
+        goto done;
+      }  /* if */
+      if (has_any_parameters) {
+        parameter_list << L", ";
+      } else {
+        has_any_parameters = true;
+      }  /* if */
+      if (is_for_method && i == number_of_parameters - 1) {
+        auto indirection = param_type->as_indirection();
+        if (indirection != nullptr &&
+            indirection->is_of_indirection_kind(
+                                           a_type_indirection::tik_handle)) {
+          auto class_type = indirection->underlying_type()->as_class();
+          if (class_type != nullptr &&
+              class_type->is_of_class_kind(a_class_type_wrapper::ck_array) &&
+              method_parameters[i].is_parameter_array(import_scope_)) {
+            parameter_list << L"...";
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      parameter_list << param_type->get_string(is_for_method
+                                         ? method_parameters[i].name() : L"");
+    }  /* for */
+    switch (calling_convention) {
+      case IMAGE_CEE_CS_CALLCONV_DEFAULT:
+      case IMAGE_CEE_CS_CALLCONV_PROPERTY:
+        break;
+      case IMAGE_CEE_CS_CALLCONV_VARARG:
+        if (has_any_parameters) {
+          parameter_list << L", ";
+        } else {
+          has_any_parameters = true;
+        }  /* if */
+        parameter_list << L"...";
+        break;
+      default:
+        unexpected_condition();
+        break;
+    }  /* switch */
+    /* Close the parameter list: see above for the special rules for
+       properties. */
+    if (is_for_property) {
+      if (has_any_parameters) {
+        parameter_list << L']';
+      }  /* if */
+    } else {
+      parameter_list << L')';
+    }  /* if */
+    if (is_for_property && !has_any_parameters) {
+      /* An ordinary property. */
+      type = move(return_type);
+    } else {
+      /* A method or parameterized property. */
+      type = make_shared<a_function_type_wrapper>(move(return_type),
+                                                  parameter_list.str(),
+                                                  move(generic_header));
+    }  /* if */
   }  /* if */
-  return declaration.str();
+done:
+  return type;
 }  /* a_signature_decoder::decode_method_signature */
 
 
@@ -4354,11 +5772,12 @@ and typedef token.
     }  /* if */
   }  /* for */
   check_assertion(iter != end);
-  iter->second.find_scope().import_one_type(buffer, typedef_token,
-                                            /*at_top_level=*/true,
-                                            no_generic_type_parameters,
-                                            /*want_definition=*/true,
-                                            class_body_only);
+  iter->second.find_scope().import_one_type(
+                                        buffer, typedef_token,
+                                        /*enclosing_type_definition=*/nullptr,
+                                        /*want_definition=*/true,
+                                        class_body_only,
+                                        /*pending_constraint_types=*/nullptr);
 }  /* a_metadata_reader::import_class_definition */
 
 /*
@@ -4604,7 +6023,7 @@ returned in *buffer_size.  Otherwise, *buffer is null terminated and
   /* '+1' for the NULL terminator. */
   *buffer_size = str.size() + 1;
 }  /* import_all_types */
- 
+
 
 EXTERN_C_IN_CPP_FILE
 void import_class_definition(an_assembly_index assembly_index,
@@ -4613,7 +6032,7 @@ void import_class_definition(an_assembly_index assembly_index,
                              size_t            *buffer_size)
 /*
 Import the definition of the type specified by typedef_token.  The generated
-code only contains the body of the class definition, including the base classes
+code only contains the body of the class definiton, including the base classes
 list.  The namespace scopes and class head are omitted.
 */
 {
