@@ -24636,8 +24636,8 @@ have a capture list or default capture mode, and hence the synthesized
 returns the address of a static member of the closure type that represents an
 alternative entry point for "operator()": It is also generated here.
 Return a pointer to the conversion function; a body will be added later.
-(No separate body is generated in the IL for the alternative entry point, but
-the C-generating back end may generate one if needed.)
+(No separate body is generated here for the alternative entry point, but
+lowering will generate one.)
 *func_info describes properties of the lambda's "operator()".
 */
 {
@@ -24662,6 +24662,7 @@ the C-generating back end may generate one if needed.)
   conv_type = make_routine_type(ptr_type, /*param1_type=*/NULL,
                                 /*param2_type=*/NULL, /*param3_type=*/NULL,
                                 /*param4_type=*/NULL);
+  /* The conversion function is a const non-static member function: */
   conv_type->variant.routine.extra_info->this_class = parent_class_of(call_op);
   conv_type->variant.routine.extra_info->qualifiers = TQ_CONST;
   decl_info.decl_state.type = conv_type;
