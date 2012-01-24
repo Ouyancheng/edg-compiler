@@ -333,6 +333,14 @@ static int	num_master_params_added;
 			/* The number of additional parameters that the
 			   master routine has relative to the entry/wrapper
 			   routine. */
+static a_boolean
+                skip_this_parameter;
+                        /* If TRUE, skip over the "this" parameter when mapping
+                           between master routine parameters and wrapper
+                           routine parameters.  Used when the master routine is
+                           the call operator of a no-capture lambda with an
+                           ellipsis and the wrapper routine is the
+                           corresponding special static member function. */
 static an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
 			   routines. */
@@ -1450,23 +1458,38 @@ Print the name of the indicated variable.
     check_assertion(master_routine_scope != NULL);
     master_param_var = master_routine_scope->variant.routine.parameters;
     wrapper_param_var = entry_routine_scope->variant.routine.parameters;
-    for (; wrapper_param_var != variable;
-         master_param_var = master_param_var->next,
-           wrapper_param_var = wrapper_param_var->next) {
+    for (;;) {
       check_assertion(wrapper_param_var != NULL && master_param_var != NULL);
-      if (num_master_params_added > 0 && 
-          master_param_var->is_this_parameter) {
-        /* The master routine has extra parameters following the "this"
-           parameter.  Advance over them. */
-        int n;
-        for (n = 1; n <= num_master_params_added; n++) {
+      if (master_param_var->is_this_parameter) {
+        /* Two special cases arise when mapping wrapper parameters to
+           master parameters. */
+        if (num_master_params_added > 0) {
+          /* The master routine has extra parameters following the "this"
+             parameter.  Advance over them. */
+          int n;
+          for (n = 1; n <= num_master_params_added; n++) {
+            master_param_var = master_param_var->next;
+            check_assertion(master_param_var != NULL);
+          }  /* for */
+        } else if (skip_this_parameter) {
+          /* The master routine has a "this" parameter and the wrapper routine
+             doesn't; skip the "this" parameter.  Used in cases where the
+             master routine is a lambda call operator and the wrapper routine
+             is a special static member function. */
           master_param_var = master_param_var->next;
           check_assertion(master_param_var != NULL);
-        }  /* for */
+        }  /* if */
       }  /* if */
+      if (wrapper_param_var == variable) {
+        /* We've found the correct location on the wrapper list; substitute
+           the corresponding master parameter. */
+        check_assertion(master_param_var != NULL);
+        variable = master_param_var;
+        break;
+      }  /* if */
+      wrapper_param_var = wrapper_param_var->next;
+      master_param_var = master_param_var->next;
     }  /* for */
-    check_assertion(master_param_var != NULL);
-    variable = master_param_var;
   }  /* if */
   if (variable->is_this_parameter) {
     /* "this" parameter in C++. */
@@ -9078,6 +9101,7 @@ by dump_routine_decl.
      necessary. */
   scope = get_scope_for_routine_definition(rout, &scope_region_number);
   innermost_function_scope = curr_scope = scope;
+  skip_this_parameter = FALSE;
   if (skip_typerefs(rout->type)->variant.routine.extra_info->has_ellipsis) {
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
     /* Note that ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN is always
@@ -9116,6 +9140,7 @@ by dump_routine_decl.
          a no-capture lambda with an ellipsis.  As above, we will need to
          expand the body of the call routine inline. */
       master_routine = rout->variant.lambda_call_operator;
+      skip_this_parameter = TRUE;
     }  /* if */
   }  /* if */
   if (master_routine != NULL) {
@@ -9132,6 +9157,7 @@ by dump_routine_decl.
                                       num_parameters(entry_routine_scope));
     }  /* if */
 #endif /* IA64_ABI */
+    check_assertion(num_master_params_added == 0 || !skip_this_parameter);
   }  /* if */
   octl.suppress_local_typedefs = FALSE;
   /* Generate the routine name and the parameter declarations. */
@@ -9154,6 +9180,7 @@ by dump_routine_decl.
     master_routine_scope = NULL;
     master_routine_return_variable = NULL;
     num_master_params_added = 0;
+    skip_this_parameter = FALSE;
   }  /* if */
 }  /* dump_routine_definition */
 
@@ -9890,6 +9917,7 @@ must be redone for each generated C file.
   master_routine_scope = NULL;
   master_routine_return_variable = NULL;
   num_master_params_added = 0;
+  skip_this_parameter = FALSE;
 #if ASM_FUNCTION_ALLOWED
   within_asm_function_definition = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
