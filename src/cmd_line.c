@@ -1325,7 +1325,7 @@ Initialize the option information table.
                          "no_token_separators_in_pp_output", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
-  add_option_description(optk_cpp98_mode, "c++98", '\0', /*value=*/TRUE,
+  add_option_description(optk_cpp03_mode, "c++03", '\0', /*value=*/TRUE,
                          /*arg_required=*/FALSE, pchek_command_line);
 }  /* initialize_option_descriptions */
 
@@ -2550,88 +2550,94 @@ setting is used, and to set various unmentioned settings as needed.
 }  /* check_and_set_c_mode_options */
 
 
-static void check_and_set_cpp11_mode_options(void)
+static void check_and_set_cpp11_mode_options(a_boolean value)
 /*
-Enable any features specific to C++11.  In addition, enable some
-pre-C++11 standard features that are not always enabled in default
-mode (e.g., exception handling).
+Explicitly enable (when value is TRUE) or disable (when value is FALSE) any
+features specific to C++11.  In addition, enable or disable some pre-C++11
+standard features that are not always enabled in default mode (e.g., exception
+handling).
 */
 {
   if (!option_kind_used[(int)optk_exception_handling]) {
-    /* Enable exceptions by default. */
-    exceptions_enabled = TRUE;
+    /* Enable exceptions by default in C++11 mode. */
+    exceptions_enabled = value;
   }  /* if */
-  right_shift_can_be_angle_brackets = TRUE;
-  extended_friends_enabled = TRUE;
-  mixed_string_concat_enabled = TRUE;
-  long_long_is_standard = TRUE;
-  long_long_promotion_allowed = TRUE;
+  right_shift_can_be_angle_brackets = value;
+  extended_friends_enabled = value;
+  mixed_string_concat_enabled = value;
+  long_long_is_standard = value;
+  long_long_promotion_allowed = value;
   if (!option_kind_used[(int)optk_variadic_macros]) {
-    variadic_macros_allowed = TRUE;
+    variadic_macros_allowed = value;
   }  /* if */
-  pragma_operator_allowed = TRUE;
-  static_assert_enabled = TRUE;
+  pragma_operator_allowed = value;
+  static_assert_enabled = value;
   if (!option_kind_used[(int)optk_auto_type]) {
-    auto_type_specifier_enabled = TRUE;
+    auto_type_specifier_enabled = value;
   }  /* if */
   if (!option_kind_used[(int)optk_auto_storage]) {
-    auto_storage_class_specifier_enabled = FALSE;
+    auto_storage_class_specifier_enabled = !value;
   }  /* if */
   if (!option_kind_used[(int)optk_dependent_name_processing]) {
-    do_dependent_name_processing = DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING;
+    do_dependent_name_processing = value ?
+                                      DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING :
+                                      FALSE;
   }  /* if */
   if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
-    nonclass_prototype_instantiations=DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING;
+    nonclass_prototype_instantiations = value ?
+                                      DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING :
+                                      FALSE;
   }  /* if */
-  extern_template_allowed = TRUE;
-  standard_form_of_extern_template = TRUE;
-  decltype_enabled = TRUE;
-  explicit_enum_base_enabled = TRUE;
-  enum_qualifiers_enabled = TRUE;
+  extern_template_allowed = value;
+  standard_form_of_extern_template = value;
+  decltype_enabled = value;
+  explicit_enum_base_enabled = value;
+  enum_qualifiers_enabled = value;
   if (!option_kind_used[(int)optk_lambdas]) {
-    lambdas_enabled = TRUE;
+    lambdas_enabled = value;
   }  /* if */
   if (!option_kind_used[(int)optk_rvalue_references]) {
-    rvalue_references_enabled = TRUE;
+    rvalue_references_enabled = value;
   }  /* if */
   if (!option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
-    rvalue_ctor_is_copy_ctor = TRUE;
+    rvalue_ctor_is_copy_ctor = value;
   }  /* if */
-  local_types_as_template_args_enabled = TRUE;
-  decls_using_types_without_linkage_allowed = TRUE;
-  defaulted_special_members_enabled = TRUE;
-  deleted_functions_enabled = TRUE;
-  trailing_return_types_enabled = TRUE;
-  this_in_trailing_return_types_enabled = TRUE;
-  std_attributes_enabled = TRUE;
-  alias_declarations_enabled = TRUE;
+  local_types_as_template_args_enabled = value;
+  decls_using_types_without_linkage_allowed = value;
+  defaulted_special_members_enabled = value;
+  deleted_functions_enabled = value;
+  trailing_return_types_enabled = value;
+  this_in_trailing_return_types_enabled = value;
+  std_attributes_enabled = value;
+  alias_declarations_enabled = value;
   if (!option_kind_used[(int)optk_variadic_templates]) {
-    variadic_templates_enabled = TRUE;
+    variadic_templates_enabled = value;
   }  /* if */
   if (!option_kind_used[(int)optk_nullptr]) {
-    nullptr_enabled = TRUE;
+    nullptr_enabled = value;
   }  /* if */
   if (!option_kind_used[(int)optk_cpp11_sfinae]) {
-    cpp11_sfinae_enabled = TRUE;
+    cpp11_sfinae_enabled = value;
   }  /* if */
   if (!option_kind_used[(int)optk_cpp11_sfinae_ignore_access]) {
     if (cpp11_sfinae_enabled) {
-      cpp11_sfinae_ignore_access = DEFAULT_CPP11_SFINAE_IGNORE_ACCESS;
+      cpp11_sfinae_ignore_access = value ? DEFAULT_CPP11_SFINAE_IGNORE_ACCESS :
+                                           FALSE;
     }  /* if */
   }  /* if */
   if (!(option_kind_used[(int)optk_export_template])) {
     /* If export template processing was not explicitly set by a command line
        option, disable it in C++11 mode. */
-    export_template_allowed = FALSE;
+    export_template_allowed = !value;
   }  /* if */
-  explicit_conversion_functions_enabled = TRUE;
+  explicit_conversion_functions_enabled = value;
   if (!option_kind_used[(int)optk_uliterals]) {
     /* Enable U-literals by default in C++11 mode (unless they were explicitly
        mentioned on the command line).  This also has the effect of enabling
        char16_t/char32_t keywords. */
-    uliterals_enabled = TRUE;
+    uliterals_enabled = value;
   }  /* if */
-  range_based_for_enabled = TRUE;
+  range_based_for_enabled = value;
 }  /* check_and_set_cpp11_mode_options */
 
 
@@ -2643,7 +2649,8 @@ enables the appropriate extensions in default C++ mode.  Individual features
 may get enabled in the other non-C++11 modes.
 */
 {
-  check_assertion(!C_mode() && !cpp11_mode);
+  check_assertion(!C_mode() && !cpp11_mode &&
+                  !option_kind_used[(int)optk_cpp03_mode]);
   if (!strict_ansi_mode &&
       !microsoft_mode && !gpp_mode && !sun_mode && !any_cfront_mode()) {
     right_shift_can_be_angle_brackets =
@@ -2733,8 +2740,13 @@ setting is used, and to set various unmentioned settings as needed.
     variadic_templates_enabled = DEFAULT_VARIADIC_TEMPLATES_ENABLED;
   }  /* if */
   if (cpp11_mode) {
-    check_and_set_cpp11_mode_options();
+    /* Enable C++11 extensions. */
+    check_and_set_cpp11_mode_options(/*value=*/TRUE);
+  } else if (option_kind_used[(int)optk_cpp03_mode]) {
+    /* Disable all C++11 extensions. */
+    check_and_set_cpp11_mode_options(/*value=*/FALSE);
   } else {
+    /* Set default C++11 extensions. */
     check_and_set_default_cpp11_extensions();
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
@@ -2937,17 +2949,17 @@ an otherwise implicitly enabled C++11 mode.
 }  /* exclude_cpp11_mode */
 
 
-static void exclude_cpp98_mode(an_error_code  error_code)
+static void exclude_cpp03_mode(an_error_code  error_code)
 /*
-C++98 mode is incompatible with other settings.  Issue the given
+C++03 mode is incompatible with other settings.  Issue the given
 diagnostic (error_code) if the conflict is explicit.
 */
 {
-  if (option_kind_used[(int)optk_cpp98_mode]) {
-    /* C++98 mode was enabled by a command line option. */
+  if (option_kind_used[(int)optk_cpp03_mode]) {
+    /* C++03 mode was enabled by a command line option. */
     command_line_error(error_code);
   }  /* if */
-}  /* exclude_cpp98_mode */
+}  /* exclude_cpp03_mode */
 
 
 static void check_and_set_ansi_mode_options(void)
@@ -3764,6 +3776,7 @@ command line switches.
       16-bit mode       il_header.near_and_far_allowed   --microsoft_16
     sun mode            sun_mode                         --sun
     GNU C++             gpp_mode                         --g++
+    C++11               cpp11_mode                       --c++11
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
 
@@ -3778,7 +3791,8 @@ were modified to compile C code by default).
 
 C99 mode is in some ways considered both a dialect and a mode.  C_dialect
 is still C_dialect_ANSI, but C99 is permitted to be used in conjunction with
-Microsoft mode.
+Microsoft mode.  Likewise for --c++11 which implicitly sets the dialect
+to C_dialect_cplusplus and also sets cpp11_mode.
 
 Whatever major dialect is selected, all language modes specified have to be
 consistent with it.  For example, --old_c --c99 is permitted, since the
@@ -3831,7 +3845,7 @@ order of development of this front end, and is inconsistent and strange.
     exclude_sun_mode(ec_cl_sun_mode_only_in_cplusplus);
     exclude_gpp_mode(ec_cl_incompatible_language_modes);
     exclude_cpp11_mode(ec_cl_incompatible_language_modes);
-    exclude_cpp98_mode(ec_cl_incompatible_language_modes);
+    exclude_cpp03_mode(ec_cl_incompatible_language_modes);
   }  /* if */
   if (C_dialect == C_dialect_pcc) {
     /* Issue an error for specifying a language mode that is valid only
@@ -8458,9 +8472,9 @@ enable_microsoft_mode:
         cpp11_mode = opt_value;
         C_dialect = C_dialect_cplusplus;
         break;
-      case optk_cpp98_mode:
-        /* Compile ISO/IEC 14882:1998 C++ code.  This option is convenient
-           if C++11 mode is selected by default. */
+      case optk_cpp03_mode:
+        /* Compile ISO/IEC 14882:2003 C++ code.  This option explicitly
+           disables all C++11 extensions. */
         check_assertion(opt_value == TRUE);
         cpp11_mode = FALSE;
         C_dialect = C_dialect_cplusplus;

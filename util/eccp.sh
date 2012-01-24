@@ -587,7 +587,7 @@ check_abbreviation()
 --c++11
 --c++11_sfinae
 --c++11_sfinae_ignore_access
---c++98
+--c++03
 --c++cli
 --c_to_obj_lib
 --c_to_obj_options
@@ -1234,7 +1234,7 @@ process_option()
          --no_c99 | \
          --no_c++0x | \
          --no_c++11 | \
-         --c++98 | \
+         --c++03 | \
          --display_error_number | \
          --no_display_error_number | \
          --dollar | \
@@ -1438,7 +1438,7 @@ process_option()
           fi
           ;;
         -b | --c++ | --c++11 | --no_c++11 | --cfront_2.1 | --cfront_3.0 | \
-	--c++0x | --no_c++0x | --g++ | --no_g++ | --c++98)
+	--c++0x | --no_c++0x | --g++ | --no_g++ | --c++03)
           c_mode=0
           ;;
 	--no_preproc_only)

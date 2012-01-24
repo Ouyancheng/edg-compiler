@@ -41,11 +41,17 @@ dependent.  Now fixed.
 
 
 1/22/12  [EDGcpfe/12622]
-Add --c++98 command line option
+Add --c++03 command line option
 
-A --c++98 command line option has been added to enable parsing of C++ code
-that adheres to the ISO/IEC 14882:1998 standard.  This option is useful
-in configurations that enable C++11 mode by default.
+A --c++03 command line option has been added to enable parsing of C++ code
+that adheres to the ISO/IEC 14882:2003 standard.  This command line option
+explicitly disables all C++11 features, regardless of their configured
+default values (but individual C++11 features can be enabled on the command
+line).  Implicitly enables C++ mode.  Note that the related --no_c++11 command
+line option (unchanged) turns off C++11 mode, but doesn't explicitly disable
+all C++11 features.  Can be combined with other C++ modes, e.g., --strict,
+--microsoft_version, --gnu_version (in which case, where applicable, any C++11
+features enabled by the emulation mode would be enabled).
 
 
 1/21/12  [EDGcpfe/12621]
