@@ -475,6 +475,24 @@ for a lambda closure class.
 }  /* scp_is_lambda_closure_class */
 
 
+static a_boolean is_this_param_for(a_type_ptr       type,
+                                   a_param_type_ptr param_ptr)
+/*
+Return TRUE if param_ptr designates a parameter that is a pointer to type,
+i.e., could be the "this" parameter for a non-static member function of
+type.
+*/
+{
+  a_boolean result = FALSE;
+  if (is_pointer_type(param_ptr->type)) {
+    a_type_ptr underlying_type =
+                             f_skip_typerefs(type_pointed_to(param_ptr->type));
+    result = same_entities(type, underlying_type);
+  }  /* if */
+  return result;
+}  /* is_this_param_for */
+
+
 static
 a_boolean form_name_if_lambda(a_source_correspondence               *scp,
                               an_il_entry_kind                      entry_kind,
@@ -500,25 +518,39 @@ generate a name for it and return TRUE (FALSE otherwise).
          called after the closure class has been created but before the
          complete lambda parameter list and return type have been scanned. */
       if (rp != NULL) {
-        /* The routine type may or may not have a "this" parameter at this
-           point.  Check to see if it does. */
         a_routine_type_supplement_ptr rtsp =
                                           rp->type->variant.routine.extra_info;
-        a_param_type_ptr              first_param;
-        first_param = rtsp->param_type_list;
-        if (first_param != NULL && is_pointer_type(first_param->type)) {
-          a_type_ptr underlying_type =
-                           f_skip_typerefs(type_pointed_to(first_param->type));
-          if (is_immediate_class_type(underlying_type) &&
-              underlying_type == type) {
-            /* Temporarily remove the "this" parameter in order to prevent
-               an infinite recursion: trying to print the name of the type
-               it points to would end up back here again. */
-            rtsp->param_type_list = first_param->next;
+        a_param_type_ptr              possible_this_param =
+                                                         rtsp->param_type_list;
+        a_param_type_ptr              *param_to_restore = NULL;
+        /* The routine type may or may not have a "this" parameter,
+           depending on the current state of processing, and if it does, it
+           might be either the first or the second parameter, depending on
+           the ABI and the characteristics of the type of the return value.
+           If it does have a "this" parameter, we must temporarily remove
+           it from the routine type to avoid an infinite recursion: the
+           "this" parameter points to the closure class and thus an attempt
+           to form its type would pass through here again. */
+        if (possible_this_param != NULL) {
+          if (is_this_param_for(type, possible_this_param)) {
+            /* "this" is the first parameter. */
+            param_to_restore = &rtsp->param_type_list;
+          } else if (possible_this_param->next != NULL &&
+                     is_this_param_for(type, possible_this_param->next)) {
+            /* "this" is the second parameter. */
+            param_to_restore = &possible_this_param->next;
+            possible_this_param = possible_this_param->next;
+          }  /* if */
+          if (param_to_restore != NULL) {
+            /* Temporarily remove the "this" parameter from the list. */
+            *param_to_restore = possible_this_param->next;
           }  /* if */
         }  /* if */
         form_type(rp->type, octl);
-        rtsp->param_type_list = first_param;
+        if (param_to_restore != NULL) {
+          /* Put the "this" parameter back into the list. */
+          *param_to_restore = possible_this_param;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
