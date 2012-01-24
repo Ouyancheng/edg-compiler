@@ -400,7 +400,7 @@ void escape_invalid_identifier(wstring            &identifier,
 /*
 If 'identifier' is not a valid C++ identifier, wrap it with
 "__identifier("...")".  If chars_to_skip is nonzero, only wrap the portion
-of the given string that starts that the position indicated by chars_to_skip.
+of the given string that starts at the position indicated by chars_to_skip.
 If force is true, do the wrapping regardless of the contents of the string
 (this is used in contexts where identifiers spelled like C++ keywords can
 appear, because this function does not currently recognize such keywords).
@@ -430,7 +430,7 @@ appear, because this function does not currently recognize such keywords).
                                 identifier.substr(chars_to_skip + 1) + L"\")";
     }  /* if */
   }  /* if */
-}  /* */
+}  /* escape_invalid_identifier */
 
 
 BYTE strip_generic_arity(wstring &type_name)
@@ -2565,8 +2565,8 @@ any "." in the name with the C++ scope operator, "::".
   wstring type_name;
   check_assertion(!omit_generic_params_or_args ||
                   TypeFromToken(token) == mdtTypeDef);
-  /* First check if this token is a token was cached by a previous call.
-     If is a generic type, we can't cache the name because the generic
+  /* First check if this token is a token cached by a previous call.
+     If it is a generic type, we can't cache the name because the generic
      parameters and arguments may differ in different contexts. */
   bool can_cache_name = (TypeFromToken(token) != mdtTypeSpec &&
                          generic_type_params_or_args.begin()
@@ -4725,7 +4725,7 @@ Decode a type signature that is modified with a custom type modifier.
   /* Decode the modified type. */
   type = decode_type(param_attributes);
   if (type == nullptr) goto done;
-  /* Apply the the modifiers to the decoded type. */
+  /* Apply the modifiers to the decoded type. */
   if ((modifier_flags & tmf_is_boxed) != 0) {
     check_assertion(boxed_type);
     auto indirection = type->as_indirection();
