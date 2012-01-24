@@ -3699,11 +3699,11 @@ operator of a no-capture lambda.
   a_memory_region_number
                    new_routine_il_region;
   a_variable_ptr   this_param_var, param_var, last_param_var;
-  an_expr_node_ptr this_arg, pass_through_arg;
+  an_expr_node_ptr this_arg, pass_through_arg, first_arg;
   a_statement_ptr  return_stmt;
   a_generated_routine_context
                    grcontext;
-  a_boolean        insert_as_statement, void_return;
+  a_boolean        insert_as_statement, void_return, is_lambda_entry_point;
   an_object_lifetime_ptr
                    init_expr_lifetime = NULL;
   a_context        def_arg_context;
@@ -3720,21 +3720,30 @@ operator of a no-capture lambda.
   if (new_routine->assoc_scope == NULL_region_number) {
     rtsp = routine->type->variant.routine.extra_info;
     new_rtsp = new_routine->type->variant.routine.extra_info;
-    if (new_routine->special_kind ==
-                             (a_special_function_kind)sfk_lambda_entry_point) {
+    is_lambda_entry_point = new_routine->special_kind ==
+                               (a_special_function_kind)sfk_lambda_entry_point;
+    if (is_lambda_entry_point) {
       /* The alternate entry point of a lambda call operator is a static
          function and has no "this" parameter. */
-      this_param_type = rtsp->param_type_list->type;
+      /* It's possible that the lambda call operator returns its value in
+         a class type that requires a copy constructor and has been lowered
+         to take a pointer to the return value as an extra parameter; make
+         sure we handle this case (this is only a problem in the IA-64 ABI
+         because "this" is first in the Cfront ABI). */
+      if (rtsp->value_returned_as_parameter &&
+         !rtsp->return_value_parameter_follows_this) {
+        /* "this" is the second parameter. */
+        this_param_type = rtsp->param_type_list->next->type;
+      } else {
+        /* "this" is the first parameter. */
+        this_param_type = rtsp->param_type_list->type;
+      }  /* if */
       first_actual_param_type = new_rtsp->param_type_list;
     } else {
+      check_assertion(!rtsp->value_returned_as_parameter);
       this_param_type = new_rtsp->param_type_list->type;
       first_actual_param_type = new_rtsp->param_type_list->next;
     }  /* if */
-    /* This routine doesn't handle the extra argument for a return via
-       copy constructor or additional parameter.  It could be changed
-       to do so. */
-    check_assertion(!rtsp->value_returned_by_cctor &&
-                    !rtsp->value_returned_as_parameter);
     /* Make a memory region, scope, and block for the routine definition. */
     new_routine_scope = make_routine_definition(new_routine,
                                                 /*make_return=*/FALSE,
@@ -3743,8 +3752,7 @@ operator of a no-capture lambda.
                                     &insert_location);
     push_generated_routine_context(new_routine_scope, new_routine_il_region,
                                    &grcontext);
-    if (new_routine->special_kind !=
-                             (a_special_function_kind)sfk_lambda_entry_point) {
+    if (!is_lambda_entry_point) {
       /* Make a parameter variable for the "this" parameter (in lowered
          form as a normal parameter). */
       new_routine_scope->variant.routine.parameters = this_param_var =
@@ -3935,9 +3943,9 @@ operator of a no-capture lambda.
       }  /* if */
     }  /* if */
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
-    /* Add the "this" parameter at the front of the argument list. */
-    if (new_routine->special_kind ==
-                             (a_special_function_kind)sfk_lambda_entry_point) {
+    /* Add the "this" parameter at the appropriate point in the argument
+       list. */
+    if (is_lambda_entry_point) {
       /* Pass NULL as the "this" argument. */
       a_constant null_this;
       make_zero_of_proper_type(this_param_type, &null_this);
@@ -3945,11 +3953,22 @@ operator of a no-capture lambda.
     } else {
       this_arg = var_rvalue_expr(this_param_var);
     }  /* if */
-    this_arg->next = default_arg_list;
+    if (rtsp->value_returned_as_parameter &&
+        !rtsp->return_value_parameter_follows_this) {
+      /* The "this" argument is the second argument to the function. */
+      check_assertion(default_arg_list != NULL);
+      first_arg = default_arg_list;
+      this_arg->next = default_arg_list->next;
+      default_arg_list->next = this_arg;
+    } else {
+      /* The "this" argument is the first argument to the function. */
+      first_arg = this_arg;
+      this_arg->next = default_arg_list;
+    }  /* if */
     /* Make a call node that calls the original routine with all
        the implicit arguments, i.e., that passes all the extra arguments
        to the original routine. */
-    call_node = make_call_node(routine, this_arg, (an_insert_location *)NULL);
+    call_node = make_call_node(routine, first_arg, (an_insert_location *)NULL);
     /* If the routine has a void type, insert a statement for the call
        followed by a return statement.  Otherwise, attach the call directly
        to the return. */
