@@ -23372,7 +23372,7 @@ classes.
 */
 {
   a_boolean                        err = FALSE;
-  a_symbol_ptr                     tag_sym = symbol_for(class_type);;
+  a_symbol_ptr                     tag_sym = symbol_for(class_type);
   a_scope_ptr                      scope_ptr;
   a_class_symbol_supplement_ptr    cssp;
   a_class_type_supplement_ptr      ctsp = class_type_supp(class_type);
