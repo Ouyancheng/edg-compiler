@@ -3517,6 +3517,7 @@ state.
         cssp->has_dispose_pattern_object_finalize = FALSE;
         cssp->needs_new_idisposable_dispose = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        cssp->being_defined = FALSE;
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
         cssp->conversion_template_list = NULL;

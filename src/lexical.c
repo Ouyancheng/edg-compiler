@@ -18703,10 +18703,7 @@ C++/CLI delegate class types.)
   an_assembly_index             saved_assembly_index = curr_assembly_index;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-  /* This routine cannot handle local classes. */
-  if (class_type->source_corresp.is_local_to_function) {
-    define_class = FALSE;
-  }  /* if */
+  class_sym = symbol_for(class_type);
   if (class_type->incomplete) {
     if (ctsp->assembly_index != 0 && ctsp->metadata_type_def_token != 0) {
       /* The class is from an assembly.  Load the definition of the class
@@ -18715,6 +18712,14 @@ C++/CLI delegate class types.)
       metadata_type_def_token = ctsp->metadata_type_def_token;
       define_class = TRUE;
     }  /* if */
+    if (class_sym->variant.class_struct_union.extra_info->being_defined) {
+      define_class = FALSE;
+      type_error(ec_class_metadata_not_representable, class_type);
+    }  /* if */
+  }  /* if */
+  /* This routine cannot handle local classes. */
+  if (class_type->source_corresp.is_local_to_function) {
+    define_class = FALSE;
   }  /* if */
   if (!define_class) goto done;
 #if DEBUG
@@ -18724,7 +18729,6 @@ C++/CLI delegate class types.)
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
-  class_sym = symbol_for(class_type);
   class_sym_for_context = class_sym;
   /* The template instantiation scope stack management infrastructure is used
      to reestablish the context in which the tokens of the class definition

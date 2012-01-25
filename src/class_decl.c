@@ -20588,6 +20588,7 @@ and record the overridden base class members in decl_info->named_overrides.
 */
 {
   if (curr_token == tok_assign) {
+    a_type_ptr               class_type = cdsp->class_type;
     a_token_cache            cache;
     a_symbol_list_entry_ptr  *p_list_entry;
     a_boolean                err = FALSE, sym_err;
@@ -20599,7 +20600,7 @@ and record the overridden base class members in decl_info->named_overrides.
       goto done;
     }  /* if */
     discard_token_cache(&cache);
-    if (!is_immediate_managed_class_type(cdsp->class_type)) {
+    if (!is_immediate_managed_class_type(class_type)) {
       pos_error(ec_named_override_requires_managed_type, &pos_curr_token);
       err = TRUE;
     } else if (decl_info->is_destructor || decl_info->is_finalizer) {
@@ -20634,7 +20635,7 @@ and record the overridden base class members in decl_info->named_overrides.
         pos_sy_error(ec_ambiguous_name, &pos_curr_token, sym);
         sym = NULL;
       } else if (!is_member_function_symbol(sym) ||
-                 find_base_class_of(cdsp->class_type,
+                 find_base_class_of(class_type,
                                     sym_parent_class(sym)) == NULL) {
         pos_error(ec_override_name_must_be_a_base_class_member_function,
                   &pos_curr_token);
@@ -23371,7 +23372,7 @@ classes.
 */
 {
   a_boolean                        err = FALSE;
-  a_symbol_ptr                     tag_sym;
+  a_symbol_ptr                     tag_sym = symbol_for(class_type);;
   a_scope_ptr                      scope_ptr;
   a_class_symbol_supplement_ptr    cssp;
   a_class_type_supplement_ptr      ctsp = class_type_supp(class_type);
@@ -23385,7 +23386,7 @@ classes.
   a_boolean			   is_in_class_specialization;
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_pack_alignment_state           saved_pack_alignment_state;
-  a_boolean			   need_restore_pack_alignment_statate = FALSE;
+  a_boolean			   need_restore_pack_alignment_state = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   a_boolean                        class_is_in_valid_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -23405,13 +23406,14 @@ classes.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "scan_class_definition");
+  cssp = tag_sym->variant.class_struct_union.extra_info;
+  check_assertion(!cssp->being_defined);
+  cssp->being_defined = TRUE;
   initialize_class_def_state(class_type, &class_state);
   class_state.is_local_class = is_local_class;
   /* Increment the counter of class definitions currently in progress. */
   curr_class_fixup_header(/*for_instantiation=*/FALSE)->
                                                    pending_class_definitions++;
-  tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
-  cssp = tag_sym->variant.class_struct_union.extra_info;
   class_tssp = cssp->template_info;
   /* A copy constructor need not be generated if construction by bitwise
      copy is equivalent.  When a class is being defined, set the flag to
@@ -23555,7 +23557,7 @@ classes.
       reset_pack_alignment_state(class_type->variant.class_struct_union.
                                                       max_member_alignment,
                                  &saved_pack_alignment_state);
-      need_restore_pack_alignment_statate = TRUE;
+      need_restore_pack_alignment_state = TRUE;
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if ((cpp11_mode || microsoft_mode ||
@@ -24021,7 +24023,7 @@ next_declaration:
                                 &class_state);
     }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
-    if (need_restore_pack_alignment_statate) {
+    if (need_restore_pack_alignment_state) {
       /* Now that the class instantiation has been scanned, restore the
          original pack alignment state.  Note that this must occur after the
          pragmas associated with the closing brace have been processed. */
@@ -24197,7 +24199,7 @@ next_declaration:
        pop that scope now. */
     pop_template_instantiation_scope();
   }  /* if */
-
+  cssp->being_defined = FALSE;
   db_exit();
   return !err;
 }  /* scan_class_definition */

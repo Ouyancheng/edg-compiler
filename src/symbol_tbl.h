@@ -1251,6 +1251,10 @@ typedef struct a_class_symbol_supplement {
 			   IDisposable::Dispose() will therefore need to mark
 			   their declaration with the "new" modifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_bit_field	being_defined:1;
+			/* TRUE during the call of scan_class_definition for
+			   this class.  This is used to detect certain problems
+			  in code generated from metadata. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block
 		pointers_block;

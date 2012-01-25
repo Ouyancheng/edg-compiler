@@ -3904,8 +3904,8 @@ itself and its associated accessor methods.
     } else if (set_method.exists()) {
       method_attributes = set_method.attributes() & method_attributes_mask;
     }  /* if */
-    auto type = decoder.decode_method_signature(property_token);
-    if (type) {
+    a_type_wrapper_ptr type = decoder.decode_method_signature(property_token);
+    if (type != nullptr) {
       buffer << accessibility.get_string() << ": ";
       write_method_decl_specifiers(buffer, property_token, method_attributes);
       escape_invalid_identifier(property_name);
@@ -4593,7 +4593,7 @@ enum a_type_modifier_flag : a_type_modifier_flag_set
 };
 
 
-a_type_modifier_flag type_name_to_modifier_flag(const wstring &name)
+static a_type_modifier_flag type_name_to_modifier_flag(const wstring &name)
 /*
 Return the type modifier flag that corresponds to the specified class name, or
 tmf_unknown if no such mapping exists.

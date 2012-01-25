@@ -2339,6 +2339,7 @@ ec_inaccessible_elided_dtor;;"%nfd, required to destroy temporary that was elimi
 ec_range_based_for_no_matching_overload;;"in this range-based \"for\" statement, no instance of %no matches the argument list"
 ec_range_based_for_undefined_identifier;;"this range-based \"for\" statement requires a suitable %sq function and none was found"
 ec_for_each_undefined_identifier;;"this \"for each\" statement requires a suitable %sq function and none was found"
+ec_class_metadata_not_representable;;"%t has a metadata representation not representable using C++/CLI"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
