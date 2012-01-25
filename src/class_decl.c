@@ -20846,6 +20846,9 @@ when the constraint type is completed.
         check_assertion(!err && sym != NULL &&
                         is_class_struct_union_symbol(sym));
         gcp->type = type_symbol_type(sym);
+        record_symbol_reference(SRK_REFERENCE, sym,
+                                &gcp->position,
+                                /*update_il_entry=*/FALSE);
         free_token_cache(gcp->type_cache);
         gcp->type_cache = NULL;
         (void)get_token();

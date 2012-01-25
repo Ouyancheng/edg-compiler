@@ -1,5 +1,18 @@
 Version 4.5
 
+1/15/12  [EDGcpfe/12339]
+Cross-reference entries for C++/CLI generic constraints
+
+Cross-reference entries are now recorded on references in C++/CLI
+generic constraint clauses.  For example:
+
+  interface class I { };
+  ref struct RR : public I { };
+  generic <typename T>
+  where T : I  // Cross-reference entry for reference to "I" now recorded
+  void f(T t) { }
+
+
 1/25/12  [EDGcpfe/12055]
 References in backing expressions are keep-in-il, not needed
 

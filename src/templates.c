@@ -22315,6 +22315,11 @@ of the list.
               discard_deferred_constraint_checks();
             }  /* if */
           }  /* if */
+          if (tcp == NULL) {
+            record_symbol_reference(SRK_REFERENCE, sym,
+                                    &locator_for_curr_id.source_position,
+                                    /*update_il_entry=*/FALSE);
+          }  /* if */
         }  /* if */
         (void)get_token();
         break;
