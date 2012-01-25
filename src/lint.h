@@ -940,6 +940,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_invalid_entity_for_pending_constraint)*/
 /*lint -esym(769,ec_template_in_managed_class)*/
 /*lint -esym(769,ec_interface_cannot_have_member_generics)*/
+/*lint -esym(769,ec_class_metadata_not_representable)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
