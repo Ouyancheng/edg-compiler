@@ -2050,16 +2050,6 @@ by a command line option.
     if (microsoft_version >= 1700 || cppcli_enabled) {
       range_based_for_enabled = TRUE;
     }  /* if */
-#if !CPP11_IL_EXTENSIONS_SUPPORTED
-#if DO_IL_LOWERING
-    /* If the back end doesn't support range-based-for, make sure we're
-       lowering. */
-    range_based_for_enabled = range_based_for_enabled && !suppress_il_lowering;
-#else /* !DO_IL_LOWERING */
-    /* No lowering and no back end support. */
-    range_based_for_enabled = FALSE;
-#endif /* DO_IL_LOWERING */
-#endif /* !CPP11_IL_EXTENSIONS_SUPPORTED */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
      looking up names in elaborated type specifiers.  This flag causes
@@ -8937,13 +8927,16 @@ enable_microsoft_mode:
     command_line_error(ec_cl_must_specify_cpp11_mode);
   }  /* if */
 #else /* !CPP11_IL_EXTENSIONS_SUPPORTED */
+#if DO_IL_LOWERING
+  /* If the back end doesn't support range-based-for, make sure we're
+     lowering. */
+  range_based_for_enabled = range_based_for_enabled && !suppress_il_lowering;
+#else /* !DO_IL_LOWERING */
+  /* No lowering and no back end support. */
+  range_based_for_enabled = FALSE;
+#endif /* DO_IL_LOWERING */
   /* Verify that no feature requiring C++11 back end support is enabled. */
   check_assertion(!(cpp11_mode || static_assert_enabled || lambdas_enabled ||
-                    (range_based_for_enabled
-#if DO_IL_LOWERING
-                                             && suppress_il_lowering
-#endif /* DO_IL_LOWERING */
-                                                                    ) ||
                     rvalue_references_enabled || nullptr_enabled));
 #endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
   /* Range-based-for relies on the std namespace being enabled. */
