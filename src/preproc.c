@@ -2024,7 +2024,8 @@ there.
   db_enter(4, "convert_pragma_to_string");
   /* Initialize the token string.  Use the pragma ID position as the start
      position associated with the token string. */
-  init_token_string(&ppp->id_position, /*keep_spacing=*/FALSE);
+  init_token_string(&ppp->id_position, /*keep_spacing=*/FALSE,
+                    /*suppress_identifier_wrapping=*/FALSE);
   add_token_cache_to_string(&ppp->token_cache);
   /* Copy the string to IL memory. */
   ppp->pragma_text = make_copy_of_token_string();

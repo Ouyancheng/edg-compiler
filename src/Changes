@@ -1,5 +1,18 @@
 Version 4.5
 
+1/25/12  [EDGcpfe/12367]
+Do not wrap keyword-like identifiers in __identifier(...) inside attributes
+
+In Microsoft mode, identifiers that are spelled like keywords can be
+enclosed in __identifier(...) to make them not be treated as keywords.
+This is useful in particular for code authored in languages other than
+C++, and comes up in metadata imported for C++/CLI.  Such identifiers
+are again enclosed in __identifier(...) when they are output, e.g., by the
+C++/generating back end.  However, the __identifier construct is not
+allowed inside attributes.  Therefore, the wrapping of such identifiers
+is now suppressed for output inside an attribute.
+
+
 1/25/12  [EDGcpfe/12339]
 Cross-reference entries for C++/CLI generic constraints
 

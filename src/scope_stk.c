@@ -9253,7 +9253,8 @@ Display the tokens that make up a pack expansion, for debugging purposes.
     }  /* if */
     if (result_cache != NULL) {
       init_token_string(&result_cache->first_token->source_position,
-                       /*keep_spacing=*/FALSE);
+                       /*keep_spacing=*/FALSE,
+                       /*suppress_identifier_wrapping=*/FALSE);
       add_token_cache_segment_to_string(result_cache, pedp->first_token,
                                         pedp->last_token);
       fprintf(f_debug, "%s\n", temp_text_buffer);

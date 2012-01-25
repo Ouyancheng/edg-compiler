@@ -18221,6 +18221,15 @@ static a_boolean
 			   should be preserved in the string, including
 			   newlines for line breaks. */
 
+static a_boolean
+		suppress_identifier_wrapping_in_token_string;
+			/* If TRUE, suppress wrapping of identifiers with
+			   the Microsoft __identifier(...) construct when
+			   they have names that conflict with keywords.
+			   Used in contexts like attributes that do not
+			   allow __identifier(...).  Not meaningful outside
+			   of Microsoft mode.*/
+
 
 static void add_whitespace_to_string(a_seq_number     seq_incr,
                                      a_column_number  column_incr)
@@ -18331,7 +18340,8 @@ of characters added.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean	microsoft_identifier_used;
     microsoft_identifier_used = ctp->variant.locator.symbol_header->
-                                                     microsoft_identifier_used;
+                                                   microsoft_identifier_used &&
+                                !suppress_identifier_wrapping_in_token_string;
     if (microsoft_identifier_used) {
       put_str_to_temp_text_buffer("__identifier(");
     }  /* if */
@@ -18591,18 +18601,22 @@ values for the starting/ending token sequence numbers.
 
 
 void init_token_string(a_source_position *pos,
-                       a_boolean         keep_spacing)
+                       a_boolean         keep_spacing,
+                       a_boolean         suppress_identifier_wrapping)
 /*
 Prepare to generate a string from one or more token caches.  Initialize
 the string length to zero and set the current sequence number to the
 position specified by pos.  If keep_spacing is TRUE, the string will
 preserve the original spacing, including newlines to indicate line
-breaks in the source.
+breaks in the source.  If suppress_identifier_wrapping is TRUE, do
+not wrap identifiers that look like keywords in __identifier(...)
+in Microsoft mode.
 */
 {
   curr_seq = pos->seq;
   pos_in_temp_text_buffer = 0;
   keep_spacing_in_token_string = keep_spacing;
+  suppress_identifier_wrapping_in_token_string = suppress_identifier_wrapping;
 }  /* init_token_string */
 
 
@@ -18649,7 +18663,8 @@ the source form (e.g., digraphs are returned as ordinary tokens).
     a_token_cache cache;
     clear_token_cache(&cache, /*reusable=*/FALSE);
     cache_curr_token(&cache);
-    init_token_string(&pos_curr_token, /*keep_spacing=*/FALSE);
+    init_token_string(&pos_curr_token, /*keep_spacing=*/FALSE,
+                      /*suppress_identifier_wrapping=*/FALSE);
     add_token_cache_to_string(&cache);
     result = make_copy_of_token_string();
   }  /* if */
