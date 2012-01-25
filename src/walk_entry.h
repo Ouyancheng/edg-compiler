@@ -694,7 +694,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_constant_ptr ptr = (a_constant_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_constant_ptr, iek_constant);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
-        walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
+        /* If backing expressions are kept, they are only keep-in-IL, not
+           needed. */
+        walk_ptr_not_needed(ptr->expr, an_expr_node_ptr, iek_expr_node);
         conditionally_clear_fe_pointer(ptr->rescan_info);
 #if DO_IL_LOWERING
         conditionally_clear_fe_pointer(ptr->assoc_var);

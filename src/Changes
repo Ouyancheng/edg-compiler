@@ -1,5 +1,19 @@
 Version 4.5
 
+1/25/12  [EDGcpfe/12055]
+References in backing expressions are keep-in-il, not needed
+
+Constants that are the results of folding constant expressions
+have (in some configurations) "backing expressions," which give the
+expression that produced the constant.  Now, in the needed-flag
+processing, backing expressions are walked only for the keep-in-il flag
+walk, and not the "needed" flag walk.  That means that const variables
+that are used only as constants will no longer be marked as "needed"
+in configurations that maintain backing expressions.  This makes
+the "needed" flag more closely match the "odr-used" term of the standard
+in such cases.
+
+
 1/23/12  [EDGcpfe/11185,EDGcpfe/12355,EDGcpfe/12606]
 Spurious error on friend class declaration using name of nested template
 
