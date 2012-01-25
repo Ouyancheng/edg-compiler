@@ -18220,7 +18220,7 @@ static a_boolean
 			/* If TRUE, spacing between tokens in the cache
 			   should be preserved in the string, including
 			   newlines for line breaks. */
-
+#if MICROSOFT_EXTENSIONS_ALLOWED
 static a_boolean
 		suppress_identifier_wrapping_in_token_string;
 			/* If TRUE, suppress wrapping of identifiers with
@@ -18229,6 +18229,7 @@ static a_boolean
 			   Used in contexts like attributes that do not
 			   allow __identifier(...).  Not meaningful outside
 			   of Microsoft mode.*/
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 static void add_whitespace_to_string(a_seq_number     seq_incr,
@@ -18600,6 +18601,9 @@ values for the starting/ending token sequence numbers.
 }  /* add_token_cache_to_string */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- suppress_identifier_wrapping_in_token_string not used. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void init_token_string(a_source_position *pos,
                        a_boolean         keep_spacing,
                        a_boolean         suppress_identifier_wrapping)
@@ -18616,7 +18620,9 @@ in Microsoft mode.
   curr_seq = pos->seq;
   pos_in_temp_text_buffer = 0;
   keep_spacing_in_token_string = keep_spacing;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   suppress_identifier_wrapping_in_token_string = suppress_identifier_wrapping;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* init_token_string */
 
 
