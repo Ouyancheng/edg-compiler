@@ -1877,6 +1877,7 @@ routine.
   check_assertion(special_kind_is(static_entry_pt, sfk_lambda_entry_point));
   return_stmt = alloc_statement((a_statement_kind)stmk_return);
   return_stmt->expr = function_addr_expr(static_entry_pt);
+  mark_routine_referenced(static_entry_pt);
   block_stmt = alloc_statement((a_statement_kind)stmk_block);
   block_stmt->variant.block.statements = return_stmt;
   fn_scope->assoc_block = block_stmt;
