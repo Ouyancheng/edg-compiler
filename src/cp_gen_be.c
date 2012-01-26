@@ -3264,8 +3264,16 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                     (scp->member_of_unknown_base) ? scp : NULL;
   a_boolean               is_partial_spec_prototype_inst = FALSE;
 
-  if (in_class_scope_with_dependent_base && !(options & GN_DECLARATION) &&
-      !entity_is_member_of_current_instantiation(scp, entry_kind)) {
+  if (entry_kind == (an_il_entry_kind)iek_constant &&
+      ((a_constant_ptr)scp)->kind == (a_constant_repr_kind)ck_template_param) {
+    /* If the name was qualified in the source, qualify it in the output,
+       too. */
+    if (((a_constant_ptr)scp)->variant.template_param.is_qualified_name) {
+      force_qualified_name = TRUE;
+    }  /* if */
+  } else if (in_class_scope_with_dependent_base &&
+             !(options & GN_DECLARATION) &&
+             !entity_is_member_of_current_instantiation(scp, entry_kind)) {
     /* A reference to a dependent name that is not a member of the current
        instantiation.  Add qualification to ensure that it's dependent in
        the generated code. */

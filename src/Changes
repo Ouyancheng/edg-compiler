@@ -1,5 +1,25 @@
 Version 4.5
 
+1/25/12  [EDGcpfe/12599]
+C++-generating back end: incorrect qualification of dependent function names
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL, the function name in
+a dependent function call appearing in a member function of a class template
+with a dependent base class was incorrectly put out as a qualified name.
+This has now been fixed.  For example:
+
+  template <class T> struct B { };
+  template <class T> int g(T);
+  namespace N {
+    template <class T> void g(T);
+    template <class T> struct D : B<T> {
+      void f(T t) {
+        g(t);    // Previously generated as ::N::g(t)
+      }
+    };
+  }
+
+
 1/25/12  [EDGcpfe/12367]
 Do not wrap keyword-like identifiers in __identifier(...) inside attributes
 
