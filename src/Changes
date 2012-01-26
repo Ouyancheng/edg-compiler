@@ -1,5 +1,20 @@
 Version 4.5
 
+1/25/12  [EDGcpfe/12605]
+C++-generating back end: omitted template parameter pack expansion
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+ellipsis expanding a template parameter pack was sometimes omitted in the
+declaration of a function parameter.  This has now been fixed.  For example:
+
+  template<typename T> struct A;
+  template<typename T> struct C {
+    typedef typename A<T>::type X;
+    template<typename... Args>
+    A<X (Args...)> f();  // Previously omitted "..." after Args
+  };
+
+
 1/25/12  [EDGcpfe/12599]
 C++-generating back end: incorrect qualification of dependent function names
 

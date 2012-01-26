@@ -12785,6 +12785,7 @@ make_new_type:
           new_ptp->type_involves_template_param =
                                   is_or_contains_template_param(new_ptp->type);
         }  /* if */
+        new_ptp->is_parameter_pack = ptp->is_parameter_pack;
         /* Add the new param type entry to the param types list. */
         if (prev_ptp == NULL) {
           new_type->variant.routine.extra_info->param_type_list = new_ptp;
