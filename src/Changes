@@ -18,10 +18,11 @@ declaration of a function parameter.  This has now been fixed.  For example:
 1/25/12  [EDGcpfe/12599]
 C++-generating back end: incorrect qualification of dependent function names
 
-In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL, the function name in
-a dependent function call appearing in a member function of a class template
-with a dependent base class was incorrectly put out as a qualified name.
-This has now been fixed.  For example:
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+C++-generating back end incorrectly put out the function name as a
+qualified name in a dependent function call appearing in a member
+function of a class template with a dependent base class.  This has
+now been fixed.  For example:
 
   template <class T> struct B { };
   template <class T> int g(T);
