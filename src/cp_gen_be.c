@@ -3295,9 +3295,13 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         /* This is the name of a template parameter, which may be different
            in the current context from what was originally recorded.  Make
            sure we use the correct name for this context. */
-        scp = source_corresp_for_template_param(&tp->
+        a_source_correspondence_ptr new_scp;
+        new_scp = source_corresp_for_template_param(&tp->
                                variant.template_param.extra_info->coordinates);
-        check_assertion(scp != NULL);
+        if (new_scp != NULL) {
+          /* Use the local name for the parameter at those coordinates. */
+          scp = new_scp;
+        }  /* if */
       } else
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       /* Do not insert code here. */

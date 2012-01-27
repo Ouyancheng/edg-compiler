@@ -1,5 +1,19 @@
 Version 4.5
 
+1/26/12  [EDGcpfe/12602]
+C++-generating back end: abort on use of template template parameter parameter
+
+The change for EDGcpfe/12534 introduced a bug that caused an assertion
+failure in the C++-generating back end in configurations with
+PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE when a parameter appearing in
+a template template parameter's parameter list is used in a subsequent
+template parameter of the template template parameter.  This is now fixed.
+For example:
+
+  template<template<typename U, U* p> class T>  // Previously aborted
+  struct X { };                                 // putting out "U*"
+
+
 1/25/12  [EDGcpfe/12605]
 C++-generating back end: omitted template parameter pack expansion
 
