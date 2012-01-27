@@ -1,7 +1,7 @@
 Version 4.5
 
 1/27/12  [EDGcpfe/12601]
-C++-generation back end: missing "template" keyword in g++ mode
+C++-generating back end: missing "template" keyword in g++ mode
 
 In g++ mode when gnu_version >= 30400, a "template" keyword used for
 syntactic disambiguation in a dependent template argument list was sometimes
