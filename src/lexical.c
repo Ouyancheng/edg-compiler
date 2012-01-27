@@ -13393,6 +13393,7 @@ done using the disambiguation routines.
       sym = NULL;
       /* Determine the kind of template argument. */
       if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
+                                          GID_IS_UNKNOWN_TEMPLATE_ARG |
                                           GID_IS_EXPR_CONTEXT)) {
         a_boolean	err;
         sym = coalesce_and_lookup_generalized_identifier(
@@ -16458,12 +16459,16 @@ selection operator, in which case it points to the type of the left operand.
         (void)get_token();
         if (curr_token == tok_template) {
           is_template = TRUE;
-          if (gpp_mode && gnu_version >= 30400) {
+          if (gpp_mode && gnu_version >= 30400 &&
+              (options & GID_IS_UNKNOWN_TEMPLATE_ARG) == 0) {
             /* g++ allows usage like "p->A::template f()", where the name (at
                least during the prototype instantiation) is not a template.
                Ignore the template keyword in this case.  An exception is made
                when the caller specifies the GID_CLASS_TEMPLATE_REQUIRED
-               option. */
+               option.  This usage is not permitted in dependent template
+               argument lists (indicated in this case by the unknown template
+               arg flag), so suppress the special processing in such
+               contexts. */
             a_token_kind	second_token;
             (void)next_two_tokens(tok_identifier, &second_token);
             if (second_token != tok_lt &&

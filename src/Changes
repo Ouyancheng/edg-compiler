@@ -1,5 +1,23 @@
 Version 4.5
 
+1/27/12  [EDGcpfe/12601]
+C++-generation back end: missing "template" keyword in g++ mode
+
+In g++ mode when gnu_version >= 30400, a "template" keyword used for
+syntactic disambiguation in a dependent template argument list was sometimes
+not emitted in the code produced by the C++-generating back end.  Now fixed.
+
+  struct A { template< class T> class B { }; };
+  template <template <class> class TT> void f();
+  template <class T> struct C {
+    void g() { f<T::template B>(); } // emitted as "f<T::B>()"
+  };
+  int main() {
+    C<A> c;
+    c.g();
+  }
+
+
 1/26/12  [EDGcpfe/12602]
 C++-generating back end: abort on use of template template parameter parameter
 

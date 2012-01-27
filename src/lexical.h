@@ -192,6 +192,10 @@ typedef int an_identifier_options_set;
 			   denotes the class currently being defined.
 			   Microsoft compilers in particular appear to behave
 			   this way. */
+#define GID_IS_UNKNOWN_TEMPLATE_ARG    0x800000
+			/* TRUE when scanning an identifier at the beginning
+			   of a template argument in an unknown template
+			   argument list context. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)
