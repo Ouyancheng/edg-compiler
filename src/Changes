@@ -421,6 +421,16 @@ documentation.
   }
 
 
+1/11/12  [EDGcpfe/12590]
+Invalid command line option mistakenly accepted
+
+Command line options that don't take an argument but are given one anyway
+hadn't resulted in an error and do now.  For example (had intended
+--microsoft_version=1310):
+
+  cpfe --microsoft=1310 test.c      // now results in a command-line error
+
+
 1/11/12  [EDGcpfe/12115]
 Microsoft compatibility: typename before nested class of class template
 
