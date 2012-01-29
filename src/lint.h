@@ -130,6 +130,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,is_template_dependent_type_or_cli_generic_param)*/
 /*lint -esym(765,is_template_dependent_type_or_cli_generic_param)*/
 /*lint -esym(756,an_other_pragma_function_ptr)*/
+/*lint -esym(759,constant_is_shareable)*/
+/*lint -esym(765,constant_is_shareable)*/
 #if !MACRO_INVOCATION_TREE_IN_IL
 /*lint -esym(755,copy_simple_position_to_full_position)*/
 #endif /* !MACRO_INVOCATION_TREE_IN_IL */
@@ -268,8 +270,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,is_or_was_nullptr_type)*/
 /*lint -esym(765,is_or_was_nullptr_type)*/
 /*lint -esym(765,do_type_name_mangling)*/
-/*lint -esym(759,constant_is_shareable)*/
-/*lint -esym(765,constant_is_shareable)*/
 #endif /* !DO_IL_LOWERING */
 #if !BACK_END_IS_CP_GEN_BE
 /*lint -esym(714,is_address_of_string_constant)*/
