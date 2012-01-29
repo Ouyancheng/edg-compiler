@@ -4504,8 +4504,6 @@ another use of the same constant.
     /* Don't allow more than one constant with the same associated
        symbol. */
     cp->source_corresp.assoc_info = NULL;
-    /* Likewise for a backing expression. */
-    cp->expr = NULL;
   } else {
     break_source_corresp(&cp->source_corresp);
   }  /* if */
