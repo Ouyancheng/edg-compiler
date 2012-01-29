@@ -12988,6 +12988,7 @@ respectively.
   scan_constant_initializer_expression(member_type,
                                        &decl_info->decl_state,
                                        cp);
+  add_backing_expression_for_named_constant(cp);
   /* Enter the constant name in the symbol table.  Do this after scanning
      the expression to avoid problems with a recursive reference, though
      it may mean the order in which errors are issued is a little strange. */

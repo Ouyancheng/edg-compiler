@@ -1,5 +1,38 @@
 Version 4.5
 
+1/19/12  [EDGcpfe/12074]
+Backing expressions for named constants
+
+Constants that are the result of folding constant expressions
+have (in some configurations) "backing expressions," which give the
+expression that produced the constant.  The backing expressions
+for named constants, e.g., enumerators and nonstandard member
+constants, were missing when the expression underlying the named
+constant was itself simply the value of another named constant.
+Now fixed.  For example:
+
+  struct A {
+    const int c = 7;
+    enum E {
+      e0 = 7,  // No backing expression needed
+      e1 = c,  // Backing expression was missing, now provided
+      e2 = c+1 // Backing expression was already correct (not simple name)
+    };
+  };
+
+In versions with IL lowering and RECORD_BACKING_EXPRS_WITH_IL_LOWERING
+set to TRUE, the backing expressions for expressions tested as boolean
+controlling expressions were sometimes incorrect, in that two constants
+could be produced that pointed to the same backing expression.  Now fixed.
+
+  struct A {
+    const bool b = 1 > 0;
+    void f() {
+      if (b) {}  // Constant tested pointed to same "1 > 0" expression as above
+    }
+  } a;
+
+
 1/27/12  [EDGcpfe/12601]
 C++-generating back end: missing "template" keyword in g++ mode
 

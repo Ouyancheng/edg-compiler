@@ -4504,6 +4504,8 @@ another use of the same constant.
     /* Don't allow more than one constant with the same associated
        symbol. */
     cp->source_corresp.assoc_info = NULL;
+    /* Likewise for a backing expression. */
+    cp->expr = NULL;
   } else {
     break_source_corresp(&cp->source_corresp);
   }  /* if */
@@ -6866,6 +6868,80 @@ at the file scope (it would contain a pointer down into a function scope).
 }  /* has_non_file_scope_ref */
 
 
+a_boolean constant_is_shareable(a_constant *cp)
+/*
+Return TRUE if the given constant could be shared.  This is the guard code
+used by alloc_shareable_constant to decide on sharing, but given that, if
+it's applied to an allocated constant it can tell for sure if the constant
+is shared, because alloc_shareable_constant is the only way to share constants.
+It can also be applied to an unallocated constant, and will indicate whether
+alloc_shareable_constant would return a shareable constant.
+*/
+{
+  a_boolean    shareable;
+  a_symbol_ptr assoc_symbol;
+
+  /* Can't accurately tell whether a constant is shared without access to
+     the symbol table, so don't allow this routine to be called in a back
+     end. */
+  check_assertion(in_front_end);
+  if ((assoc_symbol = symbol_for(cp)) != NULL) {
+    /* For constants with a source correspondence indicated, there is a
+       "master" copy available by going up the source correspondence link
+       and back down again.  This applies, for example, to enumeration
+       constants. */
+    a_constant_ptr shared_cp;
+    check_assertion(assoc_symbol->kind == (a_symbol_kind)sk_constant);
+    shared_cp = assoc_symbol->variant.constant;
+    /* For template parameter symbols, only attempt to use the constant
+       from the symbol if it points to an identical constant. */
+    if (!assoc_symbol->is_template_param ||
+        identical_constants(cp, shared_cp)) {
+      /* The constant from the symbol can be reused. */
+      shareable = TRUE;
+#if CHECKING
+      if (cp->implicit_cast != shared_cp->implicit_cast) {
+        /* Someone did an implicit cast on the constant without clearing the
+           source association. */
+        internal_error(
+                 "constant_is_unshared: implicitly-cast const has assoc_info");
+      }  /* if */
+#endif /* CHECKING */
+    } else {
+      shareable = FALSE;
+    }  /* if */
+  } else if (cp->expr != NULL) {
+    /* Constants with backing expressions should not be shared. */
+    shareable = FALSE;
+  } else if (cp->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+             cp->variant.ptr_to_member.name_reference != NULL) {
+    /* Pointer to member constants with an attached name reference should
+       not be shared. */
+    shareable = FALSE;
+  } else if (cp->kind == (a_constant_repr_kind)ck_template_param) {
+    /* Template param constants should not be made part of the IL tree proper,
+       unless prototype instantiations are recorded in the IL.  In the latter
+       case, the constant may need to refer to a local expression, which
+       prevents sharing.  Those with assoc_info non-NULL were handled above.
+       For others, make a new copy every time. */
+    shareable = FALSE;
+  } else if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+    /* Don't share aggregate constants (they come up for compound literals
+       used to initialize static variables in gcc mode, when recording
+       constant expressions). */
+    shareable = FALSE;
+  } else if (cp->kind == (a_constant_repr_kind)ck_string &&
+             !string_literals_shared) {
+    /* Don't share string literals if told not to. */
+    shareable = FALSE;
+  } else {
+    /* Other cases are shareable. */
+    shareable = TRUE;
+  }  /* if */
+  return shareable;
+}  /* constant_is_shareable */
+
+
 a_constant_ptr alloc_shareable_constant(a_constant *cp)
 /*
 Find or allocate a constant with the indicated value.  This constant
@@ -6887,56 +6963,18 @@ put it on a list of constants).
     /* If we're not in the front end, the shareable constants table is
        not available, nor is the assoc_info pointer. */
     scp = alloc_unshared_constant(cp);
+  } else if (!constant_is_shareable(cp)) {
+    /* The constant should be unshared. */
+    scp = alloc_unshared_constant(cp);
   } else if ((assoc_symbol = symbol_for(cp)) != NULL) {
     /* For constants with a source correspondence indicated, find the
        "master" copy by going up the source correspondence link and back
-       down again. */
-    /* Constant (enumeration). */
+       down again.  Note that constant_is_shareable ruled out some of
+       these cases as being unshareable. */
     check_assertion(assoc_symbol->kind == (a_symbol_kind)sk_constant);
     scp = assoc_symbol->variant.constant;
-    /* For template parameter symbols, only attempt to use the constant
-       from the symbol if it points to an identical constant. */
-    if (!assoc_symbol->is_template_param ||
-        identical_constants(cp, scp)) {
-      /* Use the constant from the symbol. */
-#if CHECKING
-      if (cp->implicit_cast != scp->implicit_cast) {
-        /* Someone did an implicit cast on the constant without clearing the
-           source association. */
-        internal_error(
-           "alloc_shareable_constant: implicitly-cast const has assoc_info");
-      }  /* if */
-#endif /* CHECKING */
-    } else {
-      scp = alloc_unshared_constant(cp);
-    }  /* if */
-  } else if (cp->expr != NULL) {
-    /* Constants that track the expression that generated them should
-       not be shared. */
-    scp = alloc_unshared_constant(cp);
-  } else if (cp->kind == (a_constant_repr_kind)ck_ptr_to_member &&
-             cp->variant.ptr_to_member.name_reference != NULL) {
-    /* Pointer to member constants with an attached name reference should
-       not be shared. */
-    scp = alloc_unshared_constant(cp);
-  } else if (cp->kind == (a_constant_repr_kind)ck_template_param) {
-    /* Template param constants should not be made part of the IL tree proper,
-       unless prototype instantiations are recorded in the IL.  In the latter
-       case, the constant may need to refer to a local expression, which
-       prevents sharing.  Those with assoc_info non-NULL were handled above.
-       For others, make a new copy every time. */
-    scp = alloc_unshared_constant(cp);
-  } else if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-    /* Don't share aggregate constants (they come up for compound literals
-       used to initialize static variables in gcc mode, when recording
-       constant expressions). */
-    scp = alloc_unshared_constant(cp);
-  } else if (cp->kind == (a_constant_repr_kind)ck_string &&
-             !string_literals_shared) {
-    /* Don't share string literals if told not to. */
-    scp = alloc_unshared_constant(cp);
   } else {
-    /* The constant has no source correspondence. */
+    /* The constant is shareable. */
     /* If the current IL region is not the file scope region (i.e., it's
        a function scope), and the constant has one or more references to 
        things that are in the function scope, the constant cannot be
@@ -7061,14 +7099,31 @@ expression re-assign that expression to the copy being returned.
 {
   a_constant_ptr  il_cp = alloc_shareable_constant(cp);
 
-  if (cp->expr != NULL) {
-    /* Since cp->expr is non-NULL, alloc_shareable_constant will have returned
-       an unshared constant entry.  It is therefore safe to modify *il_cp. */
+  if (cp->expr != NULL &&
+      !constant_is_shareable(cp)) {
+    /* alloc_shareable_constant will have returned an unshared constant
+       entry.  It is therefore safe to modify *il_cp. */
     il_cp->expr = cp->expr;
     cp->expr = NULL;
   }  /* if */
   return il_cp;
 }  /* transfer_constant_to_il */
+
+
+void add_backing_expression_for_named_constant(a_constant *cp)
+/*
+cp is the result of scanning a constant expression, and it is about to
+be made into the value of a named constant (e.g., an enumerator).
+Give it a backing expression if putting a name into the constant
+entry would destroy information about the fact that the expression
+is itself a reference to a named constant.  It is presumed that
+the constant is unshared.
+*/
+{
+  if (cp->expr == NULL && has_name(cp)) {
+    cp->expr = alloc_node_for_constant(cp);
+  }  /* if */
+}  /* add_backing_expression_for_named_constant */ 
 
 
 void empty_shareable_constants_table(void)

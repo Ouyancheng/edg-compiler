@@ -5062,6 +5062,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           /* Scan the constant expression. */
           scan_fs_integral_constant_expression(&constant);
+          add_backing_expression_for_named_constant(&constant);
           /* Even though the constant may just be "0", that property should
              not be carried into the enumerators derived from it. */
           constant.is_simple_zero = FALSE;

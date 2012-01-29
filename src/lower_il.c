@@ -14965,7 +14965,27 @@ a 0/1 value.  This routine is called for both C and C++ expressions.
                                     !is_false_constant(expr->variant.constant),
                          (an_integer_kind)ik_int);
 #if RECORD_BACKING_EXPRS_WITH_IL_LOWERING
-    norm_con.expr = expr->variant.constant->expr;
+    if (expr->variant.constant->expr != NULL) {
+      /* Transfer the backing expression to the normalized constant. */
+      an_expr_node_ptr backing_expr;
+      if (constant_is_shareable(expr->variant.constant)) {
+        /* In a case like an enumeration constant, the constant has an
+           expression that's really the definition of the value of the constant
+           instead of a normal backing expression.  We don't want to point to
+           that expression from this new constant (because that would give
+           us two constants pointing to the same expression, which is not
+           allowed), so switch to a backing expression that is the value
+           of the shareable (e.g., enumeration) constant. */
+        backing_expr =
+                     alloc_node_for_allocated_constant(expr->variant.constant);
+      } else {
+        /* If the constant is not shareable, we can just reuse its backing
+           expression as is, because we're abandoning the constant that
+           pointed to it. */
+        backing_expr = expr->variant.constant->expr;
+      }  /* if */
+      norm_con.expr = backing_expr;
+    }  /* if */
 #endif /* RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
     expr->variant.constant = alloc_shareable_constant(&norm_con);
     expr->type = norm_con.type;
