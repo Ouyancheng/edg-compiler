@@ -401,6 +401,11 @@ typedef int a_gen_name_options_set;
 			/* Allow the use of the base class name when forming
 			   a qualified name referring to a protected member of
 			   a base of the current class context. */
+#define GN_SUPPRESS_TEMPLATE_KEYWORD 0x800
+			/* Do not put out the "template" keyword in a
+			   qualifier (used to work around a g++ bug that
+			   issues errors when the "template" keyword is not
+			   strictly needed). */
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 /*
@@ -3439,7 +3444,15 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         /* Use a qualified name. */
         a_type_ptr             qualifier;
         a_gen_name_options_set qualifier_options =
-                                       options & GN_PARENS_IF_GLOBAL_QUALIFIER;
+                                     options & (GN_PARENS_IF_GLOBAL_QUALIFIER |
+                                                GN_SUPPRESS_TEMPLATE_KEYWORD);
+        if (options & GN_DECLARATION) {
+          /* The "template" keyword is not needed in the qualifier for an
+             entity being declared: the names in the qualifier are all part
+             of the current instantiation.  g++ issues an error if the
+             "template" keyword is present in such qualifiers. */
+          qualifier_options |= GN_SUPPRESS_TEMPLATE_KEYWORD;
+        }  /* if */
         if (entry_kind == iek_type && !(options & GN_DECLARATION) &&
             !(options & GN_QUALIFIER) && (options & GN_DEPENDENT)) {
           /* Emit a "typename" keyword for a dependent type, but only at
@@ -3506,7 +3519,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              (gcc_is_generated_code_target &&
               in_prototype_instantiation_context())) &&
             !is_partial_spec_prototype_inst &&
-            !(options & GN_DECLARATION) &&
+            !(options & (GN_DECLARATION | GN_SUPPRESS_TEMPLATE_KEYWORD)) &&
             (template_arguments_for_name(
                 scp, entry_kind, /*insert_space=*/(a_boolean *)NULL) != NULL ||
              (options & GN_TEMPLATE))) {

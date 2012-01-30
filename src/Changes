@@ -1,5 +1,28 @@
 Version 4.5
 
+1/29/12 [EDGcpfe/12600]
+C++-generating back end, GNU compatibility: unnecessary "template" keywords
+in qualified names
+
+The C++ Standard allows use of the "template" keyword in qualified names in
+contexts in which it is not actually necessary, and in configurations with
+PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE the output of the C++-generating
+back end took advantage of this liberty by putting out the keyword in
+qualifiers that name dependent template instances, regardless of whether it
+is strictly needed or not.  The g++ compiler, however, issues an error when
+the qualifier for an entity being declared contains the "template" keyword.
+The C++-generating back end has now been changed not to emit the "template"
+keyword in such qualifiers.  For example:
+
+  template<typename T> struct A {
+    template<typename U> struct B {
+      static int m;
+    };
+  };
+  template<typename T> template<typename U>
+  int A<T>::B<U>::m;  // Previously generated as A<T>::template B<U>::m
+
+
 1/29/12  [EDGcpfe/12074]
 Backing expressions for named constants
 
