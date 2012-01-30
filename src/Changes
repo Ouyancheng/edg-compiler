@@ -1,5 +1,34 @@
 Version 4.5
 
+1/30/12  [EDGcpfe/12624]
+GNU C compatibility: Incompatible block-extern and implicit declarations
+
+When emulating a GNU C versions other than 3.4.x, the front end allows an
+implicit declaration of a function to be followed by an incompatible explicit
+declaration of that function.  GCC 3.4 does not permit this in general, but
+for certain functions the compiler knows about a similar effect occurs.
+For example:
+
+  #include <stddef.h>
+  void g() {
+    int x;
+    bzero((char*)&x, sizeof(x));     // Implicit declaration of bzero.
+  }
+  extern void bzero(void*, size_t);  // Accepted by GCC 3.4 (and other
+                                     // versions too).  Previously an error
+                                     // with the EDG front end because the
+                                     // "void" return type does not match the
+                                     // "int" return type of the implicit
+                                     // declaration.
+
+The front end now approximates this by accepting the second declaration in
+such examples if a corresponding __builtin_... function was predeclared (a
+warning is issued).  It is an approximation because (a) certain functions X
+for which GCC 3.4 has a __builtin_X do not permit such redeclarations (e.g.,
+"prefetch"), and (b) the functions X that GCC 3.4 does accept here appear to
+be predeclared by GCC in some way (without the "__builtin_" prefix).
+
+
 1/29/12  [EDGcpfe/12600]
 C++-generating back end, GNU compatibility: unnecessary "template" keywords
 in qualified names

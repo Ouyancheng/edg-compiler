@@ -3507,6 +3507,38 @@ issue_diagnostic:
 }  /* reconcile_external_symbol_types */
 
 
+static a_boolean matching_builtin_function_name_exists(a_symbol_locator  *loc)
+/*
+If the name described by the given locator corresponds to the name of a GNU
+builtin function without the "__builtin_" prefix, return TRUE.
+*/
+{
+  a_boolean            result = FALSE;
+  a_symbol_header_ptr  hdr = loc->symbol_header;
+  a_symbol_ptr         matching_sym;
+  a_symbol_locator     matching_loc;
+
+  /* Create a name by prefixing "__builtin_" to the name for the given
+     locator. */
+#define BF_PREFIX "__builtin_"
+  ensure_temp_text_buffer_space(sizeof(BF_PREFIX)+hdr->identifier_length);
+  strcpy(temp_text_buffer, BF_PREFIX);
+  strcpy(temp_text_buffer+sizeof(BF_PREFIX)-1, hdr->identifier);
+#undef BF_PREFIX
+  /* Look up the prefixed name and check if it corresponds to a GNU built-in
+     function. */
+  matching_sym = find_symbol(temp_text_buffer,
+                             (sizeof_t)strlen(temp_text_buffer),
+                             &matching_loc);
+  if (matching_sym != NULL &&
+      is_simple_function_symbol(matching_sym) &&
+      is_gnu_builtin_function(matching_sym->variant.routine.ptr)) {
+    result = TRUE;
+  }  /* if */
+  return result; 
+}  /* matching_builtin_function_name_exists */
+
+
 static a_symbol_ptr create_external_symbol_for_linked_entity(
                             a_symbol_locator       *locator,
                             a_decl_parse_state     *dps,
@@ -3606,16 +3638,24 @@ created; the caller must set it.
     } else {
       scp = &esdp->variant.routine.ptr->source_corresp;
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
     if (gcc_mode && scp->assoc_info != NULL &&
         (gnu_version < 30400 ||
-         (gnu_version >= 40000 &&
-          is_function && ext_sym_kind == ext_sym->kind &&
+         (is_function && ext_sym_kind == ext_sym->kind &&
           (is_implicit_declaration ||
-           esdp->variant.routine.is_implicit_declaration)))) {
+           esdp->variant.routine.is_implicit_declaration) &&
+          (gnu_version >= 40000 ||
+           matching_builtin_function_name_exists(locator))))) {
       /* In GCC 3.3.x and earlier, block-external declarations declared in
          other function scopes are not required to be compatible with the
          current declaration.  GCC 4.0 and later only issue a warning if one
-         of the declarations is an implicit function declaration. */
+         of the declarations is an implicit function declaration.  GCC 3.4.x
+         doesn't normally permit such redeclaration incompatibilities, but for
+         most functions that have a __builtin_... counterpart, the implicit
+         declaration would have acquired the type of that counterpart, thereby
+         potentially avoiding the incompatibility.  We approximate that by
+         accepting the incompatibility if the current declaration has a known
+         __builtin_... counterpart. */
       a_symbol_ptr  prev_sym = (a_symbol_ptr)scp->assoc_info;
       a_boolean     is_local_to_function;
       if (scope_depth_of_symbol(prev_sym, &is_local_to_function) ==
@@ -3625,6 +3665,7 @@ created; the caller must set it.
         incomp_severity = es_warning;
       }  /* if */
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (suppress_incompatible_error) {
       incomp_severity = es_none;
     }  /* if */
