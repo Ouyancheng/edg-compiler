@@ -3506,6 +3506,7 @@ issue_diagnostic:
   return okay;
 }  /* reconcile_external_symbol_types */
 
+#if GNU_EXTENSIONS_ALLOWED
 
 static a_boolean matching_builtin_function_name_exists(a_symbol_locator  *loc)
 /*
@@ -3538,6 +3539,7 @@ builtin function without the "__builtin_" prefix, return TRUE.
   return result; 
 }  /* matching_builtin_function_name_exists */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static a_symbol_ptr create_external_symbol_for_linked_entity(
                             a_symbol_locator       *locator,
