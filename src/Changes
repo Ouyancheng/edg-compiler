@@ -138,7 +138,7 @@ GNU C compatibility: Incompatible block-extern and implicit declarations
 When emulating a GNU C versions other than 3.4.x, the front end allows an
 implicit declaration of a function to be followed by an incompatible explicit
 declaration of that function.  GCC 3.4 does not permit this in general, but
-for certain functions the compiler knows about a similar effect occurs.
+for certain functions that the compiler knows about, a similar effect occurs.
 For example:
 
   #include <stddef.h>

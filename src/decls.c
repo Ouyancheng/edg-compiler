@@ -3518,19 +3518,20 @@ builtin function without the "__builtin_" prefix, return TRUE.
   a_symbol_header_ptr  hdr = loc->symbol_header;
   a_symbol_ptr         matching_sym;
   a_symbol_locator     matching_loc;
+  sizeof_t             builtin_name_length;
 
+#define BF_PREFIX "__builtin_"
+  builtin_name_length = sizeof(BF_PREFIX)+hdr->identifier_length-1;
   /* Create a name by prefixing "__builtin_" to the name for the given
      locator. */
-#define BF_PREFIX "__builtin_"
-  ensure_temp_text_buffer_space(sizeof(BF_PREFIX)+hdr->identifier_length);
+  ensure_temp_text_buffer_space(builtin_name_length+1);
   strcpy(temp_text_buffer, BF_PREFIX);
   strcpy(temp_text_buffer+sizeof(BF_PREFIX)-1, hdr->identifier);
-#undef BF_PREFIX
   /* Look up the prefixed name and check if it corresponds to a GNU built-in
      function. */
-  matching_sym = find_symbol(temp_text_buffer,
-                             (sizeof_t)strlen(temp_text_buffer),
+  matching_sym = find_symbol(temp_text_buffer, builtin_name_length,
                              &matching_loc);
+#undef BF_PREFIX
   if (matching_sym != NULL &&
       is_simple_function_symbol(matching_sym) &&
       is_gnu_builtin_function(matching_sym->variant.routine.ptr)) {
