@@ -1,5 +1,27 @@
 Version 4.5
 
+1/30/12  [EDGcpfe/12646]
+C++-generating back end, GNU compatibility: unnecessary "template" keywords
+in qualified friend function names
+
+The change for EDGcpfe/12600 failed to address the case when the name in
+a friend function declaration is a member of a nested class template of a
+class template: the generated qualified name could still have an unneeded
+"template" keyword, which caused an error when g++ compiled the generated
+code.  This is now fixed.  For example:
+
+  template<typename T> struct A {
+    template<typename U> struct B {
+      void f();
+    };
+  };
+  struct S {
+    template<typename T> template<typename U>
+    friend void A<T>::B<U>::f();  // Previously generated as
+                                  // A<T>::template B<U>::f()
+  };
+
+
 1/30/12  [EDGcpfe/12624]
 GNU C compatibility: Incompatible block-extern and implicit declarations
 

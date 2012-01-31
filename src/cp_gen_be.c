@@ -4385,9 +4385,11 @@ declaration.
       gen_template_arguments(scp, iek_routine, -1L);
     }  /* if */
   } else {
-    gen_name(scp, iek_routine,
-             omit_template_args ? GN_NO_TEMPLATE_ARGS : GN_NO_OPTIONS,
-             (a_boolean *)NULL);
+    a_gen_name_options_set options = GN_DECLARATION;
+    if (omit_template_args) {
+      options |= GN_NO_TEMPLATE_ARGS;
+    }  /* if */
+    gen_name(scp, iek_routine, options, (a_boolean *)NULL);
   }  /* if */
 }  /* gen_friend_function_decl_name */
 
