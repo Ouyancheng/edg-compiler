@@ -7433,7 +7433,7 @@ this one is such a continuation.
        mode for the member. */
     gen_member_access_specifier_for_decl_of(&type->source_corresp);
 #if GNU_EXTENSIONS_ALLOWED
-    if (marked_as_gnu_extension) {
+    if (marked_as_gnu_extension && !suppress_specifiers) {
       write_tok_str("__extension__ ");
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

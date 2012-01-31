@@ -1,5 +1,21 @@
 Version 4.5
 
+1/31/12  [EDGcpfe/12633]
+GNU __extension__ keyword and typedef declarations
+
+The C++-generating back end erroneously replicated the GNU __extension__
+keyword when it appeared on a typedef declaration with multiple declarators.
+For example:
+
+  __extension__ typedef struct S {} s, *ps;
+
+was rendered as (ignoring formatting):
+
+  __extension__ typedef struct S {} s, __extension__ *ps;
+
+This is now fixed.
+
+
 1/31/12  [EDGcpfe/12653]
 C++-generating back end: omitted parentheses in nontype template default
 argument
