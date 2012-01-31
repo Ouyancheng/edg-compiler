@@ -1,5 +1,29 @@
 Version 4.5
 
+1/31/12  [EDGcpfe/2796]
+Tweak in Microsoft overload resolution comparison of user-defined conversions
+
+The emulation of a Microsoft bug (see Changes entry of 9/1/00) related
+to comparing two different user-defined conversions in overload resolution
+has been tweaked slightly, so that it applies only when both user-defined
+conversions are done via conversion functions, and not when one is done
+by a conversion function and the other by a converting constructor.
+
+  struct A {
+    operator int *();
+  };
+  struct B {
+    B(A);
+  };
+  void f(B);
+  void f(bool);
+  int main() {
+    A a;
+    f(a);  // Ambiguous according to the standard, and now also in Microsoft
+           // mode
+  }
+
+
 1/31/12  [EDGcpfe/12647]
 C++-generating back end, GNU compatibility: in-class definitions of class
 template member functions with deferred prototype instantiation

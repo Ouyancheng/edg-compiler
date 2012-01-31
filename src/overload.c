@@ -5739,10 +5739,15 @@ for a Microsoft bug).
       arg_routine1 = arg_routine2 = NULL;
     }  /* if */
     if (arg_routine1 == arg_routine2 ||
-        (microsoft_bugs && arg_routine1 != NULL && arg_routine2 != NULL)) {
+        (microsoft_bugs && arg_routine1 != NULL && arg_routine2 != NULL &&
+         arg_routine1->special_kind ==
+                                    (a_special_function_kind)sfk_conversion &&
+         arg_routine2->special_kind ==
+                                    (a_special_function_kind)sfk_conversion)) {
       /* The conversions have the same user-defined conversion (or both
-         have no user-defined conversion).  (The MSVC++ 6.0 compiler
-         doesn't care that the user-defined conversions are different.) */
+         have no user-defined conversion).  (The Microsoft compiler
+         doesn't care that the user-defined conversions are different if
+         they are both conversion functions.) */
       /* Compare the standard conversions.  The comparisons that are related
          to rank (e.g., promotion versus conversion) need not be done if
          there is no user-defined conversion (because they have been handled
