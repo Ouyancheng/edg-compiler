@@ -6193,6 +6193,7 @@ Clear a standard conversion description to default values.
   std_conv->cast_base_class = NULL;
   std_conv->reversed_cast = FALSE;
   std_conv->type_qualifiers_added = FALSE;
+  std_conv->secondary_type_qualifiers_added = FALSE;
   std_conv->pointer_normalization_needed = FALSE;
   std_conv->nontrivial_conversion = FALSE;
   std_conv->promotion = FALSE;

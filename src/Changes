@@ -1,5 +1,22 @@
 Version 4.5
 
+1/31/12  [EDGcpfe/12636]
+Overload resolution tiebreaker nit with reference to pointer
+
+A change made in version 4.4 exposed a minor problem in overload resolution
+in comparing cv-qualifiers added on a pointer under a reference to const.
+For example, in this case the front end failed to consider the "const"
+added on the pointer conversion under the reference, and therefore
+incorrectly saw both functions as being equally good:
+
+  int f(char *);
+  void f(const char * const &);
+  int main() {
+    char *p = 0;
+    int i = f(p);  // Was incorrectly ambiguous in 4.4, now accepted again
+  }
+
+
 1/31/12  [EDGcpfe/12633]
 GNU __extension__ keyword and typedef declarations
 

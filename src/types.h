@@ -921,9 +921,18 @@ typedef struct a_std_conv_descr {
 			   pointers to members of derived classes. */
   a_byte_boolean
 		type_qualifiers_added;
-			/* TRUE if type qualifiers were added under a pointer
-			   or reference.  Serves as a tie-breaker in
-			   overload resolution. */
+			/* TRUE if type qualifiers were added under a pointer,
+			   pointer-to-member, reference, or C++/CLI handle.
+			   Serves as a tie-breaker in overload resolution. */
+  a_byte_boolean
+		secondary_type_qualifiers_added;
+			/* TRUE if type qualifiers were added on a conversion
+			   under a reference, e.g., when a reference to a
+			   pointer type is bound to a pointer to a slightly
+			   different type.  type_qualifiers_added in
+			   that case refers to the qualifiers directly under
+			   the reference, and this field refers to the
+			   qualifiers added under the pointer type. */
   a_byte_boolean
 		pointer_normalization_needed;
 			/* TRUE if the conversion involves converting an

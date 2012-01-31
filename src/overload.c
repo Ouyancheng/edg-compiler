@@ -406,6 +406,27 @@ If so, the symbol is considered overloaded even if it doesn't look it.
    
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void adjust_std_conversion_for_reference_binding(
+                                                    a_std_conv_descr *std_conv)
+/*
+std_conv is a description of a standard conversion.  It was worked out
+on the underlying type in a reference binding.  Adjust it now so that
+it can be used for the reference binding itself.
+*/
+{
+  /* The addition of type qualifiers on, say, a pointer conversion under
+     a reference is moved to the secondary field because the primary
+     type_qualifiers_added field indicates the addition of type qualifiers
+     directly under the reference itself. */
+  std_conv->secondary_type_qualifiers_added = std_conv->type_qualifiers_added;
+  std_conv->type_qualifiers_added = FALSE;
+  /* There's a potential similar issue with the cast_base_class field, but
+     there's no way to have a base class conversion on both the reference
+     binding and an underlying conversion, so there's no need for two
+     fields. */
+}  /* adjust_std_conversion_for_reference_binding */
+  
+
 static a_boolean symbol_is_member_of_nonreal_class(a_symbol_ptr sym)
 /*
 Return TRUE if the given symbol is a member of a nonreal class.
@@ -776,6 +797,9 @@ destination type (this comes up in a Microsoft-mode extension).
               match_routine_type = routine_type;
               *match_level = aml_std_conversion;
               *std_conv = std_conversion;
+              if (is_ref) {
+                adjust_std_conversion_for_reference_binding(std_conv);
+              }  /* if */
               number_of_matches++;
               exception_spec_checked = TRUE;
             }  /* if */
@@ -1142,6 +1166,9 @@ Print an argument match summary for debug purposes.
   }  /* if */
   if (amsp->conversion.std.type_qualifiers_added) {
     fprintf(f_debug, " (type qualifiers added)");
+  }  /* if */
+  if (amsp->conversion.std.secondary_type_qualifiers_added) {
+    fprintf(f_debug, " (type qualifiers added at secondary level)");
   }  /* if */
   if (amsp->conversion.std.conv_of_string_literal_to_ptr_to_nonconst) {
     fprintf(f_debug, " (const string conv anachronism)");
@@ -1813,21 +1840,28 @@ next_function:;
 
 
 static void set_arg_summary_for_user_conversion(
-                                       an_arg_match_summary *arg_summary,
-                                       a_conv_descr         *conversion,
-                                       a_type_ptr           param_type,
-                                       a_boolean            param_is_reference)
+                                    an_arg_match_summary *arg_summary,
+                                    a_conv_descr         *conversion,
+                                    a_type_ptr           param_type,
+                                    a_boolean            param_is_reference,
+                                    a_boolean            conv_accounts_for_ref)
 /*
 Set *arg_summary to indicate an argument match involving a user-defined
 conversion using a constructor or conversion function.  The conversion
 is described by *conversion.  param_type is the parameter type; it's a
-reference type if param_is_reference is TRUE.
+reference type if param_is_reference is TRUE.  In that case, if
+conv_accounts_for_ref is TRUE, the conversion is already for the reference
+binding (and not any underlying conversion); otherwise the reference
+is not already accounted for in the conversion.
 */
 {
   a_type_ptr conversion_type;
 
   arg_summary->match_level = aml_user_conversion;
   arg_summary->conversion = *conversion;
+  if (param_is_reference && !conv_accounts_for_ref) {
+    adjust_std_conversion_for_reference_binding(&arg_summary->conversion.std);
+  }  /* if */
   if (param_is_reference && !conversion->unusable &&
       !conversion->unknown_dependent_conversion) {
     /* For reference parameters, see if any type qualifiers were added under
@@ -2553,6 +2587,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
         if (param_is_reference) {
           /* This is a Microsoft bug extension.  Mark it as less desirable. */
           arg_summary->tiebreaker_anachronism_used = TRUE;
+          adjust_std_conversion_for_reference_binding(
+                                                 &arg_summary->conversion.std);
         }  /* if */
         goto have_level;
       }  /* if */
@@ -2634,6 +2670,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       /* Match with standard conversions. */
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std = std_conversion;
+      if (param_is_reference) {
+        adjust_std_conversion_for_reference_binding(
+                                                 &arg_summary->conversion.std);
+      }  /* if */
       arg_converted_to_rvalue = arg_originally_an_lvalue;
       if (std_conversion.promotion) {
         /* This standard conversion is a promotion. */
@@ -2759,7 +2799,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       } else {
         set_arg_summary_for_user_conversion(arg_summary, &conversion,
                                             orig_param_type,
-                                            param_is_reference);
+                                            param_is_reference,
+                                            /*conv_accounts_for_ref=*/TRUE);
       }  /* if */
       goto have_level;
     } else if (ref_qualifiers_dropped_related_type) {
@@ -2798,7 +2839,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       /* We don't try the conversions to classes if we need an lvalue result,
          since constructors don't yield lvalues. */
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
-                                          orig_param_type, param_is_reference);
+                                          orig_param_type, param_is_reference,
+                                          /*conv_accounts_for_ref=*/FALSE);
       goto have_level;
     } else if (arg_is_class_type && source_can_be_rvalue &&
                (conversion_from_class_possible(
@@ -2823,7 +2865,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
          The Microsoft compiler (VC++ 6.0) considers the match impossible
          if it is ambiguous. */
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
-                                          orig_param_type, param_is_reference);
+                                          orig_param_type, param_is_reference,
+                                          /*conv_accounts_for_ref=*/FALSE);
       goto have_level;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && source_can_be_rvalue &&
@@ -2843,7 +2886,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       /* A C++/CLI static conversion function involving a handle type
          can be used. */
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
-                                          orig_param_type, param_is_reference);
+                                          orig_param_type, param_is_reference,
+                                          /*conv_accounts_for_ref=*/FALSE);
       goto have_level;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
@@ -5327,23 +5371,26 @@ Return TRUE if the indicated standard conversion is an identity conversion
 (i.e., no conversion at all, ignoring lvalue-to-rvalue conversions).
 is_ref is TRUE if the parameter has a reference type.  For a reference
 binding, type_qualifiers_added does not indicate a qualification
-conversion.  Lvalue-to-rvalue conversions are ignored in this test
-because of [over.ics.rank] paragraph 3 first bullet first sub-bullet
-"excluding any Lvalue Transformation" in the subsequence check.
+conversion; secondary_type_qualifiers_added does.  Lvalue-to-rvalue
+conversions are ignored in this test because of [over.ics.rank]
+paragraph 3 first bullet first sub-bullet "excluding any Lvalue
+Transformation" in the subsequence check.
 */
 #define is_identity_conversion(is_ref, conv) \
   (!(conv)->nontrivial_conversion && \
-   ((is_ref) || !(conv)->type_qualifiers_added))
+   !((is_ref) ? (conv)->secondary_type_qualifiers_added : \
+                (conv)->type_qualifiers_added))
 
 /*
 Return TRUE if the indicated standard conversion is a qualification
 conversion.  is_ref is TRUE if the parameter has a reference type.
 For a reference binding, type_qualifiers_added does not indicate a
-qualification conversion.
+qualification conversion; secondary_type_qualifiers_added does.
 */
 #define is_qualification_conversion(is_ref, conv) \
   (!(conv)->nontrivial_conversion && \
-   !(is_ref) && (conv)->type_qualifiers_added)
+   ((is_ref) ? (conv)->secondary_type_qualifiers_added : \
+               (conv)->type_qualifiers_added))
 
 /*
 Return TRUE if the indicated parameter type is a reference type, or if
@@ -5396,7 +5443,9 @@ apply that would make one better than the other, and return
   }  /* if */
   if (cmp == 0 &&
       (arg_match1->conversion.std.type_qualifiers_added ||
-       arg_match2->conversion.std.type_qualifiers_added)) {
+       arg_match1->conversion.std.secondary_type_qualifiers_added ||
+       arg_match2->conversion.std.type_qualifiers_added ||
+       arg_match2->conversion.std.secondary_type_qualifiers_added)) {
     /* There is the possibility of a tie-breaker because of a difference
        in adding cv-qualifiers. */
     /* Get the corresponding parameter types. */
@@ -5416,13 +5465,17 @@ apply that would make one better than the other, and return
             (arg_match1->match_level == (an_arg_match_level)aml_exact ||
              (arg_match1->is_match_for_this_param &&
               arg_match2->is_match_for_this_param))) {
-          if (arg_match1->conversion.std.type_qualifiers_added &&
-              !arg_match2->conversion.std.type_qualifiers_added) {
+          a_type_qualifier_set added1 = 
+                  (arg_match1->conversion.std.type_qualifiers_added ||
+                   arg_match1->conversion.std.secondary_type_qualifiers_added);
+          a_type_qualifier_set added2 = 
+                  (arg_match2->conversion.std.type_qualifiers_added ||
+                   arg_match2->conversion.std.secondary_type_qualifiers_added);
+          if (added1 && !added2) {
             /* Qualifiers are added for param_type1 and not for param_type2,
                so param_type2 is better. */
             cmp = -1;
-          } else if (arg_match2->conversion.std.type_qualifiers_added &&
-                     !arg_match1->conversion.std.type_qualifiers_added) {
+          } else if (added2 && !added1) {
             /* Qualifiers are added for param_type2 and not for param_type1,
                so param_type1 is better. */
             cmp = 1;
@@ -11860,6 +11913,9 @@ accept_function:
     candidate->is_user_conversion = TRUE;
     candidate->conversion.class_object_adjustment_required =
                                               class_object_adjustment_required;
+    if (is_reference_binding) {
+      adjust_std_conversion_for_reference_binding(&std_conversion);
+    }  /* if */
     candidate->conversion.std = std_conversion;
     candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
     goto next_function;
