@@ -1,6 +1,6 @@
 Version 4.5
 
-1/31/12  [EDGcpfe/2796]
+1/31/12  [EDGcpfe/12643]
 Tweak in Microsoft overload resolution comparison of user-defined conversions
 
 The emulation of a Microsoft bug (see Changes entry of 9/1/00) related
