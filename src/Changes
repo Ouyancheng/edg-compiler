@@ -1,5 +1,20 @@
 Version 4.5
 
+1/31/12  [EDGcpfe/12653]
+C++-generating back end: omitted parentheses in nontype template default
+argument
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+C++-generating back end failed to parenthesize the expression in a nontype
+template default argument when it contains an unparenthesized > operator,
+resulting in the > operator being interpreted as the end of the template
+parameter list.  This is now fixed.  For example:
+
+  template<typename T> struct P;
+  template<typename T, bool B = (P<T>::m > 0)>  // Previously omitted parens
+  struct S;
+
+
 1/31/12  [EDGcpfe/12652]
 C++-generating back end: missing function parameter pack expansions
 

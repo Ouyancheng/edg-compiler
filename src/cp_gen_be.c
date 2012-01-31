@@ -12197,7 +12197,7 @@ source sequence entries recorded with this particular header.  */
       if (param->variant.nontype.default_arg_constant != NULL) {
         a_constant_ptr  dac = param->variant.nontype.default_arg_constant;
         write_tok_str(" = ");
-        gen_constant(dac, /*need_parens=*/FALSE);
+        gen_constant(dac, has_unprotected_gt_operation(dac));
       }  /* if */  
     } else if (param->kind == (a_template_parameter_kind)tpk_type) {
       /* Remap the source correspondence entry for output. */
