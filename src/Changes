@@ -1,5 +1,19 @@
 Version 4.5
 
+1/31/12  [EDGcpfe/12652]
+C++-generating back end: missing function parameter pack expansions
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+C++-generating back end sometimes failed to add an ellipsis indicating a
+function parameter pack expansion in an expression.  This is now fixed.
+For example:
+
+  template<typename ...Ts> struct A { };
+  template<typename ...Ts> A<Ts&...> f(Ts& ...ts) {
+    return A<Ts&...>(ts...);   // Previously missing second "..."
+  }
+
+
 1/30/12  [EDGcpfe/12646]
 C++-generating back end, GNU compatibility: unnecessary "template" keywords
 in qualified friend function names
