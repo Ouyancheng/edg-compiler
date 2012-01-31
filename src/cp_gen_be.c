@@ -14961,6 +14961,7 @@ TRUE if the declaration following this one is such a continuation.
   a_function_state              state;
   a_boolean                     decl_within_function =
                                             (innermost_function_scope != NULL);
+  a_boolean                     suppress_inline_kwd = FALSE;
   a_boolean                     force_unqualified_name;
   a_boolean                     need_to_unset_typedefs = FALSE;
   a_scope_ptr                   common_scope, orig_scope = NULL;
@@ -15116,6 +15117,16 @@ handle_as_definition:
                           "gen_routine_decl: missing definition");
 #endif /* !STANDALONE_UTILITY_PROGRAM */
       is_definition = FALSE;
+      if (gcc_is_generated_code_target && gnu_target_version_number < 40400 &&
+          rout->source_corresp.is_class_member &&
+          curr_name_context_is_a_class() &&
+          parent_class_of(rout)->
+                       variant.class_struct_union.is_prototype_instantiation) {
+        /* g++ versions prior to 4.4 report spurious errors when a class
+           template is explicitly instantiated if a member function has
+           no definition but is declared with the "inline" keyword. */
+        suppress_inline_kwd = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   check_assertion_str(rout_type != NULL,
@@ -15344,7 +15355,7 @@ handle_as_definition:
     gen_storage_class(storage_class);
     /* Generate other leading specifiers. */
     gen_sun_link_scope_specifiers(rout->decl_modifiers);
-    if (rout->is_inline && !decl_within_function &&
+    if (rout->is_inline && !decl_within_function && !suppress_inline_kwd &&
         !(friend_decl && (rout->expl_template_arg_list_used ||
                           rout->source_corresp.is_class_member)) &&
         /* A definition within a class is implicitly "inline", so it's
