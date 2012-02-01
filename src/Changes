@@ -1,5 +1,28 @@
 Version 4.5
 
+2/1/12   [EDGcpfe/12635]
+Template specialization matching and calling conventions
+
+The changes for EDGcpfe/11928 (see Changes entry of 7/15/11) inadvertently
+introduced a regression when matching template specialization declarations
+with templates if the template specified a Microsoft-style calling convention
+(like stdcall or cdecl) in GNU C++ mode.  For example:
+
+  template<typename T> void __attribute((stdcall)) f();
+  template<> void __attribute((stdcall)) f();  // Spurious error suggesting
+                                               // no matching template exists.
+
+This is now fixed by ignoring the calling convention when matching the
+template.  That means that the following variation is now also accepted:
+
+  template<typename T> void __attribute((stdcall)) f();
+  template<> void __attribute((cdecl)) f();  // Now accepted.
+
+which matches the behavior of GNU compilers (and that of Microsoft compilers
+when the corresponding Microsoft syntax is used).  (See also the changes for
+EDGcpfe/12593 of 1/19/12.)
+
+
 2/1/12   [EDGcpfe/12575]
 C++/CLI: discarded dereference of handle not allowed
 

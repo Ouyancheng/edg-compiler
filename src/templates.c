@@ -12191,7 +12191,8 @@ matching process.
            routine we are matching with. */
         match = f_identical_types(curr_type, new_type,
                                   ITF_UNKNOWN_THIS_CLASS_TYPE |
-                                  ITF_CHECKING_DEDUCTION_RESULT);
+                                  ITF_CHECKING_DEDUCTION_RESULT |
+                                  ITF_IGNORE_MS_CALLING_CONVENTION);
       } else {
         /* In nondeclarative contexts, the this class parameter types must
            match exactly.  types_are_compatible is used so that a conversion

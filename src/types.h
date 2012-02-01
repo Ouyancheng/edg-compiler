@@ -648,6 +648,9 @@ typedef unsigned int an_itf_flag_set;
 			   generic_param_seq_number of a template parameter
 			   type supplement) is compared instead of the
 			   template parameter coordinates. */
+#define ITF_IGNORE_MS_CALLING_CONVENTION 0x400
+			/* Ignore Microsoft style calling convention (like
+			   "cdecl") specifications. */
 
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))

@@ -4948,6 +4948,7 @@ for more information.
   a_param_type_ptr              list1, list2;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
   a_symbol_ptr                  sym_1, sym_2;
+  a_boolean                     ignore_ms_calling_convention = FALSE;
 
   db_enter(5, "f_identical_types");
 
@@ -5006,6 +5007,11 @@ check_typerefs:
     if (type_1->kind != (a_type_kind)tk_array || C_mode()) {
       flags &= ~ITF_IGNORE_TOP_LEVEL_QUALIFIERS;
     }  /* ITF_IGNORE_TOP_LEVEL_QUALIFIERS */
+    /* ITF_IGNORE_CALLING_CONVENTION should not be passed down. */
+    if (flags & ITF_IGNORE_MS_CALLING_CONVENTION) {
+      ignore_ms_calling_convention = TRUE;
+      flags &= ~ITF_IGNORE_MS_CALLING_CONVENTION;
+    }  /* if */
     switch (type_1->kind) {
       case tk_error:
       case tk_unknown:
@@ -5208,7 +5214,8 @@ check_typerefs:
               identical = (list1 == NULL && list2 == NULL);
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-            if (identical && (microsoft_mode || gnu_mode)) {
+            if (identical && (microsoft_mode || gnu_mode) &&
+                !ignore_ms_calling_convention) {
               /* The types are identical so far.  Check the calling
                  conventions. */
               identical = calling_conventions_are_compatible(type_1, type_2);
@@ -5413,7 +5420,7 @@ parameter lists are compatible.  The "this" parameter types (if any) are
 not compared.  flags is a set of bit flags that modify the comparison.  diffs
 records certain differences that do no otherwise affect the outcome of the
 comparison (currently, only calling convention differences when flags includes
-TCF_IGNORE_MS_STYLE_CALLING_CONVENTIONS).
+TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS).
 */
 {
   a_param_type_ptr              list1, list2;
@@ -5599,7 +5606,7 @@ flags is a set of bits indicating options (e.g., is an error type considered
 compatible with any other type).  If diffs is non-NULL, certain differences
 encountered during the comparison are recorded in *diffs: Currently, this is
 limited to calling convention differences encountered while comparing types
-with the TCF_IGNORE_MS_STYLE_CALLING_CONVENTIONS flag.
+with the TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS flag.
 This routine should generally not be called directly; it's meant to be called
 by the macros types_are_compatible, types_are_strictly_compatible, and
 types_are_compatible_ignoring_qualifiers, which do an initial test for exact
