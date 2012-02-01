@@ -15112,6 +15112,7 @@ handle_as_definition:
                           "gen_routine_decl: missing definition");
 #endif /* !STANDALONE_UTILITY_PROGRAM */
       is_definition = FALSE;
+#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
       if (gcc_is_generated_code_target && gnu_target_version_number < 40400 &&
           rout->source_corresp.is_class_member &&
           curr_name_context_is_a_class() &&
@@ -15122,6 +15123,7 @@ handle_as_definition:
            no definition but is declared with the "inline" keyword. */
         suppress_inline_kwd = TRUE;
       }  /* if */
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
     }  /* if */
   }  /* if */
   check_assertion_str(rout_type != NULL,
