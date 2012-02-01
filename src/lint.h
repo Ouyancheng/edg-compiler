@@ -943,6 +943,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_template_in_managed_class)*/
 /*lint -esym(769,ec_interface_cannot_have_member_generics)*/
 /*lint -esym(769,ec_class_metadata_not_representable)*/
+/*lint -esym(769,ec_exp_ellipsis)*/
+/*lint -esym(769,ec_implements_requires_interface)*/
+/*lint -esym(769,ec_implements_must_precede_virtual_functions)*/
+/*lint -esym(769,ec_missing_implements_list)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
