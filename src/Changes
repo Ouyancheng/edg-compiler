@@ -1,5 +1,22 @@
 Version 4.5
 
+2/1/12   [EDGcpfe/12575]
+C++/CLI: discarded dereference of handle not allowed
+
+MSVC in C++/CLI mode does not allow a dereference of a handle to a ref
+or interface class to be discarded.  That is, if such an expression
+appears at the top level of a statement, or as the first operand in
+a comma expression, an error is issued.  The front end now does the
+same.  The error can be avoided by adding an explicit cast to void.
+
+  using namespace System;
+  int main() {
+    *(String^)"abc";  // Error
+    (*(String^)"abc", 1);  // Error
+    (void)*(String^)"abc"; // Okay
+  }
+
+
 2/1/12   [EDGcpfe/11746]
 Abort on this.xxx in C++11 mode
 

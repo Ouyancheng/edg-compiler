@@ -370,6 +370,23 @@ C++).  Other transformations are done in all cases.
   /* Do lvalue-to-rvalue transformations, etc. as appropriate. */
   do_void_operand_transformations(operand,
                                   /*force_lvalue_to_rvalue=*/FALSE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled &&
+      is_cli_ref_or_interface_class_type(operand->type) &&
+      is_expression_operand(operand)) {
+    /* MSVC does not allow a dereference of a handle to a ref or interface
+       class to be discarded.  We're told MSVC has no way to represent that
+       internally.  An explicit cast to void can be added to make it
+       acceptable.  Also, a handle to a value class is okay. */
+    an_expr_node_ptr expr = operand->variant.expression;
+    expr = skip_parens(expr);
+    if (is_operation_node(expr) &&
+        node_operator_is(expr, eok_indirect)) {
+      pos_error(ec_unused_dereference_of_ref_class, &operand->position);
+      suppress_warning = TRUE;
+    }  /* if */
+  }  /* if */
+#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (expr_stack->is_type_operator_arg_expression) {
     /* decltype expressions are sometimes written to check SFINAE
        conditions, so do not warn inside them. */
