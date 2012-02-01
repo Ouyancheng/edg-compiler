@@ -7963,6 +7963,7 @@ can only contain CLI interfaces.
     /* Get the class type supplement entry for this class or struct. */
     ctsp = type_ptr->variant.class_struct_union.extra_info;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (curr_token == tok_implements) {
     is_implements_construct = TRUE;
     may_be_first_direct_nonvirtual_base = FALSE;
@@ -7973,7 +7974,10 @@ can only contain CLI interfaces.
     while (end_of_base_classes_list->next != NULL) {
       end_of_base_classes_list = end_of_base_classes_list->next;
     }  /* while */
-  } else {
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
     check_assertion(curr_token == tok_colon);
   }  /* if */
   /* Advance past the colon or __implements token. */
@@ -8100,11 +8104,13 @@ can only contain CLI interfaces.
             reference_to_invalid_name(&locator_for_curr_id);
             goto skip_base_class;
           }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (is_implements_construct &&
                    !is_cli_interface_type(type_symbol_type(sym))) {
           /* Only CLI interfaces can appear in an __implements list. */
           type_error(ec_implements_requires_interface, type_symbol_type(sym));
           goto skip_base_class;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (locator_for_curr_id.is_semivisible_nested_type) {
           /* The symbol in the locator is a nested class that is not visible
              according to the ARM lookup rules but is returned in support of
