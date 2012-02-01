@@ -5507,6 +5507,7 @@ mode cases).  Set *err to TRUE if there is an error.
                            !is_incomplete_type(class_struct_union_type);
       if (!operand_1_is_complete_class &&
           this_in_trailing_return_types_enabled &&
+          is_arrow_operator &&
           is_this_parameter_operand(operand_1, (a_variable_ptr *)NULL)) {
         /* In C++11, "this" can be used in a late-specified return type, when
            the class of "this" is not complete. */
@@ -6428,6 +6429,7 @@ case).
        or union.  This check was delayed to this point so that we could
        allow things like vacuous destructor references. */
     if (this_in_trailing_return_types_enabled &&
+        is_arrow_operator &&
         is_this_parameter_operand(operand_1, (a_variable_ptr *)NULL)) {
       /* In C++11, "this" can be used in a late-specified return type, when
          the class of "this" is not complete. */

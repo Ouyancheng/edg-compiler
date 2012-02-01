@@ -1,5 +1,21 @@
 Version 4.5
 
+2/1/12   [EDGcpfe/11746]
+Abort on this.xxx in C++11 mode
+
+The changes for allowing use of "this" in a late-specified return type
+in C++11 mode (see Changes entry for EDGcpfe/11746) introduced a bug
+when handling the error case this.xxx (the programmer meant to write
+this->xxx instead), which caused an abort in class_qualified_id_lookup.
+The abort occurred only in C++11 mode.  Now fixed.
+
+  class A {
+    A() {
+      this.undefined; // Now gets error instead of crash with --c++11
+    }
+  };
+
+
 1/31/12  [EDGcpfe/12643]
 Tweak in Microsoft overload resolution comparison of user-defined conversions
 
