@@ -10605,18 +10605,19 @@ gen_expr that might end up generating this expr as a temporary.
   a_boolean             force_parens_for_op1 = FALSE;
   an_expr_operator_kind op;
   a_dynamic_init_ptr    dip;
-  a_boolean             is_pack_expansion = expr->is_pack_expansion;
+  a_boolean             is_pack_expansion;
 
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
+  /* Capture the is_pack_expansion flag now.  The code below can change
+     expr to point to one of its operands; in such cases, however, the
+     is_pack_expansion flag is set in the node that is skipped over. */
+  is_pack_expansion = expr->is_pack_expansion;
   /* If expression is a constant that came from an expression, go to
      the expression.  This allows optimizations. */
   if (is_constant_node(expr)) {
     a_constant_ptr constant = expr->variant.constant;
     if (constant_should_be_put_out_as_expr(constant)) {
       expr = constant->expr;
-      if (expr->is_pack_expansion) {
-        is_pack_expansion = TRUE;
-      } /* if */
     }  /* if */
   }  /* if */
 #if CHECKING
@@ -10637,9 +10638,6 @@ gen_expr that might end up generating this expr as a temporary.
 #if CHECKING
       check_operation_node_consistency(expr);
 #endif /* CHECKING */
-      if (expr->is_pack_expansion) {
-        is_pack_expansion = TRUE;
-      }  /* if */
     }  /* if */
   }  /* if */
   if (is_operation_node(expr) && node_operator_is(expr, eok_ref_indirect)) {
@@ -10648,9 +10646,6 @@ gen_expr that might end up generating this expr as a temporary.
        in a case below to suppress parentheses around function calls that
        return references.) */
     expr = expr->variant.operation.operands;
-    if (expr->is_pack_expansion) {
-      is_pack_expansion = TRUE;
-    }  /* if */
   }  /* if */
   switch (expr->kind) {
     case enk_operation:
