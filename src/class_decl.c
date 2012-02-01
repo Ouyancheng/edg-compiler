@@ -7943,8 +7943,8 @@ can only contain CLI interfaces.
                                    type_ptr->kind == (a_type_kind)tk_struct &&
                                    type_ptr->variant.class_struct_union
                                                                 .is_interface;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                     is_implements_construct = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "scan_base_specifier_list");
 #if DEBUG
@@ -8039,7 +8039,8 @@ can only contain CLI interfaces.
       a_source_sequence_entry_ptr  saved_insert_point = NULL;
 
       if (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
-          cssp->class_template == NULL && !is_implements_construct) {
+          cssp->class_template == NULL
+          if_microsoft_extensions(&& !is_implements_construct)) {
         /* Clear the instantiation insert point to assure that any
            instantiations triggered by the base specifier will appear right
            after the entry for the current class.  The order will be fixed up
