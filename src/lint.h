@@ -947,6 +947,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_implements_requires_interface)*/
 /*lint -esym(769,ec_implements_must_precede_virtual_functions)*/
 /*lint -esym(769,ec_missing_implements_list)*/
+/*lint -esym(769,ec_unused_dereference_of_ref_class)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
