@@ -795,6 +795,8 @@ Install the keywords in the symbol table.
                                                    sizeof("safe_cast")-1,
                                                    &locator);
     }
+    /* A keyword used only in classes read from CLI metadata. */
+    enter_keyword((a_token_kind)tok_implements, "__implements");
     init_cli_operator_headers();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -446,6 +446,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_in */
    (an_opname_kind)onk_none,          /* tok_gcnew */
    (an_opname_kind)onk_none,          /* tok_safe_cast */
+   (an_opname_kind)onk_none,          /* tok_implements */
    (an_opname_kind)onk_none,          /* tok_for_each */
    (an_opname_kind)onk_none,          /* tok_ref_class */
    (an_opname_kind)onk_none,          /* tok_ref_struct */

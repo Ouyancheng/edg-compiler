@@ -905,6 +905,9 @@ typedef struct a_class_def_state {
 			   function declarations, empty declarations, and some
 			   error cases.  The latter only to inhibit additional
 			   diagnostics.) */
+  a_bit_field   interfaces_pending:1;
+			/* TRUE if interfaces implemented by the current class
+			   will be specified later in the class' body. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	any_fields_other_than_unnamed_bitfields:1;
 			/* TRUE if any fields other than unnamed bit-fields
@@ -1014,6 +1017,7 @@ class being defined.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->potentially_interface_like = FALSE;
   cdsp->current_decl_valid_in_property_or_event_def = FALSE;
+  cdsp->interfaces_pending = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cdsp->any_fields_other_than_unnamed_bitfields = FALSE;
   cdsp->any_friend_decls = FALSE;
@@ -7885,12 +7889,10 @@ to FALSE before returning).
 }  /* add_new_direct_base */
 
 
-static void scan_base_specifier_list(a_type_ptr             type_ptr,
-                                     a_class_def_state_ptr  class_state)
+static void scan_base_specifier_list(a_class_def_state_ptr  class_state)
 /*
 Scan a list of base class specifiers, which may appear only on a class
-or struct definition.  The syntax is
-
+or struct definition (described by class_state).  The syntax is
 
         base-spec:
                 : base-list
@@ -7905,8 +7907,19 @@ or struct definition.  The syntax is
                                         opt
                 access-specifier virtual    complete-class-name
                                         opt
+
+The current token is the leading colon.
+
+In C++/CLI mode, this routine is also called to scan the "__implements"
+construct that can appear in code generated from metadata:
+
+	__implements base-list
+
+In that case, the current token is the "__implements" token and the base list
+can only contain CLI interfaces.
 */
 {
+  a_type_ptr                    type_ptr = class_state->class_type;
   a_class_type_supplement_ptr   ctsp;
   a_base_class_ptr              bcp, end_of_base_classes_list = NULL;
   a_base_class_ptr              new_direct_bcp;
@@ -7931,6 +7944,7 @@ or struct definition.  The syntax is
                                    type_ptr->variant.class_struct_union
                                                                 .is_interface;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean                     is_implements_construct = FALSE;
 
   db_enter(3, "scan_base_specifier_list");
 #if DEBUG
@@ -7949,12 +7963,42 @@ or struct definition.  The syntax is
     /* Get the class type supplement entry for this class or struct. */
     ctsp = type_ptr->variant.class_struct_union.extra_info;
   }  /* if */
-  /* Advance past the colon. */
+  if (curr_token == tok_implements) {
+    is_implements_construct = TRUE;
+    may_be_first_direct_nonvirtual_base = FALSE;
+    /* Find the end of the base class list (a base class must already be
+       present). */
+    end_of_base_classes_list = ctsp->base_classes;
+    check_assertion(end_of_base_classes_list != NULL);
+    while (end_of_base_classes_list->next != NULL) {
+      end_of_base_classes_list = end_of_base_classes_list->next;
+    }  /* while */
+  } else {
+    check_assertion(curr_token == tok_colon);
+  }  /* if */
+  /* Advance past the colon or __implements token. */
   (void)get_token();
   cssp = symbol_supplement_for_class(type_ptr);
   do {
     a_pack_expansion_stack_entry_ptr	pesep;
     a_boolean				any_types;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (curr_token == tok_implements &&
+        !is_implements_construct && in_code_generated_from_metadata()) {
+      /* In code generated from data, we may encounter a trailing
+           __implements ...
+         base specifier, which is an indication that additional interfaces
+         implemented by the current class will be specified in the class'
+         body.  (This is needed because some CLI-based languages allow a class
+         to implement its own nested interface.) */
+      check_assertion(cppcli_enabled);
+      (void)get_token();
+      if (required_token(tok_ellipsis, ec_exp_ellipsis)) {
+        class_state->interfaces_pending = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     add_stop_token(tok_comma);
     /* A base-specifier is a potential variadic pack expansion context. */
     any_types = begin_potential_pack_expansion_context(&pesep);
@@ -7981,8 +8025,8 @@ or struct definition.  The syntax is
       base_specifier_start_pos = pos_curr_token;
       direct_base_number++;
       new_direct_bcp = NULL;
-      /* Scan a single base specification, first looping through the specifying
-         keywords virtual, public, private, and protected. */
+      /* Scan a single base specification, first looking for the keywords
+         virtual, public, private, and protected. */
       scan_inheritance_kind(type_ptr, &is_virtual, &access,
                             &explicit_access_specifier);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -7991,7 +8035,7 @@ or struct definition.  The syntax is
       a_source_sequence_entry_ptr  saved_insert_point = NULL;
 
       if (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
-          cssp->class_template == NULL) {
+          cssp->class_template == NULL && !is_implements_construct) {
         /* Clear the instantiation insert point to assure that any
            instantiations triggered by the base specifier will appear right
            after the entry for the current class.  The order will be fixed up
@@ -8056,6 +8100,11 @@ or struct definition.  The syntax is
             reference_to_invalid_name(&locator_for_curr_id);
             goto skip_base_class;
           }  /* if */
+        } else if (is_implements_construct &&
+                   !is_cli_interface_type(type_symbol_type(sym))) {
+          /* Only CLI interfaces can appear in an __implements list. */
+          type_error(ec_implements_requires_interface, type_symbol_type(sym));
+          goto skip_base_class;
         } else if (locator_for_curr_id.is_semivisible_nested_type) {
           /* The symbol in the locator is a nested class that is not visible
              according to the ARM lookup rules but is returned in support of
@@ -21045,6 +21094,47 @@ vice versa.
   ctsp->corresponding_basic_type = tp;
 }  /* make_boxed_enum_type */
 
+
+static void scan_implements_list(a_class_def_state_ptr  cdsp)
+/*
+CLI metadata can contain classes that implement their own member interfaces.
+However, C++/CLI has no syntax to express that (implemented interfaces must be
+specified before the class body and nested interfaces must appear in that
+body).  To work around that limitation, the front end accepts an extension in
+classes generated from metadata.  It uses a special keyword __implements as
+follows:
+
+	ref class D: B, __implements ... {  // Marker to indicate that
+	                                    // implemented interfaces will be
+          ...                               // specified later.
+	  interface struct I;
+	  ref class N;
+	  __implements I, N::I;  // This will cause definitions for D::I and
+	                         // D::N::I to be loaded, after which those
+	                         // interfaces are added to the base class
+	                         // list.
+	};
+
+This function scans and records the __implements construct appearing the body
+of such classes (including the trailing semicolon).  cdsp describes the class
+definition in which the construct appears.
+*/
+{
+  check_assertion(curr_token == tok_implements && cdsp->interfaces_pending);
+  if (cdsp->class_type->variant.class_struct_union.any_virtual_functions) {
+    /* An __implements list must appear before the declaration of any virtual
+       member since the declaration of such a member can affect whether an
+       interface is correctly implemented. */
+    error(ec_implements_must_precede_virtual_functions);
+  }  /* if */
+  cannot_bind_to_curr_construct();
+  scan_base_specifier_list(cdsp);
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  wrapup_base_classes(cdsp);
+  /* No additional __implements constructs are permitted. */
+  cdsp->interfaces_pending = FALSE;
+}  /* scan_implements_list */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean member_declarator(a_class_def_state_ptr    class_state,
@@ -23282,6 +23372,13 @@ bits of information that were acquired while parsing.
            the responsibility of the producer of the metadata. */
         check_initonly_members(class_state);
       }  /* if */
+      if (class_state->interfaces_pending) {
+        /* A managed class generated from metadata specified "__implements ..."
+           in its base class list, but never described the announced interfaces
+           with an __implements list construct. */
+        check_assertion(in_code_generated_from_metadata());
+        type_error(ec_missing_implements_list, class_type);
+      }  /* if */
       check_names_reserved_by_cli_operators(class_type);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -23624,7 +23721,7 @@ classes.
     if (curr_token == tok_colon) {
       /* Scan the list of base specifiers. */
       add_stop_token(tok_lbrace);
-      scan_base_specifier_list(class_type, &class_state);
+      scan_base_specifier_list(&class_state);
       remove_stop_token(tok_lbrace);
       /* If there is a base specifier list and this is a class or struct
          declaration, it has to be definition, which means the next token
@@ -23827,9 +23924,17 @@ classes.
           a_boolean	is_generic = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode) {
+            a_boolean  complete_decl;
+            if (curr_token == tok_implements &&
+                class_state.interfaces_pending) {
+              /* Scan a special construct to specify implemented interfaces
+                 after part of a class definition has been seen.  This is an
+                 extension only accepted in code generated from metadata. */
+              scan_implements_list(&class_state);
+              goto next_declaration;
+            }  /* if */
             /* Scan any Microsoft attributes, and perhaps a leading
                parenthesis. */
-            a_boolean  complete_decl;
             decl_start_pos = pos_curr_token;
             scan_microsoft_member_decl_prefix(&class_state, &ms_attributes,
                                               &complete_decl);

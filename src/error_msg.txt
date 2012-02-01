@@ -2340,6 +2340,10 @@ ec_range_based_for_no_matching_overload;;"in this range-based \"for\" statement,
 ec_range_based_for_undefined_identifier;;"this range-based \"for\" statement requires a suitable %sq function and none was found"
 ec_for_each_undefined_identifier;;"this \"for each\" statement requires a suitable %sq function and none was found"
 ec_class_metadata_not_representable;;"%t has a metadata representation not representable using C++/CLI"
+ec_exp_ellipsis;;"expected \"...\""
+ec_implements_requires_interface;;"%t in __implements list is not an interface"
+ec_implements_must_precede_virtual_functions;;"an __implements list must precede virtual function declarations"
+ec_missing_implements_list;;"%t specified \"__implements ...\" in its list of bases, but is missing a matching __implements list"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
