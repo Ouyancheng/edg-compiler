@@ -27586,7 +27586,20 @@ instantiation.
                           new_sym->variant.routine.ptr, &state.decl_modifiers,
                           &locator.source_position, /*is_redecl=*/FALSE,
                           (kind != (a_pragma_kind)pk_do_not_instantiate),
-                          (a_boolean)new_sym-> variant.routine.ptr->is_inline);
+                          (a_boolean)new_sym->variant.routine.ptr->is_inline);
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+        if (is_simple_function_symbol(new_sym) &&
+            !calling_conventions_are_compatible(
+                   sym->variant.template_info->variant.function.routine->type,
+                   state.type)) {
+          /* find_matching_template_instance ignores calling conventions, but
+             an explicit instantiation (unlike an explicit specialization) must
+             match the calling convention of its template.  (Note: state.type
+             must be used rather than the type of new_sym, since the latter's
+             calling convention may have been implicitly modified.) */
+          pos_error(ec_conflicting_calling_conventions, &state.specifiers_pos);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (!is_pragma) {
           make_instantiation_directive(kind, &state, new_sym, ssep,
