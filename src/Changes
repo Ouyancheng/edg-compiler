@@ -40,7 +40,7 @@ same.  The error can be avoided by adding an explicit cast to void.
   }
 
 
-2/1/12   [EDGcpfe/11746]
+2/1/12   [EDGcpfe/12656]
 Abort on this.xxx in C++11 mode
 
 The changes for allowing use of "this" in a late-specified return type
