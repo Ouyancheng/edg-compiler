@@ -2680,6 +2680,12 @@ Display the indicated variable.
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* remapping_for_inlining is a front-end-only field. */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  if (ptr->dynamic_init_routine != NULL) {
+    disp_ptr("dynamic_init_routine", (char *)ptr->dynamic_init_routine,
+             iek_routine);
+  }  /* if */
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 }  /* disp_variable */
 
 
@@ -6881,6 +6887,12 @@ Display the IL for the file scope in human-readable form.
                                   il_header.num_macro_invocation_records);
   }  /* if */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  if (il_header.file_scope_dynamic_init_routines != NULL) {
+    disp_routine_list("file_scope_dynamic_init_routines",
+                      il_header.file_scope_dynamic_init_routines);
+  }  /* if */
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
                      (a_remap_function_ptr)NULL, (a_remap_function_ptr)NULL,
                      (a_walk_termination_test_function_ptr)NULL,

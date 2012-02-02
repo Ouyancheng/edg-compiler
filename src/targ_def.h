@@ -3996,6 +3996,37 @@ initialization routine.  This is a mostly-obsolete technique.
 #endif /* USE_PATCH_INIT_STARTUP && USE_INIT_SECTION_IN_GENERATED_C */
 
 /*
+In most configurations (when SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+is FALSE) lowering generates a single initialization routine per translation
+unit that initializes all file-scope variables that require dynamic
+initialization in the translation unit.  When one-instantiation-per-object mode
+is used, there can be multiple initialization routines (up to one per "needed"
+bit).  When the GNU init_priority attribute is used, each priority that is used
+during file-scope initialization has its own routine.
+When SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS is TRUE, each dynamic
+initialization is given its own initialization routine and these file-scope
+dynamic initialization routines are queued (in the order required for proper
+initialization) on a list pointed to by
+il_header.file_scope_dynamic_init_routines.  In such a configuration, it is
+the responsibility of the back end to ensure that each of these routines is
+called -- in order -- before execution of the program.  In cases where GNU
+init_priority and one-instantiation-per-object are used, the routines are
+ordered by "needed" bit number and/or init_priority.  This configuration may be
+useful when a back end has somehow determined that a file-scope variable or
+static data member is otherwise unused and can be removed from the translation
+unit (in which case the routine that initializes it can simply be removed from
+this list).
+*/
+#ifndef SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+#define SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS FALSE
+#endif /* ifndef SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+
+#if USE_PATCH_INIT_STARTUP && SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+ #error -- SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS and \
+           USE_PATCH_INIT_STARTUP cannot both be specified
+#endif /* USE_PATCH_INIT_STARTUP && SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYN... */
+
+/*
 This switch controls whether zeroing is added to variable definitions
 to force them to be definitions in C.  This is generally a good thing,
 but it may be wasteful for embedded system cross-compilers.

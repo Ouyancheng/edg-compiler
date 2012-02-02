@@ -2921,9 +2921,10 @@ Macro that is TRUE if we need the mechanism for generating multiple
 initialization routines in IL lowering.
 */
 #if DO_IL_LOWERING
-#if ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+#if ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED || \
+    SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
 #define MULTIPLE_INIT_ROUTINES TRUE
-#endif /* ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_ALLOWED */
+#endif /* ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_ALLOWED || ... */
 #endif /* DO_IL_LOWERING */
 #ifndef MULTIPLE_INIT_ROUTINES
 #define MULTIPLE_INIT_ROUTINES FALSE
@@ -8917,6 +8918,13 @@ typedef struct a_variable {
 			   that currently applies to this variable for copies
 			   done for inlining.  Front end only. */
 #endif /* MINIMAL_INLINING */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  a_routine_ptr
+		dynamic_init_routine;
+			/* If non-NULL, a pointer to the initialization
+			   routine for any dynamic initialization required to
+			   initialize this variable. */
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 } a_variable;
 
 
@@ -16804,6 +16812,17 @@ typedef struct an_il_header {
 			/* Pointer to the root block in the binary tree of
 			   macro invocation record blocks. */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  a_routine_list_entry_ptr
+		file_scope_dynamic_init_routines;
+			/* If not NULL, a pointer to a list of routine
+			   entries that specify which routines to call,
+			   in the order they appear on the list, to correctly
+			   initialize variables in the file scope that need
+			   dynamic initialization (if any).  Routines on the
+			   list are ordered by "needed" bit number and GNU
+			   init_priority in applicable configurations. */
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 } an_il_header;
 
 EXTERN an_il_header il_header;

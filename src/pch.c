@@ -2084,6 +2084,10 @@ from the PCH file) to reflect the information loaded from the file.
   il_header.number_of_external_nonclass_template_entities =
               il_header_from_pch.number_of_external_nonclass_template_entities;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  il_header.file_scope_dynamic_init_routines =
+                           il_header_from_pch.file_scope_dynamic_init_routines;
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   /* Rebuild the trans_unit_for_scope table.  This is done by calling
      take_next_scope_number the appropriate number of times. */
   {

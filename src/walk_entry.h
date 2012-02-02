@@ -1158,6 +1158,9 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if MINIMAL_INLINING
         conditionally_clear_fe_pointer(ptr->remapping_for_inlining);
 #endif /* MINIMAL_INLINING */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+        remap_ptr(ptr->dynamic_init_routine, a_routine_ptr, iek_routine);
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
       }
       break;
     case iek_field:
@@ -3607,6 +3610,10 @@ pointers.  The subtree is not processed.
             a_macro_invocation_record_block_ptr,
             iek_macro_invocation_record_block);
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  remap_list_ptr(il_header.file_scope_dynamic_init_routines,
+                 a_routine_list_entry_ptr, iek_routine_list_entry);
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   remap_list_ptr(il_header.cli_metadata_files,
                  a_cli_metadata_file_ptr, iek_cli_metadata_file);

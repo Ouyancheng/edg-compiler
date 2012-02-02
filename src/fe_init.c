@@ -1400,6 +1400,9 @@ source file's compilation.
 #if ONE_INSTANTIATION_PER_OBJECT
   il_header.number_of_external_nonclass_template_entities = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  il_header.file_scope_dynamic_init_routines = NULL;
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   if (pp_output_file_needed) {
     /* Open the preprocessing output file. */
     open_pp_output_file();

@@ -1,5 +1,24 @@
 Version 4.5
 
+2/2/12   [EDGcpfe/11926]
+One initialization routine for each file-scope dynamic initialization
+
+A new configuration macro, SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS,
+has been added to force lowering to create a separate initialization routine
+for each file-scope dynamic initialization (when the macro is TRUE).  When the
+macro is FALSE, file-scope dynamic initializations continue to be grouped
+together in a single routine for the translation unit, or a single routine for
+each "needed" bit in one-instantiation-per-object mode, or a single routine for
+each GNU init_priority.  A new field, file_scope_dynamic_init_routines,
+has been added to the il_header and it contains a list of the file-scope
+initialization routines in the order they are to be executed.  It is the
+responsibility of the back end to ensure that the routines on this list
+are executed in the proper order.  This configuration option may be useful
+when a back end has determined that certain file-scope variables or
+static data members are unneeded and gives such back ends an easy way to
+remove the unneeded initialization.
+
+
 2/1/12   [EDGcpfe/12635]
 Template specialization matching and calling conventions
 

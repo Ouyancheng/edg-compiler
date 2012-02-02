@@ -2240,6 +2240,9 @@ Clear the fields of the given variable to default values.
 #if MINIMAL_INLINING
   vp->remapping_for_inlining      = NULL;
 #endif /* MINIMAL_INLINING */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  vp->dynamic_init_routine        = NULL;
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 }  /* clear_variable */
 
 

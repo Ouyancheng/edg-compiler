@@ -288,6 +288,10 @@ That is what the remap function does.
                            iek_macro_invocation_record_block);
   }  /* if */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  walk_list(il_header.file_scope_dynamic_init_routines,
+            a_routine_list_entry_ptr, iek_routine_list_entry);
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);
   db_exit();

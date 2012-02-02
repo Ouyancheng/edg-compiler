@@ -5325,11 +5325,15 @@ routine is invoked at program startup.
 #if !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 /*ARGSUSED*/ /* <-- init_priority is not used in that case. */
 #endif /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+#if !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+/*ARGSUSED*/ /* <-- unique_id is not used in that case. */
+#endif /* !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 static a_scope_ptr make_file_scope_init_or_term_routine(
                                  a_type_ptr                  param1_type,
                                  unsigned long               needed_bit_number,
                                  int                         init_priority,
                                  char                        *prefix,
+                                 unsigned long               unique_id,
                                  an_insert_location_ptr      insert_location,
                                  a_memory_region_number      *il_region,
                                  a_generated_routine_context *grcontext)
@@ -5358,6 +5362,14 @@ If init_priority is non-zero, this routine is an initialization routine
 for variables with the GNU init_priority set to that value.
 */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+/*
+If unique_id is non-zero, this routine is an initialization routine for a
+specific variable and unique_id is added to the routine's name to ensure
+that the routine name is differentiated from other routines.  This can
+be combined with needed_bit_number and/or init_priority specified above.
+*/
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 {
   a_routine_ptr   init_rout;
   a_scope_ptr     scope;
@@ -5370,6 +5382,9 @@ for variables with the GNU init_priority set to that value.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   char            buffer2[50];
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  char            buffer3[50];
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 
   if (prefix == NULL) {
     /* Make an unnamed routine. */
@@ -5398,6 +5413,14 @@ for variables with the GNU init_priority set to that value.
       alloc_length += strlen(buffer2);
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+    if (unique_id != 0) {
+      /* Add a suffix to distinguish initialization routines for
+         specific init_priority values. */
+      (void)sprintf(buffer3, "__%lu", unique_id);
+      alloc_length += strlen(buffer3);
+    }  /* if */
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
     name = alloc_lowered_name_string(alloc_length);
     (void)memcpy(name, prefix, size_t_arg(prefix_len));
     end = name + prefix_len;
@@ -5415,6 +5438,12 @@ for variables with the GNU init_priority set to that value.
       end += strlen(buffer2);
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+    if (unique_id != 0) {
+      (void)strcpy(end, buffer3); /*lint !e645*/
+      end += strlen(buffer3);
+    }  /* if */
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   }  /* if */
   /* Make a type and routine entry for the routine. */
   init_rout = make_rout_entry(name,
@@ -5452,6 +5481,7 @@ for variables with the GNU init_priority set to that value.
 static a_scope_ptr file_scope_init_insert_location(
                                  unsigned long               needed_bit_number,
                                  int                         init_priority,
+                                 unsigned long               unique_id,
                                  an_insert_location_ptr      insert_location,
                                  a_memory_region_number      *region_number,
                                  a_generated_routine_context *grcontext)
@@ -5465,7 +5495,8 @@ is the per-instantiation "needed" bit number associated with an instantiation,
 and the routine being generated is the initialization routine for that
 instantiation.  If init_priority is non-zero, this routine is an
 initialization routine for variables with the GNU init_priority
-set to that value.
+set to that value.  If unique_id is non-zero, the name of the generated
+initialization routine will contain a representation of this value.
 */
 {
   a_scope_ptr scope = make_file_scope_init_or_term_routine(
@@ -5473,6 +5504,7 @@ set to that value.
                                        needed_bit_number,
                                        init_priority,
                                        IL_LOWERING_INIT_ROUTINE_PREFIX,
+                                       unique_id,
                                        insert_location,
                                        region_number,
                                        grcontext);
@@ -5508,6 +5540,7 @@ old state for later restoration.
                                        (unsigned long)0,
                                        0,
                                        (char *)NULL,  /* Unnamed. */
+                                       (unsigned long)0,
                                        insert_location,
                                        region_number,
                                        grcontext);
@@ -13973,25 +14006,40 @@ in all dynamic initializations under it.
 
 #endif /* MULTIPLE_INIT_ROUTINES */
 
-#if !MULTIPLE_INIT_ROUTINES
-/*ARGSUSED*/ /* residual_destrs is not used in that case. */
-#endif /* !MULTIPLE_INIT_ROUTINES */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+static a_routine_list_entry_ptr
+                file_scope_dynamic_init_routines_tail;
+                        /* Points to the last entry on the list of routine
+                           entries pointed to by
+                           il_header.file_scope_dynamic_init_routines. */
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+
+#if !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+/*ARGSUSED*/ /* more_matching_inits is not used in that case. */
+#endif /* !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 static void b_lower_file_scope_dynamic_inits(
-                                        unsigned long        needed_bit_number,
-                                        int                  init_priority,
-                                        a_dynamic_init_ptr   *residual_destrs)
+                                      unsigned long       needed_bit_number,
+                                      int                 init_priority,
+                                      a_boolean           do_single_init,
+                                      a_boolean           *more_matching_inits)
 /*
-Do lowering on the file-scope dynamic initializations list.  Generate
-an initialization routine and make sure it will get called at program
-startup.  If needed_bit_number is non-zero, it is the needed flag bit number
-for an instantiation, and only initializations for that bit number should
-be included in the initialization routine.  If init_priority is non-zero,
-only variables with the GNU init_priority field equal to that value are
-included.  Any destructions associated with the initializations to be
-done that remain on the object lifetime list after lowering are moved
-to the residual_destrs list.  This is so they can be kept off the object
-lifetime list now and added back in after all initialization routines for
-instantiations have been generated.
+Do lowering on the file-scope dynamic initializations list.  Determine the set
+of file-scope dynamic initializations that match the input criteria (described
+below) and generate an initialization routine to process that set of dynamic
+initializations.  No routine is created if no dynamic initializations match the
+criteria.  If needed_bit_number is non-zero, it is the needed flag bit number
+for an instantiation, and only initializations for that bit number should be
+included in the initialization routine.  If init_priority is non-zero, only
+variables with the GNU init_priority field equal to that value are included.
+If do_single_init is TRUE, only the first initialization that matches the
+criteria (if any -- as specified by needed_bit_number and init_priority) is
+lowered and included in the generated initialization routine.  When
+do_single_init is TRUE, *more_matching_inits is set to indicate whether
+there are additional dynamic initializations that match the criteria.
+When configured with USE_PATCH_INIT_STARTUP, the generated routine is
+queued on a list of routines to be executed at startup, in other cases,
+the name of the routine (typically with the __sti__ prefix) is enough
+to cause the back end to invoke the routine at initialization.
 */
 {
   a_dynamic_init_ptr dip, dip_next;
@@ -14023,6 +14071,13 @@ instantiations have been generated.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   if (init_priority != 0) processing_partial_list = TRUE;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  if (do_single_init) {
+    check_assertion(more_matching_inits != NULL);
+    *more_matching_inits = FALSE;
+    processing_partial_list = TRUE;
+  }  /* if */
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   if (processing_partial_list) {
     /* We're putting out separate initialization routines for different
        groups of initializations.  Split the dynamic initializations list
@@ -14047,6 +14102,21 @@ instantiations have been generated.
       if (dip->variable->init_priority != init_priority) in_slice = FALSE;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
       if (in_slice) {
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+        if (do_single_init && process_list != NULL) {
+          if (more_matching_inits != NULL) *more_matching_inits = TRUE;
+          /* Put the remaining dips on the delay list. */
+          dip->next = dip_next;
+          if (end_delay_list == NULL) {
+            delay_list = dip;
+          } else {
+            end_delay_list->next = dip;
+          }  /* if */
+          end_delay_list = dip;
+          /* No need to go further. */
+          break;
+        }  /* if */
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
         /* This dynamic initialization gets processed on this call. */
         if (end_process_list == NULL) {
           process_list = dip;
@@ -14112,6 +14182,9 @@ instantiations have been generated.
        containing them. */
     scope = file_scope_init_insert_location(eff_needed_bit_number,
                                             init_priority,
+                                            do_single_init ?
+                                              unique_id_for_il_pointer(dip) :
+                                              (unsigned long)0,
                                             &insert_location, &region_number,
                                             &grcontext);
     processing_file_scope_init_routine = TRUE;
@@ -14175,6 +14248,24 @@ instantiations have been generated.
         set_local_static_guard_var(guard_var, eff_insert_location);
       }  /* if */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE && ... */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+      if (do_single_init) {
+        a_routine_list_entry_ptr rlep;
+        check_assertion(dip_next == NULL);
+        /* Create an association between the variable being initialized and
+           the initialization routine. */
+        dip->variable->dynamic_init_routine = scope->variant.routine.ptr;
+        /* Queue this routine on a list of initialization routines. */
+        rlep = alloc_list_entry_for_routine();
+        rlep->routine = scope->variant.routine.ptr;
+        if (file_scope_dynamic_init_routines_tail == NULL) {
+          il_header.file_scope_dynamic_init_routines = rlep;
+        } else {
+          file_scope_dynamic_init_routines_tail->next = rlep;
+        }  /* if */
+        file_scope_dynamic_init_routines_tail = rlep;
+      }  /* if */
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
     }  /* for */
     pop_generated_routine_context(scope, region_number, &grcontext);
     processing_file_scope_init_routine = FALSE;
@@ -14194,32 +14285,41 @@ instantiations have been generated.
     /* Put the not-processed initializations back on the list. */
     file_scope->dynamic_inits = delay_list;
     if (file_scope->lifetime != NULL) {
-      if (file_scope->lifetime->destructions != NULL) {
-        /* There are some destructions that remain on the list after lowering,
-           e.g., ones for temporaries that were built during construction of
-           an aggregate.  Save them on a side list so that they will not
-           be on the primary list and therefore will not accidentally
-           be processed again.  They will be put back on the list after
-           all initialization routines have been generated.  A test case:
-             struct A {
-               A();
-               ~A();
-             };
-             A arr[5] = {A()};
-        */
-        a_dynamic_init_ptr last_destr = file_scope->lifetime->destructions;
-        while (last_destr->next_in_destruction_list != NULL) {
-          last_destr = last_destr->next_in_destruction_list;
-        }  /* if */
-        check_assertion(residual_destrs != NULL);
-        last_destr->next_in_destruction_list = *residual_destrs;
-        *residual_destrs = file_scope->lifetime->destructions;
-      }  /* if */
+      check_assertion(file_scope->lifetime->destructions == NULL);
       file_scope->lifetime->destructions = dtor_delay_list;
     }  /* if */
   }  /* if */
 #endif /* MULTIPLE_INIT_ROUTINES */
 }  /* b_lower_file_scope_dynamic_inits */
+
+
+static void s_lower_file_scope_dynamic_inits(unsigned long needed_bit_number,
+                                             int           init_priority)
+/*
+This routine is called to lower file-scope dynamic initializations that
+match the needed_bit_number (in one-instantiation-per-object mode) and/or
+init_priority (when GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED is TRUE).  In
+typical configurations (where SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+is FALSE), a single initialization routine will be generated that will
+initialize all matching dynamic initializations.  When
+SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS is TRUE, each matching
+dynamic initialization is lowered into its own initialization routine.
+*/
+{
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  a_boolean more_matching_inits;
+
+  do {
+    b_lower_file_scope_dynamic_inits(needed_bit_number, init_priority,
+                                     /*do_single_init=*/TRUE,
+                                     &more_matching_inits);
+  } while (more_matching_inits);
+#else /* !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+  b_lower_file_scope_dynamic_inits(needed_bit_number, init_priority,
+                                   /*do_single_init=*/FALSE,
+                                   (a_boolean*)NULL);
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+}  /* s_lower_file_scope_dynamic_inits */
 
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 
@@ -14259,13 +14359,11 @@ needed bit number does not match needed_bit_number.
 
 #if MULTIPLE_INIT_ROUTINES
 
-static void p_lower_file_scope_dynamic_inits(
-                                          unsigned long      needed_bit_number,
-                                          a_dynamic_init_ptr *residual_destrs)
+static void p_lower_file_scope_dynamic_inits(unsigned long needed_bit_number)
 /*
-Wrapper around b_lower_file_scope_dynamic_inits.  When the GNU init_priority
+Wrapper around s_lower_file_scope_dynamic_inits.  When the GNU init_priority
 attribute is allowed, loop through the initializations and call
-b_lower_file_scope_dynamic_inits to generate a routine for each priority
+s_lower_file_scope_dynamic_inits to generate a routine for each priority
 level.
 */
 {
@@ -14279,8 +14377,7 @@ level.
   do {
     priority = first_init_priority(needed_bit_number);
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-    b_lower_file_scope_dynamic_inits(needed_bit_number, priority,
-                                     residual_destrs);
+    s_lower_file_scope_dynamic_inits(needed_bit_number, priority);
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   } while (priority != 0);
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -14304,12 +14401,11 @@ code to cause the generated initialization routine to be called at startup.
        are assigned in increments of 2, to leave room for a class
        definition needed bit associated with each instantiation. */
     unsigned long      needed_bit_number;
-    a_dynamic_init_ptr residual_destrs = NULL;
     for (needed_bit_number = 1;
          needed_bit_number <
                  (il_header.number_of_external_nonclass_template_entities+1)*2;
          needed_bit_number += 2) {
-      p_lower_file_scope_dynamic_inits(needed_bit_number, &residual_destrs);
+      p_lower_file_scope_dynamic_inits(needed_bit_number);
     }  /* for */
     check_assertion_str(file_scope->dynamic_inits == NULL,
                     "lower_file_scope_dynamic_inits: not all entries lowered");
@@ -14317,7 +14413,6 @@ code to cause the generated initialization routine to be called at startup.
       /* Restore any residual destructions left after lowering. */
       check_assertion_str(file_scope->lifetime->destructions == NULL,
                        "lower_file_scope_dynamic_inits: non-NULL destrs list");
-      file_scope->lifetime->destructions = residual_destrs;
     }  /* if */
   } else
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -14328,15 +14423,12 @@ code to cause the generated initialization routine to be called at startup.
     /* If the GNU init_priority attribute is supported, make multiple
        passes through the list to generate separate routines for each
        priority value. */
-    a_dynamic_init_ptr residual_destrs = NULL;
-    p_lower_file_scope_dynamic_inits((unsigned long)0, &residual_destrs);
-    check_assertion(residual_destrs == NULL);
+    p_lower_file_scope_dynamic_inits((unsigned long)0);
   } else
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   /* Do not insert code here; this is the "else" of an "if". */
   {
-    b_lower_file_scope_dynamic_inits((unsigned long)0, 0,
-                                     (a_dynamic_init_ptr *)0);
+    s_lower_file_scope_dynamic_inits((unsigned long)0, 0);
     file_scope->dynamic_inits = NULL;
   }
 }  /* lower_file_scope_dynamic_inits */
@@ -15076,6 +15168,9 @@ for each compilation.
 */
 {
   processing_file_scope_init_routine = FALSE;
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  file_scope_dynamic_init_routines_tail = NULL;
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   /* init_lower_trans_unit_init is called from il_lower_trans_unit_init. */
 }  /* init_lower_init */
 
