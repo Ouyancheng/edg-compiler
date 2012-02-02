@@ -27588,18 +27588,20 @@ instantiation.
                           (kind != (a_pragma_kind)pk_do_not_instantiate),
                           (a_boolean)new_sym->variant.routine.ptr->is_inline);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-        if (is_simple_function_symbol(new_sym)) {
+        if (symbol_is(sym, sk_function_template) ||
+            (symbol_is(sym, sk_member_function) &&
+             sym->variant.routine.instance_ptr != NULL)) {
+          /* find_matching_template_instance ignores calling conventions, but
+             an explicit instantiation (unlike an explicit specialization)
+             must match the calling convention of its template.  (Note:
+             state.type must be used rather than the type of new_sym, since
+             the latter's calling convention may have been implicitly
+             modified.) */
           a_template_symbol_supplement_ptr
                                    tssp = template_supplement_for_symbol(sym);
           if (tssp != NULL &&
               !calling_conventions_are_compatible(
                           tssp->variant.function.routine->type, state.type)) {
-            /* find_matching_template_instance ignores calling conventions, but
-               an explicit instantiation (unlike an explicit specialization)
-               must match the calling convention of its template.  (Note:
-               state.type must be used rather than the type of new_sym, since
-               the latter's calling convention may have been implicitly
-               modified.) */
             pos_error(ec_conflicting_calling_conventions,
                       &state.specifiers_pos);
           }  /* if */
