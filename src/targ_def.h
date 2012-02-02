@@ -3976,25 +3976,6 @@ variables will be (selectively) promoted to the actual file scope.
  #error -- PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE requires DO_IL_LOWERING
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE && !DO_IL_LOWERING */
 
-#if DO_IL_LOWERING
-
-/* Switches that control aspects of IL lowering: */
-
-/*
-If TRUE, IL lowering should generate the code that the Cfront
-"patch" program needs for startup initialization.  This involves a
-generated variable called "__link" that points to the startup
-initialization routine.  This is a mostly-obsolete technique.
-*/
-#ifndef USE_PATCH_INIT_STARTUP
-#define USE_PATCH_INIT_STARTUP FALSE
-#endif /* ifndef USE_PATCH_INIT_STARTUP */
-
-#if USE_PATCH_INIT_STARTUP && USE_INIT_SECTION_IN_GENERATED_C
- #error -- USE_PATCH_INIT_STARTUP and USE_INIT_SECTION_IN_GENERATED_C \
-           cannot both be specified
-#endif /* USE_PATCH_INIT_STARTUP && USE_INIT_SECTION_IN_GENERATED_C */
-
 /*
 In most configurations (when SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
 is FALSE) lowering generates a single initialization routine per translation
@@ -4025,6 +4006,29 @@ this list).
  #error -- SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS and \
            USE_PATCH_INIT_STARTUP cannot both be specified
 #endif /* USE_PATCH_INIT_STARTUP && SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYN... */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS && !DO_IL_LOWERING
+ #error -- SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS requires \
+           DO_IL_LOWERING
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS && !DO_IL_LOWERING */
+
+#if DO_IL_LOWERING
+
+/* Switches that control aspects of IL lowering: */
+
+/*
+If TRUE, IL lowering should generate the code that the Cfront
+"patch" program needs for startup initialization.  This involves a
+generated variable called "__link" that points to the startup
+initialization routine.  This is a mostly-obsolete technique.
+*/
+#ifndef USE_PATCH_INIT_STARTUP
+#define USE_PATCH_INIT_STARTUP FALSE
+#endif /* ifndef USE_PATCH_INIT_STARTUP */
+
+#if USE_PATCH_INIT_STARTUP && USE_INIT_SECTION_IN_GENERATED_C
+ #error -- USE_PATCH_INIT_STARTUP and USE_INIT_SECTION_IN_GENERATED_C \
+           cannot both be specified
+#endif /* USE_PATCH_INIT_STARTUP && USE_INIT_SECTION_IN_GENERATED_C */
 
 /*
 This switch controls whether zeroing is added to variable definitions
