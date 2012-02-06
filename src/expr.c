@@ -1915,7 +1915,11 @@ to TRUE.
     arg_block.args_will_be_discarded = TRUE;
   } /* if */
 
-  if (rcblock != NULL) {
+  if (arg_list_supplied) {
+    /* Use the argument list supplied. */
+    arg_operand_list = arg_list;
+    check_assertion(rcblock == NULL);
+  } else if (rcblock != NULL) {
     /* Convert the previously-scanned rcblock->argument_list list of
        expressions into an argument operand list. */
     arg_operand_list = rescan_expr_list(rcblock->argument_list, rcblock);
@@ -1923,9 +1927,6 @@ to TRUE.
        rescan we only know about the arguments, and not about the surrounding
        parentheses.  It's not set to NULL because the caller is likely to
        have set it correctly already. */
-  } else if (arg_list_supplied) {
-    /* Use the argument list supplied. */
-    arg_operand_list = arg_list;
   } else {
     /* The argument list needs to be scanned from source. */
     if (!already_after_left_paren) {
@@ -2057,9 +2058,7 @@ on the list given by arg_list.
 {
   an_arg_operand *arg_operand_list, *arg_operand;
 
-  if (rcblock != NULL) {
-    /* Rescanning an initializer. */
-  } else if (arg_list_supplied) {
+  if (arg_list_supplied) {
     /* Argument list was already created. */
     for (arg_operand = arg_list;
          arg_operand != NULL;
@@ -2067,6 +2066,8 @@ on the list given by arg_list.
       operand_will_not_be_used_because_of_error(&arg_operand->operand);
     }  /* for */
     free_arg_operand_list(arg_list);
+  } else if (rcblock != NULL) {
+    /* Rescanning an initializer. */
   } else {
     /* Scan the argument list. */
     an_expr_node_ptr expr_arg_list;
@@ -19965,20 +19966,7 @@ empty_parentheses:
       }  /* if */
     } else {
       /* Non-empty parentheses. */
-      if (rcblock != NULL) {
-        if (rcblock->argument_list->next != NULL) {
-          /* Multiple operand expressions in a cast that can only take one. */
-          rcblock->error_detected = TRUE;
-          make_error_operand(result);
-        } else {
-          /* Rescan the operand expression. */
-          rescan_expression_list_context_expr(rcblock->argument_list, rcblock,
-                                              EOPT_OPERAND_OF_CAST,
-                                              result,
-                                              &local_bound_function_selector,
-                                              &expr_not_present);
-        }  /* if */
-      } else if (arg_list_supplied) {
+      if (arg_list_supplied) {
         /* Using an argument list passed by the caller. */
         check_assertion(arg_list != NULL);
         if (arg_list->next != NULL) {
@@ -19991,6 +19979,19 @@ empty_parentheses:
         }  /* if */
         free_arg_operand_list(arg_list);
         arg_list = NULL;
+      } else if (rcblock != NULL) {
+        if (rcblock->argument_list->next != NULL) {
+          /* Multiple operand expressions in a cast that can only take one. */
+          rcblock->error_detected = TRUE;
+          make_error_operand(result);
+        } else {
+          /* Rescan the operand expression. */
+          rescan_expression_list_context_expr(rcblock->argument_list, rcblock,
+                                              EOPT_OPERAND_OF_CAST,
+                                              result,
+                                              &local_bound_function_selector,
+                                              &expr_not_present);
+        }  /* if */
       } else {
         /* Scan the expression inside the parentheses. */
         /* Since the expression in parentheses is syntactically an
