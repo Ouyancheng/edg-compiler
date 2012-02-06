@@ -1,5 +1,18 @@
 Version 4.5
 
+2/6/12   [EDGcpfe/12668]
+C++/CLI: addition of type qualifiers after boxing as tiebreaker
+
+In C++/CLI mode, addition of cv-qualifiers under a handle after a boxing
+conversion now counts as a tiebreaker in overload resolution.
+
+  void f(int^ i) {}
+  void f(const int^ i) {}
+  int main() {
+    f(1);  // Was ambiguous, now selects f(int ^)
+  }
+
+
 2/2/12   [EDGcpfe/11926]
 One initialization routine for each file-scope dynamic initialization
 

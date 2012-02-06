@@ -7985,23 +7985,28 @@ conversion.  std_conv can be NULL if that information is not needed.
        The destination type has to be a handle type. */
     if (is_handle_type(dest_type) &&
         is_boxable_type(source_type)) {
+      a_type_ptr qual_dest_type;
       /* cv-qualifiers on the source type are dropped, since the value gets
          copied into the box. */
       source_type = skip_typerefs(source_type);
       /* Convert a built-in type to the corresponding CLI type, e.g.,
          int to System::Int32.  Also box an enum. */
       source_type = boxed_type_for(source_type);
-      dest_type = type_pointed_to(dest_type);
+      qual_dest_type = type_pointed_to(dest_type);
       /* cv-qualifiers are ignored on the destination type, since it's okay
          to add cv-qualifiers. */
-      dest_type = skip_typerefs(dest_type);
+      dest_type = skip_typerefs(qual_dest_type);
       if (types_are_compatible(source_type, dest_type)) {
         /* A boxing conversion is possible. */
         okay = TRUE;
+        if (std_conv != NULL &&
+            is_qualified_type(qual_dest_type)) {
+          std_conv->type_qualifiers_added = TRUE;
+        }  /* if */
       } else if (is_value_class_type(source_type) &&
                  is_class_struct_union_type(dest_type) &&
                  impl_handle_conversion(make_handle_type(source_type),
-                                        make_handle_type(dest_type),
+                                        make_handle_type(qual_dest_type),
                                        /*allow_qualifier_or_eh_mismatch=*/TRUE,
                                         std_conv)) {
         /* Boxing to a handle to a type followed by a handle conversion to
