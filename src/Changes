@@ -1,22 +1,5 @@
 Version 4.5
 
-2/8/12   [EDGcpfe/12686]
-Incorrect matching of qualification conversion in deduction
-
-In template argument deduction, a qualification conversion was incorrectly
-allowed from a const array type to a parameter type such as "const T **".
-This caused deduction to succeed in some cases where it should fail.  This
-rendered the example below ambiguous.  Now fixed.  The Microsoft compiler
-also allowed such a conversion, so we continue to do so in Microsoft
-mode.
-
-  template <class T> void f(T**, T **); // #1
-  template <class T> void f(T**, const T **); // #2
-  void f(const int (**a)[1]) {
-   f(a, a);  // call #1, deduction fails for #2
-   }
-
-
 2/6/12   [EDGcpfe/12668]
 C++/CLI: addition of type qualifiers after boxing as tiebreaker
 

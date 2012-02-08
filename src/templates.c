@@ -7989,20 +7989,14 @@ argument deduction purposes.
     }  /* if */
     if (match) {
       /* A qualification conversion is possible.  Check whether the underlying
-         types match.  Note that because qualifiers on function types have
-         no effect, the check for a qualification conversion as part of
-         deduction is not done for function types. */
+         types match.  The types returned above may still have qualifiers.
+         Remove them before comparing the underlying types.  Note that because
+         qualifiers on function types have no effect, the check for a
+         qualification conversion as part of deduction is not done for
+         function types. */
       match = FALSE;
-      if (microsoft_mode) {
-        /* The Microsoft compiler drops the qualifiers on the underlying
-           type.  This causes cases like the following to be ambiguous:
-             template <class T> void f(T**, T **);
-             template <class T> void f(T**, const T **);
-             void f(const int (**a)[1]) { f(a, a); }
-        */
-        type_underlying = skip_typerefs(type_underlying);
-        templ_type_underlying = skip_typerefs(templ_type_underlying);
-      }  /* if */
+      type_underlying = skip_typerefs(type_underlying);
+      templ_type_underlying = skip_typerefs(templ_type_underlying);
       if (!is_function_type(type_underlying) &&
           matches_template_type(type_underlying, templ_type_underlying,
                                 templ_arg_list, templ_param_list, flags)) {
