@@ -4248,7 +4248,6 @@ are expected to be NULL in that case.
   a_boolean         implicit_delegate_invocation = FALSE;
   a_boolean         ignore_call = FALSE;
   a_boolean         saved_evaluated, saved_potentially_evaluated;
-  an_expr_node_ptr  unneeded_selector = NULL;
   an_expr_node_ptr  castexp;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -4305,8 +4304,7 @@ are expected to be NULL in that case.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_event_ref_operand(operand)) {
     /* Invoking an event is equivalent to calling its "raise" accessor. */
-    rewrite_event_ref_for_call(operand, bound_function_selector,
-                               &unneeded_selector);
+    rewrite_event_ref_for_call(operand, bound_function_selector);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Argument-dependent lookup will be done if the function name is a
@@ -4906,19 +4904,6 @@ are expected to be NULL in that case.
     cast_operand(sync_result_type, result, /*is_implicit_cast=*/TRUE);
   }  /* if */
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (unneeded_selector != NULL) {
-    /* A static event reference included a selector object.  This selector
-       doesn't participate in the call to the raise accessor (i.e., there is
-       no "this" parameter), but it should still be evaluated. */
-    an_operand  selector_operand;
-    make_expression_operand(unneeded_selector, &selector_operand);
-    combine_unneeded_selector_with_operand(
-                                &selector_operand,
-                                is_any_ptr_or_ref_type(selector_operand.type),
-                                result);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 done:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();

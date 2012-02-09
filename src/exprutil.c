@@ -16629,17 +16629,13 @@ to TRUE and *result becomes an error operand.
 
 
 void rewrite_event_ref_for_call(an_operand        *operand,
-                                an_operand        *bound_function_selector,
-                                an_expr_node_ptr  *p_unneeded_selector)
+                                an_operand        *bound_function_selector)
 /*
 operand describes an event reference for an event invocation.  Replace the
 operand to be a member function designation for the event's "raise" accessor
 (or issue a diagnostic and make the operand an error operand if there is no
 such accessor).  For non-static events, set *bound_function_selector to the
-selector expression used to designate the event.  For static events, set
-*p_unneeded_selector to any selector expression that was specified (but not
-actually needed for the call proper: the caller must ensure it is evaluated
-if it has any side effects) or NULL if no selector was specified.
+selector expression used to designate the event.
 */
 {
   a_property_or_event_descr_ptr  pedp;
@@ -16693,14 +16689,19 @@ if it has any side effects) or NULL if no selector was specified.
                                       (a_special_function_kind)sfk_event_raise;
     }  /* if */
 #endif /* !DO_IL_LOWERING */
-    if (pedp->is_static) {
-      *p_unneeded_selector = selector;
-    } else if (selector != NULL) {
+    if (selector != NULL) {
       make_expression_operand(selector, bound_function_selector);
-      bind_member_function_operand_to_selector(
+      if (pedp->is_static) {
+        combine_unneeded_selector_with_operand(
                                           bound_function_selector,
                                           /*selector_is_object_pointer=*/TRUE,
                                           operand);
+      } else {
+        bind_member_function_operand_to_selector(
+                                          bound_function_selector,
+                                          /*selector_is_object_pointer=*/TRUE,
+                                          operand);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* rewrite_event_for_call */

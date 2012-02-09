@@ -1408,8 +1408,7 @@ extern void rewrite_event_operator(an_operand         *lhs,
 
 extern void rewrite_event_ref_for_call(
                                    an_operand        *operand,
-                                   an_operand        *bound_function_selector,
-                                   an_expr_node_ptr  *p_unneeded_selector);
+                                   an_operand        *bound_function_selector);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void convert_function_template_to_single_function_if_possible(
