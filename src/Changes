@@ -1,5 +1,21 @@
 Version 4.5
 
+2/8/12   [EDGcpfe/12661]
+C++/CLI: abort on dependent property when templates are parsed
+
+In C++/CLI mode with parsing of templates (e.g., --cppcli --parse_templates),
+a reference to a dependent property caused an abort in overload.c
+in select_overloaded_function.  Now fixed.
+
+  template <typename T> ref class Foo {
+    typedef T PropertyType;
+    property PropertyType m_prop;
+    Foo(PropertyType^ p) {
+      m_prop = p;
+    }
+  };
+
+
 2/6/12   [EDGcpfe/12668]
 C++/CLI: addition of type qualifiers after boxing as tiebreaker
 

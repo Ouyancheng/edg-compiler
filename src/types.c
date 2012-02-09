@@ -4248,11 +4248,15 @@ returned does not include a top-level "const", and that must sometimes
 be added to get the actual "this" variable type.
 */
 {
-  a_routine_type_supplement_ptr  rtsp =
-                      skip_typerefs(routine_type)->variant.routine.extra_info;
-  a_type_ptr                     class_type = rtsp->this_class;
-  a_type_ptr                     result = class_type;
+  a_routine_type_supplement_ptr rtsp;
+  a_type_ptr                    class_type;
+  a_type_ptr                    result;
 
+  routine_type = skip_typerefs(routine_type);
+  check_assertion(is_function_type(routine_type));
+  rtsp = routine_type->variant.routine.extra_info;
+  class_type = rtsp->this_class;
+  result = class_type;
   /* The standard function cv-qualifiers (recorded in rtsp->qualifiers) apply
      not to the "this" pointer, but to the type pointed to by the "this"
      pointer.  The nonstandard "restrict" qualifier, on the other hand, goes

@@ -4712,7 +4712,7 @@ are expected to be NULL in that case.
     }  /* if */
     /* Choose the proper function out of a set of overloaded functions based
        on the argument types. */
-    routine_type = select_and_prepare_to_call_overloaded_function(
+    if (!select_and_prepare_to_call_overloaded_function(
                                           overloaded_function_symbol,
                                           (a_boolean)operand->is_template_id,
                                           operand->template_arg_list,
@@ -4732,56 +4732,28 @@ are expected to be NULL in that case.
                                           &call_position,
                                           opening_paren_tok_seq_number,
                                           &closing_paren_position,
-                                          &unknown_dependent_function,
                                           &found_through_adl,
                                           operand,
-                                          &argument_list);
-    if (unknown_dependent_function) {
-      /* The routine to be called cannot be determined because one or more
-         of the arguments has a template-dependent type.  Use a generic
-         function of the right name. */
-      if (try_surrogate_functions) {
-        /* Leave the operand alone if it's a class operand for which
-           we tried surrogate functions.  The original operand became
-           the selector, so move it back to "operand". */
-        copy_operand(bound_function_selector, operand);
-        prep_generic_operand(operand);
-      } else {
-        a_boolean have_selector = operand->bound_function;
-        make_unknown_dependent_function_operand(
-                                         overloaded_function_symbol,
-                                         (a_boolean)operand->is_template_id,
-                                         operand->template_arg_list,
-                                         (a_boolean)operand->is_qualified_name,
-                                         operand);
-        restore_operand_details(operand, &orig_operand);
-        operand->bound_function = FALSE;
-        operand->selector_is_object_pointer = FALSE;
-        restore_operand_id_details(operand, &orig_operand);
-        restore_operand_form_of_name_reference(operand, &orig_operand);
-        if (have_selector) {
-          /* This comes up with operator() cases. */
-          combine_unneeded_selector_with_operand(
-                                           bound_function_selector,
-                                           (a_boolean)bound_function_selector->
-                                                    selector_is_object_pointer,
-                                           operand);
-        }  /* if */
-      }  /* if */
-    } else if (routine_type == NULL) {
-      /* None of the overloaded functions matches the argument list. */
+                                          &argument_list)) {
+      /* Some error, e.g., none of the overloaded functions matches the
+         argument list. */
       make_error_operand(operand);
-    } else if (name_reference_was_saved) {
-      /* Restore information on the form of the name reference for the
-         function name. */
-      operand->name_reference = saved_name_reference;
-      operand->name_reference_set = TRUE;
+    } else {
+      /* Overload resolution was successful (including the case where
+         the function is unknown because the arguments are dependent). */
+      if (name_reference_was_saved) {
+        /* Restore information on the form of the name reference for the
+           function name. */
+        operand->name_reference = saved_name_reference;
+        operand->name_reference_set = TRUE;
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (implicit_delegate_invocation) {
-      /* In an implicit delegate invocation, the Invoke function reference
-         is implicit. */
-      change_ref_kinds(operand->ref_entries_list,
-                       (SRK_REFERENCE | SRK_IMPLICIT));
+      if (implicit_delegate_invocation) {
+        /* In an implicit delegate invocation, the Invoke function reference
+           is implicit. */
+        change_ref_kinds(operand->ref_entries_list,
+                         (SRK_REFERENCE | SRK_IMPLICIT));
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   } else if (vacuous_destructor_case) {
@@ -4846,33 +4818,6 @@ are expected to be NULL in that case.
   if (vacuous_destructor_case) {
     /* Vacuous destructor case; leave the original operand alone. */
     copy_operand(operand, result);
-  } else if (unknown_dependent_function) {
-    /* A call of a function whose type is not completely known, in
-       a prototype instantiation.  Make a generic call. */
-    an_expr_node_ptr function_node, call_node;
-    function_node = make_node_from_operand(operand);
-    op = (an_expr_operator_kind)eok_call;
-    function_node->next = argument_list;
-    /* Since we don't know what function is called, we don't know if it
-       is a nonstatic member function, so the "bound function" part of the
-       call is represented as a dot-static operation.  So we don't expect to
-       see a true bound function here. */
-    check_assertion(!operand->bound_function);
-    call_node = make_operator_node((an_expr_operator_kind)eok_call,
-                                   type_of_unknown_templ_param_nontype,
-                                   function_node);
-    /* Coverity bug: This code is not dead: arg_dep_lookup_suppressed is
-       TRUE for non-member undefined symbols and indefinite functions. */
-    /* coverity[dead_error_condition] */
-    if (arg_dep_lookup_suppressed) {
-      call_node->variant.operation.
-                                arg_dependent_lookup_suppressed_on_call = TRUE;
-    }  /* if */
-    if (adl_suppressed_by_qualification) {
-      call_node->variant.operation.call_with_qualified_function_name = TRUE;
-    }  /* if */
-    make_expression_operand(call_node, result);
-    result_operand_is_call = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ignore_call) {
     /* Ignore a call of the form 0(x) -- copy the zero to the result. */
@@ -4882,7 +4827,8 @@ are expected to be NULL in that case.
     expr_stack->potentially_evaluated = saved_potentially_evaluated;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
-    /* Build the call node and an operand for it. */
+    /* Build the call node and an operand for it.  This includes cases where
+       the function is unknown because the call is dependent. */
     a_boolean uses_operator_syntax = FALSE;
     if (has_overloaded_call_operator) {
       a_routine_ptr rp = routine_from_function_operand(operand);
@@ -28206,7 +28152,6 @@ for-each (otherwise it's a range-based-for).
   an_expr_node_ptr   argument_list;
   an_operand         function_operand;
   an_expr_node_ptr   func_call_node;
-  a_boolean          dependent_function = FALSE;
   an_arg_operand_ptr arg_operand_list = NULL;
 
   if (argument != NULL) {
@@ -28238,10 +28183,9 @@ for-each (otherwise it's a range-based-for).
                                       pos,
                                       tok_seq_number,
                                       (a_source_position *)NULL,
-                                      &dependent_function,
                                       (a_boolean *)NULL,
                                       &function_operand,
-                                      &argument_list) != NULL) {
+                                      &argument_list)) {
     /* Generate the expression for the member function call. */
     assemble_function_call(&function_operand, 
                            bound_function_selector, 
@@ -30316,7 +30260,7 @@ errors) in the case where the expression is template dependent.
     an_expr_node_ptr   argument_list;
     an_operand         function_operand, dummy_bound_function_selector;
     an_expr_node_ptr   func_call_node;
-    a_boolean          dependent_function = FALSE, found_through_adl = FALSE;
+    a_boolean          found_through_adl = FALSE;
     an_arg_operand_ptr arg_operand_list = NULL;
 
     push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
@@ -30346,10 +30290,9 @@ errors) in the case where the expression is template dependent.
                                        pos,
                                        tok_seq_number,
                                        (a_source_position *)NULL,
-                                       &dependent_function,
                                        &found_through_adl,
                                        &function_operand,
-                                       &argument_list) != NULL) {
+                                       &argument_list)) {
       /* Generate the expression for the function call. */
 #ifdef _lint
       /* We pass dummy_bound_function_selector rather than a null pointer

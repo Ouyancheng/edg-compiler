@@ -12821,14 +12821,16 @@ function_node, whose type is function_type, and which is to be called
 virtually if is_virtual is TRUE, or a pointer-to-member-function call
 if the type of function_node is pointer-to-member-function.  The
 arguments of the call are already attached to function_node.  A
-skip_typerefs need not have been done on function_type.  Return a
-pointer to the call node.  *err_pos gives an error position for the
-case where the function return type is invalid (i.e., incomplete); an
-error node is returned for that case.  If virtual_suppressed is TRUE,
-the function was named in some way that would suppress calling it as
-virtual (if indeed it is virtual); that's also reflected in
-is_virtual, but knowing that the user did it explicitly controls
-whether a diagnostic is put out in some cases.
+skip_typerefs need not have been done on function_type.  function_type
+can be a template parameter type or class type in a case where the
+function to be called is not known because the call is dependent.
+Return a pointer to the call node.  *err_pos gives an error position
+for the case where the function return type is invalid (i.e.,
+incomplete); an error node is returned for that case.  If
+virtual_suppressed is TRUE, the function was named in some way that
+would suppress calling it as virtual (if indeed it is virtual); that's
+also reflected in is_virtual, but knowing that the user did it
+explicitly controls whether a diagnostic is put out in some cases.
 selector_is_object_pointer is TRUE if the call is a nonstatic member
 function call and the source form was "->" (or "->*" for the
 pointer-to-member case) rather than "." (or ".*").  compiler_generated
@@ -12854,15 +12856,21 @@ error cases.
   an_expr_operator_kind         op;
   an_expr_node_ptr              call_node;
   a_type_ptr                    return_type;
-  a_routine_type_supplement_ptr rtsp;
   an_expr_node_ptr              temp_init_node = NULL;
   a_dynamic_init_ptr            dip;
   a_routine_ptr                 rp;
+  a_boolean                     unknown_dependent_function = FALSE;
 
   if (function_call_node != NULL) {
     *function_call_node = NULL;
   }  /* if */
   function_type = skip_typerefs(function_type);
+  if (!is_function_type(function_type)) {
+    check_assertion(is_template_dependent_context() &&
+                    (is_template_param_type(function_type) ||
+                     is_class_struct_union_type(function_type)));
+    unknown_dependent_function = TRUE;
+  }  /* if */
   /* See if we know which function is being called. */
   rp = routine_from_function_expr(function_node);
   /* The function return type must be void or object type and not array
@@ -12871,7 +12879,8 @@ error cases.
      function returning a class/struct/enum type that is incomplete
      at the point of declaration of the function so long as it is completed
      by the time the function is defined or called (if it is). */
-  if (!check_function_return_type(function_type, err_pos,
+  if (!unknown_dependent_function &&
+      !check_function_return_type(function_type, err_pos,
                                   /*is_expr_use=*/TRUE,
                                   curr_expr_is_evaluated(), rp)) {
     /* There was some error in the return type, and a diagnostic was issued. */
@@ -12890,28 +12899,32 @@ error cases.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Determine the return type, dealing with reference types and
-     cv-qualifiers. */
-  return_type = il_return_type_of(function_type);
-  /* Determine the operator to use for the call. */
-  if (is_ptr_to_member_type(function_node->type)) {
-    /* Call using a pointer-to-member-function. */
-    if (selector_is_object_pointer) {
-      op = (an_expr_operator_kind)eok_points_to_pm_call;
-    } else {
-      op = (an_expr_operator_kind)eok_dot_pm_call;
-    }  /* if */
-  } else if (routine_type_is_nonstatic_member_function(function_type)) {
-    /* Call of nonstatic member function. */
-    if (selector_is_object_pointer) {
-      op = (an_expr_operator_kind)eok_points_to_member_call;
-    } else {
-      op = (an_expr_operator_kind)eok_dot_member_call;
-    }  /* if */
-  } else {
-    /* C mode call, call of non-member function, or call of static member
-       function. */
+  /* Determine the operator to use for the call, and the return type. */
+  if (unknown_dependent_function) {
+    /* Call to unknown dependent function. */
     op = (an_expr_operator_kind)eok_call;
+    return_type = type_of_unknown_templ_param_nontype;
+  } else {
+    return_type = il_return_type_of(function_type);
+    if (is_ptr_to_member_type(function_node->type)) {
+      /* Call using a pointer-to-member-function. */
+      if (selector_is_object_pointer) {
+        op = (an_expr_operator_kind)eok_points_to_pm_call;
+      } else {
+        op = (an_expr_operator_kind)eok_dot_pm_call;
+      }  /* if */
+    } else if (routine_type_is_nonstatic_member_function(function_type)) {
+      /* Call of nonstatic member function. */
+      if (selector_is_object_pointer) {
+        op = (an_expr_operator_kind)eok_points_to_member_call;
+      } else {
+        op = (an_expr_operator_kind)eok_dot_member_call;
+      }  /* if */
+    } else {
+      /* C mode call, call of non-member function, or call of static member
+         function. */
+      op = (an_expr_operator_kind)eok_call;
+    }  /* if */
   }  /* if */
   /* Make an expression for the function call. */
   call_node = make_operator_node(op, return_type, function_node);
@@ -12931,8 +12944,8 @@ error cases.
 #endif /* BACK_END_IS_CP_GEN_BE */
   call_node->variant.operation.call_uses_operator_syntax =
                                                           uses_operator_syntax;
-  rtsp = function_type->variant.routine.extra_info;
-  if (rtsp->value_returned_by_cctor) {
+  if (!unknown_dependent_function &&
+      function_type->variant.routine.extra_info->value_returned_by_cctor) {
     /* An error was already issued for a function returning an abstract
        class type, so do not issue another on a call of such a function. */
     temp_init_node = create_expr_temporary(return_type,
@@ -12971,9 +12984,11 @@ whose type is function_type, and which is to be called virtually if
 is_virtual is TRUE, or a pointer-to-member-function call if the type
 of function_node is pointer-to-member-function.  The arguments of the
 call are already attached to function_node.  A skip_typerefs need not
-have been done on function_type.  If virtual_suppressed is TRUE, the
-function was named in some way that would suppress calling it as
-virtual (if indeed it is virtual); that's also reflected in
+have been done on function_type.  function_type can be a template
+parameter type or class type in a case where the function to be called
+is not known because the call is dependent.  If virtual_suppressed is
+TRUE, the function was named in some way that would suppress calling
+it as virtual (if indeed it is virtual); that's also reflected in
 is_virtual, but knowing that the user did it explicitly controls
 whether a diagnostic is put out in some cases.
 selector_is_object_pointer is TRUE if the call is a nonstatic member
@@ -13001,7 +13016,6 @@ error cases.
 {
   an_expr_node_ptr call_node;
 
-  function_type = skip_typerefs(function_type);
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
                              virtual_suppressed, selector_is_object_pointer,
@@ -13072,30 +13086,34 @@ void assemble_function_call(an_operand        *function_operand,
                             an_expr_node_ptr  *function_call_node)
 /*
 Assemble a function call from the various pieces.  *function_operand
-identifies the function to be called.  If a selector object is needed, it
-is provided by *bound_function_selector.  argument_list points to the
-(explicit) argument list.  compiler_generated is TRUE if this is a
-compiler- generated call (e.g., to an overloaded operator function).  The
-call is not of a conversion function.  arg_dep_lookup_suppressed is TRUE if
-argument-dependent lookup was suppressed on the call because the function
-name was not followed by a left parenthesis.  qualified_function_name is
-TRUE if argument-dependent lookup was suppressed because the function name
-was qualified.  found_through_adl is TRUE if the function to be called was
-only found through argument-dependent lookup (not through ordinary lookup).
-uses_operator_syntax is TRUE when a call to an overloaded operator is the
-result of operator notation ("a+b") rather than an explicit function call.
-call_position gives the source position of the call.  An operand for the
-overall call is constructed in *result.  If non-NULL, function_call_node is
-the address of an expression node pointer that will be set to point to the
-actual call node itself (which might be below the expression in the result
-because of transformations on the return value).  It is returned NULL for
-some error cases.
+identifies the function to be called.  It can identify an unknown
+dependent function if the call is dependent.  If a selector object is
+needed, it is provided by *bound_function_selector.  argument_list
+points to the (explicit) argument list.  compiler_generated is TRUE if
+this is a compiler- generated call (e.g., to an overloaded operator
+function).  The call is not of a conversion function.
+arg_dep_lookup_suppressed is TRUE if argument-dependent lookup was
+suppressed on the call because the function name was not followed by a
+left parenthesis.  qualified_function_name is TRUE if
+argument-dependent lookup was suppressed because the function name was
+qualified.  found_through_adl is TRUE if the function to be called was
+only found through argument-dependent lookup (not through ordinary
+lookup).  uses_operator_syntax is TRUE when a call to an overloaded
+operator is the result of operator notation ("a+b") rather than an
+explicit function call.  call_position gives the source position of
+the call.  An operand for the overall call is constructed in *result.
+If non-NULL, function_call_node is the address of an expression node
+pointer that will be set to point to the actual call node itself
+(which might be below the expression in the result because of
+transformations on the return value).  It is returned NULL for some
+error cases.
 */
 {
   an_expr_node_ptr function_node;
   an_expr_node_ptr implicit_this_argument;
-  a_type_ptr       function_type;
+  a_type_ptr       function_type, function_node_type;
   a_boolean        selector_is_object_pointer = FALSE;
+  a_boolean        unknown_dependent_function = FALSE;
 
   if (function_call_node != NULL) *function_call_node = NULL;
   if (is_error_operand(function_operand)) {
@@ -13109,19 +13127,28 @@ some error cases.
     /* Make the function address node.  This might have type pointer-to-
        member-function in a case like (p->*pmf)(). */
     function_node = make_node_from_operand(function_operand);
-    if (is_ptr_to_member_type(function_node->type)) {
+    function_node_type = function_node->type;
+    if (is_ptr_to_member_type(function_node_type)) {
       /* Call using a pointer-to-member-function. */
-      function_type = pm_member_type(function_node->type);
-    } else {
+      function_type = pm_member_type(function_node_type);
+    } else if (is_pointer_type(function_node_type)) {
       /* Normal call using a pointer to function. */
-      function_type = type_pointed_to(function_node->type);
+      function_type = type_pointed_to(function_node_type);
+    } else {
+      check_assertion(is_template_dependent_context() &&
+                      (is_template_param_type(function_node_type) ||
+                       is_class_struct_union_type(function_node_type)));
+      /* Function is unknown because call is dependent. */
+      unknown_dependent_function = TRUE;
+      function_type = type_of_unknown_templ_param_nontype;
     }  /* if */
     if (function_operand->bound_function) {
       /* Bound function.  bound_function_selector indicates the object. */
       selector_is_object_pointer =
                            bound_function_selector->selector_is_object_pointer;
-      if (is_template_dependent_context() &&
-          is_template_dependent_type(bound_function_selector->type)) {
+      if (unknown_dependent_function ||
+          (is_template_dependent_context() &&
+           is_template_dependent_type(bound_function_selector->type))) {
         /* In a prototype instantiation, a selector might have a type that's
            not demonstrably related to the "this" type.  Leave it alone. */
       } else {
@@ -16365,7 +16392,7 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
       }  /* if */
     }  /* if */
     /* Do overload resolution to determine the function to call. */
-    if (select_and_prepare_to_call_overloaded_function(
+    if (!select_and_prepare_to_call_overloaded_function(
                                        getput_sym,
                                        /*is_template_id=*/FALSE,
                                        (a_template_arg_ptr)NULL,
@@ -16385,9 +16412,8 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
                                        (a_token_sequence_number)0,
                                        (a_source_position *)NULL,
                                        (a_boolean *)NULL,
-                                       (a_boolean *)NULL,
                                        &function_operand,
-                                       &argument_list) == NULL) {
+                                       &argument_list)) {
       /* Some error. */
       conv_to_error_operand(operand);
     } else {
@@ -16543,7 +16569,7 @@ to TRUE and *result becomes an error operand.
       arg_operand_list = alloc_arg_operand();
       arg_operand_list->operand = *rhs;
       /* Do overload resolution to determine the function to call. */
-      if (select_and_prepare_to_call_overloaded_function(
+      if (!select_and_prepare_to_call_overloaded_function(
                                           accessor_sym,
                                           /*is_template_id=*/FALSE,
                                           (a_template_arg_ptr)NULL,
@@ -16563,9 +16589,8 @@ to TRUE and *result becomes an error operand.
                                           (a_token_sequence_number)0,
                                           (a_source_position *)NULL,
                                           (a_boolean *)NULL,
-                                          (a_boolean *)NULL,
                                           &function_operand,
-                                          &argument_list) == NULL) {
+                                          &argument_list)) {
         /* Some error. */
         err = TRUE;
       } else {
