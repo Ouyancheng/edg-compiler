@@ -7472,7 +7472,7 @@ Many of these symbols will be accessible through the cli_symbols array.
   }  /* if */
 #endif /* CHECKING */
   /* Initialize the symbols in the cli_symbols array. */
-  for (csk = (int)csk_first_type; csk < (int)csk_last_type; csk++) {
+  for (csk = (int)csk_first_type; csk <= (int)csk_last_type; csk++) {
     if (cli_symbols[csk] == NULL) {
       init_cli_symbol((a_cli_symbol_kind)csk);
     }  /* if */
