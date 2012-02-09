@@ -16360,7 +16360,7 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
     an_operand         orig_operand, function_operand, selector;
     an_arg_operand_ptr arg_operand_list;
     an_expr_node_ptr   argument_list;
-    a_boolean          have_selector, static_case = FALSE;
+    a_boolean          have_selector;
 
     have_selector = (operand->variant.property_ref.object != NULL);
     orig_operand = *operand;
@@ -16440,7 +16440,6 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
       if (func_call_node != NULL) {
         an_expr_node_ptr opnd = func_call_node->variant.operation.operands;
         if (is_routine_node(opnd)) {
-          a_routine_ptr                 rp = opnd->variant.routine.ptr;
 #if !DO_IL_LOWERING
           /* Record the information about the property in the enk_routine
              node to indicate that the call resulted from a transformed
@@ -16459,6 +16458,7 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
           } else {
             /* A C++/CLI property: Get the property description from the
                accessor. */
+            a_routine_ptr rp = opnd->variant.routine.ptr;
             check_assertion(symbol_is(property_sym, sk_property_set));
             pedp = rp->variant.property_or_event_descr;
           }  /* if */
@@ -16475,7 +16475,6 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
              the property name. */
           opnd->expr_range.start = operand_id_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-          static_case = !routine_type_is_nonstatic_member_function(rp->type);
         }  /* if */
         if (get_routine != NULL) {
           *get_routine = routine_from_function_expr(opnd);
@@ -16491,12 +16490,6 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
          the original operand end position. */
       operand->end_position = operand_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      if (static_case && have_selector) {
-        /* Attach an unneeded selector for a static property. */
-        combine_unneeded_selector_with_operand(&selector,
-                                               /*is_arrow_operator=*/TRUE,
-                                               operand);
-      }  /* if */
     }  /* if */
   }  /* if */
   if (curr_expr_kind_is_const() && !is_error_operand(operand)) {
