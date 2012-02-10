@@ -4677,9 +4677,6 @@ The affinity can be an expression or the keyword "continue".
     }  /* if */
   }  /* if */
   if (range_based_for_enabled) {
-    /* Pop (and possibly discard) the block scopes that were pushed in
-       preparation for a possible range-based-for statement. */
-    finish_block_scope_for_enhanced_for();
     if (!is_range_based_for) {
       /* This scope is about to be discarded; move any pragmas to the
          appropriate scope (the scope that encloses outer_scope).  Pragmas
@@ -4689,15 +4686,26 @@ The affinity can be an expression or the keyword "continue".
       for (;pragma != NULL; pragma = pragma_next) {
         pragma_next = pragma->next;
         pragma->next = NULL;
-        add_to_pragma_list(pragma, depth_scope_stack-1,
+        add_to_pragma_list(pragma, depth_scope_stack-2,
                            (a_source_correspondence *)NULL);
-      }  /* if */
-    }  /* for */
+      }  /* for */
+      middle_scope->pragmas = NULL;
+    }  /* if */
+    /* Pop (and possibly discard) the block scopes that were pushed in
+       preparation for a possible range-based-for statement. */
+    finish_block_scope_for_enhanced_for();
     finish_block_scope_for_enhanced_for();
     if (!is_range_based_for) {
-      /* There should be no pragmas in the outer scope (since it only
-         contains the compiler-generated middle scope). */
-      check_assertion(outer_scope->pragmas == NULL);
+      /* There should be no variables or pragmas in either of these
+         (now discarded) scopes. */
+      check_assertion(middle_scope->pragmas == NULL &&
+                      middle_scope->variables == NULL &&
+                      middle_scope->nonstatic_variables == NULL &&
+                      middle_scope->lifetime == NULL);
+      check_assertion(outer_scope->pragmas == NULL &&
+                      outer_scope->variables == NULL &&
+                      outer_scope->nonstatic_variables == NULL &&
+                      outer_scope->lifetime == NULL);
     }  /* if */
   }  /* if */
   /* Pop the structured statement stack. */

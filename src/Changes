@@ -1,5 +1,15 @@
 Version 4.5
 
+2/10/12  [EDGcpfe/12648]
+The --old_for_init command line option cannot be used with C++11 mode
+
+A prior change to enable range-based for statements in C++11 conflicts with the
+--old_for_init command line option.  A command line error is now generated
+when --old_for_init is used in C++11 mode.  In cases where
+use_nonstandard_for_init_scope is implicitly enabled (i.e., not by use of
+--old_for_init), it is silently disabled when C++11 mode is selected.
+
+
 2/10/12  [EDGcpfe/11655]
 Mangling of call operations where ADL is suppressed
 
