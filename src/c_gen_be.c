@@ -9310,7 +9310,7 @@ Return TRUE if the routine should be emitted in the current slice.
   a_boolean result = TRUE;
 
   if (rout->instantiation_needed_bit_number != 0) {
-    /* This routine is an instantiation and goes out only it its own
+    /* This routine is an instantiation and goes out only in its own
        file. */
     if (needed_flag_bit_number != rout->instantiation_needed_bit_number) {
       result = FALSE;
@@ -9925,7 +9925,7 @@ C compiler).
         }  /* if */
         last_priority = rlep->routine->init_priority;
         init_priority = rlep->routine->init_priority;
-      }
+      }  /* if */
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     if (!skip) {

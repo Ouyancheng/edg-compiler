@@ -55,14 +55,15 @@ for each file-scope dynamic initialization (when the macro is TRUE).  When the
 macro is FALSE, file-scope dynamic initializations continue to be grouped
 together in a single routine for the translation unit, or a single routine for
 each "needed" bit in one-instantiation-per-object mode, or a single routine for
-each GNU init_priority.  A new field, file_scope_dynamic_init_routines,
-has been added to the il_header and it contains a list of the file-scope
-initialization routines in the order they are to be executed.  It is the
-responsibility of the back end to ensure that the routines on this list
-are executed in the proper order.  This configuration option may be useful
-when a back end has determined that certain file-scope variables or
-static data members are unneeded and gives such back ends an easy way to
-remove the unneeded initialization.
+each GNU init_priority.  When the new macro is TRUE, a new field,
+file_scope_dynamic_init_routines, has been added to the il_header and it
+contains a list of the file-scope initialization routines in the order they are
+to be executed.  It is the responsibility of the back end to ensure that the
+routines on this list are executed in the proper order.  This configuration
+option may be useful when a back end has determined that certain file-scope
+variables or static data members are unneeded and gives such back ends an easy
+way to remove the unneeded initialization.  Most back ends will use the
+default value of this macro (FALSE) and will require no changes.
 
 
 2/1/12   [EDGcpfe/12635]
