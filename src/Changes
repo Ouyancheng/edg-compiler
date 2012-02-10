@@ -1,5 +1,27 @@
 Version 4.5
 
+2/10/12  [EDGcpfe/11655]
+Mangling of call operations where ADL is suppressed
+
+An additional mangling encoding has been added to distinguish between
+cases where a call operation uses argument-dependent lookup and cases
+where argument-dependent lookup is explicitly disabled (by the use of
+parentheses).  In both IA-64 and Cfront ABIs, the new "cp" encoding is
+used (in place of the typical "cl" encoding for a call operation).
+For example:
+
+  namespace N {
+    struct A {};
+    template <class T> T foo(T t);
+  }
+  template <class T> T foo(T t);
+  template <class T> auto f(T t) -> decltype((foo)(t));
+  int main() {
+    f(N::A()); // IA-64:  _Z1fIN1N1AEEDTcp3foofp_EET_
+               // Cfront: f__tm__8_Q2_1N1A__FZ1Z_YOcp_2_3fooI1IO
+  }
+
+
 2/9/12   [EDGcpfe/12686]
 Incorrect matching of qualification conversion in deduction
 
