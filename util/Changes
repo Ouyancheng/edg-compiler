@@ -1,5 +1,13 @@
 Version 4.5
 
+2/10/12  [EDGcpfe/11655]
+Demangling of call operations where ADL is suppressed
+
+Changes have been made to both IA-64 and Cfront ABI demangling to accommodate
+the mangled named generated for a call operation where argument-dependent
+lookup is suppressed by the use of parentheses.
+
+
 1/22/12  [EDGcpfe/12622]
 Add --c++03 command line option to eccp
 

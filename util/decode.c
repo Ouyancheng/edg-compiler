@@ -211,6 +211,7 @@ static char *demangle_operator(char                       *ptr,
                                a_boolean                  *takes_type,
                                a_boolean                  *is_new_style_cast,
                                a_boolean                  *is_postfix,
+                               a_boolean                  *need_adl_parens,
                                a_decode_control_block_ptr dctl);
 static char *demangle_type(char                       *ptr,
                            a_decode_control_block_ptr dctl);
@@ -1218,7 +1219,7 @@ position following what was demangled.
   char          *p = ptr, *operator_str, *close_str = "";
   int           op_length;
   unsigned long num_operands, i, num_dimensions;
-  a_boolean     takes_type, is_new_style_cast, is_postfix;
+  a_boolean     takes_type, is_new_style_cast, is_postfix, need_adl_parens;
   a_boolean     has_variable_number_of_operands = FALSE;
   a_boolean     is_call = FALSE, is_cli_subscript = FALSE;
 
@@ -1236,7 +1237,8 @@ position following what was demangled.
   p++;  /* Advance past the "O". */
   /* Decode the operator name, e.g., "pl" is "+". */
   operator_str = demangle_operator(p, &op_length, &takes_type,
-                                   &is_new_style_cast, &is_postfix, dctl);
+                                   &is_new_style_cast, &is_postfix,
+                                   &need_adl_parens, dctl);
   if (operator_str == NULL) {
     bad_mangled_name(dctl);
   } else {
@@ -1436,7 +1438,7 @@ position following what was demangled.
             /* Type operand. */
             p = demangle_type(p+1, dctl);
           } else {
-            p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+            p = demangle_expression(p, need_adl_parens, dctl);
           }  /* if */
           if (is_call) {
             /* This is a call to the target just emitted; the rest are
@@ -1665,6 +1667,7 @@ static char *demangle_operator(char                       *ptr,
                                a_boolean                  *takes_type,
                                a_boolean                  *is_new_style_cast,
                                a_boolean                  *is_postfix,
+                               a_boolean                  *need_adl_parens,
                                a_decode_control_block_ptr dctl)
 /*
 Examine the first few characters at ptr to see if they are an encoding for
@@ -1674,8 +1677,9 @@ in the encoding, and *takes_type to TRUE if the operator takes a type
 modifier (e.g., cast).  *is_new_style_cast is set to TRUE if the operator
 is a new style cast (and needs a closing '>' and expression emitted).
 *is_postfix is set to TRUE if the operator is a postfix operator (unary
-operators are typically emitted as prefix).  If the first few characters are
-not an operator encoding, return NULL.
+operators are typically emitted as prefix).  *need_adl_parens is set to TRUE
+if the operator is a call that requires parentheses to suppress ADL.
+If the first few characters are not an operator encoding, return NULL.
 */
 {
   char *s;
@@ -1684,6 +1688,7 @@ not an operator encoding, return NULL.
   *takes_type = FALSE;
   *is_new_style_cast = FALSE;
   *is_postfix = FALSE;
+  *need_adl_parens = FALSE;
   /* The length-3 codes are tested first to avoid taking their first two
      letters as one of the length-2 codes. */
   if (start_of_id_is("apl", ptr, dctl)) {
@@ -1790,6 +1795,9 @@ not an operator encoding, return NULL.
     s = "->";
   } else if (start_of_id_is("cl", ptr, dctl)) {
     s = "()";
+  } else if (start_of_id_is("cp", ptr, dctl)) {
+    *need_adl_parens = TRUE;
+    s = "()";
   } else if (start_of_id_is("vc", ptr, dctl)) {
     s = "[]";
   } else if (start_of_id_is("qs", ptr, dctl)) {
@@ -1887,11 +1895,11 @@ the demangled form, and *mangled_length to the length of the mangled form.
 {
   char      *s, *end_ptr;
   int       len;
-  a_boolean takes_type, is_new_style_cast, is_postfix;
+  a_boolean takes_type, is_new_style_cast, is_postfix, need_adl_parens;
 
   /* Get the operator name. */
   s = demangle_operator(ptr, &len, &takes_type, &is_new_style_cast, 
-                        &is_postfix, dctl);
+                        &is_postfix, &need_adl_parens, dctl);
   if (s != NULL) {
     /* Make sure we took the whole name and nothing more. */
     end_ptr = ptr + len;
@@ -3868,6 +3876,8 @@ static void demangle_type_second_part(
 static char *full_demangle_type(char                       *ptr,
                                 a_boolean                  parse_template_args,
                                 a_boolean                  is_pack_expansion,
+                                a_decode_control_block_ptr dctl);
+static char *demangle_simple_id(char                       *ptr,
                                 a_decode_control_block_ptr dctl);
 /*
 Macro to invoke full_demangle_type in the usual case where parse_template_args
@@ -6028,6 +6038,8 @@ The syntax is:
                                                                    <expression>
                ::= cl <expression>+ E                                   
                               # call
+               ::= cp <simple-id> <expression>* E
+                              # call (with ADL suppressed)
                ::= cv <type> <expression>                               
                               # conversion with one argument
                ::= cv <type> _ <expression>* E                          
@@ -6117,6 +6129,14 @@ Also, these non-standard expressions (EDG-specific) are demangled:
     /* Call expression: "cl <expression>+ E" */
     ptr += 2;
     ptr = demangle_expression(ptr, dctl);
+    ptr = demangle_expression_list(ptr, 'E', dctl);
+    ptr = advance_past('E', ptr, dctl);
+  } else if (*ptr == 'c' && ptr[1] == 'p') {
+    /* Call expression (w/ADL suppressed): "cp <simple-id> <expression>* E" */
+    ptr += 2;
+    write_id_ch('(', dctl);
+    ptr = demangle_simple_id(ptr, dctl);
+    write_id_ch(')', dctl);
     ptr = demangle_expression_list(ptr, 'E', dctl);
     ptr = advance_past('E', ptr, dctl);
   } else if (*ptr == 'c' && ptr[1] == 'v') {

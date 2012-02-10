@@ -5080,7 +5080,11 @@ this expression is part of a template-dependent expression.
   } else {
     /* Mangle as a call of some type. */
 #if IA64_ABI
-    add_str_to_mangled_name("cl", mctl);
+    if (expr->variant.operation.arg_dependent_lookup_suppressed_on_call) {
+      add_str_to_mangled_name("cp", mctl);
+    } else {
+      add_str_to_mangled_name("cl", mctl);
+    }  /* if */
 #else /* !IA64_ABI */
     /* Call.  Output has the form
          Ocl_1_1fI1IO <-- encoding for "f(p1)"
@@ -5088,11 +5092,15 @@ this expression is part of a template-dependent expression.
                  ^^^----- First argument.
                ^^-------- Call operand.
             ^^^---------- Count of arguments to call (with underscores).
-          ^^------------- Call operation.
+          ^^------------- Call operation ("cl" or "cp" -- if ADL suppressed).
          ^--------------- "O" for operation.
     */
     add_to_mangled_name('O', mctl);
-    add_str_to_mangled_name("cl", mctl);
+    if (expr->variant.operation.arg_dependent_lookup_suppressed_on_call) {
+      add_str_to_mangled_name("cp", mctl);
+    } else {
+      add_str_to_mangled_name("cl", mctl);
+    }  /* if */
     store_digits_and_underscore(1 + number_of_operands_in_list(arguments),
                                 /*old_form=*/FALSE, mctl);
 #endif /* IA64_ABI */
