@@ -8003,7 +8003,7 @@ argument deduction purposes.
         type_underlying = skip_typerefs(type_underlying);
         templ_type_underlying = skip_typerefs(templ_type_underlying);
       } else {
-        /* Remove any qualifiers.  This slightly different from the skip
+        /* Remove any qualifiers.  This is slightly different from the skip
            typerefs done above in Microsoft mode in that it removes
            qualifiers from array types. */
         type_underlying = make_unqualified_type(type_underlying);
