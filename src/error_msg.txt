@@ -2346,6 +2346,7 @@ ec_implements_must_precede_virtual_functions;;"an __implements list must precede
 ec_missing_implements_list;;"%t specified \"__implements ...\" in its list of bases, but is missing a matching __implements list"
 ec_unused_dereference_of_ref_class;;"the result of dereferencing a handle to a ref or interface class type must be used"
 ec_cl_old_for_init_cannot_be_used_with_cpp11;;"old for-init compatibility mode cannot be used with C++11 mode"
+ec_exp_rparen_and_pragma_ignored;;"expected a \")\"; pragma ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

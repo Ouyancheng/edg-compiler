@@ -397,7 +397,7 @@ curr_max_member_alignment.
   a_boolean            is_push = FALSE, is_pop = FALSE, is_show = FALSE;
   a_host_large_integer val;
   an_error_severity    severity;
-  a_boolean            updated = FALSE;
+  a_boolean            updated = FALSE, pragma_ignored = FALSE;
 
   db_enter(3, "pack_pragma");
   /* Save the stop token state, push a pragma scope, etc. */
@@ -533,6 +533,10 @@ curr_max_member_alignment.
     val = value_of_integer_constant(&const_for_curr_token, &err);
     if (is_show && microsoft_mode) {
       /* Ignore the constant. */
+    } else if (gnu_mode && next_token() != tok_rparen) {
+      /* In GNU mode, a malformed #pragma pack is ignored with a warning.
+         We do the same (the warning will be issued below). */
+      pragma_ignored = TRUE;
     } else if ((gnu_mode || sun_mode) && !err && val == 0) {
       /* In GNU and Sun modes, "#pragma pack(0)" is equivalent to
          "#pragma pack()". */
@@ -570,13 +574,18 @@ curr_max_member_alignment.
   remove_stop_token(tok_int_constant);
   /* Check for the closing parenthesis. */
   if ((microsoft_mode || gnu_mode) && curr_token != tok_rparen) {
-    /* Microsoft and GNU issue a warning. */
-    warning(ec_exp_rparen);
+    /* Microsoft and GNU issue a warning.  (In some cases, GCC ignores the
+       pragma.) */
+    if (pragma_ignored) {
+      pos_warning(ec_exp_rparen_and_pragma_ignored, &pos_curr_token);
+    } else {
+      pos_warning(ec_exp_rparen, &pos_curr_token);
+    }  /* if */
   } else {
     (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
   /* Restore the stop token array, pop the pragma scope, etc. */
-  wrapup_rescan_of_pragma_tokens(/*pragma_err=*/FALSE);
+  wrapup_rescan_of_pragma_tokens(pragma_ignored);
   if (updated) {
     /* Issue a diagnostic on a #pragma pack that appears within an
        instantiation or inline-defined member function definition. */
