@@ -4631,7 +4631,7 @@ return "Japanese_Japan.932".
                         buf, TMP_BUF_SIZE);
   check_assertion(chars != 0);
   add_to_text_buffer(locale_name_buffer, buf, chars-1);
-  chars = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_SENGCOUNTRY,
+  chars = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_SABBREVCTRYNAME,
                         buf, TMP_BUF_SIZE);
   check_assertion(chars != 0);
   add_char_to_text_buffer(locale_name_buffer, '_');

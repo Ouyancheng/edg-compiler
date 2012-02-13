@@ -1,5 +1,17 @@
 Version 4.5
 
+2/13/12  [EDGcpfe/12511]
+Microsoft compatibility: abort when using Hong Kong Unicode locale
+
+Windows versions with NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE set to
+TRUE would abort (in host_envir_early_init) if the system language for
+Unicode conversion was set to "Chinese (Traditional, Hong Kong S.A.R.)".
+This resulted from a defect in the Windows runtime where the value
+returned by the GetLocaleInfo function was not valid as an input to the
+_create_locale function.  We have now modified the code that constructs the
+system default locale to avoid this issue.
+
+
 2/10/12  [EDGcpfe/12648]
 The --old_for_init command line option cannot be used with C++11 mode
 
