@@ -8595,17 +8595,23 @@ the friend and decl_info describes the friend declaration overall.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-void decl_friend_class(a_type_ptr          class_type,
-                       a_type_ptr          friend_class_type)
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/*ARGSUSED*/ /* for_friend_template is not used in some configurations. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+void decl_friend_class(a_type_ptr  class_type,
+                       a_type_ptr  friend_class_type,
+                       a_boolean   for_friend_template)
 /*
-Do processing for declaring an entire class (friend_class_type) friend of
-the current class (class_type).
+Do processing for declaring an entire class (friend_class_type) friend of the
+current class (class_type).  If for_friend_template is TRUE, the befriended
+class was generated from a friend template rather than specified through an
+ordinary friend class declaration.
 */
 {
-  a_class_list_entry_ptr      clep;
-  a_class_type_supplement_ptr ctsp;
+  a_class_list_entry_ptr       clep;
+  a_class_type_supplement_ptr  ctsp;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_type_ptr  declared_type = friend_class_type;
+  a_type_ptr                   declared_type = friend_class_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   if (is_error_type(friend_class_type)) {
@@ -8680,14 +8686,16 @@ the current class (class_type).
 #endif /* DEBUG */
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    {
-    a_source_sequence_entry_ptr   ssep;
-
-    ssep = last_matching_source_sequence_entry((char *)declared_type);
-    if (ssep != NULL && ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
-      ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)->friend_decl = TRUE;
+    if (!for_friend_template) {
+      /* Find the source sequence entry corresponding to this friend
+         declaration (there is no such entry if the friendship is generated
+         from a friend template declaration). */
+      a_source_sequence_entry_ptr  ssep =
+                   last_matching_source_sequence_entry((char *)declared_type);
+      if (ssep != NULL && ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+        ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)->friend_decl = TRUE;
+      }  /* if */
     }  /* if */
-    }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 }  /* decl_friend_class */
@@ -18767,7 +18775,8 @@ done_with_sse_for_nonstandard_friend:;
            template-dependent type.  Constructs like "friend int;" do not
            have a semantic effect and therefore do not need a call to
            decl_friend_class. */
-        decl_friend_class(class_type, member_type);
+        decl_friend_class(class_type, member_type,
+                          /*for_friend_template=*/FALSE);
       }  /* if */
     }  /* if */
   } else {

@@ -209,8 +209,9 @@ extern
 void update_friend_function_info(a_routine_ptr rout_ptr,
                                  a_type_ptr    class_type);
 
-extern void decl_friend_class(a_type_ptr          class_type,
-			      a_type_ptr          friend_class_type);
+extern void decl_friend_class(a_type_ptr  class_type,
+			      a_type_ptr  friend_class_type,
+                              a_boolean   for_friend_template);
 
 extern a_symbol_ptr member_function_redecl_sym(
                                        a_symbol_ptr          sym,

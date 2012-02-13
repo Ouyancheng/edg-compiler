@@ -1287,7 +1287,8 @@ class a friend and update the friend information.
             test does not use same_entities, so there may be some kinds of
             cross-translation unit friend declarations that could still result
             in self-friendship. */
-        decl_friend_class(clep->class_type, class_type);
+        decl_friend_class(clep->class_type, class_type,
+                          /*for_friend_template*/TRUE);
       }  /* if */
     }  /* for */
     if (tssp->prototype_template != NULL) {
@@ -13787,7 +13788,7 @@ been instantiated, update the befriending information for the instances.
             test does not use same_entities, so there may be some kinds of
             cross-translation unit friend declarations that could still result
             in self-friendship. */
-        decl_friend_class(class_declared_in, tp);
+        decl_friend_class(class_declared_in, tp, /*for_friend_template*/TRUE);
       }  /* if */
     }  /* if */
   }  /* for */
