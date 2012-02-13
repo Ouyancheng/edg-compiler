@@ -3765,9 +3765,17 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                                       is_class_definition, &tag_position);
       }  /* if */
       if (cli_type_kind != ctsp->cli_class_type_kind) {
-        /* Diagnose inconsistent C++/CLI class type kinds. */
-        pos_sy_error(ec_conflicting_cli_class_type_kinds, &tag_position,
-                     tag_sym);
+        /* Diagnose inconsistent C++/CLI class type kinds, except if the class
+           is imported from metadata and the current code is not from
+           metadata. */
+        if (class_is_from_metadata(class_type) &&
+            cli_type_kind == (a_cli_class_type_kind)cctk_standard &&
+            !scanning_generated_code_from_metadata) {
+          /* The Microsoft compiler accepts e.g. "class System::ValueType". */
+        } else {
+          pos_sy_error(ec_conflicting_cli_class_type_kinds, &tag_position,
+                       tag_sym);
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -1,5 +1,17 @@
 Version 4.5
 
+2/13/12  [EDGcpfe/12674]
+C++/CLI: Inconsistent elaborated names for managed classes from metadata
+
+When referring to a managed class type imported from metadata in C++/CLI mode,
+the front end now accepts an elaborated name of the form "class X" or
+"struct X" (previously, a name like "ref struct X" or "value class X" was
+required).  For example:
+
+  void f(class System::ValueType ^h);  // Now Accepted in C++/CLI mode.
+                                       // (Previously an error.)
+
+
 2/13/12  [EDGcpfe/12511]
 Microsoft compatibility: abort when using Hong Kong Unicode locale
 
