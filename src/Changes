@@ -1,5 +1,13 @@
 Version 4.5
 
+2/13/12  [EDGcpfe/12673]
+Performance of cases with many friend class templates
+
+Very large translation units containing very large numbers of friend class
+template declarations could result in unusually slow compilation performance.
+This is now fixed.
+
+
 2/13/12  [EDGcpfe/12669]
 GNU compatibility: Severity of malformed #pragma pack directive
 
