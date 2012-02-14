@@ -1,6 +1,6 @@
 Version 4.5
 
-2/23/09  [EDGcpfe/12118]
+2/14/12  [EDGcpfe/12118]
 GNU C++ compatibility: extra template parameter list on partial specialization
 
 We previously made a change to issue a discretionary error (instead of
