@@ -1,5 +1,26 @@
 Version 4.5
 
+2/14/12  [EDGcpfe/12641]
+C++-generating back end, GNU compatibility: member functions of class
+templates used as nontype template arguments
+
+The g++ compiler has a bug that reports spurious errors if the unqualified
+name of a member function of a class template is used as a nontype template
+argument within the scope of the class template.  In configurations with
+PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the C++-generating back end
+triggered this bug by qualifying such member function names only when they
+were hidden at the point of reference.  It has now been changed to use a
+qualified name in such contexts if gcc_is_generated_code_target is TRUE.
+For example:
+
+  template<void (*)()> struct A { };
+  template<typename T> struct B {
+    static void f();
+    A<B::f> af;   // Previously generated as A< f>, now as A< ::B< T> ::f>
+  };
+  B<int> bi;
+
+
 2/13/12  [EDGcpfe/12673]
 Performance of cases with many friend class templates
 

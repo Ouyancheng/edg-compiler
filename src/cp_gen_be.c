@@ -5233,16 +5233,32 @@ Routine to be called by the il_to_str routines to output a name.
   } else if (kind == iek_variable) {
     gen_variable_name((a_variable_ptr)entry);
   } else {
-    a_gen_name_options_set options = GN_NO_OPTIONS;
-    a_boolean              saved_force_qualified_name =
+    a_source_correspondence_ptr scp = (a_source_correspondence_ptr)entry;
+    a_boolean                   saved_qualification_needed =
+                                                     scp->qualification_needed;
+    a_gen_name_options_set      options = GN_NO_OPTIONS;
+    a_boolean                   saved_force_qualified_name =
                                                      octl.force_qualified_name;
     if (octl.force_qualified_name) {
       options |= GN_FORCE_QUALIFIED_NAME;
       octl.force_qualified_name = FALSE;
     }  /* if */
+    if (gcc_is_generated_code_target && kind == iek_routine &&
+        octl.processing_nontype_template_argument &&
+        scp->is_class_member &&
+        scp_parent_class(scp)->
+                       variant.class_struct_union.is_prototype_instantiation &&
+        class_is_in_name_context_stack(scp_parent_class(scp),
+                                       /*include_base_classes=*/FALSE)) {
+      /* g++ has a bug that requires use of a qualified name when a member
+         function of a class template is used as a nontype template argument
+         within the scope of the class template. */
+      scp->qualification_needed = TRUE;
+    }  /* if */
     gen_name((a_source_correspondence *)entry, kind, options,
              (a_boolean *)NULL);
     octl.force_qualified_name = saved_force_qualified_name;
+    scp->qualification_needed = saved_qualification_needed;
   }  /* if */
 }  /* gen_name_reference */
 

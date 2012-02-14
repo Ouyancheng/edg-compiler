@@ -298,6 +298,12 @@ typedef struct an_il_to_str_output_control_block {
 			   source; parameters added by lowering, such as
 			   "this" and pointers to return values, will be
 			   omitted. */
+  a_byte_boolean
+	processing_nontype_template_argument;
+			/* Set to TRUE by the il_to_str routines when
+			   calling the output_name routine to indicate that
+			   the name appears in the context of a nontype
+			   template argument. */
 } an_il_to_str_output_control_block;
 
 /*

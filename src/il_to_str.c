@@ -112,6 +112,7 @@ Clear an output control block to default values.
   octl->suppress_template_args    = FALSE;
   octl->suppress_ptr_to_data_member_parens = FALSE;
   octl->suppress_compiler_generated_parameters = FALSE;
+  octl->processing_nontype_template_argument = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -309,6 +310,7 @@ Output the indicated template argument in the way described by octl.
       break;
     case tak_nontype:
       /* Nontype argument. */
+      octl->processing_nontype_template_argument = TRUE;
       if (tap->is_array_bound_of_unknown_type) {
         /* The template argument is a deduced array bound whose type is not
            yet known (we know its value, but we don't yet know its type). */
@@ -361,6 +363,7 @@ Output the indicated template argument in the way described by octl.
 #endif /* BACK_END_IS_CP_GEN_BE */
         }  /* if */
       }
+      octl->processing_nontype_template_argument = FALSE;
       break;
     case tak_template:
       /* A template template argument. */
@@ -385,6 +388,8 @@ is put out.
 */
 {
   if (tap != NULL) {
+    a_boolean saved_nontype_tpl_arg =
+                                    octl->processing_nontype_template_argument;
 #if BACK_END_IS_CP_GEN_BE
     an_output_name_reference_function_ptr saved_output_name_reference =
                                                    octl->output_name_reference;
@@ -402,6 +407,7 @@ is put out.
       octl->output_name_reference = NULL;
     }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
+    octl->processing_nontype_template_argument = FALSE;
     octl->output_str("<", octl);
     if (octl->gen_compilable_code) {
       /* When generating compilable code, put out a space after the
@@ -431,6 +437,7 @@ is put out.
 #if BACK_END_IS_CP_GEN_BE
     octl->output_name_reference = saved_output_name_reference;
 #endif /* BACK_END_IS_CP_GEN_BE */
+    octl->processing_nontype_template_argument = saved_nontype_tpl_arg;
   }  /* if */
 }  /* form_template_args */
 
