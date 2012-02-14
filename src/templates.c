@@ -15993,7 +15993,7 @@ friend_template_checks_done:
     if (gpp_mode && allow_extra_gpp_mode_param_clauses(decl_state)) {
       /* g++ allows a partial specialization to have additional
          empty template parameter clauses. */
-      severity = es_discretionary_error;
+      severity = es_warning;
     } else {
       decl_state->decl_scope_err = TRUE;
     }  /* if */
