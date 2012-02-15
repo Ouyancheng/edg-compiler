@@ -1163,10 +1163,11 @@ exclude dependent bases from unqualified name lookup.
     /* Nonreal classes are treated as belonging to the global scope but
        should not be qualified. */
     member_of_curr_instantiation = TRUE;
-  } else if (parent_scope->kind == (a_scope_kind)sck_function) {
-    /* Because a template must be defined in a namespace scope, we can
-       assume without scanning that a name with function scope is a member
-       of the current instantiation. */
+  } else if (parent_scope->kind == (a_scope_kind)sck_function ||
+             parent_scope->kind == (a_scope_kind)sck_block ||
+             parent_scope->kind == (a_scope_kind)sck_condition) {
+    /* We can assume without scanning that a name declared inside a
+       function is a member of the current instantiation. */
     member_of_curr_instantiation = TRUE;
   } else if (parent_scope->kind == (a_scope_kind)sck_template_declaration) {
     /* This is a template parameter, which can't be qualified in any event. */
