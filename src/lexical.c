@@ -16523,12 +16523,18 @@ selection operator, in which case it points to the type of the left operand.
         if (curr_token != tok_identifier ||
             ((next_tok != qualifier_separator &&
               (!(microsoft_bugs && microsoft_version <= 1400) ||
-               (is_qualified_name && next_tok != tok_period))) &&
+               (is_qualified_name &&
+                (next_tok != tok_period ||
+                 (qualifier_is_type &&
+                  is_template_dependent_type(qualifier_type)))))) &&
              next_tok != tok_lt &&
              !is_template)) {
           /* Not an identifier followed by "::" or "<", so end the loop.  In
              Microsoft bugs mode a "." can be used in place of "::" in some
-             cases. */
+             cases.  Don't allow this usage if the qualifier is dependent
+             because we can't tell which usage was intended, so we need
+             to take the conservative approach of treating it as a field
+             selection operator. */
           break;
         }  /* if */
         /* There is another level of qualification.  Search for the identifier

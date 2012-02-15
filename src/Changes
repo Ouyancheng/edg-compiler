@@ -1,5 +1,29 @@
 Version 4.5
 
+2/15/12  [EDGcpfe/12343]
+Microsoft compatibility: incorrect handling of "." with --parse_templates
+
+In Microsoft bugs mode a "." is sometimes allowed in place of "::" in
+qualified names.  If --parse_templates is used with microsoft_version <= 1400
+a "." was incorrectly treated as a "::" when scanning a qualified name
+in which the qualifier was a dependent type.  This resulted in incorrect
+IL for the prototype instantiation of the function and could result
+in incorrect output from the C++-generating back end.  Now fixed.
+
+  struct A {
+    void f();
+  };
+  template<class T> struct B {
+    A a;
+  };
+  template<class T> struct C : B<T> {
+    C() {
+      B<T>::a.f();  // incorrectly emitted as B<T>::a::f
+    }
+  };
+  C<int> c;
+
+
 2/15/12  [EDGcpfe/12663]
 GNU C++ compatibility: access checking in SFINAE contexts
 
