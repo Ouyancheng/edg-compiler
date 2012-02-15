@@ -1,5 +1,28 @@
 Version 4.5
 
+2/15/12  [EDGcpfe/12663]
+GNU C++ compatibility: access checking in SFINAE contexts
+
+Version 4.4 introduces a change to perform access checking in C++11
+SFINAE processing (see 12/15/11 entry).  This processing was not intended
+to be done in g++ mode, but certain parts of the access checking were
+inadvertently enabled in g++ mode even when new style SFINAE was not
+enabled.  This caused the example below to call the f(...) function
+instead of issuing an access error when gnu_version < 30400.  Now fixed.
+
+template <typename A> class S {
+   class T {};
+};
+
+template <typename A> typename A::T* f (A) { return 0; }
+void f(...);
+
+int main() {
+  f(S<int>());
+}
+
+
+
 2/14/12  [EDGcpfe/12118]
 GNU C++ compatibility: extra template parameter list on partial specialization
 

@@ -4153,7 +4153,9 @@ diagnostics, if that changes the control flow.
     if (expr_stack->template_deduction_context) {
       /* Depending on configuration and command-line options, access errors
          may or may not cause deduction failure. */
-      if (cpp11_sfinae_ignore_access) check_access = FALSE;
+      if (!cpp11_sfinae_enabled || cpp11_sfinae_ignore_access) {
+        check_access = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return check_access;
