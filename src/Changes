@@ -10,17 +10,14 @@ inadvertently enabled in g++ mode even when new style SFINAE was not
 enabled.  This caused the example below to call the f(...) function
 instead of issuing an access error when gnu_version < 30400.  Now fixed.
 
-template <typename A> class S {
-   class T {};
-};
-
-template <typename A> typename A::T* f (A) { return 0; }
-void f(...);
-
-int main() {
-  f(S<int>());
-}
-
+  template <typename A> class S {
+    class T {};
+  };
+  template <typename A> typename A::T* f (A) { return 0; }
+  void f(...);
+  int main() {
+    f(S<int>());
+  }
 
 
 2/14/12  [EDGcpfe/12118]
