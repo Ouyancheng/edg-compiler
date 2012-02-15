@@ -1,5 +1,25 @@
 Version 4.5
 
+2/15/12  [EDGcpfe/12403]
+Improved error recovery on some malformed C++/CLI declarations
+
+When an identifier that can be a C++/CLI context-sensitive specifier keyword
+(like "property" or "event") is not followed by a valid type specifier, the
+front end previously always assumed that the identifier should not be treated
+as a keyword.  To improve error recovery, the assumption is now made the other
+way in some clear error cases.  For example:
+
+  ref class S {
+    property bad_id p1 {  // Undeclared "bad_id" previously resulted in a
+      bad_id get();       // syntax error that caused the declaration of p2
+    }                     // below to be skipped.  Now parsing proceeds with
+                          // an ordinary error (no tokens are dropped).
+    property int p2 {
+      int get();
+    }
+  };
+
+
 2/15/12  [EDGcpfe/11474]
 GNU C++ compatibility: use of injected class template name in derived class
 

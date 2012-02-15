@@ -19514,8 +19514,21 @@ sensitive keywords.
       if (curr_type_symbol(/*is_new_type_name=*/FALSE,
                            /*in_prescan=*/TRUE,
                            /*in_type_check=*/FALSE) == NULL) {
-        /* The current identifier is not a type.  So it must be a declarator-id
-           and the potential context-sensitive keyword must be a type name. */
+        /* The current identifier is not a type.  So it should be a
+           declarator-id and the potential context-sensitive keyword should be
+           a type name.  However, in some error cases better error recovery is
+           achieved if the identifier is assumed to be a mistyped type name. */
+        cache_curr_token(cache);
+        (void)get_token();
+        if (curr_token == tok_identifier || curr_token == tok_star ||
+            curr_token == tok_ampersand || curr_token == tok_and_and ||
+            curr_token == tok_excl_or || curr_token == tok_remainder) {
+          /* The next token is clearly a declarator.  Assume the identifier
+             was meant to be a type name. */
+          expect_error();
+          result = TRUE;
+          goto done;
+        }  /* if */
         break;
       } else {
         /* The current identifier can be resolved as a type.  It is not a type
