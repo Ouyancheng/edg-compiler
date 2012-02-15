@@ -972,6 +972,8 @@ extern void report_gnu_postfix_attributes_on_function_definition(
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 extern void add_src_seq_end_of_variable_if_needed(a_decl_parse_state  *dps);
+
+extern void add_src_seq_end_of_routine_if_needed(a_decl_parse_state  *dps);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 extern void scan_nonmember_declaration(

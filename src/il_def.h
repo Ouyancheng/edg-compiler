@@ -12404,6 +12404,20 @@ typedef struct a_routine {
   a_bit_field	contains_local_static_variable:1;
 			/* TRUE if the function body contains at least one
 			   local static variable. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_bit_field	embedded_source_sequence_entries:1;
+			/* TRUE if the definition of this routine embeds in its
+			   declarator another construct with associated source
+			   sequence entries.  For example:
+			     int (*f())[sizeof(struct { int x; })] { ... }
+			   In this example, the source sequence entry for the
+			   struct definition is considered "embedded".  In
+			   such cases, the embedded entries are followed by an
+			   a_src_seq_end_of_construct for this routine.  A
+			   similar flag exists in a_src_seq_secondary_decl for
+			   declarations of functions that are not
+			   definitions. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier

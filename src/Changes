@@ -1,5 +1,22 @@
 Version 4.5
 
+2/15/12  [EDGcpfe/12617]
+Rendering of function declarations with trailing embedded type definitions
+
+The C++-generating back end previously could not correctly render a function
+declaration that included a trailing array or function declarator (part of the
+return type) with an embedded type definition (permitted in GNU C mode).
+For example:
+
+  int (*f())[sizeof(struct { int x: 1; })];
+     // Previously, the C++-generating incorrectly generated the embedded
+     // struct definition.
+
+This is now fixed.  The fix required an IL CHANGE (a new end-of-construct
+marker is appended after the source sequence entries describing declarations
+embedded after the entry for the function itself).
+
+
 2/15/12  [EDGcpfe/12343]
 Microsoft compatibility: incorrect handling of "." with --parse_templates
 

@@ -12301,6 +12301,7 @@ implicitly declared member functions.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     wrapup_sse_for_simple_decl(decl_state);
+    add_src_seq_end_of_routine_if_needed(decl_state);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (func_info->is_definition) {
       /* Since this is a definition, record the current lint argsused and

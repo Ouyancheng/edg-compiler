@@ -2059,6 +2059,29 @@ autonomous may be skipped.  E.g.:
   f_skip_embedded_declarations(/*end_of_construct_marked=*/FALSE);
 
 
+#if !CHECKING
+/*ARGSUSED*/ /* entry is not used is some configurations. */
+#endif /* !CHECKING */
+static void skip_end_of_embedded_constructs(char  *entry)
+/*
+The given (variable or routine) entry was declared with "embedded declarations"
+that have been skipped with a call to f_skip_embedded_declarations.  However,
+the end-of-construct marker is still in the source sequence entry stream,
+possibly preceded by preprocessing directives: Skip these now.
+*/
+{
+  a_src_seq_end_of_construct_ptr ssecp;
+
+  advance_past_preprocessing_directives();
+  check_assertion(ss_entry_kind(curr_source_sequence_entry) ==
+                              (an_il_entry_kind)iek_src_seq_end_of_construct);
+  ssecp = ss_entry_ptr(curr_source_sequence_entry,
+                       a_src_seq_end_of_construct_ptr);
+  check_assertion(ss_entry_ptr(ssecp, char*) == entry);
+  adv_curr_source_sequence_entry();
+}  /* skip_end_of_embedded_constructs */
+
+
 static void end_output_line(void)
 /*
 End the current line of output.
@@ -14457,17 +14480,7 @@ this one is such a continuation.
     gen_initializer(var, is_condition);
   }  /* if */
   if (embedded_constructs) {
-    /* Skip the end-of-construct marker.  Also skip preprocessing directives
-       (they were processed in the call to skip_embedded_declarations). */
-    a_src_seq_end_of_construct_ptr ssecp;
-    advance_past_preprocessing_directives();
-    check_assertion(ss_entry_kind(curr_source_sequence_entry) ==
-                              (an_il_entry_kind)iek_src_seq_end_of_construct);
-    ssecp = ss_entry_ptr(curr_source_sequence_entry,
-                         a_src_seq_end_of_construct_ptr);
-    check_assertion(ss_entry_kind(ssecp) == iek_variable &&
-                    ss_entry_ptr(ssecp, a_variable_ptr) == var);
-    adv_curr_source_sequence_entry();
+    skip_end_of_embedded_constructs((char*)var);
   }  /* if */
   /* Output the semicolon or comma at the end of the declaration, but not
      for a condition, "for each" or range-based-for iterator. */
@@ -14720,6 +14733,7 @@ declarator (or NULL if it wasn't recorded).
   a_source_correspondence_ptr  scp = &rout->source_corresp;
   a_name_context_ptr           name_context_for_access_reset = NULL;
   a_type_ptr                   parent_class;
+  a_boolean                    state_was_saved = FALSE;
 
   *context_pop_needed = FALSE;
   parent_class = (scp->is_class_member) ? scp_parent_class(scp) : NULL;
@@ -14847,6 +14861,7 @@ declarator (or NULL if it wasn't recorded).
     if (is_definition && !rout->is_defaulted && !rout->is_deleted) {
       /* Follow the source sequence list for the function. */
       save_source_sequence_scan_state(saved_state);
+      state_was_saved = TRUE;
       curr_source_sequence_entry = scope->source_sequence_list;
       adv_to_signif_source_sequence_entry();
     }  /* if */
@@ -14863,8 +14878,33 @@ declarator (or NULL if it wasn't recorded).
       /* Put out the remainder of the return type.  If the routine type is
          expressed with a trailing return type, the return type was already
          emitted as part of the declarator. */
+      a_boolean  embedded_constructs =
+                sec_decl == NULL ? rout->embedded_source_sequence_entries
+                                 : sec_decl->embedded_source_sequence_entries;
+      a_source_sequence_scan_state  curr_state;
+      if (embedded_constructs) {
+        if (state_was_saved) {
+          /* We may have advanced past declarative entries to get to entries
+             for the definition when adv_to_signif_source_sequence_entry.
+             Temporarily restore the state to before that so embedded
+             declarations can be encountered. */
+          save_source_sequence_scan_state(&curr_state);
+          restore_source_sequence_scan_state(saved_state);
+        }  /* if */
+        f_skip_embedded_declarations(/*end_of_construct_marked=*/TRUE);
+      }  /* if */
       form_type_second_part_simple(rout_type->variant.routine.return_type,
                                    /*under_lhs_declarator=*/FALSE, &octl);
+      if (embedded_constructs) {
+        skip_end_of_embedded_constructs((char*)rout);
+        if (state_was_saved) {
+          /* Update the saved state to beyond any embedded declarations, and
+             then restore the current source sequence entry to that for the
+             definition. */
+          save_source_sequence_scan_state(saved_state);
+          restore_source_sequence_scan_state(&curr_state);
+        }  /* if */
+      }  /* if */
     }  /* if */
     /* Restore the routine type in case it was changed above. */
     rout->type = saved_routine_type;

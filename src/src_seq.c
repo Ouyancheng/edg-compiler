@@ -98,6 +98,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           db_name(&((a_variable_ptr)sseocp->entity.ptr)->source_corresp);
           fputc('"', f_debug);
           break;
+        case iek_routine:
+          fputc('"', f_debug);
+          db_name(&((a_routine_ptr)sseocp->entity.ptr)->source_corresp);
+          fputc('"', f_debug);
+          break;
         default:
           fprintf(f_debug, "***BAD END-OF-CONSTRUCT KIND %s***",
                            il_entry_kind_names[(int)sseocp->entity.kind]);
@@ -2458,6 +2463,37 @@ that should be processed.
 }  /* drop_variable_decl_from_src_seq_list */
 
 
+static a_source_sequence_entry_ptr drop_routine_decl_from_src_seq_list(
+                                       a_source_sequence_entry_ptr  rout_ssep)
+/*
+rout_ssep is a source sequence entry for a function declaration that will be
+removed from the IL.  Remove any additional source sequence entries only used
+for its declarator, and return the next source sequence entry that should be
+processed.
+*/
+{
+  a_boolean                    embedded_entries;
+  a_source_sequence_entry_ptr  next_ssep;
+                  
+  if (ss_entry_kind(rout_ssep) == iek_routine) {
+    embedded_entries = ss_entry_ptr(rout_ssep, a_routine_ptr)
+                                           ->embedded_source_sequence_entries;
+  } else {
+    embedded_entries = ss_entry_ptr(rout_ssep, a_src_seq_secondary_decl_ptr)
+                                           ->embedded_source_sequence_entries;
+  }  /* if */
+  if (embedded_entries) {
+    /* Source sequence entries were recorded for the declarator.  Remove them,
+       unless they are associated with IL that should be kept in the IL. */
+    eliminate_unneeded_src_seq_entries_from_construct(rout_ssep);
+  }  /* if */
+  /* Remove the entry for the function declaration itself. */
+  next_ssep = rout_ssep->next;
+  remove_src_seq_entry(rout_ssep);
+  return next_ssep;
+}  /* drop_routine_decl_from_src_seq_list */
+
+
 static a_source_sequence_entry_ptr drop_from_fs_src_seq_list(
                                              a_source_sequence_entry_ptr  ssep)
 /*
@@ -2488,6 +2524,13 @@ sequence entry that follows the entry or entries removed.
     /* A variable declaration.  Additional entries associated with the
        declarator or initializer may need to be dropped. */
     next_ssep = drop_variable_decl_from_src_seq_list(ssep);
+  } else if (ss_entry_kind(ssep) == iek_routine ||
+             (ss_entry_kind(ssep) == iek_src_seq_secondary_decl &&
+              ss_entry_kind(ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr))
+                                                            == iek_routine)) {
+    /* A function declaration.  Additional entries associated with the
+       declarator may need to be dropped. */
+    next_ssep = drop_routine_decl_from_src_seq_list(ssep);
   } else {
     /* Link around ssep and return its successor in the list. */
     next_ssep = ssep->next;

@@ -2608,6 +2608,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_defaulted                = FALSE;
   rp->is_deleted                  = FALSE;
   rp->contains_local_static_variable = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  rp->embedded_source_sequence_entries = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

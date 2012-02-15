@@ -8389,6 +8389,7 @@ skip_overloading:;
   } else {
     routine_ptr->declared_storage_class = dps->declared_storage_class;
   }  /* if */
+  add_src_seq_end_of_routine_if_needed(dps);
   source_sequence_entries_disallowed = saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (is_function_def) {
@@ -14633,6 +14634,39 @@ function parameter declaration: This routine does nothing in that case.
                               (char *)vp, (a_byte_il_entry_kind)iek_variable);
   }  /* if */
 }  /* add_src_seq_end_of_variable_if_needed */
+
+
+void add_src_seq_end_of_routine_if_needed(a_decl_parse_state  *dps)
+/*
+A function or member function declaration has been processed.  If that
+declaration triggered the creation of source sequence entries for constructs
+it embeds in its declarator, insert an end-of-construct source sequence entry.
+This allows source sequence entries associated with a declarator to be
+distinguished from those that follow the declarator.  For example:
+    int (*f())[sizeof(struct { int x; })];
+And end-of-construct entry is added after the source sequence entries for the
+embedded struct declaration.
+*/
+{
+  a_source_sequence_entry_ptr  ssep = dps->source_sequence_entry;
+
+  check_assertion(dps->sym != NULL);
+  if (ssep != NULL && ssep->next != NULL &&
+      is_simple_function_symbol(dps->sym)) {
+    /* The source sequence entry associated with the routine declaration is
+       followed by entries for embedded constructs. */
+    a_routine_ptr  rp = dps->sym->variant.routine.ptr;
+    if (ss_entry_kind(ssep) == iek_routine) {
+      rp->embedded_source_sequence_entries = TRUE;
+    } else {
+      check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
+      ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)
+                                    ->embedded_source_sequence_entries = TRUE;
+    }  /* if */
+    add_end_of_construct_source_sequence_entry(
+                               (char *)rp, (a_byte_il_entry_kind)iek_routine);
+  }  /* if */
+}  /* add_src_seq_end_of_routine */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if USER_CONTROL_OF_STRUCT_PACKING
