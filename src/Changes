@@ -1,5 +1,17 @@
 Version 4.5
 
+2/16/12  [EDGcpfe/12574]
+C++/CLI: Using-declarations and access declarations in managed classes
+
+Using-declarations and access declarations appearing in managed class
+definitions now result in an error.  For example:
+
+  ref struct B { void f(); };
+  ref struct D: B {
+    using B::f;  // Now an error.
+  };
+
+
 2/15/12  [EDGcpfe/12237]
 Microsoft compatibility: Scope of out-of-class member enumerator constants
 
