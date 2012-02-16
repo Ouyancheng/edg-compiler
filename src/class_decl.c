@@ -18013,9 +18013,11 @@ distinguish an alias declaration from a using-declaration.)
        ARM but now deprecated with the addition of using-declarations to the
        language). */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled && is_managed_class_type(class_type)) {
     pos_error(ec_using_or_access_declaration_in_managed_class, &using_pos);
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Coalesce the identifier, which should be a qualified name with a class
      qualifier where the class is a base class of the current class (as
      indicated by class_type). */
