@@ -22456,6 +22456,9 @@ See scan_generic_constraint_clauses for syntax details.
       check_assertion(symbol_is(sym, sk_type));
       param_type = sym->variant.type.ptr;
       check_assertion(param_type->kind == (a_type_kind)tk_template_param);
+      record_symbol_reference(SRK_REFERENCE, sym,
+                              &locator_for_curr_id.source_position,
+                              /*update_il_entry=*/FALSE);
       if (param_type->variant.template_param.extra_info->
                                                generic_constraints != NULL) {
         /* The parameter already has a constraint. */
