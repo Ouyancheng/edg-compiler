@@ -18,8 +18,9 @@ C++-generating back end: incorrect qualification on condition name
 
 In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
 C++-generating back end sometimes incorrectly added a global qualifier "::"
-when referring to the name of a condition appearing in a member function
-of a class with a dependent base class.  This is now fixed.  For example:
+when referring to the name of a variable declared in a condition appearing
+in a member function of a class with a dependent base class.  This is now
+fixed.  For example:
 
   void g(int);
   template <class T> struct B {};
