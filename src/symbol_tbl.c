@@ -5731,6 +5731,7 @@ symbol table.  (That implies that it will be added to the "inactive list" for
 the corresponding symbol header.)
 */
 {
+  check_assertion(sym->is_class_member);
   add_symbol_to_symbol_table(sym, NO_SCOPE_DEPTH, /*suppress_error=*/FALSE);
 }  /* enter_symbol_into_completed_class */
 
