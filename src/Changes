@@ -1,5 +1,36 @@
 Version 4.5
 
+2/16/12  [EDGcpfe/12685]
+C++-generating back end: omitted qualification in friend declaration
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+C++-generating back end sometimes put out the name of a friend class or
+friend function without the necessary qualifier.  This occurred in two
+specific situations.  The first case involves a friend declaration naming
+an instance of a template that is hidden in the scope containing the
+friend declaration:
+
+  namespace N {
+    template <typename T> class A {};
+    class B {
+      typedef N::A<B> A;     // Hides N::A
+      friend class N::A<B>;  // Previously generated as A<B>
+    };
+  }
+
+The second case occurs when a friend declaration in a class nested in a
+class template names a member function of the class template:
+
+  template<typename T> struct O {
+    void f() const;
+    struct I {
+      friend void O::f() const;  // Previously generated without "O::"
+    };
+  };
+
+These are now fixed.
+
+
 2/16/12  [EDGcpfe/12574]
 C++/CLI: Using-declarations and access declarations in managed classes
 

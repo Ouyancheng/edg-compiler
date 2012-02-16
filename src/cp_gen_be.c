@@ -406,6 +406,10 @@ typedef int a_gen_name_options_set;
 			   qualifier (used to work around a g++ bug that
 			   issues errors when the "template" keyword is not
 			   strictly needed). */
+#define GN_FRIEND_DECL 0x1000
+			/* Used with GN_DECLARATION to indicate that the
+			   name being declared is in a "friend"
+			   declaration. */
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 /*
@@ -3451,7 +3455,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       if (!force_qualified_name &&
           if_microsoft_extensions(!scp->member_of_unknown_super &&)
           (!scp->qualification_needed ||
-           (options & GN_DECLARATION) ||
+           ((options & GN_DECLARATION) && !(options & GN_FRIEND_DECL)) ||
            (scp->partially_hidden_by_microsoft_injected_class_name &&
             msvc_target_version_number < 1300 &&
             !(options & GN_QUALIFIER))) &&
@@ -3557,7 +3561,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       /* The entity is a member of a namespace. */
       a_namespace_ptr nsp = scp_parent_namespace(scp);
       if (!force_qualified_name &&
-          (!scp->qualification_needed || (options & GN_DECLARATION)) &&
+          (!scp->qualification_needed ||
+           ((options & GN_DECLARATION) && !(options & GN_FRIEND_DECL))) &&
           (scp->visible_as_unqualified_name ||
            scope_is_in_name_context_stack(nsp->variant.assoc_scope)) &&
           /* MSVC++ 7.0 does not always correctly parse "class S<x>::N {}",
@@ -4409,7 +4414,7 @@ declaration.
       gen_template_arguments(scp, iek_routine, -1L);
     }  /* if */
   } else {
-    a_gen_name_options_set options = GN_DECLARATION;
+    a_gen_name_options_set options = GN_DECLARATION | GN_FRIEND_DECL;
     if (omit_template_args) {
       options |= GN_NO_TEMPLATE_ARGS;
     }  /* if */
@@ -7587,7 +7592,7 @@ this one is such a continuation.
          that is never defined, generate a reference to the type instead
          of a definition. */
       a_boolean saved_has_been_declared;
-      a_gen_name_options_set options = GN_NO_OPTIONS;
+      a_gen_name_options_set options = GN_DECLARATION;
       adv_curr_source_sequence_entry();
       /* For a friend, put out the "friend" prefix. */
       if (friend_decl) {
@@ -7604,9 +7609,10 @@ this one is such a continuation.
              declared is limited to that scope, if the type being declared
              here is not a member of that namespace, the name must be
              qualified. */
-          options = GN_FORCE_QUALIFIED_NAME;
+          options |= GN_FORCE_QUALIFIED_NAME;
         }  /* if */
         write_tok_str("friend ");
+        options |= GN_FRIEND_DECL;
       }  /* if */
       if (is_immediate_class_type(type) && class_type_supp(type) != NULL &&
           class_type_supp(type)->template_arg_list != NULL) {
@@ -7616,7 +7622,7 @@ this one is such a continuation.
         type->has_been_declared = TRUE;
       }  /* if */
       saved_has_been_declared = type->has_been_declared;
-      gen_tag_reference(type, options | GN_DECLARATION, attributes);
+      gen_tag_reference(type, options, attributes);
       if (friend_decl) {
         /* Don't set type->has_been_declared for a friend declaration: it will
            not be visible until it is really declared and so will require an
