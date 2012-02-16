@@ -5199,9 +5199,18 @@ dsi_flags is the set of input flags passed to decl_specifiers.
           }  /* if */
         }  /* if */
         /* Enter the enumeration constant identifier. */
-        enum_sym = enter_local_symbol((a_symbol_kind)sk_constant, &locator,
-                                      decl_scope_level,
-                                      /*suppress_redecl_error=*/FALSE);
+        if (class_reactivation_pushed && !is_scoped_enum) {
+          /* enter_local_symbol cannot be used to add a symbol to a completed
+             class scope.  Use enter_symbol_into_completed_class instead. */
+          enum_sym = make_symbol((a_symbol_kind)sk_constant, &locator);
+          enum_sym->is_class_member = TRUE;
+          enum_sym->parent.class_type = class_of_which_a_member;
+          enter_symbol_into_completed_class(enum_sym);
+        } else {
+          enum_sym = enter_local_symbol((a_symbol_kind)sk_constant, &locator,
+                                        decl_scope_level,
+                                        /*suppress_redecl_error=*/FALSE);
+        }  /* if */
         if (!is_scoped_enum) {
           /* An unscoped and unnamed enum type definition that introduces
              enumerator constants "declares something", but a scoped unnamed
@@ -5242,23 +5251,28 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         }  /* if */
         enum_con = alloc_unshared_constant(&constant);
         /* Record the parent scope of the enumerator. */
-        if (scope_stack[decl_scope_level].kind == (a_scope_kind)sck_block ||
-            scope_stack[decl_scope_level].kind ==
+        if (class_reactivation_pushed && !is_scoped_enum) {
+          enum_con->source_corresp.parent_scope =
+                        class_type_supp(class_of_which_a_member)->assoc_scope;
+        } else {
+          if (scope_stack[decl_scope_level].kind == (a_scope_kind)sck_block ||
+              scope_stack[decl_scope_level].kind ==
                                            (a_scope_kind)sck_func_prototype) {
-          /* Don't call ensure_il_scope_exists for any scope other than block
-             and function prototype scopes, because it may fail (abort) in some
-             unusual error cases. */
-          (void)ensure_il_scope_exists(&scope_stack[decl_scope_level]);
-        }  /* if */
-        enum_con->source_corresp.parent_scope =
+            /* Don't call ensure_il_scope_exists for any scope other than block
+               and function prototype scopes, because it may fail (abort) in
+               some unusual error cases. */
+            (void)ensure_il_scope_exists(&scope_stack[decl_scope_level]);
+          }  /* if */
+          enum_con->source_corresp.parent_scope =
                                        scope_stack[decl_scope_level].il_scope;
-        if (parent_scope_of(enum_con) == NULL) {
-          /* Only occurs in strange error situations (e.g., an enum defined in
-             a template parameter list). */
-          expect_error();
-        } else if (!in_file_scope(parent_scope_of(enum_con))) {
-          /* A memory region constraint violation: Break the link. */
-          enum_con->source_corresp.parent_scope = NULL;
+          if (parent_scope_of(enum_con) == NULL) {
+            /* Only occurs in strange error situations (e.g., an enum defined
+               in a template parameter list). */
+            expect_error();
+          } else if (!in_file_scope(parent_scope_of(enum_con))) {
+            /* A memory region constraint violation: Break the link. */
+            enum_con->source_corresp.parent_scope = NULL;
+          }  /* if */
         }  /* if */
         /* Switch back from the file scope memory region to whatever region
            was current upon entry. */

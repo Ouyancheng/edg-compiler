@@ -5167,6 +5167,7 @@ changed if there is no error.
       tp = skip_typerefs(tp);
       cssp = symbol_supplement_for_class(tp);
       pointers_block = &cssp->pointers_block;
+      scope_kind = (a_scope_kind)sck_class_struct_union;
     } else {
       nsp = sym_parent_namespace_or_null(sym_ptr);
       if (nsp == NULL) {
@@ -5730,7 +5731,7 @@ symbol table.  (That implies that it will be added to the "inactive list" for
 the corresponding symbol header.)
 */
 {
-  link_symbol_into_symbol_table(sym, NO_SCOPE_DEPTH, /*suppress_error=*/FALSE);
+  add_symbol_to_symbol_table(sym, NO_SCOPE_DEPTH, /*suppress_error=*/FALSE);
 }  /* enter_symbol_into_completed_class */
 
 
