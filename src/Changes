@@ -58,7 +58,7 @@ GNU C++ compatibility: use of injected class template name in derived class
 g++ did not allow the use of an inherited injected class name of a class
 template to be used with a template argument list in a derived class.
 This has been fixed in g++ 4.5.  Our emulation of this g++ behavior is now
-conditional on gnu_version and is only done when gnu_version <= 40400.
+conditional on gnu_version and is only done when gnu_version < 40500.
 
   namespace N {
     template <class T> class A { };
