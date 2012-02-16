@@ -112,7 +112,7 @@ in incorrect output from the C++-generating back end.  Now fixed.
 2/15/12  [EDGcpfe/12663]
 GNU C++ compatibility: access checking in SFINAE contexts
 
-Version 4.4 introduces a change to perform access checking in C++11
+Version 4.4 introduced a change to perform access checking in C++11
 SFINAE processing (see 12/15/11 entry).  This processing was not intended
 to be done in g++ mode, but certain parts of the access checking were
 inadvertently enabled in g++ mode even when new style SFINAE was not
