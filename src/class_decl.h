@@ -69,6 +69,9 @@ extern a_boolean in_cli_property_or_event_definition(void);
 
 extern a_boolean in_static_cli_property_or_event_definition(void);
 
+extern void check_initonly_members(a_type_ptr  class_type,
+                                   a_boolean   static_ctor_def_seen);
+
 extern void ensure_inclass_static_member_constant_initializer_is_scanned(
                                                          a_variable_ptr  var);
 

@@ -5355,8 +5355,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           report_unreferenced(sym, ec_set_but_not_used, es_warning);
         }  /* if */
       } else if ((!sym->referenced ||
-                  (sym->variant.variable.value_has_been_set &&
-                   !sym->variant.variable.used)) &&
+                  (sym->value_has_been_set && !sym->variant.variable.used)) &&
 #if GNU_EXTENSIONS_ALLOWED
                  !var_type->variables_are_implicitly_referenced &&
                  !var_ptr->has_gnu_unused_attribute &&
@@ -5430,7 +5429,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           if (!sym->referenced) {
             error_code = ec_declared_but_not_referenced;
           } else {
-            check_assertion(sym->variant.variable.value_has_been_set);
+            check_assertion(sym->value_has_been_set);
             error_code = ec_set_but_not_used;
           }  /* if */
           report_unreferenced(sym, error_code, severity);
@@ -5453,8 +5452,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
         a_symbol_ptr	primary_sym = symbol_for(var_ptr);
         if (primary_sym != NULL) {
           if (sym->referenced) primary_sym->referenced = TRUE;
-          if (sym->variant.variable.value_has_been_set) {
-            primary_sym->variant.variable.value_has_been_set = TRUE;
+          if (sym->value_has_been_set) {
+            primary_sym->value_has_been_set = TRUE;
           } /* if */
           if (sym->variant.variable.used) {
             primary_sym->variant.variable.used = TRUE;

@@ -928,6 +928,7 @@ do_variable:
         put_string(buffer);
         (void)str_name_linkage(buffer, &(var->source_corresp));
         put_string(buffer);
+        if (sym->value_has_been_set) put_string("set");
         if (sym->kind == (a_symbol_kind)sk_static_data_member) {
           if (var->is_template_static_data_member) put_string("is instance");
           if (var->is_specialized) {
@@ -937,7 +938,6 @@ do_variable:
             put_string(buffer);
           }  /* if */
         } else {
-          if (sym->variant.variable.value_has_been_set) put_string("set");
           if (sym->variant.variable.used) put_string("used");
 #if MAINTAIN_NEEDED_FLAGS
           if (var->source_corresp.needed) put_string("needed");
@@ -3596,7 +3596,6 @@ state.
       break;
     case sk_variable:
       sym_ptr->variant.variable.ptr = NULL;
-      sym_ptr->variant.variable.value_has_been_set = FALSE;
       sym_ptr->variant.variable.used = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       sym_ptr->variant.variable.declared_in_for_init = FALSE;

@@ -3044,7 +3044,18 @@ typedef struct a_symbol {
 			   a function parameter pack and also TRUE for
 			   template parameter symbols for template parameters
 			   that were declared as packs. */
-  /* bitfield_to_avoid_codecenter_warnings() -- at byte boundary right now. */
+  a_bit_field
+		value_has_been_set:1;
+			/* TRUE for a variable or static data member that was
+			   initialized (explicitly or implicitly), that has
+			   been assigned to, or that has had its address taken.
+			   Also TRUE if it is of aggregate type and at least
+			   one of its fields or elements has been assigned to
+			   or has had its address taken.
+			   Also TRUE for a variable if its storage class is
+			   extern, since its value will be set where in the
+			   definition. */
+  bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
@@ -3113,15 +3124,6 @@ typedef struct a_symbol {
       a_variable_ptr
 		ptr;
 			/* Pointer to the variable entry. */
-      a_bit_field
-		value_has_been_set:1;
-			/* TRUE if the variable was initialized (explicitly or
-			   implicitly), has been assigned to, or has had its
-			   address taken.  Also TRUE if it is of aggregate
-			   type and at least one of its fields or elements has
-			   been assigned to or has had its address taken.
-			   Also TRUE if its storage class is extern, since its
-			   value will be set where in the definition. */
       a_bit_field
 		used:1;
 			/* TRUE if the variable was directly used or had

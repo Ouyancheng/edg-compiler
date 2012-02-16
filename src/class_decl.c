@@ -23051,26 +23051,28 @@ next_quasi_override:;
 }  /* check_quasi_overrides */
 
 
-static void check_initonly_members(a_class_def_state_ptr  cdsp)
+void check_initonly_members(a_type_ptr  class_type,
+                            a_boolean   static_ctor_def_seen)
 /*
-Traverse the static data members and check whether the initonly members are
-initialized.  If not, issue a diagnostic if there is no static constructor.
+Traverse the static data members of the given class type and check whether the
+initonly members appear to be initialized.  If not, issue a diagnostic.  If
+static_ctor_def_seen is TRUE, this routine is called after the static
+constructor definition has been seen.  (If a static constructor has been
+declared but not defined, no diagnostic can be issued because the constructor
+could provide the needed initialization.)
 */
 {
-  a_type_ptr      class_type = cdsp->class_type;
-  a_variable_ptr  var = class_type_supp(class_type)->assoc_scope->variables;
-
-  for (; var != NULL; var = var->next) {
-    if (var->is_initonly && !var->initializer_in_class) {
-      a_symbol_ptr  static_ctor = symbol_supplement_for_class(class_type)
+  a_symbol_ptr  static_ctor = symbol_supplement_for_class(class_type)
                                                          ->static_constructor;
-      if (static_ctor == NULL ||
-          static_ctor->variant.routine.ptr->compiler_generated) {
+
+  if (static_ctor_def_seen || static_ctor == NULL ||
+      static_ctor->variant.routine.ptr->compiler_generated) {
+    a_variable_ptr  var = class_type_supp(class_type)->assoc_scope->variables;
+    for (; var != NULL; var = var->next) {
+      if (var->is_initonly && !var->initializer_in_class &&
+          !symbol_for(var)->value_has_been_set) {
         pos_error(ec_initonly_static_data_member_not_initialized,
                   &symbol_for(var)->decl_position);
-      } else {
-        /* There is a user-declared static constructor, which presumably
-           initializes the initonly static data member. */
       }  /* if */
     }  /* if */
   }  /* for */
@@ -23405,7 +23407,7 @@ bits of information that were acquired while parsing.
       if (!in_code_generated_from_metadata()) {
         /* Don't check initonly members imported from metadata.  That was
            the responsibility of the producer of the metadata. */
-        check_initonly_members(class_state);
+        check_initonly_members(class_type, /*static_ctor_def_seen=*/FALSE);
       }  /* if */
       if (class_state->interfaces_pending) {
         /* A managed class generated from metadata specified "__implements ..."

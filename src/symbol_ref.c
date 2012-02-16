@@ -160,7 +160,7 @@ Set the "value_has_been_set" flag of the variable symbol pointed to by sym.
 */
 {
   check_assertion(sym->kind == (a_symbol_kind)sk_variable);
-  if (sym->variant.variable.value_has_been_set) {
+  if (sym->value_has_been_set) {
     /* Variable has already been set. */
     a_variable_ptr  vp = sym->variant.variable.ptr;
     if (vp->is_parameter || vp->is_handler_param) {
@@ -170,9 +170,20 @@ Set the "value_has_been_set" flag of the variable symbol pointed to by sym.
       vp->param_value_has_been_changed = TRUE;
     }  /* if */
   } else {
-    sym->variant.variable.value_has_been_set = TRUE;
+    sym->value_has_been_set = TRUE;
   }  /* if */
 }  /* mark_variable_value_set */
+
+
+static void mark_static_data_member_value_set(a_symbol_ptr  sym)
+/*
+Set the "value_has_been_set" flag of the static data member symbol pointed to
+by sym.
+*/
+{
+  check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
+  sym->value_has_been_set = TRUE;
+}  /* mark_static_data_member_value_set */
 
 #if RECORD_HIDDEN_NAMES_IN_IL
 
@@ -2142,7 +2153,7 @@ IL entry in place of whatever is pointed to by the symbol.
       } else {
         /* This is the first use of the variable. */
         if (!(kind & SRK_USE) || suppress_used_before_set_warnings ||
-            sym_ptr->variant.variable.value_has_been_set) {
+            sym_ptr->value_has_been_set) {
           /* No diagnostic. */
         } else if (!vp->source_corresp.is_local_to_function) {
           /* A block-extern variable or a namespace-scope variable with
@@ -2299,6 +2310,12 @@ check_label_decl_seq:
           } /* if */
         }  /* if */
       }  /* if */
+    }  /* if */
+  } else if (sym_kind == (a_symbol_kind)sk_static_data_member) {
+    /* If appropriate, record that the static data member's value has been
+       set (or "potentially set", if the address has been taken). */
+    if (kind & (SRK_ALL_VARIABLE_MODIFICATIONS | SRK_ERROR)) {
+      mark_static_data_member_value_set(sym_ptr);
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED

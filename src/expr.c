@@ -24232,7 +24232,7 @@ where the use of "x" within its own declaration is invalid.
                               (var_ptr->declared_with_auto_type_specifier &&
                                var_ptr->init_kind == (an_init_kind)initk_none);
   if (auto_decl_underway && var_ptr->is_enhanced_for_iterator &&
-      symbol_for(var_ptr)->variant.variable.value_has_been_set) {
+      symbol_for(var_ptr)->value_has_been_set) {
     /* In for-each or range-based-for statements, the iterator variable does
        not get an initializer even after its deduction is finished.
        Conclude from the fact that the variable is set that we're no

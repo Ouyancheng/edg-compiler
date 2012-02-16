@@ -1,5 +1,21 @@
 Version 4.5
 
+2/16/12  [EDGcpfe/11721]
+C++/CLI: Uninitialized initonly static data members and static constructors
+
+Previously, in C++/CLI mode, the front end did not report uninitialized
+initonly static data members of a class that also declares a static
+constructor (because the static constructor might initialize the member).
+Now, an error is issued if the static constructor is defined and it does not
+appear to modify an otherwise uninitialized initonly static data member.
+For example:
+
+  ref struct S {
+    static S() {}
+    initonly static int sm;  // Uninitialized initonly static data member
+  };                         // is now diagnosed with an error.
+
+
 2/16/12  [EDGcpfe/12685]
 C++-generating back end: omitted qualification in friend declaration
 

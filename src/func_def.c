@@ -1361,6 +1361,13 @@ of lambda expressions.
        to the list of inline functions if it is inline. */
     add_to_inline_function_list(rout_ptr);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && special_kind_is(rout_ptr, sfk_static_constructor)) {
+    /* If this is the static constructor definition, ensure that the initonly
+       static members have been initialized. */
+    check_initonly_members(class_type, /*static_ctor_def_seen=*/TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (debug_level >= 4) {
     a_symbol_ptr  sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
@@ -1951,7 +1958,6 @@ member declaration (allowed in Microsoft mode only).
   }  /* if */
   extra_info = unqualified_rout_type->variant.routine.extra_info;
   prototyped = extra_info->prototyped;
-  /* Create the symbol entry and routine entry for the routine. */
   if (locator->specific_symbol != NULL &&
       locator->specific_symbol->is_class_member) {
     /* This is the definition of a member function. */
@@ -2169,10 +2175,8 @@ member declaration (allowed in Microsoft mode only).
        information. */
     if (routine_ptr->source_corresp.is_class_member) {
       if (cfront_2_1_mode) {
-        if (routine_ptr->special_kind ==
-			 (a_special_function_kind)sfk_constructor ||
-            routine_ptr->special_kind ==
-			 (a_special_function_kind)sfk_destructor) {
+        if (special_kind_is(routine_ptr, sfk_constructor) ||
+            special_kind_is(routine_ptr, sfk_destructor)) {
           last_ctor_or_dtor_sym = dps->sym;
         } else {
           last_ctor_or_dtor_sym = NULL;

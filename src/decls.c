@@ -6438,7 +6438,7 @@ for use in generating cross-reference output describing this declaration.
     source_corresp_ptr->referenced = TRUE;
     sym->referenced = TRUE;
     sym->variant.variable.used = TRUE;
-    sym->variant.variable.value_has_been_set = TRUE;
+    sym->value_has_been_set = TRUE;
   }  /* if */
   /* Do processing required for the rest of the pragmas, if any, that are
      bound to the current declaration.  Note that this has to be *after* the
