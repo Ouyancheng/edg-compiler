@@ -14717,10 +14717,9 @@ are handled in symbol_tbl_init.)
   cleared_symbol.is_alias                          = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   cleared_symbol.is_pack_element                   = FALSE;
+  cleared_symbol.value_has_been_set                = FALSE;
 #if CENTERLINE_CHECKING
-  /* Not needed right now -- at byte boundary.
   cleared_symbol.avoid_codecenter_warnings         = FALSE;
-  */
 #endif /* CENTERLINE_CHECKING */
   dummy_undefined_symbol = NULL;
   size_of_trans_unit_for_scope = 0;
