@@ -103,6 +103,8 @@ typedef struct an_arg_operand *an_arg_operand_ptr;
    front-end only fields in the IL; its structure is not known here).
    It is defined in exprutil.h. */
 typedef struct an_expr_rescan_info_entry *an_expr_rescan_info_entry_ptr;
+/* Deal with a forward reference: */
+typedef struct a_property_or_event_descr *a_property_or_event_descr_ptr;
 
 /*
 Data structures related to source position and correspondence:
@@ -3848,6 +3850,13 @@ typedef struct a_constant {
 			/* If the unknown function represents a conversion
 			   function, this is the result type; NULL
 			   otherwise. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          a_property_or_event_descr_ptr
+		property_or_event_descr;
+			/* If the unknown function is a C++/CLI accessor,
+			   this identifies the property or event.  NULL
+			   otherwise. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           struct a_symbol
 		*symbol;
 			/* The symbol for the overload set of which the
@@ -6334,7 +6343,6 @@ enum a_property_or_event_kind_tag {
 typedef a_byte a_property_or_event_kind;
 
 
-typedef struct a_property_or_event_descr *a_property_or_event_descr_ptr;
 typedef struct a_property_or_event_descr {
   /* Description of a Microsoft property or event member.  Microsoft compilers
      support two kinds of property constructs.  One kind is obtained by

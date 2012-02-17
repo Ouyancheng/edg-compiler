@@ -9316,21 +9316,17 @@ on the ck_template_param constant pointed to by the expression.
 a_type_ptr type_if_unknown_conversion_function_symbol(a_symbol_ptr	sym)
 /*
 If "sym" is a ck_template_parameter constant of kind tpck_unknown_function
-that represents an unknown conversion function, return the conversion type,
-otherwise return NULL;
+that represents an unknown conversion function, return the conversion type;
+otherwise return NULL.
 */
 {
   a_type_ptr	result = NULL;
 
   if (sym->kind == (a_symbol_kind)sk_constant) {
-    a_constant_ptr	cp;
-    cp = sym->variant.constant;
-    if (cp->kind == (a_constant_repr_kind)ck_template_param) {
-      if (cp->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function) {
-        result =
+    a_constant_ptr cp = sym->variant.constant;
+    if (is_unknown_function_constant(cp)) {
+      result =
            cp->variant.template_param.variant.unknown_function.conversion_type;
-      }  /* if */
     }  /* if */
   }  /* if */
   return result;

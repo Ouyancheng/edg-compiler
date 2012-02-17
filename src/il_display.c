@@ -903,6 +903,15 @@ Display a ck_template_param constant.
           disp_ptr("conversion_type", (char *)conversion_type, iek_type);
         }  /* if */
       }
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      { a_type_ptr property_or_event_descr = ptr->variant.template_param
+                             .variant.unknown_function.property_or_event_descr;
+        if (property_or_event_descr != NULL) {
+          disp_ptr("property_or_event_descr", (char *)property_or_event_descr,
+                   iek_property_or_event_descr);
+        }  /* if */
+      }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       { an_opname_kind opname_kind = 
               ptr->variant.template_param.variant.unknown_function.opname_kind;
         if (opname_kind != (an_opname_kind)onk_none) {

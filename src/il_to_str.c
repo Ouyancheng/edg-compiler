@@ -727,6 +727,46 @@ be used to output all of the name.  Called only for C++.
   }  /* if */
 }  /* form_class_or_namespace_qualifier */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void form_property_or_event_name_as_qualifier_if_needed(
+                              a_source_correspondence               *scp,
+                              an_il_entry_kind                      entry_kind,
+                              an_il_to_str_output_control_block_ptr octl)
+/*
+If the indicated entity is a C++/CLI accessor, output the property or
+event name as a qualifier.
+*/
+{
+  a_property_or_event_descr_ptr pedp = NULL;
+
+  if (entry_kind == iek_routine) {
+    a_routine_ptr rp = (a_routine_ptr)scp;
+    if (rout_is_cli_accessor(rp)) {
+      pedp = rp->variant.property_or_event_descr;
+    }  /* if */
+  } else if (entry_kind == iek_constant) {
+    a_constant_ptr con = (a_constant_ptr)scp;
+    if (is_unknown_function_constant(con)) {
+      pedp = con->variant.template_param.variant
+                                     .unknown_function.property_or_event_descr;
+    }  /* if */
+  }  /* if */
+  /* If the entity has an associated property that is not a default
+     indexed property, output a qualifier for the property name. */
+  if (pedp != NULL && !pedp->is_default_indexed) {
+    if (pedp->is_static) {
+      form_unqualified_name(&pedp->variant.variable->source_corresp,
+                            iek_variable, octl);
+    } else {
+      form_unqualified_name(&pedp->variant.field->source_corresp,
+                            iek_field, octl);
+    }  /* if */
+    octl->output_str("::", octl);
+  }  /* if */
+}  /* form_property_or_event_name_as_qualifier_if_needed */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void form_name(a_source_correspondence               *scp,
                an_il_entry_kind                      kind,
@@ -755,34 +795,7 @@ output in the way described by octl.
       form_qualifier(scp->parent_scope, octl);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (kind == iek_routine && cppcli_enabled) {
-      a_routine_ptr			rp = (a_routine_ptr)scp;
-      a_property_or_event_descr_ptr	pedp = NULL;
-      /* Determine if this routine has an associated property or event. */
-      switch (rp->special_kind) {
-        case sfk_property_get:
-        case sfk_property_set:
-        case sfk_event_add:
-        case sfk_event_remove:
-        case sfk_event_raise:
-          pedp = rp->variant.property_or_event_descr;
-          break;
-        default:
-          break;
-      }  /* switch */
-      /* If the routine has an associated property that is not a default
-         indexed property, include the property name as part of the name. */
-      if (pedp != NULL && !pedp->is_default_indexed) {
-        if (pedp->is_static) {
-          form_unqualified_name(&pedp->variant.variable->source_corresp,
-                                iek_variable, octl);
-        } else {
-          form_unqualified_name(&pedp->variant.field->source_corresp,
-                                iek_variable, octl);
-        }  /* if */
-        octl->output_str("::", octl);
-      }  /* if */
-    }  /* if */
+    form_property_or_event_name_as_qualifier_if_needed(scp, kind, octl);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Output the base name. */
     form_unqualified_name(scp, kind, octl);

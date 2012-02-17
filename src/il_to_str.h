@@ -332,6 +332,13 @@ extern void form_class_or_namespace_qualifier(
                          a_parent_class_or_namespace           parent,
                          an_il_to_str_output_control_block_ptr octl);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+void form_property_or_event_name_as_qualifier_if_needed(
+                              a_source_correspondence               *scp,
+                              an_il_entry_kind                      entry_kind,
+                              an_il_to_str_output_control_block_ptr octl);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern void form_name(a_source_correspondence               *scp,
                       an_il_entry_kind                      kind,
                       an_il_to_str_output_control_block_ptr octl);

@@ -847,6 +847,12 @@ the file scope, do not process it (but record an orphan in the latter case).
                 walk_ptr(ptr->variant.template_param.variant.unknown_function.
                                                                conversion_type,
                          a_type_ptr, iek_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                walk_ptr(ptr->variant.template_param.variant.unknown_function
+                                                      .property_or_event_descr,
+                         a_property_or_event_descr_ptr,
+                         iek_property_or_event_descr);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                 conditionally_clear_fe_pointer(ptr->variant.template_param.
                                               variant.unknown_function.symbol);
                 break;

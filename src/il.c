@@ -6539,6 +6539,13 @@ definition of the CC flags in il.h for more information.
                   if (!identical_types(tp1, tp2)) eq = FALSE;
                 } else if (!(tp1 == NULL && tp2 == NULL)) {
                   eq = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                } else if (cp1->variant.template_param.variant.unknown_function
+                                                    .property_or_event_descr !=
+                           cp2->variant.template_param.variant.unknown_function
+                                                    .property_or_event_descr) {
+                  eq = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                 }  /* if */
               }  /* if */
               break;
@@ -15084,9 +15091,7 @@ for the copy/substitution.
     check_assertion(orig_sym != NULL);
     /* For a tpck_unknown_function constant with an underlying symbol, use
        that symbol for the substitution. */
-    if (con->kind == (a_constant_repr_kind)ck_template_param &&
-        con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function) {
+    if (is_unknown_function_constant(con)) {
       a_symbol_ptr under_sym = con->variant.template_param.variant.
                                                        unknown_function.symbol;
       if (under_sym != NULL) orig_sym = under_sym;

@@ -434,6 +434,14 @@ member, and NULL otherwise.
                                          : (a_type_ptr)NULL)
 
 /*
+Return TRUE if cp is a ck_template_param/tpck_unknown_function constant.
+*/
+#define is_unknown_function_constant(cp) \
+  ((cp)->kind == (a_constant_repr_kind)ck_template_param && \
+   (cp)->variant.template_param.kind == \
+        (a_template_param_constant_kind)tpck_unknown_function)
+
+/*
 Return TRUE if tp is a template type parameter pack.
 */
 #define type_is_pack(tp)						\

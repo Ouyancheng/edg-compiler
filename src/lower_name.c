@@ -3697,10 +3697,7 @@ operator on some template constants when suppress_address_of is TRUE
           template_arg_list = con->variant.template_param.variant.
                                                          template_ref.arg_list;
           unk_func_con = con->variant.template_param.variant.template_ref.con;
-          check_assertion(unk_func_con->kind ==
-                                     (a_constant_repr_kind)ck_template_param &&
-                          unk_func_con->variant.template_param.kind ==
-                        (a_template_param_constant_kind)tpck_unknown_function);
+          check_assertion(is_unknown_function_constant(unk_func_con));
           goto do_unknown_function;
         case tpck_unknown_function:
           /* An unknown function, which may be a member of a class or

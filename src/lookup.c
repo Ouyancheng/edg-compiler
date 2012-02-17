@@ -587,15 +587,16 @@ static a_symbol_ptr create_unknown_function_symbol(
 				a_type_ptr		parent_class,
 				a_namespace_ptr		parent_namespace,
 				a_boolean		is_qualified_name,
-				a_type_ptr		conversion_type)
+				a_constant_ptr		*unk_func_constant)
 /*
 Create a ck_constant entry of kind tpck_unknown_function, and an sk_constant
 symbol that points to the constant.  These constants are used during
 prototype instantiations to represent functions in dependent calls.
 The symbol is created using the symbol header information from sym_hdr
 and the parent information specified by parent_class and parent_namespace.
-The is_qualified_name and conversion_type fields in the constant are set
-as indicated by is_qualified_name and conversion_type.
+The is_qualified_name field in the constant is set as indicated by
+is_qualified_name.  A pointer to the unknown-function constant is returned
+in *unk_func_constant.
 */
 {
   /* Create a ck_template_param constant.  We don't know the type of the
@@ -633,8 +634,7 @@ as indicated by is_qualified_name and conversion_type.
   sym->variant.constant = constant;
   constant->type = type_of_unknown_templ_param_nontype;
   constant->variant.template_param.is_qualified_name = is_qualified_name;
-  constant->variant.template_param.variant.unknown_function.conversion_type =
-                                                               conversion_type;
+  *unk_func_constant = constant;
   scp = &constant->source_corresp;
   if (scp != NULL) set_source_corresp_with_scope_depth(scp, sym, depth);
   if (parent_class != NULL) {
@@ -703,15 +703,22 @@ of the symbol header.
     }  /* if */
     sym = create_unknown_function_symbol(orig_sym->header, parent_class,
                                          parent_namespace, is_qualified_name,
-                                         (a_type_ptr)NULL);
-    check_assertion(sym->kind == (a_symbol_kind)sk_constant);
-    con = sym->variant.constant;
-    check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
-                    con->variant.template_param.kind ==
-                        (a_template_param_constant_kind)tpck_unknown_function);
+                                         &con);
+    check_assertion(is_unknown_function_constant(con));
     /* Save the original symbol (probably an overload set) for use later
        in copy_type_with_substitution. */
     con->variant.template_param.variant.unknown_function.symbol = orig_sym;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && symbol_is(orig_sym, sk_member_function)) {
+      /* For a C++/CLI property or event accessor, save a pointer to the
+         property description. */
+      a_routine_ptr rp = orig_sym->variant.routine.ptr;
+      if (rout_is_cli_accessor(rp)) {
+        con->variant.template_param.variant.unknown_function
+                .property_or_event_descr = rp->variant.property_or_event_descr;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     hdr = sym->header;
     /* Link this symbol onto the other symbols list. */
     sym->next = hdr->other_symbols;
@@ -2754,6 +2761,7 @@ symbol header information from the locator.  Return the symbol created.
 {
   a_symbol_ptr		sym;
   a_type_ptr		conv_result;
+  a_constant_ptr        con;
 
   /* Put the result type of the conversion function into the constant
      created. */
@@ -2762,7 +2770,10 @@ symbol header information from the locator.  Return the symbol created.
   sym = create_unknown_function_symbol(locator->symbol_header,
                                        class_type, (a_namespace_ptr)NULL,
                                        (a_boolean)locator->is_qualified_name,
-                                       conv_result);
+                                       &con);
+  check_assertion(is_unknown_function_constant(con));
+  con->variant.template_param.variant.unknown_function.conversion_type =
+                                                                   conv_result;
   return sym;
 }  /* create_unknown_conversion_symbol */
 
