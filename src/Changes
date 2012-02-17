@@ -50,7 +50,7 @@ issued), and the managed type was the first dependent base.  Now fixed.
 2/17/12  [EDGcpfe/12573]
 C++/CLI: Do not inherit certain properties from naked type constraints
 
-When a naked type parameter constraint was used, the ref class and value
+When a naked type parameter constraint is used, the ref class and value
 class constraints were inherited, but should not have been.  Now fixed.
 
   generic <typename T> where T: ref class ref class A {};

@@ -28221,7 +28221,7 @@ static a_boolean is_type_parameter_with_constraint(
 /*
 Return TRUE if type is a generic parameter with a direct or indirect
 constraint of kind, FALSE otherwise.  If indirect is TRUE, this routine
-was called recursively to process a naked type constraint.  Indirect ref
+was called recursively to process a naked type constraint; indirect ref
 and value class constraints are ignored.
 */
 {
