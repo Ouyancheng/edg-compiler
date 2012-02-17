@@ -296,6 +296,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,find_ms_attribute_for_entity)*/
 /*lint -esym(765,find_ms_attribute_for_entity)*/
 /*lint -esym(714,find_ms_attribute_for_entity)*/
+/*lint -esym(759,form_property_or_event_name_as_qualifier_if_needed)*/
+/*lint -esym(765,form_property_or_event_name_as_qualifier_if_needed)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* !BACK_END_IS_CP_GEN_BE */
 #if !DEBUG

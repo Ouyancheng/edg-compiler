@@ -103,8 +103,10 @@ typedef struct an_arg_operand *an_arg_operand_ptr;
    front-end only fields in the IL; its structure is not known here).
    It is defined in exprutil.h. */
 typedef struct an_expr_rescan_info_entry *an_expr_rescan_info_entry_ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
 /* Deal with a forward reference: */
 typedef struct a_property_or_event_descr *a_property_or_event_descr_ptr;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Data structures related to source position and correspondence:

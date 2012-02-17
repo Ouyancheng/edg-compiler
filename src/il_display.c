@@ -904,7 +904,8 @@ Display a ck_template_param constant.
         }  /* if */
       }
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      { a_type_ptr property_or_event_descr = ptr->variant.template_param
+      { a_property_or_event_descr_ptr property_or_event_descr =
+                             ptr->variant.template_param
                              .variant.unknown_function.property_or_event_descr;
         if (property_or_event_descr != NULL) {
           disp_ptr("property_or_event_descr", (char *)property_or_event_descr,
