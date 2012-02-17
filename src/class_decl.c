@@ -20952,7 +20952,7 @@ static void apply_constraints_to_type(
 Go through the list of constraints specified by gc_list and update the
 type specified by proxy_class and ctsp with the information from the
 constraints.  If indirect is TRUE, this routine was called recursively to
-process a naked type constraint.  Indirect ref and value class constraints
+process a naked type constraint; indirect ref and value class constraints
 are not applied.  This routine updates applies the constraints to proxy_class
 while it is an incomplete type.
 */
