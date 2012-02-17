@@ -119,7 +119,7 @@ definitions now result in an error.  For example:
   };
 
 
-2/15/12  [EDGcpfe/12237]
+2/15/12  [EDGcpfe/12237,EDGcpfe/12578]
 Microsoft compatibility: Scope of out-of-class member enumerator constants
 
 In Microsoft mode, the front end accepts out-of-class definitions of member
