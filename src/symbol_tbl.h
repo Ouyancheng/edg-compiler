@@ -3053,7 +3053,7 @@ typedef struct a_symbol {
 			   one of its fields or elements has been assigned to
 			   or has had its address taken.
 			   Also TRUE for a variable if its storage class is
-			   extern, since its value will be set where in the
+			   extern, since its value will be set elsewhere in the
 			   definition. */
   bitfield_to_avoid_codecenter_warnings()
   union {
