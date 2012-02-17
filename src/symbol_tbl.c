@@ -12306,7 +12306,8 @@ entry that points to the class in which the nonreal member is created.
      class with nonreal bases must have at least one direct nonreal base. */
   for (; bcp != NULL; bcp = bcp->next) {
     a_type_ptr		base_type = bcp->type;
-    if (base_type->variant.class_struct_union.is_nonreal_class) {
+    if (base_type->variant.class_struct_union.is_nonreal_class &&
+        !is_cli_generic_instance_type(base_type)) {
       if (bcp->direct) {
         nonreal_bcp = bcp;
         break;

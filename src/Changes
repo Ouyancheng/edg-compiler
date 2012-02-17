@@ -1,5 +1,19 @@
 Version 4.5
 
+2/17/12  [EDGcpfe/12618]
+C++/CLI: Internal error when managed template derives from non-managed class
+
+An internal error could occur (in create_nonreal_progenitor_symbol) if a
+managed class template (but not generic) derived from both a managed type
+that depends on a template parameter and a non-managed dependent base
+class (note that this is not allowed, so an error would have already been
+issued), and the managed type was the first dependent base.  Now fixed.
+
+  generic <typename T> interface class I { };
+  template <class T> struct Base { };
+  template<typename T> ref class C : public I<T>, public Base<T> { };
+
+
 2/17/12  [EDGcpfe/12573]
 C++/CLI: Do not inherit certain properties from naked type constraints
 
