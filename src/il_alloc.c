@@ -3745,6 +3745,11 @@ in the current IL memory region.
       pp->variant.include_alias.short_file_name = NULL;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    case pk_gcc:
+      pp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_none;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
     default:
       internal_error("alloc_pragma: bad pragma kind");

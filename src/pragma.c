@@ -370,6 +370,11 @@ possible.
     case pk_lint_varargs_count:
       ppp->variant.lint_varargs_count = 0;
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case pk_gcc:
+      ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_none;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if INCLUDE_EDG_TEST_PRAGMAS
     case pk_test_next_statement:
     case pk_test_next_decl:
@@ -434,9 +439,6 @@ possible.
     case pk_enable_ldscope:
     case pk_disable_ldscope:
 #endif /* SUN_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-    case pk_gcc:
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case pk_once:
     case pk_hdrstop:
     case pk_no_pch:
@@ -1897,7 +1899,7 @@ Initialize the pragma description table.
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
-                 /*record_pragma_text=*/FALSE,
+                 /*record_pragma_text=*/TRUE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
                  /*fetch_pp_tokens=*/FALSE,

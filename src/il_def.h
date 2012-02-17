@@ -4793,6 +4793,45 @@ enum a_stdc_pragma_value_tag {
 typedef a_byte a_stdc_pragma_value;
 
 
+#if GNU_EXTENSIONS_ALLOWED
+/*
+For a "#pragma GCC ...", indicates the specific kind of GCC predefined pragma
+that is being used.
+*/
+enum a_gcc_pragma_kind_tag {
+  gcc_pk_none,			/* Used for unrecognized GCC pragmas. */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  gcc_pk_visibility_push,	/* #pragma GCC push(...) */
+  gcc_pk_visibility_pop,	/* #pragma GCC pop */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+  gcc_pk_last	/*lint -esym(769,a_gcc_pragma_kind_tag::gcc_pk_last)*/
+};
+
+/* Storage size to be used to hold a GCC pragma kind. */
+typedef a_byte a_gcc_pragma_kind;
+
+
+/*
+*/
+typedef struct a_gcc_pragma_descr {
+  a_gcc_pragma_kind
+		kind;	/* For the GNU GCC predefined pragmas, indicates
+			   the specific pragma being used. */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  union {
+    /* When kind == gcc_pk_visibility_pop, no variant fields. */
+    /* When kind == gcc_pk_visibility_push. */
+    an_ELF_visibility_kind
+		visibility;
+			/* The visibility specified by
+			     #pragma GCC visibility push(...)
+			*/
+  } variant;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+} a_gcc_pragma_descr;
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 /* The pragma kinds representing the specific pragmas that are recognized
    by the implementation.  Some may refer to pragmas for which entries of
    type a_pragma are added to the IL for processing by the back end, but
@@ -5198,6 +5237,12 @@ typedef struct a_pragma {
 			   UTF-8. */
     } include_alias;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    /* When kind == pk_gcc: */
+    a_gcc_pragma_descr
+		gcc;
+			/* Description of the GCC pragma. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } variant;
 } a_pragma;
 

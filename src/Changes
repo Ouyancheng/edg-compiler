@@ -1,5 +1,18 @@
 Version 4.5
 
+2/17/12  [EDGcpfe/12699]
+IL representation of #pragma GCC visibility ...
+
+In GNU C and C++ modes with gnu_version >= 40200, the front end supports the
+"#pragma GCC visibility" constructs when GNU_VISIBILITY_ATTRIBUTE_ALLOWED is
+TRUE.  However, while the effects of the pragma were recorded in the IL, the
+pragma itself was not.  A consequence of this was that the C++-generating back
+end did not render these pragmas.  This is now fixed.  More generally, any
+"#pragma GCC ..." construct is recorded in text form (used by the C++-
+generating back end), and additional details are recorded in a more structured
+form if the pragma is fully recognized.
+
+
 2/17/12  [EDGcpfe/12603]
 Microsoft-mode abort on invalid local declaration in class template context
 

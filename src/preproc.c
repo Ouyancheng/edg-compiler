@@ -2841,6 +2841,9 @@ the construct is not correctly formed.
             /* An invalid visibility kind was specified. */
             warning(ec_unrecognized_visibility);
             warning_issued = TRUE;
+          } else {
+            ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_visibility_push;
+            ppp->variant.gcc.variant.visibility = evk;
           }  /* if */
           push_ELF_visibility(evk, /*namespace_attribute=*/FALSE);
           (void)get_token();
@@ -2859,6 +2862,7 @@ the construct is not correctly formed.
       recognized = TRUE;
       pop_ELF_visibility(/*namespace_attribute=*/FALSE);
       (void)get_token();
+      ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_visibility_pop;
     }  /* if */
   }  /* if */
   if (warning_issued) {
@@ -2895,6 +2899,12 @@ Process a "#pragma GCC ..." construct.
   /* Pass error_in_pragma as TRUE to avoid diagnostics; any needed diagnostic
      will already have been issued. */
   wrapup_rescan_of_pragma_tokens(/*error_in_pragma=*/TRUE);
+  /* Record an IL entry for the pragma. */
+  create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
+  if (recognized && ppp->il_pragma_entry != NULL) {
+    /* Copy the GCC pragma description to the IL entry. */
+    ppp->il_pragma_entry->variant.gcc = ppp->variant.gcc;
+  }  /* if */
 }  /* gcc_pragma */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
