@@ -20946,11 +20946,14 @@ when the constraint type is completed.
 static void apply_constraints_to_type(
 				a_type_ptr			proxy_class,
 				a_class_type_supplement_ptr	ctsp,
-				a_generic_constraint_ptr	gc_list)
+				a_generic_constraint_ptr	gc_list,
+				a_boolean			indirect)
 /*
 Go through the list of constraints specified by gc_list and update the
 type specified by proxy_class and ctsp with the information from the
-constraints.  This routine updates applies the constraints to proxy_class
+constraints.  If indirect is TRUE, this routine was called recursively to
+process a naked type constraint.  Indirect ref and value class constraints
+are not applied.  This routine updates applies the constraints to proxy_class
 while it is an incomplete type.
 */
 {
@@ -20958,9 +20961,13 @@ while it is an incomplete type.
 
   for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
     if (gcp->kind == (a_generic_constraint_kind)gck_value_class) {
-      ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_value;
+      if (!indirect) {
+        ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_value;
+      }  /* if */
     } else if (gcp->kind == (a_generic_constraint_kind)gck_ref_class) {
-      ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
+      if (!indirect) {
+        ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
+      }  /* if */
     } else if (gcp->kind == (a_generic_constraint_kind)gck_type) {
       a_type_ptr  ctp = skip_typerefs(gcp->type);
       if (is_immediate_class_type(ctp)) {
@@ -20974,7 +20981,8 @@ while it is an incomplete type.
       sub_list = gcp->type->variant.template_param.extra_info->
                                                           generic_constraints;
       if (sub_list != NULL) {
-        apply_constraints_to_type(proxy_class, ctsp, sub_list);
+        apply_constraints_to_type(proxy_class, ctsp, sub_list,
+                                  /*indirect=*/TRUE);
       }  /* if */
     }  /* if */
     if (!cli_class_type_kind_is(proxy_class, cctk_interface)) break;
@@ -21025,7 +21033,7 @@ the enclosing type of the constrained generic.  For example:
        class, a ref class, or some hybrid. */
     ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_interface;
     /* Update the type with the information from the constraints. */
-    apply_constraints_to_type(proxy_class, ctsp, gc_list);
+    apply_constraints_to_type(proxy_class, ctsp, gc_list, /*indirect=*/FALSE);
     if (cli_class_type_kind_is(proxy_class, cctk_interface)) {
       /* The class is a sort of hybrid value/ref class. */
       ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;

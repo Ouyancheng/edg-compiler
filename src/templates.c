@@ -28220,10 +28220,13 @@ followed by "<" and then the class or typename keyword.
 
 static a_boolean is_type_parameter_with_constraint(
 				a_type_ptr			type,
-				a_generic_constraint_kind	kind)
+				a_generic_constraint_kind	kind,
+				a_boolean			indirect)
 /*
 Return TRUE if type is a generic parameter with a direct or indirect
-constraint of kind, FALSE otherwise.
+constraint of kind, FALSE otherwise.  If indirect is TRUE, this routine
+was called recursively to process a naked type constraint.  Indirect ref
+and value class constraints are ignored.
 */
 {
   a_boolean	result = FALSE;
@@ -28235,7 +28238,12 @@ constraint of kind, FALSE otherwise.
     gc_list = type->variant.template_param.extra_info->generic_constraints;
     /* Check the direct constraints first. */
     for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
-      if (gcp->kind == kind) {
+      /* When called for a naked type parameter constraint, ignore any
+         ref and value class constraints. */
+      if (gcp->kind == kind &&
+          (!indirect ||
+           (kind != (a_generic_constraint_kind)gck_ref_class &&
+            kind != (a_generic_constraint_kind)gck_value_class))) {
         result = TRUE;
         break;
       }  /* if */
@@ -28247,7 +28255,8 @@ constraint of kind, FALSE otherwise.
         if (gcp->kind == (a_generic_constraint_kind)gck_naked_type_param) {
           /* For a naked type parameter on the existing list, check the
              indirect constraints. */
-          if (is_type_parameter_with_constraint(gcp->type, kind)) {
+          if (is_type_parameter_with_constraint(gcp->type, kind,
+                                                /*indirect=*/TRUE)) {
             result = TRUE;
             break;
           }  /* if */
@@ -28349,14 +28358,17 @@ substitution.
   a_boolean			result = TRUE;
   a_boolean			issue_error = (list_start_pos != NULL);
   a_generic_constraint_ptr	gcp;
+  a_type_ptr			orig_arg_type = arg_type;
 
+  arg_type = generic_param_if_generic_definition_argument(arg_type);
   for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
     switch (gcp->kind) {
       case gck_none:
         break;
       case gck_type:
       case gck_naked_type_param:
-        if (!type_satisfies_type_constraint(generic_sym, arg_type, gcp->type,
+        if (!type_satisfies_type_constraint(generic_sym, orig_arg_type,
+                                            gcp->type,
                                             generic_arg_list,
                                             generic_param_list)) {
           result = FALSE;
@@ -28374,7 +28386,8 @@ substitution.
            constraint could be satisfied by a handle to Object. */
         if (!is_handle_type(arg_type) &&
             !is_type_parameter_with_constraint(
-                         arg_type, (a_generic_constraint_kind)gck_ref_class) &&
+                         arg_type, (a_generic_constraint_kind)gck_ref_class,
+                         /*indirect=*/FALSE) &&
             !(for_cast &&
               is_value_class_type(arg_type))) {
           result = FALSE;
@@ -28397,7 +28410,8 @@ substitution.
            implements the interface. */
         if ((!is_cli_value_type(arg_type) &&
              !is_type_parameter_with_constraint(
-                      arg_type, (a_generic_constraint_kind)gck_value_class) &&
+                      arg_type, (a_generic_constraint_kind)gck_value_class,
+                       /*indirect=*/FALSE) &&
              !(for_cast &&
                is_handle_type(arg_type) &&
                is_cli_interface_type(type_pointed_to(arg_type)))) ||
@@ -28435,7 +28449,8 @@ substitution.
           } else if (is_cli_generic_param_type(tp)) {
             /* A generic parameter.  See if it has the gcnew constraint. */
             if (!is_type_parameter_with_constraint(
-                                   tp, (a_generic_constraint_kind)gck_gcnew)) {
+                                   tp, (a_generic_constraint_kind)gck_gcnew,
+                                   /*indirect=*/FALSE)) {
               result = FALSE;
               if (issue_error) {
                 pos_ty2_error(ec_gcnew_and_no_gcnew, list_start_pos,

@@ -1,5 +1,18 @@
 Version 4.5
 
+2/17/12  [EDGcpfe/12573]
+C++/CLI: Do not inherit certain properties from naked type constraints
+
+When a naked type parameter constraint was used, the ref class and value
+class constraints were inherited, but should not have been.  Now fixed.
+
+  generic <typename T> where T: ref class ref class A {};
+  generic <typename T, typename U> where T: ref class where U: T ref class B {
+    A<T> at;
+    A<U> au;  // now gets constraint error
+  };
+
+
 2/16/12  [EDGcpfe/11721]
 C++/CLI: Uninitialized initonly static data members and static constructors
 
