@@ -9334,8 +9334,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
     if (sym->defined) {
       pos_sy_error(ec_already_defined, &locator->source_position, sym);
       err = TRUE;
-    } else if (!namespace_is_enclosed_by_scope(sym,
-                                           &scope_stack[depth_scope_stack])) {
+    } else if (!namespace_is_enclosed_by_scope(sym, &scope_stack_top())) {
       /* This static data member is being defined in a scope that does not
          enclose the scope in which the parent class was defined. */
       sym_error(ec_bad_scope_for_definition, sym);
@@ -9396,8 +9395,14 @@ the symbol through dps->sym and its linkage (which is always "none") through
       /* A member function -- this is treated as a type incompatibility. */
       pos_sy_error(ec_not_compatible_with_previous_decl,
                    &locator->source_position, sym);
-    } else if (sym->kind == (a_symbol_kind)sk_projection) {
-      /* A member of a base class. */
+    } else if (!namespace_is_enclosed_by_scope(sym, &scope_stack_top())) {
+      /* The member is being defined in a scope that does not enclose the
+         scope in which the parent class was defined. */
+      sym_error(ec_bad_scope_for_definition, sym);
+    } else if (sym->kind == (a_symbol_kind)sk_projection ||
+               sym->is_nonreal_member) {
+      /* A member of a base class (or assumed to be a member of a nonreal base
+         class). */
       pos_error(ec_inherited_member_not_allowed, &locator->source_position);
     } else if (sym->kind != (a_symbol_kind)sk_undefined &&
                !is_error_locator(*locator)) {

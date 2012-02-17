@@ -1,5 +1,25 @@
 Version 4.5
 
+2/17/12  [EDGcpfe/12603]
+Microsoft-mode abort on invalid local declaration in class template context
+
+When parsing nonclass templates in Microsoft mode, a local declaration of a
+qualified name in a member of a class with dependent base classes could result
+in an internal error in make_local_static_variable_init (il.c).  For example:
+
+  template<typename T> struct S: T {
+    void f(T t) {
+      { 
+        int U::m(t); // Previously triggered an abort in some Microsoft modes.
+      }
+    }
+  };
+
+The diagnostic in cases like these has also been improved (previously, the
+diagnostic suggested a duplicate definition; now it indicates an invalid scope
+for a member definition).
+
+
 2/17/12  [EDGcpfe/12618]
 C++/CLI: Internal error when managed template derives from non-managed class
 

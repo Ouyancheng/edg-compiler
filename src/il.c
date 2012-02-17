@@ -12016,7 +12016,7 @@ If var_scope is NULL, use the current scope in the scope stack.
 
   db_enter(5, "make_local_static_variable_init");
   if (var_scope == NULL) {
-    var_scope = scope_stack[decl_scope_level].il_scope;
+    var_scope = ensure_il_scope_exists(&scope_stack[decl_scope_level]);
     check_assertion(var_scope != NULL);
   }  /* if */
   check_assertion(var_scope->kind == (a_scope_kind)sck_function ||
