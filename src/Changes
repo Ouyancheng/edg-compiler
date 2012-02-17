@@ -1,5 +1,20 @@
 Version 4.5
 
+2/17/12  [EDGcpfe/12197]
+C++/CLI: Attributes on generic delegates
+
+Instantiating a generic delegate with square-bracket attributes in C++/CLI
+mode previously resulted in an internal error in scan_cli_delegate_definition
+(class_decl.c).  For example:
+
+  generic<class T> [Any(2)] delegate void F(T);
+  void g(F<int> ^h) {
+    h(2);  // Previously triggered an internal error.
+  }
+
+This is now fixed.
+
+
 2/17/12  [EDGcpfe/12699]
 IL representation of #pragma GCC visibility ...
 

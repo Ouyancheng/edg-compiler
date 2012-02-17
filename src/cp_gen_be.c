@@ -6849,6 +6849,7 @@ Render the given delegate type as a C++/CLI delegate definition.  E.g.:
   check_and_take_source_seq_entry_for_type(type);
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
+  (void)gen_ms_attribute_block_from_ss_list();
   gen_assembly_visibility_for_type(type);
   write_tok_str("delegate ");
   gen_general_declaration_using_type(delegate_invocation_type(type),

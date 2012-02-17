@@ -3177,6 +3177,9 @@ Instantiate the C++/CLI generic delegate specified by class_type.
                                 instance_sym, &instance_sym->decl_position,
                                 (a_source_sequence_entry_ptr)NULL);
       init_decl_parse_state(&dps);
+      if (curr_token == tok_lbracket && next_token() != tok_lbracket) {
+        dps.ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+      }  /* if */
       visibility = scan_cli_visibility_specifier_if_any(&visibility_pos);
       set_cli_visibility(class_type, visibility, &visibility_pos,
                          /*is_definition=*/TRUE);

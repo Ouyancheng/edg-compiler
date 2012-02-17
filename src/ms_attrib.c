@@ -1978,11 +1978,21 @@ static void finalize_ms_attribute_source_sequence_entry(
 /*
 Complete the processing of the source sequence entry associated with the
 Microsoft attribute "msap".  If "err" is TRUE, remove the empty source
-sequence entry from the list.  Otherwise, complete the source sequence
-entry.
+sequence entry from the list.  Also remove it in template declaration contexts
+when nonclass prototype instantiations are not recorded in the IL, since in
+that case the corresponding entries for the template won't be recorded either.
+Otherwise, complete the source sequence entry.
 */
 {
-  if (err) {
+  a_boolean  remove_sse = err;
+
+  if (!remove_sse &&
+      scope_is(&scope_stack_top(), sck_template_declaration) &&
+      (!nonclass_prototype_instantiations ||
+       !prototype_instantiations_in_il)) {
+    remove_sse = TRUE;
+  }  /* if */
+  if (remove_sse) {
     /* This attribute is not being added to the IL, so we must remove the
        empty source sequence entry created for it. */
     if (msap->source_sequence_entry != NULL) {
