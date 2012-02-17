@@ -320,9 +320,11 @@ typedef struct a_pending_pragma {
     /* When descr_ptr->kind == pk_lint_varargs_count */
     a_lint_varargs_count
 		lint_varargs_count;
+#if GNU_EXTENSIONS_ALLOWED
     /* When descr_ptr->kind == pk_gcc */
     a_gcc_pragma_descr
 		gcc;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } variant;
 } a_pending_pragma;
 
