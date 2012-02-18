@@ -752,9 +752,9 @@ event name as a qualifier.
                                      .unknown_function.property_or_event_descr;
     }  /* if */
   }  /* if */
-  /* If the entity has an associated property that is not a default
-     indexed property, output a qualifier for the property name. */
-  if (pedp != NULL && !pedp->is_default_indexed) {
+  /* If the entity has an associated property, output a qualifier for the
+     property name. */
+  if (pedp != NULL) {
     if (pedp->is_static) {
       form_unqualified_name(&pedp->variant.variable->source_corresp,
                             iek_variable, octl);
