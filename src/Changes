@@ -1,5 +1,39 @@
 Version 4.5
 
+2/20/12  [EDGcpfe/12489]
+Improved diagnostics in C++/CLI when some overload set members are inaccessible
+
+In C++/CLI, inaccessible functions from managed classes are discarded in
+overload resolution, rather than (as in standard C++) being considered
+as viable functions and an error issued if they are chosen.  This led to
+some confusing error messages when no accessible function is viable but
+there is an inaccessible function that could have been called were it
+not for the C++/CLI access rules.  Now, an additional note is appended
+to the diagnostic to identify an inaccessible function that could have
+been chosen (only one is identified, and not necessarily the best one,
+but it is one that is callable).
+
+  ref struct A {
+  public:
+    A();
+  private:
+    int operator+(int);
+  };
+  int main() {
+    A ^h = gcnew A();
+    h + 1;
+  }
+
+This now produces:
+
+"test.c", line 9: error: no operator "+" matches these operands
+            operand types are: A ^ + int
+            Note: function "A::operator+" (declared at line 5) could have been
+                      called but was not considered because it is inaccessible
+    h + 1;
+      ^
+
+
 2/17/12  [EDGcpfe/12197]
 C++/CLI: Attributes on generic delegates
 

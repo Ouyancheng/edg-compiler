@@ -27,6 +27,8 @@ overload.h -- Declarations related to expression overload resolution.
 #include "exprutil.h"
 #endif /* ifndef EXPRUTIL_H */
 
+/* Deal with forward reference: */
+typedef struct a_candidate_function *a_candidate_function_ptr;
 
 /*
 Description of a complete conversion (user-defined part plus standard
@@ -237,16 +239,52 @@ typedef struct an_overload_set_traversal_block {
 		is_overloaded_function_list;
 			/* TRUE if the list being traversed is the list
 			   under an sk_overloaded_function symbol. */
+  a_candidate_function_ptr
+		*candidate_functions;
+			/* Pointer to the list of candidate functions being
+			   built up.  NULL if there is no list of candidate
+			   functions. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_byte_boolean
-		skip_inaccessible_functions;
-			/* TRUE if inaccessible functions on the list should
-			   be skipped.  Used in some C++/CLI contexts. */
+  a_candidate_function_ptr
+		candidate_functions_on_prev_iteration;
+			/* The value of *candidate_functions on the previous
+			   iteration, used to note whether anything has been
+			   added to the candidate set (assuming additions are
+			   made at the front of the list).  Meaningful only
+			   if candidate_functions is non-NULL. */
   a_hide_by_sig_list_entry_ptr
 		hide_by_sig_list;
 			/* For a C++/CLI hide-by-sig name, the list of
 			   symbols to be considered, in order.  NULL
 			   otherwise. */
+  a_byte_boolean
+		skip_inaccessible_functions;
+			/* TRUE if inaccessible functions on the list should
+			   be skipped.  Used in some C++/CLI contexts. */
+  a_byte_boolean
+		any_inaccessible_function_skipped;
+			/* Set to TRUE if any inaccessible function was
+			   skipped. */
+  a_byte_boolean
+		curr_sym_viable;
+			/* For internal use.  Indicates that the symbol
+			   returned on the previous iteration was found to
+			   be viable.  Normally set by checking
+			   candidate_functions_on_prev_iteration, but can
+			   also be set for some internal purposes. */
+  a_byte_boolean
+		returned_sym_is_inaccessible;
+			/* The symbol returned on the previous iteration
+			   was inaccessible, and was returned anyway in
+			   order to look for inaccessible symbols that are
+			   viable, for better diagnostics. */
+  a_symbol_ptr	*inaccessible_match;
+			/* In C++/CLI mode, if non-NULL, used to return the
+			   symbol for a candidate function that would have
+			   been viable except that it is inaccessible, when
+			   hide-by-sig lookup applies.  Only the first such
+			   symbol is returned.  If this field is NULL, such
+			   functions are not looked for. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } an_overload_set_traversal_block;
 
@@ -370,7 +408,6 @@ typedef struct an_arg_match_summary {
 Entry describing a function that is a candidate instance of an overloaded
 function.  This entry is used in resolving overloaded function calls.
 */
-typedef struct a_candidate_function *a_candidate_function_ptr;
 typedef struct a_candidate_function {
   a_candidate_function_ptr
 		next;	/* Next entry on the list of candidates, or NULL
@@ -607,12 +644,19 @@ typedef struct an_arg_check_block {
 extern void clear_conv_descr(a_conv_descr_ptr conv);
 
 extern a_symbol_ptr set_up_overload_set_traversal(
-                                    a_symbol_ptr                    sym,
-                                    an_overload_set_traversal_block *ostblock);
+                          a_symbol_ptr                    sym,
+                          a_candidate_function_ptr        *candidate_functions,
+                          a_symbol_ptr                    *inaccessible_match,
+                          an_overload_set_traversal_block *ostblock);
+
+#define set_up_overload_set_traversal_simple(sym, ostblock) \
+  (set_up_overload_set_traversal((sym), \
+                                 (a_candidate_function **)NULL, \
+                                 (a_symbol **)NULL, \
+                                 (ostblock)))
 
 extern a_symbol_ptr next_symbol_in_overload_set(
-                              an_overload_set_traversal_block *ostblock,
-                              a_boolean                       curr_sym_viable);
+                                    an_overload_set_traversal_block *ostblock);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean hide_by_sig_lookup_applies(a_symbol_ptr sym);
@@ -999,18 +1043,20 @@ extern a_boolean conditional_operator_conversion_possible(
                                                    a_boolean    *ambiguous);
 
 extern a_symbol_ptr select_overloaded_default_constructor(
-                                           a_type_ptr        class_type,
-                                           a_boolean         include_templates,
-                                           a_source_position *pos,
-                                           a_boolean         *ambiguous);
+                                        a_type_ptr        class_type,
+                                        a_boolean         include_templates,
+                                        a_source_position *pos,
+                                        a_boolean         *ambiguous,
+                                        a_symbol_ptr      *inaccessible_match);
 
-extern a_symbol_ptr select_overloaded_copy_constructor
-                                  (a_type_ptr            class_type,
+a_symbol_ptr select_overloaded_copy_constructor(
+                                   a_type_ptr            class_type,
                                    a_type_qualifier_set  required_qualifiers,
                                    a_boolean             source_is_rvalue,
                                    a_source_position     *pos,
                                    a_boolean             *ambiguous,
                                    a_boolean             *uncallable,
+                                   a_symbol_ptr          *inaccessible_match,
                                    a_boolean             *class_bitwise_copy);
 
 extern a_routine_ptr select_assignment_operator_for_memberwise_copy(

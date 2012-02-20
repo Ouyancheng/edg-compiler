@@ -28,6 +28,7 @@ overload.c -- Expression processing overload resolution.
 #include "func_def.h"
 
 /* Forward declarations required because of out-of-order references. */
+static void free_candidate_function_list(a_candidate_function_ptr cfp);
 static void try_conversion_function_match(
                           an_operand               *source_operand,
                           a_type_ptr               dest_type,
@@ -100,18 +101,32 @@ Clear a conversion description.
 }  /* clear_conv_descr */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/* /* <-- inaccessible_match is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void clear_overload_set_traversal_block(
-                                     an_overload_set_traversal_block *ostblock)
+                          a_candidate_function_ptr        *candidate_functions,
+                          a_symbol_ptr                    *inaccessible_match,
+                          an_overload_set_traversal_block *ostblock)
 /*
-Clear an overload set traversal block.
+Clear an overload set traversal block.  candidate_functions and
+inaccessible_match are initial values for the like-named fields.
 */
 {
   ostblock->current_symbol = NULL;
   ostblock->current_symbol_list_entry = NULL;
   ostblock->is_overloaded_function_list = FALSE;
+  ostblock->candidate_functions = candidate_functions;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  ostblock->skip_inaccessible_functions = FALSE;
+  ostblock->candidate_functions_on_prev_iteration = NULL;
   ostblock->hide_by_sig_list = NULL;
+  ostblock->skip_inaccessible_functions = FALSE;
+  ostblock->any_inaccessible_function_skipped = FALSE;
+  ostblock->curr_sym_viable = FALSE;
+  ostblock->returned_sym_is_inaccessible = FALSE;
+  check_assertion(inaccessible_match == NULL ||
+                  candidate_functions != NULL);
+  ostblock->inaccessible_match = inaccessible_match;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_overload_set_traversal_block */
 
@@ -141,31 +156,76 @@ empty traversal and return NULL.
   return (ostblock->current_symbol = sym);
 }  /* set_overload_set_traversal_symbol */
 
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
-/*
-Return TRUE if the indicated symbol from an overload set should be skipped
-because it's inaccessible.
-*/
-#define should_skip_symbol_because_inaccessible(sym, ostblock) \
-  ((ostblock)->skip_inaccessible_functions && \
-   !have_hide_by_sig_access_to_symbol(sym))
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-
-a_symbol_ptr set_up_overload_set_traversal(
+static a_boolean should_skip_symbol_because_inaccessible(
                                      a_symbol_ptr                    sym,
                                      an_overload_set_traversal_block *ostblock)
+/*
+As part of doing an overload set traversal, test whether the given symbol
+should be skipped because it's inaccessible (that is used for C++/CLI
+hide-by-sig symbols).  Return TRUE if so.
+*/
+{
+  a_boolean should_skip = FALSE;
+
+  if (ostblock->skip_inaccessible_functions &&
+      !have_hide_by_sig_access_to_symbol(sym)) {
+    /* The symbol is inaccessible and should be skipped. */
+    should_skip = TRUE;
+    /* Note that the flag below remains set even if we ultimately decide to
+       return this inaccessible function for testing for viability,
+       because the function will not stay on the candidate functions
+       list.  In the end, it's skipped all the same. */
+    ostblock->any_inaccessible_function_skipped = TRUE;
+    if (ostblock->inaccessible_match != NULL) {
+      /* We have been asked to look for inaccessible functions that match,
+         so consider returning this symbol anyway in a special mode. */
+      check_assertion(ostblock->candidate_functions != NULL);
+      if (*ostblock->candidate_functions != NULL) {
+        /* There are already some (accessible) candidates, so there's no
+           reason to check the inaccessible ones. */
+      } else if (*ostblock->inaccessible_match != NULL) {
+        /* We've already found and recorded one viable inaccessible function,
+           so don't look at any more.  Yes, the one returned might not
+           be the best match; we're okay with that. */
+      } else {
+        /* Return this inaccessible symbol to the caller, but set a flag
+           so it will be processed specially back in
+           next_symbol_in_overload_set. */
+        should_skip = FALSE;
+        ostblock->returned_sym_is_inaccessible = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return should_skip;
+}  /* should_skip_symbol_because_inaccessible */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static a_symbol_ptr next_symbol_in_overload_set_internal(
+                                    an_overload_set_traversal_block *ostblock);
+
+a_symbol_ptr set_up_overload_set_traversal(
+                          a_symbol_ptr                    sym,
+                          a_candidate_function_ptr        *candidate_functions,
+                          a_symbol_ptr                    *inaccessible_match,
+                          an_overload_set_traversal_block *ostblock)
 /*
 Set up for traversing the symbols of an overload set via
 next_symbol_in_overload_set.  sym is the original symbol (often an
 sk_overloaded_function symbol, but it can be a non-overloaded function
 symbol, or a projection symbol for either of those).  Returns the first
 symbol to be considered, or NULL if there isn't one.  The symbol
-returned may be a projection symbol.
+returned may be a projection symbol.  candidate_functions, if non-NULL,
+points to the candidate functions set being built up.  If inaccessible_match
+is non-NULL, in C++/CLI mode it will be set to a symbol that would have been
+chosen except that it was inaccessible because of hide-by-sig lookup.
 */
 {
-  clear_overload_set_traversal_block(ostblock);
+  clear_overload_set_traversal_block(candidate_functions,
+                                     inaccessible_match,
+                                     ostblock);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled) {
     a_hide_by_sig_list_entry_ptr list;
@@ -199,8 +259,8 @@ returned may be a projection symbol.
         /* There's code very similar to this in next_symbol_in_overload_set. */
         { a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
           if (!is_function_or_template_symbol(fund_sym)) {
-            a_boolean sym_accessible = have_hide_by_sig_access_to_symbol(sym);
-            sym = next_symbol_in_overload_set(ostblock, sym_accessible);
+            ostblock->curr_sym_viable = have_hide_by_sig_access_to_symbol(sym);
+            sym = next_symbol_in_overload_set_internal(ostblock);
           }  /* if */
         }
       } else {
@@ -213,30 +273,32 @@ returned may be a projection symbol.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sym = set_overload_set_traversal_symbol(sym, ostblock);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (sym != NULL &&
+  if (cppcli_enabled && sym != NULL &&
       should_skip_symbol_because_inaccessible(sym, ostblock)) {
     /* The symbol is inaccessible and should be skipped. */
-    sym = next_symbol_in_overload_set(ostblock, /*curr_sym_viable=*/FALSE);
+    ostblock->curr_sym_viable = FALSE;
+    sym = next_symbol_in_overload_set_internal(ostblock);
+  }  /* if */
+  if (ostblock->candidate_functions != NULL) {
+    /* Remember the candidate function set before any addition by the caller
+       on this iteration. */
+    ostblock->candidate_functions_on_prev_iteration =
+                                                *ostblock->candidate_functions;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return sym;
 }  /* set_up_overload_set_traversal */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- curr_sym_viable is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-a_symbol_ptr next_symbol_in_overload_set(
-                               an_overload_set_traversal_block *ostblock,
-                               a_boolean                       curr_sym_viable)
+static a_symbol_ptr next_symbol_in_overload_set_internal(
+                                     an_overload_set_traversal_block *ostblock)
 /*
 Advance to the next symbol in the overload set whose traversal is underway
 and described by ostblock, and return that next symbol, or NULL if there is
-no next symbol.  The symbol returned may be a projection symbol.
-curr_sym_viable is TRUE if the current symbol on entry (the one processed
-on the iteration of the loop just completed) turned out to be viable.
-That's used for C++/CLI hide-by-sig lookup overload resolution.  If you don't
-need that functionality, pass in FALSE to get all members of the overload set.
+no next symbol.  The symbol returned may be a projection symbol.  This
+routine is the internal version, intended to be called after
+ostblock->curr_sym_viable has been set appropriately.  Usually,
+next_symbol_in_overload_set should be called instead.
 */
 {
   a_symbol_ptr sym;
@@ -269,7 +331,7 @@ advance_in_hide_by_sig_list:
       /* If the symbol we just finished processing was viable, do not descend
          into base classes under it; skip instead to the next entry at the same
          or a lower (numerically) level. */
-      if (curr_sym_viable) {
+      if (ostblock->curr_sym_viable) {
         while (list != NULL && list->level > level) {
           list = list->next;
         }  /* while */
@@ -290,7 +352,7 @@ advance_in_hide_by_sig_list:
            set_up_overload_set_traversal. */
         { a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
           if (!is_function_or_template_symbol(fund_sym)) {
-            curr_sym_viable = have_hide_by_sig_access_to_symbol(sym);
+            ostblock->curr_sym_viable = have_hide_by_sig_access_to_symbol(sym);
             goto advance_in_hide_by_sig_list;
           }  /* if */
         }
@@ -300,10 +362,75 @@ advance_in_hide_by_sig_list:
       }  /* if */
     }  /* if */
   }  /* if */
-  if (sym != NULL &&
+  if (cppcli_enabled && sym != NULL &&
       should_skip_symbol_because_inaccessible(sym, ostblock)) {
     /* The symbol is inaccessible and should be skipped. */
+    ostblock->curr_sym_viable = FALSE;
     goto top;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return sym;
+}  /* next_symbol_in_overload_set_internal */
+
+
+a_symbol_ptr next_symbol_in_overload_set(
+                                     an_overload_set_traversal_block *ostblock)
+/*
+Advance to the next symbol in the overload set whose traversal is underway
+and described by ostblock, and return that next symbol, or NULL if there is
+no next symbol.  The symbol returned may be a projection symbol.
+*/
+{
+  a_symbol_ptr sym;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ostblock->curr_sym_viable = FALSE;
+  if (!cppcli_enabled) {
+    /* The code immediately below is needed only in C++/CLI mode. */
+  } else if (ostblock->returned_sym_is_inaccessible) {
+    /* The symbol returned on the last iteration is inaccessible, and was
+       returned anyway to look for a viable inaccessible symbol that could
+       be used for a diagnostic if there are no viable accessible functions.
+       If the function is viable, take it off the candidate functions list
+       and return it to the caller. */
+    ostblock->returned_sym_is_inaccessible = FALSE;
+    check_assertion(ostblock->candidate_functions != NULL);
+    if (*ostblock->candidate_functions !=
+        ostblock->candidate_functions_on_prev_iteration) {
+      /* The inaccessible function turned out to be viable. */
+      a_candidate_function_ptr can = *ostblock->candidate_functions;
+      check_assertion(can->next ==
+                      ostblock->candidate_functions_on_prev_iteration);
+      *ostblock->candidate_functions = can->next;
+      can->next = NULL;
+      check_assertion(ostblock->inaccessible_match != NULL &&
+                      *ostblock->inaccessible_match == NULL);
+      check_assertion(can->function_symbol != NULL);
+      *ostblock->inaccessible_match = can->function_symbol;
+      free_candidate_function_list(can);
+    }  /* if */
+  } else if (ostblock->candidate_functions != NULL) {
+    if (*ostblock->candidate_functions !=
+        ostblock->candidate_functions_on_prev_iteration) {
+      /* A candidate function was added by the caller in the last iteration,
+         so the symbol returned is viable. */
+      ostblock->curr_sym_viable = TRUE;
+      /* Clear any previously-recorded inaccessible match since we have
+         found a viable accessible function. */
+      if (ostblock->inaccessible_match != NULL) {
+        *ostblock->inaccessible_match = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Advance to the next symbol. */
+  sym = next_symbol_in_overload_set_internal(ostblock);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && ostblock->candidate_functions != NULL) {
+    /* Remember the candidate function set before any addition by the caller
+       on this iteration. */
+    ostblock->candidate_functions_on_prev_iteration =
+                                                *ostblock->candidate_functions;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return sym;
@@ -315,18 +442,26 @@ static a_symbol_ptr next_symbol_in_overload_symbol_list(
 
 
 static a_symbol_ptr set_up_overload_symbol_list_traversal(
-                                     a_symbol_list_entry_ptr         slep,
-                                     an_overload_set_traversal_block *ostblock)
+                          a_symbol_list_entry_ptr         slep,
+                          a_candidate_function_ptr        *candidate_functions,
+                          a_symbol_ptr                    *inaccessible_match,
+                          an_overload_set_traversal_block *ostblock)
 /*
 Set up for traversing the symbols of a symbol list for overload resolution via
 next_symbol_in_overload_symbol_list.  slep is the first entry on the list,
 or NULL if the list is empty.  Returns the first symbol to be considered,
 or NULL if there isn't one.  The symbol returned may be a projection symbol.
+candidate_functions, if non-NULL, points to the candidate functions set
+being built up.  If inaccessible_match is non-NULL, in C++/CLI mode it
+will be set to a symbol that would have been chosen except that it was
+inaccessible because of hide-by-sig lookup.
 */
 {
   a_symbol_ptr sym = NULL;
 
-  clear_overload_set_traversal_block(ostblock);
+  clear_overload_set_traversal_block(candidate_functions,
+                                     inaccessible_match,
+                                     ostblock);
   if (slep != NULL) {
     sym = slep->symbol;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -346,7 +481,7 @@ or NULL if there isn't one.  The symbol returned may be a projection symbol.
   }  /* if */
   ostblock->current_symbol_list_entry = slep;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (sym != NULL &&
+  if (cppcli_enabled && sym != NULL &&
       should_skip_symbol_because_inaccessible(sym, ostblock)) {
     /* The symbol is inaccessible and should be skipped. */
     sym = next_symbol_in_overload_symbol_list(ostblock);
@@ -354,6 +489,16 @@ or NULL if there isn't one.  The symbol returned may be a projection symbol.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return sym;
 }  /* set_up_overload_symbol_list_traversal */
+
+
+/*
+Simple interface to set_up_overload_symbol_list_traversal.
+*/
+#define set_up_overload_symbol_list_traversal_simple(slep, ostblock) \
+  (set_up_overload_symbol_list_traversal((slep), \
+                                         (a_candidate_function **)NULL, \
+                                         (a_symbol **)NULL, \
+                                         (ostblock)))
 
 
 static a_symbol_ptr next_symbol_in_overload_symbol_list(
@@ -377,7 +522,7 @@ top:
   }  /* if */
   sym = (slep != NULL) ? slep->symbol : NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (sym != NULL &&
+  if (cppcli_enabled && sym != NULL &&
       should_skip_symbol_because_inaccessible(sym, ostblock)) {
     /* The symbol is inaccessible and should be skipped. */
     goto top;
@@ -979,10 +1124,9 @@ from previous arguments; in the standard case, it is always NULL.
     }  /* if */
   } else {
     an_overload_set_traversal_block ostblock;
-    for (proj_sym = set_up_overload_set_traversal(sym, &ostblock);
+    for (proj_sym = set_up_overload_set_traversal_simple(sym, &ostblock);
          proj_sym != NULL;
-         proj_sym = next_symbol_in_overload_set(&ostblock,
-                                                /*curr_sym_viable=*/FALSE)) {
+         proj_sym = next_symbol_in_overload_set(&ostblock)) {
       a_type_ptr routine_type = NULL, ptr_routine_type;
       a_boolean  matches = FALSE;
       /* Remove projections for namespaces, if any. */
@@ -1254,7 +1398,7 @@ Free the list of candidate function entries pointed to by cfp.
     cfp->next = avail_candidate_functions;
     avail_candidate_functions = cfp;
   }  /* for */
-}  /* free_candidate_function */
+}  /* free_candidate_function_list */
 
 #if DEBUG
 
@@ -2170,13 +2314,14 @@ constructor.
   complete_type_is_needed(param_type);
   if (!is_incomplete_type(param_type)) {
     cctor_sym = select_overloaded_copy_constructor(
-                                        param_type,
-                                        get_type_qualifiers(arg_operand->type),
-                                        is_an_rvalue(arg_operand),
-                                        &arg_operand->position,
-                                        &ambiguous,
-                                        /*uncallable=*/(a_boolean *)NULL,
-                                        &class_bitwise_copy);
+                                      param_type,
+                                      get_type_qualifiers(arg_operand->type),
+                                      is_an_rvalue(arg_operand),
+                                      &arg_operand->position,
+                                      &ambiguous,
+                                      /*uncallable=*/(a_boolean *)NULL,
+                                      /*inaccessible_match=*/(a_symbol **)NULL,
+                                      &class_bitwise_copy);
     if (class_bitwise_copy || ambiguous || cctor_sym != NULL) {
       /* A copy constructor can be used. */
       copy_can_be_done = TRUE;
@@ -4673,6 +4818,7 @@ static void try_overloaded_function_match(
                  a_boolean                is_overloaded_operator,
                  a_conv_context_set       conv_context,
                  a_candidate_function_ptr *candidate_functions,
+                 a_symbol_ptr             *inaccessible_match,
                  a_boolean                *matched_except_for_missing_selector,
                  a_boolean                *matched_except_for_selector)
 /*
@@ -4692,25 +4838,28 @@ match would have been found except for the absence of a selector, set
 *matched_except_for_missing_selector TRUE, and if a match would have
 been found except for a mismatch on the selector, set
 *matched_except_for_selector TRUE; those allow different error
-messages.  If ctor_conversion_case is TRUE, this analysis is being
-done as part of resolving an implicit or explicit conversion to a
-class type: the functions are constructors, have_selector is FALSE
-(sic; the "this" parameter is not matched up); the "conversion" field is
-set in any candidate function entries created.  effects_copy_initialization
-is TRUE if this call is the user-defined conversion in a
-copy-initialization; constructors that are marked "explicit" are
-ignored.  allow_udc_on_arguments is TRUE if user-defined conversions
-should be allowed on the argument matches.  arg_dep_lookup_done is
-TRUE if argument-dependent lookup is enabled for this call.
-from_arg_dep_lookup is TRUE if the function was found by
-argument-dependent lookup.  dependent_call is TRUE if the call is a
-template-dependent call.  forced_dependent is TRUE if dependent_call
-was forced to TRUE for reasons of g++ emulation.  ignore_templates is
-TRUE if template functions should be ignored.  known_to_be_visible
-is TRUE if the function is known to be visible and the visibility
-check should be suppressed.  is_overloaded_operator is TRUE if the
-call is written in operator form, e.g., a+b rather than operator+(a,
-b).  conv_context describes the context of the conversion.
+messages.  If inaccessible_match is non-NULL, in C++/CLI mode it will
+be set to a symbol that would have been chosen except that it was
+inaccessible because of hide-by-sig lookup.  If ctor_conversion_case
+is TRUE, this analysis is being done as part of resolving an implicit
+or explicit conversion to a class type: the functions are
+constructors, have_selector is FALSE (sic; the "this" parameter is not
+matched up); the "conversion" field is set in any candidate function
+entries created.  effects_copy_initialization is TRUE if this call is
+the user-defined conversion in a copy-initialization; constructors
+that are marked "explicit" are ignored.  allow_udc_on_arguments is
+TRUE if user-defined conversions should be allowed on the argument
+matches.  arg_dep_lookup_done is TRUE if argument-dependent lookup is
+enabled for this call.  from_arg_dep_lookup is TRUE if the function
+was found by argument-dependent lookup.  dependent_call is TRUE if the
+call is a template-dependent call.  forced_dependent is TRUE if
+dependent_call was forced to TRUE for reasons of g++ emulation.
+ignore_templates is TRUE if template functions should be ignored.
+known_to_be_visible is TRUE if the function is known to be visible and
+the visibility check should be suppressed.  is_overloaded_operator is
+TRUE if the call is written in operator form, e.g., a+b rather than
+operator+(a, b).  conv_context describes the context of the
+conversion.
 */
 {
   a_symbol_ptr  function_symbol, proj_function_symbol;
@@ -4718,16 +4867,16 @@ b).  conv_context describes the context of the conversion.
   a_boolean     allow_post_declared_functions = FALSE;
   a_boolean     any_discarded_because_post_decl;
   a_boolean     any_not_discarded_because_post_decl;
-  a_boolean     curr_sym_viable;
   a_candidate_function_ptr
-                orig_saved_candidate_functions = *candidate_functions,
-                saved_candidate_functions;
+                saved_candidate_functions = *candidate_functions;
   an_overload_set_traversal_block
                 ostblock;
 
   /* Get the first symbol to be considered in the overload set. */
   proj_function_symbol = set_up_overload_set_traversal(
                                                     overloaded_function_symbol,
+                                                    candidate_functions,
+                                                    inaccessible_match,
                                                     &ostblock);
   if (proj_function_symbol != NULL) {
     /* Remove namespace projections, if any. */
@@ -4795,8 +4944,7 @@ retry:
   /* Look at each instance of the overloaded function and see whether or
      not it can match the actual arguments, and if so, how well. */
   for (; proj_function_symbol != NULL;
-       proj_function_symbol = next_symbol_in_overload_set(&ostblock,
-                                                          curr_sym_viable)) {
+       proj_function_symbol = next_symbol_in_overload_set(&ostblock)) {
     a_boolean discarded_because_post_decl;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
@@ -4805,7 +4953,6 @@ retry:
                 "try_overloaded_function_match: considering ", 4);
     }  /* if */
 #endif /* DEBUG */
-    saved_candidate_functions = *candidate_functions;
     if (ignore_templates) {
       a_symbol_ptr fund_sym = fundamental_symbol_of(proj_function_symbol);
       if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
@@ -4844,11 +4991,10 @@ retry:
     } else {
       any_not_discarded_because_post_decl = TRUE;
     }  /* if */
-bottom_of_loop:
-    curr_sym_viable = (saved_candidate_functions != *candidate_functions);
+bottom_of_loop:;
   }  /* for */
   if (gpp_mode && gnu_version >= 40100 &&
-      *candidate_functions == orig_saved_candidate_functions &&
+      *candidate_functions == saved_candidate_functions &&
       any_discarded_because_post_decl &&
       !any_not_discarded_because_post_decl &&
       !allow_post_declared_functions &&
@@ -4859,6 +5005,8 @@ bottom_of_loop:
     allow_post_declared_functions = TRUE;
     proj_function_symbol = set_up_overload_set_traversal(
                                                     overloaded_function_symbol,
+                                                    candidate_functions,
+                                                    inaccessible_match,
                                                     &ostblock);
     goto retry;
   }  /* if */
@@ -4901,6 +5049,7 @@ are viable functions, FALSE if not.  Issues no errors.
                                 /*is_overloaded_operator=*/FALSE,
                                 CCO_DEFAULT,
                                 &candidate_functions,
+                                /*inaccessible_match=*/(a_symbol **)NULL,
                                 &matched_except_for_missing_selector,
                                 &matched_except_for_selector);
   possible = (candidate_functions != NULL);
@@ -4960,14 +5109,18 @@ parameter.
 static void try_surrogate_function_match(
                              an_operand               *class_object,
                              an_arg_operand_ptr       arg_operand_list,
-                             a_candidate_function_ptr *candidate_functions)
+                             a_candidate_function_ptr *candidate_functions,
+                             a_symbol_ptr             *inaccessible_match)
 /*
 Find any candidate surrogate functions and add them to the candidate_functions
 list.  Look for conversion functions that convert the class object indicated
 by class_object to pointer to function.  Each function pointed to
 is considered a surrogate function, and its parameters are compared to the
 arguments of the call (given by arg_operand_list).  In C++/CLI mode,
-the class_object can be a handle to an object.
+the class_object can be a handle to an object.  If inaccessible_match
+is non-NULL, in C++/CLI mode it will be set to a symbol that would
+have been chosen except that it was inaccessible because of
+hide-by-sig lookup.
 */
 {
   a_symbol_ptr            surrogate_function_conv_sym;
@@ -4996,6 +5149,8 @@ the class_object can be a handle to an object.
      functions in accessible base classes, but that seems wrong.) */
   for (surrogate_function_conv_sym = set_up_overload_symbol_list_traversal(
                       symbol_supplement_for_class(class_type)->conversion_list,
+                      candidate_functions,
+                      inaccessible_match,
                       &ostblock);
        surrogate_function_conv_sym != NULL;
        surrogate_function_conv_sym =
@@ -7172,10 +7327,9 @@ lookup.
     if (ovl_sym->kind != (a_symbol_kind)sk_function_template) {
       an_overload_set_traversal_block ostblock;
       check_assertion(ovl_sym->kind == (a_symbol_kind)sk_overloaded_function);
-      for (sym = set_up_overload_set_traversal(ovl_sym, &ostblock);
+      for (sym = set_up_overload_set_traversal_simple(ovl_sym, &ostblock);
            sym != NULL;
-           sym = next_symbol_in_overload_set(&ostblock,
-                                             /*curr_sym_viable=*/FALSE)) {
+           sym = next_symbol_in_overload_set(&ostblock)) {
         a_type_ptr   func_type;
         a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
         /* Ignore templates. */
@@ -7216,10 +7370,9 @@ argument expression.
         parent_class->variant.class_struct_union.is_nonreal_class))) {
     an_overload_set_traversal_block ostblock;
     /* Loop through the symbols in the overload set. */
-    for (sym = set_up_overload_set_traversal(sym, &ostblock);
+    for (sym = set_up_overload_set_traversal_simple(sym, &ostblock);
          sym != NULL;
-         sym = next_symbol_in_overload_set(&ostblock,
-                                           /*curr_sym_viable=*/FALSE)) {
+         sym = next_symbol_in_overload_set(&ostblock)) {
       a_symbol_ptr                  fund_sym = fundamental_symbol_of(sym);
       a_type_ptr                    rout_type;
       a_routine_type_supplement_ptr rtsp;
@@ -7512,6 +7665,7 @@ and return NULL.  This routine is called only in C++ mode.
 {
   a_candidate_function_ptr candidate_functions;
   a_symbol_ptr             function_symbol;
+  a_symbol_ptr             inaccessible_match = NULL;
   a_boolean                matched_except_for_missing_selector = FALSE;
   a_boolean                matched_except_for_selector = FALSE;
   a_boolean                undecidable_because_of_error, ambiguous;
@@ -7723,6 +7877,7 @@ in_instantiation:
                                     /*is_overloaded_operator=*/FALSE,
                                     CCO_DEFAULT,
                                     &candidate_functions,
+                                    &inaccessible_match,
                                     &matched_except_for_missing_selector,
                                     &matched_except_for_selector);
       some_function_tried = TRUE;
@@ -7819,6 +7974,7 @@ in_instantiation:
                                       /*is_overloaded_operator=*/FALSE,
                                       CCO_DEFAULT,
                                       &candidate_functions,
+                                      &inaccessible_match,
                                       &matched_except_for_missing_selector,
                                       &matched_except_for_selector);
         some_function_tried = TRUE;
@@ -7834,7 +7990,8 @@ in_instantiation:
     check_assertion(have_selector);
     try_surrogate_function_match(bound_function_selector,
                                  arg_operand_list,
-                                 &candidate_functions);
+                                 &candidate_functions,
+                                 &inaccessible_match);
   }  /* if */
   /* The candidate_functions list now contains all the viable functions.
      Find the best one(s). */
@@ -7846,7 +8003,15 @@ in_instantiation:
     /* There was some previous error, so do not put out an error message. */
   } else if (candidate_functions == NULL) {
     /* None of the functions applies. */
-    if (matched_except_for_missing_selector) {
+    if (inaccessible_match != NULL) {
+      /* In C++/CLI, there is a function that could have been called but
+         was skipped because it is inaccessible. */
+      /* Skip over some other special cases that are less important than
+         a viable inaccessible function, and go to the general error
+         message. */
+      check_assertion(overloaded_function_symbol != NULL);
+      goto normal_no_function_matches;
+    } else if (matched_except_for_missing_selector) {
       /* At least one of the functions would have matched if we had had a
          selector expression, so issue a different error message. */
       /* A nonstatic member function is used someplace where there is no
@@ -7887,7 +8052,9 @@ in_instantiation:
       }  /* if */
     } else {
       /* Normal case. */
-      a_type_ptr object_type = NULL;
+      a_type_ptr object_type;
+normal_no_function_matches:
+      object_type = NULL;
       if (bound_function_selector != NULL) {
         object_type = bound_function_selector->type;
       }  /* if */
@@ -7913,6 +8080,7 @@ in_instantiation:
         pos_sy_start_error(err_none_applies, call_position,
                            overloaded_function_symbol);
         display_argument_list_types(object_type, arg_operand_list);
+        add_on_diag_for_skipped_inaccessible_function(inaccessible_match);
         end_error();
       }  /* if */
     }  /* if */
@@ -8819,11 +8987,11 @@ the case where the left operand is a C++/CLI handle.
           a_symbol_ptr sym, fund_sym;
           an_overload_set_traversal_block
                        ostblock;
-          for (sym = set_up_overload_set_traversal(projection_member_sym,
-                                                   &ostblock);
+          for (sym = set_up_overload_set_traversal_simple(
+                                                        projection_member_sym,
+                                                        &ostblock);
                ;
-               sym = next_symbol_in_overload_set(&ostblock,
-                                                 /*curr_sym_viable=*/FALSE)) {
+               sym = next_symbol_in_overload_set(&ostblock)) {
             check_assertion(sym != NULL);
             fund_sym = fundamental_symbol_of(sym);
             /* If the symbol is a member function template, see if the
@@ -11510,7 +11678,7 @@ are considered).  conv_context describes the context of the conversion.
      list of template conversion functions. */
   template_conversions_started = FALSE;
   /*lint --e{850} conversion_symbol modified in loop */
-  for (conversion_symbol = set_up_overload_symbol_list_traversal(
+  for (conversion_symbol = set_up_overload_symbol_list_traversal_simple(
                symbol_supplement_for_class(conv_funcs_class)->conversion_list,
                &ostblock);
        ;
@@ -11520,7 +11688,7 @@ are considered).  conv_context describes the context of the conversion.
          is yet to be processed, process that. */
       if (!template_conversions_started && dest_type != NULL) {
         template_conversions_started = TRUE;
-        conversion_symbol = set_up_overload_symbol_list_traversal(
+        conversion_symbol = set_up_overload_symbol_list_traversal_simple(
                                 symbol_supplement_for_class(conv_funcs_class)->
                                                       conversion_template_list,
                                 &ostblock);
@@ -12188,7 +12356,7 @@ type appears on the list of conversion functions.
   dest_type = skip_typerefs(dest_type);
   /* Examine each conversion function from the source class. */
   /*lint --e{850} conversion_symbol modified in loop */
-  for (conversion_symbol = set_up_overload_symbol_list_traversal(
+  for (conversion_symbol = set_up_overload_symbol_list_traversal_simple(
                       symbol_supplement_for_class(class_type)->conversion_list,
                       &ostblock);
        conversion_symbol != NULL &&
@@ -13261,7 +13429,8 @@ for the previous operand.
           an_overload_set_traversal_block ostblock;
           a_symbol_ptr                    conversion_symbol;
           /* Examine each conversion function from the source class. */
-          for (conversion_symbol = set_up_overload_symbol_list_traversal(
+          for (conversion_symbol =
+                   set_up_overload_symbol_list_traversal_simple(
                       symbol_supplement_for_class(
                               previous_class_type_considered)->conversion_list,
                       &ostblock);
@@ -13365,7 +13534,7 @@ in some way, e.g., two pointers that must have the same type.
       class_type = skip_typerefs(class_type);
       any_approp_conversion_function_this_operand = FALSE;
       /* Look at all the conversion functions for the source class. */
-      for (conversion_symbol = set_up_overload_symbol_list_traversal(
+      for (conversion_symbol = set_up_overload_symbol_list_traversal_simple(
                       symbol_supplement_for_class(class_type)->conversion_list,
                       &ostblock);
            conversion_symbol != NULL;
@@ -14026,6 +14195,7 @@ apply, but we can't tell).
   an_operand               function_operand;
   a_candidate_function_ptr candidate_functions;
   an_arg_match_summary_ptr arg_match;
+  a_symbol_ptr             inaccessible_match = NULL;
   a_boolean                matched_except_for_missing_selector = FALSE;
   a_boolean                matched_except_for_selector = FALSE;
   a_boolean                member_is_best_match, have_selector;
@@ -14232,6 +14402,7 @@ apply, but we can't tell).
                                          /*is_overloaded_operator=*/TRUE,
                                          CCO_DEFAULT,
                                          &candidate_functions,
+                                         &inaccessible_match,
                                          &matched_except_for_missing_selector,
                                          &matched_except_for_selector);
             operand_1->selector_is_object_pointer =
@@ -14277,6 +14448,7 @@ apply, but we can't tell).
                                          /*is_overloaded_operator=*/TRUE,
                                          CCO_DEFAULT,
                                          &candidate_functions,
+                                         &inaccessible_match,
                                          &matched_except_for_missing_selector,
                                          &matched_except_for_selector);
             operand_1->selector_is_object_pointer =
@@ -14304,6 +14476,7 @@ apply, but we can't tell).
                                          /*is_overloaded_operator=*/TRUE,
                                          CCO_DEFAULT,
                                          &candidate_functions,
+                                         &inaccessible_match,
                                          &matched_except_for_missing_selector,
                                          &matched_except_for_selector);
             }  /* if */
@@ -14347,6 +14520,7 @@ apply, but we can't tell).
                                          /*is_overloaded_operator=*/TRUE,
                                          CCO_DEFAULT,
                                          &candidate_functions,
+                                         &inaccessible_match,
                                          &matched_except_for_missing_selector,
                                          &matched_except_for_selector);
             }  /* if */
@@ -14436,6 +14610,7 @@ apply, but we can't tell).
                                          /*is_overloaded_operator=*/TRUE,
                                          CCO_DEFAULT,
                                          &candidate_functions,
+                                         &inaccessible_match,
                                          &matched_except_for_missing_selector,
                                          &matched_except_for_selector);
             }  /* if */
@@ -14647,6 +14822,8 @@ no_applicable_operator_function:
                                  operator_position,
                                  opname_names[(int)kind]);
               display_operand_types(arg_operand_list, kind);
+              add_on_diag_for_skipped_inaccessible_function(
+                                                           inaccessible_match);
               end_error();
             }  /* if */
             make_error_operand(result);
@@ -15077,6 +15254,7 @@ conversion.
                                     /*is_overloaded_operator=*/FALSE,
                                     conv_context,
                                     &candidate_functions,
+                                    /*inaccessible_match=*/(a_symbol **)NULL,
                                     &matched_except_for_missing_selector,
                                     &matched_except_for_selector);
     }  /* if */
@@ -16837,6 +17015,7 @@ cases.
                                       /*source_is_rvalue=*/TRUE,
                                       err_pos,
                                       &ambiguous, &uncallable,
+                                      /*inaccessible_match=*/(a_symbol **)NULL,
                                       &class_bitwise_copy);
     }  /* if */
     if (class_bitwise_copy) {
@@ -19559,10 +19738,11 @@ end_of_routine:
 
 
 a_symbol_ptr select_overloaded_default_constructor(
-                                           a_type_ptr        class_type,
-                                           a_boolean         include_templates,
-                                           a_source_position *pos,
-                                           a_boolean         *ambiguous)
+                                         a_type_ptr        class_type,
+                                         a_boolean         include_templates,
+                                         a_source_position *pos,
+                                         a_boolean         *ambiguous,
+                                         a_symbol_ptr      *inaccessible_match)
 /*
 See if there is a default constructor of the indicated class type
 (i.e., one that can be called with no arguments).  If so, return a pointer
@@ -19572,9 +19752,12 @@ be called with zero arguments if they have default template arguments
 or a parameter pack).  If more than one constructor matches, set
 *ambiguous to TRUE and return NULL.  The source position of the
 reference is given by pos (it's needed only if include_templates is
-TRUE).  No reference to the constructor is implied yet; we're just
-finding out if it exists.  This routine does not find implied trivial
-default constructors; see find_default_constructor.
+TRUE).  If inaccessible_match is non-NULL, in C++/CLI mode it will be
+set to a symbol that would have been chosen except that it was
+inaccessible because of hide-by-sig lookup.  No reference to the
+constructor is implied yet; we're just finding out if it exists.  This
+routine does not find implied trivial default constructors; see
+find_default_constructor.
 */
 {
   a_symbol_ptr                    sym, ctor_sym = NULL;
@@ -19601,10 +19784,10 @@ default constructors; see find_default_constructor.
      There may be more than one.  For instance, there may be a constructor
      with no arguments and one with one argument with a default value.
      Look only at non-template constructors on this pass. */
-  for (sym = set_up_overload_set_traversal(cssp->constructor, &ostblock);
+  for (sym = set_up_overload_set_traversal_simple(cssp->constructor,
+                                                  &ostblock);
        sym != NULL;
-       sym = next_symbol_in_overload_set(&ostblock,
-                                         /*curr_sym_viable=*/FALSE)) {
+       sym = next_symbol_in_overload_set(&ostblock)) {
     if (sym->kind == (a_symbol_kind)sk_function_template) {
       /* Function templates are not considered on this pass.  Non-templates
          are always better than templates, so if we find a single
@@ -19623,12 +19806,21 @@ default constructors; see find_default_constructor.
         need_second_pass = TRUE;
         break;
       } else {
-        /* We've found one.  Record it, but keep looking.  If there's an
-           more than once we'll need to do the full overload resolution. */
+        /* We've found one.  Record it, but keep looking.  If there's
+           more than one we'll need to do the full overload resolution. */
         ctor_sym = sym;
       }  /* if */
     }  /* if */
   }  /* for */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && ctor_sym == NULL && inaccessible_match != NULL &&
+      ostblock.any_inaccessible_function_skipped) {
+    /* In C++/CLI mode, if we skipped any inaccessible function and we've
+       been asked to note viable inaccessible functions, we must do
+       the second pass so we can identify them. */
+    need_second_pass = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ctor_sym == NULL && need_second_pass) {
     /* Do real overload resolution, possibly including templates this time. */
     a_boolean                matched_except_for_missing_selector = FALSE;
@@ -19653,6 +19845,7 @@ default constructors; see find_default_constructor.
                                   /*is_overloaded_operator=*/FALSE,
                                   CCO_DEFAULT,
                                   &candidate_functions,
+                                  inaccessible_match,
                                   &matched_except_for_missing_selector,
                                   &matched_except_for_selector);
     select_best_candidate_functions(&candidate_functions, pos,
@@ -19690,6 +19883,7 @@ a_symbol_ptr select_overloaded_copy_constructor(
                                    a_source_position     *pos,
                                    a_boolean             *ambiguous,
                                    a_boolean             *uncallable,
+                                   a_symbol_ptr          *inaccessible_match,
                                    a_boolean             *class_bitwise_copy)
 /*
 Find and return a pointer to a symbol representing a copy constructor for
@@ -19704,11 +19898,13 @@ that one; otherwise set *ambiguous to TRUE and return NULL.  If no
 acceptable copy constructor is found but one would have been
 acceptable except that it's uncallable, return that one and set
 *uncallable to TRUE.  uncallable can be NULL if that feature is not
-wanted.  If a bitwise copy is allowed, return NULL and
-*class_bitwise_copy TRUE (this is also returned when the class_type
-is template-dependent in a prototype instantiation).  This routine is
-used only in C++ mode.  It does not do access checking on the copy
-constructor.
+wanted.  If inaccessible_match is non-NULL, in C++/CLI mode it will be
+set to a symbol that would have been chosen except that it was
+inaccessible because of hide-by-sig lookup.  If a bitwise copy is
+allowed, return NULL and *class_bitwise_copy TRUE (this is also
+returned when the class_type is template-dependent in a prototype
+instantiation).  This routine is used only in C++ mode.  It does not
+do access checking on the copy constructor.
 */
 {
   a_symbol_ptr                    sym, cctor_sym = NULL, uncallable_sym = NULL;
@@ -19768,10 +19964,12 @@ constructor.
        There may be more than one.  For instance, there may be a copy
        constructor that can copy a const object and another that cannot. */
     candidate_functions = NULL;
-    for (sym = set_up_overload_set_traversal(overloaded_sym, &ostblock);
+    for (sym = set_up_overload_set_traversal(overloaded_sym,
+                                             &candidate_functions,
+                                             inaccessible_match,
+                                             &ostblock);
          sym != NULL;
-         sym = next_symbol_in_overload_set(&ostblock,
-                                           /*curr_sym_viable=*/FALSE)) {
+         sym = next_symbol_in_overload_set(&ostblock)) {
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
         db_display_overload_level();
@@ -19944,6 +20142,7 @@ to be copied.
   a_symbol_ptr             member_functions_symbol;
   a_symbol_ptr             function_symbol, proj_function_symbol;
   a_candidate_function_ptr candidate_functions;
+  a_symbol_ptr             inaccessible_match = NULL;
   a_boolean                matched_except_for_missing_selector = FALSE;
   a_boolean                matched_except_for_selector = FALSE;
   a_boolean                ambiguous;
@@ -20006,6 +20205,7 @@ to be copied.
                                     /*is_overloaded_operator=*/TRUE,
                                     CCO_DEFAULT,
                                     &candidate_functions,
+                                    &inaccessible_match,
                                     &matched_except_for_missing_selector,
                                     &matched_except_for_selector);
       /* The candidate_functions list now contains all the viable functions.
@@ -20018,14 +20218,18 @@ to be copied.
       } else if (candidate_functions == NULL) {
         /* There is no applicable operator= function. */
         if (expr_error_should_be_issued()) {
-          if (get_type_qualifiers(source_expr->type) == TQ_CONST) {
+          if (get_type_qualifiers(source_expr->type) == TQ_CONST &&
+              inaccessible_match == NULL) {
             /* The common case: missing const assignment operator function. */
             pos_ty_error(ec_missing_const_assignment_operator, dest_decl_pos,
                          class_type);
           } else {
             /* Unusual case: volatile or const-volatile expected. */
-            pos_ty_error(ec_no_suitable_assignment_operator, dest_decl_pos,
-                         class_type);
+            pos_ty_start_error(ec_no_suitable_assignment_operator,
+                               dest_decl_pos,
+                               class_type);
+            add_on_diag_for_skipped_inaccessible_function(inaccessible_match);
+            end_error();
           }  /* if */
         }  /* if */
       } else if (ambiguous) {

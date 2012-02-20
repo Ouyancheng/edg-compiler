@@ -831,10 +831,9 @@ to win out.
     a_boolean                       declspec_property =
                                           symbol_is(operand->symbol, sk_field);
     an_overload_set_traversal_block ostblock;
-    for (get_sym = set_up_overload_set_traversal(get_sym, &ostblock);
+    for (get_sym = set_up_overload_set_traversal_simple(get_sym, &ostblock);
          get_sym != NULL;
-         get_sym = next_symbol_in_overload_set(&ostblock,
-                                               /*curr_sym_viable=*/FALSE)) {
+         get_sym = next_symbol_in_overload_set(&ostblock)) {
       a_type_ptr   rout_type;
       a_symbol_ptr fund_sym = fundamental_symbol_of(get_sym);
       check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
@@ -34230,6 +34229,7 @@ a_symbol_ptr find_default_constructor(a_type_ptr        class_type,
                                       a_boolean         include_templates,
                                       a_source_position *pos,
                                       a_boolean         *ambiguous,
+                                      a_symbol_ptr      *inaccessible_match,
                                       a_boolean         *trivial)
 /*
 Find and return a pointer to a symbol representing a default constructor for
@@ -34243,6 +34243,9 @@ In either of those cases, if trivial is non-NULL return *trivial set to TRUE.
 If include_templates is TRUE, consider also template constructors that can
 be called with zero arguments.  pos gives the source position for the
 reference (it's needed only if include_templates is TRUE).
+If inaccessible_match is non-NULL, in C++/CLI mode it will be set to a
+symbol that would have been chosen except that it was inaccessible
+because of hide-by-sig lookup.
 */
 {
   a_symbol_ptr  sym, ctor_sym = NULL;
@@ -34272,7 +34275,8 @@ reference (it's needed only if include_templates is TRUE).
     ctor_sym = select_overloaded_default_constructor(class_type,
                                                      include_templates,
                                                      pos,
-                                                     ambiguous);
+                                                     ambiguous,
+                                                     inaccessible_match);
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
     if (trivial != NULL && ctor_sym != NULL) {
@@ -34289,6 +34293,7 @@ a_symbol_ptr find_copy_constructor(a_type_ptr            class_type,
                                    a_boolean             source_is_rvalue,
                                    a_source_position     *pos,
                                    a_boolean             *ambiguous,
+                                   a_symbol_ptr          *inaccessible_match,
                                    a_boolean             *class_bitwise_copy)
 /*
 Find and return a pointer to a symbol representing a copy constructor for
@@ -34301,8 +34306,11 @@ constructor is found and only one of them is the best match, return
 that one; otherwise set *ambiguous to TRUE and return NULL.  If the
 copy constructor selected is implicit (not user-declared, i.e.,
 there's no associated symbol) and performs a bitwise copy, return NULL
-and *class_bitwise_copy TRUE.  This routine is used only in C++ mode.
-It does not do access checking on the copy constructor.
+and *class_bitwise_copy TRUE.  If inaccessible_match is non-NULL, in
+C++/CLI mode it will be set to a symbol that would have been chosen
+except that it was inaccessible because of hide-by-sig lookup.  This
+routine is used only in C++ mode.  It does not do access checking on
+the copy constructor.
 */
 {
   a_symbol_ptr            cctor_sym;
@@ -34322,6 +34330,7 @@ It does not do access checking on the copy constructor.
                                                  pos,
                                                  ambiguous,
                                                  (a_boolean *)NULL,
+                                                 inaccessible_match,
                                                  class_bitwise_copy);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);

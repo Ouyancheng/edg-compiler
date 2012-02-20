@@ -9996,12 +9996,14 @@ function, set *ambiguous to TRUE.
           sym = find_default_constructor(class_type,
                                          /*include_templates=*/TRUE,
                                          source_pos, ambiguous,
+                                         (a_symbol **)NULL,
                                          (a_boolean *)NULL);
         } else {
           /* Copy constructor. */
           sym = find_copy_constructor(class_type, qualifiers,
                                       /*source_is_rvalue=*/FALSE,
                                       source_pos, ambiguous,
+                                      (a_symbol **)NULL,
                                       &class_bitwise_copy);
         }  /* if */
         break;
@@ -16244,7 +16246,7 @@ affect the behavior of the MSVC++ version indicated by microsoft_version.
                                base_or_mbr_type, ctor_qualifiers,
                                /*source_is_rvalue=*/FALSE,
                                &base_or_mbr_type->source_corresp.decl_position,
-                               &ambiguous, &bitwise_copy);
+                               &ambiguous, (a_symbol **)NULL, &bitwise_copy);
       if (ambiguous ||
           (rout_sym != NULL && !have_access_to_symbol(rout_sym))) {
         /* A base or member with an ambiguous or inaccessible copy

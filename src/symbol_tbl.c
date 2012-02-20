@@ -8404,10 +8404,9 @@ and therefore might be a projection symbol.  If there is an ambiguity return
 
   *ambiguous = FALSE;
   /*lint --e{850} sym modified in loop */
-  for (sym = set_up_overload_set_traversal(sym, &ostblock);
+  for (sym = set_up_overload_set_traversal_simple(sym, &ostblock);
        sym != NULL;
-       sym = next_symbol_in_overload_set(&ostblock,
-                                         /*curr_sym_viable=*/FALSE)) {
+       sym = next_symbol_in_overload_set(&ostblock)) {
     if (sym->kind == (a_symbol_kind)sk_projection) {
       /* An overload set can contain a projection symbol as the result of a
          using declaration. */
@@ -8506,10 +8505,9 @@ ambiguity return *ambiguous set to TRUE.
 
   *ambiguous = FALSE;
   is_class_member = sym->is_class_member;
-  for (sym = set_up_overload_set_traversal(sym, &ostblock);
+  for (sym = set_up_overload_set_traversal_simple(sym, &ostblock);
        sym != NULL;
-       sym = next_symbol_in_overload_set(&ostblock,
-                                         /*curr_sym_viable=*/FALSE)) {
+       sym = next_symbol_in_overload_set(&ostblock)) {
     fund_sym = sym;
     if (sym->kind == (a_symbol_kind)sk_projection) {
       /* An overload set can contain a projection symbol as the result of a
@@ -8637,10 +8635,9 @@ may an overload symbol instead.
          for a type match. */
       any_template_seen = FALSE;
       /*lint --e{446} sym modified in loop (LINTBUG) */
-      for (sym = set_up_overload_set_traversal(sym, &ostblock);
+      for (sym = set_up_overload_set_traversal_simple(sym, &ostblock);
            sym != NULL;
-           sym = next_symbol_in_overload_set(&ostblock,
-                                             /*curr_sym_viable=*/FALSE)) {
+           sym = next_symbol_in_overload_set(&ostblock)) {
         if (sym->kind == (a_symbol_kind)sk_projection) {
           /* An overload set can contain a projection symbol as the result of
              a using-declaration. */
@@ -8712,10 +8709,10 @@ next_delete_symbol:;
           /* Change the first parameter type from size_t to void *. */
           saved_first_param_type = op_new_param_type_list->type;
           op_new_param_type_list->type = make_pointer_type(void_type());
-          for (sym = set_up_overload_set_traversal(*overload_sym, &ostblock);
+          for (sym = set_up_overload_set_traversal_simple(*overload_sym,
+                                                          &ostblock);
                sym != NULL;
-               sym = next_symbol_in_overload_set(&ostblock,
-                                                 /*curr_sym_viable=*/FALSE)) {
+               sym = next_symbol_in_overload_set(&ostblock)) {
             fund_sym = fundamental_symbol_of(sym);
             if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
               if (has_matching_template_function(
@@ -8999,6 +8996,22 @@ Create a symbol and type entry for std::nullptr_t (only in Microsoft mode).
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+void add_on_diag_for_skipped_inaccessible_function(a_symbol_ptr sym)
+/*
+If sym is non-NULL, it is the symbol for function that was skipped in
+overload resolution because it is inaccessible (with C++/CLI
+hide-by-sig lookup), but which is viable when no accessible function
+turned out to be viable.  Issue an add-on diagnostic that identifies
+the function.
+*/
+{
+  if (sym != NULL) {
+    check_assertion(cppcli_enabled);
+    sym_add_diag_info(ec_skipped_inaccessible_function, sym);
+  }  /* if */
+}  /* add_on_diag_for_skipped_inaccessible_function */
+
+
 a_routine_ptr select_default_constructor_full(
                                          a_type_ptr        class_type,
                                          a_source_position *err_pos,
@@ -9030,13 +9043,18 @@ that can be called with zero arguments.
 {
   a_routine_ptr ctor_routine = NULL;
   a_symbol_ptr  ctor_sym;
+  a_symbol_ptr  inaccessible_match = NULL;
   a_boolean     local_err = FALSE, ambiguous, trivial;
 
   /* This routine is similar to select_overloaded_function. */
   if (error_detected != NULL) *error_detected = FALSE;
   class_type = skip_typerefs(class_type);
   ctor_sym = find_default_constructor(class_type, /*include_templates=*/TRUE,
-                                      err_pos, &ambiguous, &trivial);
+                                      err_pos, &ambiguous,
+                                      (error_detected == NULL ?
+                                         &inaccessible_match :
+                                         (a_symbol **)NULL),
+                                      &trivial);
   if (ambiguous) {
     /* More than one default constructor. */
     if (error_detected != NULL) {
@@ -9058,7 +9076,9 @@ that can be called with zero arguments.
       if (error_detected != NULL) {
         *error_detected = TRUE;
       } else {
-        pos_ty_error(ec_no_default_constructor, err_pos, class_type);
+        pos_ty_start_error(ec_no_default_constructor, err_pos, class_type);
+        add_on_diag_for_skipped_inaccessible_function(inaccessible_match);
+        end_error();
       }  /* if */
       local_err = TRUE;
     }  /* if */
@@ -9258,12 +9278,17 @@ and do not issue any diagnostics (including warnings).
 {
   a_symbol_ptr  cctor_sym;
   a_routine_ptr cctor_routine = NULL;
+  a_symbol_ptr  inaccessible_match = NULL;
   a_boolean     ambiguous;
 
   if (error_detected != NULL) *error_detected = FALSE;
   cctor_sym = find_copy_constructor(class_type, required_qualifiers,
                                     source_is_rvalue,
-                                    err_pos, &ambiguous, class_bitwise_copy);
+                                    err_pos, &ambiguous,
+                                    (error_detected == NULL ?
+                                       &inaccessible_match :
+                                       (a_symbol **)NULL),
+                                    class_bitwise_copy);
   if (*class_bitwise_copy) {
     /* A bitwise copy is allowed. */
     reference_to_trivial_copy_constructor(class_type, err_pos,
@@ -9283,7 +9308,7 @@ and do not issue any diagnostics (including warnings).
         allow_suppressed_ctor) {
       /* The declaration of the copy constructor was suppressed (for
          Microsoft compatibility).  Do not report an error at this point. */
-    } else if (required_qualifiers == TQ_CONST) {
+    } else if (required_qualifiers == TQ_CONST && inaccessible_match == NULL) {
       /* The common case:  missing const copy constructor. */
       if (error_detected != NULL) {
         *error_detected = TRUE;
@@ -9291,11 +9316,15 @@ and do not issue any diagnostics (including warnings).
         pos_ty_error(ec_missing_const_copy_constructor, err_pos, class_type);
       }  /* if */
     } else {
-      /* Unusual case: volatile or const-volatile expected. */
+      /* Unusual case: volatile or const-volatile expected, or skipped
+         because inaccessible. */
       if (error_detected != NULL) {
         *error_detected = TRUE;
       } else {
-        pos_ty_error(ec_no_suitable_copy_constructor, err_pos, class_type);
+        pos_ty_start_error(ec_no_suitable_copy_constructor,
+                           err_pos, class_type);
+        add_on_diag_for_skipped_inaccessible_function(inaccessible_match);
+        end_error();
       }  /* if */
     }  /* if */
   } else {
@@ -9388,11 +9417,11 @@ is returned TRUE if the parameter is not a reference parameter.
     for (;;) {
       /* Find an assignment operator whose argument is ref-class (pass by
          reference) or class (pass_by_value). */
-      for (sym = set_up_overload_set_traversal(cssp->assignment_operator,
-                                               &ostblock);
+      for (sym = set_up_overload_set_traversal_simple(
+                                                    cssp->assignment_operator,
+                                                    &ostblock);
            sym != NULL;
-           sym = next_symbol_in_overload_set(&ostblock,
-                                             /*curr_sym_viable=*/FALSE)) {
+           sym = next_symbol_in_overload_set(&ostblock)) {
         a_boolean             sym_matches_exactly;
         a_boolean             is_ref_arg;
         a_type_qualifier_set  qualifiers = TQ_NONE;
