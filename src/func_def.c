@@ -875,6 +875,22 @@ of lambda expressions.
   body_pos = pos_curr_token;
   if (rout_ptr->source_corresp.is_class_member) {
     class_type = parent_class_of(rout_ptr);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled) {
+      /* Issue errors when attempting to define a abstract member of a C++/CLI
+         managed class (a more specific message is used for a member of an
+         interface class). */
+      if (cli_class_type_kind_is(class_type, cctk_interface) &&
+          routine_type_is_nonstatic_member_function(rout_ptr->type)) {
+        pos_error(ec_cli_interface_member_function_definition,
+                  &rout_ptr->source_corresp.decl_position);
+      } else if (is_immediate_managed_class_type(class_type) &&
+                 rout_ptr->pure_virtual) {
+        pos_error(ec_cli_abstract_member_function_definition,
+                  &rout_ptr->source_corresp.decl_position);
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     class_type = NULL;
   }  /* if */
@@ -1517,15 +1533,6 @@ member declaration (allowed in some Microsoft modes only).
       pos_sy_error(ec_old_specialization_not_allowed,
                    &locator->source_position, sym);
       sym = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && sym != NULL &&
-               cli_class_type_kind_is(sym_parent_class(sym), cctk_interface) &&
-               routine_type_is_nonstatic_member_function(
-                                             sym->variant.routine.ptr->type)) {
-      pos_error(ec_cli_interface_member_function_definition,
-                &locator->source_position);
-      sym = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (sym->variant.routine.ptr->compiler_generated) {
       /* Attempting to give a definition for a function that was implicitly
          declared. */

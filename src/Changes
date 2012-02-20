@@ -1,5 +1,19 @@
 Version 4.5
 
+2/20/12  [EDGcpfe/12712]
+C++/CLI: Diagnose all attempts to define an abstract managed member function
+
+The front end previously often accepted definitions of abstract managed member
+functions.  For example:
+
+  interface struct S {
+    void f() {}  // Previously accepted; now an error.
+  };
+
+This is now fixed.  A different message is used for interface members (since
+they are always implicitly abstract).
+
+
 2/20/12  [EDGcpfe/12275]
 C++/CLI: Elaborated class specifiers in CLI typeid constructs
 

@@ -12991,8 +12991,16 @@ func_info describe the current member function declaration.
        pure-specifier.  Microsoft compilers, however, accept such
        constructs. */
     if (func_info->is_definition) {
-      pos_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
-                     ec_pure_virtual_definition, &pos_curr_token);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (is_immediate_managed_class_type(class_type)) {
+        expect_error();
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        pos_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
+                       ec_pure_virtual_definition, &pos_curr_token);
+      }  /* if */
     } else {
       check_assertion_or_expect_error(curr_token == tok_semicolon ||
                                       curr_token == tok_comma);
