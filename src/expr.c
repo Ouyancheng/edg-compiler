@@ -26723,73 +26723,6 @@ to the safe_cast keyword and return TRUE.
   return is_keyword;
 }  /* turn_safe_cast_into_keyword_if_appropriate */
 
-
-static a_boolean elaborated_cli_typeid_next(void)
-/*
-Return TRUE if the upcoming tokens are something like "ref class T::typeid"
-for a class type T.  Issue an error if the elaboration does not match the
-qualifier class type.
-The use of an elaborated name here is not valid according to ECMA-372, but
-Microsoft compilers accept it nonetheless.
-*/
-{
-  a_boolean  result = FALSE;
-
-  if (is_class_type_keyword(curr_token)) {
-    a_source_position          pos_class_key;
-    a_token_kind               class_key = curr_token;
-    a_token_cache              cache;
-    an_identifier_options_set  gid_flags = GID_TEMPLATE_ARGS_OPTIONAL |
-                                           GID_IMPLICIT_TYPE_CONTEXT |
-                                           GID_IS_TAG_NAME;
-    pos_class_key = pos_curr_token;
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    cache_curr_token(&cache);
-    /* Advance past the keyword. */
-    (void)get_token();
-    /* Check whether the next tokens form a T::typeid construct. */
-    if ((curr_token == tok_identifier || curr_token == tok_colon_colon) &&
-        !is_generalized_identifier_start(gid_flags) &&
-        curr_token == tok_cli_typeid) {
-      a_type_ptr  tp = skip_typerefs(locator_for_curr_id.parent.class_type);
-      /* Ensure that the T::typeid construct is for a matching class type or
-         a template parameter type. */
-      if (is_class_struct_union_type(tp)) {
-        a_boolean  mismatch = FALSE;
-        switch (class_type_supp(tp)->cli_class_type_kind) {
-          case cctk_standard:
-            mismatch = class_key != tok_class && class_key != tok_struct &&
-                       class_key != tok_union && class_key != tok_interface;
-            break;
-          case cctk_value:
-            mismatch = class_key != tok_value_class &&
-                       class_key != tok_value_struct;
-            break;
-          case cctk_ref:
-            mismatch = class_key != tok_ref_class &&
-                       class_key != tok_ref_struct;
-            break;
-          case cctk_interface:
-            mismatch = class_key != tok_interface_class &&
-                       class_key != tok_interface_struct;
-            break;
-          default:
-            unexpected_condition();
-        }  /* switch */
-        if (mismatch) {
-          pos_sy_error(ec_conflicting_cli_class_type_kinds, &pos_class_key,
-                       symbol_for(tp));
-        }  /* if */
-        result = TRUE;
-      } else if (is_template_param_type(tp)) {
-        result = TRUE;
-      }  /* if */
-    }  /* if */
-    rescan_cached_tokens(&cache);
-  }  /* if */
-  return result;
-}  /* elaborated_cli_typeid_next */
-        
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_expr_full(an_operand               *result,
@@ -27461,6 +27394,12 @@ handle_trapped_left_paren:
            the ECMA-372 specification.  Just skip the class-key, and the
            remainder should be the normal T::typeid construct. */
         (void)get_token();
+        /* Ensure the C++/CLI typeid is coalesced. */
+        if (is_generalized_identifier_start(GID_CHECK_TAG_NAME_FLAGS)) {
+          /* We already established the next tokens form a C++/CLI typeid
+             construct.  So we should never get here. */
+          unexpected_condition();
+        }  /* if */
         goto handle_cli_typeid;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */

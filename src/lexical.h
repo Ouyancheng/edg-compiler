@@ -203,6 +203,10 @@ typedef int an_identifier_options_set;
 			   check_for_generalized_identifier_errors.
 			   Is used to mask the error flags so that errors
 			   are only reported once. */
+#define GID_CHECK_TAG_NAME_FLAGS (GID_TEMPLATE_ARGS_OPTIONAL |   \
+                                  GID_IMPLICIT_TYPE_CONTEXT |    \
+                                  GID_IS_TAG_NAME)
+			/* Contains the flags used to check for a tag name. */
 
 /* Lookup modes supported by coalesce_and_lookup_generalized_identifier.
    If this list is changed the corresponding array of ID lookup options
