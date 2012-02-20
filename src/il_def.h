@@ -4812,6 +4812,7 @@ typedef a_byte a_gcc_pragma_kind;
 
 
 /*
+Structure describing a "#pragma GCC ..." construct.
 */
 typedef struct a_gcc_pragma_descr {
   a_gcc_pragma_kind

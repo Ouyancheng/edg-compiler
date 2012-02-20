@@ -3597,6 +3597,17 @@ pointer to it.
   return cip;
 }  /* alloc_ctor_init */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+void clear_gcc_pragma_descr(a_gcc_pragma_descr  *gpd)
+/*
+Clear the given GCC pragma description.
+*/
+{
+  gpd->kind = (a_gcc_pragma_kind)gcc_pk_none;
+}  /* clear_gcc_pragma_descr */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 a_pragma_ptr alloc_pragma(a_pragma_kind           kind,
                           a_source_correspondence *scp)
@@ -3747,7 +3758,7 @@ in the current IL memory region.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
     case pk_gcc:
-      pp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_none;
+      clear_gcc_pragma_descr(&pp->variant.gcc);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING

@@ -205,6 +205,10 @@ extern a_statement_ptr alloc_statement(a_statement_kind stmt_kind);
 
 extern a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind);
 
+#if GNU_EXTENSIONS_ALLOWED
+void clear_gcc_pragma_descr(a_gcc_pragma_descr  *gpd);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 extern a_pragma_ptr alloc_pragma(a_pragma_kind           kind,
                                  a_source_correspondence *scp);
 

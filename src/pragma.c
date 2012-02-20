@@ -372,7 +372,7 @@ possible.
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case pk_gcc:
-      ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_none;
+      clear_gcc_pragma_descr(&ppp->variant.gcc);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if INCLUDE_EDG_TEST_PRAGMAS
