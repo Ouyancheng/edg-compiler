@@ -1,5 +1,20 @@
 Version 4.5
 
+2/20/12  [EDGcpfe/12275]
+C++/CLI: Elaborated class specifiers in CLI typeid constructs
+
+In C++/CLI mode, the front end now accepts an elaborated class specifier in
+a T::typeid construct.  For example:
+
+  ref struct RS {};
+  System::Type^ g() {
+    return ref struct RS::typeid;  // Now accepted in C++/CLI mode.
+  }
+
+This extension is not part of the ECMA-372 specification, but Microsoft
+compilers permit it.
+
+
 2/20/12  [EDGcpfe/12700]
 Spurious error on GNU-C-mode old-style definition after prototyped declaration
 
