@@ -102,7 +102,7 @@ Clear a conversion description.
 
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/* /* <-- inaccessible_match is not used in that case. */
+/*ARGSUSED*/ /* <-- inaccessible_match is not used in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void clear_overload_set_traversal_block(
                           a_candidate_function_ptr        *candidate_functions,
