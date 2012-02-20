@@ -1,5 +1,17 @@
 Version 4.5
 
+2/20/12  [EDGcpfe/12684]
+C++-generating back end, C++/CLI: initialization of dependent gcnew array
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL, the C++-generating
+back end could abort with an assertion failure when gcnew of a dependent
+type has a brace-enclosed initializer.  This is now fixed.  For example:
+
+  template<typename T> void f() {
+    gcnew T(4){ 1, 2, 3, 4 };
+  }
+
+
 2/20/12  [EDGcpfe/12712]
 C++/CLI: Diagnose all attempts to define an abstract managed member function
 

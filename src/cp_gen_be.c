@@ -4606,10 +4606,16 @@ field designator.
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tk_pointer:
-        /* The only pointer type that can be initialized here is a handle to a
-           CLI array. */
-        check_assertion(is_handle_to_cli_array_type(type));
-        array_case = TRUE;
+        { a_type_ptr base_type = type_pointed_to(type);
+          /* Only handle types can be initialized here. */
+          check_assertion(is_handle_type(type));
+          if (is_template_param_type(base_type)) {
+            template_dependent_case = TRUE;
+          } else {
+            check_assertion(is_cli_array_type(base_type));
+            array_case = TRUE;
+          }  /* if */
+        }
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tk_class:
