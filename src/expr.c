@@ -2403,6 +2403,7 @@ arg_list, and no source is scanned.  arg_list is freed after it's used.
                                           arg_operand_list,
                                           /*do_arg_dep_lookup=*/FALSE,
                                           /*use_pure_arg_dep_lookup=*/FALSE,
+                                          /*use_std_for_arg_dep_lookup=*/FALSE,
                                           /*force_dependent=*/FALSE,
                                           ec_no_matching_constructor,
                                           ec_ambiguous_constructor,
@@ -4718,6 +4719,7 @@ are expected to be NULL in that case.
                                           arg_operand_list,
                                           do_arg_dep_lookup,
                                           /*use_pure_arg_dep_lookup=*/FALSE,
+                                          /*use_std_for_arg_dep_lookup=*/FALSE,
                                           try_surrogate_functions,
                                           /*is_property=*/FALSE,
                                           ec_no_matching_function,
@@ -14988,6 +14990,7 @@ expression, and return the result in *result (or an error indication in
                                           arg_operand_list,
                                           /*do_arg_dep_lookup=*/FALSE,
                                           /*use_pure_arg_dep_lookup=*/FALSE,
+                                          /*use_std_for_arg_dep_lookup=*/FALSE,
                                           force_dependent,
                                           ec_no_matching_new_function,
                                           ec_ambiguous_overloaded_function,
@@ -28225,6 +28228,7 @@ for-each (otherwise it's a range-based-for).
                                       arg_operand_list,
                                       /*do_arg_dep_lookup=*/FALSE,
                                       /*use_pure_arg_dep_lookup=*/FALSE,
+                                      /*use_std_for_arg_dep_lookup=*/FALSE,
                                       /*try_surrogate_functions=*/FALSE,
                                       /*is_property=*/FALSE,
                                       is_for_each ?
@@ -30292,7 +30296,9 @@ errors) in the case where the expression is template dependent.
     range_type = type_pointed_to(range_type);
   }  /* if */
   if (!is_error_type(range_type)) {
-    /* Perform a lookup in the associated namespaces. */
+    /* Perform a lookup in the associated namespaces (including std).
+       See core issue 1442 which clarifies that this is "pure ADL" (and
+       not a normal+ADL) lookup. */
     clear_locator(&locator, &null_source_position);
     (void)find_symbol(function_name, strlen(function_name), &locator);
     symbol = make_dummy_undefined_symbol(locator.symbol_header,
@@ -30314,6 +30320,7 @@ errors) in the case where the expression is template dependent.
                                        arg_operand_list,
                                        /*do_arg_dep_lookup=*/TRUE,
                                        /*use_pure_arg_dep_lookup=*/TRUE,
+                                       /*use_std_for_arg_dep_lookup=*/TRUE,
                                        /*try_surrogate_functions=*/FALSE,
                                        /*is_property=*/FALSE,
                                        ec_range_based_for_no_matching_overload,

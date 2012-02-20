@@ -7595,6 +7595,7 @@ a_symbol_ptr select_overloaded_function(
                          an_arg_operand_ptr       arg_operand_list,
                          a_boolean                do_arg_dep_lookup,
                          a_boolean                use_pure_arg_dep_lookup,
+                         a_boolean                use_std_for_arg_dep_lookup,
                          a_boolean                force_dependent,
                          an_error_code            err_none_applies,
                          an_error_code            err_ambiguous,
@@ -7627,9 +7628,12 @@ symbol, indicating that nothing was found on a normal id lookup of the
 function name.  When use_pure_arg_dep_lookup is TRUE, only argument-dependent
 lookup is used (and overloaded_function_symbol must be an sk_undefined
 symbol whose symbol header is used to identify the function being looked up).
-force_dependent is TRUE if the call should be treated as dependent even when
-argument-dependent lookup is not done (that would usually force the call to be
-treated as nondependent).  call_position is the source position of the call.
+When using argument-dependent lookup, use_std_for_arg_dep_lookup
+can be set to TRUE to add the std namespace as an associated namespace
+(e.g., for range-based-for).  force_dependent is TRUE if the call
+should be treated as dependent even when argument-dependent
+lookup is not done (that would usually force the call to be treated as
+nondependent).  call_position is the source position of the call.
 paren_tok_seq_number is the token sequence number of the opening
 parenthesis of the argument list, but it's required only when
 do_arg_dep_lookup is TRUE; it can be zero otherwise.  If an error of
@@ -7902,7 +7906,8 @@ in_instantiation:
                                                     overloaded_function_symbol;
       symbol_list = argument_dependent_lookup(normal_lookup_function_symbol,
                                               &locator,
-                                              &type_list);
+                                              &type_list,
+                                              use_std_for_arg_dep_lookup);
       if (single_function != NULL && symbol_list != NULL) {
         /* If the function is a single non-overloaded function, overload
            resolution is not required. */
@@ -11280,6 +11285,7 @@ a_boolean select_and_prepare_to_call_overloaded_function(
                            an_arg_operand_ptr      arg_operand_list,
                            a_boolean               do_arg_dep_lookup,
                            a_boolean               use_pure_arg_dep_lookup,
+                           a_boolean               use_std_for_arg_dep_lookup,
                            a_boolean               try_surrogate_functions,
                            a_boolean               is_property,
                            an_error_code           err_none_applies,
@@ -11331,9 +11337,12 @@ sk_undefined symbol, indicating that nothing was found on a normal id
 lookup of the function name.  When use_pure_arg_dep_lookup is TRUE,
 only argument-dependent lookup is used (and overloaded_function_symbol
 must be an sk_undefined symbol whose symbol header is used to identify
-the function being looked up).  try_surrogate_functions is TRUE if surrogate
-functions should be tried; that means looking for conversion functions from the
-selector object to pointers to function type.  overloaded_function_symbol can
+the function being looked up).  When using argument-dependent lookup,
+use_std_for_arg_dep_lookup can be set to TRUE to add the std namespace
+as an associated namespace for the lookup (e.g., for range-based-for).
+try_surrogate_functions is TRUE if surrogate functions should be
+tried; that means looking for conversion functions from the selector
+object to pointers to function type.  overloaded_function_symbol can
 be NULL in that case.  is_property is TRUE if this call results from
 the expansion of a Microsoft property reference.  paren_tok_seq_number
 is the token sequence number of the opening parenthesis of the
@@ -11373,6 +11382,7 @@ in C++ mode.  arg_operand_list is freed by this routine.
                                                arg_operand_list,
                                                do_arg_dep_lookup,
                                                use_pure_arg_dep_lookup,
+                                               use_std_for_arg_dep_lookup,
                                                /*force_dependent=*/FALSE,
                                                err_none_applies,
                                                err_ambiguous,
@@ -14566,7 +14576,8 @@ apply, but we can't tell).
           /* Do argument-dependent lookup, producing a list of symbols to
              be considered as candidate functions. */
           symbol_list = argument_dependent_lookup(proj_normal_sym, &locator,
-                                                  &type_list);
+                                                  &type_list,
+                                              /*include_std_namespace=*/FALSE);
           for (slep = symbol_list; slep != NULL; slep = slep->next) {
             nonmember_functions_symbol = slep->symbol;
             if (is_template_dependent_context() &&
