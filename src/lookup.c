@@ -4394,7 +4394,8 @@ static void add_symbol_to_super_set(a_symbol_locator    *locator,
 				    a_symbol_ptr	new_sym,
 				    a_symbol_ptr	*result_sym,
 				    a_type_ptr          class_type,
-				    a_base_class_ptr	base_class)
+				    a_base_class_ptr	base_class,
+				    a_type_ptr		orig_base_type)
 /*
 Add "new_sym" to the set of symbols specified by "result_sym".  When
 called for the first symbol, result_sym is set to a projection symbol
@@ -4405,9 +4406,9 @@ symbol is found, the first one is used but is marked as ambiguous.
 "base_class" is the base class in which new_sym was found.
 */
 {
-  a_boolean	is_function;
-  a_symbol_ptr  fund_result_sym = NULL;
-  a_symbol_ptr	fund_new_sym;
+  a_boolean		is_function;
+  a_symbol_ptr		fund_result_sym = NULL;
+  a_symbol_ptr		fund_new_sym;
 
   fund_new_sym = fundamental_symbol_of(new_sym);
   is_function = is_function_or_template_symbol(fund_new_sym);
@@ -4427,6 +4428,7 @@ symbol is found, the first one is used but is marked as ambiguous.
     /* Add the symbol to the set.  Start by creating a projection symbol
        that points to new_sym. */
     a_symbol_ptr	new_proj;
+    a_boolean		is_using_decl = FALSE;
     if (new_sym->kind == (a_symbol_kind)sk_projection) {
       /* The new symbol is a projection symbol when it comes from a
          using-declaration.  Get the base class information for the member
@@ -4435,6 +4437,7 @@ symbol is found, the first one is used but is marked as ambiguous.
       base_class = corresp_base_class(new_sym->variant.projection.extra_info->
                                                         fundamental_base_class,
                                       base_class);
+      is_using_decl = TRUE;
     }  /* if */
     new_proj = make_projection_symbol(fund_new_sym, class_type, base_class,
                                      (a_derivation_step_ptr)NULL,
@@ -4447,8 +4450,13 @@ symbol is found, the first one is used but is marked as ambiguous.
     set_decl_sequence_number(new_proj);
     new_proj->is_super_reference = TRUE;
     /* Mark the projection symbol as a using-declaration so that the "this"
-       parameter will be considered an exact match for overload resolution. */
-    new_proj->variant.projection.is_using_decl = TRUE;
+       parameter will be considered an exact match for overload resolution.
+       This is only done if the symbol found actually was a using-declaration
+       or if the symbol was found directly in the base class being searched
+       (not in an indirect base class). */
+    if (is_using_decl || orig_base_type == fund_new_sym->parent.class_type) {
+      new_proj->variant.projection.is_using_decl = TRUE;
+    }  /* if */
     if (*result_sym == NULL) {
       /* This is the first symbol in the set. */
       *result_sym = new_proj;
@@ -4648,7 +4656,8 @@ Microsoft __super keyword.
           for (; base_sym != NULL;
                  base_sym = (is_list ? base_sym->next : NULL)) {
             add_symbol_to_super_set(locator, base_sym, &result_sym,
-                                    class_type, fundamental_bcp);
+                                    class_type, fundamental_bcp,
+                                    bcp->type);
           }  /* for */
         }  /* if */
       }  /* for */

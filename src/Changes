@@ -1,5 +1,26 @@
 Version 4.5
 
+2/20/12  [EDGcpfe/12535]
+Microsoft compatibility: spurious ambiguity on function called via __super
+
+The front end issued a spurious ambiguity when using the Microsoft mode
+__super keyword in cases where a function from a direct base class should
+be preferred over one from an indirect base class.  Now fixed.
+
+  struct I {
+    int f();
+  };
+  class B : public I {};
+  struct A : public I {
+    int f() { return 0; }
+  };
+  struct C : public A, public B {
+    int f() {
+      return __super::f(); // formerly ambiguous
+    }
+  };
+
+
 2/20/12  [EDGcpfe/12684]
 C++-generating back end, C++/CLI: initialization of dependent gcnew array
 
