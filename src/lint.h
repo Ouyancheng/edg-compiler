@@ -951,6 +951,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_missing_implements_list)*/
 /*lint -esym(769,ec_unused_dereference_of_ref_class)*/
 /*lint -esym(769,ec_using_or_access_declaration_in_managed_class)*/
+/*lint -esym(769,ec_cli_abstract_member_function_definition)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !USER_CONTROL_OF_STRUCT_PACKING
 /*lint -esym(769,ec_exp_rparen_and_pragma_ignored)*/
