@@ -6656,8 +6656,11 @@ is_function_def is TRUE if the redeclaration is a definition.
       !skip_typerefs(new_type)->variant.routine.extra_info->prototyped &&
       skip_typerefs(rp->type)->variant.routine.extra_info->prototyped) {
     /* GNU C compilers relax compatibility requirements when an old-style
-       definition follows a prototyped declaration. */
-    a_type_compat_flags_set  tcf = TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING;
+       definition follows a prototyped declaration.  (Calling conventions are
+       ignored here because calling convention attributes may not have taken
+       effect yet; calling conventions will be re-checked later if needed.) */
+    a_type_compat_flags_set  tcf = TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                   TCF_IGNORE_CALLING_CONVENTIONS;
     if (gnu_version < 40000) {
       /* GCC 2.x and 3.x ignore return type qualifiers in this case. */
       tcf |= TCF_IGNORE_RETURN_TYPE_QUALIFIERS;

@@ -1,5 +1,20 @@
 Version 4.5
 
+2/20/12  [EDGcpfe/12700]
+Spurious error on GNU-C-mode old-style definition after prototyped declaration
+
+In GNU C mode, defining a function with an old-style parameter list after that
+function is declared with a prototyped declaration that includes a calling
+convention attribute could result in a spurious error in version 4.4 of the
+front end.  For example:
+
+  extern void f(_Bool x) __attribute__((stdcall));
+  void f(x) _Bool x; {}  // Spurious error in version 4.4 GNU C mode.
+
+This was a regression introduced by the changes for EDGcpfe/11928 (entry of
+7/15/11).  It is now fixed.
+
+
 2/20/12  [EDGcpfe/12489]
 Improved diagnostics in C++/CLI when some overload set members are inaccessible
 
