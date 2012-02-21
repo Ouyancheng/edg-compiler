@@ -598,10 +598,12 @@ static void me_create_doc_fillin(char	**ptr_to_ptr)
 
   /* Scan the characters that make up the fill-in specifier. */
   fis_ptr = fill_in_specifier;
-  /* Always copy the first character, then any alphanumeric characters that
-     follow. */
+  /* Always copy the first character, then any alphanumeric characters or
+     label fill-in characters that follow. */
   *fis_ptr++ = *ptr++;
-  while (isalnum((unsigned char)*ptr)) *fis_ptr++ = *ptr++;
+  while (isalnum((unsigned char)*ptr) || *ptr == '[' || *ptr == ']') {
+    *fis_ptr++ = *ptr++;
+  }  /* while */
   *fis_ptr = '\0';
   /* Check for a fill-in override.  This is specified in the source
      using notation like
@@ -673,6 +675,17 @@ static void me_create_doc_fillin(char	**ptr_to_ptr)
             output_doc_string(")", 0, fk_normal);
           }  /* if */
         }
+        break;
+      case '[':
+        /* A label fill-in: just emit the label in the current font. */
+        while (fis_ptr != NULL && *fis_ptr != '\0') {
+          if (*fis_ptr == ']') break;
+          else output_doc_string(fis_ptr, 1, curr_font);
+          fis_ptr++;
+        }  /* while */
+        if (fis_ptr == NULL || *fis_ptr == '\0') {
+          me_error("unterminated label fill-in: %s", orig_ptr);
+        }  /* if */
         break;
       default:
         me_error("unexpected message fill-in: %s", orig_ptr);

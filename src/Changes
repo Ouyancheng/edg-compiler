@@ -1,5 +1,19 @@
 Version 4.5
 
+2/21/12  [EDGcpfe/12717]
+Add label fill-in capability to error message strings
+
+A "label fill-in" facility has been added which allows error message strings
+to choose at run-time between two different substitution strings.  These
+label fill-ins use the %[label] syntax in the error_msg.txt file and the
+string in brackets (the label) is looked up in the label_fill_ins table
+to determine which of two error strings should be used to replace the
+label fill-in (based upon the value of a label-specific boolean variable).
+This is useful to tailor error messages for multiple environments without
+having to duplicate error messages.  See label_fill_ins in error.c for more
+specifics.
+
+
 2/21/12  [EDGcpfe/12230]
 C++/CLI: handling of operator-> starting from a handle
 

@@ -1090,6 +1090,12 @@ EXTERN a_boolean
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+EXTERN a_boolean
+                use_cppcli_fill_ins;
+                        /* TRUE if the C++/CLI label fill-ins should be used in
+                           error messages (otherwise the C++/CX fill-in strings
+                           are used). */
+
 EXTERN unsigned long
 		microsoft_version;
 			/* The version of the Microsoft compiler with which

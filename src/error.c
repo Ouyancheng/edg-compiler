@@ -249,6 +249,92 @@ typedef struct a_msg_segment {
   } variant;
 } a_msg_segment;
 
+/*
+Describe a label fill-in entry.  Label fill-in entries are used to specify
+at run time which of two different strings (as specified by error codes)
+should be filled-in based upon the value of a variable.  Useful in cases
+where an error message should differ depending on a particular mode.
+*/
+typedef struct a_label_fill_in_entry {
+  char          *label;         /* The name of the "label" that is used in
+                                   error message text (i.e., %[label]).  This
+                                   string is used only for matching purposes
+                                   and need not be a choice in the substituted
+                                   string. */
+  a_boolean     *test;          /* A pointer to a boolean variable whose
+                                   value at run time is used to decide which
+                                   error code below is substituted. */
+  an_error_code true_value, false_value;
+                                /* Error codes representing strings to be used
+                                   in the "TRUE" and "FALSE" cases.  Note that
+                                   these error codes should not themselves
+                                   contain any fill-ins. */
+} a_label_fill_in_entry;
+
+/* Define the label fill-ins: */
+static a_label_fill_in_entry label_fill_ins[] = {
+  { "managed",       &use_cppcli_fill_ins, ec_managed,      ec_winrt },
+  { "C++/CLI",       &use_cppcli_fill_ins, ec_cppcli,       ec_cppcx_mapping },
+  { "default",       &use_cppcli_fill_ins, ec_default,      ec_cli_mapping },
+  { "cli::array",    &use_cppcli_fill_ins, ec_cli_array,    ec_platform_array},
+  { "C++/CLI array", &use_cppcli_fill_ins, ec_cppcli_array, ec_cppcx_array },
+  { "System",        &use_cppcli_fill_ins, ec_system,       ec_platform },
+  { "gcnew",         &use_cppcli_fill_ins, ec_gcnew,        ec_ref_new },
+  { NULL,            (a_boolean*)NULL,     ec_no_error,     ec_no_error },
+};
+
+
+static a_label_fill_in_entry *get_label_fill_in_entry(char   *label,
+                                                      size_t length)
+/*
+Return a pointer to the label fill-in entry that matches the specified
+label, with the specified length.  An assertion failure occurs if the
+label fill-in entry is not found.
+*/
+{
+  a_label_fill_in_entry *lfie;
+
+  for (lfie = label_fill_ins; lfie->label != NULL; lfie++) {
+    if (strncmp(lfie->label, label, length) == 0) break;
+  }  /* for */
+  check_assertion_str(lfie->label != NULL,
+                      "get_label_fill_in_entry: no label fill in found");
+  return lfie;
+}  /* get_label_fill_in_entry */
+
+#if EXPENSIVE_CHECKING && !STANDALONE_UTILITY_PROGRAM
+
+static void verify_label_fill_in_entries(void)
+/*
+Check the label fill-ins of each error message to ensure that the label
+fill-in entries are valid.
+*/
+{
+  int error_code;
+  char *ptr, *end_label;
+
+  for (error_code = 0; error_code < ec_last; error_code++) {
+    ptr = error_text(error_code);
+    while (ptr != NULL) {
+      ptr = mbc_strchr(ptr, '%');
+      if (ptr == NULL || *ptr == '\0') {
+        break;
+      } else {
+        ptr++;
+        if (*ptr == '\0') {
+          break;
+        } else if (*ptr == '[') {
+          end_label = mbc_strchr(ptr+1, ']');
+          check_assertion(end_label != NULL);
+          (void)get_label_fill_in_entry(ptr+1, end_label-ptr-1);
+          ptr = end_label+1;
+        }  /* if */
+      }  /* if */
+    }  /* while */
+  }  /* for */
+}  /* verify_label_fill_in_entries */
+
+#endif /* EXPENSIVE_CHECKING && !STANDALONE_UTILITY_PROGRAM */
 
 /*
 Diagnostic message substitutions can be based upon strings, types, and symbols
@@ -1432,6 +1518,8 @@ template beginning with a "%".  Accepted substitution designations are:
         n[f|o|a][d]x	- symbol name insertion in double quotes.
         p		- insert a source position.
         %		- insert a percent sign.
+        \[label\]       - chose one of two fill-ins depending on the value
+                          of a variable
 
 where "x" is an optional number in the range of 1 to MAX_ERR_SEG_KIND_PER_MSG
 (defaulted to 1) that indicates which of multiple types, strings, or
@@ -1458,9 +1546,10 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
        is defined.  The symbol table and token names no longer exist.
 */
 {
-  a_msg_segment_ptr  curr_segment;	/* Pointer to the current segment. */
-  char               *end_ptr;
-  int                i;
+  a_msg_segment_ptr     curr_segment;	/* Pointer to the current segment. */
+  char                  *end_ptr, *end_label;
+  int                   i;
+  a_label_fill_in_entry *lfie;
   
   /* Establish the message segment descriptor for the first segment. */
   curr_segment = establish_first_segment();
@@ -1551,6 +1640,20 @@ check_for_seq_number:
               msg_ptr++;
             }  /* if */
           }  /* if */
+          break;
+        case '[':
+          /* A label fill-in.  Use the string to find a matching label fill-in
+             entry, then choose either the TRUE or FALSE error code message
+             text as a replacement. */
+          end_label = mbc_strchr(msg_ptr+1, ']');
+          check_assertion(end_label != NULL);
+          lfie = get_label_fill_in_entry(msg_ptr+1, end_label-msg_ptr-1);
+          curr_segment->kind = (a_message_segment_kind)msk_error_text_part;
+          curr_segment->variant.msg_part = error_text(*(lfie->test) ?
+                                                           lfie->true_value :
+                                                           lfie->false_value);
+          curr_segment->length = strlen(curr_segment->variant.msg_part);
+          msg_ptr = end_label+1;
           break;
         case '%':
           /* The string "%%" is used to insert a single "%" in the output. */
@@ -5887,6 +5990,9 @@ are handled in error_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+#if EXPENSIVE_CHECKING
+  verify_label_fill_in_entries();
+#endif /* EXPENSIVE_CHECKING */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* error_one_time_init */
 

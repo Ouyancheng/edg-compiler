@@ -9676,6 +9676,7 @@ variables declared in cmd_line.h.
   scanning_generated_code_from_metadata = FALSE;
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  use_cppcli_fill_ins = TRUE;
   microsoft_version = DEFAULT_MICROSOFT_VERSION;
   c99_mode = DEFAULT_C99_MODE;
   uliterals_enabled = DEFAULT_ULITERALS_ENABLED;
