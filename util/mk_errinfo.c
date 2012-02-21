@@ -678,7 +678,7 @@ static void me_create_doc_fillin(char	**ptr_to_ptr)
         break;
       case '[':
         /* A label fill-in: just emit the label in the current font. */
-        while (fis_ptr != NULL && *fis_ptr != '\0') {
+        while (*fis_ptr != '\0') {
           if (*fis_ptr == ']') break;
           else output_doc_string(fis_ptr, 1, curr_font);
           fis_ptr++;
