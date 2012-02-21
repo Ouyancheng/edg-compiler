@@ -683,7 +683,7 @@ static void me_create_doc_fillin(char	**ptr_to_ptr)
           else output_doc_string(fis_ptr, 1, curr_font);
           fis_ptr++;
         }  /* while */
-        if (fis_ptr == NULL || *fis_ptr == '\0') {
+        if (*fis_ptr != ']') {
           me_error("unterminated label fill-in: %s", orig_ptr);
         }  /* if */
         break;

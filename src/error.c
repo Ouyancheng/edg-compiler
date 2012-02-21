@@ -252,20 +252,20 @@ typedef struct a_msg_segment {
 /*
 Describe a label fill-in entry.  Label fill-in entries are used to specify
 at run time which of two different strings (as specified by error codes)
-should be filled-in based upon the value of a variable.  Useful in cases
+should be filled in based upon the value of a variable.  Useful in cases
 where an error message should differ depending on a particular mode.
 */
 typedef struct a_label_fill_in_entry {
   char          *label;         /* The name of the "label" that is used in
                                    error message text (i.e., %[label]).  This
                                    string is used only for matching purposes
-                                   and need not be a choice in the substituted
-                                   string. */
+                                   and doesn't necessarily have to appear
+                                   in the substituted string. */
   a_boolean     *test;          /* A pointer to a boolean variable whose
                                    value at run time is used to decide which
                                    error code below is substituted. */
-  an_error_code true_value, false_value;
-                                /* Error codes representing strings to be used
+  an_error_code true_value,
+                false_value;    /* Error codes representing strings to be used
                                    in the "TRUE" and "FALSE" cases.  Note that
                                    these error codes should not themselves
                                    contain any fill-ins. */
@@ -297,8 +297,14 @@ label fill-in entry is not found.
   for (lfie = label_fill_ins; lfie->label != NULL; lfie++) {
     if (strncmp(lfie->label, label, length) == 0) break;
   }  /* for */
+#if DEBUG
+  if (lfie->label != NULL) {
+    label[length] = '\0';
+    fprintf(f_debug, "missing fill-in label: %s\n", label);
+  }  /* if */
+#endif /* DEBUG */
   check_assertion_str(lfie->label != NULL,
-                      "get_label_fill_in_entry: no label fill in found");
+                      "get_label_fill_in_entry: no label fill-in found");
   return lfie;
 }  /* get_label_fill_in_entry */
 
@@ -1518,8 +1524,9 @@ template beginning with a "%".  Accepted substitution designations are:
         n[f|o|a][d]x	- symbol name insertion in double quotes.
         p		- insert a source position.
         %		- insert a percent sign.
-        \[label\]       - chose one of two fill-ins depending on the value
-                          of a variable
+        \[label\]	- choose one of two fill-ins depending on the value
+			  of a variable (e.g., "%[C++/CLI]" might display as
+			  "C++/CLI" or "C++/CX").
 
 where "x" is an optional number in the range of 1 to MAX_ERR_SEG_KIND_PER_MSG
 (defaulted to 1) that indicates which of multiple types, strings, or

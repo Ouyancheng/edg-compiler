@@ -4,7 +4,7 @@ Version 4.5
 Handle label fill-in strings when producing error documentation
 
 The mk_errinfo tool has been updated to handle the new label fill-in facility
-by emitting the label value itself when producing LaTeX documentation for
+by emitting the label value itself when producing documentation for
 error codes (e.g., "the %[answer] is" is simply emitted as "the answer is"
 in the documentation in the current font).
 
