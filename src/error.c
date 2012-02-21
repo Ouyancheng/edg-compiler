@@ -314,7 +314,7 @@ fill-in entries are valid.
   char *ptr, *end_label;
 
   for (error_code = 0; error_code < ec_last; error_code++) {
-    ptr = error_text(error_code);
+    ptr = error_text((an_error_code)error_code);
     while (ptr != NULL) {
       ptr = mbc_strchr(ptr, '%');
       if (ptr == NULL || *ptr == '\0') {
