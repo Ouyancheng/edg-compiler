@@ -2350,6 +2350,7 @@ ec_exp_rparen_and_pragma_ignored;;"expected a \")\"; pragma ignored"
 ec_using_or_access_declaration_in_managed_class;;"a using-declaration or access declaration cannot appear in a managed class"
 ec_skipped_inaccessible_function;;"Note: %nd could have been called but was not considered because it is inaccessible"
 ec_cli_abstract_member_function_definition;;"an abstract member function of a C++/CLI managed class cannot have a definition"
+ec_nonstatic_addressof_operator_in_managed_class;;"declaring this unary \"operator*\" can change the meaning of dereferencing a handle (use static member operators to explicitly indicate applicable types)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

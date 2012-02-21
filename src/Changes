@@ -1,5 +1,20 @@
 Version 4.5
 
+2/21/12  [EDGcpfe/11404]
+C++/CLI: Remark on operator* in managed class type
+
+Declaring a nonstatic unary operator* in a managed class type now triggers a
+remark (because such operators can change the meaning of "*h" where h is a
+handle).  For example:
+
+  ref struct S {
+    int operator*();  // Now triggers a remark.
+  };
+  int f(S ^h) {
+    return *h;  // Calls S::operator*.
+  }
+
+
 2/20/12  [EDGcpfe/12535]
 Microsoft compatibility: spurious ambiguity on function called via __super
 

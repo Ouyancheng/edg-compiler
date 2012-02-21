@@ -12010,6 +12010,16 @@ implicitly declared member functions.
     if (locator->variant.opname == (an_opname_kind)onk_ampersand) {
       class_type->variant.class_struct_union.has_operator_ampersand = TRUE;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && is_immediate_managed_class_type(class_type) &&
+        locator->variant.opname == (an_opname_kind)onk_star &&
+        rtsp->this_class != NULL && rtsp->param_type_list == NULL) {
+      /* A nonstatic indirection operator in a managed class: Microsoft
+         compilers warn about this.  We issue a remark instead. */
+      pos_remark(ec_nonstatic_addressof_operator_in_managed_class,
+                 &locator->source_position);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (locator->is_conversion_name) {
     /* User-defined conversion function. */
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_conversion);
