@@ -9768,7 +9768,8 @@ a pointer over a reference type or creating an array of references.
                                             templ_param_list,
                                             (options | CTWS_NON_CONSTANT_EXPR),
                                             copy_error, ctws_state);
-        } else if (type->variant.typeref.is_underlying_type) {
+        } else if (type->variant.typeref.is_underlying_type &&
+                   type->variant.typeref.is_dependent_type_operator) {
           /* The __underlying_type operator. */
           /* Substitute the type and extract the underlying type if it's
              an enumeration type. */
