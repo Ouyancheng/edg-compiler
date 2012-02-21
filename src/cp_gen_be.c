@@ -12215,7 +12215,7 @@ source sequence entries recorded with this particular header.  */
 
       /* Remap the source correspondence entry for output. */
       remap_template_param(&cp->variant.template_param.variant.coordinates,
-                           &param->source_corresp);
+                           &cp->source_corresp);
       /* Emit the parameter declaration: */
       form_type_first_part(cp->type,
                            /*under_lhs_declarator=*/FALSE,
@@ -12241,7 +12241,7 @@ source sequence entries recorded with this particular header.  */
       a_type_ptr  type_param = param->variant.type.ptr;
       remap_template_param(&type_param->variant.template_param.extra_info
                                       ->coordinates,
-                           &param->source_corresp);
+                           &type_param->source_corresp);
       write_tok_str("class ");
       if (param->is_pack) write_tok_str("...");
       /* Set the source position for the name. */
@@ -12256,7 +12256,8 @@ source sequence entries recorded with this particular header.  */
       check_assertion(param->kind == (a_template_parameter_kind)tpk_template);
       /* Remap the source correspondence entry for output. */
       remap_template_param(&param->variant.templ.class_template->coordinates,
-                           &param->source_corresp);
+                           &param->variant.templ.class_template->
+                                                               source_corresp);
       gen_template_header(
                      param->variant.templ.class_template->template_decl,
                      parent_class_or_null(param->variant.templ.class_template),
