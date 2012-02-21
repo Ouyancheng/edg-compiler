@@ -5776,10 +5776,10 @@ Return the hash value for the indicated constant.
           }  /* if */
           break;
         case abk_uuidof:
+          /* Note that the type is not included in the hash because two
+             constants with the same UUID value but different types
+             are considered equal (e.g., by compare_constants). */
           hash_value = 231;
-          if (cp->variant.address.variant.type != NULL) {
-            hash_value += hash_type(cp->variant.address.variant.type);
-          }  /* if */
           break;
         case abk_typeid:
           hash_value = 233;

@@ -1,5 +1,25 @@
 Version 4.5
 
+2/21/12  [EDGcpfe/12716]
+Microsoft compatibility: __uuidof different types with same UUID value as
+template argument
+
+If a template was instantiated using the __uuidof operator on two different
+types with that have the same UUID value they were not always treated as
+the same instantiation.  This could result in a variety of problems in
+programs that expect the instantiations to have the same type.  In
+versions with EXPENSIVE_CHECKING enabled, it would also result in an
+assertion failure in check_new_class_instantiation.  Now fixed.
+
+  typedef struct _GUID { int i; } IID;
+  template <const IID* piid> class I;
+  struct __declspec(uuid("{DDB47A6A-0F23-11D5-9109-00E0296B75D3}")) A {};
+  struct __declspec(uuid("{DDB47A6A-0F23-11D5-9109-00E0296B75D3}")) B {};
+  template <> class I<&__uuidof(A)> {};
+  I<&__uuidof(A)> i1;
+  I<&__uuidof(B)> i2;  // spurious "incomplete type is not allowed"
+
+
 2/21/12  [EDGcpfe/12712]
 C++/CLI: Diagnose nonstatic data members in interface class types
 
