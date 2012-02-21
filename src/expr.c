@@ -5153,6 +5153,80 @@ typedef struct an_operator_arrow_block {
 			/* The class type in this iteration. */
 } an_operator_arrow_block;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean is_class_with_operator_arrow_for_cli(
+                                        a_type_ptr                  class_type,
+                                        an_operator_arrow_block_ptr parent)
+/*
+Return TRUE if class_type (a possibly cv-qualified class type) has an
+operator-> that can be used in C++/CLI.  C++/CLI's handling of operator->
+is complicated by the fact that a handle-to-class can be used both to
+call an operator-> function and to directly reference a member of the class.
+MSVC, when given such a handle, deals with the ambiguity by looking to see
+whether the class has an operator-> (or a chain of operator-> functions)
+that produces a handle or a pointer to class.  If it does, the operator->
+interpretation is used.  parent points to a list of entries indicating
+classes already being processed, as a way to avoid loops.
+*/
+{
+  a_boolean    has_op_arrow = FALSE;
+  a_type_ptr   unqual_class_type = skip_typerefs(class_type);
+
+  check_assertion(is_class_struct_union_type(unqual_class_type));
+    /* Don't process template-dependent classes in prototype instantiations. */
+  if (!unqual_class_type->variant.class_struct_union.is_nonreal_class) {
+    /* Get the operator-> function of the class, if any. */
+    a_symbol_ptr sym = opname_member_function_symbol((an_opname_kind)onk_arrow,
+                                                     unqual_class_type);
+    if (sym != NULL) {
+      a_type_ptr return_type;
+      sym = fundamental_symbol_of(sym);
+      check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
+      return_type = return_type_of(sym->variant.routine.ptr->type);
+      if (is_handle_type(return_type) ||
+          (is_pointer_type(return_type) &&
+           is_class_struct_union_type(type_pointed_to(return_type)))) {
+        /* The operator-> function returns a handle or pointer-to-class, so
+           it can be used. */
+        has_op_arrow = TRUE;
+      } else if (is_class_struct_union_type(return_type)) {
+        /* The operator-> function returns a class (or a reference to a class),
+           so we need another operator-> function in that class. */
+        /* Check that we're not looping on a class type we've already
+           encountered.  Note that cv-qualifiers are not ignored, because
+           they can make a difference in which operator-> function is
+           selected. */
+        an_operator_arrow_block     block;
+        an_operator_arrow_block_ptr aobp;
+        for (aobp = parent; aobp != NULL; aobp = aobp->parent) {
+          if (identical_types(return_type, aobp->class_type)) {
+            /* There's a loop. */
+            has_op_arrow = FALSE;
+            goto end_of_routine;
+          }  /* if */
+        }  /* for */
+        /* Add another entry to the list so we will give up if we get back
+           to this new class.  Then do a recursive call to see if this class
+           can be converted to a handle or pointer.  We don't fill out all the
+           fields of the entry because we don't need them in this limited
+           context. */
+        block.parent = parent;
+        block.class_type = return_type;
+        if (is_class_with_operator_arrow_for_cli(return_type, &block)) {
+          has_op_arrow = TRUE;
+        }  /* if */
+      } else {
+        /* Other return types, e.g., error. */
+        has_op_arrow = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+end_of_routine:
+  return has_op_arrow;
+}  /* is_class_with_operator_arrow_for_cli */
+                                                      
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void process_overloaded_operator_arrow(
                                 an_operand                  *operand,
@@ -5180,7 +5254,10 @@ operand, as a way to catch loops.
   if (is_class_struct_union_type(operand->type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
       || (handle_case = (cppcli_enabled &&  /*lint --e(820)*/
-                         is_overloadable_handle_type(operand->type)))
+                         is_overloadable_handle_type(operand->type) &&
+                         is_class_with_operator_arrow_for_cli(
+                                              type_pointed_to(operand->type),
+                                              parent)))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                      ) {
     an_operand                  result;

@@ -1,5 +1,31 @@
 Version 4.5
 
+2/21/12  [EDGcpfe/12230]
+C++/CLI: handling of operator-> starting from a handle
+
+In C++/CLI, the handling of operator-> functions has a bit of an ambiguity,
+because something like h->f(), with "h" a handle, could be a reference to
+a member of the class of h directly, or a use of an operator-> function
+in that class, which could return a handle to a different class.  MSVC
+favors the operator-> interpretation (as we have), but only when there
+is an operator-> (or a chain of them) that returns a handle or a pointer
+to class.  We now do that part as well.
+
+  ref struct B {
+    int foo();
+  };
+  ref struct R : B {
+    B% operator ->();
+  };
+  R ^f();
+  int main() {
+    int i = f()->foo();  // Now accepted, because the operator-> is not
+                         // used as it does not produce a handle or pointer,
+                         // so this is just a reference to a member foo of R
+                         // inherited from B.
+  }
+
+
 2/21/12  [EDGcpfe/11404]
 C++/CLI: Remark on operator* in managed class type
 
