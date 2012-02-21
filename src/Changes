@@ -712,6 +712,18 @@ incorrectly saw both functions as being equally good:
     int i = f(p);  // Was incorrectly ambiguous in 4.4, now accepted again
   }
 
+2/21/12:  Some additional changes in this area for EDGcpfe/12714.
+An example for this part:
+
+  typedef void* void_ptr;
+  typedef const void* const_void_ptr;
+  void node_ptr_cast(const void_ptr &p);
+  void node_ptr_cast(const const_void_ptr &p);
+  int main() {
+    void* vp = 0;
+    node_ptr_cast(vp);  // Was incorrectly ambiguous in 4.4, accepted again
+  }
+
 
 1/31/12  [EDGcpfe/12633]
 GNU __extension__ keyword and typedef declarations
