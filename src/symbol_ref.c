@@ -862,23 +862,24 @@ hidden name checking on its own members, too.
 
         clear_locator(&locator, &sym_ptr->decl_position);
         locator.symbol_header = sym_ptr->header;
-        (void)find_progenitor_symbol(sp->variant.assoc_type, &locator,
-                                     IDL_NO_OPTIONS,
-                                     /*look_in_dependent_bases=*/TRUE,
-                                     !treat_as_cli_class_for_lookup(
-                                                                   class_type),
-                                     &path, &access, &ambiguous,
-                                     &any_using_decl,
-                                     &unambiguous_injected_template);
-        if (ambiguous || access == (an_access_specifier)as_inaccessible) {
-          /* This symbol is either ambiguous or inaccessible in the class
-             whose scope we are processing -- mark it as hidden to force
-             references to it in this context to be generated as qualified. */
-          record_defeatable_name_hiding(
+        if (find_progenitor_symbol(sp->variant.assoc_type, &locator,
+                                   IDL_NO_OPTIONS,
+                                   /*look_in_dependent_bases=*/TRUE,
+                                   !treat_as_cli_class_for_lookup(class_type),
+                                   &path, &access, &ambiguous,
+                                   &any_using_decl,
+                                   &unambiguous_injected_template) != NULL) {
+          if (ambiguous || access == (an_access_specifier)as_inaccessible) {
+            /* This symbol is either ambiguous or inaccessible in the class
+               whose scope we are processing -- mark it as hidden to force
+               references to it in this context to be generated as
+               qualified. */
+            record_defeatable_name_hiding(
                               sym_ptr, /*tag_hidden_by_nontag=*/FALSE,
                               /*hidden_class_or_namespace_member=*/TRUE,
                               /*simulated_hiding=*/FALSE, sp,
                               (a_symbol_ptr)NULL);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */

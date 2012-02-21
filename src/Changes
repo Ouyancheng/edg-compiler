@@ -1,5 +1,14 @@
 Version 4.5
 
+2/21/12  [EDGcpfe/12718]
+Use of unset variables in hidden name processing
+
+In configurations with RECORD_HIDDEN_NAMES_IN_IL, there could be
+references to unset variables in check_hiding_by_inherited_names.
+This could result in certain names being considered hidden when they
+actually were not.  Now fixed.
+
+
 2/21/12  [EDGcpfe/12717]
 Add label fill-in capability to error message strings
 
