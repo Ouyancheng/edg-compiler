@@ -1,5 +1,16 @@
 Version 4.5
 
+2/21/12  [EDGcpfe/12712]
+C++/CLI: Diagnose nonstatic data members in interface class types
+
+The front end now issues an error on declarations of nonstatic data members in
+interface class types.
+
+  interface struct S {
+    int i;  // Now an error (previously erroneously accepted).
+  };
+
+
 2/21/12  [EDGcpfe/12718]
 Use of unset variables in hidden name processing
 

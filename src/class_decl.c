@@ -15672,11 +15672,16 @@ be entered.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       if (!decl_state->is_property_or_event_field) {
-        /* Disallow real data members in interface types (declspec property
+        /* Disallow real data members in __interface types (declspec property
            fields are fine; C++/CLI properties and events will already have
-           triggered an error). */
+           triggered an error).  Also disallow real data members in C++/CLI
+           interface classes. */
         if (class_type->variant.class_struct_union.is_interface) {
           pos_error(ec_interface_cannot_have_data_member,
+                    &locator->source_position);
+        } else if (cppcli_enabled &&
+                   is_immediate_cli_interface_type(class_type)) {
+          pos_error(ec_interface_nonstatic_data_member,
                     &locator->source_position);
         } else {
           class_state->potentially_interface_like = FALSE;
