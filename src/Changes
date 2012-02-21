@@ -1,5 +1,15 @@
 Version 4.5
 
+2/21/12  [EDGcpfe/12662]
+Improved diagnostic for missing preinclude file
+
+If multiple preinclude files were specified on the command-line and
+one of the files other than the first could not be opened, the position
+of the end of the previous preinclude file was used in the "cannot open
+source file" diagnostic, which could be confusing.  The diagnostic is
+now issued as command-line error with no associated position.
+
+
 2/21/12  [EDGcpfe/12716]
 Microsoft compatibility: __uuidof different types with same UUID value as
 template argument

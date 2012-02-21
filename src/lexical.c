@@ -4967,7 +4967,8 @@ a catastrophic error is not issued, FALSE is returned.
         file_open_error(es_discretionary_error, ec_source, file_name,
                         &open_result);
       } else {
-        file_open_error(es_catastrophe, ec_source, file_name, &open_result);
+        file_open_error(is_preinclude ? es_command_line_error : es_catastrophe,
+                        ec_source, file_name, &open_result);
       }  /* if */
     }  /* if */
   }  /* if */
