@@ -1,5 +1,20 @@
 Version 4.5
 
+2/22/12  [EDGcpfe/12626]
+Abort on "explicit" specifier after error
+
+In modes that permit explicit conversion functions (see Changes entry of
+4/19/11), the front end sometimes aborted in special_functions_kind_for_symbol
+(symbol_tbl.c) after certain severe errors.  For example, in C++11 mode:
+
+  struct N {
+    template<class T> struct X;
+    inline explicit X();  // Not a valid declaration.  Previously aborted in
+  };                      // some modes.
+
+This is now fixed.
+
+
 2/21/12  [EDGcpfe/12709]
 Spurious error on use of template with __underlying_type construct
 

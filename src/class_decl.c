@@ -22303,6 +22303,7 @@ next_declaration:;
     } else if (!(dso_flags & DSO_FRIEND) &&
                (decl_info.is_constructor ||
                 (explicit_conversion_functions_enabled &&
+                 decl_state->sym != NULL &&
                  is_conversion_function_symbol(decl_state->sym)))) {
       /* Okay. */
     } else {
