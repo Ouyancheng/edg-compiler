@@ -1,5 +1,22 @@
 Version 4.5
 
+2/22/12  [EDGcpfe/12581]
+Missing error on conflicting using-declaration
+
+The change for EDGcpfe/12429 (see Changes entry of 11/17/11) introduced a
+regression in version 4.4 of the front end: In GNU C++ mode, it caused a
+function declaration that conflicts with a using-declaration not to be
+diagnosed even if the function was not extern "C".  This bug was also present
+in Microsoft mode (but predated version 4.4).  For example:
+
+  namespace N { void f(); }
+  using N::f;
+  void f();  // Previously failed to trigger an error in GNU and Microsoft
+             // C++ modes.
+
+This is now fixed.
+
+
 2/22/12  [EDGcpfe/12706]
 dynamic_cast causes instantiation of virtual functions with C++-generating BE
 
