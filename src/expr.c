@@ -20357,9 +20357,11 @@ that case.
       if (is_integral_or_unscoped_enum_type(operand_2.type)) {
         /* Pointer +- integral/enum (but not scoped enum). */
         /* The first operand must be a pointer to an object. */
-        if (gcc_mode && (is_void_type(type_pointed_to(operand_1->type)) ||
-                         is_function_type(type_pointed_to(operand_1->type)))) {
-          /* GNU C accepts arithmetic on void and function pointers. */
+        if ((gcc_mode ||
+             (gpp_mode && gnu_version >= 40400)) && 
+            (is_void_type(type_pointed_to(operand_1->type)) ||
+             is_function_type(type_pointed_to(operand_1->type)))) {
+          /* GNU accepts arithmetic on void and function pointers. */
           expr_pos_warning(ec_nonobject_pointer_arithmetic,
                            &operator_position);
         } else {

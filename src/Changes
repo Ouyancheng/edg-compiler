@@ -1,5 +1,21 @@
 Version 4.5
 
+2/22/12  [EDGcpfe/11204]
+GNU C++: + and - allowed on void * operand after 4.4
+
+g++ mode now allows addition and subtraction of a void * and an integer
+when gnu_version >= 40400.  Likewise for a pointer to function.
+
+  int main() {
+    void *p = 0;
+    p + 1;
+    p - 1;
+    void (*pf)() = 0;
+    pf + 1;
+    pf - 1;
+  }
+
+
 2/22/12  [EDGcpfe/12581]
 Missing error on conflicting using-declaration
 
