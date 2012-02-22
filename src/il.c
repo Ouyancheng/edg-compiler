@@ -5779,7 +5779,11 @@ Return the hash value for the indicated constant.
           /* Note that the type is not included in the hash because two
              constants with the same UUID value but different types
              are considered equal (e.g., by compare_constants). */
-          hash_value = 231;
+          { char *uuid_string;
+            hash_value = 231;
+            uuid_string = uuid_string_of_type(cp->type);
+            if (uuid_string != NULL) hash_value += hash_string(uuid_string);
+          }
           break;
         case abk_typeid:
           hash_value = 233;
