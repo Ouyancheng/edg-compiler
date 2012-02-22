@@ -1,5 +1,14 @@
 Version 4.5
 
+2/22/12  [EDGcpfe/4622,EDGcpfe/4781,EDGcpfe/10127,EDGcpfe/12722]
+GNU compatibility: #pragma GCC system_header
+
+The front end now accepts the GNU-specific pragma #pragma GCC system_header
+in GNU modes.  It causes the remainder of the header file in which it appears
+to be treated as if it occurred in a system header.  A warning is issued if
+this directive appears in the primary source file.
+
+
 2/22/12  [EDGcpfe/11204]
 GNU C++: + and - allowed on void * operand after 4.4
 

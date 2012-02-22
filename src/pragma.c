@@ -1893,10 +1893,9 @@ Initialize the pragma description table.
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && gnu_version >= 40200) {
-    (void)add_next_token_pragma_kind_description
+    (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_gcc,
                  fn_for_function(gcc_pragma),
-		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/TRUE,

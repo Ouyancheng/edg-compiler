@@ -4800,6 +4800,7 @@ that is being used.
 */
 enum a_gcc_pragma_kind_tag {
   gcc_pk_none,			/* Used for unrecognized GCC pragmas. */
+  gcc_pk_system_header,		/* #pragma GCC system_header */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   gcc_pk_visibility_push,	/* #pragma GCC push(...) */
   gcc_pk_visibility_pop,	/* #pragma GCC pop */

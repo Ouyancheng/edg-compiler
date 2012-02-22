@@ -1843,7 +1843,7 @@ extern void record_start_of_source_file(
 				 a_boolean	   preinclude_macros_only,
 				 a_boolean	   is_implicit_include,
 				 a_boolean	   from_system_include_dir,
-				 a_boolean	   is_scanned_from_string);
+				 a_boolean	   is_assembly_file);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void record_inclusion_of_assembly_source_file(

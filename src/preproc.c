@@ -2876,22 +2876,82 @@ the construct is not correctly formed.
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
+static void process_gnu_system_header_pragma(a_pending_pragma_ptr  ppp)
+/*
+Handle
+   #pragma GCC system_header
+*/
+{
+  ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_system_header;
+  check_assertion(curr_ise != NULL);
+  if (!curr_ise->assoc_il_file->from_system_include_dir) {
+    if (curr_ise->assoc_il_file->is_include_file) {
+      /* The remainder of the current input file should be treated as if it
+         came from a system header.  We achieve this by generating #line
+         directive with "from_system_include_dir" set to TRUE. */
+      a_source_file_ptr  actual_sfp = curr_ise->assoc_actual_il_file;
+      /* If there is already an active #line, record the end of its range. */
+      if (curr_ise->assoc_il_file != actual_sfp) {
+        record_end_of_source_file(curr_ise->assoc_il_file,
+                                  seq_number_last_read-1);
+      }  /* if */
+      /* Record this as a #line directive (achieved by passing NULL values for
+         full_name and name_as_written). */
+      record_start_of_source_file(
+                               actual_sfp, (a_seq_number)seq_number_last_read,
+                               curr_ise->line_number, curr_ise->file_name,
+                               /*full_name=*/(char *)NULL,
+                               /*name_as_written=*/(char *)NULL,
+                               &curr_ise->assoc_il_file,
+                               actual_sfp->is_include_file,
+                               actual_sfp->included_by_system_include,
+                               actual_sfp->included_by_preinclude,
+                               actual_sfp->preinclude_macros_only,
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+                               actual_sfp->is_implicit_include,
+#else /* !INSTANTIATION_BY_IMPLICIT_INCLUSION */
+                               FALSE,
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+                               /*from_system_include_dir=*/TRUE,
+                               actual_sfp->is_assembly_file);
+      check_assertion(curr_ise->assoc_il_file->from_system_include_dir);
+      curr_ise->from_system_include_dir = TRUE;
+    } else {
+      /* This directive has no effect in the primary source file. */
+      pos_warning(ec_pragma_gcc_system_header_in_primary_file,
+                  &pos_curr_token);
+    }  /* if */
+  }  /* if */
+  /* Skip the "system_header" identifier. */
+  (void)get_token();
+  if (curr_token != tok_end_of_source) {
+    warning(ec_extra_text_in_pp_directive);
+  }  /* if */
+}  /* process_gnu_system_header_pragma */
+
+
 void gcc_pragma(a_pending_pragma_ptr  ppp)
 /*
 Process a "#pragma GCC ..." construct.
 */
 {
-  a_boolean  recognized = FALSE;
+  a_boolean     recognized = FALSE;
+  a_boolean     ignore_in_back_end = FALSE;
+  a_pragma_ptr  il_pragma_entry;
 
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token == tok_identifier) {
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     char *str = locator_for_curr_id.symbol_header->identifier;
-    if (strcmp(str, "visibility") == 0) {
+    if (strcmp(str, "system_header") == 0) {
+      recognized = TRUE;
+      ignore_in_back_end = TRUE;
+      process_gnu_system_header_pragma(ppp);
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    } else if (strcmp(str, "visibility") == 0) {
       recognized = TRUE;
       process_gnu_visibility_pragma(ppp);
-    }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    }  /* if */
   }  /* if */
   if (!recognized) {
     warning(ec_unrecognized_gcc_pragma);
@@ -2901,9 +2961,11 @@ Process a "#pragma GCC ..." construct.
   wrapup_rescan_of_pragma_tokens(/*error_in_pragma=*/TRUE);
   /* Record an IL entry for the pragma. */
   create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
-  if (recognized && ppp->il_pragma_entry != NULL) {
+  il_pragma_entry = ppp->il_pragma_entry;
+  if (recognized && il_pragma_entry != NULL) {
     /* Copy the GCC pragma description to the IL entry. */
-    ppp->il_pragma_entry->variant.gcc = ppp->variant.gcc;
+    il_pragma_entry->ignore_in_back_end = ignore_in_back_end;
+    il_pragma_entry->variant.gcc = ppp->variant.gcc;
   }  /* if */
 }  /* gcc_pragma */
 
