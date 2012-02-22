@@ -1,5 +1,38 @@
 Version 4.5
 
+2/22/12  [EDGcpfe/12706]
+dynamic_cast causes instantiation of virtual functions with C++-generating BE
+
+The front end configured for the C++-generating back end has tended to
+instantiate all virtual functions of a class that's used in a dynamic_cast,
+in order to ensure that the typeinfo variable for the class is generated.
+This was sometimes too much, and provoked errors that other compilers
+do not detect.  In contrast, in configurations with IL lowering, the front
+end understands the virtual function and vtable generation rules and 
+can instantiate exactly what is necessary, and no more.  Now, in
+non-IL-lowering configurations, no instantiations are forced for a
+typeinfo use, i.e., we err on the cautious side instead of instantiating
+everything that might be needed.
+
+  template <typename T> struct A {
+    T *m_ptr;
+    ~A () {
+      m_ptr->Unref();  // Got an error when instantiated for A<X>
+                       // Now, A<X>::~X is no longer instantiated
+    }
+  };
+  struct B {
+    virtual ~B ();
+  };
+  struct X;
+  struct D : B {
+    A<X> a;
+  };
+  void f(B *b) {
+    dynamic_cast<D*> (b);
+  }
+
+
 2/22/12  [EDGcpfe/12626]
 Abort on "explicit" specifier after error
 

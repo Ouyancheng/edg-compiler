@@ -12202,16 +12202,15 @@ of virtual functions if type is a class.
       a_boolean unknown;
 #endif /* DO_IL_LOWERING */
       check_assertion(ctsp != NULL);
+#if DO_IL_LOWERING
       /* If defining the typeinfo requires defining the vtable, force
          definition of the virtual functions to force the definition of the
          vtable. */
-#if DO_IL_LOWERING
       if (typeinfo_goes_out_where_vtable_goes_out(type, &unknown) ||
-          unknown)
-#endif /* DO_IL_LOWERING */
-      {
+          unknown) {
         require_definitions_of_virtual_functions_in_class(type);
       }  /* if */
+#endif /* DO_IL_LOWERING */
       /* Force typeinfos for the base classes. */
       for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
         /* Handle only direct base classes, because the recursive call
