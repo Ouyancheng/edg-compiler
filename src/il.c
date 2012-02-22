@@ -5775,6 +5775,7 @@ Return the hash value for the indicated constant.
             hash_value = hash_constant(cp->variant.address.variant.constant);
           }  /* if */
           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
         case abk_uuidof:
           /* Note that the type is not included in the hash because two
              constants with the same UUID value but different types
@@ -5785,6 +5786,7 @@ Return the hash value for the indicated constant.
             if (uuid_string != NULL) hash_value += hash_string(uuid_string);
           }
           break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case abk_typeid:
           hash_value = 233;
           if (cp->variant.address.variant.type != NULL) {
