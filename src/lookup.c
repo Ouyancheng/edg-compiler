@@ -2566,6 +2566,26 @@ that do normal id lookup processing.
 {
   a_symbol_ptr	sym = NULL;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && lookup_state->must_be_class_or_namespace) {
+    /* The Microsoft compiler will find the name of a direct interface
+       even when not looking inside the interfaces. */
+    a_class_type_supplement_ptr	ctsp;
+    a_base_class_ptr		bcp;
+    ctsp = ssep->assoc_type->variant.class_struct_union.extra_info;
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct && is_cli_interface_type(bcp->type)) {
+        a_symbol_ptr	base_sym = symbol_for(bcp->type);
+        if (base_sym->header == locator->symbol_header &&
+            is_acceptable_symbol(base_sym, base_sym, *lookup_state,
+                                 /*invisble_okay=*/FALSE)) {
+          sym = base_sym;
+          goto end_lookup;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   check_assertion(!C_mode());
   if (find_projected_symbol(ssep->assoc_type, locator,
                             lookup_state->options,
@@ -2640,6 +2660,7 @@ that do normal id lookup processing.
       lookup_state->any_ignored_dependent_bases = TRUE;
     }  /* if */
   }  /* if */
+end_lookup:
   return sym;
 }  /* look_for_projected_symbol */
 

@@ -1,5 +1,23 @@
 Version 4.5
 
+2/22/12  [EDGcpfe/12292]
+C++/CLI: Interface names found when used as direct interfaces
+
+In C++/CLI when a lookup begins in a ref class, the lookup does not search
+interfaces.  The Microsoft compiler does, however, notice that a name
+matches the name of a direct interface and uses that type when the name
+is followed by a "::".   We now emulate this in C++/CLI mode.
+
+  public interface struct I {
+    interface struct IN {
+      void f();
+    };
+  };
+  ref struct R: I::IN {
+    virtual void g() = IN::f;
+  };
+
+
 2/22/12  [EDGcpfe/4622,EDGcpfe/4781,EDGcpfe/10127,EDGcpfe/12722]
 GNU compatibility: #pragma GCC system_header
 
