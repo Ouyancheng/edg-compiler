@@ -2913,7 +2913,12 @@ Handle
                                FALSE,
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
                                /*from_system_include_dir=*/TRUE,
-                               actual_sfp->is_assembly_file);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                               actual_sfp->is_assembly_file
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+                               FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                    );
       check_assertion(curr_ise->assoc_il_file->from_system_include_dir);
       curr_ise->from_system_include_dir = TRUE;
     } else {
