@@ -2660,7 +2660,9 @@ that do normal id lookup processing.
       lookup_state->any_ignored_dependent_bases = TRUE;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 end_lookup:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return sym;
 }  /* look_for_projected_symbol */
 
