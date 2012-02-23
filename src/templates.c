@@ -7961,6 +7961,14 @@ argument deduction purposes.
   a_type_ptr	type_underlying = NULL;
   a_type_ptr	templ_type_underlying = NULL;
 
+#if DEBUG
+  if (db_flag_is_set("qc")) {
+    fprintf(f_debug, "matches_template_type_with_qualification_conversion:\n");
+    fprintf(f_debug, "  type: "); db_type(type);
+    fprintf(f_debug, "\n  templ_type: "); db_type(templ_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   type = skip_typerefs(type);
   templ_type = skip_typerefs(templ_type);
   /* The type must be a pointer or pointer-to-member, and both types
@@ -7990,6 +7998,8 @@ argument deduction purposes.
                                      /*ignore_underlying_type=*/TRUE,
                                      (an_error_code *)NULL,
                                      &type_underlying, &templ_type_underlying);
+      /* For call arguments, allow qualifiers to be added below. */
+      flags |= MTT_ALLOW_ADDED_QUALIFIERS;
     }  /* if */
     if (match) {
       /* A qualification conversion is possible.  Check whether the underlying
@@ -7997,6 +8007,14 @@ argument deduction purposes.
          no effect, the check for a qualification conversion as part of
          deduction is not done for function types. */
       match = FALSE;
+#if DEBUG
+      if (db_flag_is_set("qc")) {
+        fprintf(f_debug, "Underlying types:\n");
+        fprintf(f_debug, "  type: "); db_type(type);
+        fprintf(f_debug, "\n  templ_type: "); db_type(templ_type);
+        fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
       if (microsoft_mode) {
         /* The Microsoft compiler drops the qualifiers on the underlying
            type.  This causes cases like the following to be ambiguous:
@@ -8006,13 +8024,23 @@ argument deduction purposes.
         */
         type_underlying = skip_typerefs(type_underlying);
         templ_type_underlying = skip_typerefs(templ_type_underlying);
-      } else {
+      } else if ((flags & MTT_IS_CONVERSION_TEMPLATE) != 0) {
         /* Remove any qualifiers.  This is slightly different from the skip
            typerefs done above in Microsoft mode in that it removes
-           qualifiers from array types. */
+           qualifiers from array types.  This is only done for conversion
+           templates.  For other templates, we allow added qualifiers by
+           updating the MTT flags above. */
         type_underlying = make_unqualified_type(type_underlying);
         templ_type_underlying = make_unqualified_type(templ_type_underlying);
       }  /* if */
+#if DEBUG
+      if (db_flag_is_set("qc")) {
+        fprintf(f_debug, "Adjusted underlying types:\n");
+        fprintf(f_debug, "  type: "); db_type(type_underlying);
+        fprintf(f_debug, "\n  templ_type: "); db_type(templ_type_underlying);
+        fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
       if (!is_function_type(type_underlying) &&
           matches_template_type(type_underlying, templ_type_underlying,
                                 templ_arg_list, templ_param_list, flags)) {
