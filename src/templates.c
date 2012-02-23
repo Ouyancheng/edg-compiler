@@ -8013,7 +8013,7 @@ argument deduction purposes.
         fprintf(f_debug, "  type: "); db_type(type);
         fprintf(f_debug, "\n  templ_type: "); db_type(templ_type);
         fprintf(f_debug, "\n");
-  }  /* if */
+      }  /* if */
 #endif /* DEBUG */
       if (microsoft_mode) {
         /* The Microsoft compiler drops the qualifiers on the underlying
@@ -8039,7 +8039,7 @@ argument deduction purposes.
         fprintf(f_debug, "  type: "); db_type(type_underlying);
         fprintf(f_debug, "\n  templ_type: "); db_type(templ_type_underlying);
         fprintf(f_debug, "\n");
-  }  /* if */
+      }  /* if */
 #endif /* DEBUG */
       if (!is_function_type(type_underlying) &&
           matches_template_type(type_underlying, templ_type_underlying,
