@@ -9805,14 +9805,14 @@ Return TRUE if the two given function symbols have C linkage and identical
 types; otherwise, return FALSE.
 */
 {
-  a_boolean  result = FALSE;
-  a_routine_ptr  rp1 = sym1->variant.routine.ptr,
-                 rp2 = sym2->variant.routine.ptr;
+  a_boolean   result = FALSE;
+  a_type_ptr  tp1 = routine_symbol_type(sym1);
+  a_type_ptr  tp2 = routine_symbol_type(sym2);
 
-  if (identical_types(rp1->type, rp2->type) &&
-      rp1->type->variant.routine.extra_info->routine_name_linkage ==
+  if (identical_types(tp1, tp2) &&
+      tp1->variant.routine.extra_info->routine_name_linkage ==
                                           (a_name_linkage_kind)nlk_external &&
-      rp2->type->variant.routine.extra_info->routine_name_linkage ==
+      tp2->variant.routine.extra_info->routine_name_linkage ==
                                           (a_name_linkage_kind)nlk_external) {
     result = TRUE;
   }  /* if */
