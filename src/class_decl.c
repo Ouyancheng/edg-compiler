@@ -9849,11 +9849,19 @@ a diagnostic should be issued by the caller.
       /* No diagnostic for class members. */
       compat = TRUE;
     } else {
-      /* Namespace-scope declarations cannot conflict in this way. */
-      if ((microsoft_mode || (gpp_mode && gnu_version >= 30400)) &&
-          compatible_functions_with_c_linkage(using_sym, decl_sym)) {
-        /* Microsoft and GNU compilers do not flag this case as an error
-           (though an ambiguity error may be issued at a point of use). */
+      /* Namespace-scope declarations cannot conflict in this way, except for
+         some cases in some modes (an ambiguity error may then be issued at a
+         point of use). */
+      if (microsoft_mode && microsoft_version <= 1300 &&
+          types_are_strictly_compatible(tp1->variant.routine.return_type,
+                                        tp2->variant.routine.return_type)) {
+        /* Older Microsoft compilers accept conflicting declarations if they
+           are completely compatible. */
+      } else if (((microsoft_mode && microsoft_version > 1300) ||
+                  (gpp_mode && gnu_version >= 30400)) &&
+                 compatible_functions_with_c_linkage(using_sym, decl_sym)) {
+        /* Newer Microsoft and GNU compilers accept the extern "C" case with
+           compatible types. */
       } else if (gpp_mode && using_sym->defined) {
         /* GCC accepts this case even when the return types are incompatible,
            but an ambiguity will result when trying to call the function. */
