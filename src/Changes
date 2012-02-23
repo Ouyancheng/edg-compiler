@@ -70,7 +70,7 @@ This was sometimes too much, and provoked errors that other compilers
 do not detect.  In contrast, in configurations with IL lowering, the front
 end understands the virtual function and vtable generation rules and 
 can instantiate exactly what is necessary, and no more.  Now, in
-non-IL-lowering configurations, no instantiations are forced for a
+non-IL-lowering configurations, fewer instantiations are forced for a
 typeinfo use, i.e., we err on the cautious side instead of instantiating
 everything that might be needed.
 

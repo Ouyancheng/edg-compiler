@@ -12184,6 +12184,48 @@ class or enum type contained in type_ptr.
   }  /* if */
 }  /* set_force_external_linkage_flag */
 
+#if !DO_IL_LOWERING
+
+static a_boolean may_have_decider_function(a_type_ptr class_type)
+/*
+Approximate whether the class might have a decider function.  This is used
+when we don't have IL lowering, and therefore we can't know for sure
+whether the class has a decider function or even whether that concept is
+meaningful.
+*/
+{
+  a_boolean has_decider = FALSE;
+
+  class_type = skip_typerefs(class_type);
+  check_assertion(is_immediate_class_type(class_type));
+  if (is_incomplete_type(class_type)) {
+    /* We don't know yet whether the class has a decider, so assume yes. */
+    has_decider = TRUE;
+  } else {
+    if (class_type->variant.class_struct_union.any_virtual_functions) {
+      /* Look for any noninline virtual functions. */
+      a_routine_ptr rp = class_type->variant.class_struct_union.extra_info->
+                                                         assoc_scope->routines;
+      for (; rp != NULL; rp = rp->next) {
+        /* We don't use rout_is_inline here because we want uninstantiated
+           members of template classes to count as potential decider functions.
+           They might be specialized as non-inline outside the class, and
+           some ABI spec might treat such things as decider functions.
+           Also, in SSI versions we put out uninstantiated inline members as
+           non-inline, so they would end up being actual decider functions in
+           that case (so we want to instantiate them and make them not
+           decider functions). */
+        if (rp->is_virtual && !rp->pure_virtual && !rp->is_inline) {
+          has_decider = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return has_decider;
+}  /* may_have_decider_function */
+
+#endif /* DO_IL_LOWERING */
 
 static void force_definition_of_typeinfo_for(a_type_ptr type)
 /*
@@ -12198,19 +12240,30 @@ of virtual functions if type is a class.
     if (is_immediate_class_type(type)) {
       a_class_type_supplement_ptr ctsp = class_type_supp(type);
       a_base_class_ptr            bcp;
-#if DO_IL_LOWERING
-      a_boolean unknown;
-#endif /* DO_IL_LOWERING */
+      a_boolean                   require_virtuals = FALSE;
       check_assertion(ctsp != NULL);
 #if DO_IL_LOWERING
       /* If defining the typeinfo requires defining the vtable, force
          definition of the virtual functions to force the definition of the
          vtable. */
-      if (typeinfo_goes_out_where_vtable_goes_out(type, &unknown) ||
-          unknown) {
-        require_definitions_of_virtual_functions_in_class(type);
+      { a_boolean unknown;
+        if (typeinfo_goes_out_where_vtable_goes_out(type, &unknown) ||
+            unknown) {
+          require_virtuals = TRUE;
+        }  /* if */
+      }
+#else /* !DO_IL_LOWERING */
+      /* When we don't do IL lowering, just approximate whether virtual
+         functions might have to be defined to get the right behavior. */
+      if (!type->variant.class_struct_union.
+                                        virtual_functions_marked_as_required &&
+          may_have_decider_function(type)) {
+        require_virtuals = TRUE;
       }  /* if */
 #endif /* DO_IL_LOWERING */
+      if (require_virtuals) {
+        require_definitions_of_virtual_functions_in_class(type);
+      }  /* if */
       /* Force typeinfos for the base classes. */
       for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
         /* Handle only direct base classes, because the recursive call
