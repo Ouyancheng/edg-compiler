@@ -8388,6 +8388,7 @@ top_of_loop:
                mangle that instead. */
             an_expr_node_ptr decltype_expr = decltype_arg(type);
             if (decltype_expr == NULL) {
+              check_assertion(prototype_instantiations_in_il);
               /* Can happen in configurations where we're mangling the
                  name of a prototype instantiation. */
               break;
@@ -8762,6 +8763,7 @@ top_of_loop:
           }  /* if */
           if (decltype_expr == NULL) {
             /* Should happen only for prototype instantiations. */
+            check_assertion(prototype_instantiations_in_il);
             add_to_mangled_name('?', mctl);
           } else {
             mangled_encoding_for_expression(decltype_expr,
@@ -8801,6 +8803,7 @@ top_of_loop:
           } else {
             /* This should occur only in configurations that generate prototype
                instantiations. */
+            check_assertion(prototype_instantiations_in_il);
             add_str_to_mangled_name(MANGLING_STRING_FOR_TYPEOF_TYPE, mctl);
             mangled_name_with_length("?", mctl);
           }  /* if */
