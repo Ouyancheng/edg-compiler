@@ -2057,6 +2057,8 @@ public:
     : import_scope_(nullptr)
     , token_(mdCustomAttributeNil)
     , ctor_token_(mdTokenNil)
+    , signature_(nullptr)
+    , bytes_in_signature_(0)
   {
   }  /* Default constructor. */
 
@@ -2065,6 +2067,8 @@ public:
     : import_scope_(import_scope)
     , token_(token)
     , ctor_token_(mdTokenNil)
+    , signature_(nullptr)
+    , bytes_in_signature_(0)
   {
   }  /* Constructor. */
 
@@ -2072,6 +2076,9 @@ public:
     : import_scope_(other.import_scope_)
     , token_(other.token_)
     , ctor_token_(other.ctor_token_)
+    , signature_(other.signature_)
+    , bytes_in_signature_(other.bytes_in_signature_)
+    , data_(other.data_)
     , type_name_(other.type_name_)
     , fixed_args_(other.fixed_args_)
     , named_args_(other.named_args_)
@@ -2082,6 +2089,8 @@ public:
     : import_scope_(nullptr)
     , token_(mdCustomAttributeNil)
     , ctor_token_(mdTokenNil)
+    , signature_(nullptr)
+    , bytes_in_signature_(0)
   {
     other.swap(*this);
   }  /* Move constructor. */
@@ -2095,6 +2104,9 @@ public:
     std::swap(import_scope_, other.import_scope_);
     std::swap(token_, other.token_);
     std::swap(ctor_token_, other.ctor_token_);
+    std::swap(signature_, other.signature_);
+    std::swap(bytes_in_signature_, other.bytes_in_signature_);
+    std::swap(data_, other.data_);
     std::swap(type_name_, other.type_name_);
     std::swap(fixed_args_, other.fixed_args_);
     std::swap(named_args_, other.named_args_);
@@ -2170,7 +2182,6 @@ public:
   a_custom_attribute_processor()
     : import_scope_(nullptr)
     , token_(mdTokenNil)
-    , default_member_name_(L"Item")
   {
   }  /* Default constructor. */
 
@@ -2178,7 +2189,6 @@ public:
                                mdToken         token)
     : import_scope_(import_scope)
     , token_(token)
-    , default_member_name_(L"Item")
   {
     HRESULT           hr;
     HCORENUM          enum_custom_attributes = nullptr;
@@ -2208,6 +2218,7 @@ public:
     : import_scope_(other.import_scope_)
     , token_(other.token_)
     , custom_attributes_(other.custom_attributes_)
+    , default_member_name_(other.default_member_name_)
   {
   }  /* Copy constructor. */
 
