@@ -20,7 +20,10 @@ Now fixed.  See the 2/9/12 entry for a similar issue concerning array
 types.
 
   template <class T> void f(T *const *const *);
-  void g(const int ***a) { f(a); }
+  void g(const int ***a) { f(a); }  // Formerly, failed to match.
+
+  template <class T, int i> void g(T (*const *const *)[i]);
+  void g(const int (***a)[1]) { g(a); }  // Formerly, failed to match.
 
 
 2/22/12  [EDGcpfe/12292]

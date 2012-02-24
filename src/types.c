@@ -6963,7 +6963,11 @@ the __unaligned and __restrict qualifiers).
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_template_param_type(dest_type) ||
-        is_template_param_type(source_type)) {
+        is_template_param_type(source_type) ||
+        (is_array_type(dest_type) &&
+         is_template_param_type(array_element_type(dest_type))) ||
+        (is_array_type(source_type) &&
+         is_template_param_type(array_element_type(source_type)))) {
       /* With template parameter types, we can't tell.  const int converted
          to T might or might not be dropping cv-qualifiers, depending on
          the type of T. */
