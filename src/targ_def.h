@@ -2241,13 +2241,13 @@ but implementations are free to do otherwise.
 #endif /* !defined(TARG_UNWIND_WORD_MODE) */
 
 /* The default value used to initialize targ_libgcc_cmp_return_mode.  By
-default this is the same as TARG_WORD_MODE. */
+   default this is the same as TARG_WORD_MODE. */
 #ifndef TARG_LIBGCC_CMP_RETURN_MODE
 #define TARG_LIBGCC_CMP_RETURN_MODE TARG_WORD_MODE
 #endif /* !defined(TARG_LIBGCC_CMP_RETURN_MODE) */
 
 /* The default value used to initialize targ_libgcc_shift_count_mode.  By
-default this is the same as TARG_WORD_MODE. */
+   default this is the same as TARG_WORD_MODE. */
 #ifndef TARG_LIBGCC_SHIFT_COUNT_MODE
 #define TARG_LIBGCC_SHIFT_COUNT_MODE TARG_WORD_MODE
 #endif /* !defined(TARG_LIBGCC_SHIFT_COUNT_MODE) */
