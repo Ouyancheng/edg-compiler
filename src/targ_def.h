@@ -2232,7 +2232,25 @@ but implementations are free to do otherwise.
 #endif /* TARG_SIZEOF_LONG != 4 */
 #endif /* TARG_SIZEOF_LONG != 2 */
 #endif /* TARG_SIZEOF_LONG != 1 */
-#endif /* defined(TARG_WORD_MODE) */
+#endif /* !defined(TARG_WORD_MODE) */
+
+/* The default value used to initialize targ_unwind_word_mode.  By default
+   this is the same as TARG_WORD_MODE. */
+#ifndef TARG_UNWIND_WORD_MODE
+#define TARG_UNWIND_WORD_MODE TARG_WORD_MODE
+#endif /* !defined(TARG_UNWIND_WORD_MODE) */
+
+/* The default value used to initialize targ_libgcc_cmp_return_mode.  By
+default this is the same as TARG_WORD_MODE. */
+#ifndef TARG_LIBGCC_CMP_RETURN_MODE
+#define TARG_LIBGCC_CMP_RETURN_MODE TARG_WORD_MODE
+#endif /* !defined(TARG_LIBGCC_CMP_RETURN_MODE) */
+
+/* The default value used to initialize targ_libgcc_shift_count_mode.  By
+default this is the same as TARG_WORD_MODE. */
+#ifndef TARG_LIBGCC_SHIFT_COUNT_MODE
+#define TARG_LIBGCC_SHIFT_COUNT_MODE TARG_WORD_MODE
+#endif /* !defined(TARG_LIBGCC_SHIFT_COUNT_MODE) */
 
 /* The default value used to initialize targ_pointer_mode. */
 #if TARG_ALL_POINTERS_SAME_SIZE
@@ -2258,7 +2276,7 @@ but implementations are free to do otherwise.
 #endif /* TARG_SIZEOF_POINTER != 4 */
 #endif /* TARG_SIZEOF_POINTER != 2 */
 #endif /* TARG_SIZEOF_POINTER != 1 */
-#endif /* defined(TARG_POINTER_MODE) */
+#endif /* !defined(TARG_POINTER_MODE) */
 
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */
 /* GCC does not support architectures where all pointers are not the

@@ -1,5 +1,12 @@
 Version 4.5
 
+2/24/12  [EDGcpfe/9925,EDGcpfe/10899,EDGcpfe/12331]
+GNU compatibility: Arguments for the "mode" attribute
+
+In GNU modes, the front end now accepts new arguments for the "mode" attribute:
+unwind_word, libgcc_cmp_return, and libgcc_shift_count.
+
+
 2/24/12  [EDGcpfe/12724]
 Assertion failures during mangling of __typeof__ or decltype
 

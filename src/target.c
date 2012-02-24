@@ -451,6 +451,10 @@ This is done before command line processing.
   targ_alignof_long_double = TARG_ALIGNOF_LONG_DOUBLE;
 #if GNU_EXTENSIONS_ALLOWED
   targ_word_mode = (a_type_mode_kind)TARG_WORD_MODE;
+  targ_unwind_word_mode = (a_type_mode_kind)TARG_UNWIND_WORD_MODE;
+  targ_libgcc_cmp_return_mode = (a_type_mode_kind)TARG_LIBGCC_CMP_RETURN_MODE;
+  targ_libgcc_shift_count_mode =
+                               (a_type_mode_kind)TARG_LIBGCC_SHIFT_COUNT_MODE;
 #if TARG_ALL_POINTERS_SAME_SIZE
   targ_pointer_mode = (a_type_mode_kind)TARG_POINTER_MODE;
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */

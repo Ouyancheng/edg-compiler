@@ -4945,6 +4945,13 @@ doesn't apply to the given type, issue an error and return an error type.
       i = (int)tmk_QI;
     } else if (strncmp("word", name, 4) == 0 && name_len == 4) {
       i = (int)targ_word_mode;
+    } else if (strncmp("unwind_word", name, 11) == 0 && name_len == 11) {
+      i = (int)targ_unwind_word_mode;
+    } else if (strncmp("libgcc_cmp_return", name, 17) == 0 && name_len == 17) {
+      i = (int)targ_libgcc_cmp_return_mode;
+    } else if (strncmp("libgcc_shift_count", name, 18) == 0 &&
+               name_len == 18) {
+      i = (int)targ_libgcc_shift_count_mode;
 #if TARG_ALL_POINTERS_SAME_SIZE
     } else if (strncmp("pointer", name, 7) == 0 && name_len == 7) {
       i = (int)targ_pointer_mode;

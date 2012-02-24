@@ -513,6 +513,25 @@ EXTERN a_type_mode_kind
 			   size for the target.  Initialized to the
 			   default value but reconfigurable. */
 
+EXTERN a_type_mode_kind
+		targ_unwind_word_mode;
+			/* Mode of an "unwind word", i.e., the integer size
+			   used in unwind descriptors for the target.
+			   Initialized to the default value but
+			   reconfigurable. */
+
+EXTERN a_type_mode_kind
+		targ_libgcc_cmp_return_mode;
+			/* Mode used by GNU's libgcc for compare instruction
+			   results.  Initialized to the default value but
+			   reconfigurable. */
+
+EXTERN a_type_mode_kind
+		targ_libgcc_shift_count_mode;
+			/* Mode used by GNU's libgcc for shift counts.
+			   Initialized to the default value but
+			   reconfigurable. */
+
 #if TARG_ALL_POINTERS_SAME_SIZE
 
 EXTERN a_type_mode_kind
