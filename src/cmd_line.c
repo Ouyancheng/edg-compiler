@@ -6782,6 +6782,16 @@ file.
 #else /* !defined(TARG_LDBL_MIN_EXP) */
   comment_undefined_macro_name(TARG_LDBL_MIN_EXP);
 #endif /* defined(TARG_LDBL_MIN_EXP) */
+#if defined(TARG_LIBGCC_CMP_RETURN_MODE)
+  define_string_valued_macro(TARG_LIBGCC_CMP_RETURN_MODE);
+#else /* !defined(TARG_LIBGCC_CMP_RETURN_MODE) */
+  comment_undefined_macro_name(TARG_LIBGCC_CMP_RETURN_MODE);
+#endif /* defined(TARG_LIBGCC_CMP_RETURN_MODE) */
+#if defined(TARG_LIBGCC_SHIFT_COUNT_MODE)
+  define_string_valued_macro(TARG_LIBGCC_SHIFT_COUNT_MODE);
+#else /* !defined(TARG_LIBGCC_SHIFT_COUNT_MODE) */
+  comment_undefined_macro_name(TARG_LIBGCC_SHIFT_COUNT_MODE);
+#endif /* defined(TARG_LIBGCC_SHIFT_COUNT_MODE) */
 #if defined(TARG_LITTLE_ENDIAN)
   define_numeric_valued_macro(TARG_LITTLE_ENDIAN);
 #else /* !defined(TARG_LITTLE_ENDIAN) */
@@ -7089,6 +7099,11 @@ file.
   comment_undefined_macro_name(
                               TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT);
 #endif /* defined(TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT) */
+#if defined(TARG_UNWIND_WORD_MODE)
+  define_string_valued_macro(TARG_UNWIND_WORD_MODE);
+#else /* !defined(TARG_UNWIND_WORD_MODE) */
+  comment_undefined_macro_name(TARG_UNWIND_WORD_MODE);
+#endif /* defined(TARG_UNWIND_WORD_MODE) */
 #if defined(TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES)
   define_numeric_valued_macro(
                      TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES);
