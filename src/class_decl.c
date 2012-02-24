@@ -7882,7 +7882,11 @@ to FALSE before returning).
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (bcp_cssp->default_indexed_properties != NULL) {
+  if (bcp_cssp->default_indexed_properties != NULL &&
+      ctsp->assoc_scope != NULL) {
+    /* A base class added after its scope has been pushed: Inherit any
+       default-indexed properties.  (For normal bases, this is done after the
+       class scope is pushed.) */
     inherit_default_indexed_properties(direct_bcp);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13272,9 +13276,13 @@ property set given by property_set.
   if (pedp->get_routine.ptr != NULL) {
     accessor_sym = symbol_for(pedp->get_routine.ptr);
     if (symbol_is(set->get_accessors, sk_overloaded_function)) {
-      remove_symbol_or_projection_from_list(
-                    accessor_sym,
-                    &set->get_accessors->variant.overloaded_function.symbols);
+      a_symbol_ptr  *p_symbols = &set->get_accessors
+                                     ->variant.overloaded_function.symbols;
+      remove_symbol_or_projection_from_list(accessor_sym, p_symbols);
+      if ((*p_symbols)->next == NULL) {
+        /* Only one symbol is left: An overload set is no longer needed. */
+        set->get_accessors = *p_symbols;
+      }  /* if */
     } else if (fundamental_symbol_of(set->get_accessors) == accessor_sym) {
       set->get_accessors = NULL;
     }  /* if */
@@ -13283,9 +13291,13 @@ property set given by property_set.
   if (pedp->set_routine.ptr != NULL) {
     accessor_sym = symbol_for(pedp->set_routine.ptr);
     if (symbol_is(set->set_accessors, sk_overloaded_function)) {
-      remove_symbol_or_projection_from_list(
-                    accessor_sym,
-                    &set->set_accessors->variant.overloaded_function.symbols);
+      a_symbol_ptr  *p_symbols = &set->set_accessors
+                                     ->variant.overloaded_function.symbols;
+      remove_symbol_or_projection_from_list(accessor_sym, p_symbols);
+      if ((*p_symbols)->next == NULL) {
+        /* Only one symbol is left: An overload set is no longer needed. */
+        set->set_accessors = *p_symbols;
+      }  /* if */
     } else if (fundamental_symbol_of(set->set_accessors) == accessor_sym) {
       set->set_accessors = NULL;
     }  /* if */
@@ -23867,6 +23879,21 @@ classes.
     push_stop_token_stack();
     /* Record the associated scope in the class type supplement. */
     ctsp->assoc_scope = scope_ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && is_immediate_managed_class_type(class_type)) {
+      a_base_class_ptr  bcp = base_classes_of(class_type);
+      for (; bcp != NULL; bcp = bcp->next) {
+        if (bcp->direct &&
+            is_class_struct_union_type(bcp->type) &&
+            symbol_supplement_for_class(bcp->type)
+                                       ->default_indexed_properties != NULL) {
+          /* Inherit default indexed properties from direct base classes (this
+             couldn't be done until the class has an associated scope). */
+          inherit_default_indexed_properties(bcp);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Advance past the left brace. */
     (void)get_token();
     add_stop_token(tok_rbrace);

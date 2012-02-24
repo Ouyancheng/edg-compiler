@@ -1063,8 +1063,12 @@ constructs, in which case offsetof_case is TRUE.
   if (microsoft_mode) {
     if (cppcli_enabled) {
       a_type_ptr op1_type = operand_1->type;
-      rewrite_class_with_default_indexed_property_as_property_ref(operand_1);
       cli_array_case = is_handle_to_cli_array_type(op1_type);
+      if (!cli_array_case) {
+        /* cli::array has an inherited default-indexed property, but it
+           shouldn't be used since cli::array is intrinsically indexable. */
+        rewrite_class_with_default_indexed_property_as_property_ref(operand_1);
+      }  /* if */
       /* Decide on scanning what's between the [ ... ] as an expression
          list or a single expression.  The ECMA standard says that it is
          always scanned as an expression list, but VC10 doesn't do that.
