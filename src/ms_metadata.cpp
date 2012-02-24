@@ -431,9 +431,9 @@ appear, because this function does not currently recognize such keywords).
     auto iter = skipped_chars_end;
     if (!force) {
       auto ch = *iter;
-      if(ch == L'_' ||
-         (ch >= L'a' && ch <= L'z') ||
-         (ch >= L'A' && ch <= L'Z')) {
+      if (ch == L'_' ||
+          (ch >= L'a' && ch <= L'z') ||
+          (ch >= L'A' && ch <= L'Z')) {
         for (++iter; iter != identifier.end(); ++iter) {
           ch = *iter;
           if (!(ch == L'_' ||
@@ -556,7 +556,7 @@ public:
 
   const wstring &as_string() const {
     return name_;
-  }  /* operator==. */
+  }  /* as_string */
 
   bool operator==(const wchar_t *other) const {
     return name_ == other;
@@ -578,7 +578,7 @@ public:
       name = name_.substr(separator_offsets_.back() + separator_length);
     }  /* if */
     return name;
-  }  /* as_unqualified_name */
+  }  /* unqualified_name */
 
   a_qualified_name namespace_name() const
   /*
@@ -603,7 +603,7 @@ public:
 
   bool is_unqualified() const {
     return separator_offsets_.empty();
-  }  /* if */
+  }  /* is_unqualified */
 
   const vector<wstring::size_type> &separator_offsets() const {
     return separator_offsets_;
@@ -1263,7 +1263,7 @@ public:
 
   UINT rank() const {
     return rank_;
-  }
+  }  /* rank */
 
   virtual an_array_type_wrapper_ptr as_array() {
     check_assertion(is_of_kind(twk_array));
@@ -2837,10 +2837,10 @@ private:
 
   void set_namespace_scope(ostringstream    &buffer,
                            a_qualified_name namespace_name);
-  void open_namespace(ostringstream &buffer,
+  void open_namespace(ostringstream           &buffer,
                       wstring::const_iterator namespace_begin,
                       wstring::const_iterator namespace_end);
-  void close_namespace(ostringstream &buffer,
+  void close_namespace(ostringstream           &buffer,
                        wstring::const_iterator namespace_begin,
                        wstring::const_iterator namespace_end);
   void close_all_namespace_scopes(ostringstream &buffer) {
@@ -2947,7 +2947,7 @@ Import all the types from an import scope.
 }  /* an_import_scope::import_all_types */
 
 
-void an_import_scope::open_namespace(ostringstream& buffer,
+void an_import_scope::open_namespace(ostringstream           &buffer,
                                      wstring::const_iterator namespace_begin,
                                      wstring::const_iterator namespace_end)
 /*
@@ -2959,7 +2959,7 @@ Emit the text to open a namespace scope.
 }  /* an_import_scope::open_namespace */
 
 
-void an_import_scope::close_namespace(ostringstream& buffer,
+void an_import_scope::close_namespace(ostringstream           &buffer,
                                       wstring::const_iterator namespace_begin,
                                       wstring::const_iterator namespace_end)
 /*
@@ -3106,7 +3106,8 @@ an_import_interface *a_custom_attribute::import_interface() const {
   return import_scope_->import_interface();
 }  /* a_custom_attribute::import_interface */
 
-void a_custom_attribute::decode_type() const {
+void a_custom_attribute::decode_type() const
+{
   if (IsNilToken(ctor_token_)) {
     HRESULT    hr;
     const BYTE *data_ptr;
@@ -3161,7 +3162,8 @@ void a_custom_attribute::decode_type() const {
 }  /* a_custom_attribute::decode_type */
 
 
-void a_custom_attribute::decode_fixed_args() const {
+void a_custom_attribute::decode_fixed_args() const
+{
   /* Ensure the type has been decoded. */
   decode_type();
   if (fixed_args_ == nullptr && !data_.empty()) {
@@ -3196,7 +3198,8 @@ void a_custom_attribute::decode_fixed_args() const {
 }  /* a_custom_attribute::decode_fixed_args */
 
 
-void a_custom_attribute::decode_named_args() const {
+void a_custom_attribute::decode_named_args() const
+{
   /* Ensure the fixed arguments have been decoded. */
   decode_fixed_args();
   if (named_args_ == nullptr && !data_.empty()) {
@@ -3223,7 +3226,8 @@ void a_custom_attribute::decode_named_args() const {
 }  /* a_custom_attribute::decode_named_args */
 
 
-an_import_interface *a_custom_attribute_processor::import_interface() const {
+an_import_interface *a_custom_attribute_processor::import_interface() const
+{
   return import_scope_->import_interface();
 }  /* a_custom_attribute_processor::import_interface */
 
@@ -3232,7 +3236,7 @@ an_assembly_index an_assembly::index = 0;
 
 void an_assembly::cleanup()
 /*
-Cleanup up an assembly once we have finished processing.
+Clean up an assembly once we have finished processing.
 */
 {
   for_each(imported_scopes_.begin(), imported_scopes_.end(),
@@ -4442,7 +4446,8 @@ an_accessibility a_type_definition::a_method_def::accessibility() const
 }  /* a_type_definition::a_method_def::accessibility */
 
 
-string a_type_definition::process_base_class_list(ostringstream& buffer) {
+string a_type_definition::process_base_class_list(ostringstream& buffer)
+{
   ostringstream interface_list;
   auto import_flags = import_scope_.containing_assembly().import_flags();
   bool use_pending_implements_clause = false &&
@@ -4451,8 +4456,7 @@ string a_type_definition::process_base_class_list(ostringstream& buffer) {
 
   process_interfaces(interface_list);
   string pending_interface_list = interface_list.str();
-  if (!pending_interface_list.empty())
-  {
+  if (!pending_interface_list.empty()) {
     buffer << (base_class_processed ? ", " : " : ");
     if (use_pending_implements_clause) {
       buffer << "__implements ...";
