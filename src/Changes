@@ -1,5 +1,13 @@
 Version 4.5
 
+2/23/12  [EDGcpfe/12195]
+C++/CLI: Default indexed properties from metadata
+
+In C++/CLI mode, the front end previously did not correctly load default
+indexed properties from metadata (they were usually loaded as named indexed
+properties with the name "Item").  This is now fixed.
+
+
 2/23/12  [EDGcpfe/12704]
 Incorrect matching of qualification conversion in deduction
 

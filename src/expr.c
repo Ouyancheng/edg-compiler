@@ -800,6 +800,7 @@ or a handle to such a type, return TRUE.
   type = skip_typerefs(type);
   if (is_immediate_managed_class_type(type)) {
     a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+    complete_class_type_is_needed(type);
     if (cssp->default_indexed_properties != NULL) {
       has_def_idx_property = TRUE;
     }  /* if */
