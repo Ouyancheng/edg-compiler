@@ -1,5 +1,32 @@
 Version 4.5
 
+2/24/12  [EDGcpfe/12724]
+Assertion failures during mangling of __typeof__ or decltype
+
+In configurations that record prototype instantiations in the IL and
+have MANGLE_ALL_NAMES set to TRUE, the mangling of a __typeof__ or
+decltype expression that contains an unknown template parameter
+had caused an assertion failure in mangled_encoding_for_type.
+This is now fixed.  For example (with --g++ --c++11):
+
+  struct A {
+    typedef int type;
+  };
+  template<class T> A g(T&);
+  template<class T> struct B {};
+  template<class T> void f(T t) {
+    typedef __typeof__(g(t)) X;
+    typedef decltype(g(t)) Y;
+    struct C {
+      B<typename X::type> m1;
+      B<typename Y::type> m2;
+    };
+  }
+  void h() {
+    f(0);
+  }
+
+
 2/23/12  [EDGcpfe/12195,EDGcpfe/12373]
 C++/CLI: Default indexed properties from metadata
 

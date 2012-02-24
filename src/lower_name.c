@@ -8387,7 +8387,11 @@ top_of_loop:
                get the type from the expression under the decltype and
                mangle that instead. */
             an_expr_node_ptr decltype_expr = decltype_arg(type);
-            check_assertion(decltype_expr != NULL);
+            if (decltype_expr == NULL) {
+              /* Can happen in configurations where we're mangling the
+                 name of a prototype instantiation. */
+              break;
+            }  /* if */
             type = decltype_expr->type;
             if (type->kind == (a_type_kind)tk_typeref) {
               /* The type is a typeref of sorts; jump to the top of this
@@ -8751,14 +8755,18 @@ top_of_loop:
         if (type->variant.typeref.is_decltype) {
           /* Provide mangling for decltype. */
           an_expr_node_ptr decltype_expr = decltype_arg(type);
-          check_assertion(decltype_expr != NULL);
           if (type->variant.typeref.decltype_expr_not_parenthesized) {
             add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_TYPE, mctl);
           } else {
             add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_EXPR, mctl);
           }  /* if */
-          mangled_encoding_for_expression(decltype_expr,
-                                          /*in_dependent_expr=*/TRUE, mctl);
+          if (decltype_expr == NULL) {
+            /* Should happen only for prototype instantiations. */
+            add_to_mangled_name('?', mctl);
+          } else {
+            mangled_encoding_for_expression(decltype_expr,
+                                            /*in_dependent_expr=*/TRUE, mctl);
+          }  /* if */
 #if IA64_ABI
           add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */
@@ -8786,11 +8794,15 @@ top_of_loop:
           if (type->variant.typeref.is_typeof_with_type_operand) {
             add_str_to_mangled_name(MANGLING_STRING_FOR_TYPEOF_TYPE, mctl);
             mangled_encoding_for_type(type->variant.typeref.type, mctl);
-          } else {
-            check_assertion(decltype_arg(type) != NULL);
+          } else if (decltype_arg(type) != NULL) {
             add_str_to_mangled_name(MANGLING_STRING_FOR_TYPEOF_EXPR, mctl);
             mangled_encoding_for_expression(decltype_arg(type),
                                             /*in_dependent_expr=*/TRUE, mctl);
+          } else {
+            /* This should occur only in configurations that generate prototype
+               instantiations. */
+            add_str_to_mangled_name(MANGLING_STRING_FOR_TYPEOF_TYPE, mctl);
+            mangled_name_with_length("?", mctl);
           }  /* if */
 #if IA64_ABI
           add_to_mangled_name('E', mctl);
