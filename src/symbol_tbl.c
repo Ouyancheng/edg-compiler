@@ -12059,7 +12059,7 @@ interface classes.
         bcp->ignore_during_dependent_lookup) continue;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* In C++/CLI mode, look_in_interfaces will be FALSE for lookups that
-       begin in an interface class. */
+       begin in an non-interface class. */
     if (!look_in_interfaces && is_cli_interface_type(bcp->type)) continue;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* For the most part, we are only interested in the direct base classes

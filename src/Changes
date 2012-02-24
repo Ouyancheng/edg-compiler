@@ -1,5 +1,15 @@
 Version 4.5
 
+2/24/12  [EDGcpfe/12438]
+C++/CLI: Class from metadata implementing their own nested interface
+
+C++/CLI does not normally provide syntax to indicate that a class X implements
+an interface X::I.  However, other CLI languages (Visual Basic in particular)
+do allow such constructs.  The front end is now able to correctly import
+metadata representing such constructs, and managed classes can derive from (or
+otherwise make use of) such classes.
+
+
 2/24/12  [EDGcpfe/9925,EDGcpfe/10899,EDGcpfe/12331]
 GNU compatibility: Arguments for the "mode" attribute
 

@@ -4450,8 +4450,8 @@ string a_type_definition::process_base_class_list(ostringstream& buffer)
 {
   ostringstream interface_list;
   auto import_flags = import_scope_.containing_assembly().import_flags();
-  bool use_pending_implements_clause = false &&
-                               (import_flags & cpp_cli_define_all_types) == 0;
+  bool use_pending_implements_clause =
+                                   !(import_flags & cpp_cli_define_all_types);
   bool base_class_processed = process_extends(buffer);
 
   process_interfaces(interface_list);

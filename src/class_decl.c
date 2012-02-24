@@ -6544,6 +6544,57 @@ subobject (e.g., C).
 }  /* set_data_section_base_class */
 
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static void set_preferred_derivation_for_managed_base(a_base_class_ptr  bcp)
+/*
+In managed classes all derivations are public.  It therefore doesn't matter
+much which derivation is considered "preferred", except that in the case of
+System::Object the derivation via a ref class should be preferred since
+derivations via an interface class are not always considered during lookups.
+On the other hand, a preferred derivation must be picked early because managed
+bases are sometimes added late (i.e., after the derived class scope has been
+pushed) and so lookup for another late-added base may expect a preferred path
+to have been picked.
+bcp is a managed base class being added.
+*/
+{
+  
+  a_base_class_derivation_ptr  bcdp = bcp->derivation;
+
+  check_assertion(bcdp != NULL);
+  /* Pick the first added derivation as the "preferred" one or a direct
+     derivation if one exists.  In the case of System::Object, pick a
+     derivation not involving an interface class if one exists. */
+  if (bcdp->next == NULL) {
+    /* There is only one derivation, so it is preferred. */
+    bcdp->preferred = TRUE;
+  } else if (bcp->direct) {
+    for (; bcdp != NULL; bcdp = bcdp->next) {
+      bcdp->preferred = bcdp->direct;
+    }  /* if */
+  } else if (!is_immediate_cli_interface_type(bcp->type)) {
+    /* System::Object. */
+    a_boolean  non_interface_derivation_found = FALSE;
+    for (; bcdp != NULL; bcdp = bcdp->next) {
+      a_derivation_step_ptr  step = bcdp->path;
+      bcdp->preferred = TRUE;
+      /* If this derivation involves an interface class mark it as not
+         preferred. */
+      for (; step != NULL; step = step->next) {
+        if (is_immediate_cli_interface_type(step->base_class->type)) {
+          bcdp->preferred = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+      if (bcdp->preferred) non_interface_derivation_found = TRUE;
+    }  /* for */
+    /* If all the derivations involved an interface class, mark the first one
+       (arbitrarily) as preferred. */
+    if (!non_interface_derivation_found) bcp->derivation->preferred = TRUE;
+  }  /* if */
+}  /* set_preferred_derivation_for_managed_base */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 static a_derivation_step_ptr update_base_class_derivation(
@@ -6610,6 +6661,13 @@ path and access.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
 #endif /* !IA64_ABI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_immediate_managed_class_type(base_class->type)) {
+      /* The preferred derivation path for C++/CLI managed class types must
+         be set early. */
+      set_preferred_derivation_for_managed_base(base_class);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Return a different path than the one stored in the base-class-
        derivation entry.  This is because each virtual base class is the
        start of a new segment. */
@@ -6945,8 +7003,8 @@ This routine is called to identify the "preferred" path -- the sequence of
 casts that affords the greatest "normal" accessibility (i.e., without
 special treatment for casts in the context of member or friend functions).
 When there are two entries with equally good access, a direct base class is
-preferred over in indirect, and an indirect base class with no virtual base
-classes in its derivation is preferred over one that has virtual base
+preferred over an indirect one, and an indirect base class with no virtual
+base classes in its derivation is preferred over one that has virtual base
 classes in its derivation.
 
 Note that the virtual base class appears on the base class list in the
@@ -7970,13 +8028,18 @@ can only contain CLI interfaces.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (curr_token == tok_implements) {
     is_implements_construct = TRUE;
+    first_base_class = FALSE;
     may_be_first_direct_nonvirtual_base = FALSE;
     /* Find the end of the base class list (a base class must already be
-       present). */
+       present).  Also find the highest direct base number so far. */
     end_of_base_classes_list = ctsp->base_classes;
+    direct_base_number = end_of_base_classes_list->direct_base_number;
     check_assertion(end_of_base_classes_list != NULL);
     while (end_of_base_classes_list->next != NULL) {
       end_of_base_classes_list = end_of_base_classes_list->next;
+      if (end_of_base_classes_list->direct_base_number > direct_base_number) {
+        direct_base_number = end_of_base_classes_list->direct_base_number;
+      }  /* if */
     }  /* while */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8380,12 +8443,12 @@ derivation from System::ObjectType or System::ValueType if appropriate.
          derivation for System::Object. */
       a_base_class_sequence_number  direct_base_number = 0;
       check_assertion(is_cli_system_object_type(system_object_base->type));
-      (void)update_base_class_derivation(system_object_base,
-                                         (a_derivation_step_ptr)NULL,
-                                         (an_access_specifier)as_public);
       system_object_base->direct = TRUE;
       system_object_base->is_implicit_direct_base = TRUE;
       system_object_base->orig_type = system_object_base->type;
+      (void)update_base_class_derivation(system_object_base,
+                                         (a_derivation_step_ptr)NULL,
+                                         (an_access_specifier)as_public);
       /* Find the largest direct base number assigned so far and assign the
          next number to System::Object. */
       bcp = base_classes_of(class_type);
@@ -8472,9 +8535,11 @@ implicitly as part of the dispose pattern implementation.
     }  /* if */
   }  /* if */
 #endif /* !IA64_ABI */
-  if (type_ptr->variant.class_struct_union.any_virtual_base_classes) {
+  if (type_ptr->variant.class_struct_union.any_virtual_base_classes &&
+      !is_immediate_managed_class_type(type_ptr)) {
     /* Make a pass over the base class list to resolve duplicate virtual base
-       classes (if any). */
+       classes (if any).  (In managed classes, the preferred base was already
+       established earlier.) */
     for (bcp = base_classes_of(type_ptr); bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual) {      
         set_preferred_base_class_derivation(type_ptr, bcp);
