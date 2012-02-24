@@ -1,6 +1,6 @@
 Version 4.5
 
-2/23/12  [EDGcpfe/12195]
+2/23/12  [EDGcpfe/12195,EDGcpfe/12373]
 C++/CLI: Default indexed properties from metadata
 
 In C++/CLI mode, the front end previously did not correctly load default
