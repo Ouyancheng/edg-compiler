@@ -23663,8 +23663,9 @@ than simply constructing and returning types so that it can be used
 by back ends.
 */
 {
-  a_type_ptr  dest_type = expr->type;
-  an_expr_node_ptr  operand_1 = expr->variant.operation.operands;
+  a_type_ptr       dest_type = expr->type;
+  an_expr_node_ptr operand_1 = (check_assertion(is_operation_node(expr)),
+                                expr->variant.operation.operands);
 
   check_assertion(ref_type != NULL &&
                   (expr->variant.operation.is_reference_cast ||
@@ -23682,7 +23683,7 @@ by back ends.
          get back to the underlying cast type. */
       dest_type = type_pointed_to(dest_type);
     }  /* if */
-    if ((expr->is_static_cast
+    if ((expr->is_static_cast || expr->variant.operation.is_reinterpret_cast
 #if MICROSOFT_EXTENSIONS_ALLOWED
          || expr->is_safe_cast
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -1,5 +1,20 @@
 Version 4.5
 
+2/26/12  [EDGcpfe/12726]
+C++-generating back end: cv-qualifiers on reinterpret_cast to reference type
+
+The C++-generating back end sometimes incorrectly rendered a
+reinterpret_cast to a reference type when the underlying type is
+cv-qualified and the result is used as an rvalue.  Now fixed.
+
+  unsigned int f(volatile float x)
+  {
+    volatile unsigned int y = reinterpret_cast<volatile unsigned int &>(x);
+                                // Formerly, type was rendered as "unsigned &"
+    return y;
+  }
+
+
 2/24/12  [EDGcpfe/12438]
 C++/CLI: Class from metadata implementing their own nested interface
 
