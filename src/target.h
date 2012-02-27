@@ -818,6 +818,12 @@ EXTERN a_boolean
 			   the std namespace. */
 
 EXTERN a_boolean
+		va_list_using_using_decl_in_std_namespace;
+			/* When va_list_in_std_namespace is FALSE, this is
+			   TRUE if a using-declaration for va_list should
+			   be created in the std namespace. */
+
+EXTERN a_boolean
 		va_arg_returns_lvalue;
 			/* If TRUE, the va_arg operator implemented when
 			   passing stdarg references to generated code returns

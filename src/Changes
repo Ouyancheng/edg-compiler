@@ -1,5 +1,19 @@
 Version 4.5
 
+2/27/12  [EDGcpfe/11351]
+Microsoft compatibility: va_list using-declaration in std namespace
+
+In Microsoft mode, when <stdarg.h> is treated as a built-in header,
+and when va_list is not put in namespace std, the front end now
+creates a using-declaration for va_list in namespace std so that
+std::va_list can be used.
+
+  #include <cstdarg>
+  int main() {
+    std::va_list x;
+  }
+
+
 2/27/12  [EDGcpfe/12634]
 Access checking in SFINAE contexts
 

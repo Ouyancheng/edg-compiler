@@ -7720,6 +7720,26 @@ and global namespaces.
            is created below. */
       }  /* if */
     }  /* if */
+    if (va_list_using_using_decl_in_std_namespace) {
+      /* va_list is not in namespace std.  Create a using-declaration for
+         the global va_list in the std namespace. */
+      a_symbol_ptr	using_decl_sym;
+      check_assertion(symbol_for_namespace_std != NULL);
+      check_assertion(!va_list_in_std_namespace);
+      std_namespace = symbol_for_namespace_std->variant.namespace_info.ptr;
+      (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                                 std_namespace);
+      /* Make sure the symbol for the "std" namespace is actually in the
+         symbol table. */
+      enter_symbol_for_namespace_std(&locator);
+      using_decl_sym = enter_namespace_projection_symbol(
+                                              sym, &locator, depth_scope_stack,
+                                              /*suppress_redecl_error=*/FALSE);
+      set_namespace_membership(using_decl_sym, (a_source_correspondence*)NULL,
+                               std_namespace);
+      /* Pop the namespace scope pushed above. */
+      pop_namespace_scope();
+    }  /* if */
     /* Build a typedef for va_list.  This is done even when there is
        an existing symbol, because we need a declaration at the right
        place to tell the C- or C++-generating back end where to put the

@@ -2050,6 +2050,12 @@ by a command line option.
     if (microsoft_version >= 1700 || cppcli_enabled) {
       range_based_for_enabled = TRUE;
     }  /* if */
+    /* The Microsoft headers put va_list in the global namespace but create
+       a using-declaration in namespace std.  Do the same thing unless
+       the front end has been configured to put va_list in std. */
+    if (!va_list_in_std_namespace) {
+      va_list_using_using_decl_in_std_namespace = TRUE;
+    }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
      looking up names in elaborated type specifiers.  This flag causes
