@@ -4529,6 +4529,35 @@ no error is issued and implicit_value is TRUE, *constant is incremented.
   }  /* if */
 }  /* check_enum_value_for_fixed_underlying_type */
 
+
+static void change_enum_constants_type(a_constant_ptr  constants,
+                                       a_type_ptr      new_type)
+/*
+Change the types of the enumeration constants in the given list to the given
+integer type and adjust the associated integer values if needed.
+*/
+{
+  a_constant_ptr   cp;
+  an_integer_kind  new_int_kind;
+
+  check_assertion(is_integral_or_enum_type(new_type));
+  new_int_kind = skip_typerefs(new_type)->variant.integer.int_kind;
+  for (cp = constants; cp != NULL; cp = cp->next) {
+    cp->type = new_type;
+    if (!in_range_for_integer_kind(cp, cp, new_int_kind)) {
+      /* Convert the value of the enumerator constant to fit in its new type.
+         Do not use type_change_constant since that would turn it into an
+         unnamed constant. */
+      an_integer_value  value;
+      value = cp->variant.integer_value;
+      trunc_and_set_integer(&value, cp, /*check_overflow=*/FALSE,
+                            /*saturate_on_overflow=*/FALSE,
+                            (an_error_code*)NULL, (an_error_severity*)NULL);
+    }  /* if */
+  }  /* for */
+}  /* change_enum_constants_type */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -5414,11 +5443,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       enum_con_type->variant.integer.enum_info.affiliated_type = enum_type;
       set_type_size(enum_con_type);
       /* Apply this type to every enumerator constant. */
-      for (enum_con = constant_list;
-           enum_con != NULL;
-           enum_con = enum_con->next) {
-        enum_con->type = enum_con_type;
-      }  /* for */
+      change_enum_constants_type(constant_list, enum_con_type);
       if (min_max_set &&
           in_range_for_integer_kind(
                     &min_value, &max_value, unsigned_int_kind_of[int_kind])) {
@@ -5435,11 +5460,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     if (!C_mode()) {
       /* In C++ now that we know the type of the enumeration, we can update
          each constant to share the same type. */
-      for (enum_con = constant_list;
-           enum_con != NULL;
-           enum_con = enum_con->next) {
-        enum_con->type = enum_type;
-      }  /* for */
+      change_enum_constants_type(constant_list, enum_type);
     }  /* if */
     /* If entities dependent on this enum type were declared before it was
        defined, they will have been recorded on a fixup list.  Go through
