@@ -4709,6 +4709,7 @@ the template that is being rescanned and can be NULL.
     /* A function access scope is pushed even for the class case. */
     (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
                      (a_type_ptr)NULL, rp);
+    scope_stack[depth_scope_stack].template_sym = template_sym;
   }  /* if */
 }  /* push_instantiation_scope_for_rescan */
 

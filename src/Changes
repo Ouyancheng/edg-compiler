@@ -1,5 +1,24 @@
 Version 4.5
 
+2/27/12  [EDGcpfe/12634]
+Access checking in SFINAE contexts
+
+Version 4.4 implemented access checking in SFINAE contexts (see 12/15/11
+entry).  Access checking of friend function templates was not handled
+properly in SFINAE contexts, resulting in spurious deduction failures.
+Now fixed.
+
+  template <void (*)(int)> struct C {
+    typedef int Y;
+  };
+  template <class T> void f(typename T::X) { }
+  class A {
+    typedef int X;
+    template <class T> friend void f(typename T::X);
+  };
+  C<&f<A> >::Y g(int);
+
+
 2/26/12  [EDGcpfe/12726]
 C++-generating back end: cv-qualifiers on reinterpret_cast to reference type
 

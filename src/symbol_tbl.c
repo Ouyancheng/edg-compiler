@@ -9832,7 +9832,8 @@ functions befriending_list_test and class_scope_test.
   for (scope_depth = depth_of_innermost_scope_that_affects_access_control;
        scope_depth != NO_SCOPE_DEPTH;
        scope_depth = ssep->next_scope_that_affects_access_control) {
-    a_scope_kind kind;
+    a_scope_kind		kind;
+    a_class_list_entry_ptr	befriending_classes = NULL;
     ssep = &scope_stack[scope_depth];
     kind = ssep->kind;
     if (kind == (a_scope_kind)sck_function ||
@@ -9841,11 +9842,22 @@ functions befriending_list_test and class_scope_test.
          its befriending list. */
       if (kind == (a_scope_kind)sck_function_access) {
         scope_routine = ssep->assoc_routine;
+        /* If the function access scope is for a template, get the
+           befriending information associated with the template. */
+        if (ssep->template_sym != NULL) {
+          a_template_symbol_supplement_ptr	tssp;
+          tssp = template_supplement_for_symbol(ssep->template_sym);
+          befriending_classes = tssp->befriending_classes;
+        }  /* if */
       } else {
         scope_routine = ssep->il_scope->variant.routine.ptr;
       }  /* if */
-      if (befriending_list_test(scope_routine->befriending_classes,
-                                class_type)) {
+      /* If the befriending information was not set above, get it from the
+         routine entry. */
+      if (befriending_classes == NULL) {
+        befriending_classes = scope_routine->befriending_classes;
+      }  /* if */
+      if (befriending_list_test(befriending_classes, class_type)) {
         /* We are inside a function that is a friend of class_type. */
         have_member_privilege = TRUE;
         break;
