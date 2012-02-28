@@ -550,9 +550,8 @@ be generated when doing IL lowering.
 
 /*
 In some modes, the prototype instantiation of functions is deferred until
-the first actual instantiation of the template.  This feature cannot be
-used when including prototype instantiations in the IL.  In versions that
-do not include prototype instantiations in IL, the default for this macro
+the first actual instantiation of the template.  In versions that do not
+include prototype instantiations in the IL, the default for this macro
 is based on whether or not the C++-generating back end is being used.  This
 is done so that (by default) all C++-generating back end versions will
 have the same behavior with respect to deferral of prototype instantiations.
@@ -561,8 +560,7 @@ set of programs that can be compiled without errors.
 */
 #ifndef FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-#define FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED \
-					FALSE /* Do not change this. */
+#define FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED FALSE
 #else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if BACK_END_IS_CP_GEN_BE
 #define FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED FALSE
