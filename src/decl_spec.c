@@ -4544,7 +4544,8 @@ integer type and adjust the associated integer values if needed.
   new_int_kind = skip_typerefs(new_type)->variant.integer.int_kind;
   for (cp = constants; cp != NULL; cp = cp->next) {
     cp->type = new_type;
-    if (!in_range_for_integer_kind(cp, cp, new_int_kind)) {
+    if (cp->kind == (a_constant_repr_kind)ck_integer &&
+        !in_range_for_integer_kind(cp, cp, new_int_kind)) {
       /* Convert the value of the enumerator constant to fit in its new type.
          Do not use type_change_constant since that would turn it into an
          unnamed constant. */
