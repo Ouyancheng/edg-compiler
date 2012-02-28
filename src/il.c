@@ -7228,10 +7228,22 @@ The given class type does not yet have an associated scope.  Add one.
 {
   a_scope_ptr            scope;
   a_memory_region_number region_to_switch_back_to = NULL_region_number;
+  a_scope_number         number = NO_SCOPE_NUMBER;
+  a_symbol_ptr	         sym;
 
   switch_to_file_scope_region(&region_to_switch_back_to);
+  sym = symbol_for(type);
+  if (sym != NULL) {
+    /* For proxy classes, a scope number will have been assigned but no
+       scope allocated.  If a scope number has been assigned, use that
+       for the scope that is now being created.  There will not be a
+       symbol when this routine is used for type created by lowering. */
+    number = symbol_for(type)->variant.class_struct_union.extra_info->
+                                                             member_decl_scope;
+  }  /* if */
+  if (number == NO_SCOPE_NUMBER) number = take_next_scope_number();
   scope = alloc_scope((a_scope_kind)sck_class_struct_union,
-                      take_next_scope_number(), (a_routine_ptr)NULL);
+                      number, (a_routine_ptr)NULL);
   switch_back_to_original_region(region_to_switch_back_to);
   scope->parent = type->source_corresp.parent_scope;
   class_type_supp(type)->assoc_scope = scope;

@@ -4364,15 +4364,28 @@ bypass_normal_search:
                                                    &add_to_active_list,
                                                    &insert_sym);
         (void)find_projected_symbol(
-                                 class_type, locator, options,
-                                 /*look_in_dependent_bases=*/TRUE,
-                                 !treat_as_cli_class_for_lookup(class_type),
-                                 /*tentative_type_lookup=*/FALSE,
-                                 /*tentative_template_lookup=*/FALSE,
-                                 (options & IDL_HIDDEN_NAME_LOOKUP) != 0 ||
-                                 (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0,
-                                 add_to_active_list, insert_sym, &sym,
-                                 !(options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS));
+                            class_type, locator, options,
+                            /*look_in_dependent_bases=*/TRUE,
+                            !treat_as_cli_class_for_lookup(class_type),
+                            /*tentative_type_lookup=*/FALSE,
+                            /*tentative_template_lookup=*/FALSE,
+                            (options & IDL_HIDDEN_NAME_LOOKUP) != 0 ||
+                            (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0,
+                            add_to_active_list, insert_sym, &sym,
+                            /*can_create_nonreal=*/FALSE);
+        if (sym == NULL && (options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS) == 0 &&
+            (options & IDL_IS_DECLARATOR) == 0 &&
+            cssp->any_nonreal_base_classes) {
+          /* This is a lookup of a name like D::x, where D is a
+             prototype instantiation or local class of a prototype
+             instantiation.  Create a symbol whose parent is the class
+             in which the lookup is being done. */
+          check_assertion(is_prototype_instantiation_lookup);
+          sym = create_proxy_or_nonreal_class_member(
+                                          class_type,
+                                          options | IDL_MEMBER_OF_UNKNOWN_BASE,
+                                          locator);
+        }  /* if */
       }  /* if */
     }  /* if */
 end_lookup:

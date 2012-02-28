@@ -1,5 +1,21 @@
 Version 4.5
 
+2/28/12  [EDGcpfe/12671]
+C++-generating back end: abort with function template and use of member of
+dependent base class
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL, the C++-generating
+back end aborted with a failed assertion when the source involved a
+reference to a member of a dependent base class appearing in a function
+template.  This is now fixed.  For example:
+
+  template<typename T> struct B { };
+  template<typename T> void f() {
+    struct D: B<T> { };
+    typedef typename D::type Dt;   // Previously caused an assertion failure
+  }
+
+
 2/28/12  [EDGcpfe/11527]
 Limit size of an inlined routine
 
