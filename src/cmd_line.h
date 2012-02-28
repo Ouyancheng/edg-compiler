@@ -129,6 +129,7 @@ typedef enum /*an_option_kind*/ {
   optk_alternative_tokens,
 #if DO_IL_LOWERING && MINIMAL_INLINING
   optk_inlining,
+  optk_inline_statement_limit,
 #endif /* DO_IL_LOWERING && MINIMAL_INLINING */
   optk_SVR4_C_mode,
   optk_brief_diagnostics,
@@ -1204,6 +1205,13 @@ EXTERN a_boolean
 		inlining_enabled;
 			/* TRUE if minimal inlining should be done by IL
 			   lowering. */
+
+EXTERN a_host_large_unsigned
+                inline_statement_limit;
+                        /* The maximum number of statements that a routine
+                           can contain and still be eligible for inlining.
+                           The value is somewhat arbitrary, and is used to
+                           prevent memory exhaustion in pathological cases. */
 #endif /* DO_IL_LOWERING && MINIMAL_INLINING */
 
 EXTERN a_boolean

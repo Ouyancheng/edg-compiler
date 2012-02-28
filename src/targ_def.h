@@ -3816,6 +3816,16 @@ statements whose source position would need to be set).
 #ifndef STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
 #define STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION TRUE
 #endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
+
+/*
+This configuration macro sets the maximum number of statements that a
+routine can have and still be inlinable.  The setting is somewhat arbitrary,
+but a limit is needed to prevent iterative inlining from exhausting memory.
+A setting of zero disables this check.
+*/
+#ifndef DEFAULT_INLINE_STATEMENT_LIMIT
+#define DEFAULT_INLINE_STATEMENT_LIMIT 100
+#endif /* ifndef DEFAULT_INLINE_STATEMENT_LIMIT */
 #endif /* MINIMAL_INLINING */
 
 #ifdef UNARY_PLUS_IN_IL

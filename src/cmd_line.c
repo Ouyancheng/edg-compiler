@@ -570,6 +570,9 @@ Initialize the option information table.
   add_option_description(optk_inlining, "no_inlining",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_inline_statement_limit, "inline_statement_limit",
+                         '\0', /*value=*/FALSE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 #endif /* MINIMAL_INLINING */
   add_option_description(optk_SVR4_C_mode,
 			 "svr4",
@@ -4722,6 +4725,11 @@ file.
 #else /* !defined(DEFAULT_INCLUDE_FILE_SUFFIX_LIST) */
   comment_undefined_macro_name(DEFAULT_INCLUDE_FILE_SUFFIX_LIST);
 #endif /* defined(DEFAULT_INCLUDE_FILE_SUFFIX_LIST) */
+#if defined(DEFAULT_INLINE_STATEMENT_LIMIT)
+  define_numeric_valued_macro(DEFAULT_INLINE_STATEMENT_LIMIT);
+#else /* !defined(DEFAULT_INLINE_STATEMENT_LIMIT) */
+  comment_undefined_macro_name(DEFAULT_INLINE_STATEMENT_LIMIT);
+#endif /* defined(DEFAULT_INLINE_STATEMENT_LIMIT) */
 #if defined(DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST)
   define_numeric_valued_macro(
                        DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST);
@@ -8004,6 +8012,11 @@ enable_microsoft_mode:
         /* Minimal inlining should or should not be done. */
         inlining_enabled = opt_value;
         break;
+     case optk_inline_statement_limit:
+        /* The maximum number of (lowered) statements to allow in a routine
+           that can be inlined. */
+        inline_statement_limit = scan_opt_arg_number(opt_arg);
+        break;
 #endif /* MINIMAL_INLINING */
       case optk_SVR4_C_mode:
         /* SVR4 C compatibility mode should or should not be used.  This
@@ -9521,6 +9534,7 @@ variables declared in cmd_line.h.
   trigraphs_allowed = DEFAULT_TRIGRAPHS_ALLOWED;
 #if DO_IL_LOWERING && MINIMAL_INLINING
   inlining_enabled = TRUE;
+  inline_statement_limit = DEFAULT_INLINE_STATEMENT_LIMIT;
 #endif /* DO_IL_LOWERING && MINIMAL_INLINING */
   SVR4_C_mode = DEFAULT_SVR4_C_MODE;
   address_of_ellipsis_allowed = DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED;

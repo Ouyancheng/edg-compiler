@@ -2367,6 +2367,7 @@ ec_gcnew;;"gcnew"
 ec_ref_new;;"ref new"
 ec_interface_nonstatic_data_member;;"an interface class cannot contain a nonstatic data member"
 ec_pragma_gcc_system_header_in_primary_file;;"#pragma GCC system_header cannot be used in the primary source file"
+ec_too_large_to_inline;;"%n is too large to be inlined"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

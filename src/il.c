@@ -12508,12 +12508,20 @@ a static or nonstatic variable.
      ensures that temporaries built later come after temporaries built
      earlier, which is needed when record_needed_destruction is called
      for a temporary. */
-  while (*prev_ptr_ptr != NULL && !has_name(*prev_ptr_ptr)) {
-    prev_ptr_ptr = &(*prev_ptr_ptr)->next;
-  }  /* while */
-  temp->next = *prev_ptr_ptr;
-  *prev_ptr_ptr = temp;
-  if (last_ptr_ptr != NULL && temp->next == NULL) *last_ptr_ptr = temp;
+  if (last_ptr_ptr != NULL && *last_ptr_ptr != NULL &&
+      !has_name(*last_ptr_ptr)) {
+    /* Special case for a list that has only temporary variables. */
+    (*last_ptr_ptr)->next = temp;
+    temp->next = NULL;
+    *last_ptr_ptr = temp;
+  } else {
+    while (*prev_ptr_ptr != NULL && !has_name(*prev_ptr_ptr)) {
+      prev_ptr_ptr = &(*prev_ptr_ptr)->next;
+    }  /* while */
+    temp->next = *prev_ptr_ptr;
+    *prev_ptr_ptr = temp;
+    if (last_ptr_ptr != NULL && temp->next == NULL) *last_ptr_ptr = temp;
+  }  /* if */
 }  /* add_temporary_to_front_of_variables_list */
 
 

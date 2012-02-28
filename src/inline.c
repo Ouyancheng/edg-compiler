@@ -1070,10 +1070,12 @@ expressions contained in the statement.
 }  /* copy_inlined_statement */
 
 
-static void expand_statement_inline(a_statement_ptr    statement,
-                                    an_insert_location *insert_location,
-                                    a_boolean          *inlinable,
-                                    a_boolean          *failed)
+static void expand_statement_inline(a_statement_ptr       statement,
+                                    an_insert_location    *insert_location,
+                                    a_host_large_unsigned *statement_count,
+                                    a_boolean             *is_too_large,
+                                    a_boolean             *inlinable,
+                                    a_boolean             *failed)
 /*
 Generate a copy of the indicated statement as part of the expansion of an
 inline function call.  Insert the copy at *insert_location and update
@@ -1085,7 +1087,12 @@ location; in that case, only expressions can be inserted, so other kinds
 of statements can be inserted only if they can be turned into expressions.
 If not, *failed is set.  Expressions are run through a lowering post pass
 as they are copied and not when they are inserted (as part of a statement)
-into the IL tree.
+into the IL tree.  *statement_count is used to keep track of how large
+the inlined routine is; the top-level caller sets *statement_count to
+zero and *statement_count is incremented during the inlining process.
+If it reaches a configured threshold, inlining fails and *is_too_large
+is set to TRUE (*failed is also set to TRUE and *inlinable is set to FALSE).
+This is useful in cases where iterative inlining can create huge routines.
 */
 {
   an_expr_node_ptr   stmt_expr, expr;
@@ -1099,6 +1106,16 @@ into the IL tree.
   } else if (statement->has_associated_pragma) {
     /* Can't inline a statement with an associated pragma. */
     goto cannot_inline_ever;
+  } else if ((*statement_count)++ > inline_statement_limit &&
+             inline_statement_limit != 0) {
+    /* Some recursive inlined routines can run the front end out of memory
+       so arbitrarily set a limit on how large an inlined routine can be.
+       This measure is currently based solely on the number of statements
+       that the inlined routine contains, but could be adjusted to take
+       other factors (e.g., expressions, variables, etc.) into account. */
+    *is_too_large = TRUE;
+    *failed = TRUE;
+    *inlinable = FALSE;
   } else {
     stmt_expr = statement->expr;
     if (stmt_expr != NULL) {
@@ -1240,7 +1257,8 @@ into the IL tree.
             /* Copy the "then" statement. */
             set_expr_creation_insert_location(&sub_insert_location);
             expand_statement_inline(statement->variant.if_stmt.then_statement,
-                                    &sub_insert_location, inlinable, failed);
+                                    &sub_insert_location, statement_count,
+                                    is_too_large, inlinable, failed);
             if (!*failed) {
               then_expr = sub_insert_location.variant.expr;
               if (then_expr == NULL) {
@@ -1257,7 +1275,8 @@ into the IL tree.
               set_expr_creation_insert_location(&sub_insert_location);
               expand_statement_inline(
                                      statement->variant.if_stmt.else_statement,
-                                     &sub_insert_location, inlinable, failed);
+                                     &sub_insert_location, statement_count,
+                                     is_too_large, inlinable, failed);
               if (!*failed) {
                 else_expr = sub_insert_location.variant.expr;
                 else_expr = add_cast_if_necessary(else_expr, void_type());
@@ -1295,7 +1314,8 @@ into the IL tree.
             /* Copy the "then" statement. */
             set_statement_creation_insert_location(&sub_insert_location);
             expand_statement_inline(statement->variant.if_stmt.then_statement,
-                                    &sub_insert_location, inlinable, failed);
+                                    &sub_insert_location, statement_count,
+                                    is_too_large, inlinable, failed);
             if (!*failed) {
               then_stmt = sub_insert_location.variant.stmt;
             }  /* if */
@@ -1306,7 +1326,8 @@ into the IL tree.
               set_statement_creation_insert_location(&sub_insert_location);
               expand_statement_inline(
                                      statement->variant.if_stmt.else_statement,
-                                     &sub_insert_location, inlinable, failed);
+                                     &sub_insert_location, statement_count,
+                                     is_too_large, inlinable, failed);
               if (!*failed) {
                 else_stmt = sub_insert_location.variant.stmt;
               }  /* if */
@@ -1362,6 +1383,7 @@ into the IL tree.
              stmt != NULL;
              stmt = stmt->next) {
           expand_statement_inline(stmt, &sub_insert_location,
+                                  statement_count, is_too_large,
                                   inlinable, failed);
           if (*failed) break;
         }  /* for */
@@ -1431,7 +1453,8 @@ into the IL tree.
         /* Copy the dependent statement. */
         set_statement_creation_insert_location(&sub_insert_location);
         expand_statement_inline(statement->variant.loop_statement,
-                                &sub_insert_location, inlinable, failed);
+                                &sub_insert_location, statement_count,
+                                is_too_large, inlinable, failed);
         if (*failed) break;
         stmt = sub_insert_location.variant.stmt;
         /* Copy the "while" statement. */
@@ -1450,13 +1473,15 @@ into the IL tree.
           set_statement_creation_insert_location(&sub_insert_location);
           expand_statement_inline(statement->variant.for_loop.extra_info->
                                                                 initialization,
-                                  &sub_insert_location, inlinable, failed);
+                                  &sub_insert_location, statement_count,
+                                  is_too_large, inlinable, failed);
           if (*failed) break;
           init_stmt = sub_insert_location.variant.stmt;
           /* Copy the dependent statement. */
           set_statement_creation_insert_location(&sub_insert_location);
           expand_statement_inline(statement->variant.for_loop.statement,
-                                  &sub_insert_location, inlinable, failed);
+                                  &sub_insert_location, statement_count,
+                                  is_too_large, inlinable, failed);
           if (*failed) break;
           stmt = sub_insert_location.variant.stmt;
           /* Copy the increment expression. */
@@ -1506,7 +1531,8 @@ cannot_inline:
 }  /* expand_statement_inline */
 
 
-static void issue_inlining_failure_diagnostic(a_routine_ptr routine)
+static void issue_inlining_failure_diagnostic(a_routine_ptr routine,
+                                              a_boolean     is_too_large)
 /*
 Issue a diagnostic about a failure to inline the indicated routine.
 */
@@ -1516,7 +1542,9 @@ Issue a diagnostic about a failure to inline the indicated routine.
   if (sym != NULL) {
     if (!routine->inlinable) {
       /* The routine cannot ever be inlined. */
-      pos_sy_remark(ec_cannot_inline, &sym->decl_position, sym);
+      pos_sy_remark(is_too_large ? ec_too_large_to_inline :
+                                   ec_cannot_inline,
+                    &sym->decl_position, sym);
     } else {
       /* The routine cannot be inlined in this case. */
       sym_remark(ec_cannot_inline_call, sym);
@@ -1563,9 +1591,11 @@ function, do inlining on the expression.  If statement is non-NULL, the call
 is the top node of the indicated statement (which is an expression statement).
 */
 {
-  an_expr_node_ptr arg;
-  a_routine_ptr    routine;
-  a_statement_ptr  block_stmt;
+  an_expr_node_ptr      arg;
+  a_routine_ptr         routine;
+  a_statement_ptr       block_stmt;
+  a_host_large_unsigned statement_count = 0;
+  a_boolean             is_too_large = FALSE;
 
   db_enter(4, "do_inlining_of_call");
   /* Note that other kinds of calls (like eok_dot_member_call) have been
@@ -1635,6 +1665,7 @@ is the top node of the indicated statement (which is an expression statement).
         /* Copy the code of the function, replacing references to the
            parameters and variables. */
         expand_statement_inline(scope->assoc_block, &insert_location,
+                                &statement_count, &is_too_large,
                                 &inlinable, &failed);
         if (failed) {
           /* Inlining failed, so we will need an out-of-line copy of the
@@ -1724,7 +1755,7 @@ is the top node of the indicated statement (which is an expression statement).
         /* Put the inlinable flag back on, unless we've discovered that this
            function can never be inlined. */
         routine->inlinable = inlinable;
-        if (failed) issue_inlining_failure_diagnostic(routine);
+        if (failed) issue_inlining_failure_diagnostic(routine, is_too_large);
         routine_scope_being_inlined = NULL;
 #if DEBUG
         if (debug_level >= 4) {
@@ -1808,7 +1839,9 @@ the routine so it can be inlined on calls from here on.
     /* The routine looks like it can be inlined. */
     routine->inlinable = TRUE;
   }  /* if */
-  if (!routine->inlinable) issue_inlining_failure_diagnostic(routine);
+  if (!routine->inlinable) {
+    issue_inlining_failure_diagnostic(routine, /*is_too_large=*/FALSE);
+  }  /* if */
 }  /* set_up_routine_for_inlining */
 
 

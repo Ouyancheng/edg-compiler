@@ -1,5 +1,12 @@
 Version 4.5
 
+2/28/12  [EDGcpfe/11527]
+Add --inline_statement_limit command line option to eccp
+
+An --inline_statement_limit command line option has been added to eccp to
+override the default limit on the maximum size of an inlined function.
+
+
 2/21/12  [EDGcpfe/12717]
 Handle label fill-in strings when producing error documentation
 

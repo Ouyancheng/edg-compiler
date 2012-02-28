@@ -658,6 +658,7 @@ check_abbreviation()
 --implicit_typename
 --include_directory
 --incl_suffixes
+--inline_statement_limit
 --inlining
 --instantiate
 --instantiation_dir
@@ -1498,6 +1499,7 @@ process_option()
          --diag_warning | \
          --diag_error | \
          --diag_once | \
+         --inline_statement_limit | \
          --microsoft_version | \
          --gnu_version | \
 	 --definition_list_file | \
@@ -1576,6 +1578,7 @@ process_option()
           --diag_warning=* | \
           --diag_error=* | \
           --diag_once=* | \
+          --inline_statement_limit=* | \
           --microsoft_version=* | \
           --gnu_version=* | \
           --pending_instantiations=* | \
