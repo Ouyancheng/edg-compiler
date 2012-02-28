@@ -956,6 +956,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_nonstatic_addressof_operator_in_managed_class)*/
 /*lint -esym(769,ec_interface_nonstatic_data_member)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if !MINIMAL_INLINING
+/*lint -esym(769,ec_too_large_to_inline)*/
+#endif /* !MINIMAL_INLINING */
 #if !USER_CONTROL_OF_STRUCT_PACKING
 /*lint -esym(769,ec_exp_rparen_and_pragma_ignored)*/
 #endif /* !USER_CONTROL_OF_STRUCT_PACKING */
