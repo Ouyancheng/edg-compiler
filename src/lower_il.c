@@ -8791,6 +8791,9 @@ Do IL lowering of the indicated type and everything under it.
         lower_type(type->variant.routine.return_type);
         { a_routine_type_supplement_ptr rtsp =type->variant.routine.extra_info;
           a_param_type_ptr ptp;
+#if MAINTAIN_NEEDED_FLAGS
+          a_boolean        type_changed = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
           if (make_all_functions_unprototyped) {
             /* Make all function types unprototyped.  Note that the
                param_type_list is not cleared even if the function has no
@@ -8819,6 +8822,9 @@ Do IL lowering of the indicated type and everything under it.
             rtsp->param_type_list = ptp;
             /* The return value type becomes "void". */
             type->variant.routine.return_type = void_type();
+#if MAINTAIN_NEEDED_FLAGS
+            type_changed = TRUE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
           }  /* if */
           /* If there is an implicit "this" parameter, make an explicit
              first parameter for it. */
@@ -8843,10 +8849,19 @@ Do IL lowering of the indicated type and everything under it.
               ptp->next = rtsp->param_type_list;
               rtsp->param_type_list = ptp;
             }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+            type_changed = TRUE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
             /* Leave the this_class and qualifiers unchanged; it's helpful
                to have them there to determine the "this" parameter type
                whether or not the routine type has been lowered. */
           }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+          if (type_changed) {
+            /* Re-mark the type as we've change its subtree. */
+            remark_as_needed((char *)type, iek_type);
+          }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
           for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
             /* Only process each param type entry if it has not been
                previously visited. */

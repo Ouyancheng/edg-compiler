@@ -1,5 +1,24 @@
 Version 4.5
 
+2/29/12  [EDGcpfe/8226]
+Setting of "needed" flag on parameter type of lowered routine type
+
+In cases where lowering modifies the type of a function to return its
+value in a parameter rather than as the return value (typically in cases
+where the return value is a class that requires a copy constructor),
+the type of the newly added parameter had not been marked as "needed"
+and is now marked as such (in configurations that have needed flag processing).
+In this example the type "const A *" hadn't been marked as "needed":
+
+  struct A {
+    ~A();
+  };
+  const A f();
+  void g() {
+    f();
+  }
+
+
 2/29/12  [EDGcpfe/12729]
 Reuse of temporaries during inlining
 
