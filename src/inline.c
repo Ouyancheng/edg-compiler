@@ -215,15 +215,12 @@ Display the indicated variable remapping for debugging purposes.
 static void make_remapping_temporary(
                           a_variable_remapping_for_inlining_ptr
                                     vrip,
-                          a_boolean expr_temp,
                           a_boolean is_temp_for_constructor_this_inlined_param,
                           a_boolean is_temp_for_unmodified_inlined_param)
 /*
 Allocate a temporary variable as the remapping for the variable indicated
-in the given remapping entry.  expr_temp is true if the temporary has the
-normal temporary lifetime, i.e., it will be used within one full expression.
-The is_temp_... flags give values for the like-named flags in the temporary
-variable.
+in the given remapping entry.  The is_temp_... flags give values for the
+like-named flags in the temporary variable.
 */
 {
   a_variable_ptr             orig_var = vrip->orig_variable;
@@ -247,7 +244,7 @@ variable.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Try to reuse an existing local temporary.  Don't do that, though,
      if the variable being remapped has special attributes. */
-  if (expr_temp && !orig_var->address_taken && 
+  if (!orig_var->address_taken &&
       !orig_var->initialization_rewritten_as_assignment && 
       !orig_var->is_partially_initialized && 
       !(orig_var->init_kind == (an_init_kind)initk_zero) && 
@@ -349,16 +346,14 @@ body has any side effects that can affect the values of argument expressions.
 
 static void set_up_variable_remapping_for_inlining(
                                            a_scope_ptr      scope,
-                                           an_expr_node_ptr arg_expr_list,
-                                           a_boolean        expr_insert)
+                                           an_expr_node_ptr arg_expr_list)
 /*
 We are beginning an attempt to inline a call of the routine whose scope
 is "scope" with the (already lowered) arguments arg_expr_list.  Generate
 temporary variables for parameters and local variables and establish a
 remapping list to be used when expanding the body of the function.
-expr_insert is TRUE if the inlining is being done at the expression
-level rather than the statement level.  No code is inserted yet to
-set the temporary variables; see finish_variable_remapping_for_inlining.
+No code is inserted yet to set the temporary variables; see
+finish_variable_remapping_for_inlining.
 */
 {
   a_variable_ptr   param_var, var;
@@ -462,7 +457,7 @@ set the temporary variables; see finish_variable_remapping_for_inlining.
         vrip->variant.expr = arg;
       } else {
         /* A temporary is needed for the parameter. */
-        make_remapping_temporary(vrip, expr_insert,
+        make_remapping_temporary(vrip,
                                  param_is_constructor_this,
                                  param_is_unmodified);
         /* We will need to generate code to initialize the variable to
@@ -491,7 +486,7 @@ set the temporary variables; see finish_variable_remapping_for_inlining.
       /* Remap the local variable to a temporary. */
       vrip = alloc_variable_remapping_for_inlining(var, &last_remap);
       make_remapping_temporary(
-                    vrip, expr_insert,
+                    vrip,
                     (a_boolean)var->is_temp_for_constructor_this_inlined_param,
                     (a_boolean)var->is_temp_for_unmodified_inlined_param);
 #if DEBUG
@@ -1659,9 +1654,7 @@ is the top node of the indicated statement (which is an expression statement).
                            "do_inlining_of_call: remappings list is non-NULL");
         /* Create new variables for parameters and local variables. */
         arg = arg->next;  /* Advance to first argument. */
-        set_up_variable_remapping_for_inlining(
-                                          scope, arg,
-                                          /*expr_insert=*/(statement == NULL));
+        set_up_variable_remapping_for_inlining(scope, arg);
         /* Copy the code of the function, replacing references to the
            parameters and variables. */
         expand_statement_inline(scope->assoc_block, &insert_location,

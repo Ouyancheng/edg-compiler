@@ -1,5 +1,16 @@
 Version 4.5
 
+2/29/12  [EDGcpfe/12729]
+Reuse of temporaries during inlining
+
+Previously, reuse of an existing temporary during the inlining process was
+considered only when inlining a call operation that was not the top-most
+expression in an expression statement (instead allocating a new temporary).
+This restriction has been lifted, allowing reuse of temporaries in this case
+as well.  The example below (EDGcpfe/11527) had used an exponential number
+of temporaries and now requires significantly fewer.
+
+
 2/28/12  [EDGcpfe/12671]
 C++-generating back end: abort with function template and use of member of
 dependent base class
@@ -14,7 +25,6 @@ template.  This is now fixed.  For example:
     struct D: B<T> { };
     typedef typename D::type Dt;   // Previously caused an assertion failure
   }
-
 
 2/28/12  [EDGcpfe/11527]
 Limit size of an inlined routine
