@@ -8858,7 +8858,7 @@ Do IL lowering of the indicated type and everything under it.
           }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
           if (type_changed) {
-            /* Re-mark the type as we've change its subtree. */
+            /* Re-mark the type as we've changed its subtree. */
             remark_as_needed((char *)type, iek_type);
           }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
