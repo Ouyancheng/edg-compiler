@@ -297,14 +297,18 @@ label fill-in entry is not found.
   for (lfie = label_fill_ins; lfie->label != NULL; lfie++) {
     if (strncmp(lfie->label, label, length) == 0) break;
   }  /* for */
+#if CHECKING
+  if (lfie->label == NULL) {
 #if DEBUG
-  if (lfie->label != NULL) {
-    label[length] = '\0';
-    fprintf(f_debug, "missing fill-in label: %s\n", label);
-  }  /* if */
+    char *label_copy = alloc_fe((sizeof_t)length+1);
+    strncpy(label_copy, label, length);
+    label_copy[length] = '\0';
+    fprintf(f_debug, "missing fill-in label: %s\n", label_copy);
 #endif /* DEBUG */
-  check_assertion_str(lfie->label != NULL,
-                      "get_label_fill_in_entry: no label fill-in found");
+    unexpected_condition_str(
+                            "get_label_fill_in_entry: no label fill-in found");
+  }  /* if */
+#endif /* CHECKING */
   return lfie;
 }  /* get_label_fill_in_entry */
 
