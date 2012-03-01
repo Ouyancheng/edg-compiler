@@ -45,6 +45,7 @@ template.  This is now fixed.  For example:
     typedef typename D::type Dt;   // Previously caused an assertion failure
   }
 
+
 2/28/12  [EDGcpfe/11527]
 Limit size of an inlined routine
 
