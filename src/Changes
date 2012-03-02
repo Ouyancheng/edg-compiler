@@ -1,5 +1,24 @@
 Version 4.5
 
+3/1/12   [EDGcpfe/12731]
+C++-generating back end: explicit specialization placed in wrong namespace
+
+In configurations with DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to TRUE,
+when an explicit specialization of a member function template was written
+using a qualified name, the C++-generating back end incorrectly placed that
+explicit specialization in the namespace containing the leftmost qualifier
+used in the name instead of in the namespace of which the template's class
+is a member.  This is now fixed.  For example:
+
+  namespace N {
+    struct S {
+      template<typename T> void f(T);
+    };
+    template<> void N::S::f<int>(int) { }  // Previously placed in global
+                                           // namespace
+  }
+
+
 2/29/12  [EDGcpfe/8226]
 Setting of "needed" flag on parameter type of lowered routine type
 

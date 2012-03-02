@@ -7137,16 +7137,14 @@ the current state have in common.
 static void adjust_namespace_state_for_specialization(
                                          a_source_correspondence *scp,
                                          a_scope_ptr             *common_scope,
-                                         a_scope_ptr             *orig_scope,
-                                         a_name_reference_ptr    name_ref)
+                                         a_scope_ptr             *orig_scope)
 /*
 scp points to the source correspondence entry of a routine, class, or
 variable that is a specialization.  If it is necessary to adjust the
 current namespace to get to the right state to put out the specialization,
 do that and set *common_scope and *orig_scope to scope information
 necessary to restore the previous state later; otherwise, set *common_scope
-and *orig_scope to NULL.  name_ref represents the qualifiers used in the
-declarator.
+and *orig_scope to NULL.
 */
 {
   a_scope_ptr desired_scope;
@@ -7158,26 +7156,6 @@ declarator.
        curr_name_context->assoc_scope->kind == (a_scope_kind)sck_file)) {
     /* See if it's necessary to adjust the current namespace before putting
        out this specialization. */
-    /* If we know the declarator is qualified with an enclosing namespace
-       name, then work with the outermost qualifier instead of the given
-       scp.  This prevents us (for example) from erroneously emitting a
-       specialization for std::swap as:
-         namespace std { template<> std::swap(double&, double&); } */
-    a_name_qualifier_ptr  outer_namespace_qualifier = NULL;
-    if (name_ref != NULL && name_ref->qualifier != NULL) {
-      /* name_ref referenced a qualifier of the form [::]Q1::Q2::...
-         Find the entry that represents Q1, but ignore it if it is a class
-         name. */
-      outer_namespace_qualifier = name_ref->qualifier;
-      while (outer_namespace_qualifier->previous_qualifier != NULL) {
-        outer_namespace_qualifier =
-                                outer_namespace_qualifier->previous_qualifier;
-      }  /* while */
-      if (!outer_namespace_qualifier->is_class) {
-        scp = &outer_namespace_qualifier->qualifier.namespace_ptr
-                                        ->source_corresp;
-      }  /* if */
-    }  /* if */
     /* Find the scope in which the specialization must be put out, which is
        the innermost namespace scope that contains the entity. */
     if (scp->is_class_member) {
@@ -7432,8 +7410,7 @@ this one is such a continuation.
       template_arg_list = type->variant.class_struct_union.
                                                  extra_info->template_arg_list;
       adjust_namespace_state_for_specialization(&type->source_corresp,
-                                                &common_scope, &orig_scope,
-                                                (a_name_reference_ptr)NULL);
+                                                &common_scope, &orig_scope);
       if (msvc_is_generated_code_target &&
           msvc_target_version_number <= 1200) {
         /* Avoid a bug in the Microsoft VC++ 5.0 and 6.0 compiler on uses of
@@ -14269,8 +14246,7 @@ this one is such a continuation.
                         /*is_cppcli_generic=*/FALSE);
   } else if (is_specialization) {
     adjust_namespace_state_for_specialization(&var->source_corresp,
-                                              &common_scope, &orig_scope,
-                                              name_ref);
+                                              &common_scope, &orig_scope);
     /* For a specialization, put out "template<>" at the beginning. */
     gen_template_specialization_header(&var->source_corresp,
                                        /*is_in_class_specialization=*/FALSE,
@@ -15199,8 +15175,7 @@ handle_as_definition:
   }  /* if */
   if (is_specialization) {
     adjust_namespace_state_for_specialization(&rout->source_corresp,
-                                              &common_scope, &orig_scope,
-                                              name_ref);
+                                              &common_scope, &orig_scope);
     /* For a specialization, put out "template<>" at the beginning. */
     gen_template_specialization_header(&rout->source_corresp,
 #if MICROSOFT_EXTENSIONS_ALLOWED
