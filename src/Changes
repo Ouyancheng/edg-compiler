@@ -126,7 +126,7 @@ Consider:
 
 Assuming the largest possible enum size is 64 bits, the type underlying E 
 ends up being unsigned and the value of e must be adjusted accordingly: with
-2's complement representation it become equal to that of f.  However, the
+2's complement representation it becomes equal to that of f.  However, the
 front end previously failed to explicitly truncate the internal value
 representation (i.e., the type of the enumerator constant was adjusted, but
 the bits of the representation were not).  This could lead e.g. the C- and
