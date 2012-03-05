@@ -122,16 +122,34 @@ extern void trunc_and_set_integer(an_integer_value  *result_value,
 				  a_boolean	    saturate_on_overflow,
                                   an_error_code     *err_code,
                                   an_error_severity *err_severity);
+/*
+Options for constant_lvalue_address and constant_rvalue_pointer.
+*/
+typedef int a_constant_address_option_set;
+#define CAO_NONE ((a_constant_address_option_set)0x0)
+#define CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT \
+                            ((a_constant_address_option_set)0x1)
+			/* Pretend that local auto variables have
+			   constant addresses.  This is used for a gcc
+			   folding trick.  Note that address constants created
+			   with this option might be invalid and therefore
+			   one should be careful not to preserve them in the
+			   final IL. */
 
 extern a_boolean constant_lvalue_address(an_expr_node_ptr expr,
                                          a_constant       *con,
-                                         a_boolean        address_escapes,
-                                         a_boolean        *template_constant);
+                                         a_boolean        address_escapes);
+
+extern a_boolean constant_rvalue_pointer_full(
+                             an_expr_node_ptr              expr,
+                             a_constant                    *con,
+                             a_boolean                     address_escapes,
+                             a_constant_address_option_set options,
+                             a_boolean                     *template_constant);
 
 extern a_boolean constant_rvalue_pointer(an_expr_node_ptr expr,
                                          a_constant       *con,
-                                         a_boolean        address_escapes,
-                                         a_boolean        *template_constant);
+                                         a_boolean        address_escapes);
 
 extern a_boolean constant_is_pointer_to_string_literal(a_constant *con,
                                                        a_constant **scon);

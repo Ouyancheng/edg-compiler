@@ -4691,18 +4691,26 @@ integral type, as in "(int)&x - (int)&x".
   *err_code = ec_no_error;
   *err_severity = es_warning;
   /* The two pointers must be in the same base object, or the operation
-     cannot be folded.  An exception is the difference of two label addresses
-     in GNU mode. */
+     cannot be folded. */
   if (base_object(constant_1) != base_object(constant_2)) {
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && constant_is_address_of_label(constant_1) &&
         constant_is_address_of_label(constant_2)) {
+      /* An exception is the difference of two label addresses in GNU mode. */
       clear_constant(result, (a_constant_repr_kind)ck_label_difference);
       result->variant.label_difference.from_address =
                                          alloc_shareable_constant(constant_2);
       result->variant.label_difference.to_address =
                                          alloc_shareable_constant(constant_1);
       result->type = integer_type(targ_ptrdiff_t_int_kind);
+    } else if ((gnu_mode || microsoft_mode) &&
+               is_false_constant(constant_2) &&
+               is_pointer_type(constant_1->type) &&
+               is_character_type(type_pointed_to(constant_1->type))) {
+      /* Also a "char *" address minus a "char *" zero.  Since the stride is 1,
+         the result is the first constant cast to the integral result type. */
+      copy_constant(constant_1, result);
+      implicit_cast(result, integer_type(targ_ptrdiff_t_int_kind));
     } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
@@ -5527,16 +5535,18 @@ through the usual interface because a field cannot be passed as a constant.
 
 
 static a_boolean constant_padd_or_subscript(
-                                           an_expr_node_ptr expr,
-                                           a_constant       *con,
-                                           a_boolean        address_escapes,
-                                           a_boolean        *template_constant)
+                             an_expr_node_ptr              expr,
+                             a_constant                    *con,
+                             a_boolean                     address_escapes,
+                             a_constant_address_option_set options,
+                             a_boolean                     *template_constant)
 /*
 expr is an expression for an eok_padd, eok_psubtract, or eok_subscript
 operation.  If its result (eok_padd, eok_psubtract) or address (lvalue
 eok_subscript) is constant, return the value/address in *con, and return TRUE.
-address_escapes and template_constant are as for constant_lvalue_address
-(except that template_constant is always non-NULL).
+address_escapes, options, and template_constant are as for
+constant_lvalue_address_full (except that template_constant is always
+non-NULL).
 */
 {
   a_boolean        is_constant = FALSE;
@@ -5551,8 +5561,8 @@ address_escapes and template_constant are as for constant_lvalue_address
     ptr_op = int_op->next;
   }  /* if */
   if (is_constant_node(int_op) &&
-      constant_rvalue_pointer(ptr_op, &ptr_con, address_escapes,
-                              template_constant)) {
+      constant_rvalue_pointer_full(ptr_op, &ptr_con, address_escapes, options,
+                                   template_constant)) {
     /* Both operands are constant; fold to a constant address. */
     a_constant_ptr    int_con = int_op->variant.constant;
     an_error_code     err_code;
@@ -5580,10 +5590,10 @@ static void make_constant_routine_address(a_routine_ptr  rout,
                                           a_boolean      address_escapes,
                                           a_boolean      *template_constant)
 /*
-Helper routine for constant_lvalue_address and constant_rvalue_pointer to
-make a constant for the address of a routine.  address_escapes and
-template_constant are as for constant_lvalue_address (except that
-template_constant is always non-NULL).
+Helper routine for constant_lvalue_address_full and
+constant_rvalue_pointer_full to make a constant for the address of a routine.
+address_escapes and template_constant are as for constant_lvalue_address_full
+(except that template_constant is always non-NULL).
 */
 {
   set_routine_address_constant(rout, con,
@@ -5602,18 +5612,21 @@ template_constant is always non-NULL).
 }  /* make_constant_routine_address */
 
 
-a_boolean constant_lvalue_address(an_expr_node_ptr expr,
-                                  a_constant       *con,
-                                  a_boolean        address_escapes,
-                                  a_boolean        *template_constant)
+static a_boolean constant_lvalue_address_full(
+                             an_expr_node_ptr              expr,
+                             a_constant                    *con,
+                             a_boolean                     address_escapes,
+                             a_constant_address_option_set options,
+                             a_boolean                     *template_constant)
 /*
 expr is an lvalue expression.  If it has a constant address, put that
 address in *con and return TRUE.  Otherwise, return FALSE.  address_escapes is
 TRUE if the address might escape from its immediate context and get saved
-somewhere (if in doubt, the safe value is TRUE).  *template_constant is
-returned TRUE if the constant is template-dependent.  If template_constant
-is NULL, a template-dependent constant is labeled as such at this level.
-Passing it in as non-NULL is a signal that the caller would prefer to handle
+somewhere (if in doubt, the safe value is TRUE).  options contains a
+set of additional options.  *template_constant is returned TRUE if the
+constant is template-dependent.  If template_constant is NULL, a
+template-dependent constant is labeled as such at this level.  Passing
+it in as non-NULL is a signal that the caller would prefer to handle
 that higher up.
 */
 {
@@ -5636,11 +5649,26 @@ that higher up.
     case enk_variable:
       /* An lvalue for a variable. */
       { a_variable_ptr var = expr->variant.variable;
-        if (variable_has_constant_address(var)) {
-          /* The variable has a constant address. */
+        if (variable_has_constant_address(var) ||
+            ((options & CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT) &&
+             var->storage_class == (a_storage_class)sc_auto)) {
+          /* The variable has a constant address.  (Or we're pretending it
+             has a static address when it's a local variable.  In that case,
+             the caller should make sure not to save the resulting
+             constant.) */
+          a_storage_class sc;
+          a_boolean       auto_case = (var->storage_class ==
+                                                     (a_storage_class)sc_auto);
+          if (auto_case) {
+            /* Save and restore the storage class so the variable looks
+               static. */
+            sc = var->storage_class;
+            var->storage_class = (a_storage_class)sc_static;
+          }  /* if */
           is_constant_addr = TRUE;
           set_variable_address_constant(var, con,
                                         /*set_address_taken=*/address_escapes);
+          if (auto_case) var->storage_class = sc;
           if (var->source_corresp.is_class_member &&
               scp_parent_class(&var->source_corresp)->
                      variant.class_struct_union.is_nonreal_class) {
@@ -5680,8 +5708,8 @@ that higher up.
             /* Field selection, x.y.  If the left operand is an lvalue with a
                constant address, we can develop an address for the field. */
             if (op1->is_lvalue &&
-                constant_lvalue_address(op1, &conaddr1, address_escapes,
-                                        template_constant)) {
+                constant_lvalue_address_full(op1, &conaddr1, address_escapes,
+                                             options, template_constant)) {
               pconaddr1 = &conaddr1;
               goto handle_field_selection;
             }  /* if */
@@ -5714,7 +5742,7 @@ handle_field_selection:
           case eok_subscript:
             /* Subscript operation. */
             if (constant_padd_or_subscript(expr, con, address_escapes,
-                                           template_constant)) {
+                                           options, template_constant)) {
               is_constant_addr = TRUE;
             }  /* if */
             break;
@@ -5746,8 +5774,8 @@ handle_field_selection:
           case eok_base_class_cast:
             /* A cast of a class lvalue to a base class. */
             check_assertion(op1->is_lvalue);
-            if (constant_lvalue_address(op1, &conaddr1, address_escapes,
-                                        template_constant)) {
+            if (constant_lvalue_address_full(op1, &conaddr1, address_escapes,
+                                             options, template_constant)) {
               /* The operand has a constant address.  Fold the base class
                  cast into it. */
               if (is_template_dependent_type(expr->type) ||
@@ -5787,8 +5815,8 @@ handle_field_selection:
           case eok_ref_cast:
           case eok_lvalue_adjust:
             /* These operations are used to adjust the type of an lvalue. */
-            if (constant_lvalue_address(op1, &conaddr1, address_escapes,
-                                        template_constant)) {
+            if (constant_lvalue_address_full(op1, &conaddr1, address_escapes,
+                                             options, template_constant)) {
               /* The address of the operand is constant.  Adjust its type
                  and it is also the address of the result lvalue. */
               a_type_ptr new_type = make_pointer_type(expr->type);
@@ -5886,22 +5914,43 @@ handle_field_selection:
     }  /* if */
   }  /* if */
   return is_constant_addr;
-}  /* constant_lvalue_address */                                
+}  /* constant_lvalue_address_full */                                
 
 
-a_boolean constant_rvalue_pointer(an_expr_node_ptr expr,
+a_boolean constant_lvalue_address(an_expr_node_ptr expr,
                                   a_constant       *con,
-                                  a_boolean        address_escapes,
-                                  a_boolean        *template_constant)
+                                  a_boolean        address_escapes)
+/*
+expr is an lvalue expression.  If it has a constant address, put that
+address in *con and return TRUE.  Otherwise, return FALSE.  address_escapes is
+TRUE if the address might escape from its immediate context and get saved
+somewhere (if in doubt, the safe value is TRUE).
+*/
+{
+  a_boolean is_constant_addr = constant_lvalue_address_full(expr, con,
+                                                            address_escapes,
+                                                            CAO_NONE,
+                                                            (a_boolean *)NULL);
+  return is_constant_addr;
+}  /* constant_lvalue_address */
+
+
+a_boolean constant_rvalue_pointer_full(
+                             an_expr_node_ptr              expr,
+                             a_constant                    *con,
+                             a_boolean                     address_escapes,
+                             a_constant_address_option_set options,
+                             a_boolean                     *template_constant)
 /*
 expr is an rvalue expression of pointer type.  If it has a constant pointer
 value, put that value in *con and return TRUE.  Otherwise, return FALSE.
-address_escapes is TRUE if the address might escape from its immediate context
-and get saved somewhere (if in doubt, the safe value is TRUE).
-*template_constant is returned TRUE if the constant is template-dependent.
-If template_constant is NULL, a template-dependent constant is labeled
-as such at this level.  Passing it in as non-NULL is a signal that the
-caller would prefer to handle that higher up.
+address_escapes is TRUE if the address might escape from its immediate
+context and get saved somewhere (if in doubt, the safe value is TRUE).
+options contains a set of additional options.  *template_constant is
+returned TRUE if the constant is template-dependent.  If template_constant
+is NULL, a template-dependent constant is labeled as such at this
+level.  Passing it in as non-NULL is a signal that the caller would
+prefer to handle that higher up.
 */
 {
   a_boolean is_constant_ptr = FALSE;
@@ -5953,8 +6002,8 @@ caller would prefer to handle that higher up.
           case eok_address_of:
             /* "&" operation.  If the operand is an lvalue with a constant
                address, the result is a constant pointer. */
-            if (constant_lvalue_address(op1, con, address_escapes,
-                                        template_constant)) {
+            if (constant_lvalue_address_full(op1, con, address_escapes,
+                                             options, template_constant)) {
               is_constant_ptr = TRUE;
             }  /* if */
             break;
@@ -5963,8 +6012,8 @@ caller would prefer to handle that higher up.
                array with a constant address, the result is a constant
                pointer. */
             if (op1->is_lvalue &&
-                constant_lvalue_address(op1, con, address_escapes,
-                                        template_constant) &&
+                constant_lvalue_address_full(op1, con, address_escapes,
+                                             options, template_constant) &&
                 is_pointer_type(con->type)) {
               a_type_ptr atype = type_pointed_to(con->type);
               if (is_array_type(atype)) {
@@ -5979,7 +6028,7 @@ caller would prefer to handle that higher up.
             /* p + i or i + p, or p - i.  These are constant if i is constant
                and p is or can be made constant. */
             if (constant_padd_or_subscript(expr, con, address_escapes,
-                                           template_constant)) {
+                                           options, template_constant)) {
               is_constant_ptr = TRUE;
             }  /* if */
             break;
@@ -5992,7 +6041,9 @@ caller would prefer to handle that higher up.
                                   f_skip_typerefs(type_pointed_to(expr->type));
               a_type_ptr source_type =
                                   f_skip_typerefs(type_pointed_to(op1->type));
-              if (identical_types(target_type, source_type)) {
+              if (identical_types(target_type, source_type) ||
+                  /* Also allow a cast to char *. */
+                  is_character_type(target_type)) {
                 goto cast_case;
               }  /* if */
             }  /* if */
@@ -6001,8 +6052,8 @@ caller would prefer to handle that higher up.
             /* Cast of a pointer to a base class pointer. */
             /* Casts of a class lvalue or rvalue shouldn't get here. */
 cast_case:
-            if (constant_rvalue_pointer(op1, &conaddr1, address_escapes,
-                                        template_constant) &&
+            if (constant_rvalue_pointer_full(op1, &conaddr1, address_escapes,
+                                             options, template_constant) &&
                 !*template_constant) {
               an_error_code     err_code;
               an_error_severity err_severity;
@@ -6053,7 +6104,25 @@ cast_case:
     }  /* if */
   }  /* if */
   return is_constant_ptr;
-}  /* constant_rvalue_pointer */                                
+}  /* constant_rvalue_pointer_full */
+
+
+a_boolean constant_rvalue_pointer(an_expr_node_ptr expr,
+                                  a_constant       *con,
+                                  a_boolean        address_escapes)
+/*
+expr is an rvalue expression of pointer type.  If it has a constant pointer
+value, put that value in *con and return TRUE.  Otherwise, return FALSE.
+address_escapes is TRUE if the address might escape from its immediate context
+and get saved somewhere (if in doubt, the safe value is TRUE).
+*/
+{
+  a_boolean is_constant_ptr = constant_rvalue_pointer_full(expr, con,
+                                                           address_escapes,
+                                                           CAO_NONE,
+                                                           (a_boolean *)NULL);
+  return is_constant_ptr;
+}  /* constant_rvalue_pointer */
 
 
 static a_boolean identical_pointer_types_ignoring_qualifiers(a_type_ptr type1,

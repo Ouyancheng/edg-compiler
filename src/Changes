@@ -1,5 +1,27 @@
 Version 4.5
 
+3/5/12   [EDGcpfe/12676]
+Folding of some nonstandard address constant expressions
+
+To match gcc, the front end now folds a pointer difference operation
+whose two operands are based on the address of the same auto variable
+to a constant result.  To match gcc and Microsoft, the front end now
+folds a pointer difference whose first operand has type "char *" and
+whose second operand is a zero cast to "char *" to a constant result
+(the stride is one in that case, so the result is the first operand
+cast to ptrdiff_t).
+
+  int main() {
+    struct { char c; char C; } xx;
+    static long xxx = ((long) ((char*) &xx . C - (char*) &xx));
+  }
+  static int x;
+  struct A { long i; };
+  struct A a = {
+    (char *)&x - (char *)0
+  };
+
+
 3/1/12   [EDGcpfe/12731]
 C++-generating back end: explicit specialization placed in wrong namespace
 

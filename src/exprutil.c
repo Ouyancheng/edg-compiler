@@ -3777,8 +3777,7 @@ is constant, turn the operand into that constant.
       is_pointer_type(operand->type)) {
     a_constant conaddr;
     if (constant_rvalue_pointer(operand->variant.expression, &conaddr,
-                                /*address_escapes=*/TRUE,
-                                (a_boolean *)NULL)) {
+                                /*address_escapes=*/TRUE)) {
       an_operand orig_operand;
       orig_operand = *operand;
       if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
@@ -5300,7 +5299,7 @@ the rewritten expression.
   if (!expr->is_lvalue &&
       is_pointer_type(expr->type) &&
       constant_rvalue_pointer(expr, &string_constant,
-                              /*address_escapes=*/TRUE, (a_boolean *)NULL)) {
+                              /*address_escapes=*/TRUE)) {
     /* A constant string literal: set the type to System::String^ and create
        the constant node. */
     an_expr_node_ptr cli_string_node;
@@ -5394,7 +5393,7 @@ is_literal_convertible_to_cli_string is TRUE.
   if (!expr->is_lvalue &&
       is_pointer_type(expr->type) &&
       constant_rvalue_pointer(expr, &string_constant,
-                              /*address_escapes=*/TRUE, (a_boolean *)NULL)) {
+                              /*address_escapes=*/TRUE)) {
     /* The operand is a simple string literal, so make a constant operand
        for the corresponding handle. */
     string_constant.type = make_handle_to_system_string();
@@ -9525,9 +9524,7 @@ pointer value.
   if (is_an_lvalue(operand) && !operand->is_dummy_lvalue) {
     a_constant       con;
     an_expr_node_ptr expr = extract_node_from_operand(operand);
-    if (constant_lvalue_address(expr, &con,
-                                /*address_escapes=*/FALSE,
-                                (a_boolean *)NULL)) {
+    if (constant_lvalue_address(expr, &con, /*address_escapes=*/FALSE)) {
       if (constant_bool_value_known_at_compile_time(&con) &&
           /* "false" means zero, i.e., a null pointer. */
           is_false_constant(&con)) {
@@ -10143,9 +10140,12 @@ if non-NULL, indicates the position of a second operator (e.g., the "]"
 of a subscript operation).
 */
 {
-  a_boolean did_not_fold, template_constant;
-  a_boolean just_past_end;
-  a_boolean try_folding;
+  a_boolean  did_not_fold, template_constant;
+  a_boolean  just_past_end;
+  a_boolean  try_folding;
+#if GNU_EXTENSIONS_ALLOWED
+  a_constant con_1, con_2;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   if (is_error_operand(operand_1) || is_error_operand(operand_2)) {
     make_error_operand(result);
@@ -10195,6 +10195,35 @@ of a subscript operation).
                               &did_not_fold, &template_constant,
                               operator_position);
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (gcc_mode &&
+               op == (an_expr_operator_kind)eok_pdiff &&
+               is_expression_operand(operand_1) &&
+               is_expression_operand(operand_2) &&
+               is_pointer_type(operand_1->type) &&
+               is_pointer_type(operand_2->type) &&
+               constant_rvalue_pointer_full(
+                                          operand_1->variant.expression,
+                                          &con_1,
+                                          /*address_escapes=*/FALSE,
+                                          CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
+                                          (a_boolean *)NULL) &&
+               constant_rvalue_pointer_full(
+                                          operand_2->variant.expression,
+                                          &con_2,
+                                          /*address_escapes=*/FALSE,
+                                          CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
+                                          (a_boolean *)NULL)) {
+      /* gcc allows a pointer difference of two pointer values based on
+         addresses of the same local variable to be folded to a constant. */
+      clear_operand((an_operand_kind)ok_constant, result);
+      result->type = result_type;
+      result->state = (an_operand_state)os_rvalue;
+      expr_binary_operation(op, &con_1, &con_2,
+                            result_type, &result->variant.constant,
+                            &did_not_fold, &template_constant,
+                            operator_position);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     if (did_not_fold) {
       if (!template_constant && curr_expr_kind_is_const() &&
@@ -13788,9 +13817,7 @@ address in addition to the cases usually covered.
   a_boolean is_constant_addr = FALSE;
 
   expr = skip_parens(expr);
-  if (constant_lvalue_address(expr, conaddr,
-                              /*address_escapes=*/TRUE,
-                              (a_boolean *)NULL)) {
+  if (constant_lvalue_address(expr, conaddr, /*address_escapes=*/TRUE)) {
     is_constant_addr = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode && is_variable_node(expr)) {
@@ -13950,8 +13977,7 @@ explicit "&" operator in the source and *operator_position gives its position.
                      microsoft_template_arg_constant_lvalue_address(test_expr,
                                                                     &conaddr) :
                      constant_lvalue_address(test_expr, &conaddr,
-                                             /*address_escapes=*/TRUE,
-                                             (a_boolean *)NULL)) {
+                                             /*address_escapes=*/TRUE)) {
             did_not_fold = FALSE;
             if (reference_case) {
               if (is_pointer_type(conaddr.type)) {
@@ -13971,9 +13997,15 @@ explicit "&" operator in the source and *operator_position gives its position.
         }  /* if */
       }  /* if */
       if (did_not_fold && !template_constant && curr_expr_kind_is_const() &&
-          curr_expr_is_evaluated()) {
+          curr_expr_is_evaluated() &&
+          !(gcc_mode && is_expression_operand(operand) &&
+            is_lvalue_for_auto_object(operand->variant.expression,
+                                      (a_boolean *)NULL))) {
         /* The "&" operation must fold to a constant in a constant
-           expression. */
+           expression.  In GNU C node, allow taking the address of
+           a local variable because there are some folding operations that
+           can fold those to constants.  If the end result is not a
+           constant, an error will be issued. */
         expr_pos_error(ec_expr_not_constant, err_pos);
         conv_to_error_operand(operand);
       } else {
@@ -15821,8 +15853,8 @@ current mode -- just do it.
        expression. */
     error_in_operand(ec_expr_not_integral_constant, operand);
   } else if (expr_stack->favor_constant_result && expr->is_lvalue &&
-             constant_lvalue_address(expr, &conaddr, /*address_escapes=*/TRUE,
-                                     (a_boolean *)NULL)) {
+             constant_lvalue_address(expr, &conaddr,
+                                     /*address_escapes=*/TRUE)) {
     /* The array has a constant address, so make an address constant for
        the pointer. */
     a_type_ptr ptr_type =
@@ -16026,8 +16058,8 @@ by an "&" operator and *ampersand_position gives its position.
     }  /* if */
   }  /* if */
   if (try_folding &&
-      constant_lvalue_address(expr, &constant, /*address_escapes=*/!will_call,
-                              (a_boolean *)NULL)) {
+      constant_lvalue_address(expr, &constant,
+                              /*address_escapes=*/!will_call)) {
     /* The address is constant and a constant is preferred in the current
        context. */
     make_constant_operand(&constant, operand);
@@ -17119,11 +17151,12 @@ a_boolean is_lvalue_for_auto_object(an_expr_node_ptr expr,
 Return TRUE if expr is an lvalue whose underlying object is known to
 be an automatic (stack-based) entity.  The safe answer is FALSE.  If the
 underlying entity is a temporary, return *is_temp set to TRUE.  
+is_temp can be NULL if that information is not needed.
 */
 {
   a_boolean is_auto_object = FALSE;
 
-  *is_temp = FALSE;
+  if (is_temp != NULL) *is_temp = FALSE;
   if (expr->is_lvalue) {
     an_expr_or_stmt_traversal_block tblock;
     clear_expr_or_stmt_traversal_block(&tblock);
@@ -17131,7 +17164,7 @@ underlying entity is a temporary, return *is_temp set to TRUE.
     tblock.follow_addressing_path = TRUE;
     traverse_expr(expr, &tblock);
     is_auto_object = tblock.result;
-    *is_temp = tblock.is_temp;
+    if (is_temp != NULL) *is_temp = tblock.is_temp;
   }  /* if */
   return is_auto_object;
 }  /* is_lvalue_for_auto_object */

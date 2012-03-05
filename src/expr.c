@@ -34000,8 +34000,7 @@ the __uuidof keyword.
     check_assertion(is_an_lvalue(&result) &&
                     is_expression_operand(&result));
     if (constant_lvalue_address(result.variant.expression, &con,
-                                /*address_escapes=*/FALSE,
-                                (a_boolean *)NULL)) {
+                                /*address_escapes=*/FALSE)) {
       check_assertion(con.kind == (a_constant_repr_kind)ck_address &&
                       con.variant.address.kind ==
                                              (an_address_base_kind)abk_uuidof);

@@ -7865,8 +7865,7 @@ C99 mode for the same reason.
               !processing_file_scope_init_routine &&
               is_pointer_type(source_node->type) &&
               constant_rvalue_pointer(source_node, &con,
-                                      /*address_escapes=*/TRUE,
-                                      /*template_constant=*/NULL)) {
+                                      /*address_escapes=*/TRUE)) {
             /* The initial value is a simple constant.  Rewrite the
                initialization as a simple static initialization.  We can't do
                this optimization when we're processing file scope

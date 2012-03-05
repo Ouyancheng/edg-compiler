@@ -3155,8 +3155,7 @@ have_level:;
         } else if (is_expression_operand(arg_operand) &&
                    is_an_rvalue(arg_operand) &&
                    constant_rvalue_pointer(arg_operand->variant.expression,
-                                           &con, /*address_escapes=*/FALSE,
-                                           (a_boolean *)NULL)) {
+                                           &con, /*address_escapes=*/FALSE)) {
           conptr = &con;
         }  /* if */
         if (conptr != NULL &&
