@@ -321,6 +321,8 @@ extern int fileno(FILE *);
 #if !GNU_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_noreturn_function_does_return)*/
 /*lint -esym(769,ec_invalid_empty_initializer_list)*/
+/*lint -esym(759,constant_rvalue_pointer_full)*/
+/*lint -esym(765,constant_rvalue_pointer_full)*/
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 /*lint -esym(759,field_alignment_for)*/
 /*lint -esym(765,field_alignment_for)*/
