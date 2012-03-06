@@ -1476,9 +1476,20 @@ symbol_name:
   }  /* if */
   /* Add the declaration position as requested. */
   if (seg_ptr->variant.symbol.decl_pos) {
-    form_source_position(&sym->decl_position, error_pos,
-                         error_text(ec_declared_prefix), ")",
-                         error_text(ec_at_end_of_source), seg_ptr);
+    if (routine != NULL && routine->compiler_generated &&
+        !(routine->is_lambda_body && sym->decl_position.seq != 0)) {
+      /* For compiler-generated routines referred to by name in diagnostics a
+         declaration position is usually not helpful (e.g., for a generated
+         constructor it ends up being the position of the class).  Lambda
+         expressions, however, look sufficiently like the operator() they
+         generate that the expression position can be reported as the position
+         at which the corresponding operator() is declared. */
+      add_string_to_segment(error_text(ec_declared_implicitly), seg_ptr);
+    } else {
+      form_source_position(&sym->decl_position, error_pos,
+                           error_text(ec_declared_prefix), ")",
+                           error_text(ec_at_end_of_source), seg_ptr);
+    }  /* if */
   }  /* if */
   /* Add the translation unit associated with the symbol. */
   if (seg_ptr->variant.symbol.trans_unit) {

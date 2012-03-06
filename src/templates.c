@@ -26295,12 +26295,13 @@ emitted in this translation unit.
   if (rout_ptr->assoc_scope != NULL_region_number) {
     /* The routine has a body. */
     body_can_be_generated = TRUE;
-  } else if (rout_ptr->compiler_generated &&
+  } else if (rout_ptr->compiler_generated && !rout_ptr->is_deleted &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
              (rout_ptr->decl_modifiers & DM_DLLIMPORT) == 0 &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
              !rout_ptr->is_trivial_default_constructor) {
-    /* A compiler generated routine, but not a trivial default constructor. */
+    /* A compiler generated routine, but not a trivial default constructor and
+       not a deleted member. */
     body_can_be_generated = TRUE;
   }  /* if */
   if (!body_can_be_generated) {

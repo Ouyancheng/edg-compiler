@@ -6111,6 +6111,9 @@ Display the indicated class type supplement entry.
   if (ptr->is_lambda_closure_class) {
     disp_boolean("is_lambda_closure_class", TRUE);
   }  /* if */
+  if (ptr->has_anonymous_union_member) {
+    disp_boolean("has_anonymous_union_member", TRUE);
+  }  /* if */
 #if NEED_NAME_MANGLING
   if (ptr->defined_in_static_data_member_initializer) {
     disp_boolean("defined_in_static_data_member_initializer", TRUE);

@@ -1237,6 +1237,14 @@ Initialize the option information table.
                          "rvalue_ctor_is_not_copy_ctor",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_gen_move_operations,
+                         "gen_move_operations",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_gen_move_operations,
+                         "no_gen_move_operations",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_cpp11_sfinae,
                          "c++11_sfinae", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -2026,6 +2034,11 @@ by a command line option.
            constructor even when a move constructor was explicitly declared. */
         rvalue_ctor_is_copy_ctor = FALSE;
       }  /* if */
+      if (!option_kind_used[(int)optk_gen_move_operations]) {
+        /* Microsoft compilers currently do not generate move constructors or
+           move assign operations. */
+        generate_move_operations = FALSE;
+      }  /* if */
       trailing_return_types_enabled = TRUE;
 #if CPP11_IL_EXTENSIONS_SUPPORTED
       /* These options require back end support that may not be available. */
@@ -2521,6 +2534,9 @@ setting is used, and to set various unmentioned settings as needed.
     command_line_error(
                      ec_cl_rvalue_ctor_is_copy_ctor_option_only_in_cplusplus);
   }  /* if */
+  if (option_kind_used[(int)optk_gen_move_operations]) {
+    command_line_error(ec_cl_gen_move_operations_option_only_in_cplusplus);
+  }  /* if */
   if (option_kind_used[(int)optk_auto_type]) {
     command_line_error(ec_cl_auto_type_option_only_in_cplusplus);
   }  /* if */
@@ -2598,8 +2614,23 @@ handling).
   if (!option_kind_used[(int)optk_rvalue_references]) {
     rvalue_references_enabled = value;
   }  /* if */
-  if (!option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
-    rvalue_ctor_is_copy_ctor = value;
+  if (!rvalue_references_enabled) {
+    /* Without rvalue references there cannot be move-operations. */
+    rvalue_ctor_is_copy_ctor = FALSE;
+    generate_move_operations = FALSE;
+  } else {
+    if (!rvalue_ctor_is_copy_ctor ||
+        !option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
+      /* Very late in the standardization of C++11, rules were added to
+         generate move constructors and have user-declared move constructors
+         cause implicitly-declared copy constructors to be "deleted".  That
+         standard behavior is the default in C++11 mode.  However, before that
+         change in rules, a user-declared move constructor simply inhibited
+         the implicit declaration of a copy constructor altogether (the effect
+         obtained by setting rvalue_ctor_is_copy_ctor to TRUE). */
+      generate_move_operations = TRUE;
+      rvalue_ctor_is_copy_ctor = FALSE;
+    }  /* if */
   }  /* if */
   local_types_as_template_args_enabled = value;
   decls_using_types_without_linkage_allowed = value;
@@ -2662,6 +2693,46 @@ may get enabled in the other non-C++11 modes.
     standard_form_of_extern_template = TRUE;
   }  /* if */
 }  /* check_and_set_default_cpp11_extensions */
+
+
+static void check_rvalue_ref_options(void)
+/*
+Several options are available to control the behavior of rvalue references and
+move semantics.  Ensure that they are consistent.
+*/
+{
+  if (!rvalue_references_enabled) {
+    if (generate_move_operations || rvalue_ctor_is_copy_ctor) {
+      /* These require that rvalue references be enabled. */
+      if (!option_kind_used[(int)optk_rvalue_references]) {
+        rvalue_references_enabled = TRUE;
+      } else if (option_kind_used[(int)optk_gen_move_operations]) {
+        command_line_error(ec_cl_move_operations_require_rvalue_references);
+        rvalue_references_enabled = TRUE;
+      } else if (option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
+        command_line_error(ec_cl_move_operations_require_rvalue_references);
+        rvalue_references_enabled = TRUE;
+      } else {
+        generate_move_operations = FALSE;
+        rvalue_ctor_is_copy_ctor = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (generate_move_operations && rvalue_ctor_is_copy_ctor) {
+    /* These two are mutually exclusive.  If they were both explicitly
+       enabled, issue a command-line error. */
+    if (option_kind_used[(int)optk_gen_move_operations] &&
+        option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
+      command_line_error(
+                      ec_cl_gen_move_operations_and_rvalue_ctor_is_copy_ctor);
+      rvalue_ctor_is_copy_ctor = FALSE;
+    } else if (!option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
+      rvalue_ctor_is_copy_ctor = FALSE;
+    } else {
+      generate_move_operations = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* check_rvalue_ref_options */
 
 
 static void check_and_set_cplusplus_mode_options(void)
@@ -2738,6 +2809,7 @@ setting is used, and to set various unmentioned settings as needed.
       !microsoft_mode && !sun_mode) {
     variadic_templates_enabled = DEFAULT_VARIADIC_TEMPLATES_ENABLED;
   }  /* if */
+  check_rvalue_ref_options();
   if (cpp11_mode) {
     /* Enable C++11 extensions. */
     check_and_set_cpp11_mode_options(/*value=*/TRUE);
@@ -3655,6 +3727,11 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
        constructor even when a move constructor was explicitly declared
        (if they support move constructors at all, that is). */
     rvalue_ctor_is_copy_ctor = FALSE;
+  }  /* if */
+  if (cpp11_mode &&
+      !option_kind_used[(int)optk_gen_move_operations]) {
+    generate_move_operations = gnu_version >= 40600 &&
+                               !rvalue_ctor_is_copy_ctor;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
@@ -8562,6 +8639,9 @@ enable_microsoft_mode:
       case optk_rvalue_ctor_is_copy_ctor:
         rvalue_ctor_is_copy_ctor = opt_value;
         break;
+      case optk_gen_move_operations:
+        generate_move_operations = opt_value;
+        break;
       case optk_auto_type:
         auto_type_specifier_enabled = opt_value;
         break;
@@ -9493,6 +9573,7 @@ variables declared in cmd_line.h.
   lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;
   rvalue_references_enabled = DEFAULT_RVALUE_REFERENCES_ENABLED;
   rvalue_ctor_is_copy_ctor = TRUE;
+  generate_move_operations = FALSE;
   local_types_as_template_args_enabled = FALSE;
   decls_using_types_without_linkage_allowed = FALSE;
   trailing_return_types_enabled = FALSE;

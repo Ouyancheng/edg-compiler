@@ -1502,6 +1502,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->compiler_generated                = FALSE;
 #endif /* DO_IL_LOWERING */
   ctsp->is_lambda_closure_class           = FALSE;
+  ctsp->has_anonymous_union_member        = FALSE;
 #if NEED_NAME_MANGLING
   ctsp->defined_in_static_data_member_initializer
                                           = FALSE;

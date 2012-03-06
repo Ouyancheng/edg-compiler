@@ -10452,8 +10452,9 @@ void check_member_decl_is_copy_constructor(
 				a_type_ptr		class_type,
 				a_boolean		compiler_generated)
 /*
-Determine whether the routine pointed to by rout_ptr is a copy constructor.
-Update the flags in the class symbol supplement accordingly.
+Determine whether the routine pointed to by rout_ptr is a copy constructor or
+a move constructor.  Update the flags in the class symbol supplement
+accordingly.
 */
 {
   a_class_symbol_supplement_ptr	cssp;
@@ -10464,6 +10465,9 @@ Update the flags in the class symbol supplement accordingly.
                           rvalue_ctor_is_copy_ctor,
                           /*is_declarative_context=*/TRUE)) {
     cssp->has_copy_constructor = TRUE;
+    if (routine_is_move_constructor(rout_ptr)) {
+      cssp->has_user_declared_move_constructor = TRUE;
+    }  /* if */
     if (qualifiers & TQ_CONST) {
       cssp->has_copy_constructor_for_const_object = TRUE;
     }  /* if */
@@ -10481,6 +10485,11 @@ Update the flags in the class symbol supplement accordingly.
          so that it reflects whether generated/defaulted copy constructors
          would be trivial (see also mark_trivial_copy_functions). */
       cssp->has_user_provided_copy_constructor = TRUE;
+    }  /* if */
+  } else if (!compiler_generated && routine_is_move_constructor(rout_ptr)) {
+    cssp->has_user_declared_move_constructor = TRUE;
+    if (!rout_ptr->is_defaulted) {
+      cssp->has_user_provided_move_constructor = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_member_decl_is_copy_constructor */
@@ -10810,14 +10819,17 @@ static a_boolean assignment_operator_for_copy_exists(
                                             a_symbol_ptr  sym,
                                             a_boolean     move_assign_okay,
                                             a_boolean     *p_is_user_provided,
-                                            a_boolean     *p_const_okay)
+                                            a_boolean     *p_const_okay,
+                                            a_boolean     *p_has_move_assign)
 /*
 Return TRUE if sym is not NULL and qualifies as an assignment operator that
 can copy a class object (if move_assign_okay is TRUE, also consider move
 assignment operators).  If sym is an overloaded function, return TRUE if at
 least one of the functions qualifies.  Set *p_const_okay TRUE if a const object
 can be copied.  If p_is_user_provided is non-NULL, set *p_is_user_provided to
-whether one of the operators is user-provided.
+whether one of the operators is user-provided.  If *p_has_move_assign is non-
+NULL, set *p_has_move_assign to whether one of the operators is a move
+assignment operator.
 */
 {
   a_boolean             sym_is_overloaded, const_okay = FALSE;
@@ -10828,6 +10840,7 @@ whether one of the operators is user-provided.
 
   db_enter(4, "assignment_operator_for_copy_exists");
   if (p_is_user_provided != NULL) *p_is_user_provided = FALSE;
+  if (p_has_move_assign != NULL) *p_has_move_assign = FALSE;
   if (sym != NULL) {
     sym_is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
     if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
@@ -10836,11 +10849,18 @@ whether one of the operators is user-provided.
     for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
       a_symbol_ptr  viable_sym = NULL;
       qualifiers_accepted = TQ_NONE;
-      if (sym->kind == (a_symbol_kind)sk_member_function &&
-          is_assignment_operator_for_copy(sym, move_assign_okay, &is_ref_arg,
-                                          &qualifiers_accepted,
-                                          &is_base_class_match)) {
-        viable_sym = sym;
+      if (sym->kind == (a_symbol_kind)sk_member_function) {
+        a_routine_ptr  rp = sym->variant.routine.ptr;
+        if (p_has_move_assign != NULL && !*p_has_move_assign &&
+            routine_is_move_assignment_operator(rp) &&
+            !rp->compiler_generated) {
+          *p_has_move_assign = TRUE;
+        }  /* if */
+        if (is_assignment_operator_for_copy(sym, move_assign_okay, &is_ref_arg,
+                                            &qualifiers_accepted,
+                                            &is_base_class_match)) {
+          viable_sym = sym;
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_bugs &&
                  sym->kind == (a_symbol_kind)sk_function_template) {
@@ -10898,7 +10918,8 @@ classes and fields of the given class.
       cssp = symbol_supplement_for_class(bcp->type);
       if (assignment_operator_for_copy_exists(cssp->assignment_operator,
                                               /*move_assign_okay=*/FALSE,
-                                              (a_boolean*)NULL, &const_okay) &&
+                                              (a_boolean*)NULL, &const_okay,
+                                              (a_boolean*)NULL) &&
           !const_okay) {
         /* There is a default assignment operator for this base class type,
            but it does not accept a const object.  No need to look any
@@ -10919,8 +10940,8 @@ classes and fields of the given class.
         cssp = symbol_supplement_for_class(tp);
         if (assignment_operator_for_copy_exists(cssp->assignment_operator,
                                                 /*move_assign_okay=*/FALSE,
-                                                (a_boolean*)NULL,
-                                                &const_okay) &&
+                                                (a_boolean*)NULL, &const_okay,
+                                                (a_boolean*)NULL) &&
             !const_okay) {
           /* There is a default assignment operator for this nonstatic data
              member's class type, but it does not accept a const object.
@@ -16217,6 +16238,60 @@ and record it in the class's assoc_operator_delete_routine field.
 
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 
+/*
+Structure to keep track of special member function that should or should not
+be generated.
+*/
+typedef struct a_generated_special_function_descr {
+  a_type_qualifier_set
+		copy_ctor_qualifiers;
+			/* The qualifiers needed for the parameter of the
+			   generated copy constructor (if any).  E.g., TQ_CONST
+			   for the common signature of the form "X(X const&)"
+			   and TQ_NONE for the form "X(X&)". */
+  a_type_qualifier_set
+		copy_assign_qualifiers;
+			/* The qualifiers needed for the parameter of the
+			   generated copy assignment operator (if any). */
+  a_boolean	suppress_default_ctor;
+  a_boolean	suppress_copy_ctor;
+  a_boolean	suppress_move_ctor;
+  a_boolean	suppress_copy_assign;
+  a_boolean	suppress_move_assign;
+  a_boolean	suppress_dtor;
+			/* Flags that are TRUE if the corresponding special
+			   member should be "suppressed" (either "not
+			   generated" or marked as deleted, depending on the
+			   member and the mode). */
+  a_boolean	warn_about_suppressed_copy_ctor;
+  a_boolean	warn_about_suppressed_copy_assign;
+  a_boolean	warn_about_suppressed_dtor;
+			/* Flags that are TRUE if the suppression of a
+			   corresponding member should result in an error.
+			   (Microsoft mode only.) */
+} a_generated_special_function_descr;
+
+
+static void init_generated_special_function_descr(
+                                   a_generated_special_function_descr  *descr)
+/*
+Clear the fields of the given structure.
+*/
+{
+  descr->copy_ctor_qualifiers = TQ_NONE;
+  descr->copy_assign_qualifiers = TQ_NONE;
+  descr->suppress_default_ctor = FALSE;
+  descr->suppress_copy_ctor = FALSE;
+  descr->suppress_move_ctor = FALSE;
+  descr->suppress_copy_assign = FALSE;
+  descr->suppress_move_assign = FALSE;
+  descr->suppress_dtor = FALSE;
+  descr->warn_about_suppressed_copy_ctor = FALSE;
+  descr->warn_about_suppressed_copy_assign = FALSE;
+  descr->warn_about_suppressed_dtor = FALSE;
+}  /* init_generated_special_function_descr */
+
+
 static void default_copy_constructor_check(a_type_ptr  class_type,
                                            a_boolean   *const_okay)
 /*
@@ -16267,158 +16342,183 @@ done:;
 }  /* default_copy_constructor_check */
 
 
-static void check_base_or_mbr_class_type_for_suppression(
-                                   a_type_ptr           class_type,
-                                   a_type_ptr           base_or_mbr_type,
-                                   a_type_qualifier_set asgn_qualifiers,
-                                   a_type_qualifier_set ctor_qualifiers,
-                                   a_boolean            check_all,
-                                   a_boolean            *asgn_warning_needed,
-                                   a_boolean            *ctor_warning_needed,
-                                   a_boolean            *dtor_warning_needed,
-                                   a_boolean            *suppress_copy_asgn_op,
-                                   a_boolean            *suppress_copy_ctor,
-                                   a_boolean            *suppress_dtor)
+static a_boolean is_deleted_member_sym(a_symbol_ptr  sym)
 /*
-This is a helper routine for check_microsoft_suppressed_special_functions.
-It checks a base class or the class type of a member of class_type to see
-if any errors exist that would prevent the successful generation of the
-implicit definition of a copy assignment operator, copy constructor, or
-destructor for the specified class_type.  The asgn_qualifiers and
-ctor_qualifiers are the qualifiers on the parameter of the function, used
-in looking up the corresponding function in the base or member class type;
-the three "suppress" booleans are set to reflect whether an error would
-occur in the definition or not.  If the corresponding "warning_needed" flag
-is TRUE, a warning will be issued for each suppressed special function and
-the flag updated to prevent repeated warnings.  If check_all is TRUE, all
-checks will be run; otherwise, checking will be limited to the cases that
-affect the behavior of the MSVC++ version indicated by microsoft_version.
+Return TRUE if the given symbol represents a member defined with "= delete".
 */
 {
-  a_class_symbol_supplement_ptr cssp;
-  a_symbol_ptr                  rout_sym;
-  a_boolean                     ambiguous;
-  a_boolean                     pass_by_value;
-  a_boolean                     bitwise_copy;
+  a_boolean  result = FALSE;
 
-  if (base_or_mbr_type->variant.class_struct_union.
-                                             copy_assignment_decl_suppressed) {
+  sym = fundamental_symbol_of(sym);
+  if (symbol_is(sym, sk_member_function)) {
+    result = sym->variant.routine.ptr->is_deleted;
+  }  /* if */
+  return result;
+}  /* is_deleted_member_sym */
+
+
+static void check_base_or_mbr_class_type_for_suppression(
+                               a_type_ptr                          class_type,
+                               a_generated_special_function_descr  *gsfd,
+                               a_type_ptr                          type)
+/*
+This is a helper routine for check_suppressed_special_functions.  It checks a
+base class or the class type ("type") of a member of class_type to see if any
+conditions exist that would prevent the successful generation of the implicit
+definition of a copy/move assignment operator, copy/move constructor, or
+destructor for the specified class_type.  *gsfd is updated accordingly and
+warnings or remarks may be issued in some cases.
+*/
+{
+  a_class_symbol_supplement_ptr  cssp;
+  a_symbol_ptr                   rout_sym;
+  a_boolean                      ambiguous;
+  a_boolean                      pass_by_value;
+  a_boolean                      bitwise_copy;
+
+  /* Check the copy assignment operator. */
+  if (gsfd->suppress_copy_assign ||
+      (microsoft_mode && microsoft_version >= 1400 &&
+       !generate_move_operations)) {
+    /* If we already know the copy assignment operator should be suppressed,
+       no further checking is needed for this case.  Also, Microsoft's
+       compiler does not do this starting at version 8. */
+  } else if (type
+               ->variant.class_struct_union.copy_assignment_decl_suppressed) {
     /* A base or member with a suppressed copy assignment operator suppresses
        this one, too. */
-    *suppress_copy_asgn_op = TRUE;
-    if (*asgn_warning_needed) {
-      *asgn_warning_needed = FALSE;
+    gsfd->suppress_copy_assign = TRUE;
+    if (gsfd->warn_about_suppressed_copy_assign) {
       pos_ty2_diagnostic(es_remark, ec_subobj_copy_asgn_decl_suppressed,
                          &class_type->source_corresp.decl_position,
-                         class_type, base_or_mbr_type);
+                         class_type, type);
     }  /* if */
-  } else if (microsoft_version < 1400 || check_all) {
-    /* MSVC++ 8.0 issues an error for an inaccessible base or member copy
-       assignment operator, while earlier versions suppress the containing
-       class's copy assignment operator. */
-    rout_sym = find_copy_assignment_operator(base_or_mbr_type, asgn_qualifiers,
+  } else {
+    rout_sym = find_copy_assignment_operator(type,
+                                             gsfd->copy_assign_qualifiers,
                                              &ambiguous, &pass_by_value);
     if (ambiguous ||
-        (rout_sym != NULL && !have_access_to_symbol(rout_sym))) {
+        (rout_sym != NULL &&
+         (!have_access_to_symbol(rout_sym) ||
+          is_deleted_member_sym(rout_sym)))) {
       /* A base or member with an ambiguous or inaccessible copy assignment
          operator prevents this copy assignment operator from being
          generated. */
-      *suppress_copy_asgn_op = TRUE;
-      if (*asgn_warning_needed) {
-        *asgn_warning_needed = FALSE;
+      gsfd->suppress_copy_assign = TRUE;
+      if (gsfd->warn_about_suppressed_copy_assign) {
         pos_ty2_diagnostic(es_remark, ambiguous ?
                            ec_ambig_suppresses_copy_asgn_decl :
                            ec_access_suppresses_copy_asgn_decl,
                            &class_type->source_corresp.decl_position,
-                           class_type, base_or_mbr_type);
+                           class_type, type);
       }  /* if */
     }  /* if */
   }  /* if */
-  if (microsoft_version < 1400 || check_all) {
-    /* Microsoft versions before 8.0 had similar processing for copy
-       constructors. */
-    if (base_or_mbr_type->variant.class_struct_union.
-                                                   copy_ctor_decl_suppressed) {
-      /* A base or member with a suppressed copy constructor suppresses
-         this one, too. */
-      *suppress_copy_ctor = TRUE;
-      if (*ctor_warning_needed) {
-        *ctor_warning_needed = FALSE;
+  /* Check the copy constructor. */
+  if (gsfd->suppress_copy_ctor ||
+      (microsoft_mode && microsoft_version >= 1400 &&
+       !generate_move_operations)) {
+    /* If we already know the copy constructor should be suppressed, no further
+       checking is needed for this case.  Also, Microsoft's compiler does not
+       do this starting at version 8. */
+  } else if (type->variant.class_struct_union.copy_ctor_decl_suppressed) {
+      /* A base or member with a suppressed copy constructor suppresses this
+         one, too. */
+      gsfd->suppress_copy_ctor = TRUE;
+      if (gsfd->warn_about_suppressed_copy_ctor) {
         pos_ty2_diagnostic(es_remark, ec_subobj_copy_ctor_decl_suppressed,
                            &class_type->source_corresp.decl_position,
-                           class_type, base_or_mbr_type);
+                           class_type, type);
       }  /* if */
-    } else {
-      rout_sym = find_copy_constructor(
-                               base_or_mbr_type, ctor_qualifiers,
-                               /*source_is_rvalue=*/FALSE,
-                               &base_or_mbr_type->source_corresp.decl_position,
-                               &ambiguous, (a_symbol **)NULL, &bitwise_copy);
-      if (ambiguous ||
-          (rout_sym != NULL && !have_access_to_symbol(rout_sym))) {
-        /* A base or member with an ambiguous or inaccessible copy
-           constructor prevents this one from being generated. */
-        *suppress_copy_ctor = TRUE;
-        if (*ctor_warning_needed) {
-          *ctor_warning_needed = FALSE;
-          pos_ty2_diagnostic(es_remark, ambiguous ?
-                             ec_ambig_suppresses_copy_ctor_decl :
-                             ec_access_suppresses_copy_ctor_decl,
-                             &class_type->source_corresp.decl_position,
-                             class_type, base_or_mbr_type);
-        }  /* if */
+  } else {
+    rout_sym = find_copy_constructor(type, gsfd->copy_ctor_qualifiers,
+                                     /*source_is_rvalue=*/FALSE,
+                                     &type->source_corresp.decl_position,
+                                     &ambiguous, (a_symbol**)NULL,
+                                     &bitwise_copy);
+    if (ambiguous ||
+        (rout_sym != NULL &&
+         (!have_access_to_symbol(rout_sym) ||
+          is_deleted_member_sym(rout_sym)))) {
+      /* A base or member with an ambiguous or inaccessible copy constructor
+         prevents this one from being generated. */
+      gsfd->suppress_copy_ctor = TRUE;
+      if (gsfd->warn_about_suppressed_copy_ctor) {
+        pos_ty2_diagnostic(es_remark,
+                           ambiguous ? ec_ambig_suppresses_copy_ctor_decl :
+                                       ec_access_suppresses_copy_ctor_decl,
+                           &class_type->source_corresp.decl_position,
+                           class_type, type);
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Now check for the destructor's accessibility. */
-  cssp = symbol_supplement_for_class(base_or_mbr_type);
-  if (cssp->destructor != NULL &&
-      !have_access_to_symbol(cssp->destructor)) {
-    /* An inaccessible base or member destructor prevents this one from
-       being generated. */
-    *suppress_dtor = TRUE;
-    if (*dtor_warning_needed) {
-      *dtor_warning_needed = FALSE;
-      /* Note that this diagnostic is a warning, not a remark like the
-         other diagnostics for suppressed functions.  Because MSVC++ issues
-         a warning only for this case, issuing warnings for the other cases
-         would likely result in a lot of unwanted diagnostic output for
-         code that compiles silently under MSVC++. */
-      pos_ty2_diagnostic(es_warning, ec_access_prevents_dtor_generation,
-                         &class_type->source_corresp.decl_position,
-                         class_type, base_or_mbr_type);
+  /* Check the move constructor. */
+  if (gsfd->suppress_move_ctor || !generate_move_operations) {
+    /* If we already know the move constructor should be suppressed, no further
+       checking is needed for this case.  If move constructors aren't generated
+       at all, nothing is needed either. */
+  } else {
+    rout_sym = find_copy_constructor(type, TQ_NONE, /*source_is_rvalue=*/TRUE,
+                                     &type->source_corresp.decl_position,
+                                     &ambiguous, (a_symbol**)NULL,
+                                     &bitwise_copy);
+    if (ambiguous ||
+        (rout_sym != NULL &&
+         (!have_access_to_symbol(rout_sym) ||
+          is_deleted_member_sym(rout_sym)))) {
+      /* A base or member with an ambiguous or inaccessible move constructor
+         prevents this one from being generated. */
+      gsfd->suppress_move_ctor = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Now check the destructor. */
+  if (gsfd->suppress_dtor && gsfd->suppress_copy_ctor &&
+      gsfd->suppress_move_ctor) {
+    /* Even if the destructor is already suppressed, we may still have to
+       check this subobject destructor because it may cause the suppression
+       of the copy and/or move constructors.  If those are already suppressed,
+       no additional checking is needed. */
+  } else {
+    cssp = symbol_supplement_for_class(type);
+    if (cssp->destructor != NULL &&
+        (!have_access_to_symbol(cssp->destructor) ||
+         is_deleted_member_sym(cssp->destructor))) {
+      /* An inaccessible base or member destructor prevents this one from
+         being generated. */
+      if (gsfd->warn_about_suppressed_dtor && !gsfd->suppress_dtor) {
+        /* Note that this diagnostic is a warning, not a remark like the
+           other diagnostics for suppressed functions.  Because MSVC++ issues
+           a warning only for this case, issuing warnings for the other cases
+           would likely result in a lot of unwanted diagnostic output for
+           code that compiles silently under MSVC++. */
+        pos_ty2_diagnostic(es_warning, ec_access_prevents_dtor_generation,
+                           &class_type->source_corresp.decl_position,
+                           class_type, type);
+      }  /* if */
+      gsfd->suppress_dtor = TRUE;
+      /* An inaccessible destructor also prevents the generation of a
+         copy/move constructor. */
+      gsfd->suppress_copy_ctor = TRUE;
+      gsfd->suppress_move_ctor = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_base_or_mbr_class_type_for_suppression */
 
 
-static void check_microsoft_suppressed_special_functions(
-                                   a_type_ptr           class_type,
-                                   a_type_qualifier_set asgn_qualifiers,
-                                   a_type_qualifier_set ctor_qualifiers,
-                                   a_boolean            check_all,
-                                   a_boolean            asgn_warning_needed,
-                                   a_boolean            ctor_warning_needed,
-                                   a_boolean            dtor_warning_needed,
-                                   a_boolean            *suppress_copy_asgn_op,
-                                   a_boolean            *suppress_copy_ctor,
-                                   a_boolean            *suppress_dtor)
+static void check_suppressed_special_functions(
+                               a_type_ptr                          class_type,
+                               a_generated_special_function_descr  *gsfd)
 /*
-Check to see if any errors exist that would prevent the successful
-generation of the implicit definition of a copy assignment operator, copy
-constructor, or destructor for the specified class_type.  This is called in
-Microsoft mode to emulate the behavior of the Microsoft compiler, which
-suppresses the declaration of these member functions in case of an error,
-allowing overload resolution to select a non-copy constructor or assignment
-operator for copy operations and preventing errors resulting from an unused
-destructor.  The asgn_qualifiers and ctor_qualifiers are the qualifiers on
-the parameter of the function, used in looking up the corresponding
-function in the members and bases; the three "suppress" booleans are set to
-reflect whether an error would occur in the definition or not.  A warning
-will be issued for each suppressed special function if the corresponding
-"warning_needed" flag is TRUE.  If check_all is TRUE, all checks will be
-run; otherwise, checking will be limited to the cases that affect the
-behavior of the MSVC++ version indicated by microsoft_version.
+Check to see if any errors exist that would prevent the successful generation
+of the implicit definition of a copy (or move) assignment operator, copy (or
+move) constructor, or destructor for the specified class_type.  This is called
+in some modes to suppress the declaration of these member functions or to mark
+them as deleted (standard C++11 behavior) if generating the definition would
+otherwise lead to an error.  Not declaring the member at all emulates the
+behavior of Microsoft compilers: It allows overload resolution to select a
+non-copy constructor or assignment operator for copy operations and prevents
+errors resulting from an unused destructor.  *gsfd is updated accordingly and
+warnings or remarks may be issued.
 */
 {
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
@@ -16426,13 +16526,9 @@ behavior of the MSVC++ version indicated by microsoft_version.
   a_base_class_ptr              bcp;
   a_type_ptr                    tp;
 
-  *suppress_copy_asgn_op = FALSE;
-  *suppress_copy_ctor = FALSE;
-  *suppress_dtor = FALSE;
-  /* First, scan through all the nonstatic data members, using the symbol
-     list rather than the field list to be sure that only user-defined
-     fields are checked and to be sure that anonymous union fields are
-     picked up. */
+  /* First, scan through all the nonstatic data members, using the symbol list
+     rather than the field list to be sure that only user-defined fields are
+     checked and to be sure that anonymous union fields are picked up. */
   for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
     if (sym->kind == (a_symbol_kind)sk_field &&
         /* Property fields and events do not affect the special member
@@ -16442,12 +16538,17 @@ behavior of the MSVC++ version indicated by microsoft_version.
       if (is_array_type(tp)) {
         tp = underlying_array_element_type(tp);
       }  /* if */
-      if (is_const_qualified_type(tp)) {
+      /* Check for properties not specific to class type subobjects that
+         prevent implicit definitions of special member functions. */
+      if (gsfd->suppress_copy_assign && gsfd->suppress_move_assign) {
+        /* We already determined that the copy and move assignment operation
+           should be suppressed. */
+      } else if (is_const_qualified_type(tp)) {
         /* A nonstatic data member with const-qualified type prevents the
            copy assignment operator from being generated. */
-        *suppress_copy_asgn_op = TRUE;
-        if (asgn_warning_needed) {
-          asgn_warning_needed = FALSE;
+        gsfd->suppress_copy_assign = TRUE;
+        gsfd->suppress_move_assign = TRUE;
+        if (gsfd->warn_about_suppressed_copy_assign) {
           pos_syty_diagnostic(es_remark,
                               ec_const_mbr_suppresses_copy_asgn_decl,
                               &class_type->source_corresp.decl_position,
@@ -16456,9 +16557,9 @@ behavior of the MSVC++ version indicated by microsoft_version.
       } else if (is_any_reference_type(tp)) {
         /* A nonstatic data member with reference type prevents the copy
            assignment operator from being generated. */
-        *suppress_copy_asgn_op = TRUE;
-        if (asgn_warning_needed) {
-          asgn_warning_needed = FALSE;
+        gsfd->suppress_copy_assign = TRUE;
+        gsfd->suppress_move_assign = TRUE;
+        if (gsfd->warn_about_suppressed_copy_assign) {
           pos_syty_diagnostic(es_remark,
                               ec_ref_mbr_suppresses_copy_asgn_decl,
                               &class_type->source_corresp.decl_position,
@@ -16466,20 +16567,11 @@ behavior of the MSVC++ version indicated by microsoft_version.
         }  /* if */
       }  /* if */
       if (is_class_struct_union_type(tp)) {
-        /* Check to see if the special member functions of the member's
-           class type would prevent the corresponding functions from being
+        /* Check to see if the special member functions of the member's class
+           type would prevent the corresponding functions from being
            generated. */
-        check_base_or_mbr_class_type_for_suppression(class_type,
-                                                     skip_typerefs(tp),
-                                                     asgn_qualifiers,
-                                                     ctor_qualifiers,
-                                                     check_all,
-                                                     &asgn_warning_needed,
-                                                     &ctor_warning_needed,
-                                                     &dtor_warning_needed,
-                                                     suppress_copy_asgn_op,
-                                                     suppress_copy_ctor,
-                                                     suppress_dtor);
+        check_base_or_mbr_class_type_for_suppression(class_type, gsfd,
+                                                     skip_typerefs(tp));
       }  /* if */
     }  /* if */
   }  /* for */
@@ -16491,19 +16583,11 @@ behavior of the MSVC++ version indicated by microsoft_version.
       /* This is a direct base class; check to see if its special member
          functions would prevent the corresponding functions from being
          generated. */
-      check_base_or_mbr_class_type_for_suppression(class_type, bcp->type,
-                                                   asgn_qualifiers,
-                                                   ctor_qualifiers,
-                                                   check_all,
-                                                   &asgn_warning_needed,
-                                                   &ctor_warning_needed,
-                                                   &dtor_warning_needed,
-                                                   suppress_copy_asgn_op,
-                                                   suppress_copy_ctor,
-                                                   suppress_dtor);
+      check_base_or_mbr_class_type_for_suppression(class_type, gsfd,
+                                                   bcp->type);
     }  /* if */
   }  /* for */
-}  /* check_microsoft_suppressed_special_functions */
+}  /* check_suppressed_special_functions */
 
 
 static void generate_default_constructor(a_class_def_state_ptr  class_state,
@@ -16536,6 +16620,97 @@ by class_state.  If is_deleted is TRUE, make that constructor "deleted".
   }  /* if */
 }  /* generate_default_constructor */
 
+
+static a_param_type_ptr make_copy_function_param(
+                                             a_type_ptr            class_type,
+                                             a_type_qualifier_set  qualifiers)
+/*
+Create a parameter entry for a generated copy constructor or copy assignment
+operator for the given class type X.  The type of the parameter is usually
+X cv& where cv are the const/volatile qualifiers specified by qualifiers, but
+for C++/CLI managed classes the type of the parameter is X cv%.
+*/
+{
+  a_type_ptr  tp = make_qualified_type(class_type, qualifiers);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_immediate_managed_class_type(class_type)) {
+    /* The parameter of a copy constructor or assignment operator is a tracking
+       reference in managed class types. */
+    tp = make_tracking_reference_type(tp);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    tp = make_reference_type(tp);
+  }  /* if */
+  return alloc_param_type(tp);
+}  /* make_copy_function_param */
+
+
+static void generate_copy_constructor(a_class_def_state_ptr  class_state,
+                                      a_type_qualifier_set   qualifiers)
+/*
+Add a declaration for a copy constructor to the class definition described by
+class_state.  qualifiers determine the cv-qualification of the constructor's
+parameter.
+*/
+{
+  a_type_ptr          class_type = class_state->class_type;
+  a_param_type_ptr    ptp = make_copy_function_param(class_type, qualifiers);
+  a_member_decl_info  decl_info;
+  a_func_info_block   func_info;
+  a_boolean           is_deleted = FALSE;
+
+  initialize_member_decl_info(&decl_info,
+                              &class_type->source_corresp.decl_position);
+  decl_info.is_constructor = TRUE;
+  clear_func_info(&func_info);
+  generate_special_function(class_state, &decl_info, &func_info, ptp);
+  if (generate_move_operations) {
+    a_class_symbol_supplement_ptr
+         cssp = symbol_for(class_type)->variant.class_struct_union.extra_info;
+    if (cssp->has_user_declared_move_constructor ||
+        cssp->has_user_declared_move_assign_operator) {
+      is_deleted = TRUE;
+    }  /* if */
+  }  /* if */
+  if (is_deleted) {
+    a_symbol_ptr  sym = decl_info.decl_state.sym;
+    sym->defined = TRUE;
+    sym->variant.routine.ptr->is_deleted = TRUE;
+    sym->variant.routine.ptr->defined = TRUE;
+  }  /* if */
+}  /* generate_copy_constructor */
+
+
+static a_param_type_ptr make_move_function_param(a_type_ptr  class_type)
+/*
+Create a parameter entry for a generated move constructor or move assignment
+operator for the given class type X.  The type of the parameter is X&&.
+*/
+{
+  return alloc_param_type(make_rvalue_reference_type(class_type));
+}  /* make_move_function_param */
+
+
+static void generate_move_constructor(a_class_def_state_ptr  class_state)
+/*
+Add a declaration for a move constructor to the class definition described by
+class_state.
+*/
+{
+  a_type_ptr          class_type = class_state->class_type;
+  a_param_type_ptr    ptp = make_move_function_param(class_type);
+  a_member_decl_info  decl_info;
+  a_func_info_block   func_info;
+
+  initialize_member_decl_info(&decl_info,
+                              &class_type->source_corresp.decl_position);
+  decl_info.is_constructor = TRUE;
+  clear_func_info(&func_info);
+  generate_special_function(class_state, &decl_info, &func_info, ptp);
+}  /* generate_move_constructor */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -16636,34 +16811,16 @@ definition described by class_state.
        be a "trivial class" and therefore it cannot be POD. */ 
     class_state->POD_ruled_out = TRUE;
   }  /* if */
-}  /* add_default_ctor_if_needed */
-
-
-static a_param_type_ptr make_copy_function_param(
-                                             a_type_ptr            class_type,
-                                             a_type_qualifier_set  qualifiers)
-/*
-Create a parameter entry for a generated copy constructor or copy assignment
-operator for the given class type X.  The type of the parameter is usually
-X cv& where cv are the const/volatile qualifiers specified by qualifiers, but
-for C++/CLI managed classes the type of the parameter is X cv%.
-*/
-{
-  a_type_ptr  tp = make_qualified_type(class_type, qualifiers);
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_immediate_managed_class_type(class_type)) {
-    /* The parameter of a copy constructor or assignment operator is a tracking
-       reference in managed class types. */
-    tp = make_tracking_reference_type(tp);
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
-    tp = make_reference_type(tp);
+  if (generate_move_operations && cssp->constructor == NULL &&
+      cssp->trivial_default_constructor != NULL) {
+    /* A trivial constructor was generated but not added to the set of
+       constructors, presumably because no nontrivial constructor is expected.
+       However, if move operations are generated, a deleted copy constructor
+       might be generated later, and it will have to be overloaded with the
+       trivial copy constructor. */
+    cssp->constructor = cssp->trivial_default_constructor;
   }  /* if */
-  return alloc_param_type(tp);
-}  /* make_copy_function_param */
+}  /* add_default_ctor_if_needed */
 
 
 static void generate_assignment_operator(a_class_def_state_ptr  class_state,
@@ -16720,10 +16877,10 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
 
 static void mark_trivial_copy_functions(a_class_def_state_ptr  class_state)
 /*
-Set the is_trivial_copy_function flag to TRUE for every trivial copy
-constructor routine or trivial copy assignment routine of the class described
-by class_state.  (These are compiler-generated or explicitly-defaulted
-member functions.)
+Set the is_trivial_copy_function flag to TRUE for every trivial copy/move
+constructor routine or trivial copy/move assignment routine of the class
+described by class_state.  (These are compiler-generated or explicitly-
+defaulted member functions.)
 */
 {
   a_type_ptr  class_type = class_state->class_type;
@@ -16739,7 +16896,8 @@ member functions.)
   if (cssp->assignment_by_bitwise_copy_allowed ||
       cssp->construction_by_bitwise_copy_allowed) {
     /* Trivial copying is possible: Traverse the member to find defaulted or
-       compiler-generated copy constructors and copy assignment operators. */
+       compiler-generated copy/move constructors and copy/move assignment
+       operators. */
     a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
     for (; rp != NULL; rp = rp->next) {
       if (rp->compiler_generated || rp->is_defaulted) {
@@ -16748,11 +16906,6 @@ member functions.)
             is_copy_constructor(rp, (a_type*)NULL, &tqs,
                                 /*include_move_ctors=*/TRUE,
                                 /*is_declarative_context=*/TRUE)) {
-          /* The call to is_copy_constructor could set the include_move_ctors
-             parameter TRUE or FALSE in this case.  We choose TRUE to allow an
-             additional consistency check: A move constructor is never
-             defaulted or compiler-generated. */
-          check_assertion(!copy_ctor_is_move_ctor(rp));
           rp->is_trivial_copy_function =
                                    cssp->construction_by_bitwise_copy_allowed;
         } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
@@ -17279,49 +17432,59 @@ for each a routine entry and add it to the routines list for the class.
 The routine body is not generated until it is known to be needed.
 */
 {
-  a_param_type_ptr              ptp;
   a_class_symbol_supplement_ptr cssp;
   a_class_type_supplement_ptr   ctsp;
   a_boolean                     const_okay, dummy_flag;
-  a_type_qualifier_set          ctor_qualifiers;
-  a_type_qualifier_set          asgn_qualifiers;
   a_member_decl_info            decl_info;
   a_source_position             *pos;
   a_boolean                     user_declared_copy_assignment_op;
   a_boolean                     user_provided_copy_assignment_op;
-  a_boolean                     suppress_copy_asgn_op = FALSE;
-  a_boolean                     suppress_copy_ctor = FALSE;
-  a_boolean                     suppress_dtor = FALSE;
+  a_boolean                     has_move_assign;
   a_boolean                     declare_copy_asgn_op;
   a_boolean                     declare_copy_ctor;
+  a_boolean                     declare_move_ctor;
   a_boolean                     declare_dtor;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     declare_static_ctor;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_func_info_block             func_info;
+  a_generated_special_function_descr
+                                gsfd;
 
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
   ctsp = class_type_supp(class_type);
   pos = &class_type->source_corresp.decl_position;
+  init_generated_special_function_descr(&gsfd);
   /* Check for a user-declared copy assignment or move assignment operator. */
   user_declared_copy_assignment_op = assignment_operator_for_copy_exists(
                                           cssp->assignment_operator,
                                           rvalue_ctor_is_copy_ctor,
                                           &user_provided_copy_assignment_op,
-                                          &dummy_flag);
-  if (user_provided_copy_assignment_op) {
-    /* A POD cannot have a user-provided copy assignment operator.  This must
-       be determined before calling add_default_ctor_if_needed, because it
-       may affects whether a trivial default constructor is actually
-       generated (it wouldn't be generated for a POD). */
+                                          &dummy_flag, &has_move_assign);
+  /* A POD cannot have a user-provided copy or move assignment operator.  This
+     must be determined before calling add_default_ctor_if_needed, because it
+     may affects whether a trivial default constructor is actually generated
+     (it wouldn't be generated for a POD). */
+  if (has_move_assign) {
+    cssp->has_user_declared_move_assign_operator = TRUE;
     class_state->POD_ruled_out = TRUE;
+  } else if (user_provided_copy_assignment_op) {
+    class_state->POD_ruled_out = TRUE;
+  }  /* if */
+  if (!cssp->has_copy_constructor && generate_move_operations) {
+    /* A user-declared move constructor or move assignment operator causes a
+       generated copy constructor to be defined as deleted. */
+    if (cssp->has_user_declared_move_constructor || has_move_assign) {
+      gsfd.suppress_copy_ctor = TRUE;
+      gsfd.suppress_copy_assign = TRUE;
+    }  /* if */
   }  /* if */
   add_default_ctor_if_needed(class_state);
   const_okay = default_assignment_of_const_object_okay(class_type);
-  asgn_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
+  gsfd.copy_assign_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   default_copy_constructor_check(class_type, &const_okay);
-  ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
+  gsfd.copy_ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   declare_copy_asgn_op = !user_declared_copy_assignment_op &&
                      (!any_cfront_mode() || cssp->assignment_operator == NULL);
   /* If no copy constructor has been declared, we generally declare one
@@ -17330,6 +17493,16 @@ The routine body is not generated until it is known to be needed.
      constructor must be represented so it can compete in overload resolution)
      and the class is not a closure type. */
   declare_copy_ctor = !cssp->has_copy_constructor &&
+                      (gsfd.suppress_copy_ctor ||
+                       ctsp->is_lambda_closure_class ||
+                       cssp->constructor != NULL ||
+                       !cssp->construction_by_bitwise_copy_allowed);
+  declare_move_ctor = generate_move_operations &&
+                      !cssp->has_copy_constructor &&
+                      !cssp->has_user_declared_move_constructor &&
+                      !user_declared_copy_assignment_op &&
+                      !has_move_assign &&
+                      cssp->destructor == NULL &&
                       (ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
                        !cssp->construction_by_bitwise_copy_allowed);
@@ -17350,20 +17523,20 @@ The routine body is not generated until it is known to be needed.
   declare_dtor = (class_state->member_destruction_required ||
                   class_state->base_destruction_required) &&
                  cssp->destructor == NULL;
-  if (microsoft_mode && !is_prototype_instantiation_context() &&
+  if ((generate_move_operations || microsoft_mode) &&
+      !is_prototype_instantiation_context() &&
       (declare_copy_asgn_op || declare_copy_ctor || declare_dtor)) {
-    /* The Microsoft compiler does not implicitly declare some special
-       member functions if their definition would have errors.  Check to
-       see if these member function declarations should be suppressed. */
-    check_microsoft_suppressed_special_functions(class_type, asgn_qualifiers,
-                                                 ctor_qualifiers,
-                                                 /*check_all=*/FALSE,
-                                                 declare_copy_asgn_op,
-                                                 declare_copy_ctor,
-                                                 declare_dtor,
-                                                 &suppress_copy_asgn_op,
-                                                 &suppress_copy_ctor,
-                                                 &suppress_dtor);
+    /* In standard C++11 mode (a mode where generate_move_operations is TRUE),
+       some special members are either not declared (move constructors) or
+       declared as deleted (copy constructors, destructors) if generating their
+       definitions would produce errors.  Microsoft compilers similarly do not
+       generate special members that don't have a valid definition. */
+    if (!generate_move_operations) {
+      gsfd.warn_about_suppressed_copy_ctor = declare_copy_ctor;
+      gsfd.warn_about_suppressed_copy_assign = declare_copy_asgn_op;
+      gsfd.warn_about_suppressed_dtor = declare_dtor;
+    }  /* if */
+    check_suppressed_special_functions(class_type, &gsfd);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (declare_static_ctor) {
@@ -17377,22 +17550,21 @@ The routine body is not generated until it is known to be needed.
                               (a_param_type_ptr)NULL);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (declare_move_ctor && !gsfd.suppress_move_ctor) {
+    generate_move_constructor(class_state);
+  }  /* if */
   if (declare_copy_ctor) {
-    if (suppress_copy_ctor) {
+    if (!generate_move_operations && gsfd.suppress_copy_ctor) {
       /* Mark this class as having a suppressed copy constructor and do not
-         add its declaration. */
+         add its declaration.  (This only happens in Microsoft mode.) */
+      check_assertion(microsoft_mode);
       class_type->variant.class_struct_union.copy_ctor_decl_suppressed = TRUE;
     } else {
-      /* Generate a copy constructor. */
-      ptp = make_copy_function_param(class_type, ctor_qualifiers);
-      initialize_member_decl_info(&decl_info, pos);
-      decl_info.is_constructor = TRUE;
-      clear_func_info(&func_info);
-      generate_special_function(class_state, &decl_info, &func_info, ptp);
+      generate_copy_constructor(class_state, gsfd.copy_ctor_qualifiers);
     }  /* if */
   }  /* if */
   if (declare_dtor) {
-    if (suppress_dtor) {
+    if (gsfd.suppress_dtor) {
       /* Mark the class as having a suppressed destructor and do not add
          the declaration. */
       class_type->variant.class_struct_union.dtor_decl_suppressed = TRUE;
@@ -17422,15 +17594,15 @@ The routine body is not generated until it is known to be needed.
   if (declare_copy_asgn_op) {
     /* An implicit assignment operator is generated if the class does not
        contain a user-declared copy assignment operator. */
-    if (suppress_copy_asgn_op) {
+    if (!generate_move_operations && gsfd.suppress_copy_assign) {
       /* Mark this class as having a suppressed copy assignment operator and
-         do not add its declaration. */
+         do not add its declaration.  (This only happens in Microsoft mode.) */
       class_type->variant.class_struct_union.copy_assignment_decl_suppressed
                                                                         = TRUE;
     } else {
       /* Add the implicit declaration of the copy assignment operator. */
-      generate_assignment_operator(class_state, /*is_deleted=*/FALSE,
-                                   asgn_qualifiers);
+      generate_assignment_operator(class_state, gsfd.suppress_copy_assign,
+                                   gsfd.copy_assign_qualifiers);
     }  /* if */
   }  /* if */
   mark_trivial_copy_functions(class_state);
@@ -17438,7 +17610,8 @@ The routine body is not generated until it is known to be needed.
      assignment operators, set construction_by_bitwise_copy_allowed and/or
      assignment_by_bitwise_copy_allowed to FALSE.  This must happen after
      the call to mark_trivial_copy_functions. */
-  if (cssp->has_user_provided_copy_constructor) {
+  if (cssp->has_user_provided_copy_constructor ||
+      cssp->has_user_provided_move_constructor) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
   }  /* if */
   if (user_provided_copy_assignment_op) {
@@ -21820,6 +21993,7 @@ passed via template_decl.
     missing_declarator = TRUE;
     if (decl_info.is_anonymous_union) {
       /* decl_nonstatic_data_member needs to be called. */
+      class_type_supp(class_type)->has_anonymous_union_member = TRUE;
       /* Ignore any top-level cv-qualifiers in Microsoft mode and in some
          GNU modes.  (In GNU modes prior to 3.4, the qualifiers are accepted
          and they apply to the implied field.) */
@@ -23822,9 +23996,9 @@ classes.
        /* Access checking of the base specifiers must be done in the context
           of the complete class.  Defer checks in the current scope if this
           is not already being done.  See the comments at the call of
-          perform_deferred_access_checks_at_depth below for more
-          information.  g++ (3.4 and newer) ignore the access of base
-          specifiers in class template declarations. */
+          perform_deferred_access_checks_at_depth below for more information.
+          g++ (3.4 and newer) ignore the access of base specifiers in class
+          template declarations. */
        begin_deferral_of_access_checks();
        access_checks_deferred = TRUE;
     }  /* if */
@@ -23836,7 +24010,6 @@ classes.
          if this is a specialization definition.  (This is not allowed for
          in-class specializations.) */
       a_scope_depth  depth;
-
       push_instantiation_scope_for_class(
                       class_type, /*is_microsoft_specialization_scope=*/TRUE);
       instantiation_scope_pushed = TRUE;

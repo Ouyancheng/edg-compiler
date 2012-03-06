@@ -1080,6 +1080,13 @@ typedef struct a_class_symbol_supplement {
 			   constructor) has been user-provided (i.e.,
 			   explicitly declared, and the first declaration was
 			   not defaulted). */
+  a_bit_field	has_user_declared_move_constructor:1;
+			/* TRUE if a move constructor has been explicitly
+			   declared for this class. */
+  a_bit_field	has_user_provided_move_constructor:1;
+			/* TRUE if a move constructor has been user-provided
+			   (i.e., explicitly declared, and the first
+			   declaration was not defaulted). */
   a_bit_field	has_trivial_destructor:1;
 			/* TRUE if the destructor is trivial.  This could be
 			   an implicitly-declared destructor (destructor will
@@ -1089,6 +1096,9 @@ typedef struct a_class_symbol_supplement {
 			   destructor is NULL).  For testing the presence of
 			   a nontrivial destructor, the macro
 			   has_nontrivial_destructor is often preferable. */
+  a_bit_field	has_user_declared_move_assign_operator:1;
+			/* TRUE if a move assignment operator has been
+                           explicitly declared for this class. */
   a_bit_field	assignment_by_bitwise_copy_allowed:1;
 			/* TRUE if assignment can be performed by a bitwise
 			   copy rather than by calling an assignment operator

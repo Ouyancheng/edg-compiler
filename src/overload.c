@@ -14971,9 +14971,6 @@ no_applicable_operator_function:
 #endif /* DEBUG */
               check_assertion(nonstatic_member_is_best_match);
               bitwise_assignment = TRUE;
-              check_use_of_deleted_function(function_symbol,
-                                            /*elided_ref=*/FALSE,
-                                            operator_position);
               /* Check access and record the reference (but no call). */
               overloaded_function_catch_up(function_symbol,
                                            overloaded_function_symbol,
@@ -20061,24 +20058,36 @@ do access checking on the copy constructor.
       }  /* if */
       und_param_type = type_pointed_to(param_type);
       qualifiers = get_type_qualifiers(und_param_type);
-      if (source_is_rvalue && 
-          ((qualifiers & TQ_CONST) == 0 ||
-           (qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
-                         (TQ_CONST | TQ_VOLATILE))) {
-        /* A copy constructor whose input parameter is a reference to
-           non-const or a reference to const volatile cannot copy an
-           rvalue.  Keep looking for a suitable copy constructor, but
-           remember this one in case it's the best we find. */
-        if (uncallable_sym != NULL) {
-          /* There's more than one uncallable copy constructor, so we
-             can't return just one. */
-          multiple_uncallable = TRUE;
-        } else {
-          uncallable_sym = sym;
+      { a_boolean  is_move_ctor = is_rvalue_reference_type(param_type),
+                   ctor_is_uncallable = FALSE;
+        if (source_is_rvalue) {
+          if (!is_move_ctor &&
+              ((qualifiers & TQ_CONST) == 0 ||
+               (qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
+                             (TQ_CONST | TQ_VOLATILE))) {
+            /* A copy constructor whose input parameter is a reference to
+               non-const or a reference to const volatile cannot copy an
+               rvalue. */
+            ctor_is_uncallable = TRUE;
+          }  /* if */
+        } else if (is_move_ctor) {
+          /* The source is not an rvalue: A move constructor is not viable. */
+          ctor_is_uncallable = TRUE;
         }  /* if */
-        goto reject_function;
-      }  /* if */
-      /* sym represents a suitable copy constructor.  Add it to the
+        if (ctor_is_uncallable) {
+          /*  Keep looking for a suitable copy constructor, but remember this
+              one in case it's the best we find. */
+          if (uncallable_sym != NULL) {
+            /* There's more than one uncallable copy constructor, so we
+               can't return just one. */
+            multiple_uncallable = TRUE;
+          } else {
+            uncallable_sym = sym;
+          }  /* if */
+          goto reject_function;
+        }  /* if */
+      }
+       /* sym represents a suitable copy constructor.  Add it to the
          list of viable functions. */
       if (sym->kind == (a_symbol_kind)sk_function_template) {
         /* The symbol is a function template. */

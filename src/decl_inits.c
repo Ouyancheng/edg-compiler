@@ -4588,25 +4588,35 @@ FALSE is returned) for non-class objects.
       /* Find a default constructor. */
       if (cssp->constructor != NULL) {
         /* There are user-declared constructor(s) and/or implicitly-declared
-           nontrivial constructors.  Look for a default constructor. */
+           constructors represented in the normal cssp->constructor symbol.
+           Look for a default constructor. */
         a_boolean err;
         ctor = select_default_constructor(tp, err_pos, tp, &err);
         if (err) {
           /* Some error, already diagnosed, e.g., no default constructor. */
-        } else if (is_const &&
-                   (ctor == NULL || ctor->compiler_generated)) {
+        } else if (ctor == NULL || ctor->compiler_generated) {
           /* A default constructor was found, but it isn't a user-provided
-             constructor, which is required for a const-qualified variable. */
-          if (any_cfront_mode() || microsoft_mode) {
-            /* In cfront and Microsoft modes silently use the generated
-               constructor. */
-          } else {
-            /* Except in -A mode just issue a warning. */
-            pos_syty_diagnostic(strict_ansi_mode ?
-                                  strict_ansi_discretionary_severity :
-                                  es_warning,
-                                ec_missing_default_constructor_on_const,
-                                err_pos, sym, tp);
+             constructor. */
+          if (cssp->trivial_default_constructor != NULL) {
+            /* Ensure a trivial default constructor can be generated and that
+               it is accessible. */
+            (void)reference_to_trivial_default_constructor(
+                       tp, err_pos, /*check_access=*/TRUE, (a_boolean *)NULL);
+          }  /* if */
+          if (is_const) {
+            /* A user-provided default constructor is normally required for a
+               const-qualified variable. */
+            if (any_cfront_mode() || microsoft_mode) {
+              /* In cfront and Microsoft modes silently use the generated
+                 constructor. */
+            } else {
+              /* Except in -A mode just issue a warning. */
+              pos_syty_diagnostic(strict_ansi_mode ?
+                                    strict_ansi_discretionary_severity :
+                                    es_warning,
+                                  ec_missing_default_constructor_on_const,
+                                  err_pos, sym, tp);
+            }  /* if */
           }  /* if */
         }  /* if */
         /* Set def_init_performed, which is returned to the caller. */
@@ -5640,7 +5650,7 @@ which subobjects require initialization and therefore must be implicitly
 initialized.  These are addressed in the course of the processing.
 */
 {
-  a_boolean                     is_generated_cctor;
+  a_boolean                     is_generated_cctor, is_generated_mctor;
   a_type_qualifier_set          required_qualifiers, object_qualifiers;
   a_type_ptr                    class_type, tp, array_type;
   a_symbol_ptr                  sym, class_sym;
@@ -5660,13 +5670,23 @@ initialized.  These are addressed in the course of the processing.
   class_type = parent_class_of(ctor_rout);
   check_assertion(class_type != NULL);
   ctsp = class_type->variant.class_struct_union.extra_info;
-  is_generated_cctor = !user_defined &&
-                       is_copy_constructor(ctor_rout, class_type,
-                                           &required_qualifiers,
-                                           rvalue_ctor_is_copy_ctor,
-                                           /*is_declarative_context=*/TRUE);
-  /* Move constructors are currently not generated. */
-  check_assertion(!is_generated_cctor || !copy_ctor_is_move_ctor(ctor_rout));
+  /* Check if we handling a generated move/copy constructor. */
+  if (user_defined) {
+    is_generated_cctor = FALSE;
+    is_generated_mctor = FALSE;
+    required_qualifiers = TQ_NONE;
+  } else if (generate_move_operations &&
+             routine_is_move_constructor(ctor_rout)) {
+    is_generated_cctor = FALSE;
+    is_generated_mctor = TRUE;
+    required_qualifiers = TQ_NONE;
+  } else {
+    is_generated_cctor = is_copy_constructor(ctor_rout, class_type,
+                                             &required_qualifiers,
+                                             rvalue_ctor_is_copy_ctor,
+                                             /*is_declarative_context=*/TRUE);
+    is_generated_mctor = FALSE;
+  }  /* if */
   /* The first step is to construct three lists of constructor initializer
      entries, one for virtual base classes that have constructors, one for
      nonvirtual direct base classes that have constructors, and one for
@@ -5972,9 +5992,9 @@ initialized.  These are addressed in the course of the processing.
     }  /* if */
     /* Do processing for implicit initializations. */
     if (dip == NULL || dip->kind == (a_dynamic_init_kind)dik_none) {
-      if (is_generated_cctor) {
-        /* The constructor for the object as a whole is a generated copy
-           constructor.  Any subobject constructors must also be copy
+      if (is_generated_cctor || is_generated_mctor) {
+        /* The constructor for the object as a whole is a generated copy/move
+           constructor.  Any subobject constructors must also be copy/move
            constructors, and fields and base classes that have no constructor
            must be accounted for, too. */
         a_boolean  bitwise_copy = FALSE;
@@ -6007,8 +6027,7 @@ initialized.  These are addressed in the course of the processing.
             /* Ignore constness of enclosing objects for mutable fields. */
             eff_qualifiers &= ~(a_type_qualifier_set)TQ_CONST;
           }  /* if */
-          rp = select_copy_constructor(tp, eff_qualifiers,
-                                       /*source_is_rvalue=*/FALSE,
+          rp = select_copy_constructor(tp, eff_qualifiers, is_generated_mctor,
                                        &err_pos, object_class_type,
                                        &bitwise_copy,
                                        /*allow_suppressed_ctor=*/FALSE);
@@ -6017,16 +6036,16 @@ initialized.  These are addressed in the course of the processing.
           /* Construction by bitwise copy is allowed. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
         } else if (rp == NULL) {
-          /* The copy constructor was invalid in some way or other. */
+          /* The copy/move constructor was invalid in some way or other. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
         } else {
-          /* A valid copy constructor does exist.  Generate the dynamic init
-             entry. */
+          /* A valid copy/move constructor does exist.  Generate the dynamic
+             init entry. */
           dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/TRUE);
         }  /* if */
       } else {
-        /* No copy constructor is required.  If any constructor exists, the
-           default constructor should be called. */
+        /* No copy/move constructor is required.  If any constructor exists,
+           the default constructor should be called. */
         if (cip->kind == (a_constructor_init_kind)cik_field &&
             (is_any_reference_type(tp) || is_const_qualified)) {
           /* Ref-type field or const-qualified field but no initializer. */

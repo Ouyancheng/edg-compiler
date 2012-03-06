@@ -6744,6 +6744,10 @@ typedef struct a_class_type_supplement {
   a_bit_field	is_lambda_closure_class:1;
 			/* TRUE if the class is the closure class generated as
 			   the representation of a lambda. */
+  a_bit_field	has_anonymous_union_member:1;
+			/* TRUE if the class contains an anonymous union
+			   member (which makes it a union-like class in C++11
+			   parlance). */
 #if NEED_NAME_MANGLING
   a_bit_field	defined_in_static_data_member_initializer:1;
 			/* TRUE if the class is a closure class defined

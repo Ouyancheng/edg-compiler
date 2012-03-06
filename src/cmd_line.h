@@ -268,6 +268,7 @@ typedef enum /*an_option_kind*/ {
   optk_lambdas,
   optk_rvalue_references,
   optk_rvalue_ctor_is_copy_ctor,
+  optk_gen_move_operations,
   optk_auto_type,
   optk_auto_storage,
   optk_nonstandard_instantiation_lookup,
@@ -1017,6 +1018,12 @@ EXTERN a_boolean
 			   is considered a copy constructor/copy assignment
 			   operator.  If so, declaring the former disables the
 			   implicit generation of the latter. */
+
+EXTERN a_boolean
+		generate_move_operations;
+			/* TRUE if the front end can implicitly generate move
+			   constructors and move assignment operators in some
+			   classes.  This is standard behavior in C++11. */
 
 EXTERN a_boolean
 		defaulted_special_members_enabled;
