@@ -2708,10 +2708,8 @@ move semantics.  Ensure that they are consistent.
         rvalue_references_enabled = TRUE;
       } else if (option_kind_used[(int)optk_gen_move_operations]) {
         command_line_error(ec_cl_move_operations_require_rvalue_references);
-        rvalue_references_enabled = TRUE;
       } else if (option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
         command_line_error(ec_cl_move_operations_require_rvalue_references);
-        rvalue_references_enabled = TRUE;
       } else {
         generate_move_operations = FALSE;
         rvalue_ctor_is_copy_ctor = FALSE;
@@ -2725,7 +2723,6 @@ move semantics.  Ensure that they are consistent.
         option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
       command_line_error(
                       ec_cl_gen_move_operations_and_rvalue_ctor_is_copy_ctor);
-      rvalue_ctor_is_copy_ctor = FALSE;
     } else if (!option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
       rvalue_ctor_is_copy_ctor = FALSE;
     } else {

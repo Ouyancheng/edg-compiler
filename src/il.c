@@ -11684,7 +11684,7 @@ is NULL, no value is returned for that.  ctor_rout must be a constructor.
 }  /* is_copy_constructor */
 
 
-a_boolean copy_ctor_is_move_ctor(a_routine_ptr  rp)
+static a_boolean copy_ctor_is_move_ctor(a_routine_ptr  rp)
 /*
 The given routine is a copy constructor or a move constructor.  Return TRUE if
 it is a move constructor.
