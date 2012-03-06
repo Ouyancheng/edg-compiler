@@ -1141,8 +1141,6 @@ extern a_boolean is_copy_constructor(
                                  a_boolean             include_move_ctors,
                                  a_boolean             is_declarative_context);
 
-extern a_boolean copy_ctor_is_move_ctor(a_routine_ptr  rp);
-
 extern a_boolean routine_is_move_constructor(a_routine_ptr  rp);
 
 extern a_boolean routine_is_move_assignment_operator(a_routine_ptr  rp);
