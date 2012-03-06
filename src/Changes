@@ -1,5 +1,28 @@
 Version 4.5
 
+3/6/12   [EDGcpfe/12614]
+C++-generating back end: parenthesized default argument expressions
+
+The change for EDGcpfe/12319 (in version 4.4), which added parentheses to
+default argument expressions to work around a bug in g++ versions earlier
+than 4.4, was too extensive.  In particular, MSVC++ 6.0
+(microsoft_version=1200) had a bug that caused it to issue errors for
+certain parenthesized default argument expressions.  The fix has now been
+tweaked to add parentheses only when they are actually needed, i.e., when
+gcc_is_generated_code_target is TRUE and gnu_target_version_number is less
+than 40400 or when the default argument expression contains a comma
+operation that would otherwise be interpreted as a parameter list
+delimiter.  For example:
+
+  template<typename T, typename U = int> struct S { };
+  class C {
+    void f(S<int> x = S<int>());  // Default argument now generated as
+                                  // "(S<int,int>())" only when targeting a
+                                  // g++ version earlier than 4.4, otherwise
+                                  // without enclosing parentheses
+  };
+
+
 3/5/12   [EDGcpfe/12676]
 Folding of some nonstandard address constant expressions
 

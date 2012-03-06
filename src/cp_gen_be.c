@@ -5374,20 +5374,36 @@ parameter.
          MSVC++ 5.0. */
       write_tok_ch('0');
     } else {
-      /* We emit parentheses explicitly here, rather than passing TRUE to
-         need_parens, to work around certain target compiler bugs where
-         parentheses are required in cases where they would be suppressed
-         by the normal need_parens processing.  For example, g++ versions
-         before 4.4 issue spurious errors on a declaration like
+      a_boolean need_parens;
+#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+      if (gcc_is_generated_code_target && gnu_target_version_number < 40400) {
+        /* g++ versions before 4.4 issue spurious errors on a declaration
+           like
 
              void f(S<int,int> = S<int,int>());
 
-         The comma in the template argument list is incorrectly taken as a
-         delimiter in the parameter list. */
-      write_tok_ch('(');
+           The comma in the template argument list is incorrectly taken as
+           a delimiter in the parameter list.  This error can be avoided by
+           enclosing the expression in parentheses; however, passing TRUE
+           to gen_initializer_expr's "need_parens" parameter could allow
+           the downstream processing to optimize the parentheses away.
+           Consequently, we handle the parenthesization explicitly here,
+           always parenthesizing the expression for the problematic g++
+           versions and only if needed for comma expressions in all other
+           cases. */
+        need_parens = TRUE;
+      } else
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+      /* Do not insert code here. */
+      need_parens = expr_has_comma_operation(expr);
+      if (need_parens) {
+        write_tok_ch('(');
+      }  /* if */
       gen_initializer_expr(expr, param->type, /*need_parens=*/FALSE,
                            curr_name_context_is_a_class());
-      write_tok_ch(')');
+      if (need_parens) {
+        write_tok_ch(')');
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* gen_default_arg_expr */
