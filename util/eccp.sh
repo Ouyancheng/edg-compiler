@@ -650,6 +650,7 @@ check_abbreviation()
 --g++
 --gcc
 --gcc89_inlining
+--gen_move_operations
 --gnu_version
 --guiding_decls
 --ignore_std
@@ -730,6 +731,7 @@ check_abbreviation()
 --no_friend_injection
 --no_g++
 --no_gcc
+--no_gen_move_operations
 --no_guiding_decls
 --no_il_lowering
 --no_implicit_extern_c_type_conversion
@@ -1412,6 +1414,8 @@ process_option()
          --no_rvalue_refs | \
          --rvalue_ctor_is_copy_ctor | \
          --rvalue_ctor_is_not_copy_ctor | \
+         --gen_move_operations | \
+         --no_gen_move_operations | \
          --auto_type | \
          --no_auto_type | \
          --auto_storage | \
