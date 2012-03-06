@@ -16649,32 +16649,24 @@ for C++/CLI managed classes the type of the parameter is X cv%.
 
 
 static void generate_copy_constructor(a_class_def_state_ptr  class_state,
+                                      a_boolean              is_deleted,
                                       a_type_qualifier_set   qualifiers)
 /*
 Add a declaration for a copy constructor to the class definition described by
-class_state.  qualifiers determine the cv-qualification of the constructor's
-parameter.
+class_state.  If is_deleted is TRUE, define the construct "deleted".
+qualifiers determine the cv-qualification of the constructor's parameter.
 */
 {
   a_type_ptr          class_type = class_state->class_type;
   a_param_type_ptr    ptp = make_copy_function_param(class_type, qualifiers);
   a_member_decl_info  decl_info;
   a_func_info_block   func_info;
-  a_boolean           is_deleted = FALSE;
 
   initialize_member_decl_info(&decl_info,
                               &class_type->source_corresp.decl_position);
   decl_info.is_constructor = TRUE;
   clear_func_info(&func_info);
   generate_special_function(class_state, &decl_info, &func_info, ptp);
-  if (generate_move_operations) {
-    a_class_symbol_supplement_ptr
-         cssp = symbol_for(class_type)->variant.class_struct_union.extra_info;
-    if (cssp->has_user_declared_move_constructor ||
-        cssp->has_user_declared_move_assign_operator) {
-      is_deleted = TRUE;
-    }  /* if */
-  }  /* if */
   if (is_deleted) {
     a_symbol_ptr  sym = decl_info.decl_state.sym;
     sym->defined = TRUE;
@@ -17560,7 +17552,8 @@ The routine body is not generated until it is known to be needed.
       check_assertion(microsoft_mode);
       class_type->variant.class_struct_union.copy_ctor_decl_suppressed = TRUE;
     } else {
-      generate_copy_constructor(class_state, gsfd.copy_ctor_qualifiers);
+      generate_copy_constructor(class_state, gsfd.suppress_copy_ctor,
+                                gsfd.copy_ctor_qualifiers);
     }  /* if */
   }  /* if */
   if (declare_dtor) {
