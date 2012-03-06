@@ -5395,7 +5395,9 @@ parameter.
       } else
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
       /* Do not insert code here. */
-      need_parens = expr_has_comma_operation(expr);
+      {
+        need_parens = expr_has_comma_operation(expr);
+      }
       if (need_parens) {
         write_tok_ch('(');
       }  /* if */
