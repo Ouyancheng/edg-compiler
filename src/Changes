@@ -18,7 +18,9 @@ the "extern" storage class specifier in such declarations.  For example:
 
   int i = 5;
   extern "C" int i;   // Previously generated as "int i;", a redefinition;
-                      // now generated as "extern int i;"
+                      // now generated as "extern int i;" (the conflicting
+                      // extern "C" specification having been discarded by
+                      // the front end)
 
 
 3/6/12   [EDGcpfe/12614]
