@@ -2703,12 +2703,24 @@ move semantics.  Ensure that they are consistent.
 {
   if (!rvalue_references_enabled) {
     if (generate_move_operations || rvalue_ctor_is_copy_ctor) {
-      /* These require that rvalue references be enabled. */
+      /* These require that rvalue references be enabled.  If they were set
+         implicitly, turn them off and keep rvalue references disabled.
+         Otherwise, implicitly enable rvalue references. */
       if (!option_kind_used[(int)optk_rvalue_references]) {
-        rvalue_references_enabled = TRUE;
-      } else if (option_kind_used[(int)optk_gen_move_operations]) {
+        if ((generate_move_operations &&
+             option_kind_used[(int)optk_gen_move_operations]) ||
+            (rvalue_ctor_is_copy_ctor &&
+             option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor])) {
+          rvalue_references_enabled = TRUE;
+        } else {
+          generate_move_operations = FALSE;
+          rvalue_ctor_is_copy_ctor = FALSE;
+        }  /* if */
+      } else if (generate_move_operations &&
+                 option_kind_used[(int)optk_gen_move_operations]) {
         command_line_error(ec_cl_move_operations_require_rvalue_references);
-      } else if (option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
+      } else if (rvalue_ctor_is_copy_ctor &&
+                 option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
         command_line_error(ec_cl_move_operations_require_rvalue_references);
       } else {
         generate_move_operations = FALSE;
