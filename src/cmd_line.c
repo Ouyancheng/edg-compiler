@@ -2818,7 +2818,6 @@ setting is used, and to set various unmentioned settings as needed.
       !microsoft_mode && !sun_mode) {
     variadic_templates_enabled = DEFAULT_VARIADIC_TEMPLATES_ENABLED;
   }  /* if */
-  check_rvalue_ref_options();
   if (cpp11_mode) {
     /* Enable C++11 extensions. */
     check_and_set_cpp11_mode_options(/*value=*/TRUE);
@@ -8925,6 +8924,8 @@ enable_microsoft_mode:
   }  /* if */
   /* Set restrict_enabled if any form of the restrict keyword is allowed. */
   restrict_enabled = restrict_keyword_enabled || gnu_restrict_keyword_enabled;
+  /* Ensure options related to rvalue references are now consistent. */
+  check_rvalue_ref_options();
   if (ignore_std_namespace) {
     /* In the g++ compatibility mode in which the std namespace is an alias
        for the global namespace, the va_list type should not be entered in
