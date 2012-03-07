@@ -1,5 +1,26 @@
 Version 4.5
 
+3/6/12   [EDGcpfe/12666]
+C++-generating back end: variable redeclaration treated as redefinition
+
+The change for EDGcpfe/12152 (in version 4.4), which added explicit
+representation in the IL of the storage class specified in a non-defining
+declaration of a variable, resulted in a regression in the code generated
+by the C++-generating back end in some cases in Microsoft mode.  When a
+variable is defined with C++ name linkage and then later redeclared with a
+conflicting name linkage, in Microsoft mode the linkage specification is
+ignored and the variable has C++ linkage, i.e., the linkage specification
+is treated as if it had been simply the "extern" storage class specifier.
+However, in the generated code, because the source had no explicit storage
+class specifier and the linkage specification was ignored, the declaration
+was effectively put out as a definition.  This has now been fixed by adding
+the "extern" storage class specifier in such declarations.  For example:
+
+  int i = 5;
+  extern "C" int i;   // Previously generated as "int i;", a redefinition;
+                      // now generated as "extern int i;"
+
+
 3/6/12   [EDGcpfe/12614]
 C++-generating back end: parenthesized default argument expressions
 

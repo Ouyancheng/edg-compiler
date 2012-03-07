@@ -14174,6 +14174,23 @@ this one is such a continuation.
       var = ss_entry_ptr(sec_decl, a_variable_ptr);
     }  /* if */
     storage_class = sec_decl->declared_storage_class;
+    if (storage_class == (a_storage_class)sc_unspecified &&
+        var->definition_has_been_put_out &&
+        (var->declared_storage_class == (a_storage_class)sc_extern ||
+         var->declared_storage_class == (a_storage_class)sc_static ||
+         var->declared_storage_class == (a_storage_class)sc_unspecified) &&
+        var->source_corresp.name_linkage ==
+                                 (a_name_linkage_kind)nlk_cplusplus_external) {
+      /* We have a declaration of a variable following its definition but
+         with no explicit storage class specifier and C++ linkage.  This
+         can result if the declaration was given a non-C++ linkage
+         specifier that did not match that of the (C++) definition -- the
+         linkage specifier is ignored but treated as if it were "extern",
+         implicitly matching the name linkage of the definition.  We need
+         to put out "extern" in the generated code, too, to avoid the
+         appearance that this is an invalid redefinition. */
+      storage_class = (a_storage_class)sc_extern;
+    }  /* if */
     attributes = sec_decl->attributes;
     /* Use the type from the secondary declaration entry instead of the one
        from the IL entry, since it might differ in small ways (e.g., using
