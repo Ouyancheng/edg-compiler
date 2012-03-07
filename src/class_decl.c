@@ -17551,6 +17551,10 @@ The routine body is not generated until it is known to be needed.
          add its declaration.  (This only happens in Microsoft mode.) */
       check_assertion(microsoft_mode);
       class_type->variant.class_struct_union.copy_ctor_decl_suppressed = TRUE;
+    } else if (gpp_mode && gnu_version >= 40600 && gnu_version < 40700 &&
+               (cssp->has_user_declared_move_constructor || has_move_assign)) {
+      /* GCC 4.6 does not generate a copy constructor if there is a
+         user-declared move assignment operator or move constructor. */
     } else {
       generate_copy_constructor(class_state, gsfd.suppress_copy_ctor,
                                 gsfd.copy_ctor_qualifiers);
@@ -17592,6 +17596,10 @@ The routine body is not generated until it is known to be needed.
          do not add its declaration.  (This only happens in Microsoft mode.) */
       class_type->variant.class_struct_union.copy_assignment_decl_suppressed
                                                                         = TRUE;
+    } else if (gpp_mode && gnu_version >= 40600 && gnu_version < 40700 &&
+               (cssp->has_user_declared_move_constructor || has_move_assign)) {
+      /* GCC 4.6 does not generate a copy assignment operator if there is a
+         user-declared move assignment operator or move constructor. */
     } else {
       /* Add the implicit declaration of the copy assignment operator. */
       generate_assignment_operator(class_state, gsfd.suppress_copy_assign,
