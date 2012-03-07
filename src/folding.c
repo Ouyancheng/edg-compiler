@@ -4704,6 +4704,7 @@ integral type, as in "(int)&x - (int)&x".
                                          alloc_shareable_constant(constant_1);
       result->type = integer_type(targ_ptrdiff_t_int_kind);
     } else if ((gnu_mode || microsoft_mode) &&
+               constant_bool_value_known_at_compile_time(constant_2) &&
                is_false_constant(constant_2) &&
                is_pointer_type(constant_1->type) &&
                is_character_type(type_pointed_to(constant_1->type))) {
