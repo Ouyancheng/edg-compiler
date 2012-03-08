@@ -1,5 +1,31 @@
 Version 4.5
 
+3/8/12   [EDGcpfe/12090]
+Microsoft function modifiers recorded in the IL in more configurations
+
+Previously, the Microsoft function modifiers "abstract", "override", and
+"new" were only recorded in the IL entry for a member function when
+BACKEND_IS_CP_GEN_BE is TRUE.  Now this is also done when that macro is
+FALSE.
+
+
+3/8/12   [EDGcpfe/12742, EDGcpfe/12360]
+C++11: "final" and "override" function modifiers
+
+In C++11 mode, the front now supports the context-sensitive keywords "final"
+and "override" as a modifier for a member function declaration.  Their
+meaning is the same as, respectively, the [[final]] and [[override]]
+attributes (see the Changes entry of 12/3/09 and 3/26/10).  For example:
+
+  struct B { virtual void f() const; };
+  struct D: B {
+    void f() override;  // Error: f doesn't override because "const" is
+  };                    // missing.
+
+(Document N3206 replaced the standard attributes by context-sensitive
+keywords.  The attribute is still recognized by the front end, however.)
+
+
 3/8/12   [EDGcpfe/12675]
 Give an error when conflicting command line options are specified
 

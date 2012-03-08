@@ -2474,7 +2474,11 @@ to it.  The entry is allocated in the file scope memory region.
   rp->overrides_base_member       = FALSE;
   rp->pure_virtual                = FALSE;
   rp->final                       = FALSE;
+  rp->override                    = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  rp->abstract                    = FALSE;
+  rp->sealed                      = FALSE;
+  rp->new_member                  = FALSE;
   rp->interface_slot              = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   rp->covariant_return_virtual_override
@@ -2562,11 +2566,6 @@ to it.  The entry is allocated in the file scope memory region.
                                   = FALSE;
   rp->definition_has_direct_linkage_specifier
                                   = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  rp->abstract                    = FALSE;
-  rp->override                    = FALSE;
-  rp->new_member                  = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   rp->has_been_defined            = FALSE;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */

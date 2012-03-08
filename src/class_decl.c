@@ -5019,8 +5019,10 @@ return_types_are_override_compatible.
   check_deleted_function_overrides(overrider_sym, overridden_sym, source_pos);
   if (rp->final) {
     /* Sealed/final virtual functions cannot be overridden. */
-    a_boolean  use_final_diag =
-              find_attribute(ak_final, rp->source_corresp.attributes) != NULL;
+    a_boolean  use_final_diag = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    use_final_diag = !rp->sealed;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     pos_sy_error(use_final_diag ? ec_override_of_final_function
                                 : ec_override_of_sealed_function,
                  source_pos, overridden_sym);
@@ -5691,8 +5693,11 @@ done:
       }  /* if */
     }  /* if */
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (func_info->override && !dps->override_okay) {
+    /* The "override" function modifier was specified on a member function 
+       that doesn't override.  This is usually an error, except in some
+       Microsoft-mode cases. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled && in_code_generated_from_metadata()) {
       /* The class was loaded from an assembly file.  Because of limitations
          of the metadata, the code generated from such a file can contain
@@ -5704,11 +5709,15 @@ done:
          warning on such harmless cases. */
       pos_sy_warning(ec_override_for_interface_member, source_pos,
                      matching_interface_member);
-    } else {
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
       pos_diagnostic(is_immediate_managed_class_type(class_type) ? es_warning
                                                                  : es_error,
                      ec_override_member_does_not_override, source_pos);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (func_info->new_member && !new_okay) {
     if (cppcli_enabled && in_code_generated_from_metadata()) {
       /* The class was loaded from an assembly file.  Because of limitations
@@ -5719,8 +5728,8 @@ done:
          member function was found in a base class. */
       pos_warning(ec_new_requires_matching_base_member, source_pos);
     }  /* if */
-  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
   if (rout->is_virtual) {
     /* Reflect the presence of a virtual function in the enclosing class. */
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
@@ -12231,6 +12240,8 @@ implicitly declared member functions.
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
   if (!is_error_locator(*locator)) {
+    if (func_info->final) rtn->final = TRUE;
+    rtn->override = func_info->override;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       /* If this function declaration specifies selective overrides, record
@@ -12244,12 +12255,9 @@ implicitly declared member functions.
       if (microsoft_version >= 1400 || cppcli_enabled) {
         /* Record any function modifiers (they can only appear in the class-
            scope declaration). */
-        rtn->final = func_info->sealed;
-#if BACK_END_IS_CP_GEN_BE
+        if (func_info->sealed) rtn->final = rtn->sealed = TRUE;
         rtn->abstract = func_info->abstract;
-        rtn->override = func_info->override;
         rtn->new_member = func_info->new_member;
-#endif /* BACK_END_IS_CP_GEN_BE */
       }  /* if */
     }  /* if */
   } else if (decl_state->ms_attributes != NULL) {
@@ -13049,20 +13057,23 @@ func_info describe the current member function declaration.
              (rout->final || class_type->variant.class_struct_union.final)) {
     /* Making a pure virtual member sealed/final is useless, but while
        Microsoft makes the "sealed" case an error, the C++11 standard does not
-       prohibit the "[[final]]" case. */
-    an_attribute_ptr  final_ap =
-                    find_attribute(ak_final, rout->source_corresp.attributes);
+       prohibit the "final" case. */
     if (!rout->final) {
       check_assertion(class_type->variant.class_struct_union.final);
       pos_warning(ec_pure_final_virtual, &pos_curr_token);
-    } else if (final_ap == NULL) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (func_info->sealed) {
       /* The routine was declared with "sealed". */
       check_assertion(microsoft_mode);
       pos_error(ec_pure_specifier_on_sealed_member, &pos_curr_token);
       pure_specifier_allowed = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* The routine was declared with "final". */
-      pos_warning(ec_pure_final_virtual, &final_ap->position);
+      an_attribute_ptr  final_ap =
+                    find_attribute(ak_final, rout->source_corresp.attributes);
+      pos_warning(ec_pure_final_virtual,
+                  final_ap != NULL ? &final_ap->position : &pos_curr_token);
     }  /* if */
   }  /* if */
   /* Advance past the "=". */

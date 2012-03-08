@@ -3046,7 +3046,19 @@ Display the indicated routine.
   if (ptr->final) {
     disp_boolean("final", TRUE);
   }  /* if */
+  if (ptr->override) {
+    disp_boolean("override", TRUE);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->abstract) {
+    disp_boolean("abstract", TRUE);
+  }  /* if */
+  if (ptr->sealed) {
+    disp_boolean("sealed", TRUE);
+  }  /* if */
+  if (ptr->new_member) {
+    disp_boolean("new_member", TRUE);
+  }  /* if */
   if (ptr->interface_slot) {
     disp_boolean("interface_slot", TRUE);
   }  /* if */
@@ -3225,17 +3237,6 @@ Display the indicated routine.
   if (ptr->definition_has_direct_linkage_specifier) {
     disp_boolean("definition_has_direct_linkage_specifier", TRUE);
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ptr->abstract) {
-    disp_boolean("abstract", TRUE);
-  }  /* if */
-  if (ptr->override) {
-    disp_boolean("override", TRUE);
-  }  /* if */
-  if (ptr->new_member) {
-    disp_boolean("new_member", TRUE);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
   if (ptr->definition_for_inlining_only) {
     disp_boolean("definition_for_inlining_only", TRUE);

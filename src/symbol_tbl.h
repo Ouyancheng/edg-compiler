@@ -1474,14 +1474,17 @@ typedef struct a_func_info_block {
   a_bit_field	any_default_args:1;
 			/* TRUE if the function type declaration included
 			   the declarations of default arguments. */
+  a_bit_field	final:1;
+			/* TRUE if the function was declared with the "final"
+			   modifier (a context-sensitive keyword). */
+  a_bit_field	override:1;
+			/* TRUE if the function was declared with the 
+			   "override" modifier (a context-sensitive
+			   keyword). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	abstract:1;
 			/* TRUE if the function was declared with the C++/CLI
 			   "abstract" modifier (a context-sensitive keyword).
-			   Only set in some Microsoft C++ modes. */
-  a_bit_field	override:1;
-			/* TRUE if the function was declared with the C++/CLI
-			   "override" modifier (a context-sensitive keyword).
 			   Only set in some Microsoft C++ modes. */
   a_bit_field	sealed:1;
 			/* TRUE if the function was declared with the C++/CLI

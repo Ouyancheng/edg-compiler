@@ -983,7 +983,6 @@ typedef enum /*a_token_kind*/ {
   tok_declspec,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_abstract,
-  tok_override,
   tok_sealed,
   tok_cdecl,
   tok_fastcall,
@@ -1182,6 +1181,8 @@ typedef enum /*a_token_kind*/ {
 #if INT128_EXTENSIONS_ALLOWED
   tok_int128,
 #endif /* INT128_EXTENSIONS_ALLOWED */
+  tok_override,
+  tok_final,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1225,7 +1226,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "char16_t", "char32_t",
    "_Fract", "_Accum", "_Sat", "__declspec",
 #if MICROSOFT_EXTENSIONS_ALLOWED
-   "abstract", "override", "sealed",
+   "abstract", "sealed",
    "__cdecl", "__fastcall", "__stdcall", "__thiscall", "__clrcall",
    "__inline", "__forceinline",
    "__unaligned", "__try", "__finally", "__leave", "__except",
@@ -1321,6 +1322,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if INT128_EXTENSIONS_ALLOWED
    "__int128",
 #endif /* INT128_EXTENSIONS_ALLOWED */
+   "override", "final", 
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -11953,9 +11955,23 @@ typedef struct a_routine {
   a_bit_field	final:1;
 			/* TRUE for a virtual member function that cannot be
 			   overridden in a derived class.  (Declared using the
-			   context-sensitive keyword "sealed" in some Microsoft
-			   modes, or using the attribute "final".) */
+			   context-sensitive keyword "final" or "sealed", or
+			   using the attribute "final".) */
+  a_bit_field	override:1;
+			/* TRUE for a virtual member function that was
+			   declared with the function-modifier "override". */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	abstract:1;
+			/* TRUE for a virtual member function that was
+			   declared with the function-modifier "abstract" (in
+			   that case pure_virtual is TRUE too). */
+  a_bit_field	sealed:1;
+			/* TRUE for a virtual member function that was
+			   declared with the function-modifier "sealed" (in
+			   that case final is TRUE too). */
+  a_bit_field	new_member:1;
+			/* TRUE for a member function that was declared with
+			   the function-modifier "new". */
   a_bit_field	interface_slot:1;
 			/* TRUE for member functions generated to represent a
 			   compiler-generated "slot" in a Microsoft interface
@@ -12302,17 +12318,6 @@ typedef struct a_routine {
 			   specifier (extern "C" void f() { }) rather than
 			   simply inheriting it from a preceding declaration
 			   or from the surrounding linkage block. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_bit_field	abstract:1;
-			/* TRUE for a virtual member function that was
-			   declared with the function-modifier "abstract". */
-  a_bit_field	override:1;
-			/* TRUE for a virtual member function that was
-			   declared with the function-modifier "override". */
-  a_bit_field	new_member:1;
-			/* TRUE for a member function that was declared with
-			   the function-modifier "new". */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_bit_field	has_been_defined:1;
 			/* TRUE if the definition for this function has been

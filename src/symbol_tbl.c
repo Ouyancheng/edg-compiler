@@ -13140,9 +13140,10 @@ Clear the fields of a function information block to default values.
   func_info->is_implicit_declaration     = FALSE;
   func_info->function_type_from_typedef  = FALSE;
   func_info->any_default_args            = FALSE;
+  func_info->final                       = FALSE;
+  func_info->override                    = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   func_info->abstract                    = FALSE;
-  func_info->override                    = FALSE;
   func_info->sealed                      = FALSE;
   func_info->new_member                  = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

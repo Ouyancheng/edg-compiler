@@ -409,7 +409,6 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_declspec */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_abstract */
-   (an_opname_kind)onk_none,          /* tok_override */
    (an_opname_kind)onk_none,          /* tok_sealed */
    (an_opname_kind)onk_none,          /* tok_cdecl */
    (an_opname_kind)onk_none,          /* tok_fastcall */
@@ -590,6 +589,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #if INT128_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_int128 */
 #endif /* INT128_EXTENSIONS_ALLOWED */
+   (an_opname_kind)onk_none,          /* tok_final */
+   (an_opname_kind)onk_none,          /* tok_override */
    (an_opname_kind)onk_last           /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */
@@ -2176,10 +2177,6 @@ return the original identifier pointer.
 #define make_canonical_identifier(identifier, length) (identifier)
 #endif /* ABI_COMPATIBILITY_VERSION >= 302 */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_boolean is_valid_GUID_string(char          *str,
-                                      a_targ_size_t length);
-
 /*
 Macro that returns TRUE when a given symbol header is for a given identifier
 string.
@@ -2194,6 +2191,10 @@ extern a_boolean curr_token_is_identifier_string(char  *tok_str);
 
 extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
                                                  char          *tok_str);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean is_valid_GUID_string(char          *str,
+                                      a_targ_size_t length);
 
 extern a_boolean accum_quoted_string(unsigned long     *num_chars,
                                      a_boolean         is_header_name,

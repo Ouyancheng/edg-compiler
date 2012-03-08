@@ -12656,35 +12656,44 @@ for the given routine (only render non-__declspec modifiers).
   }  /* if */
 }  /* gen_microsoft_routine_decl_modifiers */
 
-
-static void gen_microsoft_function_modifiers(
-                                           a_routine_ptr  rout,
-                                           a_boolean      *abstract_generated)
-/*
-Generate any needed "function-modifiers" (an ECMA C++/CLI extension also
-supported by some Microsoft C++ compilers in their non-CLI mode) for the given
-routine.  Set *abstract_generated to TRUE if the function-modifier "abstract"
-is generated.
-*/
-{
-  if (rout->abstract) {
-    write_tok_str(" abstract");
-    *abstract_generated = TRUE;
-  }  /* if */
-  if (rout->override) {
-    write_tok_str(" override");
-  }  /* if */
-  if (rout->final) {
-    write_tok_str(" sealed");
-  }  /* if */
-  if (rout->new_member) {
-    write_tok_str(" new");
-  }  /* if */
-}  /* gen_microsoft_function_modifiers */
-
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define gen_microsoft_routine_decl_modifiers(rout) /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* abstract_generated is not used in some configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+static void gen_member_function_modifiers(a_routine_ptr  rout,
+                                          a_boolean      *abstract_generated)
+/*
+Generate any needed "function-modifiers" for the given member function.
+Set *abstract_generated to TRUE if the Microsoft function-modifier "abstract"
+is generated.
+*/
+{
+  if (rout->override) {
+    write_tok_str(" override");
+  }  /* if */
+  if (microsoft_dialect_is_generated_code_target) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (rout->abstract) {
+      write_tok_str(" abstract");
+      *abstract_generated = TRUE;
+    }  /* if */
+    if (rout->final) {
+      write_tok_str(" sealed");
+    }  /* if */
+    if (rout->new_member) {
+      write_tok_str(" new");
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else {
+    if (rout->final) {
+      write_tok_str(" final");
+    }  /* if */
+  }  /* if */
+}  /* gen_member_function_modifiers */
+
 
 static void gen_instantiation_directive(void)
 /*
@@ -15456,11 +15465,9 @@ handle_as_definition:
                                                       rtsp->param_type_list,
                                                       /*set=*/FALSE);
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (decl_within_class && microsoft_dialect_is_generated_code_target) {
-    gen_microsoft_function_modifiers(rout, &abstract_generated);
+  if (decl_within_class) {
+    gen_member_function_modifiers(rout, &abstract_generated);
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (rout->is_deleted) {
     /* A deleted function definition. */
     write_tok_str(" = delete;");

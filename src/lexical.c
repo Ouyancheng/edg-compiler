@@ -17650,7 +17650,6 @@ scanned is, in fact, an identifier).
 #undef in_if_exists
 }  /* coalesce_and_lookup_generalized_identifier */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean curr_token_is_identifier_string(char  *tok_str)
 /*
@@ -17675,7 +17674,7 @@ a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
 If the current token is an identifier spelled like *tok_str, turn that token
 into the given token kind.  Return whether (after this transformation) the
 current token is tok_kind.  This is useful to handle context-sensitive
-keywords (which are fairly common in Microsoft mode).
+keywords.
 */
 {
   if (curr_token_is_identifier_string(tok_str)) {
@@ -17684,7 +17683,6 @@ keywords (which are fairly common in Microsoft mode).
   return curr_token == tok_kind;
 }  /* check_context_sensitive_keyword */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_file_suffix_ptr alloc_file_suffix(void)
 /*
