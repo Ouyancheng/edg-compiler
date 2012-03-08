@@ -13946,7 +13946,8 @@ source and the expression is generated in that form.
         write_tok_ch('(');
         need_closing_operand_paren = TRUE;
       }  /* if */
-      gen_initializer_expr(expr, init_entity_type, /*need_parens=*/TRUE,
+      gen_initializer_expr(expr, init_entity_type,
+                           expr_has_comma_operation(expr),
                            /*mbr_fcn_default_arg_expr=*/FALSE);
       if (parenthesized_init) write_tok_ch(')');
       break;

@@ -1,5 +1,22 @@
 Version 4.5
 
+3/8/12   [EDGcpfe/12719]
+C++-generating back end, GNU compatibility: parenthesized initializers
+
+g++ has a bug that causes it to issue a spurious error when certain forms
+of initializer expressions are parenthesized.  The C++-generating back end
+generally enclosed initializers in parentheses, causing the generated code
+to fail to compile with g++ when one of those forms appears in the source.
+This has now been fixed by parenthesizing only those initializer expressions
+that contain a comma that would otherwise be interpreted as a declarator
+delimiter.  For example:
+
+  struct A {
+    short operator()();
+  };
+  int i = A()();   // Previously generated as (A()())
+
+
 3/8/12   [EDGcpfe/12745]
 Copy of class on conversion to rvalue as operand of "?" operator
 
