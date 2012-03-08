@@ -1,5 +1,17 @@
 Version 4.5
 
+3/8/12   [EDGcpfe/12675]
+Give an error when conflicting command line options are specified
+
+Previously, it was permissible to specify multiple command line
+options that (implicitly or explicitly) set the language mode with
+the last option prevailing (e.g., specifying "--svr4 --c++ --c" would
+result in SVR4 "C" mode).  Now, a catastrophic error is given if two or more
+command line options which (implicitly or explicitly) specify the language mode
+(i.e., "C" or "C++") are present on the command line.  For example,
+specifying "--c89 --c++11" is now a catastrophic error.
+
+
 3/8/12   [EDGcpfe/12719]
 C++-generating back end, GNU compatibility: parenthesized initializers
 

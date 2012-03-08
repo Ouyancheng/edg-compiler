@@ -3829,15 +3829,15 @@ Embedded C (TR 18037) extensions, check them for consistency.
 static void check_dialect_and_language_modes(void)
 /*
 Check for consistent specification of dialects and language modes.  Dialect
-inconsistencies are allowed -- the last specified is operative -- but
-language modes that are specified are required to be consistent with the
+inconsistencies are not allowed (and have been diagnosed previously).
+Language modes that are specified are required to be consistent with the
 operative dialect.
 
 Here is a summary of the dialects and modes, along with the associated
 command line switches.
 
-    dialect/mode         associated global variable       option
-    ============         ==========================       ======
+    dialect/mode        associated global variable       option
+    ============        ==========================       ======
   C                                                      --c, -m
     pcc mode            C_dialect == C_dialect_pcc       --old_c, -K
     "ANSI" [= not pcc]  C_dialect == C_dialect_ANSI      (default)
@@ -3864,28 +3864,24 @@ command line switches.
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
 
-The major C dialect (K&R, ANSI, or C++) is determined by the last command line
-option that selects a major dialect, either implicitly or explicitly. (For
-example, --old_c, --c, and --c++ select a major dialect explicitly, and --svr4,
---cfront_3.0, and --c99 select a major dialect implicitly.)  No major dialect
-is implicitly specified with --microsoft et al. or --strict et al.  --sun
-cannot be combined with command-line options to select a C mode, but otherwise
-it implies C++ mode (even in the somewhat unusual event that the front end
-were modified to compile C code by default).
+The major C dialect (K&R, ANSI, or C++) is determined by a command line option
+(if any) that selects a major dialect, either implicitly (e.g., --g++ or
+--embedded_c) or explicitly (e.g., --c++ or --c).  The specification of two or
+more command line options that either implicitly or explicitly set the major
+dialect to different values is an error.  No major dialect is implicitly
+specified with --microsoft et al. or --strict et al.  --sun cannot be combined
+with command-line options to select a C mode, but otherwise it implies C++ mode
+(even in the somewhat unusual event that the front end were modified to compile
+C code by default).
 
 C99 mode is in some ways considered both a dialect and a mode.  C_dialect
 is still C_dialect_ANSI, but C99 is permitted to be used in conjunction with
 Microsoft mode.  Likewise for --c++11 which implicitly sets the dialect
 to C_dialect_cplusplus and also sets cpp11_mode.
 
-Whatever major dialect is selected, all language modes specified have to be
-consistent with it.  For example, --old_c --c99 is permitted, since the
-major dialect implied by --c99 overrides the major dialect specified by -K.
-On the other hand, --c99 --old_c produces an error, since the final major
-dialect is inconsistent with C99 mode.  Similarly, "--svr4 --c++ --c" ends
-up being SVR4 C mode: The (nonmajor) SVR4 C dialect selected by the first
-option is not discarded when switching to the major dialects in the second
-(C++ mode) and third (C mode) option.
+Although not recommended, some conflicting language modes can be
+specified on the command line with the last option being effective
+(e.g., --c89 --c99 results in C99 mode).
 
 Note that the fact that K&R C is its own major dialect, rather than
 being a minor dialect under C mode, is a historical accident of the
@@ -7459,6 +7455,29 @@ file.
 }  /* dump_configuration_macros */
 #endif /* DUMP_CONFIG_ENABLED */
 
+static a_boolean
+                C_dialect_has_been_set;
+                        /* Flag that is TRUE if the C_dialect has been
+                           set (either implicitly or explicitly) via a
+                           command line option. */
+
+static void set_C_dialect(a_C_dialect dialect)
+/*
+Set the C_dialect to dialect and issue a command line error if the
+C_dialect has (implicitly or explicitly) been previously set to
+an incompatible value.  For the purposes of this check, treat the two
+"C" dialects as the same (i.e., look only for changes between C and C++).
+*/
+{
+  if (C_dialect_has_been_set &&
+      ((C_dialect == C_dialect_cplusplus) !=
+       (dialect == C_dialect_cplusplus))) {
+    command_line_error(ec_cl_incompatible_language_modes);
+  }  /* if */
+  C_dialect = dialect;
+  C_dialect_has_been_set = TRUE;
+}  /* set_C_dialect */
+
 
 void proc_command_line(int argc, char *argv[])
 /*
@@ -7607,7 +7626,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_C_dialect_pcc:
         /* Compile K&R/pcc dialect of C. */
         check_assertion(opt_value == TRUE);
-        C_dialect = C_dialect_pcc;
+        set_C_dialect(C_dialect_pcc);
         break;
       case optk_list_makefile_dependencies:
         /* Generate makefile dependency lines for #include files encountered,
@@ -7645,7 +7664,7 @@ Process the arguments on the command line that invoked the compiler.
         cfront_2_1_mode = TRUE;
         cfront_3_0_mode = FALSE;
         /* This option implies C++ dialect. */
-        C_dialect = C_dialect_cplusplus;
+        set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_cfront_3_0_mode:
         check_assertion(opt_value == TRUE);
@@ -7654,7 +7673,7 @@ Process the arguments on the command line that invoked the compiler.
         cfront_3_0_mode = TRUE;
         cfront_2_1_mode = FALSE;
         /* This option implies C++ dialect. */
-        C_dialect = C_dialect_cplusplus;
+        set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -7774,13 +7793,13 @@ Process the arguments on the command line that invoked the compiler.
            selected dialect C_dialect_ANSI. */
         check_assertion(opt_value == TRUE);
         if (C_dialect == C_dialect_cplusplus) {
-          C_dialect = C_dialect_ANSI;
+          set_C_dialect(C_dialect_ANSI);
         }  /* if */
         break;
       case optk_C_dialect_cplusplus:
         /* Compile C++. */
         check_assertion(opt_value == TRUE);
-        C_dialect = C_dialect_cplusplus;
+        set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_exception_handling:
         /* Enables or disables support for exceptions. */
@@ -8034,6 +8053,7 @@ enable_microsoft_mode:
 #endif /* NEAR_AND_FAR_ALLOWED */
       case optk_cppcli:
         cppcli_enabled = opt_value;
+        set_C_dialect(C_dialect_cplusplus);
         if (opt_value && !option_kind_used[(int)optk_microsoft_mode]) {
           goto enable_microsoft_mode;
         }  /* if */
@@ -8109,7 +8129,7 @@ enable_microsoft_mode:
            In other words, --[no_]svr4 is short for --c --[no_]svr4.
            See --c99 and --sun for similar behavior. */
         SVR4_C_mode = opt_value;
-        C_dialect = C_dialect_ANSI;
+        set_C_dialect(C_dialect_ANSI);
         break;
       case optk_brief_diagnostics:
         /* Diagnostics should or should not be emitted in a form that
@@ -8334,6 +8354,7 @@ enable_microsoft_mode:
         /* Compatibility with Sun CC 5.x (various extensions/bugs) should or
            should not be provided.  This is a C++-mode option. */
         sun_mode = opt_value;
+        set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_sun_linker_scope:
         /* Sun CC 5.5 introduced the linker scope specifiers __global,
@@ -8364,7 +8385,7 @@ enable_microsoft_mode:
            --[no_]c99 is short for --c --[no_]c99.  See --svr4 and --sun
            for similar behavior. */
         c99_mode = opt_value;
-        C_dialect = C_dialect_ANSI;
+        set_C_dialect(C_dialect_ANSI);
         break;
       case optk_c89_mode:
         /* Compile ANSI C89/ISO C90 code.  This option is convenient if
@@ -8372,7 +8393,7 @@ enable_microsoft_mode:
         check_assertion(opt_value == TRUE);
         c99_mode = FALSE;
         SVR4_C_mode = FALSE;
-        C_dialect = C_dialect_ANSI;
+        set_C_dialect(C_dialect_ANSI);
         break;
       case optk_export_template:
         /* Enable use of exported templates. */
@@ -8400,7 +8421,7 @@ enable_microsoft_mode:
            --[no_]gcc is short for --c --[no_]gcc.  See --svr4, --c99 and
            --sun for similar behavior. */
         gcc_mode = opt_value;
-        C_dialect = C_dialect_ANSI;
+        set_C_dialect(C_dialect_ANSI);
         break;
       case optk_gpp_mode:
         /* GNU C++ mode should or should not be used.  This option implies
@@ -8408,7 +8429,7 @@ enable_microsoft_mode:
            --[no_]g++ is short for --c++ --[no_]g++.  See --sun, --c99 and
            --svr4 for similar behavior. */
         gpp_mode = opt_value;
-        C_dialect = C_dialect_cplusplus;
+        set_C_dialect(C_dialect_cplusplus);
         break;
      case optk_gnu_version:
         /* The version of the GNU compiler being emulated.  If specified
@@ -8461,7 +8482,7 @@ enable_microsoft_mode:
         /* Enable (or disable) support for Unified Parallel C.  Specifying
            these options also implies C mode. */
         upc_mode = opt_value;
-        C_dialect = C_dialect_ANSI;
+        set_C_dialect(C_dialect_ANSI);
         break;
       case optk_upc_strict_access:
         /* Set the default UPC access mode. */
@@ -8511,7 +8532,7 @@ enable_microsoft_mode:
 #if NAMED_REGISTERS_ALLOWED
         named_registers_enabled = opt_value;
 #endif /* NAMED_REGISTERS_ALLOWED */
-        C_dialect = C_dialect_ANSI;
+        set_C_dialect(C_dialect_ANSI);
         break;
 #endif /* EMBEDDED_C_ALLOWED */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -8584,14 +8605,14 @@ enable_microsoft_mode:
       case optk_cpp11_mode:
         /* Enable or disable C++ features added as part of C++11. */
         cpp11_mode = opt_value;
-        C_dialect = C_dialect_cplusplus;
+        set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_cpp03_mode:
         /* Compile ISO/IEC 14882:2003 C++ code.  This option explicitly
            disables all C++11 extensions. */
         check_assertion(opt_value == TRUE);
         cpp11_mode = FALSE;
-        C_dialect = C_dialect_cplusplus;
+        set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_list_macros:
         /* Do preprocessing only; list all macro definitions to stdout or
@@ -9852,6 +9873,7 @@ This is done before command line processing.
   il_header.short_enums = FALSE;
   il_header.default_nocommon = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  C_dialect_has_been_set = FALSE;
 }  /* cmd_line_early_init */
 
 #if MAKE_FRONT_END_CALLABLE
