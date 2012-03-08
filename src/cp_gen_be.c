@@ -14176,9 +14176,7 @@ this one is such a continuation.
     storage_class = sec_decl->declared_storage_class;
     if (storage_class == (a_storage_class)sc_unspecified &&
         var->definition_has_been_put_out &&
-        (var->declared_storage_class == (a_storage_class)sc_extern ||
-         var->declared_storage_class == (a_storage_class)sc_static ||
-         var->declared_storage_class == (a_storage_class)sc_unspecified) &&
+        has_static_storage_duration(var->declared_storage_class) &&
         var->source_corresp.name_linkage ==
                                  (a_name_linkage_kind)nlk_cplusplus_external) {
       /* We have a declaration of a variable following its definition but
