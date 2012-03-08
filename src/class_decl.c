@@ -16240,7 +16240,7 @@ and record it in the class's assoc_operator_delete_routine field.
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 
 /*
-Structure to keep track of special member function that should or should not
+Structure to keep track of special member functions that should or should not
 be generated.
 */
 typedef struct a_generated_special_function_descr {
@@ -16423,14 +16423,14 @@ warnings or remarks may be issued in some cases.
        checking is needed for this case.  Also, Microsoft's compiler does not
        do this starting at version 8. */
   } else if (type->variant.class_struct_union.copy_ctor_decl_suppressed) {
-      /* A base or member with a suppressed copy constructor suppresses this
-         one, too. */
-      gsfd->suppress_copy_ctor = TRUE;
-      if (gsfd->warn_about_suppressed_copy_ctor) {
-        pos_ty2_diagnostic(es_remark, ec_subobj_copy_ctor_decl_suppressed,
-                           &class_type->source_corresp.decl_position,
-                           class_type, type);
-      }  /* if */
+    /* A base or member with a suppressed copy constructor suppresses this
+       one, too. */
+    gsfd->suppress_copy_ctor = TRUE;
+    if (gsfd->warn_about_suppressed_copy_ctor) {
+      pos_ty2_diagnostic(es_remark, ec_subobj_copy_ctor_decl_suppressed,
+                         &class_type->source_corresp.decl_position,
+                         class_type, type);
+    }  /* if */
   } else {
     rout_sym = find_copy_constructor(type, gsfd->copy_ctor_qualifiers,
                                      /*source_is_rvalue=*/FALSE,
@@ -16464,11 +16464,12 @@ warnings or remarks may be issued in some cases.
                                      &ambiguous, (a_symbol**)NULL,
                                      &bitwise_copy);
     if (ambiguous ||
+        (rout_sym == NULL && !bitwise_copy) ||
         (rout_sym != NULL &&
          (!have_access_to_symbol(rout_sym) ||
           is_deleted_member_sym(rout_sym)))) {
-      /* A base or member with an ambiguous or inaccessible move constructor
-         prevents this one from being generated. */
+      /* A base or member with a missing, ambiguous, or inaccessible move
+         constructor prevents this one from being generated. */
       gsfd->suppress_move_ctor = TRUE;
     }  /* if */
   }  /* if */
