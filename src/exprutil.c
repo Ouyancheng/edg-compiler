@@ -16977,7 +16977,16 @@ transformations.
     /* A non-array lvalue. */
     if (!(options & TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION)) {
       /* Convert an lvalue to an rvalue. */
-      conv_lvalue_to_rvalue(operand);
+      if ((options & TOPT_COPY_CLASS_ON_CONV_TO_RVALUE) &&
+          !C_mode() &&
+          is_class_struct_union_type(operand->type)) {
+        /* When converting a class object to an rvalue in C++ mode, make a
+           copy.  This is required by the standard, but it only applies in
+           some unusual situations, so it's not the default. */
+        temp_init_from_operand(operand, /*result_is_lvalue=*/FALSE);
+      } else {
+        conv_lvalue_to_rvalue(operand);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (is_indefinite_function_operand(operand) &&

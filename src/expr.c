@@ -22370,10 +22370,14 @@ that case.
     } else {
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
          transformations. */
+      a_transformation_options_set options = TOPT_NO_OPTIONS;
+      if (!suppress_class_rvalue_temp) {
+        options |= TOPT_COPY_CLASS_ON_CONV_TO_RVALUE;
+      }  /* if */
       expr_stack->evaluated = expr2_evaluated;
-      do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
+      do_operand_transformations(&operand_2, options);
       expr_stack->evaluated = expr3_evaluated;
-      do_operand_transformations(&operand_3, TOPT_NO_OPTIONS);
+      do_operand_transformations(&operand_3, options);
       expr_stack->evaluated = saved_evaluated;
       /* See if the types are the same in C++ mode after the
          transformations. */

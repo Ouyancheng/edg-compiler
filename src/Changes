@@ -1,5 +1,16 @@
 Version 4.5
 
+3/8/12   [EDGcpfe/12745]
+Copy of class on conversion to rvalue as operand of "?" operator
+
+The front end now copies a class lvalue to a temporary when it
+converts it to an rvalue as part of processing as an operand for
+the "?" operator, as required by the C++ standard.  It already did
+so in many cases, but now does so uniformly.  This was largely invisible
+previously, but became important when the changes for implicitly
+generating move constructors were done.
+
+
 3/6/12   [EDGcpfe/12666]
 C++-generating back end: variable redeclaration treated as redefinition
 

@@ -628,6 +628,11 @@ some of the transformations.
 			/* References to class members that are Microsoft
 			   properties should not be rewritten as calls of
 			   the appropriate "get" function (yet). */
+#define TOPT_COPY_CLASS_ON_CONV_TO_RVALUE 0x80
+			/* When converting a C++ class to an rvalue, make
+			   a copy.  This is required by the C++ standard, but
+			   it actually applies only in certain unusual
+			   situations, so we leave the default as no copy. */
 #define TOPT_NO_OPTIONS 0
 typedef int a_transformation_options_set;
 
