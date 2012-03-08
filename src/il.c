@@ -11706,6 +11706,7 @@ Return TRUE if and only if the given routine is a move constructor.
   a_type_qualifier_set  qualifiers;
 
   return special_kind_is(rp, sfk_constructor) &&
+         rvalue_references_enabled &&  /* For speed. */
          is_copy_constructor(rp, parent_class_of(rp), &qualifiers,
                              /*include_move_ctors=*/TRUE,
                              /*is_declarative_context=*/TRUE) &&

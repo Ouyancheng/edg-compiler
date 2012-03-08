@@ -10465,7 +10465,8 @@ accordingly.
                           rvalue_ctor_is_copy_ctor,
                           /*is_declarative_context=*/TRUE)) {
     cssp->has_copy_constructor = TRUE;
-    if (routine_is_move_constructor(rout_ptr)) {
+    if (rvalue_ctor_is_copy_ctor &&  /* For speed. */
+        routine_is_move_constructor(rout_ptr)) {
       cssp->has_user_declared_move_constructor = TRUE;
     }  /* if */
     if (qualifiers & TQ_CONST) {
