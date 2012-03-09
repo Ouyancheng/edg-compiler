@@ -1,6 +1,6 @@
 Version 4.5
 
-3/9/1    [EDGcpfe/12703]
+3/9/12   [EDGcpfe/12703]
 GNU C++ compatibility: use of inaccessible types as template arguments
 
 The g++ compiler ignores some access errors when they occur in a template
