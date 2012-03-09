@@ -22371,7 +22371,18 @@ that case.
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
          transformations. */
       a_transformation_options_set options = TOPT_NO_OPTIONS;
-      if (!suppress_class_rvalue_temp) {
+      if (suppress_class_rvalue_temp) {
+        /* Don't copy on conversion from class lvalue to rvalue because
+           we're in a mode that's supposed to suppress the class rvalue
+           temporary.  (Such modes are for compatibility with older
+           dialects.) */
+      } else if (is_throw_operand(&operand_2) ||
+                 is_throw_operand(&operand_3)) {
+        /* Avoid the copy from an lvalue if the other operand is a throw,
+           so that we generate code with a single copy of the non-throw
+           operand at the end (outside the "?"). */
+      } else {
+        /* Do a copy on a conversion from class lvalue to rvalue. */
         options |= TOPT_COPY_CLASS_ON_CONV_TO_RVALUE;
       }  /* if */
       expr_stack->evaluated = expr2_evaluated;
