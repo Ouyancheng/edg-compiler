@@ -3869,6 +3869,10 @@ typedef struct an_access_error_descr {
 		error_code;
 			/* The error code for the error to be issued
 			   or ec_no_error to use a default value. */
+  a_byte_boolean
+		in_template_arg_list;
+			/* TRUE if the access occurred in the context of
+			   a template argument list. */
 } an_access_error_descr;
 
 

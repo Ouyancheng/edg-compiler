@@ -10715,13 +10715,15 @@ static void issue_access_error(a_symbol_ptr       sym,
                                a_source_position  *err_pos,
                                an_error_severity  severity,
                                an_error_code      error_code,
+                               a_boolean          in_template_arg_list,
                                a_boolean          *error_detected)
 /*
 Issue the appropriate error on the inaccessibility of sym at *err_pos.
 If protected_access_class is non-NULL, the checking is the special
 protected member checking of 11.5 of the C++ standard, and
 protected_access_class indicates the type of the object used
-to access the member.
+to access the member.  in_template_arg_list is TRUE if the access
+occurred in the context of a template argument list.
 
 Normally this routine determines the error code and severity to be
 used, but they can also be specified by the caller using severity and
@@ -10774,6 +10776,14 @@ diagnostic would actually be an error.
         error_code = ec_no_access_to_type_cfront_mode;
       }  /* if */
     }  /* if */
+    if (gpp_mode && gnu_version >= 30400 && in_template_arg_list) {
+      /* g++ has a bug where some access errors are ignored in template
+         argument list.  The g++ bug only occurs if the argument list is
+         followed by "::".  Our emulation issues a diagnostic in all cases,
+         but reduces the severity to a warning when it appears in a
+         template argument list. */
+      severity = es_warning;
+    }  /* if */
     if (issue_diagnostics) {
       pos_sy_diagnostic(severity, error_code, err_pos, sym);
     }  /* if */
@@ -10809,6 +10819,7 @@ Allocate an access error description entry.  Reuse a freed entry if possible.
   aedp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   aedp->severity = es_none;
   aedp->error_code = ec_no_error;
+  aedp->in_template_arg_list = FALSE;
   return aedp;
 }  /* alloc_access_error_descr */
 	
@@ -10860,7 +10871,9 @@ a context where deferral of errors applies.
 {
   a_boolean			defer_access_checks = FALSE;
   a_scope_stack_entry_ptr	ssep;
+  a_boolean			in_template_arg_list;
 
+  in_template_arg_list = scope_stack_top().in_template_arg_list;
   if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
     ssep = &scope_stack[curr_deferred_access_scope];
     defer_access_checks = ssep->defer_access_checks;
@@ -10870,6 +10883,7 @@ a context where deferral of errors applies.
       issue_access_error(sym,
                          protected_access_class,
                          source_position, severity, error_code,
+                         in_template_arg_list,
                          error_detected);
       if (locator != NULL) locator->access_control_error_reported = TRUE;
     }  /* if */
@@ -10888,6 +10902,7 @@ a context where deferral of errors applies.
           aedp->token_sequence_number == curr_token_sequence_number &&
           aedp->severity == severity &&
           aedp->error_code == error_code &&
+          aedp->in_template_arg_list == in_template_arg_list &&
           cmp_source_positions(aedp->position, *source_position) == 0) {
         break;
       }  /* if */
@@ -10902,6 +10917,7 @@ a context where deferral of errors applies.
       aedp->token_sequence_number = curr_token_sequence_number;
       aedp->severity = severity;
       aedp->error_code = error_code;
+      aedp->in_template_arg_list = in_template_arg_list;
       if (ssep->deferred_access_checks == NULL) {
         ssep->deferred_access_checks = aedp;
       }  /* if */
@@ -11115,6 +11131,7 @@ be reported when access deferral is ended by the enclosing context.
                                aedp->protected_access_class,
                                &aedp->position,
                                aedp->severity, aedp->error_code,
+                               aedp->in_template_arg_list,
                                (a_boolean *)NULL);
             /* Record the symbol and position of the previous access error. */
             prev_error_symbol = aedp->sym;
