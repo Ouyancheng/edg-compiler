@@ -3597,7 +3597,8 @@ C and C++.
                                depth_of_initial_lookup_scope, NO_SCOPE_DEPTH);
     }  /* if */
     if (gpp_dependent_name_lookup &&
-        lookup_state.any_ignored_dependent_bases) {
+        lookup_state.any_ignored_dependent_bases &&
+        !is_template_dependent_context()) {
       /* In g++ mode, names from dependent base classes are sometimes
          ignored and sometimes not.  A second lookup is done to determine if
          a different result would have been found if dependent bases were
