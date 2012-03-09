@@ -3,11 +3,11 @@ Version 4.5
 3/9/1    [EDGcpfe/12703]
 GNU C++ compatibility: use of inaccessible types as template arguments
 
-The g++ compiler ignores some access errors when they occur in a
-template argument list.  The g++ bug only occurs if the argument list is
-followed by "::".  Our emulation of this bug issues a diagnostic in
-all cases, but reduces the severity of the diagnostic to a warning when
-the reference appears in a template argument list.
+The g++ compiler ignores some access errors when they occur in a template
+argument list.  The g++ bug only occurs if the argument list is followed
+by "::".  Our emulation of this bug issues a diagnostic in all cases, but
+reduces the severity of the diagnostic to a warning when the reference
+appears in a template argument list and when gnu_version >= 30400.
 
   template<typename T> struct A {
     typedef int type;
