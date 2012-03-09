@@ -1,5 +1,23 @@
 Version 4.5
 
+3/9/12   [EDGcpfe/12689]
+Definition in enclosing namespace of a function first declared as a friend
+
+In modes in which friend injection is not enabled, the front end failed to
+find a previous declaration of a friend function when the function was first
+declared in a friend declaration and was later defined in a namespace
+enclosing the one in which it was declared.  Now fixed.  This usage was
+formerly accepted in g++ mode when gnu_version < 40300, but is now accepted
+in all modes.
+
+  namespace N {
+    struct A {
+      friend void f(const A &);
+    };
+  }
+  void N::f(const N::A &) {}
+
+
 3/8/12   [EDGcpfe/12737]
 C++-generating back end: dependent class template reference with empty
 argument list

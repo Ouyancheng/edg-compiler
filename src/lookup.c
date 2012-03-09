@@ -4969,8 +4969,7 @@ namespace_qualified_id_lookup.
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((!(fund_sym->is_invisible) || is_linkage_or_friend_lookup ||	      \
-    /* Some versions of g++ find invisible names in qualified declarators. */ \
-    (gpp_mode && is_declarator_lookup && gnu_version < 40300)) &&      \
+    is_declarator_lookup) &&					      \
    (!(sym)->is_class_member) &&                                       \
    /* Note that same_entities must not be used for this test. */      \
    sym_parent_namespace_or_null((sym)) == ns_ptr &&                   \
