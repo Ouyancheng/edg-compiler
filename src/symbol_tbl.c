@@ -6297,6 +6297,37 @@ The symbol must be a function or function template symbol.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#define ctor_is_trivial(sym)                                          \
+  ((sym)->variant.routine.ptr->is_trivial_default_constructor ||      \
+   (sym)->variant.routine.ptr->is_trivial_copy_function)
+
+a_boolean f_has_nontrivial_constructor(a_class_symbol_supplement_ptr  cssp)
+/*
+Return TRUE if any of the constructors associated with cssp is nontrivial.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (cssp->constructor != NULL) {
+    if (symbol_is(cssp->constructor, sk_overloaded_function)) {
+      /* An overloaded set of constructors: Check each one in turn. */
+      a_symbol_ptr  sym = cssp->constructor
+                              ->variant.overloaded_function.symbols;
+      for (; sym != NULL; sym = sym->next) {
+        if (!ctor_is_trivial(sym)) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    } else if (!ctor_is_trivial(cssp->constructor)) {
+      /* A single constructor and it is nontrivial. */
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* f_has_nontrivial_constructor */
+
+
 a_base_class_ptr find_base_with_type(a_type_ptr        base_type,
                                      a_type_ptr        class_type,
                                      a_base_class_ptr  ref_bcp)

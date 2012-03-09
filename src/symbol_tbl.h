@@ -5437,6 +5437,14 @@ extern a_boolean is_cli_param_array_routine_symbol(a_symbol_ptr sp);
 #define is_finalizer_symbol(sym) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_boolean f_has_nontrivial_constructor(
+                                         a_class_symbol_supplement_ptr  cssp);
+
+/* Return TRUE if a class symbol supplement is for a class with a nontrivial
+   constructor. */
+#define has_nontrivial_constructor(cssp)                              \
+  ((cssp)->constructor != NULL && f_has_nontrivial_constructor(cssp))
+
 /* Return TRUE if a class symbol supplement is for a class with a nontrivial
    destructor.  (The cssp->destructor != NULL test ensures that the macro
    returns FALSE for nonreal class templates.) */

@@ -12040,10 +12040,10 @@ typedef struct a_routine {
 			   Such a constructor has no effect, and hence calls
 			   to it can be elided.  C++ only. */
   a_bit_field	is_trivial_copy_function:1;
-			/* TRUE if this routine is a trivial copy constructor
-			   or a trivial copy assignment operator.  The copy
-			   operation performed by such a routine is a bitwise
-			   copy.  C++ only. */
+			/* TRUE if this routine is a trivial copy or move
+			   constructor or a trivial copy or move assignment
+			   operator.  The operation performed by such a
+			   routine is a bitwise copy.  C++ only. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   a_bit_field	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)
