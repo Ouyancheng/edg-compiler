@@ -2584,6 +2584,18 @@ a name.  Never generate a qualified name.
   }  /* if */
 }  /* gen_bare_name */
 
+/*
+Provide a distinguished value (contents not used) to indicate an empty
+template argument list.  This can occur with a reference to a dependent
+template that assumes that all its parameters have default arguments, e.g.,
+with a template parameter T, "T::template M<>".  The address of this
+variable is returned as the result for template_arguments_for_name in such
+cases to indicate that an argument list and, consequently, the "template"
+keyword are needed but to suppress the attempt to put out the nonexistent
+template arguments.
+*/
+static a_template_arg placeholder_for_empty_list;
+
 
 static a_template_arg_ptr template_arguments_for_name(
                                         a_source_correspondence *scp,
@@ -2607,6 +2619,17 @@ argument list and to FALSE otherwise.
     a_type_ptr type = (a_type_ptr)scp;
     if (is_immediate_class_type(type)) {
       tap = type->variant.class_struct_union.extra_info->template_arg_list;
+      if (tap == NULL && type->variant.class_struct_union.is_template_class &&
+          type->variant.class_struct_union.extra_info->assoc_template->kind ==
+                                               (a_template_kind)templk_class) {
+        /* This can occur with a reference to a dependent template that
+           assumes that all its parameters have default arguments, e.g.,
+           with a template parameter T, "T::template M<>".  We return a
+           pointer to placeholder_for_empty_list, which is recognized as
+           a distinguished value and not an actual template argument. */
+        check_assertion(type->variant.class_struct_union.is_nonreal_class);
+        tap = &placeholder_for_empty_list;
+      }  /* if */
     } else if (type->kind == (a_type_kind)tk_typeref) {
       tap = type->variant.typeref.extra_info->template_arg_list;
     }  /* if */
@@ -2710,7 +2733,10 @@ that the remaining arguments will be defaulted.
         disable_line_wrapping_until_column = new_disable_column;
       }  /* if */
     }  /* if */
-    if (num_arguments >= 0 || min_arguments >= 0) {
+    if (tap == &placeholder_for_empty_list) {
+      /* There are no arguments. */
+      num_arguments = 0;
+    } else if (num_arguments >= 0 || min_arguments >= 0) {
       /* We may use fewer arguments than are present in the full template
          argument list.  Scan through the list to identify the last
          argument to be used (prev_argp) and the first argument to be

@@ -1,5 +1,23 @@
 Version 4.5
 
+3/8/12   [EDGcpfe/12737]
+C++-generating back end: dependent class template reference with empty
+argument list
+
+In a reference to a dependent class template that is written with an empty
+argument list (i.e., assuming that all the parameters of the class template
+referred to by the eventual instantiation will have default arguments), the
+C++-generating back end when configured with PROTOTYPE_INSTANTIATIONS_IN_IL
+set to TRUE put out the reference with no template argument list and,
+consequently, without the template keyword as well.  This is now fixed.
+For example:
+
+  template<typename T> struct A {
+    typedef typename T::template C<> TC;   // Previously generated as
+                                           // "typename T::C"
+  };
+
+
 3/8/12   [EDGcpfe/12090]
 Microsoft function modifiers recorded in the IL in more configurations
 
