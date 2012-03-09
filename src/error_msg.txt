@@ -2371,7 +2371,7 @@ ec_too_large_to_inline;;"%n is too large to be inlined"
 ec_declared_implicitly;INTERNAL;" (declared implicitly)"
 ec_cl_gen_move_operations_option_only_in_cplusplus;;"option to control move options can be used only when compiling C++"
 ec_cl_gen_move_operations_and_rvalue_ctor_is_copy_ctor;;"move operations cannot be generated when rvalue constructors are copy constructors"
-ec_cl_move_operations_require_rvalue_references;;"option to control move operations cannot be used when disabling rvalue references"
+ec_cl_move_operations_require_rvalue_references;;"option to control move operations cannot be used when rvalue references are disabled"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

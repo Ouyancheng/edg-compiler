@@ -5670,7 +5670,7 @@ initialized.  These are addressed in the course of the processing.
   class_type = parent_class_of(ctor_rout);
   check_assertion(class_type != NULL);
   ctsp = class_type->variant.class_struct_union.extra_info;
-  /* Check if we handling a generated move/copy constructor. */
+  /* Check if we are dealing with a generated move/copy constructor. */
   if (user_defined) {
     is_generated_cctor = FALSE;
     is_generated_mctor = FALSE;
