@@ -23,7 +23,7 @@ Microsoft function modifiers recorded in the IL in more configurations
 
 Previously, the Microsoft function modifiers "abstract", "override", and
 "new" were only recorded in the IL entry for a member function when
-BACKEND_IS_CP_GEN_BE is TRUE.  Now this is also done when that macro is
+BACK_END_IS_CP_GEN_BE is TRUE.  Now this is also done when that macro is
 FALSE.
 
 
