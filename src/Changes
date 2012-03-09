@@ -5,7 +5,7 @@ C++-generating back end: incorrect qualifier on dependent function call
 in --g++ mode
 
 In versions that use the C++-generating back end in g++ mode, dependent
-functions calls could be emitted with an incorrect qualifier.  This
+function calls could be emitted with an incorrect qualifier.  This
 would occur in member functions or member function templates of classes
 with one or more dependent base classes.  The problem only occurred if
 there were multiple dependent function calls, and the calls provided
