@@ -2584,33 +2584,26 @@ a name.  Never generate a qualified name.
   }  /* if */
 }  /* gen_bare_name */
 
-/*
-Provide a distinguished value (contents not used) to indicate an empty
-template argument list.  This can occur with a reference to a dependent
-template that assumes that all its parameters have default arguments, e.g.,
-with a template parameter T, "T::template M<>".  The address of this
-variable is returned as the result for template_arguments_for_name in such
-cases to indicate that an argument list and, consequently, the "template"
-keyword are needed but to suppress the attempt to put out the nonexistent
-template arguments.
-*/
-static a_template_arg placeholder_for_empty_list;
-
-
-static a_template_arg_ptr template_arguments_for_name(
+static a_boolean name_has_template_arguments(
                                         a_source_correspondence *scp,
                                         an_il_entry_kind        entry_kind,
+                                        a_template_arg_ptr      *arg_ptr,
                                         a_boolean               *insert_space)
 /*
-Return the list of explicit template arguments that should be added onto the
-bare name of the entity of kind entry_kind with source correspondence
-scp.  If insert_space is non-null, *insert_space will be set to TRUE if a
+If the name of the entity designated by scp and entry_kind should be put
+out with a template argument list, return TRUE and, if arg_ptr is non-NULL,
+set *arg_ptr to point to the first argument in the list.  Otherwise, return
+FALSE.  If insert_space is non-null, *insert_space will be set to TRUE if a
 space should be inserted between the bare name and the explicit template
 argument list and to FALSE otherwise.
 */
 {
   a_template_arg_ptr tap = NULL;
+  a_boolean          result = FALSE;
 
+  if (arg_ptr != NULL) {
+    *arg_ptr = NULL;
+  }  /* if */
   if (insert_space != NULL) {
     *insert_space = FALSE;
   }  /* if */
@@ -2624,14 +2617,17 @@ argument list and to FALSE otherwise.
                                                (a_template_kind)templk_class) {
         /* This can occur with a reference to a dependent template that
            assumes that all its parameters have default arguments, e.g.,
-           with a template parameter T, "T::template M<>".  We return a
-           pointer to placeholder_for_empty_list, which is recognized as
-           a distinguished value and not an actual template argument. */
+           with a template parameter T, "T::template M<>".  We return TRUE
+           with *arg_ptr set to NULL to indicate the need for an empty
+           list. */
         check_assertion(type->variant.class_struct_union.is_nonreal_class);
-        tap = &placeholder_for_empty_list;
+        result = TRUE;
+      } else {
+        result = (tap != NULL);
       }  /* if */
     } else if (type->kind == (a_type_kind)tk_typeref) {
       tap = type->variant.typeref.extra_info->template_arg_list;
+      result = (tap != NULL);
     }  /* if */
   } else if (entry_kind == iek_routine) {
     /* Check for template arguments on a routine, but put them out only if
@@ -2640,6 +2636,7 @@ argument list and to FALSE otherwise.
     a_routine_ptr rout = (a_routine_ptr)scp;
     if (rout->expl_template_arg_list_used) {
       tap = rout->template_arg_list;
+      result = TRUE;
       if (insert_space != NULL && tap != NULL &&
           rout->special_kind == (a_special_function_kind)sfk_operator) {
         /* For operator functions with a template argument list, put a space
@@ -2650,8 +2647,11 @@ argument list and to FALSE otherwise.
       }  /* if */
     }  /* if */
   }  /* if */
-  return tap;
-}  /* template_arguments_for_name */
+  if (arg_ptr != NULL) {
+    *arg_ptr = tap;
+  }  /* if */
+  return result;
+}  /* name_has_template_arguments */
 
 
 static a_boolean type_is_prototype_instantiation(a_type_ptr type)
@@ -2690,10 +2690,9 @@ that the remaining arguments will be defaulted.
 */
 {
   a_boolean          insert_space;
-  a_template_arg_ptr tap = template_arguments_for_name(scp, entry_kind,
-                                                         &insert_space);
+  a_template_arg_ptr tap;
 
-  if (tap != NULL) {
+  if (name_has_template_arguments(scp, entry_kind, &tap, &insert_space)) {
     a_template_arg_ptr argp = NULL;
     a_template_arg_ptr prev_argp = NULL;
     long               min_arguments = num_arguments;
@@ -2733,7 +2732,7 @@ that the remaining arguments will be defaulted.
         disable_line_wrapping_until_column = new_disable_column;
       }  /* if */
     }  /* if */
-    if (tap == &placeholder_for_empty_list) {
+    if (tap == NULL) {
       /* There are no arguments. */
       num_arguments = 0;
     } else if (num_arguments >= 0 || min_arguments >= 0) {
@@ -3223,8 +3222,10 @@ but the problem goes away with a leading qualifier.
   a_boolean force_qualifier = 
                 (msvc_target_version_number == 1300 &&
                  (options & GN_QUALIFIER) && !(options & GN_DEPENDENT) &&
-                 template_arguments_for_name(scp, entry_kind,
-                                             (a_boolean*)NULL) != NULL);
+                 name_has_template_arguments(
+                                           scp, entry_kind,
+                                           (a_template_arg_ptr *)NULL,
+                                           /*insert_space=*/(a_boolean*)NULL));
   return force_qualifier;
 }  /* force_qualifier_for_msvc */
 
@@ -3500,8 +3501,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
               in_prototype_instantiation_context())) &&
             !is_partial_spec_prototype_inst &&
             !(options & (GN_DECLARATION | GN_SUPPRESS_TEMPLATE_KEYWORD)) &&
-            (template_arguments_for_name(
-                scp, entry_kind, /*insert_space=*/(a_boolean *)NULL) != NULL ||
+            (name_has_template_arguments(scp, entry_kind,
+                                         (a_template_arg_ptr *)NULL,
+                                         /*insert_space=*/(a_boolean *)NULL) ||
              (options & GN_TEMPLATE))) {
           /* Issue the "template" keyword in a "X<T>::template Y<int>" name
              or in a "X<T>::template Y" default template argument for a
@@ -3667,9 +3669,9 @@ put out nothing.
       kind = (an_il_entry_kind)iek_type;
       if (is_immediate_class_type(class_type) &&
           class_type->variant.class_struct_union.is_nonreal_class &&
-          template_arguments_for_name(
-                                 &class_type->source_corresp, iek_type,
-                                 /*insert_space=*/(a_boolean *)NULL) != NULL &&
+          name_has_template_arguments(&class_type->source_corresp, iek_type,
+                                      (a_template_arg_ptr *)NULL,
+                                      /*insert_space=*/(a_boolean *)NULL) &&
           nqp->previous_qualifier != NULL &&
           nqp->previous_qualifier->is_class &&
           is_template_param_or_nonreal_class_type(nqp->previous_qualifier->
@@ -4335,9 +4337,9 @@ declaration.
   a_type_ptr  enclosing_class = curr_name_context->class_type;
   if (!scp->is_class_member &&
       !(scp->qualification_needed && !omit_template_args &&
-        (template_arguments_for_name(
-                                 scp, iek_routine,
-                                 /*insert_space=*/(a_boolean *)NULL) != NULL ||
+        (name_has_template_arguments(scp, iek_routine,
+                                     (a_template_arg_ptr *)NULL,
+                                     /*insert_space=*/(a_boolean *)NULL) ||
          ((a_routine_ptr)scp)->expl_template_arg_list_used)) &&
       enclosing_class != NULL &&
       !enclosing_class->source_corresp.is_local_to_function &&
@@ -9115,8 +9117,9 @@ function reference.
       }  /* if */
       if (gcc_is_generated_code_target &&
           in_prototype_instantiation_context() &&
-          template_arguments_for_name(&rout->source_corresp, iek_routine,
-                                      (a_boolean *)NULL) != NULL) {
+          name_has_template_arguments(&rout->source_corresp, iek_routine,
+                                      (a_template_arg_ptr *)NULL,
+                                      /*insert_space=*/(a_boolean *)NULL)) {
         /* In some circumstances, g++ requires the "template" keyword in
            references to template-ids that are not actually dependent and
            does not complain when the keyword is used unnecessarily, so we
