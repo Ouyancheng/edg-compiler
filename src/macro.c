@@ -4706,12 +4706,17 @@ scan_expanded_tokens:
                 if (ptr_in_range(
                                slmp2->line_loc,
                                macro_buffer + num_compacted_macro_buffer_chars,
-                               after_end_of_macro_buffer)) {
+                               after_end_of_macro_buffer) &&
+                    slmp2->inserted_text != slmp2->inserted_chars) {
                   /* The modification contributed to the count of deleted
                      characters in the macro buffer; reverse that
                      contribution and, if the parent modification is still
                      extant, update its count of deleted characters as
-                     well. */
+                     well.  (Modifications in which the inserted_text is
+                     located in the modification's inserted_chars buffer
+                     were added outside the character-counting regime,
+                     typically by skip_white_space, and thus should not be
+                     processed.) */
                   a_source_line_modif_ptr parent_slmp =
                         assoc_source_line_modif_full(slmp2->line_loc,
                                                      /*failure_allowed=*/TRUE);

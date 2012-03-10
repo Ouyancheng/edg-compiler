@@ -1,5 +1,12 @@
 Version 4.5
 
+3/10/12  [EDGcpfe/12694]
+Assertion failure with complex macro expansions
+
+The front end could abort with an assertion failure in expand_macro_buffer
+when processing certain complex macro expansions.  This is now fixed.
+
+
 3/9/12   [EDGcpfe/12738]
 C++-generating back end: incorrect qualifier on dependent function call
 in --g++ mode
