@@ -428,11 +428,11 @@ static a_boolean
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
-If expr is an enk_constant node and the constant has a backing expression
-that should be used, return the backing expression; otherwise return
-expr.
+If e is an enk_constant node and the constant has an associated expression
+(backing expression or template parameter expression) that will be put out,
+return that expression; otherwise return e.
 */
-#define backing_expr_if_constant(e)                                          \
+#define assoc_expr_if_constant(e)                                          \
   (is_constant_node(e) &&                                                    \
    constant_should_be_put_out_as_expr((e)->variant.constant)) ?              \
                                   (e)->variant.constant->expr :              \
@@ -8402,7 +8402,7 @@ case, is passed along to gen_expr.
                                  !obj_expr_of_mfunc_operator, &octl);
   } else {
     a_boolean need_parens;
-    expr = backing_expr_if_constant(expr);
+    expr = assoc_expr_if_constant(expr);
     if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       /* Do not add parentheses in order to avoid syntactic ambiguity; for
          example, (X()) is a cast to a function type, not an explicit
@@ -8995,7 +8995,7 @@ function reference.
       selection_class = object_expr->type;
     }  /* if */
     selection_class = skip_typerefs(selection_class);
-    object_expr = backing_expr_if_constant(object_expr);
+    object_expr = assoc_expr_if_constant(object_expr);
     if (strip_lvalue_cast_sequence(&object_expr)) {
       /* We removed a compiler-generated sequence converting the object
          expression from an lvalue to a pointer; change the operator
@@ -10142,7 +10142,7 @@ call.
       } else {
         /* Specific routine is not known (e.g., call through a pointer). */
         a_boolean need_parens = TRUE;
-        func_expr = backing_expr_if_constant(func_expr);
+        func_expr = assoc_expr_if_constant(func_expr);
         if (func_expr->kind == (an_expr_node_kind)enk_temp_init) {
           /* Do not use extra parentheses to avoid syntactic ambiguity:
              (X()) is a cast to a function type, not an explicit
@@ -10645,7 +10645,7 @@ gen_expr that might end up generating this expr as a temporary.
   is_pack_expansion = expr->is_pack_expansion;
   /* If expression is a constant that came from an expression, go to
      the expression.  This allows optimizations. */
-  expr = backing_expr_if_constant(expr);
+  expr = assoc_expr_if_constant(expr);
 #if CHECKING
   if (is_operation_node(expr)) {
     check_operation_node_consistency(expr);
@@ -11449,7 +11449,7 @@ done_with_operation_after_parens:
       } else {
         /* sizeof(expr). */
         an_expr_node_ptr operand =
-              backing_expr_if_constant(expr->variant.sizeof_info.variant.expr);
+                assoc_expr_if_constant(expr->variant.sizeof_info.variant.expr);
         write_tok_str("sizeof ");
         if (operand->kind == (an_expr_node_kind)enk_temp_init) {
           /* Do not use extra parentheses to avoid generating something
