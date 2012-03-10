@@ -10402,8 +10402,9 @@ only if it can be easily determined that there will be no precedence
 problems.
 */
 {
-  a_boolean parens_needed = TRUE;
-  a_boolean operand_changed;
+  a_boolean        parens_needed = TRUE;
+  a_boolean        operand_changed;
+  an_expr_node_ptr expr_from_const;
 
   do {
     /* Scan down through nodes that will not appear in the generated code to
@@ -10422,9 +10423,9 @@ problems.
             !is_const_string_literal_cast(operand)))))) {
       operand = operand->variant.operation.operands;
       operand_changed = TRUE;
-    } else if (is_constant_node(operand) &&
-               constant_should_be_put_out_as_expr(operand->variant.constant)) {
-      operand = operand->variant.constant->expr;
+    } else if ((expr_from_const = assoc_expr_if_constant(operand)) !=
+                                                                     operand) {
+      operand = expr_from_const;
       operand_changed = TRUE;
     } else if (operand->kind == (an_expr_node_kind)enk_temp_init) {
       if (operand->variant.init.dynamic_init->kind ==
