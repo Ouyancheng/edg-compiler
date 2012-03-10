@@ -427,6 +427,22 @@ static a_boolean
 		need_pragma_pack_restore;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
+/*
+If expr is an enk_constant node and the constant has a backing expression
+that should be used, return the backing expression; otherwise return
+expr.
+*/
+#define backing_expr_if_constant(e)                                          \
+  (is_constant_node(e) &&                                                    \
+   constant_should_be_put_out_as_expr((e)->variant.constant)) ?              \
+                                  (e)->variant.constant->expr :              \
+  (is_constant_node(e) &&                                                    \
+   (e)->variant.constant->kind == (a_constant_repr_kind)ck_template_param && \
+   (e)->variant.constant->variant.template_param.kind ==                     \
+                          (a_template_param_constant_kind)tpck_expression) ? \
+            (e)->variant.constant->variant.template_param.variant.expr : (e)
+
+
 /* Needed because of forward references: */
 static a_boolean is_default_dynamic_init(a_dynamic_init_ptr dip);
 static void gen_name(a_source_correspondence *scp,
@@ -8385,7 +8401,17 @@ case, is passed along to gen_expr.
     form_lvalue_address_constant(expr->variant.constant,
                                  !obj_expr_of_mfunc_operator, &octl);
   } else {
-    gen_expr(expr, !obj_expr_of_mfunc_operator, obj_expr_of_mfunc_operator);
+    a_boolean need_parens;
+    expr = backing_expr_if_constant(expr);
+    if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+      /* Do not add parentheses in order to avoid syntactic ambiguity; for
+         example, (X()) is a cast to a function type, not an explicit
+         temporary. */
+      need_parens = FALSE;
+    } else {
+      need_parens = !obj_expr_of_mfunc_operator;
+    }  /* if */
+    gen_expr(expr, need_parens, obj_expr_of_mfunc_operator);
   }  /* if */
 }  /* gen_object_expr_for_implicit_call */
 
@@ -8969,11 +8995,7 @@ function reference.
       selection_class = object_expr->type;
     }  /* if */
     selection_class = skip_typerefs(selection_class);
-    if (is_constant_node(object_expr) &&
-        constant_should_be_put_out_as_expr(object_expr->variant.constant)) {
-      /* Use the expression that the constant represents. */
-      object_expr = object_expr->variant.constant->expr;
-    }  /* if */
+    object_expr = backing_expr_if_constant(object_expr);
     if (strip_lvalue_cast_sequence(&object_expr)) {
       /* We removed a compiler-generated sequence converting the object
          expression from an lvalue to a pointer; change the operator
@@ -10119,7 +10141,15 @@ call.
         form_unknown_function_constant(func_expr->variant.constant, &octl);
       } else {
         /* Specific routine is not known (e.g., call through a pointer). */
-        gen_expr_with_parens(func_expr);
+        a_boolean need_parens = TRUE;
+        func_expr = backing_expr_if_constant(func_expr);
+        if (func_expr->kind == (an_expr_node_kind)enk_temp_init) {
+          /* Do not use extra parentheses to avoid syntactic ambiguity:
+             (X()) is a cast to a function type, not an explicit
+             temporary. */
+          need_parens = FALSE;
+        }  /* if */
+        gen_expr(func_expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
       }  /* if */
     }  /* if */
     if (!processed) {
@@ -10615,12 +10645,7 @@ gen_expr that might end up generating this expr as a temporary.
   is_pack_expansion = expr->is_pack_expansion;
   /* If expression is a constant that came from an expression, go to
      the expression.  This allows optimizations. */
-  if (is_constant_node(expr)) {
-    a_constant_ptr constant = expr->variant.constant;
-    if (constant_should_be_put_out_as_expr(constant)) {
-      expr = constant->expr;
-    }  /* if */
-  }  /* if */
+  expr = backing_expr_if_constant(expr);
 #if CHECKING
   if (is_operation_node(expr)) {
     check_operation_node_consistency(expr);
@@ -11423,7 +11448,8 @@ done_with_operation_after_parens:
         write_tok_ch(')');
       } else {
         /* sizeof(expr). */
-        an_expr_node_ptr operand = expr->variant.sizeof_info.variant.expr;
+        an_expr_node_ptr operand =
+              backing_expr_if_constant(expr->variant.sizeof_info.variant.expr);
         write_tok_str("sizeof ");
         if (operand->kind == (an_expr_node_kind)enk_temp_init) {
           /* Do not use extra parentheses to avoid generating something
@@ -11472,11 +11498,8 @@ done_with_operation_after_parens:
                        expr->is_static_cast);
       break;
     case enk_temp_init:
-      /* Temporary creation/initialization.  (Note: need_parens is
-         intentionally ignored here.  Adding parentheses in some contexts,
-         such as following a sizeof operator, might result in the
-         declaration/expression syntactic ambiguity, which will be resolved
-         in favor of the declaration -- not as the expression this is.) */
+      /* Temporary creation/initialization. */
+      if (need_parens) write_tok_ch('(');
       if (expr->is_lvalue) {
         /* Using the temp as an lvalue. */
         a_type_ptr         temp_type = expr->type;
@@ -11511,6 +11534,7 @@ done_with_operation_after_parens:
         /* Normal case (using the value of the temp). */
         gen_temp_init(expr, obj_expr_of_mfunc_operator);
       }  /* if */
+      if (need_parens) write_tok_ch(')');
       break;
     case enk_new_delete:
       /* new or delete operation. */
