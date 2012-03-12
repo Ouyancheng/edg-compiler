@@ -1,5 +1,28 @@
 Version 4.5
 
+3/12/12  [EDGcpfe/12304]
+Use of injected class name in friend declaration
+
+In a friend declaration in which the declarator is a qualified name, a
+spurious error could be issued if the injected class name of the enclosing
+class template was used without a template argument list.  Now fixed.
+
+  namespace N {
+    struct B {
+      template <class T> static int g(T *a) { return 0; }
+    };
+    template <class T> inline int h(T *t) { return T::f(t); }
+    template <class T> struct A {
+      friend int T::g(A *a);  // formerly "argument list ... is missing"
+      static int f(A *a) { return T::g(a); }
+    };
+  }
+  int main() {
+    N::A<N::B> *a = 0;
+    N::h(a);
+  }
+
+
 3/12/12  [EDGcpfe/12619,EDGcpfe/12741]
 C++11: "final" class modifier
 
