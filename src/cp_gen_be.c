@@ -552,7 +552,6 @@ static void gen_expr(an_expr_node_ptr expr,
 #define gen_expression(expr)       gen_expr(                                  \
                                        expr, /*need_parens=*/FALSE,           \
                                        /*obj_expr_of_mfunc_operator=*/FALSE)
-static void gen_boolean_controlling_expression(an_expr_node_ptr expr);
 
 /*
 Macro that returns TRUE for a cast (eok_cast, eok_base_class_cast, etc.) if
@@ -10786,9 +10785,8 @@ gen_expr that might end up generating this expr as a temporary.
           opstr = "+";
           break;
         case eok_not:
-          write_tok_ch('!');
-          gen_boolean_controlling_expression(operand_1);
-          goto done_with_operation;
+          opstr = "!";
+          break;
         case eok_bool_cast:
         case eok_cast:
         case eok_ref_cast:
@@ -11144,18 +11142,14 @@ gen_expr that might end up generating this expr as a temporary.
           }
           goto done_with_operation;
         case eok_land:
-          gen_boolean_controlling_expression(operand_1);
-          write_tok_str(" && ");
-          gen_boolean_controlling_expression(operand_2);
-          goto done_with_operation;
+          opstr = "&&";
+          break;
         case eok_lor:
-          gen_boolean_controlling_expression(operand_1);
-          write_tok_str(" || ");
-          gen_boolean_controlling_expression(operand_2);
-          goto done_with_operation;
+          opstr = "||";
+          break;
         case eok_question:
           /* Three operand operator. */
-          gen_boolean_controlling_expression(operand_1);
+          gen_expr_with_parens(operand_1);
           write_tok_str(" ? ");
 #if GNU_EXTENSIONS_ALLOWED
           if (expr->variant.operation.is_gnu_two_operand_question_mark) {
@@ -11637,16 +11631,6 @@ of a statement or short-circuit operator, and also a full expression
   skip_embedded_declarations();
   gen_expression(expr);
 }  /* gen_full_boolean_controlling_expression */
-
-
-static void gen_boolean_controlling_expression(an_expr_node_ptr expr)
-/*
-Generate code for the indicated expression, which could be the controlling
-expression in a ?: or a term of a logical expression.
-*/
-{
-  gen_expr_with_parens(expr);
-}  /* gen_boolean_controlling_expression */
 
 
 static void gen_condition(a_statement_ptr statement)
