@@ -7829,6 +7829,10 @@ typedef struct a_type {
 			/* TRUE if is_generic_constraint is TRUE and the
 			   no constraints were specified for in the 
 			   associated constraint list. */
+      a_bit_field
+		sealed:1;
+			/* TRUE if this class was defined with the Microsoft-
+			   mode context-sensitive keyword "sealed". */
 #if BACK_END_IS_CP_GEN_BE
       a_bit_field
 		defined_with_abstract_class_modifier:1;
@@ -7839,10 +7843,10 @@ typedef struct a_type {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
 		final:1;
-			/* TRUE if this class was defined with the C++11
-			   attribute "final" or the Microsoft-mode context-
-			   sensitive keyword "sealed".  Such a class type
-			   cannot be used as a base class. */
+			/* TRUE if this class was defined with the attribute
+                           or context-sensitive keyword "final" (C++11) or the
+			   Microsoft-mode context-sensitive keyword "sealed".
+			   Such a class type cannot be used as a base class. */
       a_bit_field
                 any_const_member:1;
                         /* TRUE if any member of the class, struct, or union

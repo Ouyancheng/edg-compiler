@@ -7516,9 +7516,11 @@ issue an error and return FALSE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (base_class_type->variant.class_struct_union.final) {
       /* Final/sealed classes cannot be derived from. */
-      an_attribute_ptr  final_ap =
-         find_attribute(ak_final, base_class_type->source_corresp.attributes);
-      pos_error(final_ap != NULL ? ec_final_base_class : ec_sealed_base_class,
+      a_boolean  use_sealed = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        use_sealed = base_class_type->variant.class_struct_union.sealed;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      pos_error(use_sealed ? ec_sealed_base_class : ec_final_base_class,
                 &pos_curr_token);
       okay = FALSE;
     }  /* if */
@@ -14040,15 +14042,14 @@ is_assignment_operator_for_copy.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_boolean is_valid_union_field(a_type_ptr        field_type,
-                                      a_boolean         is_nonstd,
-                                      a_source_position *pos)
+static a_boolean is_valid_union_field(a_type_ptr         field_type,
+                                      a_boolean          is_nonstd,
+                                      a_source_position  *pos)
 /*
 Nonstatic data members of a union may not be objects with a constructor,
 a destructor, or a user-defined assignment operator.  If any such member
-functions are present, then:  in cfront mode issue a warning if there's only
-a user-defined assignment operator; otherwise, issue an error and return
-FALSE .
+functions are present, then:  in cfront mode issue a warning if there's only a
+user-defined assignment operator; otherwise, issue an error and return FALSE.
 */
 {
   a_type_ptr                     tp = skip_typerefs(field_type);
@@ -24046,12 +24047,12 @@ classes.
       /* When loading a definition from metadata, the "sealed" and "abstract"
          modifiers are added at the start of the definition. */
       a_token_kind  next_tok;
-      a_boolean     is_abstract = FALSE, is_sealed = FALSE;
-      check_for_microsoft_class_modifiers(&next_tok, tok_lbrace,
-                                          /*tag_name_first=*/FALSE);
-      scan_microsoft_class_modifiers((a_type_kind)tk_class, &is_abstract,
-                                     &is_sealed);
-      apply_microsoft_class_modifiers(class_type, is_abstract, is_sealed);
+      a_boolean     is_final = FALSE, is_abstract = FALSE, is_sealed = FALSE;
+      check_for_class_modifiers(&next_tok, tok_lbrace,
+                                /*tag_name_first=*/FALSE);
+      scan_class_modifiers((a_type_kind)tk_class,
+                           &is_final, &is_abstract, &is_sealed);
+      apply_class_modifiers(class_type, is_final, is_abstract, is_sealed);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED

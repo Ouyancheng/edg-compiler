@@ -3457,21 +3457,21 @@ be completed here.
       a_source_sequence_entry_ptr       saved_sse_insertion_point = NULL;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      a_type_ptr                        proto_type;
     
+      proto_type = type_symbol_type(cssp->corresp_prototype_sym);
       prototype_cssp = cssp->corresp_prototype_sym->
                                          variant.class_struct_union.extra_info;
       if (prototype_cssp->routine_fixup_list != NULL) {
         /* If a nested class is instantiated before the enclosing class has
            been completed, it may not have been fixed up yet.  Do any
            default argument fixup now. */
-        default_argument_fixup_for_class(
-                                 type_symbol_type(cssp->corresp_prototype_sym),
-                                 /*is_template_based=*/TRUE,
-                                 /*template_second_pass=*/FALSE);
-        default_argument_fixup_for_class(
-                                 type_symbol_type(cssp->corresp_prototype_sym),
-                                 /*is_template_based=*/TRUE,
-                                 /*template_second_pass=*/TRUE);
+        default_argument_fixup_for_class(proto_type,
+                                         /*is_template_based=*/TRUE,
+                                         /*template_second_pass=*/FALSE);
+        default_argument_fixup_for_class(proto_type,
+                                         /*is_template_based=*/TRUE,
+                                         /*template_second_pass=*/TRUE);
       }  /* if */
       /* Save the position of the reference that caused the instantiation. */
       cssp->instantiation_position = pos_curr_token;
@@ -3600,11 +3600,15 @@ be completed here.
 #endif /* DEBUG */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      if (proto_type->variant.class_struct_union.final) {
+        class_type->variant.class_struct_union.final = TRUE;
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode) {
         /* Various properties of the instance can be copied from the
            prototype instantiation. */
-        a_type_ptr proto_type = type_symbol_type(cssp->corresp_prototype_sym);
+        class_type->variant.class_struct_union.sealed = 
+                              proto_type->variant.class_struct_union.sealed;
         class_type->variant.class_struct_union.abstract = 
                               proto_type->variant.class_struct_union.abstract;
 #if BACK_END_IS_CP_GEN_BE
@@ -3613,8 +3617,11 @@ be completed here.
                      proto_type->variant.class_struct_union
                                         .defined_with_abstract_class_modifier;
 #endif /* BACK_END_IS_CP_GEN_BE */
-        if (proto_type->variant.class_struct_union.final) {
-          class_type->variant.class_struct_union.final = TRUE;
+        if (proto_type->variant.class_struct_union.sealed) {
+          class_type->variant.class_struct_union.sealed = TRUE;
+        }  /* if */
+        if (proto_type->variant.class_struct_union.abstract) {
+          class_type->variant.class_struct_union.abstract = TRUE;
         }  /* if */
         if (cppcli_enabled) {
           ctsp->assembly_visibility =
@@ -13700,14 +13707,12 @@ list.
   }  /* while */
 }  /* check_template_param_default_args_and_packs */
 
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
 static void update_extended_decl_info_for_class_template(
                          a_template_symbol_supplement_ptr tssp,
                          an_extended_decl_info_block      *extended_decl_info,
                          a_boolean                        class_definition,
-                         a_boolean                        is_abstract,
-                         a_boolean                        is_sealed,
                          a_source_position                *err_pos)
 /*
 Update the Microsoft decl modifiers information for the specified class
@@ -13743,16 +13748,6 @@ definition (as opposed to a mere declaration).
     prototype_type = type_symbol_type(prototype_sym);
     update_extended_decl_info_for_class(prototype_type, extended_decl_info,
                                         /*explicit_inst=*/FALSE, err_pos);
-    if (is_abstract) {
-      prototype_type->variant.class_struct_union.abstract = TRUE;
-#if BACK_END_IS_CP_GEN_BE
-      prototype_type->variant.class_struct_union
-                             .defined_with_abstract_class_modifier = TRUE;
-#endif /* BACK_END_IS_CP_GEN_BE */
-    }  /* if */
-    if (is_sealed) {
-      prototype_type->variant.class_struct_union.final = TRUE;
-    }  /* if */
   }  /* if */
   /* Update any instances that have already been created. */
   for (slep = tssp->variant.class_template.instantiations;
@@ -13779,12 +13774,29 @@ definition (as opposed to a mere declaration).
       update_extended_decl_info_for_class_template(subordinate_tssp,
                                                    extended_decl_info,
                                                    class_definition,
-                                                   is_abstract, is_sealed,
                                                    err_pos);
     }  /* for */
   }  /* if */
 }  /* update_extended_decl_info_for_class_template */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static void update_class_modifiers_for_class_template(
+                                 a_template_symbol_supplement_ptr tssp,
+                                 a_boolean                        is_final,
+                                 a_boolean                        is_abstract,
+                                 a_boolean                        is_sealed)
+/*
+Record the use of class modifiers (context-sensitive keywords "final"/"sealed"
+and "abstract") in the prototype instantiation associated with tssp.
+*/
+{
+  a_symbol_ptr  prototype_sym =
+                         tssp->variant.class_template.prototype_instantiation;
+
+  apply_class_modifiers(type_symbol_type(prototype_sym),
+                        is_final, is_abstract, is_sealed);
+}  /* update_class_modifiers_for_class_template */
 
 
 void add_befriending_class_to_class_template
@@ -15581,10 +15593,11 @@ declaration of a partial specialization declared outside of its class.
   a_symbol_ptr			    bad_partial_spec_parent_class_sym = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block       extended_decl_info;
-  a_boolean                         is_abstract = FALSE, is_sealed = FALSE;
   a_boolean                         is_interface = FALSE;
   a_symbol_ptr                      primary_arity_sym = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean                         is_abstract = FALSE, is_final = FALSE,
+                                    is_sealed = FALSE;
   an_attribute_ptr                  attributes = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                         saved_sses_disallowed;
@@ -15798,13 +15811,9 @@ declaration of a partial specialization declared outside of its class.
     locator = locator_for_curr_id;
     next_tok = next_token();
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && microsoft_version >= 1400 &&
-      next_tok == tok_identifier) {
-    check_for_microsoft_class_modifiers(
-                              &next_tok, tok_lbrace, /*tag_name_first=*/TRUE);
+  if (next_tok == tok_identifier && class_modifiers_allowed()) {
+    check_for_class_modifiers(&next_tok, tok_lbrace, /*tag_name_first=*/TRUE);
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   is_definition = (next_tok == tok_colon || next_tok == tok_lbrace);
   decl_state->defines_something = is_definition;
   if (is_definition && locator_for_curr_id.is_qualified_name &&
@@ -15821,11 +15830,9 @@ declaration of a partial specialization declared outside of its class.
      token now. */
   if (curr_token == tok_identifier) {
     (void)get_token();
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && microsoft_version >= 1400) {
-      scan_microsoft_class_modifiers(type_kind, &is_abstract, &is_sealed);
+    if (class_modifiers_allowed()) {
+      scan_class_modifiers(type_kind, &is_final, &is_abstract, &is_sealed);
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Make sure this declaration is valid in this scope. */
   if (decl_state->is_template_friend) {
@@ -16361,19 +16368,23 @@ friend_template_checks_done:
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
                           decl_state->is_partial_specialization);
   }  /* if */
+  if (tssp->prototype_template == NULL || tssp->is_specific_definition) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    if (tssp->prototype_template == NULL || tssp->is_specific_definition) {
+    if (microsoft_mode) {
       /* Update any decl modifiers that may have been specified.  Don't
          do this for subordinate templates -- the prototype of the prototype
          template is used. */
       update_extended_decl_info_for_class_template(tssp, &extended_decl_info,
-                                                   is_definition, is_abstract,
-                                                   is_sealed,
+                                                   is_definition, 
                                                    &locator.source_position);
     }  /* if */
-  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (class_modifiers_allowed()) {
+      /* Update the "final" and "abstract" modifiers. */
+      update_class_modifiers_for_class_template(tssp, is_final, is_abstract,
+                                                is_sealed);
+    }  /* if */
+  }  /* if */
   if (decl_state->is_partial_specialization && !is_redecl) {
     /* Make sure that the template parameters are used correctly in the
        partial specialization template argument list. */
@@ -19774,17 +19785,13 @@ in which case the is_delegate flag of decl_state is updated.
                                         GID_USE_PROTOTYPE_NOT_NONREAL |
                                         GID_IS_TEMPLATE_PRESCAN |
 					GID_IMPLICIT_TYPE_CONTEXT)) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode && microsoft_version >= 1400) {
+      if (class_modifiers_allowed()) {
         next_tok = next_token();
         if (next_tok == tok_identifier) {
-          check_for_microsoft_class_modifiers(&next_tok, tok_end_of_source,
-                                              /*tag_name_first=*/TRUE);
+          check_for_class_modifiers(&next_tok, tok_end_of_source,
+                                    /*tag_name_first=*/TRUE);
         }  /* if */
-      } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      {
+      } else {
         (void)get_token();
         next_tok = curr_token;
       }  /* if */

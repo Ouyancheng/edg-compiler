@@ -794,18 +794,18 @@ type_info type may be defined.
   return result;
 }  /* is_namespace_for_type_info_definition */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-void check_for_microsoft_class_modifiers(a_token_kind  *next_tok,
-                                         a_token_kind  body_start,
-                                         a_boolean     tag_name_first)
+void check_for_class_modifiers(a_token_kind  *next_tok,
+                               a_token_kind  body_start,
+                               a_boolean     tag_name_first)
 /*
-Microsoft compilers accept constructs like:
+C++11 permits
+    struct F final: B { ... };
+and Microsoft compilers accept constructs like:
     struct S sealed abstract: B { ... };
-where "sealed" and "abstract" are context-sensitive keywords: They are scanned
-as identifiers, but must be treated like keywords in certain contexts.
-Unfortunately, that means we may need to look ahead several tokens to
-determine whether or not a definition follows.  (In particular,
+where "final", "sealed", and "abstract" are context-sensitive keywords: They
+are scanned as identifiers, but must be treated like keywords in certain
+contexts.  Unfortunately, that means we may need to look ahead several tokens
+to determine whether or not a definition follows.  (In particular,
     struct S sealed;
 should be treated as a declaration of a variable named "sealed", and not a
 declaration of a sealed type "S".)
@@ -857,8 +857,15 @@ normal case, and tok_end_of_source during template prescanning.
       (void)get_token();
     }  /* if */
     for (; curr_token != tok_end_of_source; (void)get_token()) {
-      if (check_context_sensitive_keyword(tok_abstract, "abstract") ||
-          check_context_sensitive_keyword(tok_sealed, "sealed")) {
+      if (check_context_sensitive_keyword(tok_final, "final")) {
+        cache_curr_token(&transformed_token_cache);
+        /* If we found any context-sensitive keywords, we should use the
+           transformed cache. */
+        valid = TRUE;
+      } else if (microsoft_mode &&
+                 (microsoft_version >= 1400 || cppcli_enabled) &&
+                 (check_context_sensitive_keyword(tok_abstract, "abstract") ||
+                  check_context_sensitive_keyword(tok_sealed, "sealed"))) {
         cache_curr_token(&transformed_token_cache);
         /* If we found any context-sensitive keywords, we should use the
            transformed cache. */
@@ -883,9 +890,8 @@ normal case, and tok_end_of_source during template prescanning.
     }  /* if */
   }  /* if */
   discard_token_cache(&orig_token_cache);
-}  /* check_for_microsoft_class_modifiers */
+}  /* check_for_class_modifiers */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean tag_definition_next(a_token_kind   next_tok,
                                      a_symbol_kind  tag_kind,
@@ -1041,14 +1047,13 @@ caution when modifying this routine.
       if (token_after_next == tok_semicolon) next_tok = tok_semicolon;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (!C_mode() && microsoft_mode &&
-        (microsoft_version >= 1400 || cppcli_enabled) &&
-        next_tok == tok_identifier && tag_kind != (a_symbol_kind)sk_enum_tag &&
-        !is_ref_within_new_expr) {
+    if (class_modifiers_allowed() && next_tok == tok_identifier &&
+        tag_kind != (a_symbol_kind)sk_enum_tag && !is_ref_within_new_expr) {
       /* The next token is an identifier: It could be a declarator-id, or it
-         might be a context-sensitive token "sealed" or "abstract". */
-      check_for_microsoft_class_modifiers(
-                &next_tok, tok_lbrace, /*tag_name_first=*/TRUE);
+         might be a context-sensitive keyword "final", "sealed", or
+         "abstract". */
+      check_for_class_modifiers(
+                              &next_tok, tok_lbrace, /*tag_name_first=*/TRUE);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     is_tag_definition = tag_definition_next(next_tok, tag_kind,
@@ -2120,56 +2125,77 @@ previous specification.  For example:
 }  /* record_sun_linker_scope_for_class */
 
 #endif /* SUN_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
-void scan_microsoft_class_modifiers(a_type_kind  type_kind,
-                                    a_boolean    *is_abstract,
-                                    a_boolean    *is_sealed)
+void scan_class_modifiers(a_type_kind  type_kind,
+                          a_boolean    *p_is_final,
+                          a_boolean    *p_is_abstract,
+                          a_boolean    *p_is_sealed)
 /*
-Scan the (context-sensitive) keywords "abstract" and "sealed" and record their
-presence through the given pointers.  Duplicate specifiers are diagnosed as
-discretionary errors.  type_kind indicates whether the modifiers are applied
-to a struct, union, or class type.  An error is issued if the modifier appears
-in a union definition.
+Scan the (context-sensitive) keywords "final", "abstract", and "sealed" and
+record their presence through the given pointers: *p_is_final is set to TRUE if
+"final" or "sealed" is encountered, *p_is_abstract is set to TRUE if "abstract"
+is encountered, and *p_is_sealed is set to TRUE if "sealed" is encountered.
+Duplicate specifiers are diagnosed as discretionary errors.  type_kind
+indicates whether the modifiers are applied to a struct, union, or class type.
+An error is issued if the "abstract" or "sealed" appear in a union definition.
 */
 {
   a_boolean  union_error_issued = FALSE;
+  a_boolean  is_final = FALSE, is_abstract = FALSE, is_sealed = FALSE;
 
   for (;;) {
-    if (curr_token == tok_abstract) {
-      if (*is_abstract) {
+    if (curr_token == tok_final) {
+      if (is_final) {
         diagnostic(es_discretionary_error, ec_duplicate_class_modifier);
       } else {
-        *is_abstract = TRUE;
+        is_final = TRUE;
+      }  /* if */
+    } else if (curr_token == tok_abstract) {
+      if (is_abstract) {
+        diagnostic(es_discretionary_error, ec_duplicate_class_modifier);
+      } else {
+        is_abstract = TRUE;
       }  /* if */
     }  else if (curr_token == tok_sealed) {
-      if (*is_sealed) {
+      if (is_sealed) {
         diagnostic(es_discretionary_error, ec_duplicate_class_modifier);
       } else {
-        *is_sealed = TRUE;
+        is_sealed = TRUE;
       }  /* if */
     } else {
       break;
     }  /* if */
-    if (type_kind == (a_type_kind)tk_union && (*is_sealed || *is_abstract) &&
+    if (type_kind == (a_type_kind)tk_union && (is_sealed || is_abstract) &&
         !union_error_issued) {
       error(ec_abstract_or_sealed_on_union);
       union_error_issued = TRUE;
     }  /* if */
     (void)get_token();
   }  /* for */
-}  /* scan_microsoft_class_modifiers */
+  *p_is_final = is_final || is_sealed;
+  *p_is_abstract = is_abstract;
+  *p_is_sealed = is_sealed;
+}  /* scan_class_modifiers */
 
 
-void apply_microsoft_class_modifiers(a_type_ptr class_type,
-                                     a_boolean  is_abstract,
-                                     a_boolean  is_sealed)
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* is_abstract and is_sealed are not used in some
+                 configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+void apply_class_modifiers(a_type_ptr  class_type,
+                           a_boolean   is_final,
+                           a_boolean   is_abstract,
+                           a_boolean   is_sealed)
 /*
-Update the class type entry to account for any "abstract" or "sealed"
+Update the class type entry to account for any "final"/"sealed" or "abstract"
 context-sensitive keywords encountered while scanning the class definition.
 */
 {
   check_assertion(is_immediate_class_type(class_type));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_sealed) {
+    class_type->variant.class_struct_union.sealed = TRUE;
+  }  /* if */
   if (is_abstract) {
     class_type->variant.class_struct_union.abstract = TRUE;
 #if BACK_END_IS_CP_GEN_BE
@@ -2177,12 +2203,12 @@ context-sensitive keywords encountered while scanning the class definition.
       ->variant.class_struct_union.defined_with_abstract_class_modifier = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
-  if (is_sealed) {
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (is_final) {
     class_type->variant.class_struct_union.final = TRUE;
   }  /* if */
-}  /* apply_microsoft_class_modifiers */
+}  /* apply_class_modifiers */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
 
 static a_boolean delayed_nested_class_allowed_in_class(a_symbol_ptr  sym)
@@ -2886,9 +2912,10 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   a_boolean               tag_id_present;
   a_type_ptr              class_type;
   a_boolean               is_local_class = FALSE, class_key_is_missing = FALSE;
+  a_boolean               is_abstract = FALSE, is_final = FALSE,
+                          is_sealed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean               is_interface = FALSE;
-  a_boolean               is_abstract = FALSE, is_sealed = FALSE;
   an_assembly_visibility  cli_visibility;
   a_cli_class_type_kind   cli_type_kind = (a_cli_class_type_kind)cctk_standard;
   a_source_position       cli_visibility_pos;        
@@ -3248,25 +3275,28 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       err = TRUE;
     }  /* if */
   }  /* if */
+  if (class_modifiers_allowed()) {
+    /* Record any class modifiers indicated by the context-sensitive keywords
+       "final", "abstract", or "sealed". */
+    a_source_position  pos_after_name;
+    pos_after_name = pos_curr_token;
+    scan_class_modifiers(type_kind, &is_final, &is_abstract, &is_sealed);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    /* Record any class modifiers (a C++/CLI feature accepted in "normal" C++
-       by recent Microsoft C++ compilers). */
-    if (microsoft_version >= 1400 || cppcli_enabled) {
-      a_source_position  pos_after_name;
-      pos_after_name = pos_curr_token;
-      scan_microsoft_class_modifiers(type_kind, &is_abstract, &is_sealed);
-      if (cli_type_kind == (a_cli_class_type_kind)cctk_value) {
-        /* Value classes are implicitly sealed. */
-        is_sealed = TRUE;
-      } else if (cli_type_kind == (a_cli_class_type_kind)cctk_interface &&
-                 is_sealed) {
-        pos_error(ec_sealed_cli_interface, &pos_after_name);
-        is_sealed = FALSE;
-      }  /* if */
+    if (cli_type_kind == (a_cli_class_type_kind)cctk_value) {
+      /* Value classes are implicitly sealed (i.e., "final"). */
+      is_final = is_sealed = TRUE;
+    } else if (cli_type_kind == (a_cli_class_type_kind)cctk_interface &&
+               is_final) {
+      pos_error(ec_sealed_cli_interface, &pos_after_name);
+      is_final = is_sealed = FALSE;
     }  /* if */
-  }  /* if */
+    if (cli_type_kind != (a_cli_class_type_kind)cctk_standard &&
+        is_final && !is_sealed) {
+      /* Use of "final" instead of "sealed" on a managed class is an error. */
+      pos_error(ec_final_managed_class, &pos_after_name);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
   if (curr_token == tok_removed_template_body) {
     /* Presumably a nested class of a class template.  The definition was
        replaced by a placeholder token.  If the declaration is autonomous,
@@ -3989,9 +4019,11 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                                         &locator.source_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+  if (is_final || is_abstract) {
+    apply_class_modifiers(class_type, is_final, is_abstract, is_sealed);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && is_immediate_class_type(class_type)) {
-    apply_microsoft_class_modifiers(class_type, is_abstract, is_sealed);
     if (dps->ms_attributes != NULL && !is_local_class) {
       if (!is_class_definition && curr_token != tok_semicolon) {
         /* This is a non-autonomous declaration of the class: The attributes

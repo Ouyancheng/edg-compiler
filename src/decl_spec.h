@@ -68,18 +68,6 @@ extern void set_cli_visibility(a_type_ptr              type,
                                a_source_position_ptr   diag_pos,
                                a_boolean               is_definition);
 
-extern void scan_microsoft_class_modifiers(a_type_kind  type_kind,
-                                           a_boolean    *is_abstract,
-                                           a_boolean    *is_sealed);
-
-extern void check_for_microsoft_class_modifiers(a_token_kind  *next_tok,
-                                                a_token_kind  body_start,
-                                                a_boolean     tag_name_first);
-
-extern void apply_microsoft_class_modifiers(a_type_ptr class_type,
-                                            a_boolean  is_abstract,
-                                            a_boolean  is_sealed);
-
 extern void update_dll_info_for_class(a_type_ptr         class_type,
                                       a_decl_modifier    flags,
                                       a_boolean          explicit_inst,
@@ -148,6 +136,29 @@ extern void attach_tag_attributes(an_attribute_ptr    attributes,
 
 extern void diagnose_std_attribute_on_explicit_instantiation(
                                                         an_attribute_ptr  ap);
+
+/*
+Macro that is TRUE when class modifiers (denoted by context-sensitive keywords
+"final"/"sealed" or "abstract") are permitted.
+*/
+#define class_modifiers_allowed()                                           \
+  (cpp11_mode ||                                                            \
+   (!C_mode() && microsoft_mode &&                                          \
+    (microsoft_version >= 1400 || cppcli_enabled)))
+    
+extern void check_for_class_modifiers(a_token_kind  *next_tok,
+                                      a_token_kind  body_start,
+                                      a_boolean     tag_name_first);
+
+extern void scan_class_modifiers(a_type_kind  type_kind,
+                                 a_boolean    *p_is_final,
+                                 a_boolean    *p_is_abstract,
+                                 a_boolean    *p_is_sealed);
+
+extern void apply_class_modifiers(a_type_ptr  class_type,
+                                  a_boolean   is_final,
+                                  a_boolean   is_abstract,
+                                  a_boolean   is_sealed);
 
 extern void decl_spec_one_time_init(void);
 

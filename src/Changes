@@ -1,5 +1,17 @@
 Version 4.5
 
+3/12/12  [EDGcpfe/12619,EDGcpfe/12741]
+C++11: "final" class modifier
+
+In C++11 mode, the front end now supports the context-sensitive keyword 
+"final" as a modifier for a class definition.  It has the same effect as the
+[[final]] attribute.  For example:
+
+  struct B final {};  // Struct B cannot be derived from.
+  struct B final;     // Variable "final" of type B.
+  struct D: B {};     // Error: B cannot be derived from.
+
+
 3/10/12  [EDGcpfe/12694]
 Assertion failure with complex macro expansions
 
