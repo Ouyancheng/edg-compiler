@@ -862,6 +862,7 @@ normal case, and tok_end_of_source during template prescanning.
         /* If we found any context-sensitive keywords, we should use the
            transformed cache. */
         valid = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_mode &&
                  (microsoft_version >= 1400 || cppcli_enabled) &&
                  (check_context_sensitive_keyword(tok_abstract, "abstract") ||
@@ -870,6 +871,7 @@ normal case, and tok_end_of_source during template prescanning.
         /* If we found any context-sensitive keywords, we should use the
            transformed cache. */
         valid = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* for */
     (void)get_token();
@@ -2150,6 +2152,7 @@ An error is issued if the "abstract" or "sealed" appear in a union definition.
       } else {
         is_final = TRUE;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_abstract) {
       if (is_abstract) {
         diagnostic(es_discretionary_error, ec_duplicate_class_modifier);
@@ -2162,6 +2165,7 @@ An error is issued if the "abstract" or "sealed" appear in a union definition.
       } else {
         is_sealed = TRUE;
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       break;
     }  /* if */
