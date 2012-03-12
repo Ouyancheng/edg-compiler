@@ -4,7 +4,19 @@ Version 4.5
 Assertion failure with complex macro expansions
 
 The front end could abort with an assertion failure in expand_macro_buffer
-when processing certain complex macro expansions.  This is now fixed.
+when processing certain complex macro expansions.  This is now fixed.  For
+example:
+
+  #define CL_NTOH64(x) (long)( (((long)(x) & 0x00000000000000FFULL) << 56) | \
+  (((long)(x) & 0x000000000000FF00ULL) << 40) | (((long)(x) & \
+  0x0000000000FF0000ULL) << 24) | (((long)(x) & 0x0000FF0000000000ULL) >> 24)\
+  | (((long)(x) & 0x00FF000000000000ULL) >> 40) |  (((long)(x) & \
+  0xFF00000000000000ULL) >> 56) )
+  #define CL_HTON64 CL_NTOH64
+  #define IB_MCR_COMPMASK_PKEY (CL_HTON64(((long)1)<<7))
+  #define REQUIRED_MC_CREATE_COMP_MASK (IB_MCR_COMPMASK_PKEY)
+ 
+  CL_NTOH64(REQUIRED_MC_CREATE_COMP_MASK)
 
 
 3/9/12   [EDGcpfe/12738]
