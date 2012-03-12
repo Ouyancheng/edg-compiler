@@ -177,9 +177,9 @@ FALSE.
 3/8/12   [EDGcpfe/12742, EDGcpfe/12360]
 C++11: "final" and "override" function modifiers
 
-In C++11 mode, the front now supports the context-sensitive keywords "final"
-and "override" as a modifier for a member function declaration.  Their
-meaning is the same as, respectively, the [[final]] and [[override]]
+In C++11 mode, the front end now supports the context-sensitive keywords
+"final" and "override" as a modifier for a member function declaration.
+Their meaning is the same as, respectively, the [[final]] and [[override]]
 attributes (see the Changes entry of 12/3/09 and 3/26/10).  For example:
 
   struct B { virtual void f() const; };
