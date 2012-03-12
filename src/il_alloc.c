@@ -1201,6 +1201,7 @@ a pointer to it.
   num_integer_type_supplements_allocated++;
 #endif /* DEBUG */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  itsp->declared_assembly_visibility = (an_assembly_visibility)av_none;
   itsp->assembly_visibility = (an_assembly_visibility)av_none;
   itsp->assembly_index = 0;
   itsp->metadata_type_def_token = 0;
@@ -1492,6 +1493,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ctsp->uuid_string                       = NULL;
   ctsp->orig_type_kind                    = (a_type_kind)tk_error;
+  ctsp->declared_assembly_visibility      = (an_assembly_visibility)av_none;
   ctsp->assembly_visibility               = (an_assembly_visibility)av_none;
   ctsp->cli_class_type_kind               =
                                          (a_cli_class_type_kind)cctk_standard;

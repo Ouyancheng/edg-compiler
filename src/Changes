@@ -1,6 +1,23 @@
 Version 4.5
 
 3/12/12  [EDGcpfe/12753]
+C++/CLI: Assembly visibility
+
+The front end now records the explicitly-specified assembly visibility of
+class and enumeration types in the IL (in addition to the effective
+visibility, which was already recorded previously).  Furthermore, the front
+end previously failed to take the state of member access specifiers into
+account when determining the effective assembly visibility of nested classes.
+For example:
+
+  public ref struct R {
+  private:
+    ref struct N {};  // Previously, N had "public" assembly visibility.
+  };                  // Now it has "private" assembly visibility because
+                      // the member access specifier "private:" is in effect.
+
+
+3/12/12  [EDGcpfe/12753]
 Abort on access specifier before a brace closing a C++/CLI property
 
 In C++/CLI mode, the front end aborted in enter_cli_accessor (symbol_tbl.c)

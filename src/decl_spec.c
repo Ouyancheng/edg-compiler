@@ -2330,12 +2330,24 @@ only.)
   if (is_definition) {
     /* Set the visibility in the IL entry. */
     if (type->source_corresp.is_class_member) {
-      vis = get_assembly_visibility_of(parent_class_of(type));
+      /* If the current member assembly access is private, then the nested
+         class is assembly-private; otherwise, the visibility of the parent
+         applies. */
+      if (scope_stack_top().current_assembly_access ==
+                                            (an_access_specifier)as_private) {
+        vis = (an_assembly_visibility)av_private;
+      } else {
+        vis = get_assembly_visibility_of(parent_class_of(type));
+      }  /* if */
     }  /* if */
     if (is_immediate_class_type(type)) {
+      class_type_supp(type)->declared_assembly_visibility =
+                                                          declared_visibility;
       class_type_supp(type)->assembly_visibility = vis;
     } else {
       check_assertion(type->kind == (a_type_kind)tk_integer);
+      integer_type_supp(type)->declared_assembly_visibility =
+                                                          declared_visibility;
       integer_type_supp(type)->assembly_visibility = vis;
     }  /* if */
   }  /* if */

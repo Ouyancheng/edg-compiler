@@ -1596,6 +1596,8 @@ Display the indicated integer type supplement.
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  disp_assembly_visibility("declared_assembly_visibility",
+                           ptr->declared_assembly_visibility);
   disp_assembly_visibility("assembly_visibility", ptr->assembly_visibility);
   if (ptr->uuid_string != NULL) {
     disp_string_ptr("uuid_string", ptr->uuid_string,
@@ -6078,6 +6080,8 @@ Display the indicated class type supplement entry.
   if (ptr->has_direct_property_or_event) {
     disp_boolean("has_direct_property_or_event", TRUE);
   }  /* if */
+  disp_assembly_visibility("declared_assembly_visibility",
+                           ptr->declared_assembly_visibility);
   disp_assembly_visibility("assembly_visibility", ptr->assembly_visibility);
   disp_cli_class_type_kind("cli_class_type_kind", ptr->cli_class_type_kind);
   if (ptr->is_hide_by_sig) {

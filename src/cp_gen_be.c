@@ -6196,15 +6196,19 @@ pragmas and macros.  Return TRUE if anything was processed.
 
 static void gen_assembly_visibility_for_type(a_type_ptr  type)
 /*
-If the given type has a C++/CLI assembly visibility, generate "public " or
-"private " accordingly, unless the type is a nested type.  (Since the IL does
-not record whether a visibility was explicitly specified, the visibility is
-always rendered for non-nested types.)
+If the given type was declared with an explicit C++/CLI assembly visibility,
+generate "public " or "private " accordingly.
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (!type->source_corresp.is_class_member) {
-    switch (get_assembly_visibility_of(type)) {
+    an_assembly_visibility  declared_vis = (an_assembly_visibility)av_none;
+    if (is_immediate_class_type(type)) {
+      declared_vis = class_type_supp(type)->declared_assembly_visibility;
+    } else if (type->kind == (a_type_kind)tk_integer) {
+      declared_vis = integer_type_supp(type)->declared_assembly_visibility;
+    }  /* if */
+    switch (declared_vis) {
       case av_none:     /* Nothing to do. */        break;
       case av_public:   write_tok_str("public ");   break;
       case av_private:  write_tok_str("private ");  break;

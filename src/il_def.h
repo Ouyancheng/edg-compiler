@@ -6695,9 +6695,14 @@ typedef struct a_class_type_supplement {
   a_bit_field	has_direct_property_or_event:1;
 			/* TRUE if this class contains a direct (i.e., not
 			   inherited) C++/CLI property or event. */
-  a_bit_field   assembly_visibility:2;
-                        /* Visibility of this type at the assembly level.
+  a_bit_field   declared_assembly_visibility:2;
+                        /* Visibility of this type at the assembly level as
+			   explicitly declared in the source (av_none if no
+			   visibility was explicitly specified).  
 			   (C++/CLI only.) */
+  a_bit_field   assembly_visibility:2;
+                        /* Effective visibility of this type at the assembly
+			   level.  (C++/CLI only.) */
   a_bit_field   cli_class_type_kind:2;
 			/* The class type kind of this class.  In non-C++/CLI
 			   modes, it is always cctk_standard.  In C++/CLI mode,
@@ -7133,9 +7138,14 @@ Entry containing additional information about an integral type.
 typedef struct an_integer_type_supplement *an_integer_type_supplement_ptr;
 typedef struct an_integer_type_supplement {
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field   declared_assembly_visibility:2;
+                        /* Visibility of this type at the assembly level as
+			   explicitly declared in the source (av_none if no
+			   visibility was explicitly specified).  (Enumeration
+			   types in C++/CLI mode only.) */
   a_bit_field   assembly_visibility:2;
-			/* Visibility of this type at the assembly level.
-			   (Enumeration types in C++/CLI mode only.) */
+                        /* Effective visibility of this type at the assembly
+			   level  (Enumeration types in C++/CLI mode only.) */
   an_assembly_index
 		assembly_index;
 			/* The index of the assembly in which this construct
