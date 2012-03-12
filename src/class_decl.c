@@ -7518,7 +7518,7 @@ issue an error and return FALSE.
       /* Final/sealed classes cannot be derived from. */
       a_boolean  use_sealed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        use_sealed = base_class_type->variant.class_struct_union.sealed;
+      use_sealed = base_class_type->variant.class_struct_union.sealed;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pos_error(use_sealed ? ec_sealed_base_class : ec_final_base_class,
                 &pos_curr_token);
