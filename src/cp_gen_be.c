@@ -6929,6 +6929,7 @@ is the one associated with the definition of the class.
          typedef struct { int A; } A;
     */
   } else {
+    a_boolean  gen_sealed = FALSE;
     /* Put out the name. */
     a_gen_name_options_set options = GN_DECLARATION;
     if (type_is_prototype_instantiation(type)
@@ -6948,11 +6949,15 @@ is the one associated with the definition of the class.
                                      .defined_with_abstract_class_modifier) {
         write_tok_str("abstract ");
       }  /* if */
-      if (type->variant.class_struct_union.final) {
+      if (type->variant.class_struct_union.sealed) {
         write_tok_str("sealed ");
+        gen_sealed = TRUE;
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (type->variant.class_struct_union.final && !gen_sealed) {
+      write_tok_str("final ");
+    }  /* if */
   }  /* if */
   /* Put out the class definition. */
   push_name_context_if_member(&type->source_corresp);
