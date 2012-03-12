@@ -24234,14 +24234,26 @@ classes.
              the value of class_state.access accordingly. */
           if (scan_access_specification(&class_state)) {
             /* An access specifier was found.  This next check catches cases
-               like "...public: }". */
+               like "...public: }" (which is okay if the brace closes a C++/CLI
+               property definition). */
             if (curr_token == tok_rbrace) {
               /* Issue diagnostics on pragmas that are trying to bind to a
                  nonexistent declaration. */
               cannot_bind_to_curr_construct();
-              /* Exit the loop. */
-              remove_stop_token(tok_semicolon);
-              break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              if (class_state.property_or_event_descr != NULL) {
+                /* Something like "property int P { ... private: }".  This is
+                   valid: Treat the brace as the "next declaration". */
+               treat_declaration_as_okay_in_property_or_event(&class_state);
+               goto next_declaration;
+              } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+              /* Do not insert code here. */
+              {
+                /* Exit the loop. */
+                remove_stop_token(tok_semicolon);
+                break;
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */

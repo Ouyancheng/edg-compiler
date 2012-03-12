@@ -1,5 +1,23 @@
 Version 4.5
 
+3/12/12  [EDGcpfe/12753]
+Abort on access specifier before a brace closing a C++/CLI property
+
+In C++/CLI mode, the front end aborted in enter_cli_accessor (symbol_tbl.c)
+when it encountered an access specifier just before the brace closing a
+property or event definition.  For example:
+
+  value struct V {
+    property int p {
+      void set(int x) {}
+  private:  // Previously triggered an abort.  Now accepted.
+    }
+  };
+
+This is now fixed (such access specifiers are treated as normal specifiers
+appearing in the parent class of the property or event.
+
+
 3/12/12  [EDGcpfe/12304]
 Use of injected class name in friend declaration
 
