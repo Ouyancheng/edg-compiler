@@ -15148,9 +15148,7 @@ because the extra parameter clause is not in fact ignored.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void check_for_use_of_pending_constraints(
-				a_tmpl_decl_state_ptr	decl_state,
-				a_source_position_ptr	pos)
+static void check_for_use_of_pending_constraints(a_source_position_ptr	pos)
 /*
 We are at the end of scanning a C++/CLI generic declaration.  If we recorded
 any types that made use of pending constraints, go back through the list
@@ -20693,7 +20691,7 @@ any non-empty template parameter lists that were scanned.
         pos_error(ec_invalid_entity_for_pending_constraint, &dps->start_pos);
       }  /* if */
     } else if (decl_state->is_generic) {
-      check_for_use_of_pending_constraints(decl_state, &dps->start_pos);
+      check_for_use_of_pending_constraints(&dps->start_pos);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
