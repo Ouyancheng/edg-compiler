@@ -1,5 +1,16 @@
 Version 4.5
 
+3/13/12  [EDGcpfe/12755]
+GNU C++ compatibility: Typedefs for wchar_t in system headers
+
+In GNU C++ mode, the front end now ignores typedefs for wchar_t that appear
+in system headers.  For example:
+
+  // The following preprocessor directive simulates a system header.
+  #2 "t.c" 3
+  typedef unsigned long wchar_t;  // Now silently accepted in GNU C++ mode.
+
+
 3/13/12  [EDGcpfe/12744]
 Position information for GNU built-in variadic parameter operations
 
