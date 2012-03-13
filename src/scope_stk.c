@@ -1794,17 +1794,22 @@ template with no current instantiation or definition, we return FALSE.
         if (is_instantiation_scope ||
             ssep->kind == (a_scope_kind)sck_class_struct_union ||
             ssep->kind == (a_scope_kind)sck_class_reactivation) {
+          a_template_symbol_supplement_ptr	tssp;
+          tssp = (*sym)->variant.template_info;
           /* Get the instance symbol pointed to by the type from the scope
              stack entry. */
           if (!is_instantiation_scope ||
-              (microsoft_bugs && microsoft_version < 1400 &&
+              ((tssp->is_generic ||
+                (microsoft_bugs && microsoft_version < 1400)) &&
                ssep->assoc_type != NULL)) {
             /* Normally, we look for a class or class reactivation scope for
                a class that is an instance of the template specified by "sym".
                The Microsoft compiler (when microsoft_version < 1400) also
                accepts a class name as being the "current instantiation" when
-               referenced in the base class list of the class.  To emulated
-               this, also check the class associated with a template
+               referenced in the base class list of the class.  This is also
+               the case for base classes of C++/CLI generics.  When the base
+               classes are permitted to reference the current instantiation,
+               we also check the class associated with a template
                instantiation scope. */
             a_symbol_ptr	template_sym;
             check_assertion_str(ssep->assoc_type != NULL,

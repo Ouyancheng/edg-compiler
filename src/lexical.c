@@ -14093,6 +14093,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
                                          (options & GID_IS_EXPR_CONTEXT) != 0;
   a_boolean                       sun_gpp_undefined_template = FALSE;
   long                            first_defaulted_arg = -1L;
+  a_template_symbol_supplement_ptr
+                                  tssp = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_source_position               arg_start_pos = null_source_position;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -14217,7 +14219,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
      class template name are handled. */
   current_instantiation_sym = template_sym;
   if (template_sym != NULL) {
-    a_template_symbol_supplement_ptr	tssp;
     class_is_being_instantiated =
             current_class_symbol_if_class_template(&current_instantiation_sym);
     tssp = template_supplement_for_symbol(template_sym);
@@ -14266,13 +14267,15 @@ a routine to lookup the appropriate instance (or generate one if needed).
          be found in place of the template in contexts in which the current
          instance should be used.  When the enclosing template is found
          as described above, the current instance will be used except when the
-         template was named with a qualified name. */
+         template was named with a qualified name.  A reference to a C++/CLI
+         generic from a template instantiation scope (i.e., in the base
+         class list) must have a generic argument list. */
       if (class_is_being_instantiated &&
-          !locator_for_curr_id.is_qualified_name) {
+          !locator_for_curr_id.is_qualified_name &&
+          !(tssp->is_generic &&
+            scope_is(&scope_stack_top(), sck_template_instantiation))) {
         /* We have the symbol for the current instantiation of the
-           class template.  This is done in Microsoft bugs mode even when class
-           name injection is enabled because template names are not injected
-           in Microsoft mode. */
+           class template. */
         new_sym = current_instantiation_sym;
         goto normal_exit;
       } else {
@@ -14293,8 +14296,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
              accepts use a reference such as A::i, where A is a different
              class template and something like A<T>::i should be used.
              Accept the use and return the prototype instantiation symbol. */
-          a_template_symbol_supplement_ptr	tssp;
-          tssp = template_supplement_for_symbol(template_sym);
           new_sym = tssp->variant.class_template.prototype_instantiation;
           goto normal_exit;
         } else {
