@@ -3755,7 +3755,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
   a_type_ptr               result_type;
   a_constant               result;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position        end_position;
+  a_source_position        end_position, lparen_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand               dummy_bound_function_selector;
   a_boolean                regular_case = FALSE;
@@ -3765,6 +3765,9 @@ call, and rcblock->argument_list to the previously-scanned argument list.
   if (rcblock == NULL) {
     /* Pick up the "(" and add ")" as a stop token. */
     check_assertion(curr_token == tok_lparen);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    lparen_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
     add_matching_stop_token(tok_rparen);
   }  /* if */
@@ -3945,8 +3948,12 @@ result_built:
   } else {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
+    lparen_position = rcblock->expr->operator_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
+  set_operand_position(result_op, &operand->position, &end_position,
+                       &lparen_position);
+                  
   result_op->position = operand->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result_op->end_position = end_position;
