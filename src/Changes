@@ -1,5 +1,12 @@
 Version 4.5
 
+3/13/12  [EDGcpfe/12756]
+C++/CLI: Interface classes are abstract
+
+The front end previously did not set the "abstract" flag to TRUE in C++/CLI
+interface class types; now it does.
+
+
 3/13/12  [EDGcpfe/12596]
 C++-generating back end, GNU compatibility: parenthesized pointer to data
 member declarator

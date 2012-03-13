@@ -3669,6 +3669,9 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       }  /* if */
       class_type_supp(class_type)->is_hide_by_sig = TRUE;
       class_type_supp(class_type)->cli_class_type_kind = cli_type_kind;
+      if (cli_type_kind == (a_cli_class_type_kind)cctk_interface) {
+        class_type->variant.class_struct_union.abstract = TRUE;
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (scope_stack[effective_decl_level].kind ==

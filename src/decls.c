@@ -15017,12 +15017,19 @@ if one is present.
   if (!C_mode() && var_ptr != NULL) {
     if (is_abstract_class_type(state->type)) {
       /* Abstract class objects are prohibited. */
-      abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
-                                state->type, &locator->source_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && is_cli_interface_type(var_ptr->type)) {
-      /* Variables cannot have a C++/CLI interface type. */
-      pos_error(ec_variable_with_interface_type, &locator->source_position);
+      if (cppcli_enabled && is_cli_interface_type(var_ptr->type)) {
+        /* Diagnose the C++/CLI interface case separately. */
+        pos_error(ec_variable_with_interface_type, &locator->source_position);
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        abstract_class_diagnostic(es_error,
+                                  ec_abstract_class_object_not_allowed,
+                                  state->type, &locator->source_position);
+      }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && 
                has_static_storage_duration(var_ptr->storage_class)) {
       /* Variables with static storage duration cannot have a C++/CLI type

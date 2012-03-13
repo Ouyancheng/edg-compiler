@@ -3873,6 +3873,10 @@ correcting the class declarations that produced the problem.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (class_type->variant.class_struct_union.is_interface) {
     ty_add_diag_info(ec_type_is_interface, class_type);
+  } else if (cli_class_type_kind_is(class_type, cctk_interface)) {
+    /* Although C++/CLI interfaces are "abstract", their diagnostics are more
+       clearly handled separately. */
+    unexpected_condition();
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -13560,10 +13564,6 @@ specific information about the member declaration, respectively.
   if (is_void_type(member_type)) {
     error(ec_incomplete_type_not_allowed);
     member_type = error_type();
-  } else if (is_abstract_class_type(member_type)) {
-    /* Abstract class objects are prohibited (ARM 10.3). */
-    abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
-                              member_type, &locator->source_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled) {
     if ((is_interior_ptr_type(member_type) || is_pin_ptr_type(member_type)) &&
@@ -13605,6 +13605,10 @@ specific information about the member declaration, respectively.
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (is_abstract_class_type(member_type)) {
+    /* Abstract class objects are prohibited. */
+    abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
+                              member_type, &locator->source_position);
   }  /* if */
   /* The Microsoft compiler instantiates a template class used as the type
      of a static data member. */

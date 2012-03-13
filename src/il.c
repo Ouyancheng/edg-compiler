@@ -18836,6 +18836,12 @@ the case if the return type was incomplete at the point of definition.
                                            (char *)routine_type,
                                            (a_byte_il_entry_kind)iek_type,
                                            err_pos);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled && is_cli_interface_type(return_type)) {
+          /* C++/CLI interface types cannot be return types.  This is
+             diagnosed elsewhere. */
+          expect_error();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (!symbol_supplement_for_class(return_type)->
                                         construction_by_bitwise_copy_allowed
 #if IA64_ABI
