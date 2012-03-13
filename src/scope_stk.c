@@ -2652,6 +2652,8 @@ the scope being pushed.
   ssep->last_initializer_fixup   = NULL;
   ssep->deferred_constraint_checks
                                  = NULL;
+  ssep->types_using_pending_constraints
+                                 = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ssep->last_parameter           = NULL;
   ssep->last_nonstatic_variable  = NULL;

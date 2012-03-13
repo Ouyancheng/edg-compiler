@@ -984,6 +984,15 @@ typedef struct a_scope_stack_entry {
 			/* When defer_constraint_checks is TRUE, this contains
 			   a list of constraint checks to be performed at
 			   a later point in time. */
+a_type_list_entry_ptr
+		types_using_pending_constraints;
+			/* If a C++/CLI generic declaration being processed
+			   from metadata makes uses of pending generic
+			   constraints, this is a list of the types based
+			   on the generic constraints.  These types will be
+			   rechecked at the end of the declaration to make
+			   sure the constraints are no longer pending at
+			   that point. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* The following pointers are the end pointers for the lists begun
      in the current IL scope entry.  They are needed only while the scope

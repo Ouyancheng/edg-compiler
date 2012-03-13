@@ -44,6 +44,7 @@ typedef struct a_symbol_list_entry *a_symbol_list_entry_ptr;
 typedef struct a_hash_table *a_hash_table_ptr;
 typedef struct a_param_id *a_param_id_ptr;
 typedef struct a_pack_expansion_stack_entry *a_pack_expansion_stack_entry_ptr;
+typedef struct a_type_list_entry *a_type_list_entry_ptr;
 
 /* The pointer types to a_routine_fixup and an_initializer_fixup are declared
    here even though the struct themselves are defined in class_decl.c.  This
@@ -738,7 +739,6 @@ typedef struct a_symbol_list_entry {
 } a_symbol_list_entry;
 
 
-typedef struct a_type_list_entry *a_type_list_entry_ptr;
 typedef struct a_type_list_entry {
   /* Entry created to produce a list of types for some special purpose.
      For example, such a list is used when building a list of associated

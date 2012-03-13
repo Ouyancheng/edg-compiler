@@ -6423,13 +6423,25 @@ is returned.
     add_to_types_list(class_type, NO_SCOPE_DEPTH);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (tssp->generic_constraints_pending) {
-      /* The partially instantiated template was declared with "..." as a
+      /* The partially instantiated generic was declared with "..." as a
          constraint clause and no redeclaration with actual constraints has
-         been seen yet.  This should normally never happen: "..." constraints
-         are only accepted while parsing code generated from metadata, and
-         the metadata reader must ensure that redeclarations with actual
-         constraints follow the original declaration before any use. */
-      type_error(ec_use_of_generic_class_with_pending_constraint, class_type);
+         been seen yet.  This can occur if a generic has a constraint that
+         is an instance of itself.  Other uses are errors.  If the use
+         occurs in the constraints of a generic declaration, we don't know
+         which generic is being defined yet, so make a list of potential
+         errors and recheck them later. */
+      a_scope_stack_entry_ptr	ssep = &scope_stack_top();
+      if (ssep->kind == (a_scope_kind)sck_template_declaration) {
+        a_type_list_entry_ptr	tlep;
+        tlep = alloc_type_list_entry();
+        tlep->type = class_type;
+        tlep->next = ssep->types_using_pending_constraints;
+        ssep->types_using_pending_constraints = tlep;
+      } else {
+        /* The use is in some other context.  Issue the error immediately. */
+        type_error(ec_use_of_generic_class_with_pending_constraint,
+                   class_type);
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -15136,6 +15148,43 @@ because the extra parameter clause is not in fact ignored.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static void check_for_use_of_pending_constraints(
+				a_tmpl_decl_state_ptr	decl_state,
+				a_source_position_ptr	pos)
+/*
+We are at the end of scanning a C++/CLI generic declaration.  If we recorded
+any types that made use of pending constraints, go back through the list
+and make sure that the constraints are no longer pending.  If any are still
+pending, issue an error.  pos is the source position to be used in any
+errors that are issued.
+*/
+{
+  a_type_list_entry_ptr		tlep;
+  a_scope_stack_entry_ptr	ssep;
+
+  ssep = &scope_stack_top();
+  check_assertion(ssep->kind == (a_scope_kind)sck_template_declaration);
+  for (tlep = ssep->types_using_pending_constraints;
+       tlep != NULL; tlep = tlep->next) {
+    a_class_symbol_supplement_ptr	cssp;
+    a_symbol_ptr			generic_sym;
+    a_template_symbol_supplement_ptr	tssp;
+    /* Get the generic on which the type is based. */
+    cssp = symbol_supplement_for_class(tlep->type);
+    generic_sym = cssp->class_template;
+    tssp = template_supplement_for_symbol(generic_sym);
+    if (tssp->generic_constraints_pending) {
+      pos_ty_error(ec_use_of_generic_class_with_pending_constraint,
+                   pos, tlep->type);
+    }  /* if */
+  }  /* for */
+  if (ssep->types_using_pending_constraints != NULL) {
+    free_list_of_type_list_entries(ssep->types_using_pending_constraints);
+    ssep->types_using_pending_constraints = NULL;
+  }  /* if */
+}  /* check_for_use_of_pending_constraints */
+
+
 static void check_for_generic_arity_overload(
 				a_tmpl_decl_state_ptr	decl_state,
 				a_symbol_ptr		*sym_found,
@@ -20643,6 +20692,8 @@ any non-empty template parameter lists that were scanned.
       } else {
         pos_error(ec_invalid_entity_for_pending_constraint, &dps->start_pos);
       }  /* if */
+    } else if (decl_state->is_generic) {
+      check_for_use_of_pending_constraints(decl_state, &dps->start_pos);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
