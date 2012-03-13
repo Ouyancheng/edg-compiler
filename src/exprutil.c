@@ -16979,7 +16979,8 @@ transformations.
       /* Convert an lvalue to an rvalue. */
       if ((options & TOPT_COPY_CLASS_ON_CONV_TO_RVALUE) &&
           !C_mode() &&
-          is_class_struct_union_type(operand->type)) {
+          is_class_struct_union_type(operand->type) &&
+          !is_abstract_class_type(operand->type)) {
         /* When converting a class object to an rvalue in C++ mode, make a
            copy.  This is required by the standard, but it only applies in
            some unusual situations, so it's not the default. */
