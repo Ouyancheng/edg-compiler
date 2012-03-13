@@ -1,5 +1,24 @@
 Version 4.5
 
+3/13/12  [EDGcpfe/12596]
+C++-generating back end, GNU compatibility: parenthesized pointer to data
+member declarator
+
+The change made for EDGcpfe/11722 (in version 4.4), which unconditionally
+parenthesized the declarator in the declaration of a pointer to a data
+member in the output of the C++-generating back end, triggers a bug in g++
+versions 4.5.0 through 4.5.2, resulting in spurious errors when the
+generated code is compiled.  The change has consequently been disabled when
+gcc_is_generated_code_target is TRUE and gnu_target_version_number is one
+of the affected versions.  For example:
+
+  struct S { };
+  void f() {
+    int S::*(*p)[3] = new int S::*[2][3];  // Previously generated as
+                                // int (S::*(*p)[3]) = new (int (S::*[2][3]));
+  }
+
+
 3/12/12  [EDGcpfe/12754]
 C++-generating back end, GNU compatibility: parentheses in logical expressions
 

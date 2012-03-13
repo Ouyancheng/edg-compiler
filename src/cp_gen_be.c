@@ -15979,8 +15979,13 @@ Initialize for the C++/C-generating back end.
      underlying _Bool. */
   octl.render_c99_bool = c99_mode || gcc_mode;
   /* The Microsoft compiler has a bug that causes it to issue spurious
-     errors for parenthesized pointer-to-data-member declarators. */
-  octl.suppress_ptr_to_data_member_parens = msvc_is_generated_code_target;
+     errors for parenthesized pointer-to-data-member declarators, and
+     similarly for g++ versions 4.5.0 through 4.5.2. */
+  if (msvc_is_generated_code_target ||
+      (gcc_is_generated_code_target && gnu_target_version_number >= 40500 &&
+       gnu_target_version_number <= 40502)) {
+    octl.suppress_ptr_to_data_member_parens = TRUE;
+  }  /* if */
   in_template_argument_list = FALSE;
   in_parameter_pack_declaration = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
