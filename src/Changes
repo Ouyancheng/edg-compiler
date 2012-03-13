@@ -16,7 +16,7 @@ in such expressions only where necessary.  For example:
   }
 
 
-3/12/12  [EDGcpfe/12753]
+3/12/12  [EDGcpfe/12743]
 C++/CLI: Assembly visibility
 
 The front end now records the explicitly-specified assembly visibility of
