@@ -16992,6 +16992,53 @@ source position to be used for any errors.
 }  /* handle_elided_destructor */
 
 
+static a_boolean copy_function_not_callable_because_of_arg_value_category(
+                                                    a_type_ptr routine_type,
+                                                    a_boolean  arg_is_rvalue)
+/*
+Return TRUE if a copy/move constructor or a copy/move assignment
+operator whose type is routine_type can be called with an argument
+whose value category is as specified by arg_is_rvalue (because the
+reference parameter cannot bind to something of that value category).
+*/
+{
+  a_boolean        mismatch = FALSE;
+  a_param_type_ptr ptp;
+
+  routine_type = skip_typerefs(routine_type);
+  check_assertion(routine_type->kind == (a_type_kind)tk_routine);
+  ptp = routine_type->variant.routine.extra_info->param_type_list;
+  /* Avoid problems with malformed IL.  (Not sure this is needed; just
+     playing safe.) */
+  if (ptp != NULL && is_any_reference_type(ptp->type)) {
+    a_type_ptr param_type = ptp->type;
+    a_boolean  is_rvalue_ref = is_rvalue_reference_type(param_type);
+    if (arg_is_rvalue) {
+      /* The argument is an rvalue. */
+      if (!is_rvalue_ref) {
+        /* An lvalue reference parameter that is a reference to
+           non-const or a reference to const volatile cannot match an
+           rvalue. */
+        a_type_ptr           und_param_type = type_pointed_to(param_type);
+        a_type_qualifier_set qualifiers = get_type_qualifiers(und_param_type);
+        if ((qualifiers & TQ_CONST) == 0 ||
+            (qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
+                          (TQ_CONST | TQ_VOLATILE)) {
+          mismatch = TRUE;
+        }  /* if */
+      }  /* if */
+    } else {
+      /* The source is not an rvalue. */
+      if (is_rvalue_ref) {
+        /* An rvalue reference parameter cannot match an lvalue. */
+        mismatch = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return mismatch;
+}  /* copy_function_not_callable_because_of_arg_value_category */
+
+
 static void handle_elided_copy_constructor_no_guard(
                                                 a_type_ptr        source_type,
                                                 a_routine_ptr     elided_cctor,
@@ -19904,9 +19951,115 @@ find_default_constructor.
 }  /* select_overloaded_default_constructor */
 
 
+static void determine_copy_param_match(
+                                 a_symbol_ptr             sym,
+                                 a_type_ptr               class_type,
+                                 a_type_qualifier_set     source_cv_qualifiers,
+                                 a_boolean                source_is_rvalue,
+                                 an_arg_match_summary_ptr arg_match,
+                                 a_template_arg_ptr       *template_arg_list,
+                                 a_boolean                *uncallable)
+/*
+Determine whether the constructor or assignment operator given by sym
+can be called with a single parameter of type class_type with
+cv-qualifiers as given by source_cv_qualifiers, and an rvalue if
+source_is_rvalue is TRUE.  Fill in *arg_match to indicate the match
+level, if any, and set *template_arg_list to the deduced template
+argument list if needed.  If sym is a constructor, the match is rejected
+if it isn't a copy or move constructor; otherwise, it's rejected if it
+can't be called with a single argument.  Return *uncallable TRUE if sym
+would have been callable except that the type of reference parameter
+can't bind to an lvalue or rvalue as indicated by source_is_rvalue.
+*/
+{
+  a_routine_ptr                   routine;
+  a_routine_type_supplement_ptr   rtsp;
+  a_type_ptr                      routine_type, arg_type, param_type;
+  a_param_type_ptr                ptp;
+
+  *template_arg_list = NULL;
+  if (uncallable != NULL) *uncallable = FALSE;
+  arg_type = make_qualified_type(class_type, source_cv_qualifiers);
+  if (sym->kind == (a_symbol_kind)sk_function_template) {
+    /* Try type deduction on a template. */
+    routine = sym->variant.template_info->variant.function.routine;
+    routine_type = skip_typerefs(routine->type);
+    rtsp = routine_type->variant.routine.extra_info;
+    ptp = rtsp->param_type_list;
+    if (ptp == NULL /* Error recovery */ ||
+        !deduce_one_parameter(ptp, (a_type_ptr)NULL,
+                              (an_arg_operand **)NULL, arg_type,
+                              sym, template_arg_list)) {
+      /* Deduction failed. */
+      goto reject_function;
+    }  /* if */
+    routine_type = wrapup_function_template_argument_deduction(
+                                           template_arg_list, sym,
+                                           (a_template_param_ptr)NULL,
+                                           /*is_partial_order_check=*/FALSE);
+    if (routine_type == NULL) {
+      /* Deduction failed. */
+      goto reject_function;
+    }  /* if */
+  } else {
+    /* Not a template. */
+    check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
+    routine = sym->variant.routine.ptr;
+    routine_type = routine->type;
+  }  /* if */
+  routine_type = skip_typerefs(routine_type);
+  rtsp = routine_type->variant.routine.extra_info;
+  ptp = rtsp->param_type_list;
+  if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
+    /* Check that the constructor is a copy/move constructor.  This includes
+       checking that it can be called with a single argument. */
+    if (!is_copy_constructor_type(routine_type, class_type,
+                                  (a_type_qualifier_set *)NULL,
+                                  /*include_move_ctors=*/source_is_rvalue,
+                                  /*is_declarative_context=*/FALSE)) {
+      /* Not a copy constructor. */
+      goto reject_function;
+    }  /* if */
+  } else {
+    check_assertion(routine->special_kind ==
+                                        (a_special_function_kind)sfk_operator);
+    /* Make sure the operator function is callable with one argument.
+       Standard copy assignment operators always have one parameter, but
+       we check just in case some dialects allow default arguments.
+       We assume parameter packs won't be allowed. */
+    check_assertion(ptp != NULL && !ptp->is_parameter_pack);
+    if (ptp->next != NULL && !ptp->next->has_default_arg) {
+      goto reject_function;
+    }  /* if */
+  }  /* if */
+  /* This is an appropriate function that can be called with a single
+     argument.  See if the argument matches. */
+  param_type = ptp->type;
+  check_assertion(is_any_reference_type(param_type));
+  determine_arg_match_level((an_operand *)NULL, arg_type,
+                            param_type, ptp,
+                            /*param_type_is_deduced=*/FALSE,
+                            /*try_user_conversions=*/FALSE,
+                            arg_match);
+  if (arg_match->match_level == aml_none) {
+    /* This function cannot be used. */
+    goto reject_function;
+  }  /* if */
+  if (copy_function_not_callable_because_of_arg_value_category(
+                                                           routine_type,
+                                                           source_is_rvalue)) {
+    /* The parameter reference type cannot bind to the argument because of
+       an lvalue/rvalue mismatch. */
+    arg_match->match_level = aml_none;
+    *uncallable = TRUE;
+  }  /* if */
+reject_function:;
+}  /* determine_copy_param_match */
+
+
 a_symbol_ptr select_overloaded_copy_constructor(
                                    a_type_ptr            class_type,
-                                   a_type_qualifier_set  required_qualifiers,
+                                   a_type_qualifier_set  source_cv_qualifiers,
                                    a_boolean             source_is_rvalue,
                                    a_source_position     *pos,
                                    a_boolean             *ambiguous,
@@ -19916,7 +20069,7 @@ a_symbol_ptr select_overloaded_copy_constructor(
 /*
 Find and return a pointer to a symbol representing a copy constructor for
 the class indicated by class_type and accepting a first parameter whose type
-is qualified as specified by required_qualifiers, and an rvalue if
+is qualified as specified by source_cv_qualifiers, and an rvalue if
 source_is_rvalue is TRUE (source_is_rvalue FALSE should be used if the
 rvalueness of the source is irrelevant).  pos is a source position,
 used if a template needs to be instantiated.  If no acceptable copy
@@ -19937,15 +20090,9 @@ do access checking on the copy constructor.
 {
   a_symbol_ptr                    sym, cctor_sym = NULL, uncallable_sym = NULL;
   a_symbol_ptr                    overloaded_sym;
-  a_type_qualifier_set            qualifiers;
   a_boolean                       multiple_uncallable = FALSE;
   a_class_symbol_supplement_ptr   cssp;
-  a_routine_ptr                   routine;
-  a_type_ptr                      routine_type, arg_type, param_type;
-  a_type_ptr                      und_param_type;
-  a_routine_type_supplement_ptr   rtsp;
   a_template_arg_ptr              template_arg_list;
-  a_param_type_ptr                ptp;
   an_arg_match_summary_ptr        arg_match;
   a_candidate_function_ptr        candidate_functions;
   a_boolean                       undecidable_because_of_error;
@@ -19976,7 +20123,7 @@ do access checking on the copy constructor.
     cctor_sym = NULL;
     if (!sun_mode && 
         any_qualifier_in_set_missing(TQ_CONST,
-                                     required_qualifiers /*lint --e(845)*/)) {
+                                     source_cv_qualifiers /*lint --e(845)*/)) {
       /* Strictly speaking, a bitwise copy constructor has an input
          parameter of type ref to const class, and therefore it cannot
          copy a volatile-qualified object. */
@@ -19984,7 +20131,6 @@ do access checking on the copy constructor.
       *class_bitwise_copy = TRUE;
     }  /* if */
   } else {
-    arg_type = make_qualified_type(class_type, required_qualifiers);
     overloaded_sym = cssp->constructor;
     check_assertion_str(overloaded_sym != NULL,
                        "select_overloaded_copy_constructor: NULL constructor");
@@ -19998,85 +20144,26 @@ do access checking on the copy constructor.
                                              &ostblock);
          sym != NULL;
          sym = next_symbol_in_overload_set(&ostblock)) {
+      a_boolean local_uncallable;
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
         db_display_overload_level();
         db_symbol(sym, "select_overloaded_copy_constructor: considering ", 4);
       }  /* if */
 #endif /* DEBUG */
-      arg_match = NULL;
-      template_arg_list = NULL;
-      if (sym->kind == (a_symbol_kind)sk_function_template) {
-        /* Try type deduction on a template. */
-        routine = sym->variant.template_info->variant.function.routine;
-        routine_type = skip_typerefs(routine->type);      
-        rtsp = routine_type->variant.routine.extra_info;
-        ptp = rtsp->param_type_list;
-        if (ptp == NULL /* Error recovery */ ||
-            !deduce_one_parameter(ptp, (a_type_ptr)NULL,
-                                  (an_arg_operand **)NULL, arg_type,
-                                  sym, &template_arg_list)) {
-          /* Deduction failed. */
-          goto reject_function;
-        }  /* if */
-        routine_type = wrapup_function_template_argument_deduction(
-                                           &template_arg_list, sym,
-                                           (a_template_param_ptr)NULL,
-                                           /*is_partial_order_check=*/FALSE);
-        if (routine_type == NULL) {
-          /* Deduction failed. */
-          goto reject_function;
-        }  /* if */
-      } else {
-        /* Not a template. */
-        check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
-        routine = sym->variant.routine.ptr;
-        routine_type = routine->type;
-      }  /* if */
-      routine_type = skip_typerefs(routine_type);
-      if (!is_copy_constructor_type(routine_type, class_type,
-                                    (a_type_qualifier_set *)NULL,
-                                    /*include_move_ctors=*/source_is_rvalue,
-                                    /*is_declarative_context=*/FALSE)) {
-        /* Not a copy constructor. */
-        goto reject_function;
-      }  /* if */
-      /* This is a copy constructor.  See if it is callable. */
-      rtsp = routine_type->variant.routine.extra_info;
-      ptp = rtsp->param_type_list;
-      param_type = ptp->type;
-      check_assertion(is_any_reference_type(param_type));
       arg_match = alloc_arg_match_summary();
-      determine_arg_match_level((an_operand *)NULL, arg_type,
-                                param_type, ptp,
-                                /*param_type_is_deduced=*/FALSE,
-                                /*try_user_conversions=*/FALSE,
-                                arg_match);
+      /* See if the argument type matches the parameter of the constructor. */
+      determine_copy_param_match(sym, class_type,
+                                 source_cv_qualifiers, source_is_rvalue,
+                                 arg_match, &template_arg_list,
+                                 &local_uncallable);
       if (arg_match->match_level == aml_none) {
         /* This copy constructor cannot be used. */
-        goto reject_function;
-      }  /* if */
-      und_param_type = type_pointed_to(param_type);
-      qualifiers = get_type_qualifiers(und_param_type);
-      { a_boolean  is_move_ctor = is_rvalue_reference_type(param_type),
-                   ctor_is_uncallable = FALSE;
-        if (source_is_rvalue) {
-          if (!is_move_ctor &&
-              ((qualifiers & TQ_CONST) == 0 ||
-               (qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
-                             (TQ_CONST | TQ_VOLATILE))) {
-            /* A copy constructor whose input parameter is a reference to
-               non-const or a reference to const volatile cannot copy an
-               rvalue. */
-            ctor_is_uncallable = TRUE;
-          }  /* if */
-        } else if (is_move_ctor) {
-          /* The source is not an rvalue: A move constructor is not viable. */
-          ctor_is_uncallable = TRUE;
-        }  /* if */
-        if (ctor_is_uncallable) {
-          /*  Keep looking for a suitable copy constructor, but remember this
-              one in case it's the best we find. */
+        if (local_uncallable) {
+          /* The copy constructor is uncallable because of an lvalue/rvalue
+             issue in reference binding.  Keep looking for a suitable copy
+             constructor, but remember this one in case it's the best we
+             find. */
           if (uncallable_sym != NULL) {
             /* There's more than one uncallable copy constructor, so we
                can't return just one. */
@@ -20084,10 +20171,10 @@ do access checking on the copy constructor.
           } else {
             uncallable_sym = sym;
           }  /* if */
-          goto reject_function;
         }  /* if */
-      }
-       /* sym represents a suitable copy constructor.  Add it to the
+        goto reject_function;
+      }  /* if */
+      /* sym represents a suitable copy constructor.  Add it to the
          list of viable functions. */
       if (sym->kind == (a_symbol_kind)sk_function_template) {
         /* The symbol is a function template. */
