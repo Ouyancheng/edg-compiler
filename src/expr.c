@@ -14827,7 +14827,8 @@ expression, and return the result in *result (or an error indication in
       expr_pos_error(ec_type_must_be_object_type, &type_position);
     }  /* if */
     err = TRUE;
-  } else if (is_abstract_class_type(new_type)) {
+  } else if (is_abstract_class_type(new_type)
+             if_microsoft_extensions(&& !is_cli_interface_type(new_type))) {
     /* The type is an abstract class type, so an object of the type
        cannot be allocated. */
     if (expr_error_should_be_issued()) {
@@ -16386,7 +16387,8 @@ C++ functional-notation type conversions, and C++ new-style casts.
       /* But not a cast to an abstract class. */
       if (is_abstract_class_type(type_cast_to) &&
           /* Except in Microsoft mode before version 7.0. */
-          !(microsoft_bugs && microsoft_version < 1300)) {
+          !(microsoft_bugs && microsoft_version < 1300)
+          if_microsoft_extensions(&& !is_cli_interface_type(type_cast_to))) {
         if (expr_error_should_be_issued()) {
           abstract_class_diagnostic(
             es_error, ec_cast_to_abstract_class, type_cast_to, type_position);
