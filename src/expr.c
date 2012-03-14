@@ -11072,6 +11072,7 @@ outside of the expression-processing routines.
   an_operand              operand;
   a_scope_depth           expr_scope_depth;
   a_memory_region_number  region_to_switch_back_to;
+  a_boolean               saved_in_decltype_context;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
                           ssep = NULL;
@@ -11129,8 +11130,12 @@ outside of the expression-processing routines.
     /* This call is done late because we need the expression stack to be pushed
        already. */
     add_matching_stop_token(tok_rparen);
+    /* Indicate that we are in the context of a decltype expression. */
+    saved_in_decltype_context = scope_stack_top().in_decltype_context;
+    scope_stack_top().in_decltype_context = TRUE;
     /* Scan the argument expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    scope_stack_top().in_decltype_context = saved_in_decltype_context;
   }  /* if */
   /* Give an error on an indefinite function. */
   eliminate_unusual_operand_kinds(&operand);

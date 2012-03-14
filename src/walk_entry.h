@@ -2558,6 +2558,9 @@ do_set_proper_definition_needed_flag:
         a_namespace_ptr ptr = (a_namespace_ptr)entry_ptr;
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_namespace_ptr, iek_namespace);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        walk_ptr(ptr->proxy_class, a_type_ptr, iek_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (ptr->is_namespace_alias) {
           remap_ptr(ptr->variant.assoc_namespace, a_namespace_ptr,
                     iek_namespace);

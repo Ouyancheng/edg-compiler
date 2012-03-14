@@ -1,5 +1,21 @@
 Version 4.5
 
+3/14/12  [EDGcpfe/12677]
+Microsoft compatibility: use of undefined names in decltype
+
+The Microsoft compiler allows a decltype in the declaration of a function
+template or member function of a class template to refer to undefined
+members of a namespace.  We now emulate this in Microsoft mode.  The
+Microsoft compiler actually does not do any checking of the contents
+of such decltype operators.  Our emulation of this is limited to what is
+needed to compile the VC 2010 headers that contain these kinds of constructs.
+
+  namespace N {}
+  template <class T> struct A {
+    auto f() -> decltype(N::g());
+  };
+
+
 3/13/12  [EDGcpfe/12755]
 GNU C++ compatibility: Typedefs for wchar_t in system headers
 

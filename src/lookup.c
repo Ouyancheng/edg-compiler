@@ -464,26 +464,103 @@ member function is defined.
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
 
-a_type_ptr proxy_class_for_template_param(a_type_ptr   orig_type)
+a_type_ptr create_proxy_class(a_symbol_ptr		orig_sym,
+			      a_source_correspondence	*scp,
+			      a_boolean			is_generic)
 /*
-Return the proxy class associated with the template parameter or dependent
-decltype specified by orig_type.  If one does not already exist, one is
-created.  Creation of the proxy class consists of allocating and
-initializing the class and assigning a scope number. The class type is
-created the first time that a template parameter is used in a context
-in which a class type is required.  This includes use in a qualified
-name lookup where the template parameter is used as the class type, and
-use as a base class.  Proxy classes are also created for C++/CLI type
-parameters to represent the type specified by the constraints.
+Create a proxy class for the entity specified by orig_sym and scp.
+Creation of the proxy class consists of allocating and initializing the
+class and assigning a scope number. The class type is created the first
+time that a template parameter is used in a context in which a class type
+is required.  This includes use in a qualified name lookup where the
+template parameter is used as the class type, and use as a base class.
+Proxy classes are also created for C++/CLI type parameters to represent the
+type specified by the constraints.  is_generic is TRUE when the proxy class
+is being created for a C++/CLI type parameter.  Proxy classes are also used
+in Microsoft mode to represent namespace members used in dependent
+decltypes in cases where the member has not yet been declared.
 */
 {
   a_type_ptr				type;
   a_symbol_ptr				sym;
-  a_symbol_ptr				orig_sym;
   a_class_symbol_supplement_ptr		cssp;
-  a_type_ptr				templ_param_type;
-  a_type_ptr				*proxy_class;
-  a_boolean				is_generic = FALSE;
+  a_type_ptr				proxy_class;
+
+  if (orig_sym == NULL) {
+    /* No template parameter symbol.  This is the case when getting the
+       proxy class for type_of_unknown_templ_param_nontype. */
+    sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
+                                  &null_source_position);
+  } else {
+    /* Create a symbol for the class.  The symbol will have the same name
+       as the template parameter symbol.  mark_declared is not called
+       because this symbol is not visible to the user. */
+    sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag,
+                       orig_sym->header,
+                       &orig_sym->decl_position);
+  }  /* if */
+  /* The class will be considered to be at file scope.  If this is changed
+     to be some other scope then set_source_corresp_with_scope_depth may
+     need to be called because set_source_corresp requires that the
+     decl_scope of the symbol still be an active scope. */
+  sym->decl_scope = file_scope_number;
+  /* Create the type for the class. */
+  type = alloc_type((a_type_kind)tk_class);
+  if (!is_generic) {
+    /* Set the size and alignment so that the type will be considered to be
+       complete.  No scope is created until members of the proxy class are
+       needed. */
+    type->size = 1;
+    type->alignment = 1;
+    type->incomplete = FALSE;
+  } else {
+    /* The proxy class associated with a generic parameter behaves much like
+       a real class, but it cannot always be completed at the point of the
+       generic declaration since its constraints may not be complete at that
+       point.  It will be completed by complete_generic_constraint_type.
+       See also create_generic_constraint_types. */
+  }  /* if */
+  set_source_corresp(&(type->source_corresp), sym);
+  type->source_corresp.member_of_unknown_base = scp->member_of_unknown_base;
+  type->source_corresp.qualified_unknown_base_member =
+                                            scp->qualified_unknown_base_member;
+  type->variant.class_struct_union.proxy_class = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  type->source_corresp.member_of_unknown_super = scp->member_of_unknown_super;
+  type->variant.class_struct_union.is_generic_constraint = is_generic;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  sym->variant.class_struct_union.type = type;
+  if (scp->is_class_member) {
+    set_class_membership(sym, &type->source_corresp, scp_parent_class(scp));
+  }  /* if */
+  proxy_class = type;
+  /* Set the scope number. */
+  cssp = symbol_supplement_for_class(type);
+  cssp->member_decl_scope = take_next_scope_number();
+  /* Note that while generic definitions are nonreal, the proxy classes for
+     constraints are not. */
+  type->variant.class_struct_union.is_nonreal_class = !is_generic;
+  if (prototype_instantiations_in_il || is_generic) {
+    /* When prototype instantiations are included in the IL, add the proxy
+       class to the IL.  Also do this for proxy classes created for
+       C++/CLI generic constraint types. */
+    add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
+  }  /* if */
+  return proxy_class;
+}  /* proxy_class_for_template_param */
+
+
+a_type_ptr proxy_class_for_template_param(a_type_ptr   orig_type)
+/*
+Return the proxy class associated with the template parameter or dependent
+decltype specified by orig_type.  If one does not already exist, one is
+created.
+*/
+{
+  a_symbol_ptr	orig_sym;
+  a_type_ptr	*proxy_class;
+  a_boolean	is_generic = FALSE;
+  a_type_ptr	templ_param_type;
 
   /* If the original type is a template parameter, get a pointer to the
      template parameter.  In any case, get a pointer to the proxy class
@@ -497,90 +574,49 @@ parameters to represent the type specified by the constraints.
     templ_param_type = NULL;
     proxy_class = &orig_type->variant.typeref.extra_info->proxy_class;
   }  /* if */
-  /* If the template parameter does not yet have a proxy class, create one
-     now. */
+  /* Get the symbol pointer, if any,  associated with the original type. */
+  orig_sym = (a_symbol_ptr)orig_type->source_corresp.assoc_info;
+  /* If the proxy class does not exist yet, create it now. */
   if (*proxy_class == NULL) {
-    /* Create a new proxy class. */
-    /* Get the symbol pointer, if any,  associated with the original type. */
-    orig_sym = (a_symbol_ptr)orig_type->source_corresp.assoc_info;
-    if (orig_sym == NULL) {
-      /* No template parameter symbol.  This is the case when getting the
-         proxy class for type_of_unknown_templ_param_nontype. */
-      sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
-                                    &null_source_position);
-    } else {
-      /* Create a symbol for the class.  The symbol will have the same name
-         as the template parameter symbol.  mark_declared is not called
-         because this symbol is not visible to the user. */
-      sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag,
-                         orig_sym->header,
-                         &orig_sym->decl_position);
-    }  /* if */
-    /* The class will be considered to be at file scope.  If this is changed
-       to be some other scope then set_source_corresp_with_scope_depth may
-       need to be called because set_source_corresp requires that the
-       decl_scope of the symbol still be an active scope. */
-    sym->decl_scope = file_scope_number;
-    /* Create the type for the class. */
-    type = alloc_type((a_type_kind)tk_class);
-    if (!is_generic) {
-      /* Set the size and alignment so that the type will be considered to be
-         complete.  No scope is created until members of the proxy class are
-         needed. */
-      type->size = 1;
-      type->alignment = 1;
-      type->incomplete = FALSE;
-    } else {
-      /* The proxy class associated with a generic parameter behaves much like
-         a real class, but it cannot always be completed at the point of the
-         generic declaration since its constraints may not be complete at that
-         point.  It will be completed by complete_generic_constraint_type.
-         See also create_generic_constraint_types. */
-    }  /* if */
-    set_source_corresp(&(type->source_corresp), sym);
-    type->source_corresp.member_of_unknown_base =
-                       orig_type->source_corresp.member_of_unknown_base;
-    type->source_corresp.qualified_unknown_base_member =
-                orig_type->source_corresp.qualified_unknown_base_member;
-    type->variant.class_struct_union.proxy_class = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    type->source_corresp.member_of_unknown_super =
-                      orig_type->source_corresp.member_of_unknown_super;
-    type->variant.class_struct_union.is_generic_constraint = is_generic;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    sym->variant.class_struct_union.type = type;
-    if (orig_type->source_corresp.is_class_member) {
-      set_class_membership(sym, &type->source_corresp,
-                           parent_class_of(orig_type));
-    }  /* if */
-    *proxy_class = type;
-    /* Set the scope number. */
-    cssp = symbol_supplement_for_class(type);
-    cssp->member_decl_scope = take_next_scope_number();
+    a_class_symbol_supplement_ptr	cssp;
+    *proxy_class = create_proxy_class(orig_sym, &orig_type->source_corresp,
+                                      is_generic);
+    cssp = symbol_supplement_for_class(*proxy_class);
     cssp->template_param_for_proxy_class = orig_type;
-    /* Note that while generic definitions are nonreal, the proxy classes for
-       constraints are not. */
-    type->variant.class_struct_union.is_nonreal_class = !is_generic;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (templ_param_type != NULL &&
         templ_param_type->variant.template_param.kind ==
                                       (a_template_param_type_kind)tptk_param) {
       /* Allow users of the proxy class to find the associated template
          parameter type. */
-      type->variant.class_struct_union.template_parameter_type =
+      (*proxy_class)->variant.class_struct_union.template_parameter_type =
                                                               templ_param_type;
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-    if (prototype_instantiations_in_il || is_generic) {
-      /* When prototype instantiations are included in the IL, add the proxy
-         class to the IL.  Also do this for proxy classes created for
-         C++/CLI generic constraint types. */
-      add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
-    }  /* if */
   }  /* if */
   return *proxy_class;
 }  /* proxy_class_for_template_param */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static a_type_ptr proxy_class_for_namespace(a_namespace_ptr	nsp)
+/*
+Return the proxy class associated with the namespace specified by nsp.
+If one does not already exist, one is created.
+*/
+{
+  a_type_ptr	proxy_class;
+
+  proxy_class = nsp->proxy_class;
+  if (proxy_class == NULL) {
+    a_symbol_ptr	orig_sym = symbol_for(nsp);
+    proxy_class = create_proxy_class(orig_sym, &nsp->source_corresp,
+                                     /*is_generic=*/FALSE);
+    nsp->proxy_class = proxy_class;
+  }  /* if */
+  return proxy_class;
+}  /* proxy_class_for_namespace */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_symbol_ptr create_unknown_function_symbol(
 				a_symbol_header_ptr	sym_hdr,
@@ -5110,6 +5146,23 @@ namespace.  This routine is used only in C++ mode.
                               &any_errors);
     locator->specific_symbol = sym;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (sym == NULL && microsoft_mode) {
+    a_scope_stack_entry_ptr	ssep = &scope_stack_top();
+    if (ssep->in_decltype_context && scope_is(ssep, sck_func_prototype) &&
+        is_template_dependent_context()) {
+      /* In certain template dependent contexts, the Microsoft compiler
+         accepts constructs like "decltype(N::x)" when x has not yet been
+         declared in namespace N.  Create the member in a proxy class
+         associated with the namespace we are looking in. */
+      a_type_ptr	proxy_class;
+      proxy_class = proxy_class_for_namespace(ns_ptr);
+      sym = create_proxy_or_nonreal_class_member(proxy_class, options,
+                                                 locator);
+      locator->specific_symbol = sym;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If the symbol is a projection symbol, reduce it to the fundamental
      symbol.  The specific_symbol in the locator stays pointing to the
      projection symbol. */

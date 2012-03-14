@@ -2788,6 +2788,17 @@ typedef struct a_namespace {
 		next;
 			/* Next in a linked list of namespace declarations;
 			   NULL for the last on the list. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_type_ptr	proxy_class;
+			/* In Microsoft mode, in certain template dependent
+			   contexts a construct like "decltype(N::x)" is
+			   allowed when x has not yet been declared in
+			   namespace N.  In such cases, a proxy class is
+			   created for N and the member is placed in that
+			   proxy class.  This field points to the associated
+			   proxy class if one has been created.  NULL
+			   otherwise. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_byte_boolean
 		is_namespace_alias;
 			/* TRUE when the name is a namespace alias. */

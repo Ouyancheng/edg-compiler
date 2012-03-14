@@ -881,6 +881,9 @@ typedef struct a_scope_stack_entry {
   a_bit_field	is_rescan:1;
 			/* TRUE if the scope being pushed is an instantiation
 			   scope for template rescan purposes. */
+  a_bit_field	in_decltype_context:1;
+			/* TRUE when scanning the expression in a decltype
+			   operator. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;

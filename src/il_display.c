@@ -5636,6 +5636,9 @@ Display the indicated namespace entry.
 {
   disp_source_corresp(&ptr->source_corresp, iek_namespace);
   disp_ptr("next", (char *)ptr->next, iek_namespace);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  disp_ptr("proxy_class", (char *)ptr->proxy_class, iek_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->is_namespace_alias) {
     disp_boolean("is_namespace_alias", TRUE);
     disp_ptr("assoc_namespace", (char *)ptr->variant.assoc_namespace,
