@@ -1049,7 +1049,7 @@ extern a_symbol_ptr select_overloaded_default_constructor(
                                         a_boolean         *ambiguous,
                                         a_symbol_ptr      *inaccessible_match);
 
-a_symbol_ptr select_overloaded_copy_constructor(
+extern a_symbol_ptr select_overloaded_copy_constructor(
                                    a_type_ptr            class_type,
                                    a_type_qualifier_set  source_cv_qualifiers,
                                    a_boolean             source_is_rvalue,
@@ -1059,11 +1059,16 @@ a_symbol_ptr select_overloaded_copy_constructor(
                                    a_symbol_ptr          *inaccessible_match,
                                    a_boolean             *class_bitwise_copy);
 
-extern a_routine_ptr select_assignment_operator_for_memberwise_copy(
-                                             a_type_ptr        class_type,
-                                             an_expr_node_ptr  source_expr,
-                                             an_expr_node_ptr  dest_expr,
-                                             a_source_position *dest_decl_pos);
+extern a_symbol_ptr select_overloaded_assignment_operator(
+                           a_type_ptr            class_type,
+                           a_type_qualifier_set  source_cv_qualifiers,
+                           a_boolean             source_is_rvalue,
+                           a_type_qualifier_set  dest_cv_qualifiers,
+                           a_source_position     *pos,
+                           a_boolean             *ambiguous,
+                           a_boolean             *undecidable_because_of_error,
+                           a_symbol_ptr          *inaccessible_match,
+                           a_boolean             *bitwise_assign);
 
 extern a_boolean deduce_auto_type(a_type_ptr        orig_type,
                                   a_type_ptr        auto_type,

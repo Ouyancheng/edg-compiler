@@ -20082,7 +20082,7 @@ acceptable except that it's uncallable, return that one and set
 wanted.  If inaccessible_match is non-NULL, in C++/CLI mode it will be
 set to a symbol that would have been chosen except that it was
 inaccessible because of hide-by-sig lookup.  If a bitwise copy is
-allowed, return NULL and *class_bitwise_copy TRUE (this is also
+selected, return NULL and *class_bitwise_copy TRUE (this is also
 returned when the class_type is template-dependent in a prototype
 instantiation).  This routine is used only in C++ mode.  It does not
 do access checking on the copy constructor.
@@ -20208,10 +20208,10 @@ next_function:;
     cctor_sym = NULL;
     if (undecidable_because_of_error) {
       /* Previous error. */
-    } else if (candidate_functions == NULL) {
-      /* There are no viable conversion functions. */
     } else if (*ambiguous) {
-      /* There are several equally desirable functions. */
+      /* There are several equally desirable constructors. */
+    } else if (candidate_functions == NULL) {
+      /* There are no viable constructors. */
     } else {
       /* There is exactly one best function. */
       cctor_sym = candidate_functions->function_symbol;
@@ -20240,151 +20240,187 @@ next_function:;
 }  /* select_overloaded_copy_constructor */
 
 
-a_routine_ptr select_assignment_operator_for_memberwise_copy(
-                                              a_type_ptr        class_type,
-                                              an_expr_node_ptr  source_expr,
-                                              an_expr_node_ptr  dest_expr,
-                                              a_source_position *dest_decl_pos)
+a_symbol_ptr select_overloaded_assignment_operator(
+                           a_type_ptr            class_type,
+                           a_type_qualifier_set  source_cv_qualifiers,
+                           a_boolean             source_is_rvalue,
+                           a_type_qualifier_set  dest_cv_qualifiers,
+                           a_source_position     *pos,
+                           a_boolean             *ambiguous,
+                           a_boolean             *undecidable_because_of_error,
+                           a_symbol_ptr          *inaccessible_match,
+                           a_boolean             *bitwise_assign)
 /*
-Perform overload resolution to select the assignment operator to use in
-copying a base or member subobject in the implicit definition of a copy
-assignment operator and return a pointer to the selected routine.  If an
-error is detected, the returned value will be NULL (and the appropriate
-diagnostic will have been issued).  Note that this routine should not be
-called directly but only via find_assignment_operator_for_memberwise_copy.
-Its processing is similar to that of check_for_operator_overloading, except
-that the context is more restricted and thus fewer possibilities need to be
-handled here.
-
-source_expr is an lvalue that refers to the base or member subobject of the
-class object that is being copied; dest_expr is an lvalue that refers to the
-corresponding subobject of the target object.  class_type is the type of the
-subobject to be copied.  dest_decl_pos is the position in the class
-definition of the base specifier or member declaration for the subobject
-to be copied.
+Find and return a pointer to a symbol representing a copy/move
+assignment operator for the class indicated by class_type and
+accepting a first parameter whose type is qualified as specified by
+source_cv_qualifiers, and an rvalue if source_is_rvalue is TRUE
+(source_is_rvalue FALSE should be used if the rvalueness of the source
+is irrelevant).  The destination is an lvalue, whose type is
+class_type with the cv-qualifiers given by dest_cv_qualifiers.
+If no acceptable assignment operator is found, return NULL.  If more
+than one acceptable assignment operator is found and only one of them
+is the best match, return that one; otherwise set *ambiguous to TRUE
+and return NULL.  If the right assignment operator cannot be
+determined because of previous errors, return NULL and
+*undecidable_because_of_error TRUE.  If inaccessible_match is
+non-NULL, in C++/CLI mode it will be set to a symbol that would have
+been chosen except that it was inaccessible because of hide-by-sig
+lookup.  If a bitwise assignment is selected, return NULL and
+*bitwise_assign TRUE (this is also returned when the class_type is
+template-dependent in a prototype instantiation).  pos is a source
+position, used if a template needs to be instantiated.  This routine
+is used only in C++ mode.  It does not do access checking on the
+assignment operator.
 */
 {
-  an_operand               operand_1, operand_2;
-  an_arg_operand_ptr       arg_operand_list;
-  a_symbol_ptr             member_functions_symbol;
-  a_symbol_ptr             function_symbol, proj_function_symbol;
-  a_candidate_function_ptr candidate_functions;
-  a_symbol_ptr             inaccessible_match = NULL;
-  a_boolean                matched_except_for_missing_selector = FALSE;
-  a_boolean                matched_except_for_selector = FALSE;
-  a_boolean                ambiguous;
-  a_boolean                undecidable_because_of_error;
-  a_routine_ptr            rout = NULL;
+  a_type_ptr                      selector_type, this_param_type, routine_type;
+  a_symbol_ptr                    sym, assign_sym = NULL;
+  a_symbol_ptr                    overloaded_sym;
+  a_class_symbol_supplement_ptr   cssp;
+  a_template_arg_ptr              template_arg_list;
+  an_arg_match_summary_ptr        selector_match, arg_match;
+  a_candidate_function_ptr        candidate_functions;
+  an_overload_set_traversal_block ostblock;
 
-  check_assertion(is_immediate_class_type(class_type));
-  if (class_type->variant.class_struct_union.copy_assignment_decl_suppressed) {
-    /* In order to emulate the behavior of the Microsoft compiler, we
-       suppress the declaration of the implicit copy assignment operator
-       for a class that has a member with reference or const-qualified
-       type; this allows overload resolution to select a different
-       assignment operator for the copy.  However, the Microsoft compiler
-       only does this for direct assignments; when generating the
-       definition of an implicitly-declared copy assignment operator, it
-       reports an error for such subobjects, rather than performing
-       overload resolution among the remaining assignment operators. */
-    if (expr_error_should_be_issued()) {
-      pos_ty_error(ec_no_suitable_assignment_operator, dest_decl_pos,
-                   class_type);
+  /* This routine is similar to select_overloaded_function. */
+  db_enter(4, "select_overloaded_assignment_operator");
+#if DEBUG
+  overload_level++;
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
+    fprintf(f_debug,
+            "Entering select_overloaded_assignment_operator, class_type = ");
+    db_abbreviated_type(class_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  *ambiguous = FALSE;
+  *undecidable_because_of_error = FALSE;
+  if (inaccessible_match != NULL) *inaccessible_match = NULL;
+  *bitwise_assign = FALSE;
+  class_type = skip_typerefs(class_type);
+  instantiate_template_class(class_type);
+  cssp = symbol_supplement_for_class(class_type);
+  if (cssp->assignment_by_bitwise_copy_allowed ||
+      class_type->variant.class_struct_union.is_nonreal_class) {
+    /* A bitwise assignment is allowed.  Also used when the class is nonreal,
+       because we don't know about assignment operators in that case. */
+    assign_sym = NULL;
+    if (!sun_mode && 
+        any_qualifier_in_set_missing(TQ_CONST,
+                                     source_cv_qualifiers /*lint --e(845)*/)) {
+      /* Strictly speaking, a bitwise assignment operator has an input
+         parameter of type ref to const class, and therefore it cannot
+         copy a volatile-qualified object. */
+    } else {
+      *bitwise_assign = TRUE;
     }  /* if */
   } else {
-#if DEBUG
-    overload_level++;
-#endif /* DEBUG */
-    /* Make operands from the source and destination expressions.  The
-       dest_expr operand represents the "this" pointer of the
-       operator= and thus we want to convert it to an object pointer. */
-    make_lvalue_expression_operand(dest_expr, &operand_1);
-    take_address_of_lvalue(&operand_1, ((a_source_position *)NULL));
-    operand_1.selector_is_object_pointer = TRUE;
-    make_lvalue_expression_operand(source_expr, &operand_2);
-    /* Change the source operand into argument operand form. */
-    arg_operand_list = alloc_arg_operand();
-    copy_operand(&operand_2, &arg_operand_list->operand);
-    /* candidate_functions will contain the list of viable functions. */
+    /* Examine each operator= of this class. */
+    overloaded_sym = opname_member_function_symbol((an_opname_kind)onk_assign,
+                                                   class_type);
     candidate_functions = NULL;
-    member_functions_symbol = opname_member_function_symbol(
-                                                 (an_opname_kind)onk_assign,
-                                                 class_type);
-    if (member_functions_symbol != NULL) {
-      /* There are assignment operators for this class type.  See how well they
-         match up.  Use the first operand as the selector expression, and the
-         second operand as the actual argument. */
-      try_overloaded_function_match(member_functions_symbol,
-                                    /*is_template_id=*/FALSE,
-                                    (a_template_arg_ptr)NULL,
-                                    arg_operand_list,
-                                    /*have_selector=*/TRUE,
-                                    &operand_1,
-                                    /*ctor_conversion_case=*/FALSE,
-                                    /*effects_copy_initialization=*/FALSE,
-                                    /*allow_udc_on_arguments=*/FALSE,
-                                    /*arg_dep_lookup_done=*/FALSE,
-                                    /*from_arg_dep_lookup=*/FALSE,
-                                    /*dependent_call=*/FALSE,
-                                    /*forced_dependent=*/FALSE,
-                                    /*ignore_templates=*/FALSE,
-                                    /*known_to_be_visible=*/TRUE,
-                                    /*is_overloaded_operator=*/TRUE,
-                                    CCO_DEFAULT,
-                                    &candidate_functions,
-                                    &inaccessible_match,
-                                    &matched_except_for_missing_selector,
-                                    &matched_except_for_selector);
-      /* The candidate_functions list now contains all the viable functions.
-         Find the best. */
-      select_best_candidate_functions(&candidate_functions, dest_decl_pos,
-                                      &undecidable_because_of_error,
-                                      &ambiguous);
-      if (undecidable_because_of_error) {
-        /* There was a previously-reported error. */
-      } else if (candidate_functions == NULL) {
-        /* There is no applicable operator= function. */
-        if (expr_error_should_be_issued()) {
-          if (get_type_qualifiers(source_expr->type) == TQ_CONST &&
-              inaccessible_match == NULL) {
-            /* The common case: missing const assignment operator function. */
-            pos_ty_error(ec_missing_const_assignment_operator, dest_decl_pos,
-                         class_type);
-          } else {
-            /* Unusual case: volatile or const-volatile expected. */
-            pos_ty_start_error(ec_no_suitable_assignment_operator,
-                               dest_decl_pos,
-                               class_type);
-            add_on_diag_for_skipped_inaccessible_function(inaccessible_match);
-            end_error();
-          }  /* if */
-        }  /* if */
-      } else if (ambiguous) {
-        /* More than one operator= function applies and is a best match. */
-        if (expr_error_should_be_issued()) {
-          pos_ty_error(ec_ambiguous_assignment_operator, dest_decl_pos,
-                       class_type);
-        }  /* if */
-      } else {
-        /* Exactly one operator= function applies and is best. */
-        proj_function_symbol = candidate_functions->function_symbol;
-        function_symbol = fundamental_symbol_of(proj_function_symbol);
-        /* Check that the function is accessible and mark it referenced. */
-        expr_reference_to_implicitly_invoked_function(proj_function_symbol,
-                                                      dest_decl_pos,
-                                                      (a_type_ptr)NULL,
-                                                      /*honor_virtual=*/FALSE);
-        rout = function_symbol->variant.routine.ptr;
-      }  /* if */
-      free_candidate_function_list(candidate_functions);
-    }  /* if */
-    free_arg_operand_list(arg_operand_list);
+    for (sym = set_up_overload_set_traversal(overloaded_sym,
+                                             &candidate_functions,
+                                             inaccessible_match,
+                                             &ostblock);
+         sym != NULL;
+         sym = next_symbol_in_overload_set(&ostblock)) {
+      a_boolean local_uncallable;
 #if DEBUG
-    overload_level--;
+      if (debug_level >= 4 || db_flag_is_set("overload")) {
+        db_display_overload_level();
+        db_symbol(sym,
+                  "select_overloaded_assignment_operator: considering ", 4);
+      }  /* if */
 #endif /* DEBUG */
+      selector_match = alloc_arg_match_summary();
+      arg_match = alloc_arg_match_summary();
+      selector_match->next = arg_match;
+      /* See if the argument type matches the parameter of the assignment
+         operator. */
+      determine_copy_param_match(sym, class_type,
+                                 source_cv_qualifiers, source_is_rvalue,
+                                 arg_match, &template_arg_list,
+                                 &local_uncallable);
+      if (arg_match->match_level == aml_none) {
+        /* This assignment operator cannot be used. */
+        goto reject_function;
+      }  /* if */
+      /* See if the destination type matches as a selector. */
+      check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
+      routine_type = routine_symbol_type(sym);
+      this_param_type =
+                      this_param_type_for_overload_res(routine_type,
+                                                       overloaded_sym,
+                                                       /*is_conv_func=*/FALSE);
+      selector_type = make_qualified_type(class_type, dest_cv_qualifiers);
+      determine_selector_match_level(selector_type,
+                                     /*selector_is_object_pointer=*/FALSE,
+                                     this_param_type,
+                                     selector_match);
+      if (selector_match->match_level == aml_none) {
+        /* This assignment operator cannot be used. */
+        goto reject_function;
+      }  /* if */
+      /* sym represents a suitable assignment operator.  Add it to the
+         list of viable functions. */
+      if (sym->kind == (a_symbol_kind)sk_function_template) {
+        /* The symbol is a function template. */
+        add_function_template_to_candidate_functions_list(
+                                         sym,
+                                         overloaded_sym,
+                                         /*expl_template_arg_list_used=*/FALSE,
+                                         template_arg_list,
+                                         selector_match,
+                                         &candidate_functions);
+      } else {
+        /* The symbol is a normal function. */
+        add_function_to_candidate_functions_list(sym,
+                                                 overloaded_sym,
+                                                 selector_match,
+                                                 &candidate_functions);
+      }  /* if */
+      goto next_function;
+reject_function:
+      /* The function is not viable. */
+      /* Free any argument match summary entries built for it. */
+      free_arg_match_summary_list(selector_match);
+      /* Free any template argument list built for it. */
+      free_template_arg_list(template_arg_list);
+next_function:;
+      /* Keep looping to try all the functions in the overload set. */
+    }  /* for */
+    /* Pick the best assignment operator. */
+    select_best_candidate_functions(&candidate_functions, pos,
+                                    undecidable_because_of_error, ambiguous);
+    assign_sym = NULL;
+    if (*undecidable_because_of_error) {
+      /* Previous error. */
+    } else if (*ambiguous) {
+      /* There are several equally desirable assignment operators. */
+    } else if (candidate_functions == NULL) {
+      /* There are no viable assignment operators. */
+    } else {
+      /* There is exactly one best assignment operator. */
+      assign_sym = candidate_functions->function_symbol;
+    }  /* if */
+    /* Free the candidate functions list. */
+    free_candidate_function_list(candidate_functions);
   }  /* if */
-  return rout;
-}  /* select_assignment_operator_for_memberwise_copy */
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
+    db_symbol(assign_sym,
+              "Leaving select_overloaded_assignment_operator, assign_sym = ",
+              4);
+  }  /* if */
+  overload_level--;
+#endif /* DEBUG */
+  db_exit();
+  return assign_sym;
+}  /* select_overloaded_assignment_operator */
 
 
 a_boolean deduce_auto_type(a_type_ptr        orig_type,

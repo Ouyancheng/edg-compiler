@@ -34405,7 +34405,8 @@ copy constructor selected is implicit (not user-declared, i.e.,
 there's no associated symbol) and performs a bitwise copy, return NULL
 and *class_bitwise_copy TRUE.  If inaccessible_match is non-NULL, in
 C++/CLI mode it will be set to a symbol that would have been chosen
-except that it was inaccessible because of hide-by-sig lookup.  This
+except that it was inaccessible because of hide-by-sig lookup.  pos is
+a source position, used if a template needs to be instantiated.  This
 routine is used only in C++ mode.  It does not do access checking on
 the copy constructor.
 */
@@ -34435,6 +34436,63 @@ the copy constructor.
 }  /* find_copy_constructor */
 
 
+a_symbol_ptr find_assignment_operator(
+                                   a_type_ptr            class_type,
+                                   a_type_qualifier_set  source_cv_qualifiers,
+                                   a_boolean             source_is_rvalue,
+                                   a_type_qualifier_set  dest_cv_qualifiers,
+                                   a_source_position     *pos,
+                                   a_boolean             *bitwise_assign)
+/*
+Find and return a pointer to a symbol representing a copy/move
+assignment operator for the class indicated by class_type and
+accepting a first parameter whose type is qualified as specified by
+source_cv_qualifiers, and an rvalue if source_is_rvalue is TRUE
+(source_is_rvalue FALSE should be used if the rvalueness of the source
+is irrelevant).  The destination is an lvalue, whose type is
+class_type with the cv-qualifiers given by dest_cv_qualifiers.
+If no acceptable assignment operator is found, return NULL.  If more
+than one acceptable assignment operator is found and only one of them
+is the best match, return that one; otherwise set *ambiguous to TRUE
+and return NULL.  If inaccessible_match is non-NULL, in C++/CLI mode
+it will be set to a symbol that would have been chosen except that it
+was inaccessible because of hide-by-sig lookup.  If a bitwise
+assignment is selected, return NULL and *bitwise_assign TRUE (this is
+also returned when the class_type is template-dependent in a prototype
+instantiation).  pos is a source position, used if a template needs to
+be instantiated.  This routine is used only in C++ mode.  It does not
+do access checking on the assignment operator.
+*/
+{
+  a_symbol_ptr            assign_sym;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+  a_boolean               ambiguous;
+  a_boolean               undecidable_because_of_error;
+
+  /* Save the current expr_stack for later restoration, and start over, because
+     this processing is not part of any expression we happen to be inside
+     of. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  assign_sym = select_overloaded_assignment_operator(
+                                                 class_type,
+                                                 source_cv_qualifiers,
+                                                 source_is_rvalue,
+                                                 dest_cv_qualifiers,
+                                                 pos,
+                                                 &ambiguous,
+                                                 &undecidable_because_of_error,
+                                                 (a_symbol **)NULL,
+                                                 bitwise_assign);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return assign_sym;
+}  /* find_assignment_operator */
+
+
 a_routine_ptr find_assignment_operator_for_memberwise_copy(
                                               a_type_ptr        class_type,
                                               an_expr_node_ptr  source_expr,
@@ -34445,21 +34503,22 @@ Find the correct assignment operator to use in copying a base or member
 subobject in the implicit definition of a copy assignment operator and
 return a pointer to the selected routine.  If an error is detected, the
 returned value will be NULL (and the appropriate diagnostic will have been
-issued).  This routine is a wrapper for
-select_assignment_operator_for_memberwise_copy, which should not be called
-directly.
-
-source_expr is an lvalue that refers to the base or member subobject of the
-class object that is being copied; dest_expr is an lvalue that refers to the
-corresponding subobject of the target object.  class_type is the type of the
-subobject to be copied.  dest_decl_pos is the position in the class
-definition of the base specifier or member declaration for the subobject
-to be copied.
+issued).  source_expr is an lvalue that refers to the base or member
+subobject of the class object that is being copied; dest_expr is an
+lvalue that refers to the corresponding subobject of the target
+object.  class_type is the type of the subobject to be copied.
+dest_decl_pos is the position in the class definition of the base
+specifier or member declaration for the subobject to be copied.
 */
 {
-  a_routine_ptr           assignment_operator;
+  a_routine_ptr           assign_rout = NULL;
+  a_symbol_ptr            assign_sym = NULL;
   an_expr_stack_entry     expr_stack_entry;
   an_expr_stack_entry_ptr saved_expr_stack;
+  a_boolean               ambiguous;
+  a_boolean               undecidable_because_of_error;
+  a_symbol_ptr            inaccessible_match;
+  a_boolean               bitwise_assign;
 
   /* Save the current expr_stack for later restoration, and start over, because
      this processing is not part of any expression we happen to be inside
@@ -34468,11 +34527,74 @@ to be copied.
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
-  assignment_operator = select_assignment_operator_for_memberwise_copy(
-                            class_type, source_expr, dest_expr, dest_decl_pos);
+  check_assertion(is_immediate_class_type(class_type));
+  if (class_type->variant.class_struct_union.copy_assignment_decl_suppressed) {
+    /* In order to emulate the behavior of the Microsoft compiler, we
+       suppress the declaration of the implicit copy assignment operator
+       for a class that has a member with reference or const-qualified
+       type; this allows overload resolution to select a different
+       assignment operator for the copy.  However, the Microsoft compiler
+       only does this for direct assignments; when generating the
+       definition of an implicitly-declared copy assignment operator, it
+       reports an error for such subobjects, rather than performing
+       overload resolution among the remaining assignment operators. */
+    if (expr_error_should_be_issued()) {
+      pos_ty_error(ec_no_suitable_assignment_operator, dest_decl_pos,
+                   class_type);
+    }  /* if */
+  } else {
+    /* Do overload resolution to find the appropriate operator=. */
+    assign_sym = select_overloaded_assignment_operator(
+                                      class_type,
+                                      get_type_qualifiers(source_expr->type),
+                                      !source_expr->is_lvalue,
+                                      get_type_qualifiers(dest_expr->type),
+                                      dest_decl_pos,
+                                      &ambiguous,
+                                      &undecidable_because_of_error,
+                                      &inaccessible_match,
+                                      &bitwise_assign);
+      if (undecidable_because_of_error) {
+        /* There was a previously-reported error. */
+      } else if (ambiguous) {
+        /* More than one operator= function applies and is a best match. */
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_ambiguous_assignment_operator, dest_decl_pos,
+                       class_type);
+        }  /* if */
+      } else if (assign_sym == NULL) {
+        /* There is no applicable operator= function. */
+        if (expr_error_should_be_issued()) {
+          if (get_type_qualifiers(source_expr->type) == TQ_CONST &&
+              inaccessible_match == NULL) {
+            /* The common case: missing const assignment operator function. */
+            pos_ty_error(ec_missing_const_assignment_operator, dest_decl_pos,
+                         class_type);
+          } else {
+            /* Unusual case: volatile or const-volatile expected. */
+            pos_ty_start_error(ec_no_suitable_assignment_operator,
+                               dest_decl_pos,
+                               class_type);
+            add_on_diag_for_skipped_inaccessible_function(inaccessible_match);
+            end_error();
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Exactly one operator= function applies and is best. */
+        /* Check that the function is accessible and mark it referenced. */
+        expr_reference_to_implicitly_invoked_function(assign_sym,
+                                                      dest_decl_pos,
+                                                      (a_type_ptr)NULL,
+                                                      /*honor_virtual=*/FALSE);
+      }  /* if */
+  }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
-  return assignment_operator;
+  if (assign_sym != NULL) {
+    check_assertion(assign_sym->kind == (a_symbol_kind)sk_member_function);
+    assign_rout = assign_sym->variant.routine.ptr;
+  }  /* if */
+  return assign_rout;
 }  /* find_assignment_operator_for_memberwise_copy */
 
 

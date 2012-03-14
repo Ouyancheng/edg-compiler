@@ -968,6 +968,10 @@ extern int fileno(FILE *);
 #if !USER_CONTROL_OF_STRUCT_PACKING
 /*lint -esym(769,ec_exp_rparen_and_pragma_ignored)*/
 #endif /* !USER_CONTROL_OF_STRUCT_PACKING */
+/*FIXME*/
+/*lint -esym(759,find_assignment_operator)*/
+/*lint -esym(765,find_assignment_operator)*/
+/*lint -esym(714,find_assignment_operator)*/
 
 #endif /* ifndef LINT_H */
 

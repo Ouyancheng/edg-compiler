@@ -436,6 +436,14 @@ a_symbol_ptr find_copy_constructor(a_type_ptr            class_type,
                                    a_symbol_ptr          *inaccessible_match,
                                    a_boolean             *class_bitwise_copy);
 
+a_symbol_ptr find_assignment_operator(
+                                   a_type_ptr            class_type,
+                                   a_type_qualifier_set  source_cv_qualifiers,
+                                   a_boolean             source_is_rvalue,
+                                   a_type_qualifier_set  dest_cv_qualifiers,
+                                   a_source_position     *pos,
+                                   a_boolean             *bitwise_assign);
+
 extern a_routine_ptr find_assignment_operator_for_memberwise_copy(
                                              a_type_ptr        class_type,
                                              an_expr_node_ptr  source_expr,
