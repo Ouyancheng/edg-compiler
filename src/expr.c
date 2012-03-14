@@ -3953,11 +3953,6 @@ result_built:
   }  /* if */
   set_operand_position(result_op, &operand->position, &end_position,
                        &lparen_position);
-                  
-  result_op->position = operand->position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  result_op->end_position = end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   check_assertion(is_constant_operand(result_op) ||
                   is_error_operand(result_op) ||
                   !curr_expr_kind_is_const());
