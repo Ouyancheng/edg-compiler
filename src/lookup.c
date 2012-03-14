@@ -464,9 +464,9 @@ member function is defined.
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
 
-a_type_ptr create_proxy_class(a_symbol_ptr		orig_sym,
-			      a_source_correspondence	*scp,
-			      a_boolean			is_generic)
+static a_type_ptr create_proxy_class(a_symbol_ptr		orig_sym,
+				     a_source_correspondence	*scp,
+				     a_boolean			is_generic)
 /*
 Create a proxy class for the entity specified by orig_sym and scp.
 Creation of the proxy class consists of allocating and initializing the
