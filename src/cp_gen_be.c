@@ -15981,9 +15981,13 @@ Initialize for the C++/C-generating back end.
   /* The Microsoft compiler has a bug that causes it to issue spurious
      errors for parenthesized pointer-to-data-member declarators, and
      similarly for g++ versions 4.5.0 through 4.5.2. */
-  if (msvc_is_generated_code_target ||
-      (gcc_is_generated_code_target && gnu_target_version_number >= 40500 &&
-       gnu_target_version_number <= 40502)) {
+  if (msvc_is_generated_code_target
+#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+      || (gcc_is_generated_code_target &&
+          gnu_target_version_number >= 40500 &&
+          gnu_target_version_number <= 40502)
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+      ) {
     octl.suppress_ptr_to_data_member_parens = TRUE;
   }  /* if */
   in_template_argument_list = FALSE;
