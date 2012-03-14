@@ -28516,18 +28516,18 @@ substitution.
           tp = generic_param_if_generic_definition_argument(arg_type);
           if (is_handle_type(tp)) {
             tp = type_pointed_to(tp);
-            if (is_abstract_class_type(tp)) {
-              /* Abstract classes do not satisfy the gcnew constraint. */
-              result = FALSE;
-              if (issue_error) {
-                pos_ty2_error(ec_gcnew_and_abstract, list_start_pos,
-                              arg_type, templ_param_type);
-              }  /* if */
-            } else if (!cli_type_has_public_default_constructor(tp)) {
+            if (!cli_type_has_public_default_constructor(tp)) {
               /* The type must have a public default constructor. */
               result = FALSE;
               if (issue_error) {
                 pos_ty2_error(ec_gcnew_and_no_ctor, list_start_pos,
+                              arg_type, templ_param_type);
+              }  /* if */
+            } else if (is_abstract_class_type(tp)) {
+              /* Abstract classes do not satisfy the gcnew constraint. */
+              result = FALSE;
+              if (issue_error) {
+                pos_ty2_error(ec_gcnew_and_abstract, list_start_pos,
                               arg_type, templ_param_type);
               }  /* if */
             }  /* if */
