@@ -9857,7 +9857,7 @@ otherwise.
   char                          *opstr = " = ";
   a_boolean                     need_context_pop = FALSE;
 
-  if (desc != NULL && desc->is_static) {
+  if (obj_expr != NULL || (desc != NULL && desc->is_static)) {
     /* This operation calls a static property.  The object expression will
        either be the one passed in or will be set by the traversal of the
        subexpression. */
