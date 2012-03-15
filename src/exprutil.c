@@ -16991,7 +16991,7 @@ transformations.
           !C_mode() &&
           is_class_struct_union_type(operand->type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-           && !is_cli_interface_type(operand->type)
+           && !is_managed_class_type(operand->type)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                     ) {
         /* When converting a class object to an rvalue in C++ mode, make a
