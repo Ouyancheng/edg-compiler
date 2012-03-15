@@ -132,6 +132,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(756,an_other_pragma_function_ptr)*/
 /*lint -esym(759,constant_is_shareable)*/
 /*lint -esym(765,constant_is_shareable)*/
+/*lint -esym(759,routine_and_node_from_function_expr)*/
+/*lint -esym(765,routine_and_node_from_function_expr)*/
 #if !MACRO_INVOCATION_TREE_IN_IL
 /*lint -esym(755,copy_simple_position_to_full_position)*/
 #endif /* !MACRO_INVOCATION_TREE_IN_IL */

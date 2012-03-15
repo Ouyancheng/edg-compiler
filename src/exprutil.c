@@ -16475,7 +16475,9 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
         an_expr_node_ptr              routine_expr;
         an_expr_node_ptr              routine_node;
         a_routine_ptr                 routine_ptr;
+#if !DO_IL_LOWERING
         a_property_or_event_descr_ptr pedp = NULL;
+#endif /* !DO_IL_LOWERING */
         routine_expr = func_call_node->variant.operation.operands;
         if (is_routine_node(routine_expr)) {
           routine_node = routine_expr;
