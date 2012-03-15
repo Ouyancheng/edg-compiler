@@ -16388,11 +16388,20 @@ C++ functional-notation type conversions, and C++ new-style casts.
       /* But not a cast to an abstract class. */
       if (is_abstract_class_type(type_cast_to) &&
           /* Except in Microsoft mode before version 7.0. */
-          !(microsoft_bugs && microsoft_version < 1300)
-          if_microsoft_extensions(&& !is_cli_interface_type(type_cast_to))) {
+          !(microsoft_bugs && microsoft_version < 1300)) {
         if (expr_error_should_be_issued()) {
-          abstract_class_diagnostic(
-            es_error, ec_cast_to_abstract_class, type_cast_to, type_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (is_cli_interface_type(type_cast_to)) {
+            /* Use a special message for C++/CLI interface classes. */
+            pos_ty_error(ec_cast_to_cli_interface_class, 
+                         type_position, type_cast_to);
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          {
+            abstract_class_diagnostic(es_error, ec_cast_to_abstract_class,
+                                      type_cast_to, type_position);
+          }  /* if */
         }  /* if */
         err = TRUE;
       }  /* if */
