@@ -20353,7 +20353,6 @@ assignment operator.
 #endif /* DEBUG */
       selector_match = alloc_arg_match_summary();
       arg_match = alloc_arg_match_summary();
-      selector_match->next = arg_match;
       /* See if the argument type matches the parameter of the assignment
          operator. */
       determine_copy_param_match(sym, class_type,
@@ -20380,6 +20379,7 @@ assignment operator.
       }  /* if */
       /* sym represents a suitable assignment operator.  Add it to the
          list of viable functions. */
+      selector_match->next = arg_match;
       if (sym->kind == (a_symbol_kind)sk_function_template) {
         /* The symbol is a function template. */
         add_function_template_to_candidate_functions_list(
@@ -20400,6 +20400,7 @@ assignment operator.
 reject_function:
       /* The function is not viable. */
       /* Free any argument match summary entries built for it. */
+      selector_match->next = arg_match;
       free_arg_match_summary_list(selector_match);
       /* Free any template argument list built for it. */
       free_template_arg_list(template_arg_list);
