@@ -63,7 +63,15 @@ Position information for GNU built-in variadic parameter operations
 
 The changes for EDGcpfe/11160 (see entry of 12/17/10) caused the front end to
 fail to record position information in expression nodes for variadic parameter
-operations (when GCC_BUILTIN_VARARGS is TRUE).  This is now fixed.
+operations (when GCC_BUILTIN_VARARGS is TRUE).  For example:
+
+  #include <stdarg.h>
+  void g(char *one, ...) {
+    __builtin_va_list ap;
+    __builtin_va_start(ap, one);  // The resulting eok_va_start node operation
+  }                               // previously lacked position information.
+
+This is now fixed.
 
 
 3/13/12  [EDGcpfe/12756]
