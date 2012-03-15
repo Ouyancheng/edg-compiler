@@ -2343,7 +2343,7 @@ operator routine or do bitwise assignment.
   a_routine_ptr                  rp;
   a_symbol_ptr                   sym;
   a_param_type_ptr               ptp;
-  a_boolean                      bitwise_assign;
+  a_boolean                      bitwise_assign, move_assign;
   a_source_position              *err_pos;
 
   db_enter(4, "make_default_assignment_body");
@@ -2353,6 +2353,7 @@ operator routine or do bitwise assignment.
   rout = scope->variant.routine.ptr;
   rtsp = (skip_typerefs(rout->type))->variant.routine.extra_info;
   ptp = rtsp->param_type_list;
+  move_assign = is_rvalue_reference_type(ptp->type);
   source_var = implicitly_generated_param_variable(ptp->type);
   source_var->assoc_param_type = ptp;
   class_type =
@@ -2398,8 +2399,8 @@ operator routine or do bitwise assignment.
         source_expr = add_address_of_to_node(source_expr);
         source_expr = base_class_selection_expr(source_expr, bcp);
         source_expr = add_indirection_to_node(source_expr);
-        if (symbol_supplement_for_class(bcp->type)->
-                         assignment_by_bitwise_copy_allowed) {
+        if (symbol_supplement_for_class(bcp->type)
+                                       ->assignment_by_bitwise_copy_allowed) {
           /* A bitwise copy may be performed. */
           source_expr = rvalue_expr_for_lvalue(source_expr);
           /* Create the assignment statement.  The appropriate operator
@@ -2408,6 +2409,10 @@ operator routine or do bitwise assignment.
         } else {
           /* A bitwise copy may not be done.  Find the default assignment
              operator and put out a call to it. */
+          if (move_assign) {
+            /* For move assignment, to the assignment from an rvalue. */
+            source_expr = rvalue_expr_for_lvalue(source_expr);
+          }
           rp = find_assignment_operator_for_memberwise_copy(
                                                           bcp->type,
                                                           source_expr,
@@ -2465,8 +2470,8 @@ operator routine or do bitwise assignment.
         if (is_class_struct_union_type(tp)) {
           /* It's a class type, so we may have to call an assignment operator
              function. */
-          if (symbol_supplement_for_class(tp)->
-                           assignment_by_bitwise_copy_allowed) {
+          if (symbol_supplement_for_class(tp)
+                                      ->assignment_by_bitwise_copy_allowed) {
             /* A bitwise copy can be performed. */
             bitwise_assign = TRUE;
           } else {
@@ -2551,6 +2556,10 @@ operator routine or do bitwise assignment.
               /* Now that we have element lvalues, we can find the right
                  assignment operator. */
             }  /* if */
+            if (move_assign) {
+              /* For move assignment, to the assignment from an rvalue. */
+              source_expr = rvalue_expr_for_lvalue(source_expr);
+            }
             /* Find the assignment operator to do the copy. */
             rp = find_assignment_operator_for_memberwise_copy(
                                             tp, source_expr, dest_expr,

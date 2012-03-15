@@ -16401,7 +16401,7 @@ remarks may be issued in some cases.
        generated at all, nothing is needed either. */
   } else {
     rout_sym = find_assignment_operator(type, TQ_NONE,
-                                        /*source_is_rvalue=*/FALSE,
+                                        /*source_is_rvalue=*/TRUE,
                                         subobj_qual, 
                                         &type->source_corresp.decl_position,
                                         &ambiguous, &bitwise_copy);
@@ -16817,9 +16817,10 @@ definition described by class_state.
 }  /* add_default_ctor_if_needed */
 
 
-static void generate_assignment_operator(a_class_def_state_ptr  class_state,
-                                         a_boolean              is_deleted,
-                                         a_type_qualifier_set   qualifiers)
+static void generate_copy_assignment_operator(
+                                           a_class_def_state_ptr  class_state,
+                                           a_boolean              is_deleted,
+                                           a_type_qualifier_set   qualifiers)
 /*
 Add a declaration for a copy assignment operator to the class definition
 described by class_state.  If is_deleted is TRUE, make that operator "deleted".
@@ -16866,7 +16867,27 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
     }  /* if */
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
-}  /* generate_assignment_operator */
+}  /* generate_copy_assignment_operator */
+
+
+static void generate_move_assignment_operator(
+                                           a_class_def_state_ptr  class_state)
+/*
+Add a declaration for a move assignment operator to the class definition
+described by class_state.
+*/
+{
+  a_type_ptr          class_type = class_state->class_type;
+  a_source_position   *pos = &class_type->source_corresp.decl_position;
+  a_member_decl_info  decl_info;
+  a_param_type_ptr    ptp;
+  a_func_info_block   func_info;
+
+  initialize_member_decl_info(&decl_info, pos);
+  ptp = make_move_function_param(class_type);
+  clear_func_info(&func_info);
+  generate_special_function(class_state, &decl_info, &func_info, ptp);
+}  /* generate_move_assignment_operator */
 
 
 static void mark_trivial_copy_functions(a_class_def_state_ptr  class_state)
@@ -16894,7 +16915,7 @@ defaulted member functions.)
        operators. */
     a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
     for (; rp != NULL; rp = rp->next) {
-      if (rp->compiler_generated || rp->is_defaulted) {
+      if ((rp->compiler_generated || rp->is_defaulted) && !rp->is_deleted) {
         a_type_qualifier_set  tqs;
         if (rp->special_kind == (a_special_function_kind)sfk_constructor &&
             is_copy_constructor(rp, (a_type*)NULL, &tqs,
@@ -17434,9 +17455,8 @@ The routine body is not generated until it is known to be needed.
   a_boolean                     user_declared_copy_assignment_op;
   a_boolean                     user_provided_copy_assignment_op;
   a_boolean                     has_move_assign;
-  a_boolean                     declare_copy_asgn_op;
-  a_boolean                     declare_copy_ctor;
-  a_boolean                     declare_move_ctor;
+  a_boolean                     declare_copy_asgn_op, declare_move_asgn_op;
+  a_boolean                     declare_copy_ctor, declare_move_ctor;
   a_boolean                     declare_dtor;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     declare_static_ctor;
@@ -17466,12 +17486,21 @@ The routine body is not generated until it is known to be needed.
   } else if (user_provided_copy_assignment_op) {
     class_state->POD_ruled_out = TRUE;
   }  /* if */
-  if (!cssp->has_copy_constructor && generate_move_operations) {
-    /* A user-declared move constructor or move assignment operator causes a
-       generated copy constructor to be defined as deleted. */
-    if (cssp->has_user_declared_move_constructor || has_move_assign) {
-      gsfd.suppress_copy_ctor = TRUE;
-      gsfd.suppress_copy_assign = TRUE;
+  if (generate_move_operations) {
+    if (cssp->has_copy_constructor) {
+      /* A user-defined copy constructor prevents the generation of a move
+         constructor and move assignment operator. */
+      gsfd.suppress_move_ctor = TRUE;
+      gsfd.suppress_move_assign = TRUE;
+    } else {
+      /* Since there is no user-declared copy constructor, one might get
+         generated below.  However, a user-declared move constructor or move
+         assignment operator causes a generated copy constructor to be defined
+         as deleted. */
+      if (cssp->has_user_declared_move_constructor || has_move_assign) {
+        gsfd.suppress_copy_ctor = TRUE;
+        gsfd.suppress_copy_assign = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   add_default_ctor_if_needed(class_state);
@@ -17481,6 +17510,13 @@ The routine body is not generated until it is known to be needed.
   gsfd.copy_ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   declare_copy_asgn_op = !user_declared_copy_assignment_op &&
                      (!any_cfront_mode() || cssp->assignment_operator == NULL);
+  declare_move_asgn_op = generate_move_operations &&
+                         !has_move_assign && !gsfd.suppress_move_assign &&
+                         !user_declared_copy_assignment_op &&
+                         cssp->destructor == NULL &&
+                         (ctsp->is_lambda_closure_class ||
+                          cssp->constructor != NULL ||
+                          !cssp->construction_by_bitwise_copy_allowed);
   /* If no copy constructor has been declared, we generally declare one
      implicitly.  An exception occurs for classes that are trivially copyable,
      provided there are no other constructors (in which case the trivial copy
@@ -17604,9 +17640,13 @@ The routine body is not generated until it is known to be needed.
          user-declared move assignment operator or move constructor. */
     } else {
       /* Add the implicit declaration of the copy assignment operator. */
-      generate_assignment_operator(class_state, gsfd.suppress_copy_assign,
-                                   gsfd.copy_assign_qualifiers);
+      generate_copy_assignment_operator(class_state, gsfd.suppress_copy_assign,
+                                        gsfd.copy_assign_qualifiers);
     }  /* if */
+  }  /* if */
+  if (declare_move_asgn_op && !gsfd.suppress_move_assign) {
+      /* Add the implicit declaration of the move assignment operator. */
+      generate_move_assignment_operator(class_state);
   }  /* if */
   mark_trivial_copy_functions(class_state);
   /* If there were user-provided copy constructors and/or user-provided copy
@@ -17617,7 +17657,7 @@ The routine body is not generated until it is known to be needed.
       cssp->has_user_provided_move_constructor) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
   }  /* if */
-  if (user_provided_copy_assignment_op) {
+  if (user_provided_copy_assignment_op || has_move_assign) {
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -25288,7 +25328,8 @@ For example:
                                                   &func_info);
   }  /* if */
   generate_default_constructor(&class_state, /*is_deleted=*/TRUE);
-  generate_assignment_operator(&class_state, /*is_deleted=*/TRUE, TQ_CONST);
+  generate_copy_assignment_operator(&class_state, /*is_deleted=*/TRUE,
+                                    TQ_CONST);
   /* Record the capture list and complete the closure class. */
   complete_class_definition(closure_class, decl_level, &class_state);
   pop_scope();
