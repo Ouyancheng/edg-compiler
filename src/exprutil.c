@@ -16482,10 +16482,10 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
         if (is_routine_node(routine_expr)) {
           routine_node = routine_expr;
         } else if (is_operation_node(routine_expr) &&
-                   (routine_expr->variant.operation.kind ==
+                   ((routine_expr->variant.operation.kind ==
                                        (an_expr_operator_kind)eok_dot_static ||
-                    routine_expr->variant.operation.kind ==
-                                 (an_expr_operator_kind)eok_points_to_static &&
+                     routine_expr->variant.operation.kind ==
+                                (an_expr_operator_kind)eok_points_to_static) &&
                     is_routine_node(routine_expr->
                                           variant.operation.operands->next))) {
           routine_node = routine_expr->variant.operation.operands->next;
