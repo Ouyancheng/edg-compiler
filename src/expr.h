@@ -442,6 +442,7 @@ a_symbol_ptr find_assignment_operator(
                                    a_boolean             source_is_rvalue,
                                    a_type_qualifier_set  dest_cv_qualifiers,
                                    a_source_position     *pos,
+                                   a_boolean             *ambiguous,
                                    a_boolean             *bitwise_assign);
 
 extern a_routine_ptr find_assignment_operator_for_memberwise_copy(

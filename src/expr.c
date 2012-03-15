@@ -34464,32 +34464,28 @@ a_symbol_ptr find_assignment_operator(
                                    a_boolean             source_is_rvalue,
                                    a_type_qualifier_set  dest_cv_qualifiers,
                                    a_source_position     *pos,
+                                   a_boolean             *ambiguous,
                                    a_boolean             *bitwise_assign)
 /*
-Find and return a pointer to a symbol representing a copy/move
-assignment operator for the class indicated by class_type and
-accepting a first parameter whose type is qualified as specified by
-source_cv_qualifiers, and an rvalue if source_is_rvalue is TRUE
-(source_is_rvalue FALSE should be used if the rvalueness of the source
-is irrelevant).  The destination is an lvalue, whose type is
-class_type with the cv-qualifiers given by dest_cv_qualifiers.
-If no acceptable assignment operator is found, return NULL.  If more
-than one acceptable assignment operator is found and only one of them
-is the best match, return that one; otherwise set *ambiguous to TRUE
-and return NULL.  If inaccessible_match is non-NULL, in C++/CLI mode
-it will be set to a symbol that would have been chosen except that it
-was inaccessible because of hide-by-sig lookup.  If a bitwise
-assignment is selected, return NULL and *bitwise_assign TRUE (this is
-also returned when the class_type is template-dependent in a prototype
-instantiation).  pos is a source position, used if a template needs to
-be instantiated.  This routine is used only in C++ mode.  It does not
-do access checking on the assignment operator.
+Find and return a pointer to a symbol representing a copy/move assignment
+operator for the class indicated by class_type and accepting a first parameter
+whose type is qualified as specified by source_cv_qualifiers, and an rvalue if
+source_is_rvalue is TRUE (source_is_rvalue FALSE should be used if the
+rvalueness of the source is irrelevant).  The destination is an lvalue, whose
+type is class_type with the cv-qualifiers given by dest_cv_qualifiers.
+If no acceptable assignment operator is found, return NULL.  If more than one
+acceptable assignment operator is found and only one of them is the best
+match, return that one; otherwise set *ambiguous to TRUE and return NULL.  If
+a bitwise assignment is selected, return NULL and *bitwise_assign TRUE (this
+is also returned when the class_type is template-dependent in a prototype
+instantiation).  pos is a source position, used if a template needs to be
+instantiated.  This routine is used only in C++ mode.  It does not do access
+checking on the assignment operator.
 */
 {
   a_symbol_ptr            assign_sym;
   an_expr_stack_entry     expr_stack_entry;
   an_expr_stack_entry_ptr saved_expr_stack;
-  a_boolean               ambiguous;
   a_boolean               undecidable_because_of_error;
 
   /* Save the current expr_stack for later restoration, and start over, because
@@ -34505,7 +34501,7 @@ do access checking on the assignment operator.
                                                  source_is_rvalue,
                                                  dest_cv_qualifiers,
                                                  pos,
-                                                 &ambiguous,
+                                                 ambiguous,
                                                  &undecidable_because_of_error,
                                                  (a_symbol **)NULL,
                                                  bitwise_assign);

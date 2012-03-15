@@ -16340,16 +16340,20 @@ This is a helper routine for check_suppressed_special_functions.  It checks a
 base class or the class type ("type") of a member of class_type to see if any
 conditions exist that would prevent the successful generation of the implicit
 definition of a copy/move assignment operator, copy/move constructor, or
-destructor for the specified class_type.  *gsfd is updated accordingly and
-warnings or remarks may be issued in some cases.
+destructor for the specified class_type.  type may be const/volatile qualified
+but if the corresponding subobject is an array , type is the underlying class
+type (possibly qualified).  *gsfd is updated accordingly and warnings or
+remarks may be issued in some cases.
 */
 {
   a_class_symbol_supplement_ptr  cssp;
   a_symbol_ptr                   rout_sym;
   a_boolean                      ambiguous;
-  a_boolean                      pass_by_value;
   a_boolean                      bitwise_copy;
+  a_type_qualifier_set           subobj_qual;
 
+  subobj_qual = get_type_qualifiers(type);
+  type = skip_typerefs(type);
   /* Check the copy assignment operator. */
   if (gsfd->suppress_copy_assign ||
       (microsoft_mode && microsoft_version >= 1400 &&
@@ -16368,9 +16372,11 @@ warnings or remarks may be issued in some cases.
                          class_type, type);
     }  /* if */
   } else {
-    rout_sym = find_copy_assignment_operator(type,
-                                             gsfd->copy_assign_qualifiers,
-                                             &ambiguous, &pass_by_value);
+    rout_sym = find_assignment_operator(type, gsfd->copy_assign_qualifiers,
+                                        /*source_is_rvalue=*/FALSE,
+                                        subobj_qual, 
+                                        &type->source_corresp.decl_position,
+                                        &ambiguous, &bitwise_copy);
     if (ambiguous ||
         (rout_sym != NULL &&
          (!have_access_to_symbol(rout_sym) ||
@@ -16386,6 +16392,28 @@ warnings or remarks may be issued in some cases.
                            &class_type->source_corresp.decl_position,
                            class_type, type);
       }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Check the move assignment operator. */
+  if (gsfd->suppress_move_assign || !generate_move_operations) {
+    /* If we already know the move assignment operator should be suppressed,
+       no further checking is needed for this case.  If move operations aren't
+       generated at all, nothing is needed either. */
+  } else {
+    rout_sym = find_assignment_operator(type, TQ_NONE,
+                                        /*source_is_rvalue=*/FALSE,
+                                        subobj_qual, 
+                                        &type->source_corresp.decl_position,
+                                        &ambiguous, &bitwise_copy);
+    if (ambiguous ||
+        (rout_sym == NULL && !bitwise_copy) ||
+        (rout_sym != NULL &&
+         (!have_access_to_symbol(rout_sym) ||
+          is_deleted_member_sym(rout_sym)))) {
+      /* A base or member with an ambiguous or inaccessible move assignment
+         operator prevents this move assignment operator from being
+         generated. */
+      gsfd->suppress_move_assign = TRUE;
     }  /* if */
   }  /* if */
   /* Check the copy constructor. */
@@ -16545,8 +16573,7 @@ warnings or remarks may be issued.
         /* Check to see if the special member functions of the member's class
            type would prevent the corresponding functions from being
            generated. */
-        check_base_or_mbr_class_type_for_suppression(class_type, gsfd,
-                                                     skip_typerefs(tp));
+        check_base_or_mbr_class_type_for_suppression(class_type, gsfd, tp);
       }  /* if */
     }  /* if */
   }  /* for */
