@@ -964,6 +964,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_pure_specifier_on_sealed_member)*/
 /*lint -esym(769,ec_final_managed_class)*/
 /*lint -esym(769,ec_cast_to_cli_interface_class)*/
+/*lint -esym(769,ec_new_of_cli_interface_class)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !MINIMAL_INLINING
 /*lint -esym(769,ec_too_large_to_inline)*/

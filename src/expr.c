@@ -14828,8 +14828,13 @@ expression, and return the result in *result (or an error indication in
       expr_pos_error(ec_type_must_be_object_type, &type_position);
     }  /* if */
     err = TRUE;
-  } else if (is_abstract_class_type(new_type)
-             if_microsoft_extensions(&& !is_cli_interface_type(new_type))) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && is_cli_interface_type(new_type)) {
+    /* A C++/CLI interface class object can never be allocated. */
+    expr_pos_error(ec_new_of_cli_interface_class, &type_position);
+    err = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (is_abstract_class_type(new_type)) {
     /* The type is an abstract class type, so an object of the type
        cannot be allocated. */
     if (expr_error_should_be_issued()) {
