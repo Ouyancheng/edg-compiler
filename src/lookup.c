@@ -598,6 +598,7 @@ created.
 }  /* proxy_class_for_template_param */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
 static a_type_ptr proxy_class_for_namespace(a_namespace_ptr	nsp)
 /*
 Return the proxy class associated with the namespace specified by nsp.
