@@ -19958,6 +19958,7 @@ static void determine_copy_param_match(
                                  a_boolean                source_is_rvalue,
                                  an_arg_match_summary_ptr arg_match,
                                  a_template_arg_ptr       *template_arg_list,
+                                 a_type_ptr               *eff_routine_type,
                                  a_boolean                *uncallable)
 /*
 Determine whether the constructor or assignment operator given by sym
@@ -19965,11 +19966,13 @@ can be called with a single parameter of type class_type with
 cv-qualifiers as given by source_cv_qualifiers, and an rvalue if
 source_is_rvalue is TRUE.  Fill in *arg_match to indicate the match
 level, if any, and set *template_arg_list to the deduced template
-argument list if needed.  If sym is a constructor, the match is rejected
-if it isn't a copy or move constructor; otherwise, it's rejected if it
-can't be called with a single argument.  Return *uncallable TRUE if sym
-would have been callable except that the type of reference parameter
-can't bind to an lvalue or rvalue as indicated by source_is_rvalue.
+argument list if needed, and *eff_routine_type to the routine type
+(after deduction if it's a template).  If sym is a constructor, the
+match is rejected if it isn't a copy or move constructor; otherwise,
+it's rejected if it isn't a copy or move assignment operator.  Return
+*uncallable TRUE if sym would have been callable except that the type
+of reference parameter can't bind to an lvalue or rvalue as indicated
+by source_is_rvalue.
 */
 {
   a_routine_ptr                   routine;
@@ -19979,7 +19982,8 @@ can't bind to an lvalue or rvalue as indicated by source_is_rvalue.
   a_boolean                       assign_case = FALSE;
 
   *template_arg_list = NULL;
-  if (uncallable != NULL) *uncallable = FALSE;
+  *eff_routine_type = NULL;
+  *uncallable = FALSE;
   arg_type = make_qualified_type(class_type, source_cv_qualifiers);
   if (sym->kind == (a_symbol_kind)sk_function_template) {
     /* Try type deduction on a template. */
@@ -20008,7 +20012,7 @@ can't bind to an lvalue or rvalue as indicated by source_is_rvalue.
     routine = sym->variant.routine.ptr;
     routine_type = routine->type;
   }  /* if */
-  routine_type = skip_typerefs(routine_type);
+  *eff_routine_type = routine_type = skip_typerefs(routine_type);
   rtsp = routine_type->variant.routine.extra_info;
   ptp = rtsp->param_type_list;
   if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
@@ -20154,7 +20158,8 @@ do access checking on the copy constructor.
                                              &ostblock);
          sym != NULL;
          sym = next_symbol_in_overload_set(&ostblock)) {
-      a_boolean local_uncallable;
+      a_boolean  local_uncallable;
+      a_type_ptr routine_type;
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
         db_display_overload_level();
@@ -20166,6 +20171,7 @@ do access checking on the copy constructor.
       determine_copy_param_match(sym, class_type,
                                  source_cv_qualifiers, source_is_rvalue,
                                  arg_match, &template_arg_list,
+                                 &routine_type,
                                  &local_uncallable);
       if (arg_match->match_level == aml_none) {
         /* This copy constructor cannot be used. */
@@ -20353,14 +20359,12 @@ assignment operator.
       determine_copy_param_match(sym, class_type,
                                  source_cv_qualifiers, source_is_rvalue,
                                  arg_match, &template_arg_list,
-                                 &local_uncallable);
+                                 &routine_type, &local_uncallable);
       if (arg_match->match_level == aml_none) {
         /* This assignment operator cannot be used. */
         goto reject_function;
       }  /* if */
       /* See if the destination type matches as a selector. */
-      check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
-      routine_type = routine_symbol_type(sym);
       this_param_type =
                       this_param_type_for_overload_res(routine_type,
                                                        overloaded_sym,
