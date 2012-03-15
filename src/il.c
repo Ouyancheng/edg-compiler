@@ -11714,19 +11714,97 @@ Return TRUE if and only if the given routine is a move constructor.
 }  /* routine_is_move_ctor */
 
 
+a_boolean is_copy_assignment_operator_type(
+                                 a_type_ptr            routine_type,
+                                 a_type_ptr            class_type,
+                                 a_boolean             move_assign_okay,
+                                 a_boolean             *is_ref_arg,
+                                 a_type_qualifier_set  *qualifiers,
+                                 a_boolean             *is_base_class_match)
+/*
+Return TRUE if routine_type (an operator= function's type) is the type
+of a copy assignment operator for class class_type; if it is, also (if
+is_ref_arg is non-NULL) set *is_ref_arg to indicate whether the
+parameter has a reference type, and (if qualifiers is non-NULL) set
+*qualifiers to indicate the type qualifiers on the function's first
+parameter.  If move_assign_okay is TRUE, also return TRUE if
+routine_type is the type of a "move assignment operator" (the first
+parameter has an rvalue reference type).  If is_base_class_match is
+non-NULL, return *is_base_class_match for the cfront compatibility
+case where the copy assignment operator takes a base class as its
+input.
+*/
+{
+  a_boolean                     is_copy_assign = FALSE;
+  a_param_type_ptr              ptp;
+  a_type_ptr                    tp;
+  a_routine_type_supplement_ptr rtsp;
+
+  if (is_ref_arg != NULL) *is_ref_arg = FALSE;
+  if (qualifiers != NULL) *qualifiers = TQ_NONE;
+  if (is_base_class_match != NULL) *is_base_class_match = FALSE;
+  class_type = skip_typerefs(class_type);
+  check_assertion(is_immediate_class_type(class_type));
+  routine_type = skip_typerefs(routine_type);
+  check_assertion(routine_type->kind == (a_type_kind)tk_routine);
+  rtsp = routine_type->variant.routine.extra_info;
+  ptp = rtsp->param_type_list;
+  check_assertion(ptp != NULL);
+  tp = skip_typerefs(ptp->type);
+  if (move_assign_okay ? is_reference_type(tp)
+                       : is_lvalue_reference_type(tp)) {
+    /* Reference argument. */
+    tp = type_pointed_to(tp);
+    /* Don't do a skip_typerefs on what's returned from type_pointed_to,
+       since we need to distinguish between "A&" and "const A&". */
+    if (is_ref_arg != NULL) *is_ref_arg = TRUE;
+  }  /* if */
+  if (is_class_struct_union_type(tp)) {
+    /* The type of the first parameter is a class type. */
+    if (f_same_entities(skip_typerefs(tp), class_type)) {
+      /* The parameter's type matches the class of which the assignment
+         operator is a member. */
+      is_copy_assign = TRUE;
+    } else if (allow_copy_assignment_op_with_base_class_param) {
+      if (find_base_class_of(class_type, tp) != NULL) {
+        /* The parameter's type matches a base class of the class of which the
+           assignment operator is a member. */
+        is_copy_assign = TRUE;
+        if (is_base_class_match != NULL) *is_base_class_match = TRUE;
+      }  /* if */
+    }  /* if */
+    if (is_copy_assign && qualifiers != NULL) {
+      /* Check the qualifiers.  (Call get_top_level_type_qualifiers instead
+         of get_type_qualifiers because we know tp cannot be an array.) */
+      *qualifiers = get_top_level_type_qualifiers(tp);
+    }  /* if */
+  }  /* if */
+  if (rtsp->qualifiers != TQ_NONE && !microsoft_mode && !gnu_mode &&
+      !sun_mode) {
+    /* cv-qualifiers on the function disqualify it as a "copy assignment
+       operator".  As of April 2006 this is not in 12.8p9 of the standard,
+       but it makes sense.  (MSVC++, g++, and Sun CC all accept cv-qualified
+       operator= functions as copy assignment operators.) */
+    is_copy_assign = FALSE;
+  }  /* if */
+  return is_copy_assign;
+}  /* is_copy_assignment_operator_type */
+
+
 a_boolean routine_is_move_assignment_operator(a_routine_ptr  rp)
 /*
 Return TRUE if and only if the given routine is a move assignment operator.
 */
 {
-  a_type_qualifier_set  qualifiers;
-  a_boolean             is_ref_arg, base_match_only;
+  a_boolean base_match_only;
 
   return special_kind_is(rp, sfk_operator) &&
          rp->variant.opname_kind == (an_opname_kind)onk_assign &&
-         is_assignment_operator_for_copy(symbol_for(rp),
+         is_copy_assignment_operator_type(rp->type,
+                                          parent_class_of(rp),
                                          /*move_assign_okay=*/TRUE,
-                                         &is_ref_arg, &qualifiers,
+                                         /*is_ref_arg=*/(a_boolean *)NULL,
+                                         (a_type_qualifier_set *)NULL,
                                          &base_match_only) &&
          !base_match_only &&
          is_rvalue_reference_type(

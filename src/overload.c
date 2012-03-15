@@ -19976,6 +19976,7 @@ can't bind to an lvalue or rvalue as indicated by source_is_rvalue.
   a_routine_type_supplement_ptr   rtsp;
   a_type_ptr                      routine_type, arg_type, param_type;
   a_param_type_ptr                ptp;
+  a_boolean                       assign_case = FALSE;
 
   *template_arg_list = NULL;
   if (uncallable != NULL) *uncallable = FALSE;
@@ -20021,21 +20022,30 @@ can't bind to an lvalue or rvalue as indicated by source_is_rvalue.
       goto reject_function;
     }  /* if */
   } else {
-    check_assertion(routine->special_kind ==
-                                        (a_special_function_kind)sfk_operator);
     /* Make sure the operator function is callable with one argument.
        Standard copy assignment operators always have one parameter, but
        we check just in case some dialects allow default arguments.
        We assume parameter packs won't be allowed. */
-    check_assertion(ptp != NULL && !ptp->is_parameter_pack);
-    if (ptp->next != NULL && !ptp->next->has_default_arg) {
+    a_boolean is_base_class_match;
+    check_assertion(routine->special_kind ==
+                                        (a_special_function_kind)sfk_operator);
+    assign_case = TRUE;
+    if (!is_copy_assignment_operator_type(routine_type, class_type, 
+                                         /*move_assign_okay=*/source_is_rvalue,
+                                          /*is_ref_arg=*/(a_boolean *)NULL,
+                                          (a_type_qualifier_set *)NULL,
+                                          &is_base_class_match) ||
+        is_base_class_match) {
+      /* Not a copy assignment operator (e.g., the parameter might be an
+         int). */
       goto reject_function;
     }  /* if */
   }  /* if */
   /* This is an appropriate function that can be called with a single
      argument.  See if the argument matches. */
   param_type = ptp->type;
-  check_assertion(is_any_reference_type(param_type));
+  check_assertion(is_any_reference_type(param_type) ||
+                  (assign_case && is_class_struct_union_type(param_type)));
   determine_arg_match_level((an_operand *)NULL, arg_type,
                             param_type, ptp,
                             /*param_type_is_deduced=*/FALSE,

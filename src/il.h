@@ -1143,6 +1143,14 @@ extern a_boolean is_copy_constructor(
 
 extern a_boolean routine_is_move_constructor(a_routine_ptr  rp);
 
+extern a_boolean is_copy_assignment_operator_type(
+                                 a_type_ptr            routine_type,
+                                 a_type_ptr            class_type,
+                                 a_boolean             move_assign_okay,
+                                 a_boolean             *is_ref_arg,
+                                 a_type_qualifier_set  *qualifiers,
+                                 a_boolean             *is_base_class_match);
+
 extern a_boolean routine_is_move_assignment_operator(a_routine_ptr  rp);
 
 extern void switch_il_region(a_memory_region_number region_number);

@@ -13955,61 +13955,19 @@ compatibility mode, sym also qualifies if the first parameter involves type B
 where B is a base class of A.)  Set *is_ref_arg to TRUE if the first
 parameter is a reference type.  Set *qualifiers based on how the first
 parameter is qualified.  Return *is_base_class_match set to TRUE for the
-cfront compatibility case.
+cfront compatibility case.  is_ref_arg, qualifiers, and/or is_base_class_match
+can be NULL if the corresponding bit of information is not needed by the
+caller.
 */
 {
-  a_boolean         found = FALSE;
-  a_param_type_ptr  ptp;
-  a_type_ptr        tp, routine_type;
-  a_routine_type_supplement_ptr
-                    rtsp;
+  a_boolean  found;
+  a_type_ptr routine_type;
 
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
   routine_type = routine_symbol_type(sym);
-  rtsp = routine_type->variant.routine.extra_info;
-  ptp = rtsp->param_type_list;
-  check_assertion(ptp != NULL);
-  tp = skip_typerefs(ptp->type);
-  if (move_assign_okay ? is_reference_type(tp)
-                       : is_lvalue_reference_type(tp)) {
-    /* Reference argument. */
-    tp = type_pointed_to(tp);
-    /* Don't do a skip_typerefs on what's returned from type_pointed_to,
-       since we need to distinguish between "A&" and "const A&". */
-    *is_ref_arg = TRUE;
-  } else {
-    /* Not a reference argument. */
-    *is_ref_arg = FALSE;
-  }  /* if */
-  *is_base_class_match = FALSE;
-  if (is_class_struct_union_type(tp)) {
-    /* The type of the first parameter is a class type. */
-    if (f_same_entities(skip_typerefs(tp), sym_parent_class(sym))) {
-      /* The parameter's type matches the class of which the assignment
-         operator is a member. */
-      found = TRUE;
-    } else if (allow_copy_assignment_op_with_base_class_param) {
-      if (find_base_class_of(sym_parent_class(sym), tp) != NULL) {
-        /* The parameter's type matches a base class of the class of which the
-           assignment operator is a member. */
-        found = TRUE;
-        *is_base_class_match = TRUE;
-      }  /* if */
-    }  /* if */
-    if (found) {
-      /* Check the qualifiers.  (Call get_top_level_type_qualifiers instead
-         of get_type_qualifiers because we know tp cannot be an array.) */
-      *qualifiers = get_top_level_type_qualifiers(tp);
-    }  /* if */
-  }  /* if */
-  if (rtsp->qualifiers != TQ_NONE && !microsoft_mode && !gnu_mode &&
-      !sun_mode) {
-    /* cv-qualifiers on the function disqualify it as a "copy assignment
-       operator".  As of April 2006 this is not in 12.8p9 of the standard,
-       but it makes sense.  (MSVC++, g++, and Sun CC all accept cv-qualified
-       operator= functions as copy assignment operators.) */
-    found = FALSE;
-  }  /* if */
+  found = is_copy_assignment_operator_type(routine_type, sym_parent_class(sym),
+                                           move_assign_okay, is_ref_arg,
+                                           qualifiers, is_base_class_match);
   return found;
 }  /* is_assignment_operator_for_copy */
 
