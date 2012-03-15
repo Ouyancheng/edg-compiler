@@ -601,7 +601,11 @@ created.
 static a_type_ptr proxy_class_for_namespace(a_namespace_ptr	nsp)
 /*
 Return the proxy class associated with the namespace specified by nsp.
-If one does not already exist, one is created.
+If one does not already exist, one is created.  In certain template
+dependent contexts, the Microsoft compiler accepts constructs like
+"decltype(N::x)" when x has not yet been declared in namespace N.
+To emulate this behavior we create the member in a proxy class associated
+with the namespace.
 */
 {
   a_type_ptr	proxy_class;
