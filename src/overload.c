@@ -2881,8 +2881,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
         /* This case falls under the reference standard conversions
            (ARM 4.7). */
         /* The operand need not be forced to an rvalue. */
-        check_assertion(arg_operand != NULL);
-        arg_summary->conversion.result_is_an_lvalue= is_an_lvalue(arg_operand);
+        if (arg_operand != NULL) {
+          arg_summary->conversion.result_is_an_lvalue =
+                                                     is_an_lvalue(arg_operand);
+        }  /* if */
       } else {
         /* This case falls under the aggregate initialization rules
            (ARM 8.4.1) or the copy constructor rules (ARM 12.8).  Note
@@ -20026,20 +20028,18 @@ by source_is_rvalue.
       goto reject_function;
     }  /* if */
   } else {
+    check_assertion(routine->special_kind ==
+                                        (a_special_function_kind)sfk_operator);
     /* Make sure the operator function is callable with one argument.
        Standard copy assignment operators always have one parameter, but
        we check just in case some dialects allow default arguments.
        We assume parameter packs won't be allowed. */
-    a_boolean is_base_class_match;
-    check_assertion(routine->special_kind ==
-                                        (a_special_function_kind)sfk_operator);
     assign_case = TRUE;
     if (!is_copy_assignment_operator_type(routine_type, class_type, 
                                          /*move_assign_okay=*/source_is_rvalue,
                                           /*is_ref_arg=*/(a_boolean *)NULL,
                                           (a_type_qualifier_set *)NULL,
-                                          &is_base_class_match) ||
-        is_base_class_match) {
+                                          (a_boolean *)NULL)) {
       /* Not a copy assignment operator (e.g., the parameter might be an
          int). */
       goto reject_function;

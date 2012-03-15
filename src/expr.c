@@ -34576,39 +34576,39 @@ specifier or member declaration for the subobject to be copied.
                                       &undecidable_because_of_error,
                                       &inaccessible_match,
                                       &bitwise_assign);
-      if (undecidable_because_of_error) {
-        /* There was a previously-reported error. */
-      } else if (ambiguous) {
-        /* More than one operator= function applies and is a best match. */
-        if (expr_error_should_be_issued()) {
-          pos_ty_error(ec_ambiguous_assignment_operator, dest_decl_pos,
-                       class_type);
-        }  /* if */
-      } else if (assign_sym == NULL) {
-        /* There is no applicable operator= function. */
-        if (expr_error_should_be_issued()) {
-          if (get_type_qualifiers(source_expr->type) == TQ_CONST &&
-              inaccessible_match == NULL) {
-            /* The common case: missing const assignment operator function. */
-            pos_ty_error(ec_missing_const_assignment_operator, dest_decl_pos,
-                         class_type);
-          } else {
-            /* Unusual case: volatile or const-volatile expected. */
-            pos_ty_start_error(ec_no_suitable_assignment_operator,
-                               dest_decl_pos,
-                               class_type);
-            add_on_diag_for_skipped_inaccessible_function(inaccessible_match);
-            end_error();
-          }  /* if */
-        }  /* if */
-      } else {
-        /* Exactly one operator= function applies and is best. */
-        /* Check that the function is accessible and mark it referenced. */
-        expr_reference_to_implicitly_invoked_function(assign_sym,
-                                                      dest_decl_pos,
-                                                      (a_type_ptr)NULL,
-                                                      /*honor_virtual=*/FALSE);
+    if (undecidable_because_of_error) {
+      /* There was a previously-reported error. */
+    } else if (ambiguous) {
+      /* More than one operator= function applies and is a best match. */
+      if (expr_error_should_be_issued()) {
+        pos_ty_error(ec_ambiguous_assignment_operator, dest_decl_pos,
+                     class_type);
       }  /* if */
+    } else if (assign_sym == NULL) {
+      /* There is no applicable operator= function. */
+      if (expr_error_should_be_issued()) {
+        if (get_type_qualifiers(source_expr->type) == TQ_CONST &&
+            inaccessible_match == NULL) {
+          /* The common case: missing const assignment operator function. */
+          pos_ty_error(ec_missing_const_assignment_operator, dest_decl_pos,
+                       class_type);
+        } else {
+          /* Unusual case: volatile or const-volatile expected. */
+          pos_ty_start_error(ec_no_suitable_assignment_operator,
+                             dest_decl_pos,
+                             class_type);
+          add_on_diag_for_skipped_inaccessible_function(inaccessible_match);
+          end_error();
+        }  /* if */
+      }  /* if */
+    } else {
+      /* Exactly one operator= function applies and is best. */
+      /* Check that the function is accessible and mark it referenced. */
+      expr_reference_to_implicitly_invoked_function(assign_sym,
+                                                    dest_decl_pos,
+                                                    (a_type_ptr)NULL,
+                                                    /*honor_virtual=*/FALSE);
+    }  /* if */
   }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
