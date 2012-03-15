@@ -16472,46 +16472,54 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
                              &operand_position, operand,
                              &func_call_node);
       if (func_call_node != NULL) {
-        an_expr_node_ptr opnd = func_call_node->variant.operation.operands;
-        if (is_routine_node(opnd)) {
+        an_expr_node_ptr              routine_expr;
+        an_expr_node_ptr              routine_node;
+        a_routine_ptr                 routine_ptr;
+        a_property_or_event_descr_ptr pedp = NULL;
+        routine_expr = func_call_node->variant.operation.operands;
+        if (is_routine_node(routine_expr)) {
+          routine_node = routine_expr;
+        } else if (is_operation_node(routine_expr)) {
+          check_assertion(routine_expr->variant.operation.kind ==
+                                      (an_expr_operator_kind)eok_dot_static ||
+                          routine_expr->variant.operation.kind ==
+                                 (an_expr_operator_kind)eok_points_to_static);
+          routine_node = routine_expr->variant.operation.operands->next;
+          check_assertion(is_routine_node(routine_node));
+        } else {
+          unexpected_condition();
+        }  /* if */
+        routine_ptr = routine_node->variant.routine.ptr;
 #if !DO_IL_LOWERING
-          /* Record the information about the property in the enk_routine
-             node to indicate that the call resulted from a transformed
-             property reference rather than an explicit use of the property
-             accessor.  Note that we only need this information for
-             declspec-style properties, because for C++/CLI properties
-             we the have property information directly.  So it's okay that
-             we don't do this annotation for static properties (i.e., we
-             only look for the is_routine_node case above), because there are
-             no static declspec properties. */
-          a_property_or_event_descr_ptr pedp;
-          if (symbol_is(property_sym, sk_field)) {
-            /* A __declspec property: Get the property description from the
-               field. */
-            pedp = property_sym->variant.field.ptr->property_or_event_descr;
-          } else {
-            /* A C++/CLI property: Get the property description from the
-               accessor. */
-            a_routine_ptr rp = opnd->variant.routine.ptr;
-            check_assertion(symbol_is(property_sym, sk_property_set));
-            pedp = rp->variant.property_or_event_descr;
-          }  /* if */
-          /* Record the property description in the enk_routine node. */
-          opnd->variant.routine.property_or_event_descr = pedp;
-          opnd->variant.routine.special_kind = (put_operand == NULL) ?
+        /* Record the information about the property in the enk_routine
+           node to indicate that the call resulted from a transformed
+           property reference rather than an explicit use of the property
+           accessor. */
+        if (symbol_is(property_sym, sk_field)) {
+          /* A __declspec property: Get the property description from the
+             field. */
+          pedp = property_sym->variant.field.ptr->property_or_event_descr;
+        } else {
+          /* A C++/CLI property: Get the property description from the
+             accessor. */
+          check_assertion(symbol_is(property_sym, sk_property_set));
+          pedp = routine_ptr->variant.property_or_event_descr;
+        }  /* if */
+        check_assertion(pedp != NULL);
+        routine_node->variant.routine.property_or_event_descr = pedp;
+        routine_node->variant.routine.special_kind = (put_operand == NULL) ?
                                     (a_special_function_kind)sfk_property_get :
                                     (a_special_function_kind)sfk_property_set;
 #endif /* !DO_IL_LOWERING */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-          /* The processing above left the starting source position of the
-             enk_routine node being that of the beginning of the object
-             expression.  Correct it to reflect the starting position of
-             the property name. */
-          opnd->expr_range.start = operand_id_position;
+        /* The processing above left the starting source position of the
+           enk_routine node being that of the beginning of the object
+           expression.  Correct it to reflect the starting position of
+           the property name. */
+        routine_node->expr_range.start = operand_id_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        }  /* if */
         if (get_routine != NULL) {
-          *get_routine = routine_from_function_expr(opnd);
+          *get_routine = routine_ptr;
         }  /* if */
         if (put_operand != NULL) {
           func_call_node->variant.operation.

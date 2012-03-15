@@ -10030,6 +10030,7 @@ call.
 {
   an_expr_node_ptr func_expr = expr->variant.operation.operands;
   an_expr_node_ptr args = func_expr->next;
+  an_expr_node_ptr routine_node;
   a_boolean        processed = FALSE;
 
   if (handle_conversion_function_call(expr)) {
@@ -10042,7 +10043,8 @@ call.
     a_boolean     need_close_paren = FALSE;
     a_boolean     need_arg_dep_close_paren = FALSE;
     a_boolean     is_dot_static = is_dot_static_operation(func_expr);
-    a_routine_ptr rout = routine_from_function_expr(func_expr);
+    a_routine_ptr rout = routine_and_node_from_function_expr(func_expr,
+                                                             &routine_node);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean     is_property_or_event_ref;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -10056,9 +10058,8 @@ call.
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     is_property_or_event_ref = rout != NULL &&
-               ((is_routine_node(func_expr) &&
-                 func_expr->variant.routine.property_or_event_descr != NULL) ||
-                (is_dot_static && rout_is_cli_accessor(rout)));
+             ((routine_node != NULL &&
+               routine_node->variant.routine.property_or_event_descr != NULL));
     if (!is_dot_static && is_property_or_event_ref) {
       /* This will be generated as a property/event reference, not a
          function call, so there is no need for parentheses to suppress
@@ -10074,7 +10075,7 @@ call.
     }  /* if */
     if (is_dot_static
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        && !(rout != NULL && rout_is_cli_accessor(rout))
+        && !is_property_or_event_ref
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         ) {
       /* Call of a static member function identified by a static selection,
@@ -10095,9 +10096,9 @@ call.
         a_property_or_event_descr_ptr descr;
         a_special_function_kind       special_kind;
         an_expr_node_ptr              obj_expr;
-        if (is_routine_node(func_expr)) {
-          descr = func_expr->variant.routine.property_or_event_descr;
-          special_kind = func_expr->variant.routine.special_kind;
+        if (routine_node != NULL) {
+          descr = routine_node->variant.routine.property_or_event_descr;
+          special_kind = routine_node->variant.routine.special_kind;
         } else {
           descr = rout->variant.property_or_event_descr;
           special_kind = rout->special_kind;

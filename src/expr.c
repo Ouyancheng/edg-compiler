@@ -6706,6 +6706,7 @@ case).
           check_assertion(cppcli_enabled);
           make_property_ref_operand(member_sym, operand_1, is_arrow_operator,
                                     result);
+          result->id_position = locator.source_position;
           set_operand_id_details_from_locator(result, &locator);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -25130,6 +25131,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
             if (property_or_event_kind_is(var_ptr, pek_cli_property)) {
               make_property_ref_operand(sym_ptr, (an_operand *)NULL,
                                         /*handle_case=*/FALSE, result);
+              result->id_position = locator.source_position;
             } else if (property_or_event_kind_is(var_ptr, pek_cli_event)) {
               make_event_ref_operand(sym_ptr, (an_operand *)NULL,
                                      /*handle_case=*/FALSE, result);
@@ -25609,6 +25611,7 @@ overloaded_function:
             }  /* if */
             make_property_ref_operand(sym_ptr, selector, /*handle_case=*/TRUE,
                                       result);
+            result->id_position = locator.source_position;
             set_operand_id_details_from_locator(result, &locator);
           }
           break;

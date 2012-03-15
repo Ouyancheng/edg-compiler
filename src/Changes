@@ -1,5 +1,36 @@
 Version 4.5
 
+3/14/12  [EDGcpfe/12757]
+C++-generating back end, C++/CLI: explicit call of static property accessor
+function
+
+In C++/CLI code in which a static property accessor function is explicitly
+called using a member access operator (-> or .), the C++-generating back
+end put out the expression as a property access rather than as a function
+call.  This has now been fixed via a small IL CHANGE: previously the
+enk_routine node in a rewritten property access was annotated with the
+property description if it was the direct operand of a call node but not
+for the operand of eok_dot_static and eok_points_to_static operators.  Now
+those enk_routine nodes are also annotated with the property description in
+a rewritten property access.  For example:
+
+  ref struct S {
+    static property int P {
+      int get();
+      void set(int);
+    }
+  };
+  void f(S ^s) {
+    int i;
+    s->P::set(1);     // Previously generated as s->P = 1
+    i = s->P::get();  // Previously generated as i = s->P
+  }
+
+In addition, in configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to
+TRUE, expr_range.start was left as null_source_position in some nodes in
+a rewritten property reference; this has also been corrected.
+
+
 3/14/12  [EDGcpfe/12677]
 Microsoft compatibility: use of undefined names in decltype
 
