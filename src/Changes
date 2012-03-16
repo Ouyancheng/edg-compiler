@@ -1,5 +1,25 @@
 Version 4.5
 
+3/16/12  [EDGcpfe/12760]
+Spurious error on elided copy constructor with const volatile X&& parameter
+
+The front end issued a spurious diagnostic in some modes about an elided
+copy constructor not being callable to copy an rvalue, when the copy
+constructor has a parameter that is an rvalue reference to const volatile.
+The restriction on binding a reference to const volatile to an rvalue
+applies only to lvalue references, not rvalue references.  Now fixed.
+
+  struct A {
+    A();
+    A(const A&) = default;
+    A(const volatile A&&);
+  };
+  int main() {
+    A aa;
+    A a = (A)(aa);  // Got spurious warning in --c++11 mode
+  }
+
+
 3/14/12  [EDGcpfe/12757]
 C++-generating back end, C++/CLI: explicit call of static property accessor
 function

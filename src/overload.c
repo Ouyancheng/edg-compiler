@@ -2371,6 +2371,35 @@ conv_context describes the context of the binding.
 }  /* binding_rvalue_ref_to_lvalue_allowed */
 
 
+static
+a_boolean ref_to_const_volatile_binding_to_rvalue_disallowed_in_ovl_res(void)
+/*
+Return TRUE if binding an lvalue reference to const volatile to an rvalue
+should be disallowed in overload resolution.  Such a binding has been invalid
+for a long time, but in the C++03 standard overload resolution didn't
+disallow it, leaving it to cause an error later if the function was selected.
+*/
+{
+  a_boolean disallowed;
+
+  if (gpp_mode) {
+    /* All versions of g++ from 3.2 on seem to handle it the modern way. */
+    disallowed = TRUE;
+  } else if (microsoft_mode) {
+    /* MSVC made the binding an anachronism in version 7.1, but still
+       allows it. */
+    disallowed = FALSE;
+  } else if (strict_ansi_mode && !cpp11_mode) {
+    /* The 2003 standard did it the old way. */
+    disallowed = FALSE;
+  } else {
+     /* In other versions, do it the modern way. */
+    disallowed = TRUE;
+  }  /* if */
+  return disallowed;
+}  /* ref_to_const_volatile_binding_to_rvalue_disallowed_in_ovl_res */
+
+
 /*
 Return TRUE if the given constant is a possible template-dependent
 null pointer constant but not a known null pointer constant.
@@ -2550,21 +2579,15 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       source_can_be_rvalue = ((param_type_qualifiers & TQ_CONST) != 0);
       if (source_can_be_rvalue &&
           (param_type_qualifiers & TQ_VOLATILE)) {
-        /* The const volatile part was not added to the draft until after
-           the 2003 standard.  All versions of g++ from 3.2 on seem to
-           handle it the modern way.  MSVC changed to that in version 7.1. */
-        if (microsoft_mode) {
-          if (microsoft_version < 1310) {
-            /* Microsoft did not do this until version 7.1. */
-          } else {
-            /* At or after version 7.1, this is allowed but it's given
-               an anachronism match level. */
-            allow_microsoft_const_volatile_case_as_anachronism = TRUE;
-          }  /* if */
-        } else if (strict_ansi_mode && !cpp11_mode) {
-          /* The 2003 standard did not do this. */
-        } else {
+        /* The part about an lvalue reference to const volatile not binding
+           to an rvalue was not in overload resolution until after the
+           2003 standard.  Check whether it is done in the current mode. */
+        if (ref_to_const_volatile_binding_to_rvalue_disallowed_in_ovl_res()) {
           source_can_be_rvalue = FALSE;
+        } else if (microsoft_version >= 1310) {
+          /* At or after Microsoft version 7.1, binding to an rvalue is
+             still allowed but it's given an anachronism match level. */
+          allow_microsoft_const_volatile_case_as_anachronism = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -17069,22 +17092,25 @@ cases.
     check_assertion(is_immediate_class_type(class_type));
     if (elided_cctor != NULL) {
       cctor_sym = symbol_for(elided_cctor);
-      { a_param_type_ptr     ptp = elided_cctor->type->
+      if (!ref_to_const_volatile_binding_to_rvalue_disallowed_in_ovl_res()) {
+        /* A copy constructor with a parameter of type (lvalue) reference to
+           const volatile cannot copy an rvalue.  Due to a standards quirk
+           this is not checked for in overload resolution in some modes,
+           but it still makes the copy constructor uncallable.  In the
+           modes where this is allowed past overload resolution, do the
+           check now. */
+        a_param_type_ptr ptp = elided_cctor->type->
                                    variant.routine.extra_info->param_type_list;
-        a_type_qualifier_set qualifiers;
-        a_type_ptr           under_type;
         check_assertion(ptp != NULL && is_any_reference_type(ptp->type));
-        under_type = type_pointed_to(ptp->type);
-        qualifiers = get_type_qualifiers(under_type);
-        if ((qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
-                          (TQ_CONST | TQ_VOLATILE)) {
-          /* A copy constructor with a parameter of type reference to const
-             volatile cannot copy an rvalue.  Due to a standards quirk this is
-             not checked for in overload resolution, but it still makes the
-             copy constructor uncallable. */
-          uncallable = TRUE;
+        if (is_lvalue_reference_type(ptp->type)) {
+          a_type_ptr           under_type = type_pointed_to(ptp->type);
+          a_type_qualifier_set qualifiers = get_type_qualifiers(under_type);
+          if ((qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
+                            (TQ_CONST | TQ_VOLATILE)) {
+            uncallable = TRUE;
+          }  /* if */
         }  /* if */
-      }
+      }  /* if */
     } else {
       cctor_sym = select_overloaded_copy_constructor(
                                       class_type,
