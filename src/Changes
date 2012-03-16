@@ -12,7 +12,7 @@ copy assignment operators -- in particular, these are sometimes implicitly
   struct MO { MO(MO&&); };
   struct GM {
     MO mo;
-  };  // In C++11 move, GM has a generated move constructor and a
+  };  // In C++11 mode, GM has a generated move constructor and a
       // deleted copy constructor.
 
 This behavior is enabled by default in default and strict C++11 modes.  In

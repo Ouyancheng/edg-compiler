@@ -10072,7 +10072,7 @@ static a_symbol_ptr special_subobject_function_symbol(
 Find a member function (a constructor, destructor, or assignment operator,
 as indicated by sfkind) whose parent class is class_type selected to perform
 an operation on a class-type subobject for a generated special function.
-first_param, which will be non-NULL for copy constructors and assignment
+first_param, which will be non-NULL for copy/move constructors and assignment
 operators, represents the first parameter of the generated member function.
 In the case of an assignment operator, subobj_qual is the qualification of the
 subobject to be copied (TQ_NONE for a base class subobject, but possibly
@@ -16343,7 +16343,7 @@ base class or the class type ("type") of a member of class_type to see if any
 conditions exist that would prevent the successful generation of the implicit
 definition of a copy/move assignment operator, copy/move constructor, or
 destructor for the specified class_type.  type may be const/volatile qualified
-but if the corresponding subobject is an array , type is the underlying class
+but if the corresponding subobject is an array, type is the underlying class
 type (possibly qualified).  *gsfd is updated accordingly and warnings or
 remarks may be issued in some cases.
 */
