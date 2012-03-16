@@ -4741,7 +4741,7 @@ is the length of the dir_name buffer.
   ICLRMetaHostPolicy *cmhpp = NULL;
   ICLRRuntimeInfo    *crip = NULL;
   HRESULT            hr = E_FAIL;
-  DWORD              dword_dir_name_size = (DWORD)dir_name_size;
+  DWORD              dword_dir_name_size = (DWORD)*dir_name_size;
 
 #if defined(__cplusplus)
   /* Get the ICLRMetaHostPolicy interface to query for the preferred CLR
