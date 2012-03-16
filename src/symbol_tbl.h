@@ -4552,12 +4552,6 @@ extern a_routine_ptr select_copy_constructor(
                                   a_boolean             *class_bitwise_copy,
                                   a_boolean             allow_suppressed_ctor);
 
-extern a_symbol_ptr find_copy_assignment_operator(
-                                    a_type_ptr            class_type,
-                                    a_type_qualifier_set  required_qualifiers,
-                                    a_boolean             *pass_by_value,
-                                    a_boolean             *ambiguous);
-
 extern char *il_entry_for_symbol_null_okay(a_symbol_ptr      sym,
                                            an_il_entry_kind  *kind);
 

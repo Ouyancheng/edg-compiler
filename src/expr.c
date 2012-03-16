@@ -34458,7 +34458,7 @@ the copy constructor.
 }  /* find_copy_constructor */
 
 
-a_symbol_ptr find_assignment_operator(
+a_symbol_ptr find_copy_assignment_operator(
                                    a_type_ptr            class_type,
                                    a_type_qualifier_set  source_cv_qualifiers,
                                    a_boolean             source_is_rvalue,
@@ -34508,7 +34508,7 @@ checking on the assignment operator.
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   return assign_sym;
-}  /* find_assignment_operator */
+}  /* find_copy_assignment_operator */
 
 
 a_routine_ptr find_assignment_operator_for_memberwise_copy(

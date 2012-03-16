@@ -10061,26 +10061,29 @@ using *pos as the error position.
 }  /* check_for_conflicts_with_using_decls */
 
 
-static a_symbol_ptr special_function_symbol(
+static a_symbol_ptr special_subobject_function_symbol(
                                         a_type_ptr               class_type,
                                         a_special_function_kind  sfkind,
                                         a_param_type_ptr         first_param,
+                                        a_type_qualifier_set     subobj_qual,
                                         a_source_position        *source_pos,
                                         a_boolean                *ambiguous)
 /*
 Find a member function (a constructor, destructor, or assignment operator,
-as indicated by sfkind) whose parent class is class_type.  first_param, which
-will be non-NULL for copy constructors and assignment operators, represents
-the first parameter of the member function in a derived class to which the
-the sought-for function corresponds.  source_pos is a source position,
-used as the point of instantiation if a template ends up being
-instantiated.  If the lookup is successful, return a pointer to the
-symbol; otherwise, return NULL.  If there is more than one matching
-function, set *ambiguous to TRUE.
+as indicated by sfkind) whose parent class is class_type selected to perform
+an operation on a class-type subobject for a generated special function.
+first_param, which will be non-NULL for copy constructors and assignment
+operators, represents the first parameter of the generated member function.
+In the case of an assignment operator, subobj_qual is the qualification of the
+subobject to be copied (TQ_NONE for a base class subobject, but possibly
+different for a field subobject).  source_pos is a source position, used as
+the point of instantiation if a template ends up being instantiated.  If the
+lookup is successful, return a pointer to the symbol; otherwise, return NULL.
+If there is more than one matching function, set *ambiguous to TRUE.
 */
 {
   a_symbol_ptr          sym;
-  a_boolean             class_bitwise_copy, pass_by_value;
+  a_boolean             class_bitwise_copy, is_move = FALSE;
   a_type_qualifier_set  qualifiers = TQ_NONE;
 
   *ambiguous = FALSE;
@@ -10098,6 +10101,7 @@ function, set *ambiguous to TRUE.
       a_type_ptr  tp = first_param->type;
       if (is_any_reference_type(tp)) {
         /* Reference argument. */
+        is_move = is_rvalue_reference_type(tp);
         tp = type_pointed_to(tp);
         qualifiers = get_type_qualifiers(tp);
       }  /* if */
@@ -10113,10 +10117,8 @@ function, set *ambiguous to TRUE.
                                          (a_boolean *)NULL);
         } else {
           /* Copy constructor. */
-          sym = find_copy_constructor(class_type, qualifiers,
-                                      /*source_is_rvalue=*/FALSE,
-                                      source_pos, ambiguous,
-                                      (a_symbol **)NULL,
+          sym = find_copy_constructor(class_type, qualifiers, is_move,
+                                      source_pos, ambiguous, (a_symbol **)NULL,
                                       &class_bitwise_copy);
         }  /* if */
         break;
@@ -10157,16 +10159,17 @@ function, set *ambiguous to TRUE.
       case sfk_operator:
         /* Assignment operator. */
         check_assertion(first_param != NULL);
-        sym = find_copy_assignment_operator(class_type, qualifiers,
-                                            ambiguous, &pass_by_value);
+        sym = find_copy_assignment_operator(class_type, qualifiers, is_move,
+                                            subobj_qual, source_pos, ambiguous,
+                                            &class_bitwise_copy);
         break;
       default:
-        unexpected_condition_str2("special_function_symbol:",
+        unexpected_condition_str2("special_subobject_function_symbol:",
                                   "bad special function kind");
     }  /* switch */
   }  /* if */
   return sym;
-}  /* special_function_symbol */
+}  /* special_subobject_function_symbol */
 
 
 static a_boolean merge_exception_specifications(a_symbol_ptr  sym,
@@ -10262,6 +10265,7 @@ when exception support is enabled.
   a_boolean                throw_any = FALSE;
   a_boolean                ambiguous;
   a_param_type_ptr         first_param;
+  a_source_position        *pos = &rp->source_corresp.decl_position;
 
   check_assertion(C_dialect == C_dialect_cplusplus && exceptions_enabled);
   sfkind = rp->special_kind;
@@ -10276,9 +10280,8 @@ when exception support is enabled.
       /* We cannot tell what dependent bases might end up throwing. */
       throw_any = TRUE;
     } else if (bcp->direct) {
-      sym = special_function_symbol(bcp->type, sfkind, first_param,
-                                    &rp->source_corresp.decl_position,
-                                    &ambiguous);
+      sym = special_subobject_function_symbol(bcp->type, sfkind, first_param,
+                                              TQ_NONE, pos, &ambiguous);
       if (ambiguous) {
         /* If there's an ambiguity, assume anything might be thrown. */
         throw_any = TRUE;
@@ -10294,16 +10297,17 @@ when exception support is enabled.
   if (!throw_any) {
     fp = class_type->variant.class_struct_union.field_list;
     for (; fp != NULL; fp = fp->next) {
+      a_type_qualifier_set  subobj_qual;
       tp = fp->type;
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+      subobj_qual = get_type_qualifiers(tp);
       tp = skip_typedefs(tp);
       if (is_template_dependent_type(tp)) {
         /* We cannot tell what dependent fields might end up throwing. */
         throw_any = TRUE;
       } else if (is_immediate_class_type(tp)) {
-        sym = special_function_symbol(tp, sfkind, first_param,
-                                      &rp->source_corresp.decl_position,
-                                      &ambiguous);
+        sym = special_subobject_function_symbol(tp, sfkind, first_param,
+                                                subobj_qual, pos, &ambiguous);
         if (ambiguous) {
           /* If there's an ambiguity, assume anything might be thrown. */
           throw_any = TRUE;
@@ -16372,11 +16376,11 @@ remarks may be issued in some cases.
                          class_type, type);
     }  /* if */
   } else {
-    rout_sym = find_assignment_operator(type, gsfd->copy_assign_qualifiers,
-                                        /*source_is_rvalue=*/FALSE,
-                                        subobj_qual, 
-                                        &type->source_corresp.decl_position,
-                                        &ambiguous, &bitwise_copy);
+    rout_sym = find_copy_assignment_operator(
+                                      type, gsfd->copy_assign_qualifiers,
+                                      /*source_is_rvalue=*/FALSE, subobj_qual, 
+                                      &type->source_corresp.decl_position,
+                                      &ambiguous, &bitwise_copy);
     if (ambiguous ||
         (rout_sym != NULL &&
          (!have_access_to_symbol(rout_sym) ||
@@ -16400,11 +16404,10 @@ remarks may be issued in some cases.
        no further checking is needed for this case.  If move operations aren't
        generated at all, nothing is needed either. */
   } else {
-    rout_sym = find_assignment_operator(type, TQ_NONE,
-                                        /*source_is_rvalue=*/TRUE,
-                                        subobj_qual, 
-                                        &type->source_corresp.decl_position,
-                                        &ambiguous, &bitwise_copy);
+    rout_sym = find_copy_assignment_operator(
+                             type, TQ_NONE, /*source_is_rvalue=*/TRUE,
+                             subobj_qual, &type->source_corresp.decl_position,
+                             &ambiguous, &bitwise_copy);
     if (ambiguous ||
         (rout_sym == NULL && !bitwise_copy) ||
         (rout_sym != NULL &&

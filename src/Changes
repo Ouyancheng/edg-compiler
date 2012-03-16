@@ -1,5 +1,27 @@
 Version 4.5
 
+3/16/12  [EDGcpfe/10615,EDGcpfe/12282,EDGcpfe/12565]
+C++11: Generated copy and move operations
+
+In C++11 mode, the front end now generates move constructors and move
+assignment operators according to the new standard rules.  In addition, the
+rules have also changed somewhat for generated copy constructors and generated
+copy assignment operators -- in particular, these are sometimes implicitly
+"= delete".  For example:
+
+  struct MO { MO(MO&&); };
+  struct GM {
+    MO mo;
+  };  // In C++11 move, GM has a generated move constructor and a
+      // deleted copy constructor.
+
+This behavior is enabled by default in default and strict C++11 modes.  In
+Microsoft modes and GNU modes, the default behavior emulates that of the
+corresponding version of the Microsoft and GNU compiler, respectively.  The
+new command-line options --gen_move_operations and --no_gen_move_operations
+can be used to override the default behavior.
+
+
 3/16/12  [EDGcpfe/12760]
 Spurious error on elided copy constructor with const volatile X&& parameter
 
