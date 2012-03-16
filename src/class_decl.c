@@ -10562,7 +10562,7 @@ caller.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-a_symbol_ptr copy_assignment_specialization(
+static a_symbol_ptr copy_assignment_specialization(
                                     a_symbol_ptr          templ_sym,
                                     a_boolean             *is_ref_arg,
                                     a_type_qualifier_set  *qualifiers,
