@@ -10527,7 +10527,70 @@ Also record the presence of a pure virtual function in the given class type.
   class_type->variant.class_struct_union.abstract = TRUE;
 }  /* make_virtual_function_pure */
 
+
+a_boolean is_assignment_operator_for_copy(
+                                   a_symbol_ptr          sym,
+                                   a_boolean             move_assign_okay,
+                                   a_boolean             *is_ref_arg,
+                                   a_type_qualifier_set  *qualifiers,
+                                   a_boolean             *is_base_class_match)
+/*
+Return TRUE if sym, an sk_member_function symbol for an operator= function,
+qualifies as a "copy assignment operator" that can copy a class object.
+It qualifies if its first parameter has a type of "A", "A&", or "A const&",
+where "A" is the class of which it is a member.  If move_assign_okay is TRUE,
+the parameter can also have type "A&&" or "A const&&".  (In cfront
+compatibility mode, sym also qualifies if the first parameter involves type B
+where B is a base class of A.)  Set *is_ref_arg to TRUE if the first
+parameter is a reference type.  Set *qualifiers based on how the first
+parameter is qualified.  Return *is_base_class_match set to TRUE for the
+cfront compatibility case.  is_ref_arg, qualifiers, and/or is_base_class_match
+can be NULL if the corresponding bit of information is not needed by the
+caller.
+*/
+{
+  a_boolean  found;
+  a_type_ptr routine_type;
+
+  check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
+  routine_type = routine_symbol_type(sym);
+  found = is_copy_assignment_operator_type(routine_type, sym_parent_class(sym),
+                                           move_assign_okay, is_ref_arg,
+                                           qualifiers, is_base_class_match);
+  return found;
+}  /* is_assignment_operator_for_copy */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_symbol_ptr copy_assignment_specialization(
+                                    a_symbol_ptr          templ_sym,
+                                    a_boolean             *is_ref_arg,
+                                    a_type_qualifier_set  *qualifiers,
+                                    a_boolean             *is_base_class_match)
+/*
+If the given template symbol has an explicit specialization that looks like
+a copy assignment operator, return the symbol for that specialization.
+Otherwise, return NULL.  is_ref_arg, qualifiers and is_base_class_match
+have the same meaning as the corresponding parameters of
+is_assignment_operator_for_copy.
+*/
+{
+  a_template_instance_ptr  inst = templ_sym->variant.template_info
+                                           ->variant.function.instantiations;
+  a_symbol_ptr             result = NULL;
+
+  for (; inst != NULL; inst = inst->next) {
+    if (inst->instance_sym->variant.routine.ptr->is_specialized &&
+        is_assignment_operator_for_copy(
+                               inst->instance_sym, /*move_assign_okay=*/FALSE,
+                               is_ref_arg, qualifiers, is_base_class_match)) {
+      result = inst->instance_sym;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* copy_assignment_specialization */
+
 
 static a_boolean check_virtual_interface_member(a_class_def_state  *state,
                                                 a_routine_ptr      rtn,
@@ -13942,71 +14005,6 @@ specific information about the member declaration, respectively.
   db_exit();
 }  /* decl_static_data_member */
 
-
-a_boolean is_assignment_operator_for_copy(
-                                   a_symbol_ptr          sym,
-                                   a_boolean             move_assign_okay,
-                                   a_boolean             *is_ref_arg,
-                                   a_type_qualifier_set  *qualifiers,
-                                   a_boolean             *is_base_class_match)
-/*
-Return TRUE if sym, an sk_member_function symbol for an operator= function,
-qualifies as a "copy assignment operator" that can copy a class object.
-It qualifies if its first parameter has a type of "A", "A&", or "A const&",
-where "A" is the class of which it is a member.  If move_assign_okay is TRUE,
-the parameter can also have type "A&&" or "A const&&".  (In cfront
-compatibility mode, sym also qualifies if the first parameter involves type B
-where B is a base class of A.)  Set *is_ref_arg to TRUE if the first
-parameter is a reference type.  Set *qualifiers based on how the first
-parameter is qualified.  Return *is_base_class_match set to TRUE for the
-cfront compatibility case.  is_ref_arg, qualifiers, and/or is_base_class_match
-can be NULL if the corresponding bit of information is not needed by the
-caller.
-*/
-{
-  a_boolean  found;
-  a_type_ptr routine_type;
-
-  check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
-  routine_type = routine_symbol_type(sym);
-  found = is_copy_assignment_operator_type(routine_type, sym_parent_class(sym),
-                                           move_assign_okay, is_ref_arg,
-                                           qualifiers, is_base_class_match);
-  return found;
-}  /* is_assignment_operator_for_copy */
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-a_symbol_ptr copy_assignment_specialization(
-                                    a_symbol_ptr          templ_sym,
-                                    a_boolean             *is_ref_arg,
-                                    a_type_qualifier_set  *qualifiers,
-                                    a_boolean             *is_base_class_match)
-/*
-If the given template symbol has an explicit specialization that looks like
-a copy assignment operator, return the symbol for that specialization.
-Otherwise, return NULL.  is_ref_arg, qualifiers and is_base_class_match
-have the same meaning as the corresponding parameters of
-is_assignment_operator_for_copy.
-*/
-{
-  a_template_instance_ptr  inst = templ_sym->variant.template_info
-                                           ->variant.function.instantiations;
-  a_symbol_ptr             result = NULL;
-
-  for (; inst != NULL; inst = inst->next) {
-    if (inst->instance_sym->variant.routine.ptr->is_specialized &&
-        is_assignment_operator_for_copy(
-                               inst->instance_sym, /*move_assign_okay=*/FALSE,
-                               is_ref_arg, qualifiers, is_base_class_match)) {
-      result = inst->instance_sym;
-      break;
-    }  /* if */
-  }  /* for */
-  return result;
-}  /* copy_assignment_specialization */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean is_valid_union_field(a_type_ptr         field_type,
                                       a_boolean          is_nonstd,

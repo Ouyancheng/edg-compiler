@@ -200,14 +200,6 @@ extern a_boolean is_assignment_operator_for_copy(
                                    a_type_qualifier_set  *qualifiers,
                                    a_boolean             *is_base_class_match);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_symbol_ptr copy_assignment_specialization(
-                                   a_symbol_ptr          templ_sym,
-                                   a_boolean             *is_ref_arg,
-                                   a_type_qualifier_set  *qualifiers,
-                                   a_boolean             *is_base_class_match);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
 extern
 void update_friend_function_info(a_routine_ptr rout_ptr,
                                  a_type_ptr    class_type);
