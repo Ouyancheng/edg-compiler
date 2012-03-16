@@ -4741,6 +4741,7 @@ is the length of the dir_name buffer.
   ICLRMetaHostPolicy *cmhpp = NULL;
   ICLRRuntimeInfo    *crip = NULL;
   HRESULT            hr = E_FAIL;
+  DWORD              dword_dir_name_size = (DWORD)dir_name_size;
 
 #if defined(__cplusplus)
   /* Get the ICLRMetaHostPolicy interface to query for the preferred CLR
@@ -4783,7 +4784,7 @@ is the length of the dir_name buffer.
     }  /* if */
   }  /* if */
   check_assertion(crip != NULL);
-  hr = crip->GetRuntimeDirectory(dir_name, (DWORD*)dir_name_size);
+  hr = crip->GetRuntimeDirectory(dir_name, &dword_dir_name_size);
   if (FAILED(hr)) {
     hresult_catastrophe("ICLRRuntimeInfo::GetRuntimeDirectory");
   }  /* if */
@@ -4829,7 +4830,7 @@ is the length of the dir_name buffer.
     }  /* if */
   }  /* if */
   check_assertion(crip != NULL);
-  hr = crip->lpVtbl->GetRuntimeDirectory(crip, dir_name, dir_name_size);
+  hr = crip->lpVtbl->GetRuntimeDirectory(crip, dir_name, dword_dir_name_size);
   if (FAILED(hr)) {
     hresult_catastrophe("ICLRRuntimeInfo::GetRuntimeDirectory");
   }  /* if */
