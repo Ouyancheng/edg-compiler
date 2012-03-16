@@ -2584,7 +2584,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
            2003 standard.  Check whether it is done in the current mode. */
         if (ref_to_const_volatile_binding_to_rvalue_disallowed_in_ovl_res()) {
           source_can_be_rvalue = FALSE;
-        } else if (microsoft_version >= 1310) {
+        } else if (microsoft_mode && microsoft_version >= 1310) {
           /* At or after Microsoft version 7.1, binding to an rvalue is
              still allowed but it's given an anachronism match level. */
           allow_microsoft_const_volatile_case_as_anachronism = TRUE;
