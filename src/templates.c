@@ -14475,8 +14475,12 @@ initially used when processing the declaration of a partial specialization.
                                    (an_il_entry_kind)iek_type, attr_target);
       }  /* if */
       if (cppcli_enabled) {
+        /* Record C++/CLI-specific properties in the prototype type. */
         class_type_supp(class_type)->cli_class_type_kind =
                                                decl_state->cli_class_type_kind;
+        if (cli_class_type_kind_is(class_type, cctk_interface)) {
+          class_type->variant.class_struct_union.abstract = TRUE;
+        }  /* if */
         class_type->variant.class_struct_union.is_generic_definition =
                                                                     is_generic;
         class_type->variant.class_struct_union.is_generic_instance =
