@@ -604,6 +604,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_is_value_class)*/
 /*lint -esym(759,curr_token_is_identifier_string)*/
 /*lint -esym(765,curr_token_is_identifier_string)*/
+/*lint -esym(759,is_assignment_operator_for_copy)*/
+/*lint -esym(765,is_assignment_operator_for_copy)*/
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #if !(GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX)
 /*lint -esym(759, lower_c99_constant_expr)*/
