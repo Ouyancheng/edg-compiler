@@ -3762,6 +3762,11 @@ This includes in particular name reference information.
 {
   set_operand_name_reference_from_locator(operand, locator);
   operand->is_qualified_name = locator->is_qualified_name;
+  if (operand->kind == (an_operand_kind)ok_indefinite_function ||
+      operand->kind == (an_operand_kind)ok_undefined_symbol ||
+      operand->kind == (an_operand_kind)ok_property_ref) {
+    operand->id_position = locator->source_position;
+  }  /* if */
 }  /* set_operand_id_details_from_locator */
 
 
@@ -4529,7 +4534,6 @@ and is a function designator.
   if (locator != NULL) {
     operand->is_template_id = locator->is_template_id;
     operand->template_arg_list = locator->template_arg_list;
-    operand->id_position = locator->source_position;
     set_operand_id_details_from_locator(operand, locator);
   } else {
     operand->id_position = operand->position;
@@ -16479,17 +16483,8 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
         a_property_or_event_descr_ptr pedp = NULL;
 #endif /* !DO_IL_LOWERING */
         routine_expr = func_call_node->variant.operation.operands;
-        if (is_routine_node(routine_expr)) {
-          routine_node = routine_expr;
-        } else if (is_operation_node(routine_expr) &&
-                   ((routine_expr->variant.operation.kind ==
-                                       (an_expr_operator_kind)eok_dot_static ||
-                     routine_expr->variant.operation.kind ==
-                                (an_expr_operator_kind)eok_points_to_static) &&
-                    is_routine_node(routine_expr->
-                                          variant.operation.operands->next))) {
-          routine_node = routine_expr->variant.operation.operands->next;
-        }  /* if */
+        routine_ptr = routine_and_node_from_function_expr(routine_expr,
+                                                          &routine_node);
         if (routine_node != NULL) {
           routine_ptr = routine_node->variant.routine.ptr;
 #if !DO_IL_LOWERING
@@ -16520,8 +16515,6 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
              the property name. */
           routine_node->expr_range.start = operand_id_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        } else {
-          routine_ptr = routine_from_function_expr(routine_expr);
         }  /* if */
         if (get_routine != NULL) {
           *get_routine = routine_ptr;
