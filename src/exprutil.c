@@ -3763,8 +3763,11 @@ This includes in particular name reference information.
   set_operand_name_reference_from_locator(operand, locator);
   operand->is_qualified_name = locator->is_qualified_name;
   if (operand->kind == (an_operand_kind)ok_indefinite_function ||
-      operand->kind == (an_operand_kind)ok_undefined_symbol ||
-      operand->kind == (an_operand_kind)ok_property_ref) {
+      operand->kind == (an_operand_kind)ok_undefined_symbol
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      || operand->kind == (an_operand_kind)ok_property_ref
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      ) {
     operand->id_position = locator->source_position;
   }  /* if */
 }  /* set_operand_id_details_from_locator */
