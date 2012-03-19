@@ -1,5 +1,30 @@
 Version 4.5
 
+3/19/12  [EDGcpfe/12769]
+GNU C++ compatibility: dependent name accessible by non-dependent base class
+
+If a base class is both a dependent base class of a nested class and a
+non-dependent base class of an enclosing class, g++ (prior to version 4.6)
+finds the name from the enclosing class but then treats that as a reference
+to the inherited member of the nested class.  We now emulate this behavior
+in g++ mode when gnu_version < 40600.
+
+  struct A {
+    int i;
+  };
+  struct C : A {
+    template<typename T> struct D : T {
+      void f() {
+        i = 1;  // now allowed (should be "this->i = 1")
+      }
+    };
+ };
+  int main() {
+    C::D<A> cda;
+    cda.f();
+ }
+
+
 3/19/12  [EDGcpfe/12299]
 printf/scanf checking of argument of type pointer to template parameter
 

@@ -3655,6 +3655,7 @@ C and C++.
          >= 40100 the symbol from the first lookup is always used if a
          symbol was found. */
       a_symbol_ptr	new_sym;
+      a_symbol_ptr	fund_new_sym;
       a_symbol_ptr	fund_sym;
       lookup_state.force_lookup_in_dependent_bases = TRUE;
       new_sym = scope_stack_lookup(locator, &lookup_state,
@@ -3662,8 +3663,16 @@ C and C++.
                                    NO_SCOPE_DEPTH);
       lookup_state.force_lookup_in_dependent_bases = FALSE;
       fund_sym = sym == NULL ? NULL : fundamental_symbol_of(sym);
+      fund_new_sym = new_sym == NULL ? NULL : fundamental_symbol_of(new_sym);
       if (sym == NULL ||
           (gnu_version < 40100 && is_function_symbol(fund_sym))) {
+        sym = new_sym;
+      } else if (gnu_version < 40600 && fund_sym != NULL &&
+                 fund_sym == fund_new_sym) {
+        /* We found two different projection symbols that refer to the same
+           fundamental symbol.  This can happen if a given class is a
+           nondependent base of an enclosing class and a dependent base of
+           a nested class. Use the new symbol. */
         sym = new_sym;
       } else if (sym != NULL && gnu_version >= 40100) {
         /* Use the existing sym. */
