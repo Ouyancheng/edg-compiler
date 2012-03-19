@@ -1,5 +1,30 @@
 Version 4.5
 
+3/19/12  [EDGcpfe/12299]
+printf/scanf checking of argument of type pointer to template parameter
+
+The front end does checking of compatibility between printf/scanf
+formatting specifiers and the corresponding arguments.  While it
+correctly handled an argument with a template parameter type, it
+failed to do so for an argument with a pointer-to-template-parameter
+type, with the consequence that a spurious warning could be issued.
+Now fixed.
+
+  struct S {
+    char name[1];
+  };
+  struct A {
+    static void f(const char*, ...) __attribute__ ((format(printf, 1, 2)));
+  };
+  template <class T> void test(const T& st) {
+    A::f("%s", st.name);  // Spurious warning with --g++ -tused
+  }
+  int main() {
+    S st;
+    test(st);
+  }
+
+
 3/16/12  [EDGcpfe/10615,EDGcpfe/12282,EDGcpfe/12565]
 C++11: Generated copy and move operations
 

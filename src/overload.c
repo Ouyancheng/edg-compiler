@@ -10269,15 +10269,18 @@ for the "%s" specifier).
        like "int *" and "unsigned int *".  This is slightly looser
        matching than is allowed without warning for normal function
        calls, but here we know what the runtime routine is doing. */
-    if (!is_pointer_type(eff_argument_type)) goto mismatch;
-    eff_argument_type = type_pointed_to(eff_argument_type);
+    if (!is_pointer_type(eff_argument_type)) {
+      if (!is_template_param_type(eff_argument_type)) goto mismatch;
+    } else {
+      eff_argument_type = type_pointed_to(eff_argument_type);
+      /* Don't allow use of a pointer to const if we're going to store
+         into it. */
+      if (indirect &&
+          is_const_qualified_type(eff_argument_type) &&
+          !is_const_qualified_type(eff_required_type)) goto mismatch;
+    }  /* if */
     eff_required_type = type_pointed_to(eff_required_type);
     if (alt_type != NULL) alt_type = type_pointed_to(alt_type);
-    /* Don't allow use of a pointer to const if we're going to store
-       into it. */
-    if (indirect &&
-        is_const_qualified_type(eff_argument_type) &&
-        !is_const_qualified_type(eff_required_type)) goto mismatch;
   }  /* if */
   /* Drop type qualifiers. */
   eff_argument_type = skip_typerefs(eff_argument_type);
