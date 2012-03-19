@@ -1,5 +1,38 @@
 Version 4.5
 
+3/19/12  [EDGcpfe/12762]
+Enumeration type with explicit underlying type in Microsoft mode
+
+Although the front end accepted the definition of enumeration types with an
+explicit underlying type in Microsoft modes (with microsoft_version >= 1400;
+see Changes entry of 3/6/06), it did not actually use the specified type for
+the underlying type.  For example:
+
+  enum E: char { e };
+  static_assert(sizeof(E) == sizeof(char), "Unexpected");
+    // Previously, the front end failed this assertion in Microsoft mode.
+
+This is now fixed.  This bug was a consequence of the emulation of a Microsoft
+compiler behavior whereby enumeration types can be declared without being
+defined, but the declaration is sufficient to consider the enumeration type
+"complete" (with underlying type int; See Changes entry of 4/11/95).
+For example:
+
+  enum E x;  // Accepted in Microsoft modes
+
+Now, however, if such an incomplete declaration is followed by a definition
+that specifies an explicit underlying type other than int, the old enumeration
+declaration is rendered invisible and the definition introduces a new,
+distinct type.  A warning is issued in such cases.  For example:
+
+  extern enum E *p;    // (1)  Type underlying E is int.
+  enum E: char { e };  // Warning: E here is different from line (1).
+  enum E *p;           // Error: Incompatible redeclaration of p.
+
+This somewhat surprising behavior matches that of the Microsoft compiler (but
+the Microsoft compiler will not issue the warning).
+
+
 3/19/12  [EDGcpfe/12769]
 GNU C++ compatibility: dependent name accessible by non-dependent base class
 

@@ -2375,6 +2375,7 @@ ec_cl_move_operations_require_rvalue_references;;"option to control move operati
 ec_final_managed_class;;"\"final\" cannot be used for managed classes (use \"sealed\" instead)"
 ec_cast_to_cli_interface_class;;"a cast to CLI interface class %t is not allowed -- cast to handle intended?"
 ec_new_of_cli_interface_class;;"cannot create an object of a CLI interface class"
+ec_enum_type_replacement;;"this declaration hides the nonstandard declaration of %nd because the underlying types are incompatible"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

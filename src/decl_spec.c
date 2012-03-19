@@ -4300,15 +4300,16 @@ typerefs are dropped from *p_base_type.
 /*ARGSUSED*/  /* enum_type is not used in all configurations. */
 #endif /* !(PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE) */
 static an_integer_kind scan_explicit_enum_base_type(
-                                                 a_type_ptr         enum_type,
-                                                 a_source_position  *pos_type)
+                                               a_type_ptr         *p_base_type,
+                                               a_source_position  *pos_type)
 /*
 In some modes (e.g., C++11), we accept the explicit specification of an
 enumeration type's underlying integer type.  For example:
 	enum E: short int { a, b };
 If such a base type was specified, the current token is the colon, and this
-routine scans it along with the specified type (which is returned).  In some
-configurations, the type is recorded in enum_type.
+routine scans it along with the specified type.  The integer kind to be used
+for the underlying type is returned, and *p_base_type is set to the type as
+scanned if it is valid.
 */
 {
   an_integer_kind  result = (an_integer_kind)ik_none;
@@ -4338,8 +4339,9 @@ configurations, the type is recorded in enum_type.
     if (base_type != NULL) {
       a_type_ptr  orig_base_type = base_type;
       if (is_template_dependent_type(base_type)) {
-        /* Record the type in enum_type, but proceed with
-           largest_enum_int_kind. */
+        /* Return orig_base_type to be recorded in the IL as the explicit base
+           type, but proceed with largest_enum_int_kind as the underlying
+           integer kind. */
         result = largest_enum_int_kind;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (cppcli_enabled) {
@@ -4359,8 +4361,7 @@ configurations, the type is recorded in enum_type.
         base_type = NULL;
       }  /* if */
       if (base_type != NULL) {
-        integer_type_supp(enum_type)->base_type = orig_base_type;
-        enum_type->variant.integer.has_explicit_enum_base = TRUE;
+        *p_base_type = orig_base_type;
         if (result == (an_integer_kind)ik_none) {
           result = skip_typerefs(base_type)->variant.integer.int_kind;
         }  /* if */
@@ -4638,7 +4639,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   a_symbol_locator             locator;
   a_symbol_ptr                 tag_sym;
   a_boolean                    tag_id_present;
-  a_type_ptr                   enum_type;
+  a_type_ptr                   enum_type, explicit_base = NULL;
   a_type_ptr                   enum_con_type;
   a_symbol_ptr                 enum_sym;
   a_constant                   constant;
@@ -4844,6 +4845,27 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       pos_error(ec_unnamed_scoped_enum, &pos_curr_token);
     }  /* if */
   }  /* if */
+  if (explicit_enum_base_enabled && is_definition) {
+    explicit_base_kind = scan_explicit_enum_base_type(&explicit_base,
+                                                      &pos_explicit_base);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && tag_sym != NULL && !tag_sym->defined &&
+        symbol_is(tag_sym, sk_enum_tag) &&
+        explicit_base_kind != (an_integer_kind)ik_none &&
+        explicit_base_kind != (an_integer_kind)ik_int) {
+      /* Microsoft compilers allow:
+            enum E ee; // E considered complete with underlying type int.
+            enum E: char { e };  // New type E (not compatible with previous E.
+         Ignore the previous declaration of E if necessary. */
+      a_type_ptr  prev_type = type_symbol_type(tag_sym);
+      if (is_immediate_enum_type(prev_type)) {
+        pos_sy_warning(ec_enum_type_replacement, &tag_position, tag_sym);
+        tag_sym->variant.enumeration.extra_info->replaced_enum_symbol = TRUE;
+        tag_sym = NULL;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
   if (tag_sym == NULL) {
     a_scope_ptr  parent_scope = scope_stack[effective_decl_level].il_scope;
     /* Create a new enumerated type.  All enumeration type entries are
@@ -4963,7 +4985,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #endif  /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && !is_scoped_enum) {
+    if (microsoft_mode && !is_scoped_enum && !is_definition) {
       /* In Microsoft compatibility mode (unscoped) enum types can be declared
          without being defined and can also be used.  The use requires that
          the size be set. */
@@ -5028,12 +5050,13 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                        is_definition);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (explicit_enum_base_enabled && is_definition) {
-    explicit_base_kind = scan_explicit_enum_base_type(enum_type,
-                                                      &pos_explicit_base);
-  }  /* if */
   if (is_definition) {
     a_source_position  end_pos;
+    if (explicit_base != NULL) {
+      /* Record the explicit underlying type as it appeared in the source. */
+      integer_type_supp(enum_type)->base_type = explicit_base;
+      enum_type->variant.integer.has_explicit_enum_base = TRUE;
+    }  /* if */
     /* We associate a curr-construct pragma with this enum type only if this
        is a definition.  Otherwise this is assumed to be part of a declaration
        of something else -- to which the pragma should be bound. */

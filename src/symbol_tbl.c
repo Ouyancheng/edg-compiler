@@ -4325,6 +4325,14 @@ this is not allowed, an error will be issued by the caller.
          (e.g., "typedef class C {} C;").  decl_typedef will have marked the
          associated symbol as "invisible". */
       err = FALSE;
+    } else if (microsoft_mode && symbol_is(old_sym, sk_enum_tag) &&
+               old_sym->variant.enumeration.extra_info->replaced_enum_symbol &&
+               symbol_is(new_sym, sk_enum_tag)) {
+      /* Microsoft compilers allow:
+            enum E ee; // E considered complete with underlying type int.
+            enum E: char { e };  // New type E (not compatible with previous E.
+         The old symbol will be marked with the replaced_enum_symbol flag. */
+      err = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (scope_stack[scope_depth].in_prototype_instantiation &&
                scope_stack[scope_depth].kind ==

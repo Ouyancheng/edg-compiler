@@ -1305,6 +1305,17 @@ typedef struct an_enum_symbol_supplement {
 			   to distinguish unnamed enum types (in both ABIs).
 			   Zero if not needed. */
 #endif /* NEED_NAME_MANGLING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	replaced_enum_symbol:1;
+			/* TRUE for an enumeration type in Microsoft mode that
+			   was declared but not defined, and later defined
+			   with an explicit underlying type other than "int".
+			   E.g.:     enum E ee;
+			             enum E: char { e };  // New type E.
+			   The definition introduces a new type and hence a
+			   new symbol; the symbol resulting from the original
+			   declaration is marked using this flag. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } an_enum_symbol_supplement;
 
 /*
