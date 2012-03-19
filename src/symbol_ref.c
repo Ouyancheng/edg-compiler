@@ -799,12 +799,20 @@ hidden name checking on its own members, too.
      virtual) base classes. */
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct || (top_level && bcp->is_virtual)) {
-      check_hiding_by_inherited_names(bcp->type, sp, /*top_level=*/FALSE);
+      a_type_ptr base_class = bcp->type;
+      if (base_class->variant.class_struct_union.is_nonreal_class &&
+          base_class->variant.class_struct_union.is_template_class) {
+        /* Use the prototype instantiation instead of the nonreal class for
+           hiding analysis. */
+        base_class = base_class->variant.class_struct_union.extra_info->
+                                  assoc_template->prototype_instantiation.type;
+      }  /* if */
+      check_hiding_by_inherited_names(base_class, sp, /*top_level=*/FALSE);
       if (top_level) {
         /* Copy the base class's hidden member list into this class's list:
            if a member symbol is hidden in the base class, it's hidden here,
            too. */
-        clone_inherited_hidden_members(class_type, bcp->type);
+        clone_inherited_hidden_members(class_type, base_class);
       }  /* if */
     }  /* if */
     if (!bcp->direct && !bcp->type->source_corresp.is_local_to_function) {

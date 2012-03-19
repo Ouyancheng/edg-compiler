@@ -1,5 +1,23 @@
 Version 4.5
 
+3/19/12  [EDGcpfe/12695]
+C++-generating back end: qualification of names hidden by members of
+dependent bases
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+C++-generating back end failed to consider members of dependent bases when
+determining whether a reference to a name in a containing scope required
+qualification or not.  This is now fixed.  For example:
+
+  template<typename T> struct A {
+    typename T X;
+  };
+  template<typename T> struct X { };
+  template<typename T> struct C : A<X<T> > {
+    typedef A<::X<T> > ax;  // Previously generated as A< X< T> >
+  };
+
+
 3/19/12  [EDGcpfe/12762]
 Enumeration type with explicit underlying type in Microsoft mode
 
