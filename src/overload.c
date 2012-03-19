@@ -20013,6 +20013,7 @@ by source_is_rvalue.
   *eff_routine_type = NULL;
   *uncallable = FALSE;
   arg_type = make_qualified_type(class_type, source_cv_qualifiers);
+  reduce_projection_symbol_to_fundamental_symbol(sym);
   if (sym->kind == (a_symbol_kind)sk_function_template) {
     /* Try type deduction on a template. */
     routine = sym->variant.template_info->variant.function.routine;
