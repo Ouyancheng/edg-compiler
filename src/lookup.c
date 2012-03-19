@@ -3677,7 +3677,6 @@ C and C++.
       } else if (sym != NULL && gnu_version >= 40100) {
         /* Use the existing sym. */
       } else if (new_sym != NULL) {
-        a_symbol_ptr	fund_new_sym = fundamental_symbol_of(new_sym);
         if (is_function_symbol(fund_new_sym) &&
             fund_sym != NULL && !is_template_symbol(fund_sym)) {
           sym = new_sym;
