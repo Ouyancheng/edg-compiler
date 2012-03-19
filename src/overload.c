@@ -20364,10 +20364,11 @@ assignment operator.
     overloaded_sym = opname_member_function_symbol((an_opname_kind)onk_assign,
                                                    class_type);
     candidate_functions = NULL;
-    for (sym = set_up_overload_set_traversal(overloaded_sym,
-                                             &candidate_functions,
-                                             inaccessible_match,
-                                             &ostblock);
+    for (sym = ((overloaded_sym == NULL) ? NULL :
+                set_up_overload_set_traversal(overloaded_sym,
+                                              &candidate_functions,
+                                              inaccessible_match,
+                                              &ostblock));
          sym != NULL;
          sym = next_symbol_in_overload_set(&ostblock)) {
       a_boolean local_uncallable;
