@@ -11,7 +11,7 @@ For example:
   ref struct B { virtual int f(); };
   ref struct D: B {
     ~D() {}
-    virtual int f();
+    virtual int f() override;
   };  // Triggered an abort if the debug option "-d-1" was specified.
 
 This is now fixed.
