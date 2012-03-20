@@ -22591,6 +22591,13 @@ passed via template_decl.
       decl_state->qualifiers_pos = saved_qualifiers_pos;
     }  /* if */
     /* Loop for additional declarators. */
+    if (gpp_mode && gnu_version >= 30400 && curr_token == tok_comma &&
+        next_token() == tok_semicolon) {
+      /* GCC 3.4 and later accepts a member declaration like "int i,;" or
+         "S(),;". */
+      pos_warning(ec_nonstd_extra_comma, &pos_curr_token);
+      (void)get_token();
+    }  /* if */
   } while (loop_token(tok_comma));
 next_declaration:;
   if (dso_flags & DSO_EXPLICIT) {
