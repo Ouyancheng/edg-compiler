@@ -8524,9 +8524,9 @@ implicitly as part of the dispose pattern implementation.
 */
 {
   a_type_ptr                   type_ptr = class_state->class_type;
-#if IA64_ABI || (DEBUG && CHECKING)
+#if IA64_ABI || EXPENSIVE_CHECKING
   a_class_type_supplement_ptr  ctsp = class_type_supp(type_ptr);
-#endif /* IA64_ABI || (DEBUG && CHECKING) */
+#endif /* IA64_ABI || EXPENSIVE_CHECKING */
   a_base_class_ptr             bcp;
 #if IA64_ABI
   a_base_class_ptr             first_indirect_primary_vbase = NULL;
