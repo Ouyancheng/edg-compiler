@@ -1,5 +1,22 @@
 Version 4.5
 
+3/20/12  [EDGcpfe/12770]
+C++/CLI: Abort on derived class when debugging option is active
+
+The front end sometimes aborted in verify_virt_func_override_list (in
+class_decl.c) when processing certain derived classes in C++/CLI mode when
+a debug option (like "-d-1") is active.
+For example:
+
+  ref struct B { virtual int f(); };
+  ref struct D: B {
+    ~D() {}
+    virtual int f();
+  };  // Triggered an abort if the debug option "-d-1" was specified.
+
+This is now fixed.
+
+
 3/20/12  [EDGcpfe/12216]
 Defaulted move operations
 

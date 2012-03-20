@@ -6101,7 +6101,8 @@ Dump a linked list of base class entries, for debug purposes.
   }  /* if */
 }  /* db_base_class_list */
 
-#if CHECKING
+#endif /* DEBUG */
+#if EXPENSIVE_CHECKING
 
 static void verify_path_consistency(a_type_ptr        class_type,
                                     a_base_class_ptr  base_class)
@@ -6160,33 +6161,42 @@ path entries are also on the base classes list of class_type.
 }  /* verify_path_consistency */
 
 
-static void verify_virt_func_override_list(a_type_ptr        class_type,
-                                           a_base_class_ptr  base_class,
-                                           a_boolean         null_allowed)
+static void verify_virt_func_override_list(a_class_def_state_ptr  class_state,
+                                           a_base_class_ptr       base_class)
 /*
 Verify that the base classes pointed to from overriding virtual function
-entries associated with base_class are on the base_classes list of class_type.
+entries associated with base_class are on the list of base class associated
+with class_state.
 */
 {
-  a_base_class_ptr                    bcp;
   an_overriding_virtual_function_ptr  ovfp;
 
   db_enter(5, "verify_virt_func_override_list");
   ovfp = base_class->overriding_virtual_functions;
-    if (debug_level >= 5) {
-      if (ovfp != NULL) {
-        fputs("base class = ", f_debug);
-        db_base_class(base_class, /*show_offset=*/FALSE);
-      }  /* if */
+#if DEBUG
+  if (debug_level >= 5) {
+    if (ovfp != NULL) {
+      fputs("base class = ", f_debug);
+      db_base_class(base_class, /*show_offset=*/FALSE);
     }  /* if */
+  }  /* if */
+#endif /* DEBUG */
   for (; ovfp != NULL; ovfp = ovfp->next) {
+#if DEBUG
     if (debug_level >= 5) {
       db_virtual_function_override(ovfp);
     }  /* if */
+#endif /* DEBUG */
     if (ovfp->base_class == NULL) {
-      check_assertion(null_allowed);
+      /* The overriding function is in the derived class, which is only
+         possible if this function is called for a late base class addition
+         (which happens in C++/CLI mode) and at least one override has been
+         recorded. */
+      check_assertion(cppcli_enabled &&
+                      class_state->override_registry != NULL);
     } else if (ovfp->base_class != base_class) {
-      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+      a_base_class_ptr  bcp = base_classes_of(class_state->class_type);
+      for (; bcp != NULL; bcp = bcp->next) {
         if (bcp == ovfp->base_class) break;
       }  /* for */
       check_assertion(bcp != NULL);
@@ -6195,8 +6205,7 @@ entries associated with base_class are on the base_classes list of class_type.
   db_exit();
 }  /* verify_virt_func_override_list */
 
-#endif /* CHECKING */
-#endif /* DEBUG */
+#endif /* EXPENSIVE_CHECKING */
 
 a_boolean congruent_paths(a_derivation_step_ptr  dsp1,
                           a_derivation_step_ptr  dsp2)
@@ -8598,19 +8607,15 @@ implicitly as part of the dispose pattern implementation.
   if (debug_level >= 3 || db_flag_is_set("base_specifiers")) {
     db_base_class_list(type_ptr);
   }  /* if */
-#if CHECKING
-  if (db_active) {
-    /* This check is somewhat expensive, so only do it when debugging is
-       turned on. */
-    if (type_ptr->kind != (a_type_kind)tk_union) {
-      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-        verify_path_consistency(type_ptr, bcp);
-        verify_virt_func_override_list(type_ptr, bcp, /*null_allowed=*/FALSE);
-      }  /* for */
-    }  /* if */
-  }  /* if */
-#endif /* CHECKING */
 #endif /* DEBUG */
+#if EXPENSIVE_CHECKING
+  if (type_ptr->kind != (a_type_kind)tk_union) {
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      verify_path_consistency(type_ptr, bcp);
+      verify_virt_func_override_list(class_state, bcp);
+    }  /* for */
+  }  /* if */
+#endif /* EXPENSIVE_CHECKING */
 }  /* wrapup_base_classes */
 
 
