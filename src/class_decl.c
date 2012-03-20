@@ -11059,7 +11059,7 @@ return FALSE); otherwise, set *has_default_arg to FALSE.
 */
 {
   a_boolean         result = FALSE;
-  a_type_ptr        class_type = sym_parent_class(sym), rout_type;
+  a_type_ptr        class_type = sym_parent_class(sym), rout_type, param_type;
   a_param_type_ptr  params;
 
   *is_default_ctor = FALSE;
@@ -11077,14 +11077,27 @@ return FALSE); otherwise, set *has_default_arg to FALSE.
     *is_default_ctor = TRUE;
   } else if (params->next == NULL) {
     /* One parameter: Check the signature. */
-    /* The parameter type must be X& or X const& (although the latter requires
-       that bases and members allow for such copying).  Try X& first. */
-    a_type_ptr  param_type = make_reference_type(class_type);
-    if (identical_types(param_type, params->type)) {
-      result = TRUE;
-    } else {
-      param_type = make_reference_type(
-                     make_qualified_type(class_type, TQ_CONST));
+    if (is_lvalue_reference_type(params->type)) {
+      /* Presumably a copy constructor.  The parameter type must be X& or
+         X const& (although the latter requires that bases and members allow
+         for such copying).  Try X& first. */
+      param_type = make_reference_type(class_type);
+      if (identical_types(param_type, params->type)) {
+        result = TRUE;
+      } else {
+        param_type = make_reference_type(
+                                  make_qualified_type(class_type, TQ_CONST));
+        if (identical_types(param_type, params->type)) {
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+    } else if ((generate_move_operations ||
+                (gpp_mode && gnu_version >= 40500)) &&
+               is_rvalue_reference_type(params->type)) {
+      /* Presumably a move constructor.  The parameter type must be X&&.
+         (A copy constructor can be defaulted in modes that can implicitly
+         generate move operations, and also when emulating GCC 4.5.x.) */
+      param_type = make_rvalue_reference_type(class_type);
       if (identical_types(param_type, params->type)) {
         result = TRUE;
       }  /* if */
@@ -11110,7 +11123,7 @@ parent class is X, it must have one of the following signatures:
 {
   a_boolean         result = FALSE;
   a_type_ptr        class_type = sym_parent_class(sym);
-  a_type_ptr        rout_type, return_type;
+  a_type_ptr        rout_type, return_type, param_type;
   a_param_type_ptr  params;
 
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function ||
@@ -11125,14 +11138,28 @@ parent class is X, it must have one of the following signatures:
   return_type = make_reference_type(class_type);
   if (rout_type->variant.routine.extra_info->qualifiers == TQ_NONE &&
       identical_types(return_type, rout_type->variant.routine.return_type)) {
-    /* The parameter type must be X& or X const& (although the latter requires
-       that bases and members allow for such an assignment).  Try X& first. */
-    a_type_ptr  param_type = return_type;
-    if (identical_types(param_type, params->type)) {
-      result = TRUE;
-    } else {
-      param_type = make_reference_type(
-                     make_qualified_type(class_type, TQ_CONST));
+    if (is_lvalue_reference_type(params->type)) {
+      /* Presumably an ordinary copy assign operator.  The parameter type must
+         be X& or X const& (although the latter requires that bases and members
+         allow for such an assignment).  Try X& first. */
+      param_type = return_type;
+      if (identical_types(param_type, params->type)) {
+        result = TRUE;
+      } else {
+        param_type = make_reference_type(
+                       make_qualified_type(class_type, TQ_CONST));
+        if (identical_types(param_type, params->type)) {
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+    } else if ((generate_move_operations ||
+                (gpp_mode && gnu_version >= 40500)) &&
+               is_rvalue_reference_type(params->type)) {
+      /* Presumably a move assign operator.  Check that the parameter type is
+         X&&.  (A move assign operator can be defaulted in modes that can
+         implicitly generate move operations, and also when emulating
+         GCC 4.5.x.) */
+      param_type = make_rvalue_reference_type(class_type);
       if (identical_types(param_type, params->type)) {
         result = TRUE;
       }  /* if */

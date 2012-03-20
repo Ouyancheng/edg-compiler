@@ -5675,7 +5675,8 @@ initialized.  These are addressed in the course of the processing.
     is_generated_cctor = FALSE;
     is_generated_mctor = FALSE;
     required_qualifiers = TQ_NONE;
-  } else if (generate_move_operations &&
+  } else if ((generate_move_operations ||
+              (gpp_mode && gnu_version >= 40500)) &&
              routine_is_move_constructor(ctor_rout)) {
     is_generated_cctor = FALSE;
     is_generated_mctor = TRUE;
@@ -5757,10 +5758,10 @@ initialized.  These are addressed in the course of the processing.
         /* Property and event fields are not really data members and should
            not be explicitly initialized. */
         continue;
-      } else if (is_generated_cctor) {
-        /* All fields are explicitly listed for a generated copy constructor,
-           since even if there is no constructor at least a bitwise copy is
-           required. */
+      } else if (is_generated_cctor || is_generated_mctor) {
+        /* All fields are explicitly listed for a generated copy or move
+           constructor, since even if there is no constructor at least a
+           bitwise copy is required. */
       } else {
         /* This is not a copy constructor.  See if this is a field that
            requires an initializer. */
@@ -5888,7 +5889,7 @@ initialized.  These are addressed in the course of the processing.
            lifetime entry that was generated for the initializer expression
            but then removed.
        (2) It does the processing for implicit initializations:
-           (a) special handling for generated copy constructor; or
+           (a) special handling for generated copy/move constructor; or
            (b) processing for user-defined constructor or generated default
                constructor.
            Note: unneeded ctor-init entries are removed from the list.
