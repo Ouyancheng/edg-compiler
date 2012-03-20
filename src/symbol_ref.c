@@ -801,7 +801,9 @@ hidden name checking on its own members, too.
     if (bcp->direct || (top_level && bcp->is_virtual)) {
       a_type_ptr base_class = bcp->type;
       if (base_class->variant.class_struct_union.is_nonreal_class &&
-          base_class->variant.class_struct_union.is_template_class) {
+          base_class->variant.class_struct_union.is_template_class &&
+          base_class->variant.class_struct_union.extra_info->assoc_template->
+                                        prototype_instantiation.type != NULL) {
         /* Use the prototype instantiation instead of the nonreal class for
            hiding analysis. */
         base_class = base_class->variant.class_struct_union.extra_info->
