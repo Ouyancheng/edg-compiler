@@ -801,13 +801,19 @@ hidden name checking on its own members, too.
     if (bcp->direct || (top_level && bcp->is_virtual)) {
       a_type_ptr base_class = bcp->type;
       if (base_class->variant.class_struct_union.is_nonreal_class &&
-          base_class->variant.class_struct_union.is_template_class &&
-          base_class->variant.class_struct_union.extra_info->assoc_template->
-                                        prototype_instantiation.type != NULL) {
-        /* Use the prototype instantiation instead of the nonreal class for
-           hiding analysis. */
-        base_class = base_class->variant.class_struct_union.extra_info->
-                                  assoc_template->prototype_instantiation.type;
+          base_class->variant.class_struct_union.is_template_class) {
+        a_type_ptr proto_inst = base_class->
+                        variant.class_struct_union.extra_info->assoc_template->
+                                                  prototype_instantiation.type;
+        if (proto_inst != NULL && proto_inst != class_type) {
+          /* Use the prototype instantiation instead of the nonreal class
+             for hiding analysis.  The check that the prototype
+             instantiation is not this class is necessary to handle cases
+             where a class template names an instance of that template as a
+             base class, which would otherwise lead to an infinite
+             recursion. */
+          base_class = proto_inst;
+        }  /* if */
       }  /* if */
       check_hiding_by_inherited_names(base_class, sp, /*top_level=*/FALSE);
       if (top_level) {
