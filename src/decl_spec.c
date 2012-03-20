@@ -4296,9 +4296,6 @@ typerefs are dropped from *p_base_type.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !(PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE)
-/*ARGSUSED*/  /* enum_type is not used in all configurations. */
-#endif /* !(PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE) */
 static an_integer_kind scan_explicit_enum_base_type(
                                                a_type_ptr         *p_base_type,
                                                a_source_position  *pos_type)
@@ -4309,7 +4306,8 @@ enumeration type's underlying integer type.  For example:
 If such a base type was specified, the current token is the colon, and this
 routine scans it along with the specified type.  The integer kind to be used
 for the underlying type is returned, and *p_base_type is set to the type as
-scanned if it is valid.
+scanned if it is valid.  If no base type was specified, ik_none is returned
+and *p_base_type is left unchanged.
 */
 {
   an_integer_kind  result = (an_integer_kind)ik_none;
@@ -4855,7 +4853,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         explicit_base_kind != (an_integer_kind)ik_int) {
       /* Microsoft compilers allow:
             enum E ee; // E considered complete with underlying type int.
-            enum E: char { e };  // New type E (not compatible with previous E.
+            enum E: char { e };  // New type E (incompatible with previous E).
          Ignore the previous declaration of E if necessary. */
       a_type_ptr  prev_type = type_symbol_type(tag_sym);
       if (is_immediate_enum_type(prev_type)) {
