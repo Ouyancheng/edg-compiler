@@ -17828,6 +17828,8 @@ temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
   orig_operand = *operand;
   temp_type = operand->type;
   unqual_temp_type = skip_typerefs(temp_type);
+  complete_type_is_needed(temp_type);
+  check_assertion(!is_incomplete_type(temp_type));
   cctor_case = FALSE;
   if (is_class_struct_union_type(unqual_temp_type)) {
     /* The operand and temporary have a class type.  If it's a C-style

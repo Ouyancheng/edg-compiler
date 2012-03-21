@@ -17016,7 +17016,8 @@ transformations.
       /* Convert an lvalue to an rvalue. */
       if ((options & TOPT_COPY_CLASS_ON_CONV_TO_RVALUE) &&
           !C_mode() &&
-          is_class_struct_union_type(operand->type)
+          is_class_struct_union_type(operand->type) &&
+          !is_incomplete_type(operand->type) /* For error recovery. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
            && !is_managed_class_type(operand->type)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
