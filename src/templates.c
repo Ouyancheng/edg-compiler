@@ -26373,8 +26373,7 @@ emitted in this translation unit.
   } else if (microsoft_mode &&
              (rout_ptr->explicit_extern_inline ||
               rout_ptr->direct_linkage_specifier_on_nondef_decl ||
-              (!rout_ptr->compiler_generated &&
-               (rout_ptr->decl_modifiers & DM_DLLEXPORT) != 0))) {
+              (rout_ptr->decl_modifiers & DM_DLLEXPORT) != 0)) {
     /* In Microsoft mode "extern inline" in the source indicates that the
        function definition should be spilled (even if unused); the same is
        true for inline functions that have a non-definition declaration that
