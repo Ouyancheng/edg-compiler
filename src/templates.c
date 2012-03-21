@@ -13273,8 +13273,11 @@ can match zero or more parameters from new_list.
       a_compare_constants_options_set	cc_options = CC_NO_OPTIONS;
       /* Both are constants.  Make sure the values are the same.  The
          coordinates need not match when comparing with a template
-         parameter pack. */
-      if (old_tpp->is_pack && is_templ_templ_param_match) {
+         parameter pack.  If we have already detected a nesting depth
+         mismatch (indicated by ETP_NESTING_DEPTH_MISMATCH_OKAY), allow
+         a coordinate mismatch when comparing constants. */
+      if ((old_tpp->is_pack && is_templ_templ_param_match) ||
+          (options & ETP_NESTING_DEPTH_MISMATCH_OKAY) != 0) {
         cc_options |= CC_COORDINATE_MISMATCH_OKAY;
       }  /* if */
       err = !compare_constants(old_tpp->variant.constant.ptr,

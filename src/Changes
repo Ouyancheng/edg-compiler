@@ -1,5 +1,21 @@
 Version 4.5
 
+3/21/12  [EDGcpfe/12774]
+GNU and Microsoft compatibility: spurious error following nesting depth warning
+
+In cases where a warning was issued for a nesting depth mismatch on a
+template declaration, a spurious error could following complaining
+that a nontype template parameter was incompatible with the previous
+declaration.  Now fixed.
+
+  template <class T> struct A {
+    template <int i> class B {
+      template <int j> friend class B;
+    };
+  };
+  A<int>::B<1> a;
+
+
 3/21/12  [EDGcpfe/9807,EDGcpfe/12775]
 Generated default constructors in C++11 and Microsoft modes
 
