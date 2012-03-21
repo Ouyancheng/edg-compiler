@@ -6567,6 +6567,7 @@ subobject (e.g., C).
 
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
 static void set_preferred_derivation_for_managed_base(a_base_class_ptr  bcp)
 /*
 In managed classes all derivations are public.  It therefore doesn't matter
@@ -6596,7 +6597,6 @@ bcp is a managed base class being added.
     }  /* if */
   } else if (!is_immediate_cli_interface_type(bcp->type)) {
     /* System::Object. */
-    a_boolean  non_interface_derivation_found = FALSE;
     for (; bcdp != NULL; bcdp = bcdp->next) {
       a_derivation_step_ptr  step = bcdp->path;
       bcdp->preferred = TRUE;
@@ -6608,16 +6608,22 @@ bcp is a managed base class being added.
           break;
         }  /* if */
       }  /* for */
-      if (bcdp->preferred) non_interface_derivation_found = TRUE;
+      if (bcdp->preferred) break;
     }  /* for */
     /* If all the derivations involved an interface class, mark the first one
-       (arbitrarily) as preferred. */
-    if (!non_interface_derivation_found) bcp->derivation->preferred = TRUE;
+       (arbitrarily) as preferred.  Otherwise, ensure the remaining derivations
+       are not marked as preferred. */
+    if (bcdp == NULL) {
+      bcp->derivation->preferred = TRUE;
+    } else {
+      for (bcdp = bcdp->next; bcdp != NULL; bcdp = bcdp->next) {
+        bcdp->preferred = FALSE;
+      }  /* for */
+    }  /* if */
   }  /* if */
 }  /* set_preferred_derivation_for_managed_base */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
 
 static a_derivation_step_ptr update_base_class_derivation(
                                          a_base_class_ptr       base_class,
