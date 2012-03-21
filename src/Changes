@@ -147,7 +147,7 @@ determining whether a reference to a name in a containing scope required
 qualification or not.  This is now fixed.  For example:
 
   template<typename T> struct A {
-    typename T X;
+    typedef T X;
   };
   template<typename T> struct X { };
   template<typename T> struct C : A<X<T> > {
