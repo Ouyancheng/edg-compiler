@@ -157,7 +157,7 @@ the underlying type.  For example:
 This is now fixed.  This bug was a consequence of the emulation of a Microsoft
 compiler behavior whereby enumeration types can be declared without being
 defined, but the declaration is sufficient to consider the enumeration type
-"complete" (with underlying type int; See Changes entry of 4/11/95).
+"complete" (with underlying type int; see Changes entry of 4/11/95).
 For example:
 
   enum E x;  // Accepted in Microsoft modes
