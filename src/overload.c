@@ -20206,10 +20206,15 @@ do access checking on the copy constructor.
     } else {
       *class_bitwise_copy = TRUE;
     }  /* if */
+  } else if (cssp->constructor == NULL) {
+    /* This can currently only happen in Microsoft mode, where generated
+       constructors may be suppressed. */
+    check_assertion_str(microsoft_mode &&
+                        class_type->variant.class_struct_union
+                                           .copy_ctor_decl_suppressed,
+                       "select_overloaded_copy_constructor: NULL constructor");
   } else {
     overloaded_sym = cssp->constructor;
-    check_assertion_str(overloaded_sym != NULL,
-                       "select_overloaded_copy_constructor: NULL constructor");
     /* Examine each constructor for this class to find a copy constructor.
        There may be more than one.  For instance, there may be a copy
        constructor that can copy a const object and another that cannot. */

@@ -15316,6 +15316,11 @@ expression, and return the result in *result (or an error indication in
           pos_ty_error(ec_invalid_gcnew_type, &type_position, new_type);
         }  /* if */
         err = TRUE;
+      } else if (microsoft_mode) {
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_no_default_constructor, &type_position, new_type);
+        }  /* if */
+        err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* Note that this case comes up if the class type is incomplete.
