@@ -1,5 +1,24 @@
 Version 4.5
 
+3/21/12  [EDGcpfe/9807,EDGcpfe/12775]
+Generated default constructors in C++11 and Microsoft modes
+
+In C++11 mode, the front end now treats a generated default constructor as a
+deleted member (i.e., as if defined with "= delete;") if the ordinary
+generation process would result in an error.  In Microsoft mode, no default
+constructor is generated at all in such circumstances.  For example:
+
+  struct B { B(B const&); };  // No default constructor.
+  struct D: B {};  // D's default constructor cannot be generated since there
+                   // is no corresponding B constructor.  In Microsoft mode,
+                   // the default constructor is no longer declared at all.
+                   // In C++11 mode, the default constructor is "deleted".
+                   // In other modes an error is issued when the definition
+                   // of the default constructor is generated.
+  D d;  // Different errors are issued in Microsoft mode, C++11 mode, and
+        // other C++ modes.
+
+
 3/21/12  [EDGcpfe/12772]
 Microsoft compatibility: Exported generated member functions
 

@@ -16821,10 +16821,81 @@ for C++/CLI.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void add_default_ctor_if_needed(a_class_def_state_ptr  class_state)
+static void check_suppressed_default_ctor(
+                               a_type_ptr                          class_type,
+                               a_generated_special_function_descr  *gsfd)
+/*
+Check whether the generated default constructor for class_type should be
+suppressed.  In Microsoft mode, this means that it shouldn't be declared at
+all.  In C++11 mode, it means that the generated default constructor should be
+deleted.
+*/
+{
+  if (cpp11_mode || microsoft_mode) {
+    a_symbol_ptr      sym;
+    a_base_class_ptr  bcp;
+    a_class_symbol_supplement_ptr
+                      cssp = symbol_supplement_for_class(class_type);
+    /* First, scan through all the nonstatic data members, using the symbol
+       list rather than the field list to be sure that only user-defined
+       fields are checked and to be sure that anonymous union fields are
+       picked up. */
+    for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
+      if (sym->kind == (a_symbol_kind)sk_field &&
+          /* Property fields and events do not affect the special member
+             functions. */
+          !field_is_property_or_event(sym->variant.field.ptr)) {
+        a_type_ptr  tp = sym->variant.field.ptr->type;
+        if (is_reference_type(tp)) {
+          /* References cannot be default-initialized. */
+          gsfd->suppress_default_ctor = TRUE;
+          break;
+        }  /* if */
+        if (is_array_type(tp)) {
+          tp = underlying_array_element_type(tp);
+        }  /* if */
+        if (is_class_struct_union_type(tp)) {
+          a_boolean  error_detected, err;
+          (void)select_default_constructor_full(tp, &pos_curr_token, tp,
+                                                /*evaluated=*/TRUE,
+                                                /*check_access=*/TRUE,
+                                                &error_detected, &err);
+          if (error_detected) {
+            gsfd->suppress_default_ctor = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (!gsfd->suppress_default_ctor) {
+      /* Now scan through all the direct base classes of this class. */
+      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+        if (bcp->direct  &&
+            !(bcp->is_virtual &&
+              virtual_base_class_is_indirect(bcp, class_type))) {
+          a_boolean  error_detected, err;
+          (void)select_default_constructor_full(bcp->type, &pos_curr_token,
+                                                class_type, /*evaluated=*/TRUE,
+                                                /*check_access=*/TRUE,
+                                                &error_detected, &err);
+          if (error_detected) {
+            gsfd->suppress_default_ctor = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* check_suppressed_default_ctor */
+
+
+static void add_default_ctor_if_needed(
+                               a_class_def_state_ptr               class_state,
+                               a_generated_special_function_descr  *gsfd)
 /*
 If appropriate, add an implicitly declared default constructor to the class
-definition described by class_state.
+definition described by class_state.  If the default constructor should be
+suppressed, record that fact in *gsfd.
 */
 {
   a_type_ptr                 class_type = class_state->class_type;
@@ -16877,8 +16948,14 @@ definition described by class_state.
          generated). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
-      /* A default constructor needs to be generated. */
-      generate_default_constructor(class_state, /*is_deleted=*/FALSE);
+      check_suppressed_default_ctor(class_type, gsfd);
+      if (microsoft_mode && gsfd->suppress_default_ctor) {
+        /* Microsoft compilers do not generate a default constructor if
+           generating it would trigger an error. */
+      } else {
+        /* A default constructor needs to be generated. */
+        generate_default_constructor(class_state, gsfd->suppress_default_ctor);
+      }  /* if */
     }  /* if */
   } else if (!cssp->has_user_declared_default_constructor) {
     /* This class has a user-declared or nontrivial constructor (since
@@ -17585,7 +17662,7 @@ The routine body is not generated until it is known to be needed.
       }  /* if */
     }  /* if */
   }  /* if */
-  add_default_ctor_if_needed(class_state);
+  add_default_ctor_if_needed(class_state, &gsfd);
   const_okay = default_assignment_of_const_object_okay(class_type);
   gsfd.copy_assign_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   default_copy_constructor_check(class_type, &const_okay);
