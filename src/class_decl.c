@@ -6190,10 +6190,11 @@ with class_state.
     if (ovfp->base_class == NULL) {
       /* The overriding function is in the derived class, which is only
          possible if this function is called for a late base class addition
-         (which happens in C++/CLI mode) and at least one override has been
-         recorded. */
+         (which happens in C++/CLI mode); in such cases, the scope for the
+         class definition must have been pushed. */
       check_assertion(cppcli_enabled &&
-                      class_state->override_registry != NULL);
+                      class_type_supp(class_state->class_type)->assoc_scope
+                                                                     != NULL);
     } else if (ovfp->base_class != base_class) {
       a_base_class_ptr  bcp = base_classes_of(class_state->class_type);
       for (; bcp != NULL; bcp = bcp->next) {
