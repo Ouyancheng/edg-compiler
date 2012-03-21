@@ -15317,6 +15317,7 @@ expression, and return the result in *result (or an error indication in
         }  /* if */
         err = TRUE;
       } else if (microsoft_mode) {
+        /* In Microsoft mode default constructors can be suppressed. */
         if (expr_error_should_be_issued()) {
           pos_ty_error(ec_no_default_constructor, &type_position, new_type);
         }  /* if */
