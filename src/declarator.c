@@ -4943,9 +4943,9 @@ declared entity is known to not be a function.
     if (input_flags & DI_IS_SPECIALIZATION) {
       options |= GID_IS_TEMPLATE_SPECIALIZATION;
     }  /* if */
-    if (input_flags & DI_IS_FRIEND_DECL) {
-      options |= GID_IS_FRIEND_DECL;
-    }  /* if */
+  }  /* if */
+  if (input_flags & DI_IS_FRIEND_DECL) {
+    options |= GID_IS_FRIEND_DECL;
   }  /* if */
   if (is_specialization_or_instantiation ||
       ((input_flags & DI_IS_FRIEND_DECL) &&

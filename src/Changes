@@ -1,5 +1,21 @@
 Version 4.5
 
+3/21/12  [EDGcpfe/11293]
+GNU and Microsoft compatibility: friend declarations that refer to undefined
+members
+
+The Microsoft and g++ compilers allow a friend declaration nested in a
+class template to refer to an undefined member of the class template.
+We now emulate this behavior in Microsoft and g++ modes (with a warning).
+
+  template <class T> struct A {
+    struct B {
+      friend void A::f();  // now allowed
+      friend struct A::C;  // now allowed
+    };
+  };
+
+
 3/20/12  [EDGcpfe/12770]
 C++/CLI: Abort on derived class when debugging option is active
 

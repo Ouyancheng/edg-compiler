@@ -17329,6 +17329,11 @@ See also coalesce_and_lookup_generalized_identifier.
         an_id_lookup_options_set	idl_options;
         /* Translate the general identifier options into ID lookup options. */
 	idl_options = idl_options_for_lookup_mode[(int)ilm];
+        /* If this is the declarator for a friend declaration, pass the
+           friend lookup flag into the lookup routines. */
+        if ((options & GID_IS_FRIEND_DECL) != 0) {
+          idl_options |= IDL_FRIEND_LOOKUP;
+        }  /* if */
         /* No errors were diagnosed. */
         if (locator_for_curr_id.is_file_scope_qualified_name) {
           /* Look up the id in the file scope. */

@@ -204,6 +204,11 @@ extern
 void update_friend_function_info(a_routine_ptr rout_ptr,
                                  a_type_ptr    class_type);
 
+extern void check_for_invalid_friend_declaration(
+					a_type_ptr		parent_type,
+					a_symbol_ptr		sym,
+					a_symbol_locator	*locator);
+
 extern void decl_friend_class(a_type_ptr  class_type,
 			      a_type_ptr  friend_class_type,
                               a_boolean   for_friend_template);

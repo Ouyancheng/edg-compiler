@@ -2018,6 +2018,12 @@ to TRUE.
     }  /* if */
     set_to_named_error_locator(*locator);
     *tag_sym = NULL;
+  } else if ((gpp_mode || microsoft_mode) && (*tag_sym)->is_nonreal_member) {
+    a_type_ptr  parent_type = (*tag_sym)->parent.class_type;
+    /* Microsoft and g++ allows a friend declaration that refers to
+       an undeclared member of a prototype instantiation.  Check for
+       this case and issue a diagnostic if needed. */
+    check_for_invalid_friend_declaration(parent_type, *tag_sym, locator);
 #if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
   } else if (is_class_template_symbol(*tag_sym)) {
     /* Microsoft and Sun compilers accept "friend class X;" where X is a class

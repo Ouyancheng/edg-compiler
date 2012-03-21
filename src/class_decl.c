@@ -9067,6 +9067,34 @@ that the routine indicated by rout_ptr is a friend.
 }  /* update_friend_function_info */
 
 
+void check_for_invalid_friend_declaration(
+					a_type_ptr		parent_type,
+					a_symbol_ptr		sym,
+					a_symbol_locator	*locator)
+/*
+g++ and Microsoft allow a friend declaration that refers to an undeclared
+member of a prototype instantiation.  For example:
+
+  template <class T> struct A {
+    struct B {
+      friend void A::f();
+    };
+  };
+
+When a construct like this is encountered in lookup, a nonreal class member
+is created for A<T>::f.  This routine detects the use of such a symbol
+and issues a warning.
+*/
+{
+  if (locator->is_qualified_name &&
+      parent_type->variant.class_struct_union.is_prototype_instantiation) {
+    pos_stsy_warning(ec_not_a_member, &locator->source_position,
+                     locator->symbol_header->identifier,
+                     symbol_for(parent_type));
+  }  /* if */
+}  /* check_for_invalid_friend_declaration */
+
+
 static a_symbol_ptr decl_dependent_friend_function(
                                         a_symbol_locator        *locator,
                                         a_type_ptr              function_type,
@@ -9084,6 +9112,7 @@ instantiations are recorded in the IL.
 {
   a_symbol_ptr                  sym = NULL;
   a_symbol_kind                 sym_kind;
+  a_symbol_ptr                  orig_sym = locator->specific_symbol;
   a_routine_ptr                 rp;
   a_memory_region_number        region_to_switch_back_to;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -9139,6 +9168,13 @@ instantiations are recorded in the IL.
       parent_type = proxy_class_for_template_param(parent_type);
     }  /* if */
     set_class_membership(sym, &rp->source_corresp, parent_type);
+    if ((gpp_mode || microsoft_mode) &&
+        orig_sym != NULL && orig_sym->is_nonreal_member) {
+      /* Microsoft and g++ allows a friend declaration that refers to
+         an undeclared member of a prototype instantiation.  Check for
+         this case and issue a diagnostic if needed. */
+      check_for_invalid_friend_declaration(parent_type, orig_sym, locator);
+    }  /* if */
   } else {
     a_namespace_ptr  parent_nsp = qualifier_namespace_ptr(*locator);
     if (parent_nsp != NULL) {
@@ -23345,7 +23381,8 @@ and a default-indexed property.
      inherited members for the purpose of this test. */
   sym = class_qualified_id_lookup(&loc, class_type,
                                   IDL_EXCLUDE_BASE_INTERFACE_MEMBERS |
-                                  IDL_DO_NOT_CREATE_PROJ_SYM);
+                                  IDL_DO_NOT_CREATE_PROJ_SYM |
+                                  IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
   if (sym != NULL) {
     /* The class contains an operator[]: A conflict is possible. */
     a_symbol_ptr  default_indexed_properties =

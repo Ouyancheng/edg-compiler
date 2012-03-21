@@ -4424,12 +4424,19 @@ bypass_normal_search:
                             add_to_active_list, insert_sym, &sym,
                             /*can_create_nonreal=*/FALSE);
         if (sym == NULL && (options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS) == 0 &&
-            (options & IDL_IS_DECLARATOR) == 0 &&
-            cssp->any_nonreal_base_classes) {
+            ((options & IDL_IS_DECLARATOR) == 0 ||
+             ((options & IDL_FRIEND_LOOKUP) != 0 &&
+              (gpp_mode || microsoft_mode))) &&
+            (cssp->any_nonreal_base_classes ||
+             ((gpp_mode || microsoft_mode) &&
+              is_prototype_instantiation_lookup))) {
           /* This is a lookup of a name like D::x, where D is a
              prototype instantiation or local class of a prototype
              instantiation.  Create a symbol whose parent is the class
-             in which the lookup is being done. */
+             in which the lookup is being done.  In g++ and Microsoft mode
+             a friend declaration in a prototype instantiation is allowed
+             to refer to a non-existent member of the prototype
+             instantiation. */
           check_assertion(is_prototype_instantiation_lookup);
           sym = create_proxy_or_nonreal_class_member(
                                           class_type,
