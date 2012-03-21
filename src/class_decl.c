@@ -11142,8 +11142,7 @@ constructors and in some GNU C++ modes.
           result = TRUE;
         }  /* if */
       }  /* if */
-    } else if ((generate_move_operations ||
-                (gpp_mode && gnu_version >= 40500)) &&
+    } else if (move_operations_can_be_defaulted() &&
                is_rvalue_reference_type(params->type)) {
       /* Presumably a move constructor.  The parameter type must be X&&.
          (A copy constructor can be defaulted in modes that can implicitly
@@ -11206,8 +11205,7 @@ where such operators can be implicitly generated (and in some GNU C++ modes).
           result = TRUE;
         }  /* if */
       }  /* if */
-    } else if ((generate_move_operations ||
-                (gpp_mode && gnu_version >= 40500)) &&
+    } else if (move_operations_can_be_defaulted() &&
                is_rvalue_reference_type(params->type)) {
       /* Presumably a move assign operator.  Check that the parameter type is
          X&&.  (A move assign operator can be defaulted in modes that can

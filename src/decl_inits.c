@@ -5675,8 +5675,7 @@ initialized.  These are addressed in the course of the processing.
     is_generated_cctor = FALSE;
     is_generated_mctor = FALSE;
     required_qualifiers = TQ_NONE;
-  } else if ((generate_move_operations ||
-              (gpp_mode && gnu_version >= 40500)) &&
+  } else if (move_operations_can_be_defaulted() &&
              routine_is_move_constructor(ctor_rout)) {
     is_generated_cctor = FALSE;
     is_generated_mctor = TRUE;

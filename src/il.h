@@ -1157,6 +1157,13 @@ extern a_boolean is_copy_assignment_operator_type(
 
 extern a_boolean routine_is_move_assignment_operator(a_routine_ptr  rp);
 
+/* 
+Macro that is TRUE if move constructors and move assign operators can be
+defined with "= default;".
+*/
+#define move_operations_can_be_defaulted()                                  \
+  (generate_move_operations || (gpp_mode && gnu_version >= 40500))
+
 extern void switch_il_region(a_memory_region_number region_number);
 
 extern void switch_to_file_scope_region(
