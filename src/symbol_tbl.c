@@ -2264,8 +2264,10 @@ It will be NULL for the most derived class.
     if (sym->is_invisible) {
       /* Ignore invisible symbols. */
     } else if (is_function_or_template_symbol(sym)) {
-      check_assertion(result_sym == NULL);
-      result_sym = sym;
+      /* If the same property or event is declared more than once (an error)
+         there can be more than one symbol.  Use the first one found. */
+      check_assertion_or_expect_error(result_sym == NULL);
+      if (result_sym == NULL) result_sym = sym;
     } else if (sym->kind != (a_symbol_kind)sk_projection ||
                sym->variant.projection.is_using_decl) {
       /* Record the fact that we found a non-function.  Ignore projection

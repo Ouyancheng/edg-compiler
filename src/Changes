@@ -1,5 +1,25 @@
 Version 4.5
 
+3/21/12  [EDGcpfe/12767]
+C++/CLI: internal error on redefined event or property
+
+An internal error could occur (in add_base_classes_to_hide_by_sig_list)
+following a normal error if a property or event was redefined in class.
+The internal error would occur on an attempt to use one of the accessor
+functions.  Now fixed.
+
+  delegate void D();
+  ref struct R {
+    event D^ E { void add(D^ k ) {} void remove(D^ k ) {} }
+    event D^ E { void add(D^ k ) {} void remove(D^ k ) {} }
+  };
+  void f() {}
+  int main() {
+    R r;
+    r.E += gcnew D(f);
+  }
+
+
 3/21/12  [EDGcpfe/10628]
 Diagnostic on comparison of address of local variable to NULL
 
