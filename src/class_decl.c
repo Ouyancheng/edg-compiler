@@ -9089,7 +9089,7 @@ and issues a warning.
   if (locator->is_qualified_name &&
       parent_type->variant.class_struct_union.is_prototype_instantiation) {
     pos_stsy_warning(ec_not_a_member, &locator->source_position,
-                     locator->symbol_header->identifier,
+                     sym->header->identifier,
                      symbol_for(parent_type));
   }  /* if */
 }  /* check_for_invalid_friend_declaration */
