@@ -4034,6 +4034,17 @@ this list).
            DO_IL_LOWERING
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS && !DO_IL_LOWERING */
 
+/*
+When this switch is TRUE, the front end assumes that references will never
+have NULL values.  That's required by the C++ standard, but some
+implementations allow use of null references.  This is the initial value
+of the variable assume_references_cannot_be_null.  The variable gets set
+to TRUE in some modes, e.g., strict mode.
+*/
+#ifndef ASSUME_REFERENCES_CANNOT_BE_NULL
+#define ASSUME_REFERENCES_CANNOT_BE_NULL FALSE
+#endif /* ASSUME_REFERENCES_CANNOT_BE_NULL */
+
 #if DO_IL_LOWERING
 
 /* Switches that control aspects of IL lowering: */

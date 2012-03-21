@@ -1439,6 +1439,8 @@ extern a_boolean op_is_null_pointer_value(an_operand *operand);
 
 extern a_boolean op_is_null_address_lvalue(an_operand *operand);
 
+extern a_boolean pointer_operand_cannot_be_null(an_operand *operand);
+
 extern void add_reference_indirection(an_operand *result);
 
 #if GNU_EXTENSIONS_ALLOWED

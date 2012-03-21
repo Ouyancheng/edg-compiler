@@ -21063,6 +21063,44 @@ that case.
 }  /* scan_rel_operator */
 
 
+static void check_for_pointer_comparison_to_null_with_known_result(
+                                              an_operand            *operand_1,
+                                              an_operand            *operand_2)
+/*
+An equality or inequality comparison is being done on operand_1 and
+operand_2.  If the comparison is between a pointer expression and a
+null pointer, and we can tell that the other operand can never be
+null, issue a diagnostic about a comparison that is always true or
+false.  This routine is called after null pointer constants have been
+converted to null pointer values (i.e., they have been cast to the
+right pointer type).
+*/
+{
+  a_boolean         ops_not_equal = FALSE;
+  a_source_position *pos;
+
+  if (is_pointer_type(operand_1->type) &&
+      op_is_null_pointer_value(operand_2) &&
+      pointer_operand_cannot_be_null(operand_1)) {
+    /* operand_1 and operand_2 cannot be equal. */
+    ops_not_equal = TRUE;
+    pos = &operand_1->position;
+  } else if (is_pointer_type(operand_2->type) &&
+             op_is_null_pointer_value(operand_1) &&
+             pointer_operand_cannot_be_null(operand_2)) {
+    /* operand_1 and operand_2 cannot be equal. */
+    ops_not_equal = TRUE;
+    pos = &operand_2->position;
+  }  /* if */
+  if (ops_not_equal) {
+    if (expr_diagnostic_should_be_issued(es_remark,
+                                         ec_known_comparison_with_null)) {
+      pos_remark(ec_known_comparison_with_null, pos);
+    }  /* if */
+  }  /* if */
+}  /* check_for_pointer_comparison_to_null_with_known_result */
+
+
 static void scan_eq_operator(an_operand             *operand_1,
                              a_rescan_control_block *rcblock,
                              an_operand             *result)
@@ -21253,6 +21291,8 @@ that case.
                          &operator_position);
       }  /* if */
     }  /* if */
+    check_for_pointer_comparison_to_null_with_known_result(operand_1,
+                                                           &operand_2);
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
                         &operator_position, operator_tok_seq_number);
   }  /* if */

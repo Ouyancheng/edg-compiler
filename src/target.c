@@ -498,6 +498,7 @@ This is done before command line processing.
   targ_maximum_intrinsic_alignment = TARG_MAXIMUM_INTRINSIC_ALIGNMENT;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   distinct_template_signatures = DEFAULT_DISTINCT_TEMPLATE_SIGNATURES;
+  assume_references_cannot_be_null = ASSUME_REFERENCES_CANNOT_BE_NULL;
 #if DO_IL_LOWERING
   force_variable_definition_via_zeroing =
                                          FORCE_VARIABLE_DEFINITION_VIA_ZEROING;

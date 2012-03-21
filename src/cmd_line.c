@@ -2100,6 +2100,7 @@ by a command line option.
     }  /* if */
   }  /* if */
   va_arg_returns_lvalue = TRUE;
+  assume_references_cannot_be_null = FALSE;
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
@@ -2390,6 +2391,7 @@ process.
   cpp11_sfinae_enabled = FALSE;
   cpp11_sfinae_ignore_access = FALSE;
   variadic_templates_enabled = FALSE;
+  assume_references_cannot_be_null = FALSE;
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
@@ -3263,6 +3265,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
          command line option, set it now. */
       string_literals_are_const = TRUE;
     }  /* if */
+    assume_references_cannot_be_null = TRUE;
     if (!(option_kind_used[(int)optk_class_name_injection])) {
       /* If class name injection was not explicitly set by a command
          line option, set it now. */
@@ -3707,6 +3710,7 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   no_access_check_on_friend_declarator_ids = (gnu_version < 30400);
   extern_template_allowed = TRUE;
   inline_template_allowed = TRUE;
+  assume_references_cannot_be_null = FALSE;
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
@@ -4065,6 +4069,10 @@ assigns those severities.
      default. */
   (void)set_severity_for_error_number((int)ec_microsoft_ptr_sign_extension,
                                       es_remark, /*make_default=*/TRUE);
+  /* Diagnostics on comparing a known non-null pointer value to NULL
+     should be suppressed unless requested. */
+  (void)set_severity_for_error_number((int)ec_known_comparison_with_null,
+                                      es_none, /*make_default=*/TRUE);
 }  /* set_default_message_severities */
 
 
@@ -4252,6 +4260,11 @@ file.
 #else /* !defined(ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS) */
   comment_undefined_macro_name(ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS);
 #endif /* defined(ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS) */
+#if defined(ASSUME_REFERENCES_CANNOT_BE_NULL)
+  define_numeric_valued_macro(ASSUME_REFERENCES_CANNOT_BE_NULL);
+#else /* !defined(ASSUME_REFERENCES_CANNOT_BE_NULL) */
+  comment_undefined_macro_name(ASSUME_REFERENCES_CANNOT_BE_NULL);
+#endif /* defined(ASSUME_REFERENCES_CANNOT_BE_NULL) */
 #if defined(ASSUME_THIS_CANNOT_BE_NULL_IN_CONDITIONAL_OPERATORS)
   define_numeric_valued_macro(
                           ASSUME_THIS_CANNOT_BE_NULL_IN_CONDITIONAL_OPERATORS);

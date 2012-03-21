@@ -9543,6 +9543,34 @@ pointer value.
 }  /* op_is_null_address_lvalue */
 
 
+a_boolean pointer_operand_cannot_be_null(an_operand *operand)
+/*
+Return TRUE if the indicated operand is an rvalue pointer operand that
+is known not to have a NULL value.  The prediction doesn't have to be
+perfect; the safe value is FALSE.
+*/
+{
+  a_boolean op_cannot_be_null = FALSE;
+
+  if (is_an_rvalue(operand) && is_pointer_type(operand->type)) {
+    if (is_constant_operand(operand)) {
+      a_constant_ptr con = &operand->variant.constant;
+      if (constant_bool_value_known_at_compile_time(con) &&
+          /* "false" means zero, i.e., a null pointer. */
+          !is_false_constant(con)) {
+        op_cannot_be_null = TRUE;
+      }  /* if */
+    } else if (is_expression_operand(operand)) {
+      an_expr_node_ptr expr = operand->variant.expression;
+      if (cannot_be_null(expr)) {
+        op_cannot_be_null = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return op_cannot_be_null;
+}  /* pointer_operand_cannot_be_null */
+
+
 static a_boolean constant_is_pointer_to_array_variable(
                                                     a_constant_ptr con,
                                                     a_type_ptr     *array_type)

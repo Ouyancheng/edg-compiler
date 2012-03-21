@@ -1,5 +1,32 @@
 Version 4.5
 
+3/21/12  [EDGcpfe/10628]
+Diagnostic on comparison of address of local variable to NULL
+
+The front end now checks, on equality and inequality comparisons of
+a pointer operand against NULL, whether the pointer operand cannot be
+NULL (e.g., if it is the address of a local variable).  It issues
+a diagnostic if so.  However, because this diagnostic is "lint-like,"
+and produces a lot of false positives in real code, it is disabled
+by default.  --diag_warning=known_comparison_with_null can be used
+to enable it (or set_default_message_severities can be changed not
+to suppress it).  With the right settings, the following will draw
+a diagnostic:
+
+  bool f1(int n) { return &n != 0; }
+
+The check also covers references, for example:
+
+  bool f2(int &n) { return &n != 0; }
+
+Standard C++ says that a reference can never contain a null address,
+so the comparison above is always true.  However, because many
+compilers (e.g., g++) allow null references, there is now a variable
+controlling that, assume_references_cannot_be_null, which, by default,
+is FALSE except in strict mode.  That means in most modes no
+diagnostic will be issued for the f2 case above.
+
+
 3/21/12  [EDGcpfe/11293]
 GNU and Microsoft compatibility: friend declarations that refer to undefined
 members

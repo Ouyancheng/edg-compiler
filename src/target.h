@@ -697,6 +697,13 @@ EXTERN a_boolean
 			   that are distinct from the names for nontemplate
 			   functions. */
 
+EXTERN a_boolean
+		assume_references_cannot_be_null;
+			/* If TRUE, C++ references are assumed never to have
+			   NULL addresses in them.  That's as required by the
+			   C++ standard, but some implementations allow
+			   that. */
+
 #if DO_IL_LOWERING
 
 EXTERN a_boolean

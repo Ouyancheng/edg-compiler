@@ -16815,6 +16815,107 @@ thereafter get stale if the garbage collector moves the underlying object.
 }  /* is_gc_lvalue_expr */
 
 
+static void examine_expr_for_cannot_be_null(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from the expression traversal routines to process an expression
+as part of determining whether it cannot be NULL.  The expression passed
+in is an addressing expression, meaning either an lvalue that identifies
+an object or an rvalue that is a pointer to an object.  For an lvalue,
+the test means its address cannot be NULL.
+*/
+{
+  a_boolean cannot_be = FALSE;
+
+  /* Note that the safe result is FALSE; TRUE means we have information
+     that guarantees that the expression is not NULL. */
+  if (expr->is_lvalue) {
+    /* The expression passed in is an lvalue for an object. */
+    if (expr->kind == (an_expr_node_kind)enk_variable) {
+      /* The address of a variable is generally non-NULL, but watch out for
+         extern variables affected by linker magic. */
+      cannot_be = variable_has_non_null_address(expr->variant.variable);
+    } else if (expr->kind == (an_expr_node_kind)enk_routine) {
+      /* The address of a routine is generally non-NULL, but watch out for
+         extern routines affected by linker magic. */
+      cannot_be = routine_has_non_null_address(expr->variant.routine.ptr);
+    } else if (is_operation_node(expr)) {
+      an_expr_operator_kind op = expr->variant.operation.kind;
+      an_expr_node_ptr      operand = expr->variant.operation.operands;
+      if (op == (an_expr_operator_kind)eok_dot_field ||
+          op == (an_expr_operator_kind)eok_points_to_field) {
+        /* The address of a field reference can't be NULL in a legal program,
+           but watch out for ((struct s *)0)->i. */
+        if (operand->next->variant.field->offset != 0) {
+          /* The field offset is non-zero, so even if the pointer is zero the
+             address will be non-zero. */
+          cannot_be = TRUE;
+        } else {
+          /* The field offset is zero, so keep going and check the class
+             object address. */
+        }  /* if */
+      } else if (op == (an_expr_operator_kind)eok_ref_indirect &&
+                 assume_references_cannot_be_null) {
+          /* Indirection through a reference can't produce a zero address
+             according to the C++ standard. */
+        cannot_be = TRUE;
+      }  /* if */
+    }  /* if */
+  } else {
+    /* The expression passed in is a pointer to an object. */
+    if (is_constant_node(expr)) {
+      a_constant_ptr con = expr->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_integer) {
+        /* An integer constant (cast to a pointer type in this case) is
+           non-NULL if it's non-zero. */
+        cannot_be = !eqlit_integer_constant(con, (a_host_large_integer)0);
+      } else if (con->kind == (a_constant_repr_kind)ck_address) {
+        /* An address constant cannot be NULL as long as its value is known
+           at compile time. */
+        cannot_be = constant_bool_value_known_at_compile_time(con);
+      }  /* if */
+    } else if (expr->kind == (an_expr_node_kind)enk_variable) {
+      a_variable_ptr var = expr->variant.variable;
+      if (innermost_function_scope != NULL &&
+          innermost_function_scope->variant.routine.this_param_variable ==
+                                                                         var) {
+        /* If the expression is the "this" variable for the current function,
+           it cannot be null. */
+        cannot_be = TRUE;
+      }  /* if */
+    } else if (expr->kind == (an_expr_node_kind)enk_address_of_ellipsis) {
+      /* "&..." cannot be NULL. */
+      cannot_be = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!tblock->terminate && cannot_be) {
+    tblock->result = cannot_be;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_expr_for_cannot_be_null */
+
+
+a_boolean cannot_be_null(an_expr_node_ptr expr)
+/*
+Return TRUE if the value of the indicated expression (an rvalue of
+pointer type) cannot be NULL (0).  This routine is used for an optimization,
+and a diagnostic, so it doesn't have to be perfect.  The safe return value
+is FALSE.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  check_assertion(!expr->is_lvalue &&
+                  is_pointer_type(expr->type));
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = examine_expr_for_cannot_be_null;
+  tblock.follow_addressing_path = TRUE;
+  traverse_expr(expr, &tblock);
+  return tblock.result;
+}  /* cannot_be_null */
+
+
 an_expr_node_ptr var_lvalue_expr(a_variable_ptr var)
 /*
 Build an expression node that represents an lvalue for var and return a
