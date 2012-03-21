@@ -11100,10 +11100,13 @@ a default argument:
 	X()
 	X(X&)
 	X(X const&)
+	X(X&&)
 If the signature is the first in the list above, set *is_default_ctor to TRUE;
-otherwise set it to FALSE.  If the signature is one of the latter two and the
+otherwise set it to FALSE.  If the signature is one of the latter three and the
 parameter has an associated default argument set *has_default_arg to TRUE (and
-return FALSE); otherwise, set *has_default_arg to FALSE.
+return FALSE); otherwise, set *has_default_arg to FALSE.  The last signature
+("move constructor") can only be defaulted in modes that can generate move
+constructors and in some GNU C++ modes.
 */
 {
   a_boolean         result = FALSE;
@@ -11167,6 +11170,9 @@ sym is an assignment operator.  Check if it can be "defaulted".  I.e., if its
 parent class is X, it must have one of the following signatures:
 	X& operator=(X&)
 	X& operator=(X const&)
+	X& operator=(X&&)
+The last signature ("move assignment operator") can be defaulted only in modes
+where such operators can be implicitly generated (and in some GNU C++ modes).
 */
 {
   a_boolean         result = FALSE;
