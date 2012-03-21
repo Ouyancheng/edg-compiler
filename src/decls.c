@@ -8989,10 +8989,15 @@ definition of a member function of a class template.
        arguments on non-member template declarations, but they should only
        be allowed on function templates, and only if the template arguments
        could substitute for the template parameters (although the resulting
-       type need not be compatible in any way). */
+       type need not be compatible in any way).  Microsoft also allows
+       an explicit template argument list on a redeclaration of a function
+       template in a friend declaration in a class template.  This is
+       not considered a redeclaration because the friend could be dependent
+       so we don't try to match the declaration until we do a real
+       instantiation. */
     a_boolean  template_args_okay = FALSE;
     check_assertion(microsoft_mode);
-    if (redeclaration) {
+    if (redeclaration || decl_state->is_template_friend) {
       a_template_arg_ptr  new_arg_list = NULL;
       a_type_ptr          new_type;
       new_type = substitute_template_arguments(

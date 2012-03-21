@@ -1,5 +1,18 @@
 Version 4.5
 
+3/21/12  [EDGcpfe/12746]
+Microsoft compatibility: explicit template arguments in friend template
+
+The Microsoft compiler allows explicit template arguments to be provided
+in a friend function declaration in a class template.  We now allow this
+usage (with a warning).
+
+  template<typename V> void f() {};
+  template <typename U> class A {
+    template<typename V> friend void f<V>();
+  };
+
+
 3/21/12  [EDGcpfe/12767]
 C++/CLI: internal error on redefined event or property
 
