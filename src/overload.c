@@ -2331,6 +2331,28 @@ constructor.
 }  /* arg_copy_can_be_done_via_constructor */
 
 
+static a_boolean are_reference_related(a_type_ptr type_1,
+                                       a_type_ptr type_2)
+/*
+Return TRUE if type_1 and type_2 are "reference-related" according to the
+definition in [dcl.init.ref] of the C++ standard.  That means the unqualified
+versions of type_1 and type_2 are the same type, or the unqualified version
+of type_1 is a base class of the unqualified version of type_2.
+*/
+{
+  a_boolean ref_related = FALSE;
+
+  type_1 = skip_typerefs(type_1);
+  type_2 = skip_typerefs(type_2);
+  if (identical_types(type_1, type_2) ||
+      (is_immediate_class_type(type_1) &&
+       is_immediate_class_type(type_2) &&
+       find_base_class_of(type_2, type_1) != NULL)) {
+    ref_related = TRUE;
+  }  /* if */
+  return ref_related;
+}  /* are_reference_related */
+
 #if DEBUG
 
 static void db_display_overload_level(void)
@@ -2615,10 +2637,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
         ref_type_qualifiers_dropped = TRUE;
         /* If the types are not reference-related, any dropping of
            cv-qualifiers is not relevant as a qualification issue. */
-        if (identical_types_ignoring_qualifiers(arg_type, param_type) ||
-            (is_class_struct_union_type(arg_type) &&
-             is_class_struct_union_type(param_type) &&
-             find_base_class_of(arg_type, param_type) != NULL)) {
+        if (are_reference_related(param_type, arg_type)) {
           ref_qualifiers_dropped_related_type = TRUE;
         }  /* if */
       }  /* if */
@@ -13658,7 +13677,7 @@ in some way, e.g., two pointers that must have the same type.
           other_operand_type = arg_operand_list->operand.type;
         }  /* if */
         if (is_class_struct_union_type(other_operand_type) &&
-            find_base_class_of(other_operand_type, operand_type)) {
+            find_base_class_of(other_operand_type, operand_type) != NULL) {
           /* The other operand has a type that's a derived class of the
              current operand type.  Add the cv-qualifiers of the other
              operand type to the specific type to be considered.
@@ -18678,6 +18697,14 @@ the conversion.
                                                            orig_source_type);
     }  /* if */
   }  /* if */
+  if (is_rvalue_ref && !operand_was_rvalue && direct_binding_possible) {
+    /* Issue a remark in some cases about allowing an rvalue reference
+       to be bound to an lvalue. */
+    if (!binding_rvalue_ref_to_lvalue_allowed(conv_context,
+                                              &source_operand->position)) {
+      unexpected_condition();
+    }  /* if */
+  }  /* if */
   if (is_error_operand(source_operand)) {
     /* Leave an error operand alone. */
   } else if (is_error_type(base_dest_type)) {
@@ -18742,15 +18769,6 @@ the conversion.
                                 /*lvalue_expected=*/!is_rvalue_ref,
                                 /*rvalue_expected=*/is_rvalue_ref);
     }  /* if */
-  } else if (is_rvalue_ref && !is_an_rvalue(source_operand) &&
-             (!direct_binding_possible ||
-              !binding_rvalue_ref_to_lvalue_allowed(
-                                              conv_context,
-                                              &source_operand->position))) {
-    /* An rvalue reference cannot be bound to an lvalue. */
-    expr_pos_error(ec_rvalue_reference_bound_to_lvalue,
-                   &source_operand->position);
-    conv_to_error_operand(source_operand);
   } else if (direct_binding_conversion_possible) {
     /* The initial value can be converted to an lvalue of the right type
        through use of a conversion function returning a reference. */
@@ -18839,7 +18857,8 @@ the conversion.
                             &source_operand->position);
       }  /* if */
     }  /* if */
-  } else if ((direct_binding_possible || dropping_qualifiers) &&
+  } else if ((direct_binding_possible ||
+              (dropping_qualifiers && !is_rvalue_ref)) &&
              is_class_struct_union_type(base_dest_type)) {
     a_boolean operand_was_temp_init;
     if (any_cfront_mode()) {
@@ -18858,7 +18877,9 @@ the conversion.
        better to handle it here rather than later -- if we go on
        to the call of convert_operand_into_temp we would be looking
        at copy constructors, which really isn't appropriate and
-       produces confusing error messages. */
+       produces confusing error messages.  The issues here are
+       with old compatibility modes, so we don't do that for rvalue
+       references. */
     if (!dropping_qualifiers) {
       /* [dcl.init.ref] of the C++98 standard requires that the copy
          constructor be callable whether or not it is actually called.
@@ -18912,7 +18933,7 @@ the conversion.
       }  /* if */
       conv_to_error_operand(source_operand);
     } else if (!binding_to_rvalue_allowed && operand_was_rvalue) {
-      /* Can't bind this reference to an rvalue. */
+      /* Can't bind this (lvalue) reference to an rvalue. */
       an_error_severity err_severity = es_error;
       /* Some cases get only a warning. */
       /* In cfront mode we allow this for a ref to non-const if
@@ -18943,7 +18964,7 @@ the conversion.
         conv_to_error_operand(source_operand);
       }  /* if */
     }  /* if */
-  } else if (direct_binding_possible && is_an_rvalue(source_operand) &&
+  } else if (direct_binding_possible && operand_was_rvalue &&
              is_array_type(base_dest_type)) {
     /* Direct binding of a reference to an rvalue array.  This was made
        valid by core issue 450.  MSVC++ allows this since version 7.0,
@@ -18976,6 +18997,15 @@ the conversion.
                       &source_operand->position,
                       dest_type, orig_source_type);
       }  /* if */
+      conv_to_error_operand(source_operand);
+    } else if (is_rvalue_ref && !operand_was_rvalue &&
+               (are_reference_related(base_dest_type, orig_source_type) ||
+                microsoft_mode)) {
+      /* An rvalue reference cannot be bound to an lvalue.  However, if
+         the types are not reference-related, it's okay to do a conversion
+         from an lvalue into a temp. */
+      expr_pos_error(ec_rvalue_reference_bound_to_lvalue,
+                     &source_operand->position);
       conv_to_error_operand(source_operand);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && is_tracking_reference_type(dest_type) &&

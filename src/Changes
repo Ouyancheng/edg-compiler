@@ -1,5 +1,16 @@
 Version 4.5
 
+3/21/12  [EDGcpfe/12427]
+Binding an rvalue reference to a converted lvalue
+
+The Core Working Group has clarified (Core Issue 1138) that an rvalue
+reference can be bound to an rvalue produced by converting an lvalue
+to another type.  The front end now allows that.
+
+  int i = 1;
+  double &&r = i;
+
+
 3/21/12  [EDGcpfe/12774]
 GNU and Microsoft compatibility: spurious error following nesting depth warning
 
