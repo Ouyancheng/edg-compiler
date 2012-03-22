@@ -2400,26 +2400,27 @@ arg_list, and no source is scanned.  arg_list is freed after it's used.
     /* Note that a special case allows passing have_selector == TRUE and
        NULL for the selector operand when dealing with constructors. */
     constructor_sym = select_overloaded_function(
-                                          constructor_sym,
-                                          /*is_template_id=*/FALSE,
-                                          (a_template_arg_ptr)NULL,
-                                          /*have_selector=*/TRUE,
-                                          (an_operand *)NULL,
-                                          arg_operand_list,
-                                          /*do_arg_dep_lookup=*/FALSE,
-                                          /*use_pure_arg_dep_lookup=*/FALSE,
-                                          /*use_std_for_arg_dep_lookup=*/FALSE,
-                                          /*force_dependent=*/FALSE,
-                                          ec_no_matching_constructor,
-                                          ec_ambiguous_constructor,
-                                          ec_undefined_identifier,
-                                          source_pos,
-                                          (a_token_sequence_number)0,
-                                          (a_boolean *)NULL,
-                                          &unknown_dependent_ctor,
-                                          (a_boolean *)NULL,
-                                          (a_symbol_ptr *)NULL,
-                                          &arg_match_list);
+                                        constructor_sym,
+                                        /*is_template_id=*/FALSE,
+                                        (a_template_arg_ptr)NULL,
+                                        /*have_selector=*/TRUE,
+                                        (an_operand *)NULL,
+                                        arg_operand_list,
+                                        /*effects_direct_initialization=*/TRUE,
+                                        /*do_arg_dep_lookup=*/FALSE,
+                                        /*use_pure_arg_dep_lookup=*/FALSE,
+                                        /*use_std_for_arg_dep_lookup=*/FALSE,
+                                        /*force_dependent=*/FALSE,
+                                        ec_no_matching_constructor,
+                                        ec_ambiguous_constructor,
+                                        ec_undefined_identifier,
+                                        source_pos,
+                                        (a_token_sequence_number)0,
+                                        (a_boolean *)NULL,
+                                        &unknown_dependent_ctor,
+                                        (a_boolean *)NULL,
+                                        (a_symbol_ptr *)NULL,
+                                        &arg_match_list);
   }  /* if */
   if (constructor_sym != NULL) {
     /* No error; we know which constructor is to be called. */
@@ -15077,26 +15078,27 @@ expression, and return the result in *result (or an error indication in
          this call does not adjust the argument types or build the function
          call, since we may yet fold the call into a constructor call. */
       proj_function_symbol = select_overloaded_function(
-                                          operator_new_symbol,
-                                          /*is_template_id=*/FALSE,
-                                          (a_template_arg_ptr)NULL,
-                                          /*have_selector=*/FALSE,
-                                          (an_operand *)NULL,
-                                          arg_operand_list,
-                                          /*do_arg_dep_lookup=*/FALSE,
-                                          /*use_pure_arg_dep_lookup=*/FALSE,
-                                          /*use_std_for_arg_dep_lookup=*/FALSE,
-                                          force_dependent,
-                                          ec_no_matching_new_function,
-                                          ec_ambiguous_overloaded_function,
-                                          ec_undefined_identifier,
-                                          &new_position,
-                                          (a_token_sequence_number)0,
-                                          (a_boolean *)NULL,
-                                          &unknown_dependent_new,
-                                          (a_boolean *)NULL,
-                                          (a_symbol_ptr *)NULL,
-                                          &arg_match_list);
+                                        operator_new_symbol,
+                                        /*is_template_id=*/FALSE,
+                                        (a_template_arg_ptr)NULL,
+                                        /*have_selector=*/FALSE,
+                                        (an_operand *)NULL,
+                                        arg_operand_list,
+                                        /*effects_direct_initialization=*/TRUE,
+                                        /*do_arg_dep_lookup=*/FALSE,
+                                        /*use_pure_arg_dep_lookup=*/FALSE,
+                                        /*use_std_for_arg_dep_lookup=*/FALSE,
+                                        force_dependent,
+                                        ec_no_matching_new_function,
+                                        ec_ambiguous_overloaded_function,
+                                        ec_undefined_identifier,
+                                        &new_position,
+                                        (a_token_sequence_number)0,
+                                        (a_boolean *)NULL,
+                                        &unknown_dependent_new,
+                                        (a_boolean *)NULL,
+                                        (a_symbol_ptr *)NULL,
+                                        &arg_match_list);
       if (proj_function_symbol != NULL) {
         function_symbol = fundamental_symbol_of(proj_function_symbol);
       } else {
@@ -16895,7 +16897,7 @@ called only in C++ mode.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_conv_descr conversion, ctor_arg_conversion;
   a_conv_context_set
-               conv_context = CCO_CAST,
+               conv_context = (CCO_CAST | CCO_DIRECT_INITIALIZATION),
                conv_context_temp = CCO_DEFAULT;
 
   *processed = FALSE;
@@ -34772,6 +34774,7 @@ of this where the source should be considered an rvalue.
                               (a_param_type_ptr)NULL,
                               /*param_type_is_deduced=*/FALSE,
                               /*try_user_conversions=*/TRUE,
+                              /*allow_expl_conv_funcs=*/FALSE,
                               &arg_match);
     result = (arg_match.match_level != aml_none);
   }  /* if */

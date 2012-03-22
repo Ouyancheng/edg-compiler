@@ -1,5 +1,25 @@
 Version 4.5
 
+3/22/12  [EDGcpfe/11904]
+Explicit conversion function allowed on first argument of copy constructor
+in direct-initialization
+
+Core Issue 899 adds a special rule that allows use of explicit conversion
+functions on the first argument of a copy constructor call that is
+effecting a direct-initialization.  The front end now implements that.
+
+  struct A {
+    A();
+  };
+  struct B {
+    explicit operator A();
+  };
+  int main() {
+    B b;
+    A a(b);  // Now accepted in --c++11 mode
+  }
+
+
 3/22/12  [EDGcpfe/12781]
 C++-generating back end, GNU compatibility: g++ abort on generated code with
 qualified typedef name in nested class of class template

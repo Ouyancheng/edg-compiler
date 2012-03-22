@@ -2437,6 +2437,7 @@ void determine_arg_match_level(an_operand           *arg_operand,
                                a_param_type_ptr     ptp,
                                a_boolean            param_type_is_deduced,
                                a_boolean            try_user_conversions,
+                               a_boolean            allow_expl_conv_funcs,
                                an_arg_match_summary *arg_summary)
 /*
 Determine how well an actual argument matches a formal parameter with type
@@ -2451,7 +2452,10 @@ param type entry for the parameter (it's NULL, for example, for
 the "this" parameter match).   param_type_is_deduced is TRUE if
 the parameter type involved template parameters and was deduced.
 User-defined conversions will be attempted only if try_user_conversions
-is TRUE; it must be FALSE if arg_type is non-NULL.
+is TRUE; it must be FALSE if arg_type is non-NULL.  If allow_expl_conv_funcs
+is TRUE, allow explicit conversion functions on the conversion
+(ordinarily they are not allowed because argument-passing is
+copy-initialization).
 */
 {
   an_operand        *orig_arg_operand;
@@ -2486,6 +2490,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
+  if (allow_expl_conv_funcs) conv_context |= CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS;
   param_is_reference = is_any_reference_type(param_type);
   param_is_rvalue_reference = is_rvalue_reference_type(param_type);
   clear_arg_match_summary(arg_summary);
@@ -3289,7 +3294,9 @@ selector is enabled, allow that kind of mismatch here.
   determine_arg_match_level((an_operand *)NULL, arg_type, param_type,
                             (a_param_type_ptr)NULL,
                             /*param_type_is_deduced=*/FALSE,
-                            /*try_user_conversions=*/FALSE, match_summary);
+                            /*try_user_conversions=*/FALSE,
+                            /*allow_expl_conv_funcs=*/FALSE,
+                            match_summary);
   match_summary->is_match_for_this_param = TRUE;
   if (match_summary->match_level == aml_none &&
       allow_nonconst_call_anachronism) {
@@ -3311,6 +3318,7 @@ selector is enabled, allow that kind of mismatch here.
                               (a_param_type_ptr)NULL,
                               /*param_type_is_deduced=*/FALSE,
                               /*try_user_conversions=*/FALSE,
+                              /*allow_expl_conv_funcs=*/FALSE,
                               match_summary);
     match_summary->is_match_for_this_param = TRUE;
     if (match_summary->match_level != aml_none) {
@@ -4149,6 +4157,7 @@ the argument match information for the match, if there is one.
                             param,
                             param_type_is_deduced,
                             allow_udc,
+                            /*allow_expl_conv_funcs=*/FALSE,
                             arg_match);
   can_be_passed_as_param_array = (arg_match->match_level != aml_none &&
                                   arg_match->match_level != aml_error);
@@ -4252,6 +4261,7 @@ the point of call.  conv_context describes the context of the conversion.
   a_boolean                function_template_case = FALSE;
   a_template_arg_ptr       local_template_arg_list = NULL;
   a_boolean                microsoft_explicit_constructor_case = FALSE;
+  a_boolean                allow_expl_conv_funcs = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                param_array_expanded_case = FALSE;
   a_type_ptr               param_array_element_type;
@@ -4350,6 +4360,19 @@ the point of call.  conv_context describes the context of the conversion.
       goto reject_function;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (explicit_conversion_functions_enabled &&
+        (conv_context & CCO_DIRECT_INITIALIZATION) &&
+        arg_operand_list != NULL && /* at least one arg, test for speed */
+        routine->special_kind == (a_special_function_kind)sfk_constructor &&
+        is_copy_constructor(routine, (a_type_ptr)NULL,
+                            (a_type_qualifier_set *)NULL,
+                            /*include_move_ctors=*/TRUE,
+                            /*is_declarative_context=*/FALSE)) {
+      /* Core issue 899 says that the first parameter of a copy constructor,
+         when used to effect direct-initialization, allows conversions by
+         way of explicit conversion functions. */
+      allow_expl_conv_funcs = TRUE;
+    }  /* if */
   } else {
     /* Surrogate function call case.  We have routine_type but not
        proj_function_symbol. */
@@ -4456,6 +4479,11 @@ the point of call.  conv_context describes the context of the conversion.
     for (arg_operand = arg_operand_list;
          arg_operand != NULL;
          arg_operand = arg_operand->next) {
+      /* Explicit conversion functions, if permitted, are allowed only on the
+         first argument. */
+      a_boolean allow_expl_conv_funcs_this_arg =
+                                           (allow_expl_conv_funcs &&
+                                            (arg_operand == arg_operand_list));
 #if DEBUG
       narg++;
       if (debug_level >= 4 || db_flag_is_set("overload")) {
@@ -4590,6 +4618,7 @@ the point of call.  conv_context describes the context of the conversion.
                           param,
                           param_type_is_deduced,
                           /*try_user_conversions=*/allow_udc_on_arguments,
+                          allow_expl_conv_funcs_this_arg,
                           arg_match);
             arg_match->conversion.std.param_array_conversion = TRUE;
           }  /* if */
@@ -4604,6 +4633,7 @@ the point of call.  conv_context describes the context of the conversion.
                                     param_type_is_deduced,
                                     /*try_user_conversions=*/
                                                         allow_udc_on_arguments,
+                                    allow_expl_conv_funcs_this_arg,
                                     arg_match);
         }  /* if */
         if (!first_pass) arg_match->next = saved_arg_match_next;
@@ -5249,6 +5279,7 @@ hide-by-sig lookup.
                                     ptp->type, ptp,
                                     ptp->type_involves_deduced_template_param,
                                     /*try_user_conversions=*/FALSE,
+                                    /*allow_expl_conv_funcs=*/FALSE,
                                     &match);
         } else {
           determine_selector_match_level(class_object->type,
@@ -7662,26 +7693,27 @@ an argument of a call in gpp mode even though the standard says it's not.
                  back end. */
 #endif /* !BACK_END_IS_CP_GEN_BE */
 a_symbol_ptr select_overloaded_function(
-                         a_symbol_ptr             overloaded_function_symbol,
-                         a_boolean                is_template_id,
-                         a_template_arg_ptr       template_arg_list,
-                         a_boolean                have_selector,
-                         an_operand               *bound_function_selector,
-                         an_arg_operand_ptr       arg_operand_list,
-                         a_boolean                do_arg_dep_lookup,
-                         a_boolean                use_pure_arg_dep_lookup,
-                         a_boolean                use_std_for_arg_dep_lookup,
-                         a_boolean                force_dependent,
-                         an_error_code            err_none_applies,
-                         an_error_code            err_ambiguous,
-                         an_error_code            err_undefined_identifier,
-                         a_source_position        *call_position,
-                         a_token_sequence_number  paren_tok_seq_number,
-                         a_boolean                *single_function,
-                         a_boolean                *unknown_dependent_function,
-                         a_boolean                *found_through_adl,
-                         a_symbol_ptr             *surrogate_function_conv_sym,
-                         an_arg_match_summary_ptr *arg_match_list)
+                        a_symbol_ptr             overloaded_function_symbol,
+                        a_boolean                is_template_id,
+                        a_template_arg_ptr       template_arg_list,
+                        a_boolean                have_selector,
+                        an_operand               *bound_function_selector,
+                        an_arg_operand_ptr       arg_operand_list,
+                        a_boolean                effects_direct_initialization,
+                        a_boolean                do_arg_dep_lookup,
+                        a_boolean                use_pure_arg_dep_lookup,
+                        a_boolean                use_std_for_arg_dep_lookup,
+                        a_boolean                force_dependent,
+                        an_error_code            err_none_applies,
+                        an_error_code            err_ambiguous,
+                        an_error_code            err_undefined_identifier,
+                        a_source_position        *call_position,
+                        a_token_sequence_number  paren_tok_seq_number,
+                        a_boolean                *single_function,
+                        a_boolean                *unknown_dependent_function,
+                        a_boolean                *found_through_adl,
+                        a_symbol_ptr             *surrogate_function_conv_sym,
+                        an_arg_match_summary_ptr *arg_match_list)
 /*
 Determine which of the functions under overloaded_function_symbol
 should be called given an argument list arg_operand_list.  The symbol
@@ -7694,20 +7726,21 @@ constructor calls, bound_function_selector can be NULL when
 have_selector is TRUE; we have a selector, but it's not available.
 That's okay for constructors, because they cannot be const- or
 volatile-qualified, and the selector expression is only needed for
-that discrimination.
-bound_function_selector->selector_is_object_pointer is TRUE if the
-selector is an object pointer, FALSE if it is an object.
-do_arg_dep_lookup is TRUE if argument-dependent lookup should be done;
-if it is TRUE, overloaded_function_symbol may be an sk_undefined
-symbol, indicating that nothing was found on a normal id lookup of the
-function name.  When use_pure_arg_dep_lookup is TRUE, only argument-dependent
-lookup is used (and overloaded_function_symbol must be an sk_undefined
-symbol whose symbol header is used to identify the function being looked up).
-When using argument-dependent lookup, use_std_for_arg_dep_lookup
-can be set to TRUE to add the std namespace as an associated namespace
+that discrimination.  bound_function_selector->selector_is_object_pointer
+is TRUE if the selector is an object pointer, FALSE if it is an
+object.  effects_direct_initialization is TRUE if the call effects a
+direct-initialization.  do_arg_dep_lookup is TRUE if
+argument-dependent lookup should be done; if it is TRUE,
+overloaded_function_symbol may be an sk_undefined symbol, indicating
+that nothing was found on a normal id lookup of the function name.
+When use_pure_arg_dep_lookup is TRUE, only argument-dependent lookup
+is used (and overloaded_function_symbol must be an sk_undefined symbol
+whose symbol header is used to identify the function being looked up).
+When using argument-dependent lookup, use_std_for_arg_dep_lookup can
+be set to TRUE to add the std namespace as an associated namespace
 (e.g., for range-based-for).  force_dependent is TRUE if the call
-should be treated as dependent even when argument-dependent
-lookup is not done (that would usually force the call to be treated as
+should be treated as dependent even when argument-dependent lookup
+is not done (that would usually force the call to be treated as
 nondependent).  call_position is the source position of the call.
 paren_tok_seq_number is the token sequence number of the opening
 parenthesis of the argument list, but it's required only when
@@ -7749,6 +7782,7 @@ and return NULL.  This routine is called only in C++ mode.
   a_boolean                dependent_call = FALSE;
   a_boolean                known_to_be_visible = FALSE;
   an_arg_operand_ptr       arg_operand;
+  a_conv_context_set       conv_context = CCO_DEFAULT;
 
   db_enter(4, "select_overloaded_function");
 #if DEBUG
@@ -7759,6 +7793,7 @@ and return NULL.  This routine is called only in C++ mode.
               "Entering select_overloaded_function with ", 4);
   }  /* if */
 #endif /* DEBUG */
+  if (effects_direct_initialization) conv_context |= CCO_DIRECT_INITIALIZATION;
   if (!have_selector) bound_function_selector = NULL;
   /* candidate_functions will contain the list of viable functions. */
   candidate_functions = NULL;
@@ -7950,7 +7985,7 @@ in_instantiation:
                                     /*ignore_templates=*/FALSE,
                                     known_to_be_visible,
                                     /*is_overloaded_operator=*/FALSE,
-                                    CCO_DEFAULT,
+                                    conv_context,
                                     &candidate_functions,
                                     &inaccessible_match,
                                     &matched_except_for_missing_selector,
@@ -8047,7 +8082,7 @@ in_instantiation:
                                       /*ignore_templates=*/FALSE,
                                       /*known_to_be_visible=*/FALSE,
                                       /*is_overloaded_operator=*/FALSE,
-                                      CCO_DEFAULT,
+                                      conv_context,
                                       &candidate_functions,
                                       &inaccessible_match,
                                       &matched_except_for_missing_selector,
@@ -11452,28 +11487,30 @@ in C++ mode.  arg_operand_list is freed by this routine.
     call_position = &orig_function_operand->position;
   }  /* if */
   /* Select the best function out of the overload set. */
-  function_symbol = select_overloaded_function(overloaded_function_symbol,
-                                               is_template_id,
-                                               template_arg_list,
-                                               have_selector,
-                                               bound_function_selector,
-                                               arg_operand_list,
-                                               do_arg_dep_lookup,
-                                               use_pure_arg_dep_lookup,
-                                               use_std_for_arg_dep_lookup,
-                                               /*force_dependent=*/FALSE,
-                                               err_none_applies,
-                                               err_ambiguous,
-                                               err_undefined_identifier,
-                                               call_position,
-                                               paren_tok_seq_number,
-                                               &single_function,
-                                               &unknown_dependent_function,
-                                               found_through_adl,
-                                               try_surrogate_functions ?
-                                                 &surrogate_function_conv_sym :
-                                                 (a_symbol_ptr *)NULL,
-                                               &arg_match_list);
+  function_symbol = select_overloaded_function(
+                                       overloaded_function_symbol,
+                                       is_template_id,
+                                       template_arg_list,
+                                       have_selector,
+                                       bound_function_selector,
+                                       arg_operand_list,
+                                       /*effects_direct_initialization=*/FALSE,
+                                       do_arg_dep_lookup,
+                                       use_pure_arg_dep_lookup,
+                                       use_std_for_arg_dep_lookup,
+                                       /*force_dependent=*/FALSE,
+                                       err_none_applies,
+                                       err_ambiguous,
+                                       err_undefined_identifier,
+                                       call_position,
+                                       paren_tok_seq_number,
+                                       &single_function,
+                                       &unknown_dependent_function,
+                                       found_through_adl,
+                                       try_surrogate_functions ?
+                                         &surrogate_function_conv_sym :
+                                         (a_symbol_ptr *)NULL,
+                                       &arg_match_list);
   *arg_expr_list = NULL;
   if (unknown_dependent_function) {
     /* The routine to be called cannot be determined because one or more
@@ -11832,6 +11869,9 @@ are considered).  conv_context describes the context of the conversion.
         /* The context is direct-initialization, so the use is okay. */
       } else if (boolean_converted_case) {
         /* The conversion is in a context where bool is required. */
+      } else if (conv_context & CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS) {
+        /* We've been told specifically to allow explicit conversion
+           functions. */
       } else {
         goto reject_function;
       }  /* if */
@@ -12163,6 +12203,7 @@ are considered).  conv_context describes the context of the conversion.
                                 ptp->type, ptp,
                                 ptp->type_involves_deduced_template_param,
                                 /*try_user_conversions=*/FALSE,
+                                /*allow_expl_conv_funcs=*/FALSE,
                                 &this_match);
     } else if (source_operand != NULL
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -19633,6 +19674,7 @@ if so.
                             (a_param_type_ptr)NULL,
                             /*param_type_is_deduced=*/FALSE,
                             /*try_user_conversions=*/FALSE,
+                            /*allow_expl_conv_funcs=*/FALSE,
                             &arg_summary);
   compatible = (arg_summary.match_level != aml_none);
   if (compatible) {
@@ -20116,6 +20158,7 @@ by source_is_rvalue.
                             param_type, ptp,
                             /*param_type_is_deduced=*/FALSE,
                             /*try_user_conversions=*/FALSE,
+                            /*allow_expl_conv_funcs=*/FALSE,
                             arg_match);
   if (arg_match->match_level == aml_none) {
     /* This function cannot be used. */

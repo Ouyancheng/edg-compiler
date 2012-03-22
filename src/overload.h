@@ -220,6 +220,14 @@ typedef int a_conv_context_set;
 			/* When CCO_INITIALIZING_VARIABLE is TRUE, this
 			   is also TRUE if the variable being initialized
 			   has static lifetime. */
+#define CCO_DIRECT_INITIALIZATION ((a_conv_context_set)0x400)
+			/* The conversion is a direct-initialization context,
+			   e.g., a parenthesized initializer, new, or
+			   cast. */
+#define CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS ((a_conv_context_set)0x800)
+			/* Explicit conversion functions should be allowed in
+			   this context.  This is in addition to other normal
+			   reasons why they might be allowed. */
 
 /*
 Data structure used by set_up_overload_set_traversal et al. to control the
@@ -711,26 +719,27 @@ extern a_boolean operand_is_dependent(an_operand *operand);
 extern a_boolean arg_operand_list_is_dependent(an_arg_operand *operand_list);
 
 extern a_symbol_ptr select_overloaded_function(
-                         a_symbol_ptr             overloaded_function_symbol,
-                         a_boolean                is_template_id,
-                         a_template_arg_ptr       template_arg_list,
-                         a_boolean                have_selector,
-                         an_operand               *bound_function_selector,
-                         an_arg_operand_ptr       arg_operand_list,
-                         a_boolean                do_arg_dep_lookup,
-                         a_boolean                use_pure_arg_dep_lookup,
-                         a_boolean                use_std_for_arg_dep_lookup,
-                         a_boolean                force_dependent,
-                         an_error_code            err_none_applies,
-                         an_error_code            err_ambiguous,
-                         an_error_code            err_undefined_identifier,
-                         a_source_position        *call_position,
-                         a_token_sequence_number  paren_tok_seq_number,
-                         a_boolean                *single_function,
-                         a_boolean                *unknown_dependent_function,
-                         a_boolean                *found_through_adl,
-                         a_symbol_ptr             *surrogate_function_conv_sym,
-                         an_arg_match_summary_ptr *arg_match_list);
+                        a_symbol_ptr             overloaded_function_symbol,
+                        a_boolean                is_template_id,
+                        a_template_arg_ptr       template_arg_list,
+                        a_boolean                have_selector,
+                        an_operand               *bound_function_selector,
+                        an_arg_operand_ptr       arg_operand_list,
+                        a_boolean                effects_direct_initialization,
+                        a_boolean                do_arg_dep_lookup,
+                        a_boolean                use_pure_arg_dep_lookup,
+                        a_boolean                use_std_for_arg_dep_lookup,
+                        a_boolean                force_dependent,
+                        an_error_code            err_none_applies,
+                        an_error_code            err_ambiguous,
+                        an_error_code            err_undefined_identifier,
+                        a_source_position        *call_position,
+                        a_token_sequence_number  paren_tok_seq_number,
+                        a_boolean                *single_function,
+                        a_boolean                *unknown_dependent_function,
+                        a_boolean                *found_through_adl,
+                        a_symbol_ptr             *surrogate_function_conv_sym,
+                        an_arg_match_summary_ptr *arg_match_list);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean overloaded_function_match_possible(
@@ -973,6 +982,7 @@ extern void determine_arg_match_level(
                                a_param_type_ptr     ptp,
                                a_boolean            param_type_is_deduced,
                                a_boolean            try_user_conversions,
+                               a_boolean            allow_expl_conv_funcs,
                                an_arg_match_summary *arg_summary);
 extern a_boolean direct_reference_binding_possible(
                                  an_operand         *source_operand,
