@@ -15,7 +15,7 @@ to another type.  The front end now allows that.
 GNU and Microsoft compatibility: spurious error following nesting depth warning
 
 In cases where a warning was issued for a nesting depth mismatch on a
-template declaration, a spurious error could following complaining
+template declaration, a spurious error could be issued after complaining
 that a nontype template parameter was incompatible with the previous
 declaration.  Now fixed.
 
