@@ -925,6 +925,9 @@ no error.
        of a member of a nonreal class into another class, e.g., via a
        using-declaration. */
     *did_not_fold = TRUE;
+  } else if (constant_1->kind == (a_constant_repr_kind)ck_template_param) {
+    /* Can't fold a dependent case. */
+    *did_not_fold = TRUE;
   } else {
     an_expr_node_ptr expr = constant_1->expr;
     constant_1->expr = NULL;

@@ -1,5 +1,34 @@
 Version 4.5
 
+3/22/12  [EDGcpfe/12783]
+Abort on folding of dependent cast to base class
+
+In modes that parse template bodies (e.g., strict mode, g++ mode with
+higher version numbers), folding of a cast of a dependent pointer
+constant to a pointer to a base class could abort
+("get_pointer_offset: bad kind").  This happened only in certain cases
+where a base class relationship could be discerned in spite of the
+fact that the addresses involved are dependent, as in the following
+example:
+
+  template <class T> struct A { 
+    int foo(T);
+  }; 
+  template <class T> class B: public A<T> {}; 
+  class C; 
+  template <int I> struct E { 
+    static B<C*> svar;
+    static void bar(C *cp) { 
+      int i = (&svar)->foo(cp);   // Base class cast on "->" aborted
+    } 
+  }; 
+  void g(C *c) { 
+    E<4>::bar(c); 
+  }
+
+Now fixed.
+
+
 3/21/12  [EDGcpfe/12427]
 Binding an rvalue reference to a converted lvalue
 
