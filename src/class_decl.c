@@ -5871,7 +5871,7 @@ class associated with cdsp.
                                          highest_virtual_function_number;
 
 #if ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI
-    /* Traverse the symbol list rather that the IL scope's function list.
+    /* Traverse the symbol list rather than the IL scope's function list.
        Both should reflect declaration order except in the handling of
        overloaded functions.  We do want to handle members of an overload set
        as a group. */
