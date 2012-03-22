@@ -74,6 +74,9 @@ constructor is generated at all in such circumstances.  For example:
   D d;  // Different errors are issued in Microsoft mode, C++11 mode, and
         // other C++ modes.
 
+In C++ mode, a defaulted default constructor is now also implicitly deleted if
+the ordinary generation process would result in an error.
+
 
 3/21/12  [EDGcpfe/12772]
 Microsoft compatibility: Exported generated member functions

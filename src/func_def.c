@@ -2771,12 +2771,13 @@ empty statement block.
 void force_definition_of_compiler_generated_routine(a_routine_ptr  rp)
 /*
 If rp points to a compiler-generated routine that is being referenced and
-whose definition has not yet been generated, force the definition now.
+whose definition has not yet been generated (if it's marked as "deleted", it
+is considered already defined), force the definition now.
 */
 {
   a_special_function_kind  skind = rp->special_kind;
 
-  if (rp->compiler_generated || rp->is_defaulted) {
+  if ((rp->compiler_generated || rp->is_defaulted) && !rp->is_deleted) {
     if (!routine_has_been_defined(rp)) {
       /* Only force a definition for constructors, destructors, and
          operator= functions.  In particular, do not try to define operator

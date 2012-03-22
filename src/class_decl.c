@@ -2910,13 +2910,14 @@ translation unit.
 static void define_defaulted_special_member_functions(a_type_ptr  class_type)
 /*
 Generate the definitions of any special members defined with "= default" in
-the definition of the given class type.
+the definition of the given class type (unless the special member is implicitly
+deleted).
 */
 {
   a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
 
   for (; rp != NULL; rp = rp->next) {
-    if (rp->is_defaulted) {
+    if (rp->is_defaulted && !rp->is_deleted) {
       force_definition_of_compiler_generated_routine(rp);
     }  /* if */
   }  /* for */
@@ -16844,6 +16845,7 @@ deleted.
              functions. */
           !field_is_property_or_event(sym->variant.field.ptr)) {
         a_type_ptr  tp = sym->variant.field.ptr->type;
+        a_boolean   const_member_okay = FALSE;
         if (is_reference_type(tp)) {
           /* References cannot be default-initialized. */
           gsfd->suppress_default_ctor = TRUE;
@@ -16853,6 +16855,7 @@ deleted.
           tp = underlying_array_element_type(tp);
         }  /* if */
         if (is_class_struct_union_type(tp)) {
+          /* Check that tp can be default-initialized. */
           a_boolean  error_detected, err;
           (void)select_default_constructor_full(tp, &pos_curr_token, tp,
                                                 /*evaluated=*/TRUE,
@@ -16861,7 +16864,16 @@ deleted.
           if (error_detected) {
             gsfd->suppress_default_ctor = TRUE;
             break;
+          } else if (symbol_supplement_for_class(tp)
+                                     ->has_user_provided_default_constructor) {
+            const_member_okay = TRUE;
           }  /* if */
+        }  /* if */
+        if (!const_member_okay && is_const_qualified_type(tp)) {
+          /* Default initialization of const members is only allowed if a
+             user-provided default constructor is available. */
+          gsfd->suppress_default_ctor = TRUE;
+          break;
         }  /* if */
       }  /* if */
     }  /* for */
@@ -16905,6 +16917,13 @@ suppressed, record that fact in *gsfd.
        been processed.  If not, make the necessary adjustments. */
     a_symbol_ptr  default_ctor = cssp->trivial_default_constructor;
     check_assertion(default_ctor->variant.routine.ptr->is_defaulted);
+    /* A defaulted constructor may implicitly be deleted, which also means it
+       isn't trivial. */
+    check_suppressed_default_ctor(class_type, gsfd);
+    if (cpp11_mode && !microsoft_mode && gsfd->suppress_default_ctor) {
+      default_ctor->variant.routine.ptr->is_deleted = TRUE;
+      class_state->default_ctor_is_nontrivial = TRUE;
+    }  /* if */
     if (class_state->default_ctor_is_nontrivial) {
       cssp->trivial_default_constructor = NULL;
       cssp->has_nontrivial_default_constructor = TRUE;
