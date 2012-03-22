@@ -20213,6 +20213,7 @@ do access checking on the copy constructor.
                         class_type->variant.class_struct_union
                                            .copy_ctor_decl_suppressed,
                        "select_overloaded_copy_constructor: NULL constructor");
+    cctor_sym = NULL;
   } else {
     overloaded_sym = cssp->constructor;
     /* Examine each constructor for this class to find a copy constructor.

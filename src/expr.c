@@ -15316,7 +15316,9 @@ expression, and return the result in *result (or an error indication in
           pos_ty_error(ec_invalid_gcnew_type, &type_position, new_type);
         }  /* if */
         err = TRUE;
-      } else if (microsoft_mode) {
+      } else if (microsoft_mode &&
+                 class_type->variant.class_struct_union
+                                    .copy_ctor_decl_suppressed) {
         /* In Microsoft mode default constructors can be suppressed. */
         if (expr_error_should_be_issued()) {
           pos_ty_error(ec_no_default_constructor, &type_position, new_type);
