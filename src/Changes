@@ -49,10 +49,9 @@ constructor is generated at all in such circumstances.  For example:
 3/21/12  [EDGcpfe/12772]
 Microsoft compatibility: Exported generated member functions
 
-In Microsoft mode with configurations that have INSTANTIATE_EXTERN_INLINE set
-to TRUE, the front end generally forces an out-of-line copy of an inline
-function that is "dllexported".  Previously, however, it did not do so for
-generated members.  Now, it does.  For example:
+In Microsoft mode, the front end generally forces an out-of-line copy of an
+inline function that is "dllexported".  Previously, however, it did not do so
+for generated members.  Now, it does.  For example:
 
   struct __declspec(dllexport) B { ~B(); };
   struct __declspec(dllexport) D: B {};

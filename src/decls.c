@@ -4090,7 +4090,7 @@ be issued at the given position.
          below.) */
       routine->need_out_of_line_copy = TRUE;
     }  /* if */
-    if (new_dll_export && !routine->compiler_generated &&
+    if (new_dll_export &&
         !routine->is_prototype_instantiation &&
         ((routine->is_template_function && !routine->is_specialized)
 #if INSTANTIATE_EXTERN_INLINE
@@ -4099,8 +4099,7 @@ be issued at the given position.
                      )) {
       /* dllexport forces the instantiation of nonexplicit specializations.
          If inline functions are "instantiated", this also applies to inline
-         functions.  (However, compiler-generated member functions are not so
-         treated.) */
+         functions. */
       set_instance_required(symbol_for(routine), TRUE, SIR_DEFER_INLINE);
     }  /* if */
   }  /* if */

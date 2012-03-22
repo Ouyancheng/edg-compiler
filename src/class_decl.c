@@ -23734,6 +23734,33 @@ Microsoft mode, additional checking is needed.)
   }  /* if */
 }  /* wrapup_nothrow_assign_and_copy_flags */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void force_definition_of_generated_exported_members(
+                                                        a_type_ptr  class_type)
+/*
+The given class type was defined with __declspec(dllexport): Its generated
+special members therefore must be defined, so an out-of-line copy can be
+created.
+*/
+{
+  a_scope_ptr    scope = class_type_supp(class_type)->assoc_scope;
+  a_routine_ptr  rp = scope->routines;
+
+  for (; rp != NULL; rp = rp->next) {
+    if (rp->compiler_generated &&
+        (special_kind_is(rp, sfk_constructor) ||
+         special_kind_is(rp, sfk_destructor) ||
+         (special_kind_is(rp, sfk_operator &&
+          rp->variant.opname_kind == (an_opname_kind)onk_assign)))) {
+      check_assertion((rp->decl_modifiers & DM_DLLEXPORT) != 0 &&
+                      rp->need_out_of_line_copy);
+      force_definition_of_compiler_generated_routine(rp);
+    }  /* if */
+  }  /* for */
+}  /* force_definition_of_generated_exported_members */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void complete_class_definition(a_type_ptr         class_type,
                                       a_scope_depth      effective_decl_level,
@@ -23745,10 +23772,10 @@ the layout and synthesizing special members (C++).  *class_state holds some
 bits of information that were acquired while parsing.
 */
 {
-  a_symbol_ptr  tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  a_source_position              saved_error_position;
+  a_symbol_ptr                   tag_sym = symbol_for(class_type);
   a_class_symbol_supplement_ptr  cssp
-                        = tag_sym->variant.class_struct_union.extra_info;
-  a_source_position saved_error_position;
+                              = tag_sym->variant.class_struct_union.extra_info;
 
   if (class_state->last_field_is_incomplete_array) {
     /* The last field that was recorded was an incomplete array.  This is
@@ -23917,6 +23944,9 @@ bits of information that were acquired while parsing.
         type_error(ec_missing_implements_list, class_type);
       }  /* if */
       check_names_reserved_by_cli_operators(class_type);
+    }  /* if */
+    if (class_type_supp(class_type)->decl_modifiers & DM_DLLEXPORT) {
+      force_definition_of_generated_exported_members(class_type);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Check for missing or erroneous uses of the "hiding" attribute and
