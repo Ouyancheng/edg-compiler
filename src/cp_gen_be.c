@@ -3153,6 +3153,35 @@ is called.
   a_boolean invisible;
 
   invisible = typedef_is_unusable(type);
+#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+  if (!invisible && gcc_is_generated_code_target &&
+      gnu_target_version_number >= 40200 &&
+      gnu_target_version_number < 40400 &&
+      type->source_corresp.is_class_member &&
+      parent_class_of(type)->
+                       variant.class_struct_union.is_prototype_instantiation &&
+      curr_name_context->has_dependent_base) {
+    /* g++ versions 4.2 and 4.3 had a bug that caused errors when a member
+       of a nested class of a class template is declared using a typedef
+       defined in the containing class template and that member is then
+       defined outside the class template, if the typedef is named in the
+       declaration using a qualified name.  gen_name will use a qualified
+       name for the typedef if the nested class has a dependent base.  We
+       need to check if this is such a typedef and, if so, treat it as
+       invisible so the underlying type will be used instead of the
+       qualified typedef name. */
+    a_type_ptr         parent = parent_class_of(type);
+    a_name_context_ptr ncp;
+    a_boolean          in_nested_class = FALSE;
+    for (ncp = curr_name_context; ncp != NULL && ncp->class_type != parent;
+         ncp = ncp->next) {
+      if (ncp->class_type != NULL) {
+        in_nested_class = TRUE;
+      }  /* if */
+    }  /* for */
+    invisible = (ncp != NULL && in_nested_class);
+  }  /* if */
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
   if (in_template_argument_list && !invisible
 #if GCC_BUILTIN_VARARGS
       && !type->is_builtin_va_list

@@ -1,5 +1,33 @@
 Version 4.5
 
+3/22/12  [EDGcpfe/12781]
+C++-generating back end, GNU compatibility: g++ abort on generated code with
+qualified typedef name in nested class of class template
+
+Versions 4.2 and 4.3 of g++ had a bug that resulted in a segfault when the
+source code declares a member of a nested class of a class template, the
+declaration of the member uses a typedef defined in the containing class
+template, the typedef is named in the declaration using a qualified name,
+and the member is defined outside the class template.  In configurations
+with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the C++-generating back
+end put out the name of such a typedef using a qualified name if the nested
+class has a dependent base class, causing the generated code to trigger the
+g++ bug.  This has now been addressed by using the underlying type of the
+typedef instead of the qualified name of the typedef when
+gcc_is_generated_code_target is TRUE and gnu_target_version_number
+designates one of the affected g++ versions.  For example:
+
+  template<typename T = int> struct A {
+    typedef int *IP;
+    struct B { };
+    struct C : B {
+      C(IP);   // Previously generated as "C(typename ::A< T> ::IP)", now
+               // as "C(int *)"
+    };
+  };
+  template <typename T> A<T>::C::C(IP) { }
+
+
 3/22/12  [EDGcpfe/12783]
 Abort on folding of dependent cast to base class
 
