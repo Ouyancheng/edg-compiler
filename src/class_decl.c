@@ -23751,8 +23751,8 @@ created.
     if (rp->compiler_generated &&
         (special_kind_is(rp, sfk_constructor) ||
          special_kind_is(rp, sfk_destructor) ||
-         (special_kind_is(rp, sfk_operator &&
-          rp->variant.opname_kind == (an_opname_kind)onk_assign)))) {
+         (special_kind_is(rp, sfk_operator) &&
+          rp->variant.opname_kind == (an_opname_kind)onk_assign))) {
       check_assertion((rp->decl_modifiers & DM_DLLEXPORT) != 0 &&
                       rp->need_out_of_line_copy);
       force_definition_of_compiler_generated_routine(rp);
