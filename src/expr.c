@@ -15319,8 +15319,8 @@ expression, and return the result in *result (or an error indication in
         }  /* if */
         err = TRUE;
       } else if (microsoft_mode &&
-                 new_type->variant.class_struct_union
-                                  .copy_ctor_decl_suppressed) {
+                 skip_typerefs(new_type)->variant.class_struct_union
+                                              .default_ctor_decl_suppressed) {
         /* In Microsoft mode default constructors can be suppressed. */
         if (expr_error_should_be_issued()) {
           pos_ty_error(ec_no_default_constructor, &type_position, new_type);

@@ -2067,6 +2067,9 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.copy_ctor_decl_suppressed) {
         disp_boolean("copy_ctor_decl_suppressed", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.default_ctor_decl_suppressed) {
+        disp_boolean("default_ctor_decl_suppressed", TRUE);
+      }  /* if */
       if (ptr->variant.class_struct_union.dtor_decl_suppressed) {
         disp_boolean("dtor_decl_suppressed", TRUE);
       }  /* if */

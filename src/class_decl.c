@@ -16969,6 +16969,8 @@ suppressed, record that fact in *gsfd.
       if (microsoft_mode && gsfd->suppress_default_ctor) {
         /* Microsoft compilers do not generate a default constructor if
            generating it would trigger an error. */
+          class_type
+              ->variant.class_struct_union.default_ctor_decl_suppressed = TRUE;
       } else {
         /* A default constructor needs to be generated. */
         generate_default_constructor(class_state, gsfd->suppress_default_ctor);

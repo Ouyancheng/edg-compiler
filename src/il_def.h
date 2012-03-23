@@ -8079,6 +8079,13 @@ typedef struct a_type {
 			   suppression is nonstandard and occurs only in
 			   Microsoft mode.) */
       a_bit_field
+		default_ctor_decl_suppressed:1;
+			/* TRUE if the class would have had an implicitly-
+			   declared default constructor but its declaration
+			   was suppressed because its generation would have
+			   triggered an error.  (Such suppression is
+			   nonstandard and occurs only in Microsoft mode.) */
+      a_bit_field
 		dtor_decl_suppressed:1;
 			/* TRUE if the class would have had an implicitly-
 			   declared destructor but its declaration was
