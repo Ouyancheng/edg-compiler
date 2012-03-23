@@ -7006,6 +7006,9 @@ constant will be set as well.
           result = TRUE;
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        case bok_is_final:
+          result = FALSE;
+          break;
         default:
           unexpected_condition();
       }  /* switch */
@@ -7217,6 +7220,9 @@ constant will be set as well.
         result = cli_class_type_kind_is(type, cctk_value);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case bok_is_final:
+        result = type->variant.class_struct_union.final;
+        break;
       default:
         unexpected_condition();
     }  /* if */
@@ -7356,6 +7362,7 @@ constant is set as well.
       case bok_is_sealed:
       case bok_is_simple_value_class:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case bok_is_final:
         /* Various type trait helpers that require their single argument to be
            a complete class type. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,

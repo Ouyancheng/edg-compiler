@@ -1,5 +1,25 @@
 Version 4.5
 
+3/23/12  [EDGcpfe/12773]
+__is_final
+
+When type traits helpers are enabled (e.g., in C++11 mode) the front end now
+recognizes the additional helper __is_final: It takes a type and produces the
+value 1 if the type is a "final" class type; otherwise it produces 0 (or an
+error if the argument type is an incomplete class type).  For example:
+
+  class C {};
+  class F final: C {};
+  class [[final]] A: C {};
+
+  static_assert(!__is_final(int), "int is not final");  // Okay.
+  static_assert(!__is_final(C), "C is not final");      // Okay.
+  static_assert(__is_final(F), "F is final");           // Okay.
+  static_assert(__is_final(A), "A is final");           // Okay.
+
+  int i = __is_final(struct S);   // Error: S is incomplete.
+
+
 3/23/12  [EDGcpfe/12785]
 Microsoft compatibility: invalid use of template keyword with --parse_templates
 

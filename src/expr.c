@@ -10774,6 +10774,7 @@ indication in *rcblock).
                                         break;
       case tok_is_value_class:          bok = bok_is_value_class; break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case tok_is_final:                bok = bok_is_final; break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -23691,6 +23692,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_has_nothrow_move_assign:
     case tok_is_constructible:
     case tok_is_nothrow_constructible:
+    case tok_is_final:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_has_finalizer:
     case tok_is_delegate:
@@ -27363,6 +27365,7 @@ handle_identifier:
     case tok_is_simple_value_class:
     case tok_is_value_class:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_final:
       /* Various single-type unary traits helpers. */
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);

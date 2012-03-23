@@ -560,6 +560,7 @@ modes.
   enter_keyword((a_token_kind)tok_is_nothrow_constructible,
                 "__is_nothrow_constructible");
   enter_keyword((a_token_kind)tok_underlying_type, "__underlying_type");
+  enter_keyword((a_token_kind)tok_is_final, "__is_final");
 #if MICROSOFT_EXTENSIONS_ALLOWED
   enter_keyword((a_token_kind)tok_has_finalizer, "__has_finalizer");
   enter_keyword((a_token_kind)tok_is_delegate, "__is_delegate");

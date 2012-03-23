@@ -1183,6 +1183,7 @@ typedef enum /*a_token_kind*/ {
 #endif /* INT128_EXTENSIONS_ALLOWED */
   tok_override,
   tok_final,
+  tok_is_final,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1322,7 +1323,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if INT128_EXTENSIONS_ALLOWED
    "__int128",
 #endif /* INT128_EXTENSIONS_ALLOWED */
-   "override", "final", 
+   "override", "final", "__is_final",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -13447,6 +13448,7 @@ typedef enum a_builtin_operation_kind_tag {
   bok_is_simple_value_class,
 			/* __is_simple_value_class.  One operand: A type. */
   bok_is_value_class,	/* __is_value_class.  One operand: A type. */
+  bok_is_final,		/* __is_final.  One operand: A type. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -17048,6 +17050,7 @@ EXTERN char     *builtin_operation_names[(int)bok_last+1]
   "__is_sealed",
   "__is_simple_value_class",
   "__is_value_class",
+  "__is_final",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
