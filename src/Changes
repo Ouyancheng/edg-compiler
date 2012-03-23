@@ -1,5 +1,37 @@
 Version 4.5
 
+3/23/12  [EDGcpfe/12785]
+Microsoft compatibility: invalid use of template keyword with --parse_templates
+
+The Microsoft compiler allows invalid uses of the template keyword as used
+for syntactic disambiguation.  We allowed these uses in our normal Microsoft
+mode, but issued errors on template definitions when nonclass templates are
+being parsed.  Note that it is not possible to compile arbitrary code
+written for the Microsoft compiler when using --parse_templates, so it is
+still the case that not all invalid uses of the template keyword are accepted.
+
+We accept a call of a dependent function template without the use of the
+"template" keyword if a normal lookup in the scope of the reference finds a
+function template or an overload set containing a function template (even
+though that function template will not end up being the one that is
+actually called).  This is case #1 in the example below.  We also accept a
+qualified name in which the template keyword is followed by an identifier
+that does not have a template argument list.  This is case #2 in the
+example below.
+
+  template <typename T> struct A {
+    template <typename U> void f(U);
+  };
+  template<typename T> struct B {
+    A<T> a;
+    template <typename U> void f(U);
+    void g(T t) {
+      a.f<T>(t);  // #1
+      a.A<T>::template f(t);  // #2
+    }
+  };
+
+
 3/22/12  [EDGcpfe/11904]
 Explicit conversion function allowed on first argument of copy constructor
 in direct-initialization

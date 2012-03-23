@@ -15327,7 +15327,7 @@ a field selection.
      will be non-NULL if normal_sym is. */
   check_assertion((normal_sym == NULL) == (normal_fund_sym == NULL));
   if (normal_sym != NULL && class_sym != NULL && might_be_template) {
-    a_boolean	gpp_mode_case = FALSE;
+    a_boolean	gpp_microsoft_mode_case = FALSE;
     if (is_template_symbol(class_fund_sym)) {
       /* When the identifier is followed by a "<", and the name is found
          as a template in the class, ignore the other symbol unless it is a
@@ -15344,22 +15344,24 @@ a field selection.
     } else if (class_fund_sym->is_nonreal_member &&
                !is_template_symbol(class_fund_sym) &&
                (is_class_or_injected_template_symbol(normal_fund_sym) ||
-                (gpp_mode_case =
-                 (gpp_mode &&
+                (gpp_microsoft_mode_case =
+                 ((gpp_mode || microsoft_mode) &&
                   symbol_is_or_contains_template(
                                           normal_fund_sym))))) { /*lint !e820*/
       /* The class symbol is a nonreal nontemplate and the normal symbol
-         is a class template.  Use the normal symbol.  In g++ mode, a function
-         template or overload set containing a function template causes
-         the template symbol to be returned (except in dependent cases (see
-         below)). */
-      if (gpp_mode_case && is_template_dependent_context() &&
+         is a class template.  Use the normal symbol.  In g++ and Microsoft
+         mode, a function template or overload set containing a function
+         template causes the template symbol to be returned (except in
+         dependent cases (see below)). */
+      if (gpp_microsoft_mode_case && is_template_dependent_context() &&
           is_nontype_template_param_symbol(class_fund_sym)) {
-        /* In g++ mode, a reference like "t->f<1>()" is accepted, but in
-           order to be represented properly in the IL we need to return a
-           template symbol instead of a constant.  Redo the lookup in such
-           a way as to create a nonreal template symbol.  Clear the normal_sym
-           so that the newly created template will be used. */
+        /* In g++ and Microsoft mode, a reference like "t->f<1>()" is
+           accepted, but in order to be represented properly in the IL we
+           need to return a template symbol instead of a constant.  Redo
+           the lookup in such a way as to create a nonreal template symbol.
+           Clear the normal_sym so that the newly created template will be
+           used.  Note that this only occurs in Microsoft mode if parsing
+           of nonclass templates has been enabled. */
         clear_specific_symbol(locator_for_curr_id);
         check_assertion(field_sel_type != NULL);
         class_sym = class_qualified_id_lookup(&locator_for_curr_id,
@@ -16462,16 +16464,18 @@ selection operator, in which case it points to the type of the left operand.
         (void)get_token();
         if (curr_token == tok_template) {
           is_template = TRUE;
-          if (gpp_mode && gnu_version >= 30400 &&
+          if (((gpp_mode && gnu_version >= 30400) || microsoft_mode) &&
               (options & GID_IS_UNKNOWN_TEMPLATE_ARG) == 0) {
-            /* g++ allows usage like "p->A::template f()", where the name (at
-               least during the prototype instantiation) is not a template.
-               Ignore the template keyword in this case.  An exception is made
-               when the caller specifies the GID_CLASS_TEMPLATE_REQUIRED
-               option.  This usage is not permitted in dependent template
-               argument lists (indicated in this case by the unknown template
-               arg flag), so suppress the special processing in such
-               contexts. */
+            /* g++ and Microsoft allow usage like "p->A::template f()",
+               where the name (at least during the prototype instantiation)
+               is not a template.  Ignore the template keyword in this case.
+               An exception is made when the caller specifies the
+               GID_CLASS_TEMPLATE_REQUIRED option.  This usage is not
+               permitted in dependent template argument lists (indicated in
+               this case by the unknown template arg flag), so suppress the
+               special processing in such contexts.  Note that this only
+               occurs in Microsoft mode if parsing of nonclass templates
+               has been enabled.*/
             a_token_kind	second_token;
             (void)next_two_tokens(tok_identifier, &second_token);
             if (second_token != tok_lt &&
