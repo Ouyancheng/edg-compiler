@@ -1,5 +1,18 @@
 Version 4.5
 
+3/24/12  [EDGcpfe/12789]
+Microsoft compatibility: Internal error comparing nonreal instances
+
+An internal error could occur (in check_new_class_instantiation) when
+comparing dependent template argument lists when microsoft_version <= 1100
+and EXPENSIVE_CHECKING is TRUE.  Now fixed.  This problem was introduced
+by a change made in version 4.2.
+
+  template <class T> struct A {};
+  template <class T> struct B { A<T> a;};
+  template <class T> struct C { A<T> a;};
+
+
 3/23/12  [EDGcpfe/12773]
 __is_final
 

@@ -5641,7 +5641,11 @@ the same constant.
       } else {
         a_type_ptr	tp1 = skip_typerefs(type1);
         a_type_ptr	tp2 = skip_typerefs(type2);
-        if (ignore_qualifiers && identical_types(tp1, tp2)) {
+        if (ignore_qualifiers &&
+                 f_identical_types(tp1, tp2,
+                                   itf_options |
+                                   ITF_SEEK_CORRESP |
+                                   ITF_EXACT_NESTING_DEPTHS_REQUIRED)) {
           /* In Microsoft bugs mode top level qualifiers are ignored when
              comparing two argument lists. */
           /* Okay. */
