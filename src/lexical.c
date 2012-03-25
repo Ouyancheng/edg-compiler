@@ -16465,7 +16465,8 @@ selection operator, in which case it points to the type of the left operand.
         if (curr_token == tok_template) {
           is_template = TRUE;
           if (((gpp_mode && gnu_version >= 30400) || microsoft_mode) &&
-              (options & GID_IS_UNKNOWN_TEMPLATE_ARG) == 0) {
+              (options & GID_IS_UNKNOWN_TEMPLATE_ARG) == 0 &&
+              is_template_dependent_context()) {
             /* g++ and Microsoft allow usage like "p->A::template f()",
                where the name (at least during the prototype instantiation)
                is not a template.  Ignore the template keyword in this case.
