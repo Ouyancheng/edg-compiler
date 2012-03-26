@@ -2680,6 +2680,9 @@ Display the indicated variable.
   if (ptr->has_parenthesized_initializer) {
     disp_boolean("has_parenthesized_initializer", TRUE);
   }  /* if */
+  if (ptr->has_direct_braced_initializer) {
+    disp_boolean("has_direct_braced_initializer", TRUE);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   if (ptr->has_flexible_array_initializer) {
     disp_boolean("has_flexible_array_initializer", TRUE);

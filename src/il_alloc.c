@@ -2232,6 +2232,7 @@ Clear the fields of the given variable to default values.
 #endif /* DO_IL_LOWERING */
   vp->is_compound_literal         = FALSE;
   vp->has_parenthesized_initializer = FALSE;
+  vp->has_direct_braced_initializer = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   vp->has_flexible_array_initializer = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */

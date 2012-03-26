@@ -2640,6 +2640,7 @@ handling).
   deleted_functions_enabled = value;
   trailing_return_types_enabled = value;
   this_in_trailing_return_types_enabled = value;
+  list_init_enabled = value;
   std_attributes_enabled = value;
   alias_declarations_enabled = value;
   if (!option_kind_used[(int)optk_variadic_templates]) {
@@ -9622,9 +9623,10 @@ variables declared in cmd_line.h.
   decls_using_types_without_linkage_allowed = FALSE;
   trailing_return_types_enabled = FALSE;
   this_in_trailing_return_types_enabled = FALSE;
-  std_attributes_enabled = FALSE;
+  list_init_enabled = FALSE;
   alias_declarations_enabled = FALSE;
   variadic_templates_enabled = FALSE;
+  std_attributes_enabled = FALSE;
   gnu_attributes_enabled = FALSE;
   ms_declspec_attributes_enabled = FALSE;
   defaulted_special_members_enabled = FALSE;

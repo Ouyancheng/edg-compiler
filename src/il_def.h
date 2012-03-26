@@ -8859,6 +8859,11 @@ typedef struct a_variable {
 			   parenthesized initializer; FALSE indicates an
 			   "="-form initializer, an implicit initializer,
 			   or no initializer at all. */
+  a_bit_field	has_direct_braced_initializer:1;
+			/* TRUE if this variable is initialized with a braced
+			   initializer immediately following the declarator
+			   (i.e., something like "int x{1};" but not
+			   "int x = {1};"). */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   a_bit_field	has_flexible_array_initializer:1;
 			/* TRUE if the variable has a type with a flexible

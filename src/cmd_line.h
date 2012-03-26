@@ -1061,6 +1061,11 @@ EXTERN a_boolean
 			   return types of member functions. */
 
 EXTERN a_boolean
+		list_init_enabled;
+			/* When TRUE, C++11-style list initialization is
+			   accepted. */
+
+EXTERN a_boolean
 		alias_declarations_enabled;
 			/* TRUE if C++11 alias-declarations and alias templates
 			   are allowed. */
