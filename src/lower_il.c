@@ -8762,12 +8762,6 @@ Do IL lowering of the indicated type and everything under it.
                to have them there to determine the "this" parameter type
                whether or not the routine type has been lowered. */
           }  /* if */
-#if MAINTAIN_NEEDED_FLAGS
-          if (type_changed) {
-            /* Re-mark the type as we've changed its subtree. */
-            remark_as_needed((char *)type, iek_type);
-          }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
           for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
             /* Only process each param type entry if it has not been
                previously visited. */
@@ -8778,6 +8772,9 @@ Do IL lowering of the indicated type and everything under it.
                  change its type to pointer-to-class. */
               if (ptp->passed_via_copy_constructor) {
                 add_indirection_to_cctor_param_type(ptp);
+#if MAINTAIN_NEEDED_FLAGS
+                type_changed = TRUE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
               } /* if */
               /* Clear the default_arg_expr field to make the IL more
                  like C IL.  Note this throws away the expression. */
@@ -8793,6 +8790,12 @@ Do IL lowering of the indicated type and everything under it.
               ptp->default_arg_expr = NULL;
             }  /* if */
           }  /* for */
+#if MAINTAIN_NEEDED_FLAGS
+          if (type_changed) {
+            /* Re-mark the type as we've changed its subtree. */
+            remark_as_needed((char *)type, iek_type);
+          }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
           if (rtsp->prototype_scope != NULL) {
             lower_scope(rtsp->prototype_scope);
           }  /* if */

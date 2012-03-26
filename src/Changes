@@ -1,5 +1,20 @@
 Version 4.5
 
+3/26/12  [EDGcpfe/12784]
+Incorrect setting of "needed" flag with some lowered function pointer types
+
+If a lowered routine has a function pointer as a parameter and that function
+type has a parameter that had been modified by lowering to return a
+pointer instead, the "needed" flag on the type of the lowered parameter
+may have been set incorrectly.  For example, the type "ptr to A"
+had been set to FALSE and is now set to TRUE (when lowered) in this case:
+
+  struct A {
+    A(const A&);
+  };
+  void f(void (*PF)(A)) {}
+
+
 3/26/12  [EDGcpfe/12630]
 C++-generating back end: linkage specification on redeclaration after
 internal-linkage definition
