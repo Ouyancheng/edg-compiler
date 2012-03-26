@@ -976,6 +976,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_exp_rparen_and_pragma_ignored)*/
 #endif /* !USER_CONTROL_OF_STRUCT_PACKING */
 
+/*FIXME*/
+/*lint -esym(552, list_init_enabled)*/
 #endif /* ifndef LINT_H */
 
 /******************************************************************************
