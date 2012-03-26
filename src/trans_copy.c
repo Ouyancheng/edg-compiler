@@ -477,10 +477,7 @@ and remap the pointers in the copy.
 #endif /* MAINTAIN_NEEDED_FLAGS */
   if (scp != NULL) {
 #if MAINTAIN_NEEDED_FLAGS
-    scp->needed = FALSE;
-#if ONE_INSTANTIATION_PER_OBJECT
-    scp->per_instantiation_needed_flags = NULL;
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
+    reset_needed_flag(scp);
 #endif /* MAINTAIN_NEEDED_FLAGS */
     if (kind == iek_type) {
 #if MAINTAIN_NEEDED_FLAGS

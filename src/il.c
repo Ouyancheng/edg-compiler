@@ -4447,6 +4447,9 @@ constant that has the same value.
   sc->per_instantiation_needed_flags = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   sc->name_references = NULL;
+#if MAINTAIN_NEEDED_FLAGS
+  reset_needed_flag(sc);
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* break_instance_source_corresp */
 
 
@@ -10999,6 +11002,9 @@ field in the new parameter types will be NULL.
   next_ptr = to->next;
   /* Copy the type entry. */
   *to = *from;
+#if MAINTAIN_NEEDED_FLAGS
+  reset_needed_flag(&to->source_corresp);
+#endif /* MAINTAIN_NEEDED_FLAGS */
   to->next = next_ptr;
   to->based_types = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
