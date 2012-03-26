@@ -12207,8 +12207,19 @@ source sequence entries recorded with this particular header.  */
           || parent_class->variant.class_struct_union.is_nonreal_class)
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
                                                                        ) {
-    gen_template_header(tdp->parent, parent_class_or_null(parent_class),
-                        is_cppcli_generic);
+    /* It is possible to have a parent template header even if there is no
+       parent class: g++ allows an extra "template<>" prefix in the
+       declaration of a partial specialization, e.g.,
+
+           template<> template<T> struct S<T*> { };
+
+       so we cannot assume that the current parent_class is non-NULL when
+       determining the value to pass as parent_class in the recursive
+       invocation of gen_template_header. */
+    a_type_ptr grandparent_class;
+    grandparent_class =
+            (parent_class != NULL) ? parent_class_or_null(parent_class) : NULL;
+    gen_template_header(tdp->parent, grandparent_class, is_cppcli_generic);
   }  /* if */
   set_output_position(&tdp->template_pos);
   /* Put a space after the "<" to avoid forming the digraph "<:" if the

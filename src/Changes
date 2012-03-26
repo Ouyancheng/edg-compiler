@@ -1,5 +1,20 @@
 Version 4.5
 
+3/26/12  [EDGcpfe/12792]
+C++-generating back end, GNU compatibility: abort with extra template
+parameter list on partial specialization
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+C++-generating back end aborted with a segfault in gen_template_header when
+the source contains an extra template header in the declaration of a
+partial specialization (a g++ extension; see the entry for EDGcpfe/12118
+below).  This is now fixed.  For example:
+
+  template<typename T> struct A { };
+  template<typename T> struct B { };
+  template<> template<typename T> struct A<B<T> > { }; // Previously aborted
+
+
 3/24/12  [EDGcpfe/12789]
 Microsoft compatibility: Internal error comparing nonreal instances
 
