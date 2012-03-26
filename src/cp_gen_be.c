@@ -14274,17 +14274,13 @@ this one is such a continuation.
     storage_class = sec_decl->declared_storage_class;
     if (storage_class == (a_storage_class)sc_unspecified &&
         var->definition_has_been_put_out &&
-        has_static_storage_duration(var->declared_storage_class) &&
-        var->source_corresp.name_linkage ==
-                                 (a_name_linkage_kind)nlk_cplusplus_external) {
+        has_static_storage_duration(var->declared_storage_class)) {
       /* We have a declaration of a variable following its definition but
-         with no explicit storage class specifier and C++ linkage.  This
-         can result if the declaration was given a non-C++ linkage
-         specifier that did not match that of the (C++) definition -- the
-         linkage specifier is ignored but treated as if it were "extern",
-         implicitly matching the name linkage of the definition.  We need
-         to put out "extern" in the generated code, too, to avoid the
-         appearance that this is an invalid redefinition. */
+         with no explicit storage class specifier.  This can result if the
+         declaration was given a linkage specifier -- the linkage specifier
+         is ignored but treated as if it were "extern".  We need to put out
+         "extern" in the generated code, too, to avoid the appearance that
+         this is an invalid redefinition. */
       storage_class = (a_storage_class)sc_extern;
     }  /* if */
     attributes = sec_decl->attributes;

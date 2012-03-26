@@ -1,5 +1,22 @@
 Version 4.5
 
+3/26/12  [EDGcpfe/12630]
+C++-generating back end: linkage specification on redeclaration after
+internal-linkage definition
+
+The change for EDGcpfe/12666 covered only cases in which the variable was
+given external linkage with C++ name linkage.  It thus did not address the
+similar case in which a variable has internal linkage and is redeclared
+with a linkage specifier that is ignored.  This has now been addressed in
+the same way, by adding an "extern" specifier to take the place of the
+omitted linkage specifier.  For example:
+
+  const int i = 5;
+  extern "C" const int i;  // Previously generated as "const int i;", a
+                           // redefinition; now as "extern const int i;",
+                           // a redeclaration.
+
+
 3/26/12  [EDGcpfe/12752]
 Incorrect setting of "needed" flag in some lowered array types
 
