@@ -3853,10 +3853,14 @@ a dynamic component) or *init_con (for purely constant initializers).
 */
 {
   an_init_component_ptr  icp;
+  a_boolean              is_constant = FALSE;
+
   check_assertion(dps != NULL);
   check_assertion(dps->has_direct_initializer && curr_token == tok_lbrace);
-
+  /* Parse the list. */
   icp = scan_braced_init_list(/*is_var_init=*/TRUE, dps);
+  check_assertion(icp != NULL &&
+                  icp->kind == (an_init_component_kind)ick_braced);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     decl_pos_block->var_init_range.end = curr_construct_end_position;
@@ -3867,11 +3871,12 @@ a dynamic component) or *init_con (for purely constant initializers).
     pos_ty_error(ec_brace_initialization_not_allowed, source_pos, dps->type);
     *init_error = TRUE;
   } else if (is_empty_list_init_component(icp)) {
-    /* FIXME: Not yet implemented. */
-    pos_ty_error(ec_brace_initialization_not_allowed, source_pos, dps->type);
-    *init_error = TRUE;
+    /* An empty list: Unlike the case below, we do not unpack the list when
+       calling convert_initializer. */
+    convert_initializer(icp, dps->type, /*is_var_init=*/TRUE,
+                        /*is_direct_init=*/TRUE, /*check_narrowing=*/TRUE,
+                        dps, &is_constant, init_dip, init_con);
   } else if (is_singleton_list_init_component(icp)) {
-    a_boolean  is_constant = FALSE;
     /* Pass the unwrapped value (or list) to the be converted to the
        destination type. */
     convert_initializer(icp->variant.braced.list, dps->type,
