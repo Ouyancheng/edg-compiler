@@ -68,6 +68,10 @@ static an_arg_operand_ptr
 		avail_arg_operands;
 			/* List of argument operand entries that have been
 			   freed and are available for reuse. */
+static an_init_component_ptr
+		avail_init_components;
+			/* List of initializer list value entries that have
+			   been freed and are available for reuse. */
 
 static a_dynamic_init_dtor_fixup_ptr
 		avail_dynamic_init_dtor_fixups;
@@ -81,6 +85,7 @@ Counts of entries allocated, for debugging purposes.
 */
 static unsigned long
 		num_arg_operands_allocated,
+		num_init_components_allocated,
 		num_expr_rescan_info_entries_allocated,
 		num_ref_entries_allocated,
 		num_dynamic_init_dtor_fixups_allocated;
@@ -604,6 +609,167 @@ entries are used to hold arguments of function calls.
 }  /* alloc_arg_operand */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+static void free_attachments_to_operand(an_operand *operand)
+/*
+Free any dynamically-allocated attachments to the indicated operand.
+The operand will not be used further.
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_property_ref_operand(operand)) {
+    /* An ok_property_ref operand has some an_arg_operand entries attached. */
+    free_arg_operand_list(operand->variant.property_ref.subscripts);
+    operand->variant.property_ref.subscripts = NULL;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* free_attachments_to_operand */
+
+
+void free_arg_operand_list(an_arg_operand_ptr aop)
+/*
+Free the list of argument operands pointed to by aop.
+*/
+{
+  an_arg_operand_ptr aop_next;
+
+  for (; aop != NULL; aop = aop_next) {
+    aop_next = aop->next;
+    /* Free any dynamically-allocated attachments to the operand. */
+    free_attachments_to_operand(&aop->operand);
+#if CHECKING && DEBUG
+    /* Make the sure the entry was not previously freed. */
+    if (db_active) {
+      an_arg_operand_ptr taop;
+      for (taop = avail_arg_operands;
+           taop != NULL;
+           taop = taop->next) {
+        if (taop == aop) {
+          internal_error("free_arg_operand_list: entry freed twice");
+        }  /* if */
+      }  /* for */
+    }
+#endif /* CHECKING && DEBUG */
+    /* Add the entry to the available list. */
+    aop->next = avail_arg_operands;
+    avail_arg_operands = aop;
+  }  /* for */
+}  /* free_arg_operand_list */
+
+
+static void set_init_component_kind(an_init_component_ptr  icp,
+                                    an_init_component_kind kind)
+/*
+Set the kind of the init component entry to "kind", and set the associated
+variant fields to default values.
+*/
+{
+  icp->kind = kind;
+  switch (icp->kind) {
+    case ick_expression:
+      icp->variant.expr = alloc_arg_operand();
+      break;
+    case ick_braced:
+      icp->variant.braced.list = NULL;
+      icp->variant.braced.start_pos = null_source_position;
+      icp->variant.braced.end_pos = null_source_position;
+      break;
+    default:
+      unexpected_condition_str("set_init_component_kind: bad kind");
+  }  /* switch */
+}  /* set_init_component_kind */
+
+
+an_init_component_ptr alloc_init_component(an_init_component_kind kind)
+/*
+Allocate an entry used to describe a value in an initializer list, set its
+kind to "kind" and its fields to default values, and return a pointer to it.
+*/
+{
+  an_init_component_ptr icp;
+
+  if (avail_init_components != NULL) {
+    /* Reuse a previously-freed entry. */
+    icp = avail_init_components;
+    avail_init_components = icp->next;
+  } else {
+    /* Allocate a new entry. */
+    icp = alloc_fe_of_type(an_init_component);
+#if DEBUG
+    num_init_components_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  icp->next = NULL;
+  set_init_component_kind(icp, kind);
+  return icp;
+}  /* alloc_init_component */
+
+
+void free_init_component_list(an_init_component_ptr icp)
+/*
+Free the initializer component entry pointed to by icp.  If it has a
+subtree of entries, free those as well.  If it is a list of entries, free
+the whole list.  If called with NULL, do nothing.
+*/
+{
+  an_init_component_ptr next_icp;
+
+  for (; icp != NULL; icp = next_icp) {
+    next_icp = icp->next;
+    switch (icp->kind) {
+      case ick_expression:
+        check_assertion(icp->variant.expr->next == NULL);
+        free_arg_operand_list(icp->variant.expr);
+        icp->variant.expr = NULL;
+        break;
+      case ick_braced:
+        free_init_component_list(icp->variant.braced.list);
+        icp->variant.braced.list = NULL;
+        break;
+      default:
+        unexpected_condition_str("free_init_component: bad entry kind");
+    }  /* switch */
+    icp->next = avail_init_components;
+    avail_init_components = icp;
+  }  /* for */
+}  /* free_init_component_list */
+
+#if DEBUG
+
+void db_init_component(an_init_component_ptr icp)
+/*
+Display an init component for debugging purposes.
+*/
+{
+  switch (icp->kind) {
+    case ick_expression:
+      db_operand(&icp->variant.expr->operand);
+      break;
+    case ick_braced:
+      (void)fprintf(f_debug, "(%lu,%lu) {\n",
+                    (unsigned long)icp->variant.braced.start_pos.seq,
+                    (unsigned long)icp->variant.braced.start_pos.column);
+      { an_init_component_ptr elem_icp;
+        for (elem_icp = icp->variant.braced.list;
+             elem_icp != NULL;
+             elem_icp = elem_icp->next) {
+          db_init_component(elem_icp);
+        }  /* for */
+      }
+      (void)fprintf(f_debug, "} (%lu,%lu)\n",
+                    (unsigned long)icp->variant.braced.end_pos.seq,
+                    (unsigned long)icp->variant.braced.end_pos.column);
+      break;
+    default:
+      (void)fprintf(f_debug, "Bad init component kind\n");
+      break;
+  }  /* switch */
+}  /* db_init_component */
+
+#endif /* DEBUG */
+
 void clear_expression_cache(an_expression_cache *cache)
 /*
 Set the fields of an expression cache to default values.
@@ -690,56 +856,6 @@ pushed.
   }  /* if */
   return result;
 }  /* fetch_operand_from_expression_cache */
-
-
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/* ARGSUSED */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void free_attachments_to_operand(an_operand *operand)
-/*
-Free any dynamically-allocated attachments to the indicated operand.
-The operand will not be used further.
-*/
-{
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_property_ref_operand(operand)) {
-    /* An ok_property_ref operand has some an_arg_operand entries attached. */
-    free_arg_operand_list(operand->variant.property_ref.subscripts);
-    operand->variant.property_ref.subscripts = NULL;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-}  /* free_attachments_to_operand */
-
-
-void free_arg_operand_list(an_arg_operand_ptr aop)
-/*
-Free the list of argument operands pointed to by aop.
-*/
-{
-  an_arg_operand_ptr aop_next;
-
-  for (; aop != NULL; aop = aop_next) {
-    aop_next = aop->next;
-    /* Free any dynamically-allocated attachments to the operand. */
-    free_attachments_to_operand(&aop->operand);
-#if CHECKING && DEBUG
-    /* Make the sure the entry was not previously freed. */
-    if (db_active) {
-      an_arg_operand_ptr taop;
-      for (taop = avail_arg_operands;
-           taop != NULL;
-           taop = taop->next) {
-        if (taop == aop) {
-          internal_error("free_arg_operand_list: entry freed twice");
-        }  /* if */
-      }  /* for */
-    }
-#endif /* CHECKING && DEBUG */
-    /* Add the entry to the available list. */
-    aop->next = avail_arg_operands;
-    avail_arg_operands = aop;
-  }  /* for */
-}  /* free_arg_operand_list */
 
 
 static a_dynamic_init_dtor_fixup_ptr alloc_dynamic_init_dtor_fixup(
@@ -17430,6 +17546,8 @@ Display and return the amount of space used for various expression tables.
 
   db_space_used_lost("arg operands", avail_arg_operands,
                      num_arg_operands_allocated, an_arg_operand);
+  db_space_used_lost("init components", avail_init_components,
+                     num_init_components_allocated, an_init_component);
   db_space_used_lost("arg match summary", avail_arg_match_summaries,
                      num_arg_match_summaries_allocated, an_arg_match_summary);
   db_space_used_lost("candidate function", avail_candidate_functions,
@@ -17460,6 +17578,7 @@ Do one-time initialization of variables related to expression processing.
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_ref_entries),
       pch_saved_var_array_elem(avail_arg_operands),
+      pch_saved_var_array_elem(avail_init_components),
       pch_saved_var_array_elem(avail_dynamic_init_dtor_fixups),
       pch_saved_var_array_elem(avail_arg_match_summaries),
       pch_saved_var_array_elem(avail_candidate_functions),
@@ -17472,6 +17591,7 @@ Do one-time initialization of variables related to expression processing.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if DEBUG
       pch_saved_var_array_elem(num_arg_operands_allocated),
+      pch_saved_var_array_elem(num_init_components_allocated),
       pch_saved_var_array_elem(num_expr_rescan_info_entries_allocated),
       pch_saved_var_array_elem(num_ref_entries_allocated),
       pch_saved_var_array_elem(num_dynamic_init_dtor_fixups_allocated),
@@ -17522,10 +17642,12 @@ for each compilation.
 {
   avail_ref_entries = NULL;
   avail_arg_operands = NULL;
+  avail_init_components = NULL;
   avail_dynamic_init_dtor_fixups = NULL;
 #if DEBUG
   num_arg_match_summaries_allocated      = 0;
   num_arg_operands_allocated             = 0;
+  num_init_components_allocated          = 0;
   num_expr_rescan_info_entries_allocated = 0;
   num_ref_entries_allocated              = 0;
   num_dynamic_init_dtor_fixups_allocated = 0;

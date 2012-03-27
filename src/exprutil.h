@@ -1149,6 +1149,12 @@ extern void record_operand_modification_refs(an_operand *operand);
 
 extern an_arg_operand_ptr alloc_arg_operand(void);
 
+extern an_init_component_ptr alloc_init_component(an_init_component_kind kind);
+
+extern void free_init_component_list(an_init_component_ptr icp);
+
+extern void db_init_component(an_init_component_ptr icp);
+
 extern void clear_expression_cache(struct an_expression_cache *cache);
 
 extern void add_operand_to_expression_cache(

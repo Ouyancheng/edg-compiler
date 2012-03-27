@@ -78,6 +78,53 @@ typedef int a_local_expr_options_set;
 typedef struct an_operand *an_operand_ptr;
 
 /*
+Enumeration of the kinds of initializer values described by
+an_init_component.
+*/
+enum an_init_component_kind_tag {
+  ick_expression,	/* An expression. */
+  ick_braced		/* A brace-enclosed list. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte an_init_component_kind;
+
+/*
+Entry describing a value in an initializer, which is either an expression
+or a brace-enclosed list.  In the C++11 standard, the corresponding syntax
+term is "initializer-clause".
+*/
+typedef struct an_init_component *an_init_component_ptr;
+typedef struct an_init_component {
+  an_init_component_ptr
+		next;	/* When this entity is on a list, a pointer to the
+			   next component on the list.  NULL if this is the
+			   last component or if the entry is not on a list. */
+  an_init_component_kind
+		kind;	/* The kind of initializer value (e.g., brace-enclosed
+			   list). */
+  union {
+    /* When kind == ick_expression: */
+    struct an_arg_operand
+		*expr;
+			/* The expression.  The an_arg_operand struct is
+			   opaque outside of the expression routines. */
+    /* When kind == ick_braced: */
+    struct {
+      an_init_component_ptr
+		list;
+			/* A list of initializer values linked on the "next"
+			   field.  NULL if the list is empty. */
+      a_source_position
+		start_pos,
+		end_pos;
+			/* The source positions of the opening and closing
+			   brace tokens. */
+    } braced;
+  } variant;
+} an_init_component;
+
+
+/*
 Entry used to pass information about the context for a rescan to redo
 semantic analysis as part of template deduction.  Many of the fields here
 are parameters to copy_template_param_expr that we want to pass from
@@ -330,6 +377,21 @@ extern void conv_nontype_template_arg_to_param_type(
                                             an_arg_operand_ptr arg_operand,
                                             a_type_ptr         param_type,
                                             a_constant         *constant);
+
+extern
+an_init_component_ptr scan_braced_init_list(a_boolean          is_var_init,
+                                            a_decl_parse_state *dps);
+
+extern
+void convert_initializer(an_init_component_ptr icp,
+                         a_type_ptr            dest_type,
+                         a_boolean             is_var_init,
+                         a_boolean             is_direct_init,
+                         a_boolean             check_narrowing,
+                         a_decl_parse_state    *dps,
+                         a_boolean             *is_constant,
+                         a_dynamic_init_ptr    *dip,
+                         a_constant_ptr        *constant);
 
 extern a_boolean expr_is_rescannable(an_expr_node_ptr expr);
 

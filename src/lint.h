@@ -94,6 +94,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,db_internal_float_value)*/
 /*lint -esym(714,db_context_stack)*/
 /*lint -esym(714,db_hide_by_sig_list)*/
+/*lint -esym(714,db_init_component)*/
 /*lint -esym(714,free_template_decl_info)*/
 /*lint -esym(759,f_db_sym_has_traced_name)*/
 /*lint -esym(759,free_template_decl_info)*/
@@ -978,6 +979,15 @@ extern int fileno(FILE *);
 
 /*FIXME*/
 /*lint -esym(552, list_init_enabled)*/
+/*lint -esym(759,free_init_component_list)*/
+/*lint -esym(765,free_init_component_list)*/
+/*lint -esym(714,free_init_component_list)*/
+/*lint -esym(759,scan_braced_init_list)*/
+/*lint -esym(765,scan_braced_init_list)*/
+/*lint -esym(714,scan_braced_init_list)*/
+/*lint -esym(759,convert_initializer)*/
+/*lint -esym(765,convert_initializer)*/
+/*lint -esym(714,convert_initializer)*/
 #endif /* ifndef LINT_H */
 
 /******************************************************************************

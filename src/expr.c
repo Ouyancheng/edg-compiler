@@ -31780,6 +31780,214 @@ This is callable from outside of the expression processing routines.
 }  /* conv_nontype_template_arg_to_param_type */
 
 
+static an_init_component_ptr scan_braced_init_list_internal(
+                                                       a_decl_parse_state *dps)
+/*
+Scan a brace-enclosed initializer list and return a structure describing it.
+The current token on entry must be the opening "{".  On return, the current
+token will be the token following the closing "}".  dps describes the
+current declaration state, or is NULL if there is no declaration associated
+with this scan.  This is the "internal" version of the routine, to be
+called only from inside the expression routines, with the expression
+stack already set.
+*/
+{
+  an_init_component_ptr icp =
+                      alloc_init_component((an_init_component_kind)ick_braced);
+
+  /* Advance past the opening brace. */
+  check_assertion(curr_token == tok_lbrace);
+  icp->variant.braced.start_pos = pos_curr_token;
+  (void)get_token();
+  add_matching_stop_token(tok_rbrace);
+  /* Check for an empty list. */
+  if (curr_token != tok_rbrace) {
+    /* Loop to scan a list of expressions or brace-enclosed lists. */
+    an_init_component_ptr elem_icp, end_icp = NULL;
+    do {
+      if (curr_token == tok_lbrace) {
+        /* A nested brace-enclosed list. */
+        elem_icp = scan_braced_init_list_internal(dps);
+        /* Add the entry to the end of the list. */
+        if (end_icp == NULL) {
+          icp->variant.braced.list = elem_icp;
+        } else {
+          end_icp->next = elem_icp;
+        }  /* if */
+        end_icp = elem_icp;
+      } else {
+        /* An expression.  It might be a pack expansion in some modes
+           and contexts. */
+        a_pack_expansion_stack_entry_ptr pesep;
+        a_boolean                        any_more;
+        any_more = begin_potential_pack_expansion_context(&pesep);
+        while (any_more) {
+          an_arg_operand             *arg_op = alloc_arg_operand();
+          a_pack_expansion_descr_ptr pedep;
+  
+          /* Scan the initializer expression and put it into an
+             init-component. */
+          scan_expr(&arg_op->operand, PREC_LOWEST,
+                    EOPT_DISALLOW_COMMA_OPERATOR);
+          elem_icp =
+                  alloc_init_component((an_init_component_kind)ick_expression);
+          elem_icp->variant.expr = arg_op;
+          /* Add the entry to the end of the list. */
+          if (end_icp == NULL) {
+            icp->variant.braced.list = elem_icp;
+          } else {
+            end_icp->next = elem_icp;
+          }  /* if */
+          end_icp = elem_icp;
+          /* If this is a pack expansion, swallow the trailing "..." and
+             loop for the next iteration of the expansion. */
+          pedep = end_potential_pack_expansion_context(pesep,
+                                                      /*is_declarator=*/FALSE);
+          if (pedep != NULL) {
+            /* This expression is a variadic template pack expansion, i.e.,
+               it's followed by "...".  Furthermore, we're in the prototype
+               instantiation, so we record the expansion information on the
+               expression. */
+            mark_operand_as_pack_expansion(&arg_op->operand, pedep);
+          }  /* if */
+          any_more = advance_to_next_pack_element(pesep);
+        }  /* while */
+      }  /* if */
+    } while (loop_token(tok_comma));
+  }  /* if */
+  /* Check for and advance past the closing "}". */
+  icp->variant.braced.end_pos = pos_curr_token;
+  (void)required_token(tok_rbrace, ec_exp_rbrace);
+  remove_matching_stop_token(tok_rbrace);
+  return icp;
+}  /* scan_braced_init_list_internal */
+
+
+an_init_component_ptr scan_braced_init_list(a_boolean          is_var_init,
+                                            a_decl_parse_state *dps)
+/*
+Scan a brace-enclosed initializer list and return a structure describing it.
+The current token on entry must be the opening "{".  On return, the current
+token will be the token following the closing "}".  dps describes the
+current declaration state, or is NULL if there is no declaration associated
+with this scan.  If is_var_init is TRUE, this is the complete initializer
+for a variable, given by dps->sym.
+*/
+{
+  an_expr_stack_entry   *saved_expr_stack;
+  an_expr_stack_entry   expr_stack_entry;
+  an_init_component_ptr icp;
+
+  if (is_var_init) {
+    check_assertion(dps != NULL && dps->sym != NULL &&
+                    symbol_is(dps->sym, sk_variable));
+    save_expr_stack(&saved_expr_stack);
+  } else {
+    check_assertion(expr_stack != NULL);
+  }  /* if */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  if (is_var_init) transfer_expr_context_if_applicable(saved_expr_stack);
+#if CHECKING
+  if (dps != NULL) {
+    check_assertion(!dps->auto_type_specifier_seen);
+    check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
+    check_assertion(!cached_expression_present());
+  }  /* if */
+#endif /* CHECKING */
+  icp = scan_braced_init_list_internal(dps);
+  pop_expr_stack();
+  if (is_var_init) restore_expr_stack(saved_expr_stack);
+  return icp;
+}  /* scan_braced_init_list */
+
+
+/*FIXME*/
+/*ARGSUSED*/
+void convert_initializer(an_init_component_ptr icp,
+                         a_type_ptr            dest_type,
+                         a_boolean             is_var_init,
+                         a_boolean             is_direct_init,
+                         a_boolean             check_narrowing,
+                         a_decl_parse_state    *dps,
+                         a_boolean             *is_constant,
+                         a_dynamic_init_ptr    *dip,
+                         a_constant_ptr        *constant)
+/*
+Convert an initializer value represented in init-component form (icp)
+to the type of the entity being initialized, given by dest_type.  If
+is_var_init is TRUE, this is the complete initializer for a variable
+(given by dps->sym), and the type of that variable is used for
+dest_type.  In either case, dest_type must not be an aggregate type.
+If is_direct_init is TRUE, the initialization is direct-initialization.
+If check_narrowing is TRUE, issue diagnostics for narrowing
+conversions.  The converted result is returned as either a constant
+(*is_constant is set to TRUE, and *constant is set to a pointer to the
+allocated constant) or a dynamic init entry (*is_constant is set to
+FALSE, and *dip is set to a pointer to the allocated dynamic init
+entry).  dps describes the current declaration state, or is NULL if
+there is no declaration associated with this scan.
+*/
+{
+  an_expr_stack_entry *saved_expr_stack;
+  an_expr_stack_entry expr_stack_entry;
+  an_operand          *operand;
+
+  *dip = NULL;
+  *constant = NULL;
+  if (is_var_init) {
+    /* This is a top-level variable initialization. */
+    a_variable_ptr var;
+    a_symbol_ptr   var_sym;
+    check_assertion(dps != NULL);
+    var_sym = dps->sym;
+    check_assertion(var_sym != NULL && symbol_is(var_sym, sk_variable));
+    var = var_sym->variant.variable.ptr;
+    dest_type = var->type;
+    save_expr_stack(&saved_expr_stack);
+  } else {
+    check_assertion(expr_stack != NULL);
+  }  /* if */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  if (is_var_init) transfer_expr_context_if_applicable(saved_expr_stack);
+  check_assertion(dest_type != NULL &&
+                  !is_aggregate_or_union_type(dest_type));
+  check_assertion(icp->kind == (an_init_component_kind)ick_expression);
+  operand = &icp->variant.expr->operand;
+  if (is_template_dependent_type(dest_type)) {
+    prep_generic_operand(operand);
+  } else if (is_class_struct_union_type(dest_type)) {
+    /*FIXME*/
+    unexpected_condition_str("class braced initializer not implemented");
+  } else {
+    a_conv_context_set conv_context = CCO_DEFAULT;
+    if (is_direct_init) conv_context |= CCO_DIRECT_INITIALIZATION;
+    if (is_var_init) conv_context |= CCO_INITIALIZING_VARIABLE;
+    prep_initializer_operand(operand, dest_type,
+                             /*is_transparent=*/(a_boolean *)NULL,
+                             /*conversion=*/(a_conv_descr_ptr)NULL,
+                             /*is_copy_initialization=*/!is_direct_init,
+                             conv_context,
+                             ec_bad_initializer_type);
+  }  /* if */
+  if (is_constant_operand(operand)) {
+    *is_constant = TRUE;
+    *constant = alloc_unshared_constant(&operand->variant.constant);
+  } else {
+    an_expr_node_ptr expr = make_node_from_operand(operand);
+    if (is_var_init) expr = wrap_up_full_expression(expr);
+    *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+    (*dip)->variant.expression = expr;
+    *is_constant = FALSE;
+  }  /* if */
+  pop_expr_stack();
+  if (is_var_init) restore_expr_stack(saved_expr_stack);
+}  /* convert_initializer */
+
+
 static void make_operand_for_rescanned_identifier(
                                an_expr_node_ptr       expr,
                                a_rescan_control_block *rcblock,
