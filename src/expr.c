@@ -18037,8 +18037,11 @@ indication in *rcblock).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Check the operand type. */
       operand_type = operand.type;
-      if (is_template_dependent_context() &&
-          is_template_dependent_type(operand_type)) {
+      if (is_error_operand(&operand) || is_error_type(operation_type)) {
+        /* Previous error. */
+        err = TRUE;
+      } else if (is_template_dependent_context() &&
+                 is_template_dependent_type(operand_type)) {
         /* An operand of unknown type in a prototype instantiation. */
         template_param_case = TRUE;
       } else if (reference_case) {
