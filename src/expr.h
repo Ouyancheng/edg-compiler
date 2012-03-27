@@ -378,6 +378,7 @@ extern void conv_nontype_template_arg_to_param_type(
                                             a_type_ptr         param_type,
                                             a_constant         *constant);
 
+#if !STANDALONE_UTILITY_PROGRAM
 extern
 an_init_component_ptr scan_braced_init_list(a_boolean          is_var_init,
                                             a_decl_parse_state *dps);
@@ -392,6 +393,7 @@ void convert_initializer(an_init_component_ptr icp,
                          a_boolean             *is_constant,
                          a_dynamic_init_ptr    *dip,
                          a_constant_ptr        *constant);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern a_boolean expr_is_rescannable(an_expr_node_ptr expr);
 
