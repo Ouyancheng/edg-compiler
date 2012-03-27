@@ -573,7 +573,7 @@ extern void set_instantiation_needed_flag(a_source_correspondence *scp,
 #define set_needed_flag(scp) ((scp)->needed = TRUE)
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-/* Macro to re-set the needed flag. */
+/* Macro to reset the needed flag. */
 #if ONE_INSTANTIATION_PER_OBJECT
 #define reset_needed_flag(scp) \
     ((scp)->needed = FALSE, \
