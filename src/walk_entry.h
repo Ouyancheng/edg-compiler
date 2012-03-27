@@ -2955,6 +2955,10 @@ after_entry_from_class:
         walk_ptr(ptr->class_type, a_type_ptr, iek_type);
         remap_ptr(ptr->orig_nested_type, a_type_ptr, iek_type);
         conditionally_clear_fe_pointer(ptr->template_symbol);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        walk_ptr(ptr->generic_constraints, a_generic_constraint_ptr,
+                 iek_generic_constraint);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
     case iek_typeref_type_supplement:
