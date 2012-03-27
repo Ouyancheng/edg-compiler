@@ -977,17 +977,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_exp_rparen_and_pragma_ignored)*/
 #endif /* !USER_CONTROL_OF_STRUCT_PACKING */
 
-/*FIXME*/
-/*lint -esym(552, list_init_enabled)*/
-/*lint -esym(759,free_init_component_list)*/
-/*lint -esym(765,free_init_component_list)*/
-/*lint -esym(714,free_init_component_list)*/
-/*lint -esym(759,scan_braced_init_list)*/
-/*lint -esym(765,scan_braced_init_list)*/
-/*lint -esym(714,scan_braced_init_list)*/
-/*lint -esym(759,convert_initializer)*/
-/*lint -esym(765,convert_initializer)*/
-/*lint -esym(714,convert_initializer)*/
 #endif /* ifndef LINT_H */
 
 /******************************************************************************

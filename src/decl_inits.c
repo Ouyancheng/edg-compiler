@@ -3833,6 +3833,9 @@ item (e.g., a component representing "{1}").
 
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void direct_braced_initializer(a_decl_parse_state  *dps,
                                       a_source_position   *source_pos,
                                       a_decl_pos_block    *decl_pos_block,
