@@ -12055,6 +12055,8 @@ to alter the consistency check at the end of the routine.
   caching_tokens = lssep->caching_tokens;
   /* Discard any tokens that may have been cached. */
   discard_token_cache(&lssep->cache);
+  check_assertion_str2(lssep->cache_tokens == 0, "pop_lexical_stack_state:",
+                       "cache_tokens not zero");
   avail_lexical_state_stack_entries = lssep;
   /* The current entry should only be NULL if this is the final pop. */
   check_assertion_str((curr_lexical_state_stack_entry == NULL) == final_pop,

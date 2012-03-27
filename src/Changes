@@ -1,5 +1,19 @@
 Version 4.5
 
+3/27/12  [EDGcpfe/12796]
+Incorrect value of cache_tokens count in lexical stack state
+
+The disambiguation routines could increment the cache_tokens value of
+the current lexical stack state entry without doing the corresponding
+decrement at the end of disambiguation.  This did not result in any
+user-visible problems, but could result in extra memory use and slightly
+slower compile times.  Now fixed.
+
+  class A {
+    void f(int i) {}
+  };
+
+
 3/26/12  [EDGcpfe/12784]
 Incorrect setting of "needed" flag with some lowered function pointer types
 

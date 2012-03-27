@@ -121,19 +121,20 @@ Perform any operations that must be done to clean up after disambiguation.
      them.  The test of dsp->first_tsn is used to avoid doing this when the
      only token put in the cache was the current token at the start of
      caching. */
-  if (dsp->cache_tokens &&
-      curr_lexical_state_stack_entry->last_tsn_in_cache != dsp->first_tsn) {
-    a_token_cache	cache;
+  if (dsp->cache_tokens) {
     end_caching_fetched_tokens();
-    clear_token_cache(&cache, /*is_reusable=*/FALSE);
-    /* Get the tokens that were fetched by this routine from the cache
-       that has been accumulated and rescan them. */
-    copy_tokens_from_cache(curr_lexical_state_cache(), dsp->first_tsn,
-                           last_token_sequence_number_of_token,
-                           /*include_last_token=*/TRUE, &cache);
-    f_rescan_cached_tokens(
+    if (curr_lexical_state_stack_entry->last_tsn_in_cache != dsp->first_tsn) {
+      a_token_cache	cache;
+      clear_token_cache(&cache, /*is_reusable=*/FALSE);
+      /* Get the tokens that were fetched by this routine from the cache
+         that has been accumulated and rescan them. */
+      copy_tokens_from_cache(curr_lexical_state_cache(), dsp->first_tsn,
+                             last_token_sequence_number_of_token,
+                             /*include_last_token=*/TRUE, &cache);
+      f_rescan_cached_tokens(
                &cache, /*discard_curr_token=*/curr_token != tok_end_of_source);
-  }   /* if */
+    }   /* if */
+  }  /* if */
   if (dsp->variadic_prototype_instantiation) {
     /* Restore the variadic processing state. */
     pop_expansion_suppression(dsp->pack_expansion_stack_entry);
