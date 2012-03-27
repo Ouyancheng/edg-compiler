@@ -190,6 +190,7 @@ be restored).
   dps->is_pack_element = FALSE;
   dps->nested_ptr_or_ref_seen = FALSE;
   dps->has_initializer = FALSE;
+  dps->has_direct_initializer = FALSE;
   dps->first_decl = FALSE;
   dps->first_decl_of_predeclared_entity = FALSE;
   dps->override_okay = FALSE;
@@ -14836,6 +14837,8 @@ if one is present.
   } else if (curr_token == tok_assign) {
     has_initializer = TRUE;
     decl_pos_block->var_init_range.start = pos_curr_token;
+  } else if (list_init_enabled && curr_token == tok_lbrace) {
+    has_initializer = TRUE;
   } else if (range_based_for_enabled && state->is_for_init_decl &&
              curr_token == tok_colon && !state->secondary_declarator) {
     /* The for-init declaration of a range-based "for" loop: Stop here and let
@@ -15067,8 +15070,12 @@ if one is present.
     if (decl_invisible_to_initializer && !state->sym->is_error) {
       state->sym->is_invisible = TRUE;
     }  /* if */
-    /* Advance past the "=". */
-    if (curr_token == tok_assign) (void)get_token();
+    if (curr_token == tok_assign) {
+      /* Advance past the "=". */
+      (void)get_token();
+    } else {
+      state->has_direct_initializer = TRUE;
+    }  /* if */
     if (state->sym->kind == (a_symbol_kind)sk_variable &&
         !state->is_old_style_param_decl) {
       /* Set the storage class of a file-scope initialized variable to

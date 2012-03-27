@@ -26,6 +26,7 @@ decl_inits.c -- Scanning of initializers in declarations.
 
 /* Additional header files. */
 #include "expr.h"
+#include "exprutil.h"
 #include "folding.h"
 #include "statements.h"
 #if DO_IL_LOWERING
@@ -3813,6 +3814,76 @@ has static storage duration; vp_type is the type of that entity.
 }  /* simple_initializer */
 
 
+/*
+Macro that produces TRUE for empty list initialization components (i.e.,
+components representing "{}").
+*/
+#define is_empty_list_init_component(icp)                                    \
+  ((icp)->kind == (an_init_component_kind)ick_braced &&                      \
+   (icp)->variant.braced.list == NULL)
+
+/*
+Macro that produces TRUE for list initialization components containing a single
+item (e.g., a component representing "{1}").
+*/
+#define is_singleton_list_init_component(icp)                                \
+  ((icp)->kind == (an_init_component_kind)ick_braced &&                      \
+   (icp)->variant.braced.list != NULL &&                                     \
+   (icp)->variant.braced.list->next == NULL)
+
+
+
+static void direct_braced_initializer(a_decl_parse_state  *dps,
+                                      a_source_position   *source_pos,
+                                      a_decl_pos_block    *decl_pos_block,
+                                      a_dynamic_init_ptr  *init_dip,
+                                      a_constant_ptr      *init_con,
+                                      a_boolean           *init_error)
+/*
+Handle a braced-initializer directly following the declarator for a variable
+or static data member (e.g., "T x{3};", but not "T x = {3};").
+dps and decl_pos_block describe the declaration that the initializer is part
+of.  source_pos is the position to be used by default for diagnostics.  
+If an error occurs, *init_error will be set to TRUE.  Otherwise, the effect
+of the initializer is returned through either *init_dip (for initializers with
+a dynamic component) or *init_con (for purely constant initializers).
+*/
+{
+  an_init_component_ptr  icp;
+  check_assertion(dps != NULL);
+  check_assertion(dps->has_direct_initializer && curr_token == tok_lbrace);
+
+  icp = scan_braced_init_list(/*is_var_init=*/TRUE, dps);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    decl_pos_block->var_init_range.end = curr_construct_end_position;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (is_aggregate_or_union_type(dps->type)) {
+    /* FIXME: Not yet implemented. */
+    pos_ty_error(ec_brace_initialization_not_allowed, source_pos, dps->type);
+    *init_error = TRUE;
+  } else if (is_empty_list_init_component(icp)) {
+    /* FIXME: Not yet implemented. */
+    pos_ty_error(ec_brace_initialization_not_allowed, source_pos, dps->type);
+    *init_error = TRUE;
+  } else if (is_singleton_list_init_component(icp)) {
+    a_boolean  is_constant = FALSE;
+    /* Pass the unwrapped value (or list) to the be converted to the
+       destination type. */
+    convert_initializer(icp->variant.braced.list, dps->type,
+                        /*is_var_init=*/TRUE, /*is_direct_init=*/TRUE,
+                        /*check_narrowing=*/TRUE, dps, &is_constant, init_dip,
+                        init_con);
+  } else {
+    /* FIXME: Not yet implemented. */
+    pos_ty_error(ec_brace_initialization_not_allowed, source_pos, dps->type);
+    *init_error = TRUE;
+  }  /* if */
+  free_init_component_list(icp);
+}  /* direct_braced_initializer */
+
+
 void initializer(a_decl_parse_state  *dps,
                  a_source_position   *source_pos,
                  an_id_linkage_kind  linkage,
@@ -3853,8 +3924,6 @@ returned set to TRUE.
   a_type_ptr                        vp_type = NULL;
   a_boolean                         var_err, init_err;
   a_boolean                         static_lifetime;
-  a_boolean                         is_parameter =
-                                                 dps->is_old_style_param_decl;
   a_constant_ptr                    init_con = NULL;
   a_dynamic_init_ptr                init_dip = NULL;
   a_class_symbol_supplement_ptr     cssp = NULL;
@@ -3873,10 +3942,9 @@ returned set to TRUE.
      to decide whether to update the variable with information about the
      initialization. */
   var_err = FALSE;
-  if (is_parameter) {
-    /* Parameter declarations cannot contain an initializer.  (Declarations
-       for which is_parameter is TRUE are old-style C parameter declarations.
-       C++ default arguments, which look a bit like a parameter with an
+  if (dps->is_old_style_param_decl) {
+    /* Old-style C parameter declarations cannot contain an initializer.
+       (C++ default arguments, which look a bit like a parameter with an
        initializer -- e.g., void f(int i = 1) -- are handled elsewhere.) */
     pos_error(ec_initializer_in_param, source_pos);
     var_err = TRUE;
@@ -4061,9 +4129,12 @@ returned set to TRUE.
     }  /* if */
   }  /* if */
   dps->type = vp_type;
-  /* Now process the initializer.  There are three cases:  parenthesized
-     initializer (C++ only), brace-enclosed initializer list, and simple
-     initializer.  These are handled in turn. */
+  /* Now process the initializer.  There are four syntactic cases:
+       (1) parenthesized initializers (a C++ feature; e.g., "T x(3);"),
+       (2) direct list initializers (a C++11 feature; e.g., "T x{3};"),
+       (3) traditional list initializers (e.g., "T x = {3};"), and
+       (4) simple initializers (e.g., "T x = 3;").
+     These are handled in turn. */
   if (parenthesized_initializer) {
     /* Either this is an initialization of the form S x (arg [, ...]), where
        S is a class type name or an initialization of a scalar like int i(0).
@@ -4141,6 +4212,16 @@ returned set to TRUE.
         init_dip->destructor = select_destructor(vp_type, vp_type, source_pos);
       }  /* if */
     }  /* if */
+  } else if (first_token == tok_lbrace && list_init_enabled &&
+             /* FIXME: Exclude the GNU aggregate case for now, since it is not
+                yet implemented in the new initializer framework, but we do
+                handle it in the old framework. */
+             !(gpp_mode && gnu_version >=40400 &&
+               is_aggregate_or_union_type(dps->type)) &&
+             dps->has_direct_initializer) {
+    /* Direct list initialization (e.g., "X x{1, 2};"). */
+    direct_braced_initializer(dps, source_pos, decl_pos_block, &init_dip,
+                              &init_con, &init_err);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled && is_value_class_type(vp_type) &&
              is_cli_generic_definition_argument_type(vp_type)) {

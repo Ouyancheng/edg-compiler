@@ -561,6 +561,11 @@ typedef struct a_decl_parse_state {
   a_bit_field	has_initializer:1;
 			/* TRUE if this is a variable or data member
 			   declaration that includes an initializer. */
+  a_bit_field	has_direct_initializer:1;
+			/* TRUE if has_initializer is TRUE, and the initializer
+			   is not indicated with a "=" token.  For example
+			   "int x(y);" or "X x{2, 2};", but not "int x = {1};"
+			   or "X x = y;". */
   a_bit_field	first_decl:1;
 			/* TRUE if this is the first declaration of a variable
 			   or function. */
