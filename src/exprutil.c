@@ -736,6 +736,17 @@ the whole list.  If called with NULL, do nothing.
   }  /* for */
 }  /* free_init_component_list */
 
+
+a_source_position* init_component_pos(an_init_component_ptr icp)
+/*
+Return the position of the given init component.
+*/
+{
+  return icp->kind == (an_init_component_kind)ick_braced ?
+                                          &icp->variant.braced.start_pos
+                                        : &icp->variant.expr->operand.position;
+}  /* init_component_pos */
+
 #if DEBUG
 
 void db_init_component(an_init_component_ptr icp)

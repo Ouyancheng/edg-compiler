@@ -3852,11 +3852,16 @@ of the initializer is returned through either *init_dip (for initializers with
 a dynamic component) or *init_con (for purely constant initializers).
 */
 {
+  a_variable_ptr         vp;
   an_init_component_ptr  icp;
   a_boolean              is_constant = FALSE;
+  a_type_ptr             dtype = skip_typerefs(dps->type);
 
-  check_assertion(dps != NULL);
+  check_assertion(dps != NULL && dps->sym != NULL);
   check_assertion(dps->has_direct_initializer && curr_token == tok_lbrace);
+  vp = var_for_symbol(dps->sym);
+  check_assertion(vp != NULL);
+  vp->has_direct_braced_initializer = TRUE;
   /* Parse the list. */
   icp = scan_braced_init_list(/*is_var_init=*/TRUE, dps);
   check_assertion(icp != NULL &&
@@ -3866,28 +3871,70 @@ a dynamic component) or *init_con (for purely constant initializers).
     decl_pos_block->var_init_range.end = curr_construct_end_position;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (is_aggregate_or_union_type(dps->type)) {
-    /* FIXME: Not yet implemented. */
-    pos_ty_error(ec_brace_initialization_not_allowed, source_pos, dps->type);
-    *init_error = TRUE;
-  } else if (is_empty_list_init_component(icp)) {
-    /* An empty list: Unlike the case below, we do not unpack the list when
-       calling convert_initializer. */
-    convert_initializer(icp, dps->type, /*is_var_init=*/TRUE,
-                        /*is_direct_init=*/TRUE, /*check_narrowing=*/TRUE,
-                        dps, &is_constant, init_dip, init_con);
-  } else if (is_singleton_list_init_component(icp)) {
-    /* Pass the unwrapped value (or list) to the be converted to the
-       destination type. */
-    convert_initializer(icp->variant.braced.list, dps->type,
-                        /*is_var_init=*/TRUE, /*is_direct_init=*/TRUE,
-                        /*check_narrowing=*/TRUE, dps, &is_constant, init_dip,
-                        init_con);
-  } else {
-    /* FIXME: Not yet implemented. */
-    pos_ty_error(ec_brace_initialization_not_allowed, source_pos, dps->type);
-    *init_error = TRUE;
-  }  /* if */
+  switch (dtype->kind) {
+    case tk_error:
+    case tk_template_param:
+      /* FIXME: Unimplemented. */
+      pos_ty_error(ec_brace_initialization_not_allowed, source_pos, dps->type);
+      *init_error = TRUE;
+      break;
+    case tk_array:
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      /* Arrays (and vectors) are aggregates. */
+      /* FIXME: Unimplemented. */
+      pos_ty_error(ec_brace_initialization_not_allowed, source_pos, dps->type);
+      *init_error = TRUE;
+      break;
+    case tk_class:
+    case tk_struct:
+    case tk_union:
+      if (symbol_for(dtype)->variant.class_struct_union.extra_info
+                           ->is_class_aggregate) {
+        /* FIXME: Aggregate case is unimplemented. */
+        pos_ty_error(ec_brace_initialization_not_allowed, source_pos,
+                     dps->type);
+        *init_error = TRUE;
+      } else if (is_empty_list_init_component(icp)) {
+        /* An empty list: Value initialization.  Unlike the case below, we do
+           not unpack the list when calling convert_initializer. */
+        convert_initializer(icp, dps->type, /*is_var_init=*/TRUE,
+                            /*is_direct_init=*/TRUE, /*check_narrowing=*/TRUE,
+                            dps, &is_constant, init_dip, init_con);
+      } else {
+        /* Pass the unwrapped value (or list) to the be converted to the
+           destination type. */
+        convert_initializer(icp->variant.braced.list, dps->type,
+                            /*is_var_init=*/TRUE, /*is_direct_init=*/TRUE,
+                            /*check_narrowing=*/TRUE, dps, &is_constant,
+                            init_dip, init_con);
+      }  /* if */
+      break;
+    default:
+      if (is_empty_list_init_component(icp)) {
+        /* An empty list: Value initialization.  Unlike the case below, we do
+           not unpack the list when calling convert_initializer. */
+        convert_initializer(icp, dps->type, /*is_var_init=*/TRUE,
+                            /*is_direct_init=*/TRUE, /*check_narrowing=*/TRUE,
+                            dps, &is_constant, init_dip, init_con);
+      } else if (is_singleton_list_init_component(icp)) {
+        /* Pass the unwrapped value (or list) to the be converted to the
+           destination type. */
+        convert_initializer(icp->variant.braced.list, dps->type,
+                            /*is_var_init=*/TRUE, /*is_direct_init=*/TRUE,
+                            /*check_narrowing=*/TRUE, dps, &is_constant,
+                            init_dip, init_con);
+      } else {
+        /* More than one initializer for a non-class and non-array: Issue an
+           error. */
+        a_source_position  *pos_excess = init_component_pos(
+                                              icp->variant.braced.list->next);
+        pos_error(ec_too_many_initializer_values, pos_excess);
+        *init_error = TRUE;
+      }  /* if */
+      break;
+  }  /* switch */
   free_init_component_list(icp);
 }  /* direct_braced_initializer */
 

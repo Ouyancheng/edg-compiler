@@ -1120,7 +1120,7 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	is_class_aggregate:1;
 			/* TRUE if the class has no constructors, no base
 			   classes, no private or protected members, and
-			   no virtual functions (ARM 8.4.1). */
+			   no virtual functions. */
   a_bit_field	is_POD:1;
 			/* TRUE if the class is a "POD" -- an aggregate with
 			   further restrictions that make it look like a
@@ -5491,6 +5491,15 @@ extern a_boolean f_has_nontrivial_constructor(
    (sym)->variant.constant != NULL &&					\
    (sym)->variant.constant->kind == (a_constant_repr_kind)ck_template_param)
 
+/*
+Extract the variable entry associated with a variable or static data member
+symbol.
+*/
+#define var_for_symbol(sym)                                                  \
+  (symbol_is(sym, sk_variable) ? (sym)->variant.variable.ptr :               \
+   symbol_is(sym, sk_static_data_member) ?                                   \
+                                 (sym)->variant.static_data_member.variable :\
+                                 NULL)
 /*
 Extract the type from a type symbol (one for which is_type_symbol is TRUE).
 */
