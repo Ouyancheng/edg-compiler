@@ -4014,6 +4014,33 @@ called to check and adjust the argument types.
 }  /* is_gnu_sync_call */
 
 
+static a_symbol_ptr gnu_builtin_func_by_name(char *name)
+/*
+Return the symbol for the GNU __builtin_... function identified by the given
+string.
+*/
+{
+  a_symbol_locator  loc;
+  a_symbol_ptr      sym;
+  
+  clear_locator(&loc, &null_source_position);
+  (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+  sym = file_scope_id_lookup(il_header.primary_scope, &loc,
+                             IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
+  /* Cover the unlikely case that the symbol name corresponds to multiple
+     entries. */
+  for (; sym != NULL; sym = sym->next) {
+    if (symbol_is(sym, sk_overloaded_function)) {
+      sym = sym->variant.overloaded_function.symbols;
+    } else if (symbol_is(sym, sk_routine) &&
+               is_gnu_builtin_function(sym->variant.routine.ptr)) {
+      break;
+    }  /* if */
+  }  /* for */
+  return sym;
+}  /* gnu_builtin_func_by_name */
+
+
 static a_routine_ptr adjust_gnu_sync_call(
                                     an_operand         *target,
                                     an_arg_operand_ptr args,
@@ -4126,10 +4153,9 @@ that the final call needs to be cast to the indicated type.
       err = TRUE;
     } else {
       /* Find the concrete routine to dispatch the operation to. */
-      a_symbol_ptr        sym;
-      a_symbol_locator    loc;
-      an_operand          orig_operand;
-      char                name[100], suffix[3];
+      a_symbol_ptr  sym;
+      an_operand    orig_operand;
+      char          name[100], suffix[3];
       /* Construct the concrete routine's name: */
       check_assertion(strlen(builtin_function_kind_names[bfk]) < 90);
       strcpy(name, builtin_function_kind_names[bfk]);
@@ -4138,15 +4164,7 @@ that the final call needs to be cast to the indicated type.
       suffix[2] = '\0';
       strcat(name, suffix);
       /* Look it up: */
-      clear_locator(&loc, &null_source_position);
-      (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
-      sym = file_scope_id_lookup(il_header.primary_scope, &loc,
-                                 IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
-      /* Cover the unlikely case that the symbol name corresponds to multiple
-         entries. */
-      for (; sym != NULL; sym = sym->next) {
-        if (sym->kind == (a_symbol_kind)sk_routine) break;
-      }  /* for */
+      sym = gnu_builtin_func_by_name(name);
       check_assertion(sym != NULL);
       /* Update the operand: */
       orig_operand = *target;

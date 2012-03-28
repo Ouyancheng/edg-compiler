@@ -1,5 +1,21 @@
 Version 4.5
 
+3/28/12  [EDGcpfe/12802]
+Declarations overloading concrete GNU __sync_... functions
+
+Calls to GNU __sync_... functions are dispatched to concrete implementation of
+those functions for certain small data sizes (see Changes entry of 7/31/07).
+Previously, the front end could issue an internal error in adjust_gnu_sync_call
+(expr.c) if the program overloaded such a concrete __sync_... function (in
+GNU C++ mode).  For example (assuming a 4-byte int type):
+
+  int __sync_add_and_fetch_4(int *a) {  // Overloads the built-in function.
+    return __sync_add_and_fetch(a, *a); // Previously an internal error.
+  }
+
+This is now fixed.
+
+
 3/27/12  [EDGcpfe/12796]
 Incorrect value of cache_tokens count in lexical stack state
 
