@@ -13989,7 +13989,7 @@ source and the expression is generated in that form.
       if (unnamed_type_case) {
         write_tok_str("0");
       } else {
-        write_tok_str(braced_init ? "{}" : "()");
+        write_tok_str(braced_init ? (char*)"{}" : (char*)"()");
       }  /* if */
       break;
     case dik_constant:
@@ -14029,7 +14029,7 @@ source and the expression is generated in that form.
         if (force_parens) {
           write_tok_str("()");
         } else if (is_value_init) {
-          write_tok_str(braced_init ? "{}" : "()");
+          write_tok_str(braced_init ? (char*)"{}" : (char*)"()");
         }  /* if */
         break;
       }  /* if */
@@ -14221,7 +14221,7 @@ initialization is in a condition declaration if is_condition is TRUE.
            notation, we render that.  We don't attempt to render the
            parenthesized notation to avoid having to deal with parsing
            ambiguities. */
-        write_tok_str(braced_init ? "{" : " = ");
+        write_tok_str(braced_init ? (char*)"{" : (char*)" = ");
         gen_initializer_constant(initializer->constant, var->type,
                                  /*transparent_case=*/FALSE,
                                  /*suppress_braces=*/FALSE);
