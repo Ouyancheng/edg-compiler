@@ -477,6 +477,7 @@ static void gen_initializer_expr(an_expr_node_ptr expr,
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
+                             a_boolean          braced_init,
                              a_boolean          force_parens,
                              a_boolean          obj_expr_of_mfunc_operator,
                              a_boolean          is_static_cast);
@@ -4742,6 +4743,7 @@ field designator.
     /* Dynamic initialization for an element of an aggregate. */
     gen_dynamic_init(constant->variant.dynamic_init, type,
                      /*parenthesized_init=*/FALSE,
+                     /*braced_init=*/FALSE,
                      /*force_parens=*/FALSE,
                      /*obj_expr_of_mfunc_operator=*/FALSE,
                      /*is_static_cast=*/FALSE);
@@ -8083,8 +8085,8 @@ in determining how to generate dynamic initializations).
     /* A temp-init marked as a reused value is just put out as the
        underlying value. */
     gen_dynamic_init(dip, temp_type, /*parenthesized_init=*/FALSE,
-                     /*force_parens=*/FALSE, obj_expr_of_mfunc_operator,
-                     expr->is_static_cast);
+                     /*braced_init=*/FALSE, /*force_parens=*/FALSE,
+                     obj_expr_of_mfunc_operator, expr->is_static_cast);
   } else if (C_mode() ||
              ((dip->kind == (a_dynamic_init_kind)dik_constant ||
                dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
@@ -8112,8 +8114,8 @@ in determining how to generate dynamic initializations).
       }  /* if */
     }  /* if */
     gen_dynamic_init(dip, temp_type, /*parenthesized_init=*/FALSE,
-                     /*force_parens=*/FALSE, obj_expr_of_mfunc_operator,
-                     expr->is_static_cast);
+                     /*braced_init=*/FALSE, /*force_parens=*/FALSE,
+                     obj_expr_of_mfunc_operator, expr->is_static_cast);
     if (cast_added) write_tok_ch(')');
   }  /* if */
 }  /* gen_temp_init */
@@ -8683,7 +8685,7 @@ function call, notation.
     /* For an argument passed using a copy constructor, optimize out
        the copy constructor reference. */
     gen_dynamic_init(arg->variant.init.dynamic_init, param->type,
-                     /*parenthesized_init=*/FALSE,
+                     /*parenthesized_init=*/FALSE, /*braced_init=*/FALSE,
                      /*force_parens=*/FALSE,
                      /*obj_expr_of_mfunc_operator=*/FALSE,
                      /*is_static_cast=*/FALSE);
@@ -8714,18 +8716,18 @@ function call, notation.
 }  /* gen_argument */
 
 
-static void gen_argument_list(an_expr_node_ptr arg,
-                              a_type_ptr       rout_type,
-                              int              skip_num)
+static void gen_argument_list_full(an_expr_node_ptr arg,
+                                   a_type_ptr       rout_type,
+                                   int              skip_num,
+                                   a_boolean        braced)
 /*
-Write out an argument list with surrounding parentheses.  If rout_type
-is non-NULL, it is the type of the routine being called and that
-information is used, e.g., to handle output for reference parameters
-appropriately.  If rout_type is NULL, the argument expressions are put
-out "as is".  If skip_num is non-zero, it indicates the number of
-leading argument expressions not to put out (they're on the arg list
-and the parameter list, and they're passed over, but nothing is put
-out for them).
+Write out an argument list with surrounding parentheses or (if braced is TRUE)
+braces.  If rout_type is non-NULL, it is the type of the routine being called
+and that information is used, e.g., to handle output for reference parameters
+appropriately.  If rout_type is NULL, the argument expressions are put out
+"as is".  If skip_num is non-zero, it indicates the number of leading argument
+expressions not to put out (they're on the arg list and the parameter list,
+and they're passed over, but nothing is put out for them).
 */
 {
   a_param_type_ptr              param;
@@ -8740,7 +8742,7 @@ out for them).
     /* Routine type is not known. */
     param = NULL;
   }  /* if */
-  write_tok_ch('(');
+  write_tok_ch(braced ? '{' : '(');
   for (; arg != NULL;) {
     if (skip_num > 0) {
       /* Skip an argument. */
@@ -8761,8 +8763,15 @@ out for them).
     arg = arg->next;
     if (param != NULL) param = param->next;
   }  /* for */
-  write_tok_ch(')');
-}  /* gen_argument_list */
+  write_tok_ch(braced ? '}' : ')');
+}  /* gen_argument_list_full */
+
+/*
+Convenience macro for the most common case of an argument list enclosed in
+parentheses.
+*/
+#define gen_argument_list(arg, rout_type, skip_num)                          \
+  (gen_argument_list_full(arg, rout_type, skip_num, /*braced=*/FALSE))
 
 
 static a_boolean num_elems_can_be_found_in_size_expr(
@@ -8921,6 +8930,7 @@ Generate code for a new or delete operation.
     if (ndsp->dynamic_init != NULL) {
       /* The allocated entity gets initialized. */
       gen_dynamic_init(ndsp->dynamic_init, type, /*parenthesized_init=*/TRUE,
+                       /*braced_init=*/FALSE,
                        /*force_parens=*/(a_boolean)ndsp->has_new_initializer,
                        /*obj_expr_of_mfunc_operator=*/FALSE,
                        /*is_static_cast=*/FALSE);
@@ -8973,6 +8983,7 @@ Generate code for a gcnew expression.
     gen_dynamic_init(dip,
                      (gsp->is_cli_array ? gcnew_expr->type : type),
                      /*parenthesized_init=*/!gsp->is_cli_array,
+                     /*braced_init=*/FALSE,
                      /*force_parens=*/!gsp->is_cli_array &&
                                       gsp->has_new_initializer,
                      /*obj_expr_of_mfunc_operator=*/FALSE,
@@ -11440,7 +11451,7 @@ done_with_operation_after_parens:
         a_throw_supplement_ptr tsp = expr->variant.throw_info;
         write_space();
         gen_dynamic_init(tsp->dynamic_init, tsp->type,
-                         /*parenthesized_init=*/FALSE,
+                         /*parenthesized_init=*/FALSE, /*braced_init=*/FALSE,
                          /*force_parens=*/FALSE,
                          /*obj_expr_of_mfunc_operator=*/FALSE,
                          /*is_static_cast=*/FALSE);
@@ -11527,7 +11538,7 @@ done_with_operation_after_parens:
       /* This comes up in Microsoft property reference expansions. */
       dip = expr->variant.reused_value_init;
       gen_dynamic_init(dip, expr->type, /*parenthesized_init=*/FALSE,
-                       /*force_parens=*/FALSE,
+                       /*braced_init=*/FALSE, /*force_parens=*/FALSE,
                        /*obj_expr_of_mfunc_operator=*/FALSE,
                        expr->is_static_cast);
       break;
@@ -11822,6 +11833,7 @@ Generate code for the indicated range-based-for statement.
   gen_dynamic_init(ref_var->initializer.dynamic,
                    ref_var->type,
                    /*parenthesized_init=*/FALSE,
+                   /*braced_init=*/FALSE,
                    /*force_parens=*/FALSE,
                    /*obj_expr_of_mfunc_operator=*/FALSE,
                    /*is_static_cast=*/FALSE);
@@ -11862,6 +11874,7 @@ Generate code for the indicated "for each" statement.
   gen_dynamic_init(ref_var->initializer.dynamic,
                    ref_var->type,
                    /*parenthesized_init=*/FALSE,
+                   /*braced_init=*/FALSE,
                    /*force_parens=*/FALSE,
                    /*obj_expr_of_mfunc_operator=*/FALSE,
                    /*is_static_cast=*/FALSE);
@@ -13562,7 +13575,7 @@ one that yields the value) of a statement expression.
             write_space();
             gen_dynamic_init(statement->variant.return_dynamic_init,
                              return_type, /*parenthesized_init=*/FALSE,
-                             /*force_parens=*/FALSE,
+                             /*braced_init=*/FALSE, /*force_parens=*/FALSE,
                              /*obj_expr_of_mfunc_operator=*/FALSE,
                              /*is_static_cast=*/FALSE);
           }  /* if */
@@ -13759,6 +13772,7 @@ source.
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
+                             a_boolean          braced_init,
                              a_boolean          force_parens,
                              a_boolean          obj_expr_of_mfunc_operator,
                              a_boolean          is_static_cast)
@@ -13771,9 +13785,14 @@ this is the parenthesized form of initialization, e.g., "(y)" in
 
   A x(y);
 
-If parenthesized_init is FALSE, this is an initialization with "="
-semantics (but the "=" is put out by the caller, if at all); put nothing
-around the initializer.
+Similarly, if braced_init is TRUE, put braces around the initializer (a C++11
+feature).  E.g., "{y}" in
+
+  A x{y};
+
+If parenthesized_init and braced_init are both FALSE, this is an initialization
+with "=" semantics (but the "=" is put out by the caller, if at all); put
+nothing around the initializer.
 
 If no initialization is indicated, or if the initialization is with
 a default constructor, nothing is put out (in either mode), except that,
@@ -13798,6 +13817,7 @@ source and the expression is generated in that form.
   a_boolean        suppress_outermost_parentheses = FALSE;
   a_boolean        unnamed_type_case = FALSE;
   a_boolean        need_closing_operand_paren = FALSE;
+  a_boolean        assign_init = !parenthesized_init && !braced_init;
 
   if (dip->is_explicit_cast && !parenthesized_init) {
     a_boolean has_one_argument = FALSE;
@@ -13819,6 +13839,7 @@ source and the expression is generated in that form.
       has_one_argument = TRUE;
     }  /* if */
     parenthesized_init = TRUE;
+    assign_init = FALSE;
     force_parens = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (has_one_argument &&
@@ -13951,9 +13972,9 @@ source and the expression is generated in that form.
   } else if (dip->is_result_for_class_rvalue_question_mark) {
     /* This temporary is the result of a "?" operator returning
        a class rvalue. */
-    if (parenthesized_init) write_tok_ch('(');
+    if (!assign_init) write_tok_ch(braced_init ? '{' : '(');
     gen_class_rvalue_question_mark(dip);
-    if (parenthesized_init) write_tok_ch(')');
+    if (!assign_init) write_tok_ch(braced_init ? '}' : ')');
     goto end_of_routine;
   }  /* if */
   switch (dip->kind) {
@@ -13963,12 +13984,12 @@ source and the expression is generated in that form.
       break;
     case dik_zero:
       /* Zero initialization, as in "A()" when A has no constructor. */
-      check_assertion_str(parenthesized_init,
+      check_assertion_str(!assign_init,
                           "gen_dynamic_init: zero init not parenthesized");
       if (unnamed_type_case) {
         write_tok_str("0");
       } else {
-        write_tok_str("()");
+        write_tok_str(braced_init ? "{}" : "()");
       }  /* if */
       break;
     case dik_constant:
@@ -13979,8 +14000,8 @@ source and the expression is generated in that form.
       check_assertion_str(con->kind != (a_constant_repr_kind)ck_aggregate ||
                           !parenthesized_init,
                           "gen_dynamic_init: aggregate in parens");
-      if (parenthesized_init) write_tok_ch('(');
-      if (con->expr != NULL &&
+      if (!assign_init) write_tok_ch(braced_init ? '{' : '(');
+      if (con->expr != NULL && !braced_init &&
           con->expr->kind == (an_expr_node_kind)enk_temp_init) {
         /* We need an extra level of parentheses to avoid the
            declaration/expression ambiguity: we want "T x((T()));" and not
@@ -13992,20 +14013,24 @@ source and the expression is generated in that form.
       gen_initializer_constant(con, init_entity_type,
                                /*transparent_case=*/FALSE,
                                /*suppress_braces=*/FALSE);
-      if (parenthesized_init) write_tok_ch(')');
+      if (!assign_init) write_tok_ch(braced_init ? '}' : ')');
       break;
     case dik_nonconstant_aggregate:
       /* Nonconstant aggregate constant, used in cases like
            int a[3] = {1, i+j, 3};
       */
       con = dip->variant.constant;
-      if (parenthesized_init &&
+      if (!assign_init &&
           (default_class_array_initialization(dip, &is_value_init) ||
            is_value_init)) {
-        /* This is default initialization for a whole class array,
-           so nothing need be put out, except parens if forced.
-           Or value-initialization, which always requires parentheses. */
-        if (force_parens || is_value_init) write_tok_str("()");
+        /* This is default initialization for a whole class array, so nothing
+           need be put out, except parens if forced.  Or value-initialization,
+           which always requires parentheses or braces. */
+        if (force_parens) {
+          write_tok_str("()");
+        } else if (is_value_init) {
+          write_tok_str(braced_init ? "{}" : "()");
+        }  /* if */
         break;
       }  /* if */
       /* The constant must be an aggregate. */
@@ -14031,8 +14056,8 @@ source and the expression is generated in that form.
       /* Parentheses are required (a) if parenthesized_init is TRUE, and
          (b) if parenthesized_init is FALSE, because of the possibility that
          the top-level operator is a ",".  Remove any compiler-generated
-         address-of operator. */
-      if (parenthesized_init) write_tok_ch('(');
+         address-of operator.  Braces are needed if braced_init is TRUE. */
+      if (!assign_init) write_tok_ch(braced_init ? '{' : '(');
       expr = dip->variant.expression;
       (void)strip_lvalue_cast_sequence(&expr);
       if (expr->kind == (an_expr_node_kind)enk_temp_init) {
@@ -14046,14 +14071,14 @@ source and the expression is generated in that form.
       gen_initializer_expr(expr, init_entity_type,
                            expr_has_comma_operation(expr),
                            /*mbr_fcn_default_arg_expr=*/FALSE);
-      if (parenthesized_init) write_tok_ch(')');
+      if (!assign_init) write_tok_ch(braced_init ? '}' : ')');
       break;
     case dik_call_returning_class_via_cctor:
       /* Used for function calls that return a value via a copy constructor,
          only under enk_temp_init nodes. */
-      if (parenthesized_init) write_tok_ch('(');
+      if (!assign_init) write_tok_ch(braced_init ? '{' : '(');
       gen_expression(dip->variant.expression);
-      if (parenthesized_init) write_tok_ch(')');
+      if (!assign_init) write_tok_ch(braced_init ? '}' : ')');
       break;
     case dik_constructor:
       { a_routine_ptr    ctor = dip->variant.constructor.ptr;
@@ -14066,11 +14091,10 @@ source and the expression is generated in that form.
         if (default_init && !parenthesized_init) {
           /* A default initialization that's implicit and not parenthesized
              has to be put out as X(); you can't put out nothing. */
+          check_assertion(!braced_init);
           gen_type(init_entity_type);
-          parenthesized_init = TRUE;
-          force_parens = TRUE;
-        }  /* if */
-        if (!parenthesized_init) {
+          write_tok_str("()");
+        } else if (!parenthesized_init && !braced_init) {
           /* A conversion that was implicit in the source (explicit cases
              were processed above, and parenthesized_init was set to TRUE).
              Put out the operand instead of the constructor call. */
@@ -14086,14 +14110,11 @@ source and the expression is generated in that form.
                                                                param_type_list;
           }  /* if */
           gen_argument(args, param, /*operator_notation=*/FALSE);
-        } else if (default_init && !force_parens) {
-          /* Default initialization and parentheses are not required.  Put
-             out nothing. */
         } else {
           /* Parenthesized initialization by constructor.  Put out
                (arg1, arg2, ...)
           */
-          if (args != NULL && args->next == NULL &&
+          if (args != NULL && args->next == NULL && !braced_init &&
               args->kind == (an_expr_node_kind)enk_temp_init &&
               !args->generated_default_arg) {
             /* This initialization risks falling into the syntactic
@@ -14106,8 +14127,8 @@ source and the expression is generated in that form.
             write_tok_ch('(');
             need_closing_operand_paren = TRUE;
           }  /* if */
-          gen_argument_list(args, (ctor == NULL) ? NULL : ctor->type,
-                            /*skip_num=*/0);
+          gen_argument_list_full(args, (ctor == NULL) ? NULL : ctor->type,
+                                 /*skip_num=*/0, braced_init);
         }  /* if */
       }
       break;
@@ -14118,7 +14139,7 @@ source and the expression is generated in that form.
     write_tok_ch(')');
   }  /* if */
   /* Generate a closing parenthesis if needed for an old-style cast. */
-  if (using_old_style_cast && ! suppress_outermost_parentheses) {
+  if (using_old_style_cast && !suppress_outermost_parentheses) {
     write_tok_ch(')');
   }  /* if */
 end_of_routine:;
@@ -14155,6 +14176,7 @@ initialization is in a condition declaration if is_condition is TRUE.
 */
 {
   a_boolean          parenthesized_init;
+  a_boolean          braced_init = var->has_direct_braced_initializer;
   an_init_kind       init_kind;
   an_initializer_ptr initializer;
   a_boolean          context_pop_required = FALSE;
@@ -14194,20 +14216,26 @@ initialization is in a condition declaration if is_condition is TRUE.
     }  /* if */
     switch (init_kind) {
       case initk_static:
-        write_tok_str(" = ");
+        /* We can safely express this initialization with the " = " notation.
+           However, if we know the original form used C++ braced-initialization
+           notation, we render that.  We don't attempt to render the
+           parenthesized notation to avoid having to deal with parsing
+           ambiguities. */
+        write_tok_str(braced_init ? "{" : " = ");
         gen_initializer_constant(initializer->constant, var->type,
                                  /*transparent_case=*/FALSE,
                                  /*suppress_braces=*/FALSE);
+        if (braced_init) write_tok_ch('}');
         break;
       case initk_dynamic:
         /* Put out the initialization, using the "()" form if it was that
            way in the source code. */
         parenthesized_init = var->has_parenthesized_initializer;
-        if (!parenthesized_init) {
+        if (!parenthesized_init && !braced_init) {
           write_tok_str(" = ");
         }  /* if */
         gen_dynamic_init(initializer->dynamic, var->type, parenthesized_init,
-                         /*force_parens=*/FALSE,
+                         braced_init, /*force_parens=*/FALSE,
                          /*obj_expr_of_mfunc_operator=*/FALSE,
                          /*is_static_cast=*/FALSE);
         break;
@@ -14651,7 +14679,7 @@ a constructor.
       } else {
         /* Generate the initialization. */
         gen_dynamic_init(ctor_init->initializer, type,
-                         /*parenthesized_init=*/TRUE,
+                         /*parenthesized_init=*/TRUE, /*braced_init=*/FALSE,
                          /*force_parens=*/TRUE,
                          /*obj_expr_of_mfunc_operator=*/FALSE,
                          /*is_static_cast=*/FALSE);
