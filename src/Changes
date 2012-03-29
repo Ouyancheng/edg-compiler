@@ -1,5 +1,22 @@
 Version 4.5
 
+3/29/12  [EDGcpfe/12804]
+C++-generating back end, GNU compatibility: attribute position in parameter
+declarations
+
+The C++-generating back end normalizes the position of attributes that
+apply to the declarator in a declaration so that they appear in postfix
+notation, i.e., following the complete declarator.  Versions of g++ prior
+to 3.4, however, issue an error when attributes appear in this position in
+a parameter declaration.  The C++-generating back end has now been changed
+to place such attributes immediately preceding the identifier in parameter
+declarations when gcc_is_generated_code_target is TRUE and
+gnu_target_version_number < 30400.  For example:
+
+  int f(int (* __attribute__((__cdecl__)) p)());  // Previously generated as
+                         // int f(int (* p)(void) __attribute((__cdecl__)));
+
+
 3/28/12  [EDGcpfe/12800]
 Class modifiers on definition of classes nested in class templates
 

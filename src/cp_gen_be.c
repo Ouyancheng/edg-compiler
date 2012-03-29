@@ -5766,7 +5766,17 @@ default arguments should be suppressed (needed for template specializations).
   a_func_prototype_stack_entry  fpse;
   a_boolean                     saved_in_parameter_pack_declaration =
                                                  in_parameter_pack_declaration;
+  a_boolean                     id_equiv_attribs_as_prefix = FALSE;
 
+#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+  if (gcc_is_generated_code_target && gnu_target_version_number < 30400) {
+    /* Versions of g++ prior to 3.4 did not accept attributes applying to a
+       parameter in the postfix position, where they are normally put out;
+       instead, they must be put out immediately preceding the name of the
+       parameter. */
+    id_equiv_attribs_as_prefix = TRUE;
+  }  /* if */
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
   /* Push an entry onto the function prototype stack. */
   fpse.function_type = type;
   fpse.outside_parameter_list = FALSE;
@@ -5888,6 +5898,10 @@ default arguments should be suppressed (needed for template specializations).
                                       /*under_lhs_declarator=*/FALSE,
                                       /*need_trailing_space=*/TRUE,
                                       &octl);
+          if (id_equiv_attribs_as_prefix) {
+            gen_attributes(param->attributes, al_id_equivalent,
+                           /*primary_only=*/FALSE);
+          }  /* if */
           if (param->is_parameter_pack) write_tok_str("...");
           if (param->name != NULL) {
             gen_param_name_from_param_type(param);
@@ -5915,6 +5929,14 @@ default arguments should be suppressed (needed for template specializations).
           form_type_first_part(param_type, /*under_lhs_declarator=*/FALSE,
                                /*need_trailing_space=*/FALSE,
                                extra_qual, FTO_NO_OPTIONS, &octl);
+          if (id_equiv_attribs_as_prefix) {
+            /* Although this is a "prefix" location, we still need to do
+               the spacing as if the attribute were in a postfix position
+               (with a preceding space and not a trailing space), so we use
+               the "...as_postfix" location specifier. */
+            gen_attributes(param->attributes, al_id_equivalent_as_postfix,
+                           /*primary_only=*/FALSE);
+          }  /* if */
           if (param->name != NULL) {
             write_space();
             if (param->is_parameter_pack) write_tok_str("...");
@@ -5929,8 +5951,10 @@ default arguments should be suppressed (needed for template specializations).
           in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
         }  /* if */
         gen_attributes(param->attributes, al_postfix, /*primary_only=*/FALSE);
-        gen_attributes(param->attributes, al_id_equivalent_as_postfix,
-                       /*primary_only=*/FALSE);
+        if (!id_equiv_attribs_as_prefix) {
+          gen_attributes(param->attributes, al_id_equivalent_as_postfix,
+                         /*primary_only=*/FALSE);
+        }  /* if */
         if (!suppress_def_args) {
           /* Put out a default argument expression if there is one. */
           in_ctor_default_argument = rtsp->assoc_routine_is_ctor;
