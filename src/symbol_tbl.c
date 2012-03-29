@@ -9223,6 +9223,10 @@ and do not issue any diagnostics (including warnings).
                 cssp = symbol_supplement_for_class(class_type);
 
   if (error_detected != NULL) *error_detected = FALSE;
+  class_type = skip_typerefs(class_type);
+  if (object_class_type != NULL) {
+    object_class_type = skip_typerefs(object_class_type);
+  }  /* if */
   if (cssp != NULL) {
     dtor_sym = cssp->destructor;
     if (dtor_sym != NULL) {
@@ -9263,8 +9267,7 @@ and do not issue any diagnostics (including warnings).
         check_assertion(dtor_routine->is_defaulted);
         dtor_routine = NULL;
       }  /* if */
-    } else if (skip_typerefs(class_type)->
-                             variant.class_struct_union.dtor_decl_suppressed &&
+    } else if (class_type->variant.class_struct_union.dtor_decl_suppressed &&
                microsoft_version >= 1400) {
       /* MSVC++ 8.0 issues an error if a suppressed destructor would have
          been called. */
@@ -9346,6 +9349,10 @@ and do not issue any diagnostics (including warnings).
   a_boolean     ambiguous;
 
   if (error_detected != NULL) *error_detected = FALSE;
+  class_type = skip_typerefs(class_type);
+  if (object_class_type != NULL) {
+    object_class_type = skip_typerefs(object_class_type);
+  }  /* if */
   cctor_sym = find_copy_constructor(class_type, required_qualifiers,
                                     source_is_rvalue,
                                     err_pos, &ambiguous,

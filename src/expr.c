@@ -28594,6 +28594,7 @@ void convert_initializer(an_init_component_ptr icp,
                          a_boolean             is_var_init,
                          a_boolean             is_direct_init,
                          a_boolean             check_narrowing,
+                         a_boolean             fill_in_dtor,
                          a_decl_parse_state    *dps,
                          a_boolean             *is_constant,
                          a_dynamic_init_ptr    *dip,
@@ -28611,19 +28612,21 @@ conversions.  The converted result is returned as either a constant
 (*is_constant is set to TRUE, and *constant is set to a pointer to the
 unshared allocated constant) or a dynamic init entry (*is_constant is
 set to FALSE, and *dip is set to a pointer to the allocated dynamic
-init entry).  dps describes the current declaration state, or is NULL
-if there is no declaration associated with this scan.
+init entry).  If fill_in_dtor is TRUE, in the latter case the
+destructor will be added to the dynamic init entry (but it's not
+put on a lifetime list yet).  dps describes the current declaration
+state, or is NULL if there is no declaration associated with this scan.
 */
 {
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
+  a_variable_ptr      var = NULL;
   a_boolean           value_init;
 
   *dip = NULL;
   *constant = NULL;
   if (is_var_init) {
     /* This is a top-level variable initialization. */
-    a_variable_ptr var;
     a_symbol_ptr   var_sym;
     check_assertion(dps != NULL);
     var_sym = dps->sym;
@@ -28686,8 +28689,18 @@ if there is no declaration associated with this scan.
       unexpected_condition_str("brace init with > 0 elements not implemented");
     }  /* if */
   }  /* if */
+  if (fill_in_dtor && !*is_constant) {
+    /* Fill in the destructor if one is needed. */
+    (*dip)->destructor = expr_select_destructor(dest_type,
+                                                dest_type,
+                                                init_component_pos(icp),
+                                                /*honor_virtual=*/FALSE);
+  }  /* if */
   pop_expr_stack();
-  if (is_var_init) restore_expr_stack(saved_expr_stack);
+  if (is_var_init) {
+    restore_expr_stack(saved_expr_stack);
+    if (!*is_constant) (*dip)->variable = var;
+  }  /* if */
 }  /* convert_initializer */
 
 

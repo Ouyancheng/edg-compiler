@@ -3901,14 +3901,15 @@ a dynamic component) or *init_con (for purely constant initializers).
            not unpack the list when calling convert_initializer. */
         convert_initializer(icp, dps->type, /*is_var_init=*/TRUE,
                             /*is_direct_init=*/TRUE, /*check_narrowing=*/TRUE,
+                            /*fill_in_dtor=*/TRUE,
                             dps, &is_constant, init_dip, init_con);
       } else {
         /* Pass the unwrapped value (or list) to the be converted to the
            destination type. */
         convert_initializer(icp->variant.braced.list, dps->type,
                             /*is_var_init=*/TRUE, /*is_direct_init=*/TRUE,
-                            /*check_narrowing=*/TRUE, dps, &is_constant,
-                            init_dip, init_con);
+                            /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
+                            dps, &is_constant, init_dip, init_con);
       }  /* if */
       break;
     default:
@@ -3917,14 +3918,15 @@ a dynamic component) or *init_con (for purely constant initializers).
            not unpack the list when calling convert_initializer. */
         convert_initializer(icp, dps->type, /*is_var_init=*/TRUE,
                             /*is_direct_init=*/TRUE, /*check_narrowing=*/TRUE,
+                            /*fill_in_dtor=*/TRUE,
                             dps, &is_constant, init_dip, init_con);
       } else if (is_singleton_list_init_component(icp)) {
         /* Pass the unwrapped value (or list) to the be converted to the
            destination type. */
         convert_initializer(icp->variant.braced.list, dps->type,
                             /*is_var_init=*/TRUE, /*is_direct_init=*/TRUE,
-                            /*check_narrowing=*/TRUE, dps, &is_constant,
-                            init_dip, init_con);
+                            /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
+                            dps, &is_constant, init_dip, init_con);
       } else {
         /* More than one initializer for a non-class and non-array: Issue an
            error. */
