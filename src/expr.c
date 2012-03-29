@@ -13712,11 +13712,13 @@ static a_dynamic_init_ptr add_array_nonconstant_aggregate_init(
                                          a_dynamic_init_ptr element_dip,
                                          a_type_ptr         array_type,
                                          a_type_ptr         elem_type,
+                                         a_routine_ptr      dtor_routine,
                                          a_targ_size_t      number_of_elements)
 /*
 Change the indicated dynamic initialization into a dynamic initialization
 for each member of an array of classes.  array_type is the type of the array,
-and elem_type is the type of the array elements.  number_of_elements is the
+and elem_type is the type of the array elements.  dtor_routine, if non-NULL,
+is the destructor associated with the element type.  number_of_elements is the
 number of elements in the array, or 0 if the number of elements is variable
 (and known only at runtime).  Multi-dimensional arrays are treated as
 single-dimensional arrays.  Return a pointer to the dynamic init entry for
@@ -13725,6 +13727,18 @@ the entire array.
 {
   a_dynamic_init_ptr  array_dip;
 
+  /* If exceptions are enabled, put in a destructor.  It's needed to
+     destroy elements if a throw is done part-way through the
+     initialization (or destruction, for a delete) of the array. */
+  if (exceptions_enabled && dtor_routine != NULL) {
+    element_dip->destructor = dtor_routine;
+    element_dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+    if (curr_expr_is_potentially_evaluated()) {
+      record_end_of_lifetime_destruction(element_dip,
+                                         /*static_lifetime=*/FALSE,
+                                         /*block_lifetime=*/FALSE);
+    }  /* if */
+  }  /* if */
   /* The IL structure is
        new dynamic init (dik_nonconstant_aggregate) ->
          constant (ck_aggregate) ->
@@ -13820,6 +13834,35 @@ array_type.  For a variable or unknown-bound array, set *num_elements to zero.
                    unqual_array_type->variant.array.variant.number_of_elements;
   }  /* if */
 }  /* accumulate_array_size */
+
+
+static a_dynamic_init_ptr add_array_nonconstant_aggregate_init_computing_size(
+                                         a_dynamic_init_ptr element_dip,
+                                         a_type_ptr         array_type,
+                                         a_routine_ptr      dtor_routine)
+/*
+Interface to add_array_nonconstant_aggregate_init that determines the
+array element type and number of elements from the array type.
+*/
+{
+  a_type_ptr         elem_type = array_type;
+  a_targ_size_t      num_of_elements = 1;
+  a_dynamic_init_ptr dip;
+
+  /* Determine the number of elements in the (possibly multi-dimensional)
+     array, or 0 if the number of elements is unknown at compile time,
+     as for a template. */
+  while (is_array_type(elem_type)) {
+    accumulate_array_size(elem_type, &num_of_elements);
+    elem_type = array_element_type(elem_type);
+  }  /* while */
+  dip = add_array_nonconstant_aggregate_init(element_dip,
+                                             array_type,
+                                             elem_type,
+                                             dtor_routine,
+                                             num_of_elements);
+  return dip;
+}  /* add_array_nonconstant_aggregate_init_computing_size */
 
 
 static a_routine_ptr determine_deletion_for_new(
@@ -15824,22 +15867,21 @@ handle_empty_parens_new_initializer:
           /* The entity is an array whose elements have a class type that
              has a default constructor.  Use a dik_nonconstant_aggregate
              initialization. */
+          a_routine_ptr dtor_routine = NULL;
           /* If exceptions are enabled, put in a destructor.  It's needed
              to destroy elements if a throw is done part-way through the
              initialization of the array. */
           if (exceptions_enabled &&
               /* Avoid an error recovery problem: */
               is_class_struct_union_type(base_new_type)) {
-            dip->destructor = expr_select_destructor(base_new_type,
-                                                     base_new_type,
-                                                     &type_position,
-                                                     /*honor_virtual=*/FALSE);
-            if (dip->destructor != NULL) {
-              dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-            }  /* if */
+            dtor_routine = expr_select_destructor(base_new_type,
+                                                  base_new_type,
+                                                  &type_position,
+                                                  /*honor_virtual=*/FALSE);
           }  /* if */
           dip = add_array_nonconstant_aggregate_init(dip, new_type,
                                                      base_new_type,
+                                                     dtor_routine,
                                                     effective_num_of_elements);
         }  /* if */
       } else if (zero_initialization) {
@@ -16205,15 +16247,9 @@ in *rcblock).
             a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
             array_type->variant.array.element_type = base_delete_type;
             /* Array size is left as zero; size need not be set. */
-            /* The destruction, if any, is indicated both at the array level
-               (for the full delete) and at the element level (for cleanup if
-               an exception is thrown during the processing). */
-            if (exceptions_enabled) {
-              dip->destructor = dtor_routine;
-              dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-            }  /* if */
             dip = add_array_nonconstant_aggregate_init(dip, array_type,
                                                        base_delete_type,
+                                                       dtor_routine,
                                                        (a_targ_size_t)0);
           }  /* if */
           dip->destructor = dtor_routine;
@@ -26751,19 +26787,11 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
     if (array_case) {
       /* To repeat the initialization for each element of an array,
          add ck_init_repeat/ck_dynamic_init. */
-      a_type_ptr    elem_type = dest_type;
-      a_targ_size_t num_of_elements = 1;
-      /* Determine the number of elements in the (possibly multi-dimensional)
-         array, or 0 if the number of elements is unknown at compile time,
-         as for a template. */
-      while (is_array_type(elem_type)) {
-        accumulate_array_size(elem_type, &num_of_elements);
-        elem_type = array_element_type(elem_type);
-      }  /* while */
-      dip = add_array_nonconstant_aggregate_init(dip,
+      dip = add_array_nonconstant_aggregate_init_computing_size(
+                                                 dip,
                                                  dest_type,
-                                                 elem_type,
-                                                 num_of_elements);
+                                                 (a_routine_ptr)NULL);
+                                                     /* sic: dtor set above. */
     }  /* if */
     /* Wrap the dynamic init in a ck_dynamic_init constant that will go into
        the aggregate. */
@@ -28270,6 +28298,391 @@ the expression is also allowed to have that type.
 
   return expression;
 }  /* scan_typed_expression */
+
+
+static an_init_component_ptr scan_braced_init_list_internal(
+                                                       a_decl_parse_state *dps)
+/*
+Scan a brace-enclosed initializer list and return a structure describing it.
+The current token on entry must be the opening "{".  On return, the current
+token will be the token following the closing "}".  dps describes the
+current declaration state, or is NULL if there is no declaration associated
+with this scan.  This is the "internal" version of the routine, to be
+called only from inside the expression routines, with the expression
+stack already set.
+*/
+{
+  an_init_component_ptr icp =
+                      alloc_init_component((an_init_component_kind)ick_braced);
+
+  /* Advance past the opening brace. */
+  check_assertion(curr_token == tok_lbrace);
+  icp->variant.braced.start_pos = pos_curr_token;
+  (void)get_token();
+  add_matching_stop_token(tok_rbrace);
+  /* Check for an empty list. */
+  if (curr_token != tok_rbrace) {
+    /* Loop to scan a list of expressions or brace-enclosed lists. */
+    an_init_component_ptr elem_icp, end_icp = NULL;
+    do {
+      if (curr_token == tok_lbrace) {
+        /* A nested brace-enclosed list. */
+        elem_icp = scan_braced_init_list_internal(dps);
+        /* Add the entry to the end of the list. */
+        if (end_icp == NULL) {
+          icp->variant.braced.list = elem_icp;
+        } else {
+          end_icp->next = elem_icp;
+        }  /* if */
+        end_icp = elem_icp;
+      } else {
+        /* An expression.  It might be a pack expansion in some modes
+           and contexts. */
+        a_pack_expansion_stack_entry_ptr pesep;
+        a_boolean                        any_more;
+        any_more = begin_potential_pack_expansion_context(&pesep);
+        while (any_more) {
+          an_arg_operand             *arg_op = alloc_arg_operand();
+          a_pack_expansion_descr_ptr pedep;
+  
+          /* Scan the initializer expression and put it into an
+             init-component. */
+          scan_expr(&arg_op->operand, PREC_LOWEST,
+                    EOPT_DISALLOW_COMMA_OPERATOR);
+          elem_icp =
+                  alloc_init_component((an_init_component_kind)ick_expression);
+          elem_icp->variant.expr = arg_op;
+          /* Add the entry to the end of the list. */
+          if (end_icp == NULL) {
+            icp->variant.braced.list = elem_icp;
+          } else {
+            end_icp->next = elem_icp;
+          }  /* if */
+          end_icp = elem_icp;
+          /* If this is a pack expansion, swallow the trailing "..." and
+             loop for the next iteration of the expansion. */
+          pedep = end_potential_pack_expansion_context(pesep,
+                                                      /*is_declarator=*/FALSE);
+          if (pedep != NULL) {
+            /* This expression is a variadic template pack expansion, i.e.,
+               it's followed by "...".  Furthermore, we're in the prototype
+               instantiation, so we record the expansion information on the
+               expression. */
+            mark_operand_as_pack_expansion(&arg_op->operand, pedep);
+          }  /* if */
+          any_more = advance_to_next_pack_element(pesep);
+        }  /* while */
+      }  /* if */
+    } while (loop_token(tok_comma));
+  }  /* if */
+  /* Check for and advance past the closing "}". */
+  icp->variant.braced.end_pos = pos_curr_token;
+  (void)required_token(tok_rbrace, ec_exp_rbrace);
+  remove_matching_stop_token(tok_rbrace);
+  return icp;
+}  /* scan_braced_init_list_internal */
+
+
+an_init_component_ptr scan_braced_init_list(a_boolean          is_var_init,
+                                            a_decl_parse_state *dps)
+/*
+Scan a brace-enclosed initializer list and return a structure describing it.
+The current token on entry must be the opening "{".  On return, the current
+token will be the token following the closing "}".  dps describes the
+current declaration state, or is NULL if there is no declaration associated
+with this scan.  If is_var_init is TRUE, this is the complete initializer
+for a variable, given by dps->sym.
+*/
+{
+  an_expr_stack_entry   *saved_expr_stack;
+  an_expr_stack_entry   expr_stack_entry;
+  an_init_component_ptr icp;
+
+  if (is_var_init) {
+    check_assertion(dps != NULL && dps->sym != NULL &&
+                    var_for_symbol(dps->sym) != NULL);
+    save_expr_stack(&saved_expr_stack);
+  } else {
+    check_assertion(expr_stack != NULL);
+  }  /* if */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  if (is_var_init) transfer_expr_context_if_applicable(saved_expr_stack);
+#if CHECKING
+  if (dps != NULL) {
+    check_assertion(!dps->auto_type_specifier_seen);
+    check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
+    check_assertion(!cached_expression_present());
+  }  /* if */
+#endif /* CHECKING */
+  icp = scan_braced_init_list_internal(dps);
+  pop_expr_stack();
+  if (is_var_init) restore_expr_stack(saved_expr_stack);
+  return icp;
+}  /* scan_braced_init_list */
+
+
+static void value_initialization(a_type_ptr            dest_type,
+                                 a_source_position     *pos,
+                                 a_boolean             *is_constant,
+                                 a_dynamic_init_ptr    *p_dip,
+                                 a_constant_ptr        *p_constant)
+/*
+Create IL to perform a value-initialization (C++ standard [dcl.init])
+of an entity of type dest_type.  Value-initialization comes up
+with an initializer of "{}" or "()".  The result is returned as either
+a constant (*is_constant is set to TRUE, and *p_constant is set to a
+pointer to the unshared allocated constant) or a dynamic init entry
+(*is_constant is set to FALSE, and *p_dip is set to a pointer to the
+allocated dynamic init entry).  Some cases can cause errors, which are
+reported at the source position given by pos.
+*/
+{
+  a_type_ptr         orig_dest_type = dest_type;
+  a_type_ptr         unqual_dest_type;
+  a_boolean          array_case = FALSE;
+  a_boolean          err = FALSE;
+  an_expr_node_ptr   expr;
+  a_constant         con;
+  a_dynamic_init_ptr dip = NULL;
+
+  if (is_array_type(dest_type)) {
+    /* For an array type, strip off all the array levels and generate
+       the initialization for the underlying element type. */
+    dest_type = underlying_array_element_type(dest_type);
+    array_case = TRUE;
+  }  /* if */
+  unqual_dest_type = skip_typerefs(dest_type);
+  complete_type_is_needed(unqual_dest_type);
+  if (is_incomplete_type(dest_type)) {
+    /* Can't value-initialize an incomplete type.  This includes void. */
+    if (expr_error_should_be_issued()) {
+      pos_ty_error(ec_value_init_of_incomplete, pos, dest_type);
+    }  /* if */
+    err = TRUE;
+  } else if (is_reference_type(dest_type)) {
+    /* Can't value-initialize a reference type. */
+    expr_pos_error(ec_value_init_of_reference, pos);
+    err = TRUE;
+  } else if (is_template_param_type(dest_type)) {
+    /* A template parameter type.  Could be a non-class type, so create
+       a constant result. */
+    expr = alloc_empty_parens_func_cast(dest_type,
+                                        (a_dynamic_init_kind)dik_zero,
+                                        pos);
+    make_template_param_expr_constant(expr, &con);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled &&
+             is_cli_generic_definition_argument_type(dest_type)) {
+    /* A C++/CLI generic type.  Always non-constant. */
+    dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (is_class_struct_union_type(dest_type)) {
+    a_boolean     trivial_ctor = FALSE;
+    a_routine_ptr ctor_routine = NULL;
+    if (is_union_type(dest_type)) {
+      /* A union type has no constructor. */
+      trivial_ctor = TRUE;
+    } else if (!is_real_class_type(dest_type)) {
+      /* A nonreal class type. */
+    } else {
+      /* A real class type.  Find the default constructor. */
+      a_boolean def_ctor_err;
+      ctor_routine = expr_select_default_constructor(unqual_dest_type,
+                                                     pos,
+                                                     &def_ctor_err);
+      if (def_ctor_err) {
+        err = TRUE;
+      } else if (ctor_routine == NULL) {
+        trivial_ctor = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!err) {
+      if (trivial_ctor) {
+        /* For a class with a trivial constructor, just zero the object. */
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+      } else {
+        /* Otherwise, use a dik_constructor entry.  For a nonreal class,
+           ctor_routine is NULL to indicate the constructor is unknown. */
+        dip = alloc_expr_ctor_dynamic_init(ctor_routine,
+                                           (an_expr_node_ptr)NULL,
+                                           /*add_default_args=*/FALSE,
+                                           /*implied_source=*/FALSE);
+        /* The value_initialization flag tells back ends to zero the
+           storage before calling the constructor if it is not
+           user-provided. */
+        dip->variant.constructor.value_initialization = TRUE;
+      }  /* if */
+    }  /* if */
+  } else if (is_error_type(dest_type)) {
+    /* Previous error. */
+    err = TRUE;
+  } else {
+    /* Scalar type.  Convert 0 to the type, producing a constant result. */
+    a_boolean did_not_fold;
+    check_assertion(is_scalar_type(dest_type) ||
+                    is_ptr_to_member_type(dest_type));
+    set_integer_constant(&con, (a_host_large_integer)0,
+                         (an_integer_kind)ik_int);
+    expr_type_change_constant(&con, unqual_dest_type,
+                              /*is_implicit_cast=*/TRUE,
+                              /*check_cast_access=*/TRUE,
+                              /*check_ambiguity=*/TRUE,
+                              /*is_reinterpret_cast=*/FALSE,
+                              /*maintain_expression=*/FALSE,
+                              &did_not_fold, pos);
+    check_assertion(!did_not_fold);
+  }  /* if */
+  /* Here, dip != NULL means the result is non-constant. */
+  if (err) {
+    /* For an error case, drop back to zeroing or an error constant. */
+    if (dip != NULL) {
+      set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
+    } else {
+      set_error_constant(&con);
+    }  /* if */
+  }  /* if */
+  if (array_case) {
+    /* The original type was an array type, so repeat the element
+       initialization for every element of the array. */
+    if (dip == NULL) {
+      /* If the element initialization is to a constant, we must be zeroing,
+         so zero the whole array. */
+      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+    } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+      /* The element initialization is a dynamic init that zeroes the
+         object, so just use that for the whole array instead. */
+    } else {
+      /* Some other dynamic initialization (e.g., a constructor call).
+         Add ck_init_repeat repetitions as needed to replicate the
+         initialization for all the elements. */
+      a_routine_ptr dtor_routine = NULL;
+      /* If exceptions are enabled, put in a destructor.  It's needed
+         to destroy elements if a throw is done part-way through the
+         initialization of the array. */
+      if (exceptions_enabled &&
+          is_class_struct_union_type(unqual_dest_type)) {
+        dtor_routine = expr_select_destructor(unqual_dest_type,
+                                              unqual_dest_type,
+                                              pos,
+                                              /*honor_virtual=*/FALSE);
+      }  /* if */
+      dip = add_array_nonconstant_aggregate_init_computing_size(
+                                                 dip,
+                                                 orig_dest_type,
+                                                 dtor_routine);
+    }  /* if */
+  }  /* if */
+  /* Here, dip is non-NULL if the initialization is dynamic.  If it's NULL,
+     the result is a constant whose value is given by con and still needs
+     to be allocated. */
+  if (dip != NULL) {
+    *is_constant = FALSE;
+    *p_dip = dip;
+  } else {
+    *is_constant = TRUE;
+    *p_constant = alloc_unshared_constant(&con);
+  }  /* if */
+}  /* value_initialization */
+
+
+/*FIXME*/
+/*ARGSUSED*/
+void convert_initializer(an_init_component_ptr icp,
+                         a_type_ptr            dest_type,
+                         a_boolean             is_var_init,
+                         a_boolean             is_direct_init,
+                         a_boolean             check_narrowing,
+                         a_decl_parse_state    *dps,
+                         a_boolean             *is_constant,
+                         a_dynamic_init_ptr    *dip,
+                         a_constant_ptr        *constant)
+/*
+Convert an initializer value represented in init-component form (icp)
+to the type of the entity being initialized, given by dest_type.  If
+is_var_init is TRUE, this is the complete initializer for a variable
+(given by dps->sym), and the type of that variable is used for
+dest_type.  In either case, dest_type must not be an aggregate type.
+If is_direct_init is TRUE, the initialization is direct-initialization.
+If check_narrowing is TRUE, issue diagnostics for narrowing
+conversions.  The converted result is returned as either a constant
+(*is_constant is set to TRUE, and *constant is set to a pointer to the
+unshared allocated constant) or a dynamic init entry (*is_constant is
+set to FALSE, and *dip is set to a pointer to the allocated dynamic
+init entry).  dps describes the current declaration state, or is NULL
+if there is no declaration associated with this scan.
+*/
+{
+  an_expr_stack_entry *saved_expr_stack;
+  an_expr_stack_entry expr_stack_entry;
+
+  *dip = NULL;
+  *constant = NULL;
+  if (is_var_init) {
+    /* This is a top-level variable initialization. */
+    a_variable_ptr var;
+    a_symbol_ptr   var_sym;
+    check_assertion(dps != NULL);
+    var_sym = dps->sym;
+    check_assertion(var_sym != NULL);
+    var = var_for_symbol(var_sym);
+    check_assertion(var != NULL);
+    dest_type = var->type;
+    save_expr_stack(&saved_expr_stack);
+  } else {
+    check_assertion(expr_stack != NULL);
+  }  /* if */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  if (is_var_init) transfer_expr_context_if_applicable(saved_expr_stack);
+  check_assertion(dest_type != NULL &&
+                  !is_aggregate_type(dest_type));
+  if (icp->kind == (an_init_component_kind)ick_expression) {
+    /* The object is initialized by an expression. */
+    an_operand *operand = &icp->variant.expr->operand;
+    if (is_template_dependent_type(dest_type)) {
+      prep_generic_operand(operand);
+    } else if (is_class_struct_union_type(dest_type)) {
+      /*FIXME*/
+      unexpected_condition_str("class braced initializer not implemented");
+    } else {
+      a_conv_context_set conv_context = CCO_DEFAULT;
+      if (is_direct_init) conv_context |= CCO_DIRECT_INITIALIZATION;
+      if (is_var_init) conv_context |= CCO_INITIALIZING_VARIABLE;
+      prep_initializer_operand(operand, dest_type,
+                               /*is_transparent=*/(a_boolean *)NULL,
+                               /*conversion=*/(a_conv_descr_ptr)NULL,
+                               /*is_copy_initialization=*/!is_direct_init,
+                               conv_context,
+                               ec_bad_initializer_type);
+    }  /* if */
+    if (is_constant_operand(operand)) {
+      *is_constant = TRUE;
+      *constant = alloc_unshared_constant(&operand->variant.constant);
+    } else {
+      an_expr_node_ptr expr = make_node_from_operand(operand);
+      if (is_var_init) expr = wrap_up_full_expression(expr);
+      *dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+      (*dip)->variant.expression = expr;
+      *is_constant = FALSE;
+    }  /* if */
+  } else {
+    /* The entity is initialized by a brace-enclosed list. */
+    check_assertion(icp->kind == (an_init_component_kind)ick_braced);
+    if (icp->variant.braced.list == NULL) {
+      /* The list is empty, so this is value-initialization. */
+      value_initialization(dest_type,
+                           &icp->variant.braced.start_pos,
+                           is_constant, dip, constant);
+    } else {
+      unexpected_condition_str("brace init with > 0 elements not implemented");
+    }  /* if */
+  }  /* if */
+  pop_expr_stack();
+  if (is_var_init) restore_expr_stack(saved_expr_stack);
+}  /* convert_initializer */
 
 
 static a_symbol_ptr look_up_enhanced_for_member_function(
@@ -31799,214 +32212,6 @@ This is callable from outside of the expression processing routines.
 #endif /* DEBUG */
   db_exit();
 }  /* conv_nontype_template_arg_to_param_type */
-
-
-static an_init_component_ptr scan_braced_init_list_internal(
-                                                       a_decl_parse_state *dps)
-/*
-Scan a brace-enclosed initializer list and return a structure describing it.
-The current token on entry must be the opening "{".  On return, the current
-token will be the token following the closing "}".  dps describes the
-current declaration state, or is NULL if there is no declaration associated
-with this scan.  This is the "internal" version of the routine, to be
-called only from inside the expression routines, with the expression
-stack already set.
-*/
-{
-  an_init_component_ptr icp =
-                      alloc_init_component((an_init_component_kind)ick_braced);
-
-  /* Advance past the opening brace. */
-  check_assertion(curr_token == tok_lbrace);
-  icp->variant.braced.start_pos = pos_curr_token;
-  (void)get_token();
-  add_matching_stop_token(tok_rbrace);
-  /* Check for an empty list. */
-  if (curr_token != tok_rbrace) {
-    /* Loop to scan a list of expressions or brace-enclosed lists. */
-    an_init_component_ptr elem_icp, end_icp = NULL;
-    do {
-      if (curr_token == tok_lbrace) {
-        /* A nested brace-enclosed list. */
-        elem_icp = scan_braced_init_list_internal(dps);
-        /* Add the entry to the end of the list. */
-        if (end_icp == NULL) {
-          icp->variant.braced.list = elem_icp;
-        } else {
-          end_icp->next = elem_icp;
-        }  /* if */
-        end_icp = elem_icp;
-      } else {
-        /* An expression.  It might be a pack expansion in some modes
-           and contexts. */
-        a_pack_expansion_stack_entry_ptr pesep;
-        a_boolean                        any_more;
-        any_more = begin_potential_pack_expansion_context(&pesep);
-        while (any_more) {
-          an_arg_operand             *arg_op = alloc_arg_operand();
-          a_pack_expansion_descr_ptr pedep;
-  
-          /* Scan the initializer expression and put it into an
-             init-component. */
-          scan_expr(&arg_op->operand, PREC_LOWEST,
-                    EOPT_DISALLOW_COMMA_OPERATOR);
-          elem_icp =
-                  alloc_init_component((an_init_component_kind)ick_expression);
-          elem_icp->variant.expr = arg_op;
-          /* Add the entry to the end of the list. */
-          if (end_icp == NULL) {
-            icp->variant.braced.list = elem_icp;
-          } else {
-            end_icp->next = elem_icp;
-          }  /* if */
-          end_icp = elem_icp;
-          /* If this is a pack expansion, swallow the trailing "..." and
-             loop for the next iteration of the expansion. */
-          pedep = end_potential_pack_expansion_context(pesep,
-                                                      /*is_declarator=*/FALSE);
-          if (pedep != NULL) {
-            /* This expression is a variadic template pack expansion, i.e.,
-               it's followed by "...".  Furthermore, we're in the prototype
-               instantiation, so we record the expansion information on the
-               expression. */
-            mark_operand_as_pack_expansion(&arg_op->operand, pedep);
-          }  /* if */
-          any_more = advance_to_next_pack_element(pesep);
-        }  /* while */
-      }  /* if */
-    } while (loop_token(tok_comma));
-  }  /* if */
-  /* Check for and advance past the closing "}". */
-  icp->variant.braced.end_pos = pos_curr_token;
-  (void)required_token(tok_rbrace, ec_exp_rbrace);
-  remove_matching_stop_token(tok_rbrace);
-  return icp;
-}  /* scan_braced_init_list_internal */
-
-
-an_init_component_ptr scan_braced_init_list(a_boolean          is_var_init,
-                                            a_decl_parse_state *dps)
-/*
-Scan a brace-enclosed initializer list and return a structure describing it.
-The current token on entry must be the opening "{".  On return, the current
-token will be the token following the closing "}".  dps describes the
-current declaration state, or is NULL if there is no declaration associated
-with this scan.  If is_var_init is TRUE, this is the complete initializer
-for a variable, given by dps->sym.
-*/
-{
-  an_expr_stack_entry   *saved_expr_stack;
-  an_expr_stack_entry   expr_stack_entry;
-  an_init_component_ptr icp;
-
-  if (is_var_init) {
-    check_assertion(dps != NULL && dps->sym != NULL &&
-                    symbol_is(dps->sym, sk_variable));
-    save_expr_stack(&saved_expr_stack);
-  } else {
-    check_assertion(expr_stack != NULL);
-  }  /* if */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  if (is_var_init) transfer_expr_context_if_applicable(saved_expr_stack);
-#if CHECKING
-  if (dps != NULL) {
-    check_assertion(!dps->auto_type_specifier_seen);
-    check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
-    check_assertion(!cached_expression_present());
-  }  /* if */
-#endif /* CHECKING */
-  icp = scan_braced_init_list_internal(dps);
-  pop_expr_stack();
-  if (is_var_init) restore_expr_stack(saved_expr_stack);
-  return icp;
-}  /* scan_braced_init_list */
-
-
-/*FIXME*/
-/*ARGSUSED*/
-void convert_initializer(an_init_component_ptr icp,
-                         a_type_ptr            dest_type,
-                         a_boolean             is_var_init,
-                         a_boolean             is_direct_init,
-                         a_boolean             check_narrowing,
-                         a_decl_parse_state    *dps,
-                         a_boolean             *is_constant,
-                         a_dynamic_init_ptr    *dip,
-                         a_constant_ptr        *constant)
-/*
-Convert an initializer value represented in init-component form (icp)
-to the type of the entity being initialized, given by dest_type.  If
-is_var_init is TRUE, this is the complete initializer for a variable
-(given by dps->sym), and the type of that variable is used for
-dest_type.  In either case, dest_type must not be an aggregate type.
-If is_direct_init is TRUE, the initialization is direct-initialization.
-If check_narrowing is TRUE, issue diagnostics for narrowing
-conversions.  The converted result is returned as either a constant
-(*is_constant is set to TRUE, and *constant is set to a pointer to the
-allocated constant) or a dynamic init entry (*is_constant is set to
-FALSE, and *dip is set to a pointer to the allocated dynamic init
-entry).  dps describes the current declaration state, or is NULL if
-there is no declaration associated with this scan.
-*/
-{
-  an_expr_stack_entry *saved_expr_stack;
-  an_expr_stack_entry expr_stack_entry;
-  an_operand          *operand;
-
-  *dip = NULL;
-  *constant = NULL;
-  if (is_var_init) {
-    /* This is a top-level variable initialization. */
-    a_variable_ptr var;
-    a_symbol_ptr   var_sym;
-    check_assertion(dps != NULL);
-    var_sym = dps->sym;
-    check_assertion(var_sym != NULL && symbol_is(var_sym, sk_variable));
-    var = var_sym->variant.variable.ptr;
-    dest_type = var->type;
-    save_expr_stack(&saved_expr_stack);
-  } else {
-    check_assertion(expr_stack != NULL);
-  }  /* if */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  if (is_var_init) transfer_expr_context_if_applicable(saved_expr_stack);
-  check_assertion(dest_type != NULL &&
-                  !is_aggregate_or_union_type(dest_type));
-  check_assertion(icp->kind == (an_init_component_kind)ick_expression);
-  operand = &icp->variant.expr->operand;
-  if (is_template_dependent_type(dest_type)) {
-    prep_generic_operand(operand);
-  } else if (is_class_struct_union_type(dest_type)) {
-    /*FIXME*/
-    unexpected_condition_str("class braced initializer not implemented");
-  } else {
-    a_conv_context_set conv_context = CCO_DEFAULT;
-    if (is_direct_init) conv_context |= CCO_DIRECT_INITIALIZATION;
-    if (is_var_init) conv_context |= CCO_INITIALIZING_VARIABLE;
-    prep_initializer_operand(operand, dest_type,
-                             /*is_transparent=*/(a_boolean *)NULL,
-                             /*conversion=*/(a_conv_descr_ptr)NULL,
-                             /*is_copy_initialization=*/!is_direct_init,
-                             conv_context,
-                             ec_bad_initializer_type);
-  }  /* if */
-  if (is_constant_operand(operand)) {
-    *is_constant = TRUE;
-    *constant = alloc_unshared_constant(&operand->variant.constant);
-  } else {
-    an_expr_node_ptr expr = make_node_from_operand(operand);
-    if (is_var_init) expr = wrap_up_full_expression(expr);
-    *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-    (*dip)->variant.expression = expr;
-    *is_constant = FALSE;
-  }  /* if */
-  pop_expr_stack();
-  if (is_var_init) restore_expr_stack(saved_expr_stack);
-}  /* convert_initializer */
 
 
 static void make_operand_for_rescanned_identifier(

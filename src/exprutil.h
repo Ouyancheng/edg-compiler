@@ -1809,6 +1809,17 @@ extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,
 
 extern void make_template_param_expr_constant_operand(an_operand *operand);
 
+extern
+void expr_type_change_constant(a_constant        *constant,
+                               a_type_ptr        new_type,
+                               a_boolean         is_implicit_cast,
+                               a_boolean         check_cast_access,
+                               a_boolean         check_ambiguity,
+                               a_boolean         is_reinterpret_cast,
+                               a_boolean         maintain_expression,
+                               a_boolean         *did_not_fold,
+                               a_source_position *err_pos);
+
 extern an_expr_node_ptr strip_ref_indirect(an_expr_node_ptr expr,
                                            a_boolean        parens_also);
 

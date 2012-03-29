@@ -2377,6 +2377,8 @@ ec_cast_to_cli_interface_class;;"a cast to CLI interface class %t is not allowed
 ec_new_of_cli_interface_class;;"cannot create an object of a CLI interface class"
 ec_enum_type_replacement;;"this declaration hides the nonstandard declaration of %nd because the underlying types are incompatible"
 ec_known_comparison_with_null;;"pointer comparison result is constant, because operand can never be null"
+ec_value_init_of_incomplete;;"an object of the incomplete type %t cannot be value-initialized"
+ec_value_init_of_reference;;"a reference cannot be value-initialized"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

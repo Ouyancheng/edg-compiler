@@ -1857,12 +1857,34 @@ a_boolean is_aggregate_or_union_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a union or aggregate type (array, struct,
 or union; 3.1.2.5.  Also class, in C++).  Note that this includes incomplete
-array, class, struct, and union types.
+array, class, struct, and union types.  Also note that it doesn't match
+the C++ definition of "aggregate" for class types; see is_aggregate_type
+instead.
 */
 {
   tp = skip_typerefs(tp);
   return(is_aggregate_or_union(tp));
 }  /* is_aggregate_or_union_type */
+
+
+a_boolean is_aggregate_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an aggregate type in the C++ sense
+(C++ standard, [dcl.init.aggr]).  That means an array or a class with
+no user-provided constructors, etc.
+*/
+{
+  a_boolean is_aggr = FALSE;
+
+  if (is_array_type(tp)) {
+    is_aggr = TRUE;
+  } else if (is_class_struct_union_type(tp)) {
+    if (symbol_supplement_for_class(tp)->is_class_aggregate) {
+      is_aggr = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_aggr;
+}  /* is_aggregate_type */
 
 
 a_boolean is_ptr_to_member_type(a_type_ptr tp)
