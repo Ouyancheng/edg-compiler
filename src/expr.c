@@ -28689,7 +28689,7 @@ state, or is NULL if there is no declaration associated with this scan.
       unexpected_condition_str("brace init with > 0 elements not implemented");
     }  /* if */
   }  /* if */
-  if (fill_in_dtor && !*is_constant) {
+  if (fill_in_dtor && !*is_constant && is_class_struct_union_type(dest_type)) {
     /* Fill in the destructor if one is needed. */
     (*dip)->destructor = expr_select_destructor(dest_type,
                                                 dest_type,
