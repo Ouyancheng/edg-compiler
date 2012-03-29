@@ -843,7 +843,8 @@ normal case, and tok_end_of_source during template prescanning.
     tok = get_token();
   }  /* while */
   terminate_token_cache(&orig_token_cache);
-  if (identifier_cached && (tok == body_start || tok == tok_colon)) {
+  if (identifier_cached &&
+      (tok == body_start || tok == tok_colon || tok_removed_template_body)) {
     /* A class definition: The cached identifiers should have been
        context-sensitive keywords.  Make an additional pass over the
        cached tokens, turning the identifiers into keywords when
