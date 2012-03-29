@@ -28676,6 +28676,7 @@ if there is no declaration associated with this scan.
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
                            is_constant, dip, constant);
+      if (!*is_constant) wrap_up_dynamic_init_full_expression(*dip);
     } else {
       unexpected_condition_str("brace init with > 0 elements not implemented");
     }  /* if */
