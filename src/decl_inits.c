@@ -4153,11 +4153,14 @@ returned set to TRUE.
   init_err = FALSE;
   if (!C_mode() && is_real_class_type(vp_type)) {
     cssp = symbol_supplement_for_class(vp_type);
-    if (curr_token == tok_lbrace && !cssp->is_class_aggregate) {
+    if (curr_token == tok_lbrace && !cssp->is_class_aggregate &&
+        !dps->has_direct_initializer) {
       /* This is an attempt to do C-style aggregate initialization on a class
          object for which there is a constructor, nonpublic members, base
          classes, or virtual functions.  In such cases a constructor must be
          used. */
+      /* FIXME: This should be revised when aggregate initialization is
+         handled in the new framework. */
       type_error(ec_brace_initialization_not_allowed, vp_type);
       init_err = TRUE;
       vp_type = error_type();
