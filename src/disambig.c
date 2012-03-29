@@ -236,6 +236,15 @@ Cache the tokens that comprise an initializer of the form
 }  /* prescan_initializer */
 
 
+static void prescan_init_list(void)
+/*
+Cache the tokens that comprise a brace enclosed initializer list.
+*/
+{
+  cache_tokens_until(tok_rbrace, /*coalesce=*/FALSE);
+}  /* prescan_init_list */
+
+
 static void f_get_token_and_coalesce_if_identifier(
 				a_disambig_flag_set		flags,
 				an_identifier_options_set	gid_flags)
@@ -1232,12 +1241,18 @@ function_lparen:
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Look for an initialization that begins with an assignment operator. */
-  if (!paren_initializer_seen && curr_token == tok_assign) {
-    /* An initializer that begins with an equals sign.  Cache the
-       tokens that comprise the initializer and leave curr_token
-       as the token following the initializer (usually a comma or
-       a semicolon). */
-    prescan_initializer();
+  if (!paren_initializer_seen &&
+      (curr_token == tok_assign ||
+       (curr_token == tok_lbrace && list_init_enabled))) {
+    /* An initializer that begins with an equals sign or a C++11 brace-enclosed
+       initializer list.  Cache the tokens that comprise the initializer and
+       leave curr_token as the token following the initializer (usually a
+       comma or a semicolon). */
+    if (curr_token == tok_assign) {
+      prescan_initializer();
+    } else {
+      prescan_init_list();
+    }  /* if */
   } else {
     /* A condition is required to have an "=" style initialization.
        If the initialization is missing, don't consider this to be
