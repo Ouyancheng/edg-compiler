@@ -28603,7 +28603,8 @@ Convert an initializer value represented in init-component form (icp)
 to the type of the entity being initialized, given by dest_type.  If
 is_var_init is TRUE, this is the complete initializer for a variable
 (given by dps->sym), and the type of that variable is used for
-dest_type.  In either case, dest_type must not be an aggregate type.
+dest_type.  In either case, dest_type must not be an aggregate type
+(however, an aggregate type is okay for an initializer of "{}").
 If is_direct_init is TRUE, the initialization is direct-initialization.
 If check_narrowing is TRUE, issue diagnostics for narrowing
 conversions.  The converted result is returned as either a constant
@@ -28616,6 +28617,7 @@ if there is no declaration associated with this scan.
 {
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
+  a_boolean           value_init;
 
   *dip = NULL;
   *constant = NULL;
@@ -28637,8 +28639,11 @@ if there is no declaration associated with this scan.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   if (is_var_init) transfer_expr_context_if_applicable(saved_expr_stack);
+  /* Check for an initializer of "{}", which means value-initialization. */
+  value_init = (icp->kind == (an_init_component_kind)ick_braced &&
+                icp->variant.braced.list == NULL);
   check_assertion(dest_type != NULL &&
-                  !is_aggregate_type(dest_type));
+                  (!is_aggregate_type(dest_type) || value_init));
   if (icp->kind == (an_init_component_kind)ick_expression) {
     /* The object is initialized by an expression. */
     an_operand *operand = &icp->variant.expr->operand;
@@ -28671,7 +28676,7 @@ if there is no declaration associated with this scan.
   } else {
     /* The entity is initialized by a brace-enclosed list. */
     check_assertion(icp->kind == (an_init_component_kind)ick_braced);
-    if (icp->variant.braced.list == NULL) {
+    if (value_init) {
       /* The list is empty, so this is value-initialization. */
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
