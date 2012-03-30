@@ -3947,6 +3947,8 @@ a dynamic component) or *init_con (for purely constant initializers).
   an_init_component_ptr  icp;
   a_boolean              is_constant = FALSE;
   a_type_ptr             dtype = skip_typerefs(dps->type), atype = dtype;
+  a_class_symbol_supplement_ptr
+                         cssp;
 
   check_assertion(dps != NULL && dps->sym != NULL);
   check_assertion(dps->has_direct_initializer && curr_token == tok_lbrace);
@@ -3984,8 +3986,16 @@ a dynamic component) or *init_con (for purely constant initializers).
     case tk_class:
     case tk_struct:
     case tk_union:
-      if (symbol_for(dtype)->variant.class_struct_union.extra_info
-                           ->is_class_aggregate) {
+      cssp = symbol_for(dtype)->variant.class_struct_union.extra_info;
+      if (cssp->is_class_aggregate &&
+          !(cssp->has_user_declared_default_constructor &&
+            is_empty_list_init_component(icp))) {
+        /* A class aggregate usually requires aggregate initialization.  The
+           exception is a class aggregate with a default constructor
+           initialized with an empty list (aggregates cannot have user-
+           provided constructors, so the exception only covers the narrow case
+           of a class with a user-declared-but-not-user-provided
+           constructor). */
         /* FIXME: Aggregate case is unimplemented. */
         pos_ty_error(ec_brace_initialization_not_allowed, source_pos,
                      dps->type);
