@@ -1240,7 +1240,7 @@ function_lparen:
     prescan_gnu_attribute(flags);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Look for an initialization that begins with an assignment operator. */
+  /* Look for an initializer of the "= ..." or "{...}" form. */
   if (!paren_initializer_seen &&
       (curr_token == tok_assign ||
        (curr_token == tok_lbrace && list_init_enabled))) {
