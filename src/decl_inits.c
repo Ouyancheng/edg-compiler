@@ -3815,22 +3815,150 @@ has static storage duration; vp_type is the type of that entity.
 
 
 /*
+Macro to identify initialization components that are expressions.
+*/
+#define is_expression_component(icp)                                         \
+  ((icp)->kind == (an_init_component_kind)ick_expression)
+
+/*
+Macro to identify braced initialization components.
+*/
+#define is_braced_init_component(icp)                                        \
+  ((icp)->kind == (an_init_component_kind)ick_braced)
+
+/*
 Macro that produces TRUE for empty list initialization components (i.e.,
 components representing "{}").
 */
 #define is_empty_list_init_component(icp)                                    \
-  ((icp)->kind == (an_init_component_kind)ick_braced &&                      \
-   (icp)->variant.braced.list == NULL)
+  (is_braced_init_component(icp) && (icp)->variant.braced.list == NULL)
 
 /*
 Macro that produces TRUE for list initialization components containing a single
 item (e.g., a component representing "{1}").
 */
 #define is_singleton_list_init_component(icp)                                \
-  ((icp)->kind == (an_init_component_kind)ick_braced &&                      \
+  (is_braced_init_component(icp) &&                                          \
    (icp)->variant.braced.list != NULL &&                                     \
    (icp)->variant.braced.list->next == NULL)
 
+
+static a_boolean is_string_literal_component(an_init_component_ptr  icp,
+                                             a_constant_ptr         *p_con)
+/*
+If the given initialization component is a string literal return TRUE and
+return the constant representing that literal in *p_con.  Otherwise, return
+FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_expression_component(icp)) {
+    an_operand  *operand = &icp->variant.expr->operand;
+    if (operand->is_simple_string_literal) {
+      /* The operand is a simple string literal (e.g., it has not been
+         cast). */
+      check_assertion(is_constant_operand(operand));
+      result = TRUE;
+      *p_con = &operand->variant.constant;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_string_literal_component */
+
+
+static a_boolean try_string_literal_init(an_init_component_ptr  icp,
+                                         a_type_ptr             *p_array_type,
+                                         a_constant_ptr         *result)
+/*
+If the given initializer component is a valid string initializer for the given
+array type, return TRUE and record the IL representation for that initializer
+in *result.  Otherwise, return FALSE.  If TRUE is returned and *p_array_type
+represents an array with no specified bound, replace *p_array_type with an
+array type corresponding to the string size.
+*/
+{
+  a_boolean  success = FALSE;
+
+  if (is_string_type(*p_array_type)) {
+    a_constant_ptr  string_constant;
+    /* Permit an extra level of braces. */
+    if (is_braced_init_component(icp)) icp = icp->variant.braced.list;
+    if (is_string_literal_component(icp, &string_constant)) {
+      success = TRUE;
+      check_string_constant_initializer(p_array_type, string_constant);
+      *result = alloc_unshared_constant(string_constant);
+    }  /* if */
+  }  /* if */
+  return success;
+}  /* try_string_literal_init */
+
+
+static a_boolean try_whole_array_init(an_init_component_ptr  icp,
+                                      a_type_ptr             array_type,
+                                      a_constant_ptr         *result)
+/*
+icp represents an expression that might initialize destination array of the
+given type (the whole array; not just an element of it).  If it does, return
+TRUE, and set *result to the a_constant entry representing the initializer.
+*/
+{
+  /* FIXME. */
+  return FALSE;
+}  /* try_whole_array_init */
+
+
+static void aggr_init_array(an_init_component_ptr  icp,
+                            a_type_ptr             *p_array_type,
+                            a_decl_parse_state     *dps,
+                            a_boolean              top_level_init,
+                            a_dynamic_init_ptr     *init_dip,
+                            a_constant_ptr         *init_con,
+                            a_boolean              *init_error)
+/*
+Produce an aggregate constant (in *init_con) or a dynamic init entry (in
+*init_dip) for the initialization of an object or subobject of the type given
+by *p_array_type by an initializer described by icp.  If this initialization
+is associated with a declaration, dps describes that declaration.  If this is
+for a top-level array initialization, top_level_init will be TRUE.
+*init_error is set to TRUE in error cases.
+*/
+{
+  if (try_string_literal_init(icp, p_array_type, init_con)) {
+    /* Nothing more to be done. */
+  } else if (!is_braced_init_component(icp) &&
+             try_whole_array_init(icp, *p_array_type, init_con)) {
+    /* FIXME.  Do whole-array cases ever get here? */
+    unexpected_condition_str("NYI: Whole-array initialization");
+  } else if (is_empty_list_init_component(icp)) {
+    a_boolean           is_constant = FALSE;
+    a_boolean           is_var_init = top_level_init &&
+                                      dps != NULL && dps->sym != NULL;
+    if (is_incomplete_array_type(*p_array_type)) {
+      /* An empty initializer for an array with no specified bound is normally
+         an error.  GNU mode is an exception: There is results in a zero-length
+         array. */
+      if (gnu_mode) {
+        set_initialized_array_size(p_array_type, (a_targ_size_t)0,
+                                   /*unknown_dependent=*/FALSE);
+      } else {
+        *init_error = TRUE;
+        pos_error(ec_bad_initializer_for_array_with_unspecified_bound,
+                  init_component_pos(icp));
+        *p_array_type = error_type();
+      }  /* if */
+    }  /* if */
+    if (!*init_error) {
+      convert_initializer(icp, *p_array_type, is_var_init,
+                          /*is_direct_init=*/FALSE, /*check_narrowing=*/TRUE,
+                          /*fill_in_dtor=*/TRUE,
+                          dps, &is_constant, init_dip, init_con);
+    }  /* if */
+  } else {
+    /* FIXME. */
+    unexpected_condition_str("NYI: General aggregate array initialization");
+  }  /* if */
+}  /* aggr_init_array */
 
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
@@ -3855,7 +3983,7 @@ a dynamic component) or *init_con (for purely constant initializers).
   a_variable_ptr         vp;
   an_init_component_ptr  icp;
   a_boolean              is_constant = FALSE;
-  a_type_ptr             dtype = skip_typerefs(dps->type);
+  a_type_ptr             dtype = skip_typerefs(dps->type), atype = dtype;
 
   check_assertion(dps != NULL && dps->sym != NULL);
   check_assertion(dps->has_direct_initializer && curr_token == tok_lbrace);
@@ -3864,8 +3992,7 @@ a dynamic component) or *init_con (for purely constant initializers).
   vp->has_direct_braced_initializer = TRUE;
   /* Parse the list. */
   icp = scan_braced_init_list(/*is_var_init=*/TRUE, dps);
-  check_assertion(icp != NULL &&
-                  icp->kind == (an_init_component_kind)ick_braced);
+  check_assertion(icp != NULL && is_braced_init_component(icp));
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     decl_pos_block->var_init_range.end = curr_construct_end_position;
@@ -3883,9 +4010,13 @@ a dynamic component) or *init_con (for purely constant initializers).
     case tk_vector:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       /* Arrays (and vectors) are aggregates. */
-      /* FIXME: Unimplemented. */
-      pos_ty_error(ec_brace_initialization_not_allowed, source_pos, dps->type);
-      *init_error = TRUE;
+      aggr_init_array(icp, &atype, dps, /*top_level_init=*/TRUE, init_dip,
+                      init_con, init_error);
+      if (atype != dtype) {
+        /* Presumably an incomplete array type whose length is now known.
+           Update the recorded type. */
+        dps->type = vp->type = atype;
+      }  /* if */
       break;
     case tk_class:
     case tk_struct:

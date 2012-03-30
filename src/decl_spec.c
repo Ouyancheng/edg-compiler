@@ -794,6 +794,7 @@ type_info type may be defined.
   return result;
 }  /* is_namespace_for_type_info_definition */
 
+
 void check_for_class_modifiers(a_token_kind  *next_tok,
                                a_token_kind  body_start,
                                a_boolean     tag_name_first)
