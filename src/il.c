@@ -11838,6 +11838,27 @@ Return TRUE if and only if the given routine is a move assignment operator.
                          function_type_params(skip_typerefs(rp->type))->type);
 }  /* routine_is_move_assignment_operator */
 
+#if DO_IL_LOWERING
+
+a_boolean special_member_is_user_provided(a_routine_ptr  rp)
+/*
+Return TRUE if the given special member function is "user-provided"; i.e.,
+user-declared, and not defaulted on its first declaration.
+*/
+{
+  a_boolean  result = !rp->compiler_generated;
+
+  check_assertion(rp->source_corresp.is_class_member &&
+                  !special_kind_is(rp, sfk_none));
+  if (result && rp->is_defaulted) {
+    /* Check that the member function is not defaulted on its first
+       declaration. */
+    result = rp->defined_outside_of_parent;
+  }  /* if */
+  return result;
+}  /* special_member_is_user_provided */
+
+#endif /* DO_IL_LOWERING */
 
 static void instantiate_il_entity(a_source_correspondence *scp)
 /*

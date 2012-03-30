@@ -1173,6 +1173,10 @@ defined with "= default;".
 #define move_operations_can_be_defaulted()                                  \
   (generate_move_operations || (gpp_mode && gnu_version >= 40500))
 
+#if DO_IL_LOWERING
+extern a_boolean special_member_is_user_provided(a_routine_ptr  rp);
+#endif /* DO_IL_LOWERING */
+
 extern void switch_il_region(a_memory_region_number region_number);
 
 extern void switch_to_file_scope_region(

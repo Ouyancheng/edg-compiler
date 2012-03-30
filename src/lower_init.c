@@ -1926,7 +1926,7 @@ of the storage before the constructor is called.
   a_routine_ptr ctor_routine = dip->variant.constructor.ptr;
 
   /* Zeroing is required if the initialization is value-initialization
-     for a class that has no user-written constructor, and the class
+     for a class that has no user-provided constructor, and the class
      has data members that require zero initialization. */
 #if IA64_ABI
   /* If this is an alternate entry point in the IA-64 ABI, go to the
@@ -1937,7 +1937,7 @@ of the storage before the constructor is called.
   }  /* if */
 #endif /* IA64_ABI */
   if (dip->variant.constructor.value_initialization &&
-      ctor_routine->compiler_generated &&
+      !special_member_is_user_provided(ctor_routine) &&
       parent_class_of(ctor_routine)->
                           variant.class_struct_union.has_zero_init_component) {
     need_zeroing = TRUE;
