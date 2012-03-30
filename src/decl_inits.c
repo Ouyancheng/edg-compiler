@@ -3884,16 +3884,28 @@ array type corresponding to the string size.
     a_constant_ptr  string_constant;
     /* Permit an extra level of braces. */
     if (is_braced_init_component(icp)) icp = icp->variant.braced.list;
-    if (is_string_literal_component(icp, &string_constant)) {
+    if (icp != NULL && is_string_literal_component(icp, &string_constant)) {
       success = TRUE;
-      check_string_constant_initializer(p_array_type, string_constant);
-      *result = alloc_unshared_constant(string_constant);
+      if (check_string_constant_initializer(p_array_type, string_constant)) {
+        *result = alloc_unshared_constant(string_constant);
+      } else {
+        pos_ty2_error(ec_bad_initializer_type, init_component_pos(icp),
+                      string_constant->type, *p_array_type);
+        *result = alloc_error_constant();
+        if (is_incomplete_array_type(*p_array_type)) {
+          /* An incomplete array initialized by an incompatible string literal.
+             For better error recovery, replace the array type by an error
+             type. */
+          *p_array_type = error_type();
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return success;
 }  /* try_string_literal_init */
 
 
+/*ARGSUSED*/  /*FIXME*/
 static a_boolean try_whole_array_init(an_init_component_ptr  icp,
                                       a_type_ptr             array_type,
                                       a_constant_ptr         *result)
@@ -3925,7 +3937,7 @@ for a top-level array initialization, top_level_init will be TRUE.
 */
 {
   if (try_string_literal_init(icp, p_array_type, init_con)) {
-    /* Nothing more to be done. */
+    /* A string literal initializer.  Nothing more to be done. */
   } else if (!is_braced_init_component(icp) &&
              try_whole_array_init(icp, *p_array_type, init_con)) {
     /* FIXME.  Do whole-array cases ever get here? */
