@@ -13809,8 +13809,9 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
 Output the dynamic initialization described by dip.  init_entity_type
 indicates the type of entity being initialized.
 
-If parenthesized_init is TRUE, put parentheses around the initializer;
-this is the parenthesized form of initialization, e.g., "(y)" in
+If parenthesized_init is TRUE, put parentheses around the initializer (with
+a caveat below); this is the parenthesized form of initialization, e.g.,
+"(y)" in
 
   A x(y);
 
@@ -13824,8 +13825,9 @@ with "=" semantics (but the "=" is put out by the caller, if at all); put
 nothing around the initializer.
 
 If no initialization is indicated, or if the initialization is with
-a default constructor, nothing is put out (in either mode), except that,
-if force_parens is TRUE, "()" is put out.
+a default constructor, nothing is put out (even when parenthesized_init is
+TRUE, no "()" is put out), except that, if force_parens is TRUE, "()" is put
+out.
 
 Note that the destructor, if any, is implicit and need not be put out.
 
@@ -14117,12 +14119,18 @@ source and the expression is generated in that form.
         /* See whether this is default-initialization.  Value-initialization
            is not default-initialization. */
         default_init = is_default_dynamic_init(dip);
-        if (default_init && !parenthesized_init) {
-          /* A default initialization that's implicit and not parenthesized
-             has to be put out as X(); you can't put out nothing. */
-          check_assertion(!braced_init);
-          gen_type(init_entity_type);
-          write_tok_str("()");
+        if (default_init) {
+          /* Default initialization. */
+          if (parenthesized_init && !force_parens) {
+            /* Don't put out parentheses. */
+          } else {
+            /* Default initialization in this context requires parentheses (or
+               optional parentheses are forced because they were present in
+               the input). */
+            check_assertion(!braced_init);
+            gen_type(init_entity_type);
+            write_tok_str("()");
+          }  /* if */
         } else if (!parenthesized_init && !braced_init) {
           /* A conversion that was implicit in the source (explicit cases
              were processed above, and parenthesized_init was set to TRUE).
