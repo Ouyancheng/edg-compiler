@@ -1240,7 +1240,7 @@ function_lparen:
     prescan_gnu_attribute(flags);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Look for an initializer of the "= ..." or "{...}" form. */
+  /* Look for an initializer of the "=" or "{...}" form. */
   if (!paren_initializer_seen &&
       (curr_token == tok_assign ||
        (curr_token == tok_lbrace && list_init_enabled))) {
@@ -1254,7 +1254,7 @@ function_lparen:
       prescan_init_list();
     }  /* if */
   } else {
-    /* A condition is required to have an "=" style initialization.
+    /* A condition is required to have an "=" or "{...}" style initialization.
        If the initialization is missing, don't consider this to be
        a condition.  This causes things like "int(i)" to be treated as
        expressions, not conditions. */
