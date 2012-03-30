@@ -5450,9 +5450,10 @@ parameter.
     } else {
       a_boolean need_parens;
 #if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
-      if (gcc_is_generated_code_target && gnu_target_version_number < 40400) {
-        /* g++ versions before 4.4 issue spurious errors on a declaration
-           like
+      if (gcc_is_generated_code_target && gnu_target_version_number >= 30400 &&
+          gnu_target_version_number < 40400) {
+        /* g++ versions before 4.4 issue spurious errors on a member function
+           declaration like
 
              void f(S<int,int> = S<int,int>());
 
@@ -5464,7 +5465,11 @@ parameter.
            Consequently, we handle the parenthesization explicitly here,
            always parenthesizing the expression for the problematic g++
            versions and only if needed for comma expressions in all other
-           cases. */
+           cases.  (There does not appear to be a way to write this kind of
+           default argument expression so that it will be acceptable to
+           versions of g++ earlier than 3.4 because the extra parentheses
+           trigger a different bug, so we exclude the earlier versions from
+           this processing.) */
         need_parens = TRUE;
       } else
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
