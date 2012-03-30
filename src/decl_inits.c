@@ -3899,7 +3899,7 @@ will be TRUE.
                                       dps != NULL && dps->sym != NULL;
     if (is_incomplete_array_type(*p_array_type)) {
       /* An empty initializer for an array with no specified bound is normally
-         an error.  GNU mode is an exception: There is results in a zero-length
+         an error.  GNU mode is an exception: There it results in a zero-length
          array. */
       if (gnu_mode) {
         set_initialized_array_size(p_array_type, (a_targ_size_t)0,
