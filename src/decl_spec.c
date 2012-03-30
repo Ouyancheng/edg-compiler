@@ -1302,7 +1302,7 @@ caution when modifying this routine.
                      implicit_template_allowed ? GID_TEMPLATE_ARGS_OPTIONAL
                                                : GID_IS_TAG_NAME,
                      &err);
-        if (is_class_template_symbol(templ_sym)) {
+        if (is_class_template_symbol(tag_sym)) {
           if (implicit_template_allowed) {
             /* In Microsoft bugs mode (with microsoft_version < 1400) and in
                Sun mode, the following is accepted:
