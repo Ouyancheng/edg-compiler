@@ -4017,7 +4017,7 @@ called to check and adjust the argument types.
 static a_symbol_ptr gnu_builtin_func_by_name(char *name)
 /*
 Return the symbol for the GNU __builtin_... function identified by the given
-string.
+string, or NULL if there is no such function.
 */
 {
   a_symbol_locator  loc;
