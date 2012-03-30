@@ -257,7 +257,8 @@ extern void scan_default_arg_expr(a_param_type_ptr ptp);
 
 extern
 a_boolean variable_eligible_for_copy_optimization(a_variable_ptr var,
-                                                  a_boolean      return_case);
+                                                  a_boolean      return_case,
+                                                  a_boolean      move_case);
 
 extern an_expr_node_ptr scan_return_expression(
                                               a_type_ptr         required_type,

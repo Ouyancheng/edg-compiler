@@ -17785,7 +17785,8 @@ constructor elision in C++ mode.  This is an initialization with the
     a_boolean initializing_return_value =
                            (conv_context & CCO_INITIALIZING_RETURN_VALUE) != 0;
     if (variable_eligible_for_copy_optimization(var,
-                                                initializing_return_value) &&
+                                                initializing_return_value,
+                                                /*move_case=*/TRUE) &&
         (initializing_return_value ||
          variable_scope_okay_for_throw_move_optimization(var))) {
       /* The move optimization might apply here.  Build a version of the

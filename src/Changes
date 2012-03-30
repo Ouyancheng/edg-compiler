@@ -1,5 +1,21 @@
 Version 4.5
 
+3/30/12  [EDGcpfe/12807]
+Return or throw of parameter should allow move optimization
+
+The test for the possibility of a move optimization on a return failed to
+allow a return of a parameter of the function.  Likewise for a throw
+of a parameter.  Core Issue 1148 allows both.  Now, we do too.
+
+  struct A {
+    A();
+    A(A&&);
+  };
+  A f(A a) {
+    return a;  // Okay; formerly got a spurious error
+  }
+
+
 3/29/12  [EDGcpfe/12804]
 C++-generating back end, GNU compatibility: attribute position in parameter
 declarations

@@ -31276,7 +31276,8 @@ are marked as actually referenced.
 
 
 a_boolean variable_eligible_for_copy_optimization(a_variable_ptr var,
-                                                  a_boolean      return_case)
+                                                  a_boolean      return_case,
+                                                  a_boolean      move_case)
 /*
 Determine whether the variable var is eligible for an optimization that
 elides a copy as described in [class.copy] paragraph 15.  When return_case
@@ -31287,12 +31288,13 @@ returns TRUE if "throw var;" is allowed to optimize away the throw
 copy by constructing var directly in the exception object (in
 practice, that's an optimization that's hard or impossible to do, but
 the same condition comes up in working out move optimizations, so this
-test is useful for that reason).
+test is useful for that reason).  move_case is TRUE if the test is being
+done for a move optimization.
 */
 {
   a_boolean eligible = FALSE;
 
-  if (!var->is_parameter &&
+  if ((!var->is_parameter || move_case) &&
       !has_static_storage_duration(var->storage_class) &&
       is_class_struct_union_type(var->type) &&
       !is_volatile_qualified_type(var->type)) {
@@ -31370,7 +31372,8 @@ lowering or a back end to do the rewriting.
            with exception handling).  Also, 12.8p15 of the C++ standard
            says that it must be non-volatile. */
         if (variable_eligible_for_copy_optimization(return_var,
-                                                    /*return_case=*/TRUE)
+                                                    /*return_case=*/TRUE,
+                                                    /*move_case=*/FALSE)
 #if DO_IL_LOWERING
             /* Rule out a case IL lowering can't handle: returning an
                optimized class rvalue "?" via the return value optimization. */
