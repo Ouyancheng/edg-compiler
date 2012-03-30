@@ -3814,59 +3814,6 @@ has static storage duration; vp_type is the type of that entity.
 }  /* simple_initializer */
 
 
-/*
-Macro to identify initialization components that are expressions.
-*/
-#define is_expression_component(icp)                                         \
-  ((icp)->kind == (an_init_component_kind)ick_expression)
-
-/*
-Macro to identify braced initialization components.
-*/
-#define is_braced_init_component(icp)                                        \
-  ((icp)->kind == (an_init_component_kind)ick_braced)
-
-/*
-Macro that produces TRUE for empty list initialization components (i.e.,
-components representing "{}").
-*/
-#define is_empty_list_init_component(icp)                                    \
-  (is_braced_init_component(icp) && (icp)->variant.braced.list == NULL)
-
-/*
-Macro that produces TRUE for list initialization components containing a single
-item (e.g., a component representing "{1}").
-*/
-#define is_singleton_list_init_component(icp)                                \
-  (is_braced_init_component(icp) &&                                          \
-   (icp)->variant.braced.list != NULL &&                                     \
-   (icp)->variant.braced.list->next == NULL)
-
-
-static a_boolean is_string_literal_component(an_init_component_ptr  icp,
-                                             a_constant_ptr         *p_con)
-/*
-If the given initialization component is a string literal return TRUE and
-return the constant representing that literal in *p_con.  Otherwise, return
-FALSE.
-*/
-{
-  a_boolean  result = FALSE;
-
-  if (is_expression_component(icp)) {
-    an_operand  *operand = &icp->variant.expr->operand;
-    if (operand->is_simple_string_literal) {
-      /* The operand is a simple string literal (e.g., it has not been
-         cast). */
-      check_assertion(is_constant_operand(operand));
-      result = TRUE;
-      *p_con = &operand->variant.constant;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_string_literal_component */
-
-
 static a_boolean try_string_literal_init(an_init_component_ptr  icp,
                                          a_type_ptr             *p_array_type,
                                          a_constant_ptr         *result)
@@ -3910,9 +3857,9 @@ static a_boolean try_whole_array_init(an_init_component_ptr  icp,
                                       a_type_ptr             array_type,
                                       a_constant_ptr         *result)
 /*
-icp represents an expression that might initialize destination array of the
-given type (the whole array; not just an element of it).  If it does, return
-TRUE, and set *result to the a_constant entry representing the initializer.
+icp represents an expression that might initialize an array of the given type
+(the whole array; not just an element of it).  If it does, return TRUE, and
+set *result to the a_constant entry representing the initializer.
 */
 {
   /* FIXME. */
@@ -3929,13 +3876,15 @@ static void aggr_init_array(an_init_component_ptr  icp,
                             a_boolean              *init_error)
 /*
 Produce an aggregate constant (in *init_con) or a dynamic init entry (in
-*init_dip) for the initialization of an object or subobject of the type given
-by *p_array_type by an initializer described by icp.  If this initialization
-is associated with a declaration, dps describes that declaration.  If this is
-for a top-level array initialization, top_level_init will be TRUE.
+*init_dip) for the initialization of an object or subobject of the array type
+given by *p_array_type by an initializer described by icp.  If this
+initialization is associated with a declaration, dps describes that
+declaration.  If this is for a top-level array initialization, top_level_init
+will be TRUE.
 *init_error is set to TRUE in error cases.
 */
 {
+  check_assertion(is_array_type(*p_array_type));
   if (try_string_literal_init(icp, p_array_type, init_con)) {
     /* A string literal initializer.  Nothing more to be done. */
   } else if (!is_braced_init_component(icp) &&
@@ -3943,6 +3892,8 @@ for a top-level array initialization, top_level_init will be TRUE.
     /* FIXME.  Do whole-array cases ever get here? */
     unexpected_condition_str("NYI: Whole-array initialization");
   } else if (is_empty_list_init_component(icp)) {
+    /* An initializer of the form "{}".  This is a special aggregate
+       initialization case that convert_initializer handles. */
     a_boolean           is_constant = FALSE;
     a_boolean           is_var_init = top_level_init &&
                                       dps != NULL && dps->sym != NULL;
@@ -4047,7 +3998,7 @@ a dynamic component) or *init_con (for purely constant initializers).
                             /*fill_in_dtor=*/TRUE,
                             dps, &is_constant, init_dip, init_con);
       } else {
-        /* Pass the unwrapped value (or list) to the be converted to the
+        /* Pass the unwrapped value (or list) to be converted to the
            destination type. */
         convert_initializer(icp->variant.braced.list, dps->type,
                             /*is_var_init=*/TRUE, /*is_direct_init=*/TRUE,
@@ -4064,7 +4015,7 @@ a dynamic component) or *init_con (for purely constant initializers).
                             /*fill_in_dtor=*/TRUE,
                             dps, &is_constant, init_dip, init_con);
       } else if (is_singleton_list_init_component(icp)) {
-        /* Pass the unwrapped value (or list) to the be converted to the
+        /* Pass the unwrapped value (or list) to be converted to the
            destination type. */
         convert_initializer(icp->variant.braced.list, dps->type,
                             /*is_var_init=*/TRUE, /*is_direct_init=*/TRUE,

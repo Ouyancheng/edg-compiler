@@ -125,6 +125,35 @@ typedef struct an_init_component {
 
 
 /*
+Macro to identify initialization components that are expressions.
+*/
+#define is_expression_component(icp)                                         \
+  ((icp)->kind == (an_init_component_kind)ick_expression)
+
+/*
+Macro to identify braced initialization components.
+*/
+#define is_braced_init_component(icp)                                        \
+  ((icp)->kind == (an_init_component_kind)ick_braced)
+
+/*
+Macro that produces TRUE for empty list initialization components (i.e.,
+components representing "{}").
+*/
+#define is_empty_list_init_component(icp)                                    \
+  (is_braced_init_component(icp) && (icp)->variant.braced.list == NULL)
+
+/*
+Macro that produces TRUE for list initialization components containing a single
+item (e.g., a component representing "{1}").
+*/
+#define is_singleton_list_init_component(icp)                                \
+  (is_braced_init_component(icp) &&                                          \
+   (icp)->variant.braced.list != NULL &&                                     \
+   (icp)->variant.braced.list->next == NULL)
+
+
+/*
 Entry used to pass information about the context for a rescan to redo
 semantic analysis as part of template deduction.  Many of the fields here
 are parameters to copy_template_param_expr that we want to pass from

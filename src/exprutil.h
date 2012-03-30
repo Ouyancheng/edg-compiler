@@ -1155,6 +1155,9 @@ extern void free_init_component_list(an_init_component_ptr icp);
 
 extern a_source_position* init_component_pos(an_init_component_ptr icp);
 
+extern a_boolean is_string_literal_component(an_init_component_ptr  icp,
+                                             a_constant_ptr         *p_con);
+
 extern void db_init_component(an_init_component_ptr icp);
 
 extern void clear_expression_cache(struct an_expression_cache *cache);

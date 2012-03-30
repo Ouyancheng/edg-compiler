@@ -747,6 +747,30 @@ Return the position of the given init component.
                                         : &icp->variant.expr->operand.position;
 }  /* init_component_pos */
 
+
+a_boolean is_string_literal_component(an_init_component_ptr  icp,
+                                      a_constant_ptr         *p_con)
+/*
+If the given initialization component is a string literal return TRUE and
+return the constant representing that literal in *p_con.  Otherwise, return
+FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_expression_component(icp)) {
+    an_operand  *operand = &icp->variant.expr->operand;
+    if (operand->is_simple_string_literal) {
+      /* The operand is a simple string literal (e.g., it has not been
+         cast). */
+      check_assertion(is_constant_operand(operand));
+      result = TRUE;
+      *p_con = &operand->variant.constant;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_string_literal_component */
+
 #if DEBUG
 
 void db_init_component(an_init_component_ptr icp)
