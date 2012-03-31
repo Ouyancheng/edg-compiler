@@ -28383,6 +28383,9 @@ stack already set.
 }  /* scan_braced_init_list_internal */
 
 
+#if !CHECKING
+/*ARGSUSED*/  /* <-- is_var_init is not used in that case. */
+#endif /* !CHECKING */
 an_init_component_ptr scan_braced_init_list(a_boolean          is_var_init,
                                             a_decl_parse_state *dps)
 /*
@@ -28398,13 +28401,13 @@ for a variable, given by dps->sym.
   an_expr_stack_entry   expr_stack_entry;
   an_init_component_ptr icp;
 
+#if CHECKING
   if (is_var_init) {
     check_assertion(dps != NULL && dps->sym != NULL &&
                     var_for_symbol(dps->sym) != NULL);
-    save_expr_stack(&saved_expr_stack);
-  } else {
-    check_assertion(expr_stack != NULL);
   }  /* if */
+#endif /* CHECKING */
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
@@ -28418,7 +28421,7 @@ for a variable, given by dps->sym.
 #endif /* CHECKING */
   icp = scan_braced_init_list_internal(dps);
   pop_expr_stack();
-  if (is_var_init) restore_expr_stack(saved_expr_stack);
+  restore_expr_stack(saved_expr_stack);
   return icp;
 }  /* scan_braced_init_list */
 
@@ -28634,10 +28637,8 @@ state, or is NULL if there is no declaration associated with this scan.
     var = var_for_symbol(var_sym);
     check_assertion(var != NULL);
     dest_type = var->type;
-    save_expr_stack(&saved_expr_stack);
-  } else {
-    check_assertion(expr_stack != NULL);
   }  /* if */
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
@@ -28697,8 +28698,8 @@ state, or is NULL if there is no declaration associated with this scan.
                                                 /*honor_virtual=*/FALSE);
   }  /* if */
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
   if (is_var_init) {
-    restore_expr_stack(saved_expr_stack);
     if (!*is_constant) (*dip)->variable = var;
   }  /* if */
 }  /* convert_initializer */
