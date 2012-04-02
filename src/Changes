@@ -1,5 +1,22 @@
 Version 4.5
 
+4/2/12   [EDGcpfe/12819]
+Abort in access checking in partial specialization SFINAE contexts
+
+The changes for access checking in SFINAE contexts (see 12/15/11 entry)
+could result in an abort (in have_particular_member_access_privilege)
+when doing SFINAE access checking in the context of determining
+whether a partial specialization matches a given class template
+specialization.  Now fixed.
+
+  class B {
+    template <class T> struct C { } ; 
+  };
+  template <template <class> class T, class U> class A { };
+  template <class U> class A<U::template C,U> { };
+  A<B::C,B> abi;
+
+
 3/30/12  [EDGcpfe/12806]
 Lowering of value-initialized construction whose constructor is defaulted
 

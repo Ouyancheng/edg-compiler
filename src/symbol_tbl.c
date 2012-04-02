@@ -9754,7 +9754,7 @@ functions befriending_list_test and class_scope_test.
 {
   a_boolean               have_member_privilege = FALSE;
   a_scope_stack_entry_ptr ssep;
-  a_routine_ptr           scope_routine;
+  a_routine_ptr           scope_routine = NULL;
   a_scope_depth           scope_depth;
   a_type_ptr              skip_to_class = NULL;
 
@@ -9791,7 +9791,7 @@ functions befriending_list_test and class_scope_test.
       }  /* if */
       /* If the befriending information was not set above, get it from the
          routine entry. */
-      if (befriending_classes == NULL) {
+      if (befriending_classes == NULL && scope_routine != NULL) {
         befriending_classes = scope_routine->befriending_classes;
       }  /* if */
       if (befriending_list_test(befriending_classes, class_type)) {
@@ -9799,15 +9799,20 @@ functions befriending_list_test and class_scope_test.
         have_member_privilege = TRUE;
         break;
       }  /* if */
-      if (!scope_routine->source_corresp.is_class_member) {
-        /* For a non-member function, in particular a friend function
-           defined inside a class, we're done.  Being a friend of a class
-           doesn't make one a friend of any enclosing classes. */
-        break;
+      /* scope_routine will be NULL for a function access scope that was
+         pushed as part of a class template rescan context.  Skip the
+         processing that requires a scope_routine. */
+      if (scope_routine != NULL) {
+        if (!scope_routine->source_corresp.is_class_member) {
+          /* For a non-member function, in particular a friend function
+             defined inside a class, we're done.  Being a friend of a class
+             doesn't make one a friend of any enclosing classes. */
+          break;
+         }  /* if */
+        /* Ignore class scopes until we get to the class of which this
+           function is a member. */
+        skip_to_class = parent_class_of(scope_routine);
       }  /* if */
-      /* Ignore class scopes until we get to the class of which this
-         function is a member. */
-      skip_to_class = parent_class_of(scope_routine);
     } else if (kind == (a_scope_kind)sck_template_instantiation) {
       /* Nothing required for template instantiation scopes. */
     } else {
