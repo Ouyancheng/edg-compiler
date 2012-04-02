@@ -14128,7 +14128,11 @@ source and the expression is generated in that form.
                optional parentheses are forced because they were present in
                the input). */
             check_assertion(!braced_init);
-            gen_type(init_entity_type);
+            if (!parenthesized_init) {
+              /* In copy-initialization contexts, this is really a function-
+                 style cast. */
+              gen_type(init_entity_type);
+            }  /* if */
             write_tok_str("()");
           }  /* if */
         } else if (!parenthesized_init && !braced_init) {
