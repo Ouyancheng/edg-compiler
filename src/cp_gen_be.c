@@ -14028,23 +14028,28 @@ source and the expression is generated in that form.
       con = dip->variant.constant;
       /* An aggregate constant cannot be put out as a parenthesized
          initializer. */
-      check_assertion_str(con->kind != (a_constant_repr_kind)ck_aggregate ||
-                          !parenthesized_init,
-                          "gen_dynamic_init: aggregate in parens");
-      if (!assign_init) write_tok_ch(braced_init ? '{' : '(');
-      if (con->expr != NULL && !braced_init &&
-          con->expr->kind == (an_expr_node_kind)enk_temp_init) {
-        /* We need an extra level of parentheses to avoid the
-           declaration/expression ambiguity: we want "T x((T()));" and not
-           "T x(T());", which declares x as a function with a parameter
-           that is a pointer to function type. */
+      if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+        /* In the copy-list-initialization case, an " = " has already been
+           emitted.  In the direct-list-initialization case, nothing more is
+           needed. */
+        check_assertion_str(!parenthesized_init,
+                            "gen_dynamic_init: aggregate in parens");
+      } else if (parenthesized_init) {
         write_tok_ch('(');
-        need_closing_operand_paren = TRUE;
+        if (con->expr != NULL &&
+            con->expr->kind == (an_expr_node_kind)enk_temp_init) {
+          /* We need an extra level of parentheses to avoid the
+             declaration/expression ambiguity: we want "T x((T()));" and not
+             "T x(T());", which declares x as a function with a parameter
+             that is a pointer to function type. */
+          write_tok_ch('(');
+          need_closing_operand_paren = TRUE;
+        }  /* if */
       }  /* if */
       gen_initializer_constant(con, init_entity_type,
                                /*transparent_case=*/FALSE,
                                /*suppress_braces=*/FALSE);
-      if (!assign_init) write_tok_ch(braced_init ? '}' : ')');
+      if (parenthesized_init) write_tok_ch(')');
       break;
     case dik_nonconstant_aggregate:
       /* Nonconstant aggregate constant, used in cases like

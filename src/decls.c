@@ -191,6 +191,7 @@ be restored).
   dps->nested_ptr_or_ref_seen = FALSE;
   dps->has_initializer = FALSE;
   dps->has_direct_initializer = FALSE;
+  dps->has_dynamic_init_component = FALSE;
   dps->first_decl = FALSE;
   dps->first_decl_of_predeclared_entity = FALSE;
   dps->override_okay = FALSE;

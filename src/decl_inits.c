@@ -3814,6 +3814,79 @@ has static storage duration; vp_type is the type of that entity.
 }  /* simple_initializer */
 
 
+static void convert_simple_init_component(an_init_component_ptr  icp,
+                                          a_type_ptr             dest_type,
+                                          a_decl_parse_state     *dps,
+                                          a_constant_ptr         *init_con)
+/*
+The given initialization component is a single element in an aggregate
+initializer.  It initializes an array element or a field of type dest_type, in
+a declaration described by dps.  Return a constant in *init_con describing this
+element, and if it is nonconstant (which results in a ck_dynamic_init entry)
+*dps is updated to reflect the presence of a nonconstant initializer component.
+*/
+{
+  a_boolean           is_constant;
+  a_dynamic_init_ptr  init_dip;
+
+  if (is_braced_init_component(icp) && icp->variant.braced.list != NULL) {
+    an_error_severity   sev = es_none;
+    a_source_position   *brace_pos = init_component_pos(icp);
+    a_source_position   *excess_init_pos = NULL;
+    icp = icp->variant.braced.list;
+    if (icp->next != NULL) {
+      /* Check for excess initializers. */
+      excess_init_pos = init_component_pos(icp->next);
+    }  /* if */
+    if (!C_mode()) {
+      /* A single level of braces is standard in C, but not in C++. */
+      sev = strict_ansi_mode ? strict_ansi_error_severity : es_warning; 
+    }  /* if */
+    if (is_braced_init_component(icp) && icp->variant.braced.list != NULL) {
+      /* Multiple levels of extra braces. */
+      if (gcc_mode ||
+          (microsoft_mode && (!C_mode() || microsoft_version < 1310))) {
+        /* In GNU C mode and in some Microsoft modes, extraneous braces are
+           ignored.  Issue a warning at least. */
+        if (sev == es_none) sev = es_warning;
+      } else {
+        sev = es_error;
+      }  /* if */
+      /* Skip the levels of extra braces. */
+      do {
+        icp = icp->variant.braced.list;
+        if (icp->next != NULL) {
+          /* Check for excess initializers. */
+          excess_init_pos = init_component_pos(icp->next);
+        }  /* if */
+      } while (is_braced_init_component(icp) &&
+               icp->variant.braced.list != NULL);
+    }  /* if */
+    pos_diagnostic(sev, ec_nonstd_braces, brace_pos);
+    if (excess_init_pos != NULL) {
+      if (gcc_mode) {
+        pos_warning(ec_excess_initializers_ignored, excess_init_pos);
+      } else {
+        pos_error(ec_too_many_initializer_values, excess_init_pos);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Convert the single value as appropriate. */
+  convert_initializer(icp, dest_type, /*is_var_init=*/FALSE,
+                      /*is_direct_init=*/FALSE, /*check_narrowing=*/TRUE,
+                      /*fill_in_dtor=*/TRUE, dps, &is_constant, &init_dip,
+                      init_con);
+  if (!is_constant) {
+    /* A nonconstant entry: Wrap it in a ck_dynamic_init entry, and record
+       the fact that a nonconstant entry was seen. */
+    *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+    (*init_con)->variant.dynamic_init = init_dip;
+    (*init_con)->type = dest_type;
+    dps->has_dynamic_init_component = TRUE;
+  }  /* if */
+}  /* convert_simple_aggr_init_element */
+
+
 static a_boolean try_string_literal_init(an_init_component_ptr  icp,
                                          a_type_ptr             *p_array_type,
                                          a_constant_ptr         *result)
@@ -3924,6 +3997,43 @@ will be TRUE.
 }  /* aggr_init_array */
 
 
+static void convert_init_component_to_generic_constant(
+                                        an_init_component_ptr  icp,
+                                        a_type_ptr             gtype,
+                                        a_decl_parse_state     *dps,
+                                        a_constant_ptr         *init_con)
+/*
+The given initialization component initializes and entity on unknown type.
+Create an aggregate constant whose structure simply matches that of the
+initialization component.
+*/
+{
+  check_assertion(is_template_param_type(gtype) || is_error_type(gtype));
+  if (is_expression_component(icp)) {
+    convert_simple_init_component(icp, gtype, dps, init_con);
+  } else if (is_braced_init_component(icp)) {
+    a_type_ptr  dest_type = type_of_unknown_templ_param_nontype;
+    if (is_error_type(gtype)) dest_type = gtype;
+    *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    (*init_con)->type = gtype;
+    (*init_con)->explicit_braces_on_aggregate = TRUE;
+    for (icp = icp->variant.braced.list; icp != NULL; icp = icp->next) {
+      a_constant_ptr  elem_con;
+      convert_init_component_to_generic_constant(
+                                              icp, dest_type, dps, &elem_con);
+      if ((*init_con)->variant.aggregate.first_constant == NULL) {
+        (*init_con)->variant.aggregate.first_constant = elem_con;
+      } else {
+        (*init_con)->variant.aggregate.last_constant->next = elem_con;
+      }  /* if */
+      (*init_con)->variant.aggregate.last_constant = elem_con;
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* convert_init_component_to_generic_constant */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3945,8 +4055,9 @@ a dynamic component) or *init_con (for purely constant initializers).
 {
   a_variable_ptr         vp;
   an_init_component_ptr  icp;
-  a_boolean              is_constant = FALSE;
+  a_boolean              is_constant = FALSE, is_aggregate = FALSE;
   a_type_ptr             dtype = skip_typerefs(dps->type), atype = dtype;
+  a_routine_ptr          dtor_rp = NULL;
   a_class_symbol_supplement_ptr
                          cssp;
 
@@ -3966,15 +4077,17 @@ a dynamic component) or *init_con (for purely constant initializers).
   switch (dtype->kind) {
     case tk_error:
     case tk_template_param:
-      /* FIXME: Unimplemented. */
-      pos_ty_error(ec_brace_initialization_not_allowed, source_pos, dps->type);
-      *init_error = TRUE;
+      /* Unknown destination type: Create an aggregate constant that follows
+         the source form. */
+      is_aggregate = TRUE;
+      convert_init_component_to_generic_constant(icp, dtype, dps, init_con);
       break;
     case tk_array:
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       /* Arrays (and vectors) are aggregates. */
+      is_aggregate = TRUE;
       aggr_init_array(icp, &atype, dps, /*top_level_init=*/TRUE, init_dip,
                       init_con, init_error);
       if (atype != dtype) {
@@ -3982,6 +4095,12 @@ a dynamic component) or *init_con (for purely constant initializers).
            Update the recorded type. */
         dps->type = vp->type = atype;
       }  /* if */
+      { a_type_ptr  etype = underlying_array_element_type(atype);
+        etype = skip_typerefs(etype);
+        if (is_immediate_class_type(etype)) {
+          dtor_rp = select_destructor(etype, etype, &dps->declarator_pos);
+        }  /* if */
+      }
       break;
     case tk_class:
     case tk_struct:
@@ -3996,6 +4115,8 @@ a dynamic component) or *init_con (for purely constant initializers).
            provided constructors, so the exception only covers the narrow case
            of a class with a user-declared-but-not-user-provided
            constructor). */
+        is_aggregate = TRUE;
+        dtor_rp = select_destructor(dtype, dtype, &dps->declarator_pos);
         /* FIXME: Aggregate case is unimplemented. */
         pos_ty_error(ec_brace_initialization_not_allowed, source_pos,
                      dps->type);
@@ -4042,6 +4163,21 @@ a dynamic component) or *init_con (for purely constant initializers).
       break;
   }  /* switch */
   free_init_component_list(icp);
+  if (is_aggregate && !*init_error) {
+    /* The routines for aggregate initialization produce a constant entry, but
+       those entries may embed a dynamic initialization.  If so, return a
+       dynamic initialization entry for a nonconstant aggregate to the
+       caller. */
+    check_assertion(*init_con != NULL);
+    if (dps->has_dynamic_init_component && !is_error_constant(*init_con)) {
+      check_assertion((*init_con)->kind == (a_constant_repr_kind)ck_aggregate);
+      *init_dip = alloc_dynamic_init(
+                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
+      (*init_dip)->variant.constant = *init_con;
+      (*init_dip)->destructor = dtor_rp;
+      *init_con = NULL;
+    }  /* if */
+  }  /* if */
 }  /* direct_braced_initializer */
 
 

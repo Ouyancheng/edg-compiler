@@ -566,6 +566,9 @@ typedef struct a_decl_parse_state {
 			   is not indicated with a "=" token.  For example
 			   "int x(y);" or "X x{2, 2};", but not "int x = {1};"
 			   or "X x = y;". */
+  a_bit_field	has_dynamic_init_component:1;
+			/* TRUE if this declaration has a braced initializer
+			   and an initializer component is nonconstant. */
   a_bit_field	first_decl:1;
 			/* TRUE if this is the first declaration of a variable
 			   or function. */
