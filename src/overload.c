@@ -16571,7 +16571,7 @@ is used only in C++ mode.
 
   *class_bitwise_copy = FALSE;
   if (ctor_routine->is_trivial_copy_function &&
-      (ctor_arg_conversion != NULL ||
+      ((ctor_arg_conversion != NULL && conv_usable(ctor_arg_conversion)) ||
        (is_class_struct_union_type(operand->type) &&
         is_same_class_or_base_class_thereof(operand->type, ctor_class)))) {
     /* The constructor is a trivial bitwise copy constructor. */

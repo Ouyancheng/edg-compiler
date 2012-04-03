@@ -1,5 +1,26 @@
 Version 4.5
 
+4/3/12   [EDGcpfe/12816]
+Error recovery on conversion on argument of constructor call
+
+The front end aborted while recovering from an error on the conversion
+for an argument of a constructor call, in obscure cases.  Now fixed.
+The following aborted (in full_adjust_class_object_type, in overload.c)
+in --c++11 mode:
+
+  struct A {
+    A(A) ;   // Error
+    operator void*();
+  };
+  struct B {
+    operator A();
+  };
+  template <class T, class U> auto f(U y) -> decltype((T)y) {}
+  void g() {
+    f<A>(B());
+  }
+
+
 4/2/12   [EDGcpfe/12819]
 Abort in access checking in partial specialization SFINAE contexts
 
