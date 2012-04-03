@@ -14034,6 +14034,8 @@ source and the expression is generated in that form.
            needed. */
         check_assertion_str(!parenthesized_init,
                             "gen_dynamic_init: aggregate in parens");
+      } else if (braced_init) {
+        write_tok_ch('{');
       } else if (parenthesized_init) {
         write_tok_ch('(');
         if (con->expr != NULL &&
@@ -14049,7 +14051,15 @@ source and the expression is generated in that form.
       gen_initializer_constant(con, init_entity_type,
                                /*transparent_case=*/FALSE,
                                /*suppress_braces=*/FALSE);
-      if (parenthesized_init) write_tok_ch(')');
+      if (braced_init) {
+        /* If the initializer is an aggregate constant, the braces will have
+           been rendered by gen_initializer_constant. */
+        if (con->kind != (a_constant_repr_kind)ck_aggregate) {
+          write_tok_ch('}');
+        }  /* if */
+      } else if (parenthesized_init) {
+        write_tok_ch(')');
+      }  /* if */
       break;
     case dik_nonconstant_aggregate:
       /* Nonconstant aggregate constant, used in cases like
