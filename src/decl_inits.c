@@ -41,6 +41,23 @@ decl_inits.c -- Scanning of initializers in declarations.
   ((array_type)->size == 0 ? 1 : (array_type)->size / (elem_type)->size)
 
 
+static void append_constant_in_aggr(a_constant_ptr  econstant,
+                                    a_constant_ptr  aconstant)
+/*
+aconstant is a ck_aggregate constant.  Append econstant to the list embedded in
+aconstant.
+*/
+{
+  check_assertion(aconstant->kind == (a_constant_repr_kind)ck_aggregate);
+  if (aconstant->variant.aggregate.first_constant == NULL) {
+    aconstant->variant.aggregate.first_constant = econstant;
+  } else {
+    aconstant->variant.aggregate.last_constant->next = econstant;
+  }  /* if */
+  aconstant->variant.aggregate.last_constant = econstant;
+}  /* append_constant_in_aggr */
+
+
 /* TRUE if curr_token is the indicated token, but not if there's anything
    in the cache that should be taken first. */
 #define curr_token_if_nothing_cached_is(tok, dps) \
@@ -3915,12 +3932,7 @@ initialization component.
     for (icp = icp->variant.braced.list; icp != NULL; icp = icp->next) {
       a_constant_ptr  elem_con;
       aggr_init_generic_element(icp, dest_type, dps, &elem_con);
-      if ((*init_con)->variant.aggregate.first_constant == NULL) {
-        (*init_con)->variant.aggregate.first_constant = elem_con;
-      } else {
-        (*init_con)->variant.aggregate.last_constant->next = elem_con;
-      }  /* if */
-      (*init_con)->variant.aggregate.last_constant = elem_con;
+      append_constant_in_aggr(elem_con, *init_con);
     }  /* if */
   } else {
     unexpected_condition();
@@ -4071,12 +4083,7 @@ indicates the position for which diagnostics should be issued.
         remainder_con = repeat_con;
       }  /* if */
       /* Add the constant entry to the list of constants. */
-      if (array_con->variant.aggregate.first_constant == NULL) {
-        array_con->variant.aggregate.first_constant = remainder_con;
-      } else {
-        array_con->variant.aggregate.last_constant->next = remainder_con;
-      }  /* if */
-      array_con->variant.aggregate.last_constant = remainder_con;
+      append_constant_in_aggr(remainder_con, array_con);
     }  /* if */
   }  /* if */
 }  /* aggr_init_array_remainder_if_needed */
@@ -4089,10 +4096,10 @@ static void aggr_init_array(an_init_component_ptr  *p_icp,
                             a_constant_ptr         *init_con)
 /*
 Produce an aggregate constant (in *init_con) for the initialization of an
-object or subobject of the array type given by *p_array_type by an initializer
-described by icp.  If this initialization is associated with a declaration, dps
-describes that declaration.  If this is for a top-level array initialization,
-top_level_init will be TRUE.
+object or subobject of the array type given by *p_array_type.  The initializer
+is described by icp.  If this initialization is associated with a declaration,
+dps describes that declaration.  top_level_init will be TRUE for a top-level
+array initialization.
 */
 {
   an_init_component_ptr  icp = *p_icp;
@@ -4137,6 +4144,8 @@ top_level_init will be TRUE.
     a_boolean      no_bound = FALSE, braced = is_braced_init_component(icp);
     a_targ_size_t  ecount, icount = 0;
     a_type_ptr     etype = atype->variant.array.element_type;
+    *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    (*init_con)->type = atype;
     if (braced) {
       /* The element values are enclosed in braces. */
       icp = icp->variant.braced.list;
@@ -4157,16 +4166,11 @@ top_level_init will be TRUE.
     while (icp != NULL && (no_bound || icount < ecount)) {
       a_constant_ptr  elem_con;
       aggr_init_element(&icp, etype, dps, &elem_con);
-      if ((*init_con)->variant.aggregate.first_constant == NULL) {
-        (*init_con)->variant.aggregate.first_constant = elem_con;
-      } else {
-        (*init_con)->variant.aggregate.last_constant->next = elem_con;
-      }  /* if */
-      (*init_con)->variant.aggregate.last_constant = elem_con;
+      append_constant_in_aggr(elem_con, *init_con);
       ++icount;
     }  /* while */
     if (!no_bound && icount < ecount) {
-      /* Not all array elements are explicitly initializer: Append an entry
+      /* Not all array elements are explicitly initialized: Append an entry
          to initialize the remaining elements. */
       a_source_position  *diag_pos = &dps->declarator_pos;
       if (braced) diag_pos = &(*p_icp)->variant.braced.end_pos;
@@ -4177,9 +4181,17 @@ top_level_init will be TRUE.
       /* The caller should move on to the component that follows the braced
          list (if any). */
       *p_icp = (*p_icp)->next;
-      if (top_level_init && no_bound && !has_unknown_specified_bound(atype)) {
-        set_initialized_array_size(p_array_type, icount,
-                                   /*unknown_dependent=*/FALSE);
+      if (no_bound) {
+        if (top_level_init && !has_unknown_specified_bound(atype)) {
+          /* A top-level array declarator of the form "X[]": Update the type to
+             reflect the size implied by the initializer. */
+          set_initialized_array_size(p_array_type, icount,
+                                     /*unknown_dependent=*/FALSE);
+        }  /* if */
+      } else if (icp != NULL) {
+        /* Initializers remain at this level, but no elements. */
+        check_assertion(icount == ecount);
+        pos_error(ec_too_many_initializer_values, init_component_pos(icp));
       }  /* if */
     } else {
       /* Braces were omitted at this level of aggregate initialization: The
@@ -4193,14 +4205,97 @@ top_level_init will be TRUE.
 
 
 /*ARGSUSED*/  /*FIXME*/
+static a_boolean try_whole_aggr_class_init(an_init_component_ptr  icp,
+                                           a_type_ptr             class_type,
+                                           a_constant_ptr         *result)
+/*
+icp represents an expression that might initialize an aggregate class of the
+given type (the whole class object; not just a field of it).  If it does,
+return TRUE, and set *result to the a_constant entry representing the
+initializer.
+*/
+{
+  /* FIXME. */
+  return FALSE;
+}  /* try_whole_aggr_class_init */
+
+
+/*ARGSUSED*/  /*FIXME*/
+static void aggr_init_class_remainder_if_needed(a_constant_ptr      aggr_con,
+                                                a_field_ptr         fp,
+                                                a_decl_parse_state  *dps,
+                                                a_source_position   *diag_pos)
+/*
+The given ck_aggregate constant initializes an aggregate class, but does not
+explicitly initialize the given field nor any subsequent fields.  Append any
+needed constants to the list embedded in aggr_con.
+dps describes the declaration in which the initializer appears, and diag_pos
+indicates the position for which diagnostics should be issued.
+*/
+{
+  unexpected_condition_str(
+          "NYI: Implicit aggregate initialization of trailing class members");
+}  /* aggr_init_class_remainder_if_needed */
+
+
 static void aggr_init_class(an_init_component_ptr  *p_icp,
-                            a_type_ptr             etype,
+                            a_type_ptr             class_type,
                             a_decl_parse_state     *dps,
                             a_constant_ptr         *init_con)
 /*
+Produce an aggregate constant (in *init_con) for the initialization of an
+object or subobject of the aggregate class type given by class_type.  The
+initializer is described by icp.  If this initialization is associated with a
+declaration, dps describes that declaration.  top_level_init will be TRUE for
+a top-level array initialization.
 */
 {
-  unexpected_condition_str("NYI: Direct class-aggregate initialization.");
+  an_init_component_ptr  icp = *p_icp;
+
+  check_assertion(is_immediate_class_type(class_type));
+  if (!is_braced_init_component(icp) &&
+      try_whole_aggr_class_init(icp, class_type, init_con)) {
+    unexpected_condition_str("NYI: Whole-aggregate-class initialization");
+  } else {
+    a_boolean   braced = is_braced_init_component(icp);
+    a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
+    *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    (*init_con)->type = class_type;
+    if (braced) {
+      /* The element values are enclosed in braces. */
+      icp = icp->variant.braced.list;
+    }  /* if */
+    /* Skip unnamed bit fields. */ 
+    fp = next_initializable_field(fp);
+    while (fp != NULL && icp != NULL) {
+      a_constant_ptr  elem_con;
+      aggr_init_element(&icp, fp->type, dps, &elem_con);
+      append_constant_in_aggr(elem_con, *init_con);
+      fp = next_initializable_field(fp->next);
+    }  /* for */
+    if (fp != NULL) {
+      /* Not all class fields are explicitly initialized: Append entries to
+         initialize remaining fields if appropriate. */
+      a_source_position  *diag_pos = &dps->declarator_pos;
+      if (braced) diag_pos = &(*p_icp)->variant.braced.end_pos;
+      aggr_init_class_remainder_if_needed(*init_con, fp, dps, diag_pos);
+    }  /* if */
+    if (braced) {
+      /* The caller should move on to the component that follows the braced
+         list (if any). */
+      *p_icp = (*p_icp)->next;
+      if (icp != NULL) {
+        /* Initializers remain at this level, but no fields. */
+        check_assertion(fp == NULL);
+        pos_error(ec_too_many_initializer_values, init_component_pos(icp));
+      }  /* if */
+    } else {
+      /* Braces were omitted at this level of aggregate initialization: The
+         the caller should continue associating the next component with any
+         aggregate elements that follow this array. */
+      *p_icp = icp;
+    }  /* if */
+  }  /* if */
 }  /* aggr_init_class */
 
 
