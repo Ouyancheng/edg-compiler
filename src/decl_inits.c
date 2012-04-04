@@ -802,6 +802,7 @@ routine is called in C++ mode only.
 
   db_enter(4, "init_remaining_array_elements");
 
+  check_assertion(!C_mode());
   array_type = skip_typerefs(array_type);
   if (array_type->variant.array.is_template_dependent_size_array) {
     /* The array size may be template dependent. */
@@ -835,11 +836,8 @@ routine is called in C++ mode only.
           (!exceptions_enabled || cssp->has_trivial_destructor)))) {
       if (cssp != NULL && trivial_ctor) {
         /* An array element of class type with no constructor but with a ref
-           member will end up uninitialized; set the flag in C mode for a
-           const member -- a warning will be issued. */
-        if (C_mode() ?
-              element_type->variant.class_struct_union.any_const_member :
-              cssp->any_ref_member) {
+           member will end up uninitialized. */
+        if (cssp->any_ref_member) {
           init_info->any_uninitialized_const_or_ref_member = TRUE;
         }  /* if */
       }  /* if */
@@ -3814,7 +3812,13 @@ has static storage duration; vp_type is the type of that entity.
 }  /* simple_initializer */
 
 
-static void convert_simple_init_component(an_init_component_ptr  icp,
+/* Forward declaration. */
+static void aggr_init_element(an_init_component_ptr  *p_icp,
+                              a_type_ptr             etype,
+                              a_decl_parse_state     *dps,
+                              a_constant_ptr         *init_con);
+
+static void aggr_init_simple_element(an_init_component_ptr  icp,
                                           a_type_ptr             dest_type,
                                           a_decl_parse_state     *dps,
                                           a_constant_ptr         *init_con)
@@ -3884,7 +3888,44 @@ element, and if it is nonconstant (which results in a ck_dynamic_init entry)
     (*init_con)->type = dest_type;
     dps->has_dynamic_init_component = TRUE;
   }  /* if */
-}  /* convert_simple_aggr_init_element */
+}  /* aggr_init_simple_element */
+
+
+static void aggr_init_generic_element(an_init_component_ptr  icp,
+                                      a_type_ptr             gtype,
+                                      a_decl_parse_state     *dps,
+                                      a_constant_ptr         *init_con)
+/*
+The given initialization component initializes and entity on unknown type.
+Create an aggregate constant whose structure simply matches that of the
+initialization component.
+*/
+{
+  check_assertion(is_template_param_type(gtype) || is_error_type(gtype));
+  if (is_expression_component(icp)) {
+    /* A simple expression: No more recursion is needed. */
+    aggr_init_simple_element(icp, gtype, dps, init_con);
+  } else if (is_braced_init_component(icp)) {
+    /* A braced list: Recursively treat every item in the list. */
+    a_type_ptr  dest_type = type_of_unknown_templ_param_nontype;
+    if (is_error_type(gtype)) dest_type = gtype;
+    *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    (*init_con)->type = gtype;
+    (*init_con)->explicit_braces_on_aggregate = TRUE;
+    for (icp = icp->variant.braced.list; icp != NULL; icp = icp->next) {
+      a_constant_ptr  elem_con;
+      aggr_init_generic_element(icp, dest_type, dps, &elem_con);
+      if ((*init_con)->variant.aggregate.first_constant == NULL) {
+        (*init_con)->variant.aggregate.first_constant = elem_con;
+      } else {
+        (*init_con)->variant.aggregate.last_constant->next = elem_con;
+      }  /* if */
+      (*init_con)->variant.aggregate.last_constant = elem_con;
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* aggr_init_generic_element */
 
 
 static a_boolean try_string_literal_init(an_init_component_ptr  icp,
@@ -3940,37 +3981,138 @@ set *result to the a_constant entry representing the initializer.
 }  /* try_whole_array_init */
 
 
-static void aggr_init_array(an_init_component_ptr  icp,
+static void aggr_init_array_remainder_if_needed(a_constant_ptr      array_con,
+                                                a_targ_size_t       count,
+                                                a_decl_parse_state  *dps,
+                                                a_source_position   *diag_pos)
+/*
+The given ck_aggregate constant initializes an array, but does not explicitly
+initialize the last count elements of that array.  If applicable, append a
+constant to the list embedded in array_con that adds any missing dynamic
+initializations (plain zero initialization is done elsewhere if needed).
+dps describes the declaration in which the initializer appears, and diag_pos
+indicates the position for which diagnostics should be issued.
+*/
+{
+  a_type_ptr  atype = array_con->type, etype;
+
+  check_assertion(atype->kind == (a_type_kind)tk_array &&
+                  array_con->kind == (a_constant_repr_kind)ck_aggregate);
+  etype = skip_typerefs(atype->variant.array.element_type);
+  if (etype->kind == (a_type_kind)tk_array) {
+    /* The element is a sub-array.  Create a single potentially-repeated
+       initializer for all array levels. */
+    a_type_ptr  satype = etype;
+    etype = underlying_array_element_type(etype);
+    etype = skip_typerefs(etype);
+    count *= array_element_count(satype, etype);
+  }  /* if */
+  if (is_real_class_type(etype)) {
+    /* It is an array of class objects. */
+    a_boolean  partial_init = FALSE;
+    a_class_symbol_supplement_ptr
+               cssp = symbol_supplement_for_class(etype);
+    if (has_trivial_default_constructor(cssp) &&
+        (!exceptions_enabled || cssp->has_trivial_destructor)) {
+      if (cssp->any_ref_member) {
+        /* An array element of class type with no constructor but with a ref
+           member will end up uninitialized. */
+        dps->any_uninitialized_const_or_ref_member = TRUE;
+      }  /* if */
+      /* No initializers needed for the remaining array elements. */
+    } else {
+      /* Initialization must be represented in the IL since it is not
+         trivial. */
+      a_dynamic_init_ptr  dip;
+      a_constant_ptr      remainder_con = NULL;
+      a_routine_ptr       ctor_rp;
+      /* Get the default constructor.  Note that it is an error if it is
+         missing. */
+      ctor_rp = select_default_constructor(etype, diag_pos, etype,
+                                           (a_boolean *)NULL);
+      if (ctor_rp == NULL) {
+        /* Trivial default constructor, non-class type, or error. */
+        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+      } else  {
+        /* For a non-trivial constructor, create a dik_constructor
+           dynamic init entry. */
+        dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
+        /* If the default constructor is generated and some component of the
+           class requires zeroing, initialization is not really done because
+           the value-initialization rules require that the zeroing occurs. */
+        if (ctor_rp->compiler_generated &&
+            etype->variant.class_struct_union.has_zero_init_component) {
+          partial_init = TRUE;
+        }  /* if */
+      }  /* if */
+      if (exceptions_enabled && has_nontrivial_destructor(cssp)) {
+        /* If appropriate, add a destructor pointer to the dynamic init entry.
+           This is for the case in which an exception is thrown by the
+           constructor before the entire array has been initialized. */
+        a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
+        add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+      }  /* if */
+      /* Now create the constant entry that will point to the new dynamic init
+         entry. */
+      remainder_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      remainder_con->variant.dynamic_init = dip;
+      remainder_con->type = etype;
+      dps->has_dynamic_init_component = TRUE;
+      if (count > 1) {
+        /* When there is more than one uninitialized element remaining in the
+           array, we put out an init_repeat constant on top of the dynamic init
+           constant. */
+        a_constant_ptr  repeat_con =
+                          alloc_constant((a_constant_repr_kind)ck_init_repeat);
+        repeat_con->variant.init_repeat.count = count;
+        repeat_con->variant.init_repeat.constant = remainder_con;
+        remainder_con = repeat_con;
+      }  /* if */
+      /* Add the constant entry to the list of constants. */
+      if (array_con->variant.aggregate.first_constant == NULL) {
+        array_con->variant.aggregate.first_constant = remainder_con;
+      } else {
+        array_con->variant.aggregate.last_constant->next = remainder_con;
+      }  /* if */
+      array_con->variant.aggregate.last_constant = remainder_con;
+    }  /* if */
+  }  /* if */
+}  /* aggr_init_array_remainder_if_needed */
+
+
+static void aggr_init_array(an_init_component_ptr  *p_icp,
                             a_type_ptr             *p_array_type,
                             a_decl_parse_state     *dps,
                             a_boolean              top_level_init,
-                            a_dynamic_init_ptr     *init_dip,
-                            a_constant_ptr         *init_con,
-                            a_boolean              *init_error)
+                            a_constant_ptr         *init_con)
 /*
-Produce an aggregate constant (in *init_con) or a dynamic init entry (in
-*init_dip) for the initialization of an object or subobject of the array type
-given by *p_array_type by an initializer described by icp.  If this
-initialization is associated with a declaration, dps describes that
-declaration.  If this is for a top-level array initialization, top_level_init
-will be TRUE.
-*init_error is set to TRUE in error cases.
+Produce an aggregate constant (in *init_con) for the initialization of an
+object or subobject of the array type given by *p_array_type by an initializer
+described by icp.  If this initialization is associated with a declaration, dps
+describes that declaration.  If this is for a top-level array initialization,
+top_level_init will be TRUE.
 */
 {
-  check_assertion(is_array_type(*p_array_type));
+  an_init_component_ptr  icp = *p_icp;
+  a_type_ptr             atype = skip_typerefs(*p_array_type);
+
+  check_assertion(atype->kind == (a_type_kind)tk_array);
   if (try_string_literal_init(icp, p_array_type, init_con)) {
     /* A string literal initializer.  Nothing more to be done. */
+    *p_icp = icp->next;
   } else if (!is_braced_init_component(icp) &&
-             try_whole_array_init(icp, *p_array_type, init_con)) {
+             try_whole_array_init(icp, atype, init_con)) {
     /* FIXME.  Do whole-array cases ever get here? */
+    check_assertion(!top_level_init);
     unexpected_condition_str("NYI: Whole-array initialization");
+#if /*FIXME: probably can be deleted */0
   } else if (is_empty_list_init_component(icp)) {
     /* An initializer of the form "{}".  This is a special aggregate
        initialization case that convert_initializer handles. */
     a_boolean           is_constant = FALSE;
     a_boolean           is_var_init = top_level_init &&
                                       dps != NULL && dps->sym != NULL;
-    if (is_incomplete_array_type(*p_array_type)) {
+    if (is_incomplete_array_type(atype)) {
       /* An empty initializer for an array with no specified bound is normally
          an error.  GNU mode is an exception: There it results in a zero-length
          array. */
@@ -3978,60 +4120,121 @@ will be TRUE.
         set_initialized_array_size(p_array_type, (a_targ_size_t)0,
                                    /*unknown_dependent=*/FALSE);
       } else {
-        *init_error = TRUE;
         pos_error(ec_bad_initializer_for_array_with_unspecified_bound,
                   init_component_pos(icp));
+        *init_con = alloc_error_constant();
         *p_array_type = error_type();
       }  /* if */
     }  /* if */
-    if (!*init_error) {
-      convert_initializer(icp, *p_array_type, is_var_init,
-                          /*is_direct_init=*/FALSE, /*check_narrowing=*/TRUE,
-                          /*fill_in_dtor=*/TRUE,
-                          dps, &is_constant, init_dip, init_con);
-    }  /* if */
+    convert_initializer(icp, atype, is_var_init, /*is_direct_init=*/FALSE,
+                        /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
+                        dps, &is_constant, init_dip, init_con);
+#endif
   } else {
-    /* FIXME. */
-    unexpected_condition_str("NYI: General aggregate array initialization");
-  }  /* if */
-}  /* aggr_init_array */
-
-
-static void convert_init_component_to_generic_constant(
-                                        an_init_component_ptr  icp,
-                                        a_type_ptr             gtype,
-                                        a_decl_parse_state     *dps,
-                                        a_constant_ptr         *init_con)
-/*
-The given initialization component initializes and entity on unknown type.
-Create an aggregate constant whose structure simply matches that of the
-initialization component.
-*/
-{
-  check_assertion(is_template_param_type(gtype) || is_error_type(gtype));
-  if (is_expression_component(icp)) {
-    convert_simple_init_component(icp, gtype, dps, init_con);
-  } else if (is_braced_init_component(icp)) {
-    a_type_ptr  dest_type = type_of_unknown_templ_param_nontype;
-    if (is_error_type(gtype)) dest_type = gtype;
+    /* Ordinary element-by-element array initialization. */
+    a_boolean      no_bound = FALSE, braced = is_braced_init_component(icp);
+    a_targ_size_t  ecount, icount = 0;
+    a_type_ptr     etype = atype->variant.array.element_type;
+    if (braced) {
+      /* The element values are enclosed in braces. */
+      icp = icp->variant.braced.list;
+    }  /* if */
     *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-    (*init_con)->type = gtype;
-    (*init_con)->explicit_braces_on_aggregate = TRUE;
-    for (icp = icp->variant.braced.list; icp != NULL; icp = icp->next) {
+    (*init_con)->type = atype;
+    /* Determine the element count in the destination type if known. */
+    if (has_unknown_specified_bound(atype) ||
+        (atype->variant.array.variant.number_of_elements == 0 &&
+         !atype->variant.array.bound_is_zero)) {
+      /* An array whose number of elements is not a priori bound. */
+      no_bound = TRUE;
+    } else {
+      ecount = atype->variant.array.variant.number_of_elements;
+    }  /* if */
+    /* Loop through the initializer components and create individual constant
+       entries for each of them. */
+    while (icp != NULL && (no_bound || icount < ecount)) {
       a_constant_ptr  elem_con;
-      convert_init_component_to_generic_constant(
-                                              icp, dest_type, dps, &elem_con);
+      aggr_init_element(&icp, etype, dps, &elem_con);
       if ((*init_con)->variant.aggregate.first_constant == NULL) {
         (*init_con)->variant.aggregate.first_constant = elem_con;
       } else {
         (*init_con)->variant.aggregate.last_constant->next = elem_con;
       }  /* if */
       (*init_con)->variant.aggregate.last_constant = elem_con;
+      ++icount;
+    }  /* while */
+    if (!no_bound && icount < ecount) {
+      /* Not all array elements are explicitly initializer: Append an entry
+         to initialize the remaining elements. */
+      a_source_position  *diag_pos = &dps->declarator_pos;
+      if (braced) diag_pos = &(*p_icp)->variant.braced.end_pos;
+      aggr_init_array_remainder_if_needed(*init_con, ecount-icount, dps,
+                                          diag_pos);
     }  /* if */
-  } else {
-    unexpected_condition();
+    if (braced) {
+      /* The caller should move on to the component that follows the braced
+         list (if any). */
+      *p_icp = (*p_icp)->next;
+      if (top_level_init && no_bound && !has_unknown_specified_bound(atype)) {
+        set_initialized_array_size(p_array_type, icount,
+                                   /*unknown_dependent=*/FALSE);
+      }  /* if */
+    } else {
+      /* Braces were omitted at this level of aggregate initialization: The
+         the caller should continue associating the next component with any
+         aggregate elements that follow this array. */
+      check_assertion(!top_level_init);
+      *p_icp = icp;
+    }  /* if */
   }  /* if */
-}  /* convert_init_component_to_generic_constant */
+}  /* aggr_init_array */
+
+
+static void aggr_init_class(an_init_component_ptr  *p_icp,
+                            a_type_ptr             etype,
+                            a_decl_parse_state     *dps,
+                            a_constant_ptr         *init_con)
+/*
+*/
+{
+  unexpected_condition_str("NYI: Direct class-aggregate initialization.");
+}  /* aggr_init_class */
+
+
+static void aggr_init_element(an_init_component_ptr  *p_icp,
+                              a_type_ptr             etype,
+                              a_decl_parse_state     *dps,
+                              a_constant_ptr         *init_con)
+/*
+Handle the initialization of an element of type etype of an aggregate by the
+component *p_icp (and potentially, the components that follow *p_icp).  Return
+the result in *init_con.  *dps describes the declaration that this
+initialization is part of.
+If this element is itself an aggregate, then this routine recurses into
+aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
+*/
+{
+  etype = skip_typerefs(etype);
+  if (etype->kind == (a_type_kind)tk_array) {
+    /* Array. */
+    aggr_init_array(p_icp, &etype, dps, /*top_level_init=*/FALSE, init_con);
+  } else if (is_immediate_class_type(etype) &&
+             symbol_for(etype)->variant.class_struct_union.extra_info
+                              ->is_class_aggregate) {
+    /* Aggregate class. */
+    aggr_init_class(p_icp, etype, dps, init_con);
+  } else if (etype->kind == (a_type_kind)tk_template_param ||
+             etype->kind == (a_type_kind)tk_error) {
+    /* Create a constant that matches the initializer structure (since the
+       element structure is not a priori known). */
+    aggr_init_generic_element(*p_icp, etype, dps, init_con);
+    *p_icp = (*p_icp)->next;
+  } else {
+    /* Use the single value in *p_icp to initialize one element. */
+    aggr_init_simple_element(*p_icp, etype, dps, init_con);
+    *p_icp = (*p_icp)->next;
+  }  /* if */
+}  /* aggr_init_element */
 
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4054,7 +4257,7 @@ a dynamic component) or *init_con (for purely constant initializers).
 */
 {
   a_variable_ptr         vp;
-  an_init_component_ptr  icp;
+  an_init_component_ptr  icp_tree, icp;
   a_boolean              is_constant = FALSE, is_aggregate = FALSE;
   a_type_ptr             dtype = skip_typerefs(dps->type), atype = dtype;
   a_routine_ptr          dtor_rp = NULL;
@@ -4066,8 +4269,10 @@ a dynamic component) or *init_con (for purely constant initializers).
   vp = var_for_symbol(dps->sym);
   check_assertion(vp != NULL);
   vp->has_direct_braced_initializer = TRUE;
-  /* Parse the list. */
-  icp = scan_braced_init_list(/*is_var_init=*/TRUE, dps);
+  /* Parse the list structure (which may be nested and therefore really a tree
+     structure). */
+  icp_tree = scan_braced_init_list(/*is_var_init=*/TRUE, dps);
+  icp = icp_tree;
   check_assertion(icp != NULL && is_braced_init_component(icp));
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
@@ -4080,28 +4285,34 @@ a dynamic component) or *init_con (for purely constant initializers).
       /* Unknown destination type: Create an aggregate constant that follows
          the source form. */
       is_aggregate = TRUE;
-      convert_init_component_to_generic_constant(icp, dtype, dps, init_con);
+      aggr_init_generic_element(icp, dtype, dps, init_con);
       break;
     case tk_array:
-#if GNU_VECTOR_TYPES_ALLOWED
-    case tk_vector:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
       /* Arrays (and vectors) are aggregates. */
       is_aggregate = TRUE;
-      aggr_init_array(icp, &atype, dps, /*top_level_init=*/TRUE, init_dip,
-                      init_con, init_error);
+      aggr_init_array(&icp, &atype, dps, /*top_level_init=*/TRUE, init_con);
       if (atype != dtype) {
         /* Presumably an incomplete array type whose length is now known.
            Update the recorded type. */
         dps->type = vp->type = atype;
       }  /* if */
-      { a_type_ptr  etype = underlying_array_element_type(atype);
+      if (is_error_type(atype)) {
+        *init_error = TRUE;
+        expect_error();
+      } else {
+        a_type_ptr  etype = underlying_array_element_type(atype);
         etype = skip_typerefs(etype);
         if (is_immediate_class_type(etype)) {
           dtor_rp = select_destructor(etype, etype, &dps->declarator_pos);
         }  /* if */
       }
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      /*FIXME*/
+      unexpected_condition_str("NYI: List-init of vector types");
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_class:
     case tk_struct:
     case tk_union:
@@ -4162,7 +4373,7 @@ a dynamic component) or *init_con (for purely constant initializers).
       }  /* if */
       break;
   }  /* switch */
-  free_init_component_list(icp);
+  free_init_component_list(icp_tree);
   if (is_aggregate && !*init_error) {
     /* The routines for aggregate initialization produce a constant entry, but
        those entries may embed a dynamic initialization.  If so, return a
@@ -4176,6 +4387,19 @@ a dynamic component) or *init_con (for purely constant initializers).
       (*init_dip)->variant.constant = *init_con;
       (*init_dip)->destructor = dtor_rp;
       *init_con = NULL;
+    }  /* if */
+    if (dps->any_uninitialized_const_or_ref_member) {
+      /* A const or reference field was not initialized.  Issue a diagnostic,
+         except in unions. */
+      if (!is_union_type(dps->type)) {
+        if (C_mode()) {
+          pos_sy_warning(ec_var_with_uninitialized_field,
+                         &dps->declarator_pos, dps->sym);
+        } else {
+          pos_sy_error(ec_var_with_uninitialized_member,
+                       &dps->declarator_pos, dps->sym);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* direct_braced_initializer */

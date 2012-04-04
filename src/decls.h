@@ -569,6 +569,10 @@ typedef struct a_decl_parse_state {
   a_bit_field	has_dynamic_init_component:1;
 			/* TRUE if this declaration has a braced initializer
 			   and an initializer component is nonconstant. */
+  a_bit_field	any_uninitialized_const_or_ref_member:1;
+			/* TRUE if this declaration has a braced initializer
+			   that fails to initialize a const or reference
+			   member. */
   a_bit_field	first_decl:1;
 			/* TRUE if this is the first declaration of a variable
 			   or function. */
@@ -724,6 +728,11 @@ typedef struct a_decl_parse_state {
 		deduced_auto_type;
 			/* The type that "auto" was deduced to after scanning
 			   the initializer. */
+  an_object_lifetime_ptr
+		braced_init_lifetime;
+			/* Pointer to the object lifetime associated with a
+			   braced initializer.  (NULL if the current
+			   declaration does not have a braced initializer.) */
   an_expression_cache
 		prescanned_initializer_cache;
 			/* A cache containing an expression scanned early

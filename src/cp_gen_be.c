@@ -14280,7 +14280,7 @@ initialization is in a condition declaration if is_condition is TRUE.
         write_tok_str(braced_init ? (char*)"{" : (char*)" = ");
         gen_initializer_constant(initializer->constant, var->type,
                                  /*transparent_case=*/FALSE,
-                                 /*suppress_braces=*/FALSE);
+                                 /*suppress_braces=*/braced_init);
         if (braced_init) write_tok_ch('}');
         break;
       case initk_dynamic:

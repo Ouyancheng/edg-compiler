@@ -192,6 +192,7 @@ be restored).
   dps->has_initializer = FALSE;
   dps->has_direct_initializer = FALSE;
   dps->has_dynamic_init_component = FALSE;
+  dps->any_uninitialized_const_or_ref_member = FALSE;
   dps->first_decl = FALSE;
   dps->first_decl_of_predeclared_entity = FALSE;
   dps->override_okay = FALSE;
@@ -206,6 +207,7 @@ be restored).
   dps->id_attributes = NULL;
   dps->asm_name = NULL;
   dps->asm_name_pos = null_source_position;
+  dps->braced_init_lifetime = NULL;
   clear_expression_cache(&dps->prescanned_initializer_cache);
   dps->prescanned_initializer_levels_down = 0;
   dps->source_sequence_entry = NULL;
