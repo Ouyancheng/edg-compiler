@@ -14833,18 +14833,26 @@ if one is present.
       state->storage_class = (a_storage_class)sc_extern;
     }  /* if */
   }  /* if */
-  if (has_parenthesized_initializer) {
+  if (state->range_based_for) {
+    /* The for-init declaration of a range-based "for" loop: Stop here and let
+       statement processing handle the colon and what follows. */
+    if (curr_token != tok_colon) {
+      /* The current token is not a colon, but since disambiguation caused
+         state->range_base_for to be set, we know a colon is upcoming. */
+      push_stop_token_stack();
+      add_stop_token(tok_colon);
+      error_position = pos_curr_token;
+      syntax_error(ec_exp_colon);
+      remove_stop_token(tok_colon);
+      pop_stop_token_stack();
+    }  /* if */
+  } else if (has_parenthesized_initializer) {
     has_initializer = TRUE;
   } else if (curr_token == tok_assign) {
     has_initializer = TRUE;
     decl_pos_block->var_init_range.start = pos_curr_token;
   } else if (list_init_enabled && curr_token == tok_lbrace) {
     has_initializer = TRUE;
-  } else if (range_based_for_enabled && state->is_for_init_decl &&
-             curr_token == tok_colon && !state->secondary_declarator) {
-    /* The for-init declaration of a range-based "for" loop: Stop here and let
-       statement processing handle the colon and what follows. */
-    state->range_based_for = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
   } else if (gpp_mode && gnu_version >= 40400 && curr_token == tok_lbrace &&
              is_aggregate_or_union_type(state->type)) {
@@ -16149,7 +16157,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
     } else if (dps->declared_storage_class != (a_storage_class)sc_typedef) {
       variable_declaration(dps, &locator, &decl_pos_block);
       if (dps->range_based_for) {
-        check_assertion(curr_token == tok_colon);
+        check_assertion_or_expect_error(curr_token == tok_colon);
         goto advance_past_final_token;
       }  /* if */
     } else {

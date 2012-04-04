@@ -1545,12 +1545,6 @@ types separated by commas (when single_type_required is FALSE).
           /* Condition statements (except in for statements) must end
              with a right parenthesis. */
           if (curr_token != tok_rparen) state.may_be_decl = FALSE;
-        } else if ((flags & DFS_IS_FOR_INIT) && curr_token == tok_colon) {
-          /* If range-based for-statements are permitted, the declaration of
-             the iteration variable may be followed by a colon.  Even if they
-             are not permitted, a colon here would not make a valid expression
-             and error recovery is improved by proceeding with declaration
-             processing. */
         } else {
           /* All other declarations must end in a semicolon. */
           if (curr_token != tok_semicolon) state.may_be_decl = FALSE;
@@ -1663,6 +1657,41 @@ cache passed by the caller are flushed.
   wrapup_disambig_state(&state);
   return state.decl_class_type;
 }  /* prescan_and_find_declarator */
+
+
+a_boolean is_start_of_range_based_for(void)
+/*
+This routine is called when the current token is tok_for of a for statement.
+Return TRUE if it is a ranged-based for, FALSE if it is not.  If the
+token after "for" is not a left parenthesis, FALSE is returned.
+*/
+{
+  a_disambig_state	state;
+  a_boolean		result = FALSE;
+
+  /* Initialize the disambiguation state block. */
+  init_disambig_state(&state, /*suppress_packs=*/FALSE,
+                      /*cache_tokens=*/TRUE);
+  check_assertion(curr_token == tok_for);
+  (void)get_token();
+  if (curr_token == tok_lparen) {
+    a_token_set_array	stop_token_array;
+    (void)get_token();
+    /* Look for a "?", ":", or ";".  If we first find a ":", this is a
+       range-based for. */
+    clear_token_set_array(stop_token_array);
+    incr_token_set_array_element(stop_token_array, tok_quest_mark);
+    incr_token_set_array_element(stop_token_array, tok_colon);
+    incr_token_set_array_element(stop_token_array, tok_semicolon);
+    cache_token_stream_with_coalesce_flag((a_token_cache_ptr)NULL,
+                                          stop_token_array,
+                                          /*coalesce=*/TRUE);
+    result = curr_token == tok_colon;
+  }  /* if */
+  wrapup_disambig_state(&state);
+  return result;
+}  /* is_start_of_range_based_for */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 

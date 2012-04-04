@@ -1,5 +1,25 @@
 Version 4.5
 
+4/4/12   [EDGcpfe/12748,EDGcpfe/12805]
+Assertion failures in C++11 mode with plain-old "for" statements
+
+As a result of adding code to support the C++11 range-based "for" statement
+(see [EDGcpfe/9255,EDGcpfe/11021]), some plain-old "for" statements (mostly
+those with destructions required in the for-init clause, but others as well)
+had resulted in an assertion failure in for_statement.  A change has been made
+to disambiguate the range-based "for" and plain-old "for" statements earlier so
+that they can be dealt with separately, avoiding the issues that led to the
+assertion failure.  This example had resulted in an assertion failure (with
+--c++11):
+
+  struct A {
+    ~A();
+  };
+  void f() {
+    for (A();;) ;
+  }
+
+
 4/3/12   [EDGcpfe/12816]
 Error recovery on conversion on argument of constructor call
 

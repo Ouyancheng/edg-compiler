@@ -48,14 +48,14 @@ typedef uint16_t a_disambig_flag_set;
 #define DFS_IS_TEMPLATE_ARGUMENT	0x80
 			/* This is a template argument that is being
 			   prescanned. */
-#define DFS_IS_FOR_INIT			0x100
-			/* Disambiguation is for a for-init statement. */
 
 extern a_boolean is_decl_not_expr(a_disambig_flag_set flags);
 
 extern
 a_type_ptr prescan_and_find_declarator(a_token_cache *decl_token_cache_ptr,
                                        a_boolean     *is_friend_decl);
+
+extern a_boolean is_start_of_range_based_for(void);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 extern void prescan_decl_modifiers(void);

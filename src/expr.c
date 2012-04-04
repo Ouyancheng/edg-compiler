@@ -31059,10 +31059,9 @@ and can have the following forms (see [stmt.ranged] for specifics):
       passed = FALSE;
     }  /* if */
   }  /* if */
-  if (passed) {
+  if (passed && rbflp->iterator != NULL) {
     check_assertion(rbflp->begin != NULL &&
-                    rbflp->end != NULL &&
-                    rbflp->iterator != NULL);
+                    rbflp->end != NULL);
     /* Fill in the remainder of the IL required for the range-based-for,
        i.e., the iterator variable, the "__begin != __end" expression,
        and the "++__begin" expression.  The expressions are built in the

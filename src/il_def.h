@@ -14466,7 +14466,7 @@ typedef struct a_range_based_for_loop {
                 iterator;
                         /* Pointer to the iteration variable declared in
                            for-range-declaration.  Dynamically initialized
-                           to *__begin. */
+                           to *__begin.  NULL if there was an error. */
   a_variable_ptr
                 range;
                         /* Pointer to the __range temporary variable above.
