@@ -5421,17 +5421,15 @@ curr_routine points to the routine entry; otherwise, it is NULL.
             severity = es_remark;
           }  /* if */
         } else if (il_header.any_templates_seen &&
-                   (!nonclass_prototype_instantiations ||
-                    defer_function_prototype_instantiations) &&
                    instantiation_mode == tim_none &&
                    (scope_kind == (a_scope_kind)sck_file ||
                     scope_kind == (a_scope_kind)sck_namespace ||
                     scope_kind == (a_scope_kind)sck_class_struct_union)) {
-          /* If we are not parsing all template definitions nor instantiating
-             all template uses, it is possible that we missed a reference/use
-             from a template to an enclosing scope (which can only be a file
-             scope, namespace scope, or class scope): Don't issue a warning or
-             remark in such cases since it would be unreliable. */
+          /* If we are not instantiating template uses, it is possible that
+             we missed a reference/use from a template to an enclosing scope
+             (which can only be a file scope, namespace scope, or class
+             scope): Don't issue a warning or remark in such cases since it
+             would be unreliable. */
           severity = es_none;
         }  /* if */
         if (severity != es_none) {
