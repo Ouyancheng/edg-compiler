@@ -4009,7 +4009,7 @@ indicates the position for which diagnostics should be issued.
   }  /* if */
   if (is_real_class_type(etype)) {
     /* It is an array of class objects. */
-    a_boolean  partial_init = FALSE;
+    /* FIXME a_boolean  partial_init = FALSE; */
     a_class_symbol_supplement_ptr
                cssp = symbol_supplement_for_class(etype);
     if (has_trivial_default_constructor(cssp) &&
@@ -4037,6 +4037,7 @@ indicates the position for which diagnostics should be issued.
         /* For a non-trivial constructor, create a dik_constructor
            dynamic init entry. */
         dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
+#if /*FIXME*/0
         /* If the default constructor is generated and some component of the
            class requires zeroing, initialization is not really done because
            the value-initialization rules require that the zeroing occurs. */
@@ -4044,6 +4045,7 @@ indicates the position for which diagnostics should be issued.
             etype->variant.class_struct_union.has_zero_init_component) {
           partial_init = TRUE;
         }  /* if */
+#endif
       }  /* if */
       if (exceptions_enabled && has_nontrivial_destructor(cssp)) {
         /* If appropriate, add a destructor pointer to the dynamic init entry.
@@ -4190,6 +4192,7 @@ top_level_init will be TRUE.
 }  /* aggr_init_array */
 
 
+/*ARGSUSED*/  /*FIXME*/
 static void aggr_init_class(an_init_component_ptr  *p_icp,
                             a_type_ptr             etype,
                             a_decl_parse_state     *dps,
