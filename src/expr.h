@@ -360,6 +360,11 @@ extern an_expr_node_ptr prep_generated_arg_expr(an_expr_node_ptr  expr,
 extern a_boolean scan_class_initializer_expression(a_decl_parse_state  *dps,
                                                    a_dynamic_init_ptr  *dip);
 
+
+extern a_boolean whole_aggr_class_init_possible(
+                                            an_init_component_ptr  icp,
+                                            a_type_ptr             dest_type);
+
 extern a_boolean scan_aggregate_initializer_expression(
                                    a_type_ptr         required_type,
                                    a_boolean          static_lifetime,

@@ -28647,15 +28647,14 @@ state, or is NULL if there is no declaration associated with this scan.
   value_init = (icp->kind == (an_init_component_kind)ick_braced &&
                 icp->variant.braced.list == NULL);
   check_assertion(dest_type != NULL &&
-                  (!is_aggregate_type(dest_type) || value_init));
+                  (!is_aggregate_type(dest_type) ||
+                   is_expression_component(icp) ||
+                   value_init));
   if (icp->kind == (an_init_component_kind)ick_expression) {
     /* The object is initialized by an expression. */
     an_operand *operand = &icp->variant.expr->operand;
     if (is_template_dependent_type(dest_type)) {
       prep_generic_operand(operand);
-    } else if (is_class_struct_union_type(dest_type)) {
-      /*FIXME*/
-      unexpected_condition_str("class braced initializer not implemented");
     } else {
       a_conv_context_set conv_context = CCO_DEFAULT;
       if (is_direct_init) conv_context |= CCO_DIRECT_INITIALIZATION;
@@ -33923,6 +33922,42 @@ As indicated, this is initialization with the "=" semantics
   db_exit();
   return okay;
 }  /* scan_class_initializer_expression */
+
+
+a_boolean whole_aggr_class_init_possible(an_init_component_ptr  icp,
+                                         a_type_ptr             dest_type)
+/*
+Return TRUE if the initializer component icp can initialize a field or array
+element of aggregate class type dest_type (as a whole; not just a field of it).
+*/
+{
+  a_boolean  result;
+
+  check_assertion(is_expression_component(icp) &&
+                  is_immediate_class_type(dest_type));
+  if (C_mode()) {
+    result = types_are_compatible_ignoring_qualifiers(
+                                  icp->variant.expr->operand.type, dest_type);
+  } else {
+    a_conv_descr  conversion;
+    a_boolean     ambiguous;
+    check_assertion(symbol_supplement_for_class(dest_type)
+                                                        ->is_class_aggregate);
+    result = conversion_to_class_possible(&icp->variant.expr->operand,
+                                          dest_type,
+                                          /*try_bitwise_copy=*/TRUE,
+                                          /*is_copy_initialization=*/TRUE,
+                                          /*orig_is_copy_initialization=*/TRUE,
+                                          /*is_reference_binding=*/FALSE,
+                                          CCO_DEFAULT,
+                                          &conversion,
+                                          (a_conv_descr *)NULL,
+                                          &ambiguous,
+                                          (a_candidate_function_ptr *)NULL) ||
+             ambiguous;
+  }  /* if */
+  return result;
+}  /* whole_aggr_class_init_possible */
 
 
 static void push_expr_stack_for_aggregate_initializer(

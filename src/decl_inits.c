@@ -4204,19 +4204,29 @@ array initialization.
 }  /* aggr_init_array */
 
 
-/*ARGSUSED*/  /*FIXME*/
 static a_boolean try_whole_aggr_class_init(an_init_component_ptr  icp,
                                            a_type_ptr             class_type,
+                                           a_decl_parse_state     *dps,
                                            a_constant_ptr         *result)
 /*
 icp represents an expression that might initialize an aggregate class of the
 given type (the whole class object; not just a field of it).  If it does,
 return TRUE, and set *result to the a_constant entry representing the
-initializer.
+initializer.  For example:
+         struct S { int i; } s, as[]{ 1, s };
+Here the component 1 does not wholly initialize an element of as (so FALSE is
+returned with no further action), but the component s does (so this function
+returns TRUE, and sets *result to a constant representing the dynamic
+initialization of as[1]).
 */
 {
-  /* FIXME. */
-  return FALSE;
+  a_boolean  success = FALSE;
+
+  if (whole_aggr_class_init_possible(icp, class_type)) {
+    aggr_init_simple_element(icp, class_type, dps, result);
+    success = TRUE;
+  }  /* if */
+  return success;
 }  /* try_whole_aggr_class_init */
 
 
@@ -4253,9 +4263,13 @@ a top-level array initialization.
   an_init_component_ptr  icp = *p_icp;
 
   check_assertion(is_immediate_class_type(class_type));
-  if (!is_braced_init_component(icp) &&
-      try_whole_aggr_class_init(icp, class_type, init_con)) {
-    unexpected_condition_str("NYI: Whole-aggregate-class initialization");
+  if (is_expression_component(icp) && (!C_mode() || c99_mode || gcc_mode) &&
+      try_whole_aggr_class_init(icp, class_type, dps, init_con)) {
+    /* Even though class type is an aggregate class, it is completely
+       initialized by the expression represented by icp.  E.g.:
+         struct S { int i; } s, as[]{ 1, s };
+       Here the use of s as a component wholly initializes as[1]. */
+    *p_icp = icp->next;
   } else {
     a_boolean   braced = is_braced_init_component(icp);
     a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
