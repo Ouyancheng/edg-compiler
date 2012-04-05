@@ -28,7 +28,7 @@ had resulted in an assertion failure in for_statement.  A change has been made
 to disambiguate the range-based "for" and plain-old "for" statements earlier so
 that they can be dealt with separately, avoiding the issues that led to the
 assertion failure.  This example had resulted in an assertion failure (with
---c++11):
+--c++11 in IA-64 ABI configurations):
 
   struct A {
     ~A();
