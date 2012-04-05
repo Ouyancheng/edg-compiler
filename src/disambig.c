@@ -1662,8 +1662,7 @@ cache passed by the caller are flushed.
 a_boolean is_start_of_range_based_for(void)
 /*
 This routine is called when the current token is tok_for of a for statement.
-Return TRUE if it is a ranged-based for, FALSE if it is not.  If the
-token after "for" is not a left parenthesis, FALSE is returned.
+Return TRUE if it is a ranged-based-for, FALSE if it is not.
 */
 {
   a_disambig_state	state;
@@ -1678,7 +1677,7 @@ token after "for" is not a left parenthesis, FALSE is returned.
     a_token_set_array	stop_token_array;
     (void)get_token();
     /* Look for a "?", ":", or ";".  If we first find a ":", this is a
-       range-based for. */
+       range-based-for. */
     clear_token_set_array(stop_token_array);
     incr_token_set_array_element(stop_token_array, tok_quest_mark);
     incr_token_set_array_element(stop_token_array, tok_colon);

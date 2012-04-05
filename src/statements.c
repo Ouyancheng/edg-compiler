@@ -4473,7 +4473,6 @@ The affinity can be an expression or the keyword "continue".
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  add_stop_token(tok_semicolon);
   if (is_range_based_for) {
     /* A range-based-for has three scopes, all of which are pushed in
        preparation for scanning the for-range-declaration. */
@@ -4487,7 +4486,6 @@ The affinity can be an expression or the keyword "continue".
     add_stop_token(tok_colon);
     /* Scan the for-range-declaration. */
     for_range_declaration(&iterator_sym);
-    remove_stop_token(tok_colon);
     if (iterator_sym != NULL &&
         iterator_sym->kind == (a_symbol_kind)sk_variable) {
       rbflp->iterator = iterator_sym->variant.variable.ptr;
@@ -4501,7 +4499,7 @@ The affinity can be an expression or the keyword "continue".
     pop_block_scope(/*is_final_pop=*/FALSE);
     pop_block_scope(/*is_final_pop=*/FALSE);
     (void)required_token(tok_colon, ec_exp_colon);
-    remove_stop_token(tok_semicolon);
+    remove_stop_token(tok_colon);
     /* Scan the expression. */
     expr_tok_seq_number = curr_token_sequence_number;
     scan_range_based_for_expression(sp);
@@ -4519,6 +4517,7 @@ The affinity can be an expression or the keyword "continue".
     /* A plain-old-for loop (or a UPC forall). */
     /* Scan the initializing expression or declaration if it is present.  It
        will be added to the correct place in the stmk_for entry. */
+    add_stop_token(tok_semicolon);
     for_init_statement(&iterator_pointers_block);
     if (curr_token == tok_semicolon) {
       /* Controlling expression was omitted. */
