@@ -25349,6 +25349,9 @@ Set *p_lambda to NULL in such cases.
 }  /* finish_lambda_routine_processing */
 
 
+#if !(MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED)
+/*ARGSUSED*/  /* call_conv is not used in some configurations. */
+#endif /* !(MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED) */
 static void make_lambda_static_call_locator(a_symbol_locator      *member_loc,
                                             a_calling_convention  call_conv,
                                             a_source_position     *pos)
