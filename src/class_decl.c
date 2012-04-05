@@ -25349,20 +25349,54 @@ Set *p_lambda to NULL in such cases.
 }  /* finish_lambda_routine_processing */
 
 
-static a_routine_ptr generate_lambda_conversion_function(
-                                                a_lambda_ptr       lambda,
-                                                a_class_def_state  *cdsp,
-                                                a_func_info_block  *func_info)
+static void make_lambda_static_call_locator(a_symbol_locator      *member_loc,
+                                            a_calling_convention  call_conv,
+                                            a_source_position     *pos)
+/*
+Create a symbol locator for the static member of a lambda that permits a
+conversion to a pointer to function.  The static member will have the
+indicated calling convention (cc_default in non-Microsoft modes).  Record the
+given position in that locator.
+When the calling convention is cc_default, we call the static member function
+_FUN because that's what GCC does, and this can be an ABI issue.  For other
+calling conventions, a suffix is added (this only happens in Microsoft mode,
+where we don't attempt ABI emulation).
+*/
+{
+  char      *name = (char*)"_FUN";
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+  char      name_buf[sizeof("_FUN")+100];
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
+  sizeof_t  name_len = sizeof("_FUN")-1;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+  if (call_conv != (a_calling_convention)cc_default) {
+    /* Create a calling-convention-specific suffix for the entry point name. */
+    check_assertion(microsoft_mode);
+    sprintf(name_buf, "_FUN%s\n", calling_convention_names[(int)call_conv]);
+    name = name_buf;
+    name_len = strlen(name);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
+  clear_locator(member_loc, pos);
+  (void)find_symbol(name, name_len, member_loc);
+}  /* make_lambda_static_call_locator */
+
+
+static void generate_lambda_conversion_function(
+                                             a_lambda_ptr          lambda,
+                                             a_class_def_state     *cdsp,
+                                             a_func_info_block     *func_info,
+                                             a_calling_convention  call_conv)
 /*
 Add a conversion function to the closure type (described by *cdsp) for the
 given lambda.  The caller has already determined that the given lambda doesn't
 have a capture list or default capture mode, and hence the synthesized
 "operator()" does not make use its "this" parameter.  The conversion function
 returns the address of a static member of the closure type that represents an
-alternative entry point for "operator()": It is also generated here.
-Return a pointer to the conversion function; a body will be added later.
-(No separate body is generated here for the alternative entry point, but
-lowering will generate one.)
+alternative entry point for "operator()": It is also generated here and has
+the indicated calling convention (in Microsoft mode, pairs of functions are
+generated for several calling conventions).
 *func_info describes properties of the lambda's "operator()".
 */
 {
@@ -25380,6 +25414,9 @@ lowering will generate one.)
   call_type->variant.routine.extra_info->this_class = NULL;
   call_type->variant.routine.extra_info->qualifiers = TQ_NONE;
   call_type->variant.routine.extra_info->assoc_routine = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+  call_type->variant.routine.extra_info->calling_convention = call_conv;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
   /* Generate a declaration for the conversion function. */
   ptr_type = make_pointer_type(call_type);
   make_type_conversion_locator(ptr_type, &member_loc, pos);
@@ -25397,11 +25434,9 @@ lowering will generate one.)
   decl_member_function(&member_loc, &local_func_info, cdsp, &decl_info,
                        /*compiler_generated=*/TRUE);
   conv_op = decl_info.decl_state.sym->variant.routine.ptr;
-  /* Generate the alternative entry point (we call it _FUN because that's what
-     GCC does, and this can be an ABI issue): This is a static member function
+  /* Generate the alternative entry point.  This is a static member function
      (i.e., no "this" parameter). */
-  clear_locator(&member_loc, pos);
-  (void)find_symbol("_FUN", sizeof("_FUN")-1, &member_loc);
+  make_lambda_static_call_locator(&member_loc, call_conv, pos);
   initialize_member_decl_info(&decl_info, pos);
   decl_info.decl_state.type = call_type;
   decl_info.decl_state.declared_type = call_type;
@@ -25420,8 +25455,73 @@ lowering will generate one.)
                              (a_special_function_kind)sfk_lambda_entry_point);
     sym->variant.routine.ptr->variant.lambda_call_operator = call_op;
   }  /* if */
-  return conv_op;
 }  /* generate_lambda_conversion_function */
+
+
+static void generate_lambda_conversion_functions_if_needed(
+                                             a_lambda_ptr          lambda,
+                                             a_class_def_state     *cdsp,
+                                             a_func_info_block     *func_info)
+/*
+If the given lambda has a capture list of the form "[]", generate a conversion
+function for it (the conversion is to a function pointer).  Also generate the
+static member whose address is to be returned by the conversion function.
+In Microsoft mode, generate such pairs of functions for each applicable
+calling convention type.
+A definition for these functions is not generated here, but the operator itself
+will be defined (by define_lambda_conversion_function) once the closure type is
+complete.  (The body of the static member whose address is returned is
+generated by lowering if needed.)
+*/
+{
+  if (lambda->capture_list == NULL && !lambda->has_capture_default &&
+      lambda->lambda_routine != NULL) {
+    if (!microsoft_mode) {
+      a_calling_convention  call_conv = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+      call_conv = (a_calling_convention)cc_default;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
+      generate_lambda_conversion_function(lambda, cdsp, func_info, call_conv);
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+    } else {
+      /* In Microsoft mode, a special function pair must be created for each
+         appropriate calling convention.  In C++/CLI mode, that includes
+         the __clrcall convention. */
+      a_calling_convention  acc[] = { (a_calling_convention)cc_cdecl,
+                                      (a_calling_convention)cc_fastcall,
+                                      (a_calling_convention)cc_stdcall,
+                                      (a_calling_convention)cc_last,
+                                      (a_calling_convention)cc_last },
+                            *pcc;
+      if (cppcli_enabled) {
+        acc[3] = (a_calling_convention)cc_clrcall;
+      }  /* if */
+      for (pcc = acc; *pcc != (a_calling_convention)cc_last; ++pcc) {
+        generate_lambda_conversion_function(lambda, cdsp, func_info, *pcc);
+      }  /* for */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
+    }  /* if */
+  }  /* if */
+}  /* generate_lambda_conversion_functions_if_needed */
+
+
+static void define_lambda_conversion_functions_if_needed(a_lambda_ptr  lambda)
+/*
+Create bodies for the conversion functions (if any) generated by a prior call
+to generate_lambda_conversion_functions_if_needed.
+*/
+{
+  if (lambda->capture_list == NULL && !lambda->has_capture_default &&
+      lambda->lambda_routine != NULL) {
+    a_routine_ptr  rp = class_type_supp(lambda->closure_class)->assoc_scope
+                                                              ->routines;
+    for (; rp != NULL; rp = rp->next) {
+      if (special_kind_is(rp, sfk_conversion)) {
+        define_lambda_conversion_function(rp);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* define_lambda_conversion_functions_if_needed */
 
 
 static void scan_lambda_body(a_lambda_ptr       lambda,
@@ -25495,7 +25595,6 @@ For example:
   a_func_info_block    func_info;
   a_member_decl_info   decl_info;
   a_boolean            bad_scope;
-  a_routine_ptr        conv_op = NULL;
 
   /* Start a new stop token context. */
   push_stop_token_stack();
@@ -25538,11 +25637,8 @@ For example:
   /* Fill in the capture fields information for the explicit captures. */
   decl_lambda_capture_fields(lambda);
   scan_lambda_body(lambda, &func_info);
-  if (lambda->capture_list == NULL && !lambda->has_capture_default &&
-      lambda->lambda_routine != NULL) {
-    conv_op = generate_lambda_conversion_function(lambda, &class_state,
-                                                  &func_info);
-  }  /* if */
+  generate_lambda_conversion_functions_if_needed(lambda, &class_state,
+                                                 &func_info);
   generate_default_constructor(&class_state, /*is_deleted=*/TRUE);
   generate_copy_assignment_operator(&class_state, /*is_deleted=*/TRUE,
                                     TQ_CONST);
@@ -25550,9 +25646,7 @@ For example:
   complete_class_definition(closure_class, decl_level, &class_state);
   pop_scope();
   finish_lambda_routine_processing(&lambda);
-  if (conv_op != NULL) {
-    define_lambda_conversion_function(conv_op);
-  }  /* if */
+  define_lambda_conversion_functions_if_needed(lambda);
   /* Restore the previous default declaration scope. */
   decl_scope_level = saved_decl_scope_level;
   /* Restore the previous stop token context. */
