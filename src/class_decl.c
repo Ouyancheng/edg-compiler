@@ -25400,7 +25400,7 @@ generated for several calling conventions).
 *func_info describes properties of the lambda's "operator()".
 */
 {
-  a_routine_ptr       call_op = lambda->lambda_routine, conv_op;
+  a_routine_ptr       call_op = lambda->lambda_routine;
   a_source_position   *pos = &call_op->source_corresp.decl_position;
   a_type_ptr          call_type, ptr_type, conv_type;
   a_member_decl_info  decl_info;
@@ -25433,7 +25433,6 @@ generated for several calling conventions).
   local_func_info.is_inline = TRUE;
   decl_member_function(&member_loc, &local_func_info, cdsp, &decl_info,
                        /*compiler_generated=*/TRUE);
-  conv_op = decl_info.decl_state.sym->variant.routine.ptr;
   /* Generate the alternative entry point.  This is a static member function
      (i.e., no "this" parameter). */
   make_lambda_static_call_locator(&member_loc, call_conv, pos);
