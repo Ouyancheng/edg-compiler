@@ -25312,13 +25312,14 @@ static void finish_lambda_routine_processing(a_lambda_ptr  *p_lambda)
 The given lambda has been completely parsed, and its closure type has been
 completed.  Perform any final processing for the closure type's operator()
 (notably, IL lowering).
-In severe error cases, *p_lambda or *p_lambda->lambda_routine can be NULL:
-Set *p_lambda to NULL in such cases.
+In severe error cases, *p_lambda->lambda_routine can be NULL: Set *p_lambda to
+NULL in such cases.
 */
 {
   a_lambda_ptr  lambda = *p_lambda;
 
-  if (lambda != NULL && lambda->lambda_routine != NULL) {
+  check_assertion(lambda != NULL);
+  if (lambda->lambda_routine != NULL) {
     if (lambda->lambda_routine->assoc_scope != NULL_region_number) {
 #if DO_IL_LOWERING
       if (is_primary_translation_unit && 
@@ -25647,8 +25648,8 @@ For example:
   /* Record the capture list and complete the closure class. */
   complete_class_definition(closure_class, decl_level, &class_state);
   pop_scope();
-  finish_lambda_routine_processing(&lambda);
   define_lambda_conversion_functions_if_needed(lambda);
+  finish_lambda_routine_processing(&lambda);
   /* Restore the previous default declaration scope. */
   decl_scope_level = saved_decl_scope_level;
   /* Restore the previous stop token context. */
