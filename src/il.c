@@ -19670,7 +19670,7 @@ treated as a form of destruction.
 }  /* record_end_of_lifetime_destruction */
 
 
-void move_destruction_to_curr_object_lifetime(a_dynamic_init_ptr  dip)
+static void move_destruction_to_curr_object_lifetime(a_dynamic_init_ptr dip)
 /*
 Move a dynamic init entry representing a destruction (or a list thereof) to
 the destructions list associated with the current object lifetime.  This
@@ -19689,6 +19689,61 @@ lifetime that is being discarded.
   record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
                                      /*block_lifetime=*/FALSE);
 }  /* move_destruction_to_curr_object_lifetime */
+
+
+void promote_lifetime_contents_to_curr_object_lifetime(an_object_lifetime *olp)
+/*
+Promote the contents of the indicated object lifetime into the current
+object lifetime.
+*/
+{
+  /* We assume the old point of insertion into the parent lifetime is
+     irrelevant. */
+  olp->parent_destruction_sublist = NULL;
+  if (olp->destructions != NULL) {
+    move_destruction_to_curr_object_lifetime(olp->destructions);
+    olp->destructions = NULL;
+  }  /* if */
+}  /* promote_lifetime_contents_to_curr_object_lifetime */
+
+
+void add_as_child_of_curr_object_lifetime(an_object_lifetime_ptr olp)
+/*
+Restore olp to the object lifetime tree -- it was detached earlier, and is
+added back, but possibly in a different position on the child_lifetime list
+of curr_object_lifetime.
+*/
+{
+  db_enter(4, "add_as_child_of_curr_object_lifetime");
+  if (olp != NULL) {
+    a_dynamic_init_ptr outer_dip = olp->parent_destruction_sublist;
+    if (outer_dip != NULL &&
+        outer_dip->overlaps_temps_in_inner_lifetime &&
+        outer_dip->lifetime_of_overlapping_temps == olp) {
+      /* There was an associated destruction for a temporary whose lifetime
+         was promoted (to bind it to a reference).  The destruction was
+         removed by detach_object_lifetime_for_dynamic_init.  Put it back
+         now at the right place in the list. */
+      record_end_of_lifetime_destruction(outer_dip, /*static_lifetime=*/FALSE,
+                                         /*block_lifetime=*/TRUE);
+    }  /* if */
+    check_assertion_str2(olp->parent_lifetime == NULL,
+                         "add_as_child_of_curr_object_lifetime:",
+                         "non-NULL parent_lifetime");
+    olp->next = curr_object_lifetime->child_lifetime;
+    curr_object_lifetime->child_lifetime = olp;
+    olp->parent_lifetime = curr_object_lifetime;
+    olp->parent_destruction_sublist = curr_object_lifetime->destructions;
+#if DEBUG
+    if (debug_level >= 4) {
+      fputs("after restoration:\n", f_debug);
+      db_object_lifetime(olp);
+      db_object_lifetime(curr_object_lifetime);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  db_exit();
+}  /* add_as_child_of_curr_object_lifetime */
 
 #if DEBUG
 
@@ -20561,19 +20616,23 @@ list.
 }  /* mark_object_lifetime_as_useless */
 
 
-a_boolean pop_object_lifetime(void)
+#if !DEBUG
+/*ARGSUSED*/  /* <-- unbound_okay is not used in that case. */
+#endif /* !DEBUG */
+a_boolean pop_object_lifetime_full(a_boolean unbound_okay)
 /*
 Pop an object lifetime off the object lifetimes stack.  Check whether it
 needs to be kept in the IL tree.  If not, unlink it from the IL and
 return it to the appropriate available list.  Return TRUE if the object
-lifetime is retained in the IL tree.
+lifetime is retained in the IL tree.  If unbound_okay is TRUE, it's
+okay if a lifetime being left in the IL is not bound to an IL entry.
 */
 {
   a_boolean               is_implicit_child = FALSE;
   an_object_lifetime_ptr  olp, parent;
   a_boolean               is_retained_in_il;
 
-  db_enter(3, "pop_object_lifetime");
+  db_enter(3, "pop_object_lifetime_full");
 #if DEBUG
   if (debug_level >= 3) {
     fputs("curr_object_lifetime = ", f_debug);
@@ -20674,10 +20733,11 @@ lifetime is retained in the IL tree.
   } else {
     /* Be sure an object lifetime that is being left in the IL has been
        bound to some other IL entity. */
-    check_assertion_str(olp->entity.ptr != NULL ||
+    check_assertion_str(unbound_okay ||
+                        olp->entity.ptr != NULL ||
                         olp->kind ==
                               (an_object_lifetime_kind)olk_block_after_label,
-                        "pop_object_lifetime: useful lifetime is unbound");
+                       "pop_object_lifetime_full: useful lifetime is unbound");
     is_retained_in_il = TRUE;
     if (is_implicit_child) {
       /* This is an object lifetime for a function scope that will remain
@@ -20695,6 +20755,20 @@ lifetime is retained in the IL tree.
   if (debug_level >= 3) db_object_lifetime_stack();
 #endif /* DEBUG */
   db_exit()
+  return is_retained_in_il;
+}  /* pop_object_lifetime_full */
+
+
+a_boolean pop_object_lifetime(void)
+/*
+Pop an object lifetime off the object lifetimes stack.  Check whether it
+needs to be kept in the IL tree.  If not, unlink it from the IL and
+return it to the appropriate available list.  Return TRUE if the object
+lifetime is retained in the IL tree.
+*/
+{
+  a_boolean is_retained_in_il =
+                              pop_object_lifetime_full(/*unbound_okay=*/FALSE);
   return is_retained_in_il;
 }  /* pop_object_lifetime */
 
@@ -21188,6 +21262,7 @@ list of its parent.  If olp is NULL, do nothing.
       prev_child->next = olp->next;
     }  /* if */
     olp->parent_lifetime = NULL;
+    olp->next = NULL;
 #if DEBUG
     if (debug_level >= 4) {
       fputs("lifetime unlinked:\n", f_debug);

@@ -207,7 +207,6 @@ be restored).
   dps->id_attributes = NULL;
   dps->asm_name = NULL;
   dps->asm_name_pos = null_source_position;
-  dps->braced_init_lifetime = NULL;
   clear_expression_cache(&dps->prescanned_initializer_cache);
   dps->prescanned_initializer_levels_down = 0;
   dps->source_sequence_entry = NULL;

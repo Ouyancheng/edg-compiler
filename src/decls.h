@@ -728,11 +728,6 @@ typedef struct a_decl_parse_state {
 		deduced_auto_type;
 			/* The type that "auto" was deduced to after scanning
 			   the initializer. */
-  an_object_lifetime_ptr
-		braced_init_lifetime;
-			/* Pointer to the object lifetime associated with a
-			   braced initializer.  (NULL if the current
-			   declaration does not have a braced initializer.) */
   an_expression_cache
 		prescanned_initializer_cache;
 			/* A cache containing an expression scanned early

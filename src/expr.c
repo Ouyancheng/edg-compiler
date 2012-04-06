@@ -28301,13 +28301,17 @@ the expression is also allowed to have that type.
 
 
 static an_init_component_ptr scan_braced_init_list_internal(
-                                                       a_decl_parse_state *dps)
+                                               a_boolean          is_full_expr,
+                                               a_decl_parse_state *dps)
 /*
 Scan a brace-enclosed initializer list and return a structure describing it.
 The current token on entry must be the opening "{".  On return, the current
 token will be the token following the closing "}".  dps describes the
 current declaration state, or is NULL if there is no declaration associated
-with this scan.  This is the "internal" version of the routine, to be
+with this scan.  If is_full_expr is TRUE, this initializer should be
+considered its own full-expression rather than one nested within something
+else (so, for example, is_full_expr would be FALSE for a call for
+a new-initializer).  This is the "internal" version of the routine, to be
 called only from inside the expression routines, with the expression
 stack already set.
 */
@@ -28327,7 +28331,7 @@ stack already set.
     do {
       if (curr_token == tok_lbrace) {
         /* A nested brace-enclosed list. */
-        elem_icp = scan_braced_init_list_internal(dps);
+        elem_icp = scan_braced_init_list_internal(is_full_expr, dps);
         /* Add the entry to the end of the list. */
         if (end_icp == NULL) {
           icp->variant.braced.list = elem_icp;
@@ -28344,7 +28348,27 @@ stack already set.
         while (any_more) {
           an_arg_operand             *arg_op = alloc_arg_operand();
           a_pack_expansion_descr_ptr pedep;
+          an_object_lifetime_ptr     created_lifetime = NULL;
+          an_object_lifetime_ptr     saved_stack_lifetime = NULL;
+          an_object_lifetime_ptr     saved_curr_lifetime = NULL;
   
+          /* If the initializer is considered a full-expression, we put
+             an object lifetime around each scanned expression.  Later, when
+             we know how the expression is used, we may merge the lifetime
+             into a parent expression lifetime. */
+          if (is_full_expr && curr_object_lifetime != NULL) {
+            saved_curr_lifetime = curr_object_lifetime;
+            if (curr_object_lifetime->kind == 
+                                 (an_object_lifetime_kind)olk_expr_temporary) {
+              curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+            }  /* if */
+            push_object_lifetime((an_il_entry_kind)iek_expr_node,
+                                 (char *)NULL,
+                                 (an_object_lifetime_kind)olk_expr_temporary);
+            created_lifetime = curr_object_lifetime;
+            saved_stack_lifetime = expr_stack->lifetime;
+            expr_stack->lifetime = created_lifetime;
+          }  /* if */
           /* Scan the initializer expression and put it into an
              init-component. */
           scan_expr(&arg_op->operand, PREC_LOWEST,
@@ -28352,6 +28376,19 @@ stack already set.
           elem_icp =
                   alloc_init_component((an_init_component_kind)ick_expression);
           elem_icp->variant.expr = arg_op;
+          if (created_lifetime != NULL) {
+            /* Save the lifetime created for this expression for use later
+               when convert_initializer is called to convert it.  Don't save
+               the lifetime if it wasn't really used. */
+            check_assertion(curr_object_lifetime == created_lifetime);
+            if (pop_object_lifetime_full(/*unbound_okay=*/TRUE)) {
+              arg_op->lifetime = created_lifetime;
+              detach_from_object_lifetime_tree(created_lifetime);
+              created_lifetime->parent_destruction_sublist = NULL;
+            }  /* if */
+            curr_object_lifetime = saved_curr_lifetime;
+            expr_stack->lifetime = saved_stack_lifetime;
+          }  /* if */
           /* Add the entry to the end of the list. */
           if (end_icp == NULL) {
             icp->variant.braced.list = elem_icp;
@@ -28383,35 +28420,28 @@ stack already set.
 }  /* scan_braced_init_list_internal */
 
 
-#if !CHECKING
-/*ARGSUSED*/  /* <-- is_var_init is not used in that case. */
-#endif /* !CHECKING */
-an_init_component_ptr scan_braced_init_list(a_boolean          is_var_init,
+an_init_component_ptr scan_braced_init_list(a_boolean          is_full_expr,
                                             a_decl_parse_state *dps)
 /*
 Scan a brace-enclosed initializer list and return a structure describing it.
 The current token on entry must be the opening "{".  On return, the current
 token will be the token following the closing "}".  dps describes the
 current declaration state, or is NULL if there is no declaration associated
-with this scan.  If is_var_init is TRUE, this is the complete initializer
-for a variable, given by dps->sym.
+with this scan.  If is_full_expr is TRUE, this initializer should be
+considered its own full-expression rather than one nested within something
+else (so, for example, is_full_expr would be FALSE for a call for
+a new-initializer).
 */
 {
   an_expr_stack_entry   *saved_expr_stack;
   an_expr_stack_entry   expr_stack_entry;
   an_init_component_ptr icp;
 
-#if CHECKING
-  if (is_var_init) {
-    check_assertion(dps != NULL && dps->sym != NULL &&
-                    var_for_symbol(dps->sym) != NULL);
-  }  /* if */
-#endif /* CHECKING */
-  save_expr_stack(&saved_expr_stack);
+  if (is_full_expr) save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  if (is_var_init) transfer_expr_context_if_applicable(saved_expr_stack);
+  if (is_full_expr) transfer_expr_context_if_applicable(saved_expr_stack);
 #if CHECKING
   if (dps != NULL) {
     check_assertion(!dps->auto_type_specifier_seen);
@@ -28419,9 +28449,9 @@ for a variable, given by dps->sym.
     check_assertion(!cached_expression_present());
   }  /* if */
 #endif /* CHECKING */
-  icp = scan_braced_init_list_internal(dps);
+  icp = scan_braced_init_list_internal(is_full_expr, dps);
   pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
+  if (is_full_expr) restore_expr_stack(saved_expr_stack);
   return icp;
 }  /* scan_braced_init_list */
 
@@ -28600,7 +28630,7 @@ void convert_initializer(an_init_component_ptr icp,
                          a_boolean             fill_in_dtor,
                          a_decl_parse_state    *dps,
                          a_boolean             *is_constant,
-                         a_dynamic_init_ptr    *dip,
+                         a_dynamic_init_ptr    *p_dip,
                          a_constant_ptr        *constant)
 /*
 Convert an initializer value represented in init-component form (icp)
@@ -28614,7 +28644,7 @@ If check_narrowing is TRUE, issue diagnostics for narrowing
 conversions.  The converted result is returned as either a constant
 (*is_constant is set to TRUE, and *constant is set to a pointer to the
 unshared allocated constant) or a dynamic init entry (*is_constant is
-set to FALSE, and *dip is set to a pointer to the allocated dynamic
+set to FALSE, and *p_dip is set to a pointer to the allocated dynamic
 init entry).  If fill_in_dtor is TRUE, in the latter case the
 destructor will be added to the dynamic init entry (but it's not
 put on a lifetime list yet).  dps describes the current declaration
@@ -28624,9 +28654,10 @@ state, or is NULL if there is no declaration associated with this scan.
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   a_variable_ptr      var = NULL;
+  a_dynamic_init_ptr  dip = NULL;
   a_boolean           value_init;
 
-  *dip = NULL;
+  *p_dip = NULL;
   *constant = NULL;
   if (is_var_init) {
     /* This is a top-level variable initialization. */
@@ -28641,8 +28672,8 @@ state, or is NULL if there is no declaration associated with this scan.
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  if (is_var_init) transfer_expr_context_if_applicable(saved_expr_stack);
+                  /*suppress_object_lifetime=*/TRUE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
   /* Check for an initializer of "{}", which means value-initialization. */
   value_init = (icp->kind == (an_init_component_kind)ick_braced &&
                 icp->variant.braced.list == NULL);
@@ -28652,28 +28683,66 @@ state, or is NULL if there is no declaration associated with this scan.
                    value_init));
   if (icp->kind == (an_init_component_kind)ick_expression) {
     /* The object is initialized by an expression. */
-    an_operand *operand = &icp->variant.expr->operand;
+    an_arg_operand         *arg_op = icp->variant.expr;
+    an_operand             *operand = &arg_op->operand;
+    an_object_lifetime_ptr created_lifetime = arg_op->lifetime;
+    /* If a lifetime was added just to surround the expression, reactivate it.
+       If we're already inside an expression lifetime, promote the things in
+       the added lifetime into the current object lifetime. */
+    if (created_lifetime != NULL) {
+      check_assertion(curr_object_lifetime != NULL);
+      if (curr_object_lifetime->kind ==
+                                 (an_object_lifetime_kind)olk_expr_temporary) {
+        /* Promote the contents of the added lifetime into the current
+           full-expression object lifetime. */
+        promote_lifetime_contents_to_curr_object_lifetime(created_lifetime);
+        free_object_lifetime(created_lifetime);
+        created_lifetime = NULL;
+      } else {
+        /* Re-push the created lifetime. */
+        add_as_child_of_curr_object_lifetime(created_lifetime);
+        curr_object_lifetime = created_lifetime;
+      }  /* if */
+      check_assertion(expr_stack->lifetime == NULL);
+      expr_stack->lifetime = curr_object_lifetime;
+      arg_op->lifetime = NULL;
+    }  /* if */        
     if (is_template_dependent_type(dest_type)) {
       prep_generic_operand(operand);
     } else {
       a_conv_context_set conv_context = CCO_DEFAULT;
       if (is_direct_init) conv_context |= CCO_DIRECT_INITIALIZATION;
       if (is_var_init) conv_context |= CCO_INITIALIZING_VARIABLE;
-      prep_initializer_operand(operand, dest_type,
-                               /*is_transparent=*/(a_boolean *)NULL,
-                               /*conversion=*/(a_conv_descr_ptr)NULL,
-                               /*is_copy_initialization=*/!is_direct_init,
-                               conv_context,
-                               ec_bad_initializer_type);
+      if (is_class_struct_union_type(dest_type)) {
+        /* See if we can elide the copy for class-typed variables. */
+        prep_elision_initializer_operand(operand, dest_type,
+                                         fill_in_dtor,
+                                         conv_context,
+                                         ec_bad_initializer_type, &dip);
+        if (dip == NULL) conv_to_error_operand(operand);
+        fill_in_dtor = FALSE;
+      } else {
+        prep_initializer_operand(operand, dest_type,
+                                 /*is_transparent=*/(a_boolean *)NULL,
+                                 /*conversion=*/(a_conv_descr_ptr)NULL,
+                                 /*is_copy_initialization=*/!is_direct_init,
+                                 conv_context,
+                                 ec_bad_initializer_type);
+      }  /* if */
     }  /* if */
-    if (is_constant_operand(operand)) {
+    if (dip == NULL && is_constant_operand(operand)) {
       *is_constant = TRUE;
       *constant = alloc_unshared_constant(&operand->variant.constant);
+      check_assertion(created_lifetime == NULL);
     } else {
-      an_expr_node_ptr expr = make_node_from_operand(operand);
-      if (is_var_init) expr = wrap_up_full_expression(expr);
-      *dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
-      (*dip)->variant.expression = expr;
+      /* dip is non-NULL if the dynamic init was allocated for the elision
+         case. */
+      if (dip == NULL) {
+        an_expr_node_ptr expr = make_node_from_operand(operand);
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+        dip->variant.expression = expr;
+      }  /* if */
+      if (created_lifetime != NULL) wrap_up_dynamic_init_full_expression(dip);
       *is_constant = FALSE;
     }  /* if */
   } else {
@@ -28683,24 +28752,25 @@ state, or is NULL if there is no declaration associated with this scan.
       /* The list is empty, so this is value-initialization. */
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
-                           is_constant, dip, constant);
-      if (!*is_constant) wrap_up_dynamic_init_full_expression(*dip);
+                           is_constant, &dip, constant);
+      if (!*is_constant) wrap_up_dynamic_init_full_expression(dip);
     } else {
       unexpected_condition_str("brace init with > 0 elements not implemented");
     }  /* if */
   }  /* if */
   if (fill_in_dtor && !*is_constant && is_class_struct_union_type(dest_type)) {
     /* Fill in the destructor if one is needed. */
-    (*dip)->destructor = expr_select_destructor(dest_type,
-                                                dest_type,
-                                                init_component_pos(icp),
-                                                /*honor_virtual=*/FALSE);
+    dip->destructor = expr_select_destructor(dest_type,
+                                             dest_type,
+                                             init_component_pos(icp),
+                                             /*honor_virtual=*/FALSE);
   }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   if (is_var_init) {
-    if (!*is_constant) (*dip)->variable = var;
+    if (!*is_constant) dip->variable = var;
   }  /* if */
+  *p_dip = dip;
 }  /* convert_initializer */
 
 

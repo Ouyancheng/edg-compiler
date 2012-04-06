@@ -1832,7 +1832,11 @@ extern void record_end_of_lifetime_destruction(
                                         a_boolean           static_lifetime,
                                         a_boolean           block_lifetime);
 
-extern void move_destruction_to_curr_object_lifetime(a_dynamic_init_ptr  dip);
+
+extern void promote_lifetime_contents_to_curr_object_lifetime(
+                                                      an_object_lifetime *olp);
+
+extern void add_as_child_of_curr_object_lifetime(an_object_lifetime_ptr olp);
 
 extern void free_object_lifetime(an_object_lifetime_ptr  olp);
 
@@ -1855,6 +1859,8 @@ extern void remove_from_destruction_list(a_dynamic_init_ptr  dip);
 extern void unlink_expr_destructions(an_expr_node_ptr expr);
 
 extern void mark_object_lifetime_as_useless(an_object_lifetime_ptr  olp);
+
+extern a_boolean pop_object_lifetime_full(a_boolean unbound_okay);
 
 extern a_boolean pop_object_lifetime(void);
 

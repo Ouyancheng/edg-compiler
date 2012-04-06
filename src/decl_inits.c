@@ -3836,9 +3836,9 @@ static void aggr_init_element(an_init_component_ptr  *p_icp,
                               a_constant_ptr         *init_con);
 
 static void aggr_init_simple_element(an_init_component_ptr  icp,
-                                          a_type_ptr             dest_type,
-                                          a_decl_parse_state     *dps,
-                                          a_constant_ptr         *init_con)
+                                     a_type_ptr             dest_type,
+                                     a_decl_parse_state     *dps,
+                                     a_constant_ptr         *init_con)
 /*
 The given initialization component is a single element in an aggregate
 initializer.  It initializes an array element or a field of type dest_type, in
@@ -3895,8 +3895,8 @@ element, and if it is nonconstant (which results in a ck_dynamic_init entry)
   /* Convert the single value as appropriate. */
   convert_initializer(icp, dest_type, /*is_var_init=*/FALSE,
                       /*is_direct_init=*/FALSE, /*check_narrowing=*/TRUE,
-                      /*fill_in_dtor=*/TRUE, dps, &is_constant, &init_dip,
-                      init_con);
+                      /*fill_in_dtor=*/exceptions_enabled,
+                      dps, &is_constant, &init_dip, init_con);
   if (!is_constant) {
     /* A nonconstant entry: Wrap it in a ck_dynamic_init entry, and record
        the fact that a nonconstant entry was seen. */
@@ -3904,6 +3904,11 @@ element, and if it is nonconstant (which results in a ck_dynamic_init entry)
     (*init_con)->variant.dynamic_init = init_dip;
     (*init_con)->type = dest_type;
     dps->has_dynamic_init_component = TRUE;
+    if (exceptions_enabled && init_dip->destructor != NULL) {
+      init_dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+      record_end_of_lifetime_destruction(init_dip, /*static_lifetime=*/FALSE,
+                                         /*block_lifetime=*/FALSE);
+    }  /* if */
   }  /* if */
 }  /* aggr_init_simple_element */
 
@@ -4383,7 +4388,7 @@ a dynamic component) or *init_con (for purely constant initializers).
   vp->has_direct_braced_initializer = TRUE;
   /* Parse the list structure (which may be nested and therefore really a tree
      structure). */
-  icp_tree = scan_braced_init_list(/*is_var_init=*/TRUE, dps);
+  icp_tree = scan_braced_init_list(/*is_full_expr=*/TRUE, dps);
   icp = icp_tree;
   check_assertion(icp != NULL && is_braced_init_component(icp));
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -5471,46 +5476,6 @@ FALSE is returned) for non-class objects.
   db_exit();
   return def_init_performed;
 }  /* def_initializer */
-
-
-static void add_as_child_of_curr_object_lifetime(an_object_lifetime_ptr  olp)
-/*
-Restore *olp to the object lifetime tree -- it was detached earlier, but is
-added back, but possibly in a different position on the child_lifetime list
-of curr_object_lifetime (which is assumed to be its former parent).
-*/
-{
-  db_enter(4, "add_as_child_of_curr_object_lifetime");
-  if (olp != NULL) {
-    a_dynamic_init_ptr outer_dip = olp->parent_destruction_sublist;
-    if (outer_dip != NULL &&
-        outer_dip->overlaps_temps_in_inner_lifetime &&
-        outer_dip->lifetime_of_overlapping_temps == olp) {
-      /* There was an associated destruction for a temporary whose lifetime
-         was promoted (to bind it to a reference).  The destruction was
-         removed by detach_object_lifetime_for_dynamic_init.  Put it back
-         now at the right place in the list. */
-      record_end_of_lifetime_destruction(outer_dip, /*static_lifetime=*/FALSE,
-                                         /*block_lifetime=*/TRUE);
-    }  /* if */
-    check_assertion_str2(olp->parent_lifetime == NULL,
-                         "add_as_child_of_curr_object_lifetime:",
-                         "non-NULL parent_lifetime");
-    olp->next = curr_object_lifetime->child_lifetime;
-    curr_object_lifetime->child_lifetime = olp;
-    olp->parent_lifetime = curr_object_lifetime;
-    olp->parent_destruction_sublist = curr_object_lifetime->destructions;
-#if DEBUG
-    if (debug_level >= 4) {
-      fputs("after restoration:\n", f_debug);
-      db_object_lifetime(olp);
-      db_object_lifetime(curr_object_lifetime);
-    }  /* if */
-#endif /* DEBUG */
-  }  /* if */
-  db_exit();
-}  /* add_as_child_of_curr_object_lifetime */
-
 
 
 static void detach_object_lifetime_for_dynamic_init(a_dynamic_init_ptr dip)
@@ -6635,10 +6600,7 @@ initialized.  These are addressed in the course of the processing.
         } else {
           /* Promote destructions associated with expression temps to the
              function scope lifetime. */
-          if (olp->destructions != NULL) {
-            move_destruction_to_curr_object_lifetime(olp->destructions);
-            olp->destructions = NULL;
-          }  /* if */
+          promote_lifetime_contents_to_curr_object_lifetime(olp);
           dip = cip->initializer;
           if (dip->kind == (a_dynamic_init_kind)dik_expression &&
               dip->variant.expression->kind ==

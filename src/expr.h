@@ -415,7 +415,7 @@ extern void conv_nontype_template_arg_to_param_type(
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern
-an_init_component_ptr scan_braced_init_list(a_boolean          is_var_init,
+an_init_component_ptr scan_braced_init_list(a_boolean          is_full_expr,
                                             a_decl_parse_state *dps);
 
 extern
@@ -427,7 +427,7 @@ void convert_initializer(an_init_component_ptr icp,
                          a_boolean             fill_in_dtor,
                          a_decl_parse_state    *dps,
                          a_boolean             *is_constant,
-                         a_dynamic_init_ptr    *dip,
+                         a_dynamic_init_ptr    *p_dip,
                          a_constant_ptr        *constant);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
