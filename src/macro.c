@@ -866,10 +866,14 @@ multibyte character in the token.
                                    /*force_new_region=*/FALSE,
                                    next_targ_offset);
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-  /* Check if this token contains multibyte characters.  The only token shorter
-     than three characters that can contain a multibyte sequence is an
-     identifier. */
+  /* Check if this token is in the source line and contains multibyte
+     characters.  (The offset calculations for multibyte characters
+     appearing in source line modifications have already been reflected in
+     the source text map entries that will be cloned for this token and
+     should not be repeated.)  The only token shorter than three characters
+     that can contain a multibyte sequence is an identifier. */
   if (multibyte_chars_in_source_enabled &&
+      within_curr_source_line(start_of_curr_token) &&
       (end_of_curr_token - start_of_curr_token > 2 ||
        curr_token == tok_identifier)) {
     a_source_position	token_part_pos = pos_curr_token;

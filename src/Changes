@@ -1,5 +1,30 @@
 Version 4.5
 
+4/6/12   [EDGcpfe/12826]
+Assertion failure with multibyte characters in macro argument
+
+In configurations with FULLY_RESOLVED_MACRO_POSITIONS set to TRUE, a macro
+argument containing multibyte characters could result in an assertion
+failure in clone_macro_text_map_entries ("offset not found").  This is now
+fixed.  For example, the following text containing shift-JIS characters
+aborted on some systems:
+
+  #define L(exp) (_frm_.eha.caller.line = __LINE__, (exp))
+  #define SET_LOG_BLOCK(args, blk)                                         \
+                        (boo(make_log_info args , __FILE__, __LINE__, blk))
+  #define SET_LOG(args) SET_LOG_BLOCK(args, (_frm_.call_pos = 'I'))
+  #define DB_SQLCHK_FL(tbl, macro, info, mask, print_log) \
+        ((5000 & ~mask) ?                                 \
+          (print_log((2001,5,macro, info,                 \
+                      sqlca.sqlcode, goo())), 600):       \
+          600)
+  #define DB_SQLCHK(tbl, macro, info) \
+      DB_SQLCHK_FL(tbl, macro, info, 100, SET_LOG) 
+  void foo() {
+    L(DB_SQLCHK("M_SRYSEKY_CATGLNK", "INSERT", "資料純Rード"));
+  }
+
+
 4/5/12   [EDGcpfe/12821]
 Microsoft compatibility: Calling conventions and lambda expressions
 
