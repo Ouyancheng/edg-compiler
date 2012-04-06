@@ -5538,8 +5538,8 @@ lifetime was promoted to match a reference.
 }  /* detach_object_lifetime_for_dynamic_init */
 
 
-static a_boolean are_disjoint_members_of_union(a_field_ptr field1,
-                                               a_field_ptr field2)
+static a_boolean disjoint_members_of_union(a_field_ptr field1,
+                                           a_field_ptr field2)
 /*
 Return TRUE if the two indicated fields (ultimately, members of the
 same class) are members of the same union, or members of members of
@@ -5547,8 +5547,8 @@ the same union.  Anonymous unions and structs are considered in the
 determination.
 */
 {
-  a_boolean  are_disjoint_members = FALSE;
-  a_type_ptr class1 = parent_class_of(field1);
+  a_boolean   disjoint_members = FALSE;
+  a_type_ptr  class1 = parent_class_of(field1);
 
   /* Work up from each field looking at the parent classes.  Find the
      innermost class/struct/union that the fields have in common. */
@@ -5558,7 +5558,7 @@ determination.
       if (same_entities(class2, class1)) {
         /* We've found the innermost class/struct/union that the
            fields have in common.  If it is a union, they conflict. */
-        are_disjoint_members = (class1->kind == (a_type_kind)tk_union);
+        disjoint_members = (class1->kind == (a_type_kind)tk_union);
         goto end_of_routine;
       }  /* if */
       if (!class2->source_corresp.is_class_member) break;
@@ -5568,8 +5568,8 @@ determination.
     class1 = parent_class_of(class1);
   }  /* for */
 end_of_routine:
-  return are_disjoint_members;
-}  /* are_disjoint_members_of_union */
+  return disjoint_members;
+}  /* disjoint_members_of_union */
 
 
 static a_symbol_ptr ctor_init_symbol(a_constructor_init_ptr  cip)
@@ -5591,118 +5591,487 @@ initialization of a base class.
 }  /* ctor_init_symbol */
 
 
-static void check_out_of_order_init(a_constructor_init_ptr  new_cip,
-                                    a_constructor_init_ptr  *p_prev_cip,
-                                    a_boolean               *diag_issued)
 /*
-new_cip represents a new constructor initializer and *p_prev_cip represents
-the previous initializer for the same constructor definition (or NULL, if
-there was no previous initializer).  If *diag_issued is FALSE, issue a remark
-if the new initializer will occur before the previous initializer, and set
-*diag_issued to TRUE.  In all cases, set *p_prev_cip to new_cip.
+Data structure describing the state of the constructor init list associated
+with a constructor being defined.
+*/
+typedef struct a_ctor_init_block {
+  a_constructor_init_ptr
+		cip_list, end_of_cip_list;
+			/* Pointers to the first and last constructor inits
+			   recorded for a constructor.  (NULL if none.) */
+  a_constructor_init_ptr
+		direct_list, end_of_direct_list;
+			/* Pointers to the first and last constructor inits
+			   for direct base classes recorded for a constructor.
+			   (NULL if there are not such base classes.) */
+  a_constructor_init_ptr
+		virtual_list, end_of_virtual_list;
+		 	/* Pointer to the first constructor init for a virtual
+			   base class. */
+  a_constructor_init_ptr
+		last_order_checked_init;
+		 	/* Pointer to last constructor init entry for a
+			   mem-initializer whose order has been checked against
+			   the declaration order of bases and members. */
+  a_boolean	out_of_order_diag_issued;
+			/* TRUE if a diagnostic has been issued about
+			   mem-initializers not matching declaration order. */
+} a_ctor_init_block;
+
+
+static void check_out_of_order_init(a_constructor_init_ptr  new_cip,
+                                    a_ctor_init_block       *cibp)
+/*
+new_cip represents a new constructor initializer and *cibp tracks the state of
+constructor initializers for that same construct definition.  If it hasn't
+been done yet, issue a remark if the new initializer will occur before the
+previous initializer and update the state for the new entry.
 */
 {
-  if (!*diag_issued) {
+  if (!cibp->out_of_order_diag_issued) {
     a_boolean  is_out_of_order = FALSE;
-    if (*p_prev_cip == NULL) {
+    if (cibp->last_order_checked_init == NULL) {
       /* There was no previous initializer, so there cannot be an out-of-order
          item yet. */
-    } else if (new_cip->kind < (*p_prev_cip)->kind) {
+    } else if (new_cip->kind < cibp->last_order_checked_init->kind) {
       /* The previous item was of a kind that is initialized after the current
          item. */
       is_out_of_order = TRUE;
-    } else if (new_cip->kind == (*p_prev_cip)->kind) {
+    } else if (new_cip->kind == cibp->last_order_checked_init->kind) {
       /* The previous item was of the same kind as the current item, so they
          should both be on the same list.  See if the new item comes after it
          on the initialization-order list (which would mean the order of the
          two initializers matches the order in which the corresponding
          initializations are done). */
-      a_constructor_init_ptr  cip = *p_prev_cip;
+      a_constructor_init_ptr  cip = cibp->last_order_checked_init;
       for (; cip != NULL; cip = cip->next) {
         if (cip == new_cip) break;
       }  /* if */
-      /* If new_cip was not found after *p_prev_cip, presumably it came before
-         *p_prev_cip, and an out-of-order diagnostic should be issued. */
+      /* If new_cip was not found after the last checked entry, presumably it
+         came before it, and an out-of-order diagnostic should be issued. */
       is_out_of_order = (cip == NULL);
     }  /* if */
     if (is_out_of_order) {
       pos_sy2_diagnostic(es_remark, ec_out_of_order_ctor_init, &error_position,
                          ctor_init_symbol(new_cip),
-                         ctor_init_symbol(*p_prev_cip));
-      *diag_issued = TRUE;
+                         ctor_init_symbol(cibp->last_order_checked_init));
+      cibp->out_of_order_diag_issued = TRUE;
     }  /* if */
   }  /* if */
-  *p_prev_cip = new_cip;
+  cibp->last_order_checked_init = new_cip;
 }  /* check_out_of_order_init */
 
 
-static a_constructor_init_ptr scan_mem_initializer(
-                       a_type_ptr                    class_type,
-                       a_constructor_init_ptr        *cip_list,
-                       a_constructor_init_ptr        *end_of_cip_list,
-                       a_constructor_init_ptr        *direct_list,
-                       a_constructor_init_ptr        *end_of_direct_list,
-                       a_constructor_init_ptr        virtual_list,
-                       a_boolean                     *out_of_order_diag_issued,
-                       a_constructor_init_ptr        *prev_init)
+static a_constructor_init_ptr scan_mem_initializer_id(
+                                             a_type_ptr         class_type,
+                                             a_ctor_init_block  *cibp,
+                                             a_type_ptr         *p_init_type,
+                                             a_type_ptr         *p_array_type)
 /*
-Scan a mem-initializer, i.e., the explicit initializer for one member
-in a constructor ctor-initializer list.  The current token is the identifier
-naming the member (or an open parenthesis for an old-style initializer case).
-class_type identifies the class whose constructor this is.  cip_list and
-end_of_cip_list bound a list of constructor inits already built for
-nonstatic data members of the class; direct_list and end_of_direct_list
-do the same for a list of direct base classes; and virtual_list is the
-list of virtual base classes (no end pointer is needed, an the parameter
-does not have an extra level of indirection, because this routine does not
-need to add to the virtual base class list).  For all those lists, the
-list passed in describes default initialization of all bases/members
-in order (well, nonstatic data members that don't require
-initialization are omitted), and then any explicit mem-initializers
-scanned in the present routine replace entries on those lists.
-out_of_order_diag_issued and prev_init are maintained to allow
-checking of out-of-order initializations.  Return a pointer to the
-constructor-init entry for the member, or NULL in some error cases.
+Scan a mem-initializer-id (i.e., the name of a field or base class to be
+initialized by a constructor definition) and return a constructor init entry
+corresponding to it.  class_type is the parent class of the constructor.
+*cibp tracks the state of the constructor init entries for the constructor
+currently being defined.  *p_init_type is the type to be initialized; in the
+case of an array, it is the underlying element type and the array type itself
+is returned through *p_array_type.
 */
 {
-  a_base_class_ptr              bcp;
-  a_dynamic_init_ptr            dip;
-  a_type_ptr                    init_type;
-  a_symbol_ptr                  sym, class_sym;
-  a_class_type_supplement_ptr   ctsp;
-  a_class_symbol_supplement_ptr cssp;
-  a_constructor_init_ptr        cip, prev_cip, new_cip = NULL;
-  a_symbol_ptr                  member_or_base_sym;
-  a_boolean                     template_param_init = FALSE;
-  a_type_ptr                    array_type = NULL;
-  a_boolean                     dependent_class_init = FALSE;
-  a_boolean                     flexible_array_member = FALSE;
-  a_source_position             lparen_pos;
+  a_symbol_ptr               member_or_base_sym;
+  a_type_ptr                 init_type;
+  a_boolean                  gid_err, template_param_init = FALSE;
+  an_identifier_options_set  gid_options = GID_NO_OPTIONS;
+  an_identifier_lookup_mode  ilm = ilm_ctor_initializer_name;
+  a_base_class_ptr           bcp;
+  a_constructor_init_ptr     cip, new_cip = NULL;
+
+  if (locator_for_curr_id.is_qualified_name) {
+    /* A qualified name must name a class. */
+    gid_options |= GID_IMPLICIT_TYPE_CONTEXT;
+    ilm = ilm_qualified_ctor_initializer_name;
+  }  /* if */
+  /* Scan the base class name or member name.  (The lookup modes used here
+     skip the current function scope to ensure that a constructor parameter
+     with the same name as a member or base class is not visible.) */
+  check_assertion(curr_token == tok_identifier);
+  member_or_base_sym = coalesce_and_lookup_generalized_identifier(
+                                                  gid_options, ilm, &gid_err);
+  if (member_or_base_sym != NULL) {
+    record_potential_pack_reference(member_or_base_sym, &pos_curr_token);
+    /* Check if a template-dependent entity is being initialized: */
+    if (symbol_is(member_or_base_sym, sk_field)) {
+      if (!member_or_base_sym->is_class_member) {
+        /* This can happen in error cases with anonymous unions:
+             static union { int i; double j; };
+             struct S { S(): i(j) {} };
+           Avoid having to deal with non-member fields during error recovery
+           by dropping the result of the lookup.  */
+        member_or_base_sym = NULL;
+      }  /* if */
+    } else if (is_type_symbol(member_or_base_sym)) {
+      /* This is presumably a mem-initializer for a base. */
+      a_type_ptr  type = type_symbol_type(member_or_base_sym);
+      type = skip_typerefs(type);
+      template_param_init = (type->kind == (a_type_kind)tk_template_param);
+    }  /* if */
+  }  /* if */
+  if ((!class_name_injection_enabled || microsoft_mode) &&
+      !is_error_locator(locator_for_curr_id) &&
+      !locator_for_curr_id.is_qualified_name) {
+    /* If no symbol was returned from the lookup, or if the symbol returned
+       was not a base class or member of the current class, see if the name
+       (if it was unqualified) matches the name of a base class. This can be
+       necessary in cases like this:
+         namespace N {
+           class A { A(int); ... };
+         }
+         class B : public N::A {
+           B() : A(0) { }
+         };
+       The check that follows does not quite emulate the results of a lookup
+       that supports class name injection (e.g., it doesn't deal properly with
+       hiding within the inheritance hierarchy), but the differences will be
+       manifested as slightly different diagnostics, and then only in rather
+       obscure cases.
+       This check is done in Microsoft mode even though class name injection
+       is enabled because, in Microsoft mode, the injected name is ignored for
+       most lookups. */
+    a_boolean  check_base_classes;
+    if (member_or_base_sym == NULL) {
+      check_base_classes = TRUE;
+    } else if (is_class_symbol(member_or_base_sym) &&
+               find_base_class_of(class_type,
+                                  type_symbol_type(member_or_base_sym))) {
+      /* A class that's on the base-classes list. */
+      check_base_classes = FALSE;
+    } else if (member_or_base_sym->is_class_member &&
+               same_entities(sym_parent_class(member_or_base_sym),
+                             class_type)) {
+      /* A member of the current class. */
+      check_base_classes = FALSE;
+    } else {
+      check_base_classes = TRUE;
+    }  /* if */
+    if (check_base_classes) {
+      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+        if (bcp->direct || bcp->is_virtual || member_or_base_sym == NULL) {
+          a_symbol_ptr  tmp_sym = symbol_for(bcp->type);
+          if (locator_for_curr_id.symbol_header == tmp_sym->header) {
+            member_or_base_sym = tmp_sym;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  if (member_or_base_sym == NULL ||
+      symbol_is(member_or_base_sym, sk_undefined)) {
+    /* No such name or qualified name in the symbol table. */
+    if (is_error_locator(locator_for_curr_id)) {
+      /* Some error will already have been issued on this name. */
+    } else {
+      pos_stty_error(ec_not_a_field_or_base_class, &error_position,
+                     locator_for_curr_id.symbol_header->identifier,
+                     class_type);
+    }  /* if */
+    init_type = error_type();
+    goto scan_paren;
+  }  /* if */
+  /* Make sure the symbol found is accessible and not ambiguous. */
+  check_ambiguity_and_verify_access(&locator_for_curr_id);
+  record_symbol_reference(SRK_REFERENCE | SRK_INITIALIZATION,
+                          member_or_base_sym, &error_position,
+                          /*update_il_entry=*/FALSE);
+  if (symbol_is(member_or_base_sym, sk_field) &&
+      same_entities(sym_parent_class(member_or_base_sym), class_type)) {
+    /* This is a field of the current class and may be mentioned in the
+       constructor's initializer list.  But it's an error to refer to
+       it by a qualified name. */
+    a_field_ptr  field = member_or_base_sym->variant.field.ptr;
+    if (locator_for_curr_id.is_qualified_name) {
+      pos_error(ec_qualified_name_not_allowed,
+                &locator_for_curr_id.source_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode && field_is_property_or_event(field)) {
+      /* Property and event fields cannot be mentioned in a constructor
+         initializer list. */
+      pos_error(property_or_event_kind_is(field, pek_cli_event) ?
+                  ec_event_name_not_allowed : ec_property_name_not_allowed,
+                &locator_for_curr_id.source_position);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
+    init_type = field->type;
+    if (is_array_type(init_type)) {
+      if (!is_string_type(init_type)) {
+        /* Arrays can be default-initialized if the expression-list is
+           omitted. */
+        *p_array_type = init_type;
+        init_type = f_skip_typerefs(underlying_array_element_type(init_type));
+      }  /* if */
+    }  /* if */
+    /* Only one member of a union or an anonymous union subobject is allowed
+       to appear in the ctor-initializer list. */
+    if (is_union_type(class_type) ||
+        member_or_base_sym->variant.field.anonymous_parent_object != NULL) {
+      /* Check through fields for which initializers have already been
+         specified. */
+      for (cip = cibp->cip_list; cip != NULL; cip = cip->next) {
+        if (cip->initializer != NULL) {
+          /* Note: at this point cip_list includes only fields, so we can
+             assume cip->kind is cik_field. */
+          if (cip->variant.field == field) {
+            /* Error on duplicate initialization will be issued below. */
+          } else if (!microsoft_mode &&
+                     disjoint_members_of_union(cip->variant.field, field)) {
+            /* The union (or the anonymous union subobject) has already been
+               initialized. */
+            error(ec_union_already_initialized);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    /* Check the list for a constructor init entry that refers to this member.
+       If it's there we may have a reinitialization error. */
+    for (new_cip = cibp->cip_list; new_cip != NULL; new_cip = new_cip->next) {
+      /* Note: at this point cip_list includes only fields, so we can assume
+         new_cip->kind is cik_field. */
+      if (new_cip->variant.field == member_or_base_sym->variant.field.ptr) {
+        if (new_cip->initializer != NULL) {
+          sym_error(ec_member_already_initialized, member_or_base_sym);
+          goto scan_paren;
+        }  /* if */
+        break;
+      }  /* if */
+    }  /* for */
+    if (new_cip != NULL) {
+      /* Already on the list and presumably marked as compiler-generated.
+         Reset the flag, now that it's appeared explicitly in the
+         ctor-initializer list. */
+      new_cip->compiler_generated = FALSE;
+    } else {
+      /* No constructor init entry exists for this field.  Allocate one and
+         add it to the list. */
+      new_cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
+      new_cip->variant.field = member_or_base_sym->variant.field.ptr;
+      new_cip->compiler_generated = FALSE;
+      if (cibp->cip_list == NULL) {
+        /* Easy case: Start a new list. */
+        cibp->cip_list = cibp->end_of_cip_list = new_cip;
+      } else {
+        /* The order in which fields appear on the constructor init list must
+           correspond exactly to the order in which they were declared.  This
+           order is preserved in the symbol list for the class, so advance
+           through the symbol list and through whatever is already on the
+           constructor init list together. */
+        a_constructor_init_ptr  prev_cip = NULL;
+        a_symbol_ptr            sym;
+        cip = cibp->cip_list;
+        sym = symbol_supplement_for_class(class_type)->symbols;
+        for (; sym != NULL; sym = sym->next_in_scope) {
+          if (symbol_is(sym, sk_field)) {
+            /* Found a nonstatic data member. */
+            if (sym == member_or_base_sym) {
+              /* Found the field.  Insert new_cip into cip_list immediately
+                 following prev_cip.  If prev_cip is NULL this will be at the
+                 head of the list. */
+              if (prev_cip == NULL) {
+                /* Insert at head of list. */
+                new_cip->next = cibp->cip_list;
+                cibp->cip_list = new_cip;
+              } else {
+                /* Insert into the list. */
+                new_cip->next = prev_cip->next;
+                prev_cip->next = new_cip;
+              }  /* if */
+              break;
+            } else if (sym->variant.field.ptr == cip->variant.field) {
+              /* We didn't find the field we're trying to insert, but we did
+                 find the next item on the list. */
+              if (cip == cibp->end_of_cip_list) {
+                /* Since this is the end of the list, we know the new field
+                   must appear after the current entry.  Cut short the
+                   search. */
+                cibp->end_of_cip_list->next = new_cip;
+                cibp->end_of_cip_list = new_cip;
+                break;
+              }  /* if */
+              /* Advance through the cip list, saving the current entry as a
+                 possible insertion point. */
+              prev_cip = cip;
+              cip = cip->next;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+    /* At this point new_cip should point to the field's constructor init
+       entry to which the initializer should be attached.  It has been located
+       in or inserted into the list of such entries at a spot corresponding to
+       its declaration order. */
+    check_out_of_order_init(new_cip, cibp);
+  } else if (is_class_symbol(member_or_base_sym) || template_param_init) {
+    /* It is a base class of the current class for which initialization is to
+       be done.  (In a prototype instantiation, this could look like the
+       initialization of a template parameter.) */
+    a_boolean  indirect_nonvirtual_base_class_found = FALSE;
+    if (locator_for_curr_id.is_semivisible_nested_type) {
+      /* The symbol in the locator is a nested class that is not visible with
+         the standard lookup rules but is returned in support of the nested
+         class anachronism (ARM 18.3.5).  Issue an anachronism diagnostic. */
+      sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
+                     locator_for_curr_id.specific_symbol);
+    }  /* if */
+    init_type = type_symbol_type(member_or_base_sym);
+    init_type = skip_typerefs(init_type);
+    if (template_param_init &&
+        init_type->kind == (a_type_kind)tk_template_param) {
+      init_type = proxy_class_for_template_param(init_type);
+    }  /* if */
+    if (is_qualified_type(init_type)) {
+      bcp = NULL;
+    } else {
+      a_base_class_ptr  found_bcp = NULL;
+      /* Locate it in the base classes list for the current class.  Note
+         that only direct and virtual base classes can be specified. */
+      bcp = base_classes_of(class_type);
+      for (; bcp != NULL; bcp = bcp->next) {
+        if (same_entities(bcp->type, init_type)) {
+          if (bcp->direct || bcp->is_virtual) {
+            if (found_bcp == NULL) {
+              found_bcp = bcp;
+            } else {
+              /* This condition occurs when there is a direct nonvirtual base
+                 class with the same name as an indirect virtual base class. */
+              pos_ty_error(ec_ambiguous_base_class, &error_position,
+                           bcp->type);
+              /* Go ahead and process the first one found. */
+              break;
+            }  /* if */
+          } else {
+            /* A base class of the required type was found, but it is
+               neither direct nor virtual.  Unless another is found with
+               the same name, this will be an error. */
+            indirect_nonvirtual_base_class_found = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      bcp = found_bcp;
+    }  /* if */
+    if (bcp == NULL) {
+      if ((!member_or_base_sym->is_template_param && template_param_init) ||
+          (class_type->variant.class_struct_union.is_nonreal_class &&
+           symbol_supplement_for_class(class_type)->
+                                                  any_nonreal_base_classes)) {
+        /* There are some cases where we cannot match up a base:
+             - A dependent reference to a base, but not a template parameter
+               itself (presumably, a dependent qualified name).
+             - A reference to a class type that might be a dependent base or a
+               virtual base class thereof in some instantiation.
+           For these cases, we make up a nonvirtual base class node.  We also
+           call complete_class_type_is_needed for that presumed base class so
+           that it will be instantiated if necessary: base classes must be
+           complete, and we will also need to know if it has a constructor. */
+        complete_class_type_is_needed(init_type);
+        new_cip = alloc_ctor_init(
+                              (a_constructor_init_kind)cik_direct_base_class);
+        new_cip->variant.base_class = alloc_base_class();
+        new_cip->variant.base_class->type = init_type;
+        if (cibp->direct_list == NULL) {
+          /* Start a new list. */
+          cibp->direct_list = new_cip;
+        } else {
+          /* Add to end of list. */
+          cibp->end_of_direct_list->next = new_cip;
+        }  /* if */
+        cibp->end_of_direct_list = new_cip;
+      } else {
+        /* No match found. */
+        if (indirect_nonvirtual_base_class_found) {
+          /* Actually, a match was found, but it was not a direct or
+             virtual base class. */
+          error(ec_indirect_nonvirtual_base_class_not_allowed);
+        } else {
+          /* Not a base class of the class for which a constructor is
+             being defined. */
+          pos_stty_error(ec_not_a_field_or_base_class, &error_position,
+                         member_or_base_sym->header->identifier, class_type);
+        }  /* if */
+        init_type = error_type();
+      }  /* if */
+    } else {
+      /* The base class was found.  Now look on the appropriate list of
+         constructor initializers. */
+      new_cip = bcp->is_virtual ? cibp->virtual_list : cibp->direct_list;
+      for (; new_cip != NULL; new_cip = new_cip->next) {
+        if (new_cip->variant.base_class == bcp) break;
+      }  /* for */
+      check_assertion(new_cip != NULL);
+      /* new_cip was initially marked as compiler-generated. Reset the
+         flag now that it's appeared explicitly in the ctor-initializer
+         list. */
+      new_cip->compiler_generated = FALSE;
+      if (new_cip->initializer != NULL) {
+        type_error(ec_base_class_already_initialized, bcp->type);
+      } else {
+        check_out_of_order_init(new_cip, cibp);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Not a base class, not a field.  Issue an error. */
+    pos_stty_error(ec_not_a_field_or_base_class, &error_position,
+                   member_or_base_sym->header->identifier, class_type);
+    init_type = error_type();
+  }  /* if */
+scan_paren:
+  /* Advance past the identifier. */
+  (void)get_token();
+  *p_init_type = init_type;
+  return new_cip;
+}  /* scan_mem_initializer_id */
+
+
+static a_constructor_init_ptr scan_mem_initializer(
+                                                a_type_ptr         class_type,
+                                                a_ctor_init_block  *cibp)
+/*
+Scan a mem-initializer, i.e., the explicit initializer for one member in a
+ctor-initializer list for a constructor being defined.  Return a pointer to
+the constructor-init entry for the member, or NULL in some error cases.
+The current token is the identifier naming the member (or an open parenthesis
+for an old-style initializer case).  class_type identifies the class whose
+constructor is being defined.  cibp records the state of the constructor init
+list associated with the constructor.  That list starts off with entries
+describing default initialization (in order of initialization) and those
+entries are replaced as needed for each mem-initializer that is encountered.
+*/
+{
+  a_dynamic_init_ptr      dip;
+  a_type_ptr              init_type, array_type = NULL;
+  a_constructor_init_ptr  new_cip = NULL;
+  a_source_position       lparen_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position             init_start_pos;
+  a_source_position       init_start_pos;
 
   init_start_pos = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
-  ctsp = class_type->variant.class_struct_union.extra_info;
   /* Unless this is an old style base class initializer, a base class
      name or a member name is expected. */
   if (curr_token != tok_lparen && !is_decl_qualified_name_start()) {
     /* Either an identifier or "::" is expected here. */
     syntax_error(ec_exp_identifier);
   } else {
-    bcp = NULL;
     dip = NULL;
     if (curr_token == tok_lparen) {
       /* Old-style base class initializer.  It is assumed to apply to the
-         direct base class (it's allowed only if there is exactly
-         one direct base class). */
-      a_boolean one_direct_base = (virtual_list != NULL &&
-                                   virtual_list->next == NULL &&
-                                   (*direct_list) == NULL) ||
-                                  ((*direct_list) != NULL &&
-                                   (*direct_list)->next == NULL &&
-                                   virtual_list == NULL);
+         direct base class (it's allowed only if there is exactly one direct
+         base class). */
+      a_boolean one_direct_base = (cibp->virtual_list != NULL &&
+                                   cibp->virtual_list->next == NULL &&
+                                   cibp->direct_list == NULL) ||
+                                  (cibp->direct_list != NULL &&
+                                   cibp->direct_list->next == NULL &&
+                                   cibp->virtual_list == NULL);
       if (!allow_anachronisms || !one_direct_base) {
         /* Either no base classes or more than one. */
         error(ec_missing_base_class_or_member_name);
@@ -5710,7 +6079,9 @@ constructor-init entry for the member, or NULL in some error cases.
       } else {
         /* The base class is probably on the direct_list, but if it was
            declared virtual it is on the virtual list. */
-        new_cip = ((*direct_list) != NULL) ? (*direct_list) : virtual_list;
+        a_base_class_ptr  bcp;
+        new_cip = cibp->direct_list != NULL ? cibp->direct_list
+                                            : cibp->virtual_list;
         new_cip->compiler_generated = FALSE;
         bcp = new_cip->variant.base_class;
         check_assertion(bcp->direct);
@@ -5720,389 +6091,19 @@ constructor-init entry for the member, or NULL in some error cases.
         if (new_cip->initializer != NULL) {
           type_error(ec_base_class_already_initialized, init_type);
         } else {
-          check_out_of_order_init(new_cip, prev_init,
-                                  out_of_order_diag_issued);
-        }  /* if */
-      }  /* if */
-      /* Back up so that the left paren will be rescanned. */
-      unget_token();
-      goto scan_paren;
-    }  /* if */
-    check_assertion(curr_token == tok_identifier);
-    /* Scan the base class name or member name.  The lookup mode
-	   ilm_ctor_initializer_name skips the current function scope
-	   to ensure that a constructor parameter with the same name
-	   as a member or base class is not visible. */
-    {
-      a_boolean gid_err;
-      an_identifier_lookup_mode	ilm;
-      an_identifier_options_set	gid_options = GID_NO_OPTIONS;
-      /* A qualified name must name a class. */
-      if (locator_for_curr_id.is_qualified_name) {
-        gid_options |= GID_IMPLICIT_TYPE_CONTEXT;
-        ilm = ilm_qualified_ctor_initializer_name;
-      } else {
-        ilm = ilm_ctor_initializer_name;
-      }  /* if */
-      member_or_base_sym = coalesce_and_lookup_generalized_identifier
-                               (gid_options, ilm, &gid_err);
-      if (member_or_base_sym != NULL) {
-        record_potential_pack_reference(member_or_base_sym, &pos_curr_token);
-        /* Check if a template-dependent entity is being initialized: */
-        if (member_or_base_sym->kind == (a_symbol_kind)sk_field) {
-          if (!member_or_base_sym->is_class_member) {
-            /* This can happen in error cases with anonymous unions:
-                 static union { int i; double j; };
-                 struct S { S(): i(j) {} };
-               Avoid having to deal with non-member fields during error
-               recovery by dropping the result of the lookup.  */
-            member_or_base_sym = NULL;
-          } else {
-            /* A mem-initializer for a field: */
-            dependent_class_init = could_be_dependent_class_type(
-                                 member_or_base_sym->variant.field.ptr->type);
-          }  /* if */
-        } else if (is_type_symbol(member_or_base_sym)) {
-          /* This is presumably a mem-initializer for a base. */
-          a_type_ptr  type = type_symbol_type(member_or_base_sym);
-          type = skip_typerefs(type);
-          dependent_class_init = could_be_dependent_class_type(type);
-          template_param_init = (type->kind == (a_type_kind)tk_template_param);
-        }  /* if */
-      }  /* if */
-      if ((!class_name_injection_enabled || microsoft_mode) &&
-          !is_error_locator(locator_for_curr_id) &&
-          !locator_for_curr_id.is_qualified_name) {
-        /* If no symbol was returned from the lookup, or if the symbol
-           returned was not a base class or member of the current class,
-           see if the name (if it was unqualified) matches the name of a
-           base class. This can be necessary in cases like this:
-             namespace N {
-               class A { A(int); ... };
-             }
-             class B : public N::A {
-               B() : A(0) { }
-             };
-           The check that follows does not quite emulate the results of
-           a lookup that supports class name injection (e.g., it doesn't
-           deal properly with hiding within the inheritance hierarchy),
-           but the differences will be manifested as slightly different
-           diagnostics, and then only in rather obscure cases.
-
-           This check is done in Microsoft mode even though class name
-           injection is enabled because, in Microsoft mode, the injected
-           name is ignored for most lookups.
-        */
-        a_boolean     check_base_classes;
-
-        if (member_or_base_sym == NULL) {
-          check_base_classes = TRUE;
-        } else if (is_class_symbol(member_or_base_sym) &&
-                   find_base_class_of(class_type,
-                                      type_symbol_type(member_or_base_sym))) {
-          /* A class that's on the base-classes list. */
-          check_base_classes = FALSE;
-        } else if (member_or_base_sym->is_class_member &&
-                   same_entities(sym_parent_class(member_or_base_sym),
-                                 class_type)) {
-          /* A member of the current class. */
-          check_base_classes = FALSE;
-        } else {
-          check_base_classes = TRUE;
-        }  /* if */
-        if (check_base_classes) {
-          for (bcp = base_classes_of(class_type);
-               bcp != NULL;
-               bcp = bcp->next) {
-            if (bcp->direct || bcp->is_virtual ||
-                member_or_base_sym == NULL) {
-              a_symbol_ptr  tmp_sym = (a_symbol_ptr)bcp->type->
-                                                 source_corresp.assoc_info;
-              if (locator_for_curr_id.symbol_header == tmp_sym->header) {
-                member_or_base_sym = tmp_sym;
-                break;
-              }  /* if */
-            }  /* if */
-          }  /* for */
-        }  /* if */
-      }  /* if */
-    }
-    if (member_or_base_sym == NULL ||
-        member_or_base_sym->kind == (a_symbol_kind)sk_undefined) {
-      /* No such name or qualified name in the symbol table. */
-      if (is_error_locator(locator_for_curr_id)) {
-        /* Some error will already have been issued on this name. */
-      } else {
-        pos_stty_error(ec_not_a_field_or_base_class, &error_position,
-                       locator_for_curr_id.symbol_header->identifier,
-                       class_type);
-      }  /* if */
-      init_type = error_type();
-      goto scan_paren;
-    }  /* if */
-    /* Make sure the symbol found is accessible and not ambiguous. */
-    check_ambiguity_and_verify_access(&locator_for_curr_id);
-    record_symbol_reference(SRK_REFERENCE | SRK_INITIALIZATION,
-                            member_or_base_sym, &error_position,
-                            /*update_il_entry=*/FALSE);
-    if (member_or_base_sym->kind == (a_symbol_kind)sk_field &&
-        same_entities(sym_parent_class(member_or_base_sym), class_type)) {
-      /* This is a field of the current class and may be mentioned in the
-         constructor's initializer list.  But it's an error to refer to
-         it by a qualified name. */
-      a_field_ptr field = member_or_base_sym->variant.field.ptr;
-      if (locator_for_curr_id.is_qualified_name) {
-        pos_error(ec_qualified_name_not_allowed,
-                  &locator_for_curr_id.source_position);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (microsoft_mode && field_is_property_or_event(field)) {
-        /* Property and event fields cannot be mentioned in a constructor
-           initializer list. */
-        pos_error(property_or_event_kind_is(field, pek_cli_event) ?
-                    ec_event_name_not_allowed : ec_property_name_not_allowed,
-                  &locator_for_curr_id.source_position);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      }  /* if */
-      init_type = field->type;
-      if (is_array_type(init_type)) {
-        flexible_array_member = is_incomplete_type(init_type);
-        if (!is_string_type(init_type)) {
-          /* Arrays can be default-initialized if the expression-list is
-             omitted. */
-          array_type = init_type;
-          init_type = f_skip_typerefs(
-                                    underlying_array_element_type(init_type));
-        }  /* if */
-      }  /* if */
-      /* Only one member of a union or an anonymous union subobject is
-         allowed to appear in the ctor-initializer list. */
-      if (is_union_type(class_type) ||
-          member_or_base_sym->
-                         variant.field.anonymous_parent_object != NULL) {
-        /* Check through fields for which initializers have already been
-           specified. */
-        for (cip = (*cip_list); cip != NULL; cip = cip->next) {
-          if (cip->initializer != NULL) {
-            /* Note: at this point cip_list includes only fields, so we can
-               assume cip->kind is cik_field. */
-            if (cip->variant.field == field) {
-              /* Error on duplicate initialization will be issued below. */
-            } else if (!microsoft_mode &&
-                       are_disjoint_members_of_union(cip->variant.field,
-                                                     field)) {
-              /* The union (or the anonymous union subobject) has already
-                 been initialized. */
-              error(ec_union_already_initialized);
-            }  /* if */
-          }  /* if */
-        }  /* for */
-      }  /* if */
-      /* Check the list for a constructor init entry that refers to this
-         member.  If it's there we may have a reinitialization error. */
-      for (new_cip = (*cip_list); new_cip != NULL; new_cip = new_cip->next) {
-        /* Note: at this point cip_list includes only fields, so we can
-           assume new_cip->kind is cik_field. */
-        if (new_cip->variant.field ==
-                                   member_or_base_sym->variant.field.ptr) {
-          if (new_cip->initializer != NULL) {
-            sym_error(ec_member_already_initialized, member_or_base_sym);
-            goto scan_paren;
-          }  /* if */
-          break;
-        }  /* if */
-      }  /* for */
-      if (new_cip != NULL) {
-        /* Already on the list and presumably marked as compiler-generated.
-           Reset the flag, now that it's appeared explicitly in the ctor-
-           initializer list. */
-        new_cip->compiler_generated = FALSE;
-      } else {
-        /* No constructor init entry exists for this field.  Allocate one
-           and add it to the list. */
-        new_cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
-        new_cip->variant.field = member_or_base_sym->variant.field.ptr;
-        new_cip->compiler_generated = FALSE;
-        if ((*cip_list) == NULL) {
-          /* Easy case:  start a new list. */
-          (*cip_list) = (*end_of_cip_list) = new_cip;
-        } else {
-          /* The order in which fields appear on the constructor init list
-             must correspond exactly to the order in which they were
-             declared.  This order is preserved in the symbol list for the
-             class, so advance through the symbol list and through whatever
-             is already on the constructor init list together. */
-          prev_cip = NULL;
-          cip = (*cip_list);
-          sym = class_sym->variant.class_struct_union.extra_info->symbols;
-          for (; sym != NULL; sym = sym->next_in_scope) {
-            if (sym->kind == (a_symbol_kind)sk_field) {
-              /* Found a nonstatic data member. */
-              if (sym == member_or_base_sym) {
-                /* Found the field.  Insert new_cip into cip_list
-                   immediately following prev_cip.  If prev_cip is NULL
-                   this will be at the head of the list. */
-                if (prev_cip == NULL) {
-                  /* Insert at head of list. */
-                  new_cip->next = (*cip_list);
-                  (*cip_list) = new_cip;
-                } else {
-                  /* Insert into the list. */
-                  new_cip->next = prev_cip->next;
-                  prev_cip->next = new_cip;
-                }  /* if */
-                break;
-              } else if (sym->variant.field.ptr == cip->variant.field) {
-                /* We didn't find the field we're trying to insert, but
-                   we did find the next item on the list. */
-                if (cip == (*end_of_cip_list)) {
-                  /* Since this is the end of the list, we know the new
-                     field must appear after the current entry.  Cut short
-                     the search. */
-                  (*end_of_cip_list)->next = new_cip;
-                  (*end_of_cip_list) = new_cip;
-                  break;
-                }  /* if */
-                /* Advance through the cip list, saving the current entry
-                   as a possible insertion point. */
-                prev_cip = cip;
-                cip = cip->next;
-              }  /* if */
-            }  /* if */
-          }  /* for */
-        }  /* if */
-      }  /* if */
-      /* At this point new_cip should point to the field's constructor init
-         entry to which the initializer should be attached.  It has been
-         located in or inserted into the list of such entries at a spot
-         corresponding to its declaration order. */
-      check_out_of_order_init(new_cip, prev_init,
-                              out_of_order_diag_issued);
-    } else if (is_class_symbol(member_or_base_sym) ||
-               template_param_init) {
-      /* It is a base class of the current class for which initialization
-         is to be done.  (In a prototype instantiation, this could look
-         like the initialization of a template parameter.) */
-      a_boolean  indirect_nonvirtual_base_class_found = FALSE;
-      if (locator_for_curr_id.is_semivisible_nested_type) {
-        /* The symbol in the locator is a nested class that is not
-           visible according to the ARM lookup rules but is returned
-           in support of the nested class anachronism (ARM 18.3.5).
-           Issue an anachronism diagnostic. */
-        sym_diagnostic(anachronism_error_severity,
-                       ec_nested_class_anachronism,
-                       locator_for_curr_id.specific_symbol);
-      }  /* if */
-      init_type = type_symbol_type(member_or_base_sym);
-      init_type = skip_typerefs(init_type);
-      if (template_param_init &&
-          init_type->kind == (a_type_kind)tk_template_param) {
-        init_type = proxy_class_for_template_param(init_type);
-      }  /* if */
-      if (is_qualified_type(init_type)) {
-        bcp = NULL;
-      } else {
-        a_base_class_ptr  found_bcp = NULL;
-        /* Locate it in the base classes list for the current class.  Note
-           that only direct and virtual base classes can be specified. */
-        bcp = ctsp->base_classes;
-        for (; bcp != NULL; bcp = bcp->next) {
-          if (same_entities(bcp->type, init_type)) {
-            if (bcp->direct || bcp->is_virtual) {
-              if (found_bcp == NULL) {
-                found_bcp = bcp;
-              } else {
-                /* This condition occurs when there is a direct nonvirtual
-                   base class with the same name as an indirect virtual
-                   base class. */
-                pos_ty_error(ec_ambiguous_base_class, &error_position,
-                             bcp->type);
-                /* Go ahead and process the first one found. */
-                break;
-              }  /* if */
-            } else {
-              /* A base class of the required type was found, but it is
-                 neither direct nor virtual.  Unless another is found with
-                 the same name, this will be an error. */
-              indirect_nonvirtual_base_class_found = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* for */
-        bcp = found_bcp;
-      }  /* if */
-      if (bcp == NULL) {
-        if ((!member_or_base_sym->is_template_param &&
-             template_param_init) ||
-            (class_type->variant.class_struct_union.is_nonreal_class &&
-             symbol_supplement_for_class(class_type)->
-                                                  any_nonreal_base_classes)) {
-          /* There are some cases where we cannot match up a base:
-             - A dependent reference to a base, but not a template
-               parameter itself (presumably, a dependent qualified name).
-             - A reference to a class type that might be a dependent base
-               or a virtual base class thereof in some instantiation.
-             For these cases, we make up a nonvirtual base class node.
-             We also call complete_class_type_is_needed for that
-             presumed base class so that it will be instantiated if
-             necessary: base classes must be complete, and we will also
-             need to know if it has a constructor. */
-          complete_class_type_is_needed(init_type);
-          new_cip = alloc_ctor_init(
-                               (a_constructor_init_kind)cik_direct_base_class);
-          new_cip->variant.base_class = alloc_base_class();
-          new_cip->variant.base_class->type = init_type;
-          if ((*direct_list) == NULL) {
-            /* Start a new list. */
-            (*direct_list) = new_cip;
-          } else {
-            /* Add to end of list. */
-            (*end_of_direct_list)->next = new_cip;
-          }  /* if */
-          (*end_of_direct_list) = new_cip;
-        } else {
-          /* No match found. */
-          if (indirect_nonvirtual_base_class_found) {
-            /* Actually, a match was found, but it was not a direct or
-               virtual base class. */
-            error(ec_indirect_nonvirtual_base_class_not_allowed);
-          } else {
-            /* Not a base class of the class for which a constructor is
-               being defined. */
-            pos_stty_error(ec_not_a_field_or_base_class, &error_position,
-                           member_or_base_sym->header->identifier,
-                           class_type);
-          }  /* if */
-          init_type = error_type();
-        }  /* if */
-      } else {
-        /* The base class was found.  Now look on the appropriate list of
-           constructor initializers. */
-        new_cip = (bcp->is_virtual) ? virtual_list : (*direct_list);
-        for (; new_cip != NULL; new_cip = new_cip->next) {
-          if (new_cip->variant.base_class == bcp) break;
-        }  /* for */
-        check_assertion(new_cip != NULL);
-        /* new_cip was initially marked as compiler-generated. Reset the
-           flag now that it's appeared explicitly in the ctor-initializer
-           list. */
-        new_cip->compiler_generated = FALSE;
-        if (new_cip->initializer != NULL) {
-          type_error(ec_base_class_already_initialized, bcp->type);
-        } else {
-          check_out_of_order_init(new_cip, prev_init,
-                                  out_of_order_diag_issued);
+          check_out_of_order_init(new_cip, cibp);
         }  /* if */
       }  /* if */
     } else {
-      /* Not a base class, not a field.  Issue an error. */
-      pos_stty_error(ec_not_a_field_or_base_class, &error_position,
-                     member_or_base_sym->header->identifier, class_type);
-      init_type = error_type();
+      new_cip = scan_mem_initializer_id(class_type, cibp, &init_type,
+                                        &array_type);
     }  /* if */
-scan_paren:
-    /* Advance past the identifier. */
-    (void)get_token();
     lparen_pos = pos_curr_token;
     if (required_token(tok_lparen, ec_exp_lparen)) {
+      a_class_symbol_supplement_ptr  cssp;
+      a_boolean                      dependent_class_init;
+      dependent_class_init = array_type == NULL &&
+                             could_be_dependent_class_type(init_type);
       if (is_class_struct_union_type(init_type) &&
           (array_type == NULL || curr_token == tok_rparen)) {
         /* The type of the base or member is class or array-of-class --
@@ -6229,12 +6230,11 @@ empty_parens_mem_initializer:
                 (gpp_mode && emulate_gnu_value_initialization_bugs &&
                  new_cip != NULL &&
                  new_cip->kind != (a_constructor_init_kind)cik_field) ||
-                flexible_array_member) {
-              /* MSVC++ up to version 7.0 never initializes the entity in
-                 cases like this.  g++ up to 3.4 at least does not
-                 initialize base classes.  The flexible array member case
-                 cannot be initialized since the array has no known number
-                 of elements. */
+                (array_type != NULL && is_incomplete_array_type(array_type))) {
+              /* MSVC++ up to version 7.0 never initializes the entity in this
+                 case.  g++ up to 3.4 does not initialize base classes.  The
+                 flexible array member case cannot be initialized since the
+                 array has no known number of elements. */
               init_kind = (a_dynamic_init_kind)dik_none;
             }  /* if */
             dip = alloc_dynamic_init(init_kind);
@@ -6335,7 +6335,7 @@ explicit definition in the source code; otherwise, this routine is called
 as part of the implicit definition of a compiler generated constructor.
 
 When user_defined is TRUE, the explicit initializations are scanned from the
-source, based on the following syntax:
+source, based on the following syntax: FIXME
 
     ctor-initializer
               ":" mem-initializer-list
@@ -6371,10 +6371,8 @@ initialized.  These are addressed in the course of the processing.
   a_type_qualifier_set          required_qualifiers, object_qualifiers;
   a_type_ptr                    class_type, tp, array_type;
   a_symbol_ptr                  sym, class_sym;
+  a_ctor_init_block             cib;
   a_constructor_init_ptr        cip, prev_cip, next_cip;
-  a_constructor_init_ptr        cip_list, end_of_cip_list;
-  a_constructor_init_ptr        virtual_list, end_of_virtual_list;
-  a_constructor_init_ptr        direct_list, end_of_direct_list;
   a_base_class_ptr              bcp;
   a_class_type_supplement_ptr   ctsp;
   a_class_symbol_supplement_ptr cssp;
@@ -6384,9 +6382,14 @@ initialized.  These are addressed in the course of the processing.
   a_boolean                     any_ref_member_on_uninit_list = FALSE;
 
   db_enter(3, "ctor_initializer");
+  cib.cip_list = cib.end_of_cip_list = NULL;
+  cib.direct_list = cib.end_of_direct_list = NULL;
+  cib.virtual_list = cib.end_of_virtual_list = NULL;
+  cib.last_order_checked_init = NULL;
+  cib.out_of_order_diag_issued = FALSE;
   class_type = parent_class_of(ctor_rout);
   check_assertion(class_type != NULL);
-  ctsp = class_type->variant.class_struct_union.extra_info;
+  ctsp = class_type_supp(class_type);
   /* Check if we are dealing with a generated move/copy constructor. */
   if (user_defined) {
     is_generated_cctor = FALSE;
@@ -6415,8 +6418,6 @@ initialized.  These are addressed in the course of the processing.
      items on the list is the order in which initializations are to be
      performed. */
   /* Handle the first two lists together. */
-  virtual_list = end_of_virtual_list = NULL;
-  direct_list = end_of_direct_list = NULL;
   /* Scan the list of base classes, which may include some that are
      ineligible for initialization. */
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
@@ -6436,29 +6437,28 @@ initialized.  These are addressed in the course of the processing.
       cip->compiler_generated = TRUE;
       /* Add the constructor init to the end of the appropriate list. */
       if (bcp->is_virtual) {
-        if (virtual_list == NULL) {
+        if (cib.virtual_list == NULL) {
           /* Start a new list. */
-          virtual_list = cip;
+          cib.virtual_list = cip;
         } else {
           /* Add to end of list. */
-          end_of_virtual_list->next = cip;
+          cib.end_of_virtual_list->next = cip;
         }  /* if */
-        end_of_virtual_list = cip;
+        cib.end_of_virtual_list = cip;
       } else {
-        if (direct_list == NULL) {
+        if (cib.direct_list == NULL) {
           /* Start a new list. */
-          direct_list = cip;
+          cib.direct_list = cip;
         } else {
           /* Add to end of list. */
-          end_of_direct_list->next = cip;
+          cib.end_of_direct_list->next = cip;
         }  /* if */
-        end_of_direct_list = cip;
+        cib.end_of_direct_list = cip;
       }  /* if */
     }  /* if */
   }  /* for */
   /* Move on to the third list -- the list of nonstatic data members requiring
      initialization. */
-  cip_list = end_of_cip_list = NULL;
   /* Loop through the symbol list for the class, not the field list, since
      the symbol list contains only user-defined fields whereas the field
      list may also include compiler-generated field entries. */
@@ -6533,12 +6533,12 @@ initialized.  These are addressed in the course of the processing.
          representing an explicit entry in the ctor-initializer list); clear
          the flag later if appropriate. */
       cip->compiler_generated = TRUE;
-      if (cip_list == NULL) {
-        cip_list = cip;
+      if (cib.cip_list == NULL) {
+        cib.cip_list = cip;
       } else {
-        end_of_cip_list->next = cip;
+        cib.end_of_cip_list->next = cip;
       }  /* if */
-      end_of_cip_list = cip;
+      cib.end_of_cip_list = cip;
     }  /* if */
   }  /* for */
   /* Three lists that have been created thus far were made to cover the
@@ -6547,8 +6547,6 @@ initialized.  These are addressed in the course of the processing.
      if any, and to integrate them into the lists. */
   if (user_defined && curr_token == tok_colon) {
     /* User-specified initializers are present. */
-    a_boolean               out_of_order_diag_issued = FALSE;
-    a_constructor_init_ptr  prev_init = NULL;
     /* Bypass the colon. */
     (void)get_token();
     add_stop_token(tok_lbrace);
@@ -6562,14 +6560,7 @@ initialized.  These are addressed in the course of the processing.
          pack expansion. */
       while (any_more) {
         a_pack_expansion_descr_ptr pedep;
-        cip = scan_mem_initializer(class_type,
-                                   &cip_list,
-                                   &end_of_cip_list,
-                                   &direct_list,
-                                   &end_of_direct_list,
-                                   virtual_list,
-                                   &out_of_order_diag_issued,
-                                   &prev_init);
+        cip = scan_mem_initializer(class_type, &cib);
         pedep = end_potential_pack_expansion_context(pesep,
                                                      /*is_declarator=*/FALSE);
         if (pedep != NULL && cip != NULL) {
@@ -6586,15 +6577,14 @@ initialized.  These are addressed in the course of the processing.
     remove_stop_token(tok_lbrace);
   }  /* if */
   /* Merge the three lists into one:  virtual base classes followed by
-     nonvirtual direct base classes followed by nonstatic data members
-     (ARM 12.6.2). */
-  if (direct_list != NULL) {
-    end_of_direct_list->next = cip_list;
-    cip_list = direct_list;
+     nonvirtual direct base classes followed by nonstatic data members. */
+  if (cib.direct_list != NULL) {
+    cib.end_of_direct_list->next = cib.cip_list;
+    cib.cip_list = cib.direct_list;
   }  /* if */
-  if (virtual_list != NULL) {
-    end_of_virtual_list->next = cip_list;
-    cip_list = virtual_list;
+  if (cib.virtual_list != NULL) {
+    cib.end_of_virtual_list->next = cib.cip_list;
+    cib.cip_list = cib.virtual_list;
   }  /* if */
   /* The following loop proceeds through the merged constructor-init list,
      which now reflects the canonical order of base-class and member
@@ -6616,7 +6606,7 @@ initialized.  These are addressed in the course of the processing.
            whole is built.
   */
   prev_cip = NULL;
-  for (cip = cip_list; cip != NULL; cip = next_cip) {
+  for (cip = cib.cip_list; cip != NULL; cip = next_cip) {
     a_boolean          is_const_qualified;
     a_source_position  err_pos;
     /* object_class_type is the type of the object being created.
@@ -6625,7 +6615,6 @@ initialized.  These are addressed in the course of the processing.
        the same as the field type.  This is needed to check protected
        member access. */
     a_type_ptr            object_class_type;
-
     next_cip = cip->next;
     dip = cip->initializer;
     /* If this was an explicit specialization, check whether an object
@@ -6787,7 +6776,7 @@ initialized.  These are addressed in the course of the processing.
                 so we wait to collect them all before issuing the error. */
             /* Remove cip from the list. */
             if (prev_cip == NULL) {
-              cip_list = cip->next;
+              cib.cip_list = cip->next;
             } else {
               prev_cip->next = cip->next;
             }  /* if */
@@ -6850,7 +6839,7 @@ initialized.  These are addressed in the course of the processing.
           } else {
             /* Unlink the constructor initializer entry from the list. */
             if (prev_cip == NULL) {
-              cip_list = cip->next;
+              cib.cip_list = cip->next;
             } else {
               prev_cip->next = cip->next;
             }  /* if */
@@ -7001,7 +6990,7 @@ initialized.  These are addressed in the course of the processing.
   if (debug_level >= 3 || db_flag_is_set("dump_init")) {
     db_symbol((a_symbol_ptr)ctor_rout->source_corresp.assoc_info,
               "constructor: ", 2);
-    for (cip = cip_list; cip != NULL; cip = cip->next) {
+    for (cip = cib.cip_list; cip != NULL; cip = cip->next) {
       if (cip->kind == (a_constructor_init_kind)cik_field) {
         sym = (a_symbol_ptr)cip->variant.field->source_corresp.assoc_info;
       } else {
@@ -7021,7 +7010,7 @@ initialized.  These are addressed in the course of the processing.
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-  return cip_list;
+  return cib.cip_list;
 }  /* ctor_initializer */
 
 
