@@ -17648,12 +17648,16 @@ The routine body is not generated until it is known to be needed.
   ctsp = class_type_supp(class_type);
   pos = &class_type->source_corresp.decl_position;
   init_generated_special_function_descr(&gsfd);
-  /* Check for a user-declared copy assignment or move assignment operator. */
+  /* Check for a user-declared copy assignment or move assignment operator.
+     (We count on the fact that any special member found at this time is a
+     user-declared member.  That is not TRUE for closure types, however: Some
+     of their special members are generated early.) */
   user_declared_copy_assignment_op = assignment_operator_for_copy_exists(
                                           cssp->assignment_operator,
                                           rvalue_ctor_is_copy_ctor,
                                           &user_provided_copy_assignment_op,
-                                          &dummy_flag, &has_move_assign);
+                                          &dummy_flag, &has_move_assign) &&
+                                     !ctsp->is_lambda_closure_class;
   /* A POD cannot have a user-provided copy or move assignment operator.  This
      must be determined before calling add_default_ctor_if_needed, because it
      may affects whether a trivial default constructor is actually generated
@@ -17687,7 +17691,9 @@ The routine body is not generated until it is known to be needed.
   default_copy_constructor_check(class_type, &const_okay);
   gsfd.copy_ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   declare_copy_asgn_op = !user_declared_copy_assignment_op &&
-                     (!any_cfront_mode() || cssp->assignment_operator == NULL);
+                         !ctsp->is_lambda_closure_class &&
+                         (!any_cfront_mode() ||
+                          cssp->assignment_operator == NULL);
   declare_move_asgn_op = generate_move_operations &&
                          !has_move_assign && !gsfd.suppress_move_assign &&
                          !user_declared_copy_assignment_op &&
