@@ -5622,7 +5622,8 @@ corresponding to it.  class_type is the parent class of the constructor.
 *cibp tracks the state of the constructor init entries for the constructor
 currently being defined.  *p_init_type is the type to be initialized; in the
 case of an array, it is the underlying element type and the array type itself
-is returned through *p_array_type.
+is returned through *p_array_type (in non-array cases, *p_array_type is left
+unchanged).
 */
 {
   a_symbol_ptr               member_or_base_sym;
@@ -6042,6 +6043,8 @@ entries are replaced as needed for each mem-initializer that is encountered.
         }  /* if */
       }  /* if */
     } else {
+      /* Standard case: A mem-initializer that starts with the name of a field
+         or base class.  Scan that name. */
       new_cip = scan_mem_initializer_id(class_type, cibp, &init_type,
                                         &array_type);
     }  /* if */
