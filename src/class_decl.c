@@ -8863,9 +8863,9 @@ When templates_only is TRUE, only function templates members are considered.
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
     a_template_param_ptr              other_templ_param_list;
-    a_template_symbol_supplement_ptr  tssp;
     a_routine_ptr                     routine;
     a_symbol_ptr                      fund_sym = sym;
+    a_type_compat_flags_set           tcf_flags = TCF_NO_FLAGS;
     if (sym->kind == (a_symbol_kind)sk_projection) {
       /* Ignore projection symbols, except those resulting from a using-
          declaration that project a member function or member function
@@ -8893,6 +8893,11 @@ When templates_only is TRUE, only function templates members are considered.
     if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
       routine = fund_sym->variant.template_info->variant.function.routine;
       orig_type = routine->type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (routine->is_generic_definition) {
+        tcf_flags |= TCF_CONTEXTUAL_GENERIC_PARAMETERS;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       routine = fund_sym->variant.routine.ptr;
       orig_type = routine->type;
@@ -8917,13 +8922,21 @@ When templates_only is TRUE, only function templates members are considered.
          template parameter list could be present for a normal member function
          of a class template when the member function is being defined
          outside of the class. */
-      tssp = template_supplement_for_symbol(fund_sym);
+      an_equiv_templ_param_options_set  etp_set = ETP_NO_OPTIONS;
+      a_template_symbol_supplement_ptr  tssp =
+                                     template_supplement_for_symbol(fund_sym);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (tssp->is_generic) {
+        /* When comparing generic parameters, nesting depths shouldn't be
+           compared.  (The "sequence number" of the parameters should be
+           compared instead.) */
+        etp_set = ETP_NESTING_DEPTH_MISMATCH_OKAY;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       other_templ_param_list =
                        tssp->variant.function.decl_cache.decl_info->parameters;
-      if (!equiv_template_param_lists(other_templ_param_list,
-                                      templ_param_list,
-                                      /*issue_errors=*/FALSE,
-                                      ETP_NO_OPTIONS,
+      if (!equiv_template_param_lists(other_templ_param_list, templ_param_list,
+                                      /*issue_errors=*/FALSE, etp_set,
                                       (a_source_position*)NULL, es_error)) {
         /* The template parameter lists do not match. */
         continue;
@@ -8939,7 +8952,7 @@ When templates_only is TRUE, only function templates members are considered.
       orig_rts->this_class = NULL;
     }  /* if */
     match = routine_types_are_redecl_compatible(orig_type, new_type,
-                                                TCF_NO_FLAGS);
+                                                tcf_flags);
     if (!new_function_is_qualified) {
       /* Restore the implicit "this" parameter types in orig_type and
          new_type. */

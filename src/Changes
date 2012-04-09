@@ -1,5 +1,23 @@
 Version 4.5
 
+4/9/12   [EDGcpfe/12828]
+Spurious error on C++/CLI named overrider generic class
+
+The front end previously issued a spurious error on a named overrider for a
+generic member function of a generic class if the overridden member was not
+itself a member of a generic class.  For example:
+
+  interface struct I {
+    generic<typename U> virtual void f(U u);
+  };
+  generic<typename T> ref struct R: I {
+    generic<typename U> virtual void g(U u) = I::f {}
+                                   // Previously triggered a spurious error.
+  };
+
+This is now fixed.
+
+
 4/6/12   [EDGcpfe/12826]
 Assertion failure with multibyte characters in macro argument
 
