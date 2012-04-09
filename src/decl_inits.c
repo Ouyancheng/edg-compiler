@@ -3851,6 +3851,9 @@ element, and if it is nonconstant (which results in a ck_dynamic_init entry)
   a_dynamic_init_ptr  init_dip;
 
   if (is_braced_init_component(icp) && icp->variant.braced.list != NULL) {
+    /* A redundantly braced initializer.  FIXME: This could also be a braced
+       set of arguments for a constructor -- revisit the condition above when
+       we can test for that case. */
     an_error_severity   sev = es_none;
     a_source_position   *brace_pos = init_component_pos(icp);
     a_source_position   *excess_init_pos = NULL;
@@ -3918,8 +3921,8 @@ static void aggr_init_generic_element(an_init_component_ptr  icp,
                                       a_decl_parse_state     *dps,
                                       a_constant_ptr         *init_con)
 /*
-The given initialization component initializes and entity on unknown type.
-Create an aggregate constant whose structure simply matches that of the
+The given initialization component initializes an entity of unknown type.
+Create an aggregate constant whose structure matches that of the
 initialization component.
 */
 {
@@ -4048,7 +4051,7 @@ indicates the position for which diagnostics should be issued.
       ctor_rp = select_default_constructor(etype, diag_pos, etype,
                                            (a_boolean *)NULL);
       if (ctor_rp == NULL) {
-        /* Trivial default constructor, non-class type, or error. */
+        /* Trivial default constructor or error. */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
       } else  {
         /* For a non-trivial constructor, create a dik_constructor
@@ -4068,7 +4071,7 @@ indicates the position for which diagnostics should be issued.
         /* If appropriate, add a destructor pointer to the dynamic init entry.
            This is for the case in which an exception is thrown by the
            constructor before the entire array has been initialized. */
-        a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
+        a_routine_ptr  dtor_rp = select_destructor(etype, etype, diag_pos);
         add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
       }  /* if */
       /* Now create the constant entry that will point to the new dynamic init
@@ -4102,9 +4105,12 @@ static void aggr_init_array(an_init_component_ptr  *p_icp,
 /*
 Produce an aggregate constant (in *init_con) for the initialization of an
 object or subobject of the array type given by *p_array_type.  The initializer
-is described by icp.  If this initialization is associated with a declaration,
-dps describes that declaration.  top_level_init will be TRUE for a top-level
-array initialization.
+is described by *p_icp, and that value is updated to the next initializer to be
+considered by the caller (if the initializer is braced, just one initializer is
+"consumed", but otherwise an arbitrary number may be used for this array
+initialization).  If this initialization is associated with a declaration, dps
+describes that declaration.  top_level_init will be TRUE for a top-level array
+initialization.
 */
 {
   an_init_component_ptr  icp = *p_icp;
@@ -4119,31 +4125,6 @@ array initialization.
     /* FIXME.  Do whole-array cases ever get here? */
     check_assertion(!top_level_init);
     unexpected_condition_str("NYI: Whole-array initialization");
-#if /*FIXME: probably can be deleted */0
-  } else if (is_empty_list_init_component(icp)) {
-    /* An initializer of the form "{}".  This is a special aggregate
-       initialization case that convert_initializer handles. */
-    a_boolean           is_constant = FALSE;
-    a_boolean           is_var_init = top_level_init &&
-                                      dps != NULL && dps->sym != NULL;
-    if (is_incomplete_array_type(atype)) {
-      /* An empty initializer for an array with no specified bound is normally
-         an error.  GNU mode is an exception: There it results in a zero-length
-         array. */
-      if (gnu_mode) {
-        set_initialized_array_size(p_array_type, (a_targ_size_t)0,
-                                   /*unknown_dependent=*/FALSE);
-      } else {
-        pos_error(ec_bad_initializer_for_array_with_unspecified_bound,
-                  init_component_pos(icp));
-        *init_con = alloc_error_constant();
-        *p_array_type = error_type();
-      }  /* if */
-    }  /* if */
-    convert_initializer(icp, atype, is_var_init, /*is_direct_init=*/FALSE,
-                        /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
-                        dps, &is_constant, init_dip, init_con);
-#endif
   } else {
     /* Ordinary element-by-element array initialization. */
     a_boolean      no_bound = FALSE, braced = is_braced_init_component(icp);
@@ -4324,11 +4305,12 @@ static void aggr_init_element(an_init_component_ptr  *p_icp,
                               a_constant_ptr         *init_con)
 /*
 Handle the initialization of an element of type etype of an aggregate by the
-component *p_icp (and potentially, the components that follow *p_icp).  Return
-the result in *init_con.  *dps describes the declaration that this
-initialization is part of.
-If this element is itself an aggregate, then this routine recurses into
-aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
+component *p_icp (and potentially, the components that follow *p_icp); return
+in *p_icp the next item not used for this initialization (NULL if there are no
+more such items).  Return the result in *init_con.  *dps describes the
+declaration that this initialization is part of.  If this element is itself an
+aggregate, then this routine recurses into aggr_init_array or aggr_init_class,
+to produce a ck_aggregate constant.
 */
 {
   etype = skip_typerefs(etype);
@@ -4405,7 +4387,7 @@ a dynamic component) or *init_con (for purely constant initializers).
       aggr_init_generic_element(icp, dtype, dps, init_con);
       break;
     case tk_array:
-      /* Arrays (and vectors) are aggregates. */
+      /* Arrays are aggregates. */
       is_aggregate = TRUE;
       aggr_init_array(&icp, &atype, dps, /*top_level_init=*/TRUE, init_con);
       if (atype != dtype) {
@@ -5569,7 +5551,7 @@ typedef struct a_ctor_init_block {
 		direct_list, end_of_direct_list;
 			/* Pointers to the first and last constructor inits
 			   for direct base classes recorded for a constructor.
-			   (NULL if there are not such base classes.) */
+			   (NULL if there are no such base classes.) */
   a_constructor_init_ptr
 		virtual_list, end_of_virtual_list;
 		 	/* Pointer to the first constructor init for a virtual
