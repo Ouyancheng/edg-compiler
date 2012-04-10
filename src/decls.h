@@ -298,6 +298,55 @@ typedef unsigned long a_decl_flag_set;
 
 
 /*
+Structure used to track information while processing a general initializer
+(not just initializers for variables, but also e.g. mem-initializers).
+*/
+typedef struct an_init_state {
+  a_constant_ptr
+		init_con;
+			/* A pointer to a constant representing the initializer
+			   or NULL if the initializer isn't represented using a
+			   constant (i.e., it is represented using a dynamic
+			   init entry, or init_error is TRUE and no
+			   representation of the initializer is available at
+			   all). */
+  a_dynamic_init_ptr
+		init_dip;
+			/* A pointer to a dynamic init entry representing the
+			   initializer or NULL if the initializer isn't
+			   represented using a dynamic init entry (i.e., it is
+			   represented using a constant, or init_error is TRUE
+			   and no representation of the initializer is
+			   available at all). */
+  a_bit_field	init_error:1;
+			/* TRUE if processing the initializer has run into an
+			   error that is severe enough to prevent the
+			   generation of meaningful IL. */
+  a_bit_field	has_dynamic_init_component:1;
+			/* TRUE if this declaration has a braced initializer
+			   and an initializer component is nonconstant. */
+  a_bit_field	any_uninitialized_const_or_ref_member:1;
+			/* TRUE if this declaration has a braced initializer
+			   that fails to initialize a const or reference
+			   member. */
+} an_init_state;
+
+
+EXTERN an_init_state
+		null_init_state;
+			/* Null "init state".  Used for initialization by the
+			   clear_init_state macro. */
+
+/*
+Macro to initialize the "init state" pointed to by the argument.
+*/
+#define clear_init_state(is) {                                               \
+  *(is) = null_init_state;                                                   \
+}
+
+
+
+/*
 Structure used to hold a list of pre-scanned expressions so they
 can be retrieved and scanned later.  Used, for example, for the expression
 in an "auto" declaration, so it can be scanned, examined for its type, and
@@ -566,13 +615,6 @@ typedef struct a_decl_parse_state {
 			   is not indicated with a "=" token.  For example
 			   "int x(y);" or "X x{2, 2};", but not "int x = {1};"
 			   or "X x = y;". */
-  a_bit_field	has_dynamic_init_component:1;
-			/* TRUE if this declaration has a braced initializer
-			   and an initializer component is nonconstant. */
-  a_bit_field	any_uninitialized_const_or_ref_member:1;
-			/* TRUE if this declaration has a braced initializer
-			   that fails to initialize a const or reference
-			   member. */
   a_bit_field	first_decl:1;
 			/* TRUE if this is the first declaration of a variable
 			   or function. */
@@ -658,6 +700,10 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this is a for-init declaration and the
 			   colon indicating a range-based "for" loop has been
 			   seen. */
+  an_init_state
+		init_state;
+			/* Information about the initializer (if any)
+			   associated with this declaration. */
   an_attribute_ptr
 		prefix_attributes;
 			/* A list of non-type-transforming attributes scanned
@@ -806,7 +852,7 @@ typedef struct a_decl_parse_state {
 EXTERN a_decl_parse_state
 		null_decl_parse_state;
 			/* Null "parse state".  Used for initialization by the
-			   macro init_decl_parse_state macro. */
+			   init_decl_parse_state macro. */
 
 /*
 Macro to initialize the "declaration parsing state" pointed to by the

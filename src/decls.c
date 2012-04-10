@@ -80,6 +80,19 @@ specifier.
    curr_token == tok_explicit)
 
 
+static void clear_init_state_fields(an_init_state  *is)
+/*
+Clear the fields of *is.
+*/
+{
+  is->init_con = NULL;
+  is->init_dip = NULL;
+  is->init_error = FALSE;
+  is->has_dynamic_init_component = FALSE;
+  is->any_uninitialized_const_or_ref_member = FALSE;
+}  /* clear_init_state_fields */
+
+
 static
 void clear_decl_parse_state_fields(a_decl_parse_state  *dps,
                                    a_boolean           secondary_declarator)
@@ -191,8 +204,6 @@ be restored).
   dps->nested_ptr_or_ref_seen = FALSE;
   dps->has_initializer = FALSE;
   dps->has_direct_initializer = FALSE;
-  dps->has_dynamic_init_component = FALSE;
-  dps->any_uninitialized_const_or_ref_member = FALSE;
   dps->first_decl = FALSE;
   dps->first_decl_of_predeclared_entity = FALSE;
   dps->override_okay = FALSE;
@@ -204,6 +215,7 @@ be restored).
   dps->is_out_of_class_member_function_decl = FALSE;
   dps->position_of_this_reference_in_trailing_return_set = FALSE;
   dps->vla_field_treated_as_zero_length_array = FALSE;
+  clear_init_state(&dps->init_state);
   dps->id_attributes = NULL;
   dps->asm_name = NULL;
   dps->asm_name_pos = null_source_position;
@@ -16466,6 +16478,7 @@ void decls_one_time_init(void)
 Do one-time initialization of static variables defined in this file.
 */
 {
+  clear_init_state_fields(&null_init_state);
   clear_decl_parse_state_fields(&null_decl_parse_state,
                                 /*secondary_declarator=*/FALSE);
   if (precompiled_header_processing_required) {
