@@ -2379,6 +2379,7 @@ ec_enum_type_replacement;;"this declaration hides the nonstandard declaration of
 ec_known_comparison_with_null;;"pointer comparison result is constant, because operand can never be null"
 ec_value_init_of_incomplete;;"an object of the incomplete type %t cannot be value-initialized"
 ec_value_init_of_reference;;"a reference cannot be value-initialized"
+ec_exp_lparen_or_brace;;"expected a \"(\" or a \"{\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

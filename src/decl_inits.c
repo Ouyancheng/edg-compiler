@@ -6012,6 +6012,222 @@ scan_paren:
 }  /* scan_mem_initializer_id */
 
 
+static void scan_parenthesized_mem_init_args(
+                                           a_constructor_init_ptr  cip,
+                                           a_type_ptr              class_type,
+                                           a_type_ptr              init_type,
+                                           a_type_ptr              array_type)
+/*
+Scan the arguments for a mem-initializer enclosed in parentheses, and update
+*cip accordingly.  class_type is the parent type of the constructor.
+init_type is the type to be initialized; in the case of an array, it is the
+underlying element type and the array type itself is array_type (in non-array
+cases, array_type is NULL).
+*/
+{
+  a_source_position              lparen_pos;
+  a_class_symbol_supplement_ptr  cssp;
+  a_boolean                      dependent_class_init;
+  a_dynamic_init_ptr             dip;
+
+  lparen_pos = pos_curr_token;
+  /* Skip the left parenthesis. */
+  (void)get_token();
+  dependent_class_init = array_type == NULL &&
+                         could_be_dependent_class_type(init_type);
+  if (is_class_struct_union_type(init_type) &&
+      (array_type == NULL || curr_token == tok_rparen)) {
+    /* The type of the base or member is class or array-of-class -- the latter
+       only if the expression-list is empty. */
+    cssp = symbol_supplement_for_class(init_type);
+  } else {
+    cssp = NULL;
+  }  /* if */
+  if ((cssp != NULL && cssp->constructor != NULL) ||
+      (dependent_class_init && !m_is_error_type(init_type))) {
+    /* This is either a base class or a field of class type.  In
+       either case, it will be initialized by a constructor call if
+       a constructor exists.  Otherwise, it will be initialized
+       like any scalar. */
+    if (dependent_class_init) {
+      scan_dependent_type_parenthesized_initializer((a_decl_parse_state*)NULL,
+                                                    &dip);
+    } else {
+      a_type_ptr  object_class_type;
+      /* If it is a base class, the object being constructed is the whole
+         class (and the base class is a subobject thereof).  If it is a field,
+         the object being constructed is field itself.  Set the object class
+         type accordingly. */
+      check_assertion(cip != NULL);
+      if (cip->kind == (a_constructor_init_kind)cik_field) {
+        object_class_type = init_type;
+      } else {
+        object_class_type = class_type;
+      }  /* if */
+      /* This is treated like an initialization of the form S x (arg [, ...]),
+         where S is a class type name.  Depending on the arguments present, a
+         constructor will be selected and returned.  The scan function returns
+         dip set to NULL if it finds no constructor for which the arguments
+         match. */
+      scan_class_parenthesized_initializer(init_type, object_class_type,
+                                           (a_decl_parse_state*)NULL,
+                                           &lparen_pos,
+                                           /*fill_in_dtor=*/exceptions_enabled,
+                                           &dip);
+    }  /* if */
+    if (dip == NULL) {
+      /* Create a fake initializer to represent the error. */
+      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+      dip->variant.constant = alloc_error_constant();
+    } else {
+      /* If the initializer produced an object lifetime for the full
+         expression, remove it temporarily from the object lifetime tree and
+         restore it in the correct position later. */
+      detach_object_lifetime_for_dynamic_init(dip);
+#if CHECKING
+      /* If this is the initialization of an array, the dynamic init entry at
+         this point represents the initialization of an element of the array,
+         not of the array as a whole.  The remaining processing is done later,
+         along with members of array type that are not explicitly specified in
+         the mem-initializer list. */
+      if (array_type != NULL) {
+        check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor);
+      }  /* if */
+#endif /* CHECKING */
+    }  /* if */
+  } else if (curr_token == tok_rparen && cssp != NULL &&
+             reference_to_trivial_default_constructor(init_type,
+                                                      &error_position,
+                                                      /*check_access=*/TRUE,
+                                                      (a_boolean *)NULL)) {
+    /* We fake a call to the trivial default constructor for the class.  No
+       call is actually made, but the constructor definition is triggered (in
+       case there are side-effects).  Note that this is a so-called
+       "value-initialization" case and hence the object must be zeroed. */
+    a_dynamic_init_kind  init_kind = (a_dynamic_init_kind)dik_zero;
+    if (!value_initialization_enabled ||
+        (gpp_mode && emulate_gnu_value_initialization_bugs)) {
+      init_kind = (a_dynamic_init_kind)dik_none;
+    }  /* if */
+    dip = alloc_dynamic_init(init_kind);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* Bypass the right paren. */
+    (void)get_token();
+  } else {
+    /* A field whose initialization does not involve a constructor. */
+    if (curr_token == tok_rparen) {
+      /* An empty initializer, "()", indicating value initialization. */
+empty_parens_mem_initializer:
+      if (is_any_reference_type(init_type)) {
+        /* Error.  A reference type may not be default-initialized. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* Fields cannot be tracking references. */
+        check_assertion(!cppcli_enabled ||
+                        !is_tracking_reference_type(init_type));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        error(ec_default_init_of_reference);
+        /* Create a fake initializer to represent the error. */
+        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+        dip->variant.constant = alloc_error_constant();
+      } else {
+        /* Using "()" with the mem-initializer means, perform value
+           initialization.  Note that the class and array-of-class cases have
+           already been dealt with, so value initialization is tantamount to
+           zero-initialization (8.5 [dcl.init]). */
+        a_dynamic_init_kind  init_kind = (a_dynamic_init_kind)dik_zero;
+        if ((microsoft_bugs && microsoft_version < 1310 &&
+             emulate_msvc_value_initialization_bugs) ||
+            (gpp_mode && emulate_gnu_value_initialization_bugs &&
+             cip != NULL && cip->kind != (a_constructor_init_kind)cik_field) ||
+            (array_type != NULL && is_incomplete_array_type(array_type))) {
+          /* MSVC++ up to version 7.0 never initializes the entity in this
+             case.  g++ up to 3.4 does not initialize base classes.  The
+             flexible array member case cannot be initialized since the array
+             has no known number of elements. */
+          init_kind = (a_dynamic_init_kind)dik_none;
+        }  /* if */
+        dip = alloc_dynamic_init(init_kind);
+      }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      curr_construct_end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      /* Bypass the right paren. */
+      (void)get_token();
+    } else {
+      /* Not default-initialization. */
+      add_stop_token(tok_rparen);
+      if (array_type != NULL) {
+        /* Arrays can only be default- or value-initialized -- i.e., the
+           expression-list must be omitted.  GNU C++, however, is more
+           permissive and allows initialization with an expression of the same
+           array type if the elements of the array have a nontrivial copy
+           constructor. */
+        dip = scan_array_mem_initializer(cip);
+      } else {
+        a_boolean           expr_not_present;
+        a_decl_parse_state  dps;
+        init_decl_parse_state(&dps);
+        dps.type = init_type;
+        dps.initializer_is_expr_list = TRUE;
+        dps.initializer_is_single_expr = TRUE;
+        /* Allocate a new dynamic init entry, setting the kind to
+           dik_none for now.  It will be adjusted after the scan. */
+        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+        (void)scan_initializer_of_simple_object(
+                                        &dps,
+                                        (an_aggregate_init_info *)NULL,
+                                        (an_aggregate_init_context *)NULL,
+                                        /*nonconst_allowed=*/TRUE,
+                                        /*static_lifetime=*/FALSE,
+                                        /*force_object_lifetime=*/TRUE,
+                                        /*suppress_object_lifetime=*/FALSE,
+                                        /*is_copy_initialization=*/FALSE,
+                                        (a_boolean *)NULL,
+                                        &expr_not_present,
+                                        &init_type, &dip);
+        if (expr_not_present) {
+          /* There was an expression, but it's a pack expansion that expanded
+             to zero expressions, so go handle the mem-initializer as if it
+             was "()". */
+          remove_stop_token(tok_rparen);
+          goto empty_parens_mem_initializer;
+        }  /* if */
+        /* If the initializer produced an object lifetime for the full
+           expression, remove it temporarily from the object lifetime tree and
+           restore it in the correct position later. */
+        detach_object_lifetime_for_dynamic_init(dip);
+      }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      curr_construct_end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      if (!required_token(tok_rparen, ec_exp_rparen)) {
+        /* Avoid poor error recovery in cases where a comma-list appears
+           between the parens in what is taken to be the initializer of a
+           simple object -- e.g.,
+               A::A(int i, int j) : x(i,j) { }
+           If there is no constructor for x then it is interpreted as a simple
+           object, only "i" is scanned, and an error is issued on the expected
+           ")".  After that we want to bypass the rest of the comma-list before
+           resuming scanning. */
+        if (curr_token == tok_comma) {
+          flush_to_end_of_arg_list();
+          if (curr_token == tok_rparen) {
+            /* We found the right parenthesis: Consume it. */
+            (void)get_token();
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      remove_stop_token(tok_rparen);
+    }  /* if */
+  }  /* if */
+  check_assertion(dip != NULL);
+  dip->is_constructor_init = TRUE;
+  if (cip != NULL) cip->initializer = dip;
+}  /* scan_parenthesized_mem_init_args */
+
+
 static a_constructor_init_ptr scan_mem_initializer(
                                                 a_type_ptr         class_type,
                                                 a_ctor_init_block  *cibp)
@@ -6027,10 +6243,8 @@ describing default initialization (in order of initialization) and those
 entries are replaced as needed for each mem-initializer that is encountered.
 */
 {
-  a_dynamic_init_ptr      dip;
   a_type_ptr              init_type, array_type = NULL;
   a_constructor_init_ptr  new_cip = NULL;
-  a_source_position       lparen_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position       init_start_pos;
 
@@ -6042,7 +6256,6 @@ entries are replaced as needed for each mem-initializer that is encountered.
     /* Either an identifier or "::" is expected here. */
     syntax_error(ec_exp_identifier);
   } else {
-    dip = NULL;
     if (curr_token == tok_lparen) {
       /* Old-style base class initializer.  It is assumed to apply to the
          direct base class (it's allowed only if there is exactly one direct
@@ -6081,229 +6294,57 @@ entries are replaced as needed for each mem-initializer that is encountered.
       new_cip = scan_mem_initializer_id(class_type, cibp, &init_type,
                                         &array_type);
     }  /* if */
-    lparen_pos = pos_curr_token;
-    if (required_token(tok_lparen, ec_exp_lparen)) {
-      a_class_symbol_supplement_ptr  cssp;
-      a_boolean                      dependent_class_init;
-      dependent_class_init = array_type == NULL &&
-                             could_be_dependent_class_type(init_type);
-      if (is_class_struct_union_type(init_type) &&
-          (array_type == NULL || curr_token == tok_rparen)) {
-        /* The type of the base or member is class or array-of-class --
-           the latter only if the expression-list is empty. */
-        cssp = symbol_supplement_for_class(init_type);
-      } else {
-        cssp = NULL;
-      }  /* if */
-      if ((cssp != NULL && cssp->constructor != NULL) ||
-          (dependent_class_init && !m_is_error_type(init_type))) {
-        /* This is either a base class or a field of class type.  In
-           either case, it will be initialized by a constructor call if
-           a constructor exists.  Otherwise, it will be initialized
-           like any scalar. */
-        if (dependent_class_init) {
-          scan_dependent_type_parenthesized_initializer(
-                                             (a_decl_parse_state*)NULL, &dip);
-        } else {
-          a_type_ptr  object_class_type;
-          /* If it is a base class, the object being constructed is the
-             whole class (and the base class is a subobject thereof).
-             If it is a field, the object being constructed is field
-             itself.  Set the object class type accordingly. */
-          check_assertion(new_cip != NULL);
-          if (new_cip->kind == (a_constructor_init_kind)cik_field) {
-            object_class_type = init_type;
-          } else {
-            object_class_type = class_type;
-          }  /* if */
-          /* This is treated like an initialization of the form
-             S x (arg [, ...]), where S is a class type name.  Depending
-             on the arguments present, a constructor will be selected and
-             returned.  The scan function returns dip set to NULL if it
-             finds no constructor for which the arguments match. */
-          scan_class_parenthesized_initializer(
-                                           init_type, object_class_type,
-                                           (a_decl_parse_state*)NULL,
-                                           &lparen_pos,
-                                           /*fill_in_dtor=*/exceptions_enabled,
-                                           &dip);
-        }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        if (new_cip != NULL) {
-          new_cip->ctor_init_range.start = init_start_pos;
-          new_cip->ctor_init_range.end = curr_construct_end_position;
-        }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        if (dip == NULL) {
-          /* Create a fake initializer to represent the error. */
-          a_constant_ptr  cp;
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-          cp = alloc_constant((a_constant_repr_kind)ck_error);
-          set_error_constant(cp);
-          dip->variant.constant = cp;
-        } else {
-          /* If the initializer produced an object lifetime for the full
-             expression, remove it temporarily from the object lifetime
-             tree and restore it in the correct position later. */
-          detach_object_lifetime_for_dynamic_init(dip);
-          /* If this is the initialization of an array, the dynamic init
-             entry at this point represents the initialization of an
-             element of the array, not of the array as a whole.  The
-             remaining processing is done later, along with members of
-             array type that are not explicitly specified in the
-             mem-initializer list. */
-#if CHECKING
-          if (array_type != NULL) {
-            check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor);
-          }  /* if */
-#endif /* CHECKING */
-        }  /* if */
-      } else if (curr_token == tok_rparen && cssp != NULL &&
-                 reference_to_trivial_default_constructor(
-                                         init_type, &error_position,
-                                         /*check_access=*/TRUE,
-                                         (a_boolean *)NULL)) {
-        /* We fake a call to the trivial default constructor for the
-           class.  No call is actually made, but the constructor
-           definition is triggered (in case there are side-effects).
-           Note that this is a so-called "value-initialization" case
-           and hence the object must be zeroed. */
-        a_dynamic_init_kind init_kind = (a_dynamic_init_kind)dik_zero;
-        if (!value_initialization_enabled ||
-            (gpp_mode &&
-             emulate_gnu_value_initialization_bugs)) {
-          init_kind = (a_dynamic_init_kind)dik_none;
-        }  /* if */
-        dip = alloc_dynamic_init(init_kind);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        if (new_cip != NULL) {
-          new_cip->ctor_init_range.start = init_start_pos;
-          new_cip->ctor_init_range.end = pos_curr_token;
-        }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        /* Bypass the right paren. */
-        (void)get_token();
-      } else {
-        /* A field whose initialization does not involve a constructor. */
-        if (curr_token == tok_rparen) {
-          /* An empty initializer, "()", indicating value initialization. */
-empty_parens_mem_initializer:
-          if (is_any_reference_type(init_type)) {
-            /* Error.  A reference type may not be default-initialized. */
-            a_constant_ptr  cp;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            /* Fields cannot be tracking references. */
-            check_assertion(!cppcli_enabled ||
-                            !is_tracking_reference_type(init_type));
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            error(ec_default_init_of_reference);
-            /* Create a fake initializer to represent the error. */
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-            cp = alloc_constant((a_constant_repr_kind)ck_error);
-            set_error_constant(cp);
-            dip->variant.constant = cp;
-          } else {
-            /* Using "()" with the mem-initializer means, perform value
-               initialization.  Note that the class and array-of-class
-               cases have already been dealt with, so value initialization
-               is tantamount to zero-initialization (8.5 [dcl.init]). */
-            a_dynamic_init_kind init_kind = (a_dynamic_init_kind)dik_zero;
-            if ((microsoft_bugs && microsoft_version < 1310 &&
-                 emulate_msvc_value_initialization_bugs) ||
-                (gpp_mode && emulate_gnu_value_initialization_bugs &&
-                 new_cip != NULL &&
-                 new_cip->kind != (a_constructor_init_kind)cik_field) ||
-                (array_type != NULL && is_incomplete_array_type(array_type))) {
-              /* MSVC++ up to version 7.0 never initializes the entity in this
-                 case.  g++ up to 3.4 does not initialize base classes.  The
-                 flexible array member case cannot be initialized since the
-                 array has no known number of elements. */
-              init_kind = (a_dynamic_init_kind)dik_none;
-            }  /* if */
-            dip = alloc_dynamic_init(init_kind);
-          }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-          if (new_cip != NULL) {
-            new_cip->ctor_init_range.start = init_start_pos;
-            new_cip->ctor_init_range.end = pos_curr_token;
-          }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-          /* Bypass the right paren. */
-          (void)get_token();
-        } else {
-          /* Not default-initialization. */
-          add_stop_token(tok_rparen);
-          if (array_type != NULL) {
-            /* Arrays can only be default- or value-initialized -- i.e.,
-               the expression-list must be omitted.  GNU C++, however, is
-               more permissive and allows initialization with an expression
-               of the same array type if the elements of the array have a
-               nontrivial copy constructor. */
-            dip = scan_array_mem_initializer(new_cip);
-          } else {
-            a_boolean          expr_not_present;
-            a_decl_parse_state dps;
-            init_decl_parse_state(&dps);
-            dps.type = init_type;
-            dps.initializer_is_expr_list = TRUE;
-            dps.initializer_is_single_expr = TRUE;
-            /* Allocate a new dynamic init entry, setting the kind to
-               dik_none for now.  It will be adjusted after the scan. */
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-            (void)scan_initializer_of_simple_object(
-                                            &dps,
-                                            (an_aggregate_init_info *)NULL,
-                                            (an_aggregate_init_context *)NULL,
-                                            /*nonconst_allowed=*/TRUE,
-                                            /*static_lifetime=*/FALSE,
-                                            /*force_object_lifetime=*/TRUE,
-                                            /*suppress_object_lifetime=*/FALSE,
-                                            /*is_copy_initialization=*/FALSE,
-                                            (a_boolean *)NULL,
-                                            &expr_not_present,
-                                            &init_type, &dip);
-            if (expr_not_present) {
-              /* There was an expression, but it's a pack expansion that
-                 expanded to zero expressions, so go handle the mem-initializer
-                 as if it was "()". */
-              remove_stop_token(tok_rparen);
-              goto empty_parens_mem_initializer;
-            }  /* if */
-            /* If the initializer produced an object lifetime for the full
-               expression, remove it temporarily from the object lifetime
-               tree and restore it in the correct position later. */
-            detach_object_lifetime_for_dynamic_init(dip);
-          }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-          if (new_cip != NULL && curr_token == tok_rparen) {
-            new_cip->ctor_init_range.start = init_start_pos;
-            new_cip->ctor_init_range.end = pos_curr_token;
-          }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-          if (!required_token(tok_rparen, ec_exp_rparen)) {
-            /* Special code to avoid poor error recovery in cases where
-               a comma-list appears between the parens in what is taken
-               to be the initializer of a simple object -- e.g.,
-                   A::A(int i, int j) : x(i,j) { }
-               If there is no constructor for x then it is interpreted
-               as a simple object, only "i" is scanned, and an error is
-               issued on the expected ")".  After that we want to bypass
-               the rest of the comma-list before resuming scanning. */
-            if (curr_token == tok_comma) {
-              flush_to_end_of_arg_list();
-              if (curr_token == tok_rparen) {
-                /* We found the right parenthesis: Consume it. */
-                (void)get_token();
-              }  /* if */
-            }  /* if */
-          }  /* if */
-          remove_stop_token(tok_rparen);
-        }  /* if */
-      }  /* if */
-      check_assertion(dip != NULL);
-      dip->is_constructor_init = TRUE;
-      if (new_cip != NULL) new_cip->initializer = dip;
+    if (curr_token != tok_lparen && curr_token != tok_lbrace) {
+      /* Neither brace nor parenthesis: A syntax error. */
+      set_err_pos_to_curr_token();
+      add_stop_token(tok_lparen);
+      if (list_init_enabled) add_stop_token(tok_lbrace);
+      syntax_error(list_init_enabled ? ec_exp_lparen_or_brace : ec_exp_lparen);
+      if (list_init_enabled) remove_stop_token(tok_lbrace);
+      remove_stop_token(tok_lparen);
     }  /* if */
+    if (curr_token == tok_lparen) {
+      /* A classic (i.e., parenthesized) mem-initializer argument. */
+      scan_parenthesized_mem_init_args(new_cip, class_type, init_type,
+                                       array_type);
+    } else if (list_init_enabled && curr_token == tok_lbrace) {
+      /* A braced (i.e., C++11-style) mem-initializer argument. */
+      a_type_ptr     dtype = (array_type != NULL) ? array_type : init_type;
+      an_init_state  is;
+      a_source_position
+                     lbrace_pos;
+      lbrace_pos = pos_curr_token;
+      clear_init_state(&is);
+      /* Scan the initializer. */
+      direct_braced_initializer(dtype, &is, (a_decl_parse_state*)NULL,
+                                &lbrace_pos);
+      /* If no dynamic init entry was produced, wrap the result (a constant
+         or an error) in a dynamic init entry. */
+      if (new_cip != NULL) {
+        if (is.init_dip == NULL) {
+          is.init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+          if (!is.init_error) {
+            check_assertion(is.init_con != NULL);
+            is.init_dip->variant.constant = is.init_con;
+          } else {
+            /* Use a placeholder error constant. */
+            is.init_dip->variant.constant = alloc_error_constant();
+          }  /* if */
+          is.init_con = NULL;
+        }  /* if */
+        new_cip->initializer = is.init_dip;
+        new_cip->is_braced = TRUE;
+      }  /* if */
+    } else {
+      /* A syntax error was already issued. */
+      expect_error();
+    }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (new_cip != NULL) {
+      new_cip->ctor_init_range.start = init_start_pos;
+      new_cip->ctor_init_range.end = curr_construct_end_position;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   return new_cip;
 }  /* scan_mem_initializer */

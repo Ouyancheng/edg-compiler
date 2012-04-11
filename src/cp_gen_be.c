@@ -14735,8 +14735,9 @@ a constructor.
       } else {
         /* Generate the initialization. */
         gen_dynamic_init(ctor_init->initializer, type,
-                         /*parenthesized_init=*/TRUE, /*braced_init=*/FALSE,
-                         /*force_parens=*/TRUE,
+                         /*parenthesized_init=*/!ctor_init->is_braced,
+                         ctor_init->is_braced,
+                         /*force_parens=*/!ctor_init->is_braced,
                          /*obj_expr_of_mfunc_operator=*/FALSE,
                          /*is_static_cast=*/FALSE);
       }  /* if */

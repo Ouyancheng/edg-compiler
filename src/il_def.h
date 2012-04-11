@@ -15211,6 +15211,11 @@ typedef struct a_constructor_init {
 		is_pack_expansion;
 			/* TRUE if this mem-initializer is a variadic template
 			   pack expansion, i.e., it's followed by "...". */
+  a_byte_boolean
+		is_braced;
+			/* TRUE if this mem-initializer uses the C++11 braced
+			   notation rather than the classic parenthesized
+			   form. */
   union {
     /* When kind is cik_virtual_base_class or cik_direct_base_class: */
     a_base_class_ptr

@@ -3580,6 +3580,7 @@ pointer to it.
   cip->kind = kind;
   cip->compiler_generated = FALSE;
   cip->is_pack_expansion = FALSE;
+  cip->is_braced = FALSE;
   switch (kind) {
     case cik_virtual_base_class:
     case cik_direct_base_class:
