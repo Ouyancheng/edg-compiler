@@ -8,8 +8,9 @@ sizes), the C++-generating back end always put out a reference to a class
 member enumerator using the class in which it is declared as the qualifier.
 This caused errors in the generated code when the name is inaccessible in
 its own class but accessible via a derived class.  This has now been fixed
-by preserving the qualifier used in the original source in such references.
-For example:
+by preserving the qualifier used in the original source in such references
+(only in configurations that set DEFAULT_RECORD_FORM_OF_NAME_REFERENCE to
+TRUE).  For example:
 
   class B {
   protected:
