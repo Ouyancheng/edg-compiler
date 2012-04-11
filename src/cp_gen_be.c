@@ -4954,6 +4954,12 @@ al_tag_name attributes (if any).
       tag_kind_str = tag_kind(class_type_supp(type)->orig_type_kind);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (is_immediate_class_type(type) && (options & GN_FRIEND_DECL) &&
+        type->variant.class_struct_union.proxy_class) {
+      /* Use the C++11 feature of referring to a template parameter in a
+         friend declaration with no class keyword. */
+      tag_kind_str = "";
+    }  /* if */
     write_tok_str(tag_kind_str);
     if ((options & GN_DECLARATION) != 0) {
       gen_attributes(attributes, al_tag_name, /*primary_only=*/FALSE);

@@ -1,5 +1,23 @@
 Version 4.5
 
+4/11/12  [EDGcpfe/12595]
+C++-generating back end: friend declarations of template parameters
+
+C++11 allows a template parameter to be declared as a friend by using just
+the name of the parameter and omitting the class/struct keyword.  MSVC++
+has accepted such declarations, with or without the class/struct keyword,
+for a long time; g++, beginning with version 4.7 (with the -std=c++11
+command-line option), now accepts these declarations as well, but only if
+the keyword is omitted.  The C++-generating back end previously added a
+keyword in a friend declaration of a template parameter, even if the
+original source had none; it has now been changed to omit the keyword in
+such friend declarations.  For example:
+
+  template<typename T> struct S {
+    friend T;   // Previously generated as "friend class T;"
+  };
+
+
 4/10/12  [EDGcpfe/12823]
 C++-generating back end: qualified enumerator names in constant expressions
 
