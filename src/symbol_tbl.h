@@ -3685,9 +3685,9 @@ typedef struct a_symbol_header {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	any_function_referenced_in_dependent_call;
 			/* TRUE if a dependent function call referenced a
-			   non-member function with a given name.  This is
-			   used to suppress warnings about unused static
-			   functions in some cases. */
+			   non-member function with the name given by
+			   this header.  This is used to suppress warnings
+			   about unused static functions in some cases. */
 } a_symbol_header;
 
 

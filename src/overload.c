@@ -8309,6 +8309,14 @@ have_function:
     record_nondependent_call(function_symbol, paren_tok_seq_number,
                              (a_nondependent_call_depth)0);
   }  /* if */
+  if (dependent_call && overloaded_function_symbol != NULL &&
+      !overloaded_function_symbol->is_class_member) {
+    /* Record that this particular name was referenced in a dependent call
+       so we can suppress warnings on static functions that appear
+       unreferenced but might be chosen by a dependent call. */
+    overloaded_function_symbol->header
+                            ->any_function_referenced_in_dependent_call = TRUE;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
