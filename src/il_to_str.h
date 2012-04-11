@@ -423,9 +423,12 @@ extern void form_pm_constant(
    the expression it came from and should be put out in expression
    form.  Don't be fooled by enumeration constants, which also have a
    non-NULL expression pointer if they were given an explicit value in
-   their definitions, but shouldn't be put out in expression form. */
-#define constant_should_be_put_out_as_expr(constant)           \
-  ((constant)->expr != NULL && !is_enum_constant(constant))
+   their definitions, but shouldn't be put out in expression form.
+   However, an enumeration constant with a non-NULL name reference should
+   be put out as an expression so that the name reference is preserved. */
+#define constant_should_be_put_out_as_expr(constant)                     \
+  ((constant)->expr != NULL && (!is_enum_constant(constant) ||           \
+                                constant->expr->name_reference != NULL))
 
 extern void form_uuidof_reference(a_constant_ptr                        con,
                                   an_il_to_str_output_control_block_ptr octl);
