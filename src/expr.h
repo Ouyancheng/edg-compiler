@@ -91,7 +91,9 @@ typedef a_byte an_init_component_kind;
 /*
 Entry describing a value in an initializer, which is either an expression
 or a brace-enclosed list.  In the C++11 standard, the corresponding syntax
-term is "initializer-clause".
+term is "initializer-clause".  It does double duty: An expression-list (i.e.,
+an argument list) is an initializer-list, which is a list of
+initializer-clauses with possible variadic template expansions.
 */
 typedef struct an_init_component *an_init_component_ptr;
 typedef struct an_init_component {
@@ -122,6 +124,8 @@ typedef struct an_init_component {
     } braced;
   } variant;
 } an_init_component;
+typedef an_init_component an_expr_list_element;
+typedef an_expr_list_element *an_expr_list_element_ptr;
 
 
 /*

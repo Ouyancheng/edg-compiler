@@ -4431,6 +4431,29 @@ cleanup required.  The list is not freed.
 }  /* arg_operand_list_will_not_be_used_because_of_error */
 
 
+void expr_list_will_not_be_used_because_of_error(
+                                         an_expr_list_element_ptr operand_list)
+/*
+The indicated expression list will not be used further because an error has
+been detected.  There is also the implication that because of the
+error we cannot tell how the operands would have been used.  Do any
+cleanup required.  The list is not freed.
+*/
+{
+  an_expr_list_element_ptr elep;
+
+  for (elep = operand_list; elep != NULL; elep = elep->next) {
+    if (is_expression_component(elep)) {
+      operand_will_not_be_used_because_of_error(&elep->variant.expr->operand);
+    } else if (is_braced_init_component(elep)) {
+      expr_list_will_not_be_used_because_of_error(elep->variant.braced.list);
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* for */
+}  /* expr_list_will_not_be_used_because_of_error */
+
+
 void conv_to_error_operand(an_operand *operand)
 /*
 Take an existing operand and convert it to an error operand.  Retain the
