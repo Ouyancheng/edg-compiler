@@ -1,5 +1,16 @@
 Version 4.5
 
+4/11/12  [EDGcpfe/12836]
+Microsoft compatibility: class templates with multiple attributes
+
+Spurious errors could result if a class template had multiple Microsoft
+attributes.  Now fixed.
+
+  template <class T> [xxx] [yyy] struct A {
+    void f(A<T> a){}
+  };
+
+
 4/11/12  [EDGcpfe/12595]
 C++-generating back end: friend declarations of template parameters
 

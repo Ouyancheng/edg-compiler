@@ -1966,8 +1966,10 @@ A Microsoft attribute is next.  Skip over its tokens.
 */
 {
   check_assertion(curr_token == tok_lbracket);
-  flush_until_matching_token();
-  (void)get_token();
+  while (curr_token == tok_lbracket) {
+    flush_until_matching_token();
+    (void)get_token();
+  }  /* if */
 }  /* skip_microsoft_attribute_tokens */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
