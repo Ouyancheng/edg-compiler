@@ -1934,7 +1934,9 @@ to TRUE.
       } else {
         an_operand         *operand = &elep->variant.expr->operand;
         an_arg_operand_ptr arg_op = alloc_arg_operand();
+#if MICROSOFT_EXTENSIONS_ALLOWED
         check_assertion(!is_property_ref_operand(operand));  /* FIXME */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         copy_operand(operand, &arg_op->operand);
         if (arg_operand_list == NULL) {
           arg_operand_list = arg_op;
