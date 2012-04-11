@@ -3566,6 +3566,8 @@ constant.
             /* We need an expression to save the name reference, and we
                need an unshared constant to save the expression. */
             constant_with_expr = alloc_unshared_constant(il_constant);
+            constant_with_expr->source_corresp.assoc_info =
+                                        il_constant->source_corresp.assoc_info;
             constant_with_expr->expr = alloc_node_for_constant(il_constant);
           }  /* if */
           /* Set the node's name reference. */
