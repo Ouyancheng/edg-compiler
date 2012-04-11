@@ -31745,9 +31745,8 @@ a_boolean scan_integral_const_expr_with_name_ref(a_constant       *constant,
                                                  a_name_reference *name_ref)
 /*
 Scan an integral constant expression.  If the operand is associated with a
-name reference, return that in *name_ref and return TRUE; otherwise, return
-FALSE.
-*/
+name reference, return that in *name_ref and return TRUE; otherwise, leave
+*name_ref unchanged and return FALSE.  */
 {
   an_operand result;
   a_boolean  name_ref_set;
@@ -31766,7 +31765,9 @@ FALSE.
                                                &result,
                                                (a_boolean *)NULL);
     name_ref_set = result.name_reference_set;
-    *name_ref = result.name_reference;
+    if (name_ref_set) {
+      *name_ref = result.name_reference;
+    }  /* if */
     extract_constant_from_operand(&result, constant);
   } else {
     /* Standard integral constant expression. */
@@ -31781,7 +31782,9 @@ FALSE.
     /* Scan the constant expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     name_ref_set = result.name_reference_set;
-    *name_ref = result.name_reference;
+    if (name_ref_set) {
+      *name_ref = result.name_reference;
+    }  /* if */
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
     extract_constant_from_operand(&result, constant);
     if (!is_okay_integral_constant_expression_result(constant,
