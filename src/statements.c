@@ -6095,7 +6095,8 @@ called to scan the second constant in a GNU C case range.
     if (sssep != NULL) {
       an_expr_node_ptr expr = constant.expr;
       if (expr == NULL &&
-          !cast_identical_types(constant.type, sssep->switch_selector_type)) {
+          (!cast_identical_types(constant.type, sssep->switch_selector_type) ||
+           name_ref_set)) {
         /* Record the original constant as the expression the converted
            constant came from. */
         expr = alloc_node_for_constant(&constant);
