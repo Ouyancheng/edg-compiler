@@ -1829,6 +1829,7 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->microsoft_identifier_used = FALSE;
   ptr->is_cli_operator = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  ptr->any_function_referenced_in_dependent_call = FALSE;
   db_exit();
 
   return ptr;
