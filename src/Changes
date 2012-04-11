@@ -1,5 +1,30 @@
 Version 4.5
 
+4/10/12  [EDGcpfe/12823]
+C++-generating back end: qualified enumerator names in constant expressions
+
+In constant expression contexts (case labels, array bounds, and bit-field
+sizes), the C++-generating back end always put out a reference to a class
+member enumerator using the class in which it is declared as the qualifier.
+This caused errors in the generated code when the name is inaccessible in
+its own class but accessible via a derived class.  This has now been fixed
+by preserving the qualifier used in the original source in such references.
+For example:
+
+  class B {
+  protected:
+     enum E { e = 1 };
+  };
+
+  struct D : B {
+    friend struct S;
+  };
+
+  struct S {
+    int i : D::e;   // Previously generated as B::e, an access error
+  };
+
+
 4/9/12   [EDGcpfe/12828]
 Spurious error on C++/CLI named overrider generic class
 

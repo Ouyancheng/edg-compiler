@@ -4618,7 +4618,9 @@ precedence confusion.  Do the output in the way described by octl.
       }
     }  /* if */
 #endif /* CHECKING */
-  } else if (constant_should_be_put_out_as_expr(constant) &&
+  } else if (constant->expr != NULL &&
+             (!is_enum_constant(constant) ||
+              constant->expr->name_reference != NULL) &&
              !octl->c_generating_back_end &&
              octl->output_expression != NULL) {
     /* An expression was recorded for this constant.  Output that expression

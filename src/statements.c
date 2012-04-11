@@ -6069,18 +6069,22 @@ called to scan the second constant in a GNU C case range.
   a_constant         constant;
   a_source_position  label_position;
   a_boolean          did_not_fold;
+  a_boolean          name_ref_set;
+  a_name_reference   name_ref;
 
   label_position = pos_curr_token;
   /* Scan the constant expression. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* MSVC++ allows things like (void *)1 as case label constants. */
-    scan_microsoft_case_label_constant_expression(&constant);
+    name_ref_set = scan_microsoft_case_label_constant_expression(&constant,
+                                                                 &name_ref);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
   {
-    scan_integral_constant_expression(&constant);
+    name_ref_set = scan_integral_const_expr_with_name_ref(&constant,
+                                                          &name_ref);
   }  /* if */
   if (is_error_constant(&constant)) {
     /* Error; constant_ptr is left NULL. */
@@ -6106,6 +6110,11 @@ called to scan the second constant in a GNU C case range.
                            &did_not_fold, &error_position);
       check_assertion(!did_not_fold);
       constant.expr = expr;
+      if (name_ref_set) {
+        expr->name_reference = find_allocated_name_reference(
+                                                      &constant.source_corresp,
+                                                      &name_ref);
+      }  /* if */
     }  /* if */
     /* Allocate a copy of the case constant. */
     constant_ptr = alloc_unshared_constant(&constant);

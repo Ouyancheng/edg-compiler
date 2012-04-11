@@ -3321,6 +3321,8 @@ constant.
 #if UPC_EXTENSIONS_ALLOWED
   a_boolean               upc_threads_dimension = FALSE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  a_boolean               name_ref_set = FALSE;
+  a_name_reference        name_ref;
 
   db_enter(3, "array_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -3410,7 +3412,8 @@ constant.
       a_boolean  for_new_expr = !vla_allowed;
       scan_nonconstant_dimension_expression(
               for_new_expr, top_level_vla, dps->is_evaluated_sizeof_type_arg,
-              &is_constant_bound, &dim_expr, &constant);
+              &is_constant_bound, &dim_expr, &constant, &name_ref_set,
+              &name_ref);
       check_assertion(is_constant_bound == (dim_expr == NULL));
 #if GNU_EXTENSIONS_ALLOWED
       if (gcc_mode && dim_expr != NULL && top_level_field_decl &&
@@ -3430,7 +3433,8 @@ constant.
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
-      scan_fs_integral_constant_expression(&constant);
+      name_ref_set = scan_fs_integral_const_expr_with_name_ref(&constant,
+                                                               &name_ref);
       is_constant_bound = TRUE;
     }  /* if */
     if (dim_expr == NULL) {
@@ -3556,6 +3560,20 @@ constant.
            it may need to be referred to indirectly if the expression is
            allocated in function scope memory. */
         il_constant = transfer_constant_to_il(&constant);
+        if (name_ref_set) {
+          a_constant_ptr constant_with_expr = il_constant;
+          if (il_constant->expr == NULL) {
+            /* We need an expression to save the name reference, and we
+               need an unshared constant to save the expression. */
+            constant_with_expr = alloc_unshared_constant(il_constant);
+            constant_with_expr->expr = alloc_node_for_constant(il_constant);
+          }  /* if */
+          /* Set the node's name reference. */
+          constant_with_expr->expr->name_reference =
+                    find_allocated_name_reference(&il_constant->source_corresp,
+                                                  &name_ref);
+          il_constant = constant_with_expr;
+        }  /* if */
         make_bound_expr_referenceable_from_file_scope(&il_constant->expr,
                                                       *new_type_ptr,
                                                       /*dep=*/FALSE);
