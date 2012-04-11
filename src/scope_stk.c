@@ -5421,15 +5421,17 @@ curr_routine points to the routine entry; otherwise, it is NULL.
             severity = es_remark;
           }  /* if */
         } else if (il_header.any_templates_seen &&
+                   (!nonclass_prototype_instantiations ||
+                    defer_function_prototype_instantiations) &&
                    instantiation_mode == tim_none &&
                    (scope_kind == (a_scope_kind)sck_file ||
                     scope_kind == (a_scope_kind)sck_namespace ||
                     scope_kind == (a_scope_kind)sck_class_struct_union)) {
-          /* If we are not instantiating template uses, it is possible that
-             we missed a reference/use from a template to an enclosing scope
-             (which can only be a file scope, namespace scope, or class
-             scope): Don't issue a warning or remark in such cases since it
-             would be unreliable. */
+          /* If we are not parsing all template definitions nor instantiating
+             all template uses, it is possible that we missed a reference/use
+             from a template to an enclosing scope (which can only be a file
+             scope, namespace scope, or class scope): Don't issue a warning or
+             remark in such cases since it would be unreliable. */
           severity = es_none;
         }  /* if */
         if (severity != es_none) {
@@ -5611,15 +5613,21 @@ curr_routine points to the routine entry; otherwise, it is NULL.
              and may appear in header files, so no warning is generated. */
 #endif /* ASM_FUNCTION_ALLOWED */
         } else if (il_header.any_templates_seen &&
+                   (!nonclass_prototype_instantiations ||
+                    defer_function_prototype_instantiations ||
+                    sym->header->any_function_referenced_in_dependent_call) &&
                    instantiation_mode == tim_none &&
                    (scope_kind == (a_scope_kind)sck_file ||
                     scope_kind == (a_scope_kind)sck_namespace ||
                     scope_kind == (a_scope_kind)sck_class_struct_union)) {
-          /* If we are not instantiating template uses, it is possible that
-             we missed a reference/use from a template to an enclosing scope
-             (which can only be a file scope, namespace scope, or class
-             scope): Don't issue a warning or remark in such cases since it
-             would be unreliable. */
+          /* If we are not parsing all template definitions nor instantiating
+             all template uses, it is possible that we missed a reference/use
+             from a template to an enclosing scope (which can only be a file
+             scope, namespace scope, or class scope): Don't issue a warning or
+             remark in such cases since it would be unreliable.  Even if we
+             are parsing template definitions, don't warn on the use of a
+             name that was referenced in a dependent call if we are not
+             instantiating all uses. */
         } else if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
                    (scope_kind == (a_scope_kind)sck_function ||
                     scope_kind == (a_scope_kind)sck_block)) {

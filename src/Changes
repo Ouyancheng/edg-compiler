@@ -123,12 +123,14 @@ In modes in which non-class templates are parsed, we issued warnings on
 unreferenced static entities.  This could result in spurious warnings
 in modes in which not all used template instances are instantiated,
 because a dependent call could result in a reference to the static
-entity.  We now suppress the warning unless all referenced instances
+entity.  We now suppress the warning for names used somewhere as the
+function name in a dependent call unless all referenced instances
 are instantiated (e.g., -tused or -tall modes).  The warning is only
 suppressed in translation units that make use of some sort of templates.
 
-  static void f(int) { }
-  template <typename T> void g(T t) { f(t); }
+  static void f1(int) { }  // no warning because of dependent call of f1
+  static void f2(int) { }  // warning because of no dependent call of f2
+  template <typename T> void g(T t) { f1(t); }
   int main() {
     g(1);
   }
