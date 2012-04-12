@@ -28662,7 +28662,7 @@ to the type of the entity being initialized, given by dest_type.  If
 is_var_init is TRUE, this is the complete initializer for a variable
 (given by dps->sym), and the type of that variable is used for
 dest_type.  In either case, dest_type must not be an aggregate type
-(however, an aggregate type is okay for an initializer of "{}").
+unless the initializer is an expression or an empty braced list "{}".
 If is_direct_init is TRUE, the initialization is direct-initialization.
 If check_narrowing is TRUE, issue diagnostics for narrowing
 conversions.  The converted result is returned as either a constant
@@ -28679,7 +28679,8 @@ state, or is NULL if there is no declaration associated with this scan.
   an_expr_stack_entry expr_stack_entry;
   a_variable_ptr      var = NULL;
   a_dynamic_init_ptr  dip = NULL;
-  a_boolean           value_init;
+  a_boolean           empty_brace_init;
+  a_conv_context_set  conv_context = CCO_DEFAULT;
 
   *p_dip = NULL;
   *constant = NULL;
@@ -28692,20 +28693,21 @@ state, or is NULL if there is no declaration associated with this scan.
     var = var_for_symbol(var_sym);
     check_assertion(var != NULL);
     dest_type = var->type;
+    conv_context |= CCO_INITIALIZING_VARIABLE;
   }  /* if */
+  if (is_direct_init) conv_context |= CCO_DIRECT_INITIALIZATION;
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   transfer_expr_context_if_applicable(saved_expr_stack);
   /* Check for an initializer of "{}", which means value-initialization. */
-  value_init = (icp->kind == (an_init_component_kind)ick_braced &&
-                icp->variant.braced.list == NULL);
+  empty_brace_init = is_empty_list_init_component(icp);
   check_assertion(dest_type != NULL &&
                   (!is_aggregate_type(dest_type) ||
                    is_expression_component(icp) ||
-                   value_init));
-  if (icp->kind == (an_init_component_kind)ick_expression) {
+                   empty_brace_init));
+  if (is_expression_component(icp)) {
     /* The object is initialized by an expression. */
     an_arg_operand         *arg_op = icp->variant.expr;
     an_operand             *operand = &arg_op->operand;
@@ -28730,37 +28732,34 @@ state, or is NULL if there is no declaration associated with this scan.
       check_assertion(expr_stack->lifetime == NULL);
       expr_stack->lifetime = curr_object_lifetime;
       arg_op->lifetime = NULL;
-    }  /* if */        
+    }  /* if */
     if (is_template_dependent_type(dest_type)) {
+      /* The destination type is template dependent. */
       prep_generic_operand(operand);
+    } else if (is_class_struct_union_type(dest_type)) {
+      /* See if we can elide the copy for class-typed variables. */
+      prep_elision_initializer_operand(operand, dest_type,
+                                       fill_in_dtor,
+                                       conv_context,
+                                       ec_bad_initializer_type, &dip);
+      if (dip == NULL) conv_to_error_operand(operand);
+      fill_in_dtor = FALSE;
     } else {
-      a_conv_context_set conv_context = CCO_DEFAULT;
-      if (is_direct_init) conv_context |= CCO_DIRECT_INITIALIZATION;
-      if (is_var_init) conv_context |= CCO_INITIALIZING_VARIABLE;
-      if (is_class_struct_union_type(dest_type)) {
-        /* See if we can elide the copy for class-typed variables. */
-        prep_elision_initializer_operand(operand, dest_type,
-                                         fill_in_dtor,
-                                         conv_context,
-                                         ec_bad_initializer_type, &dip);
-        if (dip == NULL) conv_to_error_operand(operand);
-        fill_in_dtor = FALSE;
-      } else {
-        prep_initializer_operand(operand, dest_type,
-                                 /*is_transparent=*/(a_boolean *)NULL,
-                                 /*conversion=*/(a_conv_descr_ptr)NULL,
-                                 /*is_copy_initialization=*/!is_direct_init,
-                                 conv_context,
-                                 ec_bad_initializer_type);
-      }  /* if */
+      /* Non-class, non-dependent cases (including references). */
+      prep_initializer_operand(operand, dest_type,
+                               /*is_transparent=*/(a_boolean *)NULL,
+                               /*conversion=*/(a_conv_descr_ptr)NULL,
+                               /*is_copy_initialization=*/!is_direct_init,
+                               conv_context,
+                               ec_bad_initializer_type);
     }  /* if */
     if (dip == NULL && is_constant_operand(operand)) {
       *is_constant = TRUE;
       *constant = alloc_unshared_constant(&operand->variant.constant);
       check_assertion(created_lifetime == NULL);
     } else {
-      /* dip is non-NULL if the dynamic init was allocated for the elision
-         case. */
+      /* dip is non-NULL if the dynamic init was allocated above for the
+         elision case. */
       if (dip == NULL) {
         an_expr_node_ptr expr = make_node_from_operand(operand);
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
@@ -28771,8 +28770,8 @@ state, or is NULL if there is no declaration associated with this scan.
     }  /* if */
   } else {
     /* The entity is initialized by a brace-enclosed list. */
-    check_assertion(icp->kind == (an_init_component_kind)ick_braced);
-    if (value_init) {
+    check_assertion(is_braced_init_component(icp));
+    if (empty_brace_init) {
       /* The list is empty, so this is value-initialization. */
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
