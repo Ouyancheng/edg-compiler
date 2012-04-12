@@ -4715,6 +4715,13 @@ and is a function designator.
   } else {
     operand->id_position = operand->position;
   }  /* if */
+  if (is_template_dependent_context() &&
+      !routine_sym->is_class_member) {
+    /* Record that this particular name was referenced in a dependent
+       context so we can suppress warnings on static functions that appear
+       unreferenced but might be chosen by a dependent call. */
+    routine_sym->header->any_function_referenced_in_dependent_call = TRUE;
+  }  /* if */
 }  /* make_indefinite_function_operand */
 
 
