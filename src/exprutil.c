@@ -702,6 +702,7 @@ kind to "kind" and its fields to default values, and return a pointer to it.
 #endif /* DEBUG */
   }  /* if */
   icp->next = NULL;
+  icp->lifetimes_promoted = FALSE;
   set_init_component_kind(icp, kind);
   return icp;
 }  /* alloc_init_component */

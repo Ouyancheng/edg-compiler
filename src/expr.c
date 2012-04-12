@@ -28372,7 +28372,7 @@ stack already set.
         while (any_more) {
           an_arg_operand             *arg_op = alloc_arg_operand();
           a_pack_expansion_descr_ptr pedep;
-          an_object_lifetime_ptr     created_lifetime = NULL;
+          an_object_lifetime_ptr     wrap_lifetime = NULL;
           an_object_lifetime_ptr     saved_stack_lifetime = NULL;
           an_object_lifetime_ptr     saved_curr_lifetime = NULL;
   
@@ -28389,9 +28389,9 @@ stack already set.
             push_object_lifetime((an_il_entry_kind)iek_expr_node,
                                  (char *)NULL,
                                  (an_object_lifetime_kind)olk_expr_temporary);
-            created_lifetime = curr_object_lifetime;
+            wrap_lifetime = curr_object_lifetime;
             saved_stack_lifetime = expr_stack->lifetime;
-            expr_stack->lifetime = created_lifetime;
+            expr_stack->lifetime = wrap_lifetime;
           }  /* if */
           /* Scan the initializer expression and put it into an
              init-component. */
@@ -28400,15 +28400,15 @@ stack already set.
           elem_icp =
                   alloc_init_component((an_init_component_kind)ick_expression);
           elem_icp->variant.expr = arg_op;
-          if (created_lifetime != NULL) {
+          if (wrap_lifetime != NULL) {
             /* Save the lifetime created for this expression for use later
                when convert_initializer is called to convert it.  Don't save
                the lifetime if it wasn't really used. */
-            check_assertion(curr_object_lifetime == created_lifetime);
+            check_assertion(curr_object_lifetime == wrap_lifetime);
             if (pop_object_lifetime_full(/*unbound_okay=*/TRUE)) {
-              arg_op->lifetime = created_lifetime;
-              detach_from_object_lifetime_tree(created_lifetime);
-              created_lifetime->parent_destruction_sublist = NULL;
+              arg_op->lifetime = wrap_lifetime;
+              detach_from_object_lifetime_tree(wrap_lifetime);
+              wrap_lifetime->parent_destruction_sublist = NULL;
             }  /* if */
             curr_object_lifetime = saved_curr_lifetime;
             expr_stack->lifetime = saved_stack_lifetime;
@@ -28644,6 +28644,57 @@ reported at the source position given by pos.
 }  /* value_initialization */
 
 
+static void promote_init_component_lifetimes(an_init_component_ptr icp)
+/*
+Promote the object lifetimes in icp and its subtree into the current
+lifetime context, either by pushing the top lifetime and entering it into
+the expression stack, or by promoting the things in the lifetime into an
+existing surrounding expression lifetime.  If expr_stack->lifetime is
+non-NULL on return, a new full-expression object lifetime has been pushed.
+This processing is needed because when we scanned the expressions we
+didn't know how they were going to be used, and therefore we didn't know
+which ones should be considered full expressions and which should be
+part of something else.  So we put a unique wrapper lifetime around each
+expression, and here we break things out of those lifetimes and move them
+into the proper final lifetimes.
+*/
+{
+  check_assertion(curr_object_lifetime != NULL &&
+                  expr_stack->lifetime == NULL);
+  /* Don't promote if it has been done previously. */
+  if (!icp->lifetimes_promoted) {
+    icp->lifetimes_promoted = TRUE;
+    if (is_expression_component(icp)) {
+      /* For an expression with a lifetime, process the lifetime. */
+      an_object_lifetime_ptr wrap_lifetime = icp->variant.expr->lifetime;
+      icp->variant.expr->lifetime = NULL;
+      if (wrap_lifetime != NULL) {
+        if (curr_object_lifetime->kind ==
+                                 (an_object_lifetime_kind)olk_expr_temporary) {
+          /* Promote the contents of the added lifetime into the current
+             full-expression object lifetime. */
+          promote_lifetime_contents_to_curr_object_lifetime(wrap_lifetime);
+          free_object_lifetime(wrap_lifetime);
+        } else {
+          /* Re-push the created lifetime. */
+          add_as_child_of_curr_object_lifetime(wrap_lifetime);
+          curr_object_lifetime = wrap_lifetime;
+          expr_stack->lifetime = curr_object_lifetime;
+        }  /* if */
+      }  /* if */
+    } else if (is_braced_init_component(icp)) {
+      /* For a braced-init-list, process the subtree. */
+      an_init_component_ptr nicp;
+      for (nicp = icp->variant.braced.list; nicp != NULL; nicp = nicp->next) {
+        promote_init_component_lifetimes(nicp);
+      }  /* for */
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* if */
+}  /* promote_init_component_lifetimes */
+
+
 /*FIXME*/
 /*ARGSUSED*/
 void convert_initializer(an_init_component_ptr icp,
@@ -28711,28 +28762,7 @@ state, or is NULL if there is no declaration associated with this scan.
     /* The object is initialized by an expression. */
     an_arg_operand         *arg_op = icp->variant.expr;
     an_operand             *operand = &arg_op->operand;
-    an_object_lifetime_ptr created_lifetime = arg_op->lifetime;
-    /* If a lifetime was added just to surround the expression, reactivate it.
-       If we're already inside an expression lifetime, promote the things in
-       the added lifetime into the current object lifetime. */
-    if (created_lifetime != NULL) {
-      check_assertion(curr_object_lifetime != NULL);
-      if (curr_object_lifetime->kind ==
-                                 (an_object_lifetime_kind)olk_expr_temporary) {
-        /* Promote the contents of the added lifetime into the current
-           full-expression object lifetime. */
-        promote_lifetime_contents_to_curr_object_lifetime(created_lifetime);
-        free_object_lifetime(created_lifetime);
-        created_lifetime = NULL;
-      } else {
-        /* Re-push the created lifetime. */
-        add_as_child_of_curr_object_lifetime(created_lifetime);
-        curr_object_lifetime = created_lifetime;
-      }  /* if */
-      check_assertion(expr_stack->lifetime == NULL);
-      expr_stack->lifetime = curr_object_lifetime;
-      arg_op->lifetime = NULL;
-    }  /* if */
+    promote_init_component_lifetimes(icp);
     if (is_template_dependent_type(dest_type)) {
       /* The destination type is template dependent. */
       prep_generic_operand(operand);
@@ -28756,7 +28786,7 @@ state, or is NULL if there is no declaration associated with this scan.
     if (dip == NULL && is_constant_operand(operand)) {
       *is_constant = TRUE;
       *constant = alloc_unshared_constant(&operand->variant.constant);
-      check_assertion(created_lifetime == NULL);
+      check_assertion(expr_stack->lifetime == NULL);
     } else {
       /* dip is non-NULL if the dynamic init was allocated above for the
          elision case. */
@@ -28765,7 +28795,9 @@ state, or is NULL if there is no declaration associated with this scan.
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
         dip->variant.expression = expr;
       }  /* if */
-      if (created_lifetime != NULL) wrap_up_dynamic_init_full_expression(dip);
+      if (expr_stack->lifetime != NULL) {
+        wrap_up_dynamic_init_full_expression(dip);
+      }  /* if */
       *is_constant = FALSE;
     }  /* if */
   } else {

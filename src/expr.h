@@ -104,6 +104,10 @@ typedef struct an_init_component {
   an_init_component_kind
 		kind;	/* The kind of initializer value (e.g., brace-enclosed
 			   list). */
+  a_bit_field
+		lifetimes_promoted:1;
+			/* Set to TRUE if promote_lifetimes_in_init_component
+			   has been called on this entry. */
   union {
     /* When kind == ick_expression: */
     struct an_arg_operand
