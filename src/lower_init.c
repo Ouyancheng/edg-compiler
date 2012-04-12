@@ -1442,7 +1442,7 @@ initial value pointed to by dip or con is already lowered.
   an_expr_node_ptr      init_val_node, assign_node;
   a_statement_ptr       assign_stmt;
   an_expr_operator_kind op;
-  a_boolean             string_literal_case = FALSE;
+  a_boolean             array_assignment = FALSE;
 
   check_assertion(entity_node->is_lvalue);
   switch ((dip == NULL) ? (a_dynamic_init_kind)dik_constant : dip->kind) {
@@ -1476,10 +1476,15 @@ initial value pointed to by dip or con is already lowered.
           init_val_node = add_cast_to_lvalue_if_necessary(init_val_node,
                                                           new_type);
         }  /* if */
-        string_literal_case = TRUE;
+        array_assignment = TRUE;
       } else {
         /* Normal case, not a string literal. */
         init_val_node = make_node_for_il_constant(con);
+        if (init_val_node->is_lvalue) {
+          /* We're assigning from one array to another; use eok_bassign. */
+          check_assertion(is_array_type(con->type));
+          array_assignment = TRUE;
+        }  /* if */
       }  /* if */
       break;
     case dik_expression:
@@ -1495,7 +1500,7 @@ initial value pointed to by dip or con is already lowered.
   /* Make an assignment statement.  Note that we know that no constructor
      (copy or other) is involved because we have this kind of dynamic
      initialization. */
-  op = (an_expr_operator_kind)(string_literal_case ? eok_bassign : eok_assign);
+  op = (an_expr_operator_kind)(array_assignment ? eok_bassign : eok_assign);
   if (needs_cast_because_type_has_param_passed_via_cctor(entity_node->type)) {
     /* If the entity being assigned has a type that contains a
        function with a parameter that is passed via a copy constructor,
@@ -8302,37 +8307,12 @@ constant can be either in the file or function scope.
   variable->initializer.constant = NULL;
   /* The general strategy is to add an assignment that copies the constant
      value into the variable. */
-  if (constant->kind != (a_constant_repr_kind)ck_aggregate &&
-      !is_array_type(variable->type)) {
-    /* For the simple, non-aggregate case, the constant can be assigned
-       directly. */
-    source_node = make_node_for_il_constant(constant);
-    op = (an_expr_operator_kind)eok_assign;
-  } else {
-    /* For aggregate cases, create an unnamed temporary that
-       gets the original initialization, then use an eok_bassign to
-       copy that to the initial variable.  This avoids taking the
-       address of an aggregate constant, which is not allowed in the
-       IL (except for string literals). */
-    a_variable_ptr temp_var;
-    if (in_file_scope(constant)) {
-      temp_var = make_file_scope_temporary(variable->type);
-      temp_var->init_kind = (an_init_kind)initk_static;
-      temp_var->initializer.constant = constant;
-    } else {
-      /* The aggregate constant has some portion that requires it to stay
-         in the function scope (i.e., a GNU address label).  Create a
-         local static temporary rather than a file scope temporary. */
-      temp_var = make_unnamed_local_static_variable(variable->type,
-                                                   /*in_function_scope=*/TRUE);
-      (void)make_local_static_variable_init(temp_var, curr_context->scope,
-                                            (an_init_kind)initk_static,
-                                            constant,
-                                            (a_dynamic_init_ptr)NULL);
-    }  /* if */
-    op = (an_expr_operator_kind)eok_bassign;
-    source_node = var_lvalue_expr(temp_var);
-  }  /* if */
+  source_node = make_node_for_il_constant(constant);
+  /* Typically, the source is an rvalue, but in cases where the constant
+     is an array, an lvalue is returned, indicating that an eok_bassign
+     operation must be used for the assignment. */
+  op = source_node->is_lvalue ? (an_expr_operator_kind)eok_bassign :
+                                (an_expr_operator_kind)eok_assign;
   /* The WP [stmt.dcl] paragraph 3 says "A local object of POD type with
      static storage duration initialized with constant-expressions is
      initialized before its block is first entered."  Non-POD type

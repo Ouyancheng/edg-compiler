@@ -1969,7 +1969,9 @@ by the mangled name of the entity.  The variable has type char (arbitrarily).
 an_expr_node_ptr make_node_for_il_constant(a_constant_ptr constant)
 /*
 Make an expression node for the given constant and return a pointer to it.
-This is used when the constant is already an allocated IL constant.
+This is used when the constant is already an allocated IL constant.  In most
+cases an rvalue is returned, but if the constant is an aggregate with array
+type, an lvalue is returned instead.
 */
 {
   an_expr_node_ptr node;
@@ -1983,7 +1985,11 @@ This is used when the constant is already an allocated IL constant.
   if (check_for_troublesome_aggregate_constant(constant,
                                                /*const_okay=*/TRUE,
                                                &temp_var)) {
-    node = var_rvalue_expr(temp_var);
+    if (is_array_type(constant->type)) {
+      node = var_lvalue_expr(temp_var);
+    } else {
+      node = var_rvalue_expr(temp_var);
+    }  /* if */
   } else {
     /* Normal case; make a constant node. */
     node = alloc_node_for_allocated_constant(constant);
