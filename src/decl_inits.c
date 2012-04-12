@@ -3845,7 +3845,7 @@ The given initialization component is a single element in an aggregate
 initializer.  It initializes an array element or a field of type dest_type, in
 a declaration described by dps.  Return a constant in *init_con describing this
 element, and if it is nonconstant (which results in a ck_dynamic_init entry)
-*is is updated to reflect the presence of a nonconstant initializer component.
+The presence of a nonconstant initializer component is reflected in *is.
 */
 {
   a_boolean           is_constant;
@@ -4067,7 +4067,7 @@ position at which diagnostics should be issued.
             etype->variant.class_struct_union.has_zero_init_component) {
           partial_init = TRUE;
         }  /* if */
-#endif
+#endif /*FIXME*/
       }  /* if */
       if (exceptions_enabled && has_nontrivial_destructor(cssp)) {
         /* If appropriate, add a destructor pointer to the dynamic init entry.
@@ -4365,6 +4365,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
 {
   an_init_component_ptr  icp_tree, icp;
   a_boolean              is_constant = FALSE, is_aggregate = FALSE;
+  a_boolean              is_var_init;
   a_type_ptr             atype;
   a_routine_ptr          dtor_rp = NULL;
   a_class_symbol_supplement_ptr
@@ -4377,6 +4378,9 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
   icp_tree = scan_braced_init_list(/*is_full_expr=*/TRUE, dps);
   icp = icp_tree;
   check_assertion(icp != NULL && is_braced_init_component(icp));
+  is_var_init = dps != NULL && dps->sym != NULL &&
+                (symbol_is(dps->sym, sk_variable) ||
+                 symbol_is(dps->sym, sk_static_data_member));
   switch (dtype->kind) {
     case tk_error:
     case tk_template_param:
@@ -4433,34 +4437,32 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       } else if (is_empty_list_init_component(icp)) {
         /* An empty list: Value initialization.  Unlike the case below, we do
            not unpack the list when calling convert_initializer. */
-        convert_initializer(icp, dtype, /*is_var_init=*/TRUE,
-                            /*is_direct_init=*/TRUE, /*check_narrowing=*/TRUE,
-                            /*fill_in_dtor=*/TRUE,
+        convert_initializer(icp, dtype, is_var_init, /*is_direct_init=*/TRUE,
+                            /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
                             dps, &is_constant, &is->init_dip, &is->init_con);
       } else {
         /* Pass the unwrapped value (or list) to be converted to the
            destination type. */
-        convert_initializer(icp->variant.braced.list, dtype,
-                            /*is_var_init=*/TRUE, /*is_direct_init=*/TRUE,
-                            /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
-                            dps, &is_constant, &is->init_dip, &is->init_con);
+        convert_initializer(icp->variant.braced.list, dtype, is_var_init,
+                            /*is_direct_init=*/TRUE, /*check_narrowing=*/TRUE,
+                            /*fill_in_dtor=*/TRUE, dps, &is_constant,
+                            &is->init_dip, &is->init_con);
       }  /* if */
       break;
     default:
       if (is_empty_list_init_component(icp)) {
         /* An empty list: Value initialization.  Unlike the case below, we do
            not unpack the list when calling convert_initializer. */
-        convert_initializer(icp, dtype, /*is_var_init=*/TRUE,
-                            /*is_direct_init=*/TRUE, /*check_narrowing=*/TRUE,
-                            /*fill_in_dtor=*/TRUE,
+        convert_initializer(icp, dtype, is_var_init, /*is_direct_init=*/TRUE,
+                            /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
                             dps, &is_constant, &is->init_dip, &is->init_con);
       } else if (is_singleton_list_init_component(icp)) {
         /* Pass the unwrapped value (or list) to be converted to the
            destination type. */
-        convert_initializer(icp->variant.braced.list, dtype,
-                            /*is_var_init=*/TRUE, /*is_direct_init=*/TRUE,
-                            /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
-                            dps, &is_constant, &is->init_dip, &is->init_con);
+        convert_initializer(icp->variant.braced.list, dtype, is_var_init,
+                            /*is_direct_init=*/TRUE, /*check_narrowing=*/TRUE,
+                            /*fill_in_dtor=*/TRUE, dps, &is_constant,
+                            &is->init_dip, &is->init_con);
       } else {
         /* More than one initializer for a non-class and non-array: Issue an
            error. */
