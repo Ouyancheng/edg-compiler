@@ -4004,6 +4004,58 @@ set *result to the a_constant entry representing the initializer.
 }  /* try_whole_array_init */
 
 
+static a_constant_ptr default_nontrivial_init_constant_for_aggr_member(
+                                             a_type_ptr         tp,
+                                             a_source_position  *diag_pos,
+                                             a_boolean          *partial_init)
+/*
+Return a constant representing the generated default initializer for an
+aggregate member requiring nontrivial initialization (i.e., a default
+constructor must be called, and/or a destructor must be recorded in case an
+exception aborts the initialization).  tp is the type of the member.
+Diagnostics should be issued for the given position.  *partial_init is TRUE
+if the default constructor that is called doesn't fully initialize the
+aggregate member (because it is generated and relies on the object being
+zero-initialized first).
+*/
+{
+  a_constant_ptr      result;
+  a_dynamic_init_ptr  dip;
+  a_routine_ptr       ctor_rp, dtor_rp;
+
+  /* Get the default constructor. */
+  ctor_rp = select_default_constructor(tp, diag_pos, tp, (a_boolean *)NULL);
+  if (ctor_rp == NULL) {
+    /* Trivial default constructor or error. */
+    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+  } else  {
+    /* For a non-trivial constructor, create a dik_constructor dynamic init
+       entry. */
+    dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
+    /* If the default constructor is generated and some component of the class
+       requires zeroing, initialization is not really done because the
+       value-initialization rules require that the zeroing occurs. */
+    if (ctor_rp->compiler_generated &&
+        tp->variant.class_struct_union.has_zero_init_component) {
+      *partial_init = TRUE;
+    }  /* if */
+  }  /* if */
+  if (exceptions_enabled && 
+      has_nontrivial_destructor(symbol_supplement_for_class(tp))) {
+    /* If appropriate, add a destructor pointer to the dynamic init entry.
+       This is for the case in which an exception is thrown by the constructor
+       before the entire array has been initialized. */
+    dtor_rp = select_destructor(tp, tp, diag_pos);
+    add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+  }  /* if */
+  /* Now create the constant entry. */
+  result = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+  result->variant.dynamic_init = dip;
+  result->type = tp;
+  return result;
+}  /* default_nontrivial_init_constant_for_aggr_member */
+
+
 static void aggr_init_array_remainder_if_needed(a_constant_ptr     array_con,
                                                 a_targ_size_t      count,
                                                 an_init_state      *is,
@@ -4031,7 +4083,7 @@ position at which diagnostics should be issued.
   }  /* if */
   if (is_real_class_type(etype)) {
     /* It is an array of class objects. */
-    /* FIXME a_boolean  partial_init = FALSE; */
+    a_boolean  partial_init = FALSE;   /* FIXME: propagate up? */
     a_class_symbol_supplement_ptr
                cssp = symbol_supplement_for_class(etype);
     if (has_trivial_default_constructor(cssp) &&
@@ -4045,43 +4097,10 @@ position at which diagnostics should be issued.
     } else {
       /* Initialization must be represented in the IL since it is not
          trivial. */
-      a_dynamic_init_ptr  dip;
-      a_constant_ptr      remainder_con = NULL;
-      a_routine_ptr       ctor_rp;
-      /* Get the default constructor.  Note that it is an error if it is
-         missing. */
-      ctor_rp = select_default_constructor(etype, diag_pos, etype,
-                                           (a_boolean *)NULL);
-      if (ctor_rp == NULL) {
-        /* Trivial default constructor or error. */
-        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
-      } else  {
-        /* For a non-trivial constructor, create a dik_constructor
-           dynamic init entry. */
-        dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
-#if /*FIXME*/0
-        /* If the default constructor is generated and some component of the
-           class requires zeroing, initialization is not really done because
-           the value-initialization rules require that the zeroing occurs. */
-        if (ctor_rp->compiler_generated &&
-            etype->variant.class_struct_union.has_zero_init_component) {
-          partial_init = TRUE;
-        }  /* if */
-#endif /*FIXME*/
-      }  /* if */
-      if (exceptions_enabled && has_nontrivial_destructor(cssp)) {
-        /* If appropriate, add a destructor pointer to the dynamic init entry.
-           This is for the case in which an exception is thrown by the
-           constructor before the entire array has been initialized. */
-        a_routine_ptr  dtor_rp = select_destructor(etype, etype, diag_pos);
-        add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
-      }  /* if */
-      /* Now create the constant entry that will point to the new dynamic init
-         entry. */
-      remainder_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      remainder_con->variant.dynamic_init = dip;
-      remainder_con->type = etype;
+      a_constant_ptr  remainder_con;
       is->has_dynamic_init_component = TRUE;
+      remainder_con = default_nontrivial_init_constant_for_aggr_member(
+                                              etype, diag_pos, &partial_init);
       if (count > 1) {
         /* When there is more than one uninitialized element remaining in the
            array, we put out an init_repeat constant on top of the dynamic init
@@ -4222,9 +4241,8 @@ initialization of as[1]).
 }  /* try_whole_aggr_class_init */
 
 
-/*ARGSUSED*/  /*FIXME*/
 static void aggr_init_class_remainder_if_needed(a_constant_ptr     aggr_con,
-                                                a_field_ptr        fp,
+                                                a_field_ptr        next_field,
                                                 an_init_state      *is,
                                                 a_source_position  *diag_pos)
 /*
@@ -4235,9 +4253,84 @@ needed constants to the list embedded in aggr_con.
 position for which diagnostics should be issued.
 */
 {
-  /*FIXME*/
-  unexpected_condition_str(
-          "NYI: Implicit aggregate initialization of trailing class members");
+  a_field_ptr  fp, last_dyn_field = NULL;
+
+  /* Run a first pass through the remaining fields to see if any requires
+     nontrivial default initialization.  Keep track of the last such field. */
+  for (fp = next_field; fp != NULL; fp = fp->next) {
+    a_type_ptr  ftp = fp->type;
+    if (is_any_reference_type(ftp)) {
+      /* An uninitialized reference will likely result in a diagnostic. */
+      is->any_uninitialized_const_or_ref_member = TRUE;
+    } else {
+      if (is_array_type(ftp)) ftp = underlying_array_element_type(ftp);
+      ftp = skip_typerefs(ftp);
+      if (is_real_class_type(ftp)) {
+        a_class_symbol_supplement  *cssp = symbol_supplement_for_class(ftp);
+        if (!has_trivial_default_constructor(cssp) ||
+            (exceptions_enabled && has_nontrivial_destructor(cssp))) {
+          /* A default constructor and/or a destructor must be called to
+             initialize this field. */
+          last_dyn_field = fp;
+        }  /* for */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (last_dyn_field != NULL) {
+    is->has_dynamic_init_component = TRUE;
+    for (fp = next_field;
+         fp != last_dyn_field;
+         fp = next_initializable_field(fp->next)) {
+      a_type_ptr      ftp = skip_typerefs(fp->type), atp = NULL;
+      a_boolean       partial_init = FALSE;  /* FIXME: propagate up? */
+      a_constant_ptr  init_con = NULL;
+      if (ftp->kind == (a_type_kind)tk_array) {
+        atp = ftp;
+        ftp = underlying_array_element_type(ftp);
+        ftp = skip_typerefs(ftp);
+      }  /* if */
+      if (is_real_class_type(ftp)) {
+        /* A field of class type (or array thereof): A constructor or
+           destructor may be involved. */
+        a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(ftp);
+        if (!has_trivial_default_constructor(cssp) ||
+            (exceptions_enabled && !cssp->has_trivial_destructor)) {
+          /* Nontrivial initialization/destruction. */
+          init_con = default_nontrivial_init_constant_for_aggr_member(
+                                                ftp, diag_pos, &partial_init);
+          if (atp != NULL) {
+            /* The field is an array.  Wrap its initializer in an aggregate
+               constant entry. */
+            a_constant_ptr  temp_con;
+            a_targ_size_t   count = num_array_elements(ftp);
+            if (count > 1) {
+              /* When there is more than one uninitialized element remaining in
+                 the array, we put out an init_repeat constant on top of the
+                 dynamic init constant. */
+              temp_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+              temp_con->variant.init_repeat.count = count;
+              temp_con->variant.init_repeat.constant = init_con;
+              init_con = temp_con;
+            }  /* if */
+            temp_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+            append_constant_in_aggr(init_con, temp_con);
+            init_con = temp_con;
+            init_con->type = atp;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (init_con == NULL) {
+        /* Default initialization doesn't involve a constructor or destructor
+           call.  Use a dik_zero dynamic init entry to represent this. */
+        init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+        init_con->variant.dynamic_init = 
+                            alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+        init_con->type = ftp;
+      }  /* if */
+      /* Add the constant entry to the list of constants. */
+      append_constant_in_aggr(init_con, aggr_con);
+    }  /* for */
+  }  /* if */
 }  /* aggr_init_class_remainder_if_needed */
 
 
