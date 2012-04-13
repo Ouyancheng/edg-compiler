@@ -1,5 +1,22 @@
 Version 4.5
 
+4/13/12  [EDGcpfe/12837]
+Abort after syntax error in C++/CLI property or event accessor
+
+Certain syntax errors in C++/CLI property or event accessors previously could
+trigger an abort (often in enter_cli_property_accessor).  This was more likely
+when the enclosing (managed) class was the last declaration in the translation
+unit.  For example:
+
+  ref struct R {
+    property int p {
+      int get() { x
+  };
+  // End-of-translation-unit: The front end previously aborted here.
+
+This is now fixed.
+
+
 4/13/12  [EDGcpfe/8100,EDGcpfe/8276]
 Aggregate class types with const or reference members
 

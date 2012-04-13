@@ -21172,12 +21172,14 @@ innermost class being defined.
     /* Reset the flag for a possible subsequent declaration. */
     class_state->current_decl_valid_in_property_or_event_def = FALSE;
   }  /* if */
-  if (curr_token == tok_rbrace) {
-    /* The closing brace of a nontrivial property or event definition.  Skip
-       over the token and update class_state to indicate we're no longer in a
-       property or event definition.  Also check that any required accessor
-       functions have been declared. */
+  if (curr_token == tok_rbrace || curr_token == tok_end_of_source) {
+    /* The closing brace of a nontrivial property or event definition (or, in
+       error cases, an end-of-source marker).  Skip over the token and update
+       class_state to indicate we're no longer in a property or event
+       definition.  Also check that any required accessor functions have been
+       declared. */
     a_symbol_locator  *pe_loc = class_state->pe_loc;
+    check_assertion_or_expect_error(curr_token == tok_rbrace);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     pedp->definition_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
