@@ -19762,9 +19762,13 @@ member.  Determine whether a diagnostic is actually required and put it out.
         }  /* if */
         if (!any_diagnostics_issued) {
           /* This is the first field for which a diagnostic should be issued.
-             Put out the "head" of the message first. */
-          pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
-                               &tag_sym->decl_position, tag_sym);
+             Put out the "head" of the message first.  For aggregates, reduce
+             the severity to a remark since aggregate initialization syntax is
+             available to initialize the field. */
+          pos_sy_start_diagnostic(cssp->is_class_aggregate ? es_remark
+                                                           : es_warning,
+                                  ec_no_ctor_but_const_or_ref_member,
+                                  &tag_sym->decl_position, tag_sym);
           /* Remember that a diagnostic has already been issued. */
           any_diagnostics_issued = TRUE;
         }  /* if */

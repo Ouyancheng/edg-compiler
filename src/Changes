@@ -1,5 +1,17 @@
 Version 4.5
 
+4/13/12  [EDGcpfe/8100,EDGcpfe/8276]
+Aggregate class types with const or reference members
+
+Previously, the front end issued a warning when an aggregate class type
+included a reference or a const member.  Now that diagnostic is a remark
+instead, because aggregate initialization syntax can still validly initialize
+such members.  For example:
+
+  int x;
+  struct S { int &r; } s = { x };  // Previously a warning.  Now a remark.
+
+
 4/11/12  [EDGcpfe/12836]
 Microsoft compatibility: class templates with multiple attributes
 
