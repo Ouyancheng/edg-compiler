@@ -4040,13 +4040,15 @@ zero-initialized first).
       *partial_init = TRUE;
     }  /* if */
   }  /* if */
-  if (exceptions_enabled && 
-      has_nontrivial_destructor(symbol_supplement_for_class(tp))) {
-    /* If appropriate, add a destructor pointer to the dynamic init entry.
-       This is for the case in which an exception is thrown by the constructor
-       before the entire array has been initialized. */
-    dtor_rp = select_destructor(tp, tp, diag_pos);
-    add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+  if (exceptions_enabled) {
+    a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
+    if (has_nontrivial_destructor(cssp)) {
+      /* If appropriate, add a destructor pointer to the dynamic init entry.
+         This is for the case in which an exception is thrown by the
+         constructor before the entire array has been initialized. */
+      dtor_rp = select_destructor(tp, tp, diag_pos);
+      add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+    }  /* if */
   }  /* if */
   /* Now create the constant entry. */
   result = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
