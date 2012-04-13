@@ -8307,12 +8307,38 @@ constant can be either in the file or function scope.
   variable->initializer.constant = NULL;
   /* The general strategy is to add an assignment that copies the constant
      value into the variable. */
-  source_node = make_node_for_il_constant(constant);
-  /* Typically, the source is an rvalue, but in cases where the constant
-     is an array, an lvalue is returned, indicating that an eok_bassign
-     operation must be used for the assignment. */
-  op = source_node->is_lvalue ? (an_expr_operator_kind)eok_bassign :
-                                (an_expr_operator_kind)eok_assign;
+  if (constant->kind != (a_constant_repr_kind)ck_aggregate &&
+      !is_array_type(variable->type)) {
+    /* For the simple, non-aggregate case, the constant can be assigned
+       directly. */
+    source_node = make_node_for_il_constant(constant);
+    check_assertion(!source_node->is_lvalue);
+    op = (an_expr_operator_kind)eok_assign;
+  } else {
+    /* For aggregate cases, create an unnamed temporary that
+       gets the original initialization, then use an eok_bassign to
+       copy that to the initial variable.  This avoids taking the
+       address of an aggregate constant, which is not allowed in the
+       IL (except for string literals). */
+    a_variable_ptr temp_var;
+    if (in_file_scope(constant)) {
+      temp_var = make_file_scope_temporary(variable->type);
+      temp_var->init_kind = (an_init_kind)initk_static;
+      temp_var->initializer.constant = constant;
+    } else {
+      /* The aggregate constant has some portion that requires it to stay
+         in the function scope (i.e., a GNU address label).  Create a
+         local static temporary rather than a file scope temporary. */
+      temp_var = make_unnamed_local_static_variable(variable->type,
+                                                   /*in_function_scope=*/TRUE);
+      (void)make_local_static_variable_init(temp_var, curr_context->scope,
+                                            (an_init_kind)initk_static,
+                                            constant,
+                                            (a_dynamic_init_ptr)NULL);
+    }  /* if */
+    op = (an_expr_operator_kind)eok_bassign;
+    source_node = var_lvalue_expr(temp_var);
+  }  /* if */
   /* The WP [stmt.dcl] paragraph 3 says "A local object of POD type with
      static storage duration initialized with constant-expressions is
      initialized before its block is first entered."  Non-POD type

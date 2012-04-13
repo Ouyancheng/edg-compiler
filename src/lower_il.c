@@ -10636,6 +10636,7 @@ has typically been previously lowered (and is not lowered by this routine).
     lower_constant(zero_constant);
   }  /* if */
   zero_node = make_node_for_il_constant(zero_constant);
+  check_assertion(!zero_node->is_lvalue);
   /* Add a cast to the desired type. */
   zero_node = add_cast_if_necessary(zero_node, type);
   if (node_has_side_effects(expr, (a_boolean *)NULL)) {
@@ -11088,6 +11089,7 @@ created.
   set_integer_constant(index_con, (a_host_large_integer)idx,
                        (an_integer_kind)ik_int);
   index_node = make_node_for_il_constant(index_con);
+  check_assertion(!index_node->is_lvalue);
   vtbl_entry_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                        vptr_node->type, vptr_node);
   vptr_node->next = index_node;
