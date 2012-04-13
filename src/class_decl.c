@@ -17731,8 +17731,8 @@ The routine body is not generated until it is known to be needed.
                          !has_move_assign && !gsfd.suppress_move_assign &&
                          !user_declared_copy_assignment_op &&
                          cssp->destructor == NULL &&
-                         (ctsp->is_lambda_closure_class ||
-                          cssp->constructor != NULL ||
+                         !ctsp->is_lambda_closure_class &&
+                         (cssp->constructor != NULL ||
                           !cssp->construction_by_bitwise_copy_allowed);
   /* If no copy constructor has been declared, we generally declare one
      implicitly.  An exception occurs for classes that are trivially copyable,
