@@ -5738,6 +5738,8 @@ position and symbol fill-in.
   diag_message(error_code, error_pos, es_error, dck_primary);
 }  /* pos_stsy_start_error */
 
+#if 0
+/* These routine is not currently used by the compiler. */
 
 void pos_sy_start_warning(an_error_code     error_code,
                           a_source_position *error_pos,
@@ -5752,6 +5754,7 @@ position and symbol fill-in.
   diag_message(error_code, error_pos, es_warning, dck_primary);
 }  /* pos_sy_start_warning */
 
+#endif /* 0 */
 
 void pos_sy2_warning(an_error_code     error_code,
                      a_source_position *error_pos,

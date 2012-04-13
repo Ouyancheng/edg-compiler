@@ -585,9 +585,12 @@ extern void pos_stsy_start_error(an_error_code     error_code,
                                  a_source_position *error_pos,
                                  char              *error_string,
                                  struct a_symbol   *symbol);
+#if 0
+/* This routine is not currently used by the compiler. */
 extern void pos_sy_start_warning(an_error_code     error_code,
                                  a_source_position *error_pos,
                                  struct a_symbol   *symbol);
+#endif /* 0 */
 extern void pos_sy2_warning(an_error_code     error_code,
                             a_source_position *error_pos,
                             struct a_symbol   *symbol1,
