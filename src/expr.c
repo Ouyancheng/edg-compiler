@@ -2002,7 +2002,7 @@ to TRUE.
 }  /* scan_call_arguments */
 
 
-static void scan_dependent_parenthesized_initializer(
+void scan_dependent_parenthesized_initializer(
                                     a_rescan_control_block   *rcblock,
                                     a_boolean                arg_list_supplied,
                                     an_expr_list_element_ptr arg_list,
@@ -2218,23 +2218,22 @@ indication in *rcblock).
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- simple_result is unused in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void scan_ctor_arguments(
-                              a_symbol_ptr             constructor_sym,
-                              a_source_position        *source_pos,
-                              a_type_ptr               object_class_type,
-                              a_type_ptr               dest_type,
-                              a_boolean                fill_in_dtor,
-                              a_boolean                elision_allowed,
-                              a_rescan_control_block   *rcblock,
-                              a_boolean                arg_list_supplied,
-                              an_expr_list_element_ptr arg_list,
-                              a_boolean                *trivial_ctor,
-                              a_boolean                *unboxing_conv,
-                              a_boolean                *string_ctor_skip,
-                              an_operand               *simple_result,
-                              a_dynamic_init_ptr       *p_dip,
-                              an_expr_node_ptr         *p_temp_init_node,
-                              a_source_position        *closing_paren_position)
+void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
+                         a_source_position        *source_pos,
+                         a_type_ptr               object_class_type,
+                         a_type_ptr               dest_type,
+                         a_boolean                fill_in_dtor,
+                         a_boolean                elision_allowed,
+                         a_rescan_control_block   *rcblock,
+                         a_boolean                arg_list_supplied,
+                         an_expr_list_element_ptr arg_list,
+                         a_boolean                *trivial_ctor,
+                         a_boolean                *unboxing_conv,
+                         a_boolean                *string_ctor_skip,
+                         an_operand               *simple_result,
+                         a_dynamic_init_ptr       *p_dip,
+                         an_expr_node_ptr         *p_temp_init_node,
+                         a_source_position        *closing_paren_position)
 /*
 Scan and process the argument list for a C++ constructor call.  The
 current token is the one right after the opening parenthesis of the
@@ -2253,26 +2252,26 @@ may be different than the type of the constructor being called (e.g.,
 when a base class constructor is being called for a derived class
 object); if it's NULL, the class of the constructor is assumed.  If
 fill_in_dtor is TRUE, appropriate destruction is placed in the
-returned dynamic initialization.  If elision_allowed is TRUE, a call
-of a copy constructor can be elided or turned into a bitwise move.  If
-trivial_ctor is non-NULL, and the initialization required turns out to
-be calling a trivial default constructor (which does nothing), and
-there's no destructor to be called (either because the class doesn't
-have one or because fill_in_dtor is FALSE), return *trivial_ctor set
-to TRUE, don't construct a dynamic initialization entry, and return
-*p_dip set to NULL.  Otherwise, return *trivial_ctor set to FALSE if
-trivial_ctor is non-NULL.  If unboxing_conv is non-NULL, and there
-is a single argument and its conversion to the class type is a
-C++/CLI unboxing conversion, return *unboxing_conv set to TRUE,
-return the argument in *simple_result, don't construct a
-dynamic initialization entry, and return *p_dip set to NULL.
-If string_ctor_skip is non-NULL, and there is a single argument of
-C++/CLI type System::String, return *string_ctor_skip set to TRUE,
-return the argument in *simple_result, don't construct a dynamic
-initialization entry, and return *p_dip set to NULL.  If
-closing_paren_position is non-NULL, *closing_paren_position is set to
-the source position of the closing parenthesis (but it's not set on a
-rescan).
+returned dynamic initialization (but not attached to an object
+lifetime).  If elision_allowed is TRUE, a call of a copy constructor
+can be elided or turned into a bitwise move.  If trivial_ctor is
+non-NULL, and the initialization required turns out to be calling a
+trivial default constructor (which does nothing), and there's no
+destructor to be called (either because the class doesn't have one or
+because fill_in_dtor is FALSE), return *trivial_ctor set to TRUE,
+don't construct a dynamic initialization entry, and return *p_dip set
+to NULL.  Otherwise, return *trivial_ctor set to FALSE if trivial_ctor
+is non-NULL.  If unboxing_conv is non-NULL, and there is a single
+argument and its conversion to the class type is a C++/CLI unboxing
+conversion, return *unboxing_conv set to TRUE, return the argument in
+*simple_result, don't construct a dynamic initialization entry, and
+return *p_dip set to NULL.  If string_ctor_skip is non-NULL, and there
+is a single argument of C++/CLI type System::String, return
+*string_ctor_skip set to TRUE, return the argument in *simple_result,
+don't construct a dynamic initialization entry, and return *p_dip set
+to NULL.  If closing_paren_position is non-NULL,
+*closing_paren_position is set to the source position of the closing
+parenthesis (but it's not set on a rescan).
 
 This routine may be called only in C++ mode.  It's used for parenthesis-
 enclosed initializers for classes that have constructors, as in
@@ -13728,52 +13727,6 @@ indication in *rcblock).
 }  /* scan_intaddr_operator */
 
 
-static a_dynamic_init_ptr add_array_nonconstant_aggregate_init(
-                                         a_dynamic_init_ptr element_dip,
-                                         a_type_ptr         array_type,
-                                         a_type_ptr         elem_type,
-                                         a_routine_ptr      dtor_routine,
-                                         a_targ_size_t      number_of_elements)
-/*
-Change the indicated dynamic initialization into a dynamic initialization
-for each member of an array of classes.  array_type is the type of the array,
-and elem_type is the type of the array elements.  dtor_routine, if non-NULL,
-is the destructor associated with the element type.  number_of_elements is the
-number of elements in the array, or 0 if the number of elements is variable
-(and known only at runtime).  Multi-dimensional arrays are treated as
-single-dimensional arrays.  Return a pointer to the dynamic init entry for
-the entire array.
-*/
-{
-  a_dynamic_init_ptr  array_dip;
-
-  /* If exceptions are enabled, put in a destructor.  It's needed to
-     destroy elements if a throw is done part-way through the
-     initialization (or destruction, for a delete) of the array. */
-  if (exceptions_enabled && dtor_routine != NULL) {
-    element_dip->destructor = dtor_routine;
-    element_dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-    if (curr_expr_is_potentially_evaluated()) {
-      record_end_of_lifetime_destruction(element_dip,
-                                         /*static_lifetime=*/FALSE,
-                                         /*block_lifetime=*/FALSE);
-    }  /* if */
-  }  /* if */
-  /* The IL structure is
-       new dynamic init (dik_nonconstant_aggregate) ->
-         constant (ck_aggregate) ->
-           constant (ck_init_repeat) ->
-             constant (ck_dynamic_init) ->
-               original dynamic init (dik_constructor)
-  */
-  array_dip =
-       alloc_expr_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-  repeat_nonconstant_init(element_dip, array_type, elem_type, array_dip,
-                          number_of_elements);
-  return array_dip;
-}  /* add_array_nonconstant_aggregate_init */
-
-
 a_type_ptr new_delete_base_type_from_operation_type(a_type_ptr type)
 /*
 type is the type operated on in a new or delete operation.
@@ -13828,61 +13781,6 @@ when determining whether or not special handling is required.
   }  /* if */
   return special;
 }  /* new_or_delete_type_requires_array_handling */
-
-
-static void accumulate_array_size(a_type_ptr    array_type,
-                                  a_targ_size_t *num_elements)
-/*
-As part of determining the size of an array, multiply num_elements by the
-number of array elements in the first level of the array type given by
-array_type.  For a variable or unknown-bound array, set *num_elements to zero.
-*/
-{
-  a_type_ptr unqual_array_type = skip_typerefs(array_type);
-
-  check_assertion(unqual_array_type->kind == (a_type_kind)tk_array);
-  if (unqual_array_type->variant.array.is_template_dependent_size_array) {
-    /* Arrays whose bounds are given by template-dependent constant
-       expressions (in prototype instantiations) have unknown size. */
-    *num_elements = 0;
-  } else if (vla_enabled && is_vla_type(unqual_array_type)) {
-    /* VLA type. */
-    *num_elements = 0;
-  } else {
-    check_assertion(!has_unknown_specified_bound(unqual_array_type));
-    *num_elements *=
-                   unqual_array_type->variant.array.variant.number_of_elements;
-  }  /* if */
-}  /* accumulate_array_size */
-
-
-static a_dynamic_init_ptr add_array_nonconstant_aggregate_init_computing_size(
-                                         a_dynamic_init_ptr element_dip,
-                                         a_type_ptr         array_type,
-                                         a_routine_ptr      dtor_routine)
-/*
-Interface to add_array_nonconstant_aggregate_init that determines the
-array element type and number of elements from the array type.
-*/
-{
-  a_type_ptr         elem_type = array_type;
-  a_targ_size_t      num_of_elements = 1;
-  a_dynamic_init_ptr dip;
-
-  /* Determine the number of elements in the (possibly multi-dimensional)
-     array, or 0 if the number of elements is unknown at compile time,
-     as for a template. */
-  while (is_array_type(elem_type)) {
-    accumulate_array_size(elem_type, &num_of_elements);
-    elem_type = array_element_type(elem_type);
-  }  /* while */
-  dip = add_array_nonconstant_aggregate_init(element_dip,
-                                             array_type,
-                                             elem_type,
-                                             dtor_routine,
-                                             num_of_elements);
-  return dip;
-}  /* add_array_nonconstant_aggregate_init_computing_size */
 
 
 static a_routine_ptr determine_deletion_for_new(
@@ -19747,37 +19645,6 @@ one argument, return TRUE; otherwise, return FALSE.
 
   return one_arg;
 }  /* conversion_has_one_argument */
-
-
-static an_expr_node_ptr alloc_empty_parens_func_cast(
-                                           a_type_ptr          type_cast_to,
-                                           a_dynamic_init_kind init_kind,
-                                           a_source_position   *start_position)
-/*
-Allocate an expression that implements a functional-notation cast that has
-empty parentheses, e.g., T() or int().  init_kind indicates the kind of
-initialization (dik_zero usually, dik_none for some odd legacy cases).
-start_position gives the source start position.
-*/
-{
-  an_expr_node_ptr   temp_init_node;
-  a_dynamic_init_ptr dip;
-
-  if (is_error_type(type_cast_to)) {
-    temp_init_node = error_node();
-  } else {
-    temp_init_node = create_expr_temporary(type_cast_to,
-                                           /*is_lvalue=*/FALSE,
-                                           /*is_explicit_cast=*/TRUE,
-                                           /* Abstract class test done
-                                              previously. */
-                                           /*suppress_abstract_test=*/TRUE,
-                                           init_kind,
-                                           start_position,
-                                           &dip);
-  }  /* if */
-  return temp_init_node;
-}  /* alloc_empty_parens_func_cast */
 
 
 static void scan_functional_notation_type_conversion(
@@ -28480,221 +28347,6 @@ a new-initializer).
 }  /* scan_braced_init_list */
 
 
-static void value_initialization(a_type_ptr            dest_type,
-                                 a_source_position     *pos,
-                                 a_boolean             *is_constant,
-                                 a_dynamic_init_ptr    *p_dip,
-                                 a_constant_ptr        *p_constant)
-/*
-Create IL to perform a value-initialization (C++ standard [dcl.init])
-of an entity of type dest_type.  Value-initialization comes up
-with an initializer of "{}" or "()".  The result is returned as either
-a constant (*is_constant is set to TRUE, and *p_constant is set to a
-pointer to the unshared allocated constant) or a dynamic init entry
-(*is_constant is set to FALSE, and *p_dip is set to a pointer to the
-allocated dynamic init entry).  Some cases can cause errors, which are
-reported at the source position given by pos.
-*/
-{
-  a_type_ptr         orig_dest_type = dest_type;
-  a_type_ptr         unqual_dest_type;
-  a_boolean          array_case = FALSE;
-  a_boolean          err = FALSE;
-  an_expr_node_ptr   expr;
-  a_constant         con;
-  a_dynamic_init_ptr dip = NULL;
-
-  if (is_array_type(dest_type)) {
-    /* For an array type, strip off all the array levels and generate
-       the initialization for the underlying element type. */
-    dest_type = underlying_array_element_type(dest_type);
-    array_case = TRUE;
-  }  /* if */
-  unqual_dest_type = skip_typerefs(dest_type);
-  complete_type_is_needed(unqual_dest_type);
-  if (is_incomplete_type(dest_type)) {
-    /* Can't value-initialize an incomplete type.  This includes void. */
-    if (expr_error_should_be_issued()) {
-      pos_ty_error(ec_value_init_of_incomplete, pos, dest_type);
-    }  /* if */
-    err = TRUE;
-  } else if (is_reference_type(dest_type)) {
-    /* Can't value-initialize a reference type. */
-    expr_pos_error(ec_value_init_of_reference, pos);
-    err = TRUE;
-  } else if (is_template_param_type(dest_type)) {
-    /* A template parameter type.  Could be a non-class type, so create
-       a constant result. */
-    expr = alloc_empty_parens_func_cast(dest_type,
-                                        (a_dynamic_init_kind)dik_zero,
-                                        pos);
-    make_template_param_expr_constant(expr, &con);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled &&
-             is_cli_generic_definition_argument_type(dest_type)) {
-    /* A C++/CLI generic type.  Always non-constant. */
-    dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (is_class_struct_union_type(dest_type)) {
-    a_boolean     trivial_ctor = FALSE;
-    a_routine_ptr ctor_routine = NULL;
-    if (is_union_type(dest_type)) {
-      /* A union type has no constructor. */
-      trivial_ctor = TRUE;
-    } else if (!is_real_class_type(dest_type)) {
-      /* A nonreal class type. */
-    } else {
-      /* A real class type.  Find the default constructor. */
-      a_boolean def_ctor_err;
-      ctor_routine = expr_select_default_constructor(unqual_dest_type,
-                                                     pos,
-                                                     &def_ctor_err);
-      if (def_ctor_err) {
-        err = TRUE;
-      } else if (ctor_routine == NULL) {
-        trivial_ctor = TRUE;
-      }  /* if */
-    }  /* if */
-    if (!err) {
-      if (trivial_ctor) {
-        /* For a class with a trivial constructor, just zero the object. */
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
-      } else {
-        /* Otherwise, use a dik_constructor entry.  For a nonreal class,
-           ctor_routine is NULL to indicate the constructor is unknown. */
-        dip = alloc_expr_ctor_dynamic_init(ctor_routine,
-                                           (an_expr_node_ptr)NULL,
-                                           /*add_default_args=*/FALSE,
-                                           /*implied_source=*/FALSE);
-        /* The value_initialization flag tells back ends to zero the
-           storage before calling the constructor if it is not
-           user-provided. */
-        dip->variant.constructor.value_initialization = TRUE;
-      }  /* if */
-    }  /* if */
-  } else if (is_error_type(dest_type)) {
-    /* Previous error. */
-    err = TRUE;
-  } else {
-    /* Scalar type.  Convert 0 to the type, producing a constant result. */
-    a_boolean did_not_fold;
-    check_assertion(is_scalar_type(dest_type) ||
-                    is_ptr_to_member_type(dest_type));
-    set_integer_constant(&con, (a_host_large_integer)0,
-                         (an_integer_kind)ik_int);
-    expr_type_change_constant(&con, unqual_dest_type,
-                              /*is_implicit_cast=*/TRUE,
-                              /*check_cast_access=*/TRUE,
-                              /*check_ambiguity=*/TRUE,
-                              /*is_reinterpret_cast=*/FALSE,
-                              /*maintain_expression=*/FALSE,
-                              &did_not_fold, pos);
-    check_assertion(!did_not_fold);
-  }  /* if */
-  /* Here, dip != NULL means the result is non-constant. */
-  if (err) {
-    /* For an error case, drop back to zeroing or an error constant. */
-    if (dip != NULL) {
-      set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
-    } else {
-      set_error_constant(&con);
-    }  /* if */
-  }  /* if */
-  if (array_case) {
-    /* The original type was an array type, so repeat the element
-       initialization for every element of the array. */
-    if (dip == NULL) {
-      /* If the element initialization is to a constant, we must be zeroing,
-         so zero the whole array. */
-      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
-    } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
-      /* The element initialization is a dynamic init that zeroes the
-         object, so just use that for the whole array instead. */
-    } else {
-      /* Some other dynamic initialization (e.g., a constructor call).
-         Add ck_init_repeat repetitions as needed to replicate the
-         initialization for all the elements. */
-      a_routine_ptr dtor_routine = NULL;
-      /* If exceptions are enabled, put in a destructor.  It's needed
-         to destroy elements if a throw is done part-way through the
-         initialization of the array. */
-      if (exceptions_enabled &&
-          is_class_struct_union_type(unqual_dest_type)) {
-        dtor_routine = expr_select_destructor(unqual_dest_type,
-                                              unqual_dest_type,
-                                              pos,
-                                              /*honor_virtual=*/FALSE);
-      }  /* if */
-      dip = add_array_nonconstant_aggregate_init_computing_size(
-                                                 dip,
-                                                 orig_dest_type,
-                                                 dtor_routine);
-    }  /* if */
-  }  /* if */
-  /* Here, dip is non-NULL if the initialization is dynamic.  If it's NULL,
-     the result is a constant whose value is given by con and still needs
-     to be allocated. */
-  if (dip != NULL) {
-    *is_constant = FALSE;
-    *p_dip = dip;
-  } else {
-    *is_constant = TRUE;
-    *p_constant = alloc_unshared_constant(&con);
-  }  /* if */
-}  /* value_initialization */
-
-
-static void promote_init_component_lifetimes(an_init_component_ptr icp)
-/*
-Promote the object lifetimes in icp and its subtree into the current
-lifetime context, either by pushing the top lifetime and entering it into
-the expression stack, or by promoting the things in the lifetime into an
-existing surrounding expression lifetime.  If expr_stack->lifetime is
-non-NULL on return, a new full-expression object lifetime has been pushed.
-This processing is needed because when we scanned the expressions we
-didn't know how they were going to be used, and therefore we didn't know
-which ones should be considered full expressions and which should be
-part of something else.  So we put a unique wrapper lifetime around each
-expression, and here we break things out of those lifetimes and move them
-into the proper final lifetimes.
-*/
-{
-  check_assertion(curr_object_lifetime != NULL &&
-                  expr_stack->lifetime == NULL);
-  /* Don't promote if it has been done previously. */
-  if (!icp->lifetimes_promoted) {
-    icp->lifetimes_promoted = TRUE;
-    if (is_expression_component(icp)) {
-      /* For an expression with a lifetime, process the lifetime. */
-      an_object_lifetime_ptr wrap_lifetime = icp->variant.expr->lifetime;
-      icp->variant.expr->lifetime = NULL;
-      if (wrap_lifetime != NULL) {
-        if (curr_object_lifetime->kind ==
-                                 (an_object_lifetime_kind)olk_expr_temporary) {
-          /* Promote the contents of the added lifetime into the current
-             full-expression object lifetime. */
-          promote_lifetime_contents_to_curr_object_lifetime(wrap_lifetime);
-          free_object_lifetime(wrap_lifetime);
-        } else {
-          /* Re-push the created lifetime. */
-          add_as_child_of_curr_object_lifetime(wrap_lifetime);
-          curr_object_lifetime = wrap_lifetime;
-          expr_stack->lifetime = curr_object_lifetime;
-        }  /* if */
-      }  /* if */
-    } else if (is_braced_init_component(icp)) {
-      /* For a braced-init-list, process the subtree. */
-      an_init_component_ptr nicp;
-      for (nicp = icp->variant.braced.list; nicp != NULL; nicp = nicp->next) {
-        promote_init_component_lifetimes(nicp);
-      }  /* for */
-    } else {
-      unexpected_condition();
-    }  /* if */
-  }  /* if */
-}  /* promote_init_component_lifetimes */
-
-
 /*FIXME*/
 /*ARGSUSED*/
 void convert_initializer(an_init_component_ptr icp,
@@ -28730,7 +28382,6 @@ state, or is NULL if there is no declaration associated with this scan.
   an_expr_stack_entry expr_stack_entry;
   a_variable_ptr      var = NULL;
   a_dynamic_init_ptr  dip = NULL;
-  a_boolean           empty_brace_init;
   a_conv_context_set  conv_context = CCO_DEFAULT;
 
   *p_dip = NULL;
@@ -28752,73 +28403,15 @@ state, or is NULL if there is no declaration associated with this scan.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   transfer_expr_context_if_applicable(saved_expr_stack);
-  /* Check for an initializer of "{}", which means value-initialization. */
-  empty_brace_init = is_empty_list_init_component(icp);
-  check_assertion(dest_type != NULL &&
-                  (!is_aggregate_type(dest_type) ||
-                   is_expression_component(icp) ||
-                   empty_brace_init));
-  if (is_expression_component(icp)) {
-    /* The object is initialized by an expression. */
-    an_arg_operand         *arg_op = icp->variant.expr;
-    an_operand             *operand = &arg_op->operand;
-    promote_init_component_lifetimes(icp);
-    if (is_template_dependent_type(dest_type)) {
-      /* The destination type is template dependent. */
-      prep_generic_operand(operand);
-    } else if (is_class_struct_union_type(dest_type)) {
-      /* See if we can elide the copy for class-typed variables. */
-      prep_elision_initializer_operand(operand, dest_type,
-                                       fill_in_dtor,
-                                       conv_context,
-                                       ec_bad_initializer_type, &dip);
-      if (dip == NULL) conv_to_error_operand(operand);
-      fill_in_dtor = FALSE;
-    } else {
-      /* Non-class, non-dependent cases (including references). */
-      prep_initializer_operand(operand, dest_type,
-                               /*is_transparent=*/(a_boolean *)NULL,
-                               /*conversion=*/(a_conv_descr_ptr)NULL,
-                               /*is_copy_initialization=*/!is_direct_init,
-                               conv_context,
-                               ec_bad_initializer_type);
-    }  /* if */
-    if (dip == NULL && is_constant_operand(operand)) {
-      *is_constant = TRUE;
-      *constant = alloc_unshared_constant(&operand->variant.constant);
-      check_assertion(expr_stack->lifetime == NULL);
-    } else {
-      /* dip is non-NULL if the dynamic init was allocated above for the
-         elision case. */
-      if (dip == NULL) {
-        an_expr_node_ptr expr = make_node_from_operand(operand);
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
-        dip->variant.expression = expr;
-      }  /* if */
-      if (expr_stack->lifetime != NULL) {
-        wrap_up_dynamic_init_full_expression(dip);
-      }  /* if */
-      *is_constant = FALSE;
-    }  /* if */
-  } else {
-    /* The entity is initialized by a brace-enclosed list. */
-    check_assertion(is_braced_init_component(icp));
-    if (empty_brace_init) {
-      /* The list is empty, so this is value-initialization. */
-      value_initialization(dest_type,
-                           &icp->variant.braced.start_pos,
-                           is_constant, &dip, constant);
-      if (!*is_constant) wrap_up_dynamic_init_full_expression(dip);
-    } else {
-      unexpected_condition_str("brace init with > 0 elements not implemented");
-    }  /* if */
-  }  /* if */
-  if (fill_in_dtor && !*is_constant && is_class_struct_union_type(dest_type)) {
-    /* Fill in the destructor if one is needed. */
-    dip->destructor = expr_select_destructor(dest_type,
-                                             dest_type,
-                                             init_component_pos(icp),
-                                             /*honor_virtual=*/FALSE);
+  prep_list_initializer(icp, dest_type, check_narrowing,
+                        conv_context, fill_in_dtor, (an_operand *)NULL,
+                        is_constant, &dip, constant);
+  /* If this conversion was treated as full expression, wrap up the
+     object lifetime.  expr_stack->lifetime is non-NULL here if a full
+     expression lifetime was pushed for the processing here. */
+  if (expr_stack->lifetime != NULL) {
+    check_assertion(!*is_constant);
+    wrap_up_dynamic_init_full_expression(dip);
   }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);

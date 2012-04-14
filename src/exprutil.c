@@ -25,6 +25,7 @@ exprutil.c -- Expression scanning utility routines.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#include "decl_inits.h"
 #include "preproc.h"
 #include "pch.h"
 #include "func_def.h"
@@ -748,6 +749,19 @@ Return the position of the given init component.
                                         : &icp->variant.expr->operand.position;
 }  /* init_component_pos */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+
+a_source_position *init_component_end_pos(an_init_component_ptr icp)
+/*
+Return the end position of the given init component.
+*/
+{
+  return icp->kind == (an_init_component_kind)ick_braced ?
+                                      &icp->variant.braced.end_pos
+                                    : &icp->variant.expr->operand.end_position;
+}  /* init_component_end_pos */
+
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 a_boolean is_string_literal_component(an_init_component_ptr  icp,
                                       a_constant_ptr         *p_con)
@@ -2067,6 +2081,138 @@ Display an expression operand for debugging purposes.
 }  /* db_operand */
 
 #endif /* DEBUG */
+
+an_expr_node_ptr alloc_empty_parens_func_cast(
+                                           a_type_ptr          type_cast_to,
+                                           a_dynamic_init_kind init_kind,
+                                           a_source_position   *start_position)
+/*
+Allocate an expression that implements a functional-notation cast that has
+empty parentheses, e.g., T() or int().  init_kind indicates the kind of
+initialization (dik_zero usually, dik_none for some odd legacy cases).
+start_position gives the source start position.
+*/
+{
+  an_expr_node_ptr   temp_init_node;
+  a_dynamic_init_ptr dip;
+
+  if (is_error_type(type_cast_to)) {
+    temp_init_node = error_node();
+  } else {
+    temp_init_node = create_expr_temporary(type_cast_to,
+                                           /*is_lvalue=*/FALSE,
+                                           /*is_explicit_cast=*/TRUE,
+                                           /* Abstract class test done
+                                              previously. */
+                                           /*suppress_abstract_test=*/TRUE,
+                                           init_kind,
+                                           start_position,
+                                           &dip);
+  }  /* if */
+  return temp_init_node;
+}  /* alloc_empty_parens_func_cast */
+
+
+a_dynamic_init_ptr add_array_nonconstant_aggregate_init(
+                                         a_dynamic_init_ptr element_dip,
+                                         a_type_ptr         array_type,
+                                         a_type_ptr         elem_type,
+                                         a_routine_ptr      dtor_routine,
+                                         a_targ_size_t      number_of_elements)
+/*
+Change the indicated dynamic initialization into a dynamic initialization
+for each member of an array of classes.  array_type is the type of the array,
+and elem_type is the type of the array elements.  dtor_routine, if non-NULL,
+is the destructor associated with the element type.  number_of_elements is the
+number of elements in the array, or 0 if the number of elements is variable
+(and known only at runtime).  Multi-dimensional arrays are treated as
+single-dimensional arrays.  Return a pointer to the dynamic init entry for
+the entire array.
+*/
+{
+  a_dynamic_init_ptr  array_dip;
+
+  /* If exceptions are enabled, put in a destructor.  It's needed to
+     destroy elements if a throw is done part-way through the
+     initialization (or destruction, for a delete) of the array. */
+  if (exceptions_enabled && dtor_routine != NULL) {
+    element_dip->destructor = dtor_routine;
+    element_dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+    if (curr_expr_is_potentially_evaluated()) {
+      record_end_of_lifetime_destruction(element_dip,
+                                         /*static_lifetime=*/FALSE,
+                                         /*block_lifetime=*/FALSE);
+    }  /* if */
+  }  /* if */
+  /* The IL structure is
+       new dynamic init (dik_nonconstant_aggregate) ->
+         constant (ck_aggregate) ->
+           constant (ck_init_repeat) ->
+             constant (ck_dynamic_init) ->
+               original dynamic init (dik_constructor)
+  */
+  array_dip =
+       alloc_expr_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+  repeat_nonconstant_init(element_dip, array_type, elem_type, array_dip,
+                          number_of_elements);
+  return array_dip;
+}  /* add_array_nonconstant_aggregate_init */
+
+
+void accumulate_array_size(a_type_ptr    array_type,
+                           a_targ_size_t *num_elements)
+/*
+As part of determining the size of an array, multiply num_elements by the
+number of array elements in the first level of the array type given by
+array_type.  For a variable or unknown-bound array, set *num_elements to zero.
+*/
+{
+  a_type_ptr unqual_array_type = skip_typerefs(array_type);
+
+  check_assertion(unqual_array_type->kind == (a_type_kind)tk_array);
+  if (unqual_array_type->variant.array.is_template_dependent_size_array) {
+    /* Arrays whose bounds are given by template-dependent constant
+       expressions (in prototype instantiations) have unknown size. */
+    *num_elements = 0;
+  } else if (vla_enabled && is_vla_type(unqual_array_type)) {
+    /* VLA type. */
+    *num_elements = 0;
+  } else {
+    check_assertion(!has_unknown_specified_bound(unqual_array_type));
+    *num_elements *=
+                   unqual_array_type->variant.array.variant.number_of_elements;
+  }  /* if */
+}  /* accumulate_array_size */
+
+
+a_dynamic_init_ptr add_array_nonconstant_aggregate_init_computing_size(
+                                         a_dynamic_init_ptr element_dip,
+                                         a_type_ptr         array_type,
+                                         a_routine_ptr      dtor_routine)
+/*
+Interface to add_array_nonconstant_aggregate_init that determines the
+array element type and number of elements from the array type.
+*/
+{
+  a_type_ptr         elem_type = array_type;
+  a_targ_size_t      num_of_elements = 1;
+  a_dynamic_init_ptr dip;
+
+  /* Determine the number of elements in the (possibly multi-dimensional)
+     array, or 0 if the number of elements is unknown at compile time,
+     as for a template. */
+  while (is_array_type(elem_type)) {
+    accumulate_array_size(elem_type, &num_of_elements);
+    elem_type = array_element_type(elem_type);
+  }  /* while */
+  dip = add_array_nonconstant_aggregate_init(element_dip,
+                                             array_type,
+                                             elem_type,
+                                             dtor_routine,
+                                             num_of_elements);
+  return dip;
+}  /* add_array_nonconstant_aggregate_init_computing_size */
+
 
 /*
 Macro that returns TRUE if the expression is a reused dynamic init.
@@ -11910,7 +12056,7 @@ be returned for a C mode const variable.
 {
   a_constant_ptr     con_val = NULL;
   an_init_kind       init_kind;
-  an_initializer_ptr initializer;
+  an_initializer_ptr init;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled && var->source_corresp.is_class_member &&
@@ -11930,9 +12076,9 @@ be returned for a C mode const variable.
     /* In GNU C and C++, a variable representing an lvalue for a compound
        literal can result from an expression like "*&(S){{0}}".  Treat this
        as a constant. */
-    get_variable_initializer(var, (a_scope_ptr)NULL, &init_kind, &initializer);
+    get_variable_initializer(var, (a_scope_ptr)NULL, &init_kind, &init);
     check_assertion(init_kind == (an_init_kind)initk_static);
-    con_val = initializer->constant;
+    con_val = init->constant;
   } else if (var->source_corresp.is_class_member &&
              has_static_storage_duration(var->storage_class) &&
              !var->is_member_constant &&
@@ -11949,15 +12095,15 @@ be returned for a C mode const variable.
        variables when recording a constant expression (the expression is
        function-local, and that forces the initializer constant to be made
        function-local as well). */
-    get_variable_initializer(var, (a_scope_ptr)NULL, &init_kind, &initializer);
+    get_variable_initializer(var, (a_scope_ptr)NULL, &init_kind, &init);
     if (init_kind == (an_init_kind)initk_static) {
       /* The variable has a constant initial value. */
-      con_val = initializer->constant;
+      con_val = init->constant;
     } else if (init_kind == (an_init_kind)initk_dynamic) {
       /* The variable is dynamically initialized.  See if the initialization
          is to a constant. */
-      if (initializer->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
-        con_val = initializer->dynamic->variant.constant;
+      if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
+        con_val = init->dynamic->variant.constant;
       }  /* if */
     }  /* if */
     if (con_val != NULL) {

@@ -152,16 +152,6 @@ components representing "{}").
   (is_braced_init_component(icp) && (icp)->variant.braced.list == NULL)
 
 /*
-Macro that produces TRUE for list initialization components containing a single
-item (e.g., a component representing "{1}").
-*/
-#define is_singleton_list_init_component(icp)                                \
-  (is_braced_init_component(icp) &&                                          \
-   (icp)->variant.braced.list != NULL &&                                     \
-   (icp)->variant.braced.list->next == NULL)
-
-
-/*
 Entry used to pass information about the context for a rescan to redo
 semantic analysis as part of template deduction.  Many of the fields here
 are parameters to copy_template_param_expr that we want to pass from
@@ -216,6 +206,31 @@ an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
                                        a_boolean        compiler_generated);
 
 extern void check_closing_paren_after_expr_list(void);
+
+extern
+void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
+                         a_source_position        *source_pos,
+                         a_type_ptr               object_class_type,
+                         a_type_ptr               dest_type,
+                         a_boolean                fill_in_dtor,
+                         a_boolean                elision_allowed,
+                         a_rescan_control_block   *rcblock,
+                         a_boolean                arg_list_supplied,
+                         an_expr_list_element_ptr arg_list,
+                         a_boolean                *trivial_ctor,
+                         a_boolean                *unboxing_conv,
+                         a_boolean                *string_ctor_skip,
+                         an_operand_ptr           simple_result,
+                         a_dynamic_init_ptr       *p_dip,
+                         an_expr_node_ptr         *p_temp_init_node,
+                         a_source_position        *closing_paren_position);
+
+extern void scan_dependent_parenthesized_initializer(
+                                    a_rescan_control_block   *rcblock,
+                                    a_boolean                arg_list_supplied,
+                                    an_expr_list_element_ptr arg_list,
+                                    an_operand_ptr           single_operand,
+                                    a_dynamic_init_ptr       *dip);
 
 extern a_type_ptr new_delete_base_type_from_operation_type(a_type_ptr type);
 

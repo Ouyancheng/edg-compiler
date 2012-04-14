@@ -1155,6 +1155,10 @@ extern void free_init_component_list(an_init_component_ptr icp);
 
 extern a_source_position* init_component_pos(an_init_component_ptr icp);
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+a_source_position *init_component_end_pos(an_init_component_ptr icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
 extern a_boolean is_string_literal_component(an_init_component_ptr  icp,
                                              a_constant_ptr         *p_con);
 
@@ -1529,6 +1533,26 @@ extern void db_operand(an_operand *operand);
 
 extern void clear_operand(an_operand_kind kind,
 		          an_operand      *operand);
+
+extern an_expr_node_ptr alloc_empty_parens_func_cast(
+                                          a_type_ptr          type_cast_to,
+                                          a_dynamic_init_kind init_kind,
+                                          a_source_position   *start_position);
+
+extern a_dynamic_init_ptr add_array_nonconstant_aggregate_init(
+                                        a_dynamic_init_ptr element_dip,
+                                        a_type_ptr         array_type,
+                                        a_type_ptr         elem_type,
+                                        a_routine_ptr      dtor_routine,
+                                        a_targ_size_t      number_of_elements);
+
+extern void accumulate_array_size(a_type_ptr    array_type,
+                                  a_targ_size_t *num_elements);
+
+extern a_dynamic_init_ptr add_array_nonconstant_aggregate_init_computing_size(
+                                         a_dynamic_init_ptr element_dip,
+                                         a_type_ptr         array_type,
+                                         a_routine_ptr      dtor_routine);
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 extern void set_expr_position(an_expr_node_ptr  expr,

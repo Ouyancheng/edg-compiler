@@ -2380,6 +2380,7 @@ ec_known_comparison_with_null;;"pointer comparison result is constant, because o
 ec_value_init_of_incomplete;;"an object of the incomplete type %t cannot be value-initialized"
 ec_value_init_of_reference;;"a reference cannot be value-initialized"
 ec_exp_lparen_or_brace;;"expected a \"(\" or a \"{\""
+ec_explicit_ctor_in_copy_list_init;;"copy-list-initialization cannot use a constructor marked \"explicit\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

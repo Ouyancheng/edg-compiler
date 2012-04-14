@@ -19197,6 +19197,467 @@ the conversion.
 }  /* prep_reference_initializer_operand */
 
 
+static void value_initialization(a_type_ptr            dest_type,
+                                 a_source_position     *pos,
+                                 a_boolean             *is_constant,
+                                 a_dynamic_init_ptr    *p_dip,
+                                 a_constant_ptr        *p_constant)
+/*
+Create IL to perform a value-initialization (C++ standard [dcl.init])
+of an entity of type dest_type.  Value-initialization comes up
+with an initializer of "{}" or "()".  The result is returned as either
+a constant (*is_constant is set to TRUE, and *p_constant is set to a
+pointer to the unshared allocated constant) or a dynamic init entry
+(*is_constant is set to FALSE, and *p_dip is set to a pointer to the
+allocated dynamic init entry).  Some cases can cause errors, which are
+reported at the source position given by pos.
+*/
+{
+  a_type_ptr         orig_dest_type = dest_type;
+  a_type_ptr         unqual_dest_type;
+  a_boolean          array_case = FALSE;
+  a_boolean          err = FALSE;
+  an_expr_node_ptr   expr;
+  a_constant         con;
+  a_dynamic_init_ptr dip = NULL;
+
+  if (is_array_type(dest_type)) {
+    /* For an array type, strip off all the array levels and generate
+       the initialization for the underlying element type. */
+    dest_type = underlying_array_element_type(dest_type);
+    array_case = TRUE;
+  }  /* if */
+  unqual_dest_type = skip_typerefs(dest_type);
+  complete_type_is_needed(unqual_dest_type);
+  if (is_incomplete_type(dest_type)) {
+    /* Can't value-initialize an incomplete type.  This includes void. */
+    if (expr_error_should_be_issued()) {
+      pos_ty_error(ec_value_init_of_incomplete, pos, dest_type);
+    }  /* if */
+    err = TRUE;
+  } else if (is_reference_type(dest_type)) {
+    /* Can't value-initialize a reference type. */
+    expr_pos_error(ec_value_init_of_reference, pos);
+    err = TRUE;
+  } else if (is_template_param_type(dest_type)) {
+    /* A template parameter type.  Could be a non-class type, so create
+       a constant result. */
+    expr = alloc_empty_parens_func_cast(dest_type,
+                                        (a_dynamic_init_kind)dik_zero,
+                                        pos);
+    make_template_param_expr_constant(expr, &con);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled &&
+             is_cli_generic_definition_argument_type(dest_type)) {
+    /* A C++/CLI generic type.  Always non-constant. */
+    dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (is_class_struct_union_type(dest_type)) {
+    a_boolean     trivial_ctor = FALSE;
+    a_routine_ptr ctor_routine = NULL;
+    if (is_union_type(dest_type)) {
+      /* A union type has no constructor. */
+      trivial_ctor = TRUE;
+    } else if (!is_real_class_type(dest_type)) {
+      /* A nonreal class type. */
+    } else {
+      /* A real class type.  Find the default constructor. */
+      a_boolean def_ctor_err;
+      ctor_routine = expr_select_default_constructor(unqual_dest_type,
+                                                     pos,
+                                                     &def_ctor_err);
+      if (def_ctor_err) {
+        err = TRUE;
+      } else if (ctor_routine == NULL) {
+        trivial_ctor = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!err) {
+      if (trivial_ctor) {
+        /* For a class with a trivial constructor, just zero the object. */
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+      } else {
+        /* Otherwise, use a dik_constructor entry.  For a nonreal class,
+           ctor_routine is NULL to indicate the constructor is unknown. */
+        dip = alloc_expr_ctor_dynamic_init(ctor_routine,
+                                           (an_expr_node_ptr)NULL,
+                                           /*add_default_args=*/FALSE,
+                                           /*implied_source=*/FALSE);
+        /* The value_initialization flag tells back ends to zero the
+           storage before calling the constructor if it is not
+           user-provided. */
+        dip->variant.constructor.value_initialization = TRUE;
+      }  /* if */
+    }  /* if */
+  } else if (is_error_type(dest_type)) {
+    /* Previous error. */
+    err = TRUE;
+  } else {
+    /* Scalar type.  Convert 0 to the type, producing a constant result. */
+    a_boolean did_not_fold;
+    check_assertion(is_scalar_type(dest_type) ||
+                    is_ptr_to_member_type(dest_type));
+    set_integer_constant(&con, (a_host_large_integer)0,
+                         (an_integer_kind)ik_int);
+    expr_type_change_constant(&con, unqual_dest_type,
+                              /*is_implicit_cast=*/TRUE,
+                              /*check_cast_access=*/TRUE,
+                              /*check_ambiguity=*/TRUE,
+                              /*is_reinterpret_cast=*/FALSE,
+                              /*maintain_expression=*/FALSE,
+                              &did_not_fold, pos);
+    check_assertion(!did_not_fold);
+  }  /* if */
+  /* Here, dip != NULL means the result is non-constant. */
+  if (err) {
+    /* For an error case, drop back to zeroing or an error constant. */
+    if (dip != NULL) {
+      set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
+    } else {
+      set_error_constant(&con);
+    }  /* if */
+  }  /* if */
+  if (array_case) {
+    /* The original type was an array type, so repeat the element
+       initialization for every element of the array. */
+    if (dip == NULL) {
+      /* If the element initialization is to a constant, we must be zeroing,
+         so zero the whole array. */
+      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+    } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+      /* The element initialization is a dynamic init that zeroes the
+         object, so just use that for the whole array instead. */
+    } else {
+      /* Some other dynamic initialization (e.g., a constructor call).
+         Add ck_init_repeat repetitions as needed to replicate the
+         initialization for all the elements. */
+      a_routine_ptr dtor_routine = NULL;
+      /* If exceptions are enabled, put in a destructor.  It's needed
+         to destroy elements if a throw is done part-way through the
+         initialization of the array. */
+      if (exceptions_enabled &&
+          is_class_struct_union_type(unqual_dest_type)) {
+        dtor_routine = expr_select_destructor(unqual_dest_type,
+                                              unqual_dest_type,
+                                              pos,
+                                              /*honor_virtual=*/FALSE);
+      }  /* if */
+      dip = add_array_nonconstant_aggregate_init_computing_size(
+                                                 dip,
+                                                 orig_dest_type,
+                                                 dtor_routine);
+    }  /* if */
+  }  /* if */
+  /* Here, dip is non-NULL if the initialization is dynamic.  If it's NULL,
+     the result is a constant whose value is given by con and still needs
+     to be allocated. */
+  if (dip != NULL) {
+    *is_constant = FALSE;
+    *p_dip = dip;
+  } else {
+    *is_constant = TRUE;
+    *p_constant = alloc_unshared_constant(&con);
+  }  /* if */
+}  /* value_initialization */
+
+
+static void promote_init_component_lifetimes(an_init_component_ptr icp)
+/*
+Promote the object lifetimes in icp and its subtree into the current
+lifetime context, either by pushing the top lifetime and entering it into
+the expression stack, or by promoting the things in the lifetime into an
+existing surrounding expression lifetime.  If expr_stack->lifetime is
+non-NULL on return, a new full-expression object lifetime has been pushed.
+This processing is needed because when we scanned the expressions we
+didn't know how they were going to be used, and therefore we didn't know
+which ones should be considered full expressions and which should be
+part of something else.  So we put a unique wrapper lifetime around each
+expression, and here we break things out of those lifetimes and move them
+into the proper final lifetimes.
+*/
+{
+  check_assertion(curr_object_lifetime != NULL &&
+                  expr_stack->lifetime == NULL);
+  /* Don't promote if it has been done previously. */
+  if (!icp->lifetimes_promoted) {
+    icp->lifetimes_promoted = TRUE;
+    if (is_expression_component(icp)) {
+      /* For an expression with a lifetime, process the lifetime. */
+      an_object_lifetime_ptr wrap_lifetime = icp->variant.expr->lifetime;
+      icp->variant.expr->lifetime = NULL;
+      if (wrap_lifetime != NULL) {
+        if (curr_object_lifetime->kind ==
+                                 (an_object_lifetime_kind)olk_expr_temporary) {
+          /* Promote the contents of the added lifetime into the current
+             full-expression object lifetime. */
+          promote_lifetime_contents_to_curr_object_lifetime(wrap_lifetime);
+          free_object_lifetime(wrap_lifetime);
+        } else {
+          /* Re-push the created lifetime. */
+          add_as_child_of_curr_object_lifetime(wrap_lifetime);
+          curr_object_lifetime = wrap_lifetime;
+          expr_stack->lifetime = curr_object_lifetime;
+        }  /* if */
+      }  /* if */
+    } else if (is_braced_init_component(icp)) {
+      /* For a braced-init-list, process the subtree. */
+      an_init_component_ptr nicp;
+      for (nicp = icp->variant.braced.list; nicp != NULL; nicp = nicp->next) {
+        promote_init_component_lifetimes(nicp);
+      }  /* for */
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* if */
+}  /* promote_init_component_lifetimes */
+
+
+/*FIXME*/
+/*ARGSUSED*/
+void prep_list_initializer(an_init_component_ptr icp,
+                           a_type_ptr            dest_type,
+                           a_boolean             check_narrowing,
+                           a_conv_context_set    conv_context,
+                           a_boolean             fill_in_dtor,
+                           an_operand            *result,
+                           a_boolean             *is_constant,
+                           a_dynamic_init_ptr    *p_dip,
+                           a_constant_ptr        *p_constant)
+/*
+Convert an initializer value represented in init-component form (icp)
+to the type of the entity being initialized, given by dest_type.  If
+check_narrowing is TRUE, issue diagnostics for narrowing conversions.
+conv_context describes the context of the conversion (including
+whether this is direct-list-initialization).
+
+Has a dual interface:  If result is non-NULL, the result is returned in
+*result in operand form.  If the result is a class type with a destructor,
+a temporary will be created, and the appropriate destructor will be
+indicated and placed on the appropriate object lifetime.  fill_in_dtor
+is ignored.  This is the usual interface for use from within the
+expression routines.
+
+On the other hand, if result is NULL the interface is one more suited
+for calls from decl_inits.c for initializers.  The result is either
+a constant, in which case *is_constant is set to TRUE and *p_constant
+is set to point to the allocated unshared constant, or the result is
+a dynamic initialization, in which case *is_constant is set to FALSE
+and *p_dip is set to point to the dynamic initialization entry.
+In the latter case, if fill_in_dtor is TRUE a destructor will be added
+to the dynamic initialization if needed, but the dynamic init will not
+be placed on any object lifetime list (the caller must do that).
+*/
+{
+  a_dynamic_init_ptr  dip = NULL;
+  a_constant_ptr      constant = NULL;
+  a_boolean           local_is_constant;
+  a_boolean           empty_brace_init;
+  a_boolean           is_direct_init =
+                               (conv_context & CCO_DIRECT_INITIALIZATION) != 0;
+  a_symbol_ptr        ctor_sym;
+  an_operand          operand;
+
+  if (result == NULL) {
+    check_assertion(is_constant != NULL && p_dip != NULL &&
+                    p_constant != NULL);
+    *p_dip = NULL;
+    *p_constant = NULL;
+  }  /* if */
+  /* Check for an initializer of "{}", which means value-initialization. */
+  empty_brace_init = is_empty_list_init_component(icp);
+  check_assertion(dest_type != NULL &&
+                  (!is_aggregate_type(dest_type) ||
+                   is_expression_component(icp) ||
+                   empty_brace_init));
+  /* Reactivate and/or adjust the lifetimes added around expressions in
+     the initializer list. */
+  promote_init_component_lifetimes(icp);
+  if (is_expression_component(icp)) {
+    /* The object is initialized by an expression. */
+    copy_operand(&icp->variant.expr->operand, &operand);
+    if (is_template_dependent_type(dest_type)) {
+      /* The destination type is template dependent. */
+      prep_generic_operand(&operand);
+    } else if (is_class_struct_union_type(dest_type)) {
+      /* See if we can elide the copy for class-typed variables. */
+      prep_elision_initializer_operand(&operand, dest_type,
+                                       fill_in_dtor,
+                                       conv_context,
+                                       ec_bad_initializer_type, &dip);
+      if (dip == NULL) {
+        /* There was an error. */
+        conv_to_error_operand(&operand);
+      }  /* if */
+      fill_in_dtor = FALSE;
+    } else {
+      /* Non-class, non-dependent cases (including references). */
+      prep_initializer_operand(&operand, dest_type,
+                               /*is_transparent=*/(a_boolean *)NULL,
+                               /*conversion=*/(a_conv_descr_ptr)NULL,
+                               /*is_copy_initialization=*/!is_direct_init,
+                               conv_context,
+                               ec_bad_initializer_type);
+    }  /* if */
+  } else if (is_braced_init_component(icp)) {
+    /* The entity is initialized by a brace-enclosed list. */
+    an_init_component_ptr list = icp->variant.braced.list;
+    /* The tests that follow are based on the bullet list in [dcl.init.list]
+       of the C++11 standard. */
+    if (is_any_reference_type(dest_type)) {
+      /* For a reference, allocate a temporary and copy-list-initialize it
+         from the braced-init-list. */
+      prep_list_initializer(icp, type_pointed_to(dest_type), check_narrowing,
+                            CCO_DEFAULT, /*fill_in_dtor=*/TRUE, /* ignored */
+                            &operand,
+                            (a_boolean *)NULL, (a_dynamic_init_ptr *)NULL,
+                            (a_constant_ptr *)NULL);
+      prep_reference_initializer_operand(&operand, dest_type,
+                                         (a_conv_descr *)NULL,
+                                         /*leave_as_object=*/FALSE,
+                                         conv_context,
+                                         ec_bad_initializer_type);
+    } else if (could_be_dependent_class_type(dest_type)) {
+      /* Dependent case.  Pretend this is a constructor invocation. */
+      scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
+                                               /*arg_list_supplied=*/TRUE,
+                                               list,
+                                               (an_operand *)NULL, &dip);
+    } else if (list == NULL &&
+               is_class_struct_union_type(dest_type) &&
+               f_type_has_default_constructor(dest_type,
+                                              /*user_provided_only=*/FALSE,
+                                              /*nontrivial_only=*/FALSE)) {
+      /* A class with a default constructor, initialized by "{}" -- do
+         value initialization. */
+      value_initialization(dest_type,
+                           &icp->variant.braced.start_pos,
+                           &local_is_constant, &dip, &constant);
+    } else if (is_class_struct_union_type(dest_type) &&
+               (ctor_sym = symbol_supplement_for_class(dest_type)->constructor)
+                                                                     != NULL) {
+      /* A class with constructors.  Process as constructor arguments. */
+      scan_ctor_arguments(ctor_sym,
+                          init_component_pos(icp),
+                          (a_type_ptr)NULL,
+                          (a_type_ptr)NULL,
+                          fill_in_dtor,
+                          /*elision_allowed=*/TRUE,
+                          (a_rescan_control_block *)NULL,
+                          /*arg_list_supplied=*/TRUE,
+                          list,
+                          /*trivial_ctor=*/(a_boolean *)NULL,
+                          /*unboxing_conv=*/(a_boolean *)NULL,
+                          /*string_ctor_skip=*/(a_boolean *)NULL,
+                          /*simple_result=*/(an_operand *)NULL,
+                          &dip,
+                          (an_expr_node_ptr *)NULL,
+                          (a_source_position *)NULL);
+      if (dip == NULL) {
+        /* There was an error. */
+        make_error_operand(&operand);
+      } else if (!is_direct_init &&
+                 dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        a_routine_ptr ctor_rout = dip->variant.constructor.ptr;
+        if (ctor_rout != NULL &&
+            ctor_rout->is_explicit_constructor) {
+          /* An explicit constructor cannot be used for
+             copy-list-initialization.  This is tested after overload
+             resolution, rather than as usual causing the constructor not
+             to be viable within overload resolution.  See [over.match.list]
+             in the C++11 standard. */
+          expr_pos_error(ec_explicit_ctor_in_copy_list_init,
+                         init_component_pos(icp));
+        }  /* if */
+      }  /* if */
+      fill_in_dtor = FALSE;
+    } else if (list == NULL) {
+      /* An empty list ("{}") -- do value initialization. */
+      value_initialization(dest_type,
+                           &icp->variant.braced.start_pos,
+                           &local_is_constant, &dip, &constant);
+    } else if (list->next == NULL) {
+      /* A list containing just one member.  Drop the {} and do a recursive
+         call. */
+      prep_list_initializer(list, dest_type, check_narrowing,
+                            conv_context, fill_in_dtor, &operand,
+                            is_constant, &dip, &constant);
+    } else {
+      /* Something else (e.g., an "int" initialized by a list with two
+         elements); error. */
+      expr_pos_error(ec_too_many_initializer_values,
+                     init_component_pos(list->next));
+      make_error_operand(&operand);
+    }  /* if */
+  } else {
+    /* Unexpected init component kind. */
+    unexpected_condition();
+  }  /* if */
+  /* Here, if dip != NULL the result is that dynamic initialization.
+     If constant != NULL, the result is that constant.
+     Otherwise, the result is in "operand".  If the required result is
+     in a different format, convert to that. */
+  if (result != NULL) {
+    /* The caller wants the result in an_operand form in *result. */
+    if (dip != NULL) {
+      /* We have a dynamic init entry.  Make an operand for it. */
+      an_expr_node_ptr expr;
+      /* Note the call here adds the destruction if needed. */
+      expr = alloc_temp_init_node(dest_type, dip, /*is_lvalue=*/FALSE,
+                                  /*is_explicit_cast=*/FALSE);
+      make_expression_operand(expr, result);
+    } else if (constant != NULL) {
+      make_constant_operand(constant, result);
+    } else {
+      /* We want an operand, and we have an operand.  The destruction will
+         already be recorded if needed. */
+      copy_operand(&operand, result);
+    }  /* if */
+    result->position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    result->end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else {
+    /* The caller wants the result as a constant or a dynamic init. */
+    if (constant != NULL) {
+      /* We already have an allocated constant. */
+      *is_constant = TRUE;
+      *p_constant = constant;
+    } else if (dip == NULL && is_constant_operand(&operand)) {
+      /* We already have a constant operand that can be easily turned into
+         an allocated constant. */
+      *is_constant = TRUE;
+      *p_constant = alloc_unshared_constant(&operand.variant.constant);
+    } else {
+      /* If dip is non-NULL, we already have a dynamic init. */
+      if (dip == NULL) {
+        an_expr_node_ptr temp_init_node;
+        if (is_temp_init_usable_in_optimization(&operand,
+                                               /*suppress_dtor=*/!fill_in_dtor,
+                                               &temp_init_node,
+                                               &dip)) {
+          /* We already have a dynamic init in the operand that we can just
+             use. */
+        } else {
+          /* Make a dynamic init for the expression. */
+          an_expr_node_ptr expr = make_node_from_operand(&operand);
+          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+          dip->variant.expression = expr;
+        }  /* if */
+      }  /* if */
+      *is_constant = FALSE;
+      if (fill_in_dtor && is_class_struct_union_type(dest_type)) {
+        /* Fill in the destructor if one is needed. */
+        dip->destructor = expr_select_destructor(dest_type,
+                                                 dest_type,
+                                                 init_component_pos(icp),
+                                                 /*honor_virtual=*/FALSE);
+      }  /* if */
+    }  /* if */
+    *p_dip = dip;
+  }  /* if */
+}  /* prep_list_initializer */
+
+
 void prep_initializer_operand(an_operand         *source_operand,
                               a_type_ptr         dest_type,
                               a_boolean          *is_transparent,

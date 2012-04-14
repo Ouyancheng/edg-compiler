@@ -4505,7 +4505,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
         if (is_immediate_class_type(etype)) {
           dtor_rp = select_destructor(etype, etype, diag_pos);
         }  /* if */
-      }
+      }  /* if */
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
@@ -4529,43 +4529,19 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
         is_aggregate = TRUE;
         dtor_rp = select_destructor(dtype, dtype, diag_pos);
         aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
-      } else if (is_empty_list_init_component(icp)) {
-        /* An empty list: Value initialization.  Unlike the case below, we do
-           not unpack the list when calling convert_initializer. */
+      } else {
+        /* Pass the braced initializer to be converted to the destination
+           type. */
         convert_initializer(icp, dtype, is_var_init, /*is_direct_init=*/TRUE,
                             /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
                             dps, &is_constant, &is->init_dip, &is->init_con);
-      } else {
-        /* Pass the unwrapped value (or list) to be converted to the
-           destination type. */
-        convert_initializer(icp->variant.braced.list, dtype, is_var_init,
-                            /*is_direct_init=*/TRUE, /*check_narrowing=*/TRUE,
-                            /*fill_in_dtor=*/TRUE, dps, &is_constant,
-                            &is->init_dip, &is->init_con);
       }  /* if */
       break;
     default:
-      if (is_empty_list_init_component(icp)) {
-        /* An empty list: Value initialization.  Unlike the case below, we do
-           not unpack the list when calling convert_initializer. */
-        convert_initializer(icp, dtype, is_var_init, /*is_direct_init=*/TRUE,
-                            /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
-                            dps, &is_constant, &is->init_dip, &is->init_con);
-      } else if (is_singleton_list_init_component(icp)) {
-        /* Pass the unwrapped value (or list) to be converted to the
-           destination type. */
-        convert_initializer(icp->variant.braced.list, dtype, is_var_init,
-                            /*is_direct_init=*/TRUE, /*check_narrowing=*/TRUE,
-                            /*fill_in_dtor=*/TRUE, dps, &is_constant,
-                            &is->init_dip, &is->init_con);
-      } else {
-        /* More than one initializer for a non-class and non-array: Issue an
-           error. */
-        a_source_position  *pos_excess = init_component_pos(
-                                              icp->variant.braced.list->next);
-        pos_error(ec_too_many_initializer_values, pos_excess);
-        is->init_error = TRUE;
-      }  /* if */
+      /* Non-class, non-aggregate initialization. */
+      convert_initializer(icp, dtype, is_var_init, /*is_direct_init=*/TRUE,
+                          /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
+                          dps, &is_constant, &is->init_dip, &is->init_con);
       break;
   }  /* switch */
   free_init_component_list(icp_tree);

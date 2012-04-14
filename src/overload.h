@@ -1003,7 +1003,16 @@ void prep_reference_initializer_operand(an_operand         *source_operand,
                                         a_boolean          leave_as_object,
                                         a_conv_context_set conv_context,
                                         an_error_code      incompatible_err);
-
+extern
+void prep_list_initializer(an_init_component_ptr icp,
+                           a_type_ptr            dest_type,
+                           a_boolean             check_narrowing,
+                           a_conv_context_set    conv_context,
+                           a_boolean             fill_in_dtor,
+                           an_operand            *result,
+                           a_boolean             *is_constant,
+                           a_dynamic_init_ptr    *p_dip,
+                           a_constant_ptr        *p_constant);
 extern
 void prep_initializer_operand(an_operand         *source_operand,
                               a_type_ptr         dest_type,
