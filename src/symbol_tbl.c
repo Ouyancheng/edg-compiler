@@ -4453,20 +4453,28 @@ this is not allowed, an error will be issued by the caller.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (cppcli_enabled &&
                  (is_cli_generic_class_symbol(fund_new_sym) &&
-                  is_class_struct_union_symbol(fund_old_sym))) {
+                  is_class_struct_union_symbol(fund_old_sym)) &&
+                 (generic_arity_overload_allowed ||
+                  in_code_generated_from_metadata())) {
         /* The old symbol is a class type and the new symbol is a C++/CLI
            generic.  These can exist in the same scope.  The generic should
-           hide the non-generic. */
+           hide the non-generic.  This is only allowed when importing code
+           from metadata or when the generic_arity_overload_allowed flag
+           is TRUE. */
         err = FALSE;
         /* Record the non-generic symbol in the information about the
            generic. */
         non_generic_class_for_cli_generic(fund_new_sym) = fund_old_sym;
       } else if (cppcli_enabled &&
-                  (is_cli_generic_class_symbol(fund_old_sym) &&
-                   is_class_struct_union_symbol(fund_new_sym))) {
+                 (is_cli_generic_class_symbol(fund_old_sym) &&
+                  is_class_struct_union_symbol(fund_new_sym)) &&
+                 (generic_arity_overload_allowed ||
+                  in_code_generated_from_metadata())) {
         /* The new symbol is a class type and the old symbol is a C++/CLI
            generic.  These can exist in the same scope.  The generic should
-           hide the non-generic. */
+           hide the non-generic.  This is only allowed when importing code
+           from metadata or when the generic_arity_overload_allowed flag
+           is TRUE. */
         err = FALSE;
         if (insert_sym != NULL) *insert_sym = old_sym;
         /* Record the non-generic symbol in the information about the

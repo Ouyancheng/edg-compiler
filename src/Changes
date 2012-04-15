@@ -1,5 +1,18 @@
 Version 4.5
 
+4/15/12  [EDGcpfe/12570]
+C++/CLI: generic and not generic with same name only allowed from metadata
+
+A generic class and non-generic class can have the same name when reading
+code from metadata in C++/CLI mode, but this was incorrectly allowed
+from source as well.  Now fixed.
+
+  generic <typename T> ref class A {};
+  class A {};
+  class B {};
+  generic <typename T> ref class B {};
+
+
 4/13/12  [EDGcpfe/12837]
 Abort after syntax error in C++/CLI property or event accessor
 
