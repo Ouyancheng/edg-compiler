@@ -4862,13 +4862,6 @@ and is a function designator.
   } else {
     operand->id_position = operand->position;
   }  /* if */
-  if (is_template_dependent_context() &&
-      !routine_sym->is_class_member) {
-    /* Record that this particular name was referenced in a dependent
-       context so we can suppress warnings on static functions that appear
-       unreferenced but might be chosen by a dependent call. */
-    routine_sym->header->any_function_referenced_in_dependent_call = TRUE;
-  }  /* if */
 }  /* make_indefinite_function_operand */
 
 
@@ -10828,6 +10821,15 @@ the expression.
 
   check_assertion(is_template_dependent_context());
   orig_operand = *operand;
+  if (is_indefinite_function_operand(operand)) {
+    a_symbol_ptr ovl_sym = operand->symbol;
+    if (!ovl_sym->is_class_member) {
+      /* Record that this particular name was referenced in a dependent
+         context so we can suppress warnings on static functions that appear
+         unreferenced but might be chosen by a dependent call. */
+      ovl_sym->header->any_function_referenced_in_dependent_call = TRUE;
+    }  /* if */
+  }  /* if */
   if (rvalue_expected) {
     if (curr_expr_kind_is_const()) {
       do_constant_generic_operand_transformations(operand);
