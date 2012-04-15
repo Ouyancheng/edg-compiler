@@ -7111,12 +7111,22 @@ variable).  Return a copy of the given constant.  If cp has a backing
 expression re-assign that expression to the copy being returned.
 */
 {
-  a_constant_ptr  il_cp = alloc_shareable_constant(cp);
+  a_constant_ptr  il_cp;
+  a_boolean       transfer_expr;
 
-  if (cp->expr != NULL &&
-      !constant_is_shareable(cp)) {
-    /* alloc_shareable_constant will have returned an unshared constant
-       entry.  It is therefore safe to modify *il_cp. */
+  if (cp->expr != NULL && cp->expr->name_reference != NULL) {
+    /* The constant is associated with a name reference; use an unshared
+       constant to preserve it. */
+    il_cp = alloc_unshared_constant(cp);
+    transfer_expr = TRUE;
+  } else {
+    /* Use a shared constant, if possible. */
+    il_cp = alloc_shareable_constant(cp);
+    transfer_expr = (cp->expr != NULL && !constant_is_shareable(cp));
+  }  /* if */
+  if (transfer_expr) {
+    /* The constant is unshared, so transfer the backing expression from
+       the source constant. */
     il_cp->expr = cp->expr;
     cp->expr = NULL;
   }  /* if */

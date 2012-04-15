@@ -4109,6 +4109,17 @@ Extract the constant value from the operand *operand and place it in
       break;
     case ok_constant:
       copy_constant(&operand->variant.constant, constant);
+      if (operand->name_reference_set) {
+        /* We need to add a backing expression to preserve the supplied
+           name reference. */
+        a_constant_ptr   shared_constant =
+                          alloc_shareable_constant(&operand->variant.constant);
+        an_expr_node_ptr expr = alloc_node_for_constant(shared_constant);
+        expr->name_reference = find_allocated_name_reference(
+                                              &shared_constant->source_corresp,
+                                              &operand->name_reference);
+        constant->expr = expr;
+      }  /* if */
       break;
     default:
       error_in_operand(ec_expr_not_constant, operand);

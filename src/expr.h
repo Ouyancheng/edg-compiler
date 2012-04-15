@@ -319,15 +319,7 @@ extern an_expr_node_ptr scan_return_expression(
 
 extern void scan_pp_expression(a_constant *constant);
 
-extern a_boolean scan_integral_const_expr_with_name_ref(
-                                                   a_constant       *constant,
-                                                   a_name_reference *name_ref);
-
 extern void scan_integral_constant_expression(a_constant *constant);
-
-extern a_boolean scan_fs_integral_const_expr_with_name_ref(
-                                                   a_constant       *constant,
-                                                   a_name_reference *name_ref);
 
 extern void scan_fs_integral_constant_expression(a_constant *constant);
 
@@ -337,9 +329,7 @@ extern void scan_nonconstant_dimension_expression(
                                     a_boolean        is_evaluated_sizeof_arg,
                                     a_boolean        *is_constant,
                                     an_expr_node_ptr *expression,
-                                    a_constant       *constant,
-                                    a_boolean        *name_ref_set,
-                                    a_name_reference *name_ref);
+                                    a_constant       *constant);
 
 extern void extract_constant_from_operand_with_fs_fixup(
                                                      an_operand_ptr operand,
@@ -499,9 +489,7 @@ extern void scan_dependent_type_parenthesized_initializer(
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-a_boolean scan_microsoft_case_label_constant_expression(
-                                                   a_constant       *constant,
-                                                   a_name_reference *name_ref);
+void scan_microsoft_case_label_constant_expression(a_constant *constant);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern an_expr_node_ptr scan_boolean_controlling_expression(void);

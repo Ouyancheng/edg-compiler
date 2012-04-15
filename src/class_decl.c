@@ -15018,11 +15018,7 @@ be updated on return.
   }  /* if */
   /* Note that if the base type was not integral it has been replaced by
      "int" by this point. */
-  field->bit_size_constant = alloc_shareable_constant(size_constant);
-  /* If the size constant had an associated name reference,
-     scan_nonstatic_data_member allocated an expression in the file scope
-     for it, and we need to preserve it here. */
-  field->bit_size_constant->expr = size_constant->expr;
+  field->bit_size_constant = transfer_constant_to_il(size_constant);
   if (is_error_constant(size_constant)) {
     /* Use small value to avoid more errors, but not 1 which is special. */
     declared_bit_field_size = bit_field_size = targ_char_bit;
@@ -16056,7 +16052,6 @@ information about the member declaration, respectively.
   decl_info->is_bit_field = FALSE;
   /* A colon next indicates a bit-field. */
   if (curr_token == tok_colon) {
-    a_name_reference name_ref;
     decl_info->is_bit_field = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_info->bit_field_size_pos = pos_curr_token;
@@ -16064,22 +16059,7 @@ information about the member declaration, respectively.
     /* Advance past the colon. */
     (void)get_token();
     /* Scan the integral size in bits of the bit-field. */
-    if (scan_fs_integral_const_expr_with_name_ref(&decl_info->bit_field_size,
-                                                  &name_ref)) {
-      /* The operand has a name reference.  We need to allocate a shared
-         constant for the value and an expression node (in the file scope)
-         pointing to that constant for the size constant to point to. */
-      a_constant_ptr shared_constant =
-                          alloc_shareable_constant(&decl_info->bit_field_size);
-      a_memory_region_number region_to_switch_back_to;
-      switch_to_file_scope_region(&region_to_switch_back_to);
-      decl_info->bit_field_size.expr =
-                                      alloc_node_for_constant(shared_constant);
-      decl_info->bit_field_size.expr->name_reference =
-                find_allocated_name_reference(&shared_constant->source_corresp,
-                                              &name_ref);
-      switch_back_to_original_region(region_to_switch_back_to);
-    }  /* if */
+    scan_fs_integral_constant_expression(&decl_info->bit_field_size);
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_attributes_enabled) {
       scan_gnu_declarator_attributes(&decl_info->decl_state);

@@ -16028,8 +16028,6 @@ in *rcblock).
         /* Anachronism -- there's an expression between the brackets,
            presumably indicating the number of elements in the array. */
         an_error_severity sev = anachronism_error_severity;
-        a_boolean         name_ref_set;
-        a_name_reference  name_ref;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         /* This anachronism is allowed in Microsoft mode. */
         if (microsoft_mode) sev = (an_error_severity)es_warning;
@@ -16038,8 +16036,7 @@ in *rcblock).
         scan_nonconstant_dimension_expression(/*is_new_or_delete_bound=*/TRUE,
                                               /*is_top_level_vla_bound=*/FALSE,
                                              /*is_evaluated_sizeof_arg=*/FALSE,
-                                              &is_constant, &expr, &constant,
-                                              &name_ref_set, &name_ref);
+                                              &is_constant, &expr, &constant);
         /* The expression is ignored. */
       }  /* if */
       (void)required_token(tok_rbracket, ec_exp_rbracket);
@@ -31386,17 +31383,15 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
 }  /* scan_pp_expression */
 
 
-a_boolean scan_integral_const_expr_with_name_ref(a_constant       *constant,
-                                                 a_name_reference *name_ref)
+void scan_integral_constant_expression(a_constant *constant)
 /*
-Scan an integral constant expression.  If the operand is associated with a
-name reference, return that in *name_ref and return TRUE; otherwise, leave
-*name_ref unchanged and return FALSE.  */
+Scan an integral constant expression.  See section 6.4 in the ISO C89 standard,
+and [expr.const] in the ISO C++98 standard.
+*/
 {
   an_operand result;
-  a_boolean  name_ref_set;
 
-  db_enter(3, "scan_integral_const_expr_with_name_ref");
+  db_enter(3, "scan_integral_constant_expression");
   if (gcc_mode ||
       (gpp_mode && gnu_version < 40000) ||
       sun_mode ||
@@ -31409,10 +31404,6 @@ name reference, return that in *name_ref and return TRUE; otherwise, leave
                                                PREC_LOWEST,
                                                &result,
                                                (a_boolean *)NULL);
-    name_ref_set = result.name_reference_set;
-    if (name_ref_set) {
-      *name_ref = result.name_reference;
-    }  /* if */
     extract_constant_from_operand(&result, constant);
   } else {
     /* Standard integral constant expression. */
@@ -31426,10 +31417,6 @@ name reference, return that in *name_ref and return TRUE; otherwise, leave
     transfer_expr_context_if_applicable(saved_expr_stack);
     /* Scan the constant expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-    name_ref_set = result.name_reference_set;
-    if (name_ref_set) {
-      *name_ref = result.name_reference;
-    }  /* if */
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
     extract_constant_from_operand(&result, constant);
     if (!is_okay_integral_constant_expression_result(constant,
@@ -31456,21 +31443,6 @@ name reference, return that in *name_ref and return TRUE; otherwise, leave
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-  return name_ref_set;
-}  /* scan_integral_const_expr_with_name_ref */
-
-
-void scan_integral_constant_expression(a_constant *constant)
-/*
-Scan an integral constant expression.  See section 6.4 in the ISO C89 standard,
-and [expr.const] in the ISO C++98 standard.
-*/
-{
-  a_name_reference dummy_name_ref;
-
-  db_enter(3, "scan_integral_constant_expression");
-  (void)scan_integral_const_expr_with_name_ref(constant, &dummy_name_ref);
-  db_exit();
 }  /* scan_integral_constant_expression */
 
 
@@ -31493,39 +31465,13 @@ to be in the file scope memory region so that the constant can point to it).
 }  /* scan_fs_integral_constant_expression */
 
 
-a_boolean scan_fs_integral_const_expr_with_name_ref(a_constant       *constant,
-                                                    a_name_reference *name_ref)
-/*
-Scan an integral constant expression.  The constant will be allocated
-(by the caller) in the file scope memory region, so switch to the file
-scope while scanning the constant, so that anything allocated during
-the scan will be allocated in the file scope memory region.  (This is
-significant for expressions that represent the original form in which a
-constant expression was specified; we want the expression for the constant
-to be in the file scope memory region so that the constant can point to it).
-If the operand has an associated name reference, store it in *name_ref and
-return TRUE; otherwise, return FALSE.
-*/
-{
-  a_memory_region_number  region_to_switch_back_to;
-  a_boolean               name_ref_set;
-
-  switch_to_file_scope_region(&region_to_switch_back_to);
-  name_ref_set = scan_integral_const_expr_with_name_ref(constant, name_ref);
-  switch_back_to_original_region(region_to_switch_back_to);
-  return name_ref_set;
-}  /* scan_fs_integral_constant_expression */
-
-
 void scan_nonconstant_dimension_expression(
                                     a_boolean        is_new_or_delete_bound,
                                     a_boolean        is_top_level_vla_bound,
                                     a_boolean        is_evaluated_sizeof_arg,
                                     a_boolean        *is_constant,
                                     an_expr_node_ptr *expression,
-                                    a_constant       *constant,
-                                    a_boolean        *name_ref_set,
-                                    a_name_reference *name_ref)
+                                    a_constant       *constant)
 /*
 Scan an array dimension that might be non-constant.  The array dimension
 must be an integral expression.  (It's also required to be non-negative, but
@@ -31541,9 +31487,7 @@ is_evaluated_sizeof_arg is TRUE, the bound is for a type that appears as an
 argument of a sizeof operator that appears in a potentially evaluated
 expression context.  Return either *is_constant TRUE and a constant value in
 *constant, or *is_constant FALSE and a pointer to the expression tree in
-*expression.  If a constant with an associated name reference is seen, set
-*name_ref_set to TRUE and return the name reference in *name_ref; otherwise,
-set *name_ref_set to FALSE;
+*expression.
 */
 {
   an_operand          result;
@@ -31555,7 +31499,6 @@ set *name_ref_set to FALSE;
   db_enter(3, "scan_nonconstant_dimension_expression");
 
   check_assertion(!(is_new_or_delete_bound && is_top_level_vla_bound));
-  *name_ref_set = FALSE;
   ekind = (an_expression_kind)ek_normal;
   /* When a dimension bound expression is scanned inside a constant expression,
      it must be an integral constant. */
@@ -31587,10 +31530,6 @@ set *name_ref_set to FALSE;
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   }  /* if */
   is_nonconstant = (result.ruled_out_expr_kinds & ROEK_CONSTANT) != 0;
-  if (!is_nonconstant && result.name_reference_set) {
-    *name_ref_set = TRUE;
-    *name_ref = result.name_reference;
-  }  /* if */
   /* Convert from a class type to integral if necessary. */
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(result.type)) {
@@ -34248,14 +34187,11 @@ current token is the one following the closing parenthesis.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-a_boolean scan_microsoft_case_label_constant_expression(
-                                                    a_constant       *constant,
-                                                    a_name_reference *name_ref)
+void scan_microsoft_case_label_constant_expression(a_constant *constant)
 /*
 Scan an integral constant expression for a Microsoft case label constant,
-and return the value of the constant in *constant.  If the operand has a
-name reference, return it in *name_ref and return TRUE; otherwise, return
-FALSE.  MSVC++ allows things like (void *)1 as case constants.
+and return the value of the constant in *constant.  MSVC++ allows
+things like (void *)1 as case constants.
 */
 {
   an_operand result;
@@ -34268,7 +34204,6 @@ FALSE.  MSVC++ allows things like (void *)1 as case constants.
                                              PREC_LOWEST,
                                              &result,
                                              (a_boolean *)NULL);
-  *name_ref = result.name_reference;
   extract_constant_from_operand(&result, constant);
   if (!is_integral_or_enum_type(constant->type)) {
     /* MSVC++ allows some weird cases like (void *)1.  Warn on those. */
@@ -34282,7 +34217,6 @@ FALSE.  MSVC++ allows things like (void *)1 as case constants.
     }  /* if */
   }  /* if */
   db_exit();
-  return result.name_reference_set;
 }  /* scan_microsoft_case_label_constant_expression */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
