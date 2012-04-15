@@ -14246,7 +14246,8 @@ initialization is in a condition declaration if is_condition is TRUE.
   get_variable_initializer(var, curr_name_context->assoc_scope,
                            &init_kind, &initializer);
   /* A condition always has an initializer. */
-  if (is_condition || is_explicit_initializer(init_kind, initializer)) {
+  if (is_condition || braced_init ||
+      is_explicit_initializer(init_kind, initializer)) {
     /* Push the name context for a class/namespace member. */
     if (microsoft_dialect_is_generated_code_target &&
         is_namespace_member(var)) {
