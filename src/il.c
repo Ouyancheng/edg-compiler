@@ -7118,6 +7118,7 @@ expression re-assign that expression to the copy being returned.
     /* The constant is associated with a name reference; use an unshared
        constant to preserve it. */
     il_cp = alloc_unshared_constant(cp);
+    il_cp->source_corresp.assoc_info = cp->source_corresp.assoc_info;
     transfer_expr = TRUE;
   } else {
     /* Use a shared constant, if possible. */
