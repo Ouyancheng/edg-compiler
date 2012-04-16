@@ -4013,8 +4013,8 @@ Return a constant representing the generated default initializer for an
 aggregate member requiring nontrivial initialization (i.e., a default
 constructor must be called, and/or a destructor must be recorded in case an
 exception aborts the initialization).  tp is the type of the member.
-Diagnostics should be issued for the given position.  *partial_init is TRUE
-if the default constructor that is called doesn't fully initialize the
+Diagnostics should be issued at the given position.  *partial_init is set to
+TRUE if the default constructor that is called doesn't fully initialize the
 aggregate member (because it is generated and relies on the object being
 zero-initialized first).
 */
@@ -4056,6 +4056,29 @@ zero-initialized first).
   result->type = tp;
   return result;
 }  /* default_nontrivial_init_constant_for_aggr_member */
+
+
+static a_constant_ptr add_repeat_con_if_needed(a_constant_ptr  elem_con,
+                                               a_targ_size_t      count)
+/*
+If count is larger than one, return a ck_init_repeat for that count on top of
+the given constant.  Otherwise, just return the given constant.
+*/
+{
+  a_constant_ptr  result;
+
+  if (count > 1) {
+    /* When there is more than one uninitialized element remaining in
+       the array, we put out an init_repeat constant on top of the
+       dynamic init constant. */
+    result = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+    result->variant.init_repeat.count = count;
+    result->variant.init_repeat.constant = elem_con;
+  } else {
+    result = elem_con;
+  }  /* if */
+  return result;
+}  /* add_repeat_con_if_needed */
 
 
 static void aggr_init_array_remainder_if_needed(a_constant_ptr     array_con,
@@ -4103,18 +4126,10 @@ position at which diagnostics should be issued.
       is->has_dynamic_init_component = TRUE;
       remainder_con = default_nontrivial_init_constant_for_aggr_member(
                                               etype, diag_pos, &partial_init);
-      if (count > 1) {
-        /* When there is more than one uninitialized element remaining in the
-           array, we put out an init_repeat constant on top of the dynamic init
-           constant. */
-        a_constant_ptr  repeat_con =
-                          alloc_constant((a_constant_repr_kind)ck_init_repeat);
-        repeat_con->variant.init_repeat.count = count;
-        repeat_con->variant.init_repeat.constant = remainder_con;
-        remainder_con = repeat_con;
-      }  /* if */
-      /* Add the constant entry to the list of constants. */
-      append_constant_in_aggr(remainder_con, array_con);
+      /* Add the constant entry to the list of constants, but add a
+         ck_repeat_init on top of it if needed. */
+      append_constant_in_aggr(add_repeat_con_if_needed(remainder_con, count),
+                              array_con);
     }  /* if */
   }  /* if */
 }  /* aggr_init_array_remainder_if_needed */
@@ -4251,7 +4266,7 @@ static void aggr_init_class_remainder_if_needed(a_constant_ptr     aggr_con,
 The given ck_aggregate constant initializes an aggregate class, but does not
 explicitly initialize the given field nor any subsequent fields.  Append any
 needed constants to the list embedded in aggr_con.
-*is describes the initialization as a while, and diag_pos indicates the
+*is describes the initialization as a whole, and diag_pos indicates the
 position for which diagnostics should be issued.
 */
 {
@@ -4302,20 +4317,12 @@ position for which diagnostics should be issued.
                                                 ftp, diag_pos, &partial_init);
           if (atp != NULL) {
             /* The field is an array.  Wrap its initializer in an aggregate
-               constant entry. */
-            a_constant_ptr  temp_con;
+               constant entry (but add an ck_init_repeat if needed). */
             a_targ_size_t   count = num_array_elements(ftp);
-            if (count > 1) {
-              /* When there is more than one uninitialized element remaining in
-                 the array, we put out an init_repeat constant on top of the
-                 dynamic init constant. */
-              temp_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-              temp_con->variant.init_repeat.count = count;
-              temp_con->variant.init_repeat.constant = init_con;
-              init_con = temp_con;
-            }  /* if */
+            a_constant_ptr  temp_con;
             temp_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-            append_constant_in_aggr(init_con, temp_con);
+            append_constant_in_aggr(add_repeat_con_if_needed(init_con, count),
+                                    temp_con);
             init_con = temp_con;
             init_con->type = atp;
           }  /* if */
@@ -4344,10 +4351,12 @@ static void aggr_init_class(an_init_component_ptr  *p_icp,
 /*
 Produce an aggregate constant (in *init_con) for the initialization of an
 object or subobject of the aggregate class type given by class_type.  The
-initializer is described by icp.  *is describes the initialization as a whole.
-*is describes the initialization as a whole, and diag_pos indicates the
-position at which diagnostics should be issued if no more specific position is
-available.
+initializer is described by *p_icp, and that value is updated to the next
+initializer to be considered by the caller (if the initializer is braced, just
+one initializer is "consumed", but otherwise several may be used depending on
+the number of fields being initialized).  *is describes the initialization as
+a whole, and diag_pos indicates the position at which diagnostics should be
+issued if no more specific position is available.
 */
 {
   an_init_component_ptr  icp = *p_icp;
@@ -6105,6 +6114,7 @@ cases, array_type is NULL).
 
   lparen_pos = pos_curr_token;
   /* Skip the left parenthesis. */
+  check_assertion(curr_token = tok_lparen);
   (void)get_token();
   dependent_class_init = array_type == NULL &&
                          could_be_dependent_class_type(init_type);
@@ -6129,8 +6139,8 @@ cases, array_type is NULL).
       a_type_ptr  object_class_type;
       /* If it is a base class, the object being constructed is the whole
          class (and the base class is a subobject thereof).  If it is a field,
-         the object being constructed is field itself.  Set the object class
-         type accordingly. */
+         the object being constructed is the field itself.  Set the object
+         class type accordingly. */
       check_assertion(cip != NULL);
       if (cip->kind == (a_constructor_init_kind)cik_field) {
         object_class_type = init_type;

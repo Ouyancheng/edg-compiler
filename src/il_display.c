@@ -6245,7 +6245,7 @@ Display the indicated constructor init entry.
   disp_ptr("next", (char *)ptr->next, iek_constructor_init);
   disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
   if (ptr->is_pack_expansion) disp_boolean("is_pack_expansion", TRUE);
-  if (ptr->is_braced) disp_boolean("is_braced", (a_boolean)ptr->is_braced);
+  if (ptr->is_braced) disp_boolean("is_braced", TRUE);
   disp_name("kind");
   switch (ptr->kind) {
     case cik_virtual_base_class:
