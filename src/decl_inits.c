@@ -6114,7 +6114,7 @@ cases, array_type is NULL).
 
   lparen_pos = pos_curr_token;
   /* Skip the left parenthesis. */
-  check_assertion(curr_token = tok_lparen);
+  check_assertion(curr_token == tok_lparen);
   (void)get_token();
   dependent_class_init = array_type == NULL &&
                          could_be_dependent_class_type(init_type);
