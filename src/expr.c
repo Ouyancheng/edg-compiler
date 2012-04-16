@@ -31782,6 +31782,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
     extract_constant_from_operand_with_fs_fixup(&result, constant);
   }  /* if */
   check_assertion(constant->expr == NULL ||
+                  constant->expr->name_reference != NULL ||
                   curr_expr_kind_is_one_in_which_const_exprs_are_recorded());
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
