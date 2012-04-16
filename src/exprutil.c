@@ -4118,7 +4118,9 @@ Extract the constant value from the operand *operand and place it in
         expr->name_reference = find_allocated_name_reference(
                                               &shared_constant->source_corresp,
                                               &operand->name_reference);
-        constant->expr = expr;
+        if (expr->name_reference != NULL) {
+          constant->expr = expr;
+        }  /* if */
       }  /* if */
       break;
     default:
