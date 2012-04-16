@@ -4363,6 +4363,10 @@ user later during real instantiations.
        don't attempt to call scan_function_body since that will just trigger
        syntax errors. */
     if (!rout_ptr->is_defaulted) expect_error();
+  } else if (func_info_ptr->is_deleted) {
+    /* Similarly, no prototype instantiation is needed for "= delete;"
+       definitions. */
+    if (!rout_ptr->is_deleted) expect_error();
   } else {
     a_push_scope_options_set	    ps_options = PS_PROTOTYPE_INSTANTIATION;
     if (tssp->is_generic) ps_options = PS_GENERIC_DEFINITION;
