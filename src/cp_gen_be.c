@@ -4954,6 +4954,7 @@ al_tag_name attributes (if any).
       tag_kind_str = tag_kind(class_type_supp(type)->orig_type_kind);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (is_immediate_class_type(type) && (options & GN_FRIEND_DECL) &&
         type->variant.class_struct_union.proxy_class &&
         type->variant.class_struct_union.template_parameter_type != NULL) {
@@ -4962,6 +4963,7 @@ al_tag_name attributes (if any).
          declaration with no class keyword. */
       tag_kind_str = "";
     }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     write_tok_str(tag_kind_str);
     if ((options & GN_DECLARATION) != 0) {
       gen_attributes(attributes, al_tag_name, /*primary_only=*/FALSE);
