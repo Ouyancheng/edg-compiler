@@ -4672,14 +4672,21 @@ next_argument:
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
   }  /* for */
-  if (param != NULL && function_template_case &&
-      param_before_deduction->is_parameter_pack) {
-    /* The substituted routine type doesn't have the expected number of
-       parameters to match the arguments we have, so some parameter pack
-       must have been deduced one way but it's also used at the end as
-       matching zero arguments, which implies an empty expansion.
-       Deduction fails. */
-    goto reject_function;
+  if (param != NULL) {
+    if (function_template_case && param_before_deduction->is_parameter_pack) {
+      /* The substituted routine type doesn't have the expected number of
+         parameters to match the arguments we have, so some parameter pack
+         must have been deduced one way but it's also used at the end as
+         matching zero arguments, which implies an empty expansion.
+         Deduction fails. */
+      goto reject_function;
+    } else if (param->is_parameter_pack) {
+      /* This can also come up in the prototype instantiation of a non-template
+         member of a class template that uses a pack expansion in its
+         parameter list. */
+      check_assertion(routine->is_prototype_instantiation);
+      goto reject_function;
+    }  /* if */
   }  /* if */
   /* If param != NULL here, there are default arguments (because we got past
      the argument-count check above). */
