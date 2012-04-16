@@ -16654,7 +16654,8 @@ function declarator.
   a_boolean		missing_end;
 
   db_enter(3, "cache_function_template_body");
-  if (curr_token == tok_assign && next_token() == tok_delete) {
+  if (deleted_functions_enabled && curr_token == tok_assign &&
+      next_token() == tok_delete) {
     /* Although "= delete" is technically the definition of the template, we
        want to see those tokens during partial instantiations.  So they
        shouldn't be cached again as part of the body. */
