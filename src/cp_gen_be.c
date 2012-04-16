@@ -4955,9 +4955,15 @@ al_tag_name attributes (if any).
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_immediate_class_type(type) && (options & GN_FRIEND_DECL) &&
-        type->variant.class_struct_union.proxy_class) {
-      /* Use the C++11 feature of referring to a template parameter in a
-         friend declaration with no class keyword. */
+        type->variant.class_struct_union.proxy_class &&
+        !(type->source_corresp.parent_scope != NULL &&
+          type->source_corresp.parent_scope->kind ==
+                                       (a_scope_kind)sck_class_struct_union)) {
+      /* This is a proxy class for a template parameter (nested dependent
+         classes are also represented by proxy classes, but their parent
+         scope is the containing class).  Use the C++11 feature of
+         referring to a template parameter in a friend declaration with no
+         class keyword. */
       tag_kind_str = "";
     }  /* if */
     write_tok_str(tag_kind_str);
