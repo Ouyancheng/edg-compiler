@@ -17986,7 +17986,8 @@ not be returned.
     terminate_token_cache(p_token_cache);
   } else if (curr_token == tok_assign) {
     a_token_kind  next_tok = next_token();
-    if (next_tok == tok_delete || next_tok == tok_default) {
+    if ((deleted_functions_enabled && next_tok == tok_delete) || 
+        (defaulted_special_members_enabled && next_tok == tok_default)) {
       /* Cache "= delete" or "= default" (leave the semicolon for the
          caller). */
       if (start_pos != NULL) *start_pos = pos_curr_token;

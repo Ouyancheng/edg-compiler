@@ -1,5 +1,22 @@
 Version 4.5
 
+4/16/12  [EDGcpfe/12847]
+Deleted function templates and the C++-generating back end
+
+When support for deleted functions was not enabled, the front end sometimes
+failed to diagnose the unrecognized syntax, and instead the C++-generating
+back end aborted with an internal error in gen_template.  For example:
+
+  template<class T> void f(T&) = delete;
+           // Previously caused an abort in the C++-generating back end if
+           // support for "= delete" was disabled.
+
+If support for "= delete" was enabled, the C++-generating back end rendered
+the "= delete" part twice (i.e., "= delete = delete").
+
+Both of these problems are now fixed.
+
+
 4/16/12  [EDGcpfe/12835]
 Abort on use of variadic non-template member function within itself
 
