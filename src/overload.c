@@ -19443,7 +19443,9 @@ Convert an initializer value represented in init-component form (icp)
 to the type of the entity being initialized, given by dest_type.  If
 check_narrowing is TRUE, issue diagnostics for narrowing conversions.
 conv_context describes the context of the conversion (including
-whether this is direct-list-initialization).
+whether this is direct-list-initialization).  Note that while a main
+purpose of this routine is to handle braced-init-lists, it also
+handles expression initializers.
 
 Has a dual interface:  If result is non-NULL, the result is returned in
 *result in operand form.  If the result is a class type with a destructor,
@@ -19466,7 +19468,7 @@ be placed on any object lifetime list (the caller must do that).
   a_dynamic_init_ptr  dip = NULL;
   a_constant_ptr      constant = NULL;
   a_boolean           local_is_constant;
-  a_boolean           empty_brace_init;
+  a_boolean           braced_init;
   a_boolean           is_direct_init =
                                (conv_context & CCO_DIRECT_INITIALIZATION) != 0;
   a_symbol_ptr        ctor_sym;
@@ -19478,12 +19480,12 @@ be placed on any object lifetime list (the caller must do that).
     *p_dip = NULL;
     *p_constant = NULL;
   }  /* if */
+  braced_init = is_braced_init_component(icp);
   /* Check for an initializer of "{}", which means value-initialization. */
-  empty_brace_init = is_empty_list_init_component(icp);
   check_assertion(dest_type != NULL &&
                   (!is_aggregate_type(dest_type) ||
                    is_expression_component(icp) ||
-                   empty_brace_init));
+                   is_empty_list_init_component(icp)));
   /* Reactivate and/or adjust the lifetimes added around expressions in
      the initializer list. */
   promote_init_component_lifetimes(icp);
@@ -19513,7 +19515,7 @@ be placed on any object lifetime list (the caller must do that).
                                conv_context,
                                ec_bad_initializer_type);
     }  /* if */
-  } else if (is_braced_init_component(icp)) {
+  } else if (braced_init) {
     /* The entity is initialized by a brace-enclosed list. */
     an_init_component_ptr list = icp->variant.braced.list;
     /* The tests that follow are based on the bullet list in [dcl.init.list]
@@ -19611,6 +19613,7 @@ be placed on any object lifetime list (the caller must do that).
      If constant != NULL, the result is that constant.
      Otherwise, the result is in "operand".  If the required result is
      in a different format, convert to that. */
+  if (dip != NULL && braced_init) dip->is_braced_initializer = TRUE;
   if (result != NULL) {
     /* The caller wants the result in an_operand form in *result. */
     if (dip != NULL) {

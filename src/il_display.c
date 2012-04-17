@@ -5764,8 +5764,8 @@ Display the indicated dynamic_init structure.
   if (ptr->is_compound_literal) {
     disp_boolean("is_compound_literal", TRUE);
   }  /* if */
-  if (ptr->is_list_initializer) {
-    disp_boolean("is_list_initializer", TRUE);
+  if (ptr->is_braced_initializer) {
+    disp_boolean("is_braced_initializer", TRUE);
   }  /* if */
   if (ptr->is_partially_initialized_compound_literal) {
     disp_boolean("is_partially_initialized_compound_literal", TRUE);

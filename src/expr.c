@@ -19335,7 +19335,7 @@ operand are not set appropriately; the caller should set them on return.
     err = TRUE;
   } else {
     dip->destructor = dtor;
-    dip->is_list_initializer = list_init;
+    dip->is_braced_initializer = list_init;
   }  /* if */
   /* The type can be updated for an incomplete array. */
   *p_literal_type = literal_type;

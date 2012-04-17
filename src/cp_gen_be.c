@@ -4201,7 +4201,8 @@ represented in the IL as a compound literal; in this case, transparent_union
 will be TRUE, and the cast and braces must be suppressed.
 */
 {
-  a_boolean  is_scalar, list_init = (dip != NULL && dip->is_list_initializer);
+  a_boolean is_scalar;
+  a_boolean list_init = (dip != NULL && dip->is_braced_initializer);
 
   if (literal_con != NULL) {
     literal_type = literal_con->type;
