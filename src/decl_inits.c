@@ -4567,6 +4567,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
                                (a_dynamic_init_kind)dik_nonconstant_aggregate);
       is->init_dip->variant.constant = is->init_con;
       is->init_dip->destructor = dtor_rp;
+      is->init_dip->is_braced_initializer = TRUE;
       is->init_con = NULL;
     }  /* if */
     if (is->any_uninitialized_const_or_ref_member) {
@@ -6413,6 +6414,7 @@ entries are replaced as needed for each mem-initializer that is encountered.
             /* Use a placeholder error constant. */
             is.init_dip->variant.constant = alloc_error_constant();
           }  /* if */
+          is.init_dip->is_braced_initializer = TRUE;
           is.init_con = NULL;
         }  /* if */
         new_cip->initializer = is.init_dip;
