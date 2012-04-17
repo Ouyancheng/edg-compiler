@@ -4107,9 +4107,7 @@ position at which diagnostics should be issued.
   }  /* if */
   if (is_real_class_type(etype)) {
     /* It is an array of class objects. */
-    a_boolean  partial_init = FALSE;   /* FIXME: propagate up? */
-    a_class_symbol_supplement_ptr
-               cssp = symbol_supplement_for_class(etype);
+    a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(etype);
     if (has_trivial_default_constructor(cssp) &&
         (!exceptions_enabled || cssp->has_trivial_destructor)) {
       if (cssp->any_ref_member) {
@@ -4122,9 +4120,11 @@ position at which diagnostics should be issued.
       /* Initialization must be represented in the IL since it is not
          trivial. */
       a_constant_ptr  remainder_con;
+      a_boolean       partial_init = FALSE;
       is->has_dynamic_init_component = TRUE;
       remainder_con = default_nontrivial_init_constant_for_aggr_member(
                                               etype, diag_pos, &partial_init);
+      if (partial_init) is->partial_initializer = TRUE;
       /* Add the constant entry to the list of constants, but add a
          ck_repeat_init on top of it if needed. */
       append_constant_in_aggr(add_repeat_con_if_needed(remainder_con, count),
@@ -4299,7 +4299,6 @@ position for which diagnostics should be issued.
          fp != last_dyn_field->next;
          fp = next_initializable_field(fp->next)) {
       a_type_ptr      ftp = skip_typerefs(fp->type), atp = NULL;
-      a_boolean       partial_init = FALSE;  /* FIXME: propagate up? */
       a_constant_ptr  init_con = NULL;
       if (ftp->kind == (a_type_kind)tk_array) {
         atp = ftp;
@@ -4313,8 +4312,10 @@ position for which diagnostics should be issued.
         if (!has_trivial_default_constructor(cssp) ||
             (exceptions_enabled && !cssp->has_trivial_destructor)) {
           /* Nontrivial initialization/destruction. */
+          a_boolean  partial_init = FALSE;
           init_con = default_nontrivial_init_constant_for_aggr_member(
                                                 ftp, diag_pos, &partial_init);
+          if (partial_init) is->partial_initializer = TRUE;
           if (atp != NULL) {
             /* The field is an array.  Wrap its initializer in an aggregate
                constant entry (but add an ck_init_repeat if needed). */
@@ -4339,6 +4340,12 @@ position for which diagnostics should be issued.
       /* Add the constant entry to the list of constants. */
       append_constant_in_aggr(init_con, aggr_con);
     }  /* for */
+  }  /* if */
+  /* Check if there are any remaining fields not covered by the initializer. */
+  if (last_dyn_field == NULL) {
+    if (next_field != NULL) is->partial_initializer = TRUE;
+  } else if (next_initializable_field(last_dyn_field->next) != NULL) {
+    is->partial_initializer = TRUE;
   }  /* if */
 }  /* aggr_init_class_remainder_if_needed */
 
@@ -4607,6 +4614,9 @@ more specific position is available).
   check_assertion(vp != NULL);
   vp->has_direct_braced_initializer = TRUE;
   direct_braced_initializer(dps->type, &dps->init_state, dps, diag_pos);
+  if (dps->init_state.partial_initializer) {
+    vp->is_partially_initialized = TRUE;
+  }  /* if */
   if (is_incomplete_array_type(vp->type) && is_array_type(dps->type)) {
     vp->type = dps->type;
   }  /* if */

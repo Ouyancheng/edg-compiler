@@ -90,6 +90,7 @@ Clear the fields of *is.
   is->init_error = FALSE;
   is->has_dynamic_init_component = FALSE;
   is->any_uninitialized_const_or_ref_member = FALSE;
+  is->partial_initializer = FALSE;
 }  /* clear_init_state_fields */
 
 

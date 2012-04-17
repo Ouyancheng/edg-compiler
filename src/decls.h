@@ -329,6 +329,10 @@ typedef struct an_init_state {
 			/* TRUE if this declaration has a braced initializer
 			   that fails to initialize a const or reference
 			   member. */
+  a_bit_field	partial_initializer:1;
+			/* TRUE if the initializer does not actually cover the
+			   whole initialized object (and hence some additional
+			   zero-initialization may be required). */
 } an_init_state;
 
 
