@@ -19391,11 +19391,11 @@ expression, and here we break things out of those lifetimes and move them
 into the proper final lifetimes.
 */
 {
-  check_assertion(curr_object_lifetime != NULL &&
-                  expr_stack->lifetime == NULL);
   /* Don't promote if it has been done previously. */
   if (!icp->lifetimes_promoted) {
     icp->lifetimes_promoted = TRUE;
+    check_assertion(curr_object_lifetime != NULL &&
+                    expr_stack->lifetime == NULL);
     if (is_expression_component(icp)) {
       /* For an expression with a lifetime, process the lifetime. */
       an_object_lifetime_ptr wrap_lifetime = icp->variant.expr->lifetime;
