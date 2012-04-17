@@ -477,7 +477,6 @@ static void gen_initializer_expr(an_expr_node_ptr expr,
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
-                             a_boolean          braced_init,
                              a_boolean          force_parens,
                              a_boolean          obj_expr_of_mfunc_operator,
                              a_boolean          is_static_cast);
@@ -4744,7 +4743,6 @@ field designator.
     /* Dynamic initialization for an element of an aggregate. */
     gen_dynamic_init(constant->variant.dynamic_init, type,
                      /*parenthesized_init=*/FALSE,
-                     /*braced_init=*/FALSE,
                      /*force_parens=*/FALSE,
                      /*obj_expr_of_mfunc_operator=*/FALSE,
                      /*is_static_cast=*/FALSE);
@@ -8125,8 +8123,8 @@ in determining how to generate dynamic initializations).
     /* A temp-init marked as a reused value is just put out as the
        underlying value. */
     gen_dynamic_init(dip, temp_type, /*parenthesized_init=*/FALSE,
-                     /*braced_init=*/FALSE, /*force_parens=*/FALSE,
-                     obj_expr_of_mfunc_operator, expr->is_static_cast);
+                     /*force_parens=*/FALSE, obj_expr_of_mfunc_operator,
+                     expr->is_static_cast);
   } else if (C_mode() ||
              ((dip->kind == (a_dynamic_init_kind)dik_constant ||
                dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
@@ -8154,8 +8152,8 @@ in determining how to generate dynamic initializations).
       }  /* if */
     }  /* if */
     gen_dynamic_init(dip, temp_type, /*parenthesized_init=*/FALSE,
-                     /*braced_init=*/FALSE, /*force_parens=*/FALSE,
-                     obj_expr_of_mfunc_operator, expr->is_static_cast);
+                     /*force_parens=*/FALSE, obj_expr_of_mfunc_operator,
+                     expr->is_static_cast);
     if (cast_added) write_tok_ch(')');
   }  /* if */
 }  /* gen_temp_init */
@@ -8725,8 +8723,7 @@ function call, notation.
     /* For an argument passed using a copy constructor, optimize out
        the copy constructor reference. */
     gen_dynamic_init(arg->variant.init.dynamic_init, param->type,
-                     /*parenthesized_init=*/FALSE, /*braced_init=*/FALSE,
-                     /*force_parens=*/FALSE,
+                     /*parenthesized_init=*/FALSE, /*force_parens=*/FALSE,
                      /*obj_expr_of_mfunc_operator=*/FALSE,
                      /*is_static_cast=*/FALSE);
   } else {
@@ -8970,7 +8967,6 @@ Generate code for a new or delete operation.
     if (ndsp->dynamic_init != NULL) {
       /* The allocated entity gets initialized. */
       gen_dynamic_init(ndsp->dynamic_init, type, /*parenthesized_init=*/TRUE,
-                       /*braced_init=*/FALSE,
                        /*force_parens=*/(a_boolean)ndsp->has_new_initializer,
                        /*obj_expr_of_mfunc_operator=*/FALSE,
                        /*is_static_cast=*/FALSE);
@@ -9023,7 +9019,6 @@ Generate code for a gcnew expression.
     gen_dynamic_init(dip,
                      (gsp->is_cli_array ? gcnew_expr->type : type),
                      /*parenthesized_init=*/!gsp->is_cli_array,
-                     /*braced_init=*/FALSE,
                      /*force_parens=*/!gsp->is_cli_array &&
                                       gsp->has_new_initializer,
                      /*obj_expr_of_mfunc_operator=*/FALSE,
@@ -11491,8 +11486,7 @@ done_with_operation_after_parens:
         a_throw_supplement_ptr tsp = expr->variant.throw_info;
         write_space();
         gen_dynamic_init(tsp->dynamic_init, tsp->type,
-                         /*parenthesized_init=*/FALSE, /*braced_init=*/FALSE,
-                         /*force_parens=*/FALSE,
+                         /*parenthesized_init=*/FALSE, /*force_parens=*/FALSE,
                          /*obj_expr_of_mfunc_operator=*/FALSE,
                          /*is_static_cast=*/FALSE);
       }  /* if */
@@ -11578,7 +11572,7 @@ done_with_operation_after_parens:
       /* This comes up in Microsoft property reference expansions. */
       dip = expr->variant.reused_value_init;
       gen_dynamic_init(dip, expr->type, /*parenthesized_init=*/FALSE,
-                       /*braced_init=*/FALSE, /*force_parens=*/FALSE,
+                       /*force_parens=*/FALSE,
                        /*obj_expr_of_mfunc_operator=*/FALSE,
                        expr->is_static_cast);
       break;
@@ -11873,7 +11867,6 @@ Generate code for the indicated range-based-for statement.
   gen_dynamic_init(ref_var->initializer.dynamic,
                    ref_var->type,
                    /*parenthesized_init=*/FALSE,
-                   /*braced_init=*/FALSE,
                    /*force_parens=*/FALSE,
                    /*obj_expr_of_mfunc_operator=*/FALSE,
                    /*is_static_cast=*/FALSE);
@@ -11914,7 +11907,6 @@ Generate code for the indicated "for each" statement.
   gen_dynamic_init(ref_var->initializer.dynamic,
                    ref_var->type,
                    /*parenthesized_init=*/FALSE,
-                   /*braced_init=*/FALSE,
                    /*force_parens=*/FALSE,
                    /*obj_expr_of_mfunc_operator=*/FALSE,
                    /*is_static_cast=*/FALSE);
@@ -13615,7 +13607,7 @@ one that yields the value) of a statement expression.
             write_space();
             gen_dynamic_init(statement->variant.return_dynamic_init,
                              return_type, /*parenthesized_init=*/FALSE,
-                             /*braced_init=*/FALSE, /*force_parens=*/FALSE,
+                             /*force_parens=*/FALSE,
                              /*obj_expr_of_mfunc_operator=*/FALSE,
                              /*is_static_cast=*/FALSE);
           }  /* if */
@@ -13812,7 +13804,6 @@ source.
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
-                             a_boolean          braced_init,
                              a_boolean          force_parens,
                              a_boolean          obj_expr_of_mfunc_operator,
                              a_boolean          is_static_cast)
@@ -13859,6 +13850,7 @@ source and the expression is generated in that form.
   a_boolean        suppress_outermost_parentheses = FALSE;
   a_boolean        unnamed_type_case = FALSE;
   a_boolean        need_closing_operand_paren = FALSE;
+  a_boolean        braced_init = dip->is_braced_initializer;
   a_boolean        assign_init = !parenthesized_init && !braced_init;
 
   if (dip->is_explicit_cast && !parenthesized_init) {
@@ -14303,7 +14295,7 @@ initialization is in a condition declaration if is_condition is TRUE.
           write_tok_str(" = ");
         }  /* if */
         gen_dynamic_init(initializer->dynamic, var->type, parenthesized_init,
-                         braced_init, /*force_parens=*/FALSE,
+                         /*force_parens=*/FALSE,
                          /*obj_expr_of_mfunc_operator=*/FALSE,
                          /*is_static_cast=*/FALSE);
         break;
@@ -14748,7 +14740,6 @@ a constructor.
         /* Generate the initialization. */
         gen_dynamic_init(ctor_init->initializer, type,
                          /*parenthesized_init=*/!ctor_init->is_braced,
-                         ctor_init->is_braced,
                          /*force_parens=*/!ctor_init->is_braced,
                          /*obj_expr_of_mfunc_operator=*/FALSE,
                          /*is_static_cast=*/FALSE);
