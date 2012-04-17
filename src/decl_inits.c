@@ -4296,7 +4296,7 @@ position for which diagnostics should be issued.
   if (last_dyn_field != NULL) {
     is->has_dynamic_init_component = TRUE;
     for (fp = next_field;
-         fp != last_dyn_field;
+         fp != last_dyn_field->next;
          fp = next_initializable_field(fp->next)) {
       a_type_ptr      ftp = skip_typerefs(fp->type), atp = NULL;
       a_boolean       partial_init = FALSE;  /* FIXME: propagate up? */
@@ -4318,7 +4318,7 @@ position for which diagnostics should be issued.
           if (atp != NULL) {
             /* The field is an array.  Wrap its initializer in an aggregate
                constant entry (but add an ck_init_repeat if needed). */
-            a_targ_size_t   count = num_array_elements(ftp);
+            a_targ_size_t   count = num_array_elements(atp);
             a_constant_ptr  temp_con;
             temp_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
             append_constant_in_aggr(add_repeat_con_if_needed(init_con, count),
