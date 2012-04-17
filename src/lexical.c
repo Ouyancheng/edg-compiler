@@ -17933,8 +17933,8 @@ of the compound statement.
     if (curr_token == tok_lbrace) {
       might_be_compound_stmt = TRUE;
       local_start_pos = pos_curr_token;
-      cache_token_stream_until_matching_token(p_token_cache,
-                                              /*coalesce_ids=*/FALSE);
+      (void)cache_token_stream_until_matching_token(p_token_cache,
+                                                    /*coalesce_ids=*/FALSE);
       cache_curr_token(p_token_cache);
       next_tok = next_token();
     }  /* if */
