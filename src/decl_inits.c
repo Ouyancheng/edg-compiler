@@ -4068,13 +4068,12 @@ the given constant.  Otherwise, just return the given constant.
   a_constant_ptr  result;
 
   if (count > 1) {
-    /* When there is more than one uninitialized element remaining in
-       the array, we put out an init_repeat constant on top of the
-       dynamic init constant. */
+    /* A ck_init_repeat entry is needed. */
     result = alloc_constant((a_constant_repr_kind)ck_init_repeat);
     result->variant.init_repeat.count = count;
     result->variant.init_repeat.constant = elem_con;
   } else {
+    /* Return the given constant. */
     result = elem_con;
   }  /* if */
   return result;
@@ -4272,9 +4271,10 @@ position for which diagnostics should be issued.
 {
   a_field_ptr  fp, last_dyn_field = NULL;
 
+  next_field = next_initializable_field(next_field);
   /* Run a first pass through the remaining fields to see if any requires
      nontrivial default initialization.  Keep track of the last such field. */
-  for (fp = next_field; fp != NULL; fp = fp->next) {
+  for (fp = next_field; fp != NULL; fp = next_initializable_field(fp->next)) {
     a_type_ptr  ftp = fp->type;
     if (is_any_reference_type(ftp)) {
       /* An uninitialized reference will likely result in a diagnostic. */
