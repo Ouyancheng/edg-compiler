@@ -84,8 +84,6 @@ push a pack expansion suppression.  If cache_tokens is TRUE, a token
 cache of the tokens fetched for disambiguation should be created.
 */
 {
-  a_scope_stack_entry_ptr	ssep;
-
   dsp->decl_class_type = NULL;
   dsp->may_be_decl = TRUE;
   dsp->terminate = FALSE;
@@ -96,15 +94,10 @@ cache of the tokens fetched for disambiguation should be created.
   if (cache_tokens) {
     begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
   }  /* if */
-  dsp->variadic_prototype_instantiation = suppress_packs &&
-       is_prototype_instantiation_context() && is_variadic_template_context();
-  if (dsp->variadic_prototype_instantiation) {
-    /* Disable variadic processing during the prescan. */
-    push_expansion_suppression(&dsp->pack_expansion_stack_entry);
-  }  /* if */
-  ssep = &scope_stack_top();
-  dsp->saved_in_disambiguation = ssep->in_disambiguation;
-  ssep->in_disambiguation = TRUE;
+  /* Indicate that we are in a prescan context. */
+  begin_prescan_context(suppress_packs, &dsp->variadic_prototype_instantiation,
+                        &dsp->pack_expansion_stack_entry,
+                        &dsp->saved_in_disambiguation);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   dsp->find_static_specifier_only = FALSE;
   dsp->static_specifier_seen = FALSE;
@@ -135,11 +128,10 @@ Perform any operations that must be done to clean up after disambiguation.
                &cache, /*discard_curr_token=*/curr_token != tok_end_of_source);
     }   /* if */
   }  /* if */
-  if (dsp->variadic_prototype_instantiation) {
-    /* Restore the variadic processing state. */
-    pop_expansion_suppression(dsp->pack_expansion_stack_entry);
-  }  /* if */
-  scope_stack_top().in_disambiguation = dsp->saved_in_disambiguation;
+  /* Mark the end of the prescan context. */
+  end_prescan_context(dsp->variadic_prototype_instantiation,
+                      dsp->pack_expansion_stack_entry,
+                      dsp->saved_in_disambiguation);
 }  /* wrapup_disambig_state */
 
 

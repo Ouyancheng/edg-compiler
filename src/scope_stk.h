@@ -1971,6 +1971,17 @@ extern void push_expansion_suppression(
 extern void pop_expansion_suppression(
 			a_pack_expansion_stack_entry_ptr	pesep);
 
+extern void begin_prescan_context(
+	a_boolean				suppress_packs,
+	a_boolean				*packs_suppressed,
+	a_pack_expansion_stack_entry_ptr	*pack_expansion_stack_entry,
+	a_boolean				*saved_in_disambiguation);
+
+extern void end_prescan_context(
+	a_boolean				packs_suppressed,
+	a_pack_expansion_stack_entry_ptr	pack_expansion_stack_entry,
+	a_boolean				saved_in_disambiguation);
+
 extern a_boolean begin_potential_pack_expansion_context_full(
 		a_pack_expansion_stack_entry_ptr	*p_pesep,
 		a_pack_expansion_descr_ptr		*p_pedp,

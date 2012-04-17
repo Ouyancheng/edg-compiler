@@ -17899,6 +17899,82 @@ error cases.
 }  /* cache_function_try_block_clauses */
 
 
+static void cache_ctor_initializers(
+				a_token_cache		*p_token_cache,
+				a_token_set_array	stop_tokens,
+				a_boolean		*compound_stmt_cached,
+				a_source_position	*start_pos)
+/*
+Cache any ctor-initializers of a constructor into p_token_cache.
+stop_tokens is the stop token set to be used.  This is used when C++11
+brace-enclosed initializer lists are allowed because we can't simply cache
+up to an opening brace to find the compound statement of the function body.
+In some cases, we don't know whether a right brace is part of an
+initializer or is the function body.  Only after reaching the closing
+brace can we decide.  If it turns out to be a function body, we set
+*compound_stmt_cached to TRUE and set *start_pos to the starting position
+of the compound statement.
+*/
+{
+  a_source_position		local_start_pos = null_source_position;
+  a_token_kind			next_tok = tok_error;
+  a_boolean			might_be_compound_stmt;
+
+  check_assertion(curr_token == tok_colon);
+  *compound_stmt_cached = FALSE;
+  incr_token_set_array_element(stop_tokens, tok_rbrace);
+  incr_token_set_array_element(stop_tokens, tok_lbrace);
+  incr_token_set_array_element(stop_tokens, tok_semicolon);
+  for (;;) {
+    might_be_compound_stmt = FALSE;
+    /* Cache up to a stop token. */
+    cache_token_stream(p_token_cache, stop_tokens);
+    /* If we stopped on a left brace, cache to the matching right brace. */
+    if (curr_token == tok_lbrace) {
+      might_be_compound_stmt = TRUE;
+      local_start_pos = pos_curr_token;
+      cache_token_stream_until_matching_token(p_token_cache,
+                                              /*coalesce_ids=*/FALSE);
+      cache_curr_token(p_token_cache);
+      next_tok = next_token();
+    }  /* if */
+    /* If we didn't find a matching right brace, some kind of syntax
+       error must have occurred.   Exit the loop. */
+    if (curr_token != tok_rbrace) break;
+    /* We should be at the end of a brace-enclosed initializer (but it
+       could also have been the compound statement of the function body).
+       If variadic templates are enabled, look for a pack expansion. */
+    if (next_tok == tok_ellipsis && variadic_templates_enabled) {
+      cache_curr_token(p_token_cache);
+      (void)get_token();
+      next_tok = next_token();
+      /* We know this was not a compound statement if it was followed by
+         an ellipsis. */
+      might_be_compound_stmt = FALSE;
+    }  /* if */
+    if (next_tok != tok_comma) break;
+    /* Get and cache the comma. */
+    (void)get_token();
+    cache_curr_token(p_token_cache);
+    (void)get_token();
+  }  /* for */
+  /* If the next token is not a left brace (presumably the start of the
+     compound statement of the function body), assume we have already
+     cached the compound statement. */
+  if (next_tok != tok_lbrace && might_be_compound_stmt) {
+    check_assertion(cmp_source_positions(local_start_pos,
+                                         null_source_position) != 0);
+    *compound_stmt_cached = TRUE;
+    if (start_pos != NULL) *start_pos = local_start_pos;
+  } else {
+    (void)get_token();
+  }  /* if */
+  decr_token_set_array_element(stop_tokens, tok_rbrace);
+  decr_token_set_array_element(stop_tokens, tok_lbrace);
+  decr_token_set_array_element(stop_tokens, tok_semicolon);
+}  /* cache_ctor_initializers */
+
+
 a_boolean cache_function_body(
 			a_token_cache		*p_token_cache,
 			a_boolean		is_constructor,
@@ -17926,6 +18002,7 @@ not be returned.
   a_boolean	     result = FALSE;
   a_boolean	     try_found = FALSE;
   a_boolean	     save_caching_tokens = caching_tokens;
+  a_boolean          compound_stmt_cached = FALSE;
 
   db_enter(3, "cache_function_body");
   /* Set a flag that indicates that the tokens being scanned are to be
@@ -17951,14 +18028,30 @@ not be returned.
       (void)get_token();
     }  /* if */
     if (curr_token == tok_colon) {
-      /* This is a ctor-initializer list on a constructor.  Cache it. */
-      cache_to_compound_stmt(p_token_cache, stop_tokens);
+      /* This is a ctor-initializer list on a constructor -- cache it.
+         When brace-enclosed initializers are enabled we need to handle
+         constructs like ": x{...}, y{...}", so a special function is called.
+         When that feature is not enabled, we can just cache to the compound
+         statement of the function body. */
+      if (list_init_enabled) {
+        cache_ctor_initializers(p_token_cache, stop_tokens,
+                                &compound_stmt_cached, start_pos);
+      } else {
+        cache_to_compound_stmt(p_token_cache, stop_tokens);
+      }  /* if */
     }  /* if */
-    if (curr_token == tok_lbrace) {
+    /* If compound_stmt_cached is TRUE, the routine that cached the
+       ctor-initializers also ended up caching the compound statement as
+       well.  This is okay as we were about to cache it below.  Continue
+       processing as normal, but suppress the actual caching of the compound
+       statement below. */
+    if (curr_token == tok_lbrace || compound_stmt_cached) {
       /* This is a compound statement that is the body of the function. */
-      /* Save the starting position of the main block of the function. */
-      if (start_pos != NULL) *start_pos = pos_curr_token;
-      cache_compound_stmt(p_token_cache, stop_tokens);
+      if (!compound_stmt_cached) {
+        /* Save the starting position of the main block of the function. */
+        if (start_pos != NULL) *start_pos = pos_curr_token;
+        cache_compound_stmt(p_token_cache, stop_tokens);
+      }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       /* Save the ending position of the main block of the function. */
       if (end_pos != NULL) *end_pos = end_pos_curr_token;
