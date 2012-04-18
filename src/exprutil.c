@@ -4109,9 +4109,9 @@ Extract the constant value from the operand *operand and place it in
       break;
     case ok_constant:
       copy_constant(&operand->variant.constant, constant);
+      check_assertion(expr_stack != NULL);
       if (operand->name_reference_set &&
-          (expr_stack == NULL ||
-           curr_expr_kind_is_one_in_which_const_exprs_are_recorded())) {
+          curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
         /* We need to add a backing expression to preserve the supplied
            name reference. */
         a_constant_ptr   shared_constant =
