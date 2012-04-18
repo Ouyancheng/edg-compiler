@@ -16525,12 +16525,13 @@ Lower an stmk_return statement.
          {temp = expr; return temp;}
                       ^--- to allow insertion of code here.
        Don't rewrite constant expressions or the return expression
-       in a constructor (it's "return this;").
+       in a constructor or destructor (it's "return this;").
     */
     if (return_expr != NULL &&
         !is_invariant_expr(return_expr, /*vars_can_change=*/TRUE,
                            /*treat_as_potential_rvalue=*/FALSE) &&
-        routine->special_kind != (a_special_function_kind)sfk_constructor) {
+        routine->special_kind != (a_special_function_kind)sfk_constructor &&
+        routine->special_kind != (a_special_function_kind)sfk_destructor) {
       /* There is a nonconstant return expression, so use a temporary.
          Note that the return type cannot call for a copy constructor,
          or the routine would be returning its value via an added
