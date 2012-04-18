@@ -13852,6 +13852,8 @@ source and the expression is generated in that form.
   a_boolean        need_closing_operand_paren = FALSE;
   a_boolean        braced_init = dip->is_braced_initializer;
   a_boolean        assign_init = !parenthesized_init && !braced_init;
+  char             *start_delim = (char *)(braced_init ? "{" : "(");
+  char             *end_delim = (char *)(braced_init ? "}" : ")");
 
   if (dip->is_explicit_cast && !parenthesized_init) {
     a_boolean has_one_argument = FALSE;
@@ -14102,14 +14104,21 @@ source and the expression is generated in that form.
       /* Expression. */
       /* Process any tags declared within the expression (e.g., in casts). */
       skip_embedded_declarations();
-      /* Parentheses are required (a) if parenthesized_init is TRUE, and
-         (b) if parenthesized_init is FALSE, because of the possibility that
-         the top-level operator is a ",".  Remove any compiler-generated
-         address-of operator.  Braces are needed if braced_init is TRUE. */
-      if (!assign_init) write_tok_ch(braced_init ? '{' : '(');
       expr = dip->variant.expression;
+      /* Parentheses are required (a) if parenthesized_init is TRUE, and
+         (b) if parenthesized_init is FALSE and the top-level operator is a
+         ",".  Braces are needed if braced_init is TRUE.  Otherwise, no
+         delimiter is required. */
+      if (!parenthesized_init && !braced_init &&
+          !expr_has_comma_operation(expr)) {
+        /* No delimiter required. */
+        start_delim = "";
+        end_delim = "";
+      }  /* if */
+      write_tok_str(start_delim);
+      /* Remove any compiler-generated address-of operator. */
       (void)strip_lvalue_cast_sequence(&expr);
-      if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+      if (expr->kind == (an_expr_node_kind)enk_temp_init && !braced_init) {
         /* We need an extra level of parentheses to avoid the
            declaration/expression ambiguity: we want "T x((T()));" and not
            "T x(T());", which declares x as a function with a parameter
@@ -14120,14 +14129,20 @@ source and the expression is generated in that form.
       gen_initializer_expr(expr, init_entity_type,
                            expr_has_comma_operation(expr),
                            /*mbr_fcn_default_arg_expr=*/FALSE);
-      if (!assign_init) write_tok_ch(braced_init ? '}' : ')');
+      write_tok_str(end_delim);
       break;
     case dik_call_returning_class_via_cctor:
       /* Used for function calls that return a value via a copy constructor,
          only under enk_temp_init nodes. */
-      if (!assign_init) write_tok_ch(braced_init ? '{' : '(');
+      if (!parenthesized_init && !braced_init &&
+          !expr_has_comma_operation(dip->variant.expression)) {
+        /* No delimiter required. */
+        start_delim = "";
+        end_delim = "";
+      }  /* if */
+      write_tok_str(start_delim);
       gen_expression(dip->variant.expression);
-      if (!assign_init) write_tok_ch(braced_init ? '}' : ')');
+      write_tok_str(end_delim);
       break;
     case dik_constructor:
       { a_routine_ptr    ctor = dip->variant.constructor.ptr;
