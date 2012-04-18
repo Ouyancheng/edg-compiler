@@ -7114,11 +7114,10 @@ expression re-assign that expression to the copy being returned.
   a_constant_ptr  il_cp;
   a_boolean       transfer_expr;
 
-  if (cp->expr != NULL && cp->expr->name_reference != NULL) {
+  if (cp->expr != NULL && cp->expr->is_for_name_reference_only) {
     /* The constant is associated with a name reference; use an unshared
        constant to preserve it. */
     il_cp = alloc_unshared_constant(cp);
-    il_cp->source_corresp.assoc_info = cp->source_corresp.assoc_info;
     transfer_expr = TRUE;
   } else {
     /* Use a shared constant, if possible. */
@@ -15248,6 +15247,12 @@ for the copy/substitution.
        Do substitution on the parent type and then look up the name in the
        updated class to see what the member is. */
     a_symbol_ptr orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
+    if (orig_sym == NULL && con->expr != NULL &&
+        con->expr->is_for_name_reference_only) {
+      check_assertion(is_constant_node(con->expr));
+      con = con->expr->variant.constant;
+      orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
+    }  /* if */
     check_assertion(orig_sym != NULL);
     /* For a tpck_unknown_function constant with an underlying symbol, use
        that symbol for the substitution. */

@@ -3798,6 +3798,9 @@ Display the indicated expression node.
     disp_boolean("is_non_normalized_boolean_controlling_expr", TRUE);
   }  /* if */
 #endif /* DO_IL_LOWERING */
+  if (ptr->is_for_name_reference_only) {
+    disp_boolean("is_for_name_reference_only", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:

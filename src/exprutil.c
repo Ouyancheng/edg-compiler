@@ -4121,6 +4121,7 @@ Extract the constant value from the operand *operand and place it in
                                               &shared_constant->source_corresp,
                                               &operand->name_reference);
         if (expr->name_reference != NULL) {
+          expr->is_for_name_reference_only = TRUE;
           constant->expr = expr;
         }  /* if */
       }  /* if */

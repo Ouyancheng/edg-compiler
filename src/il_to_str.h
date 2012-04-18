@@ -429,7 +429,7 @@ extern void form_pm_constant(
    preserved. */
 #define constant_should_be_put_out_as_expr(constant)                          \
   ((constant)->expr != NULL && (!is_enum_constant(constant) ||                \
-                                (constant->expr->name_reference != NULL &&    \
+                                (constant->expr->is_for_name_reference_only &&\
                                  constant->expr->name_reference->qualifier != \
                                                                         NULL)))
 
