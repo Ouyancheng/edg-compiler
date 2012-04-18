@@ -1,5 +1,35 @@
 Version 4.5
 
+4/18/12  [EDGcpfe/12149,EDGcpfe/12791]
+Template argument deduction and base/derived mismatch on pointer-to-members
+
+The standard does not permit a pointer to member of a base class to be used
+where a pointer to member of a derived class is expected in template
+argument deduction, but most compilers allow this.  We now accept such
+usage except in strict mode.  Below are two kinds of usage that are now
+accepted.
+
+  file: t1.c:
+  struct Base {
+    template <class U> void f(U);
+  };
+  struct Derived : Base { };
+  int main() {
+    void (Derived::*p)(int) = &Base::f;  // now allowed (except in strict mode)
+  }
+
+  file: t2.c:
+  struct Base {
+    void f(int);
+  };
+  class Derived : public Base { };
+  template <typename R, typename A> void f(R (Derived::*p)(A), A) {}
+  int main() {
+    f(&Base::f, 1);  // now allowed (except in strict mode)
+  }
+
+
+
 4/16/12  [EDGcpfe/12847]
 Deleted function templates and the C++-generating back end
 

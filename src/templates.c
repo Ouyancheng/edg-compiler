@@ -8498,12 +8498,18 @@ points to the template parameter list.
           break;
         case tk_ptr_to_member:
           /* For ptr-to-member types, there needs to be a match on both the
-             member types and the class-of-which-a-member. */
+             member types and the class-of-which-a-member.  If there is
+             not a match with matches_template_type, see if the template type
+             is a derived class of the other type if inexact deductions are
+             allowed. */
           tp = type->variant.ptr_to_member.class_of_which_a_member;
           ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
           if (matches_template_type(tp, ttp, templ_arg_list,
                                     templ_param_list,
-                                    new_flags)) {
+                                    new_flags) ||
+              ((flags & MTT_ALLOW_INEXACT_DEDUCTION) != 0 &&
+               inexact_ptr_to_member_deduction_enabled &&
+               find_base_class_of(ttp, tp) != NULL)) {
             tp = type->variant.ptr_to_member.type;
             ttp = templ_type->variant.ptr_to_member.type;
             if (tp->kind == (a_type_kind)tk_routine &&
@@ -8513,6 +8519,7 @@ points to the template parameter list.
                  should be ignored for deduction purposes. */
               tp = routine_type_without_this_class(tp);
             }  /* if */
+            new_flags |= MTT_REVERSE_BASE_DERIVED_THIS_TEST;
             match = matches_template_type(tp, ttp, templ_arg_list,
                                           templ_param_list,
                                           new_flags);
@@ -8608,8 +8615,12 @@ points to the template parameter list.
             if (match) {
               /* The routine types match so far.  Make sure the implicit
                  this classes, if present, match. */
+              a_type_ptr	this_class;
+              a_type_ptr	templ_this_class;
               tp =  type->variant.routine.extra_info->this_class;
               ttp =  templ_type->variant.routine.extra_info->this_class;
+              this_class = tp;
+              templ_this_class = ttp;
               if (tp == NULL || ttp == NULL) {
                 /* One or both of the types does not have an implicit
                    this class.  This is okay if they are both NULL. 
@@ -8648,6 +8659,22 @@ points to the template parameter list.
                 match = matches_template_type(tp, ttp, templ_arg_list,
                                               templ_param_list,
                                               new_flags);
+                if (!match && inexact_ptr_to_member_deduction_enabled) {
+                  /* If the this types don't match, check whether the one
+                     type is a base class of the other type.  In some cases,
+                     for example "void (Derived::*pmf)(int) = &Base::f", where
+                     Base::f is a function template, the template type is the
+                     base class.  In other cases, for example when this routine
+                     calls itself recursively to match the member type of a
+                     pointer-to-member argument matching a pointer-to-member
+                     parameter, the template type is the derived class. */
+                  match = ((flags & MTT_REVERSE_BASE_DERIVED_THIS_TEST) == 0 &&
+                           find_base_class_of(this_class,
+                                              templ_this_class) != NULL) ||
+                          ((flags & MTT_REVERSE_BASE_DERIVED_THIS_TEST) != 0 &&
+                           find_base_class_of(templ_this_class,
+                                              this_class) != NULL);
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
@@ -12269,6 +12296,7 @@ matching process.
 	   some modes. */
         match = f_types_are_compatible(curr_type, new_type,
                                        TCF_IMPLICIT_CONVERSION |
+                                       TCF_ALLOW_BASE_DERIVED_THIS_MATCH |
                                        TCF_CHECKING_DEDUCTION_RESULT);
       }  /* if */
     }  /* if */

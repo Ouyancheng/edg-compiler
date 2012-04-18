@@ -5646,12 +5646,18 @@ pointer equality.
   a_boolean                     error_matches_anything;
   a_boolean                     is_impl_conv;
   a_boolean                     top_level_for_redeclaration = FALSE;
+  a_boolean			allow_base_derived_this_match;
 
   db_enter(5, "f_types_are_compatible_full");
 
   error_matches_anything = 
                  (flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) != 0;
   ignore_type_qualifiers = (flags & TCF_IGNORE_TYPE_QUALIFIERS) != 0;
+  allow_base_derived_this_match =
+                              (flags & TCF_ALLOW_BASE_DERIVED_THIS_MATCH) != 0;
+  /* The TCF_ALLOW_BASE_DERIVED_THIS_MATCH is not passed along when
+     this routine calls itself. */
+  flags &= ~(a_type_compat_flags_set)TCF_ALLOW_BASE_DERIVED_THIS_MATCH;
   if (flags & TCF_REDECLARATION) {
     /* TCF_REDECLARATION implies exact decltype expression matching, and
        not just at the top level. */
@@ -5926,9 +5932,18 @@ check_typerefs:
                   ((rtsp1->this_class == NULL) ?
                       (rtsp2->this_class == NULL) :
                       (rtsp2->this_class != NULL &&
-                       f_types_are_compatible_full(rtsp1->this_class,
-                                                   rtsp2->this_class, flags,
-                                                   diffs))))) &&
+                       (f_types_are_compatible_full(rtsp1->this_class,
+                                                    rtsp2->this_class, flags,
+                                                    diffs) ||
+                        /* In some cases, deduction can produce a routine
+                           type in which the second type has a this_class that
+                           is a base class of the first.  The special
+                           TCF_ALLOW_BASE_DERIVED_THIS_MATCH is passed to
+			   indicate this case. */
+                        (inexact_ptr_to_member_deduction_enabled &&
+                         allow_base_derived_this_match &&
+                         find_base_class_of(rtsp1->this_class,
+                                            rtsp2->this_class))))))) &&
                 (ignore_calling_conventions ||
                  routine_linkages_are_compatible(
                              (a_name_linkage_kind)rtsp1->routine_name_linkage,

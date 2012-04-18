@@ -794,6 +794,11 @@ Bit flags for calls of f_types_are_compatible et al.
 			   affect the overall type compatibility outcome.
 			   Only "direct" conventions (i.e., not under a
 			   typedef) are tracked. */
+#define TCF_ALLOW_BASE_DERIVED_THIS_MATCH 0x8000
+			/* TRUE if the this class type of the second type
+			   can be a base class of the first.  This is used
+			   to allow a base/derived mismatch in template
+			   function matching. */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 

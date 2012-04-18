@@ -1041,6 +1041,12 @@ EXTERN a_boolean
 			   template arguments. */
 
 EXTERN a_boolean
+		inexact_ptr_to_member_deduction_enabled;
+			/* TRUE if, in template argument deduction, a base
+			   vs. derived difference of the member class type
+			   is allowed in some cases. */
+
+EXTERN a_boolean
 		decls_using_types_without_linkage_allowed;
 			/* TRUE if an entity with linkage can be declared
 			   using a type without linkage provided the

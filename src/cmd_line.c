@@ -3348,6 +3348,8 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
       }  /* if */
     }  /* if */
   }  /* if */
+  /* This should be FALSE in C mode and all strict C++ modes. */
+  inexact_ptr_to_member_deduction_enabled = FALSE;
 }  /* check_and_set_ansi_mode_options */
 
 
@@ -9620,6 +9622,7 @@ variables declared in cmd_line.h.
   rvalue_ctor_is_copy_ctor = TRUE;
   generate_move_operations = FALSE;
   local_types_as_template_args_enabled = FALSE;
+  inexact_ptr_to_member_deduction_enabled = TRUE;
   decls_using_types_without_linkage_allowed = FALSE;
   trailing_return_types_enabled = FALSE;
   this_in_trailing_return_types_enabled = FALSE;

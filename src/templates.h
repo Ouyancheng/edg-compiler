@@ -482,6 +482,11 @@ typedef unsigned int an_mtt_flag_set;
 			   X& actual type resulting in an X& deduced type.
 			   This is used when deducing arguments from a complete
 			   function type. */
+#define MTT_REVERSE_BASE_DERIVED_THIS_TEST 0x20
+			/* Normally when routines types are being compared,
+			   the template type can be a base of the other
+			   type.  This flag allows the other type to be a
+			   base of the template type. */
 
 extern a_boolean matches_template_type_with_qualification_conversion(
 				a_type_ptr           type,
