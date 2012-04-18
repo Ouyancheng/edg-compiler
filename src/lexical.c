@@ -17967,7 +17967,10 @@ of the compound statement.
     *compound_stmt_cached = TRUE;
     if (start_pos != NULL) *start_pos = local_start_pos;
   } else {
-    (void)get_token();
+    /* Don't skip past a semicolon in error cases. */
+    if (curr_token != tok_semicolon) {
+      (void)get_token();
+    }  /* if */
   }  /* if */
   decr_token_set_array_element(stop_tokens, tok_rbrace);
   decr_token_set_array_element(stop_tokens, tok_lbrace);
