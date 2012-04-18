@@ -14118,7 +14118,8 @@ source and the expression is generated in that form.
       write_tok_str(start_delim);
       /* Remove any compiler-generated address-of operator. */
       (void)strip_lvalue_cast_sequence(&expr);
-      if (expr->kind == (an_expr_node_kind)enk_temp_init && !braced_init) {
+      if (expr->kind == (an_expr_node_kind)enk_temp_init && !braced_init &&
+          !expr->variant.init.dynamic_init->is_braced_initializer) {
         /* We need an extra level of parentheses to avoid the
            declaration/expression ambiguity: we want "T x((T()));" and not
            "T x(T());", which declares x as a function with a parameter
