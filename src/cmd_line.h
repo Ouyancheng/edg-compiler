@@ -560,6 +560,12 @@ EXTERN a_boolean
 			   names should be performed. */
 
 EXTERN a_boolean
+		dependent_lookup_finds_static_functions;
+			/* TRUE if dependent lookup will find static functions.
+			   C++03 did not find them.  Core Issue 561 changed
+			   that for C++11. */
+
+EXTERN a_boolean
 		friend_class_injection_enabled;
 			/* TRUE if class names first declared in friend
 			   declarations are visible. */

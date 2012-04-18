@@ -1,5 +1,26 @@
 Version 4.5
 
+4/18/12  [EDGcpfe/12848]
+Static functions found on dependent lookup
+
+Dependent lookup now finds static functions (in accordance with Core
+Issue 561) in most modes.  Formerly, that was done only in C++11 mode
+and in g++ mode. The C++03 standard specifies that dependent lookup
+should not find static functions, but that's changed in C++11, and other
+compilers (e.g., g++) have always found them.  Note that because
+static functions are found when dependent lookup is not done, our effective
+behavior is unchanged in all version levels of g++ and Microsoft modes.
+
+  void f(void *) {}
+  static void f(int) {}
+  template <class T> void g(T p) {
+    f(p);  // No error now in non-strict C++03 mode; static f found
+  }
+  int main() {
+    g(1);
+  }
+
+
 4/18/12  [EDGcpfe/12776]
 Uninitialized return value from destructor in some IA-64 ABI cases
 

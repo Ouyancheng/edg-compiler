@@ -4105,18 +4105,14 @@ point of call, FALSE otherwise.
     /* The symbol is a function template. */
     routine = function_symbol->variant.template_info->variant.function.routine;
   }  /* if */
-  if (!cpp11_mode && dependent_call &&
+  if (!dependent_lookup_finds_static_functions && dependent_call &&
       routine->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal) {
     /* Functions with internal linkage are invisible in the template-
        dependent name lookup.  Core issue 561 undid this in the C++11
        standard. */
-    if (gpp_mode && gnu_version >= 30400) {
-      /* g++ 3.4 does not ignore static functions. */
-    } else {
-      visible = FALSE;
-      goto end_of_function;
-    }  /* if */
+    visible = FALSE;
+    goto end_of_function;
   }  /* if */
   if (effects_copy_initialization && routine->is_explicit_constructor) {
     /* Constructors marked "explicit" are to be ignored. */

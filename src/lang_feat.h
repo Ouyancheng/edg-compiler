@@ -358,6 +358,20 @@ The variable can also be controlled from the command line by
 #endif /* DEFAULT_ARG_DEPENDENT_LOOKUP */
 
 /*
+Flag that indicates whether dependent lookup should by default find
+static functions.  C++03 did not allow that, but Core Issue 561 changed
+that for C++11.  This is the initial value of the global variable
+dependent_lookup_finds_static_functions, though some modes override
+that value.  This default macro is mostly useful as the setting for this
+feature in default C++03 mode, and our judgement is that most people
+would prefer to have static functions be found in that mode (other
+compilers, like g++ and Microsoft, have always found static functions).
+*/
+#ifndef DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS
+#define DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS TRUE
+#endif /* DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS */
+
+/*
 Flag that is used as the default setting for global variables
 friend_class_injection_enabled and friend_function_injection_enabled.
 This controls whether a class or function first declared only in

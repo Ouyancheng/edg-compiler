@@ -1959,6 +1959,7 @@ by a command line option.
     if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
       nonclass_prototype_instantiations = FALSE;
     }  /* if */
+    dependent_lookup_finds_static_functions = TRUE;
     if (!option_kind_used[(int)optk_nonstandard_using_decl]) {
       nonstandard_using_decl_allowed = FALSE;
     }  /* if */
@@ -3288,6 +3289,9 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
          option, set it now. */
       do_dependent_name_processing = TRUE;
     }  /* if */
+    /* C++03 dependent lookup did not find static functions.  C++11 changed
+       that. */
+    dependent_lookup_finds_static_functions = cpp11_mode;
     if (!(option_kind_used[(int)optk_parse_nonclass_templates])) {
       /* If prototype instantiation of nonclasses was not explicitly set by a
          command line option, set it now. */
@@ -3379,6 +3383,7 @@ checked again here.)
   if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
     nonclass_prototype_instantiations = FALSE;
   }  /* if */
+  dependent_lookup_finds_static_functions = FALSE;
   if (!option_kind_used[(int)optk_implicit_typename]) {
     implicit_typename_enabled = TRUE;
   }  /* if */
@@ -4629,6 +4634,12 @@ file.
 #else /* !defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT) */
   comment_undefined_macro_name(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT);
 #endif /* defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT) */
+#if defined(DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS)
+  define_numeric_valued_macro(DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS);
+#else /* !defined(DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS) */
+  comment_undefined_macro_name(
+                              DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS);
+#endif /* defined(DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS) */
 #if defined(DEFAULT_DEPENDENT_NAME_PROCESSING)
   define_numeric_valued_macro(DEFAULT_DEPENDENT_NAME_PROCESSING);
 #else /* !defined(DEFAULT_DEPENDENT_NAME_PROCESSING) */
@@ -9525,6 +9536,8 @@ variables declared in cmd_line.h.
   friend_class_injection_enabled = DEFAULT_FRIEND_INJECTION;
   friend_function_injection_enabled = DEFAULT_FRIEND_INJECTION;
   do_dependent_name_processing = DEFAULT_DEPENDENT_NAME_PROCESSING;
+  dependent_lookup_finds_static_functions =
+                               DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS;
   gpp_dependent_name_lookup = FALSE;
   gpp_using_directive_lookup = FALSE;
   parameters_visible_late = FALSE;
