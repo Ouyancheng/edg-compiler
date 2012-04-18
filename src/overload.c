@@ -19528,11 +19528,27 @@ be placed on any object lifetime list (the caller must do that).
                             &operand,
                             (a_boolean *)NULL, (a_dynamic_init_ptr *)NULL,
                             (a_constant_ptr *)NULL);
+      if (!operand_is_temp_init(&operand) && !is_error_operand(&operand)) {
+        /* Force a temporary so we can set the braced-init flag in the
+           dynamic init. */
+        temp_init_from_operand(&operand, /*result_is_lvalue=*/FALSE);
+      }  /* if */
+      if (operand_is_temp_init(&operand)) {
+        /* Find the dynamic init and set the is_braced_initializer flag. */
+        a_dynamic_init_ptr tdip;
+        an_expr_node_ptr   temp_init_node =
+                                       skip_parens(operand.variant.expression);
+        check_assertion(temp_init_node->kind ==
+                                             (an_expr_node_kind)enk_temp_init);
+        tdip = temp_init_node->variant.init.dynamic_init;
+        tdip->is_braced_initializer = TRUE;
+      }  /* if */
       prep_reference_initializer_operand(&operand, dest_type,
                                          (a_conv_descr *)NULL,
                                          /*leave_as_object=*/FALSE,
                                          conv_context,
                                          ec_bad_initializer_type);
+      braced_init = FALSE;
     } else if (could_be_dependent_class_type(dest_type)) {
       /* Dependent case.  Pretend this is a constructor invocation. */
       scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
@@ -19596,7 +19612,8 @@ be placed on any object lifetime list (the caller must do that).
       /* A list containing just one member.  Drop the {} and do a recursive
          call. */
       prep_list_initializer(list, dest_type, check_narrowing,
-                            conv_context, fill_in_dtor, &operand,
+                            conv_context, fill_in_dtor,
+                            ((result != NULL) ? &operand : (an_operand *)NULL),
                             is_constant, &dip, &constant);
     } else {
       /* Something else (e.g., an "int" initialized by a list with two
