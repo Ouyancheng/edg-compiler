@@ -4460,6 +4460,7 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
 }  /* aggr_init_element */
 
 
+/*ARGSUSED*/  /* FIXME: direct is currently unused. */
 static void braced_initializer(a_type_ptr          dtype,
                                a_boolean           direct,
                                an_init_state       *is,
