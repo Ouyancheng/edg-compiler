@@ -4460,14 +4460,16 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
 }  /* aggr_init_element */
 
 
-static void direct_braced_initializer(a_type_ptr          dtype,
-                                      an_init_state       *is,
-                                      a_decl_parse_state  *dps,
-                                      a_source_position   *diag_pos)
+static void braced_initializer(a_type_ptr          dtype,
+                               a_boolean           direct,
+                               an_init_state       *is,
+                               a_decl_parse_state  *dps,
+                               a_source_position   *diag_pos)
 /*
-Handle a braced-initializer directly following a declarator, a
-mem-initializer-id, or a new-type-id.  For example, "T x{3};", but not
-"T x = {3};").  
+Handle a braced-init-list following a declarator, a mem-initializer-id, or a
+new-type-id.  If direct is TRUE, the initializer uses direct initialization
+syntax (e.g., "T x{3};"); otherwise, it uses copy initialization syntax (e.g.,
+"T x = {3};").
 dtype is the type of the entity being initialized.  *is describes the state of
 initializer processing.  *dps describes the declaration that the initializer
 is part of; it is NULL if the initialization is not (directly) part of a
@@ -4589,18 +4591,21 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* direct_braced_initializer */
+}  /* braced_initializer */
 
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void brace_init_variable(a_decl_parse_state  *dps,
+                                a_boolean           direct,
                                 a_source_position   *diag_pos,
                                 a_decl_pos_block    *decl_pos_block)
 /*
-Handle a braced-initializer directly following the declarator for a variable
-or static data member (e.g., "T x{3};", but not "T x = {3};").
+Handle a braced-initializer following the declarator for a variable or static
+data member.  If direct is TRUE, the initializer uses direct initialization
+syntax (e.g., "T x{3};"); otherwise, it uses copy initialization syntax (e.g.,
+"T x = {3};").
 dps and decl_pos_block describe the declaration that the initializer is part
 of.  diag_pos is the position to be used by default for diagnostics (when no
 more specific position is available).
@@ -4609,11 +4614,11 @@ more specific position is available).
   a_variable_ptr  vp;
 
   check_assertion(dps != NULL && dps->sym != NULL);
-  check_assertion(dps->has_direct_initializer);
+  check_assertion(dps->has_direct_initializer == direct);
   vp = var_for_symbol(dps->sym);
   check_assertion(vp != NULL);
-  vp->has_direct_braced_initializer = TRUE;
-  direct_braced_initializer(dps->type, &dps->init_state, dps, diag_pos);
+  vp->has_direct_braced_initializer = direct;
+  braced_initializer(dps->type, direct, &dps->init_state, dps, diag_pos);
   if (dps->init_state.partial_initializer) {
     vp->is_partially_initialized = TRUE;
   }  /* if */
@@ -4967,7 +4972,7 @@ returned set to TRUE.
                is_aggregate_or_union_type(dps->type)) &&
              dps->has_direct_initializer) {
     /* Direct list initialization (e.g., "X x{1, 2};"). */
-    brace_init_variable(dps, source_pos, decl_pos_block);
+    brace_init_variable(dps, /*direct=*/TRUE, source_pos, decl_pos_block);
     init_err = dps->init_state.init_error;
     init_con = dps->init_state.init_con;
     init_dip = dps->init_state.init_dip;
@@ -6411,8 +6416,8 @@ entries are replaced as needed for each mem-initializer that is encountered.
       lbrace_pos = pos_curr_token;
       clear_init_state(&is);
       /* Scan the initializer. */
-      direct_braced_initializer(dtype, &is, (a_decl_parse_state*)NULL,
-                                &lbrace_pos);
+      braced_initializer(dtype, /*direct=*/TRUE, &is,
+                         (a_decl_parse_state*)NULL, &lbrace_pos);
       /* If no dynamic init entry was produced, wrap the result (a constant
          or an error) in a dynamic init entry. */
       if (new_cip != NULL) {
