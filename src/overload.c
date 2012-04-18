@@ -19613,12 +19613,12 @@ be placed on any object lifetime list (the caller must do that).
      If constant != NULL, the result is that constant.
      Otherwise, the result is in "operand".  If the required result is
      in a different format, convert to that. */
-  if (dip != NULL && braced_init) dip->is_braced_initializer = TRUE;
   if (result != NULL) {
     /* The caller wants the result in an_operand form in *result. */
     if (dip != NULL) {
       /* We have a dynamic init entry.  Make an operand for it. */
       an_expr_node_ptr expr;
+      dip->is_braced_initializer = braced_init;
       /* Note the call here adds the destruction if needed. */
       expr = alloc_temp_init_node(dest_type, dip, /*is_lvalue=*/FALSE,
                                   /*is_explicit_cast=*/FALSE);
@@ -19662,6 +19662,7 @@ be placed on any object lifetime list (the caller must do that).
           dip->variant.expression = expr;
         }  /* if */
       }  /* if */
+      dip->is_braced_initializer = braced_init;
       *is_constant = FALSE;
       if (fill_in_dtor && is_class_struct_union_type(dest_type)) {
         /* Fill in the destructor if one is needed. */
