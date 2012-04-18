@@ -4103,13 +4103,13 @@ Extract the constant value from the operand *operand and place it in
 *constant.
 */
 {
+  check_assertion(expr_stack != NULL);
   switch (operand->kind) {
     case ok_error:
       set_error_constant(constant);
       break;
     case ok_constant:
       copy_constant(&operand->variant.constant, constant);
-      check_assertion(expr_stack != NULL);
       if (operand->name_reference_set &&
           curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
         /* We need to add a backing expression to preserve the supplied
@@ -4131,10 +4131,7 @@ Extract the constant value from the operand *operand and place it in
       set_error_constant(constant);
       break;
   }  /* switch */
-  /* Note that scan_integral_constant_expression has a spot where the
-     expression stack has already been popped before the constant is
-     extracted. */
-  if (expr_stack != NULL && expr_stack->possible_rescan_context) {
+  if (expr_stack->possible_rescan_context) {
     /* Save rescan info if we may rescan this constant later. */
     constant->rescan_info = save_operand_info_in_rescan_info_entry(
                                           operand,
