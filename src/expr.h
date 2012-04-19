@@ -445,13 +445,10 @@ extern
 void convert_initializer(an_init_component_ptr icp,
                          a_type_ptr            dest_type,
                          a_boolean             is_var_init,
-                         a_boolean             is_direct_init,
                          a_boolean             check_narrowing,
                          a_boolean             fill_in_dtor,
                          a_decl_parse_state    *dps,
-                         a_boolean             *is_constant,
-                         a_dynamic_init_ptr    *p_dip,
-                         a_constant_ptr        *constant);
+                         an_init_state         *is);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern a_boolean expr_is_rescannable(an_expr_node_ptr expr);

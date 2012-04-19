@@ -3870,8 +3870,7 @@ element, and if it is nonconstant (which results in a ck_dynamic_init entry)
 The presence of a nonconstant initializer component is reflected in *is.
 */
 {
-  a_boolean           is_constant;
-  a_dynamic_init_ptr  init_dip;
+  an_init_state       elem_is;
 
   if (is_braced_init_component(icp) && icp->variant.braced.list != NULL) {
     /* A redundantly braced initializer.  FIXME: This could also be a braced
@@ -3927,21 +3926,32 @@ The presence of a nonconstant initializer component is reflected in *is.
     }  /* if */
   }  /* if */
   /* Convert the single value as appropriate. */
+  /* Copy the initialization state for the top-level initialization, except
+     that it should always indicate copy initialization (even if the top level
+     initialization is direct).  The call to convert_initializer will update
+     elem_is.init_con and elem_is.init_dip (possibly to NULL). */
+  elem_is = *is;
+  elem_is.direct_init = FALSE;
   convert_initializer(icp, dest_type, /*is_var_init=*/FALSE,
-                      /*is_direct_init=*/FALSE, /*check_narrowing=*/TRUE,
+                      /*check_narrowing=*/TRUE,
                       /*fill_in_dtor=*/exceptions_enabled,
-                      (a_decl_parse_state*)NULL, &is_constant, &init_dip,
-                      init_con);
-  if (!is_constant && !is->check_validity_only) {
-    /* A nonconstant entry: Wrap it in a ck_dynamic_init entry, and record
-       the fact that a nonconstant entry was seen. */
+                      (a_decl_parse_state*)NULL, &elem_is);
+  if (elem_is.init_con != NULL) {
+    /* A constant initializer: Return it. */
+    *init_con = elem_is.init_con;
+  } else if (elem_is.init_dip != NULL) {
+    /* A nonconstant entry: Wrap it in a ck_dynamic_init entry, and record the
+       fact that a nonconstant entry was seen. */
+    check_assertion(!is->check_validity_only);
     *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-    (*init_con)->variant.dynamic_init = init_dip;
+    (*init_con)->variant.dynamic_init = elem_is.init_dip;
     (*init_con)->type = dest_type;
     is->has_dynamic_init_component = TRUE;
-    if (exceptions_enabled && init_dip->destructor != NULL) {
-      init_dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-      record_end_of_lifetime_destruction(init_dip, /*static_lifetime=*/FALSE,
+    if (exceptions_enabled && elem_is.init_dip->destructor != NULL) {
+      elem_is.init_dip
+                  ->destruction_is_for_partially_constructed_aggregate = TRUE;
+      record_end_of_lifetime_destruction(elem_is.init_dip,
+                                         /*static_lifetime=*/FALSE,
                                          /*block_lifetime=*/FALSE);
     }  /* if */
   }  /* if */
@@ -4523,17 +4533,15 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
 }  /* aggr_init_element */
 
 
-/*ARGSUSED*/  /* FIXME: direct is currently unused. */
 static void braced_initializer(a_type_ptr          dtype,
-                               a_boolean           direct,
                                an_init_state       *is,
                                a_decl_parse_state  *dps,
                                a_source_position   *diag_pos)
 /*
 Handle a braced-init-list following a declarator, a mem-initializer-id, or a
-new-type-id.  If direct is TRUE, the initializer uses direct initialization
-syntax (e.g., "T x{3};"); otherwise, it uses copy initialization syntax (e.g.,
-"T x = {3};").
+new-type-id.  If is->direct_init is TRUE, the initializer uses direct
+initialization syntax (e.g., "T x{3};"); otherwise, it uses copy
+initialization syntax (e.g., "T x = {3};").
 dtype is the type of the entity being initialized.  *is describes the state of
 initializer processing.  *dps describes the declaration that the initializer
 is part of; it is NULL if the initialization is not (directly) part of a
@@ -4541,8 +4549,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
 */
 {
   an_init_component_ptr  icp_tree, icp;
-  a_boolean              is_constant = FALSE, is_aggregate = FALSE;
-  a_boolean              is_var_init;
+  a_boolean              is_aggregate = FALSE, is_var_init;
   a_type_ptr             atype;
   a_routine_ptr          dtor_rp = NULL;
   a_class_symbol_supplement_ptr
@@ -4616,16 +4623,14 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       } else {
         /* Pass the braced initializer to be converted to the destination
            type. */
-        convert_initializer(icp, dtype, is_var_init, /*is_direct_init=*/TRUE,
-                            /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
-                            dps, &is_constant, &is->init_dip, &is->init_con);
+        convert_initializer(icp, dtype, is_var_init, /*check_narrowing=*/TRUE,
+                            /*fill_in_dtor=*/TRUE, dps, is);
       }  /* if */
       break;
     default:
       /* Non-class, non-aggregate initialization. */
-      convert_initializer(icp, dtype, is_var_init, /*is_direct_init=*/TRUE,
-                          /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
-                          dps, &is_constant, &is->init_dip, &is->init_con);
+      convert_initializer(icp, dtype, is_var_init, /*check_narrowing=*/TRUE,
+                          /*fill_in_dtor=*/TRUE, dps, is);
       break;
   }  /* switch */
   free_init_component_list(icp_tree);
@@ -4688,7 +4693,8 @@ more specific position is available).
   vp = var_for_symbol(dps->sym);
   check_assertion(vp != NULL);
   vp->has_direct_braced_initializer = direct;
-  braced_initializer(dps->type, direct, &dps->init_state, dps, diag_pos);
+  dps->init_state.direct_init = direct;
+  braced_initializer(dps->type, &dps->init_state, dps, diag_pos);
   if (dps->init_state.partial_initializer) {
     vp->is_partially_initialized = TRUE;
   }  /* if */
@@ -6479,15 +6485,14 @@ entries are replaced as needed for each mem-initializer that is encountered.
                                        array_type);
     } else if (list_init_enabled && curr_token == tok_lbrace) {
       /* A braced (i.e., C++11-style) mem-initializer argument. */
-      a_type_ptr     dtype = (array_type != NULL) ? array_type : init_type;
-      an_init_state  is;
-      a_source_position
-                     lbrace_pos;
+      a_type_ptr         dtype = (array_type != NULL) ? array_type : init_type;
+      an_init_state      is;
+      a_source_position  lbrace_pos;
       lbrace_pos = pos_curr_token;
       clear_init_state(&is);
+      is.direct_init = TRUE;
       /* Scan the initializer. */
-      braced_initializer(dtype, /*direct=*/TRUE, &is,
-                         (a_decl_parse_state*)NULL, &lbrace_pos);
+      braced_initializer(dtype, &is, (a_decl_parse_state*)NULL, &lbrace_pos);
       /* If no dynamic init entry was produced, wrap the result (a constant
          or an error) in a dynamic init entry. */
       if (new_cip != NULL) {
