@@ -970,9 +970,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_new_of_cli_interface_class)*/
 /*lint -esym(769,ec_enum_type_replacement)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if !MINIMAL_INLINING
-/*lint -esym(769,ec_too_large_to_inline)*/
-#endif /* !MINIMAL_INLINING */
 #if !USER_CONTROL_OF_STRUCT_PACKING
 /*lint -esym(769,ec_exp_rparen_and_pragma_ignored)*/
 #endif /* !USER_CONTROL_OF_STRUCT_PACKING */
