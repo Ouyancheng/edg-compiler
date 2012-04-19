@@ -1,5 +1,22 @@
 Version 4.5
 
+4/19/12  [EDGcpfe/12852]
+Simplify unused selection expression for static member
+
+When lowering an eok_dot_static operation, the selection expression is
+maintained if it has side-effects, but now that expression is simplified if
+possible.  In the example below, the resulting lowered code had an
+extraneous eok_indirect operation which is now elided:
+
+  struct A {
+    static void sf();
+  };
+  A& f();
+  int main() {
+    f().sf();
+  }
+
+
 4/18/12  [EDGcpfe/12848]
 Static functions found on dependent lookup
 

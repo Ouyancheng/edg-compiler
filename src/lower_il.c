@@ -14456,7 +14456,11 @@ cast.  See lower_expr for typical invocation.
             } else {
               /* Change a static selection to a comma operator (evaluate first
                  operand, discard, evaluate second operand, return). 
-                 Maintain lvalueness of the expression. */
+                 Maintain lvalueness of the overall expression, but simplify
+                 first operand of the new comma expression if possible. */
+              if (operand_node->is_lvalue) {
+                rewrite_discarded_lvalue_as_rvalue(operand_node);
+              }  /* if */
               set_node_operator(expr, (an_expr_operator_kind)eok_comma,
                                expr->type, expr->is_lvalue, operand_node);
             }  /* if */
