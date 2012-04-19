@@ -3829,6 +3829,28 @@ has static storage duration; vp_type is the type of that entity.
 }  /* simple_initializer */
 
 
+static a_routine_ptr get_init_destructor(a_type_ptr         tp,
+                                         an_init_state      *is,
+                                         a_source_position  *diag_pos)
+/*
+Return the destructor for the given type.  The destructor is to be called for
+cleanup of an initialization described by *is (which may be tentative).  If
+diagnostics are issued, they should be issued at the given position.  If
+diagnostics are not issued, errors are reflected in is->init_error.
+*/
+{
+  a_routine_ptr  dtor_rp;
+  a_boolean      err = FALSE, *p_err = NULL;
+
+  if (is->no_diagnostics) p_err = &err;
+  dtor_rp = select_destructor_full(tp, tp, diag_pos, /*honor_virtual=*/FALSE,
+                                   /*evaluated=*/TRUE, /*instantiate=*/TRUE,
+                                   /*check_access=*/TRUE, p_err);
+  if (err) is->init_error = TRUE;
+  return dtor_rp;
+}  /* get_init_destructor */
+
+
 /* Forward declaration. */
 static void aggr_init_element(an_init_component_ptr  *p_icp,
                               a_type_ptr             etype,
@@ -3887,12 +3909,20 @@ The presence of a nonconstant initializer component is reflected in *is.
       } while (is_braced_init_component(icp) &&
                icp->variant.braced.list != NULL);
     }  /* if */
-    pos_diagnostic(sev, ec_nonstd_braces, brace_pos);
+    if (is->no_diagnostics) {
+      is->init_error = (int)sev >= (int)es_error;
+    } else {
+      pos_diagnostic(sev, ec_nonstd_braces, brace_pos);
+    }  /* if */
     if (excess_init_pos != NULL) {
       if (gcc_mode) {
         pos_warning(ec_excess_initializers_ignored, excess_init_pos);
       } else {
-        pos_error(ec_too_many_initializer_values, excess_init_pos);
+        if (is->no_diagnostics) {
+          is->init_error = TRUE;
+        } else {
+          pos_error(ec_too_many_initializer_values, excess_init_pos);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3902,7 +3932,7 @@ The presence of a nonconstant initializer component is reflected in *is.
                       /*fill_in_dtor=*/exceptions_enabled,
                       (a_decl_parse_state*)NULL, &is_constant, &init_dip,
                       init_con);
-  if (!is_constant) {
+  if (!is_constant && !is->check_validity_only) {
     /* A nonconstant entry: Wrap it in a ck_dynamic_init entry, and record
        the fact that a nonconstant entry was seen. */
     *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
@@ -3925,12 +3955,15 @@ static void aggr_init_generic_element(an_init_component_ptr  icp,
 /*
 The given initialization component initializes an entity of unknown type gtype.
 Create an aggregate constant whose structure matches that of *icp and return it
-through *init_con.  Update the state of the whole initialization (*is) as
-appropriate.
+through *init_con (unless is->check_validity_only is TRUE).  Update the state
+of the whole initialization (*is) as appropriate.
 */
 {
   check_assertion(is_template_param_type(gtype) || is_error_type(gtype));
-  if (is_expression_component(icp)) {
+  if (is->check_validity_only) {
+    /* This routine always "succeeds" without diagnostics.  So if no IL should
+       be produced, there is nothing to be done. */
+  } else if (is_expression_component(icp)) {
     /* A simple expression: No more recursion is needed. */
     aggr_init_simple_element(icp, gtype, is, init_con);
   } else if (is_braced_init_component(icp)) {
@@ -3951,15 +3984,101 @@ appropriate.
 }  /* aggr_init_generic_element */
 
 
+static a_constant_ptr default_nontrivial_init_constant_for_aggr_member(
+                                                 a_type_ptr         tp,
+                                                 an_init_state      *is,
+                                                 a_source_position  *diag_pos)
+/*
+Return a constant representing the generated default initializer for an
+aggregate member requiring nontrivial initialization (i.e., a default
+constructor must be called, and/or a destructor must be recorded in case an
+exception aborts the initialization).  tp is the type of the member.  *is
+tracks the initialization as a whole and may be updated by this routine (e.g.,
+to indicate that an error occurred).  Diagnostics should be issued at the
+given position, unless is->no_diagnostics is TRUE.
+*/
+{
+  a_constant_ptr      result;
+  a_dynamic_init_ptr  dip;
+  a_routine_ptr       ctor_rp, dtor_rp;
+
+  /* Get the default constructor. */
+  ctor_rp = select_default_constructor(tp, diag_pos, tp, (a_boolean *)NULL);
+  if (ctor_rp == NULL) {
+    /* Trivial default constructor or error. */
+    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+  } else  {
+    if (!is->check_validity_only) {
+      /* For a non-trivial constructor, create a dik_constructor dynamic init
+         entry. */
+      dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
+    }  /* if */
+    /* If the default constructor is generated and some component of the class
+       requires zeroing, initialization is not really done because the
+       value-initialization rules require that the zeroing occurs. */
+    if (ctor_rp->compiler_generated &&
+        tp->variant.class_struct_union.has_zero_init_component) {
+      is->partial_initializer = TRUE;
+    }  /* if */
+  }  /* if */
+  if (exceptions_enabled) {
+    a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
+    if (has_nontrivial_destructor(cssp)) {
+      /* If appropriate, add a destructor pointer to the dynamic init entry.
+         This is for the case in which an exception is thrown by the
+         constructor before the entire array has been initialized. */
+      dtor_rp = get_init_destructor(tp, is, diag_pos);
+      if (!is->check_validity_only) {
+        add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Now create the constant entry (if needed). */
+  if (is->check_validity_only) {
+    result = NULL;
+  } else {
+    result = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+    result->variant.dynamic_init = dip;
+    result->type = tp;
+  }  /* if */
+  return result;
+}  /* default_nontrivial_init_constant_for_aggr_member */
+
+
+static a_constant_ptr add_repeat_con_if_needed(a_constant_ptr  elem_con,
+                                               a_targ_size_t   count)
+/*
+If count is larger than one, return a ck_init_repeat for that count on top of
+the given constant.  Otherwise, just return the given constant.
+*/
+{
+  a_constant_ptr  result;
+
+  if (count > 1) {
+    /* A ck_init_repeat entry is needed. */
+    result = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+    result->variant.init_repeat.count = count;
+    result->variant.init_repeat.constant = elem_con;
+  } else {
+    /* Return the given constant. */
+    result = elem_con;
+  }  /* if */
+  return result;
+}  /* add_repeat_con_if_needed */
+
+
+//FIXME:Use init_state to control diagnostics.
 static a_boolean try_string_literal_init(an_init_component_ptr  icp,
                                          a_type_ptr             *p_array_type,
+                                         an_init_state          *is,
                                          a_constant_ptr         *result)
 /*
 If the given initializer component is a valid string initializer for the given
 array type, return TRUE and record the IL representation for that initializer
-in *result.  Otherwise, return FALSE.  If TRUE is returned and *p_array_type
-represents an array with no specified bound, replace *p_array_type with an
-array type corresponding to the string size.
+in *result (unless is->check_validity_only is TRUE).  Otherwise, return FALSE.
+If TRUE is returned and *p_array_type represents an array with no specified
+bound, replace *p_array_type with an array type corresponding to the string
+size.
 */
 {
   a_boolean  success = FALSE;
@@ -3971,11 +4090,17 @@ array type corresponding to the string size.
     if (icp != NULL && is_string_literal_component(icp, &string_constant)) {
       success = TRUE;
       if (check_string_constant_initializer(p_array_type, string_constant)) {
-        *result = alloc_unshared_constant(string_constant);
+        if (!is->check_validity_only) {
+          *result = alloc_unshared_constant(string_constant);
+        }  /* if */
       } else {
-        pos_ty2_error(ec_bad_initializer_type, init_component_pos(icp),
-                      string_constant->type, *p_array_type);
-        *result = alloc_error_constant();
+        if (!is->no_diagnostics) {
+          pos_ty2_error(ec_bad_initializer_type, init_component_pos(icp),
+                        string_constant->type, *p_array_type);
+        }  /* if */
+        if (!is->check_validity_only) {
+          *result = alloc_error_constant();
+        }  /* if */
         if (is_incomplete_array_type(*p_array_type)) {
           /* An incomplete array initialized by an incompatible string literal.
              For better error recovery, replace the array type by an error
@@ -4002,82 +4127,6 @@ set *result to the a_constant entry representing the initializer.
   /* FIXME. */
   return FALSE;
 }  /* try_whole_array_init */
-
-
-static a_constant_ptr default_nontrivial_init_constant_for_aggr_member(
-                                             a_type_ptr         tp,
-                                             a_source_position  *diag_pos,
-                                             a_boolean          *partial_init)
-/*
-Return a constant representing the generated default initializer for an
-aggregate member requiring nontrivial initialization (i.e., a default
-constructor must be called, and/or a destructor must be recorded in case an
-exception aborts the initialization).  tp is the type of the member.
-Diagnostics should be issued at the given position.  *partial_init is set to
-TRUE if the default constructor that is called doesn't fully initialize the
-aggregate member (because it is generated and relies on the object being
-zero-initialized first).
-*/
-{
-  a_constant_ptr      result;
-  a_dynamic_init_ptr  dip;
-  a_routine_ptr       ctor_rp, dtor_rp;
-
-  /* Get the default constructor. */
-  ctor_rp = select_default_constructor(tp, diag_pos, tp, (a_boolean *)NULL);
-  if (ctor_rp == NULL) {
-    /* Trivial default constructor or error. */
-    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
-  } else  {
-    /* For a non-trivial constructor, create a dik_constructor dynamic init
-       entry. */
-    dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
-    /* If the default constructor is generated and some component of the class
-       requires zeroing, initialization is not really done because the
-       value-initialization rules require that the zeroing occurs. */
-    if (ctor_rp->compiler_generated &&
-        tp->variant.class_struct_union.has_zero_init_component) {
-      *partial_init = TRUE;
-    }  /* if */
-  }  /* if */
-  if (exceptions_enabled) {
-    a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
-    if (has_nontrivial_destructor(cssp)) {
-      /* If appropriate, add a destructor pointer to the dynamic init entry.
-         This is for the case in which an exception is thrown by the
-         constructor before the entire array has been initialized. */
-      dtor_rp = select_destructor(tp, tp, diag_pos);
-      add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
-    }  /* if */
-  }  /* if */
-  /* Now create the constant entry. */
-  result = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-  result->variant.dynamic_init = dip;
-  result->type = tp;
-  return result;
-}  /* default_nontrivial_init_constant_for_aggr_member */
-
-
-static a_constant_ptr add_repeat_con_if_needed(a_constant_ptr  elem_con,
-                                               a_targ_size_t      count)
-/*
-If count is larger than one, return a ck_init_repeat for that count on top of
-the given constant.  Otherwise, just return the given constant.
-*/
-{
-  a_constant_ptr  result;
-
-  if (count > 1) {
-    /* A ck_init_repeat entry is needed. */
-    result = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-    result->variant.init_repeat.count = count;
-    result->variant.init_repeat.constant = elem_con;
-  } else {
-    /* Return the given constant. */
-    result = elem_con;
-  }  /* if */
-  return result;
-}  /* add_repeat_con_if_needed */
 
 
 static void aggr_init_array_remainder_if_needed(a_constant_ptr     array_con,
@@ -4120,15 +4169,15 @@ position at which diagnostics should be issued.
       /* Initialization must be represented in the IL since it is not
          trivial. */
       a_constant_ptr  remainder_con;
-      a_boolean       partial_init = FALSE;
       is->has_dynamic_init_component = TRUE;
       remainder_con = default_nontrivial_init_constant_for_aggr_member(
-                                              etype, diag_pos, &partial_init);
-      if (partial_init) is->partial_initializer = TRUE;
-      /* Add the constant entry to the list of constants, but add a
-         ck_repeat_init on top of it if needed. */
-      append_constant_in_aggr(add_repeat_con_if_needed(remainder_con, count),
-                              array_con);
+                                                         etype, is, diag_pos);
+      if (!is->check_validity_only) {
+        /* Add the constant entry to the list of constants, but add a
+           ck_repeat_init on top of it if needed. */
+        append_constant_in_aggr(add_repeat_con_if_needed(remainder_con, count),
+                                array_con);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* aggr_init_array_remainder_if_needed */
@@ -4156,7 +4205,7 @@ type that reflects the length of the initializer.
   a_type_ptr             atype = skip_typerefs(*p_array_type);
 
   check_assertion(atype->kind == (a_type_kind)tk_array);
-  if (try_string_literal_init(icp, p_array_type, init_con)) {
+  if (try_string_literal_init(icp, p_array_type, is, init_con)) {
     /* A string literal initializer.  Nothing more to be done. */
     *p_icp = icp->next;
   } else if (!is_braced_init_component(icp) &&
@@ -4169,8 +4218,6 @@ type that reflects the length of the initializer.
     a_boolean      no_bound = FALSE, braced = is_braced_init_component(icp);
     a_targ_size_t  ecount, icount = 0;
     a_type_ptr     etype = atype->variant.array.element_type;
-    *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-    (*init_con)->type = atype;
     if (braced) {
       /* The element values are enclosed in braces. */
       /* Diagnostics not associated with a particular element should be issued
@@ -4179,8 +4226,10 @@ type that reflects the length of the initializer.
       /* Unwrap the braced list for the processing that follows. */
       icp = icp->variant.braced.list;
     }  /* if */
-    *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-    (*init_con)->type = atype;
+    if (!is->check_validity_only) {
+      *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      (*init_con)->type = atype;
+    }  /* if */
     /* Determine the element count in the destination type if known. */
     if (has_unknown_specified_bound(atype) ||
         (atype->variant.array.variant.number_of_elements == 0 &&
@@ -4195,7 +4244,9 @@ type that reflects the length of the initializer.
     while (icp != NULL && (no_bound || icount < ecount)) {
       a_constant_ptr  elem_con;
       aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
-      append_constant_in_aggr(elem_con, *init_con);
+      if (!is->check_validity_only) {
+        append_constant_in_aggr(elem_con, *init_con);
+      }  /* if */
       ++icount;
     }  /* while */
     if (!no_bound && icount < ecount) {
@@ -4218,7 +4269,11 @@ type that reflects the length of the initializer.
       } else if (icp != NULL) {
         /* Initializers remain at this level, but no elements. */
         check_assertion(icount == ecount);
-        pos_error(ec_too_many_initializer_values, init_component_pos(icp));
+        if (is->no_diagnostics) {
+         is->init_error = TRUE;
+        } else {
+          pos_error(ec_too_many_initializer_values, init_component_pos(icp));
+        }  /* if */
       }  /* if */
     } else {
       /* Braces were omitted at this level of aggregate initialization: The
@@ -4312,11 +4367,9 @@ position for which diagnostics should be issued.
         if (!has_trivial_default_constructor(cssp) ||
             (exceptions_enabled && !cssp->has_trivial_destructor)) {
           /* Nontrivial initialization/destruction. */
-          a_boolean  partial_init = FALSE;
           init_con = default_nontrivial_init_constant_for_aggr_member(
-                                                ftp, diag_pos, &partial_init);
-          if (partial_init) is->partial_initializer = TRUE;
-          if (atp != NULL) {
+                                                           ftp, is, diag_pos);
+          if (atp != NULL && !is->check_validity_only) {
             /* The field is an array.  Wrap its initializer in an aggregate
                constant entry (but add an ck_init_repeat if needed). */
             a_targ_size_t   count = num_array_elements(atp);
@@ -4329,16 +4382,18 @@ position for which diagnostics should be issued.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (init_con == NULL) {
-        /* Default initialization doesn't involve a constructor or destructor
-           call.  Use a dik_zero dynamic init entry to represent this. */
-        init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-        init_con->variant.dynamic_init = 
+      if (!is->check_validity_only) {
+        if (init_con == NULL) {
+          /* Default initialization doesn't involve a constructor or destructor
+             call.  Use a dik_zero dynamic init entry to represent this. */
+          init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+          init_con->variant.dynamic_init = 
                             alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
-        init_con->type = ftp;
+          init_con->type = ftp;
+        }  /* if */
+        /* Add the constant entry to the list of constants. */
+        append_constant_in_aggr(init_con, aggr_con);
       }  /* if */
-      /* Add the constant entry to the list of constants. */
-      append_constant_in_aggr(init_con, aggr_con);
     }  /* for */
   }  /* if */
   /* Check if there are any remaining fields not covered by the initializer. */
@@ -4379,8 +4434,10 @@ issued if no more specific position is available.
   } else {
     a_boolean   braced = is_braced_init_component(icp);
     a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
-    *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-    (*init_con)->type = class_type;
+    if (!is->check_validity_only) {
+      *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      (*init_con)->type = class_type;
+    }  /* if */
     if (braced) {
       /* The element values are enclosed in braces. */
       /* Diagnostics not associated with a particular element should be issued
@@ -4394,7 +4451,9 @@ issued if no more specific position is available.
     while (fp != NULL && icp != NULL) {
       a_constant_ptr  elem_con;
       aggr_init_element(&icp, fp->type, is, diag_pos, &elem_con);
-      append_constant_in_aggr(elem_con, *init_con);
+      if (!is->check_validity_only) {
+        append_constant_in_aggr(elem_con, *init_con);
+      }  /* if */
       fp = next_initializable_field(fp->next);
     }  /* for */
     if (fp != NULL) {
@@ -4409,7 +4468,11 @@ issued if no more specific position is available.
       if (icp != NULL) {
         /* Initializers remain at this level, but no fields. */
         check_assertion(fp == NULL);
-        pos_error(ec_too_many_initializer_values, init_component_pos(icp));
+        if (is->no_diagnostics) {
+          is->init_error = TRUE;
+        } else {
+          pos_error(ec_too_many_initializer_values, init_component_pos(icp));
+        }  /* if */
       }  /* if */
     } else {
       /* Braces were omitted at this level of aggregate initialization: The
@@ -4499,7 +4562,9 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
     case tk_error:
     case tk_template_param:
       /* Unknown destination type: Create an aggregate constant that follows
-         the source form. */
+         the source form.  This will never trigger diagnostics; if we don't
+         want IL an IL representation of the initializer at all, then there is
+         nothing left to do. */
       is_aggregate = TRUE;
       aggr_init_generic_element(icp, dtype, is, &is->init_con);
       break;
@@ -4517,12 +4582,12 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       }  /* if */
       if (is_error_type(atype)) {
         is->init_error = TRUE;
-        expect_error();
+        if (!is->no_diagnostics) expect_error();
       } else {
         a_type_ptr  etype = underlying_array_element_type(atype);
         etype = skip_typerefs(etype);
         if (is_immediate_class_type(etype)) {
-          dtor_rp = select_destructor(etype, etype, diag_pos);
+          dtor_rp = get_init_destructor(etype, is, diag_pos);
         }  /* if */
       }  /* if */
       break;
@@ -4546,7 +4611,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
            of a class with a user-declared-but-not-user-provided
            constructor). */
         is_aggregate = TRUE;
-        dtor_rp = select_destructor(dtype, dtype, diag_pos);
+        dtor_rp = get_init_destructor(dtype, is, diag_pos);
         aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
       } else {
         /* Pass the braced initializer to be converted to the destination
@@ -4586,8 +4651,12 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       if (!is_union_type(dtype)) {
         if (C_mode()) {
           pos_sy_warning(ec_var_with_uninitialized_field, diag_pos, dps->sym);
-        } else {
+        } else if (is->no_diagnostics) {
+          is->init_error = TRUE;
+        } else if (is_var_init) {
           pos_sy_error(ec_var_with_uninitialized_member, diag_pos, dps->sym);
+        } else {
+          pos_error(ec_unnamed_object_with_uninitialized_field, diag_pos);
         }  /* if */
       }  /* if */
     }  /* if */

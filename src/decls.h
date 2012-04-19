@@ -318,10 +318,23 @@ typedef struct an_init_state {
 			   represented using a constant, or init_error is TRUE
 			   and no representation of the initializer is
 			   available at all). */
+  a_bit_field	direct_init:1;
+			/* TRUE if this is for "direct" initialization as
+			   opposed to "copy" initialization.  C++ mode only. */
+  a_bit_field	no_diagnostics:1;
+			/* TRUE if no diagnostics should be issued (this is
+			   useful for overload-resolution matching and for
+			   deduction matching). C++ mode only. */
+  a_bit_field	check_validity_only:1;
+			/* TRUE if no IL should be generated for the
+			   initializer.  This is useful for overload-resolution
+			   matching.  If TRUE, no_diagnostics must be TRUE
+			   too.  C++ mode only. */
   a_bit_field	init_error:1;
 			/* TRUE if processing the initializer has run into an
 			   error that is severe enough to prevent the
-			   generation of meaningful IL. */
+			   generation of meaningful IL.  If no_diagnostics is
+			   TRUE, this flag is set to TRUE for any error. */
   a_bit_field	has_dynamic_init_component:1;
 			/* TRUE if this declaration has a braced initializer
 			   and an initializer component is nonconstant. */

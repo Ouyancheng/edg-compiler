@@ -88,6 +88,9 @@ Clear the fields of *is.
   is->init_con = NULL;
   is->init_dip = NULL;
   is->init_error = FALSE;
+  is->direct_init = FALSE;
+  is->no_diagnostics = FALSE;
+  is->check_validity_only = FALSE;
   is->has_dynamic_init_component = FALSE;
   is->any_uninitialized_const_or_ref_member = FALSE;
   is->partial_initializer = FALSE;
