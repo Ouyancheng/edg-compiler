@@ -13532,6 +13532,7 @@ static void scan_extended_integral_constant_expression(
                                                   a_boolean  top_level,
                                                   int        prec_level,
                                                   an_operand *operand,
+                                                  a_constant *constant,
                                                   a_boolean  *expr_not_present)
 /*
 Scan a constant expression that is an extended form of an integral constant
@@ -13552,10 +13553,11 @@ TRUE, this is a call from outside the expression routines and the
 expression stack should be saved/cleared/restored.  prec_level is the
 precedence level to be used in scanning the expression.  The constant
 returned might be an error constant or a template parameter constant.
-This routine exists mainly to allow the sorts of constant expressions
-used in the implementation of offsetof, but it also deals with the
-fact that some dialects (GNU, Microsoft, Sun) allow extended forms of
-integer constants.
+If constant is non-NULL, the constant in the operand will be extracted into
+*constant before popping the expression stack.  This routine exists mainly
+to allow the sorts of constant expressions used in the implementation of
+offsetof, but it also deals with the fact that some dialects (GNU,
+Microsoft, Sun) allow extended forms of integer constants.
 */
 {
   an_expr_stack_entry expr_stack_entry;
@@ -13563,6 +13565,9 @@ integer constants.
   an_expr_stack_entry *saved_expr_stack;
 
   db_enter(4, "scan_extended_integral_constant_expression");
+  if (constant == NULL) {
+    constant = &con;
+  }  /* if */
   if (top_level) save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -13579,12 +13584,13 @@ integer constants.
   }  /* if */
   do_operand_transformations(operand, TOPT_NO_OPTIONS);
   /* Make a constant from the operand. */
-  extract_constant_from_operand(operand, &con);
-  if (!is_okay_integral_constant_expression_result(&con, will_cast)) {
+  extract_constant_from_operand(operand, constant);
+  if (!is_okay_integral_constant_expression_result(constant, will_cast)) {
     /* The expression doesn't reduce to a value that will be an integer
        constant (possibly once cast to an integral type). */
-    if (!is_error_constant(&con)) {
+    if (!is_error_constant(constant)) {
       error_in_operand(ec_expr_not_integral_constant, operand);
+      set_error_constant(constant);
     }  /* if */
   }  /* if */
   pop_expr_stack();
@@ -13669,7 +13675,7 @@ indication in *rcblock).
                                                /*will_cast=*/TRUE,
                                                /*top_level=*/FALSE,
                                                PREC_LOWEST,
-                                               &operand,
+                                               &operand, (a_constant_ptr)NULL,
                                                (a_boolean *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = end_pos_curr_token;
@@ -18942,7 +18948,7 @@ scanned, return the selector in *bound_function_selector.
                                                /*will_cast=*/TRUE,
                                                /*top_level=*/FALSE,
                                                prec_level,
-                                               operand,
+                                               operand, (a_constant_ptr)NULL,
                                                expr_not_present);
   } else {
     /* Normal case. */
@@ -31402,9 +31408,8 @@ and [expr.const] in the ISO C++98 standard.
                                                /*will_cast=*/FALSE,
                                                /*top_level=*/TRUE,
                                                PREC_LOWEST,
-                                               &result,
+                                               &result, constant,
                                                (a_boolean *)NULL);
-    extract_constant_from_operand(&result, constant);
   } else {
     /* Standard integral constant expression. */
     an_expr_stack_entry expr_stack_entry;
@@ -34202,9 +34207,8 @@ things like (void *)1 as case constants.
                                              /*will_cast=*/TRUE,
                                              /*top_level=*/TRUE,
                                              PREC_LOWEST,
-                                             &result,
+                                             &result, constant,
                                              (a_boolean *)NULL);
-  extract_constant_from_operand(&result, constant);
   if (!is_integral_or_enum_type(constant->type)) {
     /* MSVC++ allows some weird cases like (void *)1.  Warn on those. */
     if (!is_error_type(constant->type)) {
