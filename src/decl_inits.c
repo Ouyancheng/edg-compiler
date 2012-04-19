@@ -5167,7 +5167,7 @@ returned set to TRUE.
       if (dtor != NULL || !has_static_storage_duration(vp->storage_class)) {
         init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
         init_dip->variant.constant = init_con;
-        init_dip->is_braced_initializer = dps->has_direct_initializer;
+        init_dip->is_braced_initializer = (first_token == tok_lbrace);
         init_con = NULL;
         /* If a destructor was found, add a pointer to it to the dynamic init
            entry. */
