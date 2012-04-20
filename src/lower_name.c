@@ -3585,7 +3585,7 @@ operator on some template constants when suppress_address_of is TRUE
      a template-dependent expression, use the pointer to get
      the unfolded version of the expression as required by the IA-64
      ABI spec.  For constant variables, use the constant not the
-     variable name (except when emulating a bug in g++ 3.2).  Named
+     variable name (except when emulating a bug in g++ 3.2).  Enum
      constants also have a non-NULL expression pointer if they were
      given an explicit value in their definitions, but that
      expression shouldn't be put out. */
@@ -3593,7 +3593,7 @@ operator on some template constants when suppress_address_of is TRUE
     in_dependent_expr = TRUE;
   }  /* if */
   if (in_dependent_expr && con->expr != NULL &&
-      !con->is_named_constant_definition &&
+      !is_enum_constant(con) &&
       (con->expr->kind != (an_expr_node_kind)enk_variable ||
        emulate_gnu_abi_bugs)) {
     mangled_encoding_for_expression(con->expr, in_dependent_expr, mctl);
