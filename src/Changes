@@ -1,5 +1,19 @@
 Version 4.5
 
+4/20/12  [EDGcpfe/12794]
+Abort on invalid pointer-to-member
+
+The diagnosis of certain invalid pointer-to-member types resulted in an abort
+in form_type_first_part (il_to_str.c).  For example:
+
+  struct A {};
+  void (A::*& (A::*x))();  // Previously triggered an abort.
+                           // (This pointer-to-member is invalid because the
+                           // member type is a reference type.)
+
+This is now fixed.
+
+
 4/20/12  [EDGcpfe/12810]
 Abort on exception handler with move constructor and trivial copy constructor
 

@@ -156,17 +156,24 @@ member_type is to be used in a pointer-to-member type.  Check its validity
 and return TRUE if it's okay; otherwise issue a diagnostic and return FALSE.
 */
 {
-  a_boolean  err = FALSE;
+  an_error_code  err_code = ec_no_error;
 
-  if (is_void_type(member_type) || is_any_reference_type(member_type) 
+  /* Note that member_type may not be fully assembled yet (i.e., it may
+     contain NULL underlying types).  The diagnostic should therefore not
+     attempt to quote the type in full. */
+  if (is_void_type(member_type)) {
+    err_code = ec_ptr_to_member_of_type_void;
+  } else if (is_any_reference_type(member_type)) {
+    err_code = ec_ptr_to_member_of_reference_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      || (cppcli_enabled && is_handle_type(member_type))
+  } else if (cppcli_enabled && is_handle_type(member_type)) {
+    err_code = ec_ptr_to_member_of_handle_type;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                     ) {
-    type_error(ec_bad_member_type_in_ptr_to_member, member_type);
-    err = TRUE;
   }  /* if */
-  return !err;
+  if (err_code != ec_no_error) {
+    pos_error(err_code, &error_position);
+  }  /* if */
+  return err_code != ec_no_error;
 }  /* check_pm_member_type */
 
 

@@ -2381,6 +2381,9 @@ ec_value_init_of_incomplete;;"an object of the incomplete type %t cannot be valu
 ec_value_init_of_reference;;"a reference cannot be value-initialized"
 ec_exp_lparen_or_brace;;"expected a \"(\" or a \"{\""
 ec_explicit_ctor_in_copy_list_init;;"copy-list-initialization cannot use a constructor marked \"explicit\""
+ec_ptr_to_member_of_type_void;;"pointer to member of type void is not allowed"
+ec_ptr_to_member_of_reference_type;;"pointer to member of reference type is not allowed"
+ec_ptr_to_member_of_handle_type;;"pointer to member of handle type is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
