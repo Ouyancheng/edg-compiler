@@ -1,5 +1,18 @@
 Version 4.5
 
+4/20/12  [EDGcpfe/12818]
+Abort on defaulted member with severe syntax error
+
+In some cases with unusual syntax errors, the front end aborted in function
+assignment_operator_can_be_defaulted (in class_decl.c).  For example:
+
+  struct S {
+    ~operator=() = default;  // Previously aborted.
+  };
+
+This is now fixed.
+
+
 4/19/12  [EDGcpfe/12852]
 Simplify unused selection expression for static member
 

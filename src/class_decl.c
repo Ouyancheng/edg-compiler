@@ -11198,14 +11198,16 @@ where such operators can be implicitly generated (and in some GNU C++ modes).
   rout_type = skip_typerefs(sym->variant.routine.ptr->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   params = rout_type->variant.routine.extra_info->param_type_list;
-  /* Assignment operators can have only one parameter. */
-  check_assertion(params->next == NULL);
   /* The operator cannot be a const or volatile member, and the return type
      must be X& (where X is the parent type). */
   return_type = make_reference_type(class_type);
   if (rout_type->variant.routine.extra_info->qualifiers == TQ_NONE &&
       identical_types(return_type, rout_type->variant.routine.return_type)) {
-    if (is_lvalue_reference_type(params->type)) {
+    if (params == NULL || params->next != NULL) {
+      /* Assignment operators should have exactly one parameter; anything else
+         should cause an error elsewhere. */
+      expect_error();
+    } else if (is_lvalue_reference_type(params->type)) {
       /* Presumably an ordinary copy assign operator.  The parameter type must
          be X& or X const& (although the latter requires that bases and members
          allow for such an assignment).  Try X& first. */
