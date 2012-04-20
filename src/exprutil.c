@@ -3949,7 +3949,7 @@ that extra work.
                                        &operand->name_reference);
     } else if (is_constant_node(node)) {
       a_template_param_constant_kind kind;
-      if (node->variant.constant->is_named_constant_definition ||
+      if (is_enum_constant(node->variant.constant) ||
           (node->variant.constant->kind ==
                                      (a_constant_repr_kind)ck_template_param &&
            ((kind = node->variant.constant->variant.template_param.kind),
