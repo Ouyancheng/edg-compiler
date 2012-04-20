@@ -173,7 +173,7 @@ and return TRUE if it's okay; otherwise issue a diagnostic and return FALSE.
   if (err_code != ec_no_error) {
     pos_error(err_code, &error_position);
   }  /* if */
-  return err_code != ec_no_error;
+  return err_code == ec_no_error;
 }  /* check_pm_member_type */
 
 
