@@ -4077,7 +4077,6 @@ the given constant.  Otherwise, just return the given constant.
 }  /* add_repeat_con_if_needed */
 
 
-//FIXME:Use init_state to control diagnostics.
 static a_boolean try_string_literal_init(an_init_component_ptr  icp,
                                          a_type_ptr             *p_array_type,
                                          an_init_state          *is,
