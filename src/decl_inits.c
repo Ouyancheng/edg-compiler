@@ -1269,6 +1269,7 @@ decl parse state, which otherwise is gotten from init_info->dps.
     cssp = symbol_supplement_for_class(entity_type);
     check_assertion_str(c99_mode || gcc_mode ||
                         cssp->has_copy_constructor ||
+                        cssp->has_user_declared_move_constructor ||
                         cssp->construction_by_bitwise_copy_allowed ||
                         skip_typerefs(entity_type)->
                                 variant.class_struct_union.is_nonreal_class,
