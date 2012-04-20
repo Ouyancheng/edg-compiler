@@ -11751,12 +11751,12 @@ a normal try.
              than 7.1, it can also be NULL (without a diagnostic) if the
              declaration of the copy constructor was suppressed because of
              an inability to generate its definition. */
-          check_assertion(
-                     (cctor == NULL || cctor->is_defaulted) == bitwise_copy ||
-                     total_errors != 0 ||
-                     (allow_suppressed_ctor &&
-                      skip_typerefs(state.type)->variant.class_struct_union
-                                                  .copy_ctor_decl_suppressed));
+          check_assertion(cctor != NULL || bitwise_copy ||
+                          total_errors != 0 ||
+                          (allow_suppressed_ctor &&
+                           skip_typerefs(state.type)
+                                        ->variant.class_struct_union
+                                                 .copy_ctor_decl_suppressed));
           dtor = select_destructor(state.type, state.type, &pos);
         } else {
           /* Non classes require only bitwise copying. */

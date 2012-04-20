@@ -1,5 +1,24 @@
 Version 4.5
 
+4/20/12  [EDGcpfe/12810]
+Abort on exception handler with move constructor and trivial copy constructor
+
+The front end previously aborted with internal error in handler_declaration
+(decls.c) when processing a catch clause for a class type that has a user-
+provided move constructor and a defaulted, trivial copy constructor.
+For example:
+
+  struct A {
+    A(const A&) = default;
+    A(A&&);
+  };
+  void f() try {
+  } catch (A) {  // Previously triggered an internal error.
+  }
+
+This is now fixed.
+
+
 4/20/12  [EDGcpfe/12818]
 Abort on defaulted member with severe syntax error
 
