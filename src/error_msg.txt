@@ -1820,7 +1820,7 @@ ec_type_qualifiers_ignored_on_reference;;"type qualifiers are ignored (underlyin
 ec_decl_with_local_type_but_not_defined;;"%n, declared using a local type, must be defined in this translation unit"
 ec_decl_with_no_linkage_type_but_not_defined;;"%n, declared using a type with no linkage, must be defined in this translation unit"
 ec_bad_rvalue_ref_dynamic_cast_operand;;"the operand of an rvalue reference dynamic_cast must have a complete class type"
-ec_invalid_function_to_be_defaulted;;"\"= default\" can only appear on default constructors, copy constructors, copy assignment operators, and destructors"
+ec_invalid_function_to_be_defaulted;;"\"= default\" can only appear on default constructors, copy/move constructors, copy/move assignment operators, and destructors"
 ec_deleted_function_definition_must_be_first_declaration;;"\"= delete\" can only appear on the first declaration of a function"
 ec_deleted_function;;"%npd cannot be referenced -- it is a deleted function"
 ec_bad_unevaluated_lambda;;"a lambda is not allowed in an unevaluated expression"
