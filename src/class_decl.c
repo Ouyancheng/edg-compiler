@@ -16450,6 +16450,7 @@ remarks may be issued in some cases.
 
   subobj_qual = get_type_qualifiers(type);
   type = skip_typerefs(type);
+  cssp = symbol_supplement_for_class(type);
   /* Check the copy assignment operator. */
   if (gsfd->suppress_copy_assign ||
       (microsoft_mode && microsoft_version >= 1400 &&
@@ -16560,7 +16561,9 @@ remarks may be issued in some cases.
                                      &ambiguous, (a_symbol**)NULL,
                                      &bitwise_copy);
     if (ambiguous ||
-        (rout_sym == NULL && !bitwise_copy) ||
+        (!bitwise_copy &&
+         (rout_sym == NULL ||
+          !routine_is_move_constructor(rout_sym->variant.routine.ptr))) ||
         (rout_sym != NULL &&
          (!have_access_to_symbol(rout_sym) ||
           is_deleted_member_sym(rout_sym)))) {
@@ -16577,7 +16580,6 @@ remarks may be issued in some cases.
        of the copy and/or move constructors.  If those are already suppressed,
        no additional checking is needed. */
   } else {
-    cssp = symbol_supplement_for_class(type);
     if (cssp->destructor != NULL &&
         (!have_access_to_symbol(cssp->destructor) ||
          is_deleted_member_sym(cssp->destructor))) {
@@ -16672,13 +16674,11 @@ warnings or remarks may be issued.
       }  /* if */
     }  /* if */
   }  /* for */
-  /* Now scan through all the direct base classes of this class. */
+  /* Now scan through all the direct and virtual bases of this class. */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct  &&
-        !(bcp->is_virtual &&
-          virtual_base_class_is_indirect(bcp, class_type))) {
-      /* This is a direct base class; check to see if its special member
-         functions would prevent the corresponding functions from being
+    if (bcp->direct  || bcp->is_virtual) {
+      /* Check to see if the special member functions of this base class would
+         prevent the corresponding derived class functions from being
          generated. */
       check_base_or_mbr_class_type_for_suppression(class_type, gsfd,
                                                    bcp->type);
@@ -17696,6 +17696,11 @@ The routine body is not generated until it is known to be needed.
       if (cssp->has_user_declared_move_constructor || has_move_assign) {
         gsfd.suppress_copy_ctor = TRUE;
         gsfd.suppress_copy_assign = TRUE;
+      }  /* if */
+      if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+        /* The generated move assignment operator is also suppressed if the
+           class has any virtual base classes. */
+        gsfd.suppress_move_assign = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
