@@ -1046,6 +1046,9 @@ Display the indicated constant entry.
   if (ptr->is_pack_expansion) {
     disp_boolean("is_pack_expansion", TRUE);
   }  /* if */
+  if (ptr->is_named_constant_definition) {
+    disp_boolean("is_named_constant_definition", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:
@@ -3798,9 +3801,6 @@ Display the indicated expression node.
     disp_boolean("is_non_normalized_boolean_controlling_expr", TRUE);
   }  /* if */
 #endif /* DO_IL_LOWERING */
-  if (ptr->is_for_name_reference_only) {
-    disp_boolean("is_for_name_reference_only", TRUE);
-  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:

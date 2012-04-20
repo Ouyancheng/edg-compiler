@@ -7114,7 +7114,9 @@ expression re-assign that expression to the copy being returned.
   a_constant_ptr  il_cp;
   a_boolean       transfer_expr;
 
-  if (cp->expr != NULL && cp->expr->is_for_name_reference_only) {
+  if (cp->expr != NULL && cp->expr->name_reference != NULL &&
+      is_constant_node(cp->expr) &&
+      cp->expr->variant.constant->is_named_constant_definition) {
     /* The constant is associated with a name reference; use an unshared
        constant to preserve it. */
     il_cp = alloc_unshared_constant(cp);
@@ -15247,9 +15249,10 @@ for the copy/substitution.
        Do substitution on the parent type and then look up the name in the
        updated class to see what the member is. */
     a_symbol_ptr orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
-    if (orig_sym == NULL && con->expr != NULL &&
-        con->expr->is_for_name_reference_only) {
-      check_assertion(is_constant_node(con->expr));
+    if (orig_sym == NULL && con->expr != NULL && is_constant_node(con->expr) &&
+        con->expr->variant.constant->is_named_constant_definition) {
+      /* The original constant was just to preserve a name reference; use
+         the target of the name reference as the real constant. */
       con = con->expr->variant.constant;
       orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
     }  /* if */

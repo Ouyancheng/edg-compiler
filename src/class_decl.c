@@ -13348,14 +13348,8 @@ respectively.
   scan_constant_initializer_expression(member_type,
                                        &decl_info->decl_state,
                                        cp);
-  if (cp->expr != NULL) {
-    /* A backing expression was added to preserve a name reference: use it
-       as the real backing expression, not as a name-reference
-       expression. */
-    cp->expr->is_for_name_reference_only = FALSE;
-  } else {
-    add_backing_expression_for_named_constant(cp);
-  }  /* if */
+  cp->is_named_constant_definition = TRUE;
+  add_backing_expression_for_named_constant(cp);
   /* Enter the constant name in the symbol table.  Do this after scanning
      the expression to avoid problems with a recursive reference, though
      it may mean the order in which errors are issued is a little strange. */

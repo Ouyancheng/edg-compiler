@@ -3949,7 +3949,7 @@ that extra work.
                                        &operand->name_reference);
     } else if (is_constant_node(node)) {
       a_template_param_constant_kind kind;
-      if (is_enum_constant(node->variant.constant) ||
+      if (node->variant.constant->is_named_constant_definition ||
           (node->variant.constant->kind ==
                                      (a_constant_repr_kind)ck_template_param &&
            ((kind = node->variant.constant->variant.template_param.kind),
@@ -4121,8 +4121,8 @@ Extract the constant value from the operand *operand and place it in
                                               &shared_constant->source_corresp,
                                               &operand->name_reference);
         if (expr->name_reference != NULL) {
-          expr->is_for_name_reference_only = TRUE;
           constant->expr = expr;
+          constant->is_named_constant_definition = FALSE;
         }  /* if */
       }  /* if */
       break;
@@ -6424,8 +6424,8 @@ user-defined conversions.
               a_boolean saved_any_error = expr_stack->any_suppressed_error;
               expr_stack->suppress_diagnostics = TRUE;
               if (local_constant.expr == NULL ||
-                  /* Ignore the expression attached to an enum constant. */
-                  is_enum_constant(&operand->variant.constant)) {
+                  /* Ignore the expression attached to a named constant. */
+                  operand->variant.constant.is_named_constant_definition) {
                 /* The cast is applied to a simple constant that contains no
                    expression.  Create an expression node to which the cast
                    history can be attached. */

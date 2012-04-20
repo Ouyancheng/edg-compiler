@@ -423,15 +423,12 @@ extern void form_pm_constant(
    expression it came from and should be put out in expression form.  Don't
    be fooled by enumeration constants, which also have a non-NULL
    expression pointer if they were given an explicit value in their
-   definitions, but shouldn't be put out in expression form.  However, an
-   enumeration constant with a name reference that specifies an explicit
-   qualifier should be put out as an expression so that the qualifier is
-   preserved. */
-#define constant_should_be_put_out_as_expr(constant)                          \
-  ((constant)->expr != NULL && (!is_enum_constant(constant) ||                \
-                                (constant->expr->is_for_name_reference_only &&\
-                                 constant->expr->name_reference->qualifier != \
-                                                                        NULL)))
+   definitions, but shouldn't be put out in expression form.  However, a
+   non-definition enumeration constant that has a backing expression is
+   used to preserve the form of name reference, so the expression should be
+   used in that case. */
+#define constant_should_be_put_out_as_expr(constant)                      \
+  ((constant)->expr != NULL && !(constant)->is_named_constant_definition)
 
 extern void form_uuidof_reference(a_constant_ptr                        con,
                                   an_il_to_str_output_control_block_ptr octl);

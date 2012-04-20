@@ -3599,6 +3599,11 @@ typedef struct a_constant {
 			   be enclosed in braces in the output of the
 			   C-generating back end. */
 #endif /* BACK_END_IS_C_GEN_BE */
+  a_bit_field	is_named_constant_definition:1;
+			/* TRUE if this constant is the definition of a
+			   named constant (an expression for an enumerator
+			   in the definition of an enumeration or a
+			   non-standard class member constant). */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;
@@ -13797,12 +13802,6 @@ typedef struct an_expr_node {
 			   LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
 			   is FALSE). */
 #endif /* DO_IL_LOWERING */
-  a_bit_field	is_for_name_reference_only:1;
-			/* TRUE if this node is present only to provide a
-			   name reference for an enk_constant node such as
-			   a member enumeration constant that is referred
-			   to as a member of a class derived from the one
-			   of which it is a member. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */
