@@ -15614,6 +15614,11 @@ based on the current mode and the given declaration parsing state.
       dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
     }  /* if */
   }  /* if */
+  if (microsoft_mode && microsoft_version >= 1700) {
+    /* Newer versions of the Microsoft compiler appear to allow COM-style
+       attributes among decl-specifier tokens. */
+    dsi_flags |= DSI_MICROSOFT_ATTRIBUTES_ALLOWED;
+  }  /* if */
   return dsi_flags;
 }  /* get_decl_specifiers_flags */
 

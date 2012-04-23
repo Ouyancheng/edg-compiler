@@ -1,5 +1,20 @@
 Version 4.5
 
+4/23/12  [EDGcpfe/12399]
+Microsoft compatibility: Bracketed attributes and specifiers
+
+Previously, Microsoft-style bracketed attributes had to precede all the
+declaration specifiers (like inline, static, type names, etc.) of the
+affected declaration.  Now, when microsoft_version >= 1700, such attributes
+have to precede the type specifiers, but not specifiers like "inline" or
+"extern".  For example:
+
+  inline [returnvalue:SA_Post(MustCheck=1)] void f();
+      // Now accepted in Microsoft modes with microsoft_version >= 1700.
+  inline void [returnvalue:SA_Post(MustCheck=1)] e();
+      // Still an error: The attributes cannot appear after "void".
+
+
 4/23/12  [EDGcpfe/12788]
 Incorrect offset for lowered anonymous struct pointer-to-data-member
 
