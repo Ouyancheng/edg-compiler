@@ -3873,10 +3873,9 @@ The presence of a nonconstant initializer component is reflected in *is.
 {
   an_init_state       elem_is;
 
-  if (is_braced_init_component(icp) && icp->variant.braced.list != NULL) {
-    /* A redundantly braced initializer.  FIXME: This could also be a braced
-       set of arguments for a constructor -- revisit the condition above when
-       we can test for that case. */
+  if (is_braced_init_component(icp) && icp->variant.braced.list != NULL &&
+      !is_class_struct_union_type(dest_type)) {
+    /* A redundantly braced initializer. */
     an_error_severity   sev = es_none;
     a_source_position   *brace_pos = init_component_pos(icp);
     a_source_position   *excess_init_pos = NULL;
@@ -4539,9 +4538,9 @@ static void braced_initializer(a_type_ptr          dtype,
                                a_source_position   *diag_pos)
 /*
 Handle a braced-init-list following a declarator, a mem-initializer-id, or a
-new-type-id.  If is->direct_init is TRUE, the initializer uses direct
-initialization syntax (e.g., "T x{3};"); otherwise, it uses copy
-initialization syntax (e.g., "T x = {3};").
+new-type-id.  If the direct_init flag in the initialization state is TRUE, the
+initializer uses direct initialization syntax (e.g., "T x{3};"); otherwise, it
+uses copy initialization syntax (e.g., "T x = {3};").
 dtype is the type of the entity being initialized.  *is describes the state of
 initializer processing.  *dps describes the declaration that the initializer
 is part of; it is NULL if the initialization is not (directly) part of a
@@ -6535,15 +6534,20 @@ explicit definition in the source code; otherwise, this routine is called
 as part of the implicit definition of a compiler generated constructor.
 
 When user_defined is TRUE, the explicit initializations are scanned from the
-source, based on the following syntax: FIXME
+source, based on the following syntax:
 
     ctor-initializer
               ":" mem-initializer-list
-    mem-initializer
-              complete-class-name "(" expression-list    ")"
+    mem-initializer-list:
+              mem-initializer "..."
+                                   opt
+              mem-initializer "," mem-initializer-list "..."
+                                                            opt
+
+    mem-initializer:
+              mem-initializer-id "(" expression-list    ")"
                                                      opt
-              identifier "(" expression-list    ")"
-                                            opt
+              mem-initializer-id braced-init-list
 
 complete-class-name identifies a base class from which the class to which
 the constructor belongs is derived, in which case the initializer list entry
