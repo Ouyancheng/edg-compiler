@@ -127,7 +127,17 @@ constant, and return information about it in *delta.
       a_type_ptr                   field_class = parent_class_of(field);
       a_class_type_supplement_ptr  ctsp = class_type_supp(field_class);
       offset += (a_targ_ptrdiff_t)field->offset;
-      if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
+      if (!is_union_type(field_class) && type_is_unnamed(field_class)) {
+        /* An anonymous struct; find the parent field. */
+        a_symbol_ptr field_sym = symbol_for(field);
+        check_assertion(field_sym != NULL);
+        field_sym = field_sym->variant.field.anonymous_parent_object;
+        check_assertion(field_sym != NULL &&
+                        field_sym->kind == (a_symbol_kind)sk_field);
+        field = field_sym->variant.field.ptr;
+        continue;
+      } else if (ctsp->anonymous_union_kind !=
+                                          (an_anonymous_union_kind)auk_field) {
         break;
       }  /* if */
       field = ctsp->anonymous_union_field;
