@@ -17698,6 +17698,7 @@ The routine body is not generated until it is known to be needed.
       if (cssp->has_user_declared_move_constructor || has_move_assign) {
         gsfd.suppress_copy_ctor = TRUE;
         gsfd.suppress_copy_assign = TRUE;
+        gsfd.suppress_move_assign = TRUE;
       }  /* if */
       if (class_type->variant.class_struct_union.any_virtual_base_classes) {
         /* The generated move assignment operator is also suppressed if the
