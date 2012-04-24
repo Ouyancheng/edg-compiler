@@ -4445,6 +4445,8 @@ issued if no more specific position is available.
   } else {
     a_boolean   braced = is_braced_init_component(icp);
     a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
+    /* Skip unnamed bit fields. */ 
+    fp = next_initializable_field(fp);
     if (!is->check_validity_only) {
       *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
       (*init_con)->type = class_type;
@@ -4456,9 +4458,26 @@ issued if no more specific position is available.
       if (braced) diag_pos = &icp->variant.braced.end_pos;
       /* Unwrap the braced list for the processing that follows. */
       icp = icp->variant.braced.list;
+    } else {
+      /* No braces and no fields, but another initializer: This is an error.
+         E.g.:
+           struct E {};
+           struct A { E e; int x; } a{ 1 };  // Error: a.e uninitialized.
+         Treat it as an attempt to do a "whole aggregate class initialization".
+         It is essential to move forward in the list of initializers to avoid
+         non-terminated loops.  */
+      a_constant_ptr  empty_con = NULL;
+      aggr_init_simple_element(icp, class_type, is, &empty_con);
+      /* The call to aggr_init_simple_element must have resulted in an error,
+         since we previously determined that whole aggregate class
+         initialization is not possible. */
+      if (is->no_diagnostics) {
+        check_assertion(is->init_error);
+      } else {
+        check_assertion(total_errors != 0);
+      }  /* if */
+      icp = icp->next;
     }  /* if */
-    /* Skip unnamed bit fields. */ 
-    fp = next_initializable_field(fp);
     while (fp != NULL && icp != NULL) {
       a_constant_ptr  elem_con;
       aggr_init_element(&icp, fp->type, is, diag_pos, &elem_con);
