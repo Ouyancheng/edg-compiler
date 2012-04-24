@@ -13131,7 +13131,7 @@ the target type to be used).
       fprintf(f_debug, "try_builtin_operands_match: operand %lu\n", narg);
     }  /* if */
 #endif /* DEBUG */
-    /* Because brace-init-lists are not allowed as operands of operators,
+    /* Because braced-init-lists are not allowed as operands of operators,
        the entry here must be for an expression. */
     check_assertion(is_expression_component(alep));
     operand = operand_of_arg_list_elem(alep);
@@ -13696,7 +13696,7 @@ in some way, e.g., two pointers that must have the same type.
   for (type_pattern_position = operand_type_pattern, alep = operand_list;
        alep != NULL;
        type_pattern_position++, alep = alep->next) {
-    /* Because brace-init-lists are not allowed as operands of operators,
+    /* Because braced-init-lists are not allowed as operands of operators,
        the entry here must be for an expression. */
     check_assertion(is_expression_component(alep));
     operand = operand_of_arg_list_elem(alep);

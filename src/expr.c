@@ -28224,6 +28224,11 @@ stack already set.
     /* Loop to scan a list of expressions or brace-enclosed lists. */
     an_init_component_ptr elem_icp, end_icp = NULL;
     do {
+      if (end_icp != NULL && curr_token == tok_rbrace) {
+        /* The syntax allows an extra comma at the end of the list.
+           The end-icp test disallows that on the first iteration. */
+        break;
+      }  /* if */
       if (curr_token == tok_lbrace) {
         /* A nested brace-enclosed list. */
         elem_icp = scan_braced_init_list_internal(is_full_expr, dps);
