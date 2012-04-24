@@ -4458,7 +4458,7 @@ issued if no more specific position is available.
       if (braced) diag_pos = &icp->variant.braced.end_pos;
       /* Unwrap the braced list for the processing that follows. */
       icp = icp->variant.braced.list;
-    } else {
+    } else if (fp == NULL) {
       /* No braces and no fields, but another initializer: This is an error.
          E.g.:
            struct E {};
