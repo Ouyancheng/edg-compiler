@@ -10087,7 +10087,7 @@ context should be pushed if we are in a variadic prototype instantiation.
 *saved_in_disambiguation is used to record the previous value of the
 scope stack in_disambiguation flag.  pack_expansion_stack_entry points to the
 location used for the pack expansion stack entry pointer returned if a pack
-suppression needs to pushed, and can be NULL if suppress_backs is FALSE.
+suppression needs to pushed, and can be NULL if suppress_packs is FALSE.
 */
 {
   a_scope_stack_entry_ptr	ssep;
@@ -10109,7 +10109,7 @@ void end_prescan_context(
 	a_pack_expansion_stack_entry_ptr	pack_expansion_stack_entry,
 	a_boolean				saved_in_disambiguation)
 /*
-Update the scope stack to indicate that we no longer in a prescan or
+Update the scope stack to indicate that we are no longer in a prescan or
 disambiguation context.  packs_suppressed, pack_expansion_stack_entry, and
 saved_in_disambiguation are the values returned by the begin_prescan_context
 call.
