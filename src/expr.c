@@ -28368,8 +28368,9 @@ is_var_init is TRUE, this is the complete initializer for a variable
 dest_type.  In either case, dest_type must not be an aggregate type
 unless the initializer is an expression or an empty braced list "{}".
 If check_narrowing is TRUE, issue diagnostics for narrowing conversions.
- If fill_in_dtor is TRUE, in the latter case the destructor will be added
-to the dynamic init entry (but it's not put on a lifetime list yet).
+If fill_in_dtor is TRUE, the destructor will be added to the dynamic init
+entry if one is created to represent this initializer (but it's not put on a
+lifetime list yet).
 dps describes the current declaration state, or is NULL if there is no
 declaration associated with this scan.  is describes the initialization
 processed by this function, including whether diagnostics should be

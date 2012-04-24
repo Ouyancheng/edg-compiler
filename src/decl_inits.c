@@ -3909,7 +3909,7 @@ The presence of a nonconstant initializer component is reflected in *is.
                icp->variant.braced.list != NULL);
     }  /* if */
     if (is->no_diagnostics) {
-      is->init_error = (int)sev >= (int)es_error;
+      is->init_error = is_effective_error(ec_nonstd_braces, brace_pos);
     } else {
       pos_diagnostic(sev, ec_nonstd_braces, brace_pos);
     }  /* if */
@@ -4103,14 +4103,16 @@ size.
           *result = alloc_unshared_constant(string_constant);
         }  /* if */
       } else {
-        if (!is->no_diagnostics) {
+        if (is->no_diagnostics) {
+          is->init_error = TRUE;
+        } else {
           pos_ty2_error(ec_bad_initializer_type, init_component_pos(icp),
                         string_constant->type, *p_array_type);
         }  /* if */
         if (!is->check_validity_only) {
           *result = alloc_error_constant();
         }  /* if */
-        if (is_incomplete_array_type(*p_array_type)) {
+        if (is_incomplete_array_type(*p_array_type) && !is->no_diagnostics) {
           /* An incomplete array initialized by an incompatible string literal.
              For better error recovery, replace the array type by an error
              type. */
@@ -4279,7 +4281,7 @@ type that reflects the length of the initializer.
         /* Initializers remain at this level, but no elements. */
         check_assertion(icount == ecount);
         if (is->no_diagnostics) {
-         is->init_error = TRUE;
+          is->init_error = TRUE;
         } else {
           pos_error(ec_too_many_initializer_values, init_component_pos(icp));
         }  /* if */
@@ -4568,9 +4570,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
     case tk_error:
     case tk_template_param:
       /* Unknown destination type: Create an aggregate constant that follows
-         the source form.  This will never trigger diagnostics; if we don't
-         want IL an IL representation of the initializer at all, then there is
-         nothing left to do. */
+         the source form. */
       is_aggregate = TRUE;
       aggr_init_generic_element(icp, dtype, is, &is->init_con);
       break;

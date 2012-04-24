@@ -324,7 +324,7 @@ typedef struct an_init_state {
   a_bit_field	no_diagnostics:1;
 			/* TRUE if no diagnostics should be issued (this is
 			   useful for overload-resolution matching and for
-			   deduction matching). C++ mode only. */
+			   deduction matching).  C++ mode only. */
   a_bit_field	check_validity_only:1;
 			/* TRUE if no IL should be generated for the
 			   initializer.  This is useful for overload-resolution
