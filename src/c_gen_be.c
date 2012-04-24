@@ -4564,9 +4564,20 @@ output with parentheses if needed.
 
            (*(struct B*)(((char*)&x)+N))
        */
-    promoted_bit_field_case =
-            (field->type->variant.class_struct_union.field_list != NULL &&
-             field->type->variant.class_struct_union.field_list->is_bit_field);
+    a_type_ptr  base_class = field->type;
+    a_field_ptr first_base_field;
+    while ((first_base_field =
+                  base_class->variant.class_struct_union.field_list) != NULL) {
+      if (first_base_field->base_class_subobject_with_tail_padding) {
+        /* The field is an indirect base class subobject whose members have
+           also been promoted into the derived class object.  Look at the
+           first field of the indirect base class. */
+        base_class = first_base_field->type;
+      } else {
+        promoted_bit_field_case = first_base_field->is_bit_field;
+        break;
+      }  /* if */
+    }  /* while */
     write_tok_str("(*(");
     dump_type(field->type, /*add_pointer_to=*/TRUE);
     if (promoted_bit_field_case) {

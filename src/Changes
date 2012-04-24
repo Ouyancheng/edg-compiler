@@ -1,5 +1,31 @@
 Version 4.5
 
+4/24/12  [EDGcpfe/12840]
+C-generating back end: tail padding reuse and bit-field members of indirect
+base classes
+
+In C-generating back end configurations in which tail padding reuse is
+enabled (see the entry for EDGcpfe/11008 below), incorrect C code could be
+generated if the first non-static data member of an indirect base class is
+a bit-field and the tail padding of that class is reused in the derived
+class.  In particular, a call to a base class member function could result
+in an attempt to take the address of a bit-field, which is not permitted.
+This is now fixed.  For example, given
+
+  struct A {
+          A& operator=(A&);
+          int zzz : 5;
+  };
+  struct B : A {
+    ~B();
+  };
+  struct C : A, B { char c; };
+  C xC1;
+
+the generated destructor for class C attempted to take the address of zzz
+in order to invoke B::~B().
+
+
 4/23/12  [EDGcpfe/12399]
 Microsoft compatibility: Bracketed attributes and specifiers
 
