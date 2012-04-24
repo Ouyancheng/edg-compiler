@@ -511,20 +511,25 @@ Change the reference kind in any references attached to operand to SRK_ERROR.
 }  /* change_operand_refs_to_error */
 
 
-void change_arg_operand_list_refs_to_error(an_arg_operand_ptr arg_operand_list)
+void change_arg_list_refs_to_error(an_arg_list_elem_ptr arg_list)
 /*
-Change the references on each operand in the list of operands headed by
-arg_operand_list to error references.
+Change the references on each operand in the list of arguments headed by
+arg_list to error references.
 */
 {
-  an_arg_operand_ptr arg_operand;
+  an_arg_list_elem_ptr alep;
 
-  for (arg_operand = arg_operand_list;
-       arg_operand != NULL;
-       arg_operand = arg_operand->next) {
-    change_operand_refs_to_error(&arg_operand->operand);
+  for (alep = arg_list;
+       alep != NULL;
+       alep = alep->next) {
+    if (is_expression_component(alep)) {
+      change_operand_refs_to_error(operand_of_arg_list_elem(alep));
+    } else {
+      check_assertion(is_braced_init_component(alep));
+      change_arg_list_refs_to_error(alep->variant.braced.list);
+    }  /* if */
   }  /* for */
-}  /* change_arg_operand_list_refs_to_error */
+}  /* change_arg_list_refs_to_error */
 
 
 void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
@@ -621,15 +626,16 @@ The operand will not be used further.
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_property_ref_operand(operand)) {
-    /* An ok_property_ref operand has some an_arg_operand entries attached. */
-    free_arg_operand_list(operand->variant.property_ref.subscripts);
+    /* An ok_property_ref operand has some an_arg_list_elem entries
+       attached. */
+    free_arg_list(operand->variant.property_ref.subscripts);
     operand->variant.property_ref.subscripts = NULL;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* free_attachments_to_operand */
 
 
-void free_arg_operand_list(an_arg_operand_ptr aop)
+static void free_arg_operand_list(an_arg_operand_ptr aop)
 /*
 Free the list of argument operands pointed to by aop.
 */
@@ -642,7 +648,7 @@ Free the list of argument operands pointed to by aop.
     free_attachments_to_operand(&aop->operand);
 #if CHECKING && DEBUG
     /* Make the sure the entry was not previously freed. */
-    if (db_active) {
+    if (db_active || EXPENSIVE_CHECKING) { /*lint !e506*/
       an_arg_operand_ptr taop;
       for (taop = avail_arg_operands;
            taop != NULL;
@@ -651,7 +657,7 @@ Free the list of argument operands pointed to by aop.
           internal_error("free_arg_operand_list: entry freed twice");
         }  /* if */
       }  /* for */
-    }
+    }  /* if */
 #endif /* CHECKING && DEBUG */
     /* Add the entry to the available list. */
     aop->next = avail_arg_operands;
@@ -709,6 +715,18 @@ kind to "kind" and its fields to default values, and return a pointer to it.
 }  /* alloc_init_component */
 
 
+an_arg_list_elem_ptr alloc_arg_list_elem_for_operand(an_operand *operand)
+/*
+Allocate an init component/arg list element containing the given operand.
+*/
+{
+  an_init_component_ptr icp =
+                  alloc_init_component((an_init_component_kind)ick_expression);
+  copy_operand(operand, operand_of_arg_list_elem(icp));
+  return icp;
+}  /* alloc_arg_list_elem_for_operand */
+
+
 void free_init_component_list(an_init_component_ptr icp)
 /*
 Free the initializer component entry pointed to by icp.  If it has a
@@ -733,6 +751,19 @@ the whole list.  If called with NULL, do nothing.
       default:
         unexpected_condition_str("free_init_component: bad entry kind");
     }  /* switch */
+#if CHECKING && DEBUG
+    /* Make the sure the entry was not previously freed. */
+    if (db_active || EXPENSIVE_CHECKING) {  /*lint !e506*/
+      an_init_component_ptr ticp;
+      for (ticp = avail_init_components;
+           ticp != NULL;
+           ticp = ticp->next) {
+        if (ticp == icp) {
+          internal_error("free_init_component_list: entry freed twice");
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#endif /* CHECKING && DEBUG */
     icp->next = avail_init_components;
     avail_init_components = icp;
   }  /* for */
@@ -774,7 +805,7 @@ FALSE.
   a_boolean  result = FALSE;
 
   if (is_expression_component(icp)) {
-    an_operand  *operand = &icp->variant.expr->operand;
+    an_operand *operand = operand_of_arg_list_elem(icp);
     if (operand->is_simple_string_literal) {
       /* The operand is a simple string literal (e.g., it has not been
          cast). */
@@ -819,6 +850,38 @@ Display an init component for debugging purposes.
 }  /* db_init_component */
 
 #endif /* DEBUG */
+
+void check_arg_list_elem_is_expression(an_arg_list_elem_ptr alep)
+/*
+Check that the given member of an argument list is an expression.
+If it's not (e.g., if it's a brace-enclosed list), issue an error and
+change it to an error expression.
+*/
+{
+  if (is_expression_component(alep)) {
+    /* Okay. */
+  } else if (is_braced_init_component(alep)) {
+    a_source_position start_pos = alep->variant.braced.start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    a_source_position end_pos = alep->variant.braced.end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    an_operand        *operand;
+    expr_pos_error(ec_braced_init_list_not_allowed, &start_pos);
+    arg_list_will_not_be_used_because_of_error(alep);
+    free_init_component_list(alep->variant.braced.list);
+    set_init_component_kind(alep, (an_init_component_kind)ick_expression);
+    /* Note that the "next" pointer is preserved. */
+    operand = operand_of_arg_list_elem(alep);
+    make_error_operand(operand);
+    operand->position = start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    operand->end_position = end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* check_arg_list_elem_is_expression */
+
 
 void clear_expression_cache(an_expression_cache *cache)
 /*
@@ -2052,12 +2115,12 @@ Display an expression operand for debugging purposes.
       }  /* if */
       db_symbol(operand->symbol, "", 0);
       if (operand->variant.property_ref.subscripts != NULL) {
-        an_arg_operand_ptr aop;
+        an_arg_list_elem_ptr alep;
         (void)fprintf(f_debug, "\nsubscripts =\n");
-        for (aop = operand->variant.property_ref.subscripts;
-             aop != NULL;
-             aop = aop->next) {
-          db_operand(&aop->operand);
+        for (alep = operand->variant.property_ref.subscripts;
+             alep != NULL;
+             alep = alep->next) {
+          db_init_component(alep);
         }  /* for */
       }  /* if */
       break;
@@ -2577,25 +2640,28 @@ lowering (as lvalueness is known at that time).
                                           treat_as_potential_rvalue);
       }  /* if */
       /* Copy the list of subscript operands. */
-      { an_arg_operand_ptr aop, last_clone_aop = NULL;
-        for (aop = operand->variant.property_ref.subscripts;
-             aop != NULL;
-             aop = aop->next) {
-          an_arg_operand_ptr aop_clone = alloc_arg_operand();
-          a_boolean          local_temp_init_used;
+      { an_arg_list_elem_ptr alep, last_clone_alep = NULL;
+        for (alep = operand->variant.property_ref.subscripts;
+             alep != NULL;
+             alep = alep->next) {
+          a_boolean            local_temp_init_used;
+          an_arg_list_elem_ptr alep_clone =
+                  alloc_init_component((an_init_component_kind)ick_expression);
           /* The lvalueness of subscript operators is not known at this
              point, so make sure treat_as_potential_rvalue is set to
              reflect this. */
-          clone_operand(&aop->operand, &aop_clone->operand,
+          check_assertion(is_expression_component(alep));  /* FIXME*/
+          clone_operand(operand_of_arg_list_elem(alep),
+                        operand_of_arg_list_elem(alep_clone),
                         vars_can_change, &local_temp_init_used,
                         /*treat_as_potential_rvalue=*/TRUE);
           if (local_temp_init_used) *temp_init_used = TRUE;
-          if (last_clone_aop == NULL) {
-            operand_clone->variant.property_ref.subscripts = aop_clone;
+          if (last_clone_alep == NULL) {
+            operand_clone->variant.property_ref.subscripts = alep_clone;
           } else {
-            last_clone_aop->next = aop_clone;
+            last_clone_alep->next = alep_clone;
           }  /* if */
-          last_clone_aop = aop_clone;
+          last_clone_alep = alep_clone;
         }  /* for */
       }
       break;
@@ -4574,25 +4640,8 @@ cleanup required.
 }  /* operand_will_not_be_used_because_of_error */
 
 
-void arg_operand_list_will_not_be_used_because_of_error(
-                                                  an_arg_operand *operand_list)
-/*
-The indicated operand list will not be used further because an error has
-been detected.  There is also the implication that because of the
-error we cannot tell how the operands would have been used.  Do any
-cleanup required.  The list is not freed.
-*/
-{
-  an_arg_operand *arg_op;
-
-  for (arg_op = operand_list; arg_op != NULL; arg_op = arg_op->next) {
-    operand_will_not_be_used_because_of_error(&arg_op->operand);
-  }  /* for */
-}  /* arg_operand_list_will_not_be_used_because_of_error */
-
-
-void expr_list_will_not_be_used_because_of_error(
-                                         an_expr_list_element_ptr operand_list)
+void arg_list_will_not_be_used_because_of_error(
+                                             an_arg_list_elem_ptr operand_list)
 /*
 The indicated expression list will not be used further because an error has
 been detected.  There is also the implication that because of the
@@ -4600,18 +4649,19 @@ error we cannot tell how the operands would have been used.  Do any
 cleanup required.  The list is not freed.
 */
 {
-  an_expr_list_element_ptr elep;
+  an_arg_list_elem_ptr alep;
 
-  for (elep = operand_list; elep != NULL; elep = elep->next) {
-    if (is_expression_component(elep)) {
-      operand_will_not_be_used_because_of_error(&elep->variant.expr->operand);
-    } else if (is_braced_init_component(elep)) {
-      expr_list_will_not_be_used_because_of_error(elep->variant.braced.list);
+  for (alep = operand_list; alep != NULL; alep = alep->next) {
+    if (is_expression_component(alep)) {
+      operand_will_not_be_used_because_of_error(
+                                               operand_of_arg_list_elem(alep));
+    } else if (is_braced_init_component(alep)) {
+      arg_list_will_not_be_used_because_of_error(alep->variant.braced.list);
     } else {
       unexpected_condition();
     }  /* if */
   }  /* for */
-}  /* expr_list_will_not_be_used_because_of_error */
+}  /* arg_list_will_not_be_used_because_of_error */
 
 
 void conv_to_error_operand(an_operand *operand)
@@ -11055,23 +11105,24 @@ e.g., if the source operand is an lvalue.
 
 
 static an_expr_node_ptr prep_generic_expression_list(
-                                              an_arg_operand *arg_operand_list)
+                                                 an_arg_list_elem_ptr arg_list)
 /*
 Prepare a generic expression list, i.e., one scanned during a prototype
 instantiation for which we do not know the way the list members are going to
 be used.  Return a list of expressions.
 */
 {
-  an_expr_node_ptr   expr, prev_expr, expr_list;
-  an_arg_operand_ptr arg_operand;
+  an_expr_node_ptr     expr, prev_expr, expr_list;
+  an_arg_list_elem_ptr alep;
 
   prev_expr = NULL;
   expr_list = NULL;
-  for (arg_operand = arg_operand_list;
-       arg_operand != NULL;
-       arg_operand = arg_operand->next) {
-    prep_generic_operand(&arg_operand->operand);
-    expr = make_node_from_operand_for_expr_list(&arg_operand->operand);
+  for (alep = arg_list; alep != NULL; alep = alep->next) {
+    an_operand *operand;
+    check_assertion(is_expression_component(alep));  /*FIXME*/
+    operand = operand_of_arg_list_elem(alep);
+    prep_generic_operand(operand);
+    expr = make_node_from_operand_for_expr_list(operand);
     /* Add this expression to the end of the expression-form list
        being built up. */
     if (prev_expr == NULL) {
@@ -11085,14 +11136,14 @@ be used.  Return a list of expressions.
 }  /* prep_generic_expression_list */
 
 
-an_expr_node_ptr prep_generic_argument_list(an_arg_operand *arg_operand_list)
+an_expr_node_ptr prep_generic_argument_list(an_arg_list_elem_ptr arg_list)
 /*
 Prepare a generic argument list, i.e., one scanned during a prototype
 instantiation for which we do not know the actual function to be called.
 Return a list of argument expressions.
 */
 {
-  an_expr_node_ptr args = prep_generic_expression_list(arg_operand_list);
+  an_expr_node_ptr args = prep_generic_expression_list(arg_list);
 
   return args;
 }  /* prep_generic_argument_list */
@@ -11158,7 +11209,7 @@ a secondary operator (e.g., the "]" of a subscript operation).
 
 void template_cli_subscript_operation(
                                an_operand              *operand_1,
-                               an_arg_operand          *subscripts,
+                               an_arg_list_elem_ptr    subscripts,
                                an_operand              *result,
                                a_source_position       *operator_position,
                                a_token_sequence_number operator_tok_seq_number,
@@ -16768,10 +16819,10 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
     /* Some error. */
     conv_to_error_operand(operand);
   } else {
-    an_operand         orig_operand, function_operand, selector;
-    an_arg_operand_ptr arg_operand_list;
-    an_expr_node_ptr   argument_list;
-    a_boolean          have_selector;
+    an_operand           orig_operand, function_operand, selector;
+    an_arg_list_elem_ptr arg_list;
+    an_expr_node_ptr     argument_list;
+    a_boolean            have_selector;
 
     have_selector = (operand->variant.property_ref.object != NULL);
     orig_operand = *operand;
@@ -16783,23 +16834,23 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
       make_expression_operand(operand->variant.property_ref.object, &selector);
       selector.selector_is_object_pointer = TRUE;
     }  /* if */
-    /* The arg_operand list is the subscript expression list, if any. */
-    arg_operand_list = operand->variant.property_ref.subscripts;
-    /* The subscript arg_operands will be freed by the overload
-       resolution process, so detach them from the operand. */
+    /* The argument list is the subscript expression list, if any. */
+    arg_list = operand->variant.property_ref.subscripts;
+    /* The subscript arguments will be freed below, so detach them from
+       the operand. */
     operand->variant.property_ref.subscripts = NULL;
     if (put_operand != NULL) {
       /* The last argument for a "put" is the value to be put. */
-      an_arg_operand_ptr new_arg_operand = alloc_arg_operand();
-      new_arg_operand->operand = *put_operand;
-      if (arg_operand_list == NULL) {
-        arg_operand_list = new_arg_operand;
+      an_arg_list_elem_ptr put_arg =
+                                  alloc_arg_list_elem_for_operand(put_operand);
+      if (arg_list == NULL) {
+        arg_list = put_arg;
       } else {
-        an_arg_operand_ptr end_arg_operand_list = arg_operand_list;
-        while (end_arg_operand_list->next != NULL) {
-          end_arg_operand_list = end_arg_operand_list->next;
+        an_arg_list_elem_ptr end_arg_list = arg_list;
+        while (end_arg_list->next != NULL) {
+          end_arg_list = end_arg_list->next;
         }  /* if */
-        end_arg_operand_list->next = new_arg_operand;
+        end_arg_list->next = put_arg;
       }  /* if */
     }  /* if */
     /* Do overload resolution to determine the function to call. */
@@ -16809,7 +16860,7 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
                                        (a_template_arg_ptr)NULL,
                                        have_selector,
                                        &selector,
-                                       arg_operand_list,
+                                       arg_list,
                                        /*do_arg_dep_lookup=*/FALSE,
                                        /*use_pure_arg_dep_lookup=*/FALSE,
                                        /*use_std_for_arg_dep_lookup=*/FALSE,
@@ -16904,6 +16955,7 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
       operand->end_position = operand_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
+    free_arg_list(arg_list);
   }  /* if */
   if (curr_expr_kind_is_const() && !is_error_operand(operand)) {
     error_in_operand(ec_expr_not_constant, operand);
@@ -16936,13 +16988,14 @@ to TRUE and *result becomes an error operand.
     err = TRUE;
   } else {
     a_property_or_event_descr_ptr
-                       pedp;
-    a_symbol_ptr       event_sym = lhs->symbol, accessor_sym = NULL;
-    a_symbol_locator   accessor_loc;
-    an_operand         function_operand, selector;
-    an_arg_operand_ptr arg_operand_list;
-    an_expr_node_ptr   argument_list;
-    a_boolean          have_selector = (lhs->variant.event_ref.object != NULL);
+                         pedp;
+    a_symbol_ptr         event_sym = lhs->symbol, accessor_sym = NULL;
+    a_symbol_locator     accessor_loc;
+    an_operand           function_operand, selector;
+    an_arg_list_elem_ptr arg_list;
+    an_expr_node_ptr     argument_list;
+    a_boolean            have_selector =
+                                       (lhs->variant.event_ref.object != NULL);
     if (symbol_is(event_sym, sk_field)) {
       pedp = event_sym->variant.field.ptr->property_or_event_descr;
     } else if (symbol_is(event_sym, sk_static_data_member)) {
@@ -16972,8 +17025,7 @@ to TRUE and *result becomes an error operand.
       accessor_loc.source_position = *operator_pos;
       check_ambiguity_and_verify_access(&accessor_loc);
       /* Turn the right-hand side into an operand list for the call. */
-      arg_operand_list = alloc_arg_operand();
-      arg_operand_list->operand = *rhs;
+      arg_list = alloc_arg_list_elem_for_operand(rhs);
       /* Do overload resolution to determine the function to call. */
       if (!select_and_prepare_to_call_overloaded_function(
                                           accessor_sym,
@@ -16981,7 +17033,7 @@ to TRUE and *result becomes an error operand.
                                           (a_template_arg_ptr)NULL,
                                           have_selector,
                                           &selector,
-                                          arg_operand_list,
+                                          arg_list,
                                           /*do_arg_dep_lookup=*/FALSE,
                                           /*use_pure_arg_dep_lookup=*/FALSE,
                                           /*use_std_for_arg_dep_lookup=*/FALSE,
@@ -17031,6 +17083,7 @@ to TRUE and *result becomes an error operand.
 #endif /* !DO_IL_LOWERING */
       }  /* if */
     }  /* if */
+    free_arg_list(arg_list);
   }  /* if */
   if (err) {
     make_error_operand(result);

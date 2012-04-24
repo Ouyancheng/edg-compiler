@@ -479,7 +479,7 @@ typedef struct an_operand {
 			   indicates an object that is evaluated and discarded
 			   (it won't take part in the overload resolution
 			   used to select the accessor). */
-      an_arg_operand_ptr
+      an_arg_list_elem_ptr
 		subscripts;
 			/* Optional list of subscript expressions, for cases
 			   like p->x[y][z]. */
@@ -1138,8 +1138,7 @@ extern void change_refs_to_error(a_ref_entry_ptr ref_list);
 
 extern void change_operand_refs_to_error(an_operand *operand);
 
-extern void change_arg_operand_list_refs_to_error(
-                                          an_arg_operand_ptr arg_operand_list);
+extern void change_arg_list_refs_to_error(an_arg_list_elem_ptr arg_list);
 
 extern void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
                                   a_symbol_reference_kind old_kind,
@@ -1151,7 +1150,11 @@ extern an_arg_operand_ptr alloc_arg_operand(void);
 
 extern an_init_component_ptr alloc_init_component(an_init_component_kind kind);
 
+extern
+an_arg_list_elem_ptr alloc_arg_list_elem_for_operand(an_operand *operand);
+
 extern void free_init_component_list(an_init_component_ptr icp);
+#define free_arg_list(icp) free_init_component_list(icp)
 
 extern a_source_position* init_component_pos(an_init_component_ptr icp);
 
@@ -1163,6 +1166,8 @@ extern a_boolean is_string_literal_component(an_init_component_ptr  icp,
                                              a_constant_ptr         *p_con);
 
 extern void db_init_component(an_init_component_ptr icp);
+
+extern void check_arg_list_elem_is_expression(an_arg_list_elem_ptr alep);
 
 extern void clear_expression_cache(struct an_expression_cache *cache);
 
@@ -1176,8 +1181,6 @@ extern
 a_boolean fetch_operand_from_expression_cache(
                                             an_operand          *operand,
                                             struct an_expression_cache *cache);
-
-extern void free_arg_operand_list(an_arg_operand_ptr aop);
 
 extern void free_dynamic_init_dtor_fixup(a_dynamic_init_dtor_fixup_ptr didfp);
 
@@ -2064,11 +2067,8 @@ extern void expr_overload_check_ambiguity_and_verify_access(
 
 extern void operand_will_not_be_used_because_of_error(an_operand *operand);
 
-extern void arg_operand_list_will_not_be_used_because_of_error(
-                                                 an_arg_operand *operand_list);
-
-extern void expr_list_will_not_be_used_because_of_error(
-       an_expr_list_element *operand_list);
+extern void arg_list_will_not_be_used_because_of_error(
+                                            an_arg_list_elem_ptr operand_list);
 
 extern void conv_to_error_operand(an_operand *operand);
 
@@ -2195,8 +2195,9 @@ extern void generic_cast_operand(an_operand         *operand,
                                  a_boolean          is_implicit_cast,
                                  a_source_position  *type_position);
 
-extern an_expr_node_ptr prep_generic_argument_list(
-                                             an_arg_operand *arg_operand_list);
+
+extern
+an_expr_node_ptr prep_generic_argument_list(an_arg_list_elem_ptr arg_list);
 
 extern
 void template_binary_operation(an_expr_operator_kind   op,
@@ -2211,7 +2212,7 @@ void template_binary_operation(an_expr_operator_kind   op,
 extern
 void template_cli_subscript_operation(
                                an_operand              *operand_1,
-                               an_arg_operand          *subscripts,
+                               an_arg_list_elem_ptr    subscripts,
                                an_operand              *result,
                                a_source_position       *operator_position,
                                a_token_sequence_number operator_tok_seq_number,

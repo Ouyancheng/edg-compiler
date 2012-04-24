@@ -635,7 +635,7 @@ typedef struct an_arg_check_block {
 			   zero value is only possible when has_ellipsis is
 			   TRUE. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  an_arg_operand_ptr
+  an_arg_list_elem_ptr
 		printf_scanf_args;
 			/* A pointer to a list of operands passed as the
 			   ellipsis arguments for a printf/scanf-like
@@ -716,7 +716,7 @@ a_boolean is_template_dependent_indefinite_function(an_operand *operand);
 
 extern a_boolean operand_is_dependent(an_operand *operand);
 
-extern a_boolean arg_operand_list_is_dependent(an_arg_operand *operand_list);
+extern a_boolean arg_list_is_dependent(an_arg_list_elem_ptr arg_list);
 
 extern a_symbol_ptr select_overloaded_function(
                         a_symbol_ptr             overloaded_function_symbol,
@@ -724,7 +724,7 @@ extern a_symbol_ptr select_overloaded_function(
                         a_template_arg_ptr       template_arg_list,
                         a_boolean                have_selector,
                         an_operand               *bound_function_selector,
-                        an_arg_operand_ptr       arg_operand_list,
+                        an_arg_list_elem_ptr     arg_list,
                         a_boolean                effects_direct_initialization,
                         a_boolean                do_arg_dep_lookup,
                         a_boolean                use_pure_arg_dep_lookup,
@@ -742,13 +742,13 @@ extern a_symbol_ptr select_overloaded_function(
                         an_arg_match_summary_ptr *arg_match_list);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_boolean overloaded_function_match_possible(
-                               a_symbol_ptr       overloaded_function_symbol,
-                               a_boolean          is_template_id,
-                               a_template_arg_ptr template_arg_list,
-                               an_arg_operand_ptr arg_operand_list,
-                               a_boolean          have_selector,
-                               an_operand         *bound_function_selector);
+a_boolean overloaded_function_match_possible(
+                               a_symbol_ptr         overloaded_function_symbol,
+                               a_boolean            is_template_id,
+                               a_template_arg_ptr   template_arg_list,
+                               an_arg_list_elem_ptr arg_list,
+                               a_boolean            have_selector,
+                               an_operand           *bound_function_selector);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void temp_init_from_operand(an_operand *operand,
@@ -811,8 +811,8 @@ extern void start_call_argument_processing(a_type_ptr         function_type,
                                            a_routine_ptr      routine,
                                            an_arg_check_block *arg_block);
 
-extern void process_call_argument_list(an_arg_operand_ptr  args,
-                                       an_arg_check_block  *arg_block);
+extern void process_call_argument_list(an_arg_list_elem_ptr arg_list,
+                                       an_arg_check_block   *arg_block);
 
 extern void change_refs_on_selector(a_type_ptr routine_type,
                                     an_operand *bound_function_selector);
@@ -823,7 +823,7 @@ extern void adjust_overloaded_function_call_arguments(
                            a_type_ptr               routine_type,
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
-                           an_arg_operand_ptr       arg_operand_list,
+                           an_arg_list_elem_ptr     arg_list,
                            an_arg_match_summary_ptr arg_match_list,
                            an_expr_node_ptr         *arg_expr_list);
 
@@ -833,7 +833,7 @@ extern a_boolean select_and_prepare_to_call_overloaded_function(
                            a_template_arg_ptr      template_arg_list,
                            a_boolean               have_selector,
                            an_operand              *bound_function_selector,
-                           an_arg_operand_ptr      arg_operand_list,
+                           an_arg_list_elem_ptr    arg_list,
                            a_boolean               do_arg_dep_lookup,
                            a_boolean               use_pure_arg_dep_lookup,
                            a_boolean               use_std_for_arg_dep_lookup,
@@ -1100,9 +1100,9 @@ extern a_boolean deduce_auto_type(a_type_ptr        orig_type,
 extern void overload_init(void);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern an_expr_node_ptr convert_arg_operand_list_to_expr_list(
-                                           an_arg_operand_ptr arg_operand_list,
-                                           an_expr_node_ptr   *expr_tail);
+extern an_expr_node_ptr convert_arg_list_to_expr_list(
+                                          an_arg_list_elem_ptr arg_list,
+                                          an_expr_node_ptr     *expr_tail);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef OVERLOAD_H */

@@ -128,8 +128,8 @@ typedef struct an_init_component {
     } braced;
   } variant;
 } an_init_component;
-typedef an_init_component an_expr_list_element;
-typedef an_expr_list_element *an_expr_list_element_ptr;
+typedef an_init_component an_arg_list_elem;
+typedef an_arg_list_elem *an_arg_list_elem_ptr;
 
 
 /*
@@ -150,6 +150,11 @@ components representing "{}").
 */
 #define is_empty_list_init_component(icp)                                    \
   (is_braced_init_component(icp) && (icp)->variant.braced.list == NULL)
+
+/*
+Return the operand address from an expression init component.
+*/
+#define operand_of_arg_list_elem(icp) (&(icp)->variant.expr->operand)
 
 /*
 Entry used to pass information about the context for a rescan to redo
@@ -216,7 +221,7 @@ void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          a_boolean                elision_allowed,
                          a_rescan_control_block   *rcblock,
                          a_boolean                arg_list_supplied,
-                         an_expr_list_element_ptr arg_list,
+                         an_arg_list_elem_ptr     supplied_arg_list,
                          a_boolean                *trivial_ctor,
                          a_boolean                *unboxing_conv,
                          a_boolean                *string_ctor_skip,
@@ -228,7 +233,7 @@ void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
 extern void scan_dependent_parenthesized_initializer(
                                     a_rescan_control_block   *rcblock,
                                     a_boolean                arg_list_supplied,
-                                    an_expr_list_element_ptr arg_list,
+                                    an_arg_list_elem_ptr     supplied_arg_list,
                                     an_operand_ptr           single_operand,
                                     a_dynamic_init_ptr       *dip);
 

@@ -1622,6 +1622,22 @@ as part of producing a diagnostic for an overload resolution problem.
 }  /* format_argument_type_for_display */
 
 
+static void format_arg_list_elem_type_for_display(an_arg_list_elem_ptr alep)
+/*
+Add the type of the given argument list element to to string being
+built up in temp_text_buffer, as part of producing a diagnostic for an
+overload resolution problem.
+*/
+{
+  if (is_expression_component(alep)) {
+    format_argument_type_for_display(operand_of_arg_list_elem(alep)->type);
+  } else {
+    check_assertion(is_braced_init_component(alep));
+    put_str_to_temp_text_buffer("{...}");
+  }  /* if */
+}  /* format_arg_list_elem_type_for_display */
+
+
 void display_object_type(a_type_ptr object_type)
 /*
 Output a diagnostic line that displays the indicated type as the
@@ -1641,29 +1657,29 @@ to class type (or an error type).
 
 
 static void display_argument_list_types(
-                                   a_type_ptr         object_type,
-                                   an_arg_operand_ptr arg_operand_list)
+                                   a_type_ptr           object_type,
+                                   an_arg_list_elem_ptr arg_list)
 /*
 Output a diagnostic line that displays the types of the arguments in
-arg_operand_list, as part of producing a diagnostic for an overload
+arg_list, as part of producing a diagnostic for an overload
 resolution problem.  object_type is the selector object type,
 if there is one, or NULL otherwise; output a line giving the type if
 it is provided.  The start_error or equivalent has already been done.
 This routine does not call end_error.
 */
 {
-  an_arg_operand_ptr arg_operand;
+  an_arg_list_elem_ptr alep;
 
   check_assertion(expr_stack != NULL &&
                   !expr_stack->suppress_diagnostics);
   /* Display nothing if the argument list is empty. */
-  if (arg_operand_list != NULL) {
+  if (arg_list != NULL) {
     set_up_for_argument_type_formatting();
-    for (arg_operand = arg_operand_list;
-         arg_operand != NULL;
-         arg_operand = arg_operand->next) {
-      format_argument_type_for_display(arg_operand->operand.type);
-      if (arg_operand->next != NULL) {
+    for (alep = arg_list;
+         alep != NULL;
+         alep = alep->next) {
+      format_arg_list_elem_type_for_display(alep);
+      if (alep->next != NULL) {
         /* This is not the last argument, so put a comma after it. */
         put_str_to_temp_text_buffer(", ");
       }  /* if */
@@ -1677,20 +1693,20 @@ This routine does not call end_error.
 }  /* display_argument_list_types */
 
 
-static void display_operand_types(an_arg_operand_ptr arg_operand_list,
-                                  an_opname_kind     kind)
+static void display_operand_types(an_arg_list_elem_ptr operand_list,
+                                  an_opname_kind       kind)
 /*
-Put the types of the operands (given by arg_operand_list) of an operator
+Put the types of the operands (given by operand_list) of an operator
 (given by kind) into temp_text_buffer so they can be used in a diagnostic.
 The start_error or equivalent has already been done.  This routine does not
 call end_error.
 */
 {
-  an_arg_operand_ptr arg_operand;
-  a_boolean          unary_operator;
-  a_boolean          list_form;
-  char               *opname = opname_names[(int)kind];
-  unsigned long      num;
+  an_arg_list_elem_ptr alep;
+  a_boolean            unary_operator;
+  a_boolean            list_form;
+  char                 *opname = opname_names[(int)kind];
+  unsigned long        num;
 
   check_assertion(expr_stack != NULL &&
                   !expr_stack->suppress_diagnostics);
@@ -1712,19 +1728,19 @@ call end_error.
                kind == (an_opname_kind)onk_arrow ||
                kind == (an_opname_kind)onk_delete ||
                kind == (an_opname_kind)onk_array_delete);
-  unary_operator = (!list_form && arg_operand_list->next == NULL);
+  unary_operator = (!list_form && operand_list->next == NULL);
   if (unary_operator) {
     /* Unary operator precedes the operand. */
     put_str_to_temp_text_buffer(opname);
     put_ch_to_temp_text_buffer(' ');
   }  /* if */
-  for (arg_operand = arg_operand_list, num = 1;
-       arg_operand != NULL;
-       arg_operand = arg_operand->next, num++) {
-    format_argument_type_for_display(arg_operand->operand.type);
+  for (alep = operand_list, num = 1;
+       alep != NULL;
+       alep = alep->next, num++) {
+    format_arg_list_elem_type_for_display(alep);
     if (list_form) {
       /* List form.  Comma after each operand except the last. */
-      if (arg_operand->next != NULL) {
+      if (alep->next != NULL) {
         put_str_to_temp_text_buffer(", ");
       }  /* if */
     } else if (num == 1) {
@@ -1887,12 +1903,12 @@ static a_boolean same_candidate_function(a_candidate_function_ptr cfp1,
 static void diagnose_overload_ambiguity(
                              a_candidate_function_ptr candidate_functions,
                              an_operand               *bound_function_selector,
-                             an_arg_operand_ptr       arg_operand_list,
+                             an_arg_list_elem_ptr     arg_list,
                              an_opname_kind           kind)
 /*
 Issue the add-on diagnostics to describe an overloading ambiguity.
 candidate_functions gives the list of functions in the best-match set.
-arg_operand_list gives the operand list, but is NULL if the operand types
+arg_list gives the operand list, but is NULL if the operand types
 should not be listed.  bound_function_selector is the selector object,
 if there is one, or NULL otherwise.  kind gives the operator associated
 with any entries in the set for built-in operators.  The start_error
@@ -1966,17 +1982,17 @@ call.
     }  /* if */
 next_function:;
   }  /* for */
-  if (arg_operand_list != NULL) {
+  if (arg_list != NULL) {
     /* Display the operand types. */
     if (kind == (an_opname_kind)onk_none) {
       a_type_ptr object_type = NULL;
       if (bound_function_selector != NULL) {
         object_type = bound_function_selector->type;
       }  /* if */
-      display_argument_list_types(object_type, arg_operand_list);
+      display_argument_list_types(object_type, arg_list);
     } else {
       check_assertion(bound_function_selector == NULL);
-      display_operand_types(arg_operand_list, kind);
+      display_operand_types(arg_list, kind);
     }  /* if */
   }  /* if */
   end_error();
@@ -3679,31 +3695,31 @@ specifier) for which bindings are sought.
 }  /* deduce_from_one_pair */
 
 
-static a_boolean deduce_one_parameter(a_param_type_ptr   ptp,
-                                      a_type_ptr         param_type,
-                                      an_arg_operand     **p_arg_operand,
-                                      a_type_ptr         arg_type,
-                                      a_symbol_ptr       template_sym,
-                                      a_template_arg_ptr *template_arg_list)
+static a_boolean deduce_one_parameter(a_param_type_ptr      ptp,
+                                      a_type_ptr            param_type,
+                                      an_arg_list_elem_ptr  *p_arg,
+                                      a_type_ptr            arg_type,
+                                      a_symbol_ptr          template_sym,
+                                      a_template_arg_ptr    *template_arg_list)
 /*
 Do template argument deduction on one parameter of a function
 template.  ptp identifies the parameter (which requires deduction).
 If param_type is non-NULL, param_type is used for deduction instead
 of ptp->type, and ptp is not used for any other attributes of the
-parameter either.  **p_arg_operand gives the argument; p_arg_operand
-can be NULL, in which case arg_type gives the argument type.  If it
-isn't NULL, *p_arg_operand is advanced past the right number of
-arguments on return (usually one, more than one for a parameter pack;
-note that the zero-length parameter pack case won't get here because
-this routine gets called only when there's an argument to match to the
-parameter).  template_sym is the symbol for the function_template (not
-a projection symbol).  *template_arg_list points to the template
-argument list so far; anything deduced is added to that.  Return TRUE
-if the deduction succeeds, FALSE if it fails.
+parameter either.  **p_arg gives the argument; p_arg can be NULL, in
+which case arg_type gives the argument type.  If it isn't NULL, *p_arg
+is advanced past the right number of arguments on return (usually one,
+more than one for a parameter pack; note that the zero-length
+parameter pack case won't get here because this routine gets called
+only when there's an argument to match to the parameter).
+template_sym is the symbol for the function_template (not a projection
+symbol).  *template_arg_list points to the template argument list so
+far; anything deduced is added to that.  Return TRUE if the deduction
+succeeds, FALSE if it fails.
 */
 {
   a_boolean            deduction_okay = TRUE;
-  an_arg_operand       *arg_operand = NULL;
+  an_arg_list_elem_ptr arg = NULL;
   an_operand           *operand = NULL;
   a_template_param_ptr templ_params;
   a_boolean            consider_nondeduced;
@@ -3717,7 +3733,7 @@ if the deduction succeeds, FALSE if it fails.
   } else {
     ptp = NULL;
   }  /* if */
-  if (p_arg_operand != NULL) arg_operand = *p_arg_operand;
+  if (p_arg != NULL) arg = *p_arg;
   if (ptp != NULL && !ptp->type_involves_deduced_template_param) {
     /* For a nondeduced parameter, we advance over the argument, do no
        deduction, and return TRUE.  However, if the nondeduced parameter is
@@ -3727,7 +3743,7 @@ if the deduction succeeds, FALSE if it fails.
       deduction_okay = FALSE;
     } else {
       deduction_okay = TRUE;
-      if (arg_operand != NULL) arg_operand = arg_operand->next;
+      if (arg != NULL) arg = arg->next;
     }  /* if */
     goto end_of_routine;
   }  /* if */
@@ -3744,8 +3760,10 @@ if the deduction succeeds, FALSE if it fails.
   /* Loop through the arguments that match a parameter pack, or just once
      through in other cases. */
   for (;;) {
-    if (arg_operand != NULL) {
-      operand = &arg_operand->operand;
+    if (arg != NULL) {
+      /* A braced-init-list is a nondeduced context. */
+      if (!is_expression_component(arg)) goto next_iteration;
+      operand = operand_of_arg_list_elem(arg);
       arg_type = operand->type;
     }  /* if */
     if (ptp != NULL) param_type = ptp->type;
@@ -3781,49 +3799,49 @@ if the deduction succeeds, FALSE if it fails.
                                      ->parameters);
     if (!deduction_okay) break;
 next_iteration:
-    if (arg_operand != NULL) arg_operand = arg_operand->next;
+    if (arg != NULL) arg = arg->next;
     /* Only once through the loop for non-parameter-pack cases. */
     if (pesep == NULL) break;
     /* Parameter pack cases. */
-    if (arg_operand == NULL) break;
+    if (arg == NULL) break;
     advance_to_next_deduced_element(pesep);
   }  /* for */
   if (pesep != NULL) {
     end_pack_deduction_context(pesep);
   }  /* if */
 end_of_routine:
-  if (p_arg_operand != NULL) *p_arg_operand = arg_operand;
+  if (p_arg != NULL) *p_arg = arg;
   return deduction_okay;
 }  /* deduce_one_parameter */
 
 
 static a_type_ptr function_template_call_argument_deduction(
-                                         a_symbol_ptr       template_sym,
-                                         a_type_ptr         routine_type,
-                                         an_arg_operand_ptr arg_operand_list,
-                                         a_template_arg_ptr *template_arg_list)
+                                       a_symbol_ptr         template_sym,
+                                       a_type_ptr           routine_type,
+                                       an_arg_list_elem_ptr arg_list,
+                                       a_template_arg_ptr   *template_arg_list)
 /*
 Do template type deduction on a call of the function template specified by
 template_sym (not a projection symbol).  routine_type is the type of the
 function, with explicitly-specified template arguments (if any) already
-substituted in.  arg_operand_list is the list of arguments to the call.
+substituted in.  arg_list is the list of arguments to the call.
 *template_arg_list points to the template argument list so far; anything
 deduced is added to that.  This routine returns a pointer to a routine
 type for the function as it appears after substitution with the deduced
 template arguments, or NULL if deduction failed.
 */
 {
-  a_type_ptr         updated_routine_type = NULL;
+  a_type_ptr           updated_routine_type = NULL;
   a_routine_type_supplement_ptr
-                     rtsp;
-  a_param_type_ptr   ptp;
-  an_arg_operand_ptr arg_operand;
+                       rtsp;
+  a_param_type_ptr     ptp;
+  an_arg_list_elem_ptr alep;
   a_template_symbol_supplement_ptr
-                     tssp;
-  a_boolean          suppress_param_advance = FALSE;
+                       tssp;
+  a_boolean            suppress_param_advance = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean          processing_param_array_expanded_case = FALSE;
-  a_type_ptr         cli_param_array_element_type;
+  a_boolean            processing_param_array_expanded_case = FALSE;
+  a_type_ptr           cli_param_array_element_type;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "function_template_call_argument_deduction");
@@ -3845,15 +3863,15 @@ template arguments, or NULL if deduction failed.
   push_instantiation_scope_for_rescan(template_sym);
   /* Look through the arguments/parameters to do template argument
      deduction. */
-  for (ptp = rtsp->param_type_list, arg_operand = arg_operand_list;
-       ptp != NULL && arg_operand != NULL;) {
+  for (ptp = rtsp->param_type_list, alep = arg_list;
+       ptp != NULL && alep != NULL;) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (ptp->is_cli_param_array) {
       /* C++/CLI parameter array. */
       suppress_param_advance = TRUE;
       if (!processing_param_array_expanded_case) {
         processing_param_array_expanded_case = TRUE; /* Assume */
-        if (arg_operand->next == NULL) {
+        if (alep->next == NULL) {
           /* The number of arguments matches the number of parameters.
              Check if we can successfully deduce the handle-to-CLI-array
              parameter type.  Do a "tentative" match first so as not to
@@ -3861,10 +3879,12 @@ template arguments, or NULL if deduction failed.
           a_template_param_ptr templ_params =
                         template_supplement_for_symbol(template_sym)
                            ->variant.function.decl_cache.decl_info->parameters;
-          if (tentatively_matches_template_type(arg_operand->operand.type,
-                                                ptp->type,
-                                                templ_params,
-                                                *template_arg_list)) {
+          if (is_expression_component(alep) &&
+              tentatively_matches_template_type(
+                                          operand_of_arg_list_elem(alep)->type,
+                                          ptp->type,
+                                          templ_params,
+                                          *template_arg_list)) {
             /* The last argument successfully matched the exact form.  This is
                not the expanded case. */
             processing_param_array_expanded_case = FALSE;
@@ -3888,7 +3908,7 @@ template arguments, or NULL if deduction failed.
       }  /* if */
       if (processing_param_array_expanded_case) {
         if (!deduce_one_parameter(ptp, cli_param_array_element_type,
-                                  &arg_operand, (a_type_ptr)NULL,
+                                  &alep, (a_type_ptr)NULL,
                                   template_sym, template_arg_list)) {
           goto done;
         }  /* if */
@@ -3897,7 +3917,7 @@ template arguments, or NULL if deduction failed.
            can be done via a tentative match above.  Now do the deduction for
            real. */
         if (!deduce_one_parameter(ptp, (a_type_ptr)NULL,
-                                  &arg_operand, (a_type_ptr)NULL,
+                                  &alep, (a_type_ptr)NULL,
                                   template_sym, template_arg_list)) {
           unexpected_condition();
         }  /* if */
@@ -3905,7 +3925,7 @@ template arguments, or NULL if deduction failed.
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not add code here. */
-    if (!deduce_one_parameter(ptp, (a_type_ptr)NULL, &arg_operand,
+    if (!deduce_one_parameter(ptp, (a_type_ptr)NULL, &alep,
                               (a_type_ptr)NULL,
                               template_sym, template_arg_list)) {
       /* Deduction failed. */
@@ -3914,7 +3934,7 @@ template arguments, or NULL if deduction failed.
     if (!suppress_param_advance) ptp = ptp->next;
   }  /* for */
 #if CHECKING
-  if (arg_operand != NULL) {
+  if (alep != NULL) {
     /* We ran out of parameters, but we still have arguments.  There should
        be an ellipsis. */
     check_assertion_str(rtsp->has_ellipsis,
@@ -3969,8 +3989,7 @@ template arguments, or NULL if deduction failed.
         } else {
           /* More than one parameter.  Okay, except if we're defaulting all
              the parameters after the first. */
-          if (arg_operand_list != NULL &&
-              arg_operand_list->next == NULL) {
+          if (arg_list != NULL && arg_list->next == NULL) {
             /* Exactly one argument, and more than one parameter, so we're
                defaulting those after the first.  Fail. */
             updated_routine_type = NULL;
@@ -4127,13 +4146,13 @@ end_of_function:
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean arg_can_be_passed_as_param_array(
-                                    an_arg_operand       *arg_operand,
+                                    an_arg_list_elem_ptr arg_list_elem,
                                     a_param_type_ptr     param,
                                     a_boolean            param_type_is_deduced,
                                     a_boolean            allow_udc,
                                     an_arg_match_summary *arg_match)
 /*
-arg_operand is an argument of a call that lines up with a C++/CLI
+arg_list_elem is an argument of a call that lines up with a C++/CLI
 parameter array parameter, and there are no more arguments after this one.
 Check to see whether the argument can be passed directly as the parameter
 array, and return TRUE if so.  Return FALSE if the argument should instead
@@ -4147,16 +4166,18 @@ the argument match information for the match, if there is one.
   a_boolean can_be_passed_as_param_array = FALSE;
 
   check_assertion(param != NULL && param->is_cli_param_array);
-  determine_arg_match_level(&arg_operand->operand,
-                            (a_type_ptr)NULL,
-                            param->type,
-                            param,
-                            param_type_is_deduced,
-                            allow_udc,
-                            /*allow_expl_conv_funcs=*/FALSE,
-                            arg_match);
-  can_be_passed_as_param_array = (arg_match->match_level != aml_none &&
-                                  arg_match->match_level != aml_error);
+  if (is_expression_component(arg_list_elem)) {
+    determine_arg_match_level(operand_of_arg_list_elem(arg_list_elem),
+                              (a_type_ptr)NULL,
+                              param->type,
+                              param,
+                              param_type_is_deduced,
+                              allow_udc,
+                              /*allow_expl_conv_funcs=*/FALSE,
+                              arg_match);
+    can_be_passed_as_param_array = (arg_match->match_level != aml_none &&
+                                    arg_match->match_level != aml_error);
+  }  /* if */
   return can_be_passed_as_param_array;
 }  /* arg_can_be_passed_as_param_array */
 
@@ -4169,7 +4190,7 @@ static void determine_function_viability(
                  a_template_arg_ptr       template_arg_list,
                  a_symbol_ptr             surrogate_function_conv_sym,
                  a_type_ptr               routine_type,
-                 an_arg_operand_ptr       arg_operand_list,
+                 an_arg_list_elem_ptr     arg_list,
                  a_boolean                have_selector,
                  an_operand               *bound_function_selector,
                  a_type_ptr               implicit_selector_type,
@@ -4202,7 +4223,7 @@ argument list.  If surrogate_function_conv_sym is non-NULL, we are
 evaluating a surrogate function call (see [over.call.object] in the
 C++ standard); proj_function_symbol is NULL and routine_type gives the
 function type.  The argument list for the call is given by
-arg_operand_list, and the selector is given by bound_function_selector
+arg_list, and the selector is given by bound_function_selector
 (if have_selector is TRUE).  have_selector can be TRUE and
 bound_function_selector NULL when calling constructors.
 bound_function_selector is an object pointer if
@@ -4243,7 +4264,7 @@ the point of call.  conv_context describes the context of the conversion.
   a_routine_ptr            routine;
   a_routine_type_supplement_ptr
                            rtsp;
-  an_arg_operand_ptr       arg_operand;
+  an_arg_list_elem_ptr     arg_list_elem;
   a_param_type_ptr         param, param_before_deduction = NULL;
   a_param_type_ptr         first_param_before_deduction;
 #if DEBUG
@@ -4358,7 +4379,7 @@ the point of call.  conv_context describes the context of the conversion.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (explicit_conversion_functions_enabled &&
         (conv_context & CCO_DIRECT_INITIALIZATION) &&
-        arg_operand_list != NULL && /* at least one arg, test for speed */
+        arg_list != NULL && /* at least one arg, test for speed */
         routine->special_kind == (a_special_function_kind)sfk_constructor &&
         is_copy_constructor(routine, (a_type_ptr)NULL,
                             (a_type_qualifier_set *)NULL,
@@ -4387,9 +4408,9 @@ the point of call.  conv_context describes the context of the conversion.
      (i.e., before deduction) for later use.  Note that this is after
      substitution of explicitly-specified template arguments. */
   first_param_before_deduction = param;
-  for (arg_operand = arg_operand_list;
-       arg_operand != NULL;
-       arg_operand = arg_operand->next) {
+  for (arg_list_elem = arg_list;
+       arg_list_elem != NULL;
+       arg_list_elem = arg_list_elem->next) {
     /* See if the parameter list is exhausted. */
     if (param == NULL) {
       /* More arguments than required.  No match unless there is an
@@ -4399,19 +4420,19 @@ the point of call.  conv_context describes the context of the conversion.
     } else if (param->is_parameter_pack) {
       /* A parameter pack can match all the remaining arguments. */
       param = NULL;
-      arg_operand = NULL;
+      arg_list_elem = NULL;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && param->is_cli_param_array) {
       /* A C++/CLI parameter array can match all the remaining arguments. */
-      if (arg_operand->next != NULL) {
+      if (arg_list_elem->next != NULL) {
         /* There are more arguments after the one that lines up with the
            parameter array parameter, so this is an expanded case where
            several arguments will be wrapped into one parameter array. */
         param_array_expanded_case = TRUE;
       }  /* if */
       param = NULL;
-      arg_operand = NULL;
+      arg_list_elem = NULL;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
@@ -4472,14 +4493,13 @@ the point of call.  conv_context describes the context of the conversion.
 #if DEBUG
     narg = 0;
 #endif /* DEBUG */
-    for (arg_operand = arg_operand_list;
-         arg_operand != NULL;
-         arg_operand = arg_operand->next) {
+    for (arg_list_elem = arg_list;
+         arg_list_elem != NULL;
+         arg_list_elem = arg_list_elem->next) {
       /* Explicit conversion functions, if permitted, are allowed only on the
          first argument. */
-      a_boolean allow_expl_conv_funcs_this_arg =
-                                           (allow_expl_conv_funcs &&
-                                            (arg_operand == arg_operand_list));
+      a_boolean allow_expl_conv_funcs_this_arg = (allow_expl_conv_funcs &&
+                                                  (arg_list_elem == arg_list));
 #if DEBUG
       narg++;
       if (debug_level >= 4 || db_flag_is_set("overload")) {
@@ -4535,6 +4555,9 @@ the point of call.  conv_context describes the context of the conversion.
            it. */
         check_assertion(first_pass);
         goto next_argument;
+      } else if (!is_expression_component(arg_list_elem)) {
+        /*FIXME*/
+        goto reject_function;
       } else {
         a_boolean param_type_is_deduced = FALSE;
         /* Both the actual argument and formal parameter are available.
@@ -4581,7 +4604,7 @@ the point of call.  conv_context describes the context of the conversion.
                  we only get here if there are no arguments following the
                  parameter position that is the param array, because of code
                  above that sets param_array_expanded_case. */
-              if (!arg_can_be_passed_as_param_array(arg_operand,
+              if (!arg_can_be_passed_as_param_array(arg_list_elem,
                                                     param,
                                                     param_type_is_deduced,
                                                     allow_udc_on_arguments,
@@ -4609,7 +4632,8 @@ the point of call.  conv_context describes the context of the conversion.
             /* Match the argument with the C++/CLI parameter array element
                type. */
             determine_arg_match_level(
-                          &arg_operand->operand, (a_type_ptr)NULL,
+                          operand_of_arg_list_elem(arg_list_elem),
+                          (a_type_ptr)NULL,
                           param_array_element_type,
                           param,
                           param_type_is_deduced,
@@ -4623,7 +4647,8 @@ the point of call.  conv_context describes the context of the conversion.
         /* Do not insert code here. */
         {
           /* Normal argument matching */
-          determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
+          determine_arg_match_level(operand_of_arg_list_elem(arg_list_elem),
+                                    (a_type_ptr)NULL,
                                     param->type,
                                     param,
                                     param_type_is_deduced,
@@ -4659,7 +4684,7 @@ next_argument:
     routine_type = function_template_call_argument_deduction(
                                                    function_symbol,
                                                    routine_type,
-                                                   arg_operand_list,
+                                                   arg_list,
                                                    &local_template_arg_list);
     if (routine_type == NULL) {
       /* Deduction failed. */
@@ -4879,7 +4904,7 @@ static void try_overloaded_function_match(
                  a_symbol_ptr             overloaded_function_symbol,
                  a_boolean                is_template_id,
                  a_template_arg_ptr       template_arg_list,
-                 an_arg_operand_ptr       arg_operand_list,
+                 an_arg_list_elem_ptr     arg_list,
                  a_boolean                have_selector,
                  an_operand               *bound_function_selector,
                  a_boolean                ctor_conversion_case,
@@ -4899,7 +4924,7 @@ static void try_overloaded_function_match(
                  a_boolean                *matched_except_for_selector)
 /*
 Find out how well the functions described by overloaded_function_symbol
-match the argument list given by arg_operand_list and the selector given
+match the argument list given by arg_list and the selector given
 (if have_selector is TRUE) by bound_function_selector.  have_selector
 can be TRUE and bound_function_selector NULL when calling constructors.
 overloaded_function_symbol may be an overloaded function, a simple
@@ -5044,7 +5069,7 @@ retry:
                                  template_arg_list,
                                  (a_symbol_ptr)NULL,
                                  (a_type_ptr)NULL,
-                                 arg_operand_list,
+                                 arg_list,
                                  have_selector,
                                  bound_function_selector,
                                  implicit_selector_type,
@@ -5091,12 +5116,12 @@ bottom_of_loop:;
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean overloaded_function_match_possible(
-                                a_symbol_ptr       overloaded_function_symbol,
-                                a_boolean          is_template_id,
-                                a_template_arg_ptr template_arg_list,
-                                an_arg_operand_ptr arg_operand_list,
-                                a_boolean          have_selector,
-                                an_operand         *bound_function_selector)
+                               a_symbol_ptr         overloaded_function_symbol,
+                               a_boolean            is_template_id,
+                               a_template_arg_ptr   template_arg_list,
+                               an_arg_list_elem_ptr arg_list,
+                               a_boolean            have_selector,
+                               an_operand           *bound_function_selector)
 /*
 Similar to try_overloaded_function_match, but just returns TRUE if there
 are viable functions, FALSE if not.  Issues no errors.
@@ -5110,7 +5135,7 @@ are viable functions, FALSE if not.  Issues no errors.
   try_overloaded_function_match(overloaded_function_symbol,
                                 is_template_id,
                                 template_arg_list,
-                                arg_operand_list,
+                                arg_list,
                                 have_selector,
                                 bound_function_selector,
                                 /*ctor_conversion_case=*/FALSE,
@@ -5184,7 +5209,7 @@ parameter.
 
 static void try_surrogate_function_match(
                              an_operand               *class_object,
-                             an_arg_operand_ptr       arg_operand_list,
+                             an_arg_list_elem_ptr     arg_list,
                              a_candidate_function_ptr *candidate_functions,
                              a_symbol_ptr             *inaccessible_match)
 /*
@@ -5192,7 +5217,7 @@ Find any candidate surrogate functions and add them to the candidate_functions
 list.  Look for conversion functions that convert the class object indicated
 by class_object to pointer to function.  Each function pointed to
 is considered a surrogate function, and its parameters are compared to the
-arguments of the call (given by arg_operand_list).  In C++/CLI mode,
+arguments of the call (given by arg_list).  In C++/CLI mode,
 the class_object can be a handle to an object.  If inaccessible_match
 is non-NULL, in C++/CLI mode it will be set to a symbol that would
 have been chosen except that it was inaccessible because of
@@ -5302,7 +5327,7 @@ hide-by-sig lookup.
                                        (a_template_arg_ptr)NULL,
                                        surrogate_function_conv_sym,
                                        underlying_type,
-                                       arg_operand_list,
+                                       arg_list,
                                        /*have_selector=*/TRUE,
                                        class_object,
                                        (a_type_ptr)NULL,
@@ -7560,23 +7585,31 @@ means type-dependent rather than value-dependent.
 }  /* operand_is_dependent */
 
 
-a_boolean arg_operand_list_is_dependent(an_arg_operand *operand_list)
+a_boolean arg_list_is_dependent(an_arg_list_elem_ptr arg_list)
 /*
 Return TRUE if any of the operands on the given list is dependent.
 Specifically, this means type-dependent rather than value-dependent.
 */
 {
-  a_boolean      is_dependent = FALSE;
-  an_arg_operand *arg_op;
+  a_boolean            is_dependent = FALSE;
+  an_arg_list_elem_ptr alep;
 
-  for (arg_op = operand_list; arg_op != NULL; arg_op = arg_op->next) {
-    if (operand_is_dependent(&arg_op->operand)) {
-      is_dependent = TRUE;
-      break;
+  for (alep = arg_list; alep != NULL; alep = alep->next) {
+    if (is_expression_component(alep)) {
+      if (operand_is_dependent(operand_of_arg_list_elem(alep))) {
+        is_dependent = TRUE;
+        break;
+      }  /* if */
+    } else {
+      check_assertion(is_braced_init_component(alep));
+      if (arg_list_is_dependent(alep->variant.braced.list)) {
+        is_dependent = TRUE;
+        break;
+      }  /* if */
     }  /* if */
   }  /* for */
   return is_dependent;
-}  /* arg_operand_list_is_dependent */
+}  /* arg_list_is_dependent */
 
 
 static a_boolean is_symbol_for_which_overload_resolution_should_be_deferred(
@@ -7701,7 +7734,7 @@ a_symbol_ptr select_overloaded_function(
                         a_template_arg_ptr       template_arg_list,
                         a_boolean                have_selector,
                         an_operand               *bound_function_selector,
-                        an_arg_operand_ptr       arg_operand_list,
+                        an_arg_list_elem_ptr     arg_list,
                         a_boolean                effects_direct_initialization,
                         a_boolean                do_arg_dep_lookup,
                         a_boolean                use_pure_arg_dep_lookup,
@@ -7719,7 +7752,7 @@ a_symbol_ptr select_overloaded_function(
                         an_arg_match_summary_ptr *arg_match_list)
 /*
 Determine which of the functions under overloaded_function_symbol
-should be called given an argument list arg_operand_list.  The symbol
+should be called given an argument list arg_list.  The symbol
 may be an overloaded function, a simple member or nonmember function,
 or a projection symbol for one of those.  is_template_id is TRUE if
 the symbol has an associated explicit template argument list; if so,
@@ -7784,7 +7817,7 @@ and return NULL.  This routine is called only in C++ mode.
   a_boolean                some_function_tried = FALSE;
   a_boolean                dependent_call = FALSE;
   a_boolean                known_to_be_visible = FALSE;
-  an_arg_operand_ptr       arg_operand;
+  an_arg_list_elem_ptr     arg_list_elem;
   a_conv_context_set       conv_context = CCO_DEFAULT;
 
   db_enter(4, "select_overloaded_function");
@@ -7833,11 +7866,13 @@ and return NULL.  This routine is called only in C++ mode.
     a_boolean defer_overload_resolution = FALSE;
     /* In a prototype instantiation.  See whether the call is dependent
        (i.e., has arguments of dependent types). */
-    for (arg_operand = arg_operand_list;
-         arg_operand != NULL;
-         arg_operand = arg_operand->next) {
+    for (arg_list_elem = arg_list;
+         arg_list_elem != NULL;
+         arg_list_elem = arg_list_elem->next) {
       an_expr_node_ptr expr;
-      an_operand       *arg = &arg_operand->operand;
+      an_operand       *arg;
+      check_arg_list_elem_is_expression(arg_list_elem);  /*FIXME*/
+      arg = operand_of_arg_list_elem(arg_list_elem);
       if (operand_is_dependent(arg)) {
         dependent_call = TRUE;
         break;
@@ -7975,7 +8010,7 @@ in_instantiation:
       try_overloaded_function_match(overloaded_function_symbol,
                                     is_template_id,
                                     template_arg_list,
-                                    arg_operand_list,
+                                    arg_list,
                                     have_selector,
                                     bound_function_selector,
                                     /*ctor_conversion_case=*/FALSE,
@@ -8004,11 +8039,14 @@ in_instantiation:
       a_symbol_ptr            normal_lookup_function_symbol;
 
       /* Accumulate the types used in the arguments. */
-      for (arg_operand = arg_operand_list;
-           arg_operand != NULL;
-           arg_operand = arg_operand->next) {
-        add_operand_to_arg_dependent_lookup_list(&arg_operand->operand,
-                                                 &type_list);
+      for (arg_list_elem = arg_list;
+           arg_list_elem != NULL;
+           arg_list_elem = arg_list_elem->next) {
+        if (is_expression_component(arg_list_elem)) {
+          add_operand_to_arg_dependent_lookup_list(
+                                       operand_of_arg_list_elem(arg_list_elem),
+                                       &type_list);
+        }  /* if */
       }  /* for */
       /* Do argument-dependent lookup, producing a list of symbols to
          be considered as candidate functions. */
@@ -8069,7 +8107,7 @@ in_instantiation:
         try_overloaded_function_match(function_symbol,
                                       is_template_id,
                                       template_arg_list,
-                                      arg_operand_list,
+                                      arg_list,
                                       have_selector,
                                       bound_function_selector,
                                       /*ctor_conversion_case=*/FALSE,
@@ -8102,7 +8140,7 @@ in_instantiation:
        way are surrogate functions. */
     check_assertion(have_selector);
     try_surrogate_function_match(bound_function_selector,
-                                 arg_operand_list,
+                                 arg_list,
                                  &candidate_functions,
                                  &inaccessible_match);
   }  /* if */
@@ -8192,7 +8230,7 @@ normal_no_function_matches:
       if (expr_error_should_be_issued()) {
         pos_sy_start_error(err_none_applies, call_position,
                            overloaded_function_symbol);
-        display_argument_list_types(object_type, arg_operand_list);
+        display_argument_list_types(object_type, arg_list);
         add_on_diag_for_skipped_inaccessible_function(inaccessible_match);
         end_error();
       }  /* if */
@@ -8248,7 +8286,7 @@ normal_no_function_matches:
       if (expr_error_should_be_issued()) {
         diagnose_overload_ambiguity(candidate_functions,
                                     bound_function_selector,
-                                    arg_operand_list,
+                                    arg_list,
                                     (an_opname_kind)onk_none);
       }  /* if */
     }  /* if */
@@ -10634,10 +10672,10 @@ previously.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void process_call_argument(an_arg_operand_ptr arg_operand,
-                                  an_arg_check_block *arg_block)
+static void process_call_argument(an_arg_list_elem_ptr arg_list_elem,
+                                  an_arg_check_block   *arg_block)
 /*
-Check the argument expression indicated by arg_operand against the
+Check the argument expression indicated by arg_list_elem against the
 corresponding parameter.  If it is compatible, convert it if necessary;
 otherwise, issue an error.  *arg_block contains information about the
 current parameter, and is updated at the end of the call to describe the
@@ -10646,12 +10684,14 @@ next parameter.
 {
   a_boolean            do_default_promotion;
   a_boolean            arg_is_fmt_string = FALSE;
-  an_operand           *operand = &arg_operand->operand;
+  an_operand           *operand;
   a_param_type_ptr     ptp = arg_block->curr_param_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_arg_match_summary arg_match;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+  check_arg_list_elem_is_expression(arg_list_elem);  /*FIXME*/
+  operand = operand_of_arg_list_elem(arg_list_elem);
   /* Count the arguments. */
   arg_block->arg_ctr++;
   /* Check for too many arguments and determine whether or not the default
@@ -10791,8 +10831,8 @@ next parameter.
        array (and this is not the first element of the array, which is handled
        by the code following). */
   } else if (ptp->is_cli_param_array &&
-             (arg_operand->next != NULL ||
-              !arg_can_be_passed_as_param_array(arg_operand,
+             (arg_list_elem->next != NULL ||
+              !arg_can_be_passed_as_param_array(arg_list_elem,
                                                 ptp,
                                                /*param_type_is_deduced=*/FALSE,
                                                 /*allow_udc=*/TRUE,
@@ -10865,7 +10905,7 @@ next parameter.
     a_boolean  ellipsis_next = (arg_block->have_param_info && 
                                 arg_block->curr_param_type == NULL);
     if (ellipsis_next) {
-      arg_block->printf_scanf_args = arg_operand->next;
+      arg_block->printf_scanf_args = arg_list_elem->next;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (arg_block->fmt_arg != 0) {
@@ -10885,20 +10925,20 @@ next parameter.
 }  /* process_call_argument */
 
 
-static an_arg_operand_ptr nth_printf_scanf_arg(int                 n,
-                                               an_arg_check_block  *arg_block)
+static an_arg_list_elem_ptr nth_printf_scanf_arg(int                n,
+                                                 an_arg_check_block *arg_block)
 /*
 Return the n-th ellipsis argument in a printf/scanf-like argument list
 described by *arg_block (or NULL if there is no n-th ellipsis argument).
 */
 {
-  an_arg_operand_ptr  arg_operand = arg_block->printf_scanf_args;
-  int                 k;
+  an_arg_list_elem_ptr alep = arg_block->printf_scanf_args;
+  int                  k;
 
-  for (k = 1; k < n && arg_operand != NULL; ++k) {
-    arg_operand = arg_operand->next;
+  for (k = 1; k < n && alep != NULL; ++k) {
+    alep = alep->next;
   }  /* for */
-  return arg_operand;
+  return alep;
 }  /* nth_printf_scanf_arg */
 
 
@@ -10912,7 +10952,7 @@ arguments).
 */
 {
   char                 *fmt_string = arg_block->fmt_string;
-  an_arg_operand_ptr   arg = arg_block->printf_scanf_args;
+  an_arg_list_elem_ptr arg = arg_block->printf_scanf_args;
   a_type_ptr           type = NULL, alt_type = NULL;
   a_boolean            indirect, weakly_typed, weak_pointer_to_integral;
   a_printf_scan_state  pss = pss_new_specifier;
@@ -10961,20 +11001,27 @@ arguments).
                          &arg_block->closing_paren_position);
       }  /* if */
       break;
+    } else if (!is_expression_component(arg)) {
+      /* A braced-init-list as an argument. */
+      expr_pos_warning(ec_braced_init_list_not_allowed, 
+                       init_component_pos(arg));
+      break;
     } else if (fmt_string == NULL) {
       /* An error occurred while scanning the specifier.  Issue a warning and
          stop the checking process here. */
-      expr_pos_warning(ec_bad_printf_format_string, &arg->operand.position);
+      expr_pos_warning(ec_bad_printf_format_string,
+                       init_component_pos(arg));
       break;
     } else if (type == NULL) {
       /* There were no more formatting specifiers.  If explicit position
          fields were seen, arg can validly be non-NULL. */
       if (!explicit_position_seen) {
-        expr_pos_warning(ec_too_many_printf_args, &arg->operand.position);
+        expr_pos_warning(ec_too_many_printf_args,
+                         init_component_pos(arg));
       }  /* if */
       break;
     }  /* if */
-    check_printf_scanf_arg(&arg->operand, type, alt_type,
+    check_printf_scanf_arg(operand_of_arg_list_elem(arg), type, alt_type,
                            indirect, weakly_typed, weak_pointer_to_integral);
     arg = arg->next;
   }  /* while */
@@ -10982,8 +11029,8 @@ arguments).
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static void warn_if_missing_sentinel(an_arg_operand_ptr  arg_operand_list,
-                                     an_arg_check_block  *arg_block)
+static void warn_if_missing_sentinel(an_arg_list_elem_ptr arg_list,
+                                     an_arg_check_block   *arg_block)
 /*
 arg_block->sentinel_pos is nonzero.  Check that the corresponding argument
 is a constant null pointer.
@@ -10993,18 +11040,20 @@ is a constant null pointer.
     expr_pos_warning(ec_no_gnu_sentinel_argument,
                      &arg_block->closing_paren_position);
   } else if (arg_block->routine != NULL) {
-    an_operand        *sentinel;
-    int               k = arg_block->arg_ctr - arg_block->sentinel_pos;
-    a_param_type_ptr  param = skip_typerefs(arg_block->routine->type)
+    an_arg_list_elem_ptr sentinel = arg_list;
+    int                  k = arg_block->arg_ctr - arg_block->sentinel_pos;
+    a_param_type_ptr     param = skip_typerefs(arg_block->routine->type)
                                 ->variant.routine.extra_info->param_type_list;
-    a_boolean         valid_sentinel_value;
+    a_boolean            valid_sentinel_value;
     /* Skip to the operand that should be the sentinel. */
     while (k--) {
-      arg_operand_list = arg_operand_list->next;
+      sentinel = sentinel->next;
       if (param != NULL) param = param->next;
     }  /* while */
-    sentinel = &arg_operand_list->operand;
-    valid_sentinel_value = op_is_null_pointer_value(sentinel);
+    check_assertion(sentinel != NULL);
+    valid_sentinel_value = (is_expression_component(sentinel) &&
+                            op_is_null_pointer_value(
+                                          operand_of_arg_list_elem(sentinel)));
     /* Check that the operand is a valid sentinel. */
     if (gnu_mode && gnu_version >= 40002 && param != NULL) {
       /* gcc/g++ version 4.0.0 allowed a sentinel to correspond to a named
@@ -11016,13 +11065,14 @@ is a constant null pointer.
          not. */
       if (valid_sentinel_value) {
         expr_pos_warning(ec_gnu_sentinel_must_be_ellipsis_argument,
-                         &sentinel->position);
+                         init_component_pos(sentinel));
       } else {
         expr_pos_warning(ec_no_gnu_sentinel_argument,
                          &arg_block->closing_paren_position);
       }  /* if */
     } else if (!valid_sentinel_value) {
-      expr_pos_warning(ec_invalid_gnu_sentinel_argument, &sentinel->position);
+      expr_pos_warning(ec_invalid_gnu_sentinel_argument,
+                       init_component_pos(sentinel));
     }  /* if */
   }  /* if */
 }  /* warn_if_missing_sentinel */
@@ -11088,54 +11138,50 @@ list checking (e.g., for the presence of too few arguments).
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-an_expr_node_ptr convert_arg_operand_list_to_expr_list(
-                                          an_arg_operand_ptr  arg_operand_list,
-                                          an_expr_node_ptr    *expr_tail)
+an_expr_node_ptr convert_arg_list_to_expr_list(
+                                          an_arg_list_elem_ptr arg_list,
+                                          an_expr_node_ptr     *expr_tail)
 /*
-Convert arg_operand_list into expression nodes, free the original operands,
-and then return the head of the new expression list.  If expr_tail is non-NULL,
-then *expr_tail is returned pointing to the last node in the returned
-expression list.
+Convert arg_list into expression nodes and then return the head of the new
+expression list.  If expr_tail is non-NULL, then *expr_tail is returned
+pointing to the last node in the returned expression list.
 */
 {
-  an_arg_operand_ptr arg_operand;
-  an_expr_node_ptr   result = NULL;
-  an_expr_node_ptr   *expr_node;
-  an_expr_node_ptr   local_expr_tail = NULL;
+  an_arg_list_elem_ptr alep;
+  an_expr_node_ptr     result = NULL;
+  an_expr_node_ptr     *expr_node;
+  an_expr_node_ptr     local_expr_tail = NULL;
 
   /* Convert the operand list to an expression list. */
-  for (arg_operand = arg_operand_list, expr_node = &result;
-       arg_operand != NULL;
-       arg_operand = arg_operand->next, expr_node = &(*expr_node)->next) {
+  for (alep = arg_list, expr_node = &result;
+       alep != NULL;
+       alep = alep->next, expr_node = &(*expr_node)->next) {
+    check_arg_list_elem_is_expression(alep);
     local_expr_tail = *expr_node = make_node_from_operand_for_expr_list(
-                                                        &arg_operand->operand);
+                                               operand_of_arg_list_elem(alep));
   }  /* for */
   if (expr_tail != NULL) {
     *expr_tail = local_expr_tail;
   }  /* if */
-  /* Free the argument list. */
-  free_arg_operand_list(arg_operand_list);
   return result;
-}  /* convert_arg_operand_list_to_expr_list */
+}  /* convert_arg_list_to_expr_list */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-void process_call_argument_list(an_arg_operand_ptr  arg_operand_list,
-                                an_arg_check_block  *arg_block)
+void process_call_argument_list(an_arg_list_elem_ptr arg_list,
+                                an_arg_check_block   *arg_block)
 /*
 Apply various transformations and checks to the given list of operands, which
 is a list of arguments for a function call.  The list is transformed into a
-list of expression nodes pointed to by arg_block->argument_head (and the
-operand list is deallocated).  Some state information is recorded in *arg_block
+list of expression nodes pointed to by arg_block->argument_head (but the
+original list is not freed).  Some state information is recorded in *arg_block
 (which must have been initialized by start_call_argument_processing).
 */
 {
-  an_arg_operand_ptr  arg_operand;
+  an_arg_list_elem_ptr alep;
 
-  for (arg_operand = arg_operand_list;
-       arg_operand != NULL;
-       arg_operand = arg_operand->next) {
-    process_call_argument(arg_operand, arg_block);
+  for (alep = arg_list; alep != NULL; alep = alep->next) {
+    process_call_argument(alep, arg_block);
   }  /* for */
   if (arg_block->fmt_string != NULL) {
     /* Check printf/scanf-like argument lists. */
@@ -11143,11 +11189,9 @@ operand list is deallocated).  Some state information is recorded in *arg_block
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (arg_block->sentinel_pos != 0) {
-    warn_if_missing_sentinel(arg_operand_list, arg_block);
+    warn_if_missing_sentinel(arg_list, arg_block);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Free the argument list. */
-  free_arg_operand_list(arg_operand_list);
   /* Do processing for the end of the argument list. */
   process_end_of_call_arguments(arg_block);
 }  /* process_call_argument_list */
@@ -11182,10 +11226,10 @@ match has already made it through overload resolution.
 
 
 static an_expr_node_ptr node_for_arg_of_overloaded_function_call(
-                                      an_arg_operand_ptr       arg_operand,
+                                      an_operand               *arg_operand,
                                       an_arg_match_summary_ptr arg_match,
                                       a_param_type_ptr         param,
-                                      a_routine_ptr	       rout_ptr)
+                                      a_routine_ptr            rout_ptr)
 /*
 arg_operand represents an argument to an overloaded function call (including
 operator cases); the call has now been resolved to a specific function.
@@ -11223,8 +11267,7 @@ specific function being called.
     /* Actual argument is present (normal case). */
     /* Issue any warning about the conversion detected while evaluating the
        alternatives. */
-    issue_warning_from_arg_match_summary(arg_match,
-                                         &arg_operand->operand.position);
+    issue_warning_from_arg_match_summary(arg_match, &arg_operand->position);
     if (arg_match->match_level == aml_error) {
       /* The argument match indicates the argument or the parameter had
          an error type.  Do not go through the normal casting, because
@@ -11237,15 +11280,15 @@ specific function being called.
          "real" argument, but instead the initializer for an element
          of a C++/CLI array. */
       a_type_ptr element_type = param_array_element_type_of(param->type);
-      arg = expr_for_param_array_element_arg(&arg_operand->operand,
+      arg = expr_for_param_array_element_arg(arg_operand,
                                              element_type,
                                              &arg_match->conversion);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* Cast the argument to the right type. */
-      prep_possible_ellipsis_argument_operand(&arg_operand->operand, param,
+      prep_possible_ellipsis_argument_operand(arg_operand, param,
                                               &arg_match->conversion);
-      arg = make_node_from_operand_for_expr_list(&arg_operand->operand);
+      arg = make_node_from_operand_for_expr_list(arg_operand);
     }  /* if */
   }  /* if */
   return arg;
@@ -11285,13 +11328,13 @@ void adjust_overloaded_function_call_arguments(
                            a_type_ptr               routine_type,
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
-                           an_arg_operand_ptr       arg_operand_list,
+                           an_arg_list_elem_ptr     arg_list,
                            an_arg_match_summary_ptr arg_match_list,
                            an_expr_node_ptr         *arg_expr_list)
 /*
 Overload resolution has been done, and it has been decided that the
 function identified by function_symbol is the specific function to be
-called for the argument list given by arg_operand_list.
+called for the argument list given by arg_list.
 function_symbol is NULL for an error, or for a surrogate function call
 (in that case, routine_type gives the surrogate function type).  If
 unknown_dependent_function is TRUE, the function is unknown because
@@ -11305,14 +11348,14 @@ and arguments to the proper types, issue any warnings detected on
 those arguments during the overload resolution process, and return a
 list of argument expressions in *arg_expr_list.  arg_match_list gives
 the argument match summaries for the selector object and the
-arguments.  arg_operand_list and arg_match_list are freed.
+arguments.  arg_match_list is freed, but arg_list is not.
 This routine is used for cases that look like calls (i.e., they have
 argument lists in parentheses) or casts; it is not used for
 overloaded operator cases.
 */
 {
   an_arg_match_summary_ptr arg_match;
-  an_arg_operand_ptr       arg_operand;
+  an_arg_list_elem_ptr     arg_list_elem;
   an_expr_node_ptr         arg, prev_arg;
   a_param_type_ptr         param;
   a_routine_ptr            routine = NULL;
@@ -11347,17 +11390,23 @@ overloaded operator cases.
     }  /* if */
     prev_arg = NULL;
     /* Scan through the argument list. */
-    for (arg_operand = arg_operand_list,
+    for (arg_list_elem = arg_list,
              param = routine_type->variant.routine.extra_info->param_type_list;
-         arg_operand != NULL || (param != NULL
+         arg_list_elem != NULL || (param != NULL
 #if MICROSOFT_EXTENSIONS_ALLOWED
                                  && !param->is_cli_param_array
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                               );) {
       check_assertion(arg_match != NULL ||
-                      arg_operand == NULL);  /* For Coverity */
-      arg = node_for_arg_of_overloaded_function_call(arg_operand, arg_match,
-                                                     param, routine);
+                      arg_list_elem == NULL);  /* For Coverity */
+      if (arg_list_elem != NULL) {
+        check_arg_list_elem_is_expression(arg_list_elem);  /*FIXME*/
+      }  /* if */
+      arg = node_for_arg_of_overloaded_function_call(
+                                    (arg_list_elem == NULL ? NULL :
+                                      operand_of_arg_list_elem(arg_list_elem)),
+                                    arg_match,
+                                    param, routine);
       /* Add this argument to the end of the expression-form argument list
          being built up. */
       if (prev_arg == NULL) {
@@ -11368,8 +11417,8 @@ overloaded operator cases.
       prev_arg = arg;
       /* Advance to the next argument unless we've run out (additional
          arguments will come from default argument values). */
-      if (arg_operand != NULL) {
-        arg_operand = arg_operand->next;
+      if (arg_list_elem != NULL) {
+        arg_list_elem = arg_list_elem->next;
         arg_match = arg_match->next;
       }  /* if */
       /* Advance to the next parameter unless we've run out (additional
@@ -11387,16 +11436,14 @@ overloaded operator cases.
   } else if (unknown_dependent_function) {
     /* The called function is unknown because some of the arguments
        are template dependent.  Make an argument list. */
-    *arg_expr_list = prep_generic_argument_list(arg_operand_list);
+    *arg_expr_list = prep_generic_argument_list(arg_list);
   } else {
     /* There was an error.  Change the references on the operand lists to
        errors. */
-    change_arg_operand_list_refs_to_error(arg_operand_list);
+    change_arg_list_refs_to_error(arg_list);
   }  /* if */
   /* Free the argument match list. */
   free_arg_match_summary_list(arg_match_list);
-  /* Free the argument list. */
-  free_arg_operand_list(arg_operand_list);
 }  /* adjust_overloaded_function_call_arguments */
 
 
@@ -11406,7 +11453,7 @@ a_boolean select_and_prepare_to_call_overloaded_function(
                            a_template_arg_ptr      template_arg_list,
                            a_boolean               have_selector,
                            an_operand              *bound_function_selector,
-                           an_arg_operand_ptr      arg_operand_list,
+                           an_arg_list_elem_ptr    arg_list,
                            a_boolean               do_arg_dep_lookup,
                            a_boolean               use_pure_arg_dep_lookup,
                            a_boolean               use_std_for_arg_dep_lookup,
@@ -11424,10 +11471,10 @@ a_boolean select_and_prepare_to_call_overloaded_function(
                            an_expr_node_ptr        *arg_expr_list)
 /*
 Determine which of the functions under overloaded_function_symbol
-should be called given an argument list arg_operand_list.  The symbol
-may be an overloaded function, a simple member or nonmember function,
-or a projection symbol for one of those.  is_template_id is TRUE if
-the symbol has an associated explicit template argument list; if so,
+should be called given an argument list arg_list.  The symbol may be
+an overloaded function, a simple member or nonmember function, or a
+projection symbol for one of those.  is_template_id is TRUE if the
+symbol has an associated explicit template argument list; if so,
 template_arg_list gives the argument list.  If have_selector is TRUE,
 *bound_function_selector is a selector object.  Note that, for
 constructor calls, bound_function_selector can be NULL when
@@ -11478,7 +11525,7 @@ to be called cannot be determined, set *function_operand to an operand
 for an unknown function of the right name, and return TRUE.
 If found_through_adl is non-NULL and the callee was found only through
 ADL, *found_through_adl is returned TRUE.  This routine is called only
-in C++ mode.  arg_operand_list is freed by this routine.
+in C++ mode.  arg_list is not freed by this routine.
 */
 {
   a_boolean                okay = FALSE;
@@ -11504,7 +11551,7 @@ in C++ mode.  arg_operand_list is freed by this routine.
                                        template_arg_list,
                                        have_selector,
                                        bound_function_selector,
-                                       arg_operand_list,
+                                       arg_list,
                                        /*effects_direct_initialization=*/FALSE,
                                        do_arg_dep_lookup,
                                        use_pure_arg_dep_lookup,
@@ -11622,15 +11669,15 @@ in C++ mode.  arg_operand_list is freed by this routine.
   }  /* if */
   if (!single_function) {
     /* Build an expression-form argument list.  Convert the arguments on
-       the argument list to the right types.  Free arg_operand_list
-       and arg_match_list (the call is done even when function_symbol
-       is NULL so that the freeing will be done). */
+       the argument list to the right types.  Free arg_match_list (the call
+       is done even when function_symbol is NULL so that the freeing
+       will be done). */
     adjust_overloaded_function_call_arguments(function_symbol,
                                               unknown_dependent_function,
                                               routine_type,
                                               have_selector,
                                               bound_function_selector,
-                                              arg_operand_list,
+                                              arg_list,
                                               arg_match_list,
                                               arg_expr_list);
   } else {
@@ -11648,7 +11695,7 @@ in C++ mode.  arg_operand_list is freed by this routine.
     if (closing_paren_position != NULL) {
       arg_block.closing_paren_position = *closing_paren_position;
     }  /* if */
-    process_call_argument_list(arg_operand_list, &arg_block);
+    process_call_argument_list(arg_list, &arg_block);
     *arg_expr_list = arg_block.argument_head;
   }  /* if */
   db_exit();
@@ -13020,12 +13067,12 @@ static void try_builtin_operands_match(
                        an_opname_kind           kind,
                        char                     *operand_type_pattern,
                        a_boolean                first_operand_must_be_lvalue,
-                       an_arg_operand_ptr       arg_operand_list,
+                       an_arg_list_elem_ptr     operand_list,
                        a_candidate_function_ptr *candidate_functions,
                        a_type_ptr               specific_type)
 /*
 Subroutine for try_conversions_for_builtin_operator.  Check to see how
-well the operand values given by arg_operand_list match the operand type
+well the operand values given by operand_list match the operand type
 pattern string given by operand_type_pattern.  If they match, add
 the built-in operator to the candidate_functions list.  The first
 operand must be an lvalue if first_operand_must_be_lvalue (but this
@@ -13040,7 +13087,8 @@ the target type to be used).
   a_boolean                okay;
   char                     type_code;
   char                     *type_pattern_position;
-  an_arg_operand_ptr       arg_operand;
+  an_arg_list_elem_ptr     alep;
+  an_operand               *operand;
   an_arg_match_summary_ptr arg_match, arg_match_list, end_arg_match_list;
   a_type_ptr               operand_type;
   a_conv_descr             conversion;
@@ -13064,11 +13112,10 @@ the target type to be used).
   okay = TRUE;
   need_lvalue_result = first_operand_must_be_lvalue;
   /* Go through the operands and determine the match level on each operand. */
-  for (type_pattern_position = operand_type_pattern,
-         arg_operand = arg_operand_list;
-       arg_operand != NULL;
+  for (type_pattern_position = operand_type_pattern, alep = operand_list;
+       alep != NULL;
        type_pattern_position++, need_lvalue_result = FALSE,
-                                             arg_operand = arg_operand->next) {
+                                                           alep = alep->next) {
 #if CHECKING
     if (*type_pattern_position == ';' ||
         *type_pattern_position == '\0') {
@@ -13084,9 +13131,13 @@ the target type to be used).
       fprintf(f_debug, "try_builtin_operands_match: operand %lu\n", narg);
     }  /* if */
 #endif /* DEBUG */
+    /* Because brace-init-lists are not allowed as operands of operators,
+       the entry here must be for an expression. */
+    check_assertion(is_expression_component(alep));
+    operand = operand_of_arg_list_elem(alep);
     /* Get the operand type. */
-    operand_type = arg_operand->operand.type;
-    operand_is_lvalue = is_an_lvalue(&arg_operand->operand);
+    operand_type = operand->type;
+    operand_is_lvalue = is_an_lvalue(operand);
     /* Add an entry to the end of the arg_match_list to record whether or
        not this argument matches. */
     arg_match = alloc_arg_match_summary();
@@ -13107,14 +13158,18 @@ the target type to be used).
         a_type_ptr other_operand_type;
         /* Get the type of the other operand.  This is used to guide selection
            of template conversion functions if it's an appropriate type. */
-        if (arg_operand_list->next == NULL) {
+        if (operand_list->next == NULL) {
           /* No other type for unary operators. */
           other_operand_type = NULL;
         } else {
-          if (arg_operand == arg_operand_list) {
-            other_operand_type = arg_operand_list->next->operand.type;
+          if (alep == operand_list) {
+            check_assertion(is_expression_component(operand_list->next));
+            other_operand_type =
+                           operand_of_arg_list_elem(operand_list->next)->type;
           } else {
-            other_operand_type = arg_operand_list->operand.type;
+            check_assertion(is_expression_component(operand_list));
+            other_operand_type =
+                           operand_of_arg_list_elem(operand_list)->type;
           }  /* if */
           if (!type_matches_type_code(other_operand_type, type_code)) {
             /* The other operand type is not a builtin type that could be
@@ -13123,7 +13178,7 @@ the target type to be used).
           }  /* if */
         }  /* if */
         if (conversion_from_class_or_handle_possible(
-                                     &arg_operand->operand,
+                                     operand,
                                      other_operand_type,
                                      builtin_type_set_for_type_code(type_code),
                                      need_lvalue_result,
@@ -13144,8 +13199,7 @@ the target type to be used).
         /* A non-class operand.  See if it has (or can be converted to)
            the required type. */
         /* Do array --> pointer and function --> pointer transformations. */
-        operand_type = do_implicit_type_transformations(operand_type,
-                                                        &arg_operand->operand);
+        operand_type = do_implicit_type_transformations(operand_type, operand);
         /* Note that we do not try 0 --> pointer, because in this case it
            would require just making up a pointer type out of nowhere --
            there's no other operand that provides guidance on which pointer
@@ -13154,7 +13208,7 @@ the target type to be used).
           /* The type is correct.  See what the cost is (there might be
              a promotion). */
           determine_builtin_type_operand_conversion_cost(type_code, kind,
-                                                         &arg_operand->operand,
+                                                         operand,
                                                          arg_match);
           arg_match->lvalue_to_rvalue_conversion_used = operand_is_lvalue;
         }  /* if */
@@ -13220,11 +13274,10 @@ the target type to be used).
               arg_match->conversion.std.nontrivial_conversion = TRUE;
               arg_match->conversion.class_object_adjustment_required = TRUE;
             }  /* if */
-            arg_match->conversion.result_is_an_lvalue =
-                                           is_an_lvalue(&arg_operand->operand);
+            arg_match->conversion.result_is_an_lvalue = is_an_lvalue(operand);
           }  /* if */
         } else if (conversion_to_class_possible(
-                                         &arg_operand->operand,
+                                         operand,
                                          eff_specific_type,
                                          /*try_bitwise_copy=*/FALSE,
                                          /*is_copy_initialization=*/TRUE,
@@ -13262,7 +13315,7 @@ the target type to be used).
            mode, a handle is treated the same way, but not if a standard
            conversion is possible below. */
         if (conversion_from_class_or_handle_possible(
-                                          &arg_operand->operand,
+                                          operand,
                                           eff_specific_type,
                                           (a_builtin_type_kind_set)BTK_NONE,
                                           need_lvalue_result,
@@ -13289,16 +13342,15 @@ the target type to be used).
         a_constant_ptr   source_constant;
         /* A non-class operand. */
         /* Do array --> pointer and function --> pointer transformations. */
-        operand_type = do_implicit_type_transformations(operand_type,
-                                                        &arg_operand->operand);
-        source_is_constant = is_constant_operand(&arg_operand->operand);
-        source_constant = &arg_operand->operand.variant.constant;
-        if (is_an_lvalue(&arg_operand->operand) &&
+        operand_type = do_implicit_type_transformations(operand_type, operand);
+        source_is_constant = is_constant_operand(operand);
+        source_constant = &operand->variant.constant;
+        if (is_an_lvalue(operand) &&
             !(any_cfront_mode() || gpp_mode)) {
           /* Treat a constant-valued integral variable as its value.  This
              is useful when the value is a null pointer constant. */
           a_constant_ptr con_var_value =
-                   value_of_constant_var_lvalue_operand(&arg_operand->operand);
+                                 value_of_constant_var_lvalue_operand(operand);
           if (con_var_value != NULL) {
             source_is_constant = TRUE;
             source_constant = con_var_value;
@@ -13309,7 +13361,7 @@ the target type to be used).
           /* Microsoft mode allows some expressions as null pointer
              constants. */
           adjust_constant_operand_info_for_microsoft_null_pointer_test(
-                                                      &arg_operand->operand,
+                                                      operand,
                                                       &source_is_constant,
                                                       &source_constant,
                                                       (an_expr_node **)NULL);
@@ -13323,7 +13375,7 @@ the target type to be used).
                                (is_pointer_type(eff_specific_type) ||
                                 is_ptr_to_member_type(eff_specific_type));
         if (cfront_null_ptr_constant_case &&
-            (!arg_operand->operand.is_cfront_null_pointer_constant ||
+            (!operand->is_cfront_null_pointer_constant ||
              (cfront_3_0_mode &&
               (kind == (an_opname_kind)onk_lt ||
                kind == (an_opname_kind)onk_gt ||
@@ -13336,10 +13388,9 @@ the target type to be used).
           arg_match->match_level = aml_none;
         } else if (impl_conversion_possible(operand_type,
                                             source_is_constant,
-                                            (a_boolean)arg_operand->operand.
-                                                      is_simple_string_literal,
-                                            operand_is_function(
-                                                        &arg_operand->operand),
+                                            (a_boolean)operand
+                                                    ->is_simple_string_literal,
+                                            operand_is_function(operand),
                                             source_constant,
                                             eff_specific_type,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
@@ -13606,11 +13657,11 @@ static void try_corresp_builtin_operands_match(
                          an_opname_kind           kind,
                          char                     *operand_type_pattern,
                          a_boolean                first_operand_must_be_lvalue,
-                         an_arg_operand_ptr       arg_operand_list,
+                         an_arg_list_elem_ptr     operand_list,
                          a_candidate_function_ptr *candidate_functions)
 /*
 Subroutine for try_conversions_for_builtin_operator.  Check to see how
-well the operand values given by arg_operand_list match the operand type
+well the operand values given by operand_list match the operand type
 pattern string given by operand_type_pattern.  If they match, add
 the built-in operator to the candidate_functions list.  The first
 operand must be an lvalue if first_operand_must_be_lvalue (but this
@@ -13620,7 +13671,8 @@ where the pattern string contains two operands that must correspond
 in some way, e.g., two pointers that must have the same type.
 */
 {
-  an_arg_operand_ptr       arg_operand;
+  an_arg_list_elem_ptr     alep;
+  an_operand               *operand;
   a_type_ptr               specific_type, operand_type;
   char                     *type_pattern_position;
   a_symbol_ptr             conversion_symbol, base_conversion_symbol;
@@ -13641,11 +13693,15 @@ in some way, e.g., two pointers that must have the same type.
   /* Loop through the two operands. */
   previous_class_type_considered = NULL;
   previous_specific_type_considered = NULL;
-  for (type_pattern_position = operand_type_pattern,
-         arg_operand = arg_operand_list;
-       arg_operand != NULL;
-       type_pattern_position++, arg_operand = arg_operand->next) {
-    operand_type = arg_operand->operand.type;
+  for (type_pattern_position = operand_type_pattern, alep = operand_list;
+       alep != NULL;
+       type_pattern_position++, alep = alep->next) {
+    /* Because brace-init-lists are not allowed as operands of operators,
+       the entry here must be for an expression. */
+    check_assertion(is_expression_component(alep));
+    operand = operand_of_arg_list_elem(alep);
+    /* Get the operand type. */
+    operand_type = operand->type;
     if (*type_pattern_position == POINTER_TO_OBJECT_TYPE_CODE &&
         operand_type_pattern[1] == PTR_TO_MEMBER_TYPE_CODE) {
       /* For "->*", the first operand is a pointer to class, and the
@@ -13707,7 +13763,7 @@ in some way, e.g., two pointers that must have the same type.
                                             previous_specific_type_considered);
             try_builtin_operands_match(kind, operand_type_pattern,
                                        first_operand_must_be_lvalue,
-                                       arg_operand_list,
+                                       operand_list,
                                        candidate_functions,
                                        specific_type);
           }  /* if */
@@ -13723,10 +13779,14 @@ in some way, e.g., two pointers that must have the same type.
         a_type_ptr other_operand_type;
         specific_type = operand_type;
         /* Get the type of the other operand. */
-        if (arg_operand == arg_operand_list) {
-          other_operand_type = arg_operand_list->next->operand.type;
+        if (alep == operand_list) {
+          check_assertion(is_expression_component(operand_list->next));
+          other_operand_type =
+                         operand_of_arg_list_elem(operand_list->next)->type;
         } else {
-          other_operand_type = arg_operand_list->operand.type;
+          check_assertion(is_expression_component(operand_list));
+          other_operand_type =
+                         operand_of_arg_list_elem(operand_list)->type;
         }  /* if */
         if (is_class_struct_union_type(other_operand_type) &&
             find_base_class_of(other_operand_type, operand_type) != NULL) {
@@ -13748,7 +13808,7 @@ in some way, e.g., two pointers that must have the same type.
           /* Try matching the operands, with the chosen specific type. */
           try_builtin_operands_match(kind, operand_type_pattern,
                                      first_operand_must_be_lvalue,
-                                     arg_operand_list,
+                                     operand_list,
                                      candidate_functions,
                                      specific_type);
         }  /* if */
@@ -13757,11 +13817,10 @@ in some way, e.g., two pointers that must have the same type.
       /* The operand does not have a class type.  See if standard conversions
          can be used to get to the desired type. */
       /* Do array --> pointer and function --> pointer transformations. */
-      operand_type = do_implicit_type_transformations(operand_type,
-                                                      &arg_operand->operand);
+      operand_type = do_implicit_type_transformations(operand_type, operand);
       operand_type = skip_typerefs(operand_type);
       if (microsoft_bugs &&
-          arg_operand->operand.is_simple_string_literal &&
+          operand->is_simple_string_literal &&
           string_literals_are_const) {
         /* MSVC++ 7.1 and 8.0 (which have const string literals) seem
            to generate built-in operators as if the strings are not const.
@@ -13789,7 +13848,7 @@ in some way, e.g., two pointers that must have the same type.
           /* Try matching the operands, with the chosen specific type. */
           try_builtin_operands_match(kind, operand_type_pattern,
                                      first_operand_must_be_lvalue,
-                                     arg_operand_list,
+                                     operand_list,
                                      candidate_functions,
                                      specific_type);
         }  /* if */
@@ -13803,13 +13862,13 @@ in some way, e.g., two pointers that must have the same type.
 static void try_conversions_for_builtin_operator(
                                  an_opname_kind           kind,
                                  a_boolean                unary_operator,
-                                 an_arg_operand_ptr       arg_operand_list,
+                                 an_arg_list_elem_ptr     operand_list,
                                  a_candidate_function_ptr *candidate_functions)
 /*
 See if conversion functions can be used to convert the operands of an
 operator to built-in types that would be suitable for the built-in
 version of the operator.  The operator is specified by kind and unary_operator.
-The operands are specified by arg_operand_list.  If the built-in operator
+The operands are specified by operand_list.  If the built-in operator
 can be used, it is added to the candidate_functions list.
 */
 {
@@ -13836,7 +13895,8 @@ can be used, it is added to the candidate_functions list.
     /* In cfront 2.1 mode, do not require that conversions from class types
        yield lvalues; the error check gets done by the builtin operator. */
     if (!cfront_2_1_mode) first_operand_must_be_lvalue = TRUE;
-    first_operand = &arg_operand_list->operand;
+    check_assertion(is_expression_component(operand_list));
+    first_operand = operand_of_arg_list_elem(operand_list);
     if (!is_an_lvalue(first_operand) &&
         !is_potential_conv_function_source(first_operand->type)) {
       /* The first operand is not an lvalue so the built-in operator cannot
@@ -13863,13 +13923,13 @@ can be used, it is added to the candidate_functions list.
       operand_type_pattern++;
       try_corresp_builtin_operands_match(kind, operand_type_pattern,
                                          first_operand_must_be_lvalue,
-                                         arg_operand_list,
+                                         operand_list,
                                          candidate_functions);
     } else {
       /* There are no corresponding types in the argument pattern. */
       try_builtin_operands_match(kind, operand_type_pattern,
                                  first_operand_must_be_lvalue,
-                                 arg_operand_list,
+                                 operand_list,
                                  candidate_functions,
                                  (a_type_ptr)NULL);
     }  /* if */
@@ -14157,7 +14217,7 @@ Adjust the operand type to match the type requirement.
                                &operand->position, operand->type);
             diagnose_overload_ambiguity(ambiguity_list,
                                         (an_operand *)NULL,
-                                        (an_arg_operand_ptr)NULL,
+                                        (an_arg_list_elem *)NULL,
                                         (an_opname_kind)onk_none);
           }  /* if */
           free_candidate_function_list(ambiguity_list);
@@ -14315,7 +14375,7 @@ generic expression for such cases (where operator overloading might
 apply, but we can't tell).
 */
 {
-  an_arg_operand_ptr       arg_operand_list, arg_operand_list2, arg_operand;
+  an_arg_list_elem_ptr     arg_list, arg_list2, arg_list_elem;
   an_expr_node_ptr         arg_expr_list, end_arg_expr_list;
   a_symbol_ptr             nonmember_functions_symbol = NULL;
   a_symbol_ptr             member_functions_symbol;
@@ -14336,7 +14396,7 @@ apply, but we can't tell).
   an_operand               *bound_function_selector;
   a_boolean                ambiguous;
   a_boolean                undecidable_because_of_error;
-  a_boolean                arg_operand_list_not_used;
+  a_boolean                arg_list_not_used;
   a_boolean                dependent_call = FALSE;
   a_boolean                defer_overload_resolution = FALSE;
   a_boolean                found_through_adl = FALSE;
@@ -14458,15 +14518,13 @@ apply, but we can't tell).
            call of an overloaded operator function or the operands may be
            convertible to built-in types appropriate for the built-in
            operator. */
-        /* Change the operands into argument operand form. */
-        arg_operand_list = alloc_arg_operand();
-        copy_operand(operand_1, &arg_operand_list->operand);
+        /* Change the operands into argument list element form. */
+        arg_list = alloc_arg_list_elem_for_operand(operand_1);
         if (unary_operator) {
-          arg_operand_list2 = NULL;
+          arg_list2 = NULL;
         } else {
-          arg_operand_list2 = alloc_arg_operand();
-          copy_operand(operand_2, &arg_operand_list2->operand);
-          arg_operand_list->next = arg_operand_list2;
+          arg_list2 = alloc_arg_list_elem_for_operand(operand_2);
+          arg_list->next = arg_list2;
         }  /* if */
         /* candidate_functions will contain the list of viable functions. */
         candidate_functions = NULL;
@@ -14515,8 +14573,7 @@ apply, but we can't tell).
                                          proj_function_symbol,
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
-                                         have_selector ? arg_operand_list2 :
-                                                         arg_operand_list,
+                                         have_selector ? arg_list2 : arg_list,
                                          have_selector,
                                          have_selector ? operand_1 :
                                                          (an_operand *)NULL,
@@ -14563,7 +14620,7 @@ apply, but we can't tell).
                                          member_functions_symbol,
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
-                                         arg_operand_list2,
+                                         arg_list2,
                                          /*have_selector=*/TRUE,
                                          operand_1,
                                          /*ctor_conversion_case=*/FALSE,
@@ -14591,7 +14648,7 @@ apply, but we can't tell).
                                          member_functions_symbol,
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
-                                         arg_operand_list,
+                                         arg_list,
                                          /*have_selector=*/FALSE,
                                          (an_operand *)NULL,
                                          /*ctor_conversion_case=*/FALSE,
@@ -14635,7 +14692,7 @@ apply, but we can't tell).
                                          member_functions_symbol,
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
-                                         arg_operand_list,
+                                         arg_list,
                                          /*have_selector=*/FALSE,
                                          (an_operand *)NULL,
                                          /*ctor_conversion_case=*/FALSE,
@@ -14722,7 +14779,7 @@ apply, but we can't tell).
                                          nonmember_functions_symbol,
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
-                                         arg_operand_list,
+                                         arg_list,
                                          /*have_selector=*/FALSE,
                                          (an_operand *)NULL,
                                          /*ctor_conversion_case=*/FALSE,
@@ -14776,7 +14833,7 @@ apply, but we can't tell).
              matches are compared to the best match so far from the above
              searches. */
           try_conversions_for_builtin_operator(kind, unary_operator,
-                                               arg_operand_list,
+                                               arg_list,
                                                &candidate_functions);
         }  /* if */
 select_best_function:
@@ -14788,7 +14845,7 @@ select_best_function:
                                         &ambiguous);
         function_symbol = NULL;
         arg_expr_list = NULL;
-        arg_operand_list_not_used = FALSE;
+        arg_list_not_used = FALSE;
         if (defer_overload_resolution) {
           /* We're in a prototype or nonreal instantiation, and some
              candidate function was a block extern, so we can't really do
@@ -14810,7 +14867,7 @@ select_best_function:
         } else if (undecidable_because_of_error) {
           /* There was a previous error. */
           *processed = TRUE;
-          arg_operand_list_not_used = TRUE;
+          arg_list_not_used = TRUE;
           make_error_operand(result);
         } else if (candidate_functions == NULL) {
           /* None of the functions applies. */
@@ -14951,13 +15008,13 @@ no_applicable_operator_function:
               pos_st_start_error(ec_no_matching_operator_function,
                                  operator_position,
                                  opname_names[(int)kind]);
-              display_operand_types(arg_operand_list, kind);
+              display_operand_types(arg_list, kind);
               add_on_diag_for_skipped_inaccessible_function(
                                                            inaccessible_match);
               end_error();
             }  /* if */
             make_error_operand(result);
-            arg_operand_list_not_used = TRUE;
+            arg_list_not_used = TRUE;
           }  /* if */
         } else if (ambiguous) {
           /* More than one function applies and is a best match --
@@ -14974,11 +15031,11 @@ no_applicable_operator_function:
                                opname_names[(int)kind]);
             diagnose_overload_ambiguity(candidate_functions,
                                         (an_operand *)NULL,
-                                        arg_operand_list,
+                                        arg_list,
                                         kind);
           }  /* if */
           make_error_operand(result);
-          arg_operand_list_not_used = TRUE;
+          arg_list_not_used = TRUE;
         } else {
           /* Exactly one function applies and is best. */
           a_symbol_ptr overloaded_function_symbol;
@@ -15081,14 +15138,15 @@ no_applicable_operator_function:
                                            (an_operand *)NULL,
                                            &access_error_reported);
             }  /* if */
-            arg_operand = arg_operand_list;
+            arg_list_elem = arg_list;
             bound_function_selector = NULL;
             have_selector = FALSE;
             if (nonstatic_member_is_best_match) {
               /* The function selected is a non-static member function.
                  Therefore, the first argument is to be used as the selector
                  object. */
-              bound_function_selector = &arg_operand_list->operand;
+              check_assertion(is_expression_component(arg_list));
+              bound_function_selector = operand_of_arg_list_elem(arg_list);
               have_selector = TRUE;
               if (selector_is_object_pointer) {
                 /* Convert the handle to an rvalue. */
@@ -15102,7 +15160,7 @@ no_applicable_operator_function:
                                            arg_match,
                                            &bound_function_selector->position);
               /* The "real" argument list starts with the second argument. */
-              arg_operand = arg_operand->next;
+              arg_list_elem = arg_list_elem->next;
               arg_match = arg_match->next;
             }  /* if */
             param = routine_type->variant.routine.extra_info->param_type_list;
@@ -15129,11 +15187,13 @@ no_applicable_operator_function:
                 conv_object_pointer_to_lvalue(bound_function_selector);
               }  /* if */
               /* Cast the source operand to the right type. */
-              prep_assignment_operand(&arg_operand->operand,
+              check_assertion(is_expression_component(arg_list_elem));
+              prep_assignment_operand(operand_of_arg_list_elem(arg_list_elem),
                                       result_type,
                                       ec_incompatible_param,
                                       operator_position);
-              rhs_node = make_node_from_operand(&arg_operand->operand);
+              rhs_node = make_node_from_operand(
+                                      operand_of_arg_list_elem(arg_list_elem));
               lhs_node = make_node_from_operand(bound_function_selector);
               lhs_node->next = rhs_node;
               assign_node = make_lvalue_operator_node(
@@ -15151,12 +15211,14 @@ no_applicable_operator_function:
                  nonstatic member function case we start at the second
                  operand. */
               arg_expr_list = end_arg_expr_list = NULL;
-              for (; arg_operand != NULL;
-                   arg_operand = arg_operand->next,
+              for (; arg_list_elem != NULL;
+                   arg_list_elem = arg_list_elem->next,
                         arg_match = arg_match->next) {
+                check_assertion(is_expression_component(arg_list_elem));
                 arg = node_for_arg_of_overloaded_function_call(
-                                         arg_operand, arg_match, param,
-                                         function_symbol->variant.routine.ptr);
+                                       operand_of_arg_list_elem(arg_list_elem),
+                                       arg_match, param,
+                                       function_symbol->variant.routine.ptr);
                 if (arg_expr_list == NULL) {
                   arg_expr_list = arg;
                 } else {
@@ -15198,13 +15260,13 @@ no_applicable_operator_function:
         }  /* if */
         /* Free the candidate functions list. */
         free_candidate_function_list(candidate_functions);
-        if (arg_operand_list_not_used) {
-          /* There was an error and the arg_operand list was not used,
-             so change all the references in it to error references. */
-          change_arg_operand_list_refs_to_error(arg_operand_list);
+        if (arg_list_not_used) {
+          /* There was an error and arg_list was not used, so change all
+             the references in it to error references. */
+          change_arg_list_refs_to_error(arg_list);
         }  /* if */
         /* Free the argument list. */
-        free_arg_operand_list(arg_operand_list);
+        free_arg_list(arg_list);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -15277,7 +15339,7 @@ conversion.
   a_boolean                     try_as_arg_of_bitwise_cctor;
   a_symbol_ptr                  class_symbol, constructor_symbol;
   a_class_symbol_supplement_ptr cssp;
-  an_arg_operand_ptr            arg_operand_list;
+  an_arg_list_elem_ptr          arg_list;
   a_boolean                     undecidable_because_of_error;
   a_boolean                     ctor_arg_conversion_set = FALSE;
   a_base_class_ptr              bcp;
@@ -15355,8 +15417,7 @@ conversion.
     /* A same-class bitwise copy is not possible, so do the full overload
        resolution. */
     /* Make an argument list with just the source operand. */
-    arg_operand_list = alloc_arg_operand();
-    copy_operand(source_operand, &arg_operand_list->operand);
+    arg_list = alloc_arg_list_elem_for_operand(source_operand);
     constructor_symbol = cssp->constructor;
     if (constructor_symbol != NULL) {
       /* The class has constructors. */
@@ -15364,7 +15425,7 @@ conversion.
       try_overloaded_function_match(constructor_symbol,
                                     /*is_template_id=*/FALSE,
                                     (a_template_arg_ptr)NULL,
-                                    arg_operand_list,
+                                    arg_list,
                                     /*have_selector=*/FALSE, /* sic */
                                     (an_operand *)NULL,
                                     /*ctor_conversion_case=*/TRUE,
@@ -15585,7 +15646,7 @@ conversion.
         }  /* if */
       }  /* if */
     }  /* if */
-    free_arg_operand_list(arg_operand_list);
+    free_arg_list(arg_list);
   }  /* if */
   if (*ambiguous) conversion->unusable = TRUE;
   if (*ambiguous && ambiguity_list != NULL) {
@@ -15806,7 +15867,7 @@ Issue an error and set *processed to TRUE if the conversion is ambiguous.
                              &operand->position, operand->type);
           diagnose_overload_ambiguity(ambiguity_list,
                                       (an_operand *)NULL,
-                                      (an_arg_operand_ptr)NULL,
+                                      (an_arg_list_elem *)NULL,
                                       (an_opname_kind)onk_none);
         }  /* if */
         free_candidate_function_list(ambiguity_list);
@@ -16212,7 +16273,7 @@ a reference type (the caller should have rewritten that case).
           }  /* if */
           diagnose_overload_ambiguity(ambiguity_list,
                                       (an_operand *)NULL,
-                                      (an_arg_operand_ptr)NULL,
+                                      (an_arg_list_elem *)NULL,
                                       (an_opname_kind)onk_none);
         }  /* if */
         free_candidate_function_list(ambiguity_list);
@@ -18833,7 +18894,7 @@ the conversion.
                             base_dest_type);
         diagnose_overload_ambiguity(ambiguity_list,
                                     (an_operand *)NULL,
-                                    (an_arg_operand_ptr)NULL,
+                                    (an_arg_list_elem *)NULL,
                                     (an_opname_kind)onk_none);
       }  /* if */
       free_candidate_function_list(ambiguity_list);
@@ -19487,7 +19548,7 @@ be placed on any object lifetime list (the caller must do that).
   promote_init_component_lifetimes(icp);
   if (is_expression_component(icp)) {
     /* The object is initialized by an expression. */
-    copy_operand(&icp->variant.expr->operand, &operand);
+    copy_operand(operand_of_arg_list_elem(icp), &operand);
     if (is_template_dependent_type(dest_type)) {
       /* The destination type is template dependent. */
       prep_generic_operand(&operand);
@@ -20399,7 +20460,7 @@ can convert to or from handles.
                             &op1->position, op1->type, conv_dest_type);
         diagnose_overload_ambiguity(ambiguity_list,
                                     (an_operand *)NULL,
-                                    (an_arg_operand_ptr)NULL,
+                                    (an_arg_list_elem *)NULL,
                                     (an_opname_kind)onk_none);
       }  /* if */
       free_candidate_function_list(ambiguity_list);
@@ -20504,7 +20565,7 @@ find_default_constructor.
     try_overloaded_function_match(cssp->constructor,
                                   /*is_template_id=*/FALSE,
                                   (a_template_arg_ptr)NULL,
-                                  (an_arg_operand *)NULL,
+                                  (an_arg_list_elem *)NULL,
                                   /*have_selector=*/FALSE,
                                   (an_operand *)NULL,
                                   /*ctor_conversion_case=*/FALSE,
@@ -20593,7 +20654,7 @@ by source_is_rvalue.
     ptp = rtsp->param_type_list;
     if (ptp == NULL /* Error recovery */ ||
         !deduce_one_parameter(ptp, (a_type_ptr)NULL,
-                              (an_arg_operand **)NULL, arg_type,
+                              (an_arg_list_elem **)NULL, arg_type,
                               sym, template_arg_list)) {
       /* Deduction failed. */
       goto reject_function;

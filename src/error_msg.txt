@@ -2384,6 +2384,7 @@ ec_explicit_ctor_in_copy_list_init;;"copy-list-initialization cannot use a const
 ec_ptr_to_member_of_type_void;;"pointer to member of type void is not allowed"
 ec_ptr_to_member_of_reference_type;;"pointer to member of reference type is not allowed"
 ec_ptr_to_member_of_handle_type;;"pointer to member of handle type is not allowed"
+ec_braced_init_list_not_allowed;;"a brace-enclosed list is not allowed here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
