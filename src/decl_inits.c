@@ -3909,7 +3909,7 @@ The presence of a nonconstant initializer component is reflected in *is.
                icp->variant.braced.list != NULL);
     }  /* if */
     if (is->no_diagnostics) {
-      is->init_error = is_effective_error(ec_nonstd_braces, brace_pos);
+      is->init_error = is_effective_error(ec_nonstd_braces, sev);
     } else {
       pos_diagnostic(sev, ec_nonstd_braces, brace_pos);
     }  /* if */
