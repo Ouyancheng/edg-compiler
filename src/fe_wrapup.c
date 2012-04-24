@@ -785,6 +785,9 @@ and before the back end (if any) is executed.
     /* Print total memory used. */
     show_space_used();
   }  /* if */
+#if CHECKING
+  check_all_init_component_entries_freed();
+#endif /* CHECKING */
 #endif /* DEBUG */
 
   /* Don't keep checking the stop token stack in db_enter/db_exit because

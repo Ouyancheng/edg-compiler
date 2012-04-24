@@ -2335,6 +2335,9 @@ extern void make_upc_thread_operand(an_operand            *operand,
 #if DEBUG
 extern unsigned long show_expr_space_used(void);
 #endif /* DEBUG */
+#if CHECKING && DEBUG
+extern void check_all_init_component_entries_freed(void);
+#endif /* CHECKING && DEBUG */
 
 extern void expr_one_time_init(void);
 

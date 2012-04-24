@@ -87,6 +87,7 @@ Counts of entries allocated, for debugging purposes.
 static unsigned long
 		num_arg_operands_allocated,
 		num_init_components_allocated,
+		num_init_components_freed,
 		num_expr_rescan_info_entries_allocated,
 		num_ref_entries_allocated,
 		num_dynamic_init_dtor_fixups_allocated;
@@ -701,6 +702,9 @@ kind to "kind" and its fields to default values, and return a pointer to it.
     /* Reuse a previously-freed entry. */
     icp = avail_init_components;
     avail_init_components = icp->next;
+#if DEBUG
+    num_init_components_freed--;
+#endif /* DEBUG */
   } else {
     /* Allocate a new entry. */
     icp = alloc_fe_of_type(an_init_component);
@@ -766,6 +770,9 @@ the whole list.  If called with NULL, do nothing.
 #endif /* CHECKING && DEBUG */
     icp->next = avail_init_components;
     avail_init_components = icp;
+#if DEBUG
+    num_init_components_freed++;
+#endif /* DEBUG */
   }  /* for */
 }  /* free_init_component_list */
 
@@ -17843,8 +17850,22 @@ Display and return the amount of space used for various expression tables.
 
   return grand_total;
 }  /* show_expr_space_used */
-#endif /* DEBUG */
 
+#endif /* DEBUG */
+#if CHECKING && DEBUG
+
+void check_all_init_component_entries_freed(void)
+/*
+Check that every an_init_component (aka an_expr_list_elem) entry allocated
+was ultimately freed.
+*/
+{
+  check_assertion_str(num_init_components_allocated ==
+                                                     num_init_components_freed,
+                    "Some allocated init-component entries were never freed");
+}  /* check_all_init_component_entries_freed */
+
+#endif /* CHECKING && DEBUG */
 
 void expr_one_time_init(void)
 /*
@@ -17871,6 +17892,7 @@ Do one-time initialization of variables related to expression processing.
 #if DEBUG
       pch_saved_var_array_elem(num_arg_operands_allocated),
       pch_saved_var_array_elem(num_init_components_allocated),
+      pch_saved_var_array_elem(num_init_components_freed),
       pch_saved_var_array_elem(num_expr_rescan_info_entries_allocated),
       pch_saved_var_array_elem(num_ref_entries_allocated),
       pch_saved_var_array_elem(num_dynamic_init_dtor_fixups_allocated),
@@ -17927,6 +17949,7 @@ for each compilation.
   num_arg_match_summaries_allocated      = 0;
   num_arg_operands_allocated             = 0;
   num_init_components_allocated          = 0;
+  num_init_components_freed              = 0;
   num_expr_rescan_info_entries_allocated = 0;
   num_ref_entries_allocated              = 0;
   num_dynamic_init_dtor_fixups_allocated = 0;
