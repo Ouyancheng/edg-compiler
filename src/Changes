@@ -1,5 +1,17 @@
 Version 4.5
 
+4/25/12  [EDGcpfe/12854]
+C++/CLI: Recursion in constraint checking of generics from metadata
+
+The front end could get into a loop checking constraints of certain
+generics imported from metadata.  Although this is not valid C++/CLI
+code, the problem would occur processing metadata that is equivalent to:
+
+  generic <typename T> where T : X<T> interface class X {};
+
+Now fixed.
+
+
 4/24/12  [EDGcpfe/12840]
 C-generating back end: tail padding reuse and bit-field members of indirect
 base classes

@@ -6439,7 +6439,13 @@ is returned.
          which generic is being defined yet, so make a list of potential
          errors and recheck them later. */
       a_scope_stack_entry_ptr	ssep = &scope_stack_top();
-      if (ssep->kind == (a_scope_kind)sck_template_declaration) {
+      if (scanning_generated_code_from_metadata) {
+        /* Uses of pending constraints are allowed from metadata since the
+           the constraints were checked when the metadata was generated.
+           Note that this does not use in_code_generated_from_metadata()
+           because we do want to check constraints on instantiations of
+           entities that came from metadata. */
+      } else if (ssep->kind == (a_scope_kind)sck_template_declaration) {
         a_type_list_entry_ptr	tlep;
         tlep = alloc_type_list_entry();
         tlep->type = class_type;
@@ -28671,7 +28677,13 @@ that will persist until the checks are actually done.
   a_template_arg_ptr			tap;
   a_template_param_ptr			tpp;
 
-  if (scope_stack_top().defer_constraint_checks) {
+  if (scanning_generated_code_from_metadata) {
+    /* Don't check constraints in code from metadata -- the constraints
+       were checked when the metadata was generated.  Note that this does
+       not use in_code_generated_from_metadata() because we do want to check
+       constraints on instantiations of entities that came from metadata. */
+    goto done;
+  } else if (scope_stack_top().defer_constraint_checks) {
     /* Constraint checks are being deferred.  Save the information about
        this check so that it can be performed later. */
     a_deferred_constraint_check_ptr	dccp;
