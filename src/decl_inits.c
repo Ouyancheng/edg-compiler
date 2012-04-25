@@ -4699,6 +4699,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void brace_init_variable(a_decl_parse_state  *dps,
                                 a_boolean           direct,
+                                an_id_linkage_kind  linkage,
                                 a_source_position   *diag_pos,
                                 a_decl_pos_block    *decl_pos_block)
 /*
@@ -4706,9 +4707,9 @@ Handle a braced-initializer following the declarator for a variable or static
 data member.  If direct is TRUE, the initializer uses direct initialization
 syntax (e.g., "T x{3};"); otherwise, it uses copy initialization syntax (e.g.,
 "T x = {3};").
-dps and decl_pos_block describe the declaration that the initializer is part
-of.  diag_pos is the position to be used by default for diagnostics (when no
-more specific position is available).
+dps, linkage, and decl_pos_block describe the declaration that the initializer
+is part of.  diag_pos is the position to be used by default for diagnostics
+(when no more specific position is available).
 */
 {
   a_variable_ptr  vp;
@@ -4724,7 +4725,8 @@ more specific position is available).
     vp->is_partially_initialized = TRUE;
   }  /* if */
   if (is_incomplete_array_type(vp->type) && is_array_type(dps->type)) {
-    vp->type = dps->type;
+    put_type_back_into_variable(vp, dps->sym, diag_pos, linkage, dps->type);
+    dps->type = vp->type;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
@@ -4831,8 +4833,8 @@ returned set to TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not add code here. */
     } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
-        linkage != idl_none &&
-        depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+               linkage != idl_none &&
+               depth_innermost_function_scope != NO_SCOPE_DEPTH) {
       /* "Block extern" variable with internal or external linkage --
          not allowed to be initialized.  (3.5.7 Constraints) */
       pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
@@ -5073,7 +5075,8 @@ returned set to TRUE.
                is_aggregate_or_union_type(dps->type)) &&
              dps->has_direct_initializer) {
     /* Direct list initialization (e.g., "X x{1, 2};"). */
-    brace_init_variable(dps, /*direct=*/TRUE, source_pos, decl_pos_block);
+    brace_init_variable(dps, /*direct=*/TRUE, linkage, source_pos,
+                        decl_pos_block);
     init_err = dps->init_state.init_error;
     init_con = dps->init_state.init_con;
     init_dip = dps->init_state.init_dip;
