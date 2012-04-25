@@ -7371,17 +7371,13 @@ early to get the temporary initialized; otherwise, it is set to NULL.
       an_operand      temp_operand;
       a_boolean       dummy_temp_init_used;
       a_ref_entry_ptr saved_ref_entries = operand->ref_entries_list;
-      an_arg_list_elem_ptr
-                      saved_subscripts =
-                                      operand->variant.property_ref.subscripts;
       operand->ref_entries_list = NULL;
-      operand->variant.property_ref.subscripts = NULL;
       clone_operand(operand, &temp_operand, /*vars_can_change=*/TRUE,
                     &dummy_temp_init_used,
                     /*treat_as_potential_rvalue=*/FALSE);
+      free_attachments_to_operand(operand);
       copy_operand(&temp_operand, operand);
       operand->ref_entries_list = saved_ref_entries;
-      operand->variant.property_ref.subscripts = saved_subscripts;
     }  /* if */
   }  /* if */
 }  /* clone_property_ref_operand */
