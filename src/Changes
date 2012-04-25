@@ -42,13 +42,14 @@ have to precede the type specifiers, but not specifiers like "inline" or
 
 
 4/23/12  [EDGcpfe/12788]
-Incorrect offset for lowered anonymous struct pointer-to-data-member
+Incorrect offset for lowered anonymous struct/union pointer-to-data-member
 
-In configurations where anonymous structs are allowed, a pointer-to-
-data-member operation on a member of a nested anonymous struct had resulted in
-an incorrect offset when the pointer-to-data-member constant was lowered (in
-cases where the anonymous struct isn't the first member of its parent class).
-In this example, both pointer-to-member offsets were zero:
+In configurations where non-standard anonymous unions and structs are allowed,
+a pointer-to-data-member operation on a member of a nested non-standard
+anonymous struct or union had resulted in an incorrect offset when the
+pointer-to-data-member constant was lowered (in cases where the non-standard
+anonymous struct or union isn't the first member of its parent class).  In this
+example, both pointer-to-member offsets were zero:
 
   struct A {
     int x;

@@ -129,10 +129,12 @@ constant, and return information about it in *delta.
       offset += (a_targ_ptrdiff_t)field->offset;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       if (field_class->
-                   variant.class_struct_union.is_nonstd_anonymous_union_type &&
-          !is_union_type(field_class)) {
-        /* A non-standard anonymous struct; find the parent field. */
+                   variant.class_struct_union.is_nonstd_anonymous_union_type) {
+        /* A non-standard anonymous union or anonymous struct.  In either
+           case, continue looping to get to our parent.  In the union case,
+           the field offset is zero. */
         a_symbol_ptr field_sym = symbol_for(field);
+        check_assertion(!is_union_type(field_class) || field->offset == 0);
         check_assertion(field_sym != NULL);
         field_sym = field_sym->variant.field.anonymous_parent_object;
         check_assertion(field_sym != NULL &&
