@@ -4830,7 +4830,7 @@ is the length of the dir_name buffer.
     }  /* if */
   }  /* if */
   check_assertion(crip != NULL);
-  hr = crip->lpVtbl->GetRuntimeDirectory(crip, dir_name, dword_dir_name_size);
+  hr = crip->lpVtbl->GetRuntimeDirectory(crip, dir_name, &dword_dir_name_size);
   if (FAILED(hr)) {
     hresult_catastrophe("ICLRRuntimeInfo::GetRuntimeDirectory");
   }  /* if */
