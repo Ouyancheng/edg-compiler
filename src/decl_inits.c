@@ -4102,6 +4102,18 @@ size.
         if (!is->check_validity_only) {
           *result = alloc_unshared_constant(string_constant);
         }  /* if */
+        if (strict_ansi_mode && !list_init_enabled && !is->no_diagnostics &&
+            is_parenthesized_component(icp)) {
+          /* Strictly speaking, the standard doesn't allow parenthesized string
+             literals for aggregate initialization.  However, with C++11-style
+             list initialization that could make overload resolution depend on
+             whether a string literal is parenthesized or not, which is not
+             desirable.  So we impose this only in strict modes that don't
+             permit generalized list initialization (typically, C++03 mode). */
+          pos_diagnostic(strict_ansi_discretionary_severity,
+                         ec_nonstandard_parenthesized_string_initializer,
+                         init_component_pos(icp));
+        }  /* if */
       } else {
         if (is->no_diagnostics) {
           is->init_error = TRUE;
@@ -4367,9 +4379,10 @@ position for which diagnostics should be issued.
     }  /* if */
   }  /* for */
   if (last_dyn_field != NULL) {
+    a_field_ptr  end_fp = next_initializable_field(last_dyn_field->next);
     is->has_dynamic_init_component = TRUE;
     for (fp = next_field;
-         fp != last_dyn_field->next;
+         fp != end_fp;
          fp = next_initializable_field(fp->next)) {
       a_type_ptr      ftp = skip_typerefs(fp->type), atp = NULL;
       a_constant_ptr  init_con = NULL;

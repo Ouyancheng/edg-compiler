@@ -824,6 +824,21 @@ FALSE.
   return result;
 }  /* is_string_literal_component */
 
+
+a_boolean is_parenthesized_component(an_init_component_ptr  icp)
+/*
+If the given initialization component is a parenthesized expression, return
+TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_expression_component(icp)) {
+    result = operand_of_arg_list_elem(icp)->is_parenthesized;
+  }  /* if */
+  return result;
+}  /* is_parenthesized_component */
+
 #if DEBUG
 
 void db_init_component(an_init_component_ptr icp)
