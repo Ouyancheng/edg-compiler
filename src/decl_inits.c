@@ -4247,6 +4247,13 @@ type that reflects the length of the initializer.
          !atype->variant.array.bound_is_zero)) {
       /* An array whose number of elements is not a priori bound. */
       no_bound = TRUE;
+    } else if (is_template_param_type(etype)) {
+      /* For something like "T x[2] = { 1, 2, 3, 4 };" we cannot tell how the
+         initializer elements should be allocated to the array elements, since
+         T after instantiation can be an aggregate type that consumes any
+         number of initializers.  To simplify processing, we therefore treat
+         this as an unbounded array. */
+      no_bound = TRUE;
     } else {
       ecount = atype->variant.array.variant.number_of_elements;
     }  /* if */
