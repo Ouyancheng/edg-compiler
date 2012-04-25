@@ -839,6 +839,21 @@ TRUE.  Otherwise, return FALSE.
   return result;
 }  /* is_parenthesized_component */
 
+
+a_boolean is_pack_expansion_component(an_init_component_ptr  icp)
+/*
+If the given initialization component is a pack expansion, return TRUE.
+Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_expression_component(icp)) {
+    result = operand_of_arg_list_elem(icp)->pack_expansion_descr != NULL;
+  }  /* if */
+  return result;
+}  /* is_pack_expansion_component */
+
 #if DEBUG
 
 void db_init_component(an_init_component_ptr icp)

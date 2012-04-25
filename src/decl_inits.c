@@ -4238,9 +4238,10 @@ type that reflects the length of the initializer.
     unexpected_condition_str("NYI: Whole-array initialization");
   } else {
     /* Ordinary element-by-element array initialization. */
-    a_boolean      no_bound = FALSE, braced = is_braced_init_component(icp);
     a_targ_size_t  ecount, icount = 0;
     a_type_ptr     etype = atype->variant.array.element_type;
+    a_boolean      no_bound = FALSE, braced = is_braced_init_component(icp),
+                   saved_pack_expansion_handled;
     if (braced) {
       /* The element values are enclosed in braces. */
       /* Diagnostics not associated with a particular element should be issued
@@ -4248,6 +4249,9 @@ type that reflects the length of the initializer.
       if (braced) diag_pos = &icp->variant.braced.end_pos;
       /* Unwrap the braced list for the processing that follows. */
       icp = icp->variant.braced.list;
+      /* Save the pack-expansion-handled state: Any expansions seen have an
+         effect only within the braces. */
+      saved_pack_expansion_handled = is->pack_expansion_handled;
     }  /* if */
     if (!is->check_validity_only) {
       *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
@@ -4266,6 +4270,10 @@ type that reflects the length of the initializer.
          number of initializers.  To simplify processing, we therefore treat
          this as an unbounded array. */
       no_bound = TRUE;
+    } else if (is->pack_expansion_handled) {
+      /* If a pack expansion has been handled for an element at this level,
+         don't attempt to match element counts with array bounds. */
+      no_bound = TRUE;
     } else {
       ecount = atype->variant.array.variant.number_of_elements;
     }  /* if */
@@ -4278,6 +4286,10 @@ type that reflects the length of the initializer.
         append_constant_in_aggr(elem_con, *init_con);
       }  /* if */
       ++icount;
+      if (is->pack_expansion_handled) {
+        /* If a pack expansion was seen, don't try to track element counts. */
+        no_bound = TRUE;
+      }  /* if */
     }  /* while */
     if (!no_bound && icount < ecount) {
       /* Not all array elements are explicitly initialized: Append an entry
@@ -4305,6 +4317,7 @@ type that reflects the length of the initializer.
           pos_error(ec_too_many_initializer_values, init_component_pos(icp));
         }  /* if */
       }  /* if */
+      is->pack_expansion_handled = saved_pack_expansion_handled;
     } else {
       /* Braces were omitted at this level of aggregate initialization: The
          the caller should continue associating the next component with any
@@ -4463,8 +4476,9 @@ issued if no more specific position is available.
        Here the use of s as a component wholly initializes as[1]. */
     *p_icp = icp->next;
   } else {
-    a_boolean   braced = is_braced_init_component(icp);
     a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
+    a_boolean    braced = is_braced_init_component(icp),
+                 saved_pack_expansion_handled;
     /* Skip unnamed bit fields. */ 
     fp = next_initializable_field(fp);
     if (!is->check_validity_only) {
@@ -4475,9 +4489,12 @@ issued if no more specific position is available.
       /* The element values are enclosed in braces. */
       /* Diagnostics not associated with a particular element should be issued
          on the closing brace. */
-      if (braced) diag_pos = &icp->variant.braced.end_pos;
+      diag_pos = &icp->variant.braced.end_pos;
       /* Unwrap the braced list for the processing that follows. */
       icp = icp->variant.braced.list;
+      /* Save the pack-expansion-handled state: Any expansions seen have an
+         effect only within the braces. */
+      saved_pack_expansion_handled = is->pack_expansion_handled;
     } else if (fp == NULL) {
       /* No braces and no fields, but another initializer: This is an error.
          E.g.:
@@ -4504,9 +4521,9 @@ issued if no more specific position is available.
       if (!is->check_validity_only) {
         append_constant_in_aggr(elem_con, *init_con);
       }  /* if */
-      fp = next_initializable_field(fp->next);
+      if (!is->pack_expansion_handled) fp = next_initializable_field(fp->next);
     }  /* for */
-    if (fp != NULL) {
+    if (fp != NULL && !is->pack_expansion_handled) {
       /* Not all class fields are explicitly initialized: Append entries to
          initialize remaining fields if appropriate. */
       aggr_init_class_remainder_if_needed(*init_con, fp, is, diag_pos);
@@ -4524,6 +4541,7 @@ issued if no more specific position is available.
           pos_error(ec_too_many_initializer_values, init_component_pos(icp));
         }  /* if */
       }  /* if */
+      is->pack_expansion_handled = saved_pack_expansion_handled;
     } else {
       /* Braces were omitted at this level of aggregate initialization: The
          the caller should continue associating the next component with any
@@ -4550,7 +4568,17 @@ If this element is itself an aggregate, then this routine recurses into
 aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
 */
 {
-  etype = skip_typerefs(etype);
+  an_init_component_ptr  icp = *p_icp;
+  a_boolean              pack_expansion = FALSE;
+
+  if (is_pack_expansion_component(icp)) {
+    /* If this component is a pack expansion, don't attempt to match up types
+       since we don't know how many elements it should match. */
+    etype = type_of_unknown_templ_param_nontype;
+    pack_expansion = is->pack_expansion_handled = TRUE;
+  } else {
+    etype = skip_typerefs(etype);
+  }  /* if */
   if (etype->kind == (a_type_kind)tk_array) {
     /* Array. */
     aggr_init_array(p_icp, &etype, is, diag_pos, /*var_init=*/FALSE, init_con);
@@ -4563,13 +4591,14 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
              etype->kind == (a_type_kind)tk_error) {
     /* Create a constant that matches the initializer structure (since the
        element structure is not a priori known). */
-    aggr_init_generic_element(*p_icp, etype, is, init_con);
-    *p_icp = (*p_icp)->next;
+    aggr_init_generic_element(icp, etype, is, init_con);
+    *p_icp = icp->next;
   } else {
     /* Use the single value in *p_icp to initialize one element. */
-    aggr_init_simple_element(*p_icp, etype, is, init_con);
-    *p_icp = (*p_icp)->next;
+    aggr_init_simple_element(icp, etype, is, init_con);
+    *p_icp = icp->next;
   }  /* if */
+  (*init_con)->is_pack_expansion = pack_expansion;
 }  /* aggr_init_element */
 
 

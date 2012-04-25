@@ -346,6 +346,10 @@ typedef struct an_init_state {
 			/* TRUE if the initializer does not actually cover the
 			   whole initialized object (and hence some additional
 			   zero-initialization may be required). */
+  a_bit_field	pack_expansion_handled:1;
+			/* TRUE if a pack expansion has been handled in an
+			   aggregate initializer: Thereafter, matching
+                           initializer components may not be possible. */
 } an_init_state;
 
 

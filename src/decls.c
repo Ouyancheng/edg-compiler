@@ -94,6 +94,7 @@ Clear the fields of *is.
   is->has_dynamic_init_component = FALSE;
   is->any_uninitialized_const_or_ref_member = FALSE;
   is->partial_initializer = FALSE;
+  is->pack_expansion_handled = FALSE;
 }  /* clear_init_state_fields */
 
 

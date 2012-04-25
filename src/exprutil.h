@@ -1169,6 +1169,8 @@ extern a_boolean is_string_literal_component(an_init_component_ptr  icp,
 
 extern a_boolean is_parenthesized_component(an_init_component_ptr  icp);
 
+extern a_boolean is_pack_expansion_component(an_init_component_ptr  icp);
+
 extern void db_init_component(an_init_component_ptr icp);
 
 extern void check_arg_list_elem_is_expression(an_arg_list_elem_ptr alep);
