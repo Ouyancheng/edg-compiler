@@ -7135,7 +7135,8 @@ made into the value of a named constant (e.g., an enumerator).  Mark it as
 being the definition of a named constant, and give it a backing expression
 if putting a name into the constant entry would destroy information about
 the fact that the expression is itself a reference to a named constant.  It
-is presumed that the constant is unshared.  */
+is presumed that the constant is unshared.
+*/
 {
   cp->is_named_constant_definition = TRUE;
   if (cp->expr == NULL && has_name(cp)) {
