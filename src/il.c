@@ -6899,9 +6899,11 @@ alloc_shareable_constant would return a shareable constant.
      the symbol table, so don't allow this routine to be called in a back
      end. */
   check_assertion(in_front_end);
-  if (cp->expr != NULL && !cp->is_named_constant_definition) {
+  if (cp->expr != NULL && !cp->is_named_constant_definition &&
+      !constant_is_instantiation_dependent(cp)) {
     /* Constants with backing expressions should not be shared, except for
-       those representing the definition of a named constant. */
+       those representing the definition of a named constant and
+       dependent constants. */
     shareable = FALSE;
   } else if ((assoc_symbol = symbol_for(cp)) != NULL) {
     /* For constants with a source correspondence indicated, there is a
