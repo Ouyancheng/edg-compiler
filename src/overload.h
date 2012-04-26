@@ -1003,6 +1003,7 @@ void prep_reference_initializer_operand(an_operand         *source_operand,
                                         a_boolean          leave_as_object,
                                         a_conv_context_set conv_context,
                                         an_error_code      incompatible_err);
+#if !STANDALONE_UTILITY_PROGRAM
 extern
 void prep_list_initializer(an_init_component_ptr icp,
                            a_type_ptr            dest_type,
@@ -1011,7 +1012,7 @@ void prep_list_initializer(an_init_component_ptr icp,
                            a_boolean             fill_in_dtor,
                            an_operand            *result,
                            an_init_state         *is);
-
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 extern
 void prep_initializer_operand(an_operand         *source_operand,
                               a_type_ptr         dest_type,
