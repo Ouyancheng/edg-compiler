@@ -1,5 +1,26 @@
 Version 4.5
 
+4/26/12  [EDGcpfe/12863]
+C-generating back end: tail padding reuse and bit-field members
+
+In configurations in which tail padding reuse is enabled (see the entry for
+EDGcpfe/11008 below), the C-generating back end sometimes failed to insert
+necessary padding following base class subobjects before bit-field members
+in the derived class or from other base class subobjects, causing the
+fields to be incorrectly aligned in the generated code.  This is now fixed.
+For example:
+
+  struct B {
+    int x : 7;
+  };
+  struct C {
+    int y : 7;    // Had incorrect offset in D objects
+  };
+  struct D : B, C {
+    int z : 7;    // Had incorrect offset in D objects
+  };
+
+
 4/25/12  [EDGcpfe/12854]
 C++/CLI: Recursion in constraint checking of generics from metadata
 

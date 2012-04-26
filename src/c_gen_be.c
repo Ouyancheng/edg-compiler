@@ -2999,10 +2999,12 @@ These two fields are normally consecutive members of the given "type", but
   a_targ_size_t  padding = 0;
 
   if (!C_mode() && type->kind != (a_type_kind)tk_union &&
-     !field->is_bit_field) {
+      (!field->is_bit_field ||
+       (prev_field != NULL &&
+        prev_field->base_class_subobject_with_tail_padding))) {
     /* Compute any required padding before the field.  This only comes up
-       for empty base class layout, so check this only when the field has
-       a class type (hence also the is_bit_field test). */
+       for empty/promoted base class layout, so check this only when the
+       field has a class type (hence also the is_bit_field test). */
     a_type_ptr  field_type = field->type;
     a_field_ptr effective_field = field;
     while (effective_field->base_class_subobject_with_tail_padding) {
@@ -3015,7 +3017,10 @@ These two fields are normally consecutive members of the given "type", but
       field_type = underlying_array_element_type(field_type);
     }  /* if */
     field_type = skip_typerefs(field_type);
-    if (is_immediate_class_type(field_type) || effective_field != field) {
+    if (is_immediate_class_type(field_type) ||
+        field->base_class_subobject_with_tail_padding ||
+        (prev_field != NULL &&
+         prev_field->base_class_subobject_with_tail_padding)) {
       a_targ_size_t     after_field, excess_bytes, rounded_after_field;
       a_targ_alignment  alignment = field_alignment_for(effective_field->type);
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -3042,7 +3047,10 @@ These two fields are normally consecutive members of the given "type", but
       after_field = (prev_field != NULL) ? offset_after_field(prev_field) : 0;
       excess_bytes = after_field % alignment;
       rounded_after_field = after_field;
-      if (excess_bytes != 0) {
+      if (excess_bytes != 0 && !effective_field->is_bit_field) {
+        /* A bit field can have less than its base type's alignment, so we
+           don't round the size of the preceding field to an alignment
+           boundary. */
         rounded_after_field += alignment - excess_bytes;
       }  /* if */
 #if CHECKING
