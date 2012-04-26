@@ -421,12 +421,12 @@ extern void form_pm_constant(
 
 /* Return TRUE if the given constant has associated information about the
    expression it came from and should be put out in expression form.  Don't
-   be fooled by enumeration constants, which also have a non-NULL
-   expression pointer if they were given an explicit value in their
-   definitions, but shouldn't be put out in expression form.  However, a
-   non-definition enumeration constant that has a backing expression is
-   used to preserve the form of name reference, so the expression should be
-   used in that case. */
+   be fooled by named constants, which also have a non-NULL expression
+   pointer if they were given an explicit value in their definitions, but
+   shouldn't be put out in expression form.  However, a non-definition
+   named constant that has a backing expression is used to preserve the
+   form of name reference, so the expression should be used in that
+   case. */
 #define constant_should_be_put_out_as_expr(constant)                      \
   ((constant)->expr != NULL && !(constant)->is_named_constant_definition)
 

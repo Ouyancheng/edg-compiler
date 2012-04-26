@@ -4214,9 +4214,16 @@ Extract the constant value from the operand *operand and place it in
     case ok_constant:
       copy_constant(&operand->variant.constant, constant);
       if (operand->name_reference_set &&
+          constant->type->kind != (a_type_kind)tk_template_param &&
           curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-        /* We need to add a backing expression to preserve the supplied
-           name reference. */
+        /* The operand has an associated name reference.  Name references
+           for dependent constants are redundant and ignored, but otherwise
+           we need a constant with a backing expression referring to the
+           primary constant in order to preserve the name reference.  We
+           use a shared constant for the target of the backing expression
+           to facilitate reuse of allocated name references, as they are
+           placed on a linked list rooted in the shared constant's
+           source_corresp.name_references field. */
         a_constant_ptr   shared_constant =
                           alloc_shareable_constant(&operand->variant.constant);
         an_expr_node_ptr expr = alloc_node_for_constant(shared_constant);
@@ -4225,6 +4232,12 @@ Extract the constant value from the operand *operand and place it in
                                               &operand->name_reference);
         if (expr->name_reference != NULL) {
           constant->expr = expr;
+          /* If this operand represents the definition of a named constant
+             (enumerator or non-standard member constant), the shared
+             constant will fill that role; the constant with the backing
+             expression is a reference to the definition, not the
+             definition itself, so clear the relevant flag in case it was
+             set. */
           constant->is_named_constant_definition = FALSE;
         }  /* if */
       }  /* if */

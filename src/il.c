@@ -6899,7 +6899,11 @@ alloc_shareable_constant would return a shareable constant.
      the symbol table, so don't allow this routine to be called in a back
      end. */
   check_assertion(in_front_end);
-  if ((assoc_symbol = symbol_for(cp)) != NULL) {
+  if (cp->expr != NULL && !cp->is_named_constant_definition) {
+    /* Constants with backing expressions should not be shared, except for
+       those representing the definition of a named constant. */
+    shareable = FALSE;
+  } else if ((assoc_symbol = symbol_for(cp)) != NULL) {
     /* For constants with a source correspondence indicated, there is a
        "master" copy available by going up the source correspondence link
        and back down again.  This applies, for example, to enumeration
@@ -6924,9 +6928,6 @@ alloc_shareable_constant would return a shareable constant.
     } else {
       shareable = FALSE;
     }  /* if */
-  } else if (cp->expr != NULL) {
-    /* Constants with backing expressions should not be shared. */
-    shareable = FALSE;
   } else if (cp->kind == (a_constant_repr_kind)ck_ptr_to_member &&
              cp->variant.ptr_to_member.name_reference != NULL) {
     /* Pointer to member constants with an attached name reference should
@@ -7111,24 +7112,13 @@ variable).  Return a copy of the given constant.  If cp has a backing
 expression re-assign that expression to the copy being returned.
 */
 {
-  a_constant_ptr  il_cp;
-  a_boolean       transfer_expr;
+  a_constant_ptr  il_cp = alloc_shareable_constant(cp);
 
-  if (cp->expr != NULL && cp->expr->name_reference != NULL &&
-      is_constant_node(cp->expr) &&
-      cp->expr->variant.constant->is_named_constant_definition) {
-    /* The constant is associated with a name reference; use an unshared
-       constant to preserve it. */
-    il_cp = alloc_unshared_constant(cp);
-    transfer_expr = TRUE;
-  } else {
-    /* Use a shared constant, if possible. */
-    il_cp = alloc_shareable_constant(cp);
-    transfer_expr = (cp->expr != NULL && !constant_is_shareable(cp));
-  }  /* if */
-  if (transfer_expr) {
-    /* The constant is unshared, so transfer the backing expression from
-       the source constant. */
+  if (cp->expr != NULL && !cp->is_named_constant_definition) {
+    /* Except for definitions of named constants (which already have
+       il_cp->expr set correctly), a non-NULL cp->expr means that
+       alloc_shareable_constant will have returned an unshared constant
+       entry.  It is therefore safe to modify *il_cp. */
     il_cp->expr = cp->expr;
     cp->expr = NULL;
   }  /* if */
@@ -7138,14 +7128,14 @@ expression re-assign that expression to the copy being returned.
 
 void add_backing_expression_for_named_constant(a_constant *cp)
 /*
-cp is the result of scanning a constant expression, and it is about to
-be made into the value of a named constant (e.g., an enumerator).
-Give it a backing expression if putting a name into the constant
-entry would destroy information about the fact that the expression
-is itself a reference to a named constant.  It is presumed that
-the constant is unshared.
-*/
+cp is the result of scanning a constant expression, and it is about to be
+made into the value of a named constant (e.g., an enumerator).  Mark it as
+being the definition of a named constant, and give it a backing expression
+if putting a name into the constant entry would destroy information about
+the fact that the expression is itself a reference to a named constant.  It
+is presumed that the constant is unshared.  */
 {
+  cp->is_named_constant_definition = TRUE;
   if (cp->expr == NULL && has_name(cp)) {
     cp->expr = alloc_node_for_constant(cp);
   }  /* if */
@@ -15249,13 +15239,6 @@ for the copy/substitution.
        Do substitution on the parent type and then look up the name in the
        updated class to see what the member is. */
     a_symbol_ptr orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
-    if (orig_sym == NULL && con->expr != NULL && is_constant_node(con->expr) &&
-        con->expr->variant.constant->is_named_constant_definition) {
-      /* The original constant was just to preserve a name reference; use
-         the target of the name reference as the real constant. */
-      con = con->expr->variant.constant;
-      orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
-    }  /* if */
     check_assertion(orig_sym != NULL);
     /* For a tpck_unknown_function constant with an underlying symbol, use
        that symbol for the substitution. */

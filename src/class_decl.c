@@ -13350,7 +13350,6 @@ respectively.
   scan_constant_initializer_expression(member_type,
                                        &decl_info->decl_state,
                                        cp);
-  cp->is_named_constant_definition = TRUE;
   add_backing_expression_for_named_constant(cp);
   /* Enter the constant name in the symbol table.  Do this after scanning
      the expression to avoid problems with a recursive reference, though
