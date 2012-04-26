@@ -4601,6 +4601,101 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
   (*init_con)->is_pack_expansion = pack_expansion;
 }  /* aggr_init_element */
 
+/*FIXME*/
+/*ARGSUSED*/
+void prep_aggr_initializer(an_init_component_ptr  icp,
+                           a_type_ptr             dtype,
+                           an_init_state          *is,
+                           a_boolean              check_narrowing,
+                           a_boolean              fill_in_dtor)
+/*
+Convert an initializer value represented by icp to the aggregate type
+dtype of the entity being initialized.  The result is returned through
+*is (in particular, is->init_con and is->init_dip).  If
+check_narrowing is TRUE, issue diagnostics for narrowing conversions.
+If fill_in_dtor is TRUE a destructor will be added to the dynamic
+initialization if one is needed, but the dynamic init will not be
+placed on any object lifetime list (the caller must do that).
+*/
+{
+  a_source_position_ptr  diag_pos = init_component_pos(icp);
+  a_routine_ptr          dtor_rp = NULL;
+  a_class_symbol_supplement_ptr
+                         cssp;
+
+  check_assertion(!C_mode());
+  is->init_con = NULL;
+  is->init_dip = NULL;
+  dtype = skip_typerefs(dtype);
+  switch (dtype->kind) {
+    case tk_error:
+    case tk_template_param:
+      /* Unknown destination type: Create an aggregate constant that follows
+         the source form. */
+      aggr_init_generic_element(icp, dtype, is, &is->init_con);
+      break;
+    case tk_array:
+      /* Arrays are aggregates. */
+      aggr_init_array(&icp, &dtype, is, diag_pos, /*var_init=*/FALSE,
+                      &is->init_con);
+      if (is_error_type(dtype)) {
+        is->init_error = TRUE;
+        if (!is->no_diagnostics) expect_error();
+      } else {
+        a_type_ptr  etype = underlying_array_element_type(dtype);
+        etype = skip_typerefs(etype);
+        if (is_immediate_class_type(etype)) {
+          dtor_rp = get_init_destructor(etype, is, diag_pos);
+        }  /* if */
+      }  /* if */
+      break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      /*FIXME*/
+      unexpected_condition_str("NYI: List-init of vector types");
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    case tk_class:
+    case tk_struct:
+    case tk_union:
+      cssp = symbol_for(dtype)->variant.class_struct_union.extra_info;
+      check_assertion(cssp->is_class_aggregate);
+      dtor_rp = get_init_destructor(dtype, is, diag_pos);
+      aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  if (!is->init_error) {
+    /* The routines for aggregate initialization produce a constant entry, but
+       those entries may embed a dynamic initialization.  If so, return a
+       dynamic initialization entry for a nonconstant aggregate to the
+       caller. */
+    check_assertion(is->init_con != NULL);
+    if (is->has_dynamic_init_component && !is_error_constant(is->init_con)) {
+      check_assertion(is->init_con->kind ==
+                                           (a_constant_repr_kind)ck_aggregate);
+      is->init_dip = alloc_dynamic_init(
+                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
+      is->init_dip->variant.constant = is->init_con;
+      is->init_dip->destructor = dtor_rp;
+      is->init_dip->is_braced_initializer = TRUE;
+      is->init_con = NULL;
+    }  /* if */
+    if (is->any_uninitialized_const_or_ref_member) {
+      /* A const or reference field was not initialized.  Issue a diagnostic,
+         except in unions. */
+      if (!is_union_type(dtype)) {
+        if (is->no_diagnostics) {
+          is->init_error = TRUE;
+        } else {
+          pos_error(ec_unnamed_object_with_uninitialized_field, diag_pos);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* prep_aggr_initializer */
+
 
 static void braced_initializer(a_type_ptr          dtype,
                                an_init_state       *is,

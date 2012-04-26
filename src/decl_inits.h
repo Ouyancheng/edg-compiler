@@ -39,6 +39,12 @@ extern void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
                                     a_dynamic_init_ptr  new_dip,
                                     a_targ_size_t       count);
 
+extern void prep_aggr_initializer(an_init_component_ptr  icp,
+                                  a_type_ptr             dtype,
+                                  an_init_state          *is,
+                                  a_boolean              check_narrowing,
+                                  a_boolean              fill_in_dtor);
+
 extern void initializer(a_decl_parse_state  *state,
                         a_source_position   *source_pos,
                         an_id_linkage_kind  linkage,

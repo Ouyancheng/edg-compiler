@@ -26,6 +26,7 @@ overload.c -- Expression processing overload resolution.
 
 #include "trans_corresp.h"
 #include "func_def.h"
+#include "decl_inits.h"
 
 /* Forward declarations required because of out-of-order references. */
 static void free_candidate_function_list(a_candidate_function_ptr cfp);
@@ -19486,8 +19487,6 @@ into the proper final lifetimes.
 }  /* promote_init_component_lifetimes */
 
 
-/*FIXME*/
-/*ARGSUSED*/
 void prep_list_initializer(an_init_component_ptr icp,
                            a_type_ptr            dest_type,
                            a_boolean             check_narrowing,
@@ -19534,14 +19533,11 @@ is->no_diagnostics and is->check_validity_only.
                                (conv_context & CCO_DIRECT_INITIALIZATION) != 0;
   a_symbol_ptr        ctor_sym;
   an_operand          operand;
+  a_boolean           dest_type_is_class=is_class_struct_union_type(dest_type);
   a_boolean           saved_potentially_evaluated;
   a_boolean           saved_suppress_diagnostics;
   a_boolean           saved_any_suppressed_error;
 
-  check_assertion(dest_type != NULL &&
-                  (!is_aggregate_type(dest_type) ||
-                   is_expression_component(icp) ||
-                   is_empty_list_init_component(icp)));
   if (is != NULL) {
     /* If we're only doing an exploratory evaluation, turn off some
        error output etc. */
@@ -19566,8 +19562,7 @@ is->no_diagnostics and is->check_validity_only.
     if (is_template_dependent_type(dest_type)) {
       /* The destination type is template dependent. */
       prep_generic_operand(&operand);
-    } else if (is_class_struct_union_type(dest_type) &&
-               !is_direct_init) {
+    } else if (dest_type_is_class && !is_direct_init) {
       /* See if we can elide the copy for copy-initialization of
          class-typed objects. */
       prep_elision_initializer_operand(&operand, dest_type,
@@ -19628,7 +19623,7 @@ is->no_diagnostics and is->check_validity_only.
                                                list,
                                                (an_operand *)NULL, &dip);
     } else if (list == NULL &&
-               is_class_struct_union_type(dest_type) &&
+               dest_type_is_class &&
                f_type_has_default_constructor(dest_type,
                                               /*user_provided_only=*/FALSE,
                                               /*nontrivial_only=*/FALSE)) {
@@ -19637,7 +19632,20 @@ is->no_diagnostics and is->check_validity_only.
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
                            &is_constant, &dip, &constant);
-    } else if (is_class_struct_union_type(dest_type) &&
+    } else if (is_aggregate_type(dest_type)) {
+      /* Aggregate cases go back to the initialization code in decl_inits.c. */
+      an_init_state init_state;
+      an_init_state *eff_is = is;
+      if (eff_is == NULL) {
+        clear_init_state(&init_state);
+        eff_is = &init_state;
+      }  /* if */
+      prep_aggr_initializer(icp, dest_type, eff_is,
+                            check_narrowing,
+                            fill_in_dtor);
+      constant = eff_is->init_con;
+      dip = eff_is->init_dip;
+    } else if (dest_type_is_class &&
                (ctor_sym = symbol_supplement_for_class(dest_type)->constructor)
                                                                      != NULL) {
       /* A class with constructors.  Process as constructor arguments. */
@@ -19762,7 +19770,7 @@ is->no_diagnostics and is->check_validity_only.
       }  /* if */
       dip->is_braced_initializer = braced_init;
       is->init_dip = dip;
-      if (fill_in_dtor && is_class_struct_union_type(dest_type)) {
+      if (fill_in_dtor && dest_type_is_class) {
         /* Fill in the destructor if one is needed. */
         dip->destructor = expr_select_destructor(dest_type,
                                                  dest_type,

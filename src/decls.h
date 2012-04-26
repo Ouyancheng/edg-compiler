@@ -361,10 +361,7 @@ EXTERN an_init_state
 /*
 Macro to initialize the "init state" pointed to by the argument.
 */
-#define clear_init_state(is) {                                               \
-  *(is) = null_init_state;                                                   \
-}
-
+#define clear_init_state(is) (*(is) = null_init_state)
 
 
 /*
