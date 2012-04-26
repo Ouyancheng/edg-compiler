@@ -19449,8 +19449,10 @@ into the proper final lifetimes.
 */
 {
   check_assertion(curr_object_lifetime != NULL);
-  /* Don't promote if it has been done previously. */
-  if (!icp->lifetimes_promoted) {
+  /* Don't promote if it has been done previously.  Also don't promote if
+     the current code is unevaluated. */
+  if (!icp->lifetimes_promoted &&
+      curr_expr_is_potentially_evaluated()) {
     icp->lifetimes_promoted = TRUE;
     if (is_expression_component(icp)) {
       /* For an expression with a lifetime, process the lifetime. */
@@ -19520,6 +19522,8 @@ to the dynamic initialization if needed, but the dynamic init will not
 be placed on any object lifetime list (the caller must do that).
 is->init_con or is->init_dip is set to NULL when the other one is
 used to return information, so exactly one will be non-NULL on return.
+The "is" block also contains flags that control exploratory processing:
+is->no_diagnostics and is->check_validity_only.
 */
 {
   a_dynamic_init_ptr  dip = NULL;
@@ -19530,11 +19534,28 @@ used to return information, so exactly one will be non-NULL on return.
                                (conv_context & CCO_DIRECT_INITIALIZATION) != 0;
   a_symbol_ptr        ctor_sym;
   an_operand          operand;
+  a_boolean           saved_potentially_evaluated;
+  a_boolean           saved_suppress_diagnostics;
+  a_boolean           saved_any_suppressed_error;
 
   check_assertion(dest_type != NULL &&
                   (!is_aggregate_type(dest_type) ||
                    is_expression_component(icp) ||
                    is_empty_list_init_component(icp)));
+  if (is != NULL) {
+    /* If we're only doing an exploratory evaluation, turn off some
+       error output etc. */
+    if (is->check_validity_only) {
+      saved_potentially_evaluated = expr_stack->potentially_evaluated;
+      expr_stack->potentially_evaluated = FALSE;
+    }  /* if */
+    if (is->no_diagnostics) {
+      saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
+      expr_stack->suppress_diagnostics = TRUE;
+      saved_any_suppressed_error = expr_stack->any_suppressed_error;
+      expr_stack->any_suppressed_error = FALSE;
+    }  /* if */
+  }  /* if */
   /* Reactivate and/or adjust the lifetimes added around expressions in
      the initializer list. */
   promote_init_component_lifetimes(icp);
@@ -19545,8 +19566,10 @@ used to return information, so exactly one will be non-NULL on return.
     if (is_template_dependent_type(dest_type)) {
       /* The destination type is template dependent. */
       prep_generic_operand(&operand);
-    } else if (is_class_struct_union_type(dest_type)) {
-      /* See if we can elide the copy for class-typed variables. */
+    } else if (is_class_struct_union_type(dest_type) &&
+               !is_direct_init) {
+      /* See if we can elide the copy for copy-initialization of
+         class-typed objects. */
       prep_elision_initializer_operand(&operand, dest_type,
                                        fill_in_dtor,
                                        conv_context,
@@ -19683,7 +19706,9 @@ used to return information, so exactly one will be non-NULL on return.
      If constant != NULL, the result is that constant.
      Otherwise, the result is in "operand".  If the required result is
      in a different format, convert to that. */
-  if (result != NULL) {
+  if (is != NULL && is->check_validity_only) {
+    /* Generate no IL if we're only checking validity. */
+  } else if (result != NULL) {
     /* The caller wants the result in an_operand form in *result. */
     check_assertion(is == NULL);
     if (dip != NULL) {
@@ -19744,6 +19769,17 @@ used to return information, so exactly one will be non-NULL on return.
                                                  init_component_pos(icp),
                                                  /*honor_virtual=*/FALSE);
       }  /* if */
+    }  /* if */
+  }  /* if */
+  if (is != NULL) {
+    /* Restore things after an exploratory evaluation. */
+    if (is->check_validity_only) {
+      expr_stack->potentially_evaluated = saved_potentially_evaluated;
+    }  /* if */
+    if (is->no_diagnostics) {
+      expr_stack->suppress_diagnostics = saved_suppress_diagnostics;
+      if (expr_stack->any_suppressed_error) is->init_error = TRUE;
+      expr_stack->any_suppressed_error = saved_any_suppressed_error;
     }  /* if */
   }  /* if */
 }  /* prep_list_initializer */

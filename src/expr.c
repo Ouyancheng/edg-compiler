@@ -28415,13 +28415,13 @@ the dynamic init entry if one is created to represent this initializer
   /* If this conversion was treated as full expression, wrap up the
      object lifetime.  expr_stack->lifetime is non-NULL here if a full
      expression lifetime was pushed sometime during the processing. */
-  if (expr_stack->lifetime != NULL) {
+  if (!is->check_validity_only && expr_stack->lifetime != NULL) {
     check_assertion(dip != NULL);
     wrap_up_dynamic_init_full_expression(dip);
   }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
-  if (is_var_init) {
+  if (!is->check_validity_only && is_var_init) {
     if (dip != NULL) dip->variable = var;
   }  /* if */
 }  /* convert_initializer */
