@@ -1010,9 +1010,8 @@ void prep_list_initializer(an_init_component_ptr icp,
                            a_conv_context_set    conv_context,
                            a_boolean             fill_in_dtor,
                            an_operand            *result,
-                           a_boolean             *is_constant,
-                           a_dynamic_init_ptr    *p_dip,
-                           a_constant_ptr        *p_constant);
+                           an_init_state         *is);
+
 extern
 void prep_initializer_operand(an_operand         *source_operand,
                               a_type_ptr         dest_type,

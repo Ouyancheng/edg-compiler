@@ -19492,9 +19492,7 @@ void prep_list_initializer(an_init_component_ptr icp,
                            a_conv_context_set    conv_context,
                            a_boolean             fill_in_dtor,
                            an_operand            *result,
-                           a_boolean             *is_constant,
-                           a_dynamic_init_ptr    *p_dip,
-                           a_constant_ptr        *p_constant)
+                           an_init_state         *is)
 /*
 Convert an initializer value represented in init-component form (icp)
 to the type of the entity being initialized, given by dest_type.  If
@@ -19512,33 +19510,27 @@ is ignored.  This is the usual interface for use from within the
 expression routines.
 
 On the other hand, if result is NULL the interface is one more suited
-for calls from decl_inits.c for initializers.  The result is either
-a constant, in which case *is_constant is set to TRUE and *p_constant
-is set to point to the allocated unshared constant, or the result is
-a dynamic initialization, in which case *is_constant is set to FALSE
-and *p_dip is set to point to the dynamic initialization entry.
-In the latter case, if fill_in_dtor is TRUE a destructor will be added
+for calls from decl_inits.c for initializers, and the result is returned
+through "is", which tracks the current initialization state.  The result
+is either a constant, in which case is->init_con is set to point to the
+allocated unshared constant, or the result is a dynamic initialization,
+in which case is->init_dip is set to point to the dynamic initialization
+entry.  In the latter case, if fill_in_dtor is TRUE a destructor will be added
 to the dynamic initialization if needed, but the dynamic init will not
 be placed on any object lifetime list (the caller must do that).
+is->init_con or is->init_dip is set to NULL when the other one is
+used to return information, so exactly one will be non-NULL on return.
 */
 {
   a_dynamic_init_ptr  dip = NULL;
   a_constant_ptr      constant = NULL;
-  a_boolean           local_is_constant;
+  a_boolean           is_constant;
   a_boolean           braced_init;
   a_boolean           is_direct_init =
                                (conv_context & CCO_DIRECT_INITIALIZATION) != 0;
   a_symbol_ptr        ctor_sym;
   an_operand          operand;
 
-  if (result == NULL) {
-    check_assertion(is_constant != NULL && p_dip != NULL &&
-                    p_constant != NULL);
-    *p_dip = NULL;
-    *p_constant = NULL;
-  }  /* if */
-  braced_init = is_braced_init_component(icp);
-  /* Check for an initializer of "{}", which means value-initialization. */
   check_assertion(dest_type != NULL &&
                   (!is_aggregate_type(dest_type) ||
                    is_expression_component(icp) ||
@@ -19546,6 +19538,7 @@ be placed on any object lifetime list (the caller must do that).
   /* Reactivate and/or adjust the lifetimes added around expressions in
      the initializer list. */
   promote_init_component_lifetimes(icp);
+  braced_init = is_braced_init_component(icp);
   if (is_expression_component(icp)) {
     /* The object is initialized by an expression. */
     copy_operand(operand_of_arg_list_elem(icp), &operand);
@@ -19583,8 +19576,7 @@ be placed on any object lifetime list (the caller must do that).
       prep_list_initializer(icp, type_pointed_to(dest_type), check_narrowing,
                             CCO_DEFAULT, /*fill_in_dtor=*/TRUE, /* ignored */
                             &operand,
-                            (a_boolean *)NULL, (a_dynamic_init_ptr *)NULL,
-                            (a_constant_ptr *)NULL);
+                            (an_init_state *)NULL);
       if (!operand_is_temp_init(&operand) && !is_error_operand(&operand)) {
         /* Force a temporary so we can set the braced-init flag in the
            dynamic init. */
@@ -19621,7 +19613,7 @@ be placed on any object lifetime list (the caller must do that).
          value initialization. */
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
-                           &local_is_constant, &dip, &constant);
+                           &is_constant, &dip, &constant);
     } else if (is_class_struct_union_type(dest_type) &&
                (ctor_sym = symbol_supplement_for_class(dest_type)->constructor)
                                                                      != NULL) {
@@ -19664,14 +19656,18 @@ be placed on any object lifetime list (the caller must do that).
       /* An empty list ("{}") -- do value initialization. */
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
-                           &local_is_constant, &dip, &constant);
+                           &is_constant, &dip, &constant);
     } else if (list->next == NULL) {
       /* A list containing just one member.  Drop the {} and do a recursive
          call. */
       prep_list_initializer(list, dest_type, check_narrowing,
                             conv_context, fill_in_dtor,
                             ((result != NULL) ? &operand : (an_operand *)NULL),
-                            is_constant, &dip, &constant);
+                            is);
+      if (result == NULL) {
+        constant = is->init_con;
+        dip = is->init_dip;
+      }  /* if */
     } else {
       /* Something else (e.g., an "int" initialized by a list with two
          elements); error. */
@@ -19689,6 +19685,7 @@ be placed on any object lifetime list (the caller must do that).
      in a different format, convert to that. */
   if (result != NULL) {
     /* The caller wants the result in an_operand form in *result. */
+    check_assertion(is == NULL);
     if (dip != NULL) {
       /* We have a dynamic init entry.  Make an operand for it. */
       an_expr_node_ptr expr;
@@ -19709,16 +19706,18 @@ be placed on any object lifetime list (the caller must do that).
     result->end_position = *init_component_end_pos(icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
-    /* The caller wants the result as a constant or a dynamic init. */
+    /* The caller wants the result as a constant or a dynamic init,
+       returned via either is->init_con or is->init_dip. */
+    check_assertion(is != NULL);
+    is->init_con = NULL;
+    is->init_dip = NULL;
     if (constant != NULL) {
       /* We already have an allocated constant. */
-      *is_constant = TRUE;
-      *p_constant = constant;
+      is->init_con = constant;
     } else if (dip == NULL && is_constant_operand(&operand)) {
       /* We already have a constant operand that can be easily turned into
          an allocated constant. */
-      *is_constant = TRUE;
-      *p_constant = alloc_unshared_constant(&operand.variant.constant);
+      is->init_con = alloc_unshared_constant(&operand.variant.constant);
     } else {
       /* If dip is non-NULL, we already have a dynamic init. */
       if (dip == NULL) {
@@ -19737,7 +19736,7 @@ be placed on any object lifetime list (the caller must do that).
         }  /* if */
       }  /* if */
       dip->is_braced_initializer = braced_init;
-      *is_constant = FALSE;
+      is->init_dip = dip;
       if (fill_in_dtor && is_class_struct_union_type(dest_type)) {
         /* Fill in the destructor if one is needed. */
         dip->destructor = expr_select_destructor(dest_type,
@@ -19746,7 +19745,6 @@ be placed on any object lifetime list (the caller must do that).
                                                  /*honor_virtual=*/FALSE);
       }  /* if */
     }  /* if */
-    *p_dip = dip;
   }  /* if */
 }  /* prep_list_initializer */
 

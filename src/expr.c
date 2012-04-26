@@ -28374,28 +28374,23 @@ is_var_init is TRUE, this is the complete initializer for a variable
 dest_type.  In either case, dest_type must not be an aggregate type
 unless the initializer is an expression or an empty braced list "{}".
 If check_narrowing is TRUE, issue diagnostics for narrowing conversions.
-If fill_in_dtor is TRUE, the destructor will be added to the dynamic init
-entry if one is created to represent this initializer (but it's not put on a
-lifetime list yet).
 dps describes the current declaration state, or is NULL if there is no
 declaration associated with this scan.  is describes the initialization
 processed by this function, including whether diagnostics should be
 avoided (is->no_diagnostics) or whether no IL should be generated
-(is->check_validity_only).
-The converted result, if any, is returned through either is->init_con or
-is->init_dip; if any of those pointers is not set to an actual IL entry,
-it is set to NULL.  
+(is->check_validity_only).  The converted result, if any, is returned
+through either is->init_con or is->init_dip; the other pointer is
+set to NULL.  If fill_in_dtor is TRUE, the destructor will be added to
+the dynamic init entry if one is created to represent this initializer
+(but it's not put on a lifetime list yet).
 */
 {
-  a_boolean           is_constant;
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   a_variable_ptr      var = NULL;
-  a_dynamic_init_ptr  dip = NULL;
+  a_dynamic_init_ptr  dip;
   a_conv_context_set  conv_context = CCO_DEFAULT;
 
-  is->init_dip = NULL;
-  is->init_con = NULL;
   if (is_var_init) {
     /* This is a top-level variable initialization. */
     a_symbol_ptr   var_sym;
@@ -28415,20 +28410,20 @@ it is set to NULL.
   transfer_expr_context_if_applicable(saved_expr_stack);
   prep_list_initializer(icp, dest_type, check_narrowing,
                         conv_context, fill_in_dtor, (an_operand *)NULL,
-                        &is_constant, &dip, &is->init_con);
+                        is);
+  dip = is->init_dip;
   /* If this conversion was treated as full expression, wrap up the
      object lifetime.  expr_stack->lifetime is non-NULL here if a full
-     expression lifetime was pushed for the processing here. */
+     expression lifetime was pushed sometime during the processing. */
   if (expr_stack->lifetime != NULL) {
-    check_assertion(!is_constant);
+    check_assertion(dip != NULL);
     wrap_up_dynamic_init_full_expression(dip);
   }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   if (is_var_init) {
-    if (!is_constant) dip->variable = var;
+    if (dip != NULL) dip->variable = var;
   }  /* if */
-  is->init_dip = dip;
 }  /* convert_initializer */
 
 
