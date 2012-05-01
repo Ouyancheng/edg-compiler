@@ -548,6 +548,22 @@ static a_boolean
 			   directives into comments when
 			   keep_comments_in_pp_output is TRUE. */
 
+static a_boolean
+		pending_nonsplice_backslash;
+			/* TRUE if the current line ended in a backslash
+			   followed by whitespace (i.e., not a line splice
+			   except in GNU modes) and a warning should be put
+			   out.  The warning is issued on the next call to
+			   read_logical_source_line, to allow it to be
+			   suppressed if the non-splice occurs inside a
+			   comment. */
+
+static char	*loc_of_nonsplice_backslash;
+			/* Location of the backslash that resulted in
+			   the warning to be issued when
+			   pending_nonsplice_backslash is TRUE (invalid
+			   if pending_nonsplice_backslash is FALSE). */
+
 /*
 Hash table used by nested_source_line_modif to find the source
 line modification associated with the ATTENTION_MARKER at a given
@@ -6236,6 +6252,14 @@ for the GNU C multiline string extension.
   /* If we are being asked to extend the current line, go straight to
      the slow loop.  */
   if (extend_current_line) goto entry_for_extend_current_line;
+  /* If the current line ended in a backslash followed by whitespace (i.e.,
+     visually but not actually a line splice), that did not appear inside a
+     comment, display a warning before discarding the current line's
+     text. */
+  if (pending_nonsplice_backslash) {
+    warning_at_line_pos(ec_not_a_line_splice, loc_of_nonsplice_backslash);
+    pending_nonsplice_backslash = FALSE;
+  }  /* if */
   /* If the compiler is being run just to produce preprocessing output,
      and not to compile (i.e., it's supposed to act like cpp), dump the
      previous line of input (possibly modified since being read in) to the
@@ -6469,10 +6493,12 @@ add_newline_and_line_end_and_return:
     /* White space followed a backslash.  Because trailing white space is
        generally invisible, that looks like a line splice, so we warn about
        it to clarify what might otherwise be obscure errors reported on the
-       following line. */
-    warning_at_line_pos(ec_not_a_line_splice,
-                        loc_in_line - white_space_chars_after_backslash -
-                                                            LE_ESCAPE_LEN - 1);
+       following line.  We will do so on the next call, however, not
+       immediately, to allow the warning to be suppressed if the non-splice
+       backslash occurs within a comment. */
+    pending_nonsplice_backslash = TRUE;
+    loc_of_nonsplice_backslash =
+           loc_in_line - white_space_chars_after_backslash - LE_ESCAPE_LEN - 1;
   }  /* if */
 
 return_with_line:
@@ -7450,6 +7476,8 @@ white_space_loop:
       } else if (*(curr_char_loc+1) == '/') {
         /* C++ comment -- //.  Skip to end of line. */
         comment_start_loc = curr_char_loc;
+        /* Do not warn about a trailing backslash followed by whitespace. */
+        pending_nonsplice_backslash = FALSE;
         /* Advance past the first "/". */
         curr_char_loc++;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -7700,7 +7728,10 @@ normal_comment:
                stack not be popped, since we need to know about ends of files
                (it is an error for a comment to be unclosed at the end of the
                file in which it was opened).  If we are processing command-
-               line macros, we shouldn't attempt to read another line. */
+               line macros, we shouldn't attempt to read another line.  Do
+               not warn about a backslash followed by whitespace on the
+               line we are leaving. */
+            pending_nonsplice_backslash = FALSE;
             if (curr_command_line_macro_def != NULL ||
                 read_logical_source_line(/*do_pop_on_end_of_file=*/FALSE,
                                          /*extend_current_line=*/FALSE)) {
@@ -19671,6 +19702,8 @@ of the front end.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;
+  pending_nonsplice_backslash = FALSE;
+  loc_of_nonsplice_backslash = NULL;
 #if !FULLY_RESOLVED_MACRO_POSITIONS
   pos_of_macro_invocation = null_source_position;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */

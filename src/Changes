@@ -1,5 +1,21 @@
 Version 4.5
 
+5/1/12   [EDGcpfe/10144]
+Warning for non-splice trailing backslash inside comment
+
+In non-GNU modes, a backslash followed by whitespace at the end of a line
+is not a line splice.  However, visually it is indistinguishable from a
+valid line splice, so the front end issues a warning to clarify the reason
+for other diagnostics referring to the backslash.  Such a backslash is
+harmless inside a comment, however, so the front end has now been changed
+to suppress the warning in such cases.  For example (spaces follow the
+backslashes):
+
+  /* No warning here: \ 
+  */
+  // No warning here: \ 
+
+
 5/1/12   [EDGcpfe/12782]
 Microsoft compatibility: evaluation of members of in-class specializations
 
