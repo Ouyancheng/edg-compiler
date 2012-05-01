@@ -3562,7 +3562,11 @@ constant.
         /* Save the constant for the bound.  If it has an attached expression
            it may need to be referred to indirectly if the expression is
            allocated in function scope memory. */
-        il_constant = transfer_constant_to_il(&constant);
+        il_constant = alloc_shareable_constant(&constant);
+        /* Preserve the bound expression, which will not have been copied
+           if it refers to local variables, and ensure that it can be
+           referenced from the file-scope type entry. */
+        il_constant->expr = constant.expr;
         make_bound_expr_referenceable_from_file_scope(&il_constant->expr,
                                                       *new_type_ptr,
                                                       /*dep=*/FALSE);
@@ -3572,7 +3576,7 @@ constant.
         /* Template-dependent bound (constant but not a known value). */
         a_template_param_constant_kind tkind;
         if (il_constant == NULL) {
-          il_constant = transfer_constant_to_il(&constant);
+          il_constant = alloc_shareable_constant(&constant);
         }  /* if */
         check_assertion(il_constant->kind ==
                                     (a_constant_repr_kind)ck_template_param);

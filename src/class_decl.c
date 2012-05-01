@@ -13350,6 +13350,7 @@ respectively.
   scan_constant_initializer_expression(member_type,
                                        &decl_info->decl_state,
                                        cp);
+  cp->is_named_constant_definition = TRUE;
   add_backing_expression_for_named_constant(cp);
   /* Enter the constant name in the symbol table.  Do this after scanning
      the expression to avoid problems with a recursive reference, though
@@ -15020,7 +15021,7 @@ be updated on return.
   }  /* if */
   /* Note that if the base type was not integral it has been replaced by
      "int" by this point. */
-  field->bit_size_constant = transfer_constant_to_il(size_constant);
+  field->bit_size_constant = alloc_shareable_constant(size_constant);
   if (is_error_constant(size_constant)) {
     /* Use small value to avoid more errors, but not 1 which is special. */
     declared_bit_field_size = bit_field_size = targ_char_bit;

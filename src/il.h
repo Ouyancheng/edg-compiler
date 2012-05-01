@@ -1313,8 +1313,6 @@ extern a_boolean constant_is_shareable(a_constant *cp);
 
 extern a_constant_ptr alloc_shareable_constant(a_constant *cp);
 
-extern a_constant_ptr transfer_constant_to_il(a_constant *cp);
-
 extern void add_backing_expression_for_named_constant(a_constant *cp);
 
 extern void add_scope_to_class_type(a_type_ptr  type);

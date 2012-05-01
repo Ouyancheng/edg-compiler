@@ -5359,6 +5359,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                                             /*is_explicit=*/FALSE);
         }  /* if */
         enum_con = alloc_unshared_constant(&constant);
+        enum_con->is_named_constant_definition = TRUE;
         /* Record the parent scope of the enumerator. */
         if (class_reactivation_pushed && !is_scoped_enum) {
           enum_con->source_corresp.parent_scope =

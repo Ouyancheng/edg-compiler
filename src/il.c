@@ -4510,6 +4510,9 @@ another use of the same constant.
   } else {
     break_source_corresp(&cp->source_corresp);
   }  /* if */
+  /* Make sure that this reference is not considered the definition of a
+     named constant. */
+  cp->is_named_constant_definition = FALSE;
 }  /* break_constant_source_corresp */
 
 
@@ -7107,27 +7110,6 @@ put it on a list of constants).
 }  /* alloc_shareable_constant */
 
 
-a_constant_ptr transfer_constant_to_il(a_constant  *cp)
-/*
-cp is a constant not currently part of the IL (typically, cp points to a local
-variable).  Return a copy of the given constant.  If cp has a backing
-expression re-assign that expression to the copy being returned.
-*/
-{
-  a_constant_ptr  il_cp = alloc_shareable_constant(cp);
-
-  if (cp->expr != NULL && !cp->is_named_constant_definition) {
-    /* Except for definitions of named constants (which already have
-       il_cp->expr set correctly), a non-NULL cp->expr means that
-       alloc_shareable_constant will have returned an unshared constant
-       entry.  It is therefore safe to modify *il_cp. */
-    il_cp->expr = cp->expr;
-    cp->expr = NULL;
-  }  /* if */
-  return il_cp;
-}  /* transfer_constant_to_il */
-
-
 void add_backing_expression_for_named_constant(a_constant *cp)
 /*
 cp is the result of scanning a constant expression, and it is about to be
@@ -7138,7 +7120,6 @@ the fact that the expression is itself a reference to a named constant.  It
 is presumed that the constant is unshared.
 */
 {
-  cp->is_named_constant_definition = TRUE;
   if (cp->expr == NULL && has_name(cp)) {
     cp->expr = alloc_node_for_constant(cp);
   }  /* if */
