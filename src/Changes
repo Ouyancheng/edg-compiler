@@ -1,5 +1,15 @@
 Version 4.5
 
+5/1/12   [EDGcpfe/12890]
+Remove --old_for_init with --c++11 restriction
+
+The change for EDGcpfe/12648 introduced a restriction to disallow
+--old_for_init with the --c++11 option.  Since that time, the changes for
+EDGcpfe/12748,EDGcpfe/12805 removed the need for this restriction, so the
+previous behavior has been restored (i.e., --old_for_init can once again be
+used with --c++11).
+
+
 5/1/12   [EDGcpfe/10144]
 Warning for non-splice trailing backslash inside comment
 

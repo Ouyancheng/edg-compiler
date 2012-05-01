@@ -9118,18 +9118,6 @@ enable_microsoft_mode:
 #endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
   /* Range-based-for relies on the std namespace being enabled. */
   check_assertion(namespaces_enabled || !range_based_for_enabled);
-  /* Range-based-for and old_for_init are mutually exclusive. */
-  if (use_nonstandard_for_init_scope && cpp11_mode) {
-    if (option_kind_used[(int)optk_old_for_init]) {
-      /* Command line option explicitly asked for old for-init behavior. */
-      command_line_error(ec_cl_old_for_init_cannot_be_used_with_cpp11);
-    } else {
-      /* Silently disable old for-init scoping when using C++11 mode. */
-      use_nonstandard_for_init_scope = FALSE;
-    }  /* if */
-  }  /* if */
-  check_assertion(!(range_based_for_enabled &&
-                    use_nonstandard_for_init_scope));
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */
