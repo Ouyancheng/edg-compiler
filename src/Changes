@@ -1,5 +1,12 @@
 Version 4.5
 
+5/1/12   [EDGcpfe/12850]
+operator->* and managed classes
+
+The front end now disallows the operator->* members in managed class types.
+This matches the behavior of the Microsoft compiler.
+
+
 5/1/12   [EDGcpfe/12890]
 Remove --old_for_init with --c++11 restriction
 
