@@ -2509,22 +2509,33 @@ nested class.
           discard_token_cache(&rfp->function_body_token_cache);
         } else if (!nonclass_prototype_instantiations &&
                    is_nonreal_template_instantiation &&
-                   (is_friend || rfp->is_specialization)) {
+                   (is_friend || rfp->is_specialization ||
+                    (microsoft_mode && in_class_specialization))) {
           /* During class prototype instantiations when not doing function
-             prototype instantiations, friend definitions and Microsoft
-             mode specializations are just discarded. */
+             prototype instantiations, friend definitions and Microsoft mode
+             specializations are just discarded.  The rfp->is_specialization
+             handles the case of a function specialized in a class,
+             in_class_specialization handles a member function of a class
+             that is specialized in-class.  In-class specializations are
+             allowed in Microsoft and Sun mode but the Sun compiler does do
+             analysis of members of in-class specializations even without a
+             use. */
           discard_token_cache(&rfp->function_body_token_cache);
         } else if (defer_friend_instantiation &&
                    is_real_template_instantiation &&
                    is_function_symbol(sym) &&
-                   (is_friend || rfp->is_specialization)) {
+                   (is_friend || rfp->is_specialization ||
+                    in_class_specialization)) {
           /* In some modes friend functions defined in a class template
              are treated  much like a member function of such a class.
              The body is only processed if needed.  This special treatment
              is also extended to Microsoft mode specializations that are
              defined within the class.  Note that this processing is only
              needed for friends and specializations declared within class
-             templates, not for declarations in normal classes. */
+             templates, not for declarations in normal classes.  The
+             rfp->is_specialization handles the case of a function
+             specialized in a class, in_class_pecialization handles a
+             member function of a class that is specialized in-class. */
           defer_routine_fixup_until_use(rfp);
           /* Set rfp to NULL to prevent it from being freed below. */
           rfp = NULL;
