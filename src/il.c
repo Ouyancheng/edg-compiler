@@ -6902,13 +6902,7 @@ alloc_shareable_constant would return a shareable constant.
      the symbol table, so don't allow this routine to be called in a back
      end. */
   check_assertion(in_front_end);
-  if (cp->expr != NULL && !cp->is_named_constant_definition &&
-      !constant_is_instantiation_dependent(cp)) {
-    /* Constants with backing expressions should not be shared, except for
-       those representing the definition of a named constant and
-       dependent constants. */
-    shareable = FALSE;
-  } else if ((assoc_symbol = symbol_for(cp)) != NULL) {
+  if ((assoc_symbol = symbol_for(cp)) != NULL) {
     /* For constants with a source correspondence indicated, there is a
        "master" copy available by going up the source correspondence link
        and back down again.  This applies, for example, to enumeration
@@ -6916,23 +6910,31 @@ alloc_shareable_constant would return a shareable constant.
     a_constant_ptr shared_cp;
     check_assertion(assoc_symbol->kind == (a_symbol_kind)sk_constant);
     shared_cp = assoc_symbol->variant.constant;
-    /* For template parameter symbols, only attempt to use the constant
-       from the symbol if it points to an identical constant. */
-    if (!assoc_symbol->is_template_param ||
-        identical_constants(cp, shared_cp)) {
+    if (assoc_symbol->is_template_param) {
+      /* For template parameter symbols, only attempt to use the constant
+         from the symbol if it points to an identical constant. */
+      shareable = identical_constants(cp, shared_cp);
+    } else if (has_name(cp) &&
+               cp->kind != (a_constant_repr_kind)ck_template_param) {
+      /* A named constant (enumerator or non-standard member constant)
+         should only be shared if it is the definition, not simply a
+         reference to it. */
+      shareable = cp->is_named_constant_definition;
+    } else {
       /* The constant from the symbol can be reused. */
       shareable = TRUE;
-#if CHECKING
-      if (cp->implicit_cast != shared_cp->implicit_cast) {
-        /* Someone did an implicit cast on the constant without clearing the
-           source association. */
-        internal_error(
-                 "constant_is_unshared: implicitly-cast const has assoc_info");
-      }  /* if */
-#endif /* CHECKING */
-    } else {
-      shareable = FALSE;
     }  /* if */
+#if CHECKING
+    if (shareable && cp->implicit_cast != shared_cp->implicit_cast) {
+      /* Someone did an implicit cast on the constant without clearing the
+         source association. */
+      internal_error(
+                "constant_is_shareable: implicitly-cast const has assoc_info");
+    }  /* if */
+#endif /* CHECKING */
+  } else if (cp->expr != NULL) {
+    /* Constants with backing expressions should not be shared. */
+    shareable = FALSE;
   } else if (cp->kind == (a_constant_repr_kind)ck_ptr_to_member &&
              cp->variant.ptr_to_member.name_reference != NULL) {
     /* Pointer to member constants with an attached name reference should
