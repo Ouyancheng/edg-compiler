@@ -7114,12 +7114,12 @@ put it on a list of constants).
 
 void add_backing_expression_for_named_constant(a_constant *cp)
 /*
-cp is the result of scanning a constant expression, and it is about to be
-made into the value of a named constant (e.g., an enumerator).  Mark it as
-being the definition of a named constant, and give it a backing expression
-if putting a name into the constant entry would destroy information about
-the fact that the expression is itself a reference to a named constant.  It
-is presumed that the constant is unshared.
+cp is the result of scanning a constant expression, and it is about to
+be made into the value of a named constant (e.g., an enumerator).
+Give it a backing expression if putting a name into the constant
+entry would destroy information about the fact that the expression
+is itself a reference to a named constant.  It is presumed that
+the constant is unshared.
 */
 {
   if (cp->expr == NULL && has_name(cp)) {

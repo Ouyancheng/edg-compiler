@@ -3565,7 +3565,10 @@ constant.
         il_constant = alloc_shareable_constant(&constant);
         /* Preserve the bound expression, which will not have been copied
            if it refers to local variables, and ensure that it can be
-           referenced from the file-scope type entry. */
+           referenced from the file-scope type entry.  Note that
+           il_constant will be unshared in this case because of the
+           non-NULL backing expression in the source constant, even though
+           the backing expression was cleared in il_constant. */
         il_constant->expr = constant.expr;
         make_bound_expr_referenceable_from_file_scope(&il_constant->expr,
                                                       *new_type_ptr,

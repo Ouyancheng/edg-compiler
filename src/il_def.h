@@ -3601,9 +3601,9 @@ typedef struct a_constant {
 #endif /* BACK_END_IS_C_GEN_BE */
   a_bit_field	is_named_constant_definition:1;
 			/* TRUE if this constant is the definition of a
-			   named constant (an expression for an enumerator
-			   in the definition of an enumeration or a
-			   non-standard class member constant). */
+			   named constant (the enumerator in the definition
+			   of an enumeration or a non-standard class member
+			   constant). */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;

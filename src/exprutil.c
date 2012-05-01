@@ -4214,7 +4214,7 @@ Extract the constant value from the operand *operand and place it in
     case ok_constant:
       copy_constant(&operand->variant.constant, constant);
       if (operand->name_reference_set &&
-          !constant_is_instantiation_dependent(constant) &&
+          constant->kind != (a_constant_repr_kind)ck_template_param &&
           curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
         /* The operand has an associated name reference.  Name references
            for dependent constants are redundant and ignored, but otherwise
