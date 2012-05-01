@@ -6956,6 +6956,7 @@ is an lvalue reference to const.
 {
   a_type_ptr underlying_type;
   a_boolean  is_rvalue_ref = FALSE;
+  a_boolean  err = FALSE;
 
   check_assertion(is_any_reference_type(dest_type));
   is_rvalue_ref = is_rvalue_reference_type(dest_type);
@@ -6965,7 +6966,7 @@ is an lvalue reference to const.
        because it would produce an rvalue with an incomplete type. */
     if (!rvalue_reference_cast_underlying_type_is_complete(underlying_type,
                                                            type_position)) {
-      underlying_type = error_type();
+      err = TRUE;
     }  /* if */
     if (!is_an_rvalue(operand) &&
         binding_rvalue_ref_to_bit_field_allowed() &&
@@ -6975,7 +6976,9 @@ is an lvalue reference to const.
       conv_lvalue_to_rvalue(operand);
     }  /* if */
   }  /* if */
-  if (is_an_rvalue(operand)) {
+  if (err) {
+    /* Previous error. */
+  } else if (is_an_rvalue(operand)) {
     /* If the caller passes in an rvalue, convert it to an lvalue. */
     conv_reference_cast_operand_to_lvalue_if_necessary(operand);
   } else {
@@ -6993,7 +6996,7 @@ is an lvalue reference to const.
   }  /* if */
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
-  } else if (is_error_type(underlying_type)) {
+  } else if (is_error_type(underlying_type) || err) {
     conv_to_error_operand(operand);
   } else {
     a_type_ptr       operand_type = operand->type;
