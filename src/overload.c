@@ -14440,6 +14440,7 @@ apply, but we can't tell).
            for operator functions in the class underlying the handle. */
         if (!unary_operator &&
             (kind == (an_opname_kind)onk_assign ||
+             kind == (an_opname_kind)onk_arrow_star ||
              ((kind == (an_opname_kind)onk_eq ||
                kind == (an_opname_kind)onk_ne) &&
               is_handle_type(operand_2->type)))) {
