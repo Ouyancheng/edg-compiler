@@ -36,7 +36,7 @@ line (2) is not.
 5/1/12   [EDGcpfe/12850]
 operator->* and managed classes
 
-The front end now disallows the operator->* members in managed class types.
+The front end now disallows operator->* members in C++/CLI managed class types.
 This matches the behavior of the Microsoft compiler.
 
 
