@@ -6251,7 +6251,12 @@ for the GNU C multiline string extension.
 #endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
   /* If we are being asked to extend the current line, go straight to
      the slow loop.  */
-  if (extend_current_line) goto entry_for_extend_current_line;
+  if (extend_current_line) {
+    /* Do not issue a warning for a backslash followed by whitespace on
+       the line being extended. */
+    pending_nonsplice_backslash = FALSE;
+    goto entry_for_extend_current_line;
+  }  /* if */
   /* If the current line ended in a backslash followed by whitespace (i.e.,
      visually but not actually a line splice), that did not appear inside a
      comment, display a warning before discarding the current line's
@@ -19632,6 +19637,8 @@ done to determine whether a precompiled header may be used.
   asm_func_body_buffer = NULL;
   size_asm_func_body_buffer = 0;
 #endif /* ASM_SUPPORT_NEEDED */
+  pending_nonsplice_backslash = FALSE;
+  loc_of_nonsplice_backslash = NULL;
   (void)memzero((char *)source_line_modif_hash_table,
                 sizeof(source_line_modif_hash_table));
 }  /* lexical_reset */
@@ -19702,8 +19709,6 @@ of the front end.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;
-  pending_nonsplice_backslash = FALSE;
-  loc_of_nonsplice_backslash = NULL;
 #if !FULLY_RESOLVED_MACRO_POSITIONS
   pos_of_macro_invocation = null_source_position;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
