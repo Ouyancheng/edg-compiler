@@ -558,11 +558,14 @@ static a_boolean
 			   suppressed if the non-splice occurs inside a
 			   comment. */
 
-static char	*loc_of_nonsplice_backslash;
-			/* Location of the backslash that resulted in
-			   the warning to be issued when
-			   pending_nonsplice_backslash is TRUE (invalid
-			   if pending_nonsplice_backslash is FALSE). */
+static sizeof_t	offset_of_nonsplice_backslash;
+			/* Offset within curr_source_line of the backslash
+			   that resulted in the warning to be issued when
+			   pending_nonsplice_backslash is TRUE (invalid if
+			   pending_nonsplice_backslash is FALSE).  Kept as
+			   an offset instead of a pointer in case
+			   curr_source_line is reallocated between calls
+			   to read_logical_source_line. */
 
 /*
 Hash table used by nested_source_line_modif to find the source
@@ -6262,7 +6265,8 @@ for the GNU C multiline string extension.
      comment, display a warning before discarding the current line's
      text. */
   if (pending_nonsplice_backslash) {
-    warning_at_line_pos(ec_not_a_line_splice, loc_of_nonsplice_backslash);
+    warning_at_line_pos(ec_not_a_line_splice,
+                        curr_source_line + offset_of_nonsplice_backslash);
     pending_nonsplice_backslash = FALSE;
   }  /* if */
   /* If the compiler is being run just to produce preprocessing output,
@@ -6502,8 +6506,8 @@ add_newline_and_line_end_and_return:
        immediately, to allow the warning to be suppressed if the non-splice
        backslash occurs within a comment. */
     pending_nonsplice_backslash = TRUE;
-    loc_of_nonsplice_backslash =
-           loc_in_line - white_space_chars_after_backslash - LE_ESCAPE_LEN - 1;
+    offset_of_nonsplice_backslash = (loc_in_line - curr_source_line) -
+                         white_space_chars_after_backslash - LE_ESCAPE_LEN - 1;
   }  /* if */
 
 return_with_line:
@@ -19638,7 +19642,7 @@ done to determine whether a precompiled header may be used.
   size_asm_func_body_buffer = 0;
 #endif /* ASM_SUPPORT_NEEDED */
   pending_nonsplice_backslash = FALSE;
-  loc_of_nonsplice_backslash = NULL;
+  offset_of_nonsplice_backslash = 0;
   (void)memzero((char *)source_line_modif_hash_table,
                 sizeof(source_line_modif_hash_table));
 }  /* lexical_reset */
