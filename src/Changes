@@ -1,5 +1,20 @@
 Version 4.5
 
+5/1/12   [EDGcpfe/12887]
+GNU C++ compatibility: Extraneous size/sign modifiers on typedefs
+
+GNU C++ compilers allow arbitrary size and sign modifiers on typedefs for
+integer types that appear in the type-id of new-expressions.  For example:
+
+  typedef unsigned long ULong;
+  auto x = new long ULong;   // (1) Now accepted in GNU C++ mode.
+  auto y = new short ULong;  // (2) Still not accepted in GNU C++ mode.
+
+The front end now accepts similar modifiers if they're unlikely to cause
+confusion.  For example, line (1) is now accepted in GNU C++11 mode, but
+line (2) is not.
+
+
 5/1/12   [EDGcpfe/12850]
 operator->* and managed classes
 

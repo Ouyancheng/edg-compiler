@@ -6080,20 +6080,22 @@ modified by sign and/or size specifiers.  E.g.:
 #define current_mode_allows_typedef_with_adjectives()                       \
   (C_dialect == C_dialect_pcc || gpp_mode || (gcc_mode && gnu_version < 30400))
 
-static a_basic_type basic_type_from_typedef(a_type_ptr   *type_ptr,
-                                            a_type_sign  *sign,
-                                            a_type_size  *size)
+static a_basic_type basic_type_from_typedef(a_decl_parse_state  *dps,
+                                            a_type_sign         *sign,
+                                            a_type_size         *size)
 /*
-*type_ptr represents a typedef.  Some modes allow certain typedef types to be
-modified by sign and size specifiers (short, unsigned, etc.).  If *type_ptr is
-such a typedef, return the associated basic type specifier and set *sign and
-*size to the sign and size of the type underlying that typedef.  Also set
-*type_ptr to NULL in that case.  Otherwise, return bt_typedef and leave
-*type_ptr, *sign, and *size unchanged.
+dps->specifiers_type represents a typedef used as a specifier in the current
+declaration-like construct (described by dps).  Some modes allow certain
+typedef types to be modified by sign and size specifiers (short, unsigned,
+etc.).  If dps->specifiers_type is such a typedef, return the associated basic
+type specifier and set *sign and *size to the sign and size of the type
+underlying that typedef.  Also set dps->specifiers_type to NULL in that case.
+Otherwise, return bt_typedef and leave dps->specifiers_type, *sign, and *size
+unchanged.
 */
 {
   a_basic_type     basic_type = bt_typedef;
-  a_type_ptr       temp_type = skip_typerefs(*type_ptr);
+  a_type_ptr       temp_type = skip_typerefs(dps->specifiers_type);
   an_integer_kind  ikind;
   a_float_kind     fkind;
 
@@ -6125,6 +6127,7 @@ such a typedef, return the associated basic type specifier and set *sign and
          ik_signed_char always implies an unspecified sign.  A size may
          not be specified for those ("short char" and "long char" don't
          make sense). */
+      check_assertion(*sign != sign_none || *size != size_none);
       ikind = temp_type->variant.integer.int_kind;
       switch (ikind) {
         case ik_char:
@@ -6143,32 +6146,70 @@ such a typedef, return the associated basic type specifier and set *sign and
           basic_type = bt_char;
           break;
         case ik_short:
-          if (*size != size_none) break;
-          basic_type = bt_int;
-          *size = size_short;
+          /* GNU C++ allows many strange things for a type specifier in a new
+             expression (e.g., "long" on a typedef for "short").  We only
+             emulate cases that are unlikely to be surprising (i.e., extraneous
+             modifiers). */
+          if (*size == size_none ||
+              (gpp_mode && dps->is_new_expr_type && *size == size_short)) {
+            basic_type = bt_int;
+            *size = size_short;
+          }  /* if */
           break;
         case ik_unsigned_short:
           /* No holes to fill in. */
+          /* GNU C++ allows many strange things for a type specifier in a new
+             expression (e.g., "long" on a typedef for "short").  We only
+             emulate cases that are unlikely to be surprising (i.e., extraneous
+             modifiers). */
+          if (gpp_mode && dps->is_new_expr_type &&
+              ((*size == size_short && *sign == sign_unsigned) ||
+               (*size == size_none && *sign == sign_unsigned) ||
+               (*size == size_short && *sign == sign_none))) {
+            basic_type = bt_int;
+            *sign = sign_unsigned;
+            *size = size_short;
+          }  /* if */
           break;
         case ik_unsigned_int:
-          if (*sign != sign_none) break;
-          *sign = sign_unsigned;
-          /* Fall into signed int case. */
-          /*FALLTHROUGH*/
+          /* GNU C++ allows many strange things for a type specifier in a new
+             expression (e.g., "signed" on a typedef for "unsigned").  We only
+             emulate cases that are unlikely to be surprising (i.e., extraneous
+             modifiers). */
+          if (*sign == sign_none ||
+              (gpp_mode && dps->is_new_expr_type && *sign == sign_unsigned)) {
+            *sign = sign_unsigned;
+            basic_type = bt_int;
+          }  /* if */
+          break;
         case ik_int:
           basic_type = bt_int;
           break;
         case ik_long:
-          /* GNU C compilers allow the extra "long" (with no effect). */
-          if (*size == size_none || (gcc_mode && *size == size_long)) {
+          /* GNU C allows the extra "long" (with no effect).
+             GNU C++ allows many strange things for a type specifier in a new
+             expression (e.g., "short" on a typedef for "long").  We only
+             emulate cases that are unlikely to be surprising (i.e., extraneous
+             modifiers). */
+          if (*size == size_none ||
+              (gcc_mode && *size == size_long) ||
+              (gpp_mode && dps->is_new_expr_type && *size == size_long)) {
             basic_type = bt_int;
             *size = size_long;
           }  /* if */
           break;
         case ik_unsigned_long:
           /* No holes to fill in. */
-          /* GNU C compilers allow the extra "long" (with no effect). */
-          if (gcc_mode && *size == size_long) {
+          /* GNU C allows the extra "long" and/or "unsigned" (with no effect).
+             GNU C++ allows many strange things for a type specifier in a new
+             expression (e.g., "short" on a typedef for "unsigned long").  We
+             only emulate cases that are unlikely to be surprising (i.e.,
+             extraneous modifiers). */
+          if ((gcc_mode && *size == size_long) ||
+              (gpp_mode && dps->is_new_expr_type &&
+               ((*size == size_long && *sign == sign_unsigned) ||
+                (*size == size_none && *sign == sign_unsigned) ||
+                (*size == size_long && *sign == sign_none)))) {
             basic_type = bt_int;
             *sign = sign_unsigned;
             *size = size_long;
@@ -6205,25 +6246,25 @@ such a typedef, return the associated basic type specifier and set *sign and
       basic_type = bt_double;
     }  /* if */
   }  /* if */
-  if (basic_type != bt_typedef) *type_ptr = NULL;
+  if (basic_type != bt_typedef) dps->specifiers_type = NULL;
   return basic_type;
 }  /* basic_type_from_typedef */
 
 #if !C99_IL_EXTENSIONS_SUPPORTED || !FIXED_POINT_ALLOWED
 /*ARGSUSED*/  /* <-- complex_attr or saturating_fp not used in that case. */
 #endif /* !C99_IL_EXTENSIONS_SUPPORTED || !FIXED_POINT_ALLOWED */
-static a_boolean combine_type_specifiers(a_type_ptr           *type_ptr,
+static a_boolean combine_type_specifiers(a_decl_parse_state   *dps,
                                          a_basic_type         basic_type,
                                          a_type_sign          sign,
                                          a_type_size          size,
                                          a_complex_attribute  complex_attr,
                                          a_boolean            saturating_fp)
 /*
-Given a basic type, a sign specifier, and a size specifier, return a
-pointer to a type entry in *type_ptr.  This routine is only called from
+Given a basic type, a sign specifier, and a size specifier, return a pointer to
+a type entry in dps->specifiers_type.  This routine is only called from
 decl_specifiers.  complex_attr indicates the kind of complex type involved
-(_Complex or _Imaginary).  saturating_fp is TRUE if the fixed-point
-modifier _Sat was specified.
+(_Complex or _Imaginary).  saturating_fp is TRUE if the fixed-point modifier
+_Sat was specified.
 */
 {
   an_integer_kind  ikind;
@@ -6236,7 +6277,7 @@ modifier _Sat was specified.
        and short as adjectives modifying a typedef type.  Turn the typedef
        into a matching basic type, for the cases for which it makes sense.
        For the others, an error will be detected below. */
-    basic_type = basic_type_from_typedef(type_ptr, &sign, &size);
+    basic_type = basic_type_from_typedef(dps, &sign, &size);
     if (gnu_mode && basic_type != bt_typedef) {
       report_gnu_extension_if_needed(&error_position,
                                      ec_typedef_modification_is_nonstandard);
@@ -6248,7 +6289,7 @@ modifier _Sat was specified.
     case bt_void:
       if (sign == sign_none && size == size_none) {
         /* void type. */
-        *type_ptr = void_type();
+        dps->specifiers_type = void_type();
       } else {
         bad_combination = TRUE;
       }  /* if */
@@ -6291,39 +6332,40 @@ modifier _Sat was specified.
             /* signed __int8 is the same as __int8. */
             ikind = targ_int8_int_kind;
           }  /* if */
-          *type_ptr = microsoft_sized_integer_type((an_integer_kind)ikind);
+          dps->specifiers_type =
+                         microsoft_sized_integer_type((an_integer_kind)ikind);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         {
-          *type_ptr = integer_type((an_integer_kind)ikind);
+          dps->specifiers_type = integer_type((an_integer_kind)ikind);
         }  /* if */
       }  /* if */
       break;
     case bt_wchar_t:
       if (sign == sign_none && size == size_none) {
-        *type_ptr = wchar_t_type();
+        dps->specifiers_type = wchar_t_type();
       } else {
         bad_combination = TRUE;
       }  /* if */
       break;
     case bt_char16_t:
       if (sign == sign_none && size == size_none) {
-        *type_ptr = char16_t_type();
+        dps->specifiers_type = char16_t_type();
       } else {
         bad_combination = TRUE;
       }  /* if */
       break;
     case bt_char32_t:
       if (sign == sign_none && size == size_none) {
-        *type_ptr = char32_t_type();
+        dps->specifiers_type = char32_t_type();
       } else {
         bad_combination = TRUE;
       }  /* if */
       break;
     case bt_bool:
       if (sign == sign_none && size == size_none) {
-        *type_ptr = bool_type();
+        dps->specifiers_type = bool_type();
       } else {
         bad_combination = TRUE;
       }  /* if */
@@ -6427,25 +6469,26 @@ modifier _Sat was specified.
         if (microsoft_mode && microsoft_version == 1200 &&
             (int)size >= (int)size_int8 &&
             (int)size <= (int)size_int64) { /*lint !e685*/
-          *type_ptr = microsoft_sized_signed_integer_type(
+          dps->specifiers_type = microsoft_sized_signed_integer_type(
                                                       (an_integer_kind)ikind);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         {
-          *type_ptr = signed_integer_type((an_integer_kind)ikind);
+          dps->specifiers_type = signed_integer_type((an_integer_kind)ikind);
         }  /* if */
       } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode && microsoft_version == 1200 &&
             (int)size >= (int)size_int8 &&
             (int)size <= (int)size_int64) { /*lint !e685*/
-          *type_ptr = microsoft_sized_integer_type((an_integer_kind)ikind);
+          dps->specifiers_type =
+                         microsoft_sized_integer_type((an_integer_kind)ikind);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         {
-          *type_ptr = integer_type((an_integer_kind)ikind);
+          dps->specifiers_type = integer_type((an_integer_kind)ikind);
         }  /* if */
       }  /* if */
       break;
@@ -6469,7 +6512,7 @@ modifier _Sat was specified.
             bad_combination = TRUE;
         }  /* switch */
         if (!bad_combination) {
-          *type_ptr = fixed_point_type(
+          dps->specifiers_type = fixed_point_type(
                            make_fixed_point_type_descr(
                                        precision, (sign == sign_unsigned),
                                        (basic_type == bt_fract),
@@ -6513,14 +6556,14 @@ modifier _Sat was specified.
         }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
         if (complex_attr == cxa_complex) {
-          *type_ptr = complex_type((a_float_kind)fkind);
+          dps->specifiers_type = complex_type((a_float_kind)fkind);
         } else if (complex_attr == cxa_imaginary) {
-          *type_ptr = imaginary_type((a_float_kind)fkind);
+          dps->specifiers_type = imaginary_type((a_float_kind)fkind);
         } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         /* Do not insert code here. */
         {
-          *type_ptr = float_type((a_float_kind)fkind);
+          dps->specifiers_type = float_type((a_float_kind)fkind);
         }  /* if */
       }  /* if */
       break;
@@ -6530,18 +6573,18 @@ modifier _Sat was specified.
     case bt_auto:
     case bt_typedef:
       if (sign != sign_none || size != size_none) bad_combination = TRUE;
-      check_assertion_str2(*type_ptr != NULL,
+      check_assertion_str2(dps->specifiers_type != NULL,
                            "combine_type_specifiers: null type ptr for",
                            "class, struct, union, enum, or typedef");
       break;
     case bt_no_type:
       /* No specifiers type declared (constructor, destructor, or conversion
          operator). */
-      *type_ptr = unknown_type();
+      dps->specifiers_type = unknown_type();
       break;
     case bt_error:
       /* Error, already diagnosed. */
-      *type_ptr = error_type();
+      dps->specifiers_type = error_type();
       break;
 #if CHECKING
     default:
@@ -6558,7 +6601,7 @@ modifier _Sat was specified.
     /* Bad combination of type specifiers.  Issue a diagnostic and set the
        type to an error type. */
     error(ec_bad_combination_of_type_specifiers);
-    *type_ptr = error_type();
+    dps->specifiers_type = error_type();
   }  /* if */
   /* Return TRUE if no problems were encountered in combining type
      specifiers. */
@@ -9768,7 +9811,7 @@ exit_loop:
       /* Combine the type specifiers (except for the type qualifiers) into a
          type.  *type_ptr is updated, based on the basic type, sign, and size
          specified. */
-      if (!combine_type_specifiers(type_ptr, basic_type, sign, size,
+      if (!combine_type_specifiers(state, basic_type, sign, size,
                                    complex_attr, saturating_fixed_point)) {
         err = TRUE;
       } else {
