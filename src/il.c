@@ -10895,7 +10895,11 @@ type of the second operand.
   if (is_error_type(operand_2_type)) {
     result_type = error_type();
   } else {
+#if DO_IL_LOWERING
+    result_type = pm_member_type_possibly_lowered(operand_2_type);
+#else /* !DO_IL_LOWERING */
     result_type = pm_member_type(operand_2_type);
+#endif /* DO_IL_LOWERING */
     if (!(microsoft_mode && microsoft_version < 1200) &&
         !is_function_type(result_type)) {
       /* Add cv-qualifiers from the first operand to the result type.

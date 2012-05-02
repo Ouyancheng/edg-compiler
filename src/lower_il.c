@@ -1455,7 +1455,7 @@ case, return the original type that was rewritten into that typeref.
 }  /* get_underlying_type */
 
 
-static a_type_ptr pm_member_type_possibly_lowered(a_type_ptr type)
+a_type_ptr pm_member_type_possibly_lowered(a_type_ptr type)
 /*
 type is (or was, before lowering) a pointer-to-member type.  Get and return
 its member type.

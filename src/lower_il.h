@@ -792,6 +792,8 @@ extern void lower_initializer(a_variable_ptr     variable,
 
 extern a_type_ptr get_underlying_type(a_type_ptr type);
 
+extern a_type_ptr pm_member_type_possibly_lowered(a_type_ptr type);
+
 extern a_type_ptr pm_class_type_possibly_lowered(a_type_ptr type);
 
 extern a_boolean is_or_was_ptr_to_data_member_type(a_type_ptr type);

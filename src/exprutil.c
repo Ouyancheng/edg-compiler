@@ -15047,7 +15047,9 @@ from being re-introduced once lowering has eliminated it).
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case eok_dot_field:
+      case eok_pm_field:
         /* Selection of a field from a class. */
+        /* Also pointer-to-member selection, "x.*pm". */
         { a_type_ptr class_type;
           if (op1->is_lvalue) {
             /* The selection has an lvalue-to-rvalue conversion built into it,
@@ -15077,21 +15079,33 @@ from being re-introduced once lowering has eliminated it).
             }  /* if */
           }  /* if */
           if (possible) {
-            lvalue_type = make_field_selection_type(op2->variant.field,
+            if (op == (an_expr_operator_kind)eok_dot_field) {
+              lvalue_type = make_field_selection_type(op2->variant.field,
                                               get_type_qualifiers(class_type));
+            } else {
+              check_assertion(op == (an_expr_operator_kind)eok_pm_field);
+              lvalue_type = make_pm_selection_type(op1->type, op2->type);
+            }  /* if */
           }  /* if */
         }
         break;
       case eok_points_to_field:
+      case eok_pm_points_to_field:
         /* Selection of a field from a class, "->" form.  The selection has
            an lvalue-to-rvalue conversion built into it, so we can undo that
            by simply changing the flag. */
+        /* Also pointer-to-member selection, "p->*pm". */
         possible = TRUE;
         if (is_pointer_type(op1->type)) {
           a_type_ptr class_type = type_pointed_to(op1->type);
-          lvalue_type = make_field_selection_type(op2->variant.field,
-                                                  get_type_qualifiers(
+          if (op == (an_expr_operator_kind)eok_points_to_field) {
+            lvalue_type = make_field_selection_type(op2->variant.field,
+                                                    get_type_qualifiers(
                                                                   class_type));
+          } else {
+            check_assertion(op == (an_expr_operator_kind)eok_pm_field);
+            lvalue_type = make_pm_selection_type(class_type, op2->type);
+          }  /* if */
         }  /* if */
         break;
       case eok_base_class_cast:
