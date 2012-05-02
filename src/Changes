@@ -4,7 +4,7 @@ Version 4.5
 Internal error after invalid template default argument with EXPENSIVE_CHECKING
 
 An internal error could occur (in check_for_nonreal_instance) if certain
-kinds of invalid function template default template arguments are used,
+kinds of invalid function template default template arguments were used,
 the default argument is needed in a call, and EXPENSIVE_CHECKING is
 being used.  Now fixed.
 
