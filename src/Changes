@@ -1,5 +1,24 @@
 Version 4.5
 
+5/2/12   [EDGcpfe/12896]
+Microsoft compatibility: use of undefined template names in decltype
+
+We previously made a change to allow the use of undefined namespace
+members in decltype expressions in Microsoft mode (see 3/14/12 entry).
+Some of the Microsoft headers also require that we infer that the undefined
+name is a template in some cases.  The mechanism that allows the use of
+undefined names in decltype expressions now assumes that the name is a
+template if it is followed by a "<".
+
+  namespace N {}
+  template <class T> struct A {
+    template <class U> auto f(U) -> decltype(N::X<U>);
+  };
+  namespace N {
+    template <class T> struct X {};
+  }
+
+
 5/2/12   [EDGcpfe/12893]
 Internal error after invalid template default argument with EXPENSIVE_CHECKING
 

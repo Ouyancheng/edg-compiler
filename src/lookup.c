@@ -5177,6 +5177,12 @@ namespace.  This routine is used only in C++ mode.
          associated with the namespace we are looking in. */
       a_type_ptr	proxy_class;
       proxy_class = proxy_class_for_namespace(ns_ptr);
+      if ((options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0) {
+        /* The tentative template lookup flag will be TRUE if the name
+           was preceded by "template" or followed (in some cases) by "<".
+           In such cases, create the nonreal member as a template. */
+        options |= IDL_TREAT_AS_TEMPLATE_ID;
+      }  /* if */
       sym = create_proxy_or_nonreal_class_member(proxy_class, options,
                                                  locator);
       locator->specific_symbol = sym;
