@@ -23195,7 +23195,8 @@ specified by "tip" depend on a template parameter.
     check_assertion(type != NULL);
     arg_list = class_type_supp(type)->template_arg_list;
   }  /* if */
-  check_assertion_str2(!template_arg_list_is_dependent(arg_list),
+  check_assertion_str2(!template_arg_list_is_dependent(arg_list) ||
+                       total_errors != 0,
                        "check_for_nonreal_instance:",
                        "nonreal instance on instantiation required list");
 }  /* check_for_nonreal_instance */

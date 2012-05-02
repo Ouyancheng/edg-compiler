@@ -1,5 +1,23 @@
 Version 4.5
 
+5/2/12   [EDGcpfe/12893]
+Internal error after invalid template default argument with EXPENSIVE_CHECKING
+
+An internal error could occur (in check_for_nonreal_instance) if certain
+kinds of invalid function template default template arguments are used,
+the default argument is needed in a call, and EXPENSIVE_CHECKING is
+being used.  Now fixed.
+
+  struct A {
+    void f(int);
+    void f(char);
+  };
+  template < class T = T(37) > void f ( T ) { } 
+  int main() {
+    f(&A::f);
+  }
+
+
 5/1/12   [EDGcpfe/12887]
 GNU C++ compatibility: Extraneous size/sign modifiers on typedefs
 
