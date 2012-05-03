@@ -506,6 +506,8 @@ extern int fileno(FILE *);
 /*lint -esym(765,conv_mantissa_to_floating_point)*/
 /*lint -esym(759,value_of_integer_value)*/
 /*lint -esym(765,value_of_integer_value)*/
+/*lint -esym(769,tok_fract)*/
+/*lint -esym(769,tok_accum)*/
 #endif /* !FIXED_POINT_ALLOWED */
 #if !NAMED_ADDRESS_SPACES_ALLOWED
 /*lint -esym(759,named_address_spaces_enabled)*/
