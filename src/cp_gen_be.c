@@ -4937,6 +4937,13 @@ al_tag_name attributes (if any).
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
     char  *tag_kind_str = tag_keyword(type);
+    if (is_immediate_enum_type(type) && (options & GN_DECLARATION) != 0 &&
+        integer_type_is_scoped_enum(type)) {
+      /* A declaration of a scoped enumeration type: Use "enum class" rather
+         than just "enum", since presumably this is an opaque enum
+         declaration. */
+      tag_kind_str = "enum class";
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* The Microsoft compiler mangles standard class and struct types
        differently (but does not make that distinction for C++/CLI managed
@@ -5037,6 +5044,12 @@ al_tag_name attributes (if any).
       }  /* if */
       gen_name(&type->source_corresp, iek_type, options, (a_boolean *)NULL);
     }  /* if */
+  }  /* if */
+  if (is_immediate_enum_type(type) && (options & GN_DECLARATION) != 0 &&
+      integer_type_supp(type)->base_type != NULL) {
+    /* Presumably an opaque enum declaration with an explicit base type. */
+    write_tok_str(": ");
+    gen_type(integer_type_supp(type)->base_type);
   }  /* if */
 }  /* gen_tag_reference */
 

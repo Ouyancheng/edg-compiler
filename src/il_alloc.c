@@ -1201,6 +1201,7 @@ a pointer to it.
 #if DEBUG
   num_integer_type_supplements_allocated++;
 #endif /* DEBUG */
+  itsp->enumerator_list_seen = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   itsp->declared_assembly_visibility = (an_assembly_visibility)av_none;
   itsp->assembly_visibility = (an_assembly_visibility)av_none;

@@ -2388,6 +2388,8 @@ ec_braced_init_list_not_allowed;;"a brace-enclosed list is not allowed here"
 ec_arrow_star_operator_in_managed_class;;"an operator->* member is not allowed in a managed class"
 ec_bad_assembly_index;;"assembly metadata refers to non-existent assembly"
 ec_attribute_conflict;;"attribute %sq2 conflicts with earlier attribute %sq1"
+ec_incompatible_enum_base_types;;"%nd was previously declared with a different base type"
+ec_invalid_scoped_enum_elaboration;;"\"enum class\" and \"enum struct\" cannot be used here (use plain \"enum\" instead)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

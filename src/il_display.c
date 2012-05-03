@@ -1598,6 +1598,7 @@ static void disp_integer_type_supplement(an_integer_type_supplement_ptr  ptr)
 Display the indicated integer type supplement.
 */
 {
+  if (ptr->enumerator_list_seen) disp_boolean("enumerator_list_seen", TRUE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   disp_assembly_visibility("declared_assembly_visibility",
                            ptr->declared_assembly_visibility);

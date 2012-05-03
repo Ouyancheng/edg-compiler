@@ -1010,6 +1010,11 @@ EXTERN a_boolean
 			   some Microsoft compilers. */
 
 EXTERN a_boolean
+		opaque_enum_decls_enabled;
+			/* TRUE if C++11-style opaque enumeration declarations
+			   (like "enum B: char;") should be accepted. */
+
+EXTERN a_boolean
 		lambdas_enabled;
 			/* TRUE if C++11 lambdas should be accepted in C++. */
 

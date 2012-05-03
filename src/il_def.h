@@ -7190,6 +7190,9 @@ Entry containing additional information about an integral type.
 */
 typedef struct an_integer_type_supplement *an_integer_type_supplement_ptr;
 typedef struct an_integer_type_supplement {
+  a_bit_field	enumerator_list_seen:1;
+			/* TRUE for enumerator types whose enumerator list has
+			   been seen. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field   declared_assembly_visibility:2;
                         /* Visibility of this type at the assembly level as

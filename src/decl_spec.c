@@ -1650,19 +1650,6 @@ caution when modifying this routine.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (tag_sym == NULL && tag_kind == (a_symbol_kind)sk_enum_tag &&
-          !is_error_locator(*locator)) {
-        /* Since tag_sym was not found, this is either a vacuous declaration
-           or a reference to an incomplete (because not yet declared) type.
-           In either case this is non-standard for enums.  It is allowed as
-           an extension by analogy with classes. */
-        if (strict_ansi_mode) {
-          /* Incomplete enum declarations are nonstandard in C and C++. */
-          pos_diagnostic(strict_ansi_error_severity,
-                         ec_nonstd_forward_decl_enum,
-                         &locator->source_position);
-        }  /* if */
-      }  
     }  /* if */
     if (!tag_err && tag_sym != NULL) {
       check_consistent_tag_kind(tag_kind, &tag_sym, locator,
@@ -4682,6 +4669,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean                    is_dependent_enum = FALSE;
   a_boolean                    is_scoped_enum = FALSE;
+  a_boolean                    is_opaque_enum_decl = FALSE;
 
   db_enter(3, "enum_specifier");
 
@@ -4873,6 +4861,15 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+  if (opaque_enum_decls_enabled &&
+      (is_scoped_enum || explicit_base_kind != (an_integer_kind)ik_none) &&
+      curr_token == tok_semicolon) {
+    /* An opaque enum declaration.  I.e., an enum declaration that fixes the
+       size of the type (i.e., it is "complete") without defining the
+       associated enumeration constants. */
+    is_opaque_enum_decl = TRUE;
+    is_definition = FALSE;
+  }  /* if */
   if (tag_sym == NULL) {
     a_scope_ptr  parent_scope = scope_stack[effective_decl_level].il_scope;
     /* Create a new enumerated type.  All enumeration type entries are
@@ -4887,6 +4884,15 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       enum_type->source_corresp.parent_scope = parent_scope;
     }  /* if */
     is_redeclaration = FALSE;
+    if (strict_ansi_mode && !(is_definition || is_opaque_enum_decl) &&
+        !is_error_locator(locator)) {
+      /* Since tag_sym was not found, this is either a vacuous declaration or a
+         reference to an incomplete (because not yet declared) type.  In either
+         case this is non-standard for enums.  It is allowed as an extension by
+         analogy with classes. */
+      pos_diagnostic(strict_ansi_error_severity, ec_nonstd_forward_decl_enum,
+                     &locator.source_position);
+    }  /* if */
     /* set_type_size is called later, once the final type is known. */
     /* Set a default representation of "int", which may be adjusted later. */
     enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
@@ -5008,17 +5014,55 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     /* Using an existing type.  Fetch the enumerated type pointer from it. */
     enum_type = type_symbol_type(tag_sym);
     is_redeclaration = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && is_immediate_enum_type(enum_type)) {
+    if (is_immediate_enum_type(enum_type)) {
       /* C++/CLI does not permit a type first declared with "enum class" or
          "enum struct" to later be referred to with just "enum", nor vice
-         versa. */
-      if (is_scoped_enum != integer_type_is_scoped_enum(enum_type)) {
-        pos_sy_error(ec_incompatible_enum_kinds, &locator.source_position,
-                     tag_sym);
+         versa.  C++11 also disallows the mismatch for opaque declarations
+         and definitions, but for elaborated enum specifiers only "enum" is
+         allowed (the latter rule came along with the introduction of opaque
+         enum declarations into the language). */
+      if (cppcli_enabled || (opaque_enum_decls_enabled &&
+                             (is_definition || is_opaque_enum_decl))) {
+        if (is_scoped_enum != integer_type_is_scoped_enum(enum_type)) {
+          pos_sy_error(ec_incompatible_enum_kinds, &locator.source_position,
+                       tag_sym);
+          if (!is_definition && is_scoped_enum) {
+            /* If this is not a definition, continue to treat it as an unscoped
+               enumeration since this provides for slightly better error
+               recovery. */
+            is_scoped_enum = FALSE;
+          }  /* if */
+        }  /* if */
+      } else if (opaque_enum_decls_enabled && is_scoped_enum) {
+        /* "enum struct" or "enum class" cannot be used for an elaborated
+           specifier, even if the original declaration is for a scoped enum. */
+        pos_error(ec_invalid_scoped_enum_elaboration,
+                  &locator.source_position);
       }  /* if */
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* If explicit base type specifiers are involved, ensure that the
+       underlying types are compatible. */
+    if (!enum_type->incomplete && (is_definition || is_opaque_enum_decl)) {
+      a_type_ptr  old_base_type = integer_type_supp(enum_type)->base_type;
+      a_type_ptr  new_base_type = explicit_base;
+      /* For scoped enums without an explicit base type use "int". */
+      if (is_scoped_enum && old_base_type == NULL) {
+        old_base_type = integer_type(ik_int);
+      }  /* if */
+      if (is_scoped_enum && new_base_type == NULL) {
+        new_base_type = integer_type(ik_int);
+      }  /* if */
+      if ((old_base_type != NULL || new_base_type != NULL) &&
+          (old_base_type == NULL || new_base_type == NULL ||
+           !identical_types(old_base_type, new_base_type))) {
+        pos_sy_error(ec_incompatible_enum_base_types, &locator.source_position,
+                     tag_sym);
+        /* Continue as if no explicit base was specified for better error
+           recovery. */
+        explicit_base = NULL;
+        explicit_base_kind = (an_integer_kind)ik_none;
+      }  /* if */
+    }  /* if */
     /* Record cross-reference information. */
     if (is_definition) {
       if (tag_sym->defined) {
@@ -5043,7 +5087,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
           enum_type->source_corresp.access = access;
         }  /* if */
       }  /* if */
-    } else if (curr_token == tok_semicolon && !strict_ansi_mode) {
+    } else if (curr_token == tok_semicolon &&
+               (!strict_ansi_mode || is_opaque_enum_decl)) {
       /* A useless redeclaration of an enum tag. */
       mark_declared(tag_sym, &locator.source_position);
     } else {
@@ -5057,13 +5102,18 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                        is_definition);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (is_definition) {
-    a_source_position  end_pos;
+  if (is_definition || is_opaque_enum_decl) {
     if (explicit_base != NULL) {
       /* Record the explicit underlying type as it appeared in the source. */
       integer_type_supp(enum_type)->base_type = explicit_base;
       enum_type->variant.integer.has_explicit_enum_base = TRUE;
     }  /* if */
+    if (is_scoped_enum) {
+      enum_type->variant.integer.is_scoped_enum = TRUE;
+    }  /* if */
+  }  /* if */
+  if (is_definition) {
+    a_source_position  end_pos;
     /* We associate a curr-construct pragma with this enum type only if this
        is a definition.  Otherwise this is assumed to be part of a declaration
        of something else -- to which the pragma should be bound. */
@@ -5082,11 +5132,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
        the definition and switch back when we reach the right brace. */
     (void)required_token(tok_lbrace, ec_exp_lbrace);
     if (is_scoped_enum) {
-      enum_type->variant.integer.is_scoped_enum = TRUE;
       enum_type->variant.integer.enum_info.assoc_scope = 
                 push_scope((a_scope_kind)sck_enum, NO_SCOPE_NUMBER, enum_type,
                            (a_routine_ptr)NULL);
     }  /* if */
+    integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
     if (C_dialect == C_dialect_cplusplus || gcc_mode) {
       /* In C++ the type of an enumerator is the same as that of its
          enumeration, but that won't actually be known until the definition
@@ -5555,8 +5605,16 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   } else {
     /* No brace-enclosed list follows. */
     attach_tag_attributes(dps->tag_attributes, enum_type, dps, is_definition,
-                          curr_token == tok_semicolon && !strict_ansi_mode,
+                          is_opaque_enum_decl ||
+                            (curr_token == tok_semicolon && !strict_ansi_mode),
                           /*ignore_gnu_attributes=*/TRUE);
+    if (is_opaque_enum_decl) {
+      set_enum_representation(enum_type, &tag_position, err,
+                              explicit_base_kind, &pos_explicit_base,
+                              /*min_max_set=*/FALSE, &min_value, &max_value);
+      enum_type->incomplete = FALSE;
+      set_type_size(enum_type);
+    }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
@@ -5583,15 +5641,13 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     a_source_sequence_entry_ptr     ssep;
     a_src_seq_secondary_decl_ptr    sssdp;
     a_decl_position_supplement_ptr  dpsp;
-
     /* Ordinarily secondary declarations of enum types (e.g., forward
-       declarations) are not allowed, but they are sometimes allowed as an
-       extension. */
-    check_assertion(!strict_ansi_mode || !is_redeclaration);
+       declarations) are not allowed in some modes. */
+    check_assertion(is_opaque_enum_decl || !strict_ansi_mode ||
+                    !is_redeclaration);
     /* Look for the secondary-decl entry. */
     ssep = last_matching_source_sequence_entry((char *)enum_type);
-    if (ssep != NULL &&
-        ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+    if (ssep != NULL && ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
       sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
       check_assertion(sssdp->decl_pos_info == NULL);
       /* Allocate the supplement, set its fields, and link it to the
