@@ -319,8 +319,8 @@ Obtain the assembly index from the assembly scope index.
 /*
 Create an assembly scope index from an assembly index and a scope index.
 */
-#define make_assembly_scope_index(assembly_index, scope_index) \
-  ((an_assembly_scope_index)(((scope_index) & 0xFFFF) |        \
+#define make_assembly_scope_index(assembly_index, scope_index)               \
+  ((an_assembly_scope_index)(/*lint -e(835)*/((scope_index) & 0xFFFF) |      \
                              (((assembly_index) & 0xFFFF) << 16)))
 
 /*

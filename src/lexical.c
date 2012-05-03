@@ -380,6 +380,9 @@ static a_UCN_range
   { 0x4e00, 0x9fa5, FALSE }, 
   { 0xac00, 0xd7a3, FALSE }
 };
+#if !(CPPCLI_ENABLING_POSSIBLE && EDG_WIN32)
+static
+#endif /* !(CPPCLI_ENABLING_POSSIBLE && EDG_WIN32) */
 an_error_code is_valid_UCN_identifier_char(
 					unsigned long	uchar,
 					a_boolean	is_identifier_start);
@@ -8348,6 +8351,9 @@ or +1 if the character follows the range.
 END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
+#if !(CPPCLI_ENABLING_POSSIBLE && EDG_WIN32)
+static
+#endif /* !(CPPCLI_ENABLING_POSSIBLE && EDG_WIN32) */
 an_error_code is_valid_UCN_identifier_char(
 					unsigned long	uchar,
 					a_boolean	is_identifier_start)

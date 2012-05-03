@@ -3464,7 +3464,7 @@ new_attr unrecognized.
   an_attribute_ptr  ap = *get_attribute_link(entity, entity_kind);
 
   for (; ap != NULL && ap != new_attr; ap = ap->next) {
-    if (ap->kind == (an_attribute_kind)kind) {
+    if (ap->kind == (a_byte_attribute_kind)kind) {
       pos_st2_error(ec_attribute_conflict, &new_attr->position, ap->name,
                     new_attr->name);
       make_attr_unrecognized(new_attr);
