@@ -109,15 +109,15 @@ backslashes):
 
 
 5/1/12   [EDGcpfe/12782]
-Microsoft compatibility: evaluation of members of in-class specializations
+Microsoft compatibility: processing of members of in-class specializations
 
 Formerly, member functions of Microsoft in-class specializations were
-evaluated at the point where they were encountered in the source even if
-they were not referenced.  They are now treated like other member
-functions of class templates and are evaluated when they are referenced.
-They are still evaluated at the point of definition when parsing nonclass
-templates.  This kind of usage is found in the ppltasks.h header of Visual
-Studio 11 Beta.
+parsed and analyzed at the point where they were encountered in the source
+even if they were not referenced.  They are now treated like other member
+functions of class templates and are parsed and analyzed when they are
+referenced.  They are still parsed and analyzed at the point of definition
+when parsing nonclass templates.  This kind of usage is found in the
+ppltasks.h header of Visual Studio 11 Beta.
 
   namespace N {}
   template <class T> struct A {
