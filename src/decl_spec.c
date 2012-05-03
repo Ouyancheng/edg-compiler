@@ -5047,10 +5047,10 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       a_type_ptr  new_base_type = explicit_base;
       /* For scoped enums without an explicit base type use "int". */
       if (is_scoped_enum && old_base_type == NULL) {
-        old_base_type = integer_type(ik_int);
+        old_base_type = integer_type((an_integer_kind)ik_int);
       }  /* if */
       if (is_scoped_enum && new_base_type == NULL) {
-        new_base_type = integer_type(ik_int);
+        new_base_type = integer_type((an_integer_kind)ik_int);
       }  /* if */
       if ((old_base_type != NULL || new_base_type != NULL) &&
           (old_base_type == NULL || new_base_type == NULL ||
