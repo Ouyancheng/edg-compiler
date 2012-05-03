@@ -286,6 +286,7 @@ static an_attr_descr known_attr_table[] = {
   /* Microsoft __declspec attributes. */
   { "align", "(ci)", "mx", ak_align },
   { "allocate", "(sn)", "mx", ak_section },
+  { "appdomain", "", "m+", ak_appdomain },
   { "assembly_info", "(ci,ci)", "mx", ak_assembly_info },
   { "deprecated", "?(sx)", "mx", ak_deprecated },
   { "dllexport", "", "mx", ak_dllexport },
@@ -294,12 +295,15 @@ static an_attr_descr known_attr_table[] = {
   { "__edg_pin_ptr_alias", "", "m+", ak_edg_pin_ptr_alias },
   { "implementation_key", "(ci)", "mx", ak_implementation_key },
   { "intrin_type", "", "mx", ak_intrin_type },
+  { "jitintrinsic", "", "m+", ak_jitintrinsic },
   { "naked", "", "mx", ak_naked },
   { "noalias", "", "mx(1400-)", ak_noalias },
   { "noinline", "", "mx", ak_noinline },
+  { "non_user_code", "", "m+", ak_non_user_code },
   { "noreturn", "", "mx", ak_noreturn },
   { "nothrow", "", "m+", ak_nothrow },
   { "novtable", "", "m+", ak_novtable },
+  { "process", "", "m+", ak_process },
   { "property", "(*)", "m+", ak_property },
   { "restrict", "", "mx(1400-)", ak_restrict },
   { "safebuffers", "", "mx", ak_safebuffers },
@@ -512,14 +516,18 @@ static an_attr_application_fn apply_weakref_attr;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* Application functions for Microsoft-__declspec-only attributes. */
+static an_attr_application_fn apply_appdomain_attr;
 static an_attr_application_fn apply_assembly_info_attr;
 static an_attr_application_fn apply_dllimport_dllexport_attr;
 static an_attr_application_fn apply_edg_interior_ptr_alias_attr;
 static an_attr_application_fn apply_edg_pin_ptr_alias_attr;
 static an_attr_application_fn apply_implementation_key_attr;
 static an_attr_application_fn apply_intrin_type_attr;
+static an_attr_application_fn apply_jitintrinsic_attr;
 static an_attr_application_fn apply_noalias_attr;
+static an_attr_application_fn apply_non_user_code_attr;
 static an_attr_application_fn apply_novtable_attr;
+static an_attr_application_fn apply_process_attr;
 static an_attr_application_fn apply_property_attr;
 static an_attr_application_fn apply_restrict_attr;
 static an_attr_application_fn apply_safebuffers_attr;
@@ -624,6 +632,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Microsoft-only attributes. */
+  { ak_appdomain, "v|Wt|Wp", apply_appdomain_attr },
   { ak_assembly_info, "c|e", apply_assembly_info_attr },
   { ak_dllexport, "c|e|r|v:-a!|Wt|Wp", apply_dllimport_dllexport_attr },
   { ak_dllimport, "c|e|r|v:-a!|Wt|Wp", apply_dllimport_dllexport_attr },
@@ -631,8 +640,11 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_edg_pin_ptr_alias, "t", apply_edg_pin_ptr_alias_attr },
   { ak_implementation_key, "", apply_implementation_key_attr },
   { ak_intrin_type, "c|Wp", apply_intrin_type_attr },
+  { ak_jitintrinsic, "r", apply_jitintrinsic_attr },
   { ak_noalias, "r|Wp", apply_noalias_attr },
+  { ak_non_user_code, "t|p|r|v|d", apply_non_user_code_attr },
   { ak_novtable, "c|Wp", apply_novtable_attr },
+  { ak_process, "v|Wt|Wp", apply_process_attr },
   { ak_property, "d|Wt|Wp", apply_property_attr },
   { ak_restrict, "r|Wp", apply_restrict_attr },
   { ak_safebuffers, "r", apply_safebuffers_attr },
@@ -3437,6 +3449,31 @@ Otherwise, return NULL and issue a diagnostic if appropriate.
   return func_type;
 }  /* get_func_type_for_attr */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void exclude_prior_attribute_kind(an_attribute_kind  kind,
+                                         an_attribute_ptr   new_attr,
+                                         char               *entity,
+                                         an_il_entry_kind   entity_kind)
+/*
+If the list of attribute associated with the given entity contains an attribute
+of the given kind preceding the attribute new_attr, issue an error and make
+new_attr unrecognized.
+*/
+{
+  an_attribute_ptr  ap = *get_attribute_link(entity, entity_kind);
+
+  for (; ap != NULL && ap != new_attr; ap = ap->next) {
+    if (ap->kind == (an_attribute_kind)kind) {
+      pos_st2_error(ec_attribute_conflict, &new_attr->position, ap->name,
+                    new_attr->name);
+      make_attr_unrecognized(new_attr);
+      break;
+    }  /* if */
+  }  /* for */
+}  /* exclude_prior_attribute_kind */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !USER_CONTROL_OF_STRUCT_PACKING
 /*ARGSUSED*/  /* The parameters are unused in some configurations. */
@@ -3466,6 +3503,13 @@ return that entity.
     check_assertion(ap->family == (a_byte_attribute_family)af_ms_declspec);
     constr = "c|e|t|v|d|r";
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    /* The alignment attribute cannot be combined with certain other
+       attributes. */
+    exclude_prior_attribute_kind(ak_appdomain, ap, entity, entity_kind);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (check_target_entity_match(constr, ap, entity, entity_kind) &&
       !is_unrecognized_attr(ap)) {
     an_attribute_arg_ptr  aap = ap->arguments;
@@ -5904,6 +5948,26 @@ Apply the GNU "weakref" attribute to the given entity and return that entity.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
+static char* apply_appdomain_attr(an_attribute_ptr  ap,
+                                  char              *entity,
+                                  an_il_entry_kind  entity_kind)
+/*
+Apply the Microsoft __declspec(appdomain) attribute to the given entity
+(and return that entity).
+*/
+{
+  if (!cppcli_enabled) {
+    pos_st_error(ec_cppcli_attribute_only, &ap->position, ap->name);
+    make_attr_unrecognized(ap);
+  } else {
+    /* "appdomain" cannot be combined with "align". */
+    exclude_prior_attribute_kind(ak_align, ap, entity, entity_kind);
+  }  /* if */
+  return entity;
+}  /* apply_appdomain_attr */
+
+
 static char *apply_assembly_info_attr(an_attribute_ptr  ap,
                                       char              *entity,
                                       an_il_entry_kind  entity_kind)
@@ -5914,11 +5978,13 @@ of the assembly in which type is defined.  <def-token> is the def-token of
 the type.
 */
 {
-  a_constant_ptr    arg, arg2;
-  a_type_ptr        tp = (a_type_ptr)entity;
-  a_boolean         ovflo;
-  an_assembly_index assembly_index;
-  a_cpp_cli_token   metadata_type_def_token;
+  a_constant_ptr           arg, arg2;
+  a_type_ptr               tp = (a_type_ptr)entity;
+  a_boolean                ovflo;
+  an_assembly_scope_index  assembly_scope_index;
+  an_assembly_index        assembly_index;
+  a_cpp_cli_token          metadata_type_def_token;
+  a_cli_metadata_file_ptr  cmfp;
 
   /* Get the assembly index and the typedef token. */
   check_assertion(entity_kind == iek_type);
@@ -5931,19 +5997,43 @@ the type.
   check_assertion(arg->kind == (a_constant_repr_kind)ck_integer);
   arg2 = ap->arguments->next->variant.constant;
   check_assertion(arg2->kind == (a_constant_repr_kind)ck_integer);
-  assembly_index = 
-            (an_assembly_index)unsigned_value_of_integer_constant(arg, &ovflo);
+  assembly_scope_index = 
+      (an_assembly_scope_index)unsigned_value_of_integer_constant(arg, &ovflo);
   check_assertion(!ovflo);
+  assembly_index = assembly_index_from_assembly_scope_index(
+                                                         assembly_scope_index);
   metadata_type_def_token = 
              (a_cpp_cli_token)unsigned_value_of_integer_constant(arg2, &ovflo);
   check_assertion(!ovflo);
-  /* Apply the values to the various il entries. */
+  /* Get the assembly position. */
+  cmfp = map_assembly_index_to_cmfp(assembly_index);
+  if (cmfp == NULL) {
+    catastrophe(ec_bad_assembly_index);
+  }  /* if */
+  /* Apply the values to the various il entries, but check that another
+     assembly_info attribute has not already been applied to this type.  The
+     first application should prevail so that the first definition encountered
+     (from source or metadata) is used. */
   if (is_class_or_struct(tp)) {
-    class_type_supp(tp)->assembly_index = assembly_index;
-    class_type_supp(tp)->metadata_type_def_token = metadata_type_def_token;
+    a_class_type_supplement_ptr  ctsp = class_type_supp(tp);
+    if (compare_source_positions(&cmfp->inserted_position,
+                                 &tp->source_corresp.decl_position) == 0 &&
+        ctsp->assembly_scope_index == 0) {
+      check_assertion(ctsp->assembly_scope_index == 0 &&
+                      ctsp->metadata_type_def_token == 0);
+      ctsp->assembly_scope_index = assembly_scope_index;
+      ctsp->metadata_type_def_token = metadata_type_def_token;
+    }  /* if */
   } else if (is_immediate_enum_type(tp)) {
-    integer_type_supp(tp)->assembly_index = assembly_index;
-    integer_type_supp(tp)->metadata_type_def_token = metadata_type_def_token;
+    an_integer_type_supplement_ptr itsp = integer_type_supp(tp);
+    if (compare_source_positions(&cmfp->inserted_position,
+                                 &tp->source_corresp.decl_position) == 0 &&
+        itsp->assembly_scope_index == 0) {
+      check_assertion(itsp->assembly_scope_index == 0 &&
+                      itsp->metadata_type_def_token == 0);
+      itsp->assembly_scope_index = assembly_scope_index;
+      itsp->metadata_type_def_token = metadata_type_def_token;
+    }  /* if */
   } else {
     pos_error(ec_bad_assembly_info_attribute, &ap->position);
   }  /* if */
@@ -6068,6 +6158,24 @@ return that entity).
 }  /* apply_intrin_type_attr */
 
 
+/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
+static char* apply_jitintrinsic_attr(an_attribute_ptr  ap,
+                                     char              *entity,
+                                     an_il_entry_kind  entity_kind)
+/*
+Apply the Microsoft __declspec(jitintrinsic) attribute to the given entity
+(and return that entity).
+*/
+{
+  if (!cppcli_enabled) {
+    pos_st_error(ec_cppcli_attribute_only, &ap->position, ap->name);
+    make_attr_unrecognized(ap);
+  }  /* if */
+  /* FIXME: Apply the attribute or issue diagnostics if appropriate. */
+  return entity;
+}  /* apply_jitintrinsic_attr */
+
+
 /*ARGSUSED*/  /* ap is unused (but required by the callback type). */
 static char* apply_noalias_attr(an_attribute_ptr  ap,
                                 char              *entity,
@@ -6081,6 +6189,21 @@ return that entity).
   ((a_routine*)entity)->decl_modifiers |= DM_NOALIAS;
   return entity;
 }  /* apply_noalias_attr */
+
+
+/*ARGSUSED*/  /* ap and entity_kind are unused (but required by the callback
+                 type). */
+static char* apply_non_user_code_attr(an_attribute_ptr  ap,
+                                      char              *entity,
+                                      an_il_entry_kind  entity_kind)
+/*
+Apply the Microsoft __declspec(non_user_code) attribute to the given entity
+(and return that entity).
+*/
+{
+  /* FIXME: Apply the attribute or issue diagnostics if appropriate. */
+  return entity;
+}  /* apply_non_user_code_attr */
 
 
 /*ARGSUSED*/  /* ap is unused (but required by the callback type). */
@@ -6098,6 +6221,24 @@ return that entity).
   class_type_supp(tp)->decl_modifiers |= DM_NOVTABLE;
   return entity;
 }  /* apply_novtable_attr */
+
+
+/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
+static char* apply_process_attr(an_attribute_ptr  ap,
+                                char              *entity,
+                                an_il_entry_kind  entity_kind)
+/*
+Apply the Microsoft __declspec(process) attribute to the given entity
+(and return that entity).
+*/
+{
+  if (!cppcli_enabled) {
+    pos_st_error(ec_cppcli_attribute_only, &ap->position, ap->name);
+    make_attr_unrecognized(ap);
+  }  /* if */
+  /* FIXME: Apply the attribute or issue diagnostics if appropriate. */
+  return entity;
+}  /* apply_process_attr */
 
 
 static char* apply_property_attr(an_attribute_ptr  ap,

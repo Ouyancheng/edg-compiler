@@ -9071,6 +9071,12 @@ definition of a member function of a class template.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (func_info->is_definition || dps->first_decl) {
+    update_decl_pos_info(&rout_ptr->source_corresp,
+                         &decl_state->decl_pos_block);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   update_routine_decl_modifiers(rout_ptr, &dps->decl_modifiers,
                                 &locator->source_position, redeclaration,
                                 (a_boolean)func_info->is_definition,

@@ -2043,6 +2043,9 @@ a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
 extern a_boolean is_identifier_char(char      *ptr,
                                     int       *len,
                                     a_boolean is_identifier_start);
+extern an_error_code is_valid_UCN_identifier_char(
+                                           unsigned long uchar,
+                                           a_boolean     is_identifier_start);
 /* Check character as nonstandard. */
 extern a_boolean is_nonstandard_character(char ch);
 /* Skip white space. */

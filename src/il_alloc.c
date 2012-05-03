@@ -1204,7 +1204,7 @@ a pointer to it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   itsp->declared_assembly_visibility = (an_assembly_visibility)av_none;
   itsp->assembly_visibility = (an_assembly_visibility)av_none;
-  itsp->assembly_index = 0;
+  itsp->assembly_scope_index = 0;
   itsp->metadata_type_def_token = 0;
   itsp->uuid_string = NULL;
   itsp->boxed_type = NULL;
@@ -1525,7 +1525,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->hash_value = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ctsp->corresponding_basic_type          = NULL;
-  ctsp->assembly_index                    = 0;
+  ctsp->assembly_scope_index              = 0;
   ctsp->metadata_type_def_token           = 0;
   ctsp->base_dispose_bool_routine         = NULL;
   ctsp->base_idisposable_dispose_routine  = NULL;

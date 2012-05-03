@@ -971,6 +971,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_enum_type_replacement)*/
 /*lint -esym(769,ec_ptr_to_member_of_handle_type)*/
 /*lint -esym(769,ec_arrow_star_operator_in_managed_class)*/
+/*lint -esym(769,ec_bad_assembly_index)*/
 /*lint -esym(759,free_attachments_to_operand)*/
 /*lint -esym(765,free_attachments_to_operand)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -2386,6 +2386,8 @@ ec_ptr_to_member_of_reference_type;;"pointer to member of reference type is not 
 ec_ptr_to_member_of_handle_type;;"pointer to member of handle type is not allowed"
 ec_braced_init_list_not_allowed;;"a brace-enclosed list is not allowed here"
 ec_arrow_star_operator_in_managed_class;;"an operator->* member is not allowed in a managed class"
+ec_bad_assembly_index;;"assembly metadata refers to non-existent assembly"
+ec_attribute_conflict;;"attribute %sq2 conflicts with earlier attribute %sq1"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

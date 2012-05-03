@@ -380,7 +380,7 @@ static a_UCN_range
   { 0x4e00, 0x9fa5, FALSE }, 
   { 0xac00, 0xd7a3, FALSE }
 };
-static an_error_code is_valid_UCN_identifier_char(
+an_error_code is_valid_UCN_identifier_char(
 					unsigned long	uchar,
 					a_boolean	is_identifier_start);
 
@@ -8348,7 +8348,7 @@ or +1 if the character follows the range.
 END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
-static an_error_code is_valid_UCN_identifier_char(
+an_error_code is_valid_UCN_identifier_char(
 					unsigned long	uchar,
 					a_boolean	is_identifier_start)
 /*
@@ -18869,7 +18869,7 @@ C++/CLI delegate class types.)
   a_symbol_ptr			class_sym_for_context;
   a_template_decl_info_ptr	tdip;
   a_boolean			define_class = FALSE;
-  an_assembly_index		assembly_index = 0;
+  an_assembly_scope_index	assembly_scope_index = 0;
   a_cpp_cli_token		metadata_type_def_token;
   sizeof_t			size = 0;
   a_type_ptr			class_type_for_context = class_type;
@@ -18882,15 +18882,19 @@ C++/CLI delegate class types.)
   a_boolean			is_delegate;
   a_boolean			is_generic_definition;
   a_class_type_supplement_ptr	ctsp = class_type_supp(class_type);
+  an_assembly_index             assembly_index;
   an_assembly_index             saved_assembly_index = curr_assembly_index;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   class_sym = symbol_for(class_type);
   if (class_type->incomplete) {
-    if (ctsp->assembly_index != 0 && ctsp->metadata_type_def_token != 0) {
+    if (ctsp->assembly_scope_index != 0 &&
+        ctsp->metadata_type_def_token != 0) {
       /* The class is from an assembly.  Load the definition of the class
          now. */
-      assembly_index = ctsp->assembly_index;
+      assembly_scope_index = ctsp->assembly_scope_index;
+      assembly_index = assembly_index_from_assembly_scope_index(
+                                                        assembly_scope_index);
       metadata_type_def_token = ctsp->metadata_type_def_token;
       if (class_sym->variant.class_struct_union.extra_info->being_defined) {
         /* The class is already in the process of being defined, so another
@@ -18964,7 +18968,7 @@ C++/CLI delegate class types.)
 #if CPPCLI_ENABLING_POSSIBLE
   /* Get the definition from metadata.  */
   size = class_def_buffer->allocated_size;
-  import_class_definition(assembly_index, 
+  import_class_definition(assembly_scope_index, 
                           metadata_type_def_token,
                           class_def_buffer->buffer, &size);
   if (size <= class_def_buffer->allocated_size) {
@@ -18974,7 +18978,7 @@ C++/CLI delegate class types.)
     /* Expand the buffer */
     reset_text_buffer(class_def_buffer);
     expand_text_buffer(class_def_buffer, size);
-    import_class_definition(assembly_index, 
+    import_class_definition(assembly_scope_index, 
                             metadata_type_def_token,
                             class_def_buffer->buffer, &size);
     check_assertion(size <= class_def_buffer->allocated_size);
@@ -18983,11 +18987,13 @@ C++/CLI delegate class types.)
 #if DEBUG
   if (db_flag_is_set("dump_metadata")) {
     fprintf(f_debug, "Class definition for %x/%08x: %.256s%s\n",
-            assembly_index, metadata_type_def_token, class_def_buffer->buffer,
+            assembly_scope_index, metadata_type_def_token,
+            class_def_buffer->buffer,
             class_def_buffer->size > 256 ? "..." : "");
   } else if (db_flag_is_set("dump_full_metadata")) {
     fprintf(f_debug, "Class definition for %x/%08x: %s\n",
-            assembly_index, metadata_type_def_token, class_def_buffer->buffer);
+            assembly_scope_index, metadata_type_def_token,
+            class_def_buffer->buffer);
   }  /* if */
 #endif /* DEBUG */
 #else /* !CPPCLI_ENABLING_POSSIBLE */

@@ -179,7 +179,7 @@ extern a_boolean class_is_instance_of_generic_from_metadata(
    from metadata, an instance of a generic class loaded from metadata, or a
    nested class thereof. */
 #define class_is_from_metadata(tp)                                           \
-  (class_type_supp((tp))->assembly_index != 0 ||                             \
+  (class_type_supp((tp))->assembly_scope_index != 0 ||                       \
    (tp->variant.class_struct_union.is_generic_instance &&                    \
     class_is_instance_of_generic_from_metadata((tp))))
 #endif /* !STANDALONE_UTILITY_PROGRAM */

@@ -5135,9 +5135,10 @@ available.
     (void)fseek(file, entry->header.table_offset, SEEK_SET);
     for (i = 0; i < entry->header.num_entries; i++) {
       if (fscanf(file, PORTABLE_ASSEMBLY_TABLE_FORMAT,
+                                                 &entry->table[i].scope_index,
                                                  &entry->table[i].token,
                                                  &entry->table[i].offset,
-                                                 &entry->table[i].size) != 3) {
+                                                 &entry->table[i].size) != 4) {
         goto close_file_with_error_return;
       }  /* if */
     }  /* for */
@@ -5179,17 +5180,19 @@ string from a portable assembly if so configured.
 {
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES
   /* The class declarations for the assembly are stored in the first entry
-     (with typedef of zero), so return that entry. */
-  import_class_definition(assembly_index, 0, buffer, buffer_size);
+     (with a scope index of zero and a type-def token of zero): Return that
+     entry. */
+  import_class_definition(make_assembly_scope_index(assembly_index, 0), 0,
+                          buffer, buffer_size);
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
 }  /* import_all_types */
 
 
 /*ARGSUSED*/
-void import_class_definition(an_assembly_index assembly_index,
-                             a_cpp_cli_token   metadata_type_def_token,
-                             char              *buffer,
-                             size_t            *buffer_size)
+void import_class_definition(an_assembly_scope_index assembly_scope_index,
+                             a_cpp_cli_token         metadata_type_def_token,
+                             char                    *buffer,
+                             size_t                  *buffer_size)
 /*
 Import a specific class definition (as defined by metadata_type_def_token) from
 the specified assembly into the buffer whose size is in *buffer_size.  This
@@ -5202,11 +5205,19 @@ so configured.
   a_portable_assembly_entry *entry;
   size_t                    size;
   unsigned int              i;
+  an_assembly_index         assembly_index;
+  a_scope_index             scope_index;
 
+  assembly_index = assembly_index_from_assembly_scope_index(
+                                                        assembly_scope_index);
+  scope_index = scope_index_from_assembly_scope_index(assembly_scope_index);
   check_assertion(assembly_index <= pa_cur_table_entry);
   entry = &portable_assembly_table[assembly_index];
   for (i = 0; i < entry->header.num_entries; i++) {
-    if (entry->table[i].token == metadata_type_def_token) break;
+    if (entry->table[i].scope_index == scope_index &&
+        entry->table[i].token == metadata_type_def_token) {
+      break;
+    }  /* if */
   }  /* for */
   check_assertion(i < entry->header.num_entries);
   size = entry->table[i].size;

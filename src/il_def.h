@@ -288,8 +288,40 @@ Type of integer "tokens" for entities stored in metadata files.
 typedef unsigned int a_cpp_cli_token;
 
 /*
-Type of an integer index into a table of assemblies being imported from. */
-typedef unsigned int an_assembly_index;
+Type of an integer index into a table of assemblies being imported from.
+*/
+typedef unsigned short an_assembly_index;
+
+/*
+Type of an integer index indicating a scope within an assembly.
+*/
+typedef unsigned short a_scope_index;
+
+/*
+Type of an integer index that uniquely identifies a particular scope in
+an assembly.  The scope index is stored in the least significant 16 bits,
+and the assembly index in the 16 bits above that.
+*/
+typedef unsigned int an_assembly_scope_index;
+
+/*
+Obtain the scope index from the assembly scope index.
+*/
+#define scope_index_from_assembly_scope_index(assembly_scope_index) \
+  ((a_scope_index)(assembly_scope_index & 0xFFFF))
+
+/*
+Obtain the assembly index from the assembly scope index.
+*/
+#define assembly_index_from_assembly_scope_index(assembly_scope_index) \
+  ((an_assembly_index)(((assembly_scope_index) >> 16) & 0xFFFF))
+
+/*
+Create an assembly scope index from an assembly index and a scope index.
+*/
+#define make_assembly_scope_index(assembly_index, scope_index) \
+  ((an_assembly_scope_index)(((scope_index) & 0xFFFF) |        \
+                             (((assembly_index) & 0xFFFF) << 16)))
 
 /*
 Entry used to represent a CLI metadata file.  This is used for metadata
@@ -2258,7 +2290,8 @@ typedef enum an_attribute_kind_tag {
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Microsoft-__declspec-only attributes. */
-  ak_assembly_info,     /* "assembly_info" (ms). */
+  ak_appdomain,		/* "appdomain" (ms). */
+  ak_assembly_info,	/* "assembly_info" (ms). */
   ak_dllexport,		/* "dllexport" (ms). */
   ak_dllimport,		/* "dllimport" (ms). */
   ak_edg_interior_ptr_alias,
@@ -2267,8 +2300,11 @@ typedef enum an_attribute_kind_tag {
   ak_implementation_key,
 			/* "implementation_key" (ms). */
   ak_intrin_type,	/* "intrin_type" (ms). */
+  ak_jitintrinsic,	/* "jitintrinsic" (ms). */
   ak_noalias,		/* "noalias" (ms). */
+  ak_non_user_code,	/* "non_user_code" (ms). */
   ak_novtable,		/* "novtable" (ms). */
+  ak_process,		/* "process" (ms). */
   ak_property,		/* "property" (ms). */
   ak_restrict,		/* "restrict" (ms). */
   ak_safebuffers,	/* "safebuffers" (ms). */
@@ -6964,11 +7000,11 @@ typedef struct a_class_type_supplement {
 		corresponding_basic_type;
 			/* If this class is a fundamental C++/CLI type, the
 			   corresponding basic C++ type (otherwise NULL). */
-  an_assembly_index
-		assembly_index;
-			/* The index of the assembly in which this construct
-			   was defined, or zero if the construct is not from
-			   an assembly. */
+  an_assembly_scope_index
+		assembly_scope_index;
+			/* The index of the assembly and scope in which this
+			   construct was defined, or zero if the construct is
+			   not from an assembly. */
   a_cpp_cli_token
 		metadata_type_def_token;
 			/* If this construct was defined in an assembly, the
@@ -7164,10 +7200,10 @@ typedef struct an_integer_type_supplement {
                         /* Effective visibility of this type at the assembly
 			   level  (Enumeration types in C++/CLI mode only.) */
   an_assembly_index
-		assembly_index;
-			/* The index of the assembly in which this construct
-			   was defined, or zero if the construct is not from
-			   an assembly. */
+		assembly_scope_index;
+			/* The index of the assembly and scope in which this
+			   construct was defined, or zero if the construct is
+			   not from an assembly. */
   a_cpp_cli_token
 		metadata_type_def_token;
 			/* If this construct was defined in an assembly, the

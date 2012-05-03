@@ -54,8 +54,9 @@ extern an_assembly_index import_metadata_file(
 extern void import_all_types(an_assembly_index assembly_index,
                              char              *buffer,
                              size_t            *buffer_size);
-extern void import_class_definition(an_assembly_index assembly_index,
-                                    a_cpp_cli_token   metadata_type_def_token,
+extern void import_class_definition(
+                                 an_assembly_scope_index assembly_scope_index,
+                                 a_cpp_cli_token         typedef_token,
                                     char              *buffer,
                                     size_t            *buffer_size);
 extern void ms_metadata_trans_unit_init(char *trans_unit_file_name);
@@ -66,10 +67,9 @@ extern void ms_metadata_cleanup(void);
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES
 
 typedef struct a_portable_assembly_header {
-  /* This structure defines the data found at the beginning of a
-     portable assembly file.  These fields are each converted to ASCII and
-     formatted as %08x in the file.  The header is terminated with a
-     newline. */
+  /* This structure defines the data found at the beginning of a portable
+     assembly file.  These fields are each converted to ASCII and formatted as
+     %08x in the file.  The header is terminated with a newline. */
 #define PORTABLE_ASSEMBLY_HEADER_FORMAT "%08x %08x %08x\n"
 #define PORTABLE_ASSEMBLY_MAGIC_NUMBER  0x11223344
   uint32_t      magic;  /* Identifying "magic" number for portable assembly
@@ -85,10 +85,15 @@ typedef struct a_portable_assembly_header {
 
 typedef struct a_portable_assembly_table_entry {
   /* Each entry in this table represents the metadata associated with a
-     particular C++/CLI metadata token.  These fields are each converted to
-     ASCII and formatted as %08x in the file.  Each entry is terminated
-     with a newline. */
-#define PORTABLE_ASSEMBLY_TABLE_FORMAT "%08x %08x %08x\n"
+     particular C++/CLI metadata token in a particular import scope.  These
+     fields are each converted to ASCII and formatted as %04hx (for 16-bit
+     fields) or %08x (for 32-bit fields) in the file.  Each entry is
+     terminated with a newline. */
+#define PORTABLE_ASSEMBLY_TABLE_FORMAT "%04hx %08x %08x %08x\n"
+  uint16_t      scope_index;
+                        /* The index of the import scope in the assembly
+                           containing the definition of the type associated
+                           with this entry. */
   uint32_t      token;  /* The C++/CLI metadata type_def token associated with
                            this entry.  The first entry in this table
                            (token == 0) refers to the string returned by

@@ -19061,6 +19061,12 @@ template symbol supplement for this template should be returned to the caller.
     set_template_cache_info(&tssp->variant.static_data_member.decl_cache,
                             &decl_state->decl_token_cache,
                             decl_state->decl_info);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
+    update_decl_pos_info(
+                    &sym->variant.static_data_member.variable->source_corresp,
+                    &decl_state->decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     decl_state->decl_token_cache_used = TRUE;
     check_assertion(tssp->il_template_entry != NULL);
     if (decl_state->export_present) {

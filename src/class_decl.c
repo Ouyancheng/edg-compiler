@@ -7425,6 +7425,74 @@ diagnostics that can be emitted based on this information.
   *explicit_access = access_already_specified;
 }  /* scan_inheritance_kind */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void check_base_class_type_of_managed_class(a_type_ptr  type,
+                                                   a_type_ptr  base_type)
+/*
+Check that a managed class type (type) can validly derive from the class type
+given by base_type.  Issue a diagnostic if not.
+*/
+{
+  /* Managed class types have different constraints.  Value classes and
+     interface classes can only derive from interface classes.  Ref classes
+     can derive from at most one other ref class; other base classes must be
+     interface classes. */
+  if (!cli_class_type_kind_is(base_type, cctk_interface)) {
+    switch (class_type_supp(type)->cli_class_type_kind) {
+      case cctk_ref:
+        if (cli_class_type_kind_is(base_type, cctk_ref)) {
+          a_base_class_ptr  bcp = base_classes_of(type);
+          for (; bcp != NULL; bcp = bcp->next) {
+            if (bcp->direct && cli_class_type_kind_is(bcp->type, cctk_ref)) {
+              pos_ty_error(ec_ref_class_has_multiple_ref_bases,
+                           &error_position, bcp->type);
+              break;
+            }  /* if */
+          }  /* for */
+          /* A ref class type cannot derive from any of the following types:
+             System::Array, System::Delegate, System::MulticastDelegate,
+             System::Enum, or System::ValueType.  The only exception is the
+             cli::array ref class template, which is required to derive from
+             System::Array. */
+          if (class_type_supp(type)->assembly_scope_index == 0 &&
+              class_type_supp(base_type)->assembly_scope_index != 0 &&
+              ((!class_type_supp(type)->is_cli_array &&
+                f_same_entities(base_type,
+                                cli_class_type_for(csk_system_array))) ||
+               f_same_entities(base_type,
+                               cli_class_type_for(csk_system_delegate)) ||
+               f_same_entities(
+                         base_type,
+                         cli_class_type_for(csk_system_multicast_delegate)) ||
+               f_same_entities(base_type,
+                               cli_class_type_for(csk_system_enum)) ||
+               f_same_entities(base_type, cli_system_value_type()))) {
+            pos_ty_error(ec_invalid_specific_ref_class_base, &error_position,
+                         base_type);
+            break;
+          }  /* if */
+        } else {
+          pos_error(ec_invalid_ref_class_base, &error_position);
+        }  /* if */
+        break;
+      case cctk_value:
+        { a_type_ptr  system_value_type = cli_system_value_type();
+          if (!identical_types(base_type, system_value_type)) {
+            pos_error(ec_invalid_value_class_base, &error_position);
+          }  /* if */
+        }
+        break;
+      case cctk_interface:
+        pos_error(ec_invalid_interface_class_base, &error_position);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
+}  /* check_base_class_type_of_managed_class */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* type only used when Microsoft extensions are enabled. */
@@ -7458,66 +7526,7 @@ issue an error and return FALSE.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       if (is_immediate_managed_class_type(type)) {
-        /* Managed class types have different constraints.  Value classes and
-           interface classes can only derive from interface classes.  Ref
-           classes can derive from at most one other ref class; other base
-           classes must be interface classes. */
-        if (!cli_class_type_kind_is(base_class_type, cctk_interface)) {
-          switch (class_type_supp(type)->cli_class_type_kind) {
-            case cctk_ref:
-              if (cli_class_type_kind_is(base_class_type, cctk_ref)) {
-                a_base_class_ptr  bcp = base_classes_of(type);
-                for (; bcp != NULL; bcp = bcp->next) {
-                  if (bcp->direct &&
-                      cli_class_type_kind_is(bcp->type, cctk_ref)) {
-                    pos_ty_error(ec_ref_class_has_multiple_ref_bases,
-                                 &error_position, bcp->type);
-                    break;
-                  }  /* if */
-                }  /* for */
-                /* A ref class type cannot derive from any of the following
-                   types: System::Array, System::Delegate,
-                   System::MulticastDelegate, System::Enum, or
-                   System::ValueType.  The only exception is the cli::array
-                   ref class template, which is required to derive from
-                   System::Array. */
-                if (class_type_supp(type)->assembly_index == 0 &&
-                    class_type_supp(base_class_type)->assembly_index != 0 &&
-                    ((!class_type_supp(type)->is_cli_array &&
-                      f_same_entities(base_class_type,
-                                      cli_class_type_for(csk_system_array))) ||
-                     f_same_entities(
-                                   base_class_type,
-                                   cli_class_type_for(csk_system_delegate)) ||
-                     f_same_entities(
-                         base_class_type,
-                         cli_class_type_for(csk_system_multicast_delegate)) ||
-                     f_same_entities(base_class_type,
-                                     cli_class_type_for(csk_system_enum)) ||
-                     f_same_entities(base_class_type,
-                                     cli_system_value_type()))) {
-                  pos_ty_error(ec_invalid_specific_ref_class_base,
-                               &error_position, base_class_type);
-                  break;
-                }  /* if */
-              } else {
-                pos_error(ec_invalid_ref_class_base, &error_position);
-              }  /* if */
-              break;
-            case cctk_value:
-              { a_type_ptr  system_value_type = cli_system_value_type();
-                if (!identical_types(base_class_type, system_value_type)) {
-                  pos_error(ec_invalid_value_class_base, &error_position);
-                }  /* if */
-              }
-              break;
-            case cctk_interface:
-              pos_error(ec_invalid_interface_class_base, &error_position);
-              break;
-            default:
-              unexpected_condition();
-          }  /* switch */
-        }  /* if */
+        check_base_class_type_of_managed_class(type, base_class_type);
       } else {
         if (cppcli_enabled &&
             is_immediate_managed_class_type(base_class_type)) {
@@ -15885,6 +15894,8 @@ be entered.
       }  /* if */
     }  /* if */
     if (cppcli_enabled && !cssp->any_disposable_data_members &&
+        (!field_is_property_or_event(field) ||
+         field->property_or_event_descr->is_trivial) &&
         is_ref_class_type(member_type) &&
         symbol_supplement_for_class(member_type)->is_disposable) {
       /* Record that there is at least one disposable ref class member. */
@@ -21316,6 +21327,7 @@ and record the overridden base class members in decl_info->named_overrides.
         *p_list_entry = alloc_symbol_list_entry();
         (*p_list_entry)->symbol = sym;
         p_list_entry = &(*p_list_entry)->next;
+        mark_referenced(sym, &locator_for_curr_id.source_position);
       }  /* if */
       (void)get_token();
     } while (loop_token(tok_comma));
@@ -24337,7 +24349,7 @@ classes.
                                     /*extend_namespace=*/TRUE);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (ctsp->assembly_index != 0 && curr_token == tok_identifier) {
+    if (ctsp->assembly_scope_index != 0 && curr_token == tok_identifier) {
       /* When loading a definition from metadata, the "sealed" and "abstract"
          modifiers are added at the start of the definition. */
       a_token_kind  next_tok;
