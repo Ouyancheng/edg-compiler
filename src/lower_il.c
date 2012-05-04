@@ -16475,7 +16475,7 @@ Lower an stmk_return statement.
       } else {
         /* This must be a C++11 list-initializer case, e.g., "return{x};".
            Initialize a temporary using the dynamic init entry, and return
-           the value of the temporary */
+           the value of the temporary. */
         temp_var = make_local_temporary(skip_typerefs(return_type));
         set_var_init_pos_descr(temp_var, &ipd);
       }  /* if */
