@@ -4756,10 +4756,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       /* This is a definition of an enumeration that has previously been
          declared. */
       if (tag_sym->is_class_member) {
-        /* Class member enum types must normally be defined in the definition
-           of their enclosing class, but Microsoft compilers allow out-of-class
-           definitions. */
-        if (microsoft_mode && class_of_which_a_member == NULL) {
+        /* C++11 enabled out-of-class definitions of enum type when it added
+           opaque enum declarations.  Microsoft compilers have allowed this for
+           a long time. */
+        if ((opaque_enum_decls_enabled || microsoft_mode) &&
+            class_of_which_a_member == NULL) {
           /* An out-of-class definition of a class member enum: Reactivate the
              class scope. */
           class_of_which_a_member = sym_parent_class(tag_sym);
