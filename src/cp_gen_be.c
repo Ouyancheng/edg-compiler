@@ -4193,13 +4193,15 @@ to the constant.  Otherwise, literal_con is NULL and dip and literal_type
 give the dynamic initialization entry and type for the compound literal.
 An example of the form of a compound literal:
        (int []){1, 2, 3}
-In GNU C mode, passing an expression to a transparent union function
-parameter is represented in the IL as a compound literal; in this
-case, transparent_union will be TRUE, and the cast and braces must be
-suppressed.
+In C++11 mode, a "list initializer" may also be represented as a compound
+literal (but the source form doesn't include the cast-like prefix).  In GNU
+C mode, passing an expression to a transparent union function parameter is
+represented in the IL as a compound literal; in this case, transparent_union
+will be TRUE, and the cast and braces must be suppressed.
 */
 {
   a_boolean is_scalar;
+  a_boolean list_init = (dip != NULL && dip->is_braced_initializer);
 
   if (literal_con != NULL) {
     literal_type = literal_con->type;
@@ -4208,9 +4210,9 @@ suppressed.
     /* Constant dynamic initializations are handled as constants. */
     literal_con = dip->variant.constant;
   }  /* if */
-  /* If dip represents a transparent union case, omit the cast-like prefix
-     and the surrounding parentheses. */
-  if (!transparent_case) {
+  /* If dip represents a list initializer, or in the transparent union case,
+     omit the cast-like prefix and the surrounding parentheses. */
+  if (!list_init && !transparent_case) {
     write_tok_ch('(');
     gen_cast(literal_type);
   }  /* if */
@@ -4236,7 +4238,9 @@ suppressed.
              /*obj_expr_of_mfunc_operator=*/FALSE);
   }  /* if */
   if (is_scalar) write_tok_ch('}');
-  if (!transparent_case) write_tok_ch(')');
+  if (!list_init && !transparent_case) {
+    write_tok_ch(')');
+  }  /* if */
 }  /* gen_compound_literal */
 
 
