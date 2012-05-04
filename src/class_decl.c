@@ -16728,6 +16728,10 @@ warnings or remarks may be issued.
                               &class_type->source_corresp.decl_position,
                               sym, class_type);
         }  /* if */
+        if (is_rvalue_reference_type(tp)) {
+          /* An rvalue reference field also suppresses the copy constructor. */
+          gsfd->suppress_copy_ctor = TRUE;
+        }  /* if */
       }  /* if */
       if (is_class_struct_union_type(tp)) {
         /* Check to see if the special member functions of the member's class
