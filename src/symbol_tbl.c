@@ -6647,6 +6647,7 @@ instantiation.
   rout_ptr->is_template_function = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   rout_ptr->is_generic_definition = is_generic;
+  rout_ptr->is_generic_instance = is_generic;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return sym;
 }  /* make_function_template_prototype_symbol */

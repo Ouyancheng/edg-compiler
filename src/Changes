@@ -1,5 +1,17 @@
 Version 4.5
 
+5/4/12   [EDGcpfe/12906]
+C++/CLI: Generic instance flag not set for generic functions
+
+The is_generic_instance flag was not set for the routine entry for
+a generic function in the generic definition class and in any instantiations
+of the class.  Now fixed.
+
+  generic <class T> ref class A {
+    generic <class U> void f(){}
+  };
+
+
 5/2/12   [EDGcpfe/12882]
 Abort on attempt to convert pointer-to-member selection x.*y back to lvalue
 
