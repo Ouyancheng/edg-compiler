@@ -12114,8 +12114,8 @@ C++/CLI dispose pattern).
 }  /* check_for_reserved_dispose_pattern_members */
 
 
-a_boolean check_accessor_name(a_property_or_event_descr_ptr  pdp,
-                              a_symbol_locator               *locator)
+static a_boolean check_accessor_name(a_property_or_event_descr_ptr  pdp,
+                                     a_symbol_locator               *locator)
 /*
 A member function declaration with the given locator appears in a C++/CLI
 property or event definition described by pdp.  If the name represented by the
