@@ -4871,6 +4871,99 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     is_opaque_enum_decl = TRUE;
     is_definition = FALSE;
   }  /* if */
+  if (tag_sym != NULL) {
+    /* Using an existing type.  Fetch the enumerated type pointer from it. */
+    enum_type = type_symbol_type(tag_sym);
+    is_redeclaration = TRUE;
+    if (is_immediate_enum_type(enum_type)) {
+      /* C++/CLI does not permit a type first declared with "enum class" or
+         "enum struct" to later be referred to with just "enum", nor vice
+         versa.  C++11 also disallows the mismatch for opaque declarations
+         and definitions, but for elaborated enum specifiers only "enum" is
+         allowed (the latter rule came along with the introduction of opaque
+         enum declarations into the language). */
+      if (cppcli_enabled || (opaque_enum_decls_enabled &&
+                             (is_definition || is_opaque_enum_decl))) {
+        if (is_scoped_enum != integer_type_is_scoped_enum(enum_type)) {
+          pos_sy_error(ec_incompatible_enum_kinds, &locator.source_position,
+                       tag_sym);
+          if (!is_definition && is_scoped_enum) {
+            /* If this is not a definition, continue to treat it as an unscoped
+               enumeration since this provides for slightly better error
+               recovery. */
+            is_scoped_enum = FALSE;
+          }  /* if */
+        }  /* if */
+      } else if (opaque_enum_decls_enabled && is_scoped_enum) {
+        /* "enum struct" or "enum class" cannot be used for an elaborated
+           specifier, even if the original declaration is for a scoped enum. */
+        pos_error(ec_invalid_scoped_enum_elaboration,
+                  &locator.source_position);
+      }  /* if */
+      /* If explicit base type specifiers are involved, ensure that the
+         underlying types are compatible. */
+      if (!enum_type->incomplete && (is_definition || is_opaque_enum_decl)) {
+        a_type_ptr  old_base_type = integer_type_supp(enum_type)->base_type;
+        a_type_ptr  new_base_type = explicit_base;
+        /* For scoped enums without an explicit base type use "int". */
+        if (is_scoped_enum && old_base_type == NULL) {
+          old_base_type = integer_type((an_integer_kind)ik_int);
+        }  /* if */
+        if (is_scoped_enum && new_base_type == NULL) {
+          new_base_type = integer_type((an_integer_kind)ik_int);
+        }  /* if */
+        if ((old_base_type != NULL || new_base_type != NULL) &&
+            (old_base_type == NULL || new_base_type == NULL ||
+             !identical_types(old_base_type, new_base_type))) {
+          pos_sy_error(ec_incompatible_enum_base_types,
+                       &locator.source_position, tag_sym);
+          /* Continue as if no explicit base was specified for better error
+             recovery. */
+          explicit_base = NULL;
+          explicit_base_kind = (an_integer_kind)ik_none;
+        }  /* if */
+      }  /* if */
+    } else {
+      pos_sy_error(ec_not_an_enum_type_name, &locator.source_position,
+                   tag_sym);
+      tag_sym = NULL;
+      set_to_error_locator(locator);
+    }  /* if */
+    /* Record cross-reference information. */
+    if (tag_sym == NULL) {
+      /* An error occurred. */
+    } else if (is_definition) {
+      if (tag_sym->defined) {
+        /* Catch errors like "enum A { e }; enum ::A { f };". */
+        pos_sy_error(ec_redefinition, &locator.source_position, tag_sym);
+      }  /* if */
+      mark_defined(tag_sym, &locator.source_position);
+      if (!C_mode() && inside_class_definition) {
+        /* enum_type is a class member and is being defined having been
+           forward-declared. */
+        check_assertion(tag_sym->is_class_member == TRUE);
+        if (enum_type->source_corresp.access != access) {
+          /* The access specified for the previous declaration does not
+             correspond to the access for current declaration. */
+          pos_sy_diagnostic(strict_ansi_mode ?
+                              strict_ansi_discretionary_severity :
+                              es_warning,
+                            ec_redecl_changes_access,
+                            &locator.source_position, tag_sym);
+           /* Since this is a definition, use the current access instead of
+             that specified on the original declaration. */
+          enum_type->source_corresp.access = access;
+        }  /* if */
+      }  /* if */
+    } else if (curr_token == tok_semicolon &&
+               (!strict_ansi_mode || is_opaque_enum_decl)) {
+      /* A useless redeclaration of an enum tag. */
+      mark_declared(tag_sym, &locator.source_position);
+    } else {
+      mark_referenced(tag_sym, &locator.source_position);
+      *declares_something = FALSE;
+    }  /* if */
+  }  /* if */
   if (tag_sym == NULL) {
     a_scope_ptr  parent_scope = scope_stack[effective_decl_level].il_scope;
     /* Create a new enumerated type.  All enumeration type entries are
@@ -5011,91 +5104,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     /* Wait to add the type to the types list; it should not be added
        until the closing brace of the full definition appears, to get the
        IL list in the right order. */
-  } else {
-    /* Using an existing type.  Fetch the enumerated type pointer from it. */
-    enum_type = type_symbol_type(tag_sym);
-    is_redeclaration = TRUE;
-    if (is_immediate_enum_type(enum_type)) {
-      /* C++/CLI does not permit a type first declared with "enum class" or
-         "enum struct" to later be referred to with just "enum", nor vice
-         versa.  C++11 also disallows the mismatch for opaque declarations
-         and definitions, but for elaborated enum specifiers only "enum" is
-         allowed (the latter rule came along with the introduction of opaque
-         enum declarations into the language). */
-      if (cppcli_enabled || (opaque_enum_decls_enabled &&
-                             (is_definition || is_opaque_enum_decl))) {
-        if (is_scoped_enum != integer_type_is_scoped_enum(enum_type)) {
-          pos_sy_error(ec_incompatible_enum_kinds, &locator.source_position,
-                       tag_sym);
-          if (!is_definition && is_scoped_enum) {
-            /* If this is not a definition, continue to treat it as an unscoped
-               enumeration since this provides for slightly better error
-               recovery. */
-            is_scoped_enum = FALSE;
-          }  /* if */
-        }  /* if */
-      } else if (opaque_enum_decls_enabled && is_scoped_enum) {
-        /* "enum struct" or "enum class" cannot be used for an elaborated
-           specifier, even if the original declaration is for a scoped enum. */
-        pos_error(ec_invalid_scoped_enum_elaboration,
-                  &locator.source_position);
-      }  /* if */
-    }  /* if */
-    /* If explicit base type specifiers are involved, ensure that the
-       underlying types are compatible. */
-    if (!enum_type->incomplete && (is_definition || is_opaque_enum_decl)) {
-      a_type_ptr  old_base_type = integer_type_supp(enum_type)->base_type;
-      a_type_ptr  new_base_type = explicit_base;
-      /* For scoped enums without an explicit base type use "int". */
-      if (is_scoped_enum && old_base_type == NULL) {
-        old_base_type = integer_type((an_integer_kind)ik_int);
-      }  /* if */
-      if (is_scoped_enum && new_base_type == NULL) {
-        new_base_type = integer_type((an_integer_kind)ik_int);
-      }  /* if */
-      if ((old_base_type != NULL || new_base_type != NULL) &&
-          (old_base_type == NULL || new_base_type == NULL ||
-           !identical_types(old_base_type, new_base_type))) {
-        pos_sy_error(ec_incompatible_enum_base_types, &locator.source_position,
-                     tag_sym);
-        /* Continue as if no explicit base was specified for better error
-           recovery. */
-        explicit_base = NULL;
-        explicit_base_kind = (an_integer_kind)ik_none;
-      }  /* if */
-    }  /* if */
-    /* Record cross-reference information. */
-    if (is_definition) {
-      if (tag_sym->defined) {
-        /* Catch errors like "enum A { e }; enum ::A { f };". */
-        pos_sy_error(ec_redefinition, &locator.source_position, tag_sym);
-      }  /* if */
-      mark_defined(tag_sym, &locator.source_position);
-      if (!C_mode() && inside_class_definition) {
-        /* enum_type is a class member and is being defined having been
-           forward-declared. */
-        check_assertion(tag_sym->is_class_member == TRUE);
-        if (enum_type->source_corresp.access != access) {
-          /* The access specified for the previous declaration does not
-             correspond to the access for current declaration. */
-          pos_sy_diagnostic(strict_ansi_mode ?
-                              strict_ansi_discretionary_severity :
-                              es_warning,
-                            ec_redecl_changes_access,
-                            &locator.source_position, tag_sym);
-           /* Since this is a definition, use the current access instead of
-             that specified on the original declaration. */
-          enum_type->source_corresp.access = access;
-        }  /* if */
-      }  /* if */
-    } else if (curr_token == tok_semicolon &&
-               (!strict_ansi_mode || is_opaque_enum_decl)) {
-      /* A useless redeclaration of an enum tag. */
-      mark_declared(tag_sym, &locator.source_position);
-    } else {
-      mark_referenced(tag_sym, &locator.source_position);
-      *declares_something = FALSE;
-    }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled) {

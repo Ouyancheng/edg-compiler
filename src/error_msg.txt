@@ -2391,6 +2391,7 @@ ec_attribute_conflict;;"attribute %sq2 conflicts with earlier attribute %sq1"
 ec_incompatible_enum_base_types;;"%nd was previously declared with a different base type"
 ec_invalid_scoped_enum_elaboration;;"\"enum class\" and \"enum struct\" cannot be used here (use plain \"enum\" instead)"
 ec_extra_braces_on_simple_init;;"only one level of braces is allowed on an initializer for an object of type %t"
+ec_not_an_enum_type_name;;"%nd cannot be used as an enumeration type name"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
