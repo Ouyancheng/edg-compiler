@@ -11547,8 +11547,8 @@ the member function is an accessor for the property (if the accessor is valid).
       rp->special_kind = (a_special_function_kind)sfk_property_set;
     }  /* if */
   } else {
-    /* Neither "get" nor "set": Issue an error. */
-    pos_error(ec_invalid_property_accessor_decl, &dps->declarator_pos);
+    /* We already ensured earlier that the accessor name is valid. */
+    unexpected_condition();
   }  /* if */
   if (rout_is_cli_accessor(rp)) {
     rp->variant.property_or_event_descr = pdp;
@@ -11696,8 +11696,8 @@ the member function is an accessor for the event (if the accessor is valid).
       rp->special_kind = (a_special_function_kind)sfk_event_raise;
     }  /* if */
   } else {
-    /* Not "add", "remove", or "raise": Issue an error. */
-    pos_error(ec_invalid_event_accessor_decl, &dps->declarator_pos);
+    /* We already ensured earlier that the accessor name is valid. */
+    unexpected_condition();
   }  /* if */
   if (rout_is_cli_accessor(rp)) {
     rp->variant.property_or_event_descr = pdp;
@@ -12113,6 +12113,39 @@ C++/CLI dispose pattern).
   }  /* if */
 }  /* check_for_reserved_dispose_pattern_members */
 
+
+a_boolean check_accessor_name(a_property_or_event_descr_ptr  pdp,
+                              a_symbol_locator               *locator)
+/*
+A member function declaration with the given locator appears in a C++/CLI
+property or event definition described by pdp.  If the name represented by the
+locator is a valid accessor name, return TRUE.  Otherwise, issue an error,
+set the locator to an error locator, and return FALSE.
+*/
+{
+  char       *id = locator->symbol_header->identifier;
+  a_boolean  err = FALSE;
+
+  if (pdp->kind == (a_property_or_event_kind)pek_cli_property) {
+    if (strcmp(id, "get") != 0 && strcmp(id, "set") != 0) {
+      /* Neither "get" nor "set": Issue an error. */
+      pos_error(ec_invalid_property_accessor_decl, &locator->source_position);
+      err = TRUE;
+    }  /* if */
+  } else if (pdp->kind == (a_property_or_event_kind)pek_cli_event) {
+    if (strcmp(id, "add") != 0 && strcmp(id, "remove") != 0 &&
+        strcmp(id, "raise") != 0) {
+      /* Not "add", "remove", or "raise": Issue an error. */
+      pos_error(ec_invalid_event_accessor_decl, &locator->source_position);
+      err = TRUE;
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  if (err) set_to_error_locator(*locator);
+  return !err;
+}  /* check_accessor_name */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void decl_member_function(a_symbol_locator        *locator,
@@ -12225,7 +12258,7 @@ implicitly declared member functions.
   check_operator_function_params(member_type, class_type, locator);
   /* Look for a prior declaration or function overloading. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (pdp != NULL) {
+  if (pdp != NULL && check_accessor_name(pdp, locator)) {
     /* Do not check for redeclarations or overloading here since any errors
        would likely be spurious.  Instead, check_property_accessor or
        check_event_accessor will report duplicates. */
@@ -12346,7 +12379,7 @@ implicitly declared member functions.
     } else if (decl_info->is_object_finalize) {
       set_routine_special_kind(rtn, (a_special_function_kind)
                                                          sfk_object_finalize);
-    } else if (pdp != NULL) {
+    } else if (pdp != NULL && !is_error_locator(*locator)) {
       /* A C++/CLI property accessor. */
       if (pdp->kind == (a_property_or_event_kind)pek_cli_property) {
         check_property_accessor(sym, decl_info, class_state);
