@@ -19692,6 +19692,17 @@ is->no_diagnostics and is->check_validity_only.
     } else if (list->next == NULL) {
       /* A list containing just one member.  Drop the {} and do a recursive
          call. */
+      if (is_braced_init_component(list)) {
+        /* Multiple levels of braces on a scalar initialization.  Only one
+           is allowed. */
+        if (expr_diagnostic_should_be_issued(es_discretionary_error,
+                                             ec_extra_braces_on_simple_init)) {
+          pos_ty_diagnostic(es_discretionary_error,
+                            ec_extra_braces_on_simple_init,
+                            init_component_pos(list),
+                            dest_type);
+        }  /* if */
+      }  /* if */
       prep_list_initializer(list, dest_type, check_narrowing,
                             conv_context, fill_in_dtor,
                             ((result != NULL) ? &operand : (an_operand *)NULL),

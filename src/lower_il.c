@@ -16419,10 +16419,10 @@ Lower an stmk_return statement.
   a_type_ptr         return_type;
   a_routine_type_supplement_ptr rtsp;
 
+  return_type = routine_type->variant.routine.return_type;
   if (return_expr != NULL) {
     /* Lower the returned expression.  It's an lvalue if the routine returns
        a reference type. */
-    return_type = routine_type->variant.routine.return_type;
     lower_full_expr(return_expr, (a_statement_ptr)NULL);
 #if CTORS_RETURN_THIS
   } else if (routine->special_kind==(a_special_function_kind)sfk_constructor) {
@@ -16463,14 +16463,22 @@ Lower an stmk_return statement.
       }  /* if */
     } else 
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
-      /* Do not insert code here; this is the "else" of an "if". */
+    /* Do not insert code here; this is the "else" of an "if". */
     {
-      /* This routine returns its value via a copy constructor.
-         The dynamic initialization entry indicates the operation to
-         be done. */
       an_init_pos_descr ipd;
-      check_assertion(rtsp->value_returned_as_parameter);
-      set_var_indirect_init_pos_descr(return_value_pointer_variable, &ipd);
+      temp_var = NULL;
+      if (rtsp->value_returned_as_parameter) {
+        /* This routine returns its value via a copy constructor.
+           The dynamic initialization entry indicates the operation to
+           be done. */
+        set_var_indirect_init_pos_descr(return_value_pointer_variable, &ipd);
+      } else {
+        /* This must be a C++11 list-initializer case, e.g., "return{x};".
+           Initialize a temporary using the dynamic init entry, and return
+           the value of the temporary */
+        temp_var = make_local_temporary(skip_typerefs(return_type));
+        set_var_init_pos_descr(temp_var, &ipd);
+      }  /* if */
       /* Put the return statement under a block so we can insert in
          front of it. */
       turn_branch_into_block(statement, &insert_location, &return_statement);
@@ -16482,6 +16490,9 @@ Lower an stmk_return statement.
                          /*others_follow_in_aggr=*/FALSE,
                          &insert_location, (a_boolean *)NULL,
                          (a_constant **)NULL);
+      if (temp_var != NULL) {
+        return_statement->expr = return_expr = var_rvalue_expr(temp_var);
+      }  /* if */
     }  /* if */
   } else if (!rtsp->value_returned_by_cctor &&
              rtsp->value_returned_as_parameter) {

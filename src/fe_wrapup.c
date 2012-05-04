@@ -744,6 +744,9 @@ and before the back end (if any) is executed.
        needed, and determine which inline functions require definitions. */
     template_and_inline_function_wrapup();
   }  /* if */
+#if CHECKING && DEBUG
+  check_all_init_component_entries_freed();
+#endif /* CHECKING && DEBUG */
 
   if (list_macro_definitions) {
     /* Write definition lines for all macros. */
@@ -785,9 +788,6 @@ and before the back end (if any) is executed.
     /* Print total memory used. */
     show_space_used();
   }  /* if */
-#if CHECKING
-  check_all_init_component_entries_freed();
-#endif /* CHECKING */
 #endif /* DEBUG */
 
   /* Don't keep checking the stop token stack in db_enter/db_exit because

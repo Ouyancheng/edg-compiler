@@ -56,7 +56,6 @@ static a_boolean cast_type_pre_check(
 static void process_boolean_controlling_expression(an_operand *result);
 static a_boolean operand_is_instantiation_dependent(an_operand *operand);
 static void scan_compound_literal(a_type_ptr               *p_literal_type,
-                                  a_boolean                list_init,
                                   a_source_position        *type_position,
                                   an_operand               *result,
                                   a_local_expr_options_set local_options);
@@ -9582,8 +9581,8 @@ previously-scanned sizeof expression, and return the result in *result
         if (compound_literals_allowed && curr_token == tok_lbrace) {
           /* Something like sizeof(int){37} -- the type is the beginning
              of a compound literal. */
-          scan_compound_literal(&sizeof_type, /*list_init=*/FALSE,
-                                &type_position, result, EOPT_NO_OPTIONS);
+          scan_compound_literal(&sizeof_type, &type_position, result,
+                                EOPT_NO_OPTIONS);
           sizeof_type = result->type;
         }  /* if */
       } else {
@@ -10029,8 +10028,8 @@ result in *result (or an error indication in *rcblock).
         if (compound_literals_allowed && curr_token == tok_lbrace) {
           /* Something like __ALIGNOF__ (int){37} -- the type is the beginning
              of a compound literal. */
-          scan_compound_literal(&alignof_type, /*list_init=*/FALSE,
-                                &type_position, result, EOPT_NO_OPTIONS);
+          scan_compound_literal(&alignof_type, &type_position, result,
+                                EOPT_NO_OPTIONS);
           alignof_type = result->type;
         }  /* if */
       }  /* if */
@@ -19228,38 +19227,23 @@ already been consumed.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void scan_compound_literal(a_type_ptr               *p_literal_type,
-                                  a_boolean                list_init,
                                   a_source_position        *type_position,
                                   an_operand               *result,
                                   a_local_expr_options_set local_options)
 /*
-Scan a compound literal (or if list_init is TRUE, a C++11 "list initializer").
-For the syntax and constraints of compound literals, see 6.5.2.5 in the C99
-standard (they are also allowed in some C++ modes, e.g., GNU C++).  A compound
-literal looks like a cast in which the source expression is a brace-enclosed
-initializer, e.g.,
+Scan a compound literal.  For the syntax and constraints of compound
+literals, see 6.5.2.5 in the C99 standard (they are also allowed in
+some C++ modes, e.g., GNU C++).  A compound literal looks like a cast
+in which the source expression is a brace-enclosed initializer, e.g.,
 
   (int []){1, 2, 3}
 
-This routine is also called in GNU C++ mode for "list initializers" in return
-expressions -- list_init is TRUE in that case.  E.g.,
-
-  struct S { int x, y; };
-  S f() { return { 1, 2 }; }
-
-("list initializers" are a more general C++11 language feature not yet
-implemented in the front end.  However, some GNU C++ system headers use that
-feature in return statements with a simple aggregate return type.  To enable
-processing of these headers, we treat that case much like compound literals
-for now.  When a complete implementation of "list initializers" will be added,
-the current approach will likely change.)
-
-On entry, the current token is the "{", *p_literal_type indicates the type
-of the compound literal (or the return type if list_init is TRUE), and
-*type_position is the position of that type (or the return statement if
-list_init is TRUE).  On exit, the current token is the token after the "}",
-and *result is set to the compound literal.  The source positions in the
-operand are not set appropriately; the caller should set them on return.
+On entry, the current token is the "{", *p_literal_type indicates the
+type of the compound literal, and *type_position is the position of
+that type.  On exit, the current token is the token after the "}", and
+*result is set to the compound literal.  The source positions in the
+operand are not set appropriately; the caller should set them on
+return.
 */
 {
   a_boolean          err = FALSE;
@@ -19274,17 +19258,14 @@ operand are not set appropriately; the caller should set them on return.
                   !curr_expr_kind_is(ek_pp));
   if (curr_expr_kind_is(ek_integral_constant)) {
     /* A compound literal is not allowed in an integral constant expression. */
-    check_assertion(!list_init);
     expr_pos_error(ec_bad_integral_compound_literal, type_position);
     err = TRUE;
   } else if (vla_enabled && is_vla_type(literal_type)) {
     /* Variable-length arrays are not allowed. */
-    check_assertion(!list_init);
     expr_pos_error(ec_vla_not_allowed, type_position);
     err = TRUE;
 #if NAMED_ADDRESS_SPACES_ALLOWED
   } else if (type_qualified_with_named_address_space(literal_type)) {
-    check_assertion(!list_init);
     expr_pos_error(ec_type_with_named_address_space_not_allowed,
                    type_position);
     err = TRUE;
@@ -19301,8 +19282,7 @@ operand are not set appropriately; the caller should set them on return.
   } else {
     /* Some other type; error. */
     if (expr_error_should_be_issued()) {
-      pos_ty_error(list_init ? ec_bad_type_for_list_init
-                             : ec_bad_compound_literal_type,
+      pos_ty_error(ec_bad_compound_literal_type,
                    type_position, literal_type);
     }  /* if */
     err = TRUE;
@@ -19310,7 +19290,7 @@ operand are not set appropriately; the caller should set them on return.
   if (err) {
     literal_type = error_type();
   } else {
-    if (gnu_mode && !c99_mode && !list_init) {
+    if (gnu_mode && !c99_mode) {
       report_gnu_extension_if_needed(&error_position,
                                      ec_compound_literal_is_nonstandard);
     }  /* if */
@@ -19341,7 +19321,6 @@ operand are not set appropriately; the caller should set them on return.
     err = TRUE;
   } else {
     dip->destructor = dtor;
-    dip->is_braced_initializer = list_init;
   }  /* if */
   /* The type can be updated for an incomplete array. */
   *p_literal_type = literal_type;
@@ -19455,8 +19434,8 @@ Also scans GNU statement expressions:
              literals. */
           expr_pos_error(ec_type_definition_not_allowed, &pos_curr_token);
         }  /* if */
-        scan_compound_literal(&type_cast_to, /*list_init=*/FALSE,
-                              &type_position, result, local_options);
+        scan_compound_literal(&type_cast_to, &type_position, result,
+                              local_options);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -31224,8 +31203,13 @@ required_type will be void if the expression should have void type
   an_operand          result;
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
-  a_boolean           return_by_cctor_case, void_return_case = FALSE;
+  a_boolean           return_by_cctor_case = FALSE, void_return_case = FALSE;
   a_boolean           lambda_implicit_return_case = FALSE;
+  an_init_component_ptr
+                      icp = NULL;
+  an_init_state       init_state;
+  a_conv_context_set  conv_context = (CCO_INITIALIZING_RETURN_VALUE |
+                                      CCO_MOVE_OPTIMIZATION_ALLOWED);
 
   db_enter(3, "scan_return_expression");
 
@@ -31234,7 +31218,6 @@ required_type will be void if the expression should have void type
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  return_by_cctor_case = FALSE;
   routine_type = skip_typerefs(curr_routine->type);
   if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
     /* The current routine returns its value via a copy constructor. */
@@ -31251,16 +31234,25 @@ required_type will be void if the expression should have void type
       lambda_implicit_return_case = TRUE;
     }  /* if */
   }  /* if */
-  if (curr_token == tok_lbrace && gpp_mode && !lambda_implicit_return_case) {
-    /* GNU C++ allows C++11 list initializers even in non-C++11 modes.  We
-       currently accept only a small subset of such cases, and treat them like
-       compound literals. */
-    if (!cpp11_mode) {
+  if (curr_token == tok_lbrace &&
+      (gpp_mode || list_init_enabled) &&
+      !lambda_implicit_return_case) {
+    /* A C++11 list initializer. */
+    if (!list_init_enabled) {
       pos_warning(ec_list_initializer_nonstandard_in_current_mode,
                   &pos_curr_token);
     }  /* if */
-    scan_compound_literal(&required_type, /*list_init=*/TRUE,
-                          &pos_curr_token, &result, EOPT_NO_OPTIONS);
+    icp = scan_braced_init_list_internal(/*is_full_expr=*/TRUE,
+                                         (a_decl_parse_state *)NULL);
+    clear_init_state(&init_state);
+    /* When the return is via copy constructor, get an operand back so
+       it can be fed into the elision optimization below.
+       Otherwise, get back either a dynamic init or a constant. */
+    prep_list_initializer(icp, required_type, /*check_narrowing=*/TRUE,
+                          conv_context, /*fill_in_dtor=*/FALSE,
+                          return_by_cctor_case ? &result : (an_operand *)NULL,
+                          return_by_cctor_case ? (an_init_state *)NULL :
+                                                 &init_state);
   } else {
     /* Normal case: Scan the expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
@@ -31286,13 +31278,41 @@ required_type will be void if the expression should have void type
     /* Build a dynamic initialization entry for the return statement. */
     prep_elision_initializer_operand(&result, required_type,
                                      /*fill_in_dtor=*/FALSE,
-                                     (CCO_INITIALIZING_RETURN_VALUE |
-                                      CCO_MOVE_OPTIMIZATION_ALLOWED),
-                                     err_code, dip);
+                                     conv_context, err_code, dip);
     wrap_up_dynamic_init_full_expression(*dip);
     /* Fix up destructor references in the overall expression. */
     fix_up_dynamic_init_dtors();
     expression = NULL;
+  } else if (icp != NULL) {
+    /* An initializer-list case, e.g., "return{x};".  However, when the
+       function returns its result via a copy constructor such cases
+       are handled above. */
+    if (init_state.init_dip != NULL) {
+      *dip = init_state.init_dip;
+      wrap_up_dynamic_init_full_expression(*dip);
+      expression = NULL;
+    } else {
+      if (init_state.init_error) {
+        expression = error_node();
+      } else {
+        check_assertion(init_state.init_con != NULL);
+        expression = alloc_node_for_allocated_constant(init_state.init_con);
+      }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      set_expr_position(expression,
+                        init_component_pos(icp),
+                        init_component_end_pos(icp),
+                        (a_source_position *)NULL);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      expression = wrap_up_full_expression(expression);
+      if (is_void_type(required_type)) set_expr_result_not_used(expression);
+      /* Use a dynamic init instead of an expression so we can record that the
+         source was a braced-init-list. */
+      *dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+      (*dip)->variant.expression = expression;
+      (*dip)->is_braced_initializer = TRUE;
+      expression = NULL;
+    }  /* if */
   } else {
     /* Normal case. */
     if (is_void_type(required_type)) {
@@ -31325,7 +31345,7 @@ required_type will be void if the expression should have void type
                                (a_boolean *)NULL,
                                (a_conv_descr_ptr)NULL,
                                /*is_copy_initialization=*/TRUE,
-                               CCO_INITIALIZING_RETURN_VALUE,
+                               conv_context,
                                err_code);
       expression = make_node_from_operand(&result);
       if (!is_any_reference_type(required_type)) {
@@ -31336,6 +31356,7 @@ required_type will be void if the expression should have void type
     expression = wrap_up_full_expression(expression);
     if (void_return_case) set_expr_result_not_used(expression);
   }  /* if */
+  free_init_component_list(icp);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
