@@ -11593,6 +11593,9 @@ in C++ mode.  arg_list is not freed by this routine.
                              /*is_qualified_name=*/FALSE,
                              function_operand);
         function_operand->position = *call_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        function_operand->end_position = *call_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       } else {
         make_unknown_dependent_function_operand(
                            overloaded_function_symbol,
