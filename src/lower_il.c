@@ -13914,6 +13914,29 @@ and is lowered by this routine.
 
 #endif /* LOWER_CLASS_RVALUE_ADJUST */
 
+static a_boolean expr_type_should_have_qualifiers_removed(
+                                                         an_expr_node_ptr expr)
+/*
+Utility that returns TRUE if the expression type should have its qualifiers
+removed (because qualifiers are removed from rvalue expression types during
+lowering).
+*/
+{
+  a_boolean result = FALSE;
+
+  if (!expr->is_lvalue &&
+#if LOWER_CLASS_RVALUE_ADJUST
+      !(is_operation_node(expr) &&
+        node_operator_is(expr, eok_class_rvalue_adjust)) &&
+#endif /* LOWER_CLASS_RVALUE_ADJUST */
+      expr->kind != (an_expr_node_kind)enk_field &&
+      is_qualified_type(expr->type)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* expr_type_should_have_qualifiers_removed */
+
+
 void lower_expr_full(an_expr_node_ptr expr,
                      a_boolean        assume_expr_is_non_null)
 /*
@@ -13966,14 +13989,8 @@ cast.  See lower_expr for typical invocation.
 #endif /* DEBUG */
   }  /* if */
   lower_os_type(expr->type);
-  if (!expr->is_lvalue &&
-#if LOWER_CLASS_RVALUE_ADJUST
-      !(is_operation_node(expr) &&
-        node_operator_is(expr, eok_class_rvalue_adjust)) &&
-#endif /* LOWER_CLASS_RVALUE_ADJUST */
-      expr->kind != (an_expr_node_kind)enk_field &&
-      is_qualified_type(expr->type)) {
-    /* Remove cv-qualifiers from the types of class rvalues.  In C++, such
+  if (expr_type_should_have_qualifiers_removed(expr)) {
+    /* Remove cv-qualifiers from the types of rvalues.  In C++, such
        rvalues retain their type qualifiers, but in C they do not. */
     expr->type = make_unqualified_type(expr->type);
   }  /* if */
@@ -14721,8 +14738,8 @@ expression statement, statement points to the statement; otherwise, it is NULL.
        side, attached to insert_location2. */
     set_expr_creation_insert_location(&insert_location2);
     begin_object_lifetime(lifetime, &insert_location2);
-    if (is_qualified_type(expr->type)) {
-      /* Remove cv-qualifiers from the types of class rvalues.  In C++, such
+    if (expr_type_should_have_qualifiers_removed(expr)) {
+      /* Remove cv-qualifiers from the types of rvalues.  In C++, such
          rvalues retain their type qualifiers, but in C they do not. */
       expr->type = make_unqualified_type(expr->type);
     }  /* if */
@@ -14779,6 +14796,11 @@ expression statement, statement points to the statement; otherwise, it is NULL.
        done with statement insertions.  Don't do this if an enk_object_lifetime
        appears (it could be done, but it's more complicated because of
        statement versus expression insert locations). */
+    if (expr_type_should_have_qualifiers_removed(expr_to_lower)) {
+      /* Remove cv-qualifiers from the types of rvalues.  In C++, such
+         rvalues retain their type qualifiers, but in C they do not. */
+      expr_to_lower->type = make_unqualified_type(expr_to_lower->type);
+    }  /* if */
     lower_call(expr_to_lower, (an_init_pos_descr_ptr)NULL, statement);
   } else
   /* Normal case, not call. */
