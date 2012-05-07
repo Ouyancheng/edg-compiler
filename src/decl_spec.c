@@ -4923,6 +4923,14 @@ dsi_flags is the set of input flags passed to decl_specifiers.
           explicit_base_kind = (an_integer_kind)ik_none;
         }  /* if */
       }  /* if */
+    } else if (tag_sym->is_template_param && !is_definition &&
+               !is_opaque_enum_decl) {
+      /* "enum T" with T a template parameter is accepted in nonstrict modes.
+         Treat it as just "T". */
+      mark_referenced(tag_sym, &locator.source_position);
+      *declares_something = FALSE;
+      *type_ptr = enum_type;
+      goto return_point;
     } else {
       pos_sy_error(ec_not_an_enum_type_name, &locator.source_position,
                    tag_sym);
