@@ -3456,9 +3456,9 @@ static void exclude_prior_attribute_kind(an_attribute_kind  kind,
                                          char               *entity,
                                          an_il_entry_kind   entity_kind)
 /*
-If the list of attribute associated with the given entity contains an attribute
-of the given kind preceding the attribute new_attr, issue an error and make
-new_attr unrecognized.
+If the list of attributes associated with the given entity contains an
+attribute of the given kind preceding the attribute new_attr, issue an error
+and make new_attr unrecognized.
 */
 {
   an_attribute_ptr  ap = *get_attribute_link(entity, entity_kind);

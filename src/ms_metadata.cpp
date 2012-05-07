@@ -412,7 +412,8 @@ private:
 };  /* an_assembly_name */
 
 
-static bool is_identifier_char(wchar_t ch, bool is_identifier_start)
+static bool is_identifier_char(wchar_t ch,
+                               bool    is_identifier_start)
 /*
 Return true if ch is valid as a character in an identifier (or as the first
 character of an identifier if is_identifier_start is true).
@@ -509,7 +510,10 @@ of the given string that starts at the position indicated by chars_to_skip.
                                   utf8_identifier.length(),
                                   &locator);
       sym = symbol_list_for_file_scope_symbols(header);
-      if (sym != NULL && sym->kind == (a_symbol_kind)sk_keyword) {
+      /* Macros appear before keywords on the symbol list, so skip the former
+         before looking for the latter. */
+      while (sym != NULL && symbol_is(sym, sk_macro)) sym = sym->next;
+      if (sym != NULL && symbol_is(sym, sk_keyword)) {
         wstring escaped_identifier;
         escaped_identifier.reserve(sizeof("__identifier(\"")-1 +
                                        identifier.length() + sizeof("\")")-1);
@@ -3329,7 +3333,7 @@ public:
   {
     init_generic_parameters();
     return generic_arguments_;
-  }  /* generic_parameters */
+  }  /* generic_arguments */
 
   BYTE generic_parameter_count() const
   {
