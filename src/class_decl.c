@@ -12123,18 +12123,19 @@ locator is a valid accessor name, return TRUE.  Otherwise, issue an error,
 set the locator to an error locator, and return FALSE.
 */
 {
-  char       *id = locator->symbol_header->identifier;
+  char       *id = NULL;
   a_boolean  err = FALSE;
 
+  if (locator->symbol_header != NULL) id = locator->symbol_header->identifier;
   if (pdp->kind == (a_property_or_event_kind)pek_cli_property) {
-    if (strcmp(id, "get") != 0 && strcmp(id, "set") != 0) {
+    if (id == NULL || (strcmp(id, "get") != 0 && strcmp(id, "set") != 0)) {
       /* Neither "get" nor "set": Issue an error. */
       pos_error(ec_invalid_property_accessor_decl, &locator->source_position);
       err = TRUE;
     }  /* if */
   } else if (pdp->kind == (a_property_or_event_kind)pek_cli_event) {
-    if (strcmp(id, "add") != 0 && strcmp(id, "remove") != 0 &&
-        strcmp(id, "raise") != 0) {
+    if (id == NULL || (strcmp(id, "add") != 0 && strcmp(id, "remove") != 0 &&
+                       strcmp(id, "raise") != 0)) {
       /* Not "add", "remove", or "raise": Issue an error. */
       pos_error(ec_invalid_event_accessor_decl, &locator->source_position);
       err = TRUE;
