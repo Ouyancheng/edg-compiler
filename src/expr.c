@@ -53,6 +53,9 @@ static a_boolean cast_type_pre_check(
                                  a_source_position *type_position,
                                  a_boolean          has_explicit_cv_qualifiers,
                                  a_boolean          allow_array);
+static an_init_component_ptr scan_braced_init_list_internal(
+                                               a_boolean          is_full_expr,
+                                               a_decl_parse_state *dps);
 static void process_boolean_controlling_expression(an_operand *result);
 static a_boolean operand_is_instantiation_dependent(an_operand *operand);
 static void scan_compound_literal(a_type_ptr               *p_literal_type,
@@ -19629,6 +19632,37 @@ one argument, return TRUE; otherwise, return FALSE.
 }  /* conversion_has_one_argument */
 
 
+static void scan_braced_init_list_cast(a_type_ptr         type_cast_to,
+                                       a_cast_source_form source_form,
+                                       an_operand         *result)
+/*
+Scan the C++11 braced list-initializer form of a cast, e.g., T{x, y} or
+(nonstandard, for GNU) (T){x, y}.  Return the result in *result.
+The type part of the cast has been scanned already (the current token
+is the opening brace), and the type is provided in type_cast_to.
+source_form identifies the source form of the cast (csf_functional
+or csf_old_style).  On return, the current token is the one following
+the closing brace.
+*/
+{
+  an_init_component_ptr icp;
+  a_conv_context_set    conv_context = (CCO_CAST | CCO_DIRECT_INITIALIZATION);
+
+  check_assertion(list_init_enabled);
+  if (source_form == csf_functional) conv_context |= CCO_FUNC_NOTATION_CAST;
+  icp = scan_braced_init_list_internal(/*is_full_expr=*/FALSE,
+                                       (a_decl_parse_state *)NULL);
+  check_assertion(result != NULL);  /* For lint. */
+  prep_list_initializer(icp, type_cast_to, /*check_narrowing=*/TRUE,
+                        conv_context, /*fill_in_dtor=*/TRUE,
+                        result, (an_init_state *)NULL);
+  free_init_component_list(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* scan_braced_init_list_cast */
+
+
 static void scan_functional_notation_type_conversion(
                                     a_rescan_control_block   *rcblock,
                                     a_dynamic_init_ptr       rescan_dip,
@@ -19707,6 +19741,14 @@ is not freed by this routine.
      explicit conversion. */
   err = cast_type_pre_check(&type_cast_to, &type_position,
                             /*explicit_cv_qualifiers=*/FALSE, allow_array);
+  if (scanning_source && curr_token == tok_lbrace && list_init_enabled) {
+    /* C++11 list-initializer syntax, e.g., T{x, y}. */
+    scan_braced_init_list_cast(type_cast_to, csf_functional, result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    goto have_result;
+  }  /* if */
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {
     /* If the class is a template class, instantiate it to make its
@@ -20027,6 +20069,7 @@ non_ctor_case_after_expr_scan:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
   }  /* if */
+have_result:
   set_operand_position(result, start_position, &end_position, start_position);
   record_cast_position_in_rescan_info(result,
                                       orig_operand_expression,
@@ -24847,6 +24890,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
   a_variable_ptr     var_ptr;
   a_routine_ptr      routine_ptr;
   a_source_position  start_position;
+  a_token_kind       ntoken;
   a_ref_entry_ptr    rep;
   an_operand         this_pointer_operand;
   a_type_ptr         qual_class_type;
@@ -25501,7 +25545,9 @@ overloaded_function:
         case sk_union_tag:
         case sk_enum_tag:
           /* The identifier is a type identifier. */
-          if (!C_mode() && rcblock == NULL && next_token() == tok_lparen) {
+          if (!C_mode() && rcblock == NULL &&
+              ((ntoken = next_token()) == tok_lparen ||
+               (list_init_enabled && ntoken == tok_lbrace))) {
             /* In C++, a functional-notation type conversion. */
             a_type_ptr cast_type = type_symbol_type(sym_ptr);
             if (microsoft_bugs && locator.is_qualified_name &&
@@ -27580,8 +27626,10 @@ type_start:
           (void)get_token();
         }  /* if */
         error_position = start_position;
-        if (curr_token != tok_lparen) {
-          /* No parenthesis following the type, so issue an error. */
+        if (curr_token != tok_lparen &&
+            (!list_init_enabled || curr_token != tok_lbrace)) {
+          /* No parenthesis following the type, so issue an error.
+             In C++11 mode, allow a brace-enclosed initializer. */
           error_and_make_error_operand(ec_type_identifier_not_allowed,
                                        &local_result);
         } else {
@@ -32427,6 +32475,9 @@ set accordingly.
     if (dip->is_compound_literal) {
       /* We don't support rescanning compound literals at this time. */
       rescannable = FALSE;
+    } else if (dip->is_braced_initializer) {
+      /* Or the C++11 list-initialization form. */
+      rescannable = FALSE;
     } else if (dip->is_explicit_cast) {
       if (expr->is_static_cast) {
         operator_token = tok_static_cast;
@@ -32947,8 +32998,9 @@ dynamic initialization after substitution.
 {
   an_expr_node_ptr expr;
 
-  if (dip->is_compound_literal) {
-    /* We don't do rescans on compound literals currently. */
+  if (dip->is_compound_literal || dip->is_braced_initializer) {
+    /* We don't do rescans on compound literals or C++ list-initializers
+       currently. */
     rcblock->error_detected = TRUE;
     make_error_operand(result);
   } else if (dip->is_explicit_cast) {

@@ -19535,6 +19535,7 @@ is->no_diagnostics and is->check_validity_only.
   a_boolean           braced_init;
   a_boolean           is_direct_init =
                                (conv_context & CCO_DIRECT_INITIALIZATION) != 0;
+  a_boolean           is_cast = (conv_context & CCO_CAST) != 0;
   a_symbol_ptr        ctor_sym;
   an_operand          operand;
   a_boolean           dest_type_is_class=is_class_struct_union_type(dest_type);
@@ -19555,6 +19556,9 @@ is->no_diagnostics and is->check_validity_only.
       saved_any_suppressed_error = expr_stack->any_suppressed_error;
       expr_stack->any_suppressed_error = FALSE;
     }  /* if */
+  } else {
+    /* When an operand is returned, the destructor is always filled in. */
+    fill_in_dtor = TRUE;
   }  /* if */
   /* Reactivate and/or adjust the lifetimes added around expressions in
      the initializer list. */
@@ -19578,8 +19582,15 @@ is->no_diagnostics and is->check_validity_only.
         conv_to_error_operand(&operand);
       }  /* if */
       fill_in_dtor = FALSE;
+    } else if (is_any_reference_type(dest_type)) {
+      /* Reference types. */
+      prep_reference_initializer_operand(&operand, dest_type,
+                                         /*conversion=*/(a_conv_descr_ptr)NULL,
+                                         /*leave_as_object=*/is_cast,
+                                         conv_context,
+                                         ec_bad_initializer_type);
     } else {
-      /* Non-class, non-dependent cases (including references). */
+      /* Non-class-copy, non-dependent, non-reference cases. */
       prep_initializer_operand(&operand, dest_type,
                                /*is_transparent=*/(a_boolean *)NULL,
                                /*conversion=*/(a_conv_descr_ptr)NULL,
@@ -19616,7 +19627,7 @@ is->no_diagnostics and is->check_validity_only.
       }  /* if */
       prep_reference_initializer_operand(&operand, dest_type,
                                          (a_conv_descr *)NULL,
-                                         /*leave_as_object=*/FALSE,
+                                         /*leave_as_object=*/is_cast,
                                          conv_context,
                                          ec_bad_initializer_type);
       braced_init = FALSE;
@@ -19649,6 +19660,7 @@ is->no_diagnostics and is->check_validity_only.
                             fill_in_dtor);
       constant = eff_is->init_con;
       dip = eff_is->init_dip;
+      fill_in_dtor = FALSE;
     } else if (dest_type_is_class &&
                (ctor_sym = symbol_supplement_for_class(dest_type)->constructor)
                                                                      != NULL) {
@@ -19714,6 +19726,7 @@ is->no_diagnostics and is->check_validity_only.
         constant = is->init_con;
         dip = is->init_dip;
       }  /* if */
+      fill_in_dtor = FALSE;
     } else {
       /* Something else (e.g., an "int" initialized by a list with two
          elements); error. */

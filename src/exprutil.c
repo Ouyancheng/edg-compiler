@@ -2798,8 +2798,11 @@ cast in some modes.  orig_operand_expr can be NULL.
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-      /* An explicit cast is retained.  Also a compound literal. */
-      if (dip->is_explicit_cast || dip->is_compound_literal) goto end_of_loop;
+      /* An explicit cast is retained.  Also a compound literal or
+         braced-init-list. */
+      if (dip->is_explicit_cast ||
+          dip->is_compound_literal ||
+          dip->is_braced_initializer) goto end_of_loop;
       /* Anything else is implicit and stripped. */
       expr = arg_list_from_dyn_init(dip);
     } else {
@@ -3193,8 +3196,11 @@ that has it.
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-      /* An explicit cast is retained.  Also a compound literal. */
-      if (dip->is_explicit_cast || dip->is_compound_literal) goto end_of_loop;
+      /* An explicit cast is retained.  Also a compound literal or braced
+         list-initializer. */
+      if (dip->is_explicit_cast ||
+          dip->is_compound_literal ||
+          dip->is_braced_initializer) goto end_of_loop;
       /* Anything else is implicit and stripped. */
       expr = arg_list_from_dyn_init(dip);
     } else {
