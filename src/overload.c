@@ -16846,7 +16846,7 @@ the temporary.
   if (conversion->class_identity_or_bitwise_copy) {
     /* Bitwise copy of a class. */
     prep_class_bitwise_copy_operand(operand, dest_type);
-    if (force_copy_to_temp) {
+    if (force_copy_to_temp && !is_error_operand(operand)) {
       /* Make a copy of the class object in a temporary. */
       expr_reference_to_trivial_copy_constructor(operand->type,
                                                  &operand->position,
