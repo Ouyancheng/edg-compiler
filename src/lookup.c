@@ -4790,7 +4790,7 @@ is found is returned, or NULL if no matching symbol is found.
 */
 {
   a_symbol_ptr		sym;
-  a_constant_ptr	cp;
+  a_constant_ptr	cp = NULL;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym)                                     \
@@ -4816,7 +4816,11 @@ is found is returned, or NULL if no matching symbol is found.
   } else {
     /* Look for the constant on the list of constants for the enum type. */
     if (enum_type->variant.integer.is_scoped_enum) {
-      cp = enum_type->variant.integer.enum_info.assoc_scope->constants;
+      a_scope_ptr	sp;
+      sp = enum_type->variant.integer.enum_info.assoc_scope;
+      if (sp != NULL) {
+        cp = sp->constants;
+      }  /* if */
     } else {
       cp = enum_type->variant.integer.enum_info.constant_list;
     }  /* if */
