@@ -2012,7 +2012,9 @@ by a command line option.
        a class member. */
     enum_qualifiers_enabled = TRUE;
     explicit_enum_base_enabled = (microsoft_version >= 1400) || cppcli_enabled;
-    opaque_enum_decls_enabled = microsoft_version >= 1700;
+    if (microsoft_version >= 1700) {
+      opaque_enum_decls_enabled = TRUE;
+    }  /* if */
     if (microsoft_version >= 1400) {
       if (!option_kind_used[(int)optk_type_traits_helpers]) {
         type_traits_helpers_enabled = TRUE;
