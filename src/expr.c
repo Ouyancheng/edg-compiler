@@ -31202,12 +31202,6 @@ possibly adjusted to some other type (e.g., an error type).
   rout_type = skip_typerefs(rout->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   curr_return_type = rout_type->variant.routine.return_type;
-  if (is_template_dependent_context() &&
-      is_template_dependent_type(return_type)) {
-    /* For template-dependent cases, record an unknown dependent type so
-       multiple returns with different dependent types can be compatible. */
-    return_type = type_of_unknown_templ_param_nontype;
-  }  /* if */
   if (is_unknown_type(curr_return_type)) {
     /* The return type has not been established yet, so set it. */
     if (check_return_type(return_type, (a_decl_parse_state*)NULL, err_pos)) {
@@ -31217,20 +31211,30 @@ possibly adjusted to some other type (e.g., an error type).
     } else {
       return_type = error_type();
     }  /* if */
-  } else if (is_error_type(return_type) ||
-             is_error_type(curr_return_type)) {
-    /* At least one of the types is an error type, so consider them
-       compatible, and the return type of the lambda is an error type. */
-    return_type = error_type();
-  } else if (is_template_param_type(return_type) ||
-             is_template_param_type(curr_return_type)) {
-    /* At least one of the types is template-dependent, so assume they are
-       the same type. */
-    return_type = type_of_unknown_templ_param_nontype;
   } else if (!identical_types(return_type, curr_return_type)) {
-    /* Two returns have different types. */
-    expr_pos_error(ec_lambda_returns_with_diff_types, err_pos);
-    return_type = error_type();
+    /* Multiple returns with different types.  That might be a problem. */
+    if (is_error_type(return_type) || is_error_type(curr_return_type)) {
+      /* At least one of the types is an error type, so consider them
+         compatible, and the return type of the lambda is an error type. */
+      return_type = error_type();
+    } else if (is_template_dependent_context() &&
+               (is_template_dependent_type(return_type) ||
+                is_template_dependent_type(curr_return_type))) {
+      /* At least one of the types is template-dependent, so assume they are
+         compatible.  The return type becomes the non-dependent type if
+         we have one, otherwise an unknown dependent type. */
+      if (!is_template_dependent_type(curr_return_type)) {
+        return_type = curr_return_type;
+      } else if (!is_template_dependent_type(return_type)) {
+        /* Leave return_type alone. */
+      } else {
+        return_type = type_of_unknown_templ_param_nontype;
+      }  /* if */
+    } else {
+      /* Two returns have different types. */
+      expr_pos_error(ec_lambda_returns_with_diff_types, err_pos);
+      return_type = error_type();
+    }  /* if */
   }  /* if */
   /* Put the return type back in case it was changed above. */
   rout_type->variant.routine.return_type = return_type;
