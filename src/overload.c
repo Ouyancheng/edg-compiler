@@ -19607,7 +19607,8 @@ is->no_diagnostics and is->check_validity_only.
       /* For a reference, allocate a temporary and copy-list-initialize it
          from the braced-init-list. */
       prep_list_initializer(icp, type_pointed_to(dest_type), check_narrowing,
-                            CCO_DEFAULT, /*fill_in_dtor=*/TRUE, /* ignored */
+                            conv_context & (CCO_CAST | CCO_FUNC_NOTATION_CAST),
+                            /*fill_in_dtor=*/TRUE, /* ignored */
                             &operand,
                             (an_init_state *)NULL);
       if (!operand_is_temp_init(&operand) && !is_error_operand(&operand)) {
@@ -19753,7 +19754,7 @@ is->no_diagnostics and is->check_validity_only.
       dip->is_braced_initializer = braced_init;
       /* Note the call here adds the destruction if needed. */
       expr = alloc_temp_init_node(dest_type, dip, /*is_lvalue=*/FALSE,
-                                  /*is_explicit_cast=*/FALSE);
+                                  /*is_explicit_cast=*/is_cast);
       make_expression_operand(expr, result);
     } else if (constant != NULL) {
       make_constant_operand(constant, result);
@@ -19797,6 +19798,9 @@ is->no_diagnostics and is->check_validity_only.
         }  /* if */
       }  /* if */
       dip->is_braced_initializer = braced_init;
+      /* Note that we don't clear the is_explicit_cast flag here if it's
+         set already and is_cast is FALSE. */
+      if (is_cast) dip->is_explicit_cast = TRUE;
       is->init_dip = dip;
       if (fill_in_dtor && dest_type_is_class) {
         /* Fill in the destructor if one is needed. */

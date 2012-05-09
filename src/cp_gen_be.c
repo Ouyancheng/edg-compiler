@@ -13873,35 +13873,40 @@ source and the expression is generated in that form.
     /* An explicit cast.  Put out the name of the type, and then continue
        processing the initialization as a parenthesized_init.  That is,
        for "A(x, y)", put out the "A" here, and fall into the main code
-       below to put out the "(x, y)". */
+       below to put out the "(x, y)".  braced_init is also a possibility,
+       putting out "{x, y}" below. */
     /* Note that parentheses are not put around this, because that would
        make the expression look like a cast. */
-    if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-      /* See whether the initialization has one argument. */
-      an_expr_node_ptr cexpr = dip->variant.constructor.args;
-      if (cexpr != NULL && !cexpr->is_pack_expansion &&
-          !cexpr->generated_default_arg &&
-          (cexpr->next == NULL || cexpr->next->generated_default_arg)) {
+    if (braced_init) {
+      /* A braced initializer should not be put out as an old-style cast. */
+    } else {
+      if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        /* See whether the initialization has one argument. */
+        an_expr_node_ptr cexpr = dip->variant.constructor.args;
+        if (cexpr != NULL && !cexpr->is_pack_expansion &&
+            !cexpr->generated_default_arg &&
+            (cexpr->next == NULL || cexpr->next->generated_default_arg)) {
+          has_one_argument = TRUE;
+        }  /* if */
+      } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
         has_one_argument = TRUE;
       }  /* if */
-    } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-      has_one_argument = TRUE;
-    }  /* if */
-    parenthesized_init = TRUE;
-    assign_init = FALSE;
-    force_parens = TRUE;
+      parenthesized_init = TRUE;
+      assign_init = FALSE;
+      force_parens = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (has_one_argument &&
-        dip->kind == (a_dynamic_init_kind)dik_constructor &&
-        is_managed_class_type(init_entity_type)) {
-      /* In C++/CLI, a managed class can have a static conversion operator
-         that converts to the class type, and the old-style cast notation
-         invokes that conversion rather than the constructor, as in standard
-         C++.  A dik_constructor initialization thus must always use the
-         functional notation, even with a single argument. */
-      has_one_argument = FALSE;
-    }  /* if */
+      if (has_one_argument &&
+          dip->kind == (a_dynamic_init_kind)dik_constructor &&
+          is_managed_class_type(init_entity_type)) {
+        /* In C++/CLI, a managed class can have a static conversion operator
+           that converts to the class type, and the old-style cast notation
+           invokes that conversion rather than the constructor, as in standard
+           C++.  A dik_constructor initialization thus must always use the
+           functional notation, even with a single argument. */
+        has_one_argument = FALSE;
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
     if (has_one_argument) {
       /* Put out a cast that has one argument as an old-style cast.  This
          avoids some ambiguities, e.g.,
