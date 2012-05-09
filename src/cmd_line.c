@@ -2047,6 +2047,7 @@ by a command line option.
       static_assert_enabled = TRUE;
       if (!option_kind_used[(int)optk_lambdas]) {
         lambdas_enabled = TRUE;
+        multiple_returns_allowed_in_implicit_return_type_lambda = TRUE;
       }  /* if */
       if (!option_kind_used[(int)optk_rvalue_references]) {
         rvalue_references_enabled = TRUE;
@@ -9876,6 +9877,7 @@ variables declared in cmd_line.h.
   packing_applies_to_base_classes =
                      TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES;
   range_based_for_enabled = DEFAULT_RANGE_BASED_FOR_ENABLED;
+  multiple_returns_allowed_in_implicit_return_type_lambda = FALSE;
 }  /* cmd_line_static_var_init */
 
 

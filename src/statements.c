@@ -5530,7 +5530,7 @@ in which such a return is undefined.
 */
 {
   a_routine_ptr     rout;
-  a_type_ptr        tp;
+  a_type_ptr        rout_type, tp;
   a_boolean         issue_no_value_returned_diag = FALSE;
   an_error_severity no_returned_value_severity;
 
@@ -5543,6 +5543,8 @@ in which such a return is undefined.
   }
   /* Get a pointer to the current routine entry. */
   rout = current_routine_entry();
+  rout_type = skip_typerefs(rout->type);
+  check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
       rout->special_kind == (a_special_function_kind)sfk_static_constructor ||
@@ -5551,18 +5553,17 @@ in which such a return is undefined.
     /* Constructors and destructors have no return value. */
   } else {
     /* Get the routine return type. */
-    tp = skip_typerefs(rout->type)->variant.routine.return_type;
+    a_lambda_ptr lambda = get_current_lambda();
+    tp = rout_type->variant.routine.return_type;
+    if (lambda != NULL && !lambda->explicit_return_type) {
+      /* We're in a lambda with an implicit return type, so this return
+         implies a return type of "void". */
+      tp = set_implicit_lambda_return_type(void_type(), &error_position);
+    }  /* if */
     if (is_void_type(tp) || is_template_param_type(tp) || is_error_type(tp)) {
       /* A void return in a void function is okay.  Unknown template-dependent
          return type must be assumed to be okay.  Similarly, when recovering
          from errors we assume the intended type would have been acceptable. */
-    } else if (is_unknown_type(tp)) {
-      /* Lambdas can omit the return type.  In such cases, the return type is
-         left as "tk_unknown" until an explicit return type has been
-         encountered.  (If none was encountered, the return type is "void".
-         This is established elsewhere because the associated processing must
-         also be done if the end of the compound statement is unreachable.) */
-      check_assertion(get_current_lambda() != NULL);
     } else {
       /* A return without an expression in a non-void function.  Unless a
          special case applies, this case deserves a diagnostic. */

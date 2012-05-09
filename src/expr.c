@@ -31182,6 +31182,62 @@ a warning if the value returned is the address of a local variable.
 }  /* check_for_return_of_address_of_local_variable */
 
 
+a_type_ptr set_implicit_lambda_return_type(a_type_ptr        return_type,
+                                           a_source_position *err_pos)
+/*
+We're currently in a lambda with an implicit return type, and we've
+encountered a return statement which implies the given return_type
+(the type is void for a return without an expression).  Set the lambda
+return type, issuing an error if this return type conflicts with a
+previously-established type.  Return the lambda return type,
+possibly adjusted to some other type (e.g., an error type).
+*/
+{
+  a_lambda_ptr  lambda = get_current_lambda();
+  a_routine_ptr rout;
+  a_type_ptr    rout_type, curr_return_type;
+
+  check_assertion(lambda != NULL && !lambda->explicit_return_type);
+  rout = lambda->lambda_routine;
+  rout_type = skip_typerefs(rout->type);
+  check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+  curr_return_type = rout_type->variant.routine.return_type;
+  if (is_template_dependent_context() &&
+      is_template_dependent_type(return_type)) {
+    /* For template-dependent cases, record an unknown dependent type so
+       multiple returns with different dependent types can be compatible. */
+    return_type = type_of_unknown_templ_param_nontype;
+  }  /* if */
+  if (is_unknown_type(curr_return_type)) {
+    /* The return type has not been established yet, so set it. */
+    if (check_return_type(return_type, (a_decl_parse_state*)NULL, err_pos)) {
+      /* Type is okay. */
+      rout_type->variant.routine.return_type = return_type;
+      set_routine_calling_method_flag(rout_type, err_pos);
+    } else {
+      return_type = error_type();
+    }  /* if */
+  } else if (is_error_type(return_type) ||
+             is_error_type(curr_return_type)) {
+    /* At least one of the types is an error type, so consider them
+       compatible, and the return type of the lambda is an error type. */
+    return_type = error_type();
+  } else if (is_template_param_type(return_type) ||
+             is_template_param_type(curr_return_type)) {
+    /* At least one of the types is template-dependent, so assume they are
+       the same type. */
+    return_type = type_of_unknown_templ_param_nontype;
+  } else if (!identical_types(return_type, curr_return_type)) {
+    /* Two returns have different types. */
+    expr_pos_error(ec_lambda_returns_with_diff_types, err_pos);
+    return_type = error_type();
+  }  /* if */
+  /* Put the return type back in case it was changed above. */
+  rout_type->variant.routine.return_type = return_type;
+  return return_type;
+}  /* set_implicit_lambda_return_type */
+
+
 static void check_and_adjust_lambda_return_type_if_needed(
                                                  an_operand_ptr  return_op,
                                                  a_type_ptr      *return_type)
@@ -31193,42 +31249,12 @@ copy of the return type from the routine).  Update it and the routine
 type to be the type of return_op.
 */
 {
-  a_lambda_ptr   lambda = get_current_lambda();
-  a_routine_ptr  rout;
-
-  check_assertion(lambda != NULL && !lambda->explicit_return_type);
-  rout = lambda->lambda_routine;
   /* Make sure array-to-pointer and function-to-pointer decay are done before
      we use the type as the return type. */
   do_operand_transformations(return_op,
                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-  if (is_unknown_type(*return_type)) {
-    a_type_ptr    rout_type = skip_typerefs(rout->type);
-    a_type_ptr    ret_type;
-    check_assertion(rout_type->kind == (a_type_kind)tk_routine);
-    ret_type = rvalue_type(return_op->type);
-    if (check_return_type(ret_type, (a_decl_parse_state*)NULL,
-                          &return_op->position)) {
-      *return_type = ret_type;
-    } else {
-      *return_type = error_type();
-    }  /* if */
-    rout_type->variant.routine.return_type = *return_type;
-    set_routine_calling_method_flag(rout_type, &return_op->position);
-  } else if (is_void_type(*return_type)) {
-    /* The type was previously set to void by a "return;" statement, or a
-       "return <void-expr>;" statement.  That's valid (unless the current
-       return expression is non-void, but that is diagnosed elsewhere). */
-  } else if (rout->is_prototype_instantiation) {
-    /* In the general case, we don't know the actual return type for
-       template-dependent lambdas: Constraints will be checked on the real
-       instantiations. */
-  } else {
-    /* More than one return in a lambda with an implicit return type and the
-       current return statement is non-void.  An error will be issued when
-       the complete lambda body has been parsed. */
-    if (expr_error_should_be_issued()) expect_error();
-  }  /* if */
+  *return_type = set_implicit_lambda_return_type(rvalue_type(return_op->type),
+                                                 &return_op->position);
 }  /* check_and_adjust_lambda_return_type_if_needed */
 
 

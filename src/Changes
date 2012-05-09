@@ -1,5 +1,18 @@
 Version 4.5
 
+5/9/12   [EDGcpfe/12913]
+Microsoft compatibility: Multiple returns in lambdas with implicit return type
+
+In Microsoft mode, lambdas with an implicit return type are now allowed
+to contain multiple statements and multiple returns as long as the
+returns all imply the same return type.
+
+  auto f = [](int i)
+  {
+    if (i > 10) return true; else return false;
+  };
+
+
 5/9/12   [EDGcpfe/12914]
 Internal errors following use of invalid template default argument
 

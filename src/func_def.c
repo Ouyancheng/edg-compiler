@@ -819,13 +819,12 @@ and issue a diagnostic if that was not the case.
        type was deduced from a return statement: The return type is therefore
        "void". */
     rp->type->variant.routine.return_type = void_type();
-  } else if (!is_void_type(rtp) && !is_error_type(rtp) &&
-             !rp->is_prototype_instantiation) {
+  } else if (!multiple_returns_allowed_in_implicit_return_type_lambda &&
+             !is_void_type(rtp) && !is_error_type(rtp) &&
+             !is_template_param_type(rtp)) {
     /* A return type was deduced from a non-void return.  Check that that
-       return statement was the only statement in the function body.  The
-       check is not done for prototype instantiations, because (a) they
-       might not be recorded in the IL, and (b) even if they were, it's
-       not always known whether the deduced return type is void or not. */
+       return statement was the only statement in the function body.
+       Some dialects allow multiple statements/returns (e.g., Microsoft). */
     a_statement_ptr  sp = scope_for_routine(rp)->assoc_block;
     check_assertion(sp->kind == (a_statement_kind)stmk_block &&
                     sp->next == NULL);

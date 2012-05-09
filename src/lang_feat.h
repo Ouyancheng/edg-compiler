@@ -2224,6 +2224,12 @@ EXTERN a_boolean
 			/* When TRUE, the C++11 range-based-for statement
 			   is enabled. */
 
+EXTERN a_boolean
+		multiple_returns_allowed_in_implicit_return_type_lambda;
+			/* When TRUE, lambdas with an implicit return type
+			   are allowed to have multiple returns as long as
+			   they all give the same type. */
+
 /*
 Flag that determines the value of variadic_templates_enabled in C++ modes
 other than C++11 (where it is by default TRUE).  Does not affect the value
