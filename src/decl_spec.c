@@ -924,8 +924,30 @@ the body of the lambda, not the definition of X).
   } else if (!C_mode() && next_tok == tok_colon && !is_ref_within_new_expr) {
     /* Possibly the beginning of a C++ base class type specifier or an
        explicit underlying type for C++11/Microsoft enum type. */
-    result = (tag_kind != (a_symbol_kind)sk_enum_tag ||
-              explicit_enum_base_enabled);
+    if (tag_kind != (a_symbol_kind)sk_enum_tag) {
+      result = TRUE;
+    } else if (explicit_enum_base_enabled) {
+      /* An enum type with an explicit base, or a bit field declaration of
+         enum type.  More lookahead is required to distinguish the two. */
+      a_token_cache  cache;
+      clear_token_cache(&cache, /*reusable=*/FALSE);
+      /* Skip past the colon. */
+      for (;;) {
+        cache_curr_token(&cache);
+        if (curr_token == tok_colon) break;
+        (void)get_token();
+      }  /* for */
+      (void)get_token();
+      /* A bit field length wouldn't start with a type name, except if it were
+         a function-style cast (e.g., "int(0)").  Since the type specifier in
+         such a cast must be "simple" (e.g., "unsigned int(0)" is not allowed)
+         we only have to test for the subsequent token not to be a left
+         parenthesis. */
+      result = is_type_start(/*is_expr_context=*/TRUE) &&
+               next_token() != tok_lparen;
+    } else {
+      result = FALSE;
+    }  /* if */
   } else {
     result = FALSE;
   }  /* if */
