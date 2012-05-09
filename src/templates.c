@@ -1589,6 +1589,8 @@ is a parameter.
 
 
 /* Forward declarations. */
+static a_boolean template_arg_is_dependent(a_template_arg_ptr tap);
+
 static void substitute_template_argument(
 			a_template_arg_ptr	templ_arg,
 			a_template_param_ptr	templ_param,
@@ -1655,7 +1657,9 @@ symbol supplement.
                                      CTWS_NO_OPTIONS,
                                      /*orig_is_nonreal_template=*/FALSE,
                                      &copy_error, &ctws_state);
-        if (copy_error) {
+        if (copy_error || template_arg_is_dependent(tap)) {
+          /* If the copy failed, or resulted in an argument that is still
+             dependent, don't use the resulting value. */
           result = FALSE;
           break;
         }  /* if */
@@ -5518,10 +5522,6 @@ Return TRUE if the constants should be considered to match.
   }  /* if */
   return result;
 }  /* equiv_nontype_template_param_names */
-
-
-/* Forward declaration. */
-static a_boolean template_arg_is_dependent(a_template_arg_ptr tap);
 
 
 a_boolean equiv_template_arg_lists(

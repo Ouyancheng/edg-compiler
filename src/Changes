@@ -1,5 +1,20 @@
 Version 4.5
 
+5/9/12   [EDGcpfe/12914]
+Internal errors following use of invalid template default argument
+
+A number of different kinds of internal errors could result if on the
+use of an invalid default template argument of a function template.
+Now fixed.  This particular example would get an internal error in
+check_for_nonreal_instance in versions built with EXPENSIVE_CHECKING.
+
+  struct A { void f(); void f(int); };
+  template <class T = T> void f(T) {} 
+  int main() {
+    f(&A::f);  // cannot deduce T so default value is used
+  }
+
+
 5/4/12   [EDGcpfe/12898]
 C++/CLI: Abort after malformed property definition
 
