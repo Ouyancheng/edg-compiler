@@ -1,5 +1,23 @@
 Version 4.5
 
+5/9/12   [EDGcpfe/12886]
+Size of string literal that is the initializer for a flexible array
+
+A change made in version 4.3 destroyed some information in the size of
+string constants used to initialize a flexible array (e.g., in gcc mode).
+In this example:
+
+  struct A {
+    char c;
+    char str[];
+  };
+  struct A a = { 0, "abc" };
+
+The type of the "abc" string constant had been array[4] of char before
+version 4.3, and became array[] of char in 4.3.  It's now back to the
+complete array type.
+
+
 5/9/12   [EDGcpfe/12891]
 Unnamed bit fields of enumeration type
 

@@ -1331,7 +1331,15 @@ decl parse state, which otherwise is gotten from init_info->dps.
       (*init_constant)->is_pack_expansion = TRUE;
     }  /* if */
     if (context != NULL) {
-      (*init_constant)->type = rvalue_type(context->type);
+      if ((*init_constant)->kind == (a_constant_repr_kind)ck_string) {
+        /* Don't change the type of a string literal because
+           check_string_constant_initializer_full will have set it
+           appropriately already.  The assignment here would revert a
+           known array size (set from the constant length) to an
+           unknown array size for a flexible array initializer. */
+      } else {
+        (*init_constant)->type = rvalue_type(context->type);
+      }  /* if */
       if (!is_constant) {
         context->any_dynamic_initialization = TRUE;
         /* We should only get here for class types (as opposed to native array
