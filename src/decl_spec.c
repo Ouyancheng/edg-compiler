@@ -945,6 +945,7 @@ the body of the lambda, not the definition of X).
          parenthesis. */
       result = is_type_start(/*is_expr_context=*/TRUE) &&
                next_token() != tok_lparen;
+      rescan_cached_tokens(&cache);
     } else {
       result = FALSE;
     }  /* if */
