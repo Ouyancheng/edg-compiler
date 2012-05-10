@@ -1,7 +1,7 @@
 Version 4.5
 
 5/10/12  [EDGcpfe/12861]
-Source positions for IL generated for range-based-for and for-each statements
+Source positions for generated IL
 
 Previously, much of the IL generated for the C++11 range-based-for and
 Microsoft for-each statements had statement positions set to the position
@@ -10,6 +10,10 @@ the generated IL has null source position information for the temporary
 variables that are created as well as the expressions used to initialize
 these temporary variables (with the exception of the range/collection
 expression itself which continues to have non-null source position).
+This change also turns off source positions on some property and event
+reference expansions, and on an operator= expansion.  In all those cases, the
+call was already marked as compiler-generated; the difference is that the
+routine node won't have a source position.
 
 
 5/9/12   [EDGcpfe/12886]
