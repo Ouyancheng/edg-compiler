@@ -28,6 +28,7 @@ decl_spec.c -- Scanning of declaration specifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#include "disambig.h"
 #include "folding.h"
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
@@ -948,8 +949,8 @@ lambda, not the definition of X).
          not even in Microsoft mode, which does allow such casts in other
          contexts) we only have to test for the subsequent token not to be a
          left parenthesis. */
-      result = is_type_start(/*is_expr_context=*/TRUE) &&
-               next_token() != tok_lparen;
+      result = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                                DFS_SINGLE_TYPE_REQUIRED);
       rescan_cached_tokens(&cache);
     } else {
       result = FALSE;
