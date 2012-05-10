@@ -2316,7 +2316,7 @@ hash value for that object.
   an_unresolved_type_map_key  *key = (an_unresolved_type_map_key*)key_ptr;
   /* The following uses Knuth' suggestion of multiplying with the golden
      ratio of 2^32. */
-  return (a_hash_value)(key->assembly_scope_index*2654435761/*lint !e764 */
+  return (a_hash_value)(key->assembly_scope_index*2654435761/*lint !e694 */
                        +key->metadata_type_def_token);
 }  /* hash_unresolved_type_map_key */
 
