@@ -4181,6 +4181,7 @@ that the final call needs to be cast to the indicated type.
       /* Update the operand: */
       orig_operand = *target;
       make_function_designator_operand(sym, target->is_qualified_name,
+                                       /*compiler_generated=*/FALSE,
                                        &orig_operand.position,
                                        end_position_of_operand(&orig_operand),
                                        target->ref_entries_list, target);
@@ -4511,6 +4512,7 @@ are expected to be NULL in that case.
         /* Make an operand for the function bound to the "this" pointer. */
         make_function_designator_operand(member_func_sym,
                                          (a_boolean)operand->is_qualified_name,
+                                         /*compiler_generated=*/FALSE,
                                          &call_position,
                                          end_position_or_null(
                                                           &saved_end_position),
@@ -4586,6 +4588,7 @@ are expected to be NULL in that case.
         }  /* if */
         make_function_designator_operand(func_sym,
                                          /*is_qualified_name=*/FALSE,
+                                         /*compiler_generated=*/FALSE,
                                          &func_sym->decl_position,
                                          end_position_or_null(
                                                        &end_function_position),
@@ -4760,6 +4763,7 @@ are expected to be NULL in that case.
                                           /*use_std_for_arg_dep_lookup=*/FALSE,
                                           try_surrogate_functions,
                                           /*is_property=*/FALSE,
+                                          /*compiler_generated=*/FALSE,
                                           ec_no_matching_function,
                                           ec_ambiguous_overloaded_function,
                                           ec_undefined_identifier,
@@ -6785,6 +6789,7 @@ nonstatic_member_function:
                 make_function_designator_operand(projection_member_sym,
                                                 (a_boolean)locator.
                                                              is_qualified_name,
+                                                 /*compiler_generated=*/FALSE,
                                                  &member_position,
                                                  end_position_or_null(
                                                                 &end_position),
@@ -6802,6 +6807,7 @@ nonstatic_member_function:
             make_function_designator_operand(projection_member_sym,
                                              (a_boolean)locator.
                                                              is_qualified_name,
+                                             /*compiler_generated=*/FALSE,
                                              &member_position,
                                              end_position_or_null(
                                                                 &end_position),
@@ -15198,6 +15204,7 @@ expression, and return the result in *result (or an error indication in
                                  (an_operand *)NULL,
                                  &new_position,
                                  /*elided_reference=*/(new_routine==NULL),
+                                 /*compiler_generated=*/FALSE,
                                  /*result_is_lvalue=*/FALSE,
                                  /*address_taken=*/FALSE,
                                  (an_operand *)NULL,
@@ -17796,6 +17803,7 @@ indicates which.
                              start_position);
             make_function_designator_operand(rout_sym,
                                          (a_boolean)operand->is_qualified_name,
+                                             /*compiler_generated=*/FALSE,
                                              start_position, end_position,
                                              (a_ref_entry_ptr)NULL,
                                              operand);
@@ -25271,6 +25279,7 @@ normal_function:
             make_function_designator_operand(projection_sym_ptr,
                                              (a_boolean)locator.
                                                              is_qualified_name,
+                                             /*compiler_generated=*/FALSE,
                                              &locator.source_position,
                                              end_position_or_null(
                                                                 &end_position),
@@ -28501,15 +28510,15 @@ static a_boolean make_enhanced_for_user_defined_function_call(
                               an_operand              *bound_function_selector,
                               a_symbol_ptr            symbol,
                               a_boolean               is_for_each,
-                              a_source_position       *pos,
+                              a_source_position       *expr_position,
                               a_token_sequence_number tok_seq_number,
                               an_operand              *argument,
                               an_operand              *result)
 /*
 This routine performs overload resolution and generates the expression for
 a call to the member function represented by symbol as part of a "for each"
-statement.  *bound_function_selector is the selector object.  *pos is the
-source position where the call to this function is considered to occur
+statement.  *bound_function_selector is the selector object.  *expr_position
+is the source position where the call to this function is considered to occur
 (usually the position of the collection expression).  tok_seq_number is the
 sequence number of the first token of the collection expression.  The function
 is called with an empty argument list, unless argument is non-NULL,
@@ -28546,6 +28555,7 @@ for-each (otherwise it's a range-based-for).
                                       /*use_std_for_arg_dep_lookup=*/FALSE,
                                       /*try_surrogate_functions=*/FALSE,
                                       /*is_property=*/FALSE,
+                                      /*compiler_generated=*/TRUE,
                                       is_for_each ?
                                        ec_for_each_no_matching_overload :
                                        ec_range_based_for_no_matching_overload,
@@ -28554,7 +28564,7 @@ for-each (otherwise it's a range-based-for).
                                        ec_for_each_undefined_identifier :
                                        ec_range_based_for_undefined_identifier,
                                       (an_operand *)NULL,
-                                      pos,
+                                      expr_position,
                                       tok_seq_number,
                                       (a_source_position *)NULL,
                                       (a_boolean *)NULL,
@@ -28569,10 +28579,9 @@ for-each (otherwise it's a range-based-for).
                            /*is_qualified_name=*/FALSE,
                            /*found_through_adl=*/FALSE,
                            /*uses_operator_syntax=*/FALSE,
-                           pos, 
+                           expr_position,
                            result,
                            &func_call_node);
-    result->position = *pos;
     if (func_call_node != NULL) {
       member_function_found = TRUE;
     }  /* if */
@@ -28592,7 +28601,7 @@ for-each (otherwise it's a range-based-for).
       if (is_for_each &&
           !routine_type_is_nonstatic_member_function(rout_type)) {
         /* This is a static member function so it can't be used. */
-        pos_sy_error(ec_for_each_static_function, pos, rout_symbol);
+        pos_sy_error(ec_for_each_static_function, expr_position, rout_symbol);
       } else {
         /* Semantic checks passed. */
         passed = TRUE;
@@ -28608,7 +28617,7 @@ static a_boolean check_enhanced_for_user_defined_function(
                               an_operand              *bound_function_selector,
                               char                    *function_name,
                               a_boolean               is_for_each,
-                              a_source_position       *pos,
+                              a_source_position       *expr_position,
                               a_token_sequence_number tok_seq_number,
                               an_operand              *argument,
                               an_operand              *result)
@@ -28618,7 +28627,7 @@ the class or struct specified by a selector object as part of handling an
 enhanced-for statement.  If lookup is successful, it also performs
 overload resolution and generates the expression for the call to the
 member function.  *bound_function_selector is the selector object; it
-can be a handle.  *pos is the source position where the call to this
+can be a handle.  *expr_position is the source position where the call to this
 function is considered to occur (usually the position of the
 expression).  tok_seq_number is the sequence number of the
 first token of the expression.  The function is called with
@@ -28650,7 +28659,7 @@ a for-each statement (otherwise it's a range-based-for statement).
     /* Look up failed. */
     pos_stty_error(is_for_each ? ec_for_each_missing_function :
                                  ec_range_based_for_missing_function,
-                   pos, function_name, type);
+                   expr_position, function_name, type);
   } else if (symbol->is_nonreal_member) {
     /* The symbol is a member of a nonreal class, the function call will be
        generated later for the real instantiation. */
@@ -28659,7 +28668,8 @@ a for-each statement (otherwise it's a range-based-for statement).
                                                       bound_function_selector,
                                                       locator.specific_symbol, 
                                                       is_for_each,
-                                                      pos, tok_seq_number,
+                                                      expr_position,
+                                                      tok_seq_number,
                                                       argument,
                                                       result);
   }  /* if */
@@ -28857,7 +28867,7 @@ static void generate_enhanced_for_ne_and_incr_expressions(
                                        a_variable_ptr          begin_var,
                                        a_variable_ptr          end_var,
                                        a_boolean               is_for_each,
-                                       a_source_position       pos,
+                                       a_source_position       *expr_position,
                                        a_token_sequence_number tok_seq_number,
                                        an_expr_node_ptr        *ne_call_expr,
                                        an_expr_node_ptr        *incr_call_expr)
@@ -28890,10 +28900,10 @@ initialization for the iterator is handled by the caller.
 begin_var and end_var are the __begin/i and __end/cend variables for
 range-based-for and for-each statements respectively.  *ne_call_expr and
 *incr_call_expr are returned expressions for the "!=" and "++" operations.
-pos is the source position for the enhanced-for expression.  tok_seq_number
-is the sequence number of the first token of the enhanced-for expression.
-is_for_each is TRUE when parsing a for-each statement and FALSE when parsing
-a range-based-for statement.
+*expr_position is the source position for the enhanced-for expression.
+tok_seq_number is the sequence number of the first token of the enhanced-for
+expression.  is_for_each is TRUE when parsing a for-each statement and FALSE
+when parsing a range-based-for statement.
 
 This routine should be called with the proper scope in which to declare the
 loop variables (i.e., __begin/i, __end/cend) already on the stack.  On
@@ -28929,10 +28939,10 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
                                    has_predef_meaning,
-                                   &operand1, &operand2, &pos,
+                                   &operand1, &operand2, expr_position,
                                    tok_seq_number,
                                    (a_nondependent_call_depth)1,
-                                   &pos, &operand, &processed);
+                                   expr_position, &operand, &processed);
   }  /* if */
   if (processed) {
     /* An overloaded operator!= was used (or there was an error). */
@@ -28941,7 +28951,7 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
     if (!is_pointer_or_handle_type(operand1.type)) {
       pos_ty_error(is_for_each ? ec_missing_notequal_on_for_each_type :
                                  ec_missing_notequal_on_range_based_for_type,
-                   &pos, operand1.type);
+                   expr_position, operand1.type);
       passed = FALSE;
     } else {
       /* Make the "!=" operator node. */
@@ -28977,10 +28987,11 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
                                    /*has_predef_meaning=*/FALSE,
-                                   &operand1, (an_operand *)NULL, &pos,
+                                   &operand1, (an_operand *)NULL,
+                                   expr_position,
                                    tok_seq_number,
                                    (a_nondependent_call_depth)2,
-                                   &pos, &operand, &processed);
+                                   expr_position, &operand, &processed);
   }  /* if */
   if (processed) {
     /* An overloaded operator++ was used (or there was an error). */
@@ -28989,7 +29000,7 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
     if (!is_pointer_type(operand1.type)) {
       pos_ty_error(is_for_each ? ec_missing_incr_on_for_each_type :
                                  ec_missing_incr_on_range_based_for_type,
-                   &pos, operand1.type);
+                   expr_position, operand1.type);
       passed = FALSE;
     } else {
       /* Make the "++" operator node. */
@@ -29014,12 +29025,14 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
 static void fill_in_range_based_for_loop_constructs(
                                      a_range_based_for_loop_ptr rbflp,
                                      a_token_sequence_number    tok_seq_number,
+                                     a_source_position          *expr_position,
                                      a_scope_pointers_block_ptr pointers_block)
 /*
 Generate and fill in the IL necessary for the looping constructs of a
 range-based-for statement.  rbflp points to the IL associated with the
 range-based-for statement.  tok_seq_number is the sequence number of the first
-token of the expression.  pointers_block is the pointers block for the iterator
+token of the expression.  *expr_position is the source position for the
+enhanced-for expression.  pointers_block is the pointers block for the iterator
 scope previously created, needed to reactivate that scope.  This routine should
 be called with the proper scope in which to declare the loop variables (i.e.,
 __begin, __end) already on the stack.
@@ -29028,15 +29041,13 @@ __begin, __end) already on the stack.
   an_operand          operand1, operand;
   a_boolean           processed, passed = TRUE;
   an_expr_stack_entry expr_stack_entry;
-  a_source_position   pos;
 
   check_assertion(rbflp->begin_end_scope == scope_stack_top().il_scope);
-  pos = rbflp->range->source_corresp.decl_position;
   /* Generate the "__begin != __end" and "++__begin" expressions. */
   generate_enhanced_for_ne_and_incr_expressions(rbflp->begin,
                                                 rbflp->end,
                                                 /*is_for_each=*/FALSE,
-                                                pos,
+                                                expr_position,
                                                 tok_seq_number,
                                                 &rbflp->ne_call_expr,
                                                 &rbflp->incr_call_expr);
@@ -29057,10 +29068,11 @@ __begin, __end) already on the stack.
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
                                    /*has_predef_meaning=*/FALSE,
-                                   &operand1, (an_operand *)NULL, &pos,
+                                   &operand1, (an_operand *)NULL,
+                                   expr_position,
                                    tok_seq_number,
                                    (a_nondependent_call_depth)3,
-                                   &pos, &operand, &processed);
+                                   expr_position, &operand, &processed);
   }  /* if */
   if (processed) {
     /* An overloaded operator* was used (or there was an error). */
@@ -29068,7 +29080,7 @@ __begin, __end) already on the stack.
     /* Try a non-overloaded "*" operator. */
     if (!is_pointer_type(operand1.type)) {
       pos_ty_error(ec_missing_indirect_on_range_based_for_type,
-                   &pos, operand1.type);
+                   expr_position, operand1.type);
       passed = FALSE;
     } else {
       /* Make the "*" operator node. */
@@ -29103,6 +29115,7 @@ static void fill_in_for_each_loop_constructs(
                                 a_for_each_loop_ptr        felp,
                                 an_operand                 *prev_decl_iterator,
                                 a_token_sequence_number    tok_seq_number,
+                                a_source_position          *expr_position,
                                 a_scope_pointers_block_ptr pointers_block)
 /*
 Generate and fill in the IL necessary for the looping constructs of a
@@ -29113,6 +29126,7 @@ on the stack.  felp points to the IL entry associated with the for-each
 statement.  prev_decl_iterator is an operand for the previously-declared
 variable for the iterator when one is indicated in the for-each loop entry.
 tok_seq_number is the sequence number of the first token of the collection
+expression.  *expr_position is the source position for the collection
 expression.  pointers_block is the pointers block for the iterator scope
 previously created, needed to reactivate that scope.
 */
@@ -29120,18 +29134,16 @@ previously created, needed to reactivate that scope.
   an_operand          operand1, operand;
   a_boolean           processed, passed = TRUE;
   an_expr_stack_entry expr_stack_entry;
-  a_source_position   pos;
 
   check_assertion(felp->kind == (a_for_each_pattern_kind)sfepk_stl_pattern ||
                   felp->kind == (a_for_each_pattern_kind)sfepk_array_pattern);
   check_assertion(felp->for_each_scope == scope_stack_top().il_scope);
-  pos = felp->collection_expr_ref->source_corresp.decl_position;
   /* Generate "i != cend" and "++i" expressions. */
   generate_enhanced_for_ne_and_incr_expressions(
                               felp->temporary_variable,
                               felp->variant.stl_array_pattern.end_variable,
                               /*is_for_each=*/TRUE,
-                              pos,
+                              expr_position,
                               tok_seq_number,
                               &felp->variant.stl_array_pattern.ne_call_expr,
                               &felp->variant.stl_array_pattern.incr_call_expr);
@@ -29153,17 +29165,19 @@ previously created, needed to reactivate that scope.
                                    /*try_conversions=*/TRUE,
                                    /*has_predef_meaning=*/
                                                  is_handle_type(operand1.type),
-                                   &operand1, (an_operand *)NULL, &pos,
+                                   &operand1, (an_operand *)NULL,
+                                   expr_position,
                                    tok_seq_number,
                                    (a_nondependent_call_depth)3,
-                                   &pos, &operand, &processed);
+                                   expr_position, &operand, &processed);
   }  /* if */
   if (processed) {
     /* An overloaded operator* was used (or there was an error). */
   } else {
     /* Try a non-overloaded "*" operator. */
     if (!is_pointer_or_handle_type(operand1.type)) {
-      pos_ty_error(ec_missing_indirect_on_for_each_type, &pos, operand1.type);
+      pos_ty_error(ec_missing_indirect_on_for_each_type, expr_position,
+                   operand1.type);
       passed = FALSE;
     } else {
       /* Make the "*" operator node. */
@@ -29189,7 +29203,7 @@ previously created, needed to reactivate that scope.
         itype = iterator_type(felp, prev_decl_iterator);
         if (!cast_identical_types(itype, operand.type)) {
           a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
-          process_static_cast(itype, &operand, &pos, &pos,
+          process_static_cast(itype, &operand, expr_position, expr_position,
                               /*is_safe_cast=*/FALSE, &ruled_out_expr_kinds);
         }  /* if */
         set_iterator_variable_initializer(felp,
@@ -29211,6 +29225,7 @@ static a_boolean make_enhanced_for_initializer_for_call_to_member_function(
                                         char                    *function_name,
                                         a_boolean               is_for_each,
                                         a_token_sequence_number tok_seq_number,
+                                        a_source_position       *expr_position,
                                         a_variable_ptr          *loop_var,
                                         a_type_ptr              *type)
 /*
@@ -29222,7 +29237,8 @@ is the selector object; it can be a handle.  *type is set to indicate the
 return type of the member call expression (which may be an error type).
 is_for_each is TRUE if the statement being processed is a for-each statement
 (otherwise it's a range-based-for statement).  tok_seq_number is the token
-for the start of the loop expression.  Returns TRUE (and creates *loop_var
+for the start of the loop expression.  *expr_position is the source position
+for the collection expression.  Returns TRUE (and creates *loop_var
 with the appropriate initializer) if an appropriate member function is
 found; otherwise issues an error message (and *loop_var is unmodified).
 Returns FALSE (without issuing any error messages) in the template
@@ -29232,18 +29248,16 @@ dependent case.
   an_expr_stack_entry expr_stack_entry;
   an_operand          bound_function_selector, member_call_operand;
   a_boolean           result = TRUE;
-  a_source_position   pos;
 
   /* Make an expression for "selector_var.function_name()". */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   make_enhanced_for_expression_operand(selector_var, &bound_function_selector);
-  pos = bound_function_selector.position;
   if (check_enhanced_for_user_defined_function(&bound_function_selector,
                                                function_name,
                                                is_for_each,
-                                               &pos,
+                                               expr_position,
                                                tok_seq_number,
                                                (an_operand *)NULL,
                                                &member_call_operand)) {
@@ -29371,17 +29385,16 @@ set it to NULL.
 static a_boolean check_for_each_user_defined_property(
                                             an_operand        *selector,
                                             char              *name,
-                                            a_source_position *pos,
+                                            a_source_position *expr_position,
                                             an_operand        *result)
 /*
 This routine attempts to look up a property named name in the class or
 struct specified by a selector object and generate the expression for
 a call to its "get" accessor, as part of handling a "for each"
 statement.  *selector is the object for the property reference; it can
-be a handle.  *pos is the source position where the implied reference
-to this property is considered to occur in the "for each" statement.
-Return TRUE if a property is found and it passes all semantic checks,
-FALSE otherwise.  Also return FALSE for a case where a non-real
+be a handle.  *expr_position is the source position for the collection
+expression.  Return TRUE if a property is found and it passes all semantic
+checks, FALSE otherwise.  Also return FALSE for a case where a non-real
 property is found.  *result is set to an expression operand for the
 "get" accessor call.
 */
@@ -29397,7 +29410,7 @@ property is found.  *result is set to an expression operand for the
     conv_lvalue_to_rvalue(selector);
     selector->selector_is_object_pointer = TRUE;
   }  /* if */
-  clear_locator(&locator, pos);
+  clear_locator(&locator, expr_position);
   (void)find_symbol(name, strlen(name), &locator);
   symbol = class_qualified_id_lookup(&locator, type, IDL_NO_OPTIONS);
   if (symbol != NULL && symbol->is_nonreal_member) {
@@ -29406,7 +29419,7 @@ property is found.  *result is set to an expression operand for the
   } else if (symbol == NULL ||
              symbol->kind != (a_symbol_kind)sk_property_set) {
     /* No suitable property symbol was found. */
-    pos_stty_error(ec_for_each_missing_field, pos, name, type);
+    pos_stty_error(ec_for_each_missing_field, expr_position, name, type);
   } else {
     /* Make the operand for the selection of the property and generate the
        function call to the "get" accessor. */
@@ -29414,7 +29427,7 @@ property is found.  *result is set to an expression operand for the
                               selector->selector_is_object_pointer,
                               result);
     restore_operand_details(result, selector);
-    result->position = *pos;
+    result->position = *expr_position;
     rewrite_property_reference(result, /*put_operand=*/FALSE,
                                (a_rewritten_property_reference_kind)rprk_none,
                                &routine);
@@ -29422,7 +29435,8 @@ property is found.  *result is set to an expression operand for the
     if (routine != NULL) {
       if (!routine_type_is_nonstatic_member_function(routine->type)) {
         /* This is a static member function so it can't be used. */
-        pos_sy_error(ec_for_each_static_function, pos, symbol_for(routine));
+        pos_sy_error(ec_for_each_static_function, expr_position,
+                     symbol_for(routine));
         passed = FALSE;
       }  /* if */
     }  /* if */
@@ -29457,6 +29471,7 @@ static void check_for_each_cli_collection_pattern(
                                 a_for_each_loop_ptr        felp,
                                 an_operand                 *prev_decl_iterator,
                                 a_token_sequence_number    tok_seq_number,
+                                a_source_position          *expr_position,
                                 a_base_class_ptr           ienumerable_bcp,
                                 a_scope_pointers_block_ptr pointers_block)
 /*
@@ -29482,7 +29497,8 @@ System::Collections::Generic::IEnumerable interfaces.
 felp holds information about the for-each loop.  prev_decl_iterator is
 an operand for the previously-declared variable for the iterator when
 one is indicated in the for-each loop entry.  tok_seq_number is the
-sequence number of the first token of the collection expression.  If
+sequence number of the first token of the collection expression.
+*expr_position is the source position for the collection expression.  If
 ienumerable_bcp is non-NULL, the collection type implements one of the
 recognized IEnumerable interfaces; bcp identifies which one.
 pointers_block is the pointers block for the iterator scope previously
@@ -29499,7 +29515,6 @@ created, needed to reactivate that scope.
   an_expr_node_ptr    movenext_call_expr = NULL;
   a_variable_ptr      temp_var;
   a_boolean           passed = TRUE;
-  a_source_position   pos;
   an_expr_stack_entry expr_stack_entry;
 
   /* We should be in the for-each scope at this point. */
@@ -29532,7 +29547,6 @@ created, needed to reactivate that scope.
                   /*suppress_object_lifetime=*/FALSE);
   make_enhanced_for_expression_operand(felp->collection_expr_ref,
                                        &bound_function_selector);
-  pos = bound_function_selector.position;
   collection_type = bound_function_selector.type;
   /* The collection type may be a handle type.  If so, dereference it
      now. */
@@ -29554,7 +29568,7 @@ created, needed to reactivate that scope.
   if (!check_enhanced_for_user_defined_function(&bound_function_selector,
                                                 "GetEnumerator",
                                                 /*is_for_each=*/TRUE,
-                                                &pos,
+                                                expr_position,
                                                 tok_seq_number,
                                                 (an_operand *)NULL,
                                                 &getenumerator_operand)) {
@@ -29572,7 +29586,7 @@ created, needed to reactivate that scope.
          be a valid enumerator type. */
       if (!is_error_type(enumerator_type)) {
         pos_ty2_error(ec_for_each_getenumerator_return_type_invalid,
-                      &pos, collection_type, getenumerator_ret_type);
+                      expr_position, collection_type, getenumerator_ret_type);
       }  /* if */
       passed = FALSE;
     } else {
@@ -29598,7 +29612,7 @@ created, needed to reactivate that scope.
     if (!check_enhanced_for_user_defined_function(&operand,
                                                   "MoveNext",
                                                   /*is_for_each=*/TRUE,
-                                                  &pos,
+                                                  expr_position,
                                                   tok_seq_number,
                                                   (an_operand *)NULL,
                                                   &movenext_call_operand)) {
@@ -29609,7 +29623,8 @@ created, needed to reactivate that scope.
           !is_template_param_type(movenext_call_operand.type)) {
         /* The return type is invalid. */
         if (!is_error_type(movenext_call_operand.type)) {
-          pos_error(ec_for_each_invalid_return_type_for_move_next, &pos);
+          pos_error(ec_for_each_invalid_return_type_for_move_next,
+                    expr_position);
         }  /* if */
         passed = FALSE;
       } else {
@@ -29642,7 +29657,7 @@ created, needed to reactivate that scope.
          we check for here. */
       if (!check_for_each_user_defined_property(&operand,
                                                 "Current",
-                                                &pos,
+                                                expr_position,
                                                 &current_get_call_operand)) {
         passed = FALSE;
       } else {
@@ -29655,7 +29670,8 @@ created, needed to reactivate that scope.
         if (!cast_identical_types(itype, current_get_call_operand.type)) {
           a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
           process_safe_cast(itype, &current_get_call_operand,
-                            &pos, &pos, &ruled_out_expr_kinds);
+                            expr_position, expr_position,
+                            &ruled_out_expr_kinds);
         }  /* if */
         /* Make an initializer for the iterator variable from the expression
            resulting from the safe_cast. */
@@ -29681,6 +29697,7 @@ static void check_for_each_cli_array_pattern(
                               a_for_each_loop_ptr        felp,
                               an_operand                 *prev_decl_iterator,
                               a_token_sequence_number    tok_seq_number,
+                              a_source_position          *expr_position,
                               a_scope_pointers_block_ptr pointers_block)
 /*
 This routine checks a statement of kind stmk_for_each for semantic
@@ -29695,6 +29712,7 @@ felp holds information about the for-each loop.  prev_decl_iterator is
 an operand for the previously-declared variable for the iterator when
 one is indicated in the for-each loop entry.  tok_seq_number is the
 sequence number of the first token of the collection expression.
+*expr_position is the source position for the collection expression.
 pointers_block is the pointers block for the iterator scope previously
 created, needed to reactivate that scope.
 */
@@ -29706,7 +29724,6 @@ created, needed to reactivate that scope.
   a_boolean           unknown;
   an_operand          operand, bound_num_operand;
   an_operand          bound_function_selector;
-  a_source_position   pos;
   a_variable_ptr      upper_bound_vars = NULL, loop_vars = NULL;
 
   /* We should be in the for-each scope at this point. */
@@ -29827,7 +29844,6 @@ created, needed to reactivate that scope.
                       /*force_object_lifetime=*/FALSE,
                       /*suppress_object_lifetime=*/FALSE);
       make_collection_expression_operand_for_cli_array(felp, &operand);
-      pos = operand.position;
       expr = make_node_from_operand(&operand);
       if (!is_handle_type(expr->type)) {
         /* For the tracking reference case, add a "%" operator to get a
@@ -29856,7 +29872,8 @@ created, needed to reactivate that scope.
       itype = iterator_type(felp, prev_decl_iterator);
       if (!cast_identical_types(itype, operand.type)) {
         a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
-        process_safe_cast(itype, &operand, &pos, &pos, &ruled_out_expr_kinds);
+        process_safe_cast(itype, &operand, expr_position, expr_position,
+                          &ruled_out_expr_kinds);
       }  /* if */
       /* Make an initializer for the iterator variable from the expression
          resulting from the safe_cast. */
@@ -29883,6 +29900,7 @@ static void check_for_each_stl_collection_pattern(
                                 a_for_each_loop_ptr        felp,
                                 an_operand                 *prev_decl_iterator,
                                 a_token_sequence_number    tok_seq_number,
+                                a_source_position          *expr_position,
                                 a_scope_pointers_block_ptr pointers_block)
 /*
 This routine checks a statement of kind stmk_for_each for semantic correctness
@@ -29902,12 +29920,12 @@ prev_decl_iterator is an operand for the previously-declared variable
 for the iterator when one is indicated in the for-each loop entry.
 felp holds information about the for-each loop.  tok_seq_number is the
 sequence number of the first token of the collection expression.
+*expr_position is the source position for the collection expression.
 pointers_block is the pointers block for the iterator scope previously
 created, needed to reactivate that scope.
 */
 {
   a_boolean           passed = TRUE;
-  a_source_position   pos;
   a_type_ptr          begin_type, end_type;
   a_variable_ptr      temp_var = NULL, cend_var = NULL;
   an_operand          dummy_operand;
@@ -29931,6 +29949,7 @@ created, needed to reactivate that scope.
                                                     "end",
                                                     /*is_for_each=*/TRUE,
                                                     tok_seq_number,
+                                                    expr_position,
                                                     &cend_var,
                                                     &end_type)) {
     passed = FALSE;
@@ -29941,6 +29960,7 @@ created, needed to reactivate that scope.
                                                     "begin",
                                                     /*is_for_each=*/TRUE,
                                                     tok_seq_number,
+                                                    expr_position,
                                                     &temp_var,
                                                     &begin_type)) {
     passed = FALSE;
@@ -29954,8 +29974,8 @@ created, needed to reactivate that scope.
          handle. */
       make_enhanced_for_expression_operand(felp->collection_expr_ref,
                                            &dummy_operand);
-      pos = felp->collection_expr_ref->source_corresp.decl_position;
-      pos_ty_error(ec_for_each_incompatible_type, &pos, dummy_operand.type);
+      pos_ty_error(ec_for_each_incompatible_type, expr_position,
+                   dummy_operand.type);
       passed = FALSE;
     } else {
       /* Fill in the appropriate IL for the STL version of the "for each"
@@ -29966,6 +29986,7 @@ created, needed to reactivate that scope.
       fill_in_for_each_loop_constructs(felp,
                                        prev_decl_iterator,
                                        tok_seq_number,
+                                       expr_position,
                                        pointers_block);
     }  /* if */
   }  /* if */
@@ -29976,6 +29997,7 @@ static void check_for_each_array_pattern(
                               a_for_each_loop_ptr        felp,
                               an_operand                 *prev_decl_iterator,
                               a_token_sequence_number    tok_seq_number,
+                              a_source_position          *expr_position,
                               a_scope_pointers_block_ptr pointers_block)
 /*
 This routine checks a statement of kind stmk_for_each for semantic
@@ -29992,6 +30014,7 @@ felp holds information about the for-each loop.  prev_decl_iterator is
 an operand for the previously-declared variable for the iterator when
 one is indicated in the for-each loop entry.  tok_seq_number is the
 sequence number of the first token of the collection expression.
+*expr_position is the source position for the collection expression.
 pointers_block is the pointers block for the iterator scope previously
 created, needed to reactivate that scope.
 */
@@ -30097,6 +30120,7 @@ created, needed to reactivate that scope.
     fill_in_for_each_loop_constructs(felp,
                                      prev_decl_iterator,
                                      tok_seq_number,
+                                     expr_position,
                                      pointers_block);
   }  /* if */
   /* Pop the expression stack for error cases. */
@@ -30107,6 +30131,7 @@ created, needed to reactivate that scope.
 void check_for_each_statement(a_statement_ptr            statement,
                               an_operand                 *prev_decl_iterator,
                               a_token_sequence_number    tok_seq_number,
+                              a_source_position          *expr_position,
                               a_scope_pointers_block_ptr pointers_block)
 /*
 Perform semantic checks on the "for each" statement pointed to by
@@ -30191,6 +30216,7 @@ is a special case of the CLI collection pattern.
 prev_decl_iterator is an operand for the previously-declared variable for
 the iterator when one is indicated in the for-each loop entry.
 tok_seq_number is the sequence number of the first token of the collection
+expression.  *expr_position is the source position for the collection
 expression.  pointers_block is the pointers block for the iterator scope
 previously created, needed to reactivate that scope.
 */
@@ -30223,30 +30249,31 @@ previously created, needed to reactivate that scope.
     /* Do nothing here to prevent cascading diagnostics. */
   } else if (is_array_type(collection_type)) {
     /* Perform full semantic checks and generate IL for the array pattern. */
-    check_for_each_array_pattern(felp, prev_decl_iterator,
-                                 tok_seq_number, pointers_block);
+    check_for_each_array_pattern(felp, prev_decl_iterator, tok_seq_number,
+                                 expr_position, pointers_block);
   } else if (cppcli_enabled && is_cli_array_type(collection_type)) {
     /* Perform full semantic checks and generate IL for the CLI array
        pattern. */
     check_for_each_cli_array_pattern(felp, prev_decl_iterator,
-                                     tok_seq_number, pointers_block);
+                                     tok_seq_number, expr_position,
+                                     pointers_block);
   } else if (is_class_struct_type(collection_type)) {
     if (is_stl_collection_pattern_candidate(collection_type)) {
       /* Perform full semantic checks and generate IL for the STL pattern. */
       check_for_each_stl_collection_pattern(felp, prev_decl_iterator,
-                                            tok_seq_number, pointers_block);
+                                            tok_seq_number, expr_position,
+                                            pointers_block);
     } else if (cppcli_enabled && 
                is_cli_collection_pattern_candidate(collection_type,
                                                    &ienumerable_bcp)) {
       /* Perform full semantic checks and generate IL for the C++/CLI
          collection pattern. */
       check_for_each_cli_collection_pattern(felp, prev_decl_iterator,
-                                            tok_seq_number,
+                                            tok_seq_number, expr_position,
                                             ienumerable_bcp, pointers_block);
     } else {
       /* Nothing seems appropriate, so just issue a generic diagnostic. */
-      pos_ty_error(ec_for_each_incompatible_type,
-                   &collection_var->source_corresp.decl_position,
+      pos_ty_error(ec_for_each_incompatible_type, expr_position,
                    orig_collection_type);
     }  /* if */
   } else if (is_template_dependent_type(collection_type)) {
@@ -30255,8 +30282,7 @@ previously created, needed to reactivate that scope.
   } else {
     /* This collection is not of a suitable type; we just issue a generic
        diagnostic. */
-    pos_ty_error(ec_for_each_incompatible_type,
-                 &collection_var->source_corresp.decl_position,
+    pos_ty_error(ec_for_each_incompatible_type, expr_position,
                  orig_collection_type);
   }  /* if */
   if (!felp->uses_prev_decl_iterator &&
@@ -30274,10 +30300,13 @@ previously created, needed to reactivate that scope.
 }  /* check_for_each_statement */
 
 
-void scan_for_each_expression(a_statement_ptr statement)
+void scan_for_each_expression(a_statement_ptr   statement,
+                              a_source_position *expr_position)
 /*
 Scan the collection expression of a "for each" statement and put information
 about it in the for-each statement IL entry pointed to by statement.
+Sets *expr_position to the position of the beginning of the collection
+expression.
 */
 {
   a_for_each_loop_ptr felp = statement->variant.for_each_loop.extra_info;
@@ -30337,7 +30366,7 @@ about it in the for-each statement IL entry pointed to by statement.
   /* Make the collection expression reference variable. */
   ref_var = alloc_temporary_variable(ref_type, /*force_static=*/FALSE);
   felp->collection_expr_ref = ref_var;
-  ref_var->source_corresp.decl_position = result.position;
+  *expr_position = result.position;
   set_variable_initializer(ref_var, &result);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
@@ -30452,11 +30481,13 @@ On return, the current token is the "in".
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean check_range_based_for_array_case(
-                                              a_range_based_for_loop_ptr rbflp)
+                                     a_source_position          *expr_position,
+                                     a_range_based_for_loop_ptr rbflp)
 /*
 This routine handles the first kind of range-based-for: when the
 expression has an array type.  Generate the appropriate IL (in rbflp) for
-the array case of a range-based-for.  Note that the standard mandates that a
+the array case of a range-based-for.  *expr_position is the source position for
+the range expression.  Note that the standard mandates that a
 range-based-for statement that operates on a multi-dimensional range expression
 loops only through the outer-most dimension of the array.  Returns TRUE and
 fills in the appropriate fields in rbflp if there is no error; otherwise issues
@@ -30485,7 +30516,7 @@ an error and returns FALSE.
   if (is_incomplete_array_type(expr_type) || 
       is_incomplete_type(element_type)) {
     /* The array has an unknown bound or the element type is incomplete. */
-    pos_ty_error(ec_range_based_for_incomplete_array_type, &operand.position,
+    pos_ty_error(ec_range_based_for_incomplete_array_type, expr_position,
                  expr_type);
     passed = FALSE;
   } else {
@@ -30536,15 +30567,17 @@ an error and returns FALSE.
 
 static a_boolean check_range_based_for_member_case(
                                      a_range_based_for_loop_ptr rbflp,
-                                     a_token_sequence_number    tok_seq_number)
+                                     a_token_sequence_number    tok_seq_number,
+                                     a_source_position          *expr_position)
 /*
 This routine handles the second kind of range-based-for statement: where the
 expression has a class type and that class has suitable "begin()" and "end()"
 members.  In that case, generate IL (in rbflp) to create and initialize the
 __begin and __end variables appropriately.  tok_seq_number is the sequence
-number for the expression in the range-based-for.  If suitable member functions
-are found, fields in rbflp are updated and the routine returns TRUE; otherwise
-an error is issued and FALSE is returned.
+number for the expression in the range-based-for.  *expr_position is the source
+position for the range expression.  If suitable member functions are found,
+fields in rbflp are updated and the routine returns TRUE; otherwise an error is
+issued and FALSE is returned.
 */
 {
   a_type_ptr        begin_type, end_type;
@@ -30556,6 +30589,7 @@ an error is issued and FALSE is returned.
                                                          "begin",
                                                          /*is_for_each=*/FALSE,
                                                          tok_seq_number,
+                                                         expr_position,
                                                          &rbflp->begin,
                                                          &begin_type)) {
     passed = FALSE;
@@ -30566,6 +30600,7 @@ an error is issued and FALSE is returned.
                                                          "end",
                                                          /*is_for_each=*/FALSE,
                                                          tok_seq_number,
+                                                         expr_position,
                                                          &rbflp->end,
                                                          &end_type)) {
     passed = FALSE;
@@ -30579,6 +30614,7 @@ static a_boolean create_range_based_for_variable_for_function_call(
                                         a_variable_ptr          range_var,
                                         char                    *function_name,
                                         a_token_sequence_number tok_seq_number,
+                                        a_source_position       *expr_position,
                                         a_variable_ptr          *variable)
 /*
 This utility is used during processing of a range-based-for to create a
@@ -30586,7 +30622,8 @@ variable (returned in *variable) whose initializer is a call to the function
 specified by function_name.  range_var is the sole argument in the function
 call, and argument-dependent lookup is used (with namespace std as an
 associated namespace) for the purposes of the lookup.  tok_seq_number is
-the sequence number of the range-based-for expression.  Returns TRUE
+the sequence number of the range-based-for expression.  *expr_position is
+the source position for the range expression.  Returns TRUE
 (and creates *variable with a proper initializer) if an appropriate function
 was found; otherwise reports an error and returns FALSE (with *variable
 unmodified).  Note also that this routine will return FALSE (and not issue any
@@ -30596,7 +30633,6 @@ errors) in the case where the expression is template dependent.
   a_symbol_locator        locator;
   a_symbol_ptr            symbol;
   an_operand              range_operand, result;
-  a_source_position       *pos = &range_var->source_corresp.decl_position;
   an_expr_stack_entry     expr_stack_entry;
   a_type_ptr              range_type;
   a_boolean               passed = FALSE;
@@ -30637,11 +30673,12 @@ errors) in the case where the expression is template dependent.
                                        /*use_std_for_arg_dep_lookup=*/TRUE,
                                        /*try_surrogate_functions=*/FALSE,
                                        /*is_property=*/FALSE,
+                                       /*compiler_generated=*/TRUE,
                                        ec_range_based_for_no_matching_overload,
                                        ec_ambiguous_overloaded_function,
                                        ec_range_based_for_undefined_identifier,
                                        (an_operand *)NULL,
-                                       pos,
+                                       expr_position,
                                        tok_seq_number,
                                        (a_source_position *)NULL,
                                        &found_through_adl,
@@ -30660,13 +30697,22 @@ errors) in the case where the expression is template dependent.
                              /*is_qualified_name=*/FALSE,
                              found_through_adl,
                              /*uses_operator_syntax=*/FALSE,
-                             pos, 
+                             expr_position,
                              &result,
                              &func_call_node);
-      result.position = *pos;
       if (func_call_node != NULL) {
         /* Make the variable and initialize it with the result of the call
            just made. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL && FIXME
+        an_expr_node_ptr routine_node;
+        a_routine_ptr    routine;
+        routine = routine_and_node_from_function_expr(
+                                    func_call_node->variant.operation.operands,
+                                    &routine_node);
+        check_assertion(routine != NULL && routine_node != NULL);
+        set_expr_position(routine_node, &null_source_position,
+                          &null_source_position, (a_source_position*)NULL);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         *variable = alloc_temporary_variable(result.type,
                                              /*force_static=*/FALSE);
         set_variable_initializer(*variable, &result);
@@ -30682,7 +30728,8 @@ errors) in the case where the expression is template dependent.
 
 static a_boolean check_range_based_for_default_case(
                                     a_range_based_for_loop_ptr rbflp,
-                                    a_token_sequence_number    tok_seq_number)
+                                    a_token_sequence_number    tok_seq_number,
+                                    a_source_position          *expr_position)
 /*
 Called during range-based-for processing for the "default" case, that is,
 in the case where the range expression isn't an array and isn't a class with
@@ -30690,7 +30737,8 @@ in the case where the range expression isn't an array and isn't a class with
 lookup to find suitable "begin(__range)" and "end(__range)" calls, if
 they exist.  rbflp is the associated information for the range-based-for
 statement.  tok_seq_number is the sequence number associated with the
-range-based-for expression.  Returns TRUE and creates the __begin and __end
+range-based-for expression.  *expr_position is the source position for the
+range expression.  Returns TRUE and creates the __begin and __end
 variables with suitable initialization if suitable functions have been found;
 issues a diagnostic and returns FALSE otherwise.  Note also that this routine
 will return FALSE (and not issue any errors) in the case where the expression
@@ -30703,6 +30751,7 @@ is template dependent.
   if (!create_range_based_for_variable_for_function_call(rbflp->range,
                                                          "begin",
                                                          tok_seq_number,
+                                                         expr_position,
                                                          &rbflp->begin)) {
     passed = FALSE;
   }  /* if */
@@ -30710,6 +30759,7 @@ is template dependent.
   if (!create_range_based_for_variable_for_function_call(rbflp->range,
                                                          "end",
                                                          tok_seq_number,
+                                                         expr_position,
                                                          &rbflp->end)) {
     passed = FALSE;
   }  /* if */
@@ -30720,12 +30770,14 @@ is template dependent.
 void check_range_based_for_statement(
                            a_statement_ptr            statement,
                            a_token_sequence_number    tok_seq_number,
+                           a_source_position          *expr_position,
                            a_scope_pointers_block_ptr begin_end_pointers_block,
                            a_scope_pointers_block_ptr iterator_pointers_block)
 /*
 Perform semantic checks on the range-based-for statement pointed to by
 "statement".  tok_seq_number is the sequence number of the first token of the
-expression.  begin_end_pointers_block and iterator_pointers_block are the
+expression.  *expr_position is the source position for the range expression.
+begin_end_pointers_block and iterator_pointers_block are the
 pointer blocks for the begin_end_scope and iterator_scope which have been
 previously created, needed to reactivate those scopes.
 
@@ -30788,21 +30840,22 @@ and can have the following forms (see [stmt.ranged] for specifics):
     dependent_case = TRUE;
   } else if (is_array_type(expr_type)) {
     /* begin-expr is __range, end-expr is __range + bound. */
-    passed = check_range_based_for_array_case(rbflp);
+    passed = check_range_based_for_array_case(expr_position, rbflp);
   } else if (is_class_struct_union_type(expr_type) &&
              has_range_based_for_begin_or_end_member(expr_type)) {
     /* begin-expr is __range.begin(), end-expr is __range.end(). */
-    passed = check_range_based_for_member_case(rbflp, tok_seq_number);
+    passed = check_range_based_for_member_case(rbflp, tok_seq_number,
+                                               expr_position);
   } else {
     /* begin-expr is begin(__range), end-expr is end(__range). */
-    passed = check_range_based_for_default_case(rbflp, tok_seq_number);
+    passed = check_range_based_for_default_case(rbflp, tok_seq_number,
+                                                expr_position);
   }  /* if */
   if (passed) {
     if (!types_are_compatible(rbflp->begin->type, rbflp->end->type)) {
       /* The types of "__begin" and "__end" are not compatible. */
       pos_ty2_error(ec_begin_end_type_mismatch_in_range_based_for,
-                    &rbflp->range->source_corresp.decl_position,
-                    rbflp->begin->type, rbflp->end->type);
+                    expr_position, rbflp->begin->type, rbflp->end->type);
       passed = FALSE;
     }  /* if */
   }  /* if */
@@ -30815,6 +30868,7 @@ and can have the following forms (see [stmt.ranged] for specifics):
        begin_end scope and the iterator is built in the iterator scope. */
     fill_in_range_based_for_loop_constructs(rbflp,
                                             tok_seq_number,
+                                            expr_position,
                                             iterator_pointers_block);
 
   } else if (rbflp->iterator != NULL &&
@@ -30837,10 +30891,12 @@ and can have the following forms (see [stmt.ranged] for specifics):
 }  /* check_range_based_for_statement */
 
 
-void scan_range_based_for_expression(a_statement_ptr statement)
+void scan_range_based_for_expression(a_statement_ptr   statement,
+                                     a_source_position *expr_position)
 /*
 Scan the expression of a range-based-for statement and put information
 about it in the range-based-for statement IL entry pointed to by statement.
+Sets *expr_position to the beginning position of the range expression.
 */
 {
   a_range_based_for_loop_ptr
@@ -30881,7 +30937,7 @@ about it in the range-based-for statement IL entry pointed to by statement.
   /* Make the expression reference variable. */
   ref_var = alloc_temporary_variable(ref_type, /*force_static=*/FALSE);
   rbflp->range = ref_var;
-  ref_var->source_corresp.decl_position = result.position;
+  *expr_position = result.position;
   set_variable_initializer(ref_var, &result);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);

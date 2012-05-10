@@ -8601,6 +8601,7 @@ void overloaded_function_catch_up(a_symbol_ptr      function_symbol,
                                   an_operand        *orig_function_operand,
                                   a_source_position *call_position,
                                   a_boolean         elided_reference,
+                                  a_boolean         compiler_generated,
                                   a_boolean         result_is_lvalue,
                                   a_boolean         address_taken,
                                   an_operand        *operand,
@@ -8651,6 +8652,7 @@ address_taken still has an effect in that it controls the type of
 reference recorded.  elided_reference is TRUE if the routine was
 referenced in the program but the reference is being elided in the
 intermediate language (operand should be NULL in that case).
+compiler_generated is TRUE if the function reference is compiler-generated.
 */
 {
   a_symbol_ptr      base_function_symbol =
@@ -8799,6 +8801,7 @@ intermediate language (operand should be NULL in that case).
           /* All cases other than the pointer-to-member case. */
           make_function_designator_operand(function_symbol,
                                            is_qualified_name,
+                                           compiler_generated,
                                            function_position,
                                            function_end_position,
                                            rep, operand);
@@ -9727,6 +9730,7 @@ static void make_resolved_overloaded_function_operand(
                                  a_boolean          *have_selector,
                                  an_operand         *bound_function_selector,
                                  a_boolean          is_property,
+                                 a_boolean          compiler_generated,
                                  an_operand         *function_operand)
 /*
 Overload resolution has been done, and it has been decided that, of
@@ -9743,15 +9747,16 @@ same operand as function_operand.  If orig_function_operand is NULL
 for the call.  If both orig_function_operand and call_position are
 supplied, call_position is assumed to be a better position for the
 call.  The call is the result of the expansion of a Microsoft
-property reference if is_property is TRUE.  The reference has an
-associated selector object if *have_selector is TRUE; in that case,
-bound_function_selector gives the object, and function_operand is
-bound to that object.  Even when *have_selector is FALSE going in,
-bound_function_selector must point at an operand that can be filled in
-if an implicit selector is generated (*have_selector is set to TRUE
-for that case).  bound_function_selector->selector_is_object_pointer
-is TRUE if the selector is an object pointer, FALSE if it is an
-object.
+property reference if is_property is TRUE.  The reference to the
+function is compiler-generated if compiler_generated is TRUE.
+The reference has an associated selector object if *have_selector is
+TRUE; in that case, bound_function_selector gives the object, and
+function_operand is bound to that object.  Even when *have_selector is
+FALSE going in, bound_function_selector must point at an operand that
+can be filled in if an implicit selector is generated (*have_selector
+is set to TRUE for that case).
+bound_function_selector->selector_is_object_pointer is TRUE if the
+selector is an object pointer, FALSE if it is an object.
 */
 {
   a_symbol_ptr base_function_symbol = fundamental_symbol_of(function_symbol);
@@ -9769,6 +9774,7 @@ object.
                                orig_function_operand,
                                call_position,
                                /*elided_reference=*/FALSE,
+                               compiler_generated,
                                /*result_is_lvalue=*/FALSE,
                                /*address_taken=*/FALSE,
                                function_operand,
@@ -11460,6 +11466,7 @@ a_boolean select_and_prepare_to_call_overloaded_function(
                            a_boolean               use_std_for_arg_dep_lookup,
                            a_boolean               try_surrogate_functions,
                            a_boolean               is_property,
+                           a_boolean               compiler_generated,
                            an_error_code           err_none_applies,
                            an_error_code           err_ambiguous,
                            an_error_code           err_undefined_identifier,
@@ -11516,17 +11523,19 @@ try_surrogate_functions is TRUE if surrogate functions should be
 tried; that means looking for conversion functions from the selector
 object to pointers to function type.  overloaded_function_symbol can
 be NULL in that case.  is_property is TRUE if this call results from
-the expansion of a Microsoft property reference.  paren_tok_seq_number
-is the token sequence number of the opening parenthesis of the
-argument list, but it's required only when do_arg_dep_lookup is TRUE;
-it can be zero otherwise.  closing_paren_position is the position of
-the closing parenthesis in the call; it is used only when
-do_arg_dep_lookup is TRUE.  If the call is dependent, and the function
-to be called cannot be determined, set *function_operand to an operand
-for an unknown function of the right name, and return TRUE.
-If found_through_adl is non-NULL and the callee was found only through
-ADL, *found_through_adl is returned TRUE.  This routine is called only
-in C++ mode.  arg_list is not freed by this routine.
+the expansion of a Microsoft property reference.  compiler_generated
+is TRUE if the function reference is compiler-generated.
+paren_tok_seq_number is the token sequence number of the opening
+parenthesis of the argument list, but it's required only when
+do_arg_dep_lookup is TRUE; it can be zero otherwise.
+closing_paren_position is the position of the closing parenthesis in
+the call; it is used only when do_arg_dep_lookup is TRUE.  If the call
+is dependent, and the function to be called cannot be determined, set
+*function_operand to an operand for an unknown function of the right
+name, and return TRUE.  If found_through_adl is non-NULL and the
+callee was found only through ADL, *found_through_adl is returned
+TRUE.  This routine is called only in C++ mode.  arg_list is not freed
+by this routine.
 */
 {
   a_boolean                okay = FALSE;
@@ -11635,6 +11644,7 @@ in C++ mode.  arg_list is not freed by this routine.
                                               &have_selector,
                                               bound_function_selector,
                                               is_property,
+                                              compiler_generated,
                                               function_operand);
     okay = TRUE;
   } else if (surrogate_function_conv_sym != NULL) {
@@ -15138,6 +15148,7 @@ no_applicable_operator_function:
                                            (an_operand *)NULL,
                                            operator_position,
                                            /*elided_reference=*/TRUE,
+                                           /*compiler_generated=*/FALSE,
                                            /*result_is_lvalue=*/FALSE,
                                            /*address_taken=*/FALSE,
                                            (an_operand *)NULL,
@@ -15248,6 +15259,7 @@ no_applicable_operator_function:
                                           &have_selector,
                                           bound_function_selector,
                                           /*is_property=*/FALSE,
+                                          /*compiler_generated=*/TRUE,
                                           &function_operand);
               /* Make the call node and an operand for it. */
               assemble_function_call(&function_operand,
@@ -18960,6 +18972,7 @@ the conversion.
                                    &orig_operand,
                                    (a_source_position *)NULL,
                                    /*elided_reference=*/FALSE,
+                                   /*compiler_generated=*/FALSE,
                                    /*result_is_lvalue=*/TRUE,
                                    /*address_taken=*/FALSE,
                                    source_operand,

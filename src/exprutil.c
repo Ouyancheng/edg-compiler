@@ -6321,6 +6321,7 @@ raw type based on the function selected.
                                  &orig_operand,
                                  (a_source_position *)NULL,
                                  /*elided_reference=*/FALSE,
+                                 /*compiler_generated=*/FALSE,
                                  /*result_is_lvalue=*/reference_case,
                                  /*address_taken=*/!reference_case,
                                  operand,
@@ -12454,10 +12455,11 @@ done:
 
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/  /* <-- end_position is not used in that case. */
+/*ARGSUSED*/  /* <-- compiler_generated, end_position are not used. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 void make_function_designator_operand(a_symbol_ptr      routine_sym,
                                       a_boolean         is_qualified_name,
+                                      a_boolean         compiler_generated,
                                       a_source_position *position,
                                       a_source_position *end_position,
                                       a_ref_entry_ptr   rep,
@@ -12466,6 +12468,7 @@ void make_function_designator_operand(a_symbol_ptr      routine_sym,
 Make an operand for a function designator.  routine_sym points to the
 routine symbol entry (not overloaded, but can be a projection symbol).
 is_qualified_name is TRUE if the function was named by a qualified name.
+compiler_generated is TRUE if this function reference is compiler-generated.
 The source position of the operand is set to *position (plus end_position,
 if end positions are being maintained).  rep points to an associated
 reference entry, or is NULL if none is needed.
@@ -12505,7 +12508,9 @@ reference entry, or is NULL if none is needed.
   result->position = *position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result->end_position = *end_position;
-  set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
+  if (!compiler_generated) {
+    set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
+  }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Start a list of reference entries related to the operand. */
   result->ref_entries_list = rep;
@@ -16939,6 +16944,7 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
                                        /*use_std_for_arg_dep_lookup=*/FALSE,
                                        /*try_surrogate_functions=*/FALSE,
                                        /*is_property=*/TRUE,
+                                       /*compiler_generated=*/TRUE,
                                        ec_no_matching_function,
                                        ec_ambiguous_overloaded_function,
                                        ec_undefined_identifier,
@@ -17112,6 +17118,7 @@ to TRUE and *result becomes an error operand.
                                           /*use_std_for_arg_dep_lookup=*/FALSE,
                                           /*try_surrogate_functions=*/FALSE,
                                           /*is_property=*/FALSE,
+                                          /*compiler_generated=*/TRUE,
                                           ec_no_matching_function,
                                           ec_ambiguous_overloaded_function,
                                           ec_undefined_identifier,
@@ -17207,6 +17214,7 @@ selector expression used to designate the event.
     raise_loc.source_position = operand->position;
     check_ambiguity_and_verify_access(&raise_loc);
     make_function_designator_operand(raise_sym, operand->is_qualified_name,
+                                     /*compiler_generated=*/TRUE,
                                      &operand->position,
                                      end_position_or_null(
                                                 &operand->end_position),
@@ -17352,6 +17360,7 @@ in *single_func_sym, or set that to NULL if there is no single function.
           make_function_designator_operand(sym,
                                            (a_boolean)
                                                 orig_operand.is_qualified_name,
+                                           /*compiler_generated=*/FALSE,
                                            &orig_operand.position,
                                            end_position_of_operand(
                                                                 &orig_operand),

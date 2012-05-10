@@ -4427,7 +4427,7 @@ The affinity can be an expression or the keyword "continue".
   an_expr_node_ptr           affinity_expr = NULL;
   a_statement_ptr            saved_innermost_forall_loop;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  a_source_position          stmt_pos;
+  a_source_position          stmt_pos, range_pos;
   a_token_sequence_number    expr_tok_seq_number;
   a_range_based_for_loop_ptr rbflp;
   a_scope_pointers_block     iterator_pointers_block, middle_pointers_block;
@@ -4502,10 +4502,11 @@ The affinity can be an expression or the keyword "continue".
     remove_stop_token(tok_colon);
     /* Scan the expression. */
     expr_tok_seq_number = curr_token_sequence_number;
-    scan_range_based_for_expression(sp);
+    scan_range_based_for_expression(sp, &range_pos);
     /* Perform the semantic checks and build the IL. */
     check_range_based_for_statement(sp,
                                     expr_tok_seq_number,
+                                    &range_pos,
                                     &middle_pointers_block,
                                     &iterator_pointers_block);
     /* Return to the iterator scope for the dependent statement. */
@@ -4673,7 +4674,7 @@ Where "in" is a context-sensitive keyword.
   a_statement_ptr         sp;
   a_for_each_loop_ptr     felp;
   a_boolean               assume_loop_reachable;
-  a_source_position       stmt_pos;
+  a_source_position       stmt_pos, collection_pos;
   a_token_sequence_number collection_expr_tok_seq_number;
   a_scope_pointers_block  pointers_block;
   a_symbol_header_ptr     sym_hdr;
@@ -4725,12 +4726,13 @@ Where "in" is a context-sensitive keyword.
   (void)required_token(tok_in, ec_exp_in);
   /* Scan the collection expression. */
   collection_expr_tok_seq_number = curr_token_sequence_number;
-  scan_for_each_expression(sp);
+  scan_for_each_expression(sp, &collection_pos);
   /* Determine the pattern of the for-each statement and generate the IL
      for all the loop-control pieces. */
   check_for_each_statement(sp,
                            &prev_decl_iterator,
                            collection_expr_tok_seq_number,
+                           &collection_pos,
                            &pointers_block);
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);

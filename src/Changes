@@ -1,5 +1,17 @@
 Version 4.5
 
+5/10/12  [EDGcpfe/12861]
+Source positions for IL generated for range-based-for and for-each statements
+
+Previously, much of the IL generated for the C++11 range-based-for and
+Microsoft for-each statements had statement positions set to the position
+of the range expression or collection expression, respectively.  Now,
+the generated IL has null source position information for the temporary
+variables that are created as well as the expressions used to initialize
+these temporary variables (with the exception of the range/collection
+expression itself which continues to have non-null source position).
+
+
 5/9/12   [EDGcpfe/12886]
 Size of string literal that is the initializer for a flexible array
 

@@ -2106,6 +2106,7 @@ extern a_boolean check_call_function_pointer_operand(an_operand *operand);
 extern void make_function_designator_operand(
                                       a_symbol_ptr      routine_sym,
                                       a_boolean         is_qualified_name,
+                                      a_boolean         compiler_generated,
                                       a_source_position *position,
                                       a_source_position *end_position,
                                       a_ref_entry_ptr   rep,
