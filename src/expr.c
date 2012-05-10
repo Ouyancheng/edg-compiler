@@ -30703,16 +30703,6 @@ errors) in the case where the expression is template dependent.
       if (func_call_node != NULL) {
         /* Make the variable and initialize it with the result of the call
            just made. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL && FIXME
-        an_expr_node_ptr routine_node;
-        a_routine_ptr    routine;
-        routine = routine_and_node_from_function_expr(
-                                    func_call_node->variant.operation.operands,
-                                    &routine_node);
-        check_assertion(routine != NULL && routine_node != NULL);
-        set_expr_position(routine_node, &null_source_position,
-                          &null_source_position, (a_source_position*)NULL);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         *variable = alloc_temporary_variable(result.type,
                                              /*force_static=*/FALSE);
         set_variable_initializer(*variable, &result);
