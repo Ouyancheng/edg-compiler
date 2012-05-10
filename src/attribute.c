@@ -5980,7 +5980,7 @@ index and the metadata type-def token that it refers to.
   a_constant_ptr  arg, arg2;
   a_boolean       ovflo;
 
-  check_assertion(ap->kind == (an_attribute_kind)ak_assembly_info);
+  check_assertion(ap->kind == (a_byte_attribute_kind)ak_assembly_info);
   check_assertion(ap->arguments != NULL && 
                   ap->arguments->kind == (an_attribute_arg_kind)aak_constant &&
                   ap->arguments->next != NULL &&

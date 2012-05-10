@@ -9082,7 +9082,7 @@ from other assemblies that haven't been loaded yet).
 
   check_assertion(name_con->kind == (a_constant_repr_kind)ck_string);
   sym_hdr->identifier = name_con->variant.string.value;
-  sym_hdr->identifier_length = name_con->variant.string.length;
+  sym_hdr->identifier_length = (sizeof_t)name_con->variant.string.length;
   sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag, sym_hdr,
                      &null_source_position);
   sym->decl_scope = FILE_SCOPE_NUMBER;

@@ -2316,7 +2316,7 @@ hash value for that object.
   an_unresolved_type_map_key  *key = (an_unresolved_type_map_key*)key_ptr;
   /* The following uses Knuth' suggestion of multiplying with the golden
      ratio of 2^32. */
-  return (a_hash_value)(key->assembly_scope_index*2654435761
+  return (a_hash_value)(key->assembly_scope_index*(unsigned)2654435761
                        +key->metadata_type_def_token);
 }  /* hash_unresolved_type_map_key */
 
@@ -2356,9 +2356,11 @@ scope index and the given metadata type token.  If there is no such type yet,
 create one.
 */
 {
-  an_unresolved_type_map_key  key = { asm_idx, type_tok };
+  an_unresolved_type_map_key  key;
   a_type_ptr                  *p_table_entry;
 
+  key.assembly_scope_index = asm_idx;
+  key.metadata_type_def_token = type_tok;
   if (unresolved_type_map == NULL) {
     unresolved_type_map =
            alloc_hash_table(NO_MEMORY_REGION_NUMBER, (a_hash_table_size)1000,
@@ -2371,7 +2373,7 @@ create one.
     /* This is the first time we record this unresolved type.  Create the type
        entry and a symbol for it (the latter is not recorded in the symbol
        table). */
-    a_type_ptr                   type = alloc_type(tk_struct);
+    a_type_ptr                   type = alloc_type((a_type_kind)tk_struct);
     a_class_type_supplement_ptr  ctsp = class_type_supp(type);
     a_symbol_ptr                 sym;
     type->incomplete = TRUE;
