@@ -9247,9 +9247,9 @@ process_enum_specifier:
           goto no_get_token;
         }  /* if */
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_unresolved_type:
         check_assertion(cppcli_enabled);
-#if MICROSOFT_EXTENSIONS_ALLOWED
         *type_ptr = scan_unresolved_metadata_type();
         if (!is_error_type(*type_ptr)) {
           check_assertion(is_immediate_class_type(*type_ptr));
@@ -9259,8 +9259,8 @@ process_enum_specifier:
           err = TRUE;
         }  /* if */
         decl_specifiers_seen |= DS_TYPE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         goto no_get_token;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_typename:
         /* A typename specifier.  The typename keyword is used to
 	   specify that the qualified name that follows the keyword is
@@ -10244,7 +10244,9 @@ decl-specifiers.
      headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
+#if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(unresolved_type_map),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(largest_enum_int_kind),
       pch_saved_var_array_terminating_elem()
     };
