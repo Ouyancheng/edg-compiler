@@ -4731,7 +4731,12 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Skip over "enum". */
   (void)get_token();
-  if (cpp11_mode && (curr_token == tok_class || curr_token == tok_struct)) {
+  /* In C++11 mode, scoped enums are declared with "enum class" or
+     "enum struct".  In a combination of Microsoft and C++11 modes, however,
+     we may already have seen a tok_enum_class or tok_enum_struct keyword
+     (with embedded space) and we should accept about "class" or "struct". */
+  if (cpp11_mode && (curr_token == tok_class || curr_token == tok_struct) &&
+      !is_scoped_enum) {
     is_scoped_enum = TRUE;
     (void)get_token();
   }  /* if */
