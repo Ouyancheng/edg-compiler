@@ -943,12 +943,8 @@ lambda, not the definition of X).
         (void)get_token();
       }  /* for */
       (void)get_token();
-      /* A bit field length wouldn't start with a type name, except if it were
-         a function-style cast (e.g., "int(0)").  Since the type specifier in
-         such a cast must be "simple" (e.g., "unsigned int(0)" is not allowed;
-         not even in Microsoft mode, which does allow such casts in other
-         contexts) we only have to test for the subsequent token not to be a
-         left parenthesis. */
+      /* Check that what follows the colon is not an expression (which would
+         indicate a bit field length). */
       result = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                                 DFS_SINGLE_TYPE_REQUIRED);
       rescan_cached_tokens(&cache);
