@@ -2288,6 +2288,180 @@ it returns FALSE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+/*
+Pointer to a hash table recording unresolved types.
+FIXME: We probably need a decl_spec_trans_unit_init to handle this table in
+multi-TU compilations.
+*/
+static a_hash_table_ptr
+		unresolved_type_map;
+
+/*
+Key value structure for unresolved_type_map.
+*/
+typedef struct an_unresolved_type_map_key {
+  an_assembly_scope_index
+		assembly_scope_index;
+  a_cpp_cli_token
+		metadata_type_def_token;
+} an_unresolved_type_map_key;
+
+
+a_hash_value hash_unresolved_type_map_key(a_void_ptr  key_ptr)
+/*
+key_ptr points to an object of type an_unresolved_type_map_key.  Return a
+hash value for that object.
+*/
+{
+  an_unresolved_type_map_key  *key = (an_unresolved_type_map_key*)key_ptr;
+  /* The following uses Knuth' suggestion of multiplying with the golden
+     ratio of 2^32. */
+  return (a_hash_value)(key->assembly_scope_index*2654435761
+                       +key->metadata_type_def_token);
+}  /* hash_unresolved_type_map_key */
+
+
+a_boolean compare_for_unresolved_type_map(a_void_ptr  type_ptr,
+                                          a_void_ptr  key_ptr)
+/*
+Return TRUE if the a_type entry pointed to by type_ptr corresponds to the
+unresolved type map key pointed to by key_ptr.
+*/
+{
+  a_type_ptr                  type = (a_type_ptr)type_ptr;
+  an_unresolved_type_map_key  *key = (an_unresolved_type_map_key*)key_ptr;
+  a_boolean                   result;
+
+  if (type->kind == (a_type_kind)tk_integer) {
+    an_integer_type_supplement_ptr  itsp = integer_type_supp(type);
+    result = itsp->assembly_scope_index == key->assembly_scope_index &&
+             itsp->metadata_type_def_token == key->metadata_type_def_token;
+  } else {
+    a_class_type_supplement_ptr  ctsp;
+    check_assertion(is_immediate_class_type(type));
+    ctsp = class_type_supp(type);
+    result = ctsp->assembly_scope_index == key->assembly_scope_index &&
+             ctsp->metadata_type_def_token == key->metadata_type_def_token;
+  }  /* if */
+  return result;
+}  /* compare_for_unresolved_type_map */
+
+
+static void record_unresolved_type(an_assembly_scope_index  asm_idx,
+                                   a_cpp_cli_token          type_tok,
+                                   a_type_ptr               *result)
+/*
+Return in *result the unresolved type entry associated with the given assembly
+scope index and the given metadata type token.  If there is no such type yet,
+create one.
+*/
+{
+  an_unresolved_type_map_key  key = { asm_idx, type_tok };
+  a_type_ptr                  *p_table_entry;
+
+  if (unresolved_type_map == NULL) {
+    unresolved_type_map =
+           alloc_hash_table(NO_MEMORY_REGION_NUMBER, (a_hash_table_size)1000,
+                            fn_for_function(hash_unresolved_type_map_key),
+                            fn_for_function(compare_for_unresolved_type_map));
+  }  /* if */
+  p_table_entry = (a_type_ptr*)
+                        hash_find(unresolved_type_map, &key, /*create=*/TRUE);
+  if (*p_table_entry == NULL) {
+    /* This is the first time we record this unresolved type.  Create the type
+       entry and a symbol for it (the latter is not recorded in the symbol
+       table). */
+    a_type_ptr                   type = alloc_type(tk_struct);
+    a_class_type_supplement_ptr  ctsp = class_type_supp(type);
+    a_symbol_ptr                 sym;
+    type->incomplete = TRUE;
+    ctsp->assembly_scope_index = asm_idx;
+    ctsp->metadata_type_def_token = type_tok;
+    ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_unresolved;
+    check_assertion(curr_token == tok_string_literal);
+    sym = make_cppcli_unresolved_type_symbol(&const_for_curr_token);
+    set_source_corresp(&type->source_corresp, sym);
+    add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
+    *p_table_entry = type;
+  }  /* if */
+  *result = *p_table_entry;
+}  /* record_unresolved_type */
+
+
+a_type_ptr scan_unresolved_metadata_type(void)
+/*
+Scan a construct of the form
+    __unresolved_type ( <assembly/scope-index> , <type-token> , <type-name> )
+where the first two arguments are integer constants, and the third is a string
+literal.  This construct is generated from C++/CLI metadata to denote a
+type that is referred to in that metadata, but which is declared in another
+assembly that hasn't been loaded (yet).
+Return a class type with CLI class type kind cctk_unresolved.
+*/
+{
+  a_type_ptr  result;
+
+  /* Skip over the __unresolved_type token. */
+  check_assertion(curr_token == tok_unresolved_type);
+  (void)get_token();
+  /* A '(' should be next. */
+  if (required_token(tok_lparen, ec_exp_lparen)) {
+    an_assembly_scope_index  assembly_scope_index = 0;
+    a_cpp_cli_token          metadata_type_def_token = 0;
+    a_source_position        arg_pos;
+    a_constant               con;
+    a_boolean                ovflo;
+    arg_pos = pos_curr_token;
+    add_stop_token(tok_rparen);
+    add_stop_token(tok_comma);
+    /* Scan the first argument, which should be an integer constant. */
+    scan_integral_constant_expression(&con);
+    if (is_error_constant(&con)) {
+      expect_error();
+    } else if (con.kind != (a_constant_repr_kind)ck_integer) {
+      pos_error(ec_exp_int_constant, &arg_pos);
+    } else {
+      assembly_scope_index = (an_assembly_scope_index)
+                             unsigned_value_of_integer_constant(&con, &ovflo);
+      check_assertion(!ovflo);
+    }  /* if */
+    (void)required_token(tok_comma, ec_exp_comma);
+    /* Scan the second argument, which should also be an integer constant. */
+    scan_integral_constant_expression(&con);
+    if (is_error_constant(&con)) {
+      expect_error();
+    } else if (con.kind != (a_constant_repr_kind)ck_integer) {
+      pos_error(ec_exp_int_constant, &arg_pos);
+    } else {
+      metadata_type_def_token = (a_cpp_cli_token)
+                             unsigned_value_of_integer_constant(&con, &ovflo);
+      check_assertion(!ovflo);
+    }  /* if */
+    (void)required_token(tok_comma, ec_exp_comma);
+    /* A string literal should be next.  If not, zero the metadata type token
+       to force the production of an error type below. */
+    if (!required_token_no_advance(tok_string_literal,
+                                   ec_exp_string_literal)) {
+      metadata_type_def_token = 0;
+    }  /* if */
+    if (metadata_type_def_token == 0 || assembly_scope_index == 0) {
+      result = error_type();
+    } else {
+      record_unresolved_type(assembly_scope_index, metadata_type_def_token,
+                             &result);
+      (void)get_token();
+    }  /* if */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_comma);
+    remove_stop_token(tok_rparen);
+  } else {
+    /* __unresolved_type not followed by a parenthesis. */
+    result = error_type();
+  }  /* if */
+  return result;
+}  /* scan_unresolved_metadata_type */
+
+
 an_assembly_visibility scan_cli_visibility_specifier_if_any(
                                                        a_source_position  *pos)
 /*
@@ -9073,6 +9247,20 @@ process_enum_specifier:
           goto no_get_token;
         }  /* if */
         break;
+      case tok_unresolved_type:
+        check_assertion(cppcli_enabled);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        *type_ptr = scan_unresolved_metadata_type();
+        if (!is_error_type(*type_ptr)) {
+          check_assertion(is_immediate_class_type(*type_ptr));
+          basic_type = bt_struct_union;
+        } else {
+          basic_type = bt_error;
+          err = TRUE;
+        }  /* if */
+        decl_specifiers_seen |= DS_TYPE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        goto no_get_token;
       case tok_typename:
         /* A typename specifier.  The typename keyword is used to
 	   specify that the qualified name that follows the keyword is
@@ -10056,6 +10244,7 @@ decl-specifiers.
      headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(unresolved_type_map),
       pch_saved_var_array_elem(largest_enum_int_kind),
       pch_saved_var_array_terminating_elem()
     };

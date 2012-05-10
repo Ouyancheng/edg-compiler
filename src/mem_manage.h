@@ -467,6 +467,8 @@ enum a_function_number_tag {
   fn_microsoft_comment_pragma,
   fn_microsoft_conform_pragma,
   fn_microsoft_include_alias_pragma,
+  fn_hash_unresolved_type_map_key,
+  fn_compare_for_unresolved_type_map,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   fn_last
 };

@@ -4504,6 +4504,9 @@ extern void make_predeclared_bool_symbol(void);
 
 extern void make_predeclared_nullptr_t_symbol(void);
 
+extern a_symbol_ptr make_cppcli_unresolved_type_symbol(
+                                                    a_constant_ptr  name_con);
+
 extern a_boolean treat_as_cli_class_for_lookup(a_type_ptr	type);
 
 extern

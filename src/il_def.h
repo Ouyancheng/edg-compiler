@@ -1056,6 +1056,7 @@ typedef enum /*a_token_kind*/ {
   tok_gcnew,
   tok_safe_cast,
   tok_implements,
+  tok_unresolved_type,
   /* Keywords with embedded white space.  All except tok_for_each are only
      in C++/CLI.  These must be in the contiguous range defined by
      tok_first_whitespace_token through tok_last_whitespace_token, as the
@@ -1272,7 +1273,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__noop", "__interface",
    "__ptr32", "__ptr64", "__sptr", "__uptr", "__w64",
    "__LPREFIX", "__identifier", "uuid", "in", "gcnew", "safe_cast",
-   "__implements",
+   "__implements", "__unresolved_type",
    "for each", "ref class", "ref struct", "value class", "value struct",
    "enum class", "enum struct", "interface class", "interface struct",
    "ref", "value", "interface", "for", "enum",
@@ -6410,7 +6411,10 @@ enum a_cli_class_type_kind_tag {
   cctk_standard,	/* Standard classes, structs, and unions. */
   cctk_value,		/* C++/CLI value classes and structs. */
   cctk_ref,		/* C++/CLI ref classes and structs. */
-  cctk_interface	/* C++/CLI interface classes and structs. */
+  cctk_interface,	/* C++/CLI interface classes and structs. */
+  cctk_unresolved	/* An unresolved C++/CLI type: This occurs when a type
+			   used in an assembly being imported comes from
+			   another assembly that has not been imported. */
 };
 
 /* Define as "a_byte" to explicitly control storage size. */
@@ -6756,7 +6760,7 @@ typedef struct a_class_type_supplement {
   a_bit_field   assembly_visibility:2;
                         /* Effective visibility of this type at the assembly
 			   level.  (C++/CLI only.) */
-  a_bit_field   cli_class_type_kind:2;
+  a_bit_field   cli_class_type_kind:3;
 			/* The class type kind of this class.  In non-C++/CLI
 			   modes, it is always cctk_standard.  In C++/CLI mode,
 			   other kinds of classes (e.g., "ref classes") are

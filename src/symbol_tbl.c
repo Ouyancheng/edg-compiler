@@ -9068,6 +9068,27 @@ Create a symbol and type entry for std::nullptr_t (only in Microsoft mode).
   pop_namespace_scope();
 }  /* make_predeclared_nullptr_t_symbol */
 
+
+a_symbol_ptr make_cppcli_unresolved_type_symbol(a_constant_ptr  name_con)
+/*
+Create a class symbol with the name represented by the given string literal
+and return it.  The symbol is not entered in the symbol table.
+This is used for C++/CLI "unresolved types" (types referenced in assemblies
+from other assemblies that haven't been loaded yet).
+*/
+{
+  a_symbol_header_ptr  sym_hdr = alloc_symbol_header();
+  a_symbol_ptr         sym;
+
+  check_assertion(name_con->kind == (a_constant_repr_kind)ck_string);
+  sym_hdr->identifier = name_con->variant.string.value;
+  sym_hdr->identifier_length = name_con->variant.string.length;
+  sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag, sym_hdr,
+                     &null_source_position);
+  sym->decl_scope = FILE_SCOPE_NUMBER;
+  return sym;
+}  /* make_cppcli_unresolved_type_symbol */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void add_on_diag_for_skipped_inaccessible_function(a_symbol_ptr sym)

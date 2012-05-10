@@ -2917,22 +2917,18 @@ void a_class_type_wrapper::write_first_part(
       write_qualifiers(buffer);
       buffer << L' ';
     }  /* if */
-#if /*FIXME*/0
     /* Emit the "__unresolved_type" construct if requested. */
     if (is_of_class_kind(ck_unresolved) && expand_unresolved_types &&
         (import_scope_->containing_assembly().import_flags()
                                            & cpp_cli_define_all_types) == 0) {
-      /* Form the "__unresolved_type(<assembly_index>, <type_token>, name)"
+      /* Form the __unresolved_type(<assembly_index>, <type_token>, "name")
          construct. */
       buffer << L"__unresolved_type(0x" << setw(8) << setfill(L'0') << hex
-             << import_scope_->assembly_index()
-             << L", 0x" << token_ << L", " << name_.as_string() << L")";
+             << import_scope_->assembly_scope_index()
+             << L", 0x" << token_ << L", \"" << name_.as_string() << L"\")";
     } else {
       buffer << name_.as_string();
     }  /* if */
-#else /*FIXME*/
-    buffer << name_.as_string();
-#endif /*FIXME*/
   } else {
     unexpected_condition();
     buffer << L"__error_type";
@@ -7527,8 +7523,8 @@ a_const_class_type_wrapper_ptr an_import_scope::type_from_typedef(
       class_type = unresolved_generic_argument->copy()->as_class();
     } else {
       class_type = get_type_definition(token).class_type()->copy()->as_class();
+      class_type->set_name(type_name);
     }  /* if */
-    class_type->set_name(type_name);
     type = class_type;
   }  /* if */
   return type;

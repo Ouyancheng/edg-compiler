@@ -77,6 +77,11 @@ extern void update_dll_info_for_class(a_type_ptr         class_type,
 extern void record_uuid_for_class(a_type_ptr         class_type,
                                   char               *uuid_string,
                                   a_source_position  *err_pos);
+
+extern a_hash_value hash_unresolved_type_map_key(a_void_ptr  key_ptr);
+
+extern a_boolean compare_for_unresolved_type_map(a_void_ptr  type_ptr,
+                                                 a_void_ptr  key_ptr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED
@@ -114,6 +119,9 @@ extern void decl_specifiers(a_decl_flag_set             input_flags,
                             a_decl_pos_block_ptr        decl_pos_block);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
+extern a_type_ptr scan_unresolved_metadata_type(void);
+
 extern void scan_microsoft_secondary_decl_specifiers(
                                  a_decl_flag_set            input_flags,
                                  a_decl_parse_state         *state,

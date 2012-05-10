@@ -5968,6 +5968,37 @@ Apply the Microsoft __declspec(appdomain) attribute to the given entity
 }  /* apply_appdomain_attr */
 
 
+static void get_assembly_info_from_attribute(
+                            an_attribute_ptr         ap,
+                            an_assembly_scope_index  *assembly_scope_index,
+                            a_cpp_cli_token          *metadata_type_def_token)
+/*
+Extract from the given assembly_info attribute the value of the assembly/scope
+index and the metadata type-def token that it refers to.
+*/
+{
+  a_constant_ptr  arg, arg2;
+  a_boolean       ovflo;
+
+  check_assertion(ap->kind == (an_attribute_kind)ak_assembly_info);
+  check_assertion(ap->arguments != NULL && 
+                  ap->arguments->kind == (an_attribute_arg_kind)aak_constant &&
+                  ap->arguments->next != NULL &&
+                  ap->arguments->next->kind == 
+                                          (an_attribute_arg_kind)aak_constant);
+  arg = ap->arguments->variant.constant;
+  check_assertion(arg->kind == (a_constant_repr_kind)ck_integer);
+  arg2 = ap->arguments->next->variant.constant;
+  check_assertion(arg2->kind == (a_constant_repr_kind)ck_integer);
+  *assembly_scope_index = 
+      (an_assembly_scope_index)unsigned_value_of_integer_constant(arg, &ovflo);
+  check_assertion(!ovflo);
+  *metadata_type_def_token = 
+             (a_cpp_cli_token)unsigned_value_of_integer_constant(arg2, &ovflo);
+  check_assertion(!ovflo);
+}  /* get_assembly_info_from_attribute */
+
+
 static char *apply_assembly_info_attr(an_attribute_ptr  ap,
                                       char              *entity,
                                       an_il_entry_kind  entity_kind)
@@ -5978,9 +6009,7 @@ of the assembly in which type is defined.  <def-token> is the def-token of
 the type.
 */
 {
-  a_constant_ptr           arg, arg2;
   a_type_ptr               tp = (a_type_ptr)entity;
-  a_boolean                ovflo;
   an_assembly_scope_index  assembly_scope_index;
   an_assembly_index        assembly_index;
   a_cpp_cli_token          metadata_type_def_token;
@@ -5988,23 +6017,10 @@ the type.
 
   /* Get the assembly index and the typedef token. */
   check_assertion(entity_kind == iek_type);
-  check_assertion(ap->arguments != NULL && 
-                  ap->arguments->kind == (an_attribute_arg_kind)aak_constant &&
-                  ap->arguments->next != NULL &&
-                  ap->arguments->next->kind == 
-                                          (an_attribute_arg_kind)aak_constant);
-  arg = ap->arguments->variant.constant;
-  check_assertion(arg->kind == (a_constant_repr_kind)ck_integer);
-  arg2 = ap->arguments->next->variant.constant;
-  check_assertion(arg2->kind == (a_constant_repr_kind)ck_integer);
-  assembly_scope_index = 
-      (an_assembly_scope_index)unsigned_value_of_integer_constant(arg, &ovflo);
-  check_assertion(!ovflo);
+  get_assembly_info_from_attribute(ap, &assembly_scope_index,
+                                   &metadata_type_def_token);
   assembly_index = assembly_index_from_assembly_scope_index(
                                                          assembly_scope_index);
-  metadata_type_def_token = 
-             (a_cpp_cli_token)unsigned_value_of_integer_constant(arg2, &ovflo);
-  check_assertion(!ovflo);
   /* Get the assembly position. */
   cmfp = map_assembly_index_to_cmfp(assembly_index);
   if (cmfp == NULL) {

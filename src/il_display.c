@@ -493,6 +493,7 @@ Display the indicated C++/CLI class kind with a name.
       case cctk_value:        s = "cctk_value\n";            break;
       case cctk_ref:          s = "cctk_ref\n";              break;
       case cctk_interface:    s = "cctk_interface\n";        break;
+      case cctk_unresolved:   s = "cctk_unresolved\n";       break;
       default:                s = "**BAD C++/CLI CLASS TYPE KIND**\n";
     }  /* switch */  
     (void)printf("%s", s);

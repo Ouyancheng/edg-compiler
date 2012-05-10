@@ -22494,6 +22494,15 @@ of the list.
         }  /* if */
         (void)get_token();
         break;
+      case tok_unresolved_type:
+        /* A type name constraint that refers to a type from an unloaded
+           assembly (this is only possible in code generated from metadata).
+           This constraint can never be satisfied. */
+        type = scan_unresolved_metadata_type();
+        /* FIXME: Create a constraint that cannot be satisfied.  For now, we
+           just ignore this constraint. */
+        kind = (a_generic_constraint_kind)gck_none;
+        break;
       case tok_ref_class:
       case tok_ref_struct:
         kind = (a_generic_constraint_kind)gck_ref_class;

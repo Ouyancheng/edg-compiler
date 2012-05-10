@@ -233,6 +233,8 @@ EXTERN a_function_pointer function_pointers[(int)fn_last+1]
   (a_function_pointer)microsoft_comment_pragma,
   (a_function_pointer)microsoft_conform_pragma,
   (a_function_pointer)microsoft_include_alias_pragma,
+  (a_function_pointer)hash_unresolved_type_map_key,
+  (a_function_pointer)compare_for_unresolved_type_map,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   (a_function_pointer)last               /* fn_last */
 }
@@ -798,6 +800,9 @@ Install the keywords in the symbol table.
     }
     /* A keyword used only in classes read from CLI metadata. */
     enter_keyword((a_token_kind)tok_implements, "__implements");
+    /* A keyword used only to denote certain incomplete types read from CLI
+       metadata. */
+    enter_keyword((a_token_kind)tok_unresolved_type, "__unresolved_type");
     init_cli_operator_headers();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
