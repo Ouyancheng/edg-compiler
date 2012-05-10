@@ -905,11 +905,12 @@ static a_boolean tag_definition_next(a_token_kind   next_tok,
 /*
 We've seen the beginning of a class, struct, union, or enum declaration
 (tag_kind determines which).  Return TRUE if next_tok introduces a definition
-for that type.  is_ref_within_new_expr is TRUE if this occurs in a new-
-expression; in that case, a colon is assumed to be part of a "?:" operator and
-not the beginning of a base type specifier.  If no_definition_allowed is TRUE,
-always return FALSE (e.g., in "[]()->struct X {}" the "{}" is assumed to be
-the body of the lambda, not the definition of X).
+for that type.  (next_tok is the current token or one that follows.)
+is_ref_within_new_expr is TRUE if this occurs in a new-expression; in that
+case, a colon is assumed to be part of a "?:" operator and not the beginning
+of a base type specifier.  If no_definition_allowed is TRUE, always return
+FALSE (e.g., in "[]()->struct X {}" the "{}" is assumed to be the body of the
+lambda, not the definition of X).
 */
 {
   a_boolean  result;
@@ -931,18 +932,22 @@ the body of the lambda, not the definition of X).
          enum type.  More lookahead is required to distinguish the two. */
       a_token_cache  cache;
       clear_token_cache(&cache, /*reusable=*/FALSE);
-      /* Skip past the colon. */
+      /* Skip past the colon.  (Since next_tok == tok_colon, we know that
+         either the current token or one that follows soon after the current
+         token is a colon.) */
       for (;;) {
         cache_curr_token(&cache);
         if (curr_token == tok_colon) break;
+        check_assertion(curr_token != tok_end_of_source);
         (void)get_token();
       }  /* for */
       (void)get_token();
       /* A bit field length wouldn't start with a type name, except if it were
          a function-style cast (e.g., "int(0)").  Since the type specifier in
-         such a cast must be "simple" (e.g., "unsigned int(0)" is not allowed)
-         we only have to test for the subsequent token not to be a left
-         parenthesis. */
+         such a cast must be "simple" (e.g., "unsigned int(0)" is not allowed;
+         not even in Microsoft mode, which does allow such casts in other
+         contexts) we only have to test for the subsequent token not to be a
+         left parenthesis. */
       result = is_type_start(/*is_expr_context=*/TRUE) &&
                next_token() != tok_lparen;
       rescan_cached_tokens(&cache);
