@@ -19765,7 +19765,10 @@ is->no_diagnostics and is->check_validity_only.
       /* We have a dynamic init entry.  Make an operand for it. */
       an_expr_node_ptr expr;
       dip->is_braced_initializer = braced_init;
-      /* Note the call here adds the destruction if needed. */
+      if (fill_in_dtor) {
+        add_dtor_to_dynamic_init(dip, dest_type, dest_type,
+                                 init_component_pos(icp));
+      }  /* if */
       expr = alloc_temp_init_node(dest_type, dip, /*is_lvalue=*/FALSE,
                                   /*is_explicit_cast=*/is_cast);
       make_expression_operand(expr, result);
