@@ -4505,8 +4505,8 @@ The affinity can be an expression or the keyword "continue".
     scan_range_based_for_expression(sp, &range_pos);
     /* Perform the semantic checks and build the IL. */
     check_range_based_for_statement(sp,
-                                    expr_tok_seq_number,
                                     &range_pos,
+                                    expr_tok_seq_number,
                                     &middle_pointers_block,
                                     &iterator_pointers_block);
     /* Return to the iterator scope for the dependent statement. */
@@ -4731,8 +4731,8 @@ Where "in" is a context-sensitive keyword.
      for all the loop-control pieces. */
   check_for_each_statement(sp,
                            &prev_decl_iterator,
-                           collection_expr_tok_seq_number,
                            &collection_pos,
+                           collection_expr_tok_seq_number,
                            &pointers_block);
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);

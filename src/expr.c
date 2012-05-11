@@ -28734,10 +28734,6 @@ and not a copy or re-evaluation thereof.
     expr = add_ref_indirection_to_node(expr);
   }  /* if */
   make_lvalue_or_rvalue_expression_operand(expr, operand);
-  set_operand_position(operand,
-                       &expr_ref_var->source_corresp.decl_position,
-                       &expr_ref_var->source_corresp.decl_position,
-                       (a_source_position *)NULL);
 }  /* make_enhanced_for_expression_operand */
 
 
@@ -29024,8 +29020,8 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
 
 static void fill_in_range_based_for_loop_constructs(
                                      a_range_based_for_loop_ptr rbflp,
-                                     a_token_sequence_number    tok_seq_number,
                                      a_source_position          *expr_position,
+                                     a_token_sequence_number    tok_seq_number,
                                      a_scope_pointers_block_ptr pointers_block)
 /*
 Generate and fill in the IL necessary for the looping constructs of a
@@ -29114,8 +29110,8 @@ __begin, __end) already on the stack.
 static void fill_in_for_each_loop_constructs(
                                 a_for_each_loop_ptr        felp,
                                 an_operand                 *prev_decl_iterator,
-                                a_token_sequence_number    tok_seq_number,
                                 a_source_position          *expr_position,
+                                a_token_sequence_number    tok_seq_number,
                                 a_scope_pointers_block_ptr pointers_block)
 /*
 Generate and fill in the IL necessary for the looping constructs of a
@@ -29224,8 +29220,8 @@ static a_boolean make_enhanced_for_initializer_for_call_to_member_function(
                                         a_variable_ptr          selector_var,
                                         char                    *function_name,
                                         a_boolean               is_for_each,
-                                        a_token_sequence_number tok_seq_number,
                                         a_source_position       *expr_position,
+                                        a_token_sequence_number tok_seq_number,
                                         a_variable_ptr          *loop_var,
                                         a_type_ptr              *type)
 /*
@@ -29470,8 +29466,8 @@ for a for-each loop operating on a CLI array.
 static void check_for_each_cli_collection_pattern(
                                 a_for_each_loop_ptr        felp,
                                 an_operand                 *prev_decl_iterator,
-                                a_token_sequence_number    tok_seq_number,
                                 a_source_position          *expr_position,
+                                a_token_sequence_number    tok_seq_number,
                                 a_base_class_ptr           ienumerable_bcp,
                                 a_scope_pointers_block_ptr pointers_block)
 /*
@@ -29696,8 +29692,8 @@ created, needed to reactivate that scope.
 static void check_for_each_cli_array_pattern(
                               a_for_each_loop_ptr        felp,
                               an_operand                 *prev_decl_iterator,
-                              a_token_sequence_number    tok_seq_number,
                               a_source_position          *expr_position,
+                              a_token_sequence_number    tok_seq_number,
                               a_scope_pointers_block_ptr pointers_block)
 /*
 This routine checks a statement of kind stmk_for_each for semantic
@@ -29899,8 +29895,8 @@ created, needed to reactivate that scope.
 static void check_for_each_stl_collection_pattern(
                                 a_for_each_loop_ptr        felp,
                                 an_operand                 *prev_decl_iterator,
-                                a_token_sequence_number    tok_seq_number,
                                 a_source_position          *expr_position,
+                                a_token_sequence_number    tok_seq_number,
                                 a_scope_pointers_block_ptr pointers_block)
 /*
 This routine checks a statement of kind stmk_for_each for semantic correctness
@@ -29948,8 +29944,8 @@ created, needed to reactivate that scope.
                                                     felp->collection_expr_ref,
                                                     "end",
                                                     /*is_for_each=*/TRUE,
-                                                    tok_seq_number,
                                                     expr_position,
+                                                    tok_seq_number,
                                                     &cend_var,
                                                     &end_type)) {
     passed = FALSE;
@@ -29959,8 +29955,8 @@ created, needed to reactivate that scope.
                                                     felp->collection_expr_ref,
                                                     "begin",
                                                     /*is_for_each=*/TRUE,
-                                                    tok_seq_number,
                                                     expr_position,
+                                                    tok_seq_number,
                                                     &temp_var,
                                                     &begin_type)) {
     passed = FALSE;
@@ -29985,8 +29981,8 @@ created, needed to reactivate that scope.
       felp->variant.stl_array_pattern.end_variable = cend_var;
       fill_in_for_each_loop_constructs(felp,
                                        prev_decl_iterator,
-                                       tok_seq_number,
                                        expr_position,
+                                       tok_seq_number,
                                        pointers_block);
     }  /* if */
   }  /* if */
@@ -29996,8 +29992,8 @@ created, needed to reactivate that scope.
 static void check_for_each_array_pattern(
                               a_for_each_loop_ptr        felp,
                               an_operand                 *prev_decl_iterator,
-                              a_token_sequence_number    tok_seq_number,
                               a_source_position          *expr_position,
+                              a_token_sequence_number    tok_seq_number,
                               a_scope_pointers_block_ptr pointers_block)
 /*
 This routine checks a statement of kind stmk_for_each for semantic
@@ -30030,8 +30026,7 @@ created, needed to reactivate that scope.
 
   /* We should be in the for-each scope at this point. */
   check_assertion(felp->for_each_scope == scope_stack_top().il_scope);
-  /* Make a collection expression operand early so we can get its type
-     and position. */
+  /* Make a collection expression operand early so we can get its type. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
@@ -30049,7 +30044,7 @@ created, needed to reactivate that scope.
       is_incomplete_type(element_type)) {
     /* The array has an unknown bound or the element type is incomplete. */
     pos_ty_error(ec_for_each_incompatible_type,
-                 &operand.position, collection_type);
+                 expr_position, collection_type);
   } else {
     /* The array version of the for-each statement is executed as follows:
 
@@ -30119,8 +30114,8 @@ created, needed to reactivate that scope.
     felp->variant.stl_array_pattern.end_variable = cend_var;
     fill_in_for_each_loop_constructs(felp,
                                      prev_decl_iterator,
-                                     tok_seq_number,
                                      expr_position,
+                                     tok_seq_number,
                                      pointers_block);
   }  /* if */
   /* Pop the expression stack for error cases. */
@@ -30130,8 +30125,8 @@ created, needed to reactivate that scope.
 
 void check_for_each_statement(a_statement_ptr            statement,
                               an_operand                 *prev_decl_iterator,
-                              a_token_sequence_number    tok_seq_number,
                               a_source_position          *expr_position,
+                              a_token_sequence_number    tok_seq_number,
                               a_scope_pointers_block_ptr pointers_block)
 /*
 Perform semantic checks on the "for each" statement pointed to by
@@ -30249,19 +30244,19 @@ previously created, needed to reactivate that scope.
     /* Do nothing here to prevent cascading diagnostics. */
   } else if (is_array_type(collection_type)) {
     /* Perform full semantic checks and generate IL for the array pattern. */
-    check_for_each_array_pattern(felp, prev_decl_iterator, tok_seq_number,
-                                 expr_position, pointers_block);
+    check_for_each_array_pattern(felp, prev_decl_iterator, expr_position,
+                                 tok_seq_number, pointers_block);
   } else if (cppcli_enabled && is_cli_array_type(collection_type)) {
     /* Perform full semantic checks and generate IL for the CLI array
        pattern. */
     check_for_each_cli_array_pattern(felp, prev_decl_iterator,
-                                     tok_seq_number, expr_position,
+                                     expr_position, tok_seq_number,
                                      pointers_block);
   } else if (is_class_struct_type(collection_type)) {
     if (is_stl_collection_pattern_candidate(collection_type)) {
       /* Perform full semantic checks and generate IL for the STL pattern. */
       check_for_each_stl_collection_pattern(felp, prev_decl_iterator,
-                                            tok_seq_number, expr_position,
+                                            expr_position, tok_seq_number,
                                             pointers_block);
     } else if (cppcli_enabled && 
                is_cli_collection_pattern_candidate(collection_type,
@@ -30269,7 +30264,7 @@ previously created, needed to reactivate that scope.
       /* Perform full semantic checks and generate IL for the C++/CLI
          collection pattern. */
       check_for_each_cli_collection_pattern(felp, prev_decl_iterator,
-                                            tok_seq_number, expr_position,
+                                            expr_position, tok_seq_number,
                                             ienumerable_bcp, pointers_block);
     } else {
       /* Nothing seems appropriate, so just issue a generic diagnostic. */
@@ -30567,8 +30562,8 @@ an error and returns FALSE.
 
 static a_boolean check_range_based_for_member_case(
                                      a_range_based_for_loop_ptr rbflp,
-                                     a_token_sequence_number    tok_seq_number,
-                                     a_source_position          *expr_position)
+                                     a_source_position          *expr_position,
+                                     a_token_sequence_number    tok_seq_number)
 /*
 This routine handles the second kind of range-based-for statement: where the
 expression has a class type and that class has suitable "begin()" and "end()"
@@ -30588,8 +30583,8 @@ issued and FALSE is returned.
                                                          rbflp->range,
                                                          "begin",
                                                          /*is_for_each=*/FALSE,
-                                                         tok_seq_number,
                                                          expr_position,
+                                                         tok_seq_number,
                                                          &rbflp->begin,
                                                          &begin_type)) {
     passed = FALSE;
@@ -30599,8 +30594,8 @@ issued and FALSE is returned.
                                                          rbflp->range,
                                                          "end",
                                                          /*is_for_each=*/FALSE,
-                                                         tok_seq_number,
                                                          expr_position,
+                                                         tok_seq_number,
                                                          &rbflp->end,
                                                          &end_type)) {
     passed = FALSE;
@@ -30613,8 +30608,8 @@ issued and FALSE is returned.
 static a_boolean create_range_based_for_variable_for_function_call(
                                         a_variable_ptr          range_var,
                                         char                    *function_name,
-                                        a_token_sequence_number tok_seq_number,
                                         a_source_position       *expr_position,
+                                        a_token_sequence_number tok_seq_number,
                                         a_variable_ptr          *variable)
 /*
 This utility is used during processing of a range-based-for to create a
@@ -30718,8 +30713,8 @@ errors) in the case where the expression is template dependent.
 
 static a_boolean check_range_based_for_default_case(
                                     a_range_based_for_loop_ptr rbflp,
-                                    a_token_sequence_number    tok_seq_number,
-                                    a_source_position          *expr_position)
+                                    a_source_position          *expr_position,
+                                    a_token_sequence_number    tok_seq_number)
 /*
 Called during range-based-for processing for the "default" case, that is,
 in the case where the range expression isn't an array and isn't a class with
@@ -30740,16 +30735,16 @@ is template dependent.
   /* Find a suitable "begin" function. */
   if (!create_range_based_for_variable_for_function_call(rbflp->range,
                                                          "begin",
-                                                         tok_seq_number,
                                                          expr_position,
+                                                         tok_seq_number,
                                                          &rbflp->begin)) {
     passed = FALSE;
   }  /* if */
   /* Even if we didn't find a suitable "begin", look also for an "end". */
   if (!create_range_based_for_variable_for_function_call(rbflp->range,
                                                          "end",
-                                                         tok_seq_number,
                                                          expr_position,
+                                                         tok_seq_number,
                                                          &rbflp->end)) {
     passed = FALSE;
   }  /* if */
@@ -30759,8 +30754,8 @@ is template dependent.
 
 void check_range_based_for_statement(
                            a_statement_ptr            statement,
-                           a_token_sequence_number    tok_seq_number,
                            a_source_position          *expr_position,
+                           a_token_sequence_number    tok_seq_number,
                            a_scope_pointers_block_ptr begin_end_pointers_block,
                            a_scope_pointers_block_ptr iterator_pointers_block)
 /*
@@ -30834,12 +30829,12 @@ and can have the following forms (see [stmt.ranged] for specifics):
   } else if (is_class_struct_union_type(expr_type) &&
              has_range_based_for_begin_or_end_member(expr_type)) {
     /* begin-expr is __range.begin(), end-expr is __range.end(). */
-    passed = check_range_based_for_member_case(rbflp, tok_seq_number,
-                                               expr_position);
+    passed = check_range_based_for_member_case(rbflp, expr_position,
+                                               tok_seq_number);
   } else {
     /* begin-expr is begin(__range), end-expr is end(__range). */
-    passed = check_range_based_for_default_case(rbflp, tok_seq_number,
-                                                expr_position);
+    passed = check_range_based_for_default_case(rbflp, expr_position,
+                                                tok_seq_number);
   }  /* if */
   if (passed) {
     if (!types_are_compatible(rbflp->begin->type, rbflp->end->type)) {
@@ -30857,8 +30852,8 @@ and can have the following forms (see [stmt.ranged] for specifics):
        and the "++__begin" expression.  The expressions are built in the
        begin_end scope and the iterator is built in the iterator scope. */
     fill_in_range_based_for_loop_constructs(rbflp,
-                                            tok_seq_number,
                                             expr_position,
+                                            tok_seq_number,
                                             iterator_pointers_block);
 
   } else if (rbflp->iterator != NULL &&
