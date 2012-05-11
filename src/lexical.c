@@ -10402,8 +10402,8 @@ alternative_tokens_allowed is only TRUE in C++ mode.
 */
 #define digraphs_allowed() (alternative_tokens_allowed)
 
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
 void init_whitespace_keywords(void)
 /*
 Populate the table of canonical spellings for whitespace keywords.
@@ -10542,7 +10542,7 @@ modification will be added to restore the first token to the current line.
         return_token = tok_for_each;
       }  /* if */
     }  /* if */
-  } else if (cppcli_enabled) {
+  } else {
     if (next_word_len == len_of_class && 
         memcmp(curr_char_loc, "class", size_t_arg(len_of_class)) == 0) {
       next_word = tok_class;
@@ -10551,39 +10551,45 @@ modification will be added to restore the first token to the current line.
                                                                            0) {
       next_word = tok_struct;
     }  /* if */
-    switch (first_word) {
-      case tok_enum:
+    if (first_word == tok_enum) {
+      if (cppcli_enabled || (microsoft_version >= 1700 && !cpp11_mode)) {
+        /* "enum struct" and "enum class" are whitespace keyword tokens in
+           C++/CLI and in recent Microsoft C++ compilers.  C++11, however,
+           accepts a similar construct with two keywords instead. */
         switch (next_word) {
-          case tok_class:  return_token = tok_enum_class;         break;
-          case tok_struct: return_token = tok_enum_struct;        break;
-          default:         /* "enum" is a token.  Return it. */   break;
+          case tok_class:  return_token = tok_enum_class;    break;
+          case tok_struct: return_token = tok_enum_struct;   break;
+          default:         return_token = tok_identifier;    break;
         }  /* switch */
-        break;
-      case tok_prefix_interface:
-        switch (next_word) {
-          case tok_class:  return_token = tok_interface_class;    break;
-          case tok_struct: return_token = tok_interface_struct;   break;
-          default:         return_token = tok_identifier;         break;
-        }  /* switch */
-        break;
-      case tok_prefix_ref:
-        switch (next_word) {
-          case tok_class:  return_token = tok_ref_class;          break;
-          case tok_struct: return_token = tok_ref_struct;         break;
-          default:         return_token = tok_identifier;         break;
-        }  /* switch */
-        break;
-      case tok_prefix_value:
-        switch (next_word) {
-          case tok_class:  return_token = tok_value_class;        break;
-          case tok_struct: return_token = tok_value_struct;       break;
-          default:         return_token = tok_identifier;         break;
-        }  /* switch */
-        break;
-      default:
-        unexpected_condition();
-        break;
-    }  /* switch */
+      }  /* if */
+    } else if (cppcli_enabled) {
+      switch (first_word) {
+        case tok_prefix_interface:
+          switch (next_word) {
+            case tok_class:  return_token = tok_interface_class;    break;
+            case tok_struct: return_token = tok_interface_struct;   break;
+            default:         return_token = tok_identifier;         break;
+          }  /* switch */
+          break;
+        case tok_prefix_ref:
+          switch (next_word) {
+            case tok_class:  return_token = tok_ref_class;          break;
+            case tok_struct: return_token = tok_ref_struct;         break;
+            default:         return_token = tok_identifier;         break;
+          }  /* switch */
+          break;
+        case tok_prefix_value:
+          switch (next_word) {
+            case tok_class:  return_token = tok_value_class;        break;
+            case tok_struct: return_token = tok_value_struct;       break;
+            default:         return_token = tok_identifier;         break;
+          }  /* switch */
+          break;
+        default:
+          unexpected_condition();
+          break;
+      }  /* switch */
+    }  /* if */
   }  /* if */
   if (return_token != first_word && return_token != tok_identifier) {
     /* A whitespace keyword was detected. */
@@ -10652,12 +10658,12 @@ Returns TRUE if token is the beginning of a whitespace keyword.
 
   switch(token) {
     case tok_for:
-      /* "for each" is recognized both in regular Microsoft mode and in
-         C++/CLI. */
+    case tok_enum:
+      /* "for each", "enum struct", and "enum class" are recognized both in
+          regular Microsoft modes and in C++/CLI. */
       result = TRUE;
       break;
     case tok_prefix_interface:
-    case tok_enum:
     case tok_prefix_ref:
     case tok_prefix_value:
       /* These can introduce a whitespace keyword only in C++/CLI. */
@@ -10709,8 +10715,8 @@ returns TRUE.  On input symbol points to the symbol for the first token.
   }  /* if */
   return is_whitespace_keyword;
 } /* check_for_whitespace_keyword */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_token_kind get_token(void)
 /*

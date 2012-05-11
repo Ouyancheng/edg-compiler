@@ -231,8 +231,7 @@ specifier.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_enum_type_keyword(tok)                                    \
-  ((tok) == tok_enum ||                                              \
-   (cppcli_enabled && ((tok) == tok_enum_class || (tok) == tok_enum_struct)))
+  ((tok) == tok_enum || (tok) == tok_enum_class || (tok) == tok_enum_struct)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_enum_type_keyword(tok)  ((tok) == tok_enum)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

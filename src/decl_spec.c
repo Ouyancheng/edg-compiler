@@ -4899,9 +4899,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     cli_visibility = scan_cli_visibility_specifier_if_any(&cli_visibility_pos);
   }  /* if */
   if (curr_token == tok_enum_class || curr_token == tok_enum_struct) {
-    /* In C++/CLI mode, "enum struct" and "enum class" is scanned as a single
-       token with embedded white space. */
-    check_assertion(cppcli_enabled);
+    /* In C++/CLI mode and in Microsoft modes with microsoft_version >=1700,
+       "enum struct" and "enum class" is scanned as a single token with
+       embedded white space. */
+    check_assertion(cppcli_enabled ||
+                    (microsoft_mode && microsoft_version >= 1700));
     is_scoped_enum = TRUE;
   } else {
     check_assertion(curr_token == tok_enum);

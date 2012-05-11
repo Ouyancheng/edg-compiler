@@ -1,5 +1,15 @@
 Version 4.5
 
+5/11/12  [EDGcpfe/12845]
+Microsoft compatibility: Scoped enumeration types
+
+The front end now accepts scoped enumeration types in Microsoft modes with
+microsoft_version >= 1700.  The feature follows the similar C++/CLI feature in
+that it relies on keywords with embedded whitespace (i.e., "enum struct" is
+treated as a single keyword rather than as two keywords as it would be in
+C++11 mode).
+
+
 5/10/12  [EDGcpfe/12861]
 Source positions for generated IL
 
