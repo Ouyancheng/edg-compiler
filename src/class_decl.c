@@ -16509,12 +16509,15 @@ remarks may be issued in some cases.
   a_class_symbol_supplement_ptr  cssp;
   a_symbol_ptr                   rout_sym;
   a_boolean                      ambiguous;
-  a_boolean                      bitwise_copy;
+  a_boolean                      bitwise_copy, trivially_copyable;
   a_type_qualifier_set           subobj_qual;
 
   subobj_qual = get_type_qualifiers(type);
   type = skip_typerefs(type);
   cssp = symbol_supplement_for_class(type);
+  trivially_copyable = cssp->assignment_by_bitwise_copy_allowed &&
+                       cssp->construction_by_bitwise_copy_allowed &&
+                       !cssp->has_trivial_destructor;
   /* Check the copy assignment operator. */
   if (gsfd->suppress_copy_assign ||
       (microsoft_mode && microsoft_version >= 1400 &&
@@ -16566,7 +16569,7 @@ remarks may be issued in some cases.
                              subobj_qual, &type->source_corresp.decl_position,
                              &ambiguous, &bitwise_copy);
     if (ambiguous ||
-        (rout_sym == NULL && !bitwise_copy) ||
+        (rout_sym == NULL && !trivially_copyable) ||
         (rout_sym != NULL &&
          (!have_access_to_symbol(rout_sym) ||
           is_deleted_member_sym(rout_sym)))) {
