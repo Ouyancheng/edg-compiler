@@ -8208,9 +8208,14 @@ fixed_point_suffix:
      digit is any decimal digit (0-9).
      nondigit is an alphabetic or "_".
   */
-  /* Do this only in strict ANSI mode, or in default mode when scanning
-     preprocessing tokens, but never in pcc mode. */
-  if ((strict_ansi_mode || fetch_pp_tokens) && C_dialect != C_dialect_pcc) {
+  /* Do this only in strict ANSI or GNU modes, or in other modes when
+     scanning preprocessing tokens (except when that is the result of
+     producing preprocessing output -- let the emulation mode govern the
+     choice in that case, so that the results are the same when compiling
+     and in preprocessing output), but never in pcc mode. */
+  if ((strict_ansi_mode || gnu_mode ||
+       (fetch_pp_tokens && !generate_pp_output)) &&
+      C_dialect != C_dialect_pcc) {
     while (is_id_char[(ch = *curr_char_loc)-CHAR_MIN] || ch == '.' ||
            ((ch == '+' || ch == '-') &&
             ((ch = *(curr_char_loc-1)) == 'e' || ch == 'E' ||

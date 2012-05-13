@@ -1,5 +1,36 @@
 Version 4.5
 
+5/13/12  [EDGcpfe/12838]
+Preprocessor numbers, macros, and preprocessing output
+
+The C and C++ Standards use one lexical grammar to process literal numbers
+in preprocessing and another during compilation; the former syntax (called
+"pp-number" in the Standards) is less detailed and thus accepts as
+preprocessing tokens a superset of valid floating-point literals.  In most
+cases the difference is immaterial because the result of preprocessing a
+pp-number that is not a valid floating-point literal will cause an error
+during compilation.  In some cases involving macros, however, the
+difference is significant.  For example:
+
+  #define MACRO 1
+  int x = 0xE+MACRO;
+
+If the string "0xE+MACRO" is lexed as a single preprocessing token, as
+required by the Standards, MACRO will not be replaced by 1 and the result
+will not be valid when compiled.  If the string is lexed according to the
+full syntax used for compilation, MACRO will be treated as a separate token
+and will be replaced by 1, which produces valid output for some emulations.
+
+The front end had two problems in this area.  First, when doing combined
+preprocessing and compilation, it only used the pp-number grammar for the
+preprocessing step in strict mode.  However, the GNU preprocessor also
+uses the pp-number grammar, so the front end now does so in both strict
+and GNU modes.  Second, the front end always used the pp-number grammar
+when doing preprocessing only (-E or -P), regardless of the emulation mode
+in effect; now the emulation mode controls whether pp-numbers are
+recognized, both when producing preprocessing output and when compiling.
+
+
 5/11/12  [EDGcpfe/12845]
 Microsoft compatibility: Scoped enumeration types
 
