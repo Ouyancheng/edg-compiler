@@ -1,5 +1,27 @@
 Version 4.5
 
+5/13/12  [EDGcpfe/12839]
+Invalid preprocessor token concatenation
+
+According to the C and C++ Standards, if the concatenation of two
+preprocessor tokens using the ## operator does not result in a (single)
+valid preprocessor token, the result is undefined behavior.  When
+instructed to do so, via the --check_concatenations command-line option or
+the DEFAULT_CHECK_CONCATENATIONS configuration option, the front end
+previously issued a warning (or error, in strict mode) when the
+preprocessor token following the ## operator started a new token,
+indicating an invalid concatenation.  However, it did not check for the
+case in which the preprocessor token resulting from the concatenation does
+not contain the entire original second preprocessor token, i.e., the result
+of the concatenation is not a single preprocessor token.  This is now
+fixed.  For example:
+
+  #define G(x) x ## 0xE+1
+  #define test0xE 1
+  int tmp = G(test);  // Result is "test0xE + 1", which splits the "0xE+1"
+                      // preprocessor token and now elicits a diagnostic
+
+
 5/13/12  [EDGcpfe/12838]
 Preprocessor numbers, macros, and preprocessing output
 

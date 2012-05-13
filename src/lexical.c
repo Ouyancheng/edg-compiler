@@ -10169,12 +10169,19 @@ operation in a macro expansion ("a ## b") did not result in a valid token.
                                                      /*failure_allowed=*/TRUE);
   if (slmp != NULL) {
     while (slmp->concatenations != NULL &&
-           slmp->concatenations->line_loc <= start_of_curr_token) {
-      if (slmp->concatenations->line_loc == start_of_curr_token) {
-        /* The right operand of the concatenation formed a new token instead
-           of becoming part of the one at the end of the left operand, which
-           is undefined behavior according to the language standards.  Issue
-           a diagnostic of the appropriate severity. */
+           slmp->concatenations->line_loc <= end_of_curr_token) {
+      if (slmp->concatenations->line_loc == start_of_curr_token ||
+          *(end_of_curr_token + 1) != LE_ESCAPE) {
+        /* Either the right operand of the concatenation formed a new token
+           instead of becoming part of the one at the end of the left
+           operand or the newly-formed token ends before the end of
+           preprocessor token that was the right operand of the
+           concatenation (the tokens in a macro expansion are terminated by
+           lexical escapes -- LE_END_OF_TOKEN, etc. -- which is missing
+           following the current end of token, indicating that the
+           concatenated token ends "early").  This is undefined behavior
+           according to the language standards.  Issue a diagnostic of the
+           appropriate severity. */
         pos_stsy_diagnostic(strict_ansi_mode ?
                                strict_ansi_discretionary_severity : es_warning,
                             ec_concat_yields_invalid_token, &pos_curr_token,
