@@ -3298,7 +3298,8 @@ the scope being pushed.
            ((assoc_type->variant.class_struct_union.is_specialized &&
              !already_in_nonspecialized_instantiation_context) ||
             !is_incomplete_type(assoc_type))) &&
-         !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS/*lint !e506*/)
+          /*lint --e(506)*/
+          !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS)
         || assoc_type->
                  variant.class_struct_union.is_ms_instantiated_nonreal_class;
       } else {
