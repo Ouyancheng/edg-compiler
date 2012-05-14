@@ -4525,10 +4525,13 @@ class to be defined.
   }  /* if */
   /* Determine whether this instantiation is a prototype instantiation of
      something within another prototype instantiation.  This affects the
-     way that the scope stack is manipulated. */
+     way that the scope stack is manipulated.  A prototype instantiation
+     is not allowed in a generic definition, but that case is included here
+     for error recovery purposes. */
   if (template_sym != NULL &&
       scope_stack[depth_scope_stack].in_prototype_instantiation &&
       ((options & PS_PROTOTYPE_INSTANTIATION) != 0 ||
+       (options & PS_GENERIC_DEFINITION) != 0 ||
        (options & PS_NONREAL_INSTANTIATION) != 0)) {
     nested_in_prototype_instantiation = is_nested_in_prototype_instantiation(
                                                                  template_sym);

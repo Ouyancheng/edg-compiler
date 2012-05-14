@@ -1,5 +1,17 @@
 Version 4.5
 
+5/14/12  [EDGcpfe/12830]
+C++/CLI: internal error on generic declared in class template
+
+An internal error (in push_template_instantiation_scope) could occur
+following a normal error if a C++/CLI generic was declared within a class
+template.  Now fixed.
+
+  template <typename T> ref struct R {
+    generic <typename U> virtual void g(U u) {}
+  };
+
+
 5/14/12  [EDGcpfe/12926]
 Missing error on creation of incomplete rvalue result for .* operation
 
