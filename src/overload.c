@@ -19371,7 +19371,7 @@ reported at the source position given by pos.
            ctor_routine is NULL to indicate the constructor is unknown. */
         dip = alloc_expr_ctor_dynamic_init(ctor_routine,
                                            (an_expr_node_ptr)NULL,
-                                           /*add_default_args=*/FALSE,
+                                           /*add_default_args=*/TRUE,
                                            /*implied_source=*/FALSE);
         /* The value_initialization flag tells back ends to zero the
            storage before calling the constructor if it is not
