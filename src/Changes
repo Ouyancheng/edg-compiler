@@ -66,13 +66,14 @@ full syntax used for compilation, MACRO will be treated as a separate token
 and will be replaced by 1, which produces valid output for some emulations.
 
 The front end had two problems in this area.  First, when doing combined
-preprocessing and compilation, it only used the pp-number grammar for the
-preprocessing step in strict mode.  However, the GNU preprocessor also
-uses the pp-number grammar, so the front end now does so in both strict
-and GNU modes.  Second, the front end always used the pp-number grammar
-when doing preprocessing only (-E or -P), regardless of the emulation mode
-in effect; now the emulation mode controls whether pp-numbers are
-recognized, both when producing preprocessing output and when compiling.
+preprocessing and compilation, it used the pp-number grammar for the
+preprocessing step only in strict mode; all other modes used the regular
+compilation grammar.  However, the GNU preprocessor uses the pp-number
+grammar, so the front end now does so in both strict and GNU modes.
+Second, the front end always used the pp-number grammar when doing
+preprocessing only (-E or -P), regardless of the emulation mode in effect;
+now the emulation mode controls whether pp-numbers are recognized, both
+when producing preprocessing output and when compiling.
 
 
 5/11/12  [EDGcpfe/12845]
