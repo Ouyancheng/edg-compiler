@@ -280,7 +280,6 @@ indicated routine has just been processed.
       /* Constructor and destructor wrappers refer to the virtual function
          table and therefore the virtual functions are needed. */
       needed = TRUE;
-#if DO_IL_LOWERING
     } else if (routine->is_virtual) {
       a_routine_ptr decider = vtbl_decider_function_for_class(class_type);
       if (decider != NULL &&
@@ -298,7 +297,6 @@ indicated routine has just been processed.
            been considered to be the decider function. */
         needed = TRUE;
       }  /* if */
-#endif /* DO_IL_LOWERING */
     }  /* if */
   }  /* if */
   return needed;

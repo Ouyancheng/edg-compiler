@@ -22509,6 +22509,61 @@ includes removing any initialization.
   }  /* if */
 }  /* clear_variable_definition */
 
+
+a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type)
+/*
+Return a pointer to the routine that is the decider function for generation
+of the definition of the virtual function table for the given class.
+The routine is the first non-inline non-pure virtual function of the
+class.  Return NULL if the class does not have such a function, or does not
+have one yet.
+*/
+{
+  a_routine_ptr routine;
+  a_scope_ptr   scope =
+                class_type->variant.class_struct_union.extra_info->assoc_scope;
+
+  if (scope == NULL) {
+    /* The class is declared but not defined. */
+    routine = NULL;
+  } else {
+    /* The class is defined.  Look at the member functions. */
+    for (routine = scope->routines;
+         routine != NULL;
+         routine = routine->next) {
+      if (routine->is_virtual && !routine->pure_virtual &&
+#if IA64_ABI
+          /* Ignore alternate entry points for constructors and
+             destructors. */
+          routine->primary_ctor_or_dtor == NULL &&
+#endif /* IA64_ABI */
+          /* A member function of a template class is not marked as
+             inline until it is fully instantiated, so we have to call
+             a function to see whether it is really inline. */
+          (routine->is_template_function ?
+                       !rout_is_inline_template_function(routine,
+#if IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION
+                                                         /*in_class=*/TRUE
+#else /* !(IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION) */
+                                                         /*in_class=*/FALSE
+#endif /* IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION */
+                                                                            ) :
+#if IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION
+                       !routine->inline_in_class_definition
+#else /* !(IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION) */
+                       !routine->is_inline
+#endif /* IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION */
+                                                            )) {
+        /* This is the first non-inline virtual non-pure member function in
+           the class.  If it is defined in this compilation, we should put
+           out the virtual function tables here. */
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return routine;
+}  /* vtbl_decider_function_for_class */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 

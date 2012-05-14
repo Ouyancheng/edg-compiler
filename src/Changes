@@ -1,5 +1,33 @@
 Version 4.5
 
+5/14/12  [EDGcpfe/12919]
+C++-generating back end versions: knowledge of key function for vtables
+
+Up until now, the C++-generating back end has had little or no knowledge
+of the ABI being used.  Now, it has been made aware of "key functions"
+in classes, whose definition forces the definition of the virtual
+function table of the class, which might force definition of some
+template functions or generated destructors.  In cp_gen_be versions
+with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, for example, the
+following translated in g++ mode with gnu_version=40500 did not output
+a definition for A<int>::~A, and now it does (because C::f is the
+key function of C, and is defined, so the destructor for C is generated,
+and that references the destructor for A<int>).
+
+  template <class T> struct A {
+    ~A() {}
+  };
+  struct B {
+    virtual ~B();
+    virtual void f();
+  };
+  struct C : B {
+    A<int> m;
+    virtual void f();
+  };
+  void C::f() { }
+
+
 5/14/12  [EDGcpfe/07165,EDGcpfe/07850,EDGcpfe/09701,EDGcpfe/10836,
           EDGcpfe/11933,EDGcpfe/12786]
 Microsoft compatibility: lookup in dependent base classes

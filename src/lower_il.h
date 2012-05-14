@@ -1010,8 +1010,6 @@ extern a_variable_ptr make_var_for_virtual_function_table(
                                                    a_base_class_ptr bcp,
                                                    a_base_class_ptr ctor_bcp);
 
-extern a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type);
-
 extern a_variable_ptr primary_vtbl_var_for_class_if_any(a_type_ptr class_type);
 
 extern a_variable_ptr primary_vtbl_var_for_class(a_type_ptr class_type);

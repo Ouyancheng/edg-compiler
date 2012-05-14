@@ -2301,6 +2301,8 @@ extern void eliminate_unneeded_il_entries(a_scope_ptr scope);
 
 extern void clear_variable_definition(a_variable_ptr variable);
 
+extern a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type);
+
 extern a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp);
 
 extern a_boolean is_member_of_unnamed_namespace(a_source_correspondence *scp);
