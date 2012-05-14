@@ -877,10 +877,9 @@ Data structures that enable tracking of the location of a concatenation in
 a macro expansion when check_concatenations is TRUE.  This information is
 used to detect cases in which a concatenation did not result in a valid
 token, as required by the language standards: if a new token begins at the
-location occupied by the right-hand operand of ##, the concatenation did
-not form a valid token.  (Cases in which a putative token begins in the
-left-hand operand, continues across the concatenation point, and becomes
-invalid at a later point are not detected as concatenation failures.)
+location occupied by the right-hand operand of ##, or if the combined token
+ends before the right-hand token previously did, the concatenation did not
+form a valid token.
 
 A source line modification that incorporates text created by concatenation
 has a singly-linked list of concatenation records in the order of their
