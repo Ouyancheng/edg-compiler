@@ -29026,9 +29026,9 @@ static void fill_in_range_based_for_loop_constructs(
 /*
 Generate and fill in the IL necessary for the looping constructs of a
 range-based-for statement.  rbflp points to the IL associated with the
-range-based-for statement.  tok_seq_number is the sequence number of the first
-token of the expression.  *expr_position is the source position for the
-enhanced-for expression.  pointers_block is the pointers block for the iterator
+range-based-for statement.  *expr_position is the source position for the
+enhanced-for expression.  tok_seq_number is the sequence number of the first
+token of the expression.  pointers_block is the pointers block for the iterator
 scope previously created, needed to reactivate that scope.  This routine should
 be called with the proper scope in which to declare the loop variables (i.e.,
 __begin, __end) already on the stack.
@@ -29121,8 +29121,8 @@ the proper scope in which to declare the loop variables (i.e., i, cend) already
 on the stack.  felp points to the IL entry associated with the for-each
 statement.  prev_decl_iterator is an operand for the previously-declared
 variable for the iterator when one is indicated in the for-each loop entry.
+*expr_position is the source position for the collection expression.
 tok_seq_number is the sequence number of the first token of the collection
-expression.  *expr_position is the source position for the collection
 expression.  pointers_block is the pointers block for the iterator scope
 previously created, needed to reactivate that scope.
 */
@@ -29232,9 +29232,9 @@ the member function whose name is specified by function_name.  selector_var
 is the selector object; it can be a handle.  *type is set to indicate the
 return type of the member call expression (which may be an error type).
 is_for_each is TRUE if the statement being processed is a for-each statement
-(otherwise it's a range-based-for statement).  tok_seq_number is the token
-for the start of the loop expression.  *expr_position is the source position
-for the collection expression.  Returns TRUE (and creates *loop_var
+(otherwise it's a range-based-for statement).  *expr_position is the source
+position for the collection expression.  tok_seq_number is the token for the
+start of the loop expression.  Returns TRUE (and creates *loop_var
 with the appropriate initializer) if an appropriate member function is
 found; otherwise issues an error message (and *loop_var is unmodified).
 Returns FALSE (without issuing any error messages) in the template
@@ -29492,9 +29492,9 @@ System::Collections::Generic::IEnumerable interfaces.
 
 felp holds information about the for-each loop.  prev_decl_iterator is
 an operand for the previously-declared variable for the iterator when
-one is indicated in the for-each loop entry.  tok_seq_number is the
-sequence number of the first token of the collection expression.
-*expr_position is the source position for the collection expression.  If
+one is indicated in the for-each loop entry.  *expr_position is the source
+position for the collection expression.  tok_seq_number is the sequence number
+of the first token of the collection expression.  If
 ienumerable_bcp is non-NULL, the collection type implements one of the
 recognized IEnumerable interfaces; bcp identifies which one.
 pointers_block is the pointers block for the iterator scope previously
@@ -29706,9 +29706,9 @@ expression, which is a CLI array or handle to such an array.
 
 felp holds information about the for-each loop.  prev_decl_iterator is
 an operand for the previously-declared variable for the iterator when
-one is indicated in the for-each loop entry.  tok_seq_number is the
-sequence number of the first token of the collection expression.
-*expr_position is the source position for the collection expression.
+one is indicated in the for-each loop entry.  *expr_position is the source
+position for the collection expression.  tok_seq_number is the sequence number
+of the first token of the collection expression.
 pointers_block is the pointers block for the iterator scope previously
 created, needed to reactivate that scope.
 */
@@ -29914,9 +29914,9 @@ operator must return a type compatible with T.
 
 prev_decl_iterator is an operand for the previously-declared variable
 for the iterator when one is indicated in the for-each loop entry.
-felp holds information about the for-each loop.  tok_seq_number is the
-sequence number of the first token of the collection expression.
-*expr_position is the source position for the collection expression.
+felp holds information about the for-each loop.  *expr_position is the source
+position for the collection expression.  tok_seq_number is the sequence number
+of the first token of the collection expression.
 pointers_block is the pointers block for the iterator scope previously
 created, needed to reactivate that scope.
 */
@@ -30008,9 +30008,9 @@ Note that C++/CLI arrays match the C++/CLI array pattern and not the
 
 felp holds information about the for-each loop.  prev_decl_iterator is
 an operand for the previously-declared variable for the iterator when
-one is indicated in the for-each loop entry.  tok_seq_number is the
-sequence number of the first token of the collection expression.
-*expr_position is the source position for the collection expression.
+one is indicated in the for-each loop entry.  *expr_position is the source
+position for the collection expression.  tok_seq_number is the sequence number
+of the first token of the collection expression.
 pointers_block is the pointers block for the iterator scope previously
 created, needed to reactivate that scope.
 */
@@ -30210,8 +30210,8 @@ is a special case of the CLI collection pattern.
 
 prev_decl_iterator is an operand for the previously-declared variable for
 the iterator when one is indicated in the for-each loop entry.
+*expr_position is the source position for the collection expression.
 tok_seq_number is the sequence number of the first token of the collection
-expression.  *expr_position is the source position for the collection
 expression.  pointers_block is the pointers block for the iterator scope
 previously created, needed to reactivate that scope.
 */
@@ -30568,9 +30568,9 @@ static a_boolean check_range_based_for_member_case(
 This routine handles the second kind of range-based-for statement: where the
 expression has a class type and that class has suitable "begin()" and "end()"
 members.  In that case, generate IL (in rbflp) to create and initialize the
-__begin and __end variables appropriately.  tok_seq_number is the sequence
-number for the expression in the range-based-for.  *expr_position is the source
-position for the range expression.  If suitable member functions are found,
+__begin and __end variables appropriately.  *expr_position is the source
+position for the range expression.  tok_seq_number is the sequence number for
+the expression in the range-based-for.  If suitable member functions are found,
 fields in rbflp are updated and the routine returns TRUE; otherwise an error is
 issued and FALSE is returned.
 */
@@ -30616,9 +30616,9 @@ This utility is used during processing of a range-based-for to create a
 variable (returned in *variable) whose initializer is a call to the function
 specified by function_name.  range_var is the sole argument in the function
 call, and argument-dependent lookup is used (with namespace std as an
-associated namespace) for the purposes of the lookup.  tok_seq_number is
-the sequence number of the range-based-for expression.  *expr_position is
-the source position for the range expression.  Returns TRUE
+associated namespace) for the purposes of the lookup.  *expr_position is the
+source position for the range expression.  tok_seq_number is the sequence
+number of the range-based-for expression.  Returns TRUE
 (and creates *variable with a proper initializer) if an appropriate function
 was found; otherwise reports an error and returns FALSE (with *variable
 unmodified).  Note also that this routine will return FALSE (and not issue any
@@ -30721,9 +30721,9 @@ in the case where the range expression isn't an array and isn't a class with
 "begin" or "end" member functions.  In this case, use argument-dependent
 lookup to find suitable "begin(__range)" and "end(__range)" calls, if
 they exist.  rbflp is the associated information for the range-based-for
-statement.  tok_seq_number is the sequence number associated with the
-range-based-for expression.  *expr_position is the source position for the
-range expression.  Returns TRUE and creates the __begin and __end
+statement.  *expr_position is the source position for the range expression.
+tok_seq_number is the sequence number associated with the range-based-for
+expression.  Returns TRUE and creates the __begin and __end
 variables with suitable initialization if suitable functions have been found;
 issues a diagnostic and returns FALSE otherwise.  Note also that this routine
 will return FALSE (and not issue any errors) in the case where the expression
@@ -30760,8 +30760,8 @@ void check_range_based_for_statement(
                            a_scope_pointers_block_ptr iterator_pointers_block)
 /*
 Perform semantic checks on the range-based-for statement pointed to by
-"statement".  tok_seq_number is the sequence number of the first token of the
-expression.  *expr_position is the source position for the range expression.
+"statement".  *expr_position is the source position for the range expression.
+tok_seq_number is the sequence number of the first token of the expression.
 begin_end_pointers_block and iterator_pointers_block are the
 pointer blocks for the begin_end_scope and iterator_scope which have been
 previously created, needed to reactivate those scopes.
