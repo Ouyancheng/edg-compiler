@@ -12492,11 +12492,13 @@ typedef struct a_routine {
 			   statement expressions, i.e., ({...}), a GNU
 			   extension. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if DO_IL_LOWERING && IA64_ABI
+#if IA64_ABI
   a_bit_field	inline_in_class_definition:1;
 			/* TRUE if this routine is a member of a class and was
 			   declared inline (explicitly or implicitly) in
 			   the class definition. */
+#endif /* IA64_ABI */
+#if DO_IL_LOWERING && IA64_ABI
   a_bit_field	use_comdat:1;
 			/* TRUE if this routine should be placed in a COMDAT
 			   group.  The group used should be the same as the

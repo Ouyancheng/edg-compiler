@@ -5021,11 +5021,11 @@ Instantiate the body of the template function associated with tip.
       rout_ptr->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_internal;
     }  /* if */
-#if DO_IL_LOWERING && IA64_ABI
+#if IA64_ABI
     if (func_info_ptr->is_inline) {
       rout_ptr->inline_in_class_definition = TRUE;
     }  /* if */
-#endif /* DO_IL_LOWERING && IA64_ABI */
+#endif /* IA64_ABI */
   }  /* if */
   /* In case the source position in the routine instance is different from
      that of the defining template declaration, copy the latter to the
@@ -11980,9 +11980,9 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     rp->is_deleted = templ_rout->is_deleted;
     rp->is_defaulted = templ_rout->is_defaulted;
     set_inline_flag(rp, (a_boolean)templ_rout->is_inline);
-#if DO_IL_LOWERING && IA64_ABI
+#if IA64_ABI
     rp->inline_in_class_definition = templ_rout->inline_in_class_definition;
-#endif /* DO_IL_LOWERING && IA64_ABI */
+#endif /* IA64_ABI */
     rp->is_explicit_constructor = templ_rout->is_explicit_constructor;
     rp->is_template_function = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -23337,11 +23337,11 @@ inline in the class definition.
        the class template, whereas the flag in the func_info block reflects
        the function template definition, if any. */
     a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
-#if DO_IL_LOWERING && IA64_ABI
+#if IA64_ABI
     if (in_class) {
       result = rout->inline_in_class_definition;
     } else 
-#endif /* DO_IL_LOWERING && IA64_ABI */
+#endif /* IA64_ABI */
     /* Do not add code here. */
     {
       result =  rout->is_inline;
@@ -23350,13 +23350,13 @@ inline in the class definition.
       if (!routine_has_been_defined(rout)) {
         a_template_symbol_supplement_ptr	tssp;
         tssp = template_supplement_for_symbol(tip->template_sym);
-#if DO_IL_LOWERING && IA64_ABI
+#if IA64_ABI
         if (in_class) {
           result = tssp->variant.function.routine->
                                                  inline_in_class_definition ||
                    func_info_for_template(tssp)->is_inline;
         } else 
-#endif /* DO_IL_LOWERING && IA64_ABI */
+#endif /* IA64_ABI */
         /* Do not add code here. */
         {
           result = tssp->variant.function.routine->is_inline ||

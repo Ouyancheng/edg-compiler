@@ -25023,7 +25023,7 @@ next_declaration:
         update_friend_info_for_specialization(class_type);
       }  /* if */
     }  /* if */
-#if DO_IL_LOWERING && IA64_ABI
+#if IA64_ABI
     /* Keep track of which routines are marked inline at this point.  The IA64
        ABI requires this information when deciding whether or not to emit a
        virtual function table. */
@@ -25032,7 +25032,7 @@ next_declaration:
         if (rout->is_inline) rout->inline_in_class_definition = TRUE;
       }  /* for */
     }  /* if */
-#endif /* DO_IL_LOWERING && IA64_ABI */
+#endif /* IA64_ABI */
   }  /* if */
   /* Decrement the counter of class definitions currently in progress. */
   curr_class_fixup_header(/*for_instantiation=*/FALSE)->

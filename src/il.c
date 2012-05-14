@@ -22532,11 +22532,11 @@ have one yet.
          routine != NULL;
          routine = routine->next) {
       if (routine->is_virtual && !routine->pure_virtual &&
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
           /* Ignore alternate entry points for constructors and
              destructors. */
           routine->primary_ctor_or_dtor == NULL &&
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
           /* A member function of a template class is not marked as
              inline until it is fully instantiated, so we have to call
              a function to see whether it is really inline. */
