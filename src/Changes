@@ -1,5 +1,23 @@
 Version 4.5
 
+5/14/12  [EDGcpfe/12926]
+Missing error on creation of incomplete rvalue result for .* operation
+
+The front end failed to issue an error when the result of a pointer-to-
+member ".*" operation is an rvalue with an incomplete type, and as
+a consequence it was possible to get various kinds of aborts later.
+Now fixed.
+
+  struct A;
+  struct B { };
+  B f();
+  void g(const A&);
+  int main() {
+    A B::*pdm = 0;
+    g(f().*pdm);  // Gets error now because result type A is incomplete
+  }
+
+
 5/14/12  [EDGcpfe/12919]
 C++-generating back end versions: knowledge of key function for vtables
 

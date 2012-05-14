@@ -7214,6 +7214,14 @@ the selection, not an operator token for the call.
             set_lvalue_operand_state(result);
             /* Keep the references from the first operand. */
             result->ref_entries_list = operand_1->ref_entries_list;
+          } else {
+            /* An rvalue result.  The type must be complete. */
+            complete_type_is_needed(result_type);
+            if (is_incomplete_type(result_type)) {
+              expr_pos_error(ec_incomplete_type_not_allowed,
+                             &operator_position);
+              conv_to_error_operand(result);
+            }  /* if */
           }  /* if */
           /* There shouldn't be any pointers to members to references. */
           check_assertion(!is_any_reference_type(result_type));
