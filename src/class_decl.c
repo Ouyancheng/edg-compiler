@@ -16517,7 +16517,7 @@ remarks may be issued in some cases.
   cssp = symbol_supplement_for_class(type);
   trivially_copyable = cssp->assignment_by_bitwise_copy_allowed &&
                        cssp->construction_by_bitwise_copy_allowed &&
-                       !cssp->has_trivial_destructor;
+                       cssp->has_trivial_destructor;
   /* Check the copy assignment operator. */
   if (gsfd->suppress_copy_assign ||
       (microsoft_mode && microsoft_version >= 1400 &&
