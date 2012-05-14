@@ -1661,6 +1661,7 @@ to default values.
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       pte->variant.class_struct_union.is_template_class = FALSE;
       pte->variant.class_struct_union.is_nonreal_class = FALSE;
+      pte->variant.class_struct_union.is_ms_instantiated_nonreal_class = FALSE;
       pte->variant.class_struct_union.is_prototype_instantiation = FALSE;
       pte->variant.class_struct_union.is_specialized = FALSE;
       pte->variant.class_struct_union.specialized_with_old_syntax = FALSE;

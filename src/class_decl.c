@@ -508,16 +508,20 @@ Add a class fixup entry for class_type to the class fixup list.
   a_class_fixup_ptr		cfp;
   a_class_fixup_header_ptr	cfhp;
 
-  cfhp = curr_class_fixup_header(/*for_instantiation=*/FALSE);
-  cfp = alloc_class_fixup();
-  cfp->class_type = class_type;
-  cfp->is_template_instantiation = is_template_instantiation;
-  if (cfhp->fixup_list == NULL) {
-    cfhp->fixup_list = cfp;
-  } else {
-    cfhp->fixup_list_tail->next = cfp;
+  /* Don't attempt to fix-up nonreal classes instantiated in Microsoft mode. */
+  if (!class_type->
+                 variant.class_struct_union.is_ms_instantiated_nonreal_class) {
+    cfhp = curr_class_fixup_header(/*for_instantiation=*/FALSE);
+    cfp = alloc_class_fixup();
+    cfp->class_type = class_type;
+    cfp->is_template_instantiation = is_template_instantiation;
+    if (cfhp->fixup_list == NULL) {
+      cfhp->fixup_list = cfp;
+    } else {
+      cfhp->fixup_list_tail->next = cfp;
+    }  /* if */
+    cfhp->fixup_list_tail = cfp;
   }  /* if */
-  cfhp->fixup_list_tail = cfp;
 }  /* add_to_class_fixup_list */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -8171,7 +8175,7 @@ can only contain CLI interfaces.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Test for identifier or "::" next. */
-      if (!is_decl_qualified_name_start()) {
+      if (!is_generalized_identifier_start(GID_IS_BASE_CLASS)) {
         syntax_error(ec_exp_identifier);
       } else {
         /* Scan the base class name. */
@@ -8189,7 +8193,8 @@ can only contain CLI interfaces.
            that could be classes (including typedefs to classes and template
            parameters) are considered in the lookup. */
         sym = coalesce_and_lookup_generalized_identifier(
-                                   GID_IMPLICIT_TYPE_CONTEXT, ilm_class, &err);
+                                 GID_IMPLICIT_TYPE_CONTEXT | GID_IS_BASE_CLASS,
+                                 ilm_class, &err);
         if (sym != NULL) {
           record_potential_pack_reference(
                                     sym, &locator_for_curr_id.source_position);
@@ -8201,7 +8206,7 @@ can only contain CLI interfaces.
           if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
             a_type_ptr  tp = skip_typedefs(type_symbol_type(sym));
             if (tp->kind == (a_type_kind)tk_template_param) {
-              if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+              if (is_template_dependent_context()) {
                 /* No diagnostic on template parameters, which will only show
                    up during prototype instantiations.  Set the flag that
                    indicates that this prototype instantiation has a nonreal
@@ -18846,8 +18851,7 @@ distinguish an alias declaration from a using-declaration.)
     }  /* if */
     /* This is a loop in case the using-declaration specifies an overload
        set -- each member of the overload set is projected independently. */
-    if (!(scope_stack[depth_scope_stack].in_prototype_instantiation ||
-          is_tag_symbol(sym))) {
+    if (!(is_template_dependent_context() || is_tag_symbol(sym))) {
       /* Check if we missed a tag symbol; it should be imported too.
          A dummy overload_sym is used, because tag names are not overloaded. */
       a_symbol_ptr      tag_sym, overload_sym = NULL;
@@ -19960,6 +19964,8 @@ function definition and cache its tokens if appropriate.
     }  /* if */
     if ((class_state->is_nonreal_instantiation ||
          class_state->is_generic_definition) &&
+        !class_type->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class &&
         !class_type->variant.class_struct_union.is_specialized &&
         !class_type->source_corresp.is_local_to_function) {
       /* The test of is_specialized is done to exclude Microsoft mode
@@ -24284,12 +24290,25 @@ classes.
          instantiation.  Such specializations are only allowed in Microsoft
          mode, but may still occur (with an error) in other modes. */
       class_state.is_nonreal_instantiation = TRUE;
+      if (tag_sym->is_class_member &&
+          sym_parent_class(tag_sym)->
+                 variant.class_struct_union.is_ms_instantiated_nonreal_class) {
+        /* If the parent is an instantiated nonreal class, mark a nested
+           class as one too. */
+        class_type->variant.class_struct_union.
+                                       is_ms_instantiated_nonreal_class = TRUE;
+      }  /* if */
       if (allow_in_class_specializations &&
           class_type->variant.class_struct_union.is_specialized) {
         class_state.is_nonreal_instantiation = TRUE;
       } else if (is_cli_generic_instance_type(class_type)) {
         /* An open constructed (i.e., nonreal) instantiation of a C++/CLI
            generic. */
+      } else if (class_type->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class) {
+        /* A nonreal class that is instantiated because it is used as a base
+           class in Microsoft mode. */
+        class_state.is_nonreal_instantiation = TRUE;
       } else {
         /* This can only occur in strange error situations, such as:
              template<template <class X> class T> struct S struct T<int> {};

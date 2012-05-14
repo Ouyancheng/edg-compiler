@@ -410,7 +410,8 @@ extern a_symbol_ptr find_template_class(
 			     a_symbol_ptr        class_template_sym,
                              a_template_arg_ptr  *new_list,
 			     a_boolean	         any_prototype_allowed,
-			     a_symbol_ptr        specific_prototype_allowed);
+			     a_symbol_ptr        specific_prototype_allowed,
+			     a_boolean		 instantiate_nonreal);
 
 extern a_namespace_ptr determine_referencing_namespace(void);
 

@@ -8004,6 +8004,12 @@ typedef struct a_type {
                            In addition, classes that are nested within
 			   nonreal classes are marked as nonreal. */
       a_bit_field
+		is_ms_instantiated_nonreal_class:1;
+			/* TRUE if the class is a nonreal class that was
+			   actually instantiated like a real class.  This is
+			   done for certain nonreal classes used as
+			   base classes in Microsoft mode. */
+      a_bit_field
 		is_prototype_instantiation:1;
 			/* TRUE when this class is a nonreal class that
 		 	   is the prototype instantiation.  Also TRUE for

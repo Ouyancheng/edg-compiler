@@ -3289,13 +3289,18 @@ the scope being pushed.
            The "!is_incomplete_type" test is done to detect the reactivation of
            a class scope.  Source sequence entries should also not be
            disallowed for the instantiation scope pushed for the reactivation
-           of a template class. */
+           of a template class.  In Microsoft mode, certain nonreal classes
+           have actual instantiations generated for them so that lookup
+           can occur when they are used as base classes.  Source sequence
+           entries should not be generated for those classes. */
         source_sequence_entries_disallowed =
-        !(use_microsoft_specialization_scope &&
-          ((assoc_type->variant.class_struct_union.is_specialized &&
-            !already_in_nonspecialized_instantiation_context)||
-           !is_incomplete_type(assoc_type))) &&
-        !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS; /*lint !e506*/
+        (!(use_microsoft_specialization_scope &&
+           ((assoc_type->variant.class_struct_union.is_specialized &&
+             !already_in_nonspecialized_instantiation_context) ||
+            !is_incomplete_type(assoc_type))) &&
+         !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS/*lint !e506*/)
+        || assoc_type->
+                 variant.class_struct_union.is_ms_instantiated_nonreal_class;
       } else {
         /* We are pushing the scope for a function template instantiation
            or for the definition of a template static data member. */
@@ -8193,6 +8198,7 @@ being popped.
         /* The prototype instantiation should not be moved away from the
            associated template. */
         !ssep->in_prototype_instantiation &&
+        !ssep->in_nonreal_instantiation &&
         !ssep->in_generic_definition &&
         !ssep->src_seq_entries_from_prototype_instantiation &&
         !ssep->microsoft_specialization_instantiation_scope) {

@@ -46,7 +46,8 @@ typedef int a_push_scope_options_set;
 			/* The scope being pushed in a template instantiation
 			   in which the template arguments are template
 			   dependent.  Only used for certain default template
-			   argument cases. */
+			   argument cases and, in Microsoft mode, instantiation
+			   of certain nonreal classes. */
 #define PS_IS_REACTIVATION		0x08
 			/* TRUE to indicate that a file scope is being
 			   reactivated. */

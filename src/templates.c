@@ -3317,6 +3317,8 @@ be completed here.
   a_class_symbol_supplement_ptr     cssp;
   a_template_arg_ptr                template_arg_list;
   a_boolean			    is_class_member;
+  a_push_scope_options_set          ps_options = PS_NO_OPTIONS;
+  a_boolean                         is_nonreal_instantiation = FALSE;
 
   db_enter(3, "f_instantiate_template_class");
 #if CHECKING
@@ -3358,9 +3360,11 @@ be completed here.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (class_type->variant.class_struct_union.is_nonreal_class &&
-             !is_cli_generic_instance_type(class_type)) {
+             !is_cli_generic_instance_type(class_type) &&
+             !class_type->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class) {
     /* Don't try to instantiate a template class without real template
-       arguments. */
+       arguments (unless it is a Microsoft instantiated nonreal class). */
   } else if (class_type->variant.class_struct_union.is_specialized) {
     /* This is an attempt to instantiate an incomplete type that is
        explicitly specialized.  Simply ignore the instantiation request. */
@@ -3391,6 +3395,13 @@ be completed here.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (class_type->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class) {
+      /* For a Microsoft instantiated nonreal class, indicate that this is
+         a nonreal instantiation context. */
+      ps_options |= PS_NONREAL_INSTANTIATION;
+      is_nonreal_instantiation = TRUE;
+    }  /* if */
     /* Switch to the translation unit containing the template, if needed. */
     trans_unit_pushed = push_translation_unit_if_needed(template_sym);
     /* Indicate that this template has been used for the purpose of
@@ -3493,7 +3504,7 @@ be completed here.
         cssp->class_template = template_sym;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      } else {
+      } else if (!is_nonreal_instantiation) {
         /* An instance of a nested class of a class template. */
         orig_ssep = class_type->source_corresp.source_sequence_entry;
         if (orig_ssep != NULL &&
@@ -3566,7 +3577,7 @@ be completed here.
 					      instance_sym, template_sym,
 					      template_arg_list,
                                               /*push_lex_state=*/TRUE,
-                                              PS_NO_OPTIONS);
+                                              ps_options);
       if (tssp_of_prototype->attributes != NULL) {
         /* Some attributes appeared on the definition.  Apply them to the
            instantiated class. */
@@ -3712,7 +3723,7 @@ be completed here.
          This causes the correspondence of the class members to be
          established. */
       establish_class_instantiation_corresp(class_type);
-      if (!tssp->is_generic) {
+      if (!tssp->is_generic && !is_nonreal_instantiation) {
         set_instantiation_required_for_template_class_members(class_type);
       }  /* if */
       if (defer_function_prototype_instantiations) {
@@ -6227,7 +6238,8 @@ hashes template argument lists works properly.
 
 static a_symbol_ptr create_partial_instantiation_of_class(
 				a_symbol_ptr		class_template_sym,
-				a_template_arg_ptr	template_arg_list)
+				a_template_arg_ptr	template_arg_list,
+				a_boolean		instantiate_nonreal)
 /*
 Do a partial instantiation of class_template_sym based on the template
 arguments specified by template_arg_list.  Return the symbol for the
@@ -6235,7 +6247,11 @@ class that was created.  The partial instantiation is usually an
 incomplete type that can be completed later by doing a full
 instantiation, but if the template argument list contains nonreal
 types, or if the template itself is nonreal, a complete nonreal type
-is returned.
+is returned.  instantiate_nonreal is TRUE in Microsoft mode if a nonreal
+class should be instantiated as if it were a real class instead of just
+creating an normal nonreal class.  This is used for nonreal classes used
+as base classes because the Microsoft compiler does actual name lookup in
+such classes.
 */
 {
   a_template_symbol_supplement_ptr	tssp;
@@ -6247,6 +6263,7 @@ is returned.
   a_class_type_supplement_ptr		ctsp;
   a_boolean				add_to_instantiation_list = TRUE;
   a_boolean				open_constructed_arg_list = FALSE;
+  a_boolean				instantiate_nonreal_class = FALSE;
 
   tssp = class_template_sym->variant.template_info;
   /* Switch to the translation unit containing the template, if needed. */
@@ -6313,6 +6330,18 @@ is returned.
   if (!open_constructed_arg_list &&
       template_arg_list_is_dependent(template_arg_list)) {
     class_type->variant.class_struct_union.is_nonreal_class = TRUE;
+    if (microsoft_mode && instantiate_nonreal &&
+        !is_variadic_template_context() &&
+        !primary_tssp->is_variadic &&
+        primary_tssp->variant.class_template.partial_specializations == NULL &&
+        primary_tssp->
+                     variant.class_template.prototype_instantiation_complete) {
+      /* In Microsoft mode, certain nonreal classes are instantiated
+         like normal classes. */
+      instantiate_nonreal_class = TRUE;
+      class_type->variant.class_struct_union.
+                                       is_ms_instantiated_nonreal_class = TRUE;
+    }  /* if */
   } else if (is_template_dependent_context() &&
              template_arg_list_involves_error_entity(template_arg_list)) {
     /* If the template argument list contains error entities and we are in
@@ -6399,7 +6428,8 @@ is returned.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   class_type->incomplete = tssp->is_generic ||
-                     !class_type->variant.class_struct_union.is_nonreal_class;
+                   !class_type->variant.class_struct_union.is_nonreal_class ||
+                   instantiate_nonreal_class;
   if (!class_type->variant.class_struct_union.is_nonreal_class) {
     record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
                               sym, &sym->decl_position,
@@ -6407,11 +6437,15 @@ is returned.
   }  /* if */
   if (!tssp->is_generic &&
       class_type->variant.class_struct_union.is_nonreal_class) {
-    a_class_symbol_supplement_ptr	cssp;
-    cssp = sym->variant.class_struct_union.extra_info;
-    cssp->member_decl_scope = take_next_scope_number();
-    class_type->size = 1;
-    class_type->alignment = 1;
+    if (!instantiate_nonreal_class) {
+      /* A Microsoft mode instantiated nonreal classes are not created as
+         complete types at this point. */
+      a_class_symbol_supplement_ptr	cssp;
+      cssp = sym->variant.class_struct_union.extra_info;
+      cssp->member_decl_scope = take_next_scope_number();
+      class_type->size = 1;
+      class_type->alignment = 1;
+    }  /* if */
     if (prototype_instantiations_in_il) {
       /* If this is a nonreal member, add the type to the file scope types
          list.  Otherwise, pass in NO_SCOPE_DEPTH so that the add routine
@@ -6768,7 +6802,8 @@ a_symbol_ptr find_template_class(
 			     a_symbol_ptr        template_sym,
                              a_template_arg_ptr  *new_list,
 			     a_boolean	         any_prototype_allowed,
-			     a_symbol_ptr        specific_prototype_allowed)
+			     a_symbol_ptr        specific_prototype_allowed,
+			     a_boolean		 instantiate_nonreal)
 /*
 Given a symbol for a class template or alias template and a template argument
 list (that is, a list of actual arguments), look for an existing class or
@@ -6813,6 +6848,11 @@ before any of the other instantiations.  If it is FALSE the prototype
 instantiations will not be included in the search, except that if
 specific_prototype_allowed is non-NULL then only the specified
 prototype instantiation is considered as a potential match.
+
+instantiate_nonreal is TRUE in Microsoft mode if a nonreal class should be
+instantiated as if it were a real class instead of just creating an normal
+nonreal class.  This is used for nonreal classes used as base classes
+because the Microsoft compiler does actual name lookup in such classes.
 */
 {
   a_symbol_ptr                      sym;
@@ -6912,7 +6952,8 @@ prototype instantiation is considered as a potential match.
     if (is_alias_template) {
       sym = instantiate_template_alias(template_sym, *new_list, sym);
     } else {
-      sym = create_partial_instantiation_of_class(template_sym, *new_list);
+      sym = create_partial_instantiation_of_class(template_sym, *new_list,
+                                                  instantiate_nonreal);
     }  /* if */
   } else {
     /* We are reusing a class type that already exists, so *new_list will not
@@ -9284,7 +9325,8 @@ are looked up, if needed.  The symbol of the new instance is returned.
     prototype_allowed = orig_is_prototype ||
                         (options & CTWS_PROTOTYPE_ALLOWED) != 0;
     new_sym = find_template_class(template_sym, &new_list, prototype_allowed,
-                                  (a_symbol_ptr)NULL);
+                                  (a_symbol_ptr)NULL,
+                                  /*instantiate_nonreal=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled && new_sym != NULL &&
         !check_cli_internal_template_instantiation(
@@ -12115,10 +12157,11 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   /* Note that if the instance required flag is already set, it will not
      be cleared by this call. */ 
   if (parent_class == NULL || 
-      !parent_class->variant.class_struct_union.is_prototype_instantiation) {
+      !parent_class->variant.class_struct_union.is_nonreal_class) {
     /* Don't create an instantiations required entry for an instance of a
-       prototype instantiation template.  This can occur when a Microsoft
-       in-class specialization occurs in a prototype instantiation. */
+       nonreal class.  This can occur when a Microsoft in-class specialization
+       occurs in a prototype instantiation and also when a nonreal base class
+       is instantiated in Microsoft mode. */
     set_instance_required(sym, /*value=*/FALSE, SIR_NONE);
   }  /* if */
   /* If the translation unit stack was pushed above, pop it now. */
@@ -18552,7 +18595,8 @@ static void record_string_version_of_template(
 Make the string version of the template specified by sym and tssp.
 */
 {
-  if (sym != NULL && !sym->is_error) {
+  if (sym != NULL && !sym->is_error &&
+      !scope_stack[depth_scope_stack].in_nonreal_instantiation) {
     /* Do some initial processing on the body cache to get it into the form
        required by the template string routines. */
     if (p_template_body_cache != NULL) {
@@ -28992,7 +29036,8 @@ corresponding symbol for a CLI array type and return it.
   arg_list->next->variant.constant = rank_constant;
   result = find_template_class(cli_array_tmpl_sym, &arg_list,
                                /*any_prototype_allowed=*/TRUE,
-                               /*specific_prototype_allowed=*/NULL);
+                               /*specific_prototype_allowed=*/NULL,
+                               /*instantiate_nonreal=*/FALSE);
   return result;
 }  /* make_cli_array_type */
 

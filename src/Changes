@@ -1,5 +1,27 @@
 Version 4.5
 
+5/14/12  [EDGcpfe/07165,EDGcpfe/07850,EDGcpfe/09701,EDGcpfe/10836,
+          EDGcpfe/11933,EDGcpfe/12786]
+Microsoft compatibility: lookup in dependent base classes
+
+The Microsoft compiler, in some cases, instantiates dependent base classes
+and does name lookup in them.  In the case below, this allows the front
+end to find the class template "A" in the base class instead of finding the
+class in the global scope.  We now emulate this behavior in Microsoft mode.
+
+  struct A {};
+  template <class T> struct B {
+    template <class T> struct A {};
+  };
+  template <class T> struct C : public B<T> {
+    A<int> f();  // now finds B<T>::A instead of ::A
+  };
+  int main() {
+    C<int> c;
+    c.f();
+  }
+
+
 5/13/12  [EDGcpfe/12839]
 Invalid preprocessor token concatenation
 
