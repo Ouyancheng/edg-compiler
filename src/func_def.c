@@ -28,7 +28,6 @@ func_def.c -- Processing for function definitions (both user supplied and
 /* Additional header files. */
 #include "exprutil.h"
 #if DO_IL_LOWERING
-#include "lower_il.h"
 #include "il_walk.h"
 #endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
