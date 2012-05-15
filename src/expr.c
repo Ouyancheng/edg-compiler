@@ -7221,6 +7221,7 @@ the selection, not an operator token for the call.
               expr_pos_error(ec_incomplete_type_not_allowed,
                              &operator_position);
               conv_to_error_operand(result);
+              result_type = result->type;
             }  /* if */
           }  /* if */
           /* There shouldn't be any pointers to members to references. */
