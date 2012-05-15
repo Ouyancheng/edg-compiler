@@ -8590,7 +8590,12 @@ Do IL lowering of the indicated type and everything under it.
         break;
       case tk_integer:
         if (type->variant.integer.enum_type) {
-          if (integer_type_is_scoped_enum(type)) {
+          /* If the enumeration type has an associated list of enumerator
+             constants, lower them. */
+          if (!integer_type_supp(type)->enumerator_list_seen) {
+            /* The enumerator hasn't been defined (e.g., only a C++11-style
+               opaque declaration was seen). */
+          } else if (integer_type_is_scoped_enum(type)) {
             lower_scope(type->variant.integer.enum_info.assoc_scope);
           } else {
             lower_constant_list(type->variant.integer.enum_info.constant_list);
@@ -17955,20 +17960,23 @@ symbols that are not unique).
 
   type = skip_typerefs(type);
   check_assertion(type->variant.integer.is_scoped_enum);
-  assoc_scope = type->variant.integer.enum_info.assoc_scope;
-  for (enum_con = enum_constants(type);
-       enum_con != NULL;
-       enum_con = enum_con->next) {
-    /* Make sure scoped enumerators are mangled before they are lowered to
-       non-scoped enumerators. */
-    mangle_member_constant_name(enum_con);
-    /* Re-parent the enumerators. */
-    enum_con->source_corresp.parent_scope = type->source_corresp.parent_scope;
-  }  /* for */
-  /* Move the entire constant list from assoc_scope to constant_list. */
-  type->variant.integer.enum_info.constant_list = assoc_scope->constants;
-  assoc_scope->variant.assoc_type = NULL;
-  assoc_scope->constants = NULL;
+  if (integer_type_supp(type)->enumerator_list_seen) {
+    assoc_scope = type->variant.integer.enum_info.assoc_scope;
+    for (enum_con = enum_constants(type);
+         enum_con != NULL;
+         enum_con = enum_con->next) {
+      /* Make sure scoped enumerators are mangled before they are lowered to
+         non-scoped enumerators. */
+      mangle_member_constant_name(enum_con);
+      /* Re-parent the enumerators. */
+      enum_con->source_corresp.parent_scope =
+                                            type->source_corresp.parent_scope;
+    }  /* for */
+    /* Move the entire constant list from assoc_scope to constant_list. */
+    type->variant.integer.enum_info.constant_list = assoc_scope->constants;
+    assoc_scope->variant.assoc_type = NULL;
+    assoc_scope->constants = NULL;
+  }  /* if */
   /* Indicate that this is no longer a scoped enum. */
   type->variant.integer.is_scoped_enum = FALSE;
 }  /* lower_scoped_enum_type */
