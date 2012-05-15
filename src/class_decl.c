@@ -17951,7 +17951,7 @@ The routine body is not generated until it is known to be needed.
                                   cli_class_type_for(csk_system_idisposable),
                                   /*instantiate_if_necessary=*/FALSE) != NULL;
       if (!class_is_from_metadata(class_type) &&
-          !class_type->variant.class_struct_union.is_prototype_instantiation) {
+          !class_type->variant.class_struct_union.is_nonreal_class) {
         /* The class was not defined in metadata.  Generate the dispose pattern
            implementation if one is needed. */
         implement_dispose_pattern_if_needed(class_state);
