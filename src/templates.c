@@ -3680,8 +3680,14 @@ be completed here.
       curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                                    pending_class_definitions--;
       end_deferral_of_access_checks();
-      /* Process any pragmas that are to be bound to this instance. */
-      process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
+      if (is_nonreal_instantiation) {
+        /* Discard pragmas on nonreal instantiations (done in Microsoft
+           mode in some cases). */
+        discard_curr_construct_pragmas();
+      } else {
+        /* Process any pragmas that are to be bound to this instance. */
+        process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
+      }  /* if */
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
       /* Update the instantiation sequence number. */
