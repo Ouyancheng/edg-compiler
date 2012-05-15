@@ -6249,7 +6249,7 @@ instantiation, but if the template argument list contains nonreal
 types, or if the template itself is nonreal, a complete nonreal type
 is returned.  instantiate_nonreal is TRUE in Microsoft mode if a nonreal
 class should be instantiated as if it were a real class instead of just
-creating an normal nonreal class.  This is used for nonreal classes used
+creating a normal nonreal class.  This is used for nonreal classes used
 as base classes because the Microsoft compiler does actual name lookup in
 such classes.
 */
@@ -6438,7 +6438,7 @@ such classes.
   if (!tssp->is_generic &&
       class_type->variant.class_struct_union.is_nonreal_class) {
     if (!instantiate_nonreal_class) {
-      /* A Microsoft mode instantiated nonreal classes are not created as
+      /* Microsoft mode instantiated nonreal classes are not created as
          complete types at this point. */
       a_class_symbol_supplement_ptr	cssp;
       cssp = sym->variant.class_struct_union.extra_info;
@@ -6850,7 +6850,7 @@ specific_prototype_allowed is non-NULL then only the specified
 prototype instantiation is considered as a potential match.
 
 instantiate_nonreal is TRUE in Microsoft mode if a nonreal class should be
-instantiated as if it were a real class instead of just creating an normal
+instantiated as if it were a real class instead of just creating a normal
 nonreal class.  This is used for nonreal classes used as base classes
 because the Microsoft compiler does actual name lookup in such classes.
 */
@@ -12158,7 +12158,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
      be cleared by this call. */ 
   if (parent_class == NULL || 
       !parent_class->variant.class_struct_union.is_nonreal_class) {
-    /* Don't create an instantiations required entry for an instance of a
+    /* Don't create an instantiation required entry for an instance of a
        nonreal class.  This can occur when a Microsoft in-class specialization
        occurs in a prototype instantiation and also when a nonreal base class
        is instantiated in Microsoft mode. */
