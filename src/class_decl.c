@@ -9310,6 +9310,7 @@ possibility.
        prototype instantiation scopes, but severe syntax errors can get us
        here nonetheless.  In that case we just skip the friend processing. */
     set_to_named_error_locator(*locator);
+    discard_curr_construct_pragmas();
   }  /* if */
   if (!is_error_locator(*locator)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
