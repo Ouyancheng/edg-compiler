@@ -8969,10 +8969,11 @@ enable_microsoft_mode:
        (except in C mode). */
     char16_t_and_char32_t_are_keywords = TRUE;
   }  /* if */
-  if (nonclass_prototype_instantiations &&
+  if (nonclass_prototype_instantiations && !microsoft_mode &&
       !option_kind_used[(int)optk_implicit_typename]) {
     /* When doing nonclass prototype instantiations, disable implicit typename
-       unless it was explicitly enabled. */
+       unless it was explicitly enabled.  In Microsoft mode implicit typename
+       is still used except in function prototype instantiations. */
     implicit_typename_enabled = FALSE;
   }  /* if */
   /* Set restrict_enabled if any form of the restrict keyword is allowed. */

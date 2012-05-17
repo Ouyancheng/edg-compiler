@@ -1,5 +1,24 @@
 Version 4.5
 
+5/17/12  [EDGcpfe/12932]
+Microsoft compatibility: use "implicit typename" with --parse_templates
+in some contexts
+
+Formerly, the --parse_templates option would always disable "implicit
+typename" processing, which is used to determine from context which
+dependent names are types vs. non-types.  This has been changed so that,
+in Microsoft mode, implicit typename is only disabled within function
+prototype instantiations.
+
+  template <class T> struct B { typedef int X;};
+  template <class T> struct C { static int f();};
+  template <class T> struct A {
+    // The following declaration is now accepted --parse_templates is
+    // used in Microsoft mode.
+    auto f(T) -> decltype(C<B<T>::X>::f());
+  };
+
+
 5/14/12  [EDGcpfe/12830]
 C++/CLI: internal error on generic declared in class template
 
