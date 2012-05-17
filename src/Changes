@@ -232,7 +232,7 @@ In this example:
 
 The type of the "abc" string constant had been array[4] of char before
 version 4.3, and became array[] of char in 4.3.  It's now back to the
-complete array type.
+complete array type.  [Patch sent out 5/17/12 as part of 4.4.1.]
 
 
 5/9/12   [EDGcpfe/12891]
@@ -633,6 +633,7 @@ IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS is TRUE), it was possible for
 the value returned by a destructor to be uninitialized in cases where the
 destructor had multiple "return" statements and the amount of cleanup to
 be performed was different between the "return" statements.  For example:
+[Patch sent out 5/17/12 as part of 4.4.1.]
 
   bool b = true;
   struct A { ~A(); };
@@ -936,7 +937,7 @@ The changes for access checking in SFINAE contexts (see 12/15/11 entry)
 could result in an abort (in have_particular_member_access_privilege)
 when doing SFINAE access checking in the context of determining
 whether a partial specialization matches a given class template
-specialization.  Now fixed.
+specialization.  Now fixed.  [Patch sent out 5/17/12 as part of 4.4.1.]
 
   class B {
     template <class T> struct C { } ; 
@@ -1789,7 +1790,7 @@ Assertion failure with complex macro expansions
 
 The front end could abort with an assertion failure in expand_macro_buffer
 when processing certain complex macro expansions.  This is now fixed.  For
-example:
+example:  [Patch sent out 5/17/12 as part of 4.4.1.]
 
   #define CL_NTOH64(x) (long)( (((long)(x) & 0x00000000000000FFULL) << 56) | \
   (((long)(x) & 0x000000000000FF00ULL) << 40) | (((long)(x) & \
@@ -1960,6 +1961,7 @@ However, in the generated code, because the source had no explicit storage
 class specifier and the linkage specification was ignored, the declaration
 was effectively put out as a definition.  This has now been fixed by adding
 the "extern" storage class specifier in such declarations.  For example:
+[Patch sent out 5/17/12 as part of 4.4.1.]
 
   int i = 5;
   extern "C" int i;   // Previously generated as "int i;", a redefinition;
@@ -2172,7 +2174,7 @@ Access checking in SFINAE contexts
 Version 4.4 implemented access checking in SFINAE contexts (see 12/15/11
 entry).  Access checking of friend function templates was not handled
 properly in SFINAE contexts, resulting in spurious deduction failures.
-Now fixed.
+Now fixed.  [Patch sent out 5/17/12 as part of 4.4.1.]
 
   template <void (*)(int)> struct C {
     typedef int Y;
@@ -2225,6 +2227,7 @@ have MANGLE_ALL_NAMES set to TRUE, the mangling of a __typeof__ or
 decltype expression that contains an unknown template parameter
 had caused an assertion failure in mangled_encoding_for_type.
 This is now fixed.  For example (with --g++ --c++11):
+[Patch sent out 5/17/12 as part of 4.4.1.]
 
   struct A {
     typedef int type;
@@ -2864,6 +2867,7 @@ to be done in g++ mode, but certain parts of the access checking were
 inadvertently enabled in g++ mode even when new style SFINAE was not
 enabled.  This caused the example below to call the f(...) function
 instead of issuing an access error when gnu_version < 30400.  Now fixed.
+[Patch sent out 5/17/12 as part of 4.4.1.]
 
   template <typename A> class S {
     class T {};
@@ -2993,7 +2997,7 @@ allowed from a const array type to a parameter type such as "const T **".
 This caused deduction to succeed in some cases where it should fail.  This
 rendered the example below ambiguous.  Now fixed.  The Microsoft compiler
 also allowed such a conversion, so we continue to do so in Microsoft
-mode.
+mode.  [Patch sent out 5/17/12 as part of 4.4.1.]
 
   template <class T> void f(T**, T **); // #1
   template <class T> void f(T**, const T **); // #2
@@ -3099,6 +3103,7 @@ in C++11 mode (see Changes entry for EDGcpfe/11746) introduced a bug
 when handling the error case this.xxx (the programmer meant to write
 this->xxx instead), which caused an abort in class_qualified_id_lookup.
 The abort occurred only in C++11 mode.  Now fixed.
+[Patch sent out 5/17/12 as part of 4.4.1.]
 
   class A {
     A() {
@@ -3163,6 +3168,7 @@ in comparing cv-qualifiers added on a pointer under a reference to const.
 For example, in this case the front end failed to consider the "const"
 added on the pointer conversion under the reference, and therefore
 incorrectly saw both functions as being equally good:
+[Patch sent out 5/17/12 as part of 4.4.1.]
 
   int f(char *);
   void f(const char * const &);
@@ -3362,7 +3368,7 @@ failure in the C++-generating back end in configurations with
 PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE when a parameter appearing in
 a template template parameter's parameter list is used in a subsequent
 template parameter of the template template parameter.  This is now fixed.
-For example:
+For example:  [Patch sent out 5/17/12 as part of 4.4.1.]
 
   template<template<typename U, U* p> class T>  // Previously aborted
   struct X { };                                 // putting out "U*"
@@ -3528,7 +3534,7 @@ attribute, causing a spurious error to be emitted in such cases.  For example:
   void __attribute__((stdcall)) f() {}  // Triggered an incompatibility error
                                         // in release 4.4.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 5/17/12 as part of 4.4.1.]
 
 
 1/18/12  [EDGcpfe/12214]
@@ -3813,7 +3819,7 @@ expression of a pointer type is converted to a GNU C transparent union
 that contains a member having a more-qualified version of that pointer
 type.  (The change of EDGcpfe/12450 disallowed dropping qualifiers,
 but it also incorrectly disallowed adding qualifiers.)  Now working
-again.
+again.  [Patch sent out 5/17/12 as part of 4.4.1.]
 
   typedef union {
     const int *x;
@@ -3925,7 +3931,7 @@ Assertion failure in complex macro expansion
 The change for EDGcpfe/11932 (which was included in version 4.4) caused an
 abort when processing some complex macro expansions.  This is now fixed.
 For example, the front end aborted with an assertion failure when compiling
-the following in Microsoft mode:
+the following in Microsoft mode:  [Patch sent out 5/17/12 as part of 4.4.1.]
 
   #define CAT(a, b) CAT_OO((a, b))
   #define CAT_OO(par) CAT_I ## par
@@ -4110,7 +4116,7 @@ Spurious warning for number of characters in a wide character literal
 The change for EDGcpfe/12252,EDGcpfe/12405 below resulted in a spurious
 warning "too many characters in character constant" for wide-character
 literals when multibyte characters are enabled.  This is now fixed.  For
-example,
+example,  [Patch sent out 5/17/12 as part of 4.4.1.]
 
   wchar_t c = L'x';   // Previously warned of too many characters
 
@@ -4138,7 +4144,7 @@ actual template instances; instead, in configurations in which
 PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the C++-generating back end
 sometimes put out the definition of a member of a class template with an
 argument list that omitted arguments for parameters with default arguments.
-This is now fixed.  For example:
+This is now fixed.  For example:  [Patch sent out 5/17/12 as part of 4.4.1.]
 
   template<typename T, typename U=int> class A {
     static int m;
@@ -4252,6 +4258,7 @@ PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the code generated by the
 C++-generating back end referred to a template parameter using the name
 from the definition of the class template instead of the one from the
 member definition.  This is now fixed.  For example:
+[Patch sent out 5/17/12 as part of 4.4.1.]
 
   template<typename T> struct S {
     static T t;
