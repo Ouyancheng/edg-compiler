@@ -18,7 +18,7 @@ construct instead of the temporary name.  For example:
   template <class T> void f(T x) {
     typedef __typeof__(g(x)) type;
     A<type>::sm;    // Previously generated as "A<__T12345678>", now as
-                    // "A<__typeof__(g(x))"
+                    // "A<__typeof__(g(x))>"
   }
 
 
