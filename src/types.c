@@ -12984,6 +12984,13 @@ to the caller.  If no modification is done return the original type.
   while (type->kind == (a_type_kind)tk_typeref) {
     a_boolean  is_nonreal = FALSE;
     a_boolean  is_local;
+    /* Don't strip dependent decltype or typeof operators.  We need to
+       check the underlying type because these operators could be
+       instantiation-dependent without being type-dependent. */
+    if (type->variant.typeref.is_dependent_type_operator &&
+        is_template_dependent_type(type->variant.typeref.type)) {
+      break;
+    }  /* if */
     /* See if the type is local to a function. */
     is_local = type->source_corresp.is_local_to_function;
     /* Check for a nonreal template alias. */

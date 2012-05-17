@@ -1,5 +1,27 @@
 Version 4.5
 
+5/17/12  [EDGcpfe/12924]
+C++-generating back end, GNU compatibility: dependent __typeof__ as template
+argument
+
+In configurations in which PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the
+C++-generating back end used an undeclared temporary type name (i.e., a
+name of the form __T12345678) in place of a template argument that is a
+type given by a __typeof__ construct (a GNU extension) referring to a
+dependent type.  This is now fixed and uses the original __typeof__
+construct instead of the temporary name.  For example:
+
+  template <class T> struct A {
+    static const int sm = 0;
+  };
+  template <class T> void g(const T&);
+  template <class T> void f(T x) {
+    typedef __typeof__(g(x)) type;
+    A<type>::sm;    // Previously generated as "A<__T12345678>", now as
+                    // "A<__typeof__(g(x))"
+  }
+
+
 5/17/12  [EDGcpfe/12934]
 Incorrect conditional code in strip_local_and_nonreal_typedefs
 
