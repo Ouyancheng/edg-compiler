@@ -1491,6 +1491,23 @@ description block.
 }  /* mark_operand_as_pack_expansion */
 
 
+static void mark_arg_list_elem_as_pack_expansion(
+                                             an_arg_list_elem_ptr       alep,
+                                             a_pack_expansion_descr_ptr pedep)
+/*
+alep is an argument list element that is a variadic template pack expansion
+scanned in a prototype instantiation.  Mark it as such.  pedep points to the
+pack expansion description block.
+*/
+{
+  check_assertion(pedep != NULL);
+  alep->pack_expansion_descr = pedep;
+  if (is_expression_component(alep)) {
+    mark_operand_as_pack_expansion(operand_of_arg_list_elem(alep), pedep);
+  }  /* if */
+}  /* mark_arg_list_elem_as_pack_expansion */
+
+
 static an_arg_list_elem_ptr scan_expr_list(a_token_kind closing_token,
                                            a_boolean    is_delegate_init,
                                            a_boolean    empty_list_okay,
@@ -1507,7 +1524,6 @@ list is returned.
 */
 {
   a_boolean            after_cached_expr = FALSE;
-  an_operand_ptr       operand;
   an_arg_list_elem_ptr alep;
   an_arg_list_elem_ptr expr_list = NULL, end_expr_list = NULL;
   a_local_expr_options_set
@@ -1517,8 +1533,7 @@ list is returned.
   /* Pick up any cached expressions first. */
   while (cached_expression_present()) {
     alep = alloc_init_component((an_init_component_kind)ick_expression);
-    operand = operand_of_arg_list_elem(alep);
-    scan_expr(operand, PREC_LOWEST, options);
+    scan_expr(operand_of_arg_list_elem(alep), PREC_LOWEST, options);
     if (expr_list == NULL) {
       expr_list = alep;
     } else {
@@ -1555,12 +1570,26 @@ list is returned.
          scan_expression_list_context_expr. */
       any_more = begin_potential_pack_expansion_context(&pesep);
       while (any_more) {
-        /* Add an entry to the list. */
+        /* Scan another element for the list. */
         a_pack_expansion_descr_ptr pedep;
-        alep = alloc_init_component((an_init_component_kind)ick_expression);
-        operand = operand_of_arg_list_elem(alep);
-        /* Scan an argument expression. */
-        scan_expr(operand, PREC_LOWEST, options);
+        if (curr_token == tok_lbrace && list_init_enabled) {
+          /* A brace-enclosed list. */
+          alep = alloc_init_component((an_init_component_kind)ick_braced);
+          alep->variant.braced.start_pos = pos_curr_token;
+          (void)get_token();
+          alep->variant.braced.list = scan_expr_list(
+                                                tok_rbrace,
+                                                /*is_delegate_init=*/FALSE,
+                                                /*empty_list_okay=*/TRUE,
+                                                /*trailing_comma_okay=*/FALSE);
+          alep->variant.braced.end_pos = pos_curr_token;
+          (void)required_token(tok_rbrace, ec_exp_rbrace);
+        } else {
+          /* An expression. */
+          alep = alloc_init_component((an_init_component_kind)ick_expression);
+          scan_expr(operand_of_arg_list_elem(alep), PREC_LOWEST, options);
+        }  /* if */
+        /* Add the expression or braced-init-list to the list. */
         if (expr_list == NULL) {
           expr_list = alep;
         } else {
@@ -1572,11 +1601,11 @@ list is returned.
         pedep = end_potential_pack_expansion_context(pesep,
                                                      /*is_declarator=*/FALSE);
         if (pedep != NULL) {
-          /* This expression is a variadic template pack expansion, i.e.,
+          /* This element is a variadic template pack expansion, i.e.,
              it's followed by "...".  Furthermore, we're in the prototype
              instantiation, so we record the expansion information on the
-             expression. */
-          mark_operand_as_pack_expansion(operand, pedep);
+             element. */
+          mark_arg_list_elem_as_pack_expansion(alep, pedep);
         }  /* if */
         any_more = advance_to_next_pack_element(pesep);
       }  /* while */
@@ -28264,6 +28293,7 @@ stack already set.
   an_init_component_ptr icp =
                       alloc_init_component((an_init_component_kind)ick_braced);
 
+  /* Note that the code here is very similar to scan_expr_list. */
   /* Advance past the opening brace. */
   check_assertion(curr_token == tok_lbrace);
   icp->variant.braced.start_pos = pos_curr_token;
@@ -28274,33 +28304,27 @@ stack already set.
     /* Loop to scan a list of expressions or brace-enclosed lists. */
     an_init_component_ptr elem_icp, end_icp = NULL;
     do {
+      a_pack_expansion_stack_entry_ptr pesep;
+      a_boolean                        any_more;
       if (end_icp != NULL && curr_token == tok_rbrace) {
         /* The syntax allows an extra comma at the end of the list.
-           The end-icp test disallows that on the first iteration. */
+           The end_icp test disallows that on the first iteration. */
         break;
       }  /* if */
-      if (curr_token == tok_lbrace) {
-        /* A nested brace-enclosed list. */
-        elem_icp = scan_braced_init_list_internal(is_full_expr, dps);
-        /* Add the entry to the end of the list. */
-        if (end_icp == NULL) {
-          icp->variant.braced.list = elem_icp;
+      /* An element of the list might be a pack expansion in some modes
+         and contexts. */
+      any_more = begin_potential_pack_expansion_context(&pesep);
+      while (any_more) {
+        a_pack_expansion_descr_ptr pedep;
+        if (curr_token == tok_lbrace) {
+          /* A nested brace-enclosed list. */
+          elem_icp = scan_braced_init_list_internal(is_full_expr, dps);
         } else {
-          end_icp->next = elem_icp;
-        }  /* if */
-        end_icp = elem_icp;
-      } else {
-        /* An expression.  It might be a pack expansion in some modes
-           and contexts. */
-        a_pack_expansion_stack_entry_ptr pesep;
-        a_boolean                        any_more;
-        any_more = begin_potential_pack_expansion_context(&pesep);
-        while (any_more) {
-          an_arg_operand             *arg_op;
-          a_pack_expansion_descr_ptr pedep;
-          an_object_lifetime_ptr     wrap_lifetime = NULL;
-          an_object_lifetime_ptr     saved_stack_lifetime = NULL;
-          an_object_lifetime_ptr     saved_curr_lifetime = NULL;
+          /* An expression. */
+          an_arg_operand         *arg_op;
+          an_object_lifetime_ptr wrap_lifetime = NULL;
+          an_object_lifetime_ptr saved_stack_lifetime = NULL;
+          an_object_lifetime_ptr saved_curr_lifetime = NULL;
   
           /* If the initializer is considered a full-expression, we put
              an object lifetime around each scanned expression.  Later, when
@@ -28339,27 +28363,27 @@ stack already set.
             curr_object_lifetime = saved_curr_lifetime;
             expr_stack->lifetime = saved_stack_lifetime;
           }  /* if */
-          /* Add the entry to the end of the list. */
-          if (end_icp == NULL) {
-            icp->variant.braced.list = elem_icp;
-          } else {
-            end_icp->next = elem_icp;
-          }  /* if */
-          end_icp = elem_icp;
-          /* If this is a pack expansion, swallow the trailing "..." and
-             loop for the next iteration of the expansion. */
-          pedep = end_potential_pack_expansion_context(pesep,
-                                                      /*is_declarator=*/FALSE);
-          if (pedep != NULL) {
-            /* This expression is a variadic template pack expansion, i.e.,
-               it's followed by "...".  Furthermore, we're in the prototype
-               instantiation, so we record the expansion information on the
-               expression. */
-            mark_operand_as_pack_expansion(&arg_op->operand, pedep);
-          }  /* if */
-          any_more = advance_to_next_pack_element(pesep);
-        }  /* while */
-      }  /* if */
+        }  /* if */
+        /* Add the entry to the end of the list. */
+        if (end_icp == NULL) {
+          icp->variant.braced.list = elem_icp;
+        } else {
+          end_icp->next = elem_icp;
+        }  /* if */
+        end_icp = elem_icp;
+        /* If this is a pack expansion, swallow the trailing "..." and
+           loop for the next iteration of the expansion. */
+        pedep = end_potential_pack_expansion_context(pesep,
+                                                     /*is_declarator=*/FALSE);
+        if (pedep != NULL) {
+          /* This element is a variadic template pack expansion, i.e.,
+             it's followed by "...".  Furthermore, we're in the prototype
+             instantiation, so we record the expansion information on the
+             element. */
+          mark_arg_list_elem_as_pack_expansion(elem_icp, pedep);
+        }  /* if */
+        any_more = advance_to_next_pack_element(pesep);
+      }  /* while */
     } while (loop_token(tok_comma));
   }  /* if */
   /* Check for and advance past the closing "}". */

@@ -104,10 +104,16 @@ typedef struct an_init_component {
   an_init_component_kind
 		kind;	/* The kind of initializer value (e.g., brace-enclosed
 			   list). */
-  a_bit_field
-		lifetimes_promoted:1;
+  a_bit_field	lifetimes_promoted:1;
 			/* Set to TRUE if promote_lifetimes_in_init_component
 			   has been called on this entry. */
+  a_pack_expansion_descr_ptr
+		pack_expansion_descr;
+			/* If non-NULL, this entity is a pack expansion
+			   (it is followed by "...", as in "T()..."), and this
+			   points to the expansion description.  For an
+			   ick_expression, the same pointer is also stored in
+			   the operand pack_expansion_descr field. */
   union {
     /* When kind == ick_expression: */
     struct an_arg_operand

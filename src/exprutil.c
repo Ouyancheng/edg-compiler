@@ -714,6 +714,7 @@ kind to "kind" and its fields to default values, and return a pointer to it.
   }  /* if */
   icp->next = NULL;
   icp->lifetimes_promoted = FALSE;
+  icp->pack_expansion_descr = NULL;
   set_init_component_kind(icp, kind);
   return icp;
 }  /* alloc_init_component */
@@ -846,11 +847,7 @@ If the given initialization component is a pack expansion, return TRUE.
 Otherwise, return FALSE.
 */
 {
-  a_boolean  result = FALSE;
-
-  if (is_expression_component(icp)) {
-    result = operand_of_arg_list_elem(icp)->pack_expansion_descr != NULL;
-  }  /* if */
+  a_boolean result = (icp->pack_expansion_descr != NULL);
   return result;
 }  /* is_pack_expansion_component */
 
@@ -884,6 +881,9 @@ Display an init component for debugging purposes.
       (void)fprintf(f_debug, "Bad init component kind\n");
       break;
   }  /* switch */
+  if (icp->pack_expansion_descr != NULL) {
+    (void)fprintf(f_debug, "...\n");
+  }  /* if */
 }  /* db_init_component */
 
 #endif /* DEBUG */

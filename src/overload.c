@@ -7894,7 +7894,7 @@ and return NULL.  This routine is called only in C++ mode.
         dependent_call = TRUE;
         break;
       } else if (is_variadic_template_context() &&
-                 (arg->pack_expansion_descr != NULL ||
+                 (arg_list_elem->pack_expansion_descr != NULL ||
                   ((expr = expr_node_from_operand(arg)) != NULL &&
                    expr->is_pack_expansion))) {
         /* If the argument list contains a pack expansion, treat the call
@@ -10712,7 +10712,7 @@ next parameter.
     /* We've previously encountered a parameter pack or a pack expansion, so
        we can't correlate parameters and arguments. */
     do_default_promotion = FALSE;
-  } else if (operand->pack_expansion_descr != NULL ||
+  } else if (arg_list_elem->pack_expansion_descr != NULL ||
              (ptp != NULL && ptp->is_parameter_pack)) {
     /* The current argument is a pack expansion, or the current parameter is
        a parameter pack, so we can no longer correlate parameters and
