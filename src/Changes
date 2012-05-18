@@ -1,5 +1,27 @@
 Version 4.5
 
+5/18/12  [EDGcpfe/12925]
+GNU C++ compatibility: dependent lookup ignores certain later declarations
+
+In g++ mode when gnu_version >= 30400, the front end emulates the g++
+behavior of considering declarations that follow the definition of a
+template when resolving dependent calls.  The g++ behavior changed in
+g++ version 4.1 to only consider later declarations if there were no
+declarations that preceded the template definition.  We now emulate the
+new behavior when gnu_version >= 40100.
+
+  template <class T> void f(T, int) { }
+  namespace N {
+    template <class T> void g(T t) {
+        f(t, 0);  // Formerly found N::f, now finds ::f
+    }
+    template <class T> void f(T) { }
+  }
+  int main() {
+    N::g(1);
+  }
+
+
 5/17/12  [EDGcpfe/12924]
 C++-generating back end, GNU compatibility: dependent __typeof__ as template
 argument

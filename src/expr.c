@@ -25015,12 +25015,16 @@ if rescan_is_template_id is TRUE, and return the result in *operand
             sym_ptr = fundamental_symbol_of(locator.specific_symbol);
           }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-        } else if (gpp_mode && gnu_version >= 30400) {
+        } else if (gpp_mode && gnu_version >= 30400 &&
+                   (gnu_version < 40100 || sym_ptr == NULL)) {
           a_symbol_ptr	new_sym;
           /* This is a dependent call in a real (not prototype) instantiation.
              g++ 3.4 has a bug with dependent name lookup -- it does not
              ignore entities declared later in the compilation.  Redo the
-             lookup, suppressing that part of the processing. */
+             lookup, suppressing that part of the processing.  Starting
+             with g++ 4.1, entities declared later are only considered if
+             the lookup of things earlier in the compilation did not produce
+             a result. */
           clear_specific_symbol(locator);
           new_sym = normal_id_lookup(&locator,
                                      IDL_IS_EXPR_CONTEXT |
