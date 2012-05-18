@@ -4158,7 +4158,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                                       (a_scope_kind)sck_class_struct_union)) {
     /* Pragma processing may run into invalid scopes.  So discard them. */
     discard_curr_construct_pragmas();
-  } else if (class_type->variant.class_struct_union.is_nonreal_class &&
+  } else if (is_immediate_class_type(class_type) &&
+             class_type->variant.class_struct_union.is_nonreal_class &&
              !prototype_instantiations_in_il &&
              depth_innermost_function_scope == NO_SCOPE_DEPTH) {
     /* A pragma applied to a nonreal class.  This can result from Microsoft
