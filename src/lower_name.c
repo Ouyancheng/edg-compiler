@@ -4098,9 +4098,7 @@ explicitly dealt with later in expression mangling.
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
-      if (!dip->is_explicit_cast && !dip->is_compound_literal &&
-          !(dip->kind == (a_dynamic_init_kind)dik_constructor &&
-            dip->variant.constructor.ptr == NULL)) {
+      if (!dip->is_explicit_cast && !dip->is_compound_literal) {
         /* Remove implicit operations. */
         expr = arg_list_from_dyn_init(dip);
       }  /* if */
@@ -5679,21 +5677,20 @@ is TRUE.
         add_to_mangled_name('0', mctl);
 #endif /* IA64_ABI */
       } else {
-        a_dynamic_init_ptr dip = expr->variant.throw_info->dynamic_init;
 #if IA64_ABI
         add_str_to_mangled_name("tw", mctl);
 #else /* !IA64_ABI */
         add_to_mangled_name('1', mctl);
 #endif /* !IA64_ABI */
-        check_assertion(dip != NULL);
-        if (dip->is_explicit_cast) {
-          mangled_dynamic_init(dip, expr->variant.throw_info->type,
+        check_assertion(expr->variant.throw_info->dynamic_init != NULL);
+        if (expr->variant.throw_info->dynamic_init->is_explicit_cast) {
+          mangled_dynamic_init(expr->variant.throw_info->dynamic_init,
+                               expr->variant.throw_info->type,
                                /*is_static_cast=*/FALSE, mctl);
         } else {
-          check_assertion(dip->kind != (a_dynamic_init_kind)dik_constructor ||
-                          dip->variant.constructor.ptr != NULL);
-          mangled_encoding_for_expression(arg_list_from_dyn_init(dip),
-                                          /*in_dependent_expr=*/TRUE, mctl);
+          mangled_encoding_for_expression(arg_list_from_dyn_init(
+                                       expr->variant.throw_info->dynamic_init),
+                                       /*in_dependent_expr=*/TRUE, mctl);
         }  /* if */
       }  /* if */
 #if !IA64_ABI
@@ -5709,18 +5706,8 @@ is TRUE.
          the mangled name. */
       {
         a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
-        check_assertion(dip != NULL);
-        if (dip->is_explicit_cast) {
-          mangled_dynamic_init(dip, expr->type, expr->is_static_cast, mctl);
-        } else if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
-                   dip->variant.constructor.ptr == NULL) {
-          /* This is a constructor call whose constructor is unknown
-             (i.e., for an entity with template-dependent types in prototype
-             instantiations), but it's not an explicit cast either. */
-          add_to_mangled_name('?', mctl);
-        } else {
-          unexpected_condition();
-        }  /* if */
+        check_assertion(dip != NULL && dip->is_explicit_cast);
+        mangled_dynamic_init(dip, expr->type, expr->is_static_cast, mctl);
       }
       break;
 #if VLA_DEALLOCATIONS_IN_IL
