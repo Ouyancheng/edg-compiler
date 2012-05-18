@@ -2677,6 +2677,11 @@ handling).
     uliterals_enabled = value;
   }  /* if */
   range_based_for_enabled = value;
+  if (!option_kind_used[(int)optk_friend_injection] && value) {
+    /* Disable friend injection in C++11 mode. */
+    friend_class_injection_enabled = FALSE;
+    friend_function_injection_enabled = FALSE;
+  }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 
 

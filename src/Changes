@@ -1,5 +1,24 @@
 Version 4.5
 
+5/18/12  [EDGcpfe/12930]
+C++11: Friend injection disabled in C++11 mode
+
+Friend injection is now disabled in default C++11 mode (formerly it was
+only disabled in strict C++ modes).  As before, it is enabled or disabled
+as appropriate in Microsoft and g++ modes.  The default in other modes
+continues to be provided by the DEFAULT_FRIEND_INJECTION macro, which
+is TRUE by default.
+
+  class A {
+    friend void f(int);
+  };
+  void f(long){}
+  int main() {
+    f(1);  // calls f(int) with injection, f(long) without
+  }
+
+
+
 5/18/12  [EDGcpfe/12925]
 GNU C++ compatibility: dependent lookup ignores certain later declarations
 
