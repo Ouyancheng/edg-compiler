@@ -25,7 +25,7 @@ construct instead of the temporary name.  For example:
 5/17/12  [EDGcpfe/12934]
 Incorrect conditional code in strip_local_and_nonreal_typedefs
 
-Some code in strip_local_and_nonreal_typedefs was condition on
+Some code in strip_local_and_nonreal_typedefs was conditional on
 GNU_EXTENSIONS_ALLOWED but should not have been.  This could cause
 certain uses of decltype to be handled improperly in front ends built
 without GNU_EXTENSIONS_ALLOWED.  Now fixed.
