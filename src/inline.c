@@ -493,16 +493,19 @@ finish_variable_remapping_for_inlining.
                save the first operand of the comma to be executed before the
                call (if necessary). */
             vrip->kind = vrk_constant_expr;
-            vrip->arg_expr = comma_node->variant.operation.operands;
+            vrip->arg_expr = copy_expr_tree(
+                                       comma_node->variant.operation.operands,
+                                       CE_NO_OPTIONS);
             if (prev_node != NULL) {
-              prev_node->variant.operation.operands =
-                                  comma_node->variant.operation.operands->next;
+              prev_node->variant.operation.operands = copy_expr_tree(
+                                  comma_node->variant.operation.operands->next,
+                                  CE_NO_OPTIONS);
               vrip->variant.expr = arg;
             } else {
-              vrip->variant.expr =
-                                  comma_node->variant.operation.operands->next;
+              vrip->variant.expr = copy_expr_tree(
+                                  comma_node->variant.operation.operands->next,
+                                  CE_NO_OPTIONS);
             }  /* if */
-            comma_node->variant.operation.operands->next = NULL;
             if (node_has_side_effects(vrip->arg_expr, (a_boolean *)NULL)) {
               vrip->evaluate_arg_for_side_effects = TRUE;
             }  /* if */
