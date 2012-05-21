@@ -14429,6 +14429,7 @@ expression, and return the result in *result (or an error indication in
   a_boolean         delete_ambiguous = FALSE;
   a_boolean         needs_initialization;
   a_boolean         zero_initialization, has_new_initializer = FALSE;
+  a_boolean         has_braced_initializer = FALSE;
   an_expr_node_ptr  arg_expr_list, init_val_node;
   a_constant        sizeof_constant;
   an_arg_list_elem_ptr
@@ -14451,7 +14452,7 @@ expression, and return the result in *result (or an error indication in
   a_boolean         force_dependent = FALSE;
   a_boolean         new_type_involves_auto = FALSE;
   a_boolean         using_expr_cache = FALSE;
-  a_boolean         empty_parens;
+  a_boolean         empty_initializer;
   a_boolean         trapped_left_paren = FALSE;
   a_new_delete_supplement_ptr
                     rescan_ndsp = NULL;
@@ -14758,6 +14759,18 @@ expression, and return the result in *result (or an error indication in
           new_type_involves_auto = FALSE;
         }  /* if */
       }  /* if */
+    } else if (list_init_enabled && curr_token == tok_lbrace) {
+      /* A C++11-style list initializer, e.g., new A{x, y}. */
+      if (new_type_involves_auto) {
+        /* A braced initializer cannot be used with "auto". */
+        expr_pos_error(ec_auto_new_with_braced_init, &type_position);
+        new_type = error_type();
+        new_type_involves_auto = FALSE;
+      }  /* if */
+      has_new_initializer = TRUE;
+      has_braced_initializer = TRUE;
+      /* Don't advance past the "{", because the scan routine expects to
+         still see it as the current token. */
     } else if (new_type_involves_auto) {
       /* An auto type specifier not followed by a new-initializer or a
          trailing return type is an error. */
@@ -14795,6 +14808,12 @@ expression, and return the result in *result (or an error indication in
     /* Note that we set this even if is_gcnew is false, for better error
        recovery. */
     cli_array_new = TRUE;
+    if (has_braced_initializer) {
+      /* We thought we had a braced initializer, but in this case it's the
+         array initializer after an omitted new-initializer. */
+      has_braced_initializer = FALSE;
+      has_new_initializer = FALSE;
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_array_type(new_type)) {
@@ -15134,12 +15153,16 @@ expression, and return the result in *result (or an error indication in
          the initial value. */
     }  /* if */
   }  /* if */
-  /* Determine whether the initializer is an empty set of parentheses, "()". */
-  empty_parens = (has_new_initializer &&
-                  !cached_expression_present() &&
-                  ((rcblock != NULL) ?
-                     (rcblock->argument_list == NULL) :
-                     (curr_token == tok_rparen)));
+  /* Determine whether the initializer is an empty set of parentheses, "()"
+     (or, if list initializers are allowed, an empty set of braces; in that
+      case the current token is still the opening brace). */
+  empty_initializer = (has_new_initializer &&
+                       !cached_expression_present() &&
+                       ((rcblock != NULL) ?
+                          (rcblock->argument_list == NULL) :
+                          (has_braced_initializer ?
+                             next_token() == tok_rbrace :
+                             curr_token == tok_rparen)));
   /* Set ctor_sym non-NULL if the type is a class that has a constructor
      or an array with elements of such a class. */
   ctor_sym = NULL;
@@ -15207,9 +15230,9 @@ expression, and return the result in *result (or an error indication in
            suppress this if the constructor that will be chosen is
            a trivial default constructor (a trivial copy constructor is
            okay; we can generate the body for that and call it). */
-        a_boolean value_init = (empty_parens &&
+        a_boolean value_init = (empty_initializer &&
                                 value_initialization_enabled);
-        a_boolean trivial_ctor_init = ((empty_parens ||
+        a_boolean trivial_ctor_init = ((empty_initializer ||
                                         !has_new_initializer) &&
                                        !value_init &&
                                        has_trivial_default_constructor(cssp));
@@ -15388,11 +15411,38 @@ expression, and return the result in *result (or an error indication in
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+  } else if (has_braced_initializer) {
+    /* A C++11-style list initializer, e.g., new T{x, y}. */
+    a_conv_context_set   conv_context = CCO_DIRECT_INITIALIZATION;
+    an_init_state        init_state;
+    an_arg_list_elem_ptr alep;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    check_assertion(!cli_array_new);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    alep = scan_braced_init_list_internal(/*is_full_expr=*/FALSE,
+                                          (a_decl_parse_state *)NULL);
+    clear_init_state(&init_state);
+    prep_list_initializer(alep, new_type, /*check_narrowing=*/TRUE,
+                          conv_context, /*fill_in_dtor=*/FALSE,
+                          (an_operand *)NULL, &init_state);
+    if (init_state.init_error) {
+      err = TRUE;
+    } else {
+      needs_initialization = TRUE;
+      if (init_state.init_dip != NULL) {
+        dip = init_state.init_dip;
+      } else {
+        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+        dip->variant.constant = init_state.init_con;
+        dip->is_braced_initializer = TRUE;
+      }  /* if */
+    }  /* if */
+    free_init_component_list(alep);
   } else {
-    /* A new-initializer is present. */
+    /* A parenthesized new-initializer is present. */
     /* No need to add tok_rparen to the stop tokens set: it's done by
        scan_ctor_arguments or scan_parenthesized_initializer_expression. */
-    if (array_new && !empty_parens) {
+    if (array_new && !empty_initializer) {
       /* No initializer except "()" may be specified for an array type. */
       expr_pos_error(ec_initializer_not_allowed_on_array_new,
                      rcblock != NULL ? &init_position : &pos_curr_token);
@@ -15427,7 +15477,7 @@ expression, and return the result in *result (or an error indication in
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    } else if (empty_parens &&
+    } else if (empty_initializer &&
                ((cppcli_enabled &&
                  is_value_class_type(base_new_type)) ||
                 (is_gcnew &&
@@ -15542,7 +15592,7 @@ expression, and return the result in *result (or an error indication in
       err = TRUE;
     } else {
       /* Not a class with a constructor. */
-      if (!empty_parens) {
+      if (!empty_initializer) {
         a_boolean expr_not_present;
         /* The new-initializer is not empty.  Scan it. */
         /* Develop the dynamic init entry, if any, used to free storage
@@ -15560,7 +15610,7 @@ expression, and return the result in *result (or an error indication in
           /* There was an expression, but it is a pack expansion that expanded
              to zero expressions.  Go handle the new-initializer as if it
              were "()". */
-          empty_parens = TRUE;
+          empty_initializer = TRUE;
           goto handle_empty_parens_new_initializer;
         }  /* if */
         warn_about_missing_delete_if(node_has_side_effects(init_val_node,
@@ -15834,7 +15884,8 @@ handle_empty_parens_new_initializer:
          used. */
       if (dip != NULL) {
         /* The dynamic initialization has already been determined above. */
-        if (array_new && dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        if (array_new && !has_braced_initializer &&
+            dip->kind == (a_dynamic_init_kind)dik_constructor) {
           /* The entity is an array whose elements have a class type that
              has a default constructor.  Use a dik_nonconstant_aggregate
              initialization. */
