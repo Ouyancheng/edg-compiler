@@ -3232,7 +3232,11 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_inf:
       case bfk_infl:
       case bfk_isnan:
+      case bfk_isnanf:
+      case bfk_isnanl:
       case bfk_isinf:
+      case bfk_isinff:
+      case bfk_isinfl:
       case bfk_isfinite:
       case bfk_isnormal:
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
@@ -3544,7 +3548,11 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
           break;
 #if TARG_HAS_IEEE_FLOATING_POINT
         case bfk_isnan:
+        case bfk_isnanf:
+        case bfk_isnanl:
         case bfk_isinf:
+        case bfk_isinff:
+        case bfk_isinfl:
         case bfk_isfinite:
         case bfk_isnormal:
           /* Unlike some other functions handled here, __builtin_isnan and

@@ -10600,7 +10600,11 @@ enum a_builtin_function_kind_tag {
   bfk_bswap32,                  /* __builtin_bswap32 */
   bfk_bswap64,                  /* __builtin_bswap64 */
   bfk_isnan,			/* __builtin_isnan */
+  bfk_isnanf,			/* __builtin_isnanf */
+  bfk_isnanl,			/* __builtin_isnanl */
   bfk_isinf,			/* __builtin_isinf */
+  bfk_isinff,			/* __builtin_isinff */
+  bfk_isinfl,			/* __builtin_isinfl */
   bfk_isfinite,			/* __builtin_isfinite */
   bfk_isnormal,			/* __builtin_isnormal */
   bfk_fpclassify,		/* __builtin_fpclassify */
@@ -11881,7 +11885,11 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_bswap32 */                  "__builtin_bswap32",
   /* bfk_bswap64 */                  "__builtin_bswap64",
   /* bfk_isnan */		     "__builtin_isnan",
+  /* bfk_isnanf */		     "__builtin_isnanf",
+  /* bfk_isnanl */		     "__builtin_isnanl",
   /* bfk_isinf */		     "__builtin_isinf",
+  /* bfk_isinff */		     "__builtin_isinff",
+  /* bfk_isinfl */		     "__builtin_isinfl",
   /* bfk_isfinite */		     "__builtin_isfinite",
   /* bfk_isnormal */		     "__builtin_isnormal",
   /* bfk_fpclassify */		     "__builtin_fpclassify",

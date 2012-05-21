@@ -1928,7 +1928,11 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func1(_bswap64, u8, u8);
 #if TARG_HAS_IEEE_FLOATING_POINT
   enter_gnu_builtin_vararg_func0(_isnan, int);
+  enter_gnu_builtin_vararg_func0(_isnanf, int);
+  enter_gnu_builtin_vararg_func0(_isnanl, int);
   enter_gnu_builtin_vararg_func0(_isinf, int);
+  enter_gnu_builtin_vararg_func0(_isinff, int);
+  enter_gnu_builtin_vararg_func0(_isinfl, int);
   enter_gnu_builtin_vararg_func0(_isfinite, int);
   enter_gnu_builtin_vararg_func0(_isnormal, int);
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */

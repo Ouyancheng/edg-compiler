@@ -1,5 +1,14 @@
 Version 4.5
 
+5/21/12  [EDGcpfe/12928]
+GNU compatibility: __builtin_isnan and __builtin_isinf variants
+
+In GNU C and C++ modes, the front end now pre-declares built-in functions
+__builtin_isnanf, __builtin_isnanl, __builtin_isinff and __builtin_isinfl.
+(This requires a configuration with TARG_HAS_IEEE_FLOATING_POINT.  See also
+the entry for EDGcpfe/9876.)
+
+
 5/21/12  [EDGcpfe/12921]
 C++/CLI: Access specifiers in nontrivial property/event definitions
 

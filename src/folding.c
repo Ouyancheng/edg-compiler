@@ -7528,10 +7528,14 @@ Otherwise, return FALSE.
     a_host_large_unsigned  result;
     switch (rp->variant.builtin_function_kind) {
       case bfk_isnan:
+      case bfk_isnanf:
+      case bfk_isnanl:
         result = fp_is_nan(&cp->variant.float_value,
                            cp->type->variant.float_kind);
         break;
       case bfk_isinf:
+      case bfk_isinff:
+      case bfk_isinfl:
         result = fp_is_infinity(&cp->variant.float_value,
                                 cp->type->variant.float_kind);
         break;
