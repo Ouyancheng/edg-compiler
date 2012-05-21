@@ -21241,7 +21241,8 @@ innermost class being defined.
        class_state to indicate we're no longer in a property or event
        definition.  Also check that any required accessor functions have been
        declared. */
-    a_symbol_locator  *pe_loc = class_state->pe_loc;
+    a_symbol_locator         *pe_loc = class_state->pe_loc;
+    a_source_correspondence  *scp;
     check_assertion_or_expect_error(curr_token == tok_rbrace);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     pedp->definition_range.end = end_pos_curr_token;
@@ -21268,6 +21269,12 @@ innermost class being defined.
     }  /* if */
     (void)get_token();
     class_state->property_or_event_descr = NULL;
+    /* Restore access to that in effect when the property or event declaration
+       started (it might have changed inside the braces). */
+    scp = pedp->is_static ? &pedp->variant.variable->source_corresp
+                          : &pedp->variant.field->source_corresp;
+    class_state->access = scp->access;
+    class_state->assembly_access = scp->assembly_access;
   }  /* if */
 }  /* check_cli_accessor_decl */
 

@@ -1,5 +1,23 @@
 Version 4.5
 
+5/21/12  [EDGcpfe/12921]
+C++/CLI: Access specifiers in nontrivial property/event definitions
+
+Previously, access specifiers in nontrivial C++/CLI property/event definitions
+took effect until the next access specifier or the end of the class definition
+(whichever came first).  Now, such access specifiers are limited to the
+property/event definition itself.  For example:
+
+  ref struct RS {
+    property int p {
+      int get() { return 1; }
+    private:
+      void set(int) {}
+    }
+    int i;  // Previously i was private; now it is public.
+  };
+
+
 5/19/12  [EDGcpfe/12936]
 Elimination of certain temporaries during inlining
 
