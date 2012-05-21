@@ -612,6 +612,16 @@ extern void debug_exit(void);
 #define EXPENSIVE_CHECKING FALSE
 #endif /* ifndef EXPENSIVE_CHECKING */
 
+#ifndef ABORT_ON_INIT_COMPONENT_LEAKAGE
+/* Abort if not all init-component entries are freed by the end of the
+   compilation. */
+#if EXPENSIVE_CHECKING
+#define ABORT_ON_INIT_COMPONENT_LEAKAGE 1
+#else /* !EXPENSIVE_CHECKING */
+#define ABORT_ON_INIT_COMPONENT_LEAKAGE 0
+#endif /* EXPENSIVE_CHECKING */
+#endif /* ifndef ABORT_ON_INIT_COMPONENT_LEAKAGE */
+
 #ifndef ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING
 /* Include code that tests the processing of pragmas by inserting pragma
    constructs in many locations.  This may increase compilation time

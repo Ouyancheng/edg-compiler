@@ -17935,9 +17935,11 @@ Check that every an_init_component (aka an_expr_list_elem) entry allocated
 was ultimately freed.
 */
 {
+#if ABORT_ON_INIT_COMPONENT_LEAKAGE
   check_assertion_str(num_init_components_allocated ==
                                                      num_init_components_freed,
                     "Some allocated init-component entries were never freed");
+#endif /* ABORT_ON_INIT_COMPONENT_LEAKAGE */
 }  /* check_all_init_component_entries_freed */
 
 #endif /* CHECKING && DEBUG */

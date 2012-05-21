@@ -4160,6 +4160,11 @@ file.
 #else /* !defined(ABI_COMPATIBILITY_VERSION) */
   comment_undefined_macro_name(ABI_COMPATIBILITY_VERSION);
 #endif /* defined(ABI_COMPATIBILITY_VERSION) */
+#if defined(ABORT_ON_INIT_COMPONENT_LEAKAGE)
+  define_numeric_valued_macro(ABORT_ON_INIT_COMPONENT_LEAKAGE);
+#else /* !defined(ABORT_ON_INIT_COMPONENT_LEAKAGE) */
+  comment_undefined_macro_name(ABORT_ON_INIT_COMPONENT_LEAKAGE);
+#endif /* defined(ABORT_ON_INIT_COMPONENT_LEAKAGE) */
 #if defined(ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR)
   define_numeric_valued_macro(ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR);
 #else /* !defined(ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR) */
