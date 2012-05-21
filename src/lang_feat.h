@@ -375,12 +375,15 @@ compilers, like g++ and Microsoft, have always found static functions).
 Flag that is used as the default setting for global variables
 friend_class_injection_enabled and friend_function_injection_enabled.
 This controls whether a class or function first declared only in
-friend declarations is visible to normal lookups.  The standard specifies
+a friend declaration is visible to normal lookups.  The standard specifies
 that such names are not visible to normal lookups.  The variables can also
 be controlled from the command line by --[no_]friend_injection.
 There are two variables because some versions of g++ inject classes but
 not functions.  cmd_line.c handles the setting of the variables based
-on gnu_version.
+on gnu_version.  Because the Microsoft and g++ settings are set
+appropriately for those compilers, and C++11 mode disables friend
+injection, this default macro is mostly useful as the setting for
+this feature in default C++03 mode.
 */
 #ifndef DEFAULT_FRIEND_INJECTION
 #define DEFAULT_FRIEND_INJECTION TRUE
