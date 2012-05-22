@@ -1,0 +1,60 @@
+/* Edison Design Group, 2012. */
+/*
+initializer_list -- Include file for std::initializer_list (18.9)
+*/
+#ifndef _INITIALIZER_LIST_STDH
+#define _INITIALIZER_LIST_STDH
+
+#ifndef __cplusplus
+ #error -- <initializer_list> header requires C++ mode
+#endif /* ifndef __cplusplus */
+
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+namespace std {
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+
+  typedef __EDG_SIZE_TYPE__ size_t;
+
+  template<typename _E> struct initializer_list {
+    typedef _E value_type;
+    typedef _E const &reference;
+    typedef _E const &const_reference;
+    typedef _E const *iterator;
+    typedef _E const *const_iterator;
+    typedef std::size_t size_type;
+
+    initializer_list(): __array(0), __length((size_t)0) {}
+    /* Default copy constructor. */
+    /* Default destructor. */
+    /* Default copy assignment operator. */
+    size_type size() const { return this->__length; }
+    iterator begin() const { return this->__array; }
+    iterator end() const { return this->__array + this->__length; }
+  private:
+    iterator __array;
+    size_type __length;
+    initializer_list(_E __a[], std::size_t __l): __array(__a), __length(__l) {}
+  };
+
+  template<typename _E>
+    typename initializer_list<_E>::iterator begin(initializer_list<_E> il) {
+      return il.begin();
+    }  /* initializer_list<_E>::begin */
+
+  template<typename _E>
+    typename initializer_list<_E>::iterator end(initializer_list<_E> il) {
+      return il.end();
+    }  /* initializer_list<_E>::end */
+
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+}  /* namespace std */
+
+#ifdef __EDG_IMPLICIT_USING_STD
+/* Implicitly include a using directive for the STD namespace when this
+   preprocessing flag is TRUE. */
+using namespace std;
+#endif /* ifdef __EDG_IMPLICIT_USING_STD */
+
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+
+#endif /* _INITIALIZER_LIST_STDH */
