@@ -1,5 +1,22 @@
 Version 4.5
 
+5/23/12  [EDGcpfe/12943]
+Abort on attempt to deduce a variable-length array type
+
+In C++ modes that accept variable-length arrays (particularly, GNU C++ mode),
+the front end sometimes aborted with a failed assertion check in
+make_vla_dimension (il.c) when attempting to deduce a qualified variable-
+length array type.  For example:
+
+  template<typename T> void f(T const&) {}
+  void g(int d) {
+    char a[d];
+    f(a);  // Previously triggered an internal error in il.c.
+  }
+
+This is now fixed.
+
+
 5/21/12  [EDGcpfe/12928]
 GNU compatibility: __builtin_isnan and __builtin_isinf variants
 

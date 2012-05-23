@@ -10193,7 +10193,8 @@ are not already present.
 */
 {
   a_type_ptr            orig_base_type, ptr;
-  a_boolean             is_array = FALSE, expl_mem_attr_implicit = FALSE;
+  a_boolean             is_array = FALSE, is_vla = FALSE;
+  a_boolean             expl_mem_attr_implicit = FALSE;
   a_type_qualifier_set  base_type_qualifiers;
   a_type_qualifier_set  qualifiers_to_add;
 #if NAMED_ADDRESS_SPACES_ALLOWED
@@ -10211,8 +10212,9 @@ are not already present.
      as in "typedef int A[2][3]; const A a;", which makes "a" an
      array of array of const int. */
   if (is_array_type(base_type)) {
-    base_type = underlying_array_element_type(base_type);
     is_array = TRUE;
+    is_vla = is_vla_type(base_type);
+    base_type = underlying_array_element_type(base_type);
   }  /* if */
   /* Applying qualifiers to a function type is not allowed in C++.  The
      check, if needed, should have been done by the caller. */
@@ -10324,9 +10326,12 @@ are not already present.
                                  ptr);
     }  /* if */
     if (is_array) {
-      /* For the strange array case, the array type entries must be
-         copied in case they are shared. */
-      ptr = copy_array_type_replacing_element_type(orig_base_type, ptr);
+      /* For the strange array case, the array type entries must be copied in
+         case they are shared.  However, variable-length arrays are never
+         shared and copying them can be problematic. */
+      if (!is_vla) {
+        ptr = copy_array_type_replacing_element_type(orig_base_type, ptr);
+      }  /* if */
       /* Save a pointer to the original type on the based types list for
          the new type created by the copy. */
       add_based_type_list_member(ptr,
