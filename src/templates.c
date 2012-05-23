@@ -49,6 +49,10 @@ templates.c -- Support for C++ templates.
 #endif /* ifdef lint */
 
 
+static a_symbol_header
+		*initializer_list_sym_hdr;
+			/* Symbol header for "initializer_list". */
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 typedef struct an_instance_lookup_entry *an_instance_lookup_entry_ptr;
 typedef struct an_instance_lookup_entry {
@@ -6869,8 +6873,7 @@ because the Microsoft compiler does actual name lookup in such classes.
   a_boolean                         is_alias_template;
 
   db_enter(3, "find_template_class");
-  check_assertion(template_sym->kind ==
-                                            (a_symbol_kind)sk_class_template);
+  check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template);
   /* If this is a template template parameter, replace the template symbol
      with the one referred to by the parameter. */
   template_sym = template_argument_if_template_template_param(template_sym);
@@ -15690,6 +15693,21 @@ function.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+void make_symbol_header_for_initializer_list(void)
+/*
+Create a symbol header for "initializer_list".  It will be used to identify the
+definition of the std::initializer_list class template.
+*/
+{
+  a_symbol_locator  loc;
+
+  clear_locator(&loc, &null_source_position);
+  initializer_list_sym_hdr = find_symbol_header("initializer_list",
+                                                sizeof("initializer_list")-1,
+                                                &loc);
+}  /* make_symbol_header_for_initializer_list */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
@@ -16442,6 +16460,13 @@ friend_template_checks_done:
     if (add_sym_to_symbol_table) {
       add_symbol_to_symbol_table(sym, decl_state->effective_decl_level,
                                  suppress_redecl_error);
+      if (sym->header == initializer_list_sym_hdr && !sym->is_class_member &&
+          symbol_for_namespace_std != NULL &&
+          sym->parent.namespace_ptr == 
+                        symbol_for_namespace_std->variant.namespace_info.ptr) {
+        /* This is std::initializer_list. */
+        symbol_for_std_initializer_list = sym;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Make sure the is_exported flag is set properly. */
@@ -28891,6 +28916,7 @@ One-time initialization for templates.c static variables.
       pch_saved_var_array_elem(num_exported_template_files_allocated),
 #endif /* TEMPLATE_LOOKUP_NEEDED */
 #endif /* DEBUG */
+      pch_saved_var_array_elem(initializer_list_sym_hdr),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);

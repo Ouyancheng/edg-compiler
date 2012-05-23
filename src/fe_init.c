@@ -304,6 +304,9 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
          "std" is explicitly declared (unless the --ignore_std option is
          used or we are in g++ mode). */
       make_symbol_for_namespace_std();
+      /* Ensure a symbol header exists for "initializer_list".  This permits
+         efficient identification of the std::initializer_list template. */
+      make_symbol_header_for_initializer_list();
       if (ignore_std_namespace || gpp_mode || sun_mode || microsoft_mode) {
         /* In --ignore_std mode, enter "std" so it can be used as a
            synonym for the global namespace.  In g++ and Sun modes, "std" is

@@ -7170,7 +7170,6 @@ Don't put its symbol into the symbol table yet.
 }  /* make_symbol_for_namespace_abi */
 
 #endif /* IA64_ABI */
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 /* Forward declaration. */
@@ -14807,6 +14806,7 @@ are handled in symbol_tbl_init.)
 #if IA64_ABI
       pch_saved_var_array_elem(symbol_for_namespace_abi),
 #endif /* IA64_ABI */
+      pch_saved_var_array_elem(symbol_for_std_initializer_list),
       pch_saved_var_array_elem(builtin_va_list_type),
       pch_saved_var_array_elem(type_underlying_va_list),
       pch_saved_var_array_elem(error_class_template_symbol),
@@ -14880,6 +14880,7 @@ are handled in symbol_tbl_init.)
 #if IA64_ABI
   register_trans_unit_variable(symbol_for_namespace_abi);
 #endif /* IA64_ABI */
+  register_trans_unit_variable(symbol_for_std_initializer_list);
   register_trans_unit_variable(builtin_va_list_type);
   register_trans_unit_variable(type_underlying_va_list);
   register_trans_unit_variable(symbols_with_no_scope);
@@ -14922,6 +14923,7 @@ given translation unit.
 #if IA64_ABI
   symbol_for_namespace_abi = NULL;
 #endif /* IA64_ABI */
+  symbol_for_std_initializer_list = NULL;
   builtin_va_list_type = NULL;
   type_underlying_va_list = NULL;
   symbols_with_no_scope = NULL;

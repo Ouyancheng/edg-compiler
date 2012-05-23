@@ -9,10 +9,7 @@ initializer_list -- Include file for std::initializer_list (18.9)
  #error -- <initializer_list> header requires C++ mode
 #endif /* ifndef __cplusplus */
 
-#ifdef __EDG_RUNTIME_USES_NAMESPACES
 namespace std {
-#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
-
   typedef __EDG_SIZE_TYPE__ size_t;
 
   template<typename _E> struct initializer_list {
@@ -46,7 +43,6 @@ namespace std {
       return il.end();
     }  /* initializer_list<_E>::end */
 
-#ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace std */
 
 #ifdef __EDG_IMPLICIT_USING_STD
@@ -54,7 +50,5 @@ namespace std {
    preprocessing flag is TRUE. */
 using namespace std;
 #endif /* ifdef __EDG_IMPLICIT_USING_STD */
-
-#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
 #endif /* _INITIALIZER_LIST_STDH */

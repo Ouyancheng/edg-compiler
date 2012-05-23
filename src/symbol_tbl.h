@@ -4182,6 +4182,13 @@ extern void make_symbol_for_namespace_abi(void);
 extern void enter_symbol_for_namespace_abi(a_symbol_locator  *locator);
 #endif /* IA64_ABI */
 
+EXTERN a_symbol_ptr
+		symbol_for_std_initializer_list;
+			/* Symbol for "std::initializer_list", a class
+			   template that should be defined in the standard
+			   header <initializer_list>.  NULL until such a
+			   template is encountered. */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 Enumerates the cli_symbols array.  The array is apportioned as follows:

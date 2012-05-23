@@ -787,6 +787,8 @@ extern a_boolean is_start_of_generic_decl(void);
 #define is_start_of_generic_decl()  /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern void make_symbol_header_for_initializer_list(void);
+
 extern void templates_one_time_init(void);
 
 extern void templates_trans_unit_init(void);
