@@ -9948,6 +9948,13 @@ a pointer over a reference type or creating an array of references.
             if (is_function_type(tp)) {
               /* An attempt to place a qualifier on top of a function type.
                  Ignore it. */
+            } else if (is_vla_type(tp)) {
+              /* An attempt to add qualifiers to a VLA type.  Deduction
+                 fails.  (You can't create a new version of a VLA type
+                 with a different element type, because the bound
+                 expression evaluation is unique to the original
+                 array type.) */
+              *copy_error = TRUE;
             } else {
               /* Restore the type qualifiers stripped off above. */
               new_type = make_qualified_type(tp, qualifiers);

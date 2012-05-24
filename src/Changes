@@ -14,7 +14,7 @@ length array type.  For example:
     f(a);  // Previously triggered an internal error in il.c.
   }
 
-This is now fixed.
+This is now fixed (deduction fails).
 
 
 5/21/12  [EDGcpfe/12928]
