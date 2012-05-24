@@ -9107,6 +9107,7 @@ member function.  If no nonreal member is found, return NULL.
         an_expr_node_ptr new_expr = alloc_node_for_constant(con);
         check_assertion(!new_expr->is_lvalue);
         new_expr->rescan_info = expr->rescan_info;
+        new_expr->name_reference = expr->name_reference;
         new_expr = make_lvalue_operator_node((an_expr_operator_kind)eok_lvalue,
                                              new_expr->type, new_expr);
         overwrite_node(expr, new_expr);

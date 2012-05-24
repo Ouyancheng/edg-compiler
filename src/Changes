@@ -1,5 +1,19 @@
 Version 4.5
 
+5/24/12  [EDGcpfe/12941]
+Missing name reference information on dependent member name used as lvalue
+
+The front end lost the name reference information on the name of a
+dependent member when it is used as an lvalue (e.g., when bound to
+a reference).  The name reference information is now preserved.
+
+  template<typename T> struct S {
+    int& f(T& r) {
+      return r.first;  // Previously put out as r.T::first
+    }
+  };
+
+
 5/23/12  [EDGcpfe/12943]
 Abort on attempt to deduce a variable-length array type
 
