@@ -5316,7 +5316,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #endif  /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && !is_scoped_enum && !is_definition) {
+    if (microsoft_mode && !is_scoped_enum &&
+        explicit_base_kind == (an_integer_kind)ik_none) {
       /* In Microsoft compatibility mode (unscoped) enum types can be declared
          without being defined and can also be used.  The use requires that
          the size be set. */
