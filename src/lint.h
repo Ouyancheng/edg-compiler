@@ -984,6 +984,10 @@ extern int fileno(FILE *);
 #if !USER_CONTROL_OF_STRUCT_PACKING
 /*lint -esym(769,ec_exp_rparen_and_pragma_ignored)*/
 #endif /* !USER_CONTROL_OF_STRUCT_PACKING */
+#if GNU_EXTENSIONS_ALLOWED && !BACK_END_IS_CP_GEN_BE
+/*lint -esym(759,is_transparent_union_type)*/
+/*lint -esym(765,is_transparent_union_type)*/
+#endif /* GNU_EXTENSIONS_ALLOWED && !BACK_END_IS_CP_GEN_BE */
 
 #endif /* ifndef LINT_H */
 
