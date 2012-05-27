@@ -204,6 +204,9 @@ extern a_boolean is_class_struct_union_type(a_type_ptr tp);
 extern a_boolean is_class_struct_type(a_type_ptr tp);
 extern a_boolean is_real_class_type(a_type_ptr  tp);
 extern a_boolean is_union_type(a_type_ptr tp);
+#if GNU_EXTENSIONS_ALLOWED
+extern a_boolean is_transparent_union_type(a_type_ptr  tp);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 extern a_boolean is_aggregate_or_union_type(a_type_ptr tp);
 extern a_boolean is_aggregate_type(a_type_ptr tp);
 extern a_boolean is_ptr_to_member_type(a_type_ptr tp);

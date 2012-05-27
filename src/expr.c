@@ -15163,7 +15163,7 @@ expression, and return the result in *result (or an error indication in
   }  /* if */
   /* Determine whether the initializer is an empty set of parentheses, "()"
      (or, if list initializers are allowed, an empty set of braces; in that
-      case the current token is still the opening brace). */
+     case the current token is still the opening brace). */
   empty_initializer = (has_new_initializer &&
                        !cached_expression_present() &&
                        ((rcblock != NULL) ?
@@ -15879,6 +15879,7 @@ handle_empty_parens_new_initializer:
     ndsp->placement_new = placement_new;
     ndsp->global_new_or_delete = use_global_new;
     ndsp->has_new_initializer = has_new_initializer;
+    ndsp->new_initializer_is_brace_enclosed = has_braced_initializer;
     ndsp->type_contains_auto_specifier = new_type_involves_auto;
     ndsp->type = new_type;
     /* Put the routine and argument list into the supplement.  Note that

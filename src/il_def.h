@@ -3175,8 +3175,7 @@ typedef struct a_dynamic_init {
 			   this initialization is an explicit cast. */
   a_bit_field	is_compound_literal:1;
 			/* If TRUE, the source construct that generated
-			   this initialization is a compound literal (in GNU
-			   C++ mode, it could also be a list initializer). */
+			   this initialization is a compound literal. */
   a_bit_field	is_braced_initializer:1;
 			/* If TRUE, the source construct that generated this
 			   initialization is a brace-enclosed initializer. */
@@ -13616,6 +13615,10 @@ typedef struct a_new_delete_supplement {
 			/* For a new, TRUE if the operator has an explicit
 			   initializer. So, for example, TRUE for new int(0)
 			   and new int(), but FALSE for new int. */
+  a_bit_field	new_initializer_is_brace_enclosed:1;
+			/* When has_new_initializer is TRUE, this is TRUE if
+			   the new-initializer is enclosed in braces, e.g.,
+			   new int{1}. */
   a_bit_field	type_contains_auto_specifier:1;
 			/* For a new in a prototype instantiation, TRUE if
 			   the type to be allocated was specified by way of

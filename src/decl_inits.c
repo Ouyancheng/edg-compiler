@@ -3481,6 +3481,7 @@ scanning the array-init.
                                (a_dynamic_init_kind)dik_nonconstant_aggregate);
       (*init_dip)->variant.constant = init_con;
     }  /* if */
+    (*init_dip)->is_braced_initializer = TRUE;
     result = TRUE;
   } else {
     result = FALSE;

@@ -19619,7 +19619,8 @@ is->no_diagnostics and is->check_validity_only.
     if (is_any_reference_type(dest_type)) {
       /* For a reference, allocate a temporary and copy-list-initialize it
          from the braced-init-list. */
-      prep_list_initializer(icp, type_pointed_to(dest_type), check_narrowing,
+      a_type_ptr underlying_type = type_pointed_to(dest_type);
+      prep_list_initializer(icp, underlying_type, check_narrowing,
                             conv_context & (CCO_CAST | CCO_FUNC_NOTATION_CAST),
                             /*fill_in_dtor=*/TRUE, /* ignored */
                             &operand,
@@ -19627,17 +19628,28 @@ is->no_diagnostics and is->check_validity_only.
       if (!operand_is_temp_init(&operand) && !is_error_operand(&operand)) {
         /* Force a temporary so we can set the braced-init flag in the
            dynamic init. */
-        temp_init_from_operand(&operand, /*result_is_lvalue=*/FALSE);
-      }  /* if */
-      if (operand_is_temp_init(&operand)) {
-        /* Find the dynamic init and set the is_braced_initializer flag. */
-        a_dynamic_init_ptr tdip;
-        an_expr_node_ptr   temp_init_node =
+        a_boolean create_lvalue = FALSE;
+        if (!is_class_struct_union_type(underlying_type) &&
+            is_lvalue_reference_type(dest_type) &&
+            is_const_qualified_type(underlying_type)) {
+          /* To avoid creating two temporaries, change the temporary to
+             an lvalue when the reference is an lvalue reference to const
+             non-class.  This doesn't match the letter of the standard,
+             but it's probably unobservable, and it avoids a problem
+             in reproducing the source when the cp_gen_be is used. */
+          create_lvalue = TRUE;
+        }  /* if */
+        temp_init_from_operand(&operand, create_lvalue);
+        if (operand_is_temp_init(&operand)) {
+          /* Find the dynamic init and set the is_braced_initializer flag. */
+          a_dynamic_init_ptr tdip;
+          an_expr_node_ptr   temp_init_node =
                                        skip_parens(operand.variant.expression);
-        check_assertion(temp_init_node->kind ==
+          check_assertion(temp_init_node->kind ==
                                              (an_expr_node_kind)enk_temp_init);
-        tdip = temp_init_node->variant.init.dynamic_init;
-        tdip->is_braced_initializer = TRUE;
+          tdip = temp_init_node->variant.init.dynamic_init;
+          tdip->is_braced_initializer = TRUE;
+        }  /* if */
       }  /* if */
       prep_reference_initializer_operand(&operand, dest_type,
                                          (a_conv_descr *)NULL,

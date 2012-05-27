@@ -1796,7 +1796,7 @@ Return TRUE if the given type is a union type.
 #if GNU_EXTENSIONS_ALLOWED
 #if !STANDALONE_UTILITY_PROGRAM
 
-static a_boolean is_transparent_union_type(a_type_ptr  tp)
+a_boolean is_transparent_union_type(a_type_ptr  tp)
 /*
 Return TRUE if the given type is a GNU C transparent union.
 */

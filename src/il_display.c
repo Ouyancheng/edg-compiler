@@ -3628,6 +3628,8 @@ Display the indicated new/delete supplement to an expression node.
   disp_boolean("array_delete", (a_boolean)ndsp->array_delete);
   disp_boolean("global_new_or_delete", (a_boolean)ndsp->global_new_or_delete);
   disp_boolean("has_new_initializer", (a_boolean)ndsp->has_new_initializer);
+  disp_boolean("new_initializer_is_brace_enclosed",
+               (a_boolean)ndsp->new_initializer_is_brace_enclosed);
   disp_boolean("type_contains_auto_specifier",
                (a_boolean)ndsp->type_contains_auto_specifier);
   disp_ptr("type", (char *)ndsp->type, iek_type);
