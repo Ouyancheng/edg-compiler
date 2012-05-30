@@ -32,8 +32,7 @@ Entry used to record information about the remapping to be done on a variable
 while expanding an inline function call.
 */
 typedef enum /*a_variable_remapping_kind*/ {
-  vrk_none,		/* No remapping; used in entries that exist only to
-			   record the arg_expr field. */
+  vrk_none,		/* No remapping. */
   vrk_temporary,	/* Variable is remapped to a temporary variable. */
   vrk_constant_expr	/* Variable is remapped to a constant-valued
 			   expression. */
@@ -59,13 +58,18 @@ typedef struct a_variable_remapping_for_inlining {
     an_expr_node_ptr
 		expr;
   } variant;
-  /* Information used if this remapping came from an argument.  It is needed
-     to restore the "next" pointer between argument expressions if the
-     inlining fails. */
   an_expr_node_ptr
 		arg_expr;
-			/* Argument expression; NULL if this information is
-			   not applicable. */
+			/* Used when remapping parameters to hold the argument
+			   expression.  For vrk_temporary remappings, this
+			   expression is used as the initial value for
+			   temporary.  When evaluate_arg_for_side_effects is
+			   TRUE, the expression is evaluated for its
+			   side-effects (in this case, the expression may have
+			   been modified to reflect only the portion of the
+			   original argument expression that needs to be
+			   evaluated for its side-effects).  NULL for
+			   remappings that aren't parameters. */
   a_variable_ptr
 		orig_temporary;
 			/* If non-NULL, points to a temporary that was the
@@ -90,9 +94,11 @@ typedef struct a_variable_remapping_for_inlining {
 			   reusable temporary variable. */
   a_byte_boolean
 		evaluate_arg_for_side_effects;
-			/* TRUE if the argument expression need not be saved
-			   (because the parameter is not referenced) but it
-			   should be evaluated for its side effects. */
+			/* TRUE if the argument expression should be evaluated
+			   for its side effects (either because the parameter
+			   is not referenced or because the original argument
+			   expression contained a comma node that was turned
+			   into a constant-value expression). */
 } a_variable_remapping_for_inlining;
 
 

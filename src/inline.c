@@ -384,13 +384,7 @@ finish_variable_remapping_for_inlining.
        param_var = param_var->next, arg = arg->next) {
     check_assertion_str(arg != NULL,
                         "set_up_variable_remapping_...: too few args");
-    /* Detach the argument expression from the rest of the list so it can
-       be used by itself.  Put a pointer to the argument expression, and
-       the original "next" value, in the remap entry, so that the "next"
-       pointer can be restored if the inlining cannot be done.  Note that
-       if no remapping is required on the parameter, the remap entry is
-       still needed to preserve the information needed for the relinking
-       on failure. */
+    /* Allocate a remapping for the parameter. */
     vrip = alloc_variable_remapping_for_inlining(param_var, &last_remap);
     vrip->arg_expr = arg;
     if (!param_var->source_corresp.referenced) {
@@ -448,8 +442,8 @@ finish_variable_remapping_for_inlining.
       }  /* if */
       if (param_is_unmodified && arg_is_constant &&
           /* A class value can't arbitrarily be copied to a class value; it
-             must be used at the original location.  Don't create a temporary
-             for a lowered pointer-to-member constant. */
+             must be used at the original location (make an exception for
+             lowered pointer-to-member function constants). */
           (!is_class_struct_union_type(param_var->type) ||
            is_ptr_to_member_function_constant_expr(arg))) {
         /* The argument is constant-valued and the parameter is unmodified.
@@ -466,16 +460,13 @@ finish_variable_remapping_for_inlining.
            comma operation).  Make sure that the first operand of the comma
            expression is evaluated before the call to the inlined routine
            (see finish_variable_remapping_for_inlining). */
-        an_expr_node_ptr expr = arg, prev_node = NULL;
+        an_expr_node_ptr expr = arg, bottom_cast_node = NULL;
         /* Look for an optional sequence of casts before a comma: */
         while (is_cast_operation_node(expr)) {
-          prev_node = expr;
+          bottom_cast_node = expr;
           expr = expr->variant.operation.operands;
         }  /* while */
-        if (is_operation_node(expr) &&
-            node_operator_is(expr, eok_comma) &&
-            !node_has_side_effects(expr->variant.operation.operands->next,
-                                   (a_boolean *)NULL)) {
+        if (is_operation_node(expr) && node_operator_is(expr, eok_comma)) {
           an_expr_node_ptr comma_node = expr;
           expr = comma_node->variant.operation.operands->next;
           if (is_constant_valued_expression(expr,
@@ -484,8 +475,8 @@ finish_variable_remapping_for_inlining.
                                             /*this_cannot_be_null=*/TRUE,
                                             &is_non_null) &&
               /* A class value can't arbitrarily be copied to a class value;
-                 it must be used at the original location.  Don't create a
-                 temporary for a lowered pointer-to-member constant. */
+                 it must be used at the original location (make an exception
+                 for lowered pointer-to-member function constants). */
               (!is_class_struct_union_type(param_var->type) ||
                is_ptr_to_member_function_constant_expr(expr))) {
             /* The second operand of the comma is constant-valued; the
@@ -497,17 +488,16 @@ finish_variable_remapping_for_inlining.
             vrip->arg_expr = copy_expr_tree(
                                         comma_node->variant.operation.operands,
                                         CE_NO_OPTIONS);
-            if (prev_node != NULL) {
-              prev_node->variant.operation.operands = copy_expr_tree(
-                                  comma_node->variant.operation.operands->next,
-                                  CE_NO_OPTIONS);
+            if (bottom_cast_node != NULL) {
+              bottom_cast_node->variant.operation.operands =
+                                           copy_expr_tree(expr, CE_NO_OPTIONS);
               vrip->variant.expr = arg;
             } else {
-              vrip->variant.expr = copy_expr_tree(
-                                  comma_node->variant.operation.operands->next,
-                                  CE_NO_OPTIONS);
+              vrip->variant.expr = copy_expr_tree(expr, CE_NO_OPTIONS);
             }  /* if */
             if (node_has_side_effects(vrip->arg_expr, (a_boolean *)NULL)) {
+              /* Make sure the first operand of the comma expression is
+                 evaluated before the inlined call. */
               vrip->evaluate_arg_for_side_effects = TRUE;
             }  /* if */
           }  /* if */
@@ -649,9 +639,12 @@ following the original expression.
         temp_var->initialization_rewritten_as_assignment = TRUE;
       }  /* if */
     } else if (vrip->evaluate_arg_for_side_effects) {
-      /* The argument expression must be evaluated for its side effects
-         but it isn't stored into the parameter because the parameter
-         isn't used. */
+     /* arg_expr expression must be evaluated because it has side-effects.
+        This happens in two cases: the parameter isn't used in the inlined
+        routine, or the original argument expression was a comma expression
+        whose first operand had side-effects, but whose second operand did
+        not.  In the latter case, arg_expr points to the first operand of
+        the comma. */
       check_assertion(vrip->arg_expr != NULL);
       vrip->arg_expr->next = NULL;
       stmt = insert_expr_statement(vrip->arg_expr, &local_insert_location);
