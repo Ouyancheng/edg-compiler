@@ -1,5 +1,13 @@
 Version 4.5
 
+5/30/12  [EDGcpfe/12923]
+Add demangling for g++ "restrict" qualifier in Cfront ABIs
+
+The edg_decode tool has been updated to recognize the newly added
+(and EDG-specific) "Dr" encoding for the "restrict" type qualifier in the
+Cfront ABI (the IA-64 ABI already has an encoding for "restrict").
+
+
 2/28/12  [EDGcpfe/11527]
 Add --inline_statement_limit command line option to eccp
 

@@ -177,6 +177,9 @@ differs (see the IA-64 ABI spec for details).
 /* Cfront-like name mangling codes. */
 #define MANGLING_CODE_FOR_CONST 'C'
 #define MANGLING_CODE_FOR_VOLATILE 'V'
+#if ABI_COMPATIBILITY_VERSION >= 405
+#define MANGLING_CODE_FOR_RESTRICT "Dr"
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 */
 #define MANGLING_CODE_FOR_ELLIPSIS 'e'
 #define MANGLING_CODE_FOR_EXTERN_C 'K'
 #define MANGLING_STRING_FOR_VOID "v"
@@ -1659,7 +1662,7 @@ in the set "qualifiers".
   }  /* if */
 #ifdef MANGLING_CODE_FOR_RESTRICT
   if (qualifiers & TQ_RESTRICT) {
-    add_to_mangled_name(MANGLING_CODE_FOR_RESTRICT, mctl);
+    add_str_to_mangled_name(MANGLING_CODE_FOR_RESTRICT, mctl);
   }  /* if */
 #endif /* ifdef MANGLING_CODE_FOR_RESTRICT */
 #endif /* IA64_ABI */

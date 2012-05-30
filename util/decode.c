@@ -725,12 +725,32 @@ qualification.
   char      ch;
 
   ch = get_char(p, dctl);
-  if (ch == 'C' || ch == 'V') {
+  if (ch == 'C' || ch == 'V' || (ch == 'D' && get_char(p+1, dctl) == 'r')) {
     /* This is a type qualifier. */
     is_type_qual = TRUE;
   }  /* if */
   return is_type_qual;
 }  /* is_immediate_type_qualifier */
+
+
+static char *remove_immediate_type_qualifiers(char                       *p,
+                                              a_decode_control_block_ptr dctl)
+/*
+Return a pointer to the mangled name after removing any type qualifiers
+that might be present.
+*/
+{
+  while (is_immediate_type_qualifier(p, dctl)) {
+    if (get_char(p, dctl) == 'D' && get_char(p+1, dctl) == 'r') {
+      /* Two-character qualifier. */
+      p+=2;
+    } else {
+      /* One-character qualifier. */
+      p++;
+    }  /* if */
+  }  /* while */
+  return p;
+}  /* remove_immediate_type_qualifiers */
 
 
 static void write_template_parameter_name(unsigned long              depth,
@@ -2603,10 +2623,10 @@ static char *demangle_type_qualifiers(
                                      a_boolean                  trailing_space,
                                      a_decode_control_block_ptr dctl)
 /*
-Demangle any type qualifiers (const/volatile) at the indicated location.
-Return a pointer to the character position following what was demangled.
-If trailing_space is TRUE, add a space at the end if any qualifiers were
-put out.
+Demangle any type qualifiers (const/volatile/restrict) at the indicated
+location.  Return a pointer to the character position following what was
+demangled.  If trailing_space is TRUE, add a space at the end if any qualifiers
+were put out.
 */
 {
   char      *p = ptr;
@@ -2619,6 +2639,10 @@ put out.
     } else if (get_char(p, dctl) == 'V') {
       if (any_quals) write_id_ch(' ', dctl);
       write_id_str("volatile", dctl);
+    } else if (get_char(p, dctl) == 'D' && get_char(p+1, dctl) == 'r') {
+      if (any_quals) write_id_ch(' ', dctl);
+      write_id_str("restrict", dctl);
+      p++;
     } else {
       break;
     }  /* if */
@@ -2902,7 +2926,7 @@ not empty, because it contains a name or a derived type).
   char kind, ext_kind;
 
   /* Remove type qualifiers. */
-  while (is_immediate_type_qualifier(p, dctl)) p++;
+  p = remove_immediate_type_qualifiers(p, dctl);
   kind = get_char(p, dctl);
   if (kind == 'P' || kind == 'R' || kind == 'E' || kind == 'H') {
     a_boolean need_space = TRUE;
@@ -3041,7 +3065,7 @@ use of parentheses around parts of the declarator.)
   char kind;
 
   /* Remove type qualifiers. */
-  while (is_immediate_type_qualifier(p, dctl)) p++;
+  p = remove_immediate_type_qualifiers(p, dctl);
   kind = get_char(p, dctl);
   if (kind == 'P' || kind == 'R' || kind == 'E' || kind == 'H') {
     /* Pointer, reference, rvalue reference, or C++/CLI pointer-like type.

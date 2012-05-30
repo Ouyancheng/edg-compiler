@@ -1,5 +1,25 @@
 Version 4.5
 
+5/30/12  [EDGcpfe/12923]
+Add mangling for g++ "restrict" qualifier in Cfront ABIs
+
+A mangling for the g++ "restrict" qualifier ("Dr") has been added in the
+Cfront ABI (the IA-64 ABI previously had a mangling for this).  This had
+caused problems in cases like the following where the same mangled name
+had been used for both routines (with --g++):
+
+  template <class T> void f(T&) { }
+  int main() {
+    int *__restrict rp;
+    int *p;
+    f(rp);
+    f(p);
+  }
+
+The old behavior can be restored by setting ABI_COMPATIBILITY_VERSION to a
+value less than 405.
+
+
 5/30/12  [EDGcpfe/12948]
 Internal error during new SFINAE processing with partial specializations
 
