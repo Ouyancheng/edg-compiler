@@ -1539,10 +1539,7 @@ typedef int a_ctws_options_set;
 			   type of a class member.  This affects the way
 			   in which names are looked up during the
 			   substitution process. */
-#define CTWS_PROTOTYPE_ALLOWED		0x2
-			/* TRUE if, when copying a type like A<T>, that the
-			   prototype instantiation may be used in preference
-			   to the nonreal class of the same name. */
+/* Note that 0x2 is not currently used. */
 #define CTWS_NON_CONSTANT_EXPR		0x4
 			/* TRUE when copying a non-constant expression,
 			   which can come up under a sizeof. */

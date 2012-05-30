@@ -2586,7 +2586,7 @@ in ps_arg_list.
       test_type = copy_type_with_substitution(prototype_type,
                                               *ps_arg_list, templ_param_list,
 					      &template_sym->decl_position,
-					      CTWS_PROTOTYPE_ALLOWED,
+					      CTWS_NO_OPTIONS,
 					      &copy_error, &ctws_state);
       if (!copy_error && identical_types(instance_type, test_type)) {
         result = TRUE;
@@ -9330,10 +9330,7 @@ are looked up, if needed.  The symbol of the new instance is returned.
        class. */
     new_sym = NULL;
   } else {
-    a_boolean	prototype_allowed;
-    prototype_allowed = orig_is_prototype ||
-                        (options & CTWS_PROTOTYPE_ALLOWED) != 0;
-    new_sym = find_template_class(template_sym, &new_list, prototype_allowed,
+    new_sym = find_template_class(template_sym, &new_list, orig_is_prototype,
                                   (a_symbol_ptr)NULL,
                                   /*instantiate_nonreal=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED

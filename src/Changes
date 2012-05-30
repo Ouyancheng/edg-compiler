@@ -1,5 +1,36 @@
 Version 4.5
 
+5/30/12  [EDGcpfe/12948]
+Internal error during new SFINAE processing with partial specializations
+
+An internal error could occur (in get_expr_rescan_info) when using C++11
+SFINAE processing with function templates in which the substitution
+required selecting a partial specialization.  In addition, the partial
+specialization selection must have involved expressions that had to
+be rescanned.  Now fixed.
+
+  template <int I> class A;
+  template<typename T, typename U> struct D;
+  template<int I, typename T> struct D<A<I>, T> {};
+  template<int I> struct D<A<I>, typename A<I>::Atype> {
+    typedef int type;
+  };
+  template<int I> struct E {
+    typedef int Etype;
+  };
+  template<int I> struct F {
+    typedef typename E<(I <= 16) + (I <= 32)>::Etype Ftype;
+  };
+  template <int N> struct A {
+    typedef typename F<N>::Ftype Atype;
+    template<typename T> typename D<A, T>::type operator=(const T& data);
+  };
+  int main() {
+    A<1> a1;
+    a1 = 0;  // internal error in substitution of A<1>::operator=
+  }
+
+
 5/24/12  [EDGcpfe/12941]
 Missing name reference information on dependent member name used as lvalue
 
