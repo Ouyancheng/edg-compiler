@@ -4317,11 +4317,12 @@ this is not allowed, an error will be issued by the caller.
          inject a type in the surrounding non-class scope and hide an
          existing typedef-name in that scope. */
 #if CHECKING
-      a_type_ptr  tp = type_symbol_type(old_sym);
+      a_type_ptr  orig_tp = type_symbol_type(old_sym);
+      a_type_ptr  tp = orig_tp;
       tp  = skip_typerefs(tp);
       check_assertion((is_immediate_class_type(tp) ||
                        is_immediate_enum_type(tp)) &&
-                      symbol_for(tp)->header == old_sym->header);
+                      symbol_for(orig_tp)->header == old_sym->header);
 #endif /* CHECKING */
       err = FALSE;
     } else if (microsoft_bugs && old_sym->is_invisible &&

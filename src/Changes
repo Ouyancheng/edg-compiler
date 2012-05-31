@@ -1,5 +1,20 @@
 Version 4.5
 
+5/31/12  [EDGcpfe/12935]
+Microsoft compatibility: Internal error with enum and typedef with same name
+
+An internal error could occur (in symbols_may_coexist_in_curr_scope) if
+an enumeration was declared in an elaborated type specifier in a
+class scope, the enumeration had the same name as a typedef from the
+enclosing scope, and the underlying type of the typedef was a class or
+enumeration with a different name.  Now fixed.
+
+  typedef enum X { e } E;
+  typedef struct S {
+    enum E f;  // declares enum ::E that hides the typedef ::E
+  } S;
+
+
 5/30/12  [EDGcpfe/12916]
 C++-generating back end, Microsoft compatibility: qualified type names in
 function template definitions
