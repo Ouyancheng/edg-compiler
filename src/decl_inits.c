@@ -4779,21 +4779,13 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
     case tk_struct:
     case tk_union:
       cssp = symbol_for(dtype)->variant.class_struct_union.extra_info;
-      if (cssp->is_class_aggregate &&
-          !(cssp->has_user_declared_default_constructor &&
-            is_empty_list_init_component(icp))) {
-        /* A class aggregate usually requires aggregate initialization.  The
-           exception is a class aggregate with a default constructor
-           initialized with an empty list (aggregates cannot have user-
-           provided constructors, so the exception only covers the narrow case
-           of a class with a user-declared-but-not-user-provided
-           constructor). */
+      if (cssp->is_class_aggregate) {
+        /* A class aggregate requires aggregate initialization. */
         is_aggregate = TRUE;
         dtor_rp = get_init_destructor(dtype, is, diag_pos);
         aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
       } else {
-        /* Pass the braced initializer to be converted to the destination
-           type. */
+        /* Non-aggregate class type. */
         convert_initializer(icp, dtype, is_var_init, /*check_narrowing=*/TRUE,
                             /*fill_in_dtor=*/TRUE, dps, is);
       }  /* if */

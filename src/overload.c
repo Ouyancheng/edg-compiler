@@ -19616,7 +19616,104 @@ is->no_diagnostics and is->check_validity_only.
     an_init_component_ptr list = icp->variant.braced.list;
     /* The tests that follow are based on the bullet list in [dcl.init.list]
        of the C++11 standard. */
-    if (is_any_reference_type(dest_type)) {
+    if (could_be_dependent_class_type(dest_type)) {
+      /* Dependent case.  Pretend this is a constructor invocation. */
+      scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
+                                               /*arg_list_supplied=*/TRUE,
+                                               list,
+                                               (an_operand *)NULL, &dip);
+    } else if (is_aggregate_type(dest_type)) {
+      /* Aggregate cases go back to the initialization code in decl_inits.c. */
+      an_init_state init_state;
+      an_init_state *eff_is = is;
+      if (eff_is == NULL) {
+        clear_init_state(&init_state);
+        eff_is = &init_state;
+      }  /* if */
+      prep_aggr_initializer(icp, dest_type, eff_is,
+                            check_narrowing,
+                            fill_in_dtor);
+      constant = eff_is->init_con;
+      dip = eff_is->init_dip;
+      fill_in_dtor = FALSE;
+    } else if (list == NULL &&
+               dest_type_is_class &&
+               f_type_has_default_constructor(dest_type,
+                                              /*user_provided_only=*/FALSE,
+                                              /*nontrivial_only=*/FALSE)) {
+      /* A class with a default constructor, initialized by "{}" -- do
+         value initialization. */
+      value_initialization(dest_type,
+                           &icp->variant.braced.start_pos,
+                           &is_constant, &dip, &constant);
+    } else if (dest_type_is_class &&
+               (ctor_sym = symbol_supplement_for_class(dest_type)->constructor)
+                                                                     != NULL) {
+      /* A class with constructors.  Process as constructor arguments. */
+      scan_ctor_arguments(ctor_sym,
+                          init_component_pos(icp),
+                          (a_type_ptr)NULL,
+                          (a_type_ptr)NULL,
+                          fill_in_dtor,
+                          /*elision_allowed=*/TRUE,
+                          (a_rescan_control_block *)NULL,
+                          /*arg_list_supplied=*/TRUE,
+                          list,
+                          /*trivial_ctor=*/(a_boolean *)NULL,
+                          /*unboxing_conv=*/(a_boolean *)NULL,
+                          /*string_ctor_skip=*/(a_boolean *)NULL,
+                          /*simple_result=*/(an_operand *)NULL,
+                          &dip,
+                          (an_expr_node_ptr *)NULL,
+                          (a_source_position *)NULL);
+      if (dip == NULL) {
+        /* There was an error. */
+        make_error_operand(&operand);
+      } else if (!is_direct_init &&
+                 dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        a_routine_ptr ctor_rout = dip->variant.constructor.ptr;
+        if (ctor_rout != NULL &&
+            ctor_rout->is_explicit_constructor) {
+          /* An explicit constructor cannot be used for
+             copy-list-initialization.  This is tested after overload
+             resolution, rather than as usual causing the constructor not
+             to be viable within overload resolution.  See [over.match.list]
+             in the C++11 standard. */
+          expr_pos_error(ec_explicit_ctor_in_copy_list_init,
+                         init_component_pos(icp));
+        }  /* if */
+      }  /* if */
+      fill_in_dtor = FALSE;
+    } else if (list != NULL && list->next == NULL &&
+               (!is_any_reference_type(dest_type) ||
+                (is_expression_component(list) &&
+                 are_reference_related(type_pointed_to(dest_type),
+                                       operand_of_arg_list_elem(list)->type))
+               )) {
+      /* A list containing just one member.  Drop the {} and do a recursive
+         call.  Reference cases also go here if the underlying type is
+         reference-related to the element expression type. */
+      if (is_braced_init_component(list)) {
+        /* Multiple levels of braces on a scalar initialization.  Only one
+           is allowed. */
+        if (expr_diagnostic_should_be_issued(es_discretionary_error,
+                                             ec_extra_braces_on_simple_init)) {
+          pos_ty_diagnostic(es_discretionary_error,
+                            ec_extra_braces_on_simple_init,
+                            init_component_pos(list),
+                            dest_type);
+        }  /* if */
+      }  /* if */
+      prep_list_initializer(list, dest_type, check_narrowing,
+                            conv_context, fill_in_dtor,
+                            ((result != NULL) ? &operand : (an_operand *)NULL),
+                            is);
+      if (result == NULL) {
+        constant = is->init_con;
+        dip = is->init_dip;
+      }  /* if */
+      fill_in_dtor = FALSE;
+    } else if (is_any_reference_type(dest_type)) {
       /* For a reference, allocate a temporary and copy-list-initialize it
          from the braced-init-list. */
       a_type_ptr underlying_type = type_pointed_to(dest_type);
@@ -19657,102 +19754,11 @@ is->no_diagnostics and is->check_validity_only.
                                          conv_context,
                                          ec_bad_initializer_type);
       braced_init = FALSE;
-    } else if (could_be_dependent_class_type(dest_type)) {
-      /* Dependent case.  Pretend this is a constructor invocation. */
-      scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
-                                               /*arg_list_supplied=*/TRUE,
-                                               list,
-                                               (an_operand *)NULL, &dip);
-    } else if (list == NULL &&
-               dest_type_is_class &&
-               f_type_has_default_constructor(dest_type,
-                                              /*user_provided_only=*/FALSE,
-                                              /*nontrivial_only=*/FALSE)) {
-      /* A class with a default constructor, initialized by "{}" -- do
-         value initialization. */
-      value_initialization(dest_type,
-                           &icp->variant.braced.start_pos,
-                           &is_constant, &dip, &constant);
-    } else if (is_aggregate_type(dest_type)) {
-      /* Aggregate cases go back to the initialization code in decl_inits.c. */
-      an_init_state init_state;
-      an_init_state *eff_is = is;
-      if (eff_is == NULL) {
-        clear_init_state(&init_state);
-        eff_is = &init_state;
-      }  /* if */
-      prep_aggr_initializer(icp, dest_type, eff_is,
-                            check_narrowing,
-                            fill_in_dtor);
-      constant = eff_is->init_con;
-      dip = eff_is->init_dip;
-      fill_in_dtor = FALSE;
-    } else if (dest_type_is_class &&
-               (ctor_sym = symbol_supplement_for_class(dest_type)->constructor)
-                                                                     != NULL) {
-      /* A class with constructors.  Process as constructor arguments. */
-      scan_ctor_arguments(ctor_sym,
-                          init_component_pos(icp),
-                          (a_type_ptr)NULL,
-                          (a_type_ptr)NULL,
-                          fill_in_dtor,
-                          /*elision_allowed=*/TRUE,
-                          (a_rescan_control_block *)NULL,
-                          /*arg_list_supplied=*/TRUE,
-                          list,
-                          /*trivial_ctor=*/(a_boolean *)NULL,
-                          /*unboxing_conv=*/(a_boolean *)NULL,
-                          /*string_ctor_skip=*/(a_boolean *)NULL,
-                          /*simple_result=*/(an_operand *)NULL,
-                          &dip,
-                          (an_expr_node_ptr *)NULL,
-                          (a_source_position *)NULL);
-      if (dip == NULL) {
-        /* There was an error. */
-        make_error_operand(&operand);
-      } else if (!is_direct_init &&
-                 dip->kind == (a_dynamic_init_kind)dik_constructor) {
-        a_routine_ptr ctor_rout = dip->variant.constructor.ptr;
-        if (ctor_rout != NULL &&
-            ctor_rout->is_explicit_constructor) {
-          /* An explicit constructor cannot be used for
-             copy-list-initialization.  This is tested after overload
-             resolution, rather than as usual causing the constructor not
-             to be viable within overload resolution.  See [over.match.list]
-             in the C++11 standard. */
-          expr_pos_error(ec_explicit_ctor_in_copy_list_init,
-                         init_component_pos(icp));
-        }  /* if */
-      }  /* if */
-      fill_in_dtor = FALSE;
     } else if (list == NULL) {
       /* An empty list ("{}") -- do value initialization. */
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
                            &is_constant, &dip, &constant);
-    } else if (list->next == NULL) {
-      /* A list containing just one member.  Drop the {} and do a recursive
-         call. */
-      if (is_braced_init_component(list)) {
-        /* Multiple levels of braces on a scalar initialization.  Only one
-           is allowed. */
-        if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                             ec_extra_braces_on_simple_init)) {
-          pos_ty_diagnostic(es_discretionary_error,
-                            ec_extra_braces_on_simple_init,
-                            init_component_pos(list),
-                            dest_type);
-        }  /* if */
-      }  /* if */
-      prep_list_initializer(list, dest_type, check_narrowing,
-                            conv_context, fill_in_dtor,
-                            ((result != NULL) ? &operand : (an_operand *)NULL),
-                            is);
-      if (result == NULL) {
-        constant = is->init_con;
-        dip = is->init_dip;
-      }  /* if */
-      fill_in_dtor = FALSE;
     } else {
       /* Something else (e.g., an "int" initialized by a list with two
          elements); error. */

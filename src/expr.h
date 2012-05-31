@@ -151,13 +151,6 @@ Macro to identify braced initialization components.
   ((icp)->kind == (an_init_component_kind)ick_braced)
 
 /*
-Macro that produces TRUE for empty list initialization components (i.e.,
-components representing "{}").
-*/
-#define is_empty_list_init_component(icp)                                    \
-  (is_braced_init_component(icp) && (icp)->variant.braced.list == NULL)
-
-/*
 Return the operand address from an expression init component.
 */
 #define operand_of_arg_list_elem(icp) (&(icp)->variant.expr->operand)
