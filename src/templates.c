@@ -28845,6 +28845,31 @@ scanned.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+a_boolean is_instance_of_class_template(
+				a_type_ptr		instance_type,
+				a_symbol_ptr		template_sym,
+				a_template_arg_ptr	*templ_arg_list)
+/*
+Return TRUE if instance_type is an instance (explicitly specialized or not)
+of the class template specified by template_sym.  When TRUE is returned,
+*templ_arg_list is set to point to the template argument list of the
+instance, otherwise it is set to NULL.
+*/
+{
+  a_boolean			result = FALSE;
+  a_class_symbol_supplement_ptr	cssp;
+
+  *templ_arg_list = NULL;
+  check_assertion(is_immediate_class_type(instance_type));
+  cssp = symbol_supplement_for_class(instance_type);
+  result = cssp->class_template == template_sym;
+  if (result) {
+    *templ_arg_list = instance_type->
+                      variant.class_struct_union.extra_info->template_arg_list;
+  }  /* if */
+  return result;
+}  /* is_instance_of_class_template */
+
 #if DEBUG
 unsigned long db_show_template_space_used(unsigned long grand_total)
 /*

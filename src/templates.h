@@ -992,6 +992,11 @@ Stub version for use when Microsoft extensions are not enabled.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_boolean is_instance_of_class_template(
+				a_type_ptr		instance_type,
+				a_symbol_ptr		template_sym,
+				a_template_arg_ptr	*templ_arg_list);
+
 #if DEBUG
 extern unsigned long db_show_template_space_used(unsigned long grand_total);
 #endif /* DEBUG */
