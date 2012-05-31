@@ -3488,9 +3488,6 @@ state.
 #if NEED_NAME_MANGLING
         essp->discriminator = 0;
 #endif /* NEED_NAME_MANGLING */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        essp->replaced_enum_symbol = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
     case sk_class_or_struct_tag:
