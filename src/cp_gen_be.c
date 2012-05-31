@@ -3341,7 +3341,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              scp->parent_scope != NULL &&
              (scp->parent_scope->kind == (a_scope_kind)sck_file ||
               scp->parent_scope->kind == (a_scope_kind)sck_namespace) &&
-             !((a_type_ptr)scp)->variant.class_struct_union.is_nonreal_class) {
+             !(is_immediate_class_type((a_type_ptr)scp) &&
+               ((a_type_ptr)scp)->
+                                variant.class_struct_union.is_nonreal_class)) {
     /* This is a reference appearing in the prototype instantiation of a
        function template, referring to a non-dependent namespace-scope
        type.  Because MSVC does not do two-stage name lookup in templates,
