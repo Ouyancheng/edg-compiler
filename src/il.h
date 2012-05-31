@@ -1539,7 +1539,10 @@ typedef int a_ctws_options_set;
 			   type of a class member.  This affects the way
 			   in which names are looked up during the
 			   substitution process. */
-/* Note that 0x2 is not currently used. */
+#define CTWS_COPY_ARG_OPERAND_INFO	0x2
+			/* TRUE if arg_operand information on nontype
+			   template arguments should be copied over to the
+			   substituted arguments for use in a rescan. */
 #define CTWS_NON_CONSTANT_EXPR		0x4
 			/* TRUE when copying a non-constant expression,
 			   which can come up under a sizeof. */
@@ -1564,10 +1567,6 @@ typedef int a_ctws_options_set;
 			   explicitly supplied template arguments so that
 			   the resulting type will still be usable to deduce
 			   the remaining pack. */
-#define CTWS_COPY_ARG_OPERAND_INFO	0x80
-			/* TRUE if arg_operand information on nontype
-			   template arguments should be copied over to the
-			   substituted arguments for use in a rescan. */
 
 /*
 Structure used to represent a set of function parameters that resulted from
