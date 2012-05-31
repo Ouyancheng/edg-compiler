@@ -3333,6 +3333,22 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
        instantiation.  Add qualification to ensure that it's dependent in
        the generated code. */
     force_qualified_name = TRUE;
+  } else if (msvc_is_generated_code_target &&
+             entry_kind == (an_il_entry_kind)iek_type &&
+             innermost_function_scope != NULL &&
+             innermost_function_scope->variant.routine.ptr->
+                                                  is_prototype_instantiation &&
+             scp->parent_scope != NULL &&
+             (scp->parent_scope->kind == (a_scope_kind)sck_file ||
+              scp->parent_scope->kind == (a_scope_kind)sck_namespace) &&
+             !((a_type_ptr)scp)->variant.class_struct_union.is_nonreal_class) {
+    /* This is a reference appearing in the prototype instantiation of a
+       function template, referring to a non-dependent namespace-scope
+       type.  MSVC sometimes instantiates function templates in namespaces
+       where an unqualified type name will be ambiguous because of using
+       directives, so we always qualify such names in code targeting MSVC
+       to avoid errors on the generated code. */
+    force_qualified_name = TRUE;
   }  /* if */
   /* If the name is a member of a class or namespace in C++, output the
      class or namespace qualifier. */

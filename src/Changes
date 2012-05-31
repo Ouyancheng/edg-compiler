@@ -1,5 +1,51 @@
 Version 4.5
 
+5/30/12  [EDGcpfe/12916]
+C++-generating back end, Microsoft compatibility: qualified type names in
+function template definitions
+
+MSVC sometimes instantiates function templates such that non-dependent name
+lookup is done in a namespace other than the one in which the template
+definition appears.  This can lead to errors if the name of a type is
+unqualified in the template definition and name lookup resolves differently
+in the definition and instantiation contexts.  In configurations with
+PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the C++-generating back end
+sometimes triggered this problem because it determined whether the name of
+a type appearing in the definition of a function template should be
+qualified or not based on the definition context.  This has now been fixed
+by unconditionally qualifying names of non-dependent namespace-scope types
+in function template definitions when msvc_is_generated_code_target is
+TRUE.  For example:
+
+  typedef long Integer; 
+
+  namespace B { 
+    typedef short Integer; 
+  }
+
+  namespace C { 
+    using namespace B;
+    // "Integer" is now ambiguous in namespace C
+    template<typename F> void run(F f) {
+      f(0);
+    }
+  }
+
+  struct S {
+    template<typename T> void operator()(T) const {
+      ::Integer i = (0);    // Previously put out without "::"; MSVC
+                            // instantiated the template such that lookup
+                            // is done in namespace C, resulting in an
+                            // ambiguity error during instantiation.
+    }
+  };
+
+  int main() {
+    C::run(S());
+    return 0;
+  }
+
+
 5/30/12  [EDGcpfe/12923]
 Add mangling for g++ "restrict" qualifier in Cfront ABIs
 
