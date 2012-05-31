@@ -62,14 +62,19 @@ typedef struct a_variable_remapping_for_inlining {
 		arg_expr;
 			/* Used when remapping parameters to hold the argument
 			   expression.  For vrk_temporary remappings, this
-			   expression is used as the initial value for
-			   temporary.  When evaluate_arg_for_side_effects is
-			   TRUE, the expression is evaluated for its
-			   side-effects (in this case, the expression may have
-			   been modified to reflect only the portion of the
-			   original argument expression that needs to be
-			   evaluated for its side-effects).  NULL for
-			   remappings that aren't parameters. */
+			   expression is used as the initial value for the
+			   temporary.  NULL for remappings that aren't
+			   parameters. */
+  an_expr_node_ptr
+		arg_side_effect_expr;
+			/* If non-NULL, points to an expression that needs
+			   to be executed before the inlined call.  Used in
+			   the case where an argument with side-effects is
+			   passed to an unused parameter.  Also used when
+			   a (presumably lowering-generated) comma operation
+			   is passed as an argument and the second operand of
+			   the comma operation is constant-valued, but the
+			   first operand has side-effects. */
   a_variable_ptr
 		orig_temporary;
 			/* If non-NULL, points to a temporary that was the
@@ -92,13 +97,6 @@ typedef struct a_variable_remapping_for_inlining {
 		local_temporary_reused;
 			/* TRUE if this remapping reuses a previously-allocated
 			   reusable temporary variable. */
-  a_byte_boolean
-		evaluate_arg_for_side_effects;
-			/* TRUE if the argument expression should be evaluated
-			   for its side effects (either because the parameter
-			   is not referenced or because the original argument
-			   expression contained a comma node that was turned
-			   into a constant-value expression). */
 } a_variable_remapping_for_inlining;
 
 
