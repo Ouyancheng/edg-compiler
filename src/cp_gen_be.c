@@ -3344,10 +3344,11 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              !((a_type_ptr)scp)->variant.class_struct_union.is_nonreal_class) {
     /* This is a reference appearing in the prototype instantiation of a
        function template, referring to a non-dependent namespace-scope
-       type.  MSVC sometimes instantiates function templates in namespaces
-       where an unqualified type name will be ambiguous because of using
-       directives, so we always qualify such names in code targeting MSVC
-       to avoid errors on the generated code. */
+       type.  Because MSVC does not do two-stage name lookup in templates,
+       resolving references to non-dependent names in the instantiation
+       context instead of the definition context, we always qualify such
+       names in code targeting MSVC to avoid errors on the generated
+       code. */
     force_qualified_name = TRUE;
   }  /* if */
   /* If the name is a member of a class or namespace in C++, output the

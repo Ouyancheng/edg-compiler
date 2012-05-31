@@ -4,15 +4,19 @@ Version 4.5
 C++-generating back end, Microsoft compatibility: qualified type names in
 function template definitions
 
-MSVC sometimes instantiates function templates such that non-dependent name
-lookup is done in a namespace other than the one in which the template
-definition appears.  This can lead to errors if the name of a type is
-unqualified in the template definition and name lookup resolves differently
-in the definition and instantiation contexts.  In configurations with
-PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the C++-generating back end
-sometimes triggered this problem because it determined whether the name of
-a type appearing in the definition of a function template should be
-qualified or not based on the definition context.  This has now been fixed
+MSVC does not implement the two-stage lookup for names described in the C++
+Standard; in particular, it looks up non-dependent names in the
+instantiation context instead of in the definition context.  This can lead
+to errors if a name is unqualified in the template definition and name
+lookup finds different declarations in the definition and instantiation
+contexts.  In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to
+TRUE, the C++-generating back end sometimes triggered this problem because
+it determined whether the name of a type appearing in the definition of a
+function template should be qualified or not based on the definition
+context.  (The qualification for non-type names can be preserved via the
+name_reference facility enabled by setting
+DEFAULT_RECORD_FORM_OF_NAME_REFERENCE to TRUE, but that applies only to
+names in expressions, not to the names of types.)  This has now been fixed
 by unconditionally qualifying names of non-dependent namespace-scope types
 in function template definitions when msvc_is_generated_code_target is
 TRUE.  For example:
