@@ -7,7 +7,8 @@ In GNU modes, the front end now ignores the "packed" attribute on the
 declarations of functions and typedefs.  (Previously, such usage resulted in
 errors.)  For example:
 
-  __attribute((packed)) void f();
+  __attribute((packed)) void f();  // Now accepted with a warning.
+                                   // Previously an error.
 
 
 5/31/12  [EDGcpfe/12935]
