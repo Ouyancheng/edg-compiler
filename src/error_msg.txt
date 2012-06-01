@@ -2394,6 +2394,7 @@ ec_extra_braces_on_simple_init;;"only one level of braces is allowed on an initi
 ec_not_an_enum_type_name;;"%nd cannot be used as an enumeration type name"
 ec_lambda_returns_with_diff_types;;"in a lambda with an implicit return type, all return statements must return the same type"
 ec_auto_new_with_braced_init;;"a braced-initializer cannot be used with \"new auto\""
+ec_missing_initializer_list_ctor;;"the definition of initializer_list does not contain the expected constructor"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

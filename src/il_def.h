@@ -3227,6 +3227,12 @@ typedef struct a_dynamic_init {
 			   within lowering. */
 #endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
+  a_bit_field	is_creation_of_initializer_list_object:1;
+			/* TRUE if this is an enk_temp_init node that calls
+			   a constructor of std::initializer_list<X> to create
+			   an initializer list object from an array of
+			   values of type X, provided in a temporary passed
+			   as the first argument of the constructor call. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */

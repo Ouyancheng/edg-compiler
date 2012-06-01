@@ -5792,7 +5792,15 @@ Display the indicated dynamic_init structure.
   if (ptr->is_vla_deallocation) {
     disp_boolean("is_vla_deallocation", TRUE);
   }  /* if */
+#if GENERATE_EH_TABLES
+  if (ptr->is_freeing_of_exception_object) {
+    disp_boolean("is_freeing_of_exception_object", TRUE);
+  }  /* if */
+#endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
+  if (ptr->is_creation_of_initializer_list_object) {
+    disp_boolean("is_creation_of_initializer_list_object", TRUE);
+  }  /* if */
   if (ptr->master_entry != NULL) {
     disp_ptr("master_entry", (char *)ptr->master_entry, iek_dynamic_init);
   }  /* if */

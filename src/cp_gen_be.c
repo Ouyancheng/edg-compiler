@@ -13778,6 +13778,38 @@ done:;
 }  /* gen_statement_full */
 
 
+static a_dynamic_init_ptr effective_dynamic_init_for_initializer_list_object(
+                                          a_dynamic_init_ptr dip,
+                                          a_type_ptr         *init_entity_type)
+/*
+dip is a dynamic initialization for the creation of a std::initializer_list
+object from a braced initializer.  The dynamic initialization entry calls
+a hidden constructor passing a temporary array initialized by the contents
+of the braced-init-list.  Return the dynamic initialization entry for the
+underlying temporary array, and the type for that in *init_entity_type,
+thus allowing the caller to skip over the implicit part of that operation.
+*/
+{
+  an_expr_node_ptr arg1;
+
+  check_assertion(dip->is_creation_of_initializer_list_object &&
+                  dip->kind == (a_dynamic_init_kind)dik_constructor);
+  arg1 = dip->variant.constructor.args;
+  check_assertion(arg1 != NULL);
+  while (is_cast_operation_node(arg1) &&
+         arg1->variant.operation.compiler_generated) {
+    arg1 = arg1->variant.operation.operands;
+  }  /* while */
+  check_assertion(is_operation_node(arg1) &&
+                  node_operator_is(arg1, eok_array_to_pointer));
+  arg1 = arg1->variant.operation.operands;
+  check_assertion(arg1->kind == (an_expr_node_kind)enk_temp_init);
+  dip = arg1->variant.init.dynamic_init;
+  *init_entity_type = arg1->type;
+  return dip;
+}  /* effective_dynamic_init_for_initializer_list_object */
+
+
 static a_boolean default_class_array_initialization(
                                              a_dynamic_init_ptr dip,
                                              a_boolean          *is_value_init)
@@ -13910,10 +13942,18 @@ when possible.
   an_expr_node_ptr expr;
   int              closing_parens_needed = 0;
   a_boolean        unnamed_type_case = FALSE;
-  a_boolean        braced_init = dip->is_braced_initializer;
+  a_boolean        braced_init;
   a_boolean        is_value_init;
   a_type_ptr       bare_init_entity_type;
 
+  if (dip->is_creation_of_initializer_list_object) {
+    /* For a dynamic init that is a generated constructor call for the
+       creation of a std::initializer_list object, skip down to the
+       part of the initializer that is not implicit. */
+    dip = effective_dynamic_init_for_initializer_list_object(dip,
+                                                            &init_entity_type);
+  }  /* if */
+  braced_init = dip->is_braced_initializer;
   if (dip->is_explicit_cast) {
     /* An explicit cast.  Decide whether to put it out as a functional-notation
        cast "T(x)" or an old-style cast "(T)(x)". */
@@ -14248,13 +14288,21 @@ and the output of the type name.
         }  /* while */
         if (expr->kind == (an_expr_node_kind)enk_temp_init) {
           a_dynamic_init_ptr pdip = expr->variant.init.dynamic_init;
-          if (pdip->is_braced_initializer && !pdip->is_explicit_cast) {
+          if ((pdip->is_braced_initializer && !pdip->is_explicit_cast) ||
+              pdip->is_creation_of_initializer_list_object) {
             dip = pdip;
             init_entity_type = expr->type;
           }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (dip->is_creation_of_initializer_list_object) {
+    /* For a dynamic init that is a generated constructor call for the
+       creation of a std::initializer_list object, skip down to the
+       part of the initializer that is not implicit. */
+    dip = effective_dynamic_init_for_initializer_list_object(dip,
+                                                            &init_entity_type);
   }  /* if */
   write_tok_ch(paren_form ? '(' : '{');
   if (dip->is_compound_literal) {

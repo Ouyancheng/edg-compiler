@@ -19451,6 +19451,224 @@ reported at the source position given by pos.
 }  /* value_initialization */
 
 
+static a_routine_ptr find_initializer_list_constructor(
+                                                a_type_ptr        list_type,
+                                                a_source_position *pos,
+                                                a_type_ptr        *param1_type,
+                                                a_type_ptr        *param2_type)
+/*
+list_type is an instance of std::initializer_list<X>.  Find the private
+constructor that is used to constructor an initializer_list object from
+an array of values and return a pointer to it.  If the constructor
+does not exist (which indicates some misconfiguration of the front end
+for the library), issue an error at pos and return NULL.  Otherwise,
+Set *param1_type and *param2_type to the types of the first and second
+parameters, and return TRUE.
+*/
+{
+  a_routine_ptr                   ctor_rout = NULL, rout;
+  a_symbol_ptr                    sym;
+  a_class_symbol_supplement_ptr   cssp;
+  an_overload_set_traversal_block ostblock;
+
+  *param1_type = *param2_type = NULL;
+  list_type = skip_typerefs(list_type);
+  check_assertion(is_immediate_class_type(list_type));
+  cssp = symbol_supplement_for_class(list_type);
+  for (sym = set_up_overload_set_traversal_simple(cssp->constructor,
+                                                  &ostblock);
+       sym != NULL;
+       sym = next_symbol_in_overload_set(&ostblock)) {
+    a_type_ptr       rout_type;
+    a_param_type_ptr ptp;
+    check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
+    rout = sym->variant.routine.ptr;
+    check_assertion(special_kind_is(rout, sfk_constructor));
+    rout_type = rout->type;
+    check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+    ptp = rout_type->variant.routine.extra_info->param_type_list;
+    if (ptp != NULL && ptp->next != NULL && ptp->next->next == NULL) {
+      if (is_pointer_type(ptp->type) &&
+          is_integral_type(ptp->next->type)) {
+        *param1_type = ptp->type;
+        *param2_type = ptp->next->type;
+        ctor_rout = rout;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (ctor_rout == NULL) {
+    expr_pos_error(ec_missing_initializer_list_ctor, pos);
+  }  /* if */
+  return ctor_rout;
+}  /* find_initializer_list_constructor */
+
+
+static void make_initializer_list_object(an_init_component_ptr list_icp,
+                                         a_type_ptr            element_type,
+                                         a_type_ptr            list_type,
+                                         an_operand            *operand)
+/*
+Make an operand for the creation of an std::initializer_list<element_type>
+object from the braced-init-list given by list_icp.  list_type is the
+initializer_list<element_type> type, which is the type of the operand
+returned in *operand.  A temporary of array type is created and
+initialized with the contents of the braced-init-list, and that temporary
+is passed to a constructor for std::initializer_list.
+*/
+{
+  a_routine_ptr      dtor = NULL, ctor;
+  a_source_position  *pos = init_component_pos(list_icp);
+  a_targ_size_t      num_elements = 0;
+  a_boolean          unknown_num_elements = FALSE;     
+  a_boolean          any_nonconstant = FALSE;
+  a_constant_ptr     aggr_constant;
+  an_init_component_ptr
+                     elem_icp;
+  a_dynamic_init_ptr dip;
+  a_constant_ptr     con;
+  a_type_ptr         array_type;
+  a_type_ptr         param1_type, param2_type;
+  an_expr_node_ptr   expr, arg1, arg2;
+
+  check_assertion(is_braced_init_component(list_icp));
+  if (is_class_struct_union_type(element_type)) {
+    dtor = expr_select_destructor(element_type,
+                                  element_type,
+                                  pos,
+                                  /*honor_virtual=*/FALSE);
+  }  /* if */
+  /* First we create a temporary of array type initialized to the values
+     in the braced-init-list.  Its value is an aggregate constant
+     containing the values in the braced-init-list. */
+  aggr_constant = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  /* Go through the braced-init-list and add an element to the aggregate
+     constant for each element in the list. */
+  for (elem_icp = list_icp->variant.braced.list;
+       elem_icp != NULL;
+       elem_icp = elem_icp->next) {
+    an_init_state init_state;
+    a_boolean     will_need_partial_aggregate_destructor = FALSE;
+    if (unknown_num_elements ||
+        elem_icp->pack_expansion_descr != NULL) {
+      /* The list element is a pack expansion, or we previously encountered
+         a pack expansion, so we can't tell how many elements there really
+         are. */
+      unknown_num_elements = TRUE;
+      num_elements = 0;
+    } else {
+      /* Count the number of elements in the array. */
+      num_elements++;
+    }  /* if */
+    if (exceptions_enabled && dtor != NULL && elem_icp->next != NULL) {
+      /* This element will need a destructor in case an exception is
+         thrown when part of the aggregate is constructed.  The last
+         element doesn't need it because there's nothing after it that
+         can throw an exception. */
+      will_need_partial_aggregate_destructor = TRUE;
+    }  /* if */
+    clear_init_state(&init_state);
+    /* Convert the list element to the element type. */
+    prep_list_initializer(elem_icp, element_type,
+                          /*check_narrowing=*/TRUE,
+                          CCO_DEFAULT,  /* copy-initialization */
+                          /*fill_in_dtor=*/FALSE,
+                          (an_operand *)NULL,
+                          &init_state);
+    dip = NULL;
+    con = NULL;
+    if (init_state.init_dip != NULL) {
+      /* The initialization is dynamic. */
+      dip = init_state.init_dip;
+    } else {
+      if (init_state.init_error) {
+        /* There was some error. */
+        a_constant constant;
+        set_error_constant(&constant);
+        con = alloc_unshared_constant(&constant);
+      } else {
+        /* The initialization is to a constant. */
+        con = init_state.init_con;
+        check_assertion(con != NULL);
+      }  /* if */
+      /* If a destructor must be specified, force a dynamic initialization. */
+      if (will_need_partial_aggregate_destructor) {
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
+        dip->variant.constant = con;
+        con = NULL;
+      }  /* if */
+    }  /* if */
+    if (dip != NULL) {
+      /* The initialization is dynamic, so use a ck_dynamic_init. */
+      con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      con->variant.dynamic_init = dip;
+      any_nonconstant = TRUE;
+      if (will_need_partial_aggregate_destructor) {
+        /* Add the destructor for partial-aggregate exception cleanup. */
+        dip->destructor = dtor;
+        dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+      }  /* if */
+    }  /* if */
+    /* Add con to the aggregate constant list. */
+    if (aggr_constant->variant.aggregate.first_constant == NULL) {
+      aggr_constant->variant.aggregate.first_constant = con;
+    } else {
+      aggr_constant->variant.aggregate.last_constant->next = con;
+    }  /* if */
+    aggr_constant->variant.aggregate.last_constant = con;
+  }  /* for */
+  /* Make the type of the temporary array. */
+  array_type = alloc_type((a_type_kind)tk_array);
+  array_type->variant.array.element_type = element_type;
+  if (unknown_num_elements) {
+    array_type->variant.array.is_template_dependent_size_array = TRUE;
+  } else {
+    array_type->variant.array.variant.number_of_elements = num_elements;
+  }  /* if */
+  set_type_size(array_type);
+  aggr_constant->type = array_type;
+  /* Make an enk_temp_init whose value is the aggregate determined above. */
+  dip = alloc_expr_dynamic_init(
+                        any_nonconstant ?
+                               (a_dynamic_init_kind)dik_nonconstant_aggregate :
+                               (a_dynamic_init_kind)dik_constant);
+  dip->variant.constant = aggr_constant;
+  dip->is_braced_initializer = TRUE;
+  dip->destructor = dtor;
+  expr = alloc_temp_init_node(array_type, dip,
+                              /*is_lvalue=*/TRUE,
+                              /*is_explicit_cast=*/FALSE);
+  /* Add the decay from array to pointer. */
+  expr = conv_array_expr_to_pointer(expr);
+  /* Make a constructor call to create the initializer_list object. */
+  ctor = find_initializer_list_constructor(list_type, pos,
+                                           &param1_type, &param2_type);
+  if (ctor == NULL) {
+    make_error_operand(operand);
+  } else {
+    dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
+    dip->is_creation_of_initializer_list_object = TRUE;
+    dip->variant.constructor.ptr = ctor;
+    check_assertion(is_pointer_type(param1_type));
+    arg1 = add_cast_if_necessary(expr, param1_type);
+    param2_type = skip_typerefs(param2_type);
+    check_assertion(param2_type->kind == (a_type_kind)tk_integer);
+    arg2 = node_for_integer_constant((a_host_large_integer)num_elements,
+                                     param2_type->variant.integer.int_kind);
+    arg1->next = arg2;
+    dip->variant.constructor.args = arg1;
+    expr = alloc_temp_init_node(list_type, dip,
+                                /*is_lvalue=*/FALSE,
+                                /*is_explicit_cast=*/FALSE);
+    make_expression_operand(expr, operand);
+  }  /* if */
+  operand->position = *pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  operand->end_position = *init_component_end_pos(list_icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* make_initializer_list_object */
+
+
 static void promote_init_component_lifetimes(an_init_component_ptr icp)
 /*
 Promote the object lifetimes in icp and its subtree into the current
@@ -19613,6 +19831,7 @@ is->no_diagnostics and is->check_validity_only.
     }  /* if */
   } else if (braced_init) {
     /* The entity is initialized by a brace-enclosed list. */
+    a_template_arg_ptr    templ_arg_list;
     an_init_component_ptr list = icp->variant.braced.list;
     /* The tests that follow are based on the bullet list in [dcl.init.list]
        of the C++11 standard. */
@@ -19646,6 +19865,22 @@ is->no_diagnostics and is->check_validity_only.
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
                            &is_constant, &dip, &constant);
+    } else if (dest_type_is_class &&
+               symbol_for_std_initializer_list != NULL &&
+               is_instance_of_class_template(skip_typerefs(dest_type),
+                                             symbol_for_std_initializer_list,
+                                             &templ_arg_list)) {
+      /* dest_type is an instance of std::initializer_list<X>, so build
+         an initializer_list object from the braced-init-list. */
+      a_type_ptr element_type;
+      check_assertion(templ_arg_list != NULL &&
+                      templ_arg_list->next == NULL &&
+                      is_type_templ_arg(templ_arg_list));
+      element_type = templ_arg_list->variant.type;
+      make_initializer_list_object(icp,
+                                   element_type,
+                                   dest_type,
+                                   &operand);
     } else if (dest_type_is_class &&
                (ctor_sym = symbol_supplement_for_class(dest_type)->constructor)
                                                                      != NULL) {
