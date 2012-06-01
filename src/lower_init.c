@@ -9701,7 +9701,7 @@ Do IL lowering of an enk_temp_init expression node.
     } else {
       /* Create a temporary variable.  Make it static if necessary. */
       if (!dip->static_temp && !long_lifetime_temps &&
-          !dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
+          dip->kind != (a_dynamic_init_kind)dik_nonconstant_aggregate &&
           dip->has_temporary_lifetime) {
         /* Simple case; a temporary that lasts until the end of the full
            expression will do. */
