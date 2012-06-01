@@ -1,5 +1,15 @@
 Version 4.5
 
+5/31/12  [EDGcpfe/12953]
+GNU compatibility: attribute "packed" on functions and typedefs
+
+In GNU modes, the front end now ignores the "packed" attribute on the
+declarations of functions and typedefs.  (Previously, such usage resulted in
+errors.)  For example:
+
+  __attribute((packed)) void f();
+
+
 5/31/12  [EDGcpfe/12935]
 Microsoft compatibility: Internal error with enum and typedef with same name
 
