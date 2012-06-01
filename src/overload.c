@@ -19653,8 +19653,8 @@ is passed to a constructor for std::initializer_list.
     arg1 = add_cast_if_necessary(expr, param1_type);
     param2_type = skip_typerefs(param2_type);
     check_assertion(param2_type->kind == (a_type_kind)tk_integer);
-    arg2 = node_for_integer_constant((a_host_large_integer)num_elements,
-                                     param2_type->variant.integer.int_kind);
+    arg2 = node_for_host_large_integer((a_host_large_integer)num_elements,
+                                       param2_type->variant.integer.int_kind);
     arg1->next = arg2;
     dip->variant.constructor.args = arg1;
     expr = alloc_temp_init_node(list_type, dip,
