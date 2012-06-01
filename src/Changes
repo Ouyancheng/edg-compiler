@@ -1,5 +1,29 @@
 Version 4.5
 
+6/1/12   [EDGcpfe/12955]
+Additional name hiding diagnostics
+
+Formerly, the front end issued remarks if a local variable hid another
+local variable or function parameter.  Now remarks are also issued if
+a local variable or function parameter hides namespace scope variable
+or class scope field or static data member.
+
+  int j;
+  namespace N {
+    int i;
+  }
+  using namespace N;
+  void f(int j) // hides ::j
+  {
+    int i;   // hides N::i
+  }
+  struct A {
+    int k;
+    static int l;
+    void g(float k, double l) {}  // hides A::k and A::l
+  };
+
+
 5/31/12  [EDGcpfe/12953]
 GNU compatibility: attribute "packed" on functions and typedefs
 

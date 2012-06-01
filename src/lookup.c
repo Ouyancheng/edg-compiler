@@ -3737,7 +3737,8 @@ C and C++.
         }  /* if */
       }  /* if */
       if (sym == NULL && C_dialect == C_dialect_ANSI && !strict_ansi_mode &&
-          (options & IDL_TENTATIVE_TYPE_LOOKUP) == 0) {
+          (options & IDL_TENTATIVE_TYPE_LOOKUP) == 0 &&
+          (options & IDL_IS_LOOKUP_TO_CHECK_FOR_NAME_HIDING) == 0) {
         /* This is a feature taken from SVR4 compatibility mode that has been
            expanded to be used in default ANSI C mode. A symbol declared as
            a block extern in a block that is no longer in scope may be

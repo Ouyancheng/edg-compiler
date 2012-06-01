@@ -197,6 +197,12 @@ represented as a bit set:
 				   should ignore members from a base interface
 				   class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#define IDL_IS_LOOKUP_TO_CHECK_FOR_NAME_HIDING 0x40000000
+				/* TRUE if the lookup is being done to see if
+				   the current declaration hides a name.
+				   This differs from IDL_HIDDEN_NAME_LOOKUP,
+				   which is used when building the hidden
+				   name table. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*

@@ -4691,6 +4691,40 @@ Add the given symbol to its symbol header's inactive list.
 }  /* add_symbol_to_inactive_list */
 
 
+static a_symbol_ptr check_for_hidden_declaration(a_symbol_ptr	new_sym)
+/*
+We are entering a symbol for a for a local variable or parameter (new_sym).
+Look up the symbol ignoring the current scope.  If the lookup finds a field,
+variable, or parameter of the same name, return the hidden symbol.
+*/
+{
+  a_symbol_ptr		sym;
+  a_symbol_ptr		hidden_sym = NULL;
+  a_symbol_locator	locator;
+
+  make_locator_for_symbol(new_sym, &locator);
+  clear_specific_symbol(locator);
+  sym = normal_id_lookup(&locator, IDL_SKIP_CURR_SCOPE |
+                                   IDL_IS_LOOKUP_TO_CHECK_FOR_NAME_HIDING);
+  if (sym != NULL &&
+      (sym->kind == (a_symbol_kind)sk_field ||
+       sym->kind == (a_symbol_kind)sk_variable ||
+       sym->kind == (a_symbol_kind)sk_static_data_member)) {
+    hidden_sym = locator.specific_symbol;
+    /* Only use a projection symbol if it refers to a using-declaration.
+       Otherwise, use the fundamental symbol.  Synthesized namespace
+       projection symbols result from using-directive lookups, so those
+       should not be used in diagnostics to name the hidden symbol. */
+    if (hidden_sym->synthesized_namespace_projection ||
+        (hidden_sym->kind == (a_symbol_kind)sk_projection &&
+         !hidden_sym->variant.projection.is_using_decl)) {
+      hidden_sym = sym;
+    }  /* if */
+  }  /* if */
+  return hidden_sym;
+}  /* check_for_hidden_declaration */
+
+
 static void link_symbol_into_symbol_table(a_symbol_ptr  sym_ptr,
                                           a_scope_depth scope_depth,
                                           a_boolean     suppress_error)
@@ -4764,33 +4798,7 @@ symbol must be added to the inactive list.
         old_sym_ptr = hdr_ptr->inactive_symbols;
         scope_number = scope_stack[scope_depth].number;
       } else {
-        a_scope_stack_entry_ptr	ssep = NULL;
         old_sym_ptr = hdr_ptr->symbol;
-        if (old_sym_ptr != NULL) {
-          /* Make sure the symbol would actually be visible. */
-          for (ssep = scope_stack_entry_for(depth_scope_stack); ssep != NULL;
-               ssep = previous_scope_of(ssep)) {
-            if (old_sym_ptr->decl_scope == ssep->number) break;
-          }  /* for */
-          /* Check for a local variable hiding another local variable in the
-             enclosing scope (a remark will be issued later, unless a more
-             serious declaration error is encountered). */
-          if (ssep != NULL &&
-              depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-              old_sym_ptr->kind == (a_symbol_kind)sk_variable &&
-              old_sym_ptr->variant.variable.ptr
-                         ->source_corresp.is_local_to_function &&
-              sym_ptr->kind == (a_symbol_kind)sk_variable &&
-              /* The following condition is needed to avoid having function
-                 parameters from an instantiation being reported as hiding
-                 variables (or parameters) from a function that triggered the
-                 instantiation. */
-              old_sym_ptr->decl_scope >=
-                         scope_stack[depth_innermost_function_scope].number) {
-            /* If we found a matching scope in above, the symbol was hidden. */
-            hidden_sym = old_sym_ptr;
-          }  /* if */
-        }  /* if */
         /* If the symbol is not being entered in the innermost scope, skip
            past any symbols on the active list from the scopes inside the
            entry scope.  That's necessary so that the new symbol can be added
@@ -4806,6 +4814,16 @@ symbol must be added to the inactive list.
             old_sym_ptr = old_sym_ptr->next;
           }  /* while */
         }  /* for */
+      }  /* if */
+      /* Check for a local variable hiding another variable, field, or
+         static data member  in an enclosing scope (a remark will be issued
+         later, unless a more serious declaration error is encountered).
+         This check is suppressed if we are not entering the symbol in the
+         current scope. */
+      if (scope_depth == depth_scope_stack &&
+          sym_ptr->kind == (a_symbol_kind)sk_variable &&
+          depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        hidden_sym = check_for_hidden_declaration(sym_ptr);
       }  /* if */
       sym_name_space_kind = name_space_for_symbol_kind[(int)sym_ptr->kind];
       if (!C_mode()) {
@@ -4954,11 +4972,11 @@ symbol must be added to the inactive list.
       }  /* if */
     }  /* if */
     if (hidden_sym != NULL && !redecl_err) {
-      /* hidden_sym represents a local variable hidden by another local
-         variable declaration.  Issue a remark.  The remark is delayed
-         until we know that the declaration was not the cause of an error
-         (in which case the remark would be moot). */
-      pos_sy_remark(ec_local_variable_hidden, &sym_ptr->decl_position,
+      /* hidden_sym represents a variable, field, or static data member
+         hidden by a local variable or parameter declaration.  Issue a remark.
+         The remark is delayed until we know that the declaration was not
+         the cause of an error (in which case the remark would be moot). */
+      pos_sy_remark(ec_variable_hides_entity, &sym_ptr->decl_position,
                     hidden_sym);
     }  /* if */
     if (add_sym_to_inactive_list) {
