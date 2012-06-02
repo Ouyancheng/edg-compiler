@@ -4718,16 +4718,19 @@ variable, or parameter of the same name, return the hidden symbol.
     if (new_sym->variant.variable.ptr != NULL) {
       a_scope_ptr	sp;
       sp = new_sym->variant.variable.ptr->source_corresp.parent_scope;
-      if (sp->kind == (a_scope_kind)sck_file ||
-          sp->kind == (a_scope_kind)sck_namespace) {
+      if (sp != NULL &&
+          (sp->kind == (a_scope_kind)sck_file ||
+           sp->kind == (a_scope_kind)sck_namespace)) {
         new_is_from_namespace = TRUE;
       }  /* if */
     }  /* if */
-    if (sym->variant.variable.ptr != NULL) {
+    if (sym->kind == (a_symbol_kind)sk_variable &&
+        sym->variant.variable.ptr != NULL) {
       a_scope_ptr	sp;
       sp = sym->variant.variable.ptr->source_corresp.parent_scope;
-      if (sp->kind == (a_scope_kind)sck_file ||
-          sp->kind == (a_scope_kind)sck_namespace) {
+      if (sp != NULL &&
+          (sp->kind == (a_scope_kind)sck_file ||
+           sp->kind == (a_scope_kind)sck_namespace)) {
         hidden_is_from_namespace = TRUE;
       }  /* if */
     }  /* if */
