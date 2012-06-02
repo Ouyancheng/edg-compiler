@@ -4708,25 +4708,40 @@ variable, or parameter of the same name, return the hidden symbol.
                                    IDL_IS_LOOKUP_TO_CHECK_FOR_NAME_HIDING);
   /* Check for the hiding of a field, variable, or static data member.
      We don't considering hiding to have occurred if both symbols are from
-     the file scope, which can occur with block extern declarations. */
+     a namespace scope, which can occur with block extern declarations. */
   if (sym != NULL &&
       (sym->kind == (a_symbol_kind)sk_field ||
        sym->kind == (a_symbol_kind)sk_variable ||
-       sym->kind == (a_symbol_kind)sk_static_data_member) &&
-       (new_sym->variant.variable.ptr == NULL ||
-        new_sym->variant.variable.ptr->source_corresp.parent_scope !=
-                                                     il_header.primary_scope ||
-        sym->variant.variable.ptr->source_corresp.parent_scope !=
-                                                    il_header.primary_scope)) {
-    hidden_sym = locator.specific_symbol;
-    /* Only use a projection symbol if it refers to a using-declaration.
-       Otherwise, use the fundamental symbol.  Synthesized namespace
-       projection symbols result from using-directive lookups, so those
-       should not be used in diagnostics to name the hidden symbol. */
-    if (hidden_sym->synthesized_namespace_projection ||
-        (hidden_sym->kind == (a_symbol_kind)sk_projection &&
-         !hidden_sym->variant.projection.is_using_decl)) {
-      hidden_sym = sym;
+       sym->kind == (a_symbol_kind)sk_static_data_member)) {
+    a_boolean		new_is_from_namespace = FALSE;
+    a_boolean		hidden_is_from_namespace = FALSE;
+    if (new_sym->variant.variable.ptr != NULL) {
+      a_scope_ptr	sp;
+      sp = new_sym->variant.variable.ptr->source_corresp.parent_scope;
+      if (sp->kind == (a_scope_kind)sck_file ||
+          sp->kind == (a_scope_kind)sck_namespace) {
+        new_is_from_namespace = TRUE;
+      }  /* if */
+    }  /* if */
+    if (sym->variant.variable.ptr != NULL) {
+      a_scope_ptr	sp;
+      sp = sym->variant.variable.ptr->source_corresp.parent_scope;
+      if (sp->kind == (a_scope_kind)sck_file ||
+          sp->kind == (a_scope_kind)sck_namespace) {
+        hidden_is_from_namespace = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!new_is_from_namespace || !hidden_is_from_namespace) {
+      hidden_sym = locator.specific_symbol;
+      /* Only use a projection symbol if it refers to a using-declaration.
+         Otherwise, use the fundamental symbol.  Synthesized namespace
+         projection symbols result from using-directive lookups, so those
+         should not be used in diagnostics to name the hidden symbol. */
+      if (hidden_sym->synthesized_namespace_projection ||
+          (hidden_sym->kind == (a_symbol_kind)sk_projection &&
+           !hidden_sym->variant.projection.is_using_decl)) {
+        hidden_sym = sym;
+      }  /* if */
     }  /* if */
   }  /* if */
   return hidden_sym;
