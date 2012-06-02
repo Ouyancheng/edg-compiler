@@ -5903,6 +5903,8 @@ for use in generating cross-reference output describing this declaration.
 */
 {
   a_symbol_ptr             sym = NULL, linked_symbol;
+  a_boolean                sym_must_be_entered = FALSE;
+  a_boolean                inhibit_redecl_error = FALSE;
   a_type_ptr               type_ptr = dps->type;
   a_storage_class          storage_class = dps->storage_class;
   an_id_linkage_block      idlb;
@@ -6086,14 +6088,15 @@ for use in generating cross-reference output describing this declaration.
   }  /* if */
   if (sym == NULL) {
     a_boolean  in_microsoft_for_init = FALSE;
-    a_boolean  inhibit_redecl_error =
-                      microsoft_mode &&
-                      microsoft_for_init_hiding(locator, effective_decl_level,
-                                                &in_microsoft_for_init);
-    /* There is no (compatible) symbol, so enter one now. */
-    sym = enter_symbol((a_symbol_kind)sk_variable, locator,
-                       effective_decl_level,
-                       inhibit_redecl_error || redecl_error_already_issued);
+    inhibit_redecl_error = microsoft_mode &&
+                           microsoft_for_init_hiding(locator,
+                                                     effective_decl_level,
+                                                     &in_microsoft_for_init);
+    /* There is no (compatible) symbol, so create one now.  The symbol is
+       not entered yet because it needs to be set to refer to the
+       variable for the checking of hiding. */
+    sym = make_symbol((a_symbol_kind)sk_variable, locator);
+    sym_must_be_entered = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     sym->variant.variable.declared_in_for_init = in_microsoft_for_init;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -6255,6 +6258,12 @@ for use in generating cross-reference output describing this declaration.
   }  /* if */
   /* Link the symbol to the IL variable entry. */
   sym->variant.variable.ptr = variable_ptr;
+  if (sym_must_be_entered) {
+    /* Add the previously created symbol to the symbol table. */
+    add_symbol_to_symbol_table(sym, effective_decl_level,
+                               inhibit_redecl_error ||
+                               redecl_error_already_issued);
+  }  /* if */
   if (*ext_sym != NULL &&
       (*ext_sym)->variant.extern_symbol_descr->variant.variable == NULL) {
     /* Link the external symbol to the IL variable entry. */

@@ -4816,12 +4816,17 @@ symbol must be added to the inactive list.
         }  /* for */
       }  /* if */
       /* Check for a local variable hiding another variable, field, or
-         static data member  in an enclosing scope (a remark will be issued
+         static data member in an enclosing scope (a remark will be issued
          later, unless a more serious declaration error is encountered).
          This check is suppressed if we are not entering the symbol in the
-         current scope. */
+         current scope.  If the symbol has already been set to point to
+         a variable, don't issue a diagnostic if the variable is from the
+         file scope because it is actually a linked declaration. */
       if (scope_depth == depth_scope_stack &&
           sym_ptr->kind == (a_symbol_kind)sk_variable &&
+          (sym_ptr->variant.variable.ptr == NULL ||
+           sym_ptr->variant.variable.ptr->source_corresp.parent_scope !=
+                                                    il_header.primary_scope) &&
           depth_innermost_function_scope != NO_SCOPE_DEPTH) {
         hidden_sym = check_for_hidden_declaration(sym_ptr);
       }  /* if */
