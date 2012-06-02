@@ -4706,10 +4706,18 @@ variable, or parameter of the same name, return the hidden symbol.
   clear_specific_symbol(locator);
   sym = normal_id_lookup(&locator, IDL_SKIP_CURR_SCOPE |
                                    IDL_IS_LOOKUP_TO_CHECK_FOR_NAME_HIDING);
+  /* Check for the hiding of a field, variable, or static data member.
+     We don't considering hiding to have occurred if both symbols are from
+     the file scope, which can occur with block extern declarations. */
   if (sym != NULL &&
       (sym->kind == (a_symbol_kind)sk_field ||
        sym->kind == (a_symbol_kind)sk_variable ||
-       sym->kind == (a_symbol_kind)sk_static_data_member)) {
+       sym->kind == (a_symbol_kind)sk_static_data_member) &&
+       (new_sym->variant.variable.ptr == NULL ||
+        new_sym->variant.variable.ptr->source_corresp.parent_scope !=
+                                                     il_header.primary_scope ||
+        sym->variant.variable.ptr->source_corresp.parent_scope !=
+                                                    il_header.primary_scope)) {
     hidden_sym = locator.specific_symbol;
     /* Only use a projection symbol if it refers to a using-declaration.
        Otherwise, use the fundamental symbol.  Synthesized namespace
@@ -4824,9 +4832,6 @@ symbol must be added to the inactive list.
          file scope because it is actually a linked declaration. */
       if (scope_depth == depth_scope_stack &&
           sym_ptr->kind == (a_symbol_kind)sk_variable &&
-          (sym_ptr->variant.variable.ptr == NULL ||
-           sym_ptr->variant.variable.ptr->source_corresp.parent_scope !=
-                                                    il_header.primary_scope) &&
           depth_innermost_function_scope != NO_SCOPE_DEPTH) {
         hidden_sym = check_for_hidden_declaration(sym_ptr);
       }  /* if */
