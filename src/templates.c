@@ -15712,6 +15712,32 @@ definition of the std::initializer_list class template.
 }  /* make_symbol_header_for_initializer_list */
 
 
+static a_boolean check_std_initializer_list_parameter(
+                                               a_template_param_ptr   tpp,
+                                               a_source_position_ptr  diag_pos)
+/*
+Return TRUE if the given template parameter list is valid for
+std::initializer_list.  Otherwise, return FALSE, and issue an error at the
+given position.
+*/
+{
+  a_boolean  okay = FALSE;
+
+  if (tpp != NULL && tpp->next == NULL) {
+    /* Exactly one template parameter.  Now, check that it is an ordinary type
+       parameter with no default. */
+    if (tpp->param_symbol != NULL && symbol_is(tpp->param_symbol, sk_type) &&
+        !tpp->is_pack && !tpp->has_default_arg) {
+      okay = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!okay) {
+    pos_error(ec_invalid_std_initializer_list_parameter_list, diag_pos);
+  }  /* if */
+  return okay;
+}  /* check_std_initializer_list_parameter */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
@@ -16468,8 +16494,11 @@ friend_template_checks_done:
           symbol_for_namespace_std != NULL &&
           sym->parent.namespace_ptr == 
                         symbol_for_namespace_std->variant.namespace_info.ptr) {
-        /* This is std::initializer_list. */
-        symbol_for_std_initializer_list = sym;
+        if (check_std_initializer_list_parameter(templ_params,
+                                                 &locator.source_position)) {
+          /* This is std::initializer_list. */
+          symbol_for_std_initializer_list = sym;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

@@ -2396,6 +2396,7 @@ ec_lambda_returns_with_diff_types;;"in a lambda with an implicit return type, al
 ec_auto_new_with_braced_init;;"a braced-initializer cannot be used with \"new auto\""
 ec_missing_initializer_list_ctor;;"the definition of initializer_list does not contain the expected constructor"
 ec_variable_hides_entity;;"declaration hides %nd"
+ec_invalid_std_initializer_list_parameter_list;;"invalid template parameter list for std::initializer_list (it should be one ordinary type parameter with no default)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
