@@ -3927,6 +3927,10 @@ extern a_symbol_ptr find_symbol_list_in_table(
 			a_scope_pointers_block_ptr	pointers_block,
 			a_symbol_header_ptr		header);
 
+extern void add_symbol_to_scope_list(a_symbol_ptr  sym_ptr,
+                                     a_scope_depth scope_depth,
+                                     a_boolean     *err);
+
 extern
 a_boolean find_projected_symbol(
 			a_type_ptr               class_ptr,

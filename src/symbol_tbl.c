@@ -5215,9 +5215,9 @@ hash table or NULL if no entry was found.
 }  /* find_symbol_list_in_table  */
 
 
-static void add_symbol_to_scope_list(a_symbol_ptr  sym_ptr,
-                                     a_scope_depth scope_depth,
-                                     a_boolean     *err)
+void add_symbol_to_scope_list(a_symbol_ptr  sym_ptr,
+                              a_scope_depth scope_depth,
+                              a_boolean     *err)
 /*
 Add the given symbol to the list of symbols for the scope at scope_depth
 in the scope stack.  *err is set to TRUE if there is an error; it is not

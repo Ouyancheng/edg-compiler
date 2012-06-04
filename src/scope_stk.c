@@ -6436,6 +6436,10 @@ about the scope being popped.
         /* File scope and namespace scope symbols were removed from the
            symbol table when the scope was first closed.  Don't do it again
            now. */
+      } else if (symbol_is(sym, sk_field) &&
+                 sym->variant.field.ptr->is_captured_this) {
+        /* A field representing a captured "this" is on the scope list, but not
+           in the symbol table. */
       } else {
         /* Remove the symbol from the symbol table.  This is not done for
            namespace extension scopes because symbols from namespace extension
