@@ -1,5 +1,13 @@
 Version 4.5
 
+6/5/12   [EDGcpfe/12950]
+Incorrectly generated copy constructor for lambda captures "this"
+
+In modes accepting C++11-style lambda expressions, the copy constructor
+generated for closure types failed to copy the field corresponding to a
+captured "this" parameter.  This is now fixed.
+
+
 6/4/12   [EDGcpfe/12947]
 Universal-character-names in narrow character literals
 
