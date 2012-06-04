@@ -2203,8 +2203,14 @@ extern void generic_cast_operand(an_operand         *operand,
                                  a_source_position  *type_position);
 
 
-extern
-an_expr_node_ptr prep_generic_argument_list(an_arg_list_elem_ptr arg_list);
+extern void prep_generic_argument(an_arg_list_elem_ptr arg);
+
+extern void prep_generic_argument_list(an_arg_list_elem_ptr arg_list);
+
+extern an_expr_node_ptr make_expr_from_argument(an_arg_list_elem_ptr arg);
+
+extern an_expr_node_ptr make_expr_list_from_argument_list(
+                                                an_arg_list_elem_ptr arg_list);
 
 extern
 void template_binary_operation(an_expr_operator_kind   op,

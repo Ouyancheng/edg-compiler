@@ -51,6 +51,11 @@ static void prep_conversion_operand(
                                 a_conv_context_set conv_context,
                                 an_error_code      incompatible_err,
                                 a_source_position  *err_pos);
+static void prep_argument(an_arg_list_elem_ptr alep,
+                          a_param_type_ptr     formal_param,
+                          a_conv_descr         *conversion,
+                          an_error_code        err_code,
+                          an_operand           *result);
 static a_boolean type_matches_type_code(a_type_ptr type,
                                         char       type_code);
 static a_boolean microsoft_can_bind_ref_to_rvalue(an_operand *operand);
@@ -10691,14 +10696,15 @@ next parameter.
 {
   a_boolean            do_default_promotion;
   a_boolean            arg_is_fmt_string = FALSE;
-  an_operand           *operand;
+  a_boolean            operand_set = FALSE;
+  an_operand           *operand = NULL;
+  an_operand           local_operand;
   a_param_type_ptr     ptp = arg_block->curr_param_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_arg_match_summary arg_match;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_source_position    *pos = init_component_pos(arg_list_elem);
 
-  check_arg_list_elem_is_expression(arg_list_elem);  /*FIXME*/
-  operand = operand_of_arg_list_elem(arg_list_elem);
   /* Count the arguments. */
   arg_block->arg_ctr++;
   /* Check for too many arguments and determine whether or not the default
@@ -10738,12 +10744,12 @@ next parameter.
         if (microsoft_mode && C_mode()) {
           /* MSVC++ 4.2 allows extra arguments with just a warning in
              C mode. */
-          expr_pos_warning(ec_too_many_arguments, &operand->position);
+          expr_pos_warning(ec_too_many_arguments, pos);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         {
-          expr_pos_error(ec_too_many_arguments, &operand->position);
+          expr_pos_error(ec_too_many_arguments, pos);
         }  /* if */
       }  /* if */
       arg_block->have_param_info = FALSE;
@@ -10756,7 +10762,7 @@ next parameter.
       if (arg_block->varargs_count == NOT_LINT_VARARGS) {
         /* A lint-style varargs comment does not apply, so warning:
            extra actual argument. */
-        expr_pos_warning(ec_too_many_arguments, &operand->position);
+        expr_pos_warning(ec_too_many_arguments, pos);
         arg_block->have_param_info = FALSE;
       }  /* if */
     }  /* if */
@@ -10765,6 +10771,9 @@ next parameter.
   if (do_default_promotion) {
     /* Either an ellipsis was encountered or this is an old-style argument
        list; do the default argument promotion. */
+    check_arg_list_elem_is_expression(arg_list_elem);
+    operand = operand_of_arg_list_elem(arg_list_elem);
+    operand_set = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && arg_block->has_ellipsis &&
         ellipsis_arguments_do_not_promote(arg_block)) {
@@ -10819,18 +10828,24 @@ next parameter.
     }  /* if */
   } else if (arg_block->unknown_dependent_function) {
     /* Argument of unknown template-dependent function. */
-    prep_generic_operand(operand);
+    prep_generic_argument(arg_list_elem);
   } else if (arg_block->pack_encountered) {
     /* We've encountered a parameter pack or pack expansion, so we can't
        correlate parameters and arguments. */
-    prep_generic_operand(operand);
+    prep_generic_argument(arg_list_elem);
   } else if (arg_block->args_will_be_discarded) {
     /* Arguments will be discarded, so don't check them.  Replace unusual
        operand kinds with error operands so they won't cause problems later. */
-    if (!is_constant_operand(operand) && !is_expression_operand(operand)) {
-      conv_to_error_operand(operand);
+    if (!is_expression_component(arg_list_elem)) {
+      /* A brace-enclosed list as an argument. */
     } else {
-      change_operand_refs_to_error(operand);
+      operand = operand_of_arg_list_elem(arg_list_elem);
+      operand_set = TRUE;
+      if (!is_constant_operand(operand) && !is_expression_operand(operand)) {
+        conv_to_error_operand(operand);
+      } else {
+        change_operand_refs_to_error(operand);
+      }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (arg_block->passing_cli_param_array_element) {
@@ -10859,8 +10874,11 @@ next parameter.
     /* Check the argument for compatibility against the parameter,
        casting it if necessary.  Also convert from lvalue to rvalue
        when appropriate. */
-    prep_argument_operand(operand, ptp,
-                          (a_conv_descr_ptr)NULL, ec_incompatible_param);
+    operand = &local_operand;
+    prep_argument(arg_list_elem, ptp,
+                  (a_conv_descr_ptr)NULL, ec_incompatible_param,
+                  operand);
+    operand_set = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
     if (ptp->nonnull && op_is_null_pointer_value(operand)) {
       /* The parameter carries the GNU "nonnull" attribute and a null pointer
@@ -10876,6 +10894,11 @@ next parameter.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (arg_block->passing_cli_param_array_element) {
       /* This argument fills an element of a parameter array. */
+      if (!operand_set) {
+        check_arg_list_elem_is_expression(arg_list_elem);
+        operand = operand_of_arg_list_elem(arg_list_elem);
+        operand_set = TRUE;
+      }  /* if */
       expr = expr_for_param_array_element_arg(
                                        operand,
                                        arg_block->cli_param_array_element_type,
@@ -10883,8 +10906,11 @@ next parameter.
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
-    {
+    if (operand_set) {
       expr = make_node_from_operand_for_expr_list(operand);
+    } else {
+      /* The argument is still in arg-list-element form. */
+      expr = make_expr_from_argument(arg_list_elem);
     }  /* if */
     if (arg_block->argument_tail == NULL) {
       arg_block->argument_head = expr;
@@ -10926,7 +10952,7 @@ next parameter.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (arg_is_fmt_string) {
+  if (arg_is_fmt_string && operand_set) {
     obtain_format_string_from_arg(make_node_from_operand(operand), arg_block);
   }  /* if */
 }  /* process_call_argument */
@@ -11443,7 +11469,8 @@ overloaded operator cases.
   } else if (unknown_dependent_function) {
     /* The called function is unknown because some of the arguments
        are template dependent.  Make an argument list. */
-    *arg_expr_list = prep_generic_argument_list(arg_list);
+    prep_generic_argument_list(arg_list);
+    *arg_expr_list = make_expr_list_from_argument_list(arg_list);
   } else {
     /* There was an error.  Change the references on the operand lists to
        errors. */
@@ -20370,6 +20397,43 @@ to be acceptable (as far as overload resolution checks that), and
     force_operand_to_constant_if_possible(source_operand);
   }  /* if */
 }  /* prep_argument_operand */
+
+
+static void prep_argument(an_arg_list_elem_ptr alep,
+                          a_param_type_ptr     formal_param,
+                          a_conv_descr         *conversion,
+                          an_error_code        err_code,
+                          an_operand           *result)
+/*
+Check that alep is acceptable as an actual argument for the formal
+parameter described by formal_param.  If not, issue the error
+err_code.  If so, convert the operand to the formal parameter type
+and return it in *result.  If conversion is non-NULL, the argument has
+previously been found to be acceptable (as far as overload resolution
+checks that), and *conversion describes it.
+*/
+{
+  if (is_expression_component(alep)) {
+    /* The argument is an expression. */
+    copy_operand(operand_of_arg_list_elem(alep), result);
+    prep_argument_operand(result,
+                          formal_param, conversion, err_code);
+  } else if (is_braced_init_component(alep)) {
+    /* The argument is a braced-init-list. */
+    a_conv_context_set
+             conv_context = (formal_param->move_ctor_or_assign_parameter ?
+                               CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER :
+                               CCO_DEFAULT);
+    prep_list_initializer(alep, formal_param->type,
+                          /*check_narrowing=*/TRUE,
+                          conv_context,
+                          /*fill_in_dtor=*/TRUE,
+                          result,
+                          (an_init_state *)NULL);
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* prep_argument */
 
 
 void prep_assignment_operand(an_operand        *source_operand,

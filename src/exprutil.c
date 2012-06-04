@@ -11165,25 +11165,67 @@ e.g., if the source operand is an lvalue.
 }  /* generic_cast_operand */
 
 
-static an_expr_node_ptr prep_generic_expression_list(
+void prep_generic_argument(an_arg_list_elem_ptr arg)
+/*
+Prepare a generic argument, i.e., an argument of a call scanned during
+a prototype instantiation, for which we do not know the way the argument
+is going to be used.  The argument can be an expression or a brace-enclosed
+list.
+*/
+{
+  if (is_expression_component(arg)) {
+    prep_generic_operand(operand_of_arg_list_elem(arg));
+  } else if (is_braced_init_component(arg)) {
+    prep_generic_argument_list(arg->variant.braced.list);
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* prep_generic_argument */
+
+
+void prep_generic_argument_list(an_arg_list_elem_ptr arg_list)
+/*
+Prepare a generic argument list, i.e., one scanned during a prototype
+instantiation for which we do not know the actual function to be called.
+*/
+{
+  an_arg_list_elem_ptr arg;
+
+  for (arg = arg_list; arg != NULL; arg = arg->next) {
+    prep_generic_argument(arg);
+  } /* for */
+}  /* prep_generic_argument_list */
+
+
+an_expr_node_ptr make_expr_from_argument(an_arg_list_elem_ptr arg)
+/*
+Make and return an expression for an argument in arg-list-element form.
+*/
+{
+  an_expr_node_ptr expr;
+  an_operand       *operand;
+
+  check_assertion(is_expression_component(arg));  /*FIXME*/
+  operand = operand_of_arg_list_elem(arg);
+  expr = make_node_from_operand_for_expr_list(operand);
+  return expr;
+}  /* make_expr_from_argument */
+
+
+an_expr_node_ptr make_expr_list_from_argument_list(
                                                  an_arg_list_elem_ptr arg_list)
 /*
-Prepare a generic expression list, i.e., one scanned during a prototype
-instantiation for which we do not know the way the list members are going to
-be used.  Return a list of expressions.
+Make and return an expression list for an argument list.  Some of the
+arguments may be brace-enclosed lists, in prototype instantiations.
 */
 {
   an_expr_node_ptr     expr, prev_expr, expr_list;
-  an_arg_list_elem_ptr alep;
+  an_arg_list_elem_ptr arg;
 
   prev_expr = NULL;
   expr_list = NULL;
-  for (alep = arg_list; alep != NULL; alep = alep->next) {
-    an_operand *operand;
-    check_assertion(is_expression_component(alep));  /*FIXME*/
-    operand = operand_of_arg_list_elem(alep);
-    prep_generic_operand(operand);
-    expr = make_node_from_operand_for_expr_list(operand);
+  for (arg = arg_list; arg != NULL; arg = arg->next) {
+    expr = make_expr_from_argument(arg);
     /* Add this expression to the end of the expression-form list
        being built up. */
     if (prev_expr == NULL) {
@@ -11194,20 +11236,7 @@ be used.  Return a list of expressions.
     prev_expr = expr;
   }  /* for */
   return expr_list;
-}  /* prep_generic_expression_list */
-
-
-an_expr_node_ptr prep_generic_argument_list(an_arg_list_elem_ptr arg_list)
-/*
-Prepare a generic argument list, i.e., one scanned during a prototype
-instantiation for which we do not know the actual function to be called.
-Return a list of argument expressions.
-*/
-{
-  an_expr_node_ptr args = prep_generic_expression_list(arg_list);
-
-  return args;
-}  /* prep_generic_argument_list */
+}  /* make_expr_list_from_argument_list */
 
 
 void template_binary_operation(an_expr_operator_kind   op,
@@ -11285,7 +11314,8 @@ list of the subscripts.
 
   prep_generic_operand(operand_1);
   op_1_expr = make_node_from_operand(operand_1);
-  subsc_exprs = prep_generic_expression_list(subscripts);
+  prep_generic_argument_list(subscripts);
+  subsc_exprs = make_expr_list_from_argument_list(subscripts);
   op_1_expr->next = subsc_exprs;
   op_expr = make_lvalue_operator_node((an_expr_operator_kind)eok_cli_subscript,
                                       type_of_unknown_templ_param_nontype,
