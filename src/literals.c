@@ -1132,28 +1132,26 @@ void conv_char_literal(unsigned long num_chars,
 Convert a character constant from external form to internal form.
 start_of_curr_token and end_of_curr_token point to the two ends of the
 external form.  The internal form is placed in const_for_curr_token.  If
-there is no error, *err_code is set to ec_no_error (which is 0);
-otherwise, *err_code is set to an appropriate error code and *err_pos
-is set to the character position of the error.  num_chars indicates
-the number of characters contained within the quotes (after escape
-processing, and in wide characters if the constant is wide).
-*/
+there is no error, *err_code is set to ec_no_error (which is 0); otherwise,
+*err_code is set to an appropriate error code and *err_pos is set to the
+character position of the error.  num_chars indicates the number of
+characters contained within the quotes (after escape processing, and in
+wide characters if the constant is wide).  If the literal contains a UCN,
+the actual number of converted characters may be less than num_chars.  */
 {
-  unsigned long     i, ch;
-#if GNU_EXTENSIONS_ALLOWED
-  unsigned long     skip_count = 0;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  an_integer_value  number, ch_int_val;
-  char              *temp_ptr;
-  a_boolean         err, too_many_chars = FALSE, bad_character = FALSE;
-  a_type_ptr        con_type;
-  sizeof_t          constant_size;
-  unsigned int      char_size;
-  unsigned long     centity_mask;
-  a_boolean         centity_is_signed;
-  int               centity_bits;
-  int               encoding_length;
-  a_character_kind  character_kind;
+  unsigned long           i, ch;
+  an_integer_value        number, ch_int_val;
+  char                    *temp_ptr;
+  a_boolean               err, too_many_chars = FALSE, bad_character = FALSE;
+  a_type_ptr              con_type;
+  sizeof_t                constant_size;
+  unsigned int            char_size;
+  unsigned long           centity_mask;
+  a_boolean               centity_is_signed;
+  int                     centity_bits;
+  int                     encoding_length;
+  a_character_kind        character_kind;
+  a_char_conversion_state conv_state;
 
   /* Determine the constant type as follows:
        Single-character constant     ('x'): int in C, char in C++
@@ -1176,20 +1174,11 @@ processing, and in wide characters if the constant is wide).
       centity_is_signed = targ_has_signed_chars; 
       temp_ptr = start_of_curr_token+1;
       if (C_mode() || num_chars > 1) {
+        /* Character constants in C have type int, as do multi-character
+           literals in C++.  In the case of a C++ literal containing a UCN
+           that translates to a single character, the type will be adjusted
+           to char below after the value is known. */
         con_type = integer_type((an_integer_kind)ik_int);
-        /* Record whether there are too many characters to fit. */
-        if (constant_size > targ_sizeof_int) {
-#if GNU_EXTENSIONS_ALLOWED
-          if (gnu_mode) {
-            /* GNU compilers only keep the trailing characters that fit. */
-            skip_count = (unsigned long)(constant_size - targ_sizeof_int);
-          } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-          /* Do not insert code here. */
-          {
-            too_many_chars = TRUE;
-          }  /* if */
-        }  /* if */
       } else {
         /* A single-character constant in C++. */
         con_type = integer_type((an_integer_kind)ik_char);
@@ -1230,118 +1219,101 @@ processing, and in wide characters if the constant is wide).
   }  /* switch */
   centity_mask = (unsigned long)1 << (centity_bits-1);
   centity_mask = centity_mask | (centity_mask - 1);
-  if (!too_many_chars) {
-    a_char_conversion_state conv_state;
-    /* UTF-8 characters should be translated to multibyte characters only
-       for narrow-character literals in Microsoft mode. */
-    clear_char_conversion_state(
-                               &conv_state, &temp_ptr,
-                               (character_kind == (a_character_kind)chk_char &&
-                                microsoft_mode));
+  /* UTF-8 characters should be translated to multibyte characters only
+     for narrow-character literals in Microsoft mode. */
+  clear_char_conversion_state(&conv_state, &temp_ptr,
+                              (character_kind == (a_character_kind)chk_char &&
+                               microsoft_mode));
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-    /* Initialize for scanning multibyte characters in the string. */
-    mbc_scan_init_if_multibyte_chars_in_source_enabled();
+  /* Initialize for scanning multibyte characters in the string. */
+  mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-#if GNU_EXTENSIONS_ALLOWED
-    if (skip_count != 0) {
-      /* Skip leading characters until what remains can fit. */
-      check_assertion(gnu_mode);
-      for (i = 0; i < skip_count; ++i) {
+  set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
+  /* Accumulate the characters.  A wide literal with no characters (L'')
+     is possible in Microsoft mode and must produce a zero value. */
+  for (i = 0;
+       temp_ptr < end_of_curr_token || conv_state.remaining_char_count > 0;
+       ++i)  /*lint !e440*/ {
+    /* Convert one character of the char constant. */
+    switch (character_kind) {
+      case chk_char:
         conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
                          centity_mask, /*narrow_literal=*/TRUE);
-      }  /* for */
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
-    /* Accumulate the characters.  A wide literal with no characters (L'')
-       is possible in Microsoft mode and must produce a zero value. */
-    for (i = 0;
-         temp_ptr < end_of_curr_token || conv_state.remaining_char_count > 0;
-         ++i)  /*lint !e440*/ {
-      /* Convert one character of the char constant. */
-      switch (character_kind) {
-        case chk_char:
-          conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
-                           centity_mask, /*narrow_literal=*/TRUE);
-          if (i >= targ_sizeof_int) {
-            /* The initial size of a narrow-character literal containing a
-               universal-character-name is set to 4, since that is the
-               maximum length of a UTF-8 encoding.  If the character is
-               being translated into a different multibyte encoding,
-               however, the representation can overflow an integer without
-               having been detected above.  Flag this as an error. */
-            too_many_chars = TRUE;
-          }  /* if */
-          break;
-        case chk_wchar_t:
-          conv_single_wide_char(&conv_state, &ch, centity_mask);
-          /* The value of a multi-character L'...' literal is truncated to
-             the first character. */
-          if (i != 0) continue;
-          break;
-        case chk_char16_t:
-          conv_single_wide_char(&conv_state, &ch, centity_mask);
-          if (i != 0) {
-            too_many_chars = TRUE;
-          } else {
-            unsigned short char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
-            encoding_length = encode_in_char16_t(ch, char16_t_vals);
-            if (encoding_length == 1) {
-              /* Normal case. */
-              ch = (unsigned long)char16_t_vals[0];
-            } else {
-              /* ch contained a character code that cannot be encoded in a
-                 single char16_t character. */
-              bad_character = TRUE;
-            }  /* if */
-          }  /* if */
-          break;
-        case chk_char32_t:
-          conv_single_wide_char(&conv_state, &ch, centity_mask);
-          if (i != 0) too_many_chars = TRUE;
-          break;
-        default:
-          unexpected_condition();
-      }  /* switch */
-      /* Put the character in the right place. */
-      set_unsigned_integer_value(&ch_int_val, (a_host_large_unsigned)ch);
-      if (targ_char_constant_first_char_most_significant) {
-        /* 'ab' == 0x6162. */
-        /* Do sign extension if necessary, but only on the first character. */
-        if (i == 0 && centity_is_signed) {
-          sign_extend_integer_value(&ch_int_val, centity_bits);
+        if (i >= targ_sizeof_int && !gnu_mode) {
+          /* GNU compilers accept overlong literals, simply discarding any
+             leading characters that do not fit.  Otherwise, flag this as
+             an error. */
+          too_many_chars = TRUE;
         }  /* if */
-        shift_left_integer_value(&number, centity_bits, &err);
-      } else {
-        /* 'ab' == 0x6261. */
-        /* Do sign extension on the new character if necessary. */
-        if (centity_is_signed) {
-          sign_extend_integer_value(&ch_int_val, centity_bits);
-        }  /* if */
+        break;
+      case chk_wchar_t:
+        conv_single_wide_char(&conv_state, &ch, centity_mask);
+        /* The value of a multi-character L'...' literal is truncated to
+           the first character. */
+        if (i != 0) continue;
+        break;
+      case chk_char16_t:
+        conv_single_wide_char(&conv_state, &ch, centity_mask);
         if (i != 0) {
-          /* Drop any sign extension on the previous value if this isn't the
-             first character. */
-          if (centity_is_signed) {
-            an_integer_value mask;
-            make_integer_value_mask(&mask, (int)i*centity_bits);
-            and_integer_values(&number, &mask);
+          too_many_chars = TRUE;
+        } else {
+          unsigned short char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
+          encoding_length = encode_in_char16_t(ch, char16_t_vals);
+          if (encoding_length == 1) {
+            /* Normal case. */
+            ch = (unsigned long)char16_t_vals[0];
+          } else {
+            /* ch contained a character code that cannot be encoded in a
+               single char16_t character. */
+            bad_character = TRUE;
           }  /* if */
-          shift_left_integer_value(&ch_int_val, (int)i*centity_bits, &err);
-        } /* if */
-      } /* if */
-      or_integer_values(&number, &ch_int_val);
-    }  /* for */
-    if (character_kind != (a_character_kind)chk_char32_t &&
-        num_chars > 1 && i == 1) {
-      /* A universal-character-name might potentially represent a number of
-         bytes, so num_chars was set conservatively to allow for that case.
-         If it actually turned out to represent a single character, update
-         the character count and constant type accordingly. */
-      if (character_kind == (a_character_kind)chk_char && !C_mode()) {
-        con_type = integer_type((an_integer_kind)ik_char);
+        }  /* if */
+        break;
+      case chk_char32_t:
+        conv_single_wide_char(&conv_state, &ch, centity_mask);
+        if (i != 0) too_many_chars = TRUE;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    /* Put the character in the right place. */
+    set_unsigned_integer_value(&ch_int_val, (a_host_large_unsigned)ch);
+    if (targ_char_constant_first_char_most_significant) {
+      /* 'ab' == 0x6162. */
+      /* Do sign extension if necessary, but only on the first character. */
+      if (i == 0 && centity_is_signed) {
+        sign_extend_integer_value(&ch_int_val, centity_bits);
       }  /* if */
-      num_chars = 1;
+      shift_left_integer_value(&number, centity_bits, &err);
+    } else {
+      /* 'ab' == 0x6261. */
+      /* Do sign extension on the new character if necessary. */
+      if (centity_is_signed) {
+        sign_extend_integer_value(&ch_int_val, centity_bits);
+      }  /* if */
+      if (i != 0) {
+        /* Drop any sign extension on the previous value if this isn't the
+           first character. */
+        if (centity_is_signed) {
+          an_integer_value mask;
+          make_integer_value_mask(&mask, (int)i*centity_bits);
+          and_integer_values(&number, &mask);
+        }  /* if */
+        shift_left_integer_value(&ch_int_val, (int)i*centity_bits, &err);
+      } /* if */
+    } /* if */
+    or_integer_values(&number, &ch_int_val);
+  }  /* for */
+  if (character_kind != (a_character_kind)chk_char32_t &&
+      num_chars > 1 && i == 1) {
+    /* A universal-character-name might potentially represent a number of
+       bytes, so num_chars was set conservatively to allow for that case.
+       If it actually turned out to represent a single character, update
+       the character count and constant type accordingly. */
+    if (character_kind == (a_character_kind)chk_char && !C_mode()) {
+      con_type = integer_type((an_integer_kind)ik_char);
     }  /* if */
+    num_chars = 1;
   }  /* if */
   if (bad_character) {
     *err_code = ec_no_char16_t_representation;
@@ -1363,11 +1335,14 @@ processing, and in wide characters if the constant is wide).
          unlikely to produce a meaningful result. */
       an_error_code  wcode = (character_kind != (a_character_kind)chk_char) ?
                                ec_too_many_characters : ec_multi_char_literal;
-#if GNU_EXTENSIONS_ALLOWED
-      if (skip_count != 0) {
+      if (gnu_mode && i > targ_sizeof_int) {
+        /* Truncate the value and warn about discarded characters. */
+        an_integer_value int_mask;
+        make_integer_value_mask(&int_mask,
+                                (int)(targ_sizeof_int * targ_char_bit));
+        and_integer_values(&number, &int_mask);
         wcode = ec_leading_character_ignored_in_char_literal;
       }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
       warning(wcode);
     }  /* if */

@@ -1,5 +1,18 @@
 Version 4.5
 
+6/4/12   [EDGcpfe/12947]
+Universal-character-names in narrow character literals
+
+In configurations with TARG_SIZEOF_INT < 4, the changes in 4.4 to better
+support universal-character-names in narrow string literals (see
+EDGcpfe/11914 and EDGcpfe/12066 below) resulted in spurious warnings or
+errors for universal-character-names designating single-byte values in
+narrow character literals.  This is now fixed.  For example:
+
+  char at_sign = '\u0040';        // Previously warning or error
+  char dollar  = '\U00000024';    // Previously warning or error
+
+
 6/1/12   [EDGcpfe/12955]
 Additional name hiding diagnostics
 
