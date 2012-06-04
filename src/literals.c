@@ -1144,7 +1144,6 @@ the actual number of converted characters may be less than num_chars.  */
   char                    *temp_ptr;
   a_boolean               err, too_many_chars = FALSE, bad_character = FALSE;
   a_type_ptr              con_type;
-  sizeof_t                constant_size;
   unsigned int            char_size;
   unsigned long           centity_mask;
   a_boolean               centity_is_signed;
@@ -1169,7 +1168,6 @@ the actual number of converted characters may be less than num_chars.  */
       /* Normal character literal (single or multi). */
       character_kind = (a_character_kind)chk_char;
       char_size = 1;
-      constant_size = (sizeof_t)num_chars;
       centity_bits = targ_char_bit;
       centity_is_signed = targ_has_signed_chars; 
       temp_ptr = start_of_curr_token+1;
