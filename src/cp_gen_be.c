@@ -14219,18 +14219,29 @@ output_functional_notation_cast_arguments:
          expression. */
       { a_routine_ptr    ctor = dip->variant.constructor.ptr;
         an_expr_node_ptr args = dip->variant.constructor.args;
-        check_assertion(args != NULL &&
-                        (args->next == NULL ||
-                         args->next->generated_default_arg));
-        if (avoid_top_level_comma && closing_parens_needed == 0 &&
-            args != NULL &&
-            expr_has_comma_operation(args)) {
-          /* Protect a top-level comma with extra parentheses. */
-          write_tok_ch('(');
-          closing_parens_needed++;
+        a_boolean        brace_list_case = FALSE;
+        if (braced_init && !dip->is_explicit_cast) {
+          /* This is a brace-enclosed list used as an expression, e.g., as
+             an argument in a call. */
+          write_tok_ch('{');
+          brace_list_case = TRUE;
+        } else {
+          /* Normal case, a single expression. */
+          check_assertion(args != NULL &&
+                          (args->next == NULL ||
+                           args->next->generated_default_arg));
+          if (avoid_top_level_comma && closing_parens_needed == 0 &&
+              expr_has_comma_operation(args)) {
+            /* Protect a top-level comma with extra parentheses. */
+            write_tok_ch('(');
+            closing_parens_needed++;
+          }  /* if */
         }  /* if */
         gen_argument_list_no_parens(args, (ctor == NULL) ? NULL : ctor->type,
                                     /*skip_num=*/0);
+        if (brace_list_case) {
+          write_tok_ch('}');
+        }  /* if */
       }
       break;
     case dik_none:
