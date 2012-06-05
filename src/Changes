@@ -1,5 +1,23 @@
 Version 4.5
 
+6/5/12   [EDGcpfe/12954]
+Incomplete lowered exception handling in some cases
+
+As a result of the changes for [EDGcpfe/11966,EDGcpfe/12298], lowering of
+a "new" operation at file scope for a class with an empty constructor had
+resulted in lowered code that contained an object address table, but no
+associated exception handling stack.  A change has been made to emit the
+exception handling stack in this case (which has the side-effect of
+completing the object address table type), even though the exception
+handling is unnecessary (because the empty constructor call has been elided).
+For example:
+
+  struct A {
+    A() {}
+  };
+  A *pa = new A;
+
+
 6/5/12   [EDGcpfe/12950]
 Incorrectly generated copy constructor for lambda captures "this"
 
