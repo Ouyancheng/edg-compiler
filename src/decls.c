@@ -12213,13 +12213,10 @@ Return a pointer to the variable that is declared.
          disallowed, as is implicit initialization of objects with default
          constructors).  C++11 adds list-initialization syntax as a valid
          option. */
-      a_boolean  has_initializer = FALSE;
       if (curr_token == tok_assign) {
         /* Advance past the "=". */
-        has_initializer = TRUE;
         (void)get_token();
       } else if (list_init_enabled && curr_token == tok_lbrace) {
-        has_initializer = TRUE;
         state.has_direct_initializer = TRUE;
       } else {
         (void)required_token(tok_assign, ec_exp_assign);
