@@ -9701,7 +9701,6 @@ Do IL lowering of an enk_temp_init expression node.
     } else {
       /* Create a temporary variable.  Make it static if necessary. */
       if (!dip->static_temp && !long_lifetime_temps &&
-          dip->kind != (a_dynamic_init_kind)dik_nonconstant_aggregate &&
           dip->has_temporary_lifetime) {
         /* Simple case; a temporary that lasts until the end of the full
            expression will do. */
@@ -9713,6 +9712,11 @@ Do IL lowering of an enk_temp_init expression node.
                                            /*promote_if_necessary=*/TRUE);
         /* With a unique temporary, there is the possibility of keeping
            some part of the initialization on the variable. */
+        eff_keep_dynamic_init = &keep_dynamic_init;
+      }  /* if */
+      if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+        /* Lowering of a non-constant aggregate may result in a constant
+           aggregate that is kept as an initial value for the temporary. */
         eff_keep_dynamic_init = &keep_dynamic_init;
       }  /* if */
     }  /* if */
@@ -9779,8 +9783,8 @@ Do IL lowering of an enk_temp_init expression node.
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       if (keep_dynamic_init) {
         /* Record any dynamic initialization that might have been created
-           while lowering a compound literal. */
-        add_stmk_init_for_compound_literal(temp_var, dip);
+           while lowering a compound literal or dik_nonconstant_aggregate. */
+        add_stmk_init_for_temp_init(temp_var, dip);
       }  /* if */
       if (temp_var->init_kind == (an_init_kind)initk_zero) {
         if (!has_static_storage_duration(temp_var->storage_class)) {
@@ -10186,9 +10190,9 @@ void insert_temp_init_statements(a_statement_ptr  statement)
 /*
 If there are any pending statements (as the result of lowering an enk_temp_init
 node), insert them before the given statement.  (This happens when lowering
-compound literals.)  If there are pending statements, the statement is turned
-into a block (if it is not one already).  Caller must be aware that the
-statement kind may change (into an stmk_block).
+compound literals or non-constant aggregates.)  If there are pending
+statements, the statement is turned into a block (if it is not one already).
+Caller must be aware that the statement kind may change (into an stmk_block).
 */
 {
   if (temp_init_statements != NULL) {
@@ -10209,13 +10213,13 @@ statement kind may change (into an stmk_block).
 }  /* insert_temp_init_statements */
 
 
-void add_stmk_init_for_compound_literal(a_variable_ptr      var,
-                                        a_dynamic_init_ptr  dip)
+void add_stmk_init_for_temp_init(a_variable_ptr      var,
+                                 a_dynamic_init_ptr  dip)
 /*
-var represents a temporary variable created to hold the value of compound
-literal, while dip describes the required dynamic initialization.  Create
-the stmk_init statement required for this initialization, and add it to the
-temp_init_statements list.
+var represents a temporary variable created to hold the value of a compound
+literal or array, while dip describes the required dynamic initialization.
+Create the stmk_init statement required for this initialization, and add it to
+the temp_init_statements list.
 */
 {
   a_statement_ptr  stmk_init_stmt =
@@ -10229,12 +10233,12 @@ temp_init_statements list.
   var->init_kind = (an_init_kind)initk_dynamic;
   var->initializer.dynamic = dip;
   /* Conservatively set follows_an_exec_statement to TRUE to force the
-     initialization to take place immediately before the compound literal
+     initialization to take place immediately before the temporary
      is used.  Cases involving a loop where a label might intervene
-     between the temporary variable declaration and the compound literal use
+     between the temporary variable declaration and the temporary use
      make this necessary. */
   dip->follows_an_exec_statement = TRUE;
-}  /* add_stmk_init_for_compound_literal */
+}  /* add_stmk_init_for_temp_init */
 
 
 void add_to_end_of_temp_init_statements_list(a_statement_ptr stmt)

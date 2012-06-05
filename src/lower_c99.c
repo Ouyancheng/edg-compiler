@@ -3659,7 +3659,7 @@ in C99 mode to represent a compound literal.
   }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   if (keep_dynamic_init) {
-    add_stmk_init_for_compound_literal(var, dip);
+    add_stmk_init_for_temp_init(var, dip);
   }  /* if */
   if (var->init_kind == (an_init_kind)initk_zero &&
       !has_static_storage_duration(var->storage_class)) {

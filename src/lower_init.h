@@ -249,8 +249,8 @@ extern void insert_temp_init_statements(a_statement_ptr  statement);
 
 extern void add_to_end_of_temp_init_statements_list(a_statement_ptr  stmt);
 
-extern void add_stmk_init_for_compound_literal(a_variable_ptr      var,
-                                               a_dynamic_init_ptr  dip);
+extern void add_stmk_init_for_temp_init(a_variable_ptr      var,
+                                        a_dynamic_init_ptr  dip);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
