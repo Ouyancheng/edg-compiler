@@ -12172,7 +12172,9 @@ Return a pointer to the variable that is declared.
   sym->variant.variable.ptr->declared_type = state.type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   srk_flags = SRK_DECLARATION | SRK_DEFINITION;
-  if (!missing_declarator && curr_token == tok_assign) {
+  if (!missing_declarator &&
+      (curr_token == tok_assign ||
+       (list_init_enabled && curr_token == tok_lbrace))) {
     srk_flags |= SRK_INITIALIZATION;
   }  /* if */
   record_symbol_declaration(srk_flags, sym, &sym->decl_position,
@@ -12206,12 +12208,23 @@ Return a pointer to the variable that is declared.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     {
-      /* The syntax for condition (see WP [stmt.select]) explicitly requires
-         the "= expr" syntax for initialization (that is, parenthesized
-         initializers are disallowed, as is implicit initialization of
-         objects with default constructors). */
-      (void)required_token(tok_assign, ec_exp_assign);
-      if (curr_token == tok_lbrace) {
+      /* The C++03 syntax for condition explicitly requires the "= expr"
+         syntax for initialization (that is, parenthesized initializers are
+         disallowed, as is implicit initialization of objects with default
+         constructors).  C++11 adds list-initialization syntax as a valid
+         option. */
+      a_boolean  has_initializer = FALSE;
+      if (curr_token == tok_assign) {
+        /* Advance past the "=". */
+        has_initializer = TRUE;
+        (void)get_token();
+      } else if (list_init_enabled && curr_token == tok_lbrace) {
+        has_initializer = TRUE;
+        state.has_direct_initializer = TRUE;
+      } else {
+        (void)required_token(tok_assign, ec_exp_assign);
+      }  /* if */
+      if (!list_init_enabled && curr_token == tok_lbrace) {
         /* The syntax does not permit initialization with a brace enclosed
            initializer list. */
         error_position = pos_curr_token;
