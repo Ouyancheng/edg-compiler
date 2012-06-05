@@ -16588,7 +16588,8 @@ an_expr_node_ptr copy_default_arg_expr(
 				a_routine_ptr	 rout,
                                 a_param_type_ptr ptp,
                                 a_boolean        inside_conditional_expression,
-                                a_boolean        potentially_evaluated)
+                                a_boolean        potentially_evaluated,
+                                a_boolean        evaluated)
 /*
 Copy the default argument expression from ptp, which is a parameter of
 rout, and return a pointer to the copy.  This routine is used to copy
@@ -16600,6 +16601,7 @@ object lifetimes.  In addition, a flag is set to identify this as a
 inside_conditional_expression is TRUE if the default argument
 expression copy will be inside a conditional part of an expression.
 potentially_evaluated is TRUE if the expression is potentially evaluated.
+evaluated is TRUE if the expression is evaluated.
 */
 {
   an_expr_copy_options_set options = CE_NO_OPTIONS;
@@ -16640,7 +16642,8 @@ potentially_evaluated is TRUE if the expression is potentially evaluated.
         /* The copy will be inside a conditional part of an expression. */
         options |= CE_INSIDE_CONDITIONAL_EXPRESSION;
       }  /* if */
-    } else {
+    }  /* if */
+    if (!evaluated) {
       options = CE_COPY_NOT_EVALUATED;
     }  /* if */
     expr = copy_expr_tree(expr, options);
@@ -16654,7 +16657,8 @@ an_expr_node_ptr copy_default_arg_expr_list(
 				a_routine_ptr	 rout,
                                 a_param_type_ptr ptp,
                                 a_boolean        inside_conditional_expression,
-                                a_boolean        potentially_evaluated)
+                                a_boolean        potentially_evaluated,
+                                a_boolean        evaluated)
 /*
 Make an expression list containing copies of the default argument
 expressions for the parameter indicated by ptp, which is a parameter
@@ -16664,6 +16668,7 @@ a parameter pack or parameter array, in which case no copies are made).
 inside_conditional_expression is TRUE if the default argument
 expression copies will be inside a conditional part of an expression.
 potentially_evaluated is TRUE if the expression is potentially evaluated.
+evaluated is TRUE if the expression is evaluated.
 */
 {
   an_expr_node_ptr first_node = NULL, last_node = NULL, arg_node;
@@ -16692,7 +16697,8 @@ potentially_evaluated is TRUE if the expression is potentially evaluated.
     do {
       arg_node = copy_default_arg_expr(rout, ptp,
                                        inside_conditional_expression,
-                                       potentially_evaluated);
+                                       potentially_evaluated,
+                                       evaluated);
       if (first_node == NULL) {
         first_node = arg_node;
       } else {

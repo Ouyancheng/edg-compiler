@@ -11294,7 +11294,8 @@ specific function being called.
       arg = copy_default_arg_expr(
                           rout_ptr, param,
                           (a_boolean)expr_stack->inside_conditional_expression,
-                          curr_expr_is_potentially_evaluated());
+                          curr_expr_is_potentially_evaluated(),
+                          curr_expr_is_evaluated());
     }  /* if */
   } else {
     /* Actual argument is present (normal case). */

@@ -11798,7 +11798,8 @@ a normal try.
           dip->variant.constructor.args =
            copy_default_arg_expr_list(cctor, ptp,
                                       /*inside_conditional_expression=*/FALSE,
-                                      /*potentially_evaluated=*/TRUE);
+                                      /*potentially_evaluated=*/TRUE,
+                                      /*evaluated=*/TRUE);
           /* Only at runtime is the source known. */
           dip->variant.constructor.
                              is_copy_constructor_with_implied_source = TRUE;

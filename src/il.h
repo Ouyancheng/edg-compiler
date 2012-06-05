@@ -1234,7 +1234,8 @@ typedef int an_expr_copy_options_set;
 			/* TRUE if this copy operation is copying a default
 			   argument expression, i.e., making a real use from
 			   the scanned expression.  This is set only for
-			   evaluated expressions, not unevaluated ones. */
+			   evaluated expressions (specifically, potentially
+			   evaluated ones), not unevaluated ones. */
 #define CE_COPIED_CONSTANTS_MAY_BE_SHARED 0x20
 			/* TRUE if when constants are copied they may be
 			   shared.  FALSE means such constants must be
@@ -1685,18 +1686,20 @@ extern a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
                                             an_expr_copy_options_set options);
 
 extern an_expr_node_ptr copy_default_arg_expr(
-			       a_routine_ptr	rout_ptr,
+                               a_routine_ptr    rout_ptr,
                                a_param_type_ptr ptp,
                                a_boolean        inside_conditional_expression,
-                               a_boolean        potentially_evaluated);
+                               a_boolean        potentially_evaluated,
+                               a_boolean        evaluated);
 
 extern an_expr_node_ptr duplicate_default_arg_expr(an_expr_node_ptr expr);
 
 extern an_expr_node_ptr copy_default_arg_expr_list(
-			       a_routine_ptr	rout_ptr,
+                               a_routine_ptr    rout_ptr,
                                a_param_type_ptr ptp,
                                a_boolean        inside_conditional_expression,
-                               a_boolean        potentially_evaluated);
+                               a_boolean        potentially_evaluated,
+                               a_boolean        evaluated);
 
 extern a_boolean is_gc_lvalue_expr(an_expr_node_ptr expr);
 

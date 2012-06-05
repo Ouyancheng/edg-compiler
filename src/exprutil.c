@@ -1179,7 +1179,8 @@ from values on the expression stack.
   expr = copy_default_arg_expr_list(
                           rout, ptp,
                           (a_boolean)expr_stack->inside_conditional_expression,
-                          curr_expr_is_potentially_evaluated());
+                          curr_expr_is_potentially_evaluated(),
+                          curr_expr_is_evaluated());
   return expr;
 }  /* expr_copy_default_arg_expr_list */
 

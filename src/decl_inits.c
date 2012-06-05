@@ -679,7 +679,8 @@ the dynamic init entry.
     dip->variant.constructor.args =
       copy_default_arg_expr_list(rp, ptp,
                                  /*inside_conditional_expression=*/FALSE,
-                                 /*potentially_evaluated=*/TRUE);
+                                 /*potentially_evaluated=*/TRUE,
+                                 /*evaluated=*/TRUE);
     if (!long_lifetime_temps) {
       /* Pop the object lifetime for the temp, binding the lifetime and
          dynamic init entry if appropriate. */

@@ -1,5 +1,27 @@
 Version 4.5
 
+6/5/12   [EDGcpfe/12917]
+Abort in IL lowering for destructible entity in default argument in dead code
+
+The changes for EDGcpfe/10778 introduced a bug in version 4.2.  If a
+default argument contains a destructible entity, and a call of the
+function that uses that default argument is made in a dead branch
+of a conditional operator in g++ mode, the front end (in a version
+that does IL lowering) aborted with an assertion failure in
+lower_dynamic_init.  Now fixed.
+
+  template <class T> struct A {
+    ~A() {}
+  };
+  template <class T> struct B {
+    A<T> m;
+    B(const T* __s, const A<T>& __a = A<T>());
+  };
+  void f(void) {
+    true ? (void)0 : (void)(B<char>("abc"));  // Note third operand is dead
+  }
+
+
 6/5/12   [EDGcpfe/12954]
 Incomplete lowered exception handling in some cases
 
