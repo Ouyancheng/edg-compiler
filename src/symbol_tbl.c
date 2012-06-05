@@ -5003,9 +5003,17 @@ symbol must be added to the inactive list.
       /* hidden_sym represents a variable, field, or static data member
          hidden by a local variable or parameter declaration.  Issue a remark.
          The remark is delayed until we know that the declaration was not
-         the cause of an error (in which case the remark would be moot). */
-      pos_sy_remark(ec_variable_hides_entity, &sym_ptr->decl_position,
-                    hidden_sym);
+         the cause of an error (in which case the remark would be moot).
+         This diagnostic was originally only issued for the case where
+         one local variable hides another.  Continue to use the original
+         error code for such diagnostics. */
+      an_error_code	error_code;
+      error_code = hidden_sym->kind == (a_symbol_kind)sk_variable &&
+                   hidden_sym->variant.variable.ptr
+                                       ->source_corresp.is_local_to_function
+                          ? ec_local_variable_hidden
+                          : ec_variable_hides_entity;
+      pos_sy_remark(error_code, &sym_ptr->decl_position, hidden_sym);
     }  /* if */
     if (add_sym_to_inactive_list) {
       /* In namespace extension scopes, just add the symbol to the

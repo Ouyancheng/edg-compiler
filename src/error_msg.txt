@@ -1394,7 +1394,7 @@ ec_named_address_space_not_allowed;;"a named address space qualifier is not allo
 ec_bad_initializer_for_array_with_unspecified_bound;;"an empty initializer is invalid for an array with unspecified bound"
 ec_incomplete_class_return_type;;"function returns incomplete class type %t"
 ec_out_of_class_initializer_ignored;;"%n has already been initialized; the out-of-class initializer will be ignored"
-REMOVED;ec_local_variable_hidden;;"declaration hides %nd"
+ec_local_variable_hidden;;"declaration hides %nd"
 ec_named_address_space_for_parameter;;"a parameter cannot be allocated in a named address space"
 ec_bad_float_or_fixed_suffix;;"invalid suffix on fixed-point or floating-point constant"
 ec_register_in_address_space;;"a register variable cannot be allocated in a named address space"
