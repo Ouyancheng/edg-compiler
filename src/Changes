@@ -66,8 +66,8 @@ Additional name hiding diagnostics
 
 Formerly, the front end issued remarks if a local variable hid another
 local variable or function parameter.  Now remarks are also issued if
-a local variable or function parameter hides namespace scope variable
-or class scope field or static data member.
+a local variable or function parameter hides a namespace scope variable
+or a class scope field or static data member.
 
   int j;
   namespace N {

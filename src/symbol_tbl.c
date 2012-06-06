@@ -4693,7 +4693,7 @@ Add the given symbol to its symbol header's inactive list.
 
 static a_symbol_ptr check_for_hidden_declaration(a_symbol_ptr	new_sym)
 /*
-We are entering a symbol for a for a local variable or parameter (new_sym).
+We are entering a symbol for a local variable or parameter (new_sym).
 Look up the symbol ignoring the current scope.  If the lookup finds a field,
 variable, or parameter of the same name, return the hidden symbol.
 */
