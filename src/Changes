@@ -1,5 +1,24 @@
 Version 4.5
 
+6/6/12   [EDGcpfe/10181,EDGcpfe/11964,EDGcpfe/12949]
+GNU compatibility: ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR with
+UNICODE_SOURCE_SUPPORTED
+
+The front end previously could not be built with both
+ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR (see the entry of 11/11/05
+below) and UNICODE_SOURCE_SUPPORTED set to TRUE.  This limitation has now
+been removed.  In addition, when ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+is TRUE, the front end will now accept both carriage return and carriage
+return followed by a newline as line terminators in all modes except
+Microsoft mode; previously this processing occurred only in GNU modes.  For
+example, when the comment line below is terminated with only a carriage
+return, the front end will report an error only in Microsoft mode:
+
+  // Comment line ending in only a carriage return
+  void f()
+  { int i; }
+
+
 6/5/12   [EDGcpfe/12917]
 Abort in IL lowering for destructible entity in default argument in dead code
 

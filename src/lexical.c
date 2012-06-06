@@ -570,6 +570,15 @@ static sizeof_t	offset_of_nonsplice_backslash;
 			   curr_source_line is reallocated between calls
 			   to read_logical_source_line. */
 
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+static a_boolean prev_line_terminator_was_carriage_return;
+			/* TRUE if the previous line ended with a carriage
+			   return.  This allows treating a carriage return
+			   followed by a newline as a single line
+			   terminator instead of the newline being treated
+			   as the end of an empty line. */
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+
 /*
 Hash table used by nested_source_line_modif to find the source
 line modification associated with the ATTENTION_MARKER at a given
@@ -6142,48 +6151,15 @@ curr_source_line is resized.
 
 #endif /* MBC_CHECKING_NEEDED_IN_LINE_READING */
 
-#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-
-static void process_gnu_carriage_return(void)
-/*
-In GNU mode, a line can be terminated by a carriage return, or a carriage
-return followed by a newline.  The current character is a carriage return.
-Check for a following newline character.
-*/
-{
-  int ch;
-  ch = getc_curr_input_stream();
-  if (is_eof_char(ch)) {
-    /* The look-ahead encountered the end of file.  Record this for
-       processing when the next line is read. */
-    eof_read_on_curr_input_stream = TRUE;
-  } else if (ch != '\n') {
-    /* The following character is not a newline.  Unget it so that it will
-       be fetched as part of the next line. */
-    int	ungetc_result;
-    ungetc_result = ungetc(ch, curr_input_stream);
-    check_assertion(ungetc_result != EOF);
-#if UNICODE_SOURCE_SUPPORTED
-    /* We'd have to do an ungetc version of getc_source to support this
-       feature with UTF-16. */
- #error -- ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR not allowed \
-           when UNICODE_SOURCE_SUPPORTED is TRUE
-#endif /* UNICODE_SOURCE_SUPPORTED */
-  }  /* if */
-}  /* process_gnu_carriage_return */
-
-#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
-
-
 /*
 Macro that returns TRUE if "ch" is a carriage return and we are in a mode
-in which a GNU cr or cr/lf terminator should be accepted.
+in which a cr or cr/lf terminator should be accepted.
 */
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-#define is_gnu_carriage_return_line_terminator(ch)			\
-  ((ch) == '\r' && gnu_mode)
+#define is_carriage_return_line_terminator(ch)			\
+  ((ch) == '\r' && carriage_return_is_line_terminator)
 #else /* !ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
-#define is_gnu_carriage_return_line_terminator(ch) FALSE /*lint --e(506,845)*/
+#define is_carriage_return_line_terminator(ch) FALSE /*lint --e(506,845)*/
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
 
 
@@ -6261,10 +6237,13 @@ for the GNU C multiline string extension.
     /* Do not issue a warning for a backslash followed by whitespace on
        the line being extended. */
     pending_nonsplice_backslash = FALSE;
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+    prev_line_terminator_was_carriage_return = FALSE;
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
     goto entry_for_extend_current_line;
   }  /* if */
   /* If the current line ended in a backslash followed by whitespace (i.e.,
-     visually but not actually a line splice), that did not appear inside a
+     visually but not actually a line splice) that did not appear inside a
      comment, display a warning before discarding the current line's
      text. */
   if (pending_nonsplice_backslash) {
@@ -6294,12 +6273,27 @@ for the GNU C multiline string extension.
      the end of file has already been read (this handles the case
      where the previous call of this routine read an incomplete last
      line; this call needs to return the end of file indication). */
-  while (eof_read_on_curr_input_stream ||
-         (ch = getc_curr_input_stream(), is_eof_char(ch))) {
+  if (!eof_read_on_curr_input_stream) {
+    ch = getc_curr_input_stream();
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+    if (prev_line_terminator_was_carriage_return) {
+      prev_line_terminator_was_carriage_return = FALSE;
+      if (ch == '\n') {
+        /* This is the second character of a carriage return, newline pair,
+           not the end of the next line.  Skip over it. */
+        ch = getc_curr_input_stream();
+      }  /* if */
+    }  /* if */
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+  }  /* if */
+  while (eof_read_on_curr_input_stream || is_eof_char(ch)) {
     /* End of file encountered in the expected way, i.e., before a line
        has started. */
     eof_read_on_curr_input_stream = TRUE;
     at_end_of_source_file = TRUE;
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+    prev_line_terminator_was_carriage_return = FALSE;
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
     if (!do_pop_on_end_of_file || curr_ise->do_not_advance_past_end_of_file) {
       /* We're asked not to do the pop, so just return things as they
          are (at_end_of_source_file is TRUE). */
@@ -6315,6 +6309,7 @@ for the GNU C multiline string extension.
       break;
     }  /* if */
     /* Loop to try reading from the file reopened by pop_input_stack. */
+    ch = getc_curr_input_stream();
   }  /* while */
   /* Either the end of all source, or a real line to read.  For the
      end of source case, a line with just a line-end lexical escape
@@ -6388,11 +6383,9 @@ for the GNU C multiline string extension.
     if (ch == '\n') {
       /* A normal newline line terminator. */
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-    } else if (is_gnu_carriage_return_line_terminator(ch)) {
-      /* In GNU mode a line can be terminated by a carriage return, or
-         a carriage return followed by a newline.  Look for a newline
-         following this carriage return. */
-      process_gnu_carriage_return();
+    } else if (is_carriage_return_line_terminator(ch)) {
+      /* A carriage return that is treated as a line terminator. */
+      prev_line_terminator_was_carriage_return = TRUE;
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
     } else {
       /* Use local variables in the inner loop, because some compilers
@@ -6442,32 +6435,32 @@ for the GNU C multiline string extension.
         }  /* if */
         /* Check for newline, which ends loop. */
       } while (local_ch != '\n' &&
-               !is_gnu_carriage_return_line_terminator(local_ch));
+               !is_carriage_return_line_terminator(local_ch));
       ch = local_ch;
-      loc_in_line = local_loc_in_line;
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-      if (is_gnu_carriage_return_line_terminator(ch)) {
-        /* In GNU mode a line can be terminated by a carriage return, or
-           a carriage return followed by a newline.  Look for a newline
-           following this carriage return. */
-        process_gnu_carriage_return();
+      if (ch == '\r') {
+        prev_line_terminator_was_carriage_return = TRUE;
       }  /* if */
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+      loc_in_line = local_loc_in_line;
       if (loc_in_line != curr_source_line) {
         char *cp;
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-        /* Ignore carriage return right before newline.  Ignore several if
-           they are present (there are Microsoft header files that have
-           backslash, carriage return, carriage return at the end of lines,
-           and that backslash has to be taken as a line splice). */
-        while (*(loc_in_line-1) == '\r') {
-          loc_in_line--;
-          /* Avoid the line splice test if the line is empty except for the
-             carriage return. */
-          if (loc_in_line == curr_source_line) {
-            goto add_newline_and_line_end_and_return;
-          }  /* if */
-        }  /* while */
+        if (!carriage_return_is_line_terminator) {
+          /* Ignore carriage return right before newline.  Ignore several
+             if they are present (there are Microsoft header files that
+             have backslash, carriage return, carriage return at the end of
+             lines, and that backslash has to be taken as a line
+             splice). */
+          while (*(loc_in_line-1) == '\r') {
+            loc_in_line--;
+            /* Avoid the line splice test if the line is empty except for
+               the carriage return. */
+            if (loc_in_line == curr_source_line) {
+              goto add_newline_and_line_end_and_return;
+            }  /* if */
+          }  /* while */
+        }  /* if */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
         /* Find the last non-white-space character on the line to see if
            this might be (or have been intended to be) a spliced line. */
@@ -6673,11 +6666,9 @@ line_loop:
   if (ch == '\n') {
     /* A normal newline line terminator. */
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-  } else if (is_gnu_carriage_return_line_terminator(ch)) {
-    /* In GNU mode a line can be terminated by a carriage return, or
-       a carriage return followed by a newline.  Look for a newline
-       following this carriage return. */
-    process_gnu_carriage_return();
+  } else if (is_carriage_return_line_terminator(ch)) {
+    /* A carriage return that is treated as a line terminator. */
+    prev_line_terminator_was_carriage_return = TRUE;
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
   } else {
     /* Process characters until a newline is read. */
@@ -6806,29 +6797,29 @@ entry_for_expand_buffer:
         ch = getc_curr_input_stream();
       }  /* if */
       if (is_eof_char(ch)) goto partial_final_line;
-    } while (ch != '\n' && !is_gnu_carriage_return_line_terminator(ch));
+    } while (ch != '\n' && !is_carriage_return_line_terminator(ch));
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-    if (is_gnu_carriage_return_line_terminator(ch)) {
-      /* In GNU mode a line can be terminated by a carriage return, or
-         a carriage return followed by a newline.  Look for a newline
-         following this carriage return. */
-      process_gnu_carriage_return();
+    if (ch == '\r') {
+      prev_line_terminator_was_carriage_return = TRUE;
     }  /* if */
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
     if (loc_in_line != curr_source_line) {
       char *cp;
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-      /* Ignore carriage return right before newline.  Ignore several if
-         they are present (there are Microsoft header files that have this). */
-      while (*(loc_in_line-1) == '\r') {
-        loc_in_line--;
-        curr_column--;
-        /* Avoid the line splice test if the line is empty except for the
-           carriage return. */
-        if (curr_column == 0) {
-          goto add_newline_and_line_end_and_return;
-        }  /* if */
-      }  /* while */
+      if (!carriage_return_is_line_terminator) {
+        /* Ignore carriage return right before newline.  Ignore several if
+           they are present (there are Microsoft header files that have
+           this). */
+        while (*(loc_in_line-1) == '\r') {
+          loc_in_line--;
+          curr_column--;
+          /* Avoid the line splice test if the line is empty except for the
+             carriage return. */
+          if (curr_column == 0) {
+            goto add_newline_and_line_end_and_return;
+          }  /* if */
+        }  /* while */
+      }  /* if */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
       /* Find the last non-white-space character on the line to see if
          this might be (or have been intended to be) a spliced line. */
@@ -19678,6 +19669,9 @@ done to determine whether a precompiled header may be used.
 #endif /* ASM_SUPPORT_NEEDED */
   pending_nonsplice_backslash = FALSE;
   offset_of_nonsplice_backslash = 0;
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+  prev_line_terminator_was_carriage_return = FALSE;
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
   (void)memzero((char *)source_line_modif_hash_table,
                 sizeof(source_line_modif_hash_table));
 }  /* lexical_reset */

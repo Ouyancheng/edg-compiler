@@ -1826,6 +1826,13 @@ EXTERN a_boolean
 			   refer to the same type should be considered
 			   equivalent for hidden name processing lookups. */
 
+EXTERN a_boolean
+		carriage_return_is_line_terminator;
+			/* TRUE if a carriage return or a carriage return
+			   followed by a newline is to be treated as a line
+			   terminator.  FALSE indicates that only newlines
+			   are to be considered to terminate a line. */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

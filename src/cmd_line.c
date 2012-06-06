@@ -2111,6 +2111,7 @@ by a command line option.
 #endif /* DO_IL_LOWERING */
   ms_declspec_attributes_enabled = TRUE;
   if (cppcli_enabled) explicit_conversion_functions_enabled = TRUE;
+  carriage_return_is_line_terminator = FALSE;
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9891,6 +9892,8 @@ variables declared in cmd_line.h.
                      TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES;
   range_based_for_enabled = DEFAULT_RANGE_BASED_FOR_ENABLED;
   multiple_returns_allowed_in_implicit_return_type_lambda = FALSE;
+  carriage_return_is_line_terminator =
+                                    ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR;
 }  /* cmd_line_static_var_init */
 
 
