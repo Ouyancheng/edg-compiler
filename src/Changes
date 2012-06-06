@@ -28,11 +28,11 @@ Incomplete lowered exception handling in some cases
 As a result of the changes for [EDGcpfe/11966,EDGcpfe/12298], lowering of
 a "new" operation at file scope for a class with an empty constructor had
 resulted in lowered code that contained an object address table, but no
-associated exception handling stack.  A change has been made to emit the
-exception handling stack in this case (which has the side-effect of
-completing the object address table type), even though the exception
-handling is unnecessary (because the empty constructor call has been elided).
-For example:
+associated exception handling stack.  A change has been made to emit an
+exception handling stack entry in this case (which has the side-effect of
+completing the object address table type).  (An exception handling stack
+entry in this unusual case is not really necessary because the empty
+constructor call has been elided.)  For example:
 
   struct A {
     A() {}
