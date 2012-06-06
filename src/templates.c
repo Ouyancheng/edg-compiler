@@ -14075,6 +14075,10 @@ any classes that declared the nested class as a template friend.
         tssp->variant.class_template.instantiations = slep;
         cssp->corresp_prototype_sym = ct_symbol;
         class_type->variant.class_struct_union.is_template_class = TRUE;
+        class_type->variant.class_struct_union.
+                                             is_ms_instantiated_nonreal_class =
+                           parent_class->variant.class_struct_union.
+                                              is_ms_instantiated_nonreal_class;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         class_type->variant.class_struct_union.is_generic_instance =
                                                               tssp->is_generic;
