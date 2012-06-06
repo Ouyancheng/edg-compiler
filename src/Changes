@@ -446,6 +446,10 @@ and that references the destructor for A<int>).
   };
   void C::f() { }
 
+[6/6/12, EDGcpfe/12951] Additional changes were made to also use this
+new approach with typeinfo generation in C++-generating back end versions,
+reworking the changes for EDGcpfe/12706.
+
 
 5/14/12  [EDGcpfe/7165,EDGcpfe/7850,EDGcpfe/9701,EDGcpfe/10836,
           EDGcpfe/11933,EDGcpfe/12786]
@@ -2696,6 +2700,9 @@ everything that might be needed.
   void f(B *b) {
     dynamic_cast<D*> (b);
   }
+
+[6/6/12, EDGcpfe/12951] These changes were reworked and integrated with
+the changes for EDGcpfe/12919.
 
 
 2/22/12  [EDGcpfe/12626]

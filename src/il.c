@@ -22532,38 +22532,56 @@ have one yet.
   if (scope == NULL) {
     /* The class is declared but not defined. */
     routine = NULL;
+  } else if (!class_type->variant.class_struct_union.any_virtual_functions) {
+    /* The class has no virtual functions. */
+    routine = NULL;
   } else {
     /* The class is defined.  Look at the member functions. */
     for (routine = scope->routines;
          routine != NULL;
          routine = routine->next) {
-      if (routine->is_virtual && !routine->pure_virtual &&
+        /* The first non-inline virtual non-pure member function in
+           the class is the decider function.  In the IA-64 ABI, the
+           function has to be declared inline within the class definition. */
+      if (routine->is_virtual && !routine->pure_virtual
 #if IA64_ABI && DO_IL_LOWERING
           /* Ignore alternate entry points for constructors and
              destructors. */
-          routine->primary_ctor_or_dtor == NULL &&
+          && routine->primary_ctor_or_dtor == NULL
 #endif /* IA64_ABI && DO_IL_LOWERING */
-          /* A member function of a template class is not marked as
-             inline until it is fully instantiated, so we have to call
-             a function to see whether it is really inline. */
-          (routine->is_template_function ?
-                       !rout_is_inline_template_function(routine,
+                                                  ) {
+        if (!routine->is_template_function) {
+          /* A non-template.  It's the decider if it's not inline. */
+          if (
 #if IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION
-                                                         /*in_class=*/TRUE
+              !routine->inline_in_class_definition
 #else /* !(IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION) */
-                                                         /*in_class=*/FALSE
+              !routine->is_inline
 #endif /* IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION */
-                                                                            ) :
+             ) break;
+        } else {
+#if BACK_END_IS_CP_GEN_BE
+          if (prototype_instantiations_in_il) {
+            /* In PI-in-IL versions, we put out uninstantiated inline members
+               as non-inline, so we want to consider them potential decider
+               functions. */
+            break;
+          } else
+#endif /* BACK_END_IS_CP_GEN_BE */
+          /* Do not insert code here. */
+          {
+            /* A member function of a template class is not marked as
+               inline until it is fully instantiated, so we have to call
+               a function to see whether it is really inline. */
+            if (!rout_is_inline_template_function(routine,
 #if IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION
-                       !routine->inline_in_class_definition
+                                                  /*in_class=*/TRUE
 #else /* !(IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION) */
-                       !routine->is_inline
+                                                  /*in_class=*/FALSE
 #endif /* IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION */
-                                                            )) {
-        /* This is the first non-inline virtual non-pure member function in
-           the class.  If it is defined in this compilation, we should put
-           out the virtual function tables here. */
-        break;
+                                                                    )) break;
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */

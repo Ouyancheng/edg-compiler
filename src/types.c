@@ -12239,30 +12239,7 @@ meaningful.
 
   class_type = skip_typerefs(class_type);
   check_assertion(is_immediate_class_type(class_type));
-  if (is_incomplete_type(class_type)) {
-    /* We don't know yet whether the class has a decider, so assume yes. */
-    has_decider = TRUE;
-  } else {
-    if (class_type->variant.class_struct_union.any_virtual_functions) {
-      /* Look for any noninline virtual functions. */
-      a_routine_ptr rp = class_type->variant.class_struct_union.extra_info->
-                                                         assoc_scope->routines;
-      for (; rp != NULL; rp = rp->next) {
-        /* We don't use rout_is_inline here because we want uninstantiated
-           members of template classes to count as potential decider functions.
-           They might be specialized as non-inline outside the class, and
-           some ABI spec might treat such things as decider functions.
-           Also, in SSI versions we put out uninstantiated inline members as
-           non-inline, so they would end up being actual decider functions in
-           that case (so we want to instantiate them and make them not
-           decider functions). */
-        if (rp->is_virtual && !rp->pure_virtual && !rp->is_inline) {
-          has_decider = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
-  }  /* if */
+  if (vtbl_decider_function_for_class(class_type) != NULL) has_decider = TRUE;
   return has_decider;
 }  /* may_have_decider_function */
 
