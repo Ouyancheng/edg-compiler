@@ -605,16 +605,18 @@ to output any part of the name.  Called only for C++.
 
 
 static void form_class_qualifier(
-                              a_type_ptr                            class_type,
-                              an_il_to_str_output_control_block_ptr octl)
+                  a_type_ptr                            class_type,
+                  a_boolean                             for_ptr_to_data_member,
+                  an_il_to_str_output_control_block_ptr octl)
 /*
 Output a class qualifier (e.g., "A::B::") that identifies the indicated
-class type.  Do the output in the way described by octl.  Called only for C++.
-*/
+class type.  If for_ptr_to_data_member is TRUE, class_type is the qualifier
+in a pointer to data member type.  Do the output in the way described by
+octl.  Called only for C++.  */
 {
   /* Use the special routine if there is one. */
   if (octl->output_class_qualifier != NULL) {
-    octl->output_class_qualifier(class_type);
+    octl->output_class_qualifier(class_type, for_ptr_to_data_member);
   } else {
     /* Default processing. */
     a_source_correspondence     *scp = &class_type->source_corresp;
@@ -692,7 +694,8 @@ not be used to output all of the name.  Called only for C++.
         form_namespace_qualifier(scope->variant.assoc_namespace, octl);
         break;
       case sck_class_struct_union:
-        form_class_qualifier(scope->variant.assoc_type, octl);
+        form_class_qualifier(scope->variant.assoc_type,
+                             /*for_ptr_to_data_member=*/FALSE, octl);
         break;
       case sck_enum:
         form_enum_qualifier(scope->variant.assoc_type, octl);
@@ -721,7 +724,8 @@ be used to output all of the name.  Called only for C++.
 */
 {
   if (is_class_member) {
-    form_class_qualifier(parent.class_type, octl);
+    form_class_qualifier(parent.class_type, /*for_ptr_to_data_member=*/FALSE,
+                         octl);
   } else if (parent.namespace_ptr != NULL) {
     form_namespace_qualifier(parent.namespace_ptr, octl);
   }  /* if */
@@ -2145,6 +2149,8 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       octl->output_str("(", octl);
     }  /* if */
     form_class_qualifier(type->variant.ptr_to_member.class_of_which_a_member,
+                         type->variant.ptr_to_member.type->kind !=
+                                                       (a_type_kind)tk_routine,
                          octl);
     /* form_class_qualifier put out "::".  Add the final "*" here.  That's
        okay; it's a separate token. */
@@ -4156,7 +4162,8 @@ without a leading "&".  Do the output in the way described by octl.
     /* The associated function is a conversion function.  Generate
        its name from the type. */
     check_assertion(con->source_corresp.is_class_member);
-    form_class_qualifier(parent_class_of(con), octl);
+    form_class_qualifier(parent_class_of(con),
+                         /*for_ptr_to_data_member=*/FALSE, octl);
     octl->output_str("operator ", octl);
     form_type(con->variant.template_param.variant.
                                               unknown_function.conversion_type,

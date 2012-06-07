@@ -32,7 +32,9 @@ typedef void an_output_str_function(
 typedef an_output_str_function *an_output_str_function_ptr;
 typedef void an_output_name_function(char *entry, an_il_entry_kind kind);
 typedef an_output_name_function *an_output_name_function_ptr;
-typedef void an_output_class_qualifier_function(a_type_ptr type);
+typedef void an_output_class_qualifier_function(
+                                            a_type_ptr type,
+                                            a_boolean  for_ptr_to_data_member);
 typedef an_output_class_qualifier_function
                                        *an_output_class_qualifier_function_ptr;
 typedef void an_output_enum_qualifier_function(a_type_ptr type);

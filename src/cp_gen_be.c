@@ -410,6 +410,9 @@ typedef int a_gen_name_options_set;
 			/* Used with GN_DECLARATION to indicate that the
 			   name being declared is in a "friend"
 			   declaration. */
+#define GN_PTR_TO_DATA_MEMBER 0x2000
+			/* The name is the qualifier in a pointer to data
+			   member type. */
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 /*
@@ -2943,14 +2946,19 @@ for the meaning of need_closing_paren.
 }  /* gen_class_qualifier */
 
 
-static void gen_class_qualifier_wrapper(a_type_ptr class_type)
+static void gen_class_qualifier_wrapper(a_type_ptr class_type,
+                                        a_boolean  for_ptr_to_data_member)
 /*
 Generate a class qualifier (e.g., "A::B::") that identifies the indicated
-class type.  This is a wrapper for gen_class_qualifier, used as the
-output_class_qualifier function in the il_to_str output control block.
-*/
+class type.  If for_ptr_to_data_member is TRUE, class_type is the qualifier
+in a pointer to data member type.  This is a wrapper for
+gen_class_qualifier, used as the output_class_qualifier function in the
+il_to_str output control block.  */
 {
-  gen_class_qualifier(class_type, GN_NO_OPTIONS, (a_boolean *)NULL);
+  gen_class_qualifier(class_type,
+                      for_ptr_to_data_member ? GN_PTR_TO_DATA_MEMBER
+                                             : GN_NO_OPTIONS,
+                      (a_boolean *)NULL);
 }  /* gen_class_qualifier_wrapper */
 
 
@@ -3343,14 +3351,18 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
               scp->parent_scope->kind == (a_scope_kind)sck_namespace) &&
              !(is_immediate_class_type((a_type_ptr)scp) &&
                ((a_type_ptr)scp)->
-                                variant.class_struct_union.is_nonreal_class)) {
+                                variant.class_struct_union.is_nonreal_class) &&
+             !((options & GN_PTR_TO_DATA_MEMBER) &&
+               octl.suppress_ptr_to_data_member_parens)) {
     /* This is a reference appearing in the prototype instantiation of a
        function template, referring to a non-dependent namespace-scope
        type.  Because MSVC does not do two-stage name lookup in templates,
        resolving references to non-dependent names in the instantiation
        context instead of the definition context, we always qualify such
-       names in code targeting MSVC to avoid errors on the generated
-       code. */
+       names in code targeting MSVC to avoid errors on the generated code.
+       Qualification should not be forced, however, for the qualifier in a
+       pointer to data member if parentheses are suppressed -- without the
+       parentheses, "T (::S*)" becomes "T::S*", which is an error. */
     force_qualified_name = TRUE;
   }  /* if */
   /* If the name is a member of a class or namespace in C++, output the
