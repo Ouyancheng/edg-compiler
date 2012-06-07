@@ -1562,13 +1562,11 @@ as white space, with an optional diagnostic.
 
 /*
 Flag that is TRUE to indicate that carriage return or carriage return
-followed by newline can be used as a line terminator in non-Microsoft
-modes.  (The Microsoft compiler does not treat carriage return as a line
-terminator, although the GNU compilers do.)  This feature is provided to
-allow files with old MacOS line terminators to be accepted.  The
-implementation is compatible with the way in which the GNU compiler handles
-such line terminators.  It is disabled by default because it is not
-required by most users.
+followed by newline can be used as a line terminator in GNU-compatible
+modes.  This feature is provided to allow files with old MacOS line
+terminators to be accepted.  The implementation is compatible with the way
+in which the GNU compiler handles such line terminators.  It is disabled by
+default because it is not required by most users.
 */
 #ifndef ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
 #define ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR FALSE

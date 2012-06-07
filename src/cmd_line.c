@@ -2111,7 +2111,6 @@ by a command line option.
 #endif /* DO_IL_LOWERING */
   ms_declspec_attributes_enabled = TRUE;
   if (cppcli_enabled) explicit_conversion_functions_enabled = TRUE;
-  carriage_return_is_line_terminator = FALSE;
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3576,6 +3575,8 @@ exclude the GNU modes already.  Hence those are not checked again here.)
 #if INT128_EXTENSIONS_ALLOWED
   int128_extensions_enabled = TRUE;
 #endif /* INT128_EXTENSIONS_ALLOWED */
+  carriage_return_is_line_terminator =
+                                    ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR;
 }  /* check_and_set_gnu_mode_options */
 
 
