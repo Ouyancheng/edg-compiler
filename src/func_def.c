@@ -240,7 +240,9 @@ compilation.
            This is done only at the top level because virtual destructors
            in base classes would be overridden and therefore would not be
            pointed to from the virtual function table in the derived class. */
-        a_routine_ptr decider = vtbl_decider_function_for_class(class_type);
+        a_routine_ptr decider = vtbl_decider_function_for_class(
+                                                            class_type,
+                                                            (a_boolean *)NULL);
         if (decider != NULL && !routine_has_been_defined(decider)) {
           /* The vtable is not being put out in this compilation, so don't
              force the definition of the destructor here.  If the decider
@@ -276,7 +278,9 @@ indicated routine has just been processed.
          table and therefore the virtual functions are needed. */
       needed = TRUE;
     } else if (routine->is_virtual) {
-      a_routine_ptr decider = vtbl_decider_function_for_class(class_type);
+      a_routine_ptr decider = vtbl_decider_function_for_class(
+                                                            class_type,
+                                                            (a_boolean *)NULL);
       if (decider != NULL &&
           (decider == routine || routine_has_been_defined(decider))) {
         /* This routine is the decider function for definition of the

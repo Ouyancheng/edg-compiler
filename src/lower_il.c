@@ -5853,7 +5853,8 @@ mode; *optional will be set as usual.
       /* The class is defined. */
       /* If the decider function of the class is defined in this compilation,
          we should put out the virtual function tables here. */
-      routine = vtbl_decider_function_for_class(class_type);
+      routine = vtbl_decider_function_for_class(class_type,
+                                                (a_boolean *)NULL);
       if (routine != NULL) {
         *first_virtual = routine;
         defined_here = (routine->assoc_scope != NULL_region_number);

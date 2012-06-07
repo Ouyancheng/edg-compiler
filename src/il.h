@@ -2300,7 +2300,8 @@ extern void eliminate_unneeded_il_entries(a_scope_ptr scope);
 
 extern void clear_variable_definition(a_variable_ptr variable);
 
-extern a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type);
+extern a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type,
+                                                     a_boolean  *unknown);
 
 extern a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp);
 

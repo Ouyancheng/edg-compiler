@@ -22516,22 +22516,30 @@ includes removing any initialization.
 }  /* clear_variable_definition */
 
 
-a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type)
+a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type,
+                                              a_boolean  *unknown)
 /*
 Return a pointer to the routine that is the decider function for generation
 of the definition of the virtual function table for the given class.
 The routine is the first non-inline non-pure virtual function of the
 class.  Return NULL if the class does not have such a function, or does not
-have one yet.
+have one yet.  Return *unknown set to TRUE (and NULL as a return value)
+if we can't (yet?) determine whether the class has a decider function.
+unknown can be NULL if we don't need that value (the return value will be
+NULL if the result is unknown).
 */
 {
   a_routine_ptr routine;
   a_scope_ptr   scope =
                 class_type->variant.class_struct_union.extra_info->assoc_scope;
+  a_boolean     local_unknown;
 
+  if (unknown == NULL) unknown = &local_unknown;
+  *unknown = FALSE;
   if (scope == NULL) {
     /* The class is declared but not defined. */
     routine = NULL;
+    *unknown = TRUE;
   } else if (!class_type->variant.class_struct_union.any_virtual_functions) {
     /* The class has no virtual functions. */
     routine = NULL;
@@ -22560,31 +22568,34 @@ have one yet.
 #endif /* IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION */
              ) break;
         } else {
-#if BACK_END_IS_CP_GEN_BE
-          if (prototype_instantiations_in_il) {
-            /* In PI-in-IL versions, we put out uninstantiated inline members
-               as non-inline, so we want to consider them potential decider
-               functions. */
-            break;
-          } else
-#endif /* BACK_END_IS_CP_GEN_BE */
-          /* Do not insert code here. */
-          {
-            /* A member function of a template class is not marked as
-               inline until it is fully instantiated, so we have to call
-               a function to see whether it is really inline. */
-            if (!rout_is_inline_template_function(routine,
+#if BACK_END_IS_CP_GEN_BE && \
+    (NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS || \
+     PROTOTYPE_INSTANTIATIONS_IN_IL)
+          /* In SSI versions, we move the definitions for instantiations
+             out of the class body, so we might be changing whether they
+             are decider functions. */
+           /* In PI-in-IL versions, we put out uninstantiated inline members
+             as non-inline in some configurations, so we want to consider
+             them potential decider functions. */
+          *unknown = TRUE;
+          break;
+#else /* !(BACK_END_IS_CP_GEN_BE && ...) */
+          /* A member function of a template class is not marked as
+             inline until it is fully instantiated, so we have to call
+             a function to see whether it is really inline. */
+          if (!rout_is_inline_template_function(routine,
 #if IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION
-                                                  /*in_class=*/TRUE
+                                                /*in_class=*/TRUE
 #else /* !(IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION) */
-                                                  /*in_class=*/FALSE
+                                                /*in_class=*/FALSE
 #endif /* IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION */
-                                                                    )) break;
-          }  /* if */
+                                                                  )) break;
+#endif /* BACK_END_IS_CP_GEN_BE && ... */
         }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
+  if (*unknown) routine = NULL;
   return routine;
 }  /* vtbl_decider_function_for_class */
 

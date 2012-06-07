@@ -12236,10 +12236,14 @@ meaningful.
 */
 {
   a_boolean has_decider = FALSE;
+  a_boolean unknown;
 
   class_type = skip_typerefs(class_type);
   check_assertion(is_immediate_class_type(class_type));
-  if (vtbl_decider_function_for_class(class_type) != NULL) has_decider = TRUE;
+  if (vtbl_decider_function_for_class(class_type, &unknown) != NULL ||
+      unknown) {
+    has_decider = TRUE;
+  }  /* if */
   return has_decider;
 }  /* may_have_decider_function */
 
