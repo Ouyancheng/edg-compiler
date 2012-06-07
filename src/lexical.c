@@ -6887,7 +6887,18 @@ entry_for_line_splice:
         olmp->variant.line_splice_seq_number = seq_number_last_read+1;
         /* Begin reading the next line.  It is an error if end of file is
            encountered. */
-        if (ch = getc_curr_input_stream(), !is_eof_char(ch)) goto line_loop;
+        ch = getc_curr_input_stream();
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+        if (prev_line_terminator_was_carriage_return) {
+          prev_line_terminator_was_carriage_return = FALSE;
+          if (ch == '\n') {
+            /* This is the second character of a carriage return, newline
+               pair.  Skip over it. */
+            ch = getc_curr_input_stream();
+          }  /* if */
+        }  /* if */
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+        if (!is_eof_char(ch)) goto line_loop;
         eof_read_on_curr_input_stream = TRUE;
         /* Backslash at end of last line in a file -- error. */
         finish_off_source_line_so_it_can_be_displayed_in_error();
