@@ -22574,7 +22574,7 @@ NULL if the result is unknown).
           /* In SSI versions, we move the definitions for instantiations
              out of the class body, so we might be changing whether they
              are decider functions. */
-           /* In PI-in-IL versions, we put out uninstantiated inline members
+          /* In PI-in-IL versions, we put out uninstantiated inline members
              as non-inline in some configurations, so we want to consider
              them potential decider functions. */
           *unknown = TRUE;
