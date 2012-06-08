@@ -187,9 +187,9 @@ kind entry_kind.
         /* Determine the entry number by dividing the offset into the
            area by the size of each entry. */
         /* The first entry in the array is entry 1, therefore "1 +". */
-        entry_number = 1 + (entry_ptr - prefix_size -
+        entry_number = (an_il_entry_number)(1 + (entry_ptr - prefix_size -
                             entry_array_base_array_ptr[(int)entry_kind]) /
-                                                              gross_entry_size;
+                                                             gross_entry_size);
         (void)printf("#%ld", (unsigned long)entry_number);
       }
 #else /* !(ALTERNATE_IL_FILE_FORMAT && STANDALONE_IL_DISPLAY) */
@@ -214,7 +214,7 @@ no name.
     /* Get the text following indented the same amount regardless of the
        length of the name. */
 #define Label_indent 25
-    name_len = strlen(name) + 1;  /* 1 for the ":". */
+    name_len = (int)(strlen(name) + 1);  /* 1 for the ":". */
     if (name_len >= Label_indent) {
       /* Name is already too long.  Start a new line and indent. */
       (void)printf("\n");
@@ -3030,7 +3030,7 @@ Display the indicated routine.
     /* Do not print out alternate_entry_points, which is used only
        during IL lowering. */
     disp_unsigned_long("base_name_offset",
-                       ptr->variant.ctor_dtor.base_name_offset);
+                       (unsigned long)ptr->variant.ctor_dtor.base_name_offset);
 #endif /* IA64_ABI && DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (rout_is_cli_accessor(ptr)) {

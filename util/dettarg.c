@@ -79,6 +79,7 @@ C99 support.
 #endif /* ifndef HAVE_LONG_LONG */
 
 #include <stdio.h>
+#include <string.h>
 #include <setjmp.h>
 #if HAVE_WCHAR_T
 #include <stddef.h>
@@ -145,7 +146,7 @@ static unsigned long alignment(char *p2, char *p1)
 /* Determine an alignment value based on the difference between p2 and p1. */
 {
   unsigned long align;
-  unsigned long diff = p2 - p1;
+  unsigned long diff = (unsigned long)(p2 - p1);
 
   for (align = 1; (diff & align) == 0; align *= 2) {}
   return align;
@@ -253,12 +254,12 @@ int main() {
        ;
        targ_char_bit++) {
     ui = (unsigned long)1L << (unsigned long)targ_char_bit;
-    uch = ui;
+    uch = (unsigned char)ui;
     if (uch != ui) break;
   }  /* for */
   printf("#define TARG_CHAR_BIT %d\n", targ_char_bit);
   targ_uchar_max = bit_mask(targ_char_bit);
-  ch = targ_uchar_max;
+  ch = (char)targ_uchar_max;
   if (ch < 0) {
     /* Signed char. */
     printf("#define TARG_HAS_SIGNED_CHARS TRUE\n");

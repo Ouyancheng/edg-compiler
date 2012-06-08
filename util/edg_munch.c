@@ -143,8 +143,8 @@ to the number of characters read not including the trailing null character.
 
 
 static int check_type_and_get_name(char**    name_pos,
-                            int       *name_length,
-                            a_boolean *is_ctor)
+                                   int       *name_length,
+                                   a_boolean *is_ctor)
 /*
 This routine looks at the input line, determines whether it is a
 static constructor or destructor that should be included in
@@ -158,8 +158,8 @@ length of the name.
   register char   ch;
   char*           local_name_pos;
   char            type;
-  static int      ctor_prefix_length = 0;
-  static int      dtor_prefix_length = 0;
+  static sizeof_t ctor_prefix_length = 0;
+  static sizeof_t dtor_prefix_length = 0;
 
   /* Check for one-time initialization of ctor and dtor prefix lengths. */
   if (ctor_prefix_length == 0) {

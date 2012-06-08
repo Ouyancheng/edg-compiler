@@ -318,7 +318,7 @@ is done according to the output control block octl.
    otherwise, it puts a new-line character and indents the next line.
    Variable col is updated in both cases. */
 #define put_separator(separator, string_len)			\
-{ col += strlen(separator) + 1;					\
+{ col += (uint32_t)(strlen(separator) + 1);				\
   if (col + (string_len) > DEBUG_LINE_LENGTH) {				\
     fprintf(f_debug, "%s\n%*s", (separator), indentation, "");	\
     col = indentation;						\
@@ -334,7 +334,7 @@ is done according to the output control block octl.
 { char *local_str = (str);					\
   put_separator(",", strlen(local_str));			\
   fputs((local_str), f_debug);					\
-  col += strlen((local_str));					\
+  col += (uint32_t)strlen((local_str));					\
 }  /* put_string */
 
 
@@ -597,7 +597,7 @@ the translation unit, if not the primary translation unit.
 
 void db_symbol(a_symbol_ptr	sym,
 	       char		*string,
-	       int		indentation)
+	       uint32_t		indentation)
 /*
 Write out information on a symbol, for debugging purposes.  sym points to
 the symbol; string is an optional identifying string ("" or NULL if omitted);
@@ -605,7 +605,7 @@ and indentation is the indentation desired.
 */
 {
   char				*str, buffer[1000];
-  int				col = indentation;
+  uint32_t			col = indentation;
   a_type_ptr			type = NULL, temp_type;
   a_variable_ptr		var = NULL;
   a_routine_ptr                 rp;
@@ -614,7 +614,7 @@ and indentation is the indentation desired.
 
   if (string != NULL && strlen(string) > 0) {
     fputs(string, f_debug);
-    col += strlen(string);
+    col += (uint32_t)strlen(string);
   }  /* if */
 
   if (sym == NULL) {
@@ -628,12 +628,12 @@ and indentation is the indentation desired.
     col = indentation;
   }  /* if */
   fprintf(f_debug, "<%s>", str);
-  col += strlen(str) + 2;
+  col += (uint32_t)(strlen(str) + 2);
 
   str = str_qualified_name(buffer, sym);
   put_separator("", strlen(str) + 2);
   fprintf(f_debug, "\"%s\"", str);
-  col += strlen(str) + 2;
+  col += (uint32_t)(strlen(str) + 2);
 
   db_property_or_event_suffix(sym);
   if (sym->kind == (a_symbol_kind)sk_projection) {
@@ -641,14 +641,14 @@ and indentation is the indentation desired.
     if (fsym != NULL) str = str_qualified_name(buffer, fsym);
     put_separator("", strlen(str) + 6);
     fprintf(f_debug, "(= \"%s\")", str);
-    col += strlen(str) + 6;
+    col += (uint32_t)(strlen(str) + 6);
   } else if (sym->kind == (a_symbol_kind)sk_namespace_projection) {
     a_symbol_ptr fsym = sym->variant.namespace_projection.fundamental_symbol;
     if (fsym != NULL) {
       str = str_qualified_name(buffer, fsym);
       put_separator("", strlen(str) + 6);
       fprintf(f_debug, "(= \"%s\")", str);
-      col += strlen(str) + 6;
+      col += (uint32_t)(strlen(str) + 6);
     }  /* if */
   }  /* if */
 
@@ -656,14 +656,14 @@ and indentation is the indentation desired.
     (void)sprintf(buffer, "#%lu", sym->decl_seq);
     put_separator("", strlen(buffer));
     fputs(buffer, f_debug);
-    col += strlen(buffer);
+    col += (uint32_t)strlen(buffer);
   }  /* if */
 
   (void)sprintf(buffer, "(%lu/%d)", sym->decl_position.seq,
 		sym->decl_position.column);
   put_separator("", strlen(buffer));
   fputs(buffer, f_debug);
-  col += strlen(buffer);
+  col += (uint32_t)strlen(buffer);
 
   /* If this symbol is for a secondary translation unit, display the
      translation unit. */
@@ -859,7 +859,7 @@ and indentation is the indentation desired.
             }  /* if */
             put_separator(sep, strlen(buffer));
             fprintf(f_debug, "%s", buffer);
-            col += strlen(buffer);
+            col += (uint32_t)strlen(buffer);
             sep = ",";
             buffer[0] = '\0';
           } while (friend_sym != NULL);
@@ -2655,7 +2655,7 @@ caller may have to set it directly.
      language memory region because it must be passed to the back end. */
   hdr_ptr->identifier = alloc_primary_file_scope_il((sizeof_t)(length + 1));
 #if DEBUG
-  symbol_name_string_space += length+1;
+  symbol_name_string_space += (unsigned long)(length + 1);
 #endif /* DEBUG */
   (void)memcpy(hdr_ptr->identifier, identifier, size_t_arg(length));
 
@@ -6583,7 +6583,7 @@ is none, create a new one.
     (void)memcpy(sym_hdr->identifier, "operator ", OPERATOR_LEN);
     (void)strcpy((sym_hdr->identifier + OPERATOR_LEN), name);
 #if DEBUG
-    symbol_name_string_space += sym_hdr->identifier_length;
+    symbol_name_string_space += (unsigned long)(sym_hdr->identifier_length);
 #endif /* DEBUG */
   }  /* if */
   return conv_hdr->symbol_header;
@@ -8488,7 +8488,7 @@ used for C++ constructs like "operator+".  Use pos as the source position.
     (void)strcpy(str+OPERATOR_LEN+blank_needed, opstr);
     hdr_ptr->variant.opname = opname;
 #if DEBUG
-    symbol_name_string_space += opname_length+1;
+    symbol_name_string_space += (unsigned long)(opname_length + 1);
 #endif /* DEBUG */
   }  /* if */
   locator->symbol_header = hdr_ptr;
@@ -14316,7 +14316,7 @@ value with an element of the table.
   memzero((a_void_ptr)htp->table, size_t_arg(table_size_in_bytes));
 #if DEBUG
   num_hash_tables_allocated++;
-  total_hash_table_size += table_size_in_bytes;
+  total_hash_table_size += (unsigned long)table_size_in_bytes;
 #endif /* DEBUG */
   return htp;
 }  /* alloc_hash_table */
@@ -14371,7 +14371,8 @@ holds.  Allocate a larger table and rehash the existing entries.
   }  /* if */
   htp->table = new_table;
 #if DEBUG
-  total_hash_table_size += (table_size_in_bytes - old_table_size_in_bytes);
+  total_hash_table_size += (unsigned long)(table_size_in_bytes -
+                                           old_table_size_in_bytes);
 #endif /* DEBUG */
 }  /* resize_hash_table */
 
@@ -14507,7 +14508,8 @@ for space tracking purposes.
   db_space_used("symbol", num_symbols_allocated, a_symbol);
   db_space_used("symbol header", num_symbol_headers_allocated,
                 a_symbol_header);
-  db_space_used_general("scope stack", size_scope_stack, a_scope_stack_entry);
+  db_space_used_general("scope stack", (unsigned long)size_scope_stack,
+                        a_scope_stack_entry);
   db_space_used("conversion header", num_conversion_headers_allocated,
                 a_conversion_header);
   db_space_used("Name strings", symbol_name_string_space, char);

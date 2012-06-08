@@ -7309,7 +7309,7 @@ caller is responsible for sorting that out.)
     if (sp != NULL) {
       /* Set the scope-stack-entry depth if not already set. */
       if (sp->depth_in_scope_stack == NO_SCOPE_DEPTH) {
-        sp->depth_in_scope_stack = (ssep - scope_stack);
+        sp->depth_in_scope_stack = scope_depth_of(ssep);
       }  /* if */
     } else {
       check_assertion_str(ssep->kind == (a_scope_kind)sck_pragma,

@@ -119,7 +119,7 @@ Put out a scope kind name (for debugging).
     default:                         s = "***UNKNOWN SCOPE KIND***"; break;
   }  /* switch */
   fputs(s, f_debug);
-  return strlen(s);
+  return (int)strlen(s);
 }  /* db_scope_kind */
 
 

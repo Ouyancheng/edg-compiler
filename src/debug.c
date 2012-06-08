@@ -121,7 +121,7 @@ static a_debug_stack_entry_ptr
 static int	depth_debug_stack;
 			/* The current depth of the debug stack. */
 
-static int	debug_stack_size = 0;
+static sizeof_t	debug_stack_size = 0;
 			/* The allocated size of the debug stack. */
 
 
@@ -409,7 +409,7 @@ are recognized for all entry kinds.
     if (source_corresp_for_il_entry((char *)scp, entry_kind) != NULL &&
         scp->name != NULL) {
       char *name = NULL;
-      unsigned long len_of_name_without_params = 0;
+      uint32_t len_of_name_without_params = 0;
       /* Compare it against the list of debug requests. */
       for (request = debug_requests;
            request != NULL;
@@ -425,7 +425,7 @@ are recognized for all entry kinds.
             name = db_name_str_full(scp, entry_kind,
                                     /*include_func_params=*/FALSE);
             if (entry_kind == (an_il_entry_kind)iek_routine) {
-              len_of_name_without_params = strlen(name);
+              len_of_name_without_params = (uint32_t)strlen(name);
               /* Generate a version with parameter types in case it's
                  needed. */
               name = db_name_str_full(scp, entry_kind,

@@ -30,6 +30,8 @@ Prelink utility for template instantiation.
 #if __MICROSOFT_OS__
 /* Used to get a prototype for chdir. */
 #include <direct.h>
+/* Used to get a prototype for getpid. */
+#include <process.h>
 /* Microsoft requires that popen and pclose be called as _popen and _pclose */
 #define popen _popen
 #define pclose _pclose
@@ -1935,7 +1937,7 @@ Return a hash for "name".
   /* Hash the symbol's identifier.  This involves taking the identifier's
      first 3, last 3, and middle 3 characters.  Of course, if the identifier
      has 9 or fewer characters, take the entire identifier. */
-  length = strlen(name);
+  length = (unsigned int)strlen(name);
   ptr = name;
   if (length > 9) {
     hash_value = (unsigned int)*ptr++;
@@ -2015,7 +2017,7 @@ call.
     goto symbol_found;
   }  /* if */
   /* Compute the string length. */
-  length = strlen(name);
+  length = (int)strlen(name);
   hash_value = hash_value_for_name(name);
   /* Look in the symbol bucket saving the position in case this symbol needs
      to be added. */
@@ -3676,7 +3678,7 @@ Add the string specified by "addition" to the temporary string buffer.
 {
   int	addition_length;
 
-  addition_length = strlen(addition);
+  addition_length = (int)strlen(addition);
   if (pos_in_temp_string + addition_length >= temp_string_length) {
     temp_string_length += TEMP_STRING_BUFFER_INCREMENTAL_ALLOCATION;
     temp_string = (char *)pl_realloc_with_check((a_void_ptr)temp_string,

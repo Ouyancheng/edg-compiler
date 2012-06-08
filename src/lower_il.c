@@ -308,7 +308,7 @@ IL lowering.
      translation units. */
   char *ptr = alloc_primary_file_scope_il(size);
 #if DEBUG && DO_IL_LOWERING
-  allocated_name_string_length += size;
+  allocated_name_string_length += (unsigned long)size;
 #endif /* DEBUG && DO_IL_LOWERING */
   return ptr;
 }  /* alloc_lowered_name_string */

@@ -471,7 +471,7 @@ least in non-pcc mode).
 */
 {
 #if DEBUG
-  string_literal_text_space_allocated += size;
+  string_literal_text_space_allocated += (unsigned long)size;
 #endif /* DEBUG */
   return alloc_il(size);
 }  /* alloc_text_of_string_literal */
@@ -2712,7 +2712,7 @@ Allocate space for an asm function body and return a pointer to it.
 */
 {
 #if DEBUG
-  asm_function_body_space_allocated += len;
+  asm_function_body_space_allocated += (unsigned long)len;
 #endif /* DEBUG */
   return (char *)alloc_cil(len);
 }  /* alloc_asm_function_body */

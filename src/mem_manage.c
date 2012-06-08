@@ -381,7 +381,7 @@ static sizeof_t	mmap_size_allocated;
 			   the PCH file is included in mmap_size_allocated,
 			   but not in mmap_file_offset. */
 
-static long	mmap_file_offset;
+static sizeof_t	mmap_file_offset;
 			/* The offset into the mmap file of the next block
 			   to be allocated. */
 
@@ -402,8 +402,8 @@ file are mapped into the address space of subsequent compilation.
 #if DEBUG
   /* Record the total amount of allocated memory that was allocated via
      memory mapped files. */
-  num_mapped_bytes_allocated += size;
-  num_mapped_bytes_from_pch += size;
+  num_mapped_bytes_allocated += (unsigned long)size;
+  num_mapped_bytes_from_pch += (unsigned long)size;
   adjust_record_of_total_allocation((long)size);
 #endif /* DEBUG */
 }  /* record_mapped_mem_block */
@@ -422,7 +422,7 @@ Unmap the memory blocks that have been mapped.
 #if DEBUG
     /* Record the total amount of allocated memory that was allocated via
        memory mapped files. */
-    num_mapped_bytes_allocated -= size;
+    num_mapped_bytes_allocated -= (unsigned long)size;
     adjust_record_of_total_allocation(-(long)size);
 #endif /* DEBUG */
   }  /* for */
@@ -469,7 +469,7 @@ PCH was created.
 #if DEBUG
   /* Record the total amount of allocated memory that was allocated via
      memory mapped files. */
-  num_mapped_bytes_allocated += size;
+  num_mapped_bytes_allocated += (unsigned long)size;
   adjust_record_of_total_allocation((long)size);
   if (debug_level >= 5) {
     fprintf(f_debug, "Allocated %lu bytes of mapped memory at %p\n",
@@ -994,11 +994,11 @@ is used for allocation of general front end memory (i.e., not IL).
 
 #if DEBUG
   /* Track total allocation. */
-  total_mem_used += size;
-  num_alignment_bytes_allocated += (size - orig_size);
+  total_mem_used += (unsigned long)size;
+  num_alignment_bytes_allocated += (unsigned long)(size - orig_size);
   /* Can't do this conditionally on db_active since db_active is not yet
      set when command line processing is done. */
-  allocated_in_region[region_number] += size;
+  allocated_in_region[region_number] += (unsigned long)size;
 #endif /* DEBUG */
 #ifdef TRACE_ALLOC
   trace_alloc_check(temp_ptr);
@@ -1073,7 +1073,7 @@ is responsible for seeing that the memory is freed.
 {
   char *ptr = malloc_with_check(size);
 #if DEBUG
-  total_general_mem_allocated += size;
+  total_general_mem_allocated += (unsigned long)size;
 #endif /* DEBUG */
   if (record_allocation) {
     add_memory_allocation((a_void_ptr)ptr, size, /*is_resizable=*/FALSE);
@@ -1134,7 +1134,7 @@ Free a block of memory to general storage.
   map->size = 0;
   free((char*)ptr);
 #if DEBUG
-  total_general_mem_allocated -= size;
+  total_general_mem_allocated -= (unsigned long)size;
 #endif /* DEBUG */
 }  /* free_general */
 
@@ -1152,7 +1152,7 @@ that the memory can be freed when the front end is reset.
   ptr = (char*)malloc_with_check(size);
   add_memory_allocation((a_void_ptr)ptr, size, /*is_resizable=*/TRUE);
 #if DEBUG
-  total_general_mem_allocated += size;
+  total_general_mem_allocated += (unsigned long)size;
 #endif /* DEBUG */
   return ptr;
 }  /* alloc_resizable_buffer */
@@ -1184,8 +1184,8 @@ some other way.
     ptr = realloc_with_check(old_ptr, old_size, new_size);
   }  /* if */
 #if DEBUG
-  total_general_mem_allocated -= old_size;
-  total_general_mem_allocated += new_size;
+  total_general_mem_allocated -= (unsigned long)old_size;
+  total_general_mem_allocated += (unsigned long)new_size;
 #endif /* DEBUG */
   return ptr;
 }  /* realloc_general */
@@ -1557,16 +1557,16 @@ usage counts in other files.
   db_space_used_total();
   fprintf(f_debug, "\nAllocated space in all categories:\n");
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total of above", "", "",
-                   total_accounted_for);
+          total_accounted_for);
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Skipped for alignment", "", "",
-                   num_alignment_bytes_allocated);
+          num_alignment_bytes_allocated);
 #if USE_MMAP_FOR_MEMORY_REGIONS
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "File mapped memory", "", "",
-                   num_mapped_bytes_allocated);
+          num_mapped_bytes_allocated);
   fprintf(f_debug, "%25s %8s %8s %8lu (included in previous line)\n",
           "Mapped from PCH", "", "", num_mapped_bytes_from_pch);
   fprintf(f_debug, "%25s %8s %8s %8ld\n",
-          "Mapped IL file size", "", "", mmap_file_offset);
+          "Mapped IL file size", "", "", (unsigned long)mmap_file_offset);
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
   if (precompiled_header_processing_required) {
     fprintf(f_debug, "%25s %8s %8s %8lu\n",
@@ -1586,14 +1586,16 @@ usage counts in other files.
        region_number <= highest_used_region_number;
        region_number++) {
     for (hdr = mem_region_table[region_number]; hdr != NULL; hdr = hdr->next) {
-      total_unallocated += hdr->after_end_of_block - hdr->next_avail_in_block;
+      total_unallocated += (unsigned long)(hdr->after_end_of_block -
+                                           hdr->next_avail_in_block);
     }  /* for */
   }  /* for */
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Avail in used mem blocks", "", "",
                    total_unallocated);
   /* Size the memory blocks on the available list. */
   for (hdr = reusable_blocks_list; hdr != NULL; hdr = hdr->next) {
-    total_in_freed_blocks += hdr->after_end_of_block - hdr->start_of_block;
+    total_in_freed_blocks += (unsigned long)(hdr->after_end_of_block -
+                                             hdr->start_of_block);
   }  /* for */
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Avail in freed mem blocks", "", "",
                    total_in_freed_blocks);

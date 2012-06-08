@@ -1753,7 +1753,7 @@ ensure_arg_raw_text_space.
     catastrophe(ec_requested_size_too_large);
   }  /* if */
 #if DEBUG
-  macro_arg_text_space += increment;
+  macro_arg_text_space += (unsigned long)increment;
 #endif /* DEBUG */
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
@@ -1839,7 +1839,7 @@ ensure_arg_expanded_text_space.
     catastrophe(ec_requested_size_too_large);
   }  /* if */
 #if DEBUG
-  macro_arg_text_space += increment;
+  macro_arg_text_space += (unsigned long)increment;
 #endif /* DEBUG */
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
@@ -1965,7 +1965,7 @@ and return a pointer to it.
        memory. */
     map->raw_text = alloc_resizable_buffer((sizeof_t)(map->raw_alloc_len+1));
 #if DEBUG
-    macro_arg_text_space += map->raw_alloc_len;
+    macro_arg_text_space += (unsigned long)(map->raw_alloc_len);
 #endif /* DEBUG */
     /* Likewise for the macro-expanded text array. */
     map->expanded_alloc_len = ARG_EXPANDED_TEXT_INITIAL_ALLOCATION;
@@ -1975,7 +1975,7 @@ and return a pointer to it.
     map->expanded_text = alloc_resizable_buffer(
                                         (sizeof_t)(map->expanded_alloc_len+1));
 #if DEBUG
-    macro_arg_text_space += map->expanded_alloc_len;
+    macro_arg_text_space += (unsigned long)(map->expanded_alloc_len);
 #endif /* DEBUG */
 #if FULLY_RESOLVED_MACRO_POSITIONS
     init_macro_text_map(MACRO_ARGUMENT_TEXT_MAP_INITIAL_COUNT,
@@ -6175,7 +6175,7 @@ Scan and process a #define directive.
               (void)memcpy(pp->name, "__VA_ARGS__", sizeof("__VA_ARGS__"));
             }  /* if */
 #if DEBUG
-            param_name_string_space += strlen(pp->name)+1;
+            param_name_string_space += (unsigned long)(strlen(pp->name)+1);
 #endif /* DEBUG */
             if (param_list == NULL) {
               param_list = pp;
@@ -6642,7 +6642,7 @@ Scan and process a #define directive.
     repl_text_len = next_avail_in_macro_buffer - buffer_start;
     repl_text = alloc_fe((sizeof_t)(repl_text_len+1));
 #if DEBUG
-    macro_definition_space += repl_text_len+1;
+    macro_definition_space += (unsigned long)(repl_text_len+1);
 #endif /* DEBUG */
     (void)memcpy(repl_text, buffer_start, size_t_arg(repl_text_len));
     repl_text[repl_text_len] = (char)rt_null;
@@ -8581,11 +8581,12 @@ Display and return the amount of space used for various macro tables.
   db_space_used("Param name strings", param_name_string_space, char);
   db_space_used("Macro definition text", macro_definition_space, char);
 
-  total = after_end_of_macro_buffer - macro_buffer;
+  total = (unsigned long)(after_end_of_macro_buffer - macro_buffer);
   db_space_used_general_buffer("macro_buffer", total);
 
   if (pcc_preprocessing_mode) {
-    total = after_end_of_aux_buffer_for_pcc_macros - aux_buffer_for_pcc_macros;
+    total = (unsigned long)(after_end_of_aux_buffer_for_pcc_macros -
+                            aux_buffer_for_pcc_macros);
     db_space_used_general_buffer("Aux pcc buffer", total);
   }  /* if */
 

@@ -92,7 +92,7 @@ extern a_boolean f_db_sym_trace(char		*flag_name,
 
 
 #define db_space_used_general(name, counter, type)                    \
-{ num = counter; size = sizeof(type); total = num*size;               \
+{ num = counter; size = (unsigned long)sizeof(type); total = num*size; \
   fprintf(f_debug, "%25s %8lu %8lu %8lu (gen. storage)\n", name, num, \
           size, total);                                               \
   grand_total += total;                                               \

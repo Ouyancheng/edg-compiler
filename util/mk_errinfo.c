@@ -529,7 +529,7 @@ should be used to determine the length.
     fprintf(doc_output_file, "%s", start_string);
     curr_font = font;
   }  /* if */
-  if (length == 0) length = strlen(string);
+  if (length == 0) length = (int)strlen(string);
   for (i = 0; i < length; ++i) {
     char	ch = string[i];
     /* Check for characters that must be escaped. */
@@ -574,7 +574,7 @@ should be used to determine the length.
     fprintf(doc_output_file, "%s", start_string);
     curr_font = font;
   }  /* if */
-  if (length == 0) length = strlen(string);
+  if (length == 0) length = (int)strlen(string);
   for (i = 0; i < length; ++i) {
     char	ch = string[i];
     /* Check for characters that must be escaped. */

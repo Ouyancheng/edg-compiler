@@ -170,7 +170,7 @@ encoded form.
   an_il_entry_number *count_ptr, entry_number;
   a_boolean          is_file_scope_entry;
   an_il_entry_prefix *epp;
-  int                num_entries = 1;
+  an_il_entry_number num_entries = 1;
 
   /* Determine the address of the entry prefix preceding the entry. */
   epp = &il_entry_prefix_of(entry_ptr);
@@ -261,7 +261,7 @@ encoded form.
          might have a problem. */
       do_host_alignment(*count_ptr);
       *count_ptr += SPACE_FOR_IL_ENTRY_PREFIX;
-      num_entries = entry_length;
+      num_entries = (an_il_entry_number)entry_length;
       /* Note that no orphan pointer is allocated for strings. */
     }  /* if */
     /* Check for overflow of the entry number field.  In practice, the

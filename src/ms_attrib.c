@@ -1264,7 +1264,7 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
   if (curr_token == tok_identifier) {
     /* An identifier.  Use the characters of the identifier. */
     src = locator_for_curr_id.symbol_header->identifier;
-    len = strlen(src);
+    len = (a_targ_size_t)strlen(src);
   } else if (curr_token == tok_string_literal) {
     if (is_error_constant(&const_for_curr_token)) {
       /* We encountered a misformed string literal.  An error should
@@ -1283,7 +1283,7 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
     /* A token initially cached as a keyword that should be treated as an
        identifier. */
     src = token_names[(int)curr_token];
-    len = strlen(src);
+    len = (a_targ_size_t)strlen(src);
   } else {
     /* Some other token kind */
     valid_token = FALSE;
@@ -1359,7 +1359,7 @@ TRUE.  Note that "err" is not TRUE for an unexpected token kind.
     length = strlen(str) + 1;
     clear_constant(&constant, (a_constant_repr_kind)ck_string);
     constant.type = string_type((a_targ_size_t)length);
-    constant.variant.string.length = length;
+    constant.variant.string.length = (a_targ_size_t)length;
     constant.variant.string.value =
                           copy_string_to_region(file_scope_region_number, str);
     result = &constant;
@@ -1515,7 +1515,7 @@ significant.
     }  /* for */
     /* If we found a match, compute the element number. */
     if (*values != NULL) {
-      result = values - param->values;
+      result = (int)(values - param->values);
     } else {
       /* An invalid value.  Issue a diagnostic. */
       pos_st_error(ec_invalid_ms_attr_enum_value, &arg_pos, param->name);

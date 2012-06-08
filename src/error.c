@@ -180,8 +180,8 @@ typedef struct a_msg_segment {
 				   segment.  NULL if none. */
   char		*second_quote;	/* Pointer to the second double quote in the 
 				   segment.  NULL if none. */
-  int		length;		/* Current length of the message segment. */
-  int		max_length;	/* Maximum string size that can be accommodated
+  uint32_t	length;		/* Current length of the message segment. */
+  uint32_t	max_length;	/* Maximum string size that can be accommodated
 				   in the message segment buffer. */
   short		sequence_no;	/* Sequence number of the user string, type,
 				   source position, or symbol name in the
@@ -575,10 +575,10 @@ new buffer before adding the string.  Allow room for a NULL character at the
 end of the buffer.
 */
 {
-  int	length_of_string;
+  uint32_t	length_of_string;
 
   if (str != NULL) {
-    length_of_string = strlen(str);
+    length_of_string = (uint32_t)strlen(str);
     /* If the string will not fit in the buffer, enlarge the buffer so that it
        will fit.  Allow for a terminating null character. */
     if (seg_ptr->max_length <= (seg_ptr->length + length_of_string)) {
@@ -1674,7 +1674,8 @@ check_for_seq_number:
           curr_segment->variant.msg_part = error_text(*(lfie->test) ?
                                                            lfie->true_value :
                                                            lfie->false_value);
-          curr_segment->length = strlen(curr_segment->variant.msg_part);
+          curr_segment->length =
+                              (uint32_t)strlen(curr_segment->variant.msg_part);
           msg_ptr = end_label+1;
           break;
         case '%':
@@ -1698,11 +1699,11 @@ text_segment:
       end_ptr = mbc_strchr(msg_ptr+1, '%');
       if (end_ptr == NULL) {
         /* This part is the end of the message template. */
-        curr_segment->length = strlen(msg_ptr);
+        curr_segment->length = (uint32_t)strlen(msg_ptr);
       } else {
         /* A substitution parameter has been found.  The length is the
            difference of the two pointers. */
-        curr_segment->length = end_ptr - msg_ptr;
+        curr_segment->length = (uint32_t)(end_ptr - msg_ptr);
       }  /* if */
       msg_ptr += curr_segment->length;
     }  /* if */
@@ -2388,7 +2389,7 @@ end_of_loop:
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static void write_message_part(char              *msg,
-                               int               len,
+                               int32_t           len,
                                a_text_buffer_ptr buffer,
                                int               *line_len,
                                a_boolean         wrap,
@@ -2419,7 +2420,7 @@ be forgotten.
 
   if (start_of_diagnostic) trailing_space_count = 0;
   if (msg != NULL) {
-    if (len < 0) len = strlen(msg);
+    if (len < 0) len = (int32_t)strlen(msg);
     while (wrap && 
            (chars_that_will_fit_on_line = MAX_ERROR_OUTPUT_LINE_LENGTH -
                                   *line_len - trailing_space_count) < len) {
@@ -2537,8 +2538,8 @@ successive additional lines as necessary.
 */
 {
   a_msg_segment_ptr curr_seg;
-  int               length;
-  int               total_len;
+  int32_t           length;
+  int32_t           total_len;
   a_boolean         start_of_message = TRUE;
 
   for (curr_seg = error_message_head;
@@ -2572,15 +2573,15 @@ handle_embedded_quoted_text:
              broken across lines. */
           total_len = 0;
           if (curr_seg->segment != curr_seg->first_quote) {
-            total_len = (curr_seg->first_quote - curr_seg->segment);
+            total_len = (int32_t)(curr_seg->first_quote - curr_seg->segment);
             write_message_part(curr_seg->segment, total_len, buffer,
                                line_len, wrap, /*quoted_text=*/FALSE,
                                start_of_message);
             start_of_message = FALSE;
           }  /* if */
           /* Output the quoted text as a single unit. */
-          total_len += length = curr_seg->second_quote -
-                                curr_seg->first_quote +1;
+          total_len += length = (int32_t)(curr_seg->second_quote -
+                                          curr_seg->first_quote + 1);
           write_message_part(curr_seg->first_quote, length, buffer, line_len,
                              wrap, /*quoted_text=*/TRUE,
                              start_of_message);
@@ -3291,10 +3292,10 @@ An assertion has failed.  Abort the compilation.
 */
 {
 #define BUFFER_SIZE 512
-  char	buffer[BUFFER_SIZE];
-  int   max_filename_length = BUFFER_SIZE - 100;
-  char  line_number_buffer[32];
-  int	overflow;
+  char		buffer[BUFFER_SIZE];
+  int		max_filename_length = BUFFER_SIZE - 100;
+  char		line_number_buffer[32];
+  int32_t	overflow;
 
   /* Make sure that formatting the internal error string won't overflow
      the buffer.  We subtract 100 from the buffer length to allow for
@@ -3302,7 +3303,7 @@ An assertion has failed.  Abort the compilation.
      is too long we print as many characters from the end of the string
      as possible because the characters at the beginning probably contain
      the directory portion of the name. */
-  overflow = strlen(filename) - max_filename_length;
+  overflow = (int32_t)(strlen(filename) - max_filename_length);
   if (overflow > 0) {
     filename += overflow;
   }  /* if */

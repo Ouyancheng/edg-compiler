@@ -1316,7 +1316,7 @@ memory.
   new_start = (char *)alloc_fe(length+1);
 #if DEBUG
   /* Track the amount of space used for pp token strings. */
-  cached_pp_token_string_space += length+1;
+  cached_pp_token_string_space += (unsigned long)(length+1);
 #endif /* DEBUG */
   new_end = new_start + length - 1;
   strncpy(new_start, start_of_curr_token, size_t_arg(length));
@@ -5831,8 +5831,9 @@ macro_line_loc_to_source_pos should be used when speed is critical.
              been overwritten, the position must be calculated relative to
              the starting position of the token. */
           *position_var = orig_slmp->source_position;
-          position_var->column += orig_slmp->end_inserted_text -
-                                                  orig_slmp->inserted_text - 1;
+          position_var->column +=
+                               (a_column_number)(orig_slmp->end_inserted_text -
+                                                 orig_slmp->inserted_text - 1);
 #if FULLY_RESOLVED_MACRO_POSITIONS
           position_var->orig_column = position_var->column;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
@@ -5942,9 +5943,10 @@ macro_line_loc_to_source_pos should be used when speed is critical.
      are in and how many trigraphs appear before adj_loc_in_line on this
      line. */
   position_var->seq    = seq_number;
-  position_var->column = adj_loc_in_line - start_of_curr_phys_line +
+  position_var->column = (a_column_number)(adj_loc_in_line -
+                         start_of_curr_phys_line +
                          column_adjustment + 1 -
-                         logical_column_offset(adj_loc_in_line);
+                         logical_column_offset(adj_loc_in_line));
 have_position:
   /* Save the position determined in the innermost source line modification
      that covers this location.  That will make succeeding calls of
@@ -6038,8 +6040,9 @@ conv_line_loc_to_source_pos.
       (within_curr_source_line(loc_in_line) && \
        orig_line_modif_list == NULL && !in_token_insertion_from_string)) { \
     (position_var).seq    = curr_seq_number; \
-    (position_var).column = (loc_in_line) - curr_source_line + \
-                             1 - logical_column_offset(loc_in_line); \
+    (position_var).column = (a_column_number) \
+                            ((loc_in_line) - curr_source_line + \
+                             1 - logical_column_offset(loc_in_line)); \
     copy_pos_to_orig_pos((position_var)); \
     set_macro_context_to_none((position_var)); \
   } else if (should_use_pos_of_macro_invocation()) { \
@@ -6205,7 +6208,7 @@ for the GNU C multiline string extension.
   int             ch = 0;
   char            *loc_in_line;
   a_boolean       return_value;
-  unsigned long   curr_column;
+  uint32_t        curr_column;
 #if MBC_CHECKING_NEEDED_IN_LINE_READING
   unsigned long   mbc_offset = 0;
 #endif /* MBC_CHECKING_NEEDED_IN_LINE_READING */
@@ -6218,7 +6221,7 @@ for the GNU C multiline string extension.
                                after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
 		       /* For checking of buffer overflow -- to leave
                           room for the newline and line-end lexical escapes. */
-  unsigned long   white_space_chars_after_backslash = 0;
+  uint32_t        white_space_chars_after_backslash = 0;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED && \
     BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
   char            *backslash_loc;
@@ -6483,7 +6486,7 @@ for the GNU C multiline string extension.
     BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
           backslash_loc = cp;
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED && ... */
-          white_space_chars_after_backslash = loc_in_line - cp - 1;
+          white_space_chars_after_backslash = (uint32_t)(loc_in_line - cp - 1);
           goto line_splice;
         }  /* if */
       }  /* if */
@@ -6610,7 +6613,7 @@ simple_return:
 expand_buffer:
   /* The curr_source_line buffer is too small to fit the next character,
      so go into the expensive loop and expand it. */
-  curr_column = loc_in_line - curr_source_line + 1;
+  curr_column = (uint32_t)(loc_in_line - curr_source_line + 1);
   goto entry_for_expand_buffer;
 
 partial_final_line:
@@ -6630,19 +6633,19 @@ possible_trigraph:
      the two "?"s are followed by something that makes them a trigraph,
      but that should happen seldom enough that, from an efficiency point
      of view, we don't care. */
-  curr_column = loc_in_line - curr_source_line + 1;
+  curr_column = (uint32_t)(loc_in_line - curr_source_line + 1);
   goto entry_for_possible_trigraph;
 
 null_character:
   /* There is a null character in the input line.  Go into the expensive
      loop. */
-  curr_column = loc_in_line - curr_source_line + 1;
+  curr_column = (uint32_t)(loc_in_line - curr_source_line + 1);
   goto entry_for_null_character;
 
 line_splice:
   /* A backslash has been detected at the end of the first line.
      Go into the general-purpose algorithm. */
-  curr_column = loc_in_line - curr_source_line;
+  curr_column = (uint32_t)(loc_in_line - curr_source_line);
   goto entry_for_line_splice;
 
   /* The general-purpose expensive algorithm.  Handles trigraphs, tracks
@@ -6731,7 +6734,8 @@ entry_for_possible_trigraph:
               if (!trigraph_diagnostic_issued) {
                 /* Note that we want trigraph_column to reflect the position
                    of the initial "?". */
-                trigraph_column = loc_in_line - curr_source_line;
+                trigraph_column = (a_column_number)(loc_in_line -
+                                                    curr_source_line);
                 trigraph_diagnostic_issued = TRUE;
               }  /* if */
             } else if (!char_is_trapped) {
@@ -6841,7 +6845,7 @@ entry_for_expand_buffer:
     BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
         backslash_loc = cp;
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED && ... */
-        white_space_chars_after_backslash = loc_in_line - cp - 1;
+        white_space_chars_after_backslash = (uint32_t)(loc_in_line - cp - 1);
 entry_for_line_splice:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
@@ -19277,7 +19281,7 @@ Display and return the amount of space used for various lexical tables.
                       "");
   grand_total += cached_pp_token_string_space;
 
-  total = after_end_of_curr_source_line - curr_source_line;
+  total = (unsigned long)(after_end_of_curr_source_line - curr_source_line);
   db_space_used_general_buffer("curr_source_line", total);
   if (size_pp_dir_string_buffer != 0) {
     db_space_used_general_buffer
@@ -19285,7 +19289,8 @@ Display and return the amount of space used for various lexical tables.
   }  /* if */
 
   if (after_end_of_raw_listing_buffer != NULL) {
-    total = after_end_of_raw_listing_buffer - raw_listing_buffer;
+    total = (unsigned long)(after_end_of_raw_listing_buffer -
+                            raw_listing_buffer);
     db_space_used_general_buffer("raw_listing_buffer", total);
   }  /* if */
 
@@ -19317,7 +19322,8 @@ suffix; the normal include_file_suffix_list is used for unsuffixed files.
   sun_include_file_suffix_list =
                               conv_string_to_file_suffix_list("h.SUNWCCh:h:");
   suffix = "SUNWCCh";
-  add_to_file_suffix_list(&include_file_suffix_list, suffix, strlen(suffix));
+  add_to_file_suffix_list(&include_file_suffix_list, suffix,
+                          (int)strlen(suffix));
 }  /* create_sun_include_file_suffixes */
 
 

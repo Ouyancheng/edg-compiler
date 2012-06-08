@@ -24193,13 +24193,13 @@ is used to build a list of instances found in the instantiation request file
 and later check whether a specified name was included in that list.
 */
 {
-  register unsigned            hash_value = 0;
-  register unsigned char       *ptr;
+  uint32_t                     hash_value = 0;
+  unsigned char                *ptr;
   an_instance_lookup_entry_ptr ilp    = NULL;
-  int                          bucket_number;
-  int			       length;
+  uint32_t                     bucket_number;
+  uint32_t		       length;
 
-  length = strlen(name);
+  length = (uint32_t)strlen(name);
   /* Hash the symbol's identifier.  This involves taking the identifier's
      first 3, last 3, and middle 3 characters.  Of course, if the identifier
      has 9 or fewer characters, take the entire identifier. */
@@ -24217,7 +24217,7 @@ and later check whether a specified name was included in that list.
     hash_value = (hash_value * HASH_FACTOR) + *ptr++;
     hash_value = (hash_value * HASH_FACTOR) + *ptr;
   } else {
-    register int a;
+    uint32_t a;
     for (a = 0; a < length; a++) {
       hash_value = (hash_value * HASH_FACTOR) + *ptr++;
     }  /* for */
@@ -25051,13 +25051,13 @@ If "add" is TRUE add the name to the list if an entry does not already
 exist.  This is used to find the definition of an exported template.
 */
 {
-  register unsigned            hash_value = 0;
-  register unsigned char       *ptr;
+  uint32_t                     hash_value = 0;
+  unsigned char                *ptr;
   a_template_lookup_entry_ptr  tlp    = NULL;
-  int                          bucket_number;
-  int			       length;
+  uint32_t                     bucket_number;
+  uint32_t		       length;
 
-  length = strlen(name);
+  length = (uint32_t)strlen(name);
   /* Hash the symbol's identifier.  This involves taking the identifier's
      first 3, last 3, and middle 3 characters.  Of course, if the identifier
      has 9 or fewer characters, take the entire identifier. */
@@ -25075,7 +25075,7 @@ exist.  This is used to find the definition of an exported template.
     hash_value = (hash_value * HASH_FACTOR) + *ptr++;
     hash_value = (hash_value * HASH_FACTOR) + *ptr;
   } else {
-    register int a;
+    uint32_t a;
     for (a = 0; a < length; a++) {
       hash_value = (hash_value * HASH_FACTOR) + *ptr++;
     }  /* for */

@@ -2556,7 +2556,7 @@ char *get_file_name_from_dir(a_boolean	first,
 			     char	*suffix,
 			     char	*curr_dir_name)
 {
-  static long			handle;
+  static intptr_t		handle;
   static struct _tfinddata_t	fileinfo;
   char				*result;
   static char			pattern[10];
@@ -2741,7 +2741,7 @@ buffer.
      is some space allocated. */
   ensure_temp_text_buffer_space(256);
   for (;;) {
-    if (getcwd(temp_text_buffer, size_temp_text_buffer) == NULL) {
+    if (getcwd(temp_text_buffer, (int)size_temp_text_buffer) == NULL) {
       if (errno == ERANGE) {
         /* We know the buffer is too small, but we don't know how much
            more space we need.  Add a little space and try again. */
@@ -2859,8 +2859,8 @@ Set module_id to the string and return it.
       char      len_buf[50];
       int	len1;
       int	len2;
-      len1 = strlen(str1);
-      len2 = str2 == NULL ? 0 : strlen(str2);
+      len1 = (int)strlen(str1);
+      len2 = str2 == NULL ? 0 : (int)strlen(str2);
       if ((len1 + len2 + (int)(len2 != 0)) > 8) {
         /* The string (not including the file name) is longer than 8
            characters.  Use a CRC of the string instead. */
@@ -3040,7 +3040,7 @@ Close the mapped input file and the associated map object.
 #endif /* !USE_FIXED_ADDRESS_FOR_MMAP */
 a_void_ptr map_file_region(sizeof_t	curr_size,
 		           sizeof_t	incremental_size,
-			   long		file_offset)
+			   sizeof_t	file_offset)
 /*
 Expand a memory mapped file.  This routine assumes that curr_size bytes
 have already been allocated and mapped, and that incremental_size bytes
@@ -3204,7 +3204,7 @@ incremental_size must be a multiple of the page size.
 #endif /* !USE_FIXED_ADDRESS_FOR_MMAP */
 a_void_ptr map_file_region(sizeof_t	curr_size,
 		           sizeof_t	incremental_size,
-			   long		file_offset)
+			   sizeof_t	file_offset)
 /*
 Expand a memory mapped file.  This routine assumes that curr_size bytes
 have already been allocated and mapped, and that incremental_size bytes
@@ -4182,7 +4182,7 @@ Add "dir_name" to the end of the directory name specified by "buf".
     dir_start = ptr;
     /* Find the end of the directory. */
     while (*ptr != '\0' && !is_dir_separator(*ptr)) increment_mbc_ptr(ptr);
-    length = ptr - dir_start;
+    length = (int)(ptr - dir_start);
     if (length == 1 && *dir_start == '.') {
       /* "." for the current directory.  Ignore it. */
     } else if (length == 2 &&

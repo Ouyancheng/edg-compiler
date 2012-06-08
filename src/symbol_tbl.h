@@ -5649,7 +5649,7 @@ extern unsigned long show_symbol_space_used(void);
 /* Display a symbol table entry. */
 extern void db_symbol(a_symbol_ptr	sym,
                       char		*string,
-                      int		indentation);
+                      uint32_t		indentation);
 
 /* Short-hand version of db_symbol. */
 extern void db_sym(a_symbol_ptr  sym);

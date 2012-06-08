@@ -1213,7 +1213,7 @@ variable is returned.
   /* Generate a string constant. */
   clear_constant(&constant, (a_constant_repr_kind)ck_string);
   constant.type = string_type((a_targ_size_t)name_length);
-  constant.variant.string.length = name_length;
+  constant.variant.string.length = (a_targ_size_t)name_length;
   constant.variant.string.value  = name;
 #if IA64_ABI
   /* An initial value string cannot be shared. */

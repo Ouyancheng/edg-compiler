@@ -202,7 +202,7 @@ static a_source_file_ptr
 		curr_output_file;
 static a_line_number
 		curr_output_line;
-static unsigned long
+static uint32_t
 		curr_output_column;
 			/* The number of characters written to the current
 			   line of output.  Zero means nothing has been
@@ -216,7 +216,7 @@ static a_text_buffer_ptr
 static a_boolean
 		curr_output_pos_known;
 			/* TRUE if the current output position is known. */
-static unsigned long
+static uint32_t
 		indent;
 			/* Number of spaces to indent at the start of a
 			   line (when annotating). */
@@ -240,7 +240,7 @@ typedef struct an_output_file_position {
 			/* File entry for output file. */
   a_line_number	curr_output_line;
 			/* Current output line number. */
-  unsigned long	curr_output_column;
+  uint32_t	curr_output_column;
 			/* Current output column number. */
   a_boolean	curr_output_pos_known;
 			/* Current output position is known. */
@@ -271,7 +271,7 @@ static FILE	*f_file_scope_inits;
 static FILE	*f_rout_dynamic_inits;
 			/* Dynamic initializations at the routine level. */
 
-static unsigned long
+static uint32_t
 		in_comment;
 			/* Flag indicating whether the current output is
 			   inside a comment. */
@@ -425,7 +425,7 @@ typedef struct an_init_control_block {
    a_boolean	initializer_constants_started;
 			/* At least one constant has been put out in this
 			   initialization. */
-  unsigned long	num_initializer_open_braces_deferred;
+  uint32_t	num_initializer_open_braces_deferred;
 			/* Count of the number of open braces deferred at the
 			   beginning of putting out a constant initializer.
 			   The braces are deferred until we see the first
@@ -1046,7 +1046,7 @@ This is the macro version.
   register char ch;                                                   \
   ensure_enough_room_on_line(len);                                    \
   while ((ch = *p++) != '\0') (void)putc(ch, f_C_output);             \
-  curr_output_column += len;                                          \
+  curr_output_column += (uint32_t)len;                                \
 }  /* m_write_tok_str */
 
 
@@ -1144,7 +1144,7 @@ string for the directive.  If more is non-NULL, the string it points to
 is added at the end of the directive.
 */
 {
-  unsigned long saved_indent = indent;
+  uint32_t saved_indent = indent;
 
   end_output_line_if_begun();
   indent = 0;
@@ -1518,8 +1518,8 @@ Print the name of the indicated variable.
   } else if (variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
              !is_magic_name(variable->source_corresp.name)) {
-    unsigned long len = strlen(variable->source_corresp.name) + 9 +
-                        strlen(module_id);
+    uint32_t len = (uint32_t)strlen(variable->source_corresp.name) + 9 +
+                             strlen(module_id);
 #if ONE_INSTANTIATION_PER_OBJECT
     char buffer[50];
     if (needed_flag_bit_number != 0) {
@@ -2354,7 +2354,7 @@ by "kind", while "value" specifies whether the pragma should be "ON", "OFF"
 or "DEFAULT").
 */
 {
-  unsigned long  saved_indent = indent;
+  uint32_t  saved_indent = indent;
 
   end_output_line_if_begun();
   indent = 0;
@@ -2428,7 +2428,7 @@ curr_default_upc_access_method to reflect the new default.
 {
   a_boolean      is_strict = (access_method ==
                                        (a_upc_access_method)upc_access_strict);
-  unsigned long  saved_indent = indent;
+  uint32_t  saved_indent = indent;
 
   end_output_line_if_begun();
   indent = 0;
@@ -2450,7 +2450,7 @@ static void dump_pragma(a_pragma_ptr pp)
 Dump a single #pragma from the IL entry.
 */
 {
-  unsigned long saved_indent = indent;
+  uint32_t      saved_indent = indent;
   a_boolean     saved_suppress_line_breaking = octl.suppress_line_breaking;
 
   /* Ignore this entry if told to do so. */
@@ -2877,8 +2877,8 @@ Dump out declarations to describe padding after the indicated bit field,
 which has a declared size that is larger than its base type.
 */
 {
-  unsigned long padding = field->declared_bit_size - field->bit_size;
-  unsigned long bits = field->offset_bit_remainder + field->bit_size;
+  uint32_t padding = field->declared_bit_size - field->bit_size;
+  uint32_t bits = field->offset_bit_remainder + field->bit_size;
   char     *bf_type;
 
 #if ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
@@ -3464,7 +3464,7 @@ final semicolon if output_final_semi is TRUE.
          requirements for this struct.  (Some GNU compilers ignore the
          pragma; attributes are issued instead.  If we know attribute packed
          will be emitted, we don't issue the pragma.) */
-      unsigned long saved_indent = indent;
+      uint32_t saved_indent = indent;
       end_output_line_if_begun();
       indent = 0;
       disable_line_wrapping();
@@ -3611,7 +3611,7 @@ final semicolon if output_final_semi is TRUE.
 #if USER_CONTROL_OF_STRUCT_PACKING
     if (need_to_restore_default_alignment) {
       /* Restore the packing alignment to a default state. */
-      unsigned long saved_indent = indent;
+      uint32_t saved_indent = indent;
       end_output_line_if_begun();
       indent = 0;
       disable_line_wrapping();
@@ -5174,7 +5174,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   a_type_ptr                     expr_type;
   a_boolean                      pointer_comparison = FALSE;
   char                           *pointer_comparison_cast;
-  unsigned long                  comma_column;
+  uint32_t                       comma_column;
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_field_ptr                    field;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -8732,7 +8732,7 @@ top-level list in a GNU C statement expression if is_statement_expr is TRUE.
 */
 {
   a_boolean     exec_stmt_put_out = FALSE;
-  unsigned long num_closing_braces_needed = 0;
+  uint32_t      num_closing_braces_needed = 0;
   a_boolean     last_in_statement_expr = FALSE;
 
   for (; statement != NULL; statement = statement->next) {
@@ -8994,13 +8994,13 @@ Set *region_number to the function memory region number.
 
 #if IA64_ABI
 
-static unsigned long num_parameters(a_scope_ptr scope)
+static uint32_t num_parameters(a_scope_ptr scope)
 /*
 Return the count of parameters for the indicated function scope.
 */
 {
   a_variable_ptr param_var;
-  unsigned long  num;
+  uint32_t       num;
 
   for (param_var = scope->variant.routine.parameters, num = 0;
        param_var != NULL;
@@ -9432,7 +9432,7 @@ if this routine has a body (dump nothing if it has no body).
 #if SGIC
     /* The SGI compiler uses a pragma to indicate "inline". */
     if (rout->is_inline && has_name(rout) && has_defn && !is_definition) {
-      unsigned long saved_indent = indent;
+      uint32_t saved_indent = indent;
       end_output_line_if_begun();
       indent = 0;
       disable_line_wrapping();

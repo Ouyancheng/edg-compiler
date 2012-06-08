@@ -3097,7 +3097,7 @@ extern sizeof_t do_page_alignment(sizeof_t size);
 extern
 a_void_ptr map_file_region(sizeof_t	curr_size,
 		           sizeof_t	incremental_size,
-			   long         file_offset);
+			   sizeof_t     file_offset);
 
 extern
 void map_input_file_to_region(FILE		*file,

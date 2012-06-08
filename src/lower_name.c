@@ -11887,7 +11887,7 @@ correspondence entry for the entity whose name this is.
           if (value > ULONG_MAX / 10) ovflo = TRUE;
           value *= 10;
           if (value > ULONG_MAX-digit) ovflo = TRUE;
-          value += digit;
+          value += (unsigned long)digit;
         }  /* for */
         /* See whether the length is valid. */
         if (ovflo) {

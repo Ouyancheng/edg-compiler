@@ -102,7 +102,7 @@ to the number of characters read not including the trailing null character.
   line_size = size;
 #if DEBUG
   fprintf(stderr, "input:%s\n", input_line_buffer);
-#endif
+#endif /* DEBUG */
   return (result);
 }  /* read_input_line */
 
@@ -112,7 +112,7 @@ static a_boolean find_line(char *starting_string)
 Read lines until one is found that begins with the specified string.
 */
 {
-  int		len = strlen(starting_string);
+  int		len = (int)strlen(starting_string);
   a_boolean	found = FALSE;
 
   while (read_input_line()) {
@@ -217,7 +217,7 @@ void process_file(char *file_to_process)
       { char	*blank_pos;
         blank_pos = strchr(ptr, ' ');
         if (blank_pos != NULL) {
-          line_offset = blank_pos - ptr - 3;
+          line_offset = (int)(blank_pos - ptr - 3);
           assert(line_offset >= 0);
           ptr += line_offset;
         }  /* if */
@@ -253,7 +253,7 @@ void process_file(char *file_to_process)
       printf("00000000 %c %s\n", new_type, name);
 #if DEBUG
       fprintf(stderr, "output:00000000 %c %s\n", new_type, name);
-#endif
+#endif /* DEBUG */
     }  /* while */
   }  /* for */
 done:

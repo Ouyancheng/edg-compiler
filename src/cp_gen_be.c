@@ -110,8 +110,7 @@ static unsigned int
 #define disable_line_wrapping() (line_wrapping_disabled++)
 #define enable_line_wrapping() (line_wrapping_disabled--)
 
-static unsigned long
-		disable_line_wrapping_until_column;
+static uint32_t	disable_line_wrapping_until_column;
 			/* If non-zero, output line wrapping is disabled
 			   until the indicated column is reached. */
 
@@ -120,7 +119,7 @@ static a_source_file_ptr
 		curr_output_file;
 static a_line_number
 		curr_output_line;
-static unsigned long
+static uint32_t
 		curr_output_column;
 			/* The number of characters written to the current
 			   line of output.  Zero means nothing has been
@@ -2353,7 +2352,7 @@ version does not.  Both are macros.
   register char ch;                                                   \
   ensure_enough_room_on_line(len);                                    \
   while ((ch = *p++) != '\0') (void)putc(ch, f_C_output);             \
-  curr_output_column += len;                                          \
+  curr_output_column += (uint32_t)len;                                \
 }  /* m_write_tok_str_no_pending_check */
 #define m_write_tok_str(str)                                          \
 { check_pending_output_position();                                    \
@@ -2748,7 +2747,7 @@ that the remaining arguments will be defaulted.
       /* MSVC++ up to version 7.0 has a bug when a qualified template name
          is separated from the following "<" by a "#line" directive, so
          make sure we do not wrap the line at this point. */
-      unsigned long new_disable_column = curr_output_column +
+      uint32_t new_disable_column = curr_output_column +
                                          (insert_space ? 2 : 1);
       if (new_disable_column > disable_line_wrapping_until_column) {
         disable_line_wrapping_until_column = new_disable_column;

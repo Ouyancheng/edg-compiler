@@ -510,7 +510,8 @@ necessary to make it directly accessible in memory.
                                       entry_count_array_ptr[byte_entry_kind]) {
           do_host_alignment(gross_entry_size);
         }  /* if */
-        count_of_entries_read[byte_entry_kind] += gross_entry_size;
+        count_of_entries_read[byte_entry_kind] +=
+                                          (an_il_entry_number)gross_entry_size;
 #if DEBUG
         { sizeof_t count, idx;
           /* Record the space for the string entry as having been read.

@@ -1776,7 +1776,7 @@ public:
     } else {
       PCCOR_SIGNATURE signature = begin_;
       ULONG string_length = CorSigUncompressData(signature);
-      size = signature - begin_ + string_length;
+      size = (ULONG)(signature - begin_ + string_length);
       /* The utf8 string is not NULL terminated, so copy it to a string
          object. */
       auto utf8_string = string(reinterpret_cast<const char*>(signature),
@@ -3874,7 +3874,7 @@ public:
 
   virtual BYTE generic_arity() const
   {
-    BYTE arity = generic_parameters().size();
+    BYTE arity = (BYTE)generic_parameters().size();
     if (enclosing_type_ != nullptr) {
       arity -= enclosing_type_->generic_parameter_count();
     }  /* if */
@@ -7931,7 +7931,8 @@ an_assembly_name::an_assembly_name(
   /* Set the name. */
   hr = name_interface->SetProperty(ASM_NAME_NAME,
                                    const_cast<wchar_t*>(name_.c_str()),
-                                   (name_.length() + 1) * sizeof(WCHAR));
+                                   (DWORD)((name_.length() + 1) *
+                                           sizeof(WCHAR)));
   CHECK_API_RESULT(hr, SetProperty);
   /* Set the version. */
   hr = name_interface->SetProperty(ASM_NAME_MAJOR_VERSION,

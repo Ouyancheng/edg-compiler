@@ -2002,7 +2002,7 @@ for the representation of floating-point values in mangled names.
   } else if (kind == (a_float_kind)fk_double) {
     data_size = sizeof(double);
   } else {
-    data_size = data_size_of_host_fp_value;
+    data_size = (int)data_size_of_host_fp_value;
   }  /* if */
 #if ABI_COMPATIBILITY_VERSION >= 402
   /* The long double format sometimes contains some unused bytes.

@@ -7235,7 +7235,8 @@ Display and return the amount of space used for various statements tables.
   unsigned long num, size, total, grand_total = 0;
 
   db_space_used_header("Statements table use:");
-  db_space_used_general("struct stmt stack", size_struct_stmt_stack_container,
+  db_space_used_general("struct stmt stack",
+                        (unsigned long)size_struct_stmt_stack_container,
                         a_struct_stmt_stack_entry);
   db_space_used_lost("control flow descrs", avail_control_flow_descrs,
                      num_control_flow_descrs_allocated,

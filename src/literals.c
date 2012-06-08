@@ -1514,7 +1514,7 @@ smaller) than the number of characters needed to represent the string.
          UTF-8 or, if enabled, translation of Unicode characters to
          multibyte characters. */
       constant_size = pstr - str_start;
-      num_elems = constant_size;
+      num_elems = (a_targ_size_t)constant_size;
       break;
     case chk_char16_t:
     case chk_wchar_t:
@@ -1522,7 +1522,7 @@ smaller) than the number of characters needed to represent the string.
          estimate for encoding length.  Update the size and character count to
          reflect the actual encoding. */
       constant_size = (pstr - str_start) + char_size;
-      num_elems = constant_size / char_size;
+      num_elems = (a_targ_size_t)(constant_size / char_size);
       /*FALLTHROUGH*/
     case chk_char32_t:
       /* L"...", u"...", or U"...": */
@@ -1540,7 +1540,7 @@ smaller) than the number of characters needed to represent the string.
   /* Make the constant entry for the string. */
   clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_string);
   const_for_curr_token.type = string_literal_type(character_kind, num_elems);
-  const_for_curr_token.variant.string.length = constant_size;
+  const_for_curr_token.variant.string.length = (a_targ_size_t)constant_size;
   const_for_curr_token.variant.string.value  = str_start;
   const_for_curr_token.character_kind = character_kind;
   /* Currently, no error is returned through err_code or err_pos. */

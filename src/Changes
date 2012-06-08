@@ -1,5 +1,16 @@
 Version 4.5
 
+6/8/12   [EDGcpfe/12961]
+Building the front end on Windows in 64-bit mode
+
+The front end and utility programs can now be built on Windows in 64-bit
+mode.  This mostly involved adding casts to avoid certain warnings, but
+there were a few cases that could cause incorrect execution of the front
+end.  If the _WIN64 macro is defined, the defines.h.win32 file sets the
+configuration macros appropriately to build a 64-bit version of the front
+end.
+
+
 6/6/12   [EDGcpfe/10181,EDGcpfe/11964,EDGcpfe/12949]
 GNU compatibility: ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR with
 UNICODE_SOURCE_SUPPORTED

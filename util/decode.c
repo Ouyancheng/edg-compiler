@@ -488,7 +488,7 @@ entire module id.
   } else {
     start = get_number(ptr+1, &num_chars_to_output, dctl);
     if (!dctl->err_in_id) {
-      long prefix_len = (start-ptr)+1;
+      uint32_t prefix_len = (uint32_t)((start-ptr)+1);
       if (*start != '_' ||
 #if IA64_ABI
           num_chars_to_output <= 0 ||
@@ -4126,7 +4126,7 @@ type the substitution represents).
     if (last_component_name != NULL) *last_component_name = last_name;
   } else {
     /* Not a predefined substitution.  Convert the base-36 sequence number. */
-    unsigned long  number = 0;
+    uint32_t        number = 0;
     a_substitution *subp;
     char           *p;
     ptr++;
@@ -4143,7 +4143,7 @@ type the substitution represents).
           bad_mangled_name(dctl);
           break;
         }  /* if */
-        number += (p - digits);
+        number += (uint32_t)(p - digits);
         ptr++;
       } while (*ptr != '_');
       number++;
