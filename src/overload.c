@@ -19712,7 +19712,7 @@ expression, and here we break things out of those lifetimes and move them
 into the proper final lifetimes.
 */
 {
-  check_assertion(curr_object_lifetime != NULL);
+  check_assertion(!C_mode() && curr_object_lifetime != NULL);
   /* Don't promote if it has been done previously.  Also don't promote if
      the current code is unevaluated. */
   if (!icp->lifetimes_promoted &&
@@ -19819,9 +19819,11 @@ is->no_diagnostics and is->check_validity_only.
     /* When an operand is returned, the destructor is always filled in. */
     fill_in_dtor = TRUE;
   }  /* if */
-  /* Reactivate and/or adjust the lifetimes added around expressions in
-     the initializer list. */
-  promote_init_component_lifetimes(icp);
+  if (!C_mode()) {
+    /* Reactivate and/or adjust the lifetimes added around expressions in
+       the initializer list. */
+    promote_init_component_lifetimes(icp);
+  }  /* if */
   braced_init = is_braced_init_component(icp);
   if (is_expression_component(icp)) {
     /* The object is initialized by an expression. */
