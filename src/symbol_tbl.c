@@ -597,7 +597,7 @@ the translation unit, if not the primary translation unit.
 
 void db_symbol(a_symbol_ptr	sym,
 	       char		*string,
-	       uint32_t		indentation)
+	       int		indentation)
 /*
 Write out information on a symbol, for debugging purposes.  sym points to
 the symbol; string is an optional identifying string ("" or NULL if omitted);
@@ -605,7 +605,7 @@ and indentation is the indentation desired.
 */
 {
   char				*str, buffer[1000];
-  uint32_t			col = indentation;
+  int			col = indentation;
   a_type_ptr			type = NULL, temp_type;
   a_variable_ptr		var = NULL;
   a_routine_ptr                 rp;
@@ -614,7 +614,7 @@ and indentation is the indentation desired.
 
   if (string != NULL && strlen(string) > 0) {
     fputs(string, f_debug);
-    col += (uint32_t)strlen(string);
+    col += (int)strlen(string);
   }  /* if */
 
   if (sym == NULL) {
@@ -628,12 +628,12 @@ and indentation is the indentation desired.
     col = indentation;
   }  /* if */
   fprintf(f_debug, "<%s>", str);
-  col += (uint32_t)(strlen(str) + 2);
+  col += (int)(strlen(str) + 2);
 
   str = str_qualified_name(buffer, sym);
   put_separator("", strlen(str) + 2);
   fprintf(f_debug, "\"%s\"", str);
-  col += (uint32_t)(strlen(str) + 2);
+  col += (int)(strlen(str) + 2);
 
   db_property_or_event_suffix(sym);
   if (sym->kind == (a_symbol_kind)sk_projection) {
@@ -641,14 +641,14 @@ and indentation is the indentation desired.
     if (fsym != NULL) str = str_qualified_name(buffer, fsym);
     put_separator("", strlen(str) + 6);
     fprintf(f_debug, "(= \"%s\")", str);
-    col += (uint32_t)(strlen(str) + 6);
+    col += (int)(strlen(str) + 6);
   } else if (sym->kind == (a_symbol_kind)sk_namespace_projection) {
     a_symbol_ptr fsym = sym->variant.namespace_projection.fundamental_symbol;
     if (fsym != NULL) {
       str = str_qualified_name(buffer, fsym);
       put_separator("", strlen(str) + 6);
       fprintf(f_debug, "(= \"%s\")", str);
-      col += (uint32_t)(strlen(str) + 6);
+      col += (int)(strlen(str) + 6);
     }  /* if */
   }  /* if */
 
@@ -656,14 +656,14 @@ and indentation is the indentation desired.
     (void)sprintf(buffer, "#%lu", sym->decl_seq);
     put_separator("", strlen(buffer));
     fputs(buffer, f_debug);
-    col += (uint32_t)strlen(buffer);
+    col += (int)strlen(buffer);
   }  /* if */
 
   (void)sprintf(buffer, "(%lu/%d)", sym->decl_position.seq,
 		sym->decl_position.column);
   put_separator("", strlen(buffer));
   fputs(buffer, f_debug);
-  col += (uint32_t)strlen(buffer);
+  col += (int)strlen(buffer);
 
   /* If this symbol is for a secondary translation unit, display the
      translation unit. */
@@ -859,7 +859,7 @@ and indentation is the indentation desired.
             }  /* if */
             put_separator(sep, strlen(buffer));
             fprintf(f_debug, "%s", buffer);
-            col += (uint32_t)strlen(buffer);
+            col += (int)strlen(buffer);
             sep = ",";
             buffer[0] = '\0';
           } while (friend_sym != NULL);
