@@ -9893,8 +9893,7 @@ variables declared in cmd_line.h.
                      TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES;
   range_based_for_enabled = DEFAULT_RANGE_BASED_FOR_ENABLED;
   multiple_returns_allowed_in_implicit_return_type_lambda = FALSE;
-  carriage_return_is_line_terminator =
-                                    ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR;
+  carriage_return_is_line_terminator = FALSE;
 }  /* cmd_line_static_var_init */
 
 
