@@ -22568,18 +22568,6 @@ NULL if the result is unknown).
 #endif /* IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION */
              ) break;
         } else {
-#if BACK_END_IS_CP_GEN_BE && \
-    (NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS || \
-     PROTOTYPE_INSTANTIATIONS_IN_IL)
-          /* In SSI versions, we move the definitions for instantiations
-             out of the class body, so we might be changing whether they
-             are decider functions. */
-          /* In PI-in-IL versions, we put out uninstantiated inline members
-             as non-inline in some configurations, so we want to consider
-             them potential decider functions. */
-          *unknown = TRUE;
-          break;
-#else /* !(BACK_END_IS_CP_GEN_BE && ...) */
           /* A member function of a template class is not marked as
              inline until it is fully instantiated, so we have to call
              a function to see whether it is really inline. */
@@ -22590,6 +22578,20 @@ NULL if the result is unknown).
                                                 /*in_class=*/FALSE
 #endif /* IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION */
                                                                   )) break;
+#if BACK_END_IS_CP_GEN_BE && \
+    (NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS || \
+     PROTOTYPE_INSTANTIATIONS_IN_IL)
+          /* The routine is inline, so ordinarily it is not a decider.
+             However, with the C++-generating back end there are
+             some special cases. */
+          /* In SSI versions, we move the definitions for instantiations
+             out of the class body, so we might be changing whether they
+             are decider functions. */
+          /* In PI-in-IL versions, we put out uninstantiated inline members
+             as non-inline in some configurations, so we want to consider
+             them potential decider functions. */
+          *unknown = TRUE;
+          break;
 #endif /* BACK_END_IS_CP_GEN_BE && ... */
         }  /* if */
       }  /* if */
