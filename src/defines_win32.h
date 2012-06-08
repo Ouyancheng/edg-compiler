@@ -50,32 +50,19 @@ This is the version for Windows 95/98/NT/etc.
 #define TARG_ALIGNOF_INT 4
 #define TARG_SIZEOF_LONG 4
 #define TARG_ALIGNOF_LONG 4
+#define TARG_SIZEOF_POINTER 4
+#define TARG_ALIGNOF_POINTER 4
 #define TARG_SIZEOF_FLOAT 4
 #define TARG_ALIGNOF_FLOAT 4
 #define TARG_SIZEOF_DOUBLE 8
 #define TARG_ALIGNOF_DOUBLE 8
 #define TARG_SIZEOF_LONG_DOUBLE 8
 #define TARG_ALIGNOF_LONG_DOUBLE 8
+#define HOST_ALIGNMENT_REQUIRED 4
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC TRUE
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
 #define TARG_JMP_BUF_NUM_ELEMENTS 16
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
-
-/*
-Configuration parameters that differ depending on whether the front
-end is being compiled with a 32-bit or 64-bit compiler.
-*/
-#ifdef _WIN64
-#define TARG_SIZEOF_POINTER 8
-#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long_long)
-#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long_long)
-#define HOST_ALIGNMENT_REQUIRED 8
-#define HOST_POINTER_ALIGNMENT 8
-#define TARG_ALIGNOF_POINTER 8
-#else /* !defined(_WIN64) */
-#define TARG_SIZEOF_POINTER 4
-#define TARG_ALIGNOF_POINTER 4
-#endif /* ifdef _WIN64 */
 
 /*
 Definitions for Windows (WIN32)
