@@ -1565,7 +1565,7 @@ usage counts in other files.
           num_mapped_bytes_allocated);
   fprintf(f_debug, "%25s %8s %8s %8lu (included in previous line)\n",
           "Mapped from PCH", "", "", num_mapped_bytes_from_pch);
-  fprintf(f_debug, "%25s %8s %8s %8ld\n",
+  fprintf(f_debug, "%25s %8s %8s %8lu\n",
           "Mapped IL file size", "", "", (unsigned long)mmap_file_offset);
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
   if (precompiled_header_processing_required) {

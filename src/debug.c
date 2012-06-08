@@ -663,7 +663,7 @@ what was done in the stack entry.
   register a_debug_request_ptr request_ptr;
   register a_debug_stack_entry *stack_ptr;
 
-  if (depth_debug_stack >= debug_stack_size - 1) {
+  if ((sizeof_t)depth_debug_stack >= debug_stack_size - 1) {
     sizeof_t	new_size;
     if (debug_stack_size == 0) {
       new_size = DEBUG_STACK_INITIAL_ALLOCATION;
