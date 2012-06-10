@@ -12769,6 +12769,35 @@ Supplies some arguments from expression stack values.
 }  /* expr_select_copy_constructor */
 
 
+a_routine_ptr expr_select_destructor_b(a_type_ptr        class_type,
+                                       a_type_ptr        object_class_type,
+                                       a_source_position *position,
+                                       a_boolean         honor_virtual,
+                                       a_boolean         *error_detected)
+/*
+Interface to select_destructor_full for use within expression processing.
+Supplies some arguments from expression stack values.  If error_detected
+is non-NULL, no errors are issued and *error_detected is returned TRUE if
+there was an error.
+*/
+{
+  a_routine_ptr dtor_routine;
+
+  dtor_routine = select_destructor_full(
+                                     class_type,
+                                     object_class_type,
+                                     position,
+                                     honor_virtual,
+                                     curr_expr_is_potentially_evaluated(),
+                                     /*instantiate=*/
+                                        (error_detected == NULL) &&
+                                        !expr_stack->is_default_arg_expression,
+                                     expr_access_checking_should_be_done(),
+                                     error_detected);
+  return dtor_routine;
+}  /* expr_select_destructor_b */
+
+
 a_routine_ptr expr_select_destructor(a_type_ptr        class_type,
                                      a_type_ptr        object_class_type,
                                      a_source_position *position,
@@ -12785,16 +12814,11 @@ Supplies some arguments from expression stack values.
   /* If errors are suppressed, get a returned variable instead of issuing
      any error. */
   if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
-  dtor_routine = select_destructor_full(
-                                     class_type,
-                                     object_class_type,
-                                     position,
-                                     honor_virtual,
-                                     curr_expr_is_potentially_evaluated(),
-                                     /*instantiate=*/
-                                        !expr_stack->is_default_arg_expression,
-                                     expr_access_checking_should_be_done(),
-                                     p_error_detected);
+  dtor_routine = expr_select_destructor_b(class_type,
+                                          object_class_type,
+                                          position,
+                                          honor_virtual,
+                                          p_error_detected);
   if (error_detected) record_suppressed_error();
   return dtor_routine;
 }  /* expr_select_destructor */

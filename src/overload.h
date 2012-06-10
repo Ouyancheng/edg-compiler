@@ -228,6 +228,9 @@ typedef int a_conv_context_set;
 			/* Explicit conversion functions should be allowed in
 			   this context.  This is in addition to other normal
 			   reasons why they might be allowed. */
+#define CCO_MAKE_LVALUE_TEMP_FOR_LIST_INIT ((a_conv_context_set)0x1000)
+			/* Force generation of an lvalue temporary (instead
+			   of the usual rvalue) for a list initialization. */
 
 /*
 Data structure used by set_up_overload_set_traversal et al. to control the
@@ -901,6 +904,7 @@ extern void check_for_operator_overloading(
 
 extern a_boolean conversion_to_class_possible(
                           an_operand               *source_operand,
+                          an_arg_list_elem_ptr     alep,
                           a_type_ptr               dest_type,
                           a_boolean                try_bitwise_copy,
                           a_boolean                is_copy_initialization,
@@ -954,7 +958,14 @@ extern void handle_elided_copy_constructor(a_type_ptr        source_type,
                                            a_routine_ptr     elided_cctor,
                                            a_source_position *err_pos);
 
-extern a_boolean operand_is_temp_init(an_operand *operand);
+extern a_boolean operand_is_temp_init_full(an_operand       *operand,
+                                           an_expr_node_ptr *temp_init_node);
+
+/* Interface to operand_is_temp_init_full for the usual case where
+   the second argument is NULL. */
+#define operand_is_temp_init(operand) \
+  (operand_is_temp_init_full((operand), (an_expr_node **)NULL))
+
 
 extern a_boolean is_temp_init_usable_in_optimization(
                                    an_operand         *source_operand,
@@ -1009,11 +1020,14 @@ void prep_reference_initializer_operand(an_operand         *source_operand,
 extern
 void prep_list_initializer(an_init_component_ptr icp,
                            a_type_ptr            dest_type,
+                           a_boolean             is_direct_init,
                            a_boolean             check_narrowing,
                            a_conv_context_set    conv_context,
                            a_boolean             fill_in_dtor,
+                           a_boolean             force_temp,
                            an_operand            *result,
-                           an_init_state         *is);
+                           an_init_state         *is,
+                           an_arg_match_summary  *arg_match);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern
 void prep_initializer_operand(an_operand         *source_operand,

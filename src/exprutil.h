@@ -1654,6 +1654,13 @@ extern a_routine_ptr expr_select_copy_constructor(
                                   a_boolean             *class_bitwise_copy,
                                   a_boolean             record_ref);
 
+extern
+a_routine_ptr expr_select_destructor_b(a_type_ptr        class_type,
+                                       a_type_ptr        object_class_type,
+                                       a_source_position *position,
+                                       a_boolean         honor_virtual,
+                                       a_boolean         *error_detected);
+
 extern a_routine_ptr expr_select_destructor(
                                      a_type_ptr        class_type,
                                      a_type_ptr        object_class_type,

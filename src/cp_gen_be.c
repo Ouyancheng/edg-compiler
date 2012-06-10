@@ -14020,7 +14020,9 @@ when possible.
          (const X)y instead of the incorrect const X(y). */
       use_func_notation_cast = FALSE;
     } else if (has_name_before_mangling(init_entity_type)) {
-      /* Normal case: functional notation cast, e.g., X(y, z). */
+      /* Normal case: functional notation cast, e.g., X(y, z).
+         Note that types like "int" fail that test for braced-init cases,
+         and we use an old-style cast for those. */
     } else {
       /* Cast to an unnamed type, with something other than one argument.
          Put out as an old-style cast, with special tweaks below. */
@@ -14107,6 +14109,7 @@ output_functional_notation_cast_arguments:
          opening parenthesis, and then fall into the main code below to
          put out the operand expression.  At the end, a closing parenthesis
          will be added. */
+      braced_init = FALSE;
       write_tok_ch('(');
       closing_parens_needed++;
       if (dip->kind == (a_dynamic_init_kind)dik_constructor) {

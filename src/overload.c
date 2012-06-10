@@ -2444,6 +2444,25 @@ disallow it, leaving it to cause an error later if the function was selected.
 }  /* ref_to_const_volatile_binding_to_rvalue_disallowed_in_ovl_res */
 
 
+static a_conv_context_set add_conv_context_for_parameter(
+                                               a_param_type_ptr   ptp,
+                                               a_conv_context_set conv_context)
+/*
+Add to the conversion context set passed in any flags suggested by the
+fact that the destination of the conversion is the parameter indicated by
+ptp, and return the possibly-updated set.  ptp can be NULL, in which
+case the context set is returned unchanged.
+*/
+{
+  if (ptp != NULL) {
+    if (ptp->move_ctor_or_assign_parameter) {
+      conv_context |= CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER;
+    }  /* if */
+  }  /* if */
+  return conv_context;
+}  /* add_conv_context_for_parameter */
+
+
 /*
 Return TRUE if the given constant is a possible template-dependent
 null pointer constant but not a known null pointer constant.
@@ -2519,9 +2538,7 @@ copy-initialization).
   arg_summary->param_type = param_type;
   if (ptp != NULL) {
     arg_summary->param_num = ptp->param_num;
-    if (ptp->move_ctor_or_assign_parameter) {
-      conv_context |= CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER;
-    }  /* if */
+    conv_context = add_conv_context_for_parameter(ptp, conv_context);
   }  /* if */
   if (arg_type == NULL) {
     /* Get the actual argument type from arg_operand. */
@@ -3034,7 +3051,9 @@ copy-initialization).
                   considered above, and bitwise copies that drop type
                   qualifiers under a reference would be allowed by here
                   after we've gone to the trouble of rejecting them above. */
-               (conversion_to_class_possible(orig_arg_operand, param_type,
+               (conversion_to_class_possible(orig_arg_operand,
+                                             (an_arg_list_elem *)NULL,
+                                             param_type,
                                              /*try_bitwise_copy=*/FALSE,
                                              /*is_copy_initialization=*/TRUE,
                                              /*orig_is_copy_initialization=*/
@@ -3252,6 +3271,57 @@ have_level:;
 #endif /* DEBUG */
   db_exit();
 }  /* determine_arg_match_level */
+
+
+static void determine_arg_list_elem_match_level(
+                               an_arg_list_elem     *alep,
+                               a_type_ptr           param_type,
+                               a_param_type_ptr     ptp,
+                               a_boolean            param_type_is_deduced,
+                               a_boolean            try_user_conversions,
+                               a_boolean            allow_expl_conv_funcs,
+                               an_arg_match_summary *arg_summary)
+/*
+Determine how well an actual argument matches a formal parameter with
+type param_type.  The actual argument is given by alep, and may be a
+brace-enclosed list.  arg_summary is set to indicate the level of
+match.  If ptp is non-NULL, it provides the param type entry for the
+parameter (it's NULL, for example, for the "this" parameter match).
+param_type_is_deduced is TRUE if the parameter type involved template
+parameters and was deduced.  User-defined conversions will be
+attempted only if try_user_conversions is TRUE.  If
+allow_expl_conv_funcs is TRUE, allow explicit conversion functions on
+the conversion (ordinarily they are not allowed because
+argument-passing is copy-initialization).
+*/
+{
+  if (is_expression_component(alep)) {
+    /* The argument is an expression. */
+    determine_arg_match_level(operand_of_arg_list_elem(alep),
+                              (a_type *)NULL,
+                              param_type,
+                              ptp,
+                              param_type_is_deduced,
+                              try_user_conversions,
+                              allow_expl_conv_funcs,
+                              arg_summary);
+  } else {
+    /* The argument is a braced-init-list. */
+    a_conv_context_set conv_context =
+                              add_conv_context_for_parameter(ptp, CCO_DEFAULT);
+    check_assertion(is_braced_init_component(alep));
+    prep_list_initializer(alep,
+                          param_type,
+                          /*is_direct_init=*/FALSE,
+                          /*check_narrowing=*/TRUE,
+                          conv_context,
+                          /*fill_in_dtor=*/FALSE,
+                          /*force_temp=*/FALSE,
+                          (an_operand *)NULL,
+                          (an_init_state *)NULL,
+                          arg_summary);
+  }  /* if */
+}  /* determine_arg_list_elem_match_level */
 
 
 static void determine_selector_match_level(
@@ -4561,9 +4631,6 @@ the point of call.  conv_context describes the context of the conversion.
            it. */
         check_assertion(first_pass);
         goto next_argument;
-      } else if (!is_expression_component(arg_list_elem)) {
-        /*FIXME*/
-        goto reject_function;
       } else {
         a_boolean param_type_is_deduced = FALSE;
         /* Both the actual argument and formal parameter are available.
@@ -4637,9 +4704,8 @@ the point of call.  conv_context describes the context of the conversion.
           if (processing_expanded_case) {
             /* Match the argument with the C++/CLI parameter array element
                type. */
-            determine_arg_match_level(
-                          operand_of_arg_list_elem(arg_list_elem),
-                          (a_type_ptr)NULL,
+            determine_arg_list_elem_match_level(
+                          arg_list_elem,
                           param_array_element_type,
                           param,
                           param_type_is_deduced,
@@ -4653,8 +4719,8 @@ the point of call.  conv_context describes the context of the conversion.
         /* Do not insert code here. */
         {
           /* Normal argument matching */
-          determine_arg_match_level(operand_of_arg_list_elem(arg_list_elem),
-                                    (a_type_ptr)NULL,
+          determine_arg_list_elem_match_level(
+                                    arg_list_elem,
                                     param->type,
                                     param,
                                     param_type_is_deduced,
@@ -7876,13 +7942,15 @@ and return NULL.  This routine is called only in C++ mode.
          arg_list_elem != NULL;
          arg_list_elem = arg_list_elem->next) {
       an_expr_node_ptr expr;
-      an_operand       *arg;
-      check_arg_list_elem_is_expression(arg_list_elem);  /*FIXME*/
-      arg = operand_of_arg_list_elem(arg_list_elem);
-      if (operand_is_dependent(arg)) {
+      an_operand       *arg = NULL;
+      if (is_expression_component(arg_list_elem)) {
+        arg = operand_of_arg_list_elem(arg_list_elem);
+      }  /* if */
+      if (arg != NULL ? operand_is_dependent(arg) :
+                        arg_list_is_dependent(arg_list_elem)) {
         dependent_call = TRUE;
         break;
-      } else if (gpp_mode && is_constant_operand(arg) &&
+      } else if (gpp_mode && arg != NULL && is_constant_operand(arg) &&
                  is_possible_dependent_null_pointer_constant(
                                                      &arg->variant.constant)) {
         /* g++ seems to make a call dependent if one of the arguments might
@@ -7891,7 +7959,7 @@ and return NULL.  This routine is called only in C++ mode.
            as null pointer constants in argument matching. */
         dependent_call = TRUE;
         break;
-      } else if (gpp_mode &&
+      } else if (gpp_mode && arg != NULL &&
                  is_gpp_falsely_dependent_argument(arg)) {
         /* g++ incorrectly treats something like "this->x" in a member
            function of a template as dependent even if the type of x is
@@ -7900,7 +7968,8 @@ and return NULL.  This routine is called only in C++ mode.
         break;
       } else if (is_variadic_template_context() &&
                  (arg_list_elem->pack_expansion_descr != NULL ||
-                  ((expr = expr_node_from_operand(arg)) != NULL &&
+                  (arg != NULL &&
+                   (expr = expr_node_from_operand(arg)) != NULL &&
                    expr->is_pack_expansion))) {
         /* If the argument list contains a pack expansion, treat the call
            as dependent because the number of arguments is unknown. */
@@ -11259,26 +11328,26 @@ match has already made it through overload resolution.
 
 
 static an_expr_node_ptr node_for_arg_of_overloaded_function_call(
-                                      an_operand               *arg_operand,
+                                      an_arg_list_elem         *alep,
                                       an_arg_match_summary_ptr arg_match,
                                       a_param_type_ptr         param,
                                       a_routine_ptr            rout_ptr)
 /*
-arg_operand represents an argument to an overloaded function call (including
+alep represents an argument to an overloaded function call (including
 operator cases); the call has now been resolved to a specific function.
 arg_match indicates how well the actual argument matches the formal parameter,
 which is described by param.  Cast the argument value to the proper type,
 convert it to expression form, and return a pointer to the expression.
-arg_operand can be NULL to indicate that we've run out of actual
-arguments (default argument values will be used).  param can be NULL
-to indicate that we've run out of parameters (remaining arguments will
-be processed under an ellipsis).  rout_ptr is the routine pointer for the
+alep can be NULL to indicate that we've run out of actual arguments
+(default argument values will be used).  param can be NULL to indicate
+that we've run out of parameters (remaining arguments will be
+processed under an ellipsis).  rout_ptr is the routine pointer for the
 specific function being called.
 */
 {
   an_expr_node_ptr arg = NULL;
 
-  if (arg_operand == NULL) {
+  if (alep == NULL) {
     /* Match uses a default argument value.  Get it from the parameter type
        entry. */
 #if CHECKING
@@ -11301,7 +11370,8 @@ specific function being called.
     /* Actual argument is present (normal case). */
     /* Issue any warning about the conversion detected while evaluating the
        alternatives. */
-    issue_warning_from_arg_match_summary(arg_match, &arg_operand->position);
+    issue_warning_from_arg_match_summary(arg_match,
+                                         init_component_pos(alep));
     if (arg_match->match_level == aml_error) {
       /* The argument match indicates the argument or the parameter had
          an error type.  Do not go through the normal casting, because
@@ -11314,15 +11384,32 @@ specific function being called.
          "real" argument, but instead the initializer for an element
          of a C++/CLI array. */
       a_type_ptr element_type = param_array_element_type_of(param->type);
-      arg = expr_for_param_array_element_arg(arg_operand,
+      check_assertion(is_expression_component(alep));
+      arg = expr_for_param_array_element_arg(operand_of_arg_list_elem(alep),
                                              element_type,
                                              &arg_match->conversion);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (is_braced_init_component(alep)) {
+      /* The argument is a braced-init-list. */
+      if (param == NULL) {
+        /* A braced-init-list passed to an ellipsis.  Error. */
+        expr_pos_error(ec_braced_list_passed_to_ellipsis,
+                       init_component_pos(alep));
+        arg = error_node();
+      } else {
+        an_operand operand;
+        prep_argument(alep, param, &arg_match->conversion,
+                      ec_incompatible_param, &operand);
+        arg = make_node_from_operand_for_expr_list(&operand);
+      }  /* if */
     } else {
+      check_assertion(is_expression_component(alep));
       /* Cast the argument to the right type. */
-      prep_possible_ellipsis_argument_operand(arg_operand, param,
+      prep_possible_ellipsis_argument_operand(operand_of_arg_list_elem(alep),
+                                              param,
                                               &arg_match->conversion);
-      arg = make_node_from_operand_for_expr_list(arg_operand);
+      arg = make_node_from_operand_for_expr_list(
+                                              operand_of_arg_list_elem(alep));
     }  /* if */
   }  /* if */
   return arg;
@@ -11433,14 +11520,9 @@ overloaded operator cases.
                                                               );) {
       check_assertion(arg_match != NULL ||
                       arg_list_elem == NULL);  /* For Coverity */
-      if (arg_list_elem != NULL) {
-        check_arg_list_elem_is_expression(arg_list_elem);  /*FIXME*/
-      }  /* if */
-      arg = node_for_arg_of_overloaded_function_call(
-                                    (arg_list_elem == NULL ? NULL :
-                                      operand_of_arg_list_elem(arg_list_elem)),
-                                    arg_match,
-                                    param, routine);
+      arg = node_for_arg_of_overloaded_function_call(arg_list_elem,
+                                                     arg_match,
+                                                     param, routine);
       /* Add this argument to the end of the expression-form argument list
          being built up. */
       if (prev_arg == NULL) {
@@ -13320,6 +13402,7 @@ the target type to be used).
           }  /* if */
         } else if (conversion_to_class_possible(
                                          operand,
+                                         (an_arg_list_elem *)NULL,
                                          eff_specific_type,
                                          /*try_bitwise_copy=*/FALSE,
                                          /*is_copy_initialization=*/TRUE,
@@ -15258,9 +15341,8 @@ no_applicable_operator_function:
               for (; arg_list_elem != NULL;
                    arg_list_elem = arg_list_elem->next,
                         arg_match = arg_match->next) {
-                check_assertion(is_expression_component(arg_list_elem));
                 arg = node_for_arg_of_overloaded_function_call(
-                                       operand_of_arg_list_elem(arg_list_elem),
+                                       arg_list_elem,
                                        arg_match, param,
                                        function_symbol->variant.routine.ptr);
                 if (arg_expr_list == NULL) {
@@ -15333,6 +15415,7 @@ no_applicable_operator_function:
 
 a_boolean conversion_to_class_possible(
                           an_operand               *source_operand,
+                          an_arg_list_elem_ptr     alep,
                           a_type_ptr               dest_type,
                           a_boolean                try_bitwise_copy,
                           a_boolean                is_copy_initialization,
@@ -15347,6 +15430,8 @@ a_boolean conversion_to_class_possible(
 If source_operand can be converted to the class type dest_type (via a
 constructor, conversion function, or bitwise copy) set *conversion
 to describe the conversion and return TRUE.  Otherwise, return FALSE.
+Alternatively, if alep is non-NULL it gives an argument list element
+(which might be a brace-enclosed list) that is used instead of source_operand.
 The result is always an rvalue.  Bitwise copies are considered if
 try_bitwise_copy is TRUE.  If is_copy_initialization is TRUE, the
 initialization is copy-initialization ("="-form initialization); if
@@ -15389,6 +15474,7 @@ conversion.
   a_boolean                     ctor_arg_conversion_set = FALSE;
   a_base_class_ptr              bcp;
   a_type_qualifier_set          source_qualifiers;
+  a_source_position             *pos;
 
   /* Note that this routine is like a simplified version of
      select_overloaded_function that works for user-defined conversion
@@ -15412,16 +15498,40 @@ conversion.
   instantiate_template_class(class_type);
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   cssp = class_symbol->variant.class_struct_union.extra_info;
-  source_type = source_operand->type;
-  source_qualifiers = get_type_qualifiers(source_type);
-  source_type = skip_typerefs(source_type);
+  if (alep != NULL) {
+    /* Use the given argument list element as the source operand. */
+    if (is_expression_component(alep)) {
+      /* alep is an expression, so move it to source_operand. */
+      source_operand = operand_of_arg_list_elem(alep);
+      alep = NULL;
+    } else {
+      check_assertion(is_braced_init_component(alep));
+      /* Use the braced-init-list component throughout in place of
+         source_operand. */
+      source_operand = NULL;
+    }  /* if */
+  }  /* if */
+  if (alep != NULL) {
+    /* With a braced-init-list, there's no source type. */
+    source_type = NULL;
+    type_is_same = FALSE;
+    source_is_class = FALSE;
+    bcp = NULL;
+    pos = init_component_pos(alep);
+  } else {
+    /* Normal case, an expression as source_operand. */
+    source_type = source_operand->type;
+    source_qualifiers = get_type_qualifiers(source_type);
+    source_type = skip_typerefs(source_type);
+    /* Look for a relationship between the source and destination type. */
+    type_is_same = identical_types(source_type, class_type);
+    source_is_class = is_class_struct_union_type(source_type);
+    bcp = (source_is_class && !type_is_same) ?
+                            find_base_class_of(source_type, class_type) : NULL;
+    pos = &source_operand->position;
+  }  /* if */
   /* candidate_functions will contain the list of viable functions. */
   candidate_functions = NULL;
-  /* Look for a relationship between the source and destination type. */
-  type_is_same = identical_types(source_type, class_type);
-  source_is_class = is_class_struct_union_type(source_type);
-  bcp = (source_is_class && !type_is_same) ?
-                            find_base_class_of(source_type, class_type) : NULL;
   type_is_same_or_derived = type_is_same || bcp != NULL;
   if (is_copy_initialization && type_is_same_or_derived) {
     /* Copy-initialization from the same class type or a derived class
@@ -15453,7 +15563,8 @@ conversion.
     okay = TRUE;
   } else if (is_template_dependent_context() &&
              (class_type->variant.class_struct_union.is_nonreal_class ||
-              operand_is_dependent(source_operand))) {
+              (alep != NULL ? arg_list_is_dependent(alep) :
+                              operand_is_dependent(source_operand)))) {
     /* Assume we can convert to or from an unknown type in a prototype
        instantiation. */
     okay = TRUE;
@@ -15461,8 +15572,13 @@ conversion.
   } else {
     /* A same-class bitwise copy is not possible, so do the full overload
        resolution. */
-    /* Make an argument list with just the source operand. */
-    arg_list = alloc_arg_list_elem_for_operand(source_operand);
+    /* Make an argument list. */
+    if (alep != NULL) {
+      check_assertion(is_braced_init_component(alep));
+      arg_list = alep->variant.braced.list;
+    } else {
+      arg_list = alloc_arg_list_elem_for_operand(source_operand);
+    }  /* if */
     constructor_symbol = cssp->constructor;
     if (constructor_symbol != NULL) {
       /* The class has constructors. */
@@ -15583,6 +15699,7 @@ conversion.
             eff_orig_is_copy_initialization = FALSE;
             eff_is_reference_binding = TRUE;
           }  /* if */
+          check_assertion(source_operand != NULL);
           try_conversion_function_match(source_operand, eff_dest_type,
                                         dest_type,
                                         (a_builtin_type_kind_set)BTK_NONE,
@@ -15594,13 +15711,15 @@ conversion.
                                         &candidate_functions);
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled && is_handle_type(source_type)) {
+      } else if (cppcli_enabled && source_type != NULL &&
+                 is_handle_type(source_type)) {
         a_type_ptr conv_funcs_class =
                                  f_skip_typerefs(type_pointed_to(source_type));
         if (is_managed_class_type(conv_funcs_class)) {
           /* Try a conversion from a handle to class to another type by
              looking for normal conversion functions in the class that
              convert to the destination type. */
+          check_assertion(source_operand != NULL);
           try_conversion_function_match_full(source_operand,
                                              (a_type_ptr)NULL,
                                              dest_type,
@@ -15619,7 +15738,8 @@ conversion.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && is_managed_class_type(dest_type)) {
+      if (cppcli_enabled && is_managed_class_type(dest_type) &&
+          source_operand != NULL) {
         /* Try static conversion functions that convert to the destination
            class type. */
         try_static_conversion_function_match(source_operand,
@@ -15644,6 +15764,10 @@ conversion.
            incomplete type. */
         /* instantiate_template_class need not be called here, because
            find_base_class_of has that effect. */
+        /* We know source_type is non-NULL here because bcp is non-NULL,
+           but we test anyway so some source-analysis programs won't
+           complain. */
+        source_type != NULL &&
         !is_incomplete_type(source_type)) {
       /* Yes, this is a bitwise copy from a derived class to a base class. */
       conversion->class_identity_or_bitwise_copy = TRUE;
@@ -15654,7 +15778,7 @@ conversion.
       /* The candidate_functions list now contains all the viable functions.
          Find the best ones. */
       select_best_candidate_functions(&candidate_functions,
-                                      &source_operand->position,
+                                      pos,
                                       &undecidable_because_of_error,
                                       ambiguous);
       if (undecidable_because_of_error) {
@@ -15691,7 +15815,7 @@ conversion.
         }  /* if */
       }  /* if */
     }  /* if */
-    free_arg_list(arg_list);
+    if (alep == NULL) free_arg_list(arg_list);
   }  /* if */
   if (*ambiguous) conversion->unusable = TRUE;
   if (*ambiguous && ambiguity_list != NULL) {
@@ -16157,7 +16281,9 @@ a reference type (the caller should have rewritten that case).
     /* We don't try this if we need an lvalue result, because constructors
        don't yield lvalues.  If a conversion function applies it will
        be picked up below. */
-    if (conversion_to_class_possible(source_operand, dest_type,
+    if (conversion_to_class_possible(source_operand,
+                                     (an_arg_list_elem *)NULL,
+                                     dest_type,
                                      /*try_bitwise_copy=*/TRUE,
                                      is_copy_initialization,
                                      orig_is_copy_initialization,
@@ -17403,12 +17529,15 @@ it includes a guard that does the check only for the proper dialects.
 }  /* handle_elided_copy_constructor */
 
 
-a_boolean operand_is_temp_init(an_operand *operand)
+a_boolean operand_is_temp_init_full(an_operand       *operand,
+                                    an_expr_node_ptr *temp_init_node)
 /*
 Return TRUE if the given operand is an expression operand for an enk_temp_init
 (which represents an expression temporary).  Whether the enk_temp_init
 returns the value or address of the temporary is immaterial.  Note that
-there might be parentheses on top of the enk_temp_init node.
+there might be parentheses on top of the enk_temp_init node.  If
+temp_init_node is non-NULL, set *temp_init_node to point to the
+enk_temp_init node if one is found.
 */
 {
   a_boolean is_temp_init = FALSE;
@@ -17418,10 +17547,11 @@ there might be parentheses on top of the enk_temp_init node.
     if (node->kind == (an_expr_node_kind)enk_temp_init) {
       /* The operand is an enk_temp_init for the value of a temporary. */
       is_temp_init = TRUE;
+      if (temp_init_node != NULL) *temp_init_node = node;
     }  /* if */
   }  /* if */
   return is_temp_init;
-}  /* operand_is_temp_init */
+}  /* operand_is_temp_init_full */
 
 
 a_boolean is_temp_init_usable_in_optimization(
@@ -17444,10 +17574,8 @@ for a return, because the caller will do the destruction).
 
   *p_temp_init_node = NULL;
   *p_dip = NULL;
-  if (operand_is_temp_init(source_operand)) {
+  if (operand_is_temp_init_full(source_operand, &temp_init_node)) {
     /* The operand is an enk_temp_init. */
-    temp_init_node = skip_parens(source_operand->variant.expression);
-    check_assertion(temp_init_node->kind == (an_expr_node_kind)enk_temp_init);
     dip = temp_init_node->variant.init.dynamic_init;
     /* Avoid problems with dynamic inits with kind dik_none, created for
        functional-notation casts with no arguments (e.g., X()) for classes
@@ -17926,7 +18054,9 @@ constructor elision in C++ mode.  This is an initialization with the
                                       /*check_cast_access=*/FALSE,
                                       /*is_implicit_cast=*/TRUE,
                                       /*reinterpret_semantics=*/FALSE); 
-      if (conversion_to_class_possible(&rvalue_operand, dest_type,
+      if (conversion_to_class_possible(&rvalue_operand,
+                                       (an_arg_list_elem *)NULL,
+                                       dest_type,
                                        /*try_bitwise_copy=*/TRUE,
                                        is_copy_initialization,
                                        orig_is_copy_initialization,
@@ -18201,9 +18331,9 @@ be a reference type.  Only used in C++.  This is copy-initialization.
       temp_init_from_operand(source_operand, /*result_is_lvalue=*/TRUE);
     }  /* if */
     if (is_explicit_cast) {
-      if (operand_is_temp_init(source_operand)) {
-        a_dynamic_init_ptr dip =
-                 source_operand->variant.expression->variant.init.dynamic_init;
+      an_expr_node_ptr temp_init_node;
+      if (operand_is_temp_init_full(source_operand, &temp_init_node)) {
+        a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
         dip->is_explicit_cast = TRUE;
       } else if (is_error_operand(source_operand)) {
         normalize_error_operand(source_operand);
@@ -19223,11 +19353,12 @@ the conversion.
            we're allowing it as an anachronism or cfront-ism.  The error
            in other modes was issued above. */
         if (any_cfront_mode()) {
+          an_expr_node_ptr temp_init_node;
           if (cfront_argument_case ||
               (cfront_3_0_mode && innermost_function_scope != NULL) ||
-              (cfront_2_1_mode && operand_is_temp_init(source_operand) &&
-               skip_parens(source_operand->variant.expression)->variant.
-                                 init.dynamic_init->kind ==
+              (cfront_2_1_mode &&
+               operand_is_temp_init_full(source_operand, &temp_init_node) &&
+               temp_init_node->variant.init.dynamic_init->kind ==
                                        (a_dynamic_init_kind)dik_constructor)) {
             /* In cfront mode we allow this also for a ref to non-const if
                we're passing an argument, or if we have a constructed
@@ -19319,7 +19450,8 @@ static void value_initialization(a_type_ptr            dest_type,
                                  a_source_position     *pos,
                                  a_boolean             *is_constant,
                                  a_dynamic_init_ptr    *p_dip,
-                                 a_constant_ptr        *p_constant)
+                                 a_constant_ptr        *p_constant,
+                                 a_boolean             *error_detected)
 /*
 Create IL to perform a value-initialization (C++ standard [dcl.init])
 of an entity of type dest_type.  Value-initialization comes up
@@ -19328,13 +19460,18 @@ a constant (*is_constant is set to TRUE, and *p_constant is set to a
 pointer to the unshared allocated constant) or a dynamic init entry
 (*is_constant is set to FALSE, and *p_dip is set to a pointer to the
 allocated dynamic init entry).  Some cases can cause errors, which are
-reported at the source position given by pos.
+reported at the source position given by pos.  If error_detected
+is non-NULL, the result *p_dip and *p_constant are not constructed,
+no diagnostics are issued, and *error_detected is returned TRUE if
+there are any errors (that's used for overload resolution).
 */
 {
   a_type_ptr         orig_dest_type = dest_type;
   a_type_ptr         unqual_dest_type;
   a_boolean          array_case = FALSE;
   a_boolean          err = FALSE;
+  a_boolean          generate_il = (error_detected == NULL);
+  a_boolean          issue_errors = (error_detected == NULL);
   an_expr_node_ptr   expr;
   a_constant         con;
   a_dynamic_init_ptr dip = NULL;
@@ -19349,26 +19486,33 @@ reported at the source position given by pos.
   complete_type_is_needed(unqual_dest_type);
   if (is_incomplete_type(dest_type)) {
     /* Can't value-initialize an incomplete type.  This includes void. */
-    if (expr_error_should_be_issued()) {
+    if (issue_errors &&
+        expr_error_should_be_issued()) {
       pos_ty_error(ec_value_init_of_incomplete, pos, dest_type);
     }  /* if */
     err = TRUE;
   } else if (is_reference_type(dest_type)) {
     /* Can't value-initialize a reference type. */
-    expr_pos_error(ec_value_init_of_reference, pos);
+    if (issue_errors) {
+      expr_pos_error(ec_value_init_of_reference, pos);
+    }  /* if */
     err = TRUE;
   } else if (is_template_param_type(dest_type)) {
     /* A template parameter type.  Could be a non-class type, so create
        a constant result. */
-    expr = alloc_empty_parens_func_cast(dest_type,
-                                        (a_dynamic_init_kind)dik_zero,
-                                        pos);
-    make_template_param_expr_constant(expr, &con);
+    if (generate_il) {
+      expr = alloc_empty_parens_func_cast(dest_type,
+                                          (a_dynamic_init_kind)dik_zero,
+                                          pos);
+      make_template_param_expr_constant(expr, &con);
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled &&
              is_cli_generic_definition_argument_type(dest_type)) {
     /* A C++/CLI generic type.  Always non-constant. */
-    dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+    if (generate_il) {
+      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_class_struct_union_type(dest_type)) {
     a_boolean     trivial_ctor = FALSE;
@@ -19381,16 +19525,26 @@ reported at the source position given by pos.
     } else {
       /* A real class type.  Find the default constructor. */
       a_boolean def_ctor_err;
-      ctor_routine = expr_select_default_constructor(unqual_dest_type,
-                                                     pos,
-                                                     &def_ctor_err);
-      if (def_ctor_err) {
+      a_boolean local_error_detected;
+      a_boolean *p_error_detected = NULL;
+      if (!issue_errors) p_error_detected = &local_error_detected;
+      ctor_routine =
+         select_default_constructor_full(unqual_dest_type,
+                                         pos,
+                                         unqual_dest_type,
+                                         curr_expr_is_potentially_evaluated(),
+                                         expr_access_checking_should_be_done(),
+                                         p_error_detected,
+                                         &def_ctor_err);
+      if (!issue_errors) {
+        if (local_error_detected) err = TRUE;
+      } else if (def_ctor_err) {
         err = TRUE;
       } else if (ctor_routine == NULL) {
         trivial_ctor = TRUE;
       }  /* if */
     }  /* if */
-    if (!err) {
+    if (!err && generate_il) {
       if (trivial_ctor) {
         /* For a class with a trivial constructor, just zero the object. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
@@ -19412,22 +19566,24 @@ reported at the source position given by pos.
     err = TRUE;
   } else {
     /* Scalar type.  Convert 0 to the type, producing a constant result. */
-    a_boolean did_not_fold;
     check_assertion(is_scalar_type(dest_type) ||
                     is_ptr_to_member_type(dest_type));
-    set_integer_constant(&con, (a_host_large_integer)0,
-                         (an_integer_kind)ik_int);
-    expr_type_change_constant(&con, unqual_dest_type,
-                              /*is_implicit_cast=*/TRUE,
-                              /*check_cast_access=*/TRUE,
-                              /*check_ambiguity=*/TRUE,
-                              /*is_reinterpret_cast=*/FALSE,
-                              /*maintain_expression=*/FALSE,
-                              &did_not_fold, pos);
-    check_assertion(!did_not_fold);
+    if (generate_il) {
+      a_boolean did_not_fold;
+      set_integer_constant(&con, (a_host_large_integer)0,
+                           (an_integer_kind)ik_int);
+      expr_type_change_constant(&con, unqual_dest_type,
+                                /*is_implicit_cast=*/TRUE,
+                                /*check_cast_access=*/TRUE,
+                                /*check_ambiguity=*/TRUE,
+                                /*is_reinterpret_cast=*/FALSE,
+                                /*maintain_expression=*/FALSE,
+                                &did_not_fold, pos);
+      check_assertion(!did_not_fold);
+    }  /* if */
   }  /* if */
   /* Here, dip != NULL means the result is non-constant. */
-  if (err) {
+  if (err && generate_il) {
     /* For an error case, drop back to zeroing or an error constant. */
     if (dip != NULL) {
       set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
@@ -19441,7 +19597,9 @@ reported at the source position given by pos.
     if (dip == NULL) {
       /* If the element initialization is to a constant, we must be zeroing,
          so zero the whole array. */
-      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+      if (generate_il) {
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+      }  /* if */
     } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
       /* The element initialization is a dynamic init that zeroes the
          object, so just use that for the whole array instead. */
@@ -19455,27 +19613,41 @@ reported at the source position given by pos.
          initialization of the array. */
       if (exceptions_enabled &&
           is_class_struct_union_type(unqual_dest_type)) {
-        dtor_routine = expr_select_destructor(unqual_dest_type,
-                                              unqual_dest_type,
-                                              pos,
-                                              /*honor_virtual=*/FALSE);
+        a_boolean local_error_detected;
+        a_boolean *p_error_detected = NULL;
+        if (!issue_errors) p_error_detected = &local_error_detected;
+        dtor_routine = expr_select_destructor_b(unqual_dest_type,
+                                                unqual_dest_type,
+                                                pos,
+                                                /*honor_virtual=*/FALSE,
+                                                p_error_detected);
+        if (!issue_errors) {
+          if (local_error_detected) err = TRUE;
+        }  /* if */
       }  /* if */
-      dip = add_array_nonconstant_aggregate_init_computing_size(
-                                                 dip,
-                                                 orig_dest_type,
-                                                 dtor_routine);
+      if (generate_il) {
+        dip = add_array_nonconstant_aggregate_init_computing_size(
+                                                   dip,
+                                                   orig_dest_type,
+                                                   dtor_routine);
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Here, dip is non-NULL if the initialization is dynamic.  If it's NULL,
      the result is a constant whose value is given by con and still needs
      to be allocated. */
-  if (dip != NULL) {
+  if (!generate_il) {
+    *is_constant = FALSE;
+    *p_dip = NULL;
+    *p_constant = NULL;
+  } else if (dip != NULL) {
     *is_constant = FALSE;
     *p_dip = dip;
   } else {
     *is_constant = TRUE;
     *p_constant = alloc_unshared_constant(&con);
   }  /* if */
+  if (error_detected != NULL) *error_detected = err;
 }  /* value_initialization */
 
 
@@ -19535,7 +19707,8 @@ parameters, and return TRUE.
 static void make_initializer_list_object(an_init_component_ptr list_icp,
                                          a_type_ptr            element_type,
                                          a_type_ptr            list_type,
-                                         an_operand            *operand)
+                                         an_operand            *operand,
+                                         an_arg_match_summary  *arg_match)
 /*
 Make an operand for the creation of an std::initializer_list<element_type>
 object from the braced-init-list given by list_icp.  list_type is the
@@ -19543,6 +19716,11 @@ initializer_list<element_type> type, which is the type of the operand
 returned in *operand.  A temporary of array type is created and
 initialized with the contents of the braced-init-list, and that temporary
 is passed to a constructor for std::initializer_list.
+If arg_match is non-NULL, do an evaluation of whether the initialization
+is valid, without issuing errors or building IL, and return *arg_match
+set to indicate how good a match the initialization is, in overload
+resolution terms (e.g., is it an exact match or a user-defined conversion,
+etc.)
 */
 {
   a_routine_ptr      dtor = NULL, ctor;
@@ -19558,25 +19736,37 @@ is passed to a constructor for std::initializer_list.
   a_type_ptr         array_type;
   a_type_ptr         param1_type, param2_type;
   an_expr_node_ptr   expr, arg1, arg2;
+  a_boolean          arg_match_err = FALSE;
 
   check_assertion(is_braced_init_component(list_icp));
+  if (arg_match != NULL) clear_arg_match_summary(arg_match);
   if (is_class_struct_union_type(element_type)) {
-    dtor = expr_select_destructor(element_type,
-                                  element_type,
-                                  pos,
-                                  /*honor_virtual=*/FALSE);
+    a_boolean local_error_detected;
+    a_boolean *p_error_detected = NULL;
+    if (arg_match != NULL) p_error_detected = &local_error_detected;
+    dtor = expr_select_destructor_b(element_type,
+                                    element_type,
+                                    pos,
+                                    /*honor_virtual=*/FALSE,
+                                    p_error_detected);
+    if (arg_match != NULL) {
+      if (local_error_detected) arg_match_err = TRUE;
+    }  /* if */
   }  /* if */
   /* First we create a temporary of array type initialized to the values
      in the braced-init-list.  Its value is an aggregate constant
      containing the values in the braced-init-list. */
-  aggr_constant = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  if (arg_match == NULL) {
+    aggr_constant = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  }  /* if */
   /* Go through the braced-init-list and add an element to the aggregate
      constant for each element in the list. */
   for (elem_icp = list_icp->variant.braced.list;
        elem_icp != NULL;
        elem_icp = elem_icp->next) {
-    an_init_state init_state;
-    a_boolean     will_need_partial_aggregate_destructor = FALSE;
+    an_init_state        init_state;
+    an_arg_match_summary local_arg_match;
+    a_boolean            will_need_partial_aggregate_destructor = FALSE;
     if (unknown_num_elements ||
         elem_icp->pack_expansion_descr != NULL) {
       /* The list element is a pack expansion, or we previously encountered
@@ -19598,102 +19788,132 @@ is passed to a constructor for std::initializer_list.
     clear_init_state(&init_state);
     /* Convert the list element to the element type. */
     prep_list_initializer(elem_icp, element_type,
+                          /*is_direct_init=*/FALSE,
                           /*check_narrowing=*/TRUE,
-                          CCO_DEFAULT,  /* copy-initialization */
+                          CCO_DEFAULT,
                           /*fill_in_dtor=*/FALSE,
+                          /*force_temp=*/FALSE,
                           (an_operand *)NULL,
-                          &init_state);
+                          (arg_match != NULL) ? NULL : &init_state,
+                          (arg_match != NULL) ? &local_arg_match : NULL);
     dip = NULL;
     con = NULL;
-    if (init_state.init_dip != NULL) {
-      /* The initialization is dynamic. */
-      dip = init_state.init_dip;
-    } else {
-      if (init_state.init_error) {
-        /* There was some error. */
-        a_constant constant;
-        set_error_constant(&constant);
-        con = alloc_unshared_constant(&constant);
+    if (arg_match != NULL) {
+      /* We're checking for overload resolution.  The result is in
+         local_arg_match. */
+      if (local_arg_match.match_level == aml_none) {
+        arg_match_err = TRUE;
       } else {
-        /* The initialization is to a constant. */
-        con = init_state.init_con;
-        check_assertion(con != NULL);
+        /* arg_match remembers the worst match on any member. */
+        if (arg_match->match_level == aml_none ||
+            (int)local_arg_match.match_level > (int)arg_match->match_level) {
+          /* We save the level only, and not the details of the match. */
+          arg_match->match_level = local_arg_match.match_level;
+        }  /* if */
       }  /* if */
-      /* If a destructor must be specified, force a dynamic initialization. */
-      if (will_need_partial_aggregate_destructor) {
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
-        dip->variant.constant = con;
-        con = NULL;
-      }  /* if */
-    }  /* if */
-    if (dip != NULL) {
-      /* The initialization is dynamic, so use a ck_dynamic_init. */
-      con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      con->variant.dynamic_init = dip;
-      any_nonconstant = TRUE;
-      if (will_need_partial_aggregate_destructor) {
-        /* Add the destructor for partial-aggregate exception cleanup. */
-        dip->destructor = dtor;
-        dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-      }  /* if */
-    }  /* if */
-    /* Add con to the aggregate constant list. */
-    if (aggr_constant->variant.aggregate.first_constant == NULL) {
-      aggr_constant->variant.aggregate.first_constant = con;
     } else {
-      aggr_constant->variant.aggregate.last_constant->next = con;
+      /* Not checking for overload resolution. */
+      if (init_state.init_dip != NULL) {
+        /* The initialization is dynamic. */
+        dip = init_state.init_dip;
+      } else {
+        if (init_state.init_error) {
+          /* There was some error. */
+          a_constant constant;
+          set_error_constant(&constant);
+          con = alloc_unshared_constant(&constant);
+        } else {
+          /* The initialization is to a constant. */
+          con = init_state.init_con;
+          check_assertion(con != NULL);
+        }  /* if */
+        /* If a destructor must be specified, force a dynamic
+           initialization. */
+        if (will_need_partial_aggregate_destructor) {
+          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
+          dip->variant.constant = con;
+          con = NULL;
+        }  /* if */
+      }  /* if */
+      if (dip != NULL) {
+        /* The initialization is dynamic, so use a ck_dynamic_init. */
+        con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+        con->variant.dynamic_init = dip;
+        any_nonconstant = TRUE;
+        if (will_need_partial_aggregate_destructor) {
+          /* Add the destructor for partial-aggregate exception cleanup. */
+          dip->destructor = dtor;
+          dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+        }  /* if */
+      }  /* if */
+      /* Add con to the aggregate constant list. */
+      if (aggr_constant->variant.aggregate.first_constant == NULL) {
+        aggr_constant->variant.aggregate.first_constant = con;
+      } else {
+        aggr_constant->variant.aggregate.last_constant->next = con;
+      }  /* if */
+      aggr_constant->variant.aggregate.last_constant = con;
     }  /* if */
-    aggr_constant->variant.aggregate.last_constant = con;
   }  /* for */
-  /* Make the type of the temporary array. */
-  array_type = alloc_type((a_type_kind)tk_array);
-  array_type->variant.array.element_type = element_type;
-  if (unknown_num_elements) {
-    array_type->variant.array.is_template_dependent_size_array = TRUE;
-  } else {
-    array_type->variant.array.variant.number_of_elements = num_elements;
-  }  /* if */
-  set_type_size(array_type);
-  aggr_constant->type = array_type;
-  /* Make an enk_temp_init whose value is the aggregate determined above. */
-  dip = alloc_expr_dynamic_init(
+  if (arg_match == NULL) {
+    /* Make the type of the temporary array. */
+    array_type = alloc_type((a_type_kind)tk_array);
+    array_type->variant.array.element_type = element_type;
+    if (unknown_num_elements) {
+      array_type->variant.array.is_template_dependent_size_array = TRUE;
+    } else {
+      array_type->variant.array.variant.number_of_elements = num_elements;
+    }  /* if */
+    set_type_size(array_type);
+    aggr_constant->type = array_type;
+    /* Make an enk_temp_init whose value is the aggregate determined above. */
+    dip = alloc_expr_dynamic_init(
                         any_nonconstant ?
                                (a_dynamic_init_kind)dik_nonconstant_aggregate :
                                (a_dynamic_init_kind)dik_constant);
-  dip->variant.constant = aggr_constant;
-  dip->is_braced_initializer = TRUE;
-  dip->destructor = dtor;
-  expr = alloc_temp_init_node(array_type, dip,
-                              /*is_lvalue=*/TRUE,
-                              /*is_explicit_cast=*/FALSE);
-  /* Add the decay from array to pointer. */
-  expr = conv_array_expr_to_pointer(expr);
+    dip->variant.constant = aggr_constant;
+    dip->is_braced_initializer = TRUE;
+    dip->destructor = dtor;
+    expr = alloc_temp_init_node(array_type, dip,
+                                /*is_lvalue=*/TRUE,
+                                /*is_explicit_cast=*/FALSE);
+    /* Add the decay from array to pointer. */
+    expr = conv_array_expr_to_pointer(expr);
+  }  /* if */
   /* Make a constructor call to create the initializer_list object. */
   ctor = find_initializer_list_constructor(list_type, pos,
                                            &param1_type, &param2_type);
-  if (ctor == NULL) {
-    make_error_operand(operand);
+  if (arg_match != NULL) {
+    /* Just evaluating for overload resolution. */
+    if (arg_match_err || ctor == NULL) {
+      arg_match->match_level = aml_error;
+    }  /* if */
   } else {
-    dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
-    dip->is_creation_of_initializer_list_object = TRUE;
-    dip->variant.constructor.ptr = ctor;
-    check_assertion(is_pointer_type(param1_type));
-    arg1 = add_cast_if_necessary(expr, param1_type);
-    param2_type = skip_typerefs(param2_type);
-    check_assertion(param2_type->kind == (a_type_kind)tk_integer);
-    arg2 = node_for_host_large_integer((a_host_large_integer)num_elements,
-                                       param2_type->variant.integer.int_kind);
-    arg1->next = arg2;
-    dip->variant.constructor.args = arg1;
-    expr = alloc_temp_init_node(list_type, dip,
-                                /*is_lvalue=*/FALSE,
-                                /*is_explicit_cast=*/FALSE);
-    make_expression_operand(expr, operand);
-  }  /* if */
-  operand->position = *pos;
+    /* Not overload resolution. */
+    if (ctor == NULL) {
+      make_error_operand(operand);
+    } else {
+      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
+      dip->is_creation_of_initializer_list_object = TRUE;
+      dip->variant.constructor.ptr = ctor;
+      check_assertion(is_pointer_type(param1_type));
+      arg1 = add_cast_if_necessary(expr, param1_type);
+      param2_type = skip_typerefs(param2_type);
+      check_assertion(param2_type->kind == (a_type_kind)tk_integer);
+      arg2 = node_for_host_large_integer((a_host_large_integer)num_elements,
+                                        param2_type->variant.integer.int_kind);
+      arg1->next = arg2;
+      dip->variant.constructor.args = arg1;
+      expr = alloc_temp_init_node(list_type, dip,
+                                  /*is_lvalue=*/FALSE,
+                                  /*is_explicit_cast=*/FALSE);
+      make_expression_operand(expr, operand);
+    }  /* if */
+    operand->position = *pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  operand->end_position = *init_component_end_pos(list_icp);
+    operand->end_position = *init_component_end_pos(list_icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
 }  /* make_initializer_list_object */
 
 
@@ -19752,26 +19972,30 @@ into the proper final lifetimes.
 
 void prep_list_initializer(an_init_component_ptr icp,
                            a_type_ptr            dest_type,
+                           a_boolean             is_direct_init,
                            a_boolean             check_narrowing,
                            a_conv_context_set    conv_context,
                            a_boolean             fill_in_dtor,
+                           a_boolean             force_temp,
                            an_operand            *result,
-                           an_init_state         *is)
+                           an_init_state         *is,
+                           an_arg_match_summary  *arg_match)
 /*
 Convert an initializer value represented in init-component form (icp)
-to the type of the entity being initialized, given by dest_type.  If
-check_narrowing is TRUE, issue diagnostics for narrowing conversions.
-conv_context describes the context of the conversion (including
-whether this is direct-list-initialization).  Note that while a main
+to the type of the entity being initialized, given by dest_type.  The
+initialization is direct-initialization if is_direct_init is TRUE,
+copy-initialization if is_direct_init is FALSE.  If check_narrowing is
+TRUE, issue diagnostics for narrowing conversions.  conv_context
+describes the context of the conversion.  Note that while a main
 purpose of this routine is to handle braced-init-lists, it also
 handles expression initializers.
 
-Has a dual interface:  If result is non-NULL, the result is returned in
-*result in operand form.  If the result is a class type with a destructor,
-a temporary will be created, and the appropriate destructor will be
-indicated and placed on the appropriate object lifetime.  fill_in_dtor
-is ignored.  This is the usual interface for use from within the
-expression routines.
+Has a dual interface: If result is non-NULL, the result is returned in
+*result in operand form.  If force_temp is TRUE, a temporary will be
+forced.  If a temporary of a class type is created, the appropriate
+destructor will be indicated and placed on the appropriate object
+lifetime if fill_in_dtor or force_temp is TRUE.  This is the usual
+interface for use from within the expression routines.
 
 On the other hand, if result is NULL the interface is one more suited
 for calls from decl_inits.c for initializers, and the result is returned
@@ -19782,18 +20006,23 @@ in which case is->init_dip is set to point to the dynamic initialization
 entry.  In the latter case, if fill_in_dtor is TRUE a destructor will be added
 to the dynamic initialization if needed, but the dynamic init will not
 be placed on any object lifetime list (the caller must do that).
-is->init_con or is->init_dip is set to NULL when the other one is
-used to return information, so exactly one will be non-NULL on return.
-The "is" block also contains flags that control exploratory processing:
-is->no_diagnostics and is->check_validity_only.
+force_temp is ignored.  is->init_con or is->init_dip is set to NULL
+when the other one is used to return information, so exactly one will
+be non-NULL on return.  The "is" block also contains flags that
+control exploratory processing: is->no_diagnostics and
+is->check_validity_only.
+
+If arg_match is non-NULL, do an evaluation of whether the initialization
+is valid, without issuing errors or building IL, and return *arg_match
+set to indicate how good a match the initialization is, in overload
+resolution terms (e.g., is it an exact match or a user-defined conversion,
+etc.)
 */
 {
   a_dynamic_init_ptr  dip = NULL;
   a_constant_ptr      constant = NULL;
   a_boolean           is_constant;
   a_boolean           braced_init;
-  a_boolean           is_direct_init =
-                               (conv_context & CCO_DIRECT_INITIALIZATION) != 0;
   a_boolean           is_cast = (conv_context & CCO_CAST) != 0;
   a_symbol_ptr        ctor_sym;
   an_operand          operand;
@@ -19801,25 +20030,53 @@ is->no_diagnostics and is->check_validity_only.
   a_boolean           saved_potentially_evaluated;
   a_boolean           saved_suppress_diagnostics;
   a_boolean           saved_any_suppressed_error;
+  a_boolean           issue_errors = TRUE;
+  a_boolean           generate_il = TRUE;
+  a_boolean           *p_error_detected;
+  a_boolean           error_detected;
+  a_boolean           arg_match_err = FALSE;
 
-  if (is != NULL) {
+  /* The basic modes are:
+                      issue_errors   generate_il
+       Normal init    yes            yes
+       SFINAE         no             yes
+       overload res   no             no
+     When arg_match is non-NULL, we're going to be doing all processing
+     through special overload resolution routines that generate no errors
+     and no IL.  Otherwise, if necessary we will suppress errors using the
+     SFINAE mechanisms.  Some IL may be generated, but if it's not needed
+     it will be discarded. */
+  if (arg_match != NULL) {
+    /* Doing a tentative evaluation for overload resolution. */
+    check_assertion(result == NULL && is == NULL);
+    issue_errors = FALSE;
+    generate_il = FALSE;
+    clear_arg_match_summary(arg_match);
+  } else if (is != NULL) {
     /* If we're only doing an exploratory evaluation, turn off some
        error output etc. */
     if (is->check_validity_only) {
+      generate_il = FALSE;
       saved_potentially_evaluated = expr_stack->potentially_evaluated;
       expr_stack->potentially_evaluated = FALSE;
     }  /* if */
     if (is->no_diagnostics) {
+      issue_errors = FALSE;
       saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
       expr_stack->suppress_diagnostics = TRUE;
       saved_any_suppressed_error = expr_stack->any_suppressed_error;
       expr_stack->any_suppressed_error = FALSE;
     }  /* if */
   } else {
-    /* When an operand is returned, the destructor is always filled in. */
-    fill_in_dtor = TRUE;
+    /* When a temporary is forced when an operand is returned, the destructor
+       is always filled in. */
+    if (force_temp) fill_in_dtor = TRUE;
   }  /* if */
-  if (!C_mode()) {
+  if (is_direct_init) conv_context |= CCO_DIRECT_INITIALIZATION;
+  /* If the destination type is a template class, make sure it is
+     instantiated. */
+  complete_type_is_needed(dest_type);
+  if (!C_mode() && generate_il) {
     /* Reactivate and/or adjust the lifetimes added around expressions in
        the initializer list. */
     promote_init_component_lifetimes(icp);
@@ -19827,37 +20084,56 @@ is->no_diagnostics and is->check_validity_only.
   braced_init = is_braced_init_component(icp);
   if (is_expression_component(icp)) {
     /* The object is initialized by an expression. */
-    copy_operand(operand_of_arg_list_elem(icp), &operand);
-    if (is_template_dependent_type(dest_type)) {
-      /* The destination type is template dependent. */
-      prep_generic_operand(&operand);
-    } else if (dest_type_is_class && !is_direct_init) {
-      /* See if we can elide the copy for copy-initialization of
-         class-typed objects. */
-      prep_elision_initializer_operand(&operand, dest_type,
-                                       fill_in_dtor,
-                                       conv_context,
-                                       ec_bad_initializer_type, &dip);
-      if (dip == NULL) {
-        /* There was an error. */
-        conv_to_error_operand(&operand);
-      }  /* if */
-      fill_in_dtor = FALSE;
-    } else if (is_any_reference_type(dest_type)) {
-      /* Reference types. */
-      prep_reference_initializer_operand(&operand, dest_type,
-                                         /*conversion=*/(a_conv_descr_ptr)NULL,
-                                         /*leave_as_object=*/is_cast,
-                                         conv_context,
-                                         ec_bad_initializer_type);
+    if (arg_match != NULL) {
+      /* We allow this for generality, but usually this routine will
+         not be called for a parameter initialization with an expression;
+         that would be handled higher up.  We don't have full information
+         about the parameter here, but we probably don't need it because
+         we're likely only to get here for non-parameter cases. */
+      determine_arg_match_level(operand_of_arg_list_elem(icp),
+                                (a_type_ptr)NULL,
+                                dest_type,
+                                (a_param_type_ptr)NULL,
+                                /*param_type_is_deduced=*/FALSE,
+                                /*try_user_conversions=*/TRUE,
+                                /*allow_expl_conv_funcs=*/FALSE,
+                                arg_match);
     } else {
-      /* Non-class-copy, non-dependent, non-reference cases. */
-      prep_initializer_operand(&operand, dest_type,
-                               /*is_transparent=*/(a_boolean *)NULL,
-                               /*conversion=*/(a_conv_descr_ptr)NULL,
-                               /*is_copy_initialization=*/!is_direct_init,
-                               conv_context,
-                               ec_bad_initializer_type);
+      /* Not an overload resolution case.  Do the actual initialization
+         processing.  In some modes we may suppress errors or discard the
+         IL/operand created. */
+      copy_operand(operand_of_arg_list_elem(icp), &operand);
+      if (is_template_dependent_type(dest_type)) {
+        /* The destination type is template dependent. */
+        prep_generic_operand(&operand);
+      } else if (dest_type_is_class && !is_direct_init) {
+        /* See if we can elide the copy for copy-initialization of
+           class-typed objects. */
+        prep_elision_initializer_operand(&operand, dest_type,
+                                         fill_in_dtor,
+                                         conv_context,
+                                         ec_bad_initializer_type, &dip);
+        if (dip == NULL) {
+          /* There was an error. */
+          conv_to_error_operand(&operand);
+        }  /* if */
+        fill_in_dtor = FALSE;
+      } else if (is_any_reference_type(dest_type)) {
+        /* Reference types. */
+        prep_reference_initializer_operand(&operand, dest_type,
+                                         /*conversion=*/(a_conv_descr_ptr)NULL,
+                                           /*leave_as_object=*/is_cast,
+                                           conv_context,
+                                           ec_bad_initializer_type);
+      } else {
+        /* Non-class-copy, non-dependent, non-reference cases. */
+        prep_initializer_operand(&operand, dest_type,
+                                 /*is_transparent=*/(a_boolean *)NULL,
+                                 /*conversion=*/(a_conv_descr_ptr)NULL,
+                                 /*is_copy_initialization=*/!is_direct_init,
+                                 conv_context,
+                                 ec_bad_initializer_type);
+      }  /* if */
     }  /* if */
   } else if (braced_init) {
     /* The entity is initialized by a brace-enclosed list. */
@@ -19867,6 +20143,9 @@ is->no_diagnostics and is->check_validity_only.
        of the C++11 standard. */
     if (could_be_dependent_class_type(dest_type)) {
       /* Dependent case.  Pretend this is a constructor invocation. */
+      /* The dependent case should have been handled higher up for
+         overload resolution. */
+      check_assertion(arg_match == NULL);
       scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
                                                /*arg_list_supplied=*/TRUE,
                                                list,
@@ -19878,6 +20157,8 @@ is->no_diagnostics and is->check_validity_only.
       if (eff_is == NULL) {
         clear_init_state(&init_state);
         eff_is = &init_state;
+        if (!issue_errors) eff_is->no_diagnostics = TRUE;
+        if (!generate_il) eff_is->check_validity_only = TRUE;
       }  /* if */
       prep_aggr_initializer(icp, dest_type, eff_is,
                             check_narrowing,
@@ -19885,6 +20166,15 @@ is->no_diagnostics and is->check_validity_only.
       constant = eff_is->init_con;
       dip = eff_is->init_dip;
       fill_in_dtor = FALSE;
+      if (arg_match != NULL) {
+        if (eff_is->init_error) {
+          arg_match_err = TRUE;
+        } else {
+          /* [over.ics.list]p4 says initializing an aggregate from a
+             braced-init-list is a user-defined conversion sequence. */
+          arg_match->match_level = aml_user_conversion;
+        }  /* if */
+      }  /* if */
     } else if (list == NULL &&
                dest_type_is_class &&
                f_type_has_default_constructor(dest_type,
@@ -19892,9 +20182,21 @@ is->no_diagnostics and is->check_validity_only.
                                               /*nontrivial_only=*/FALSE)) {
       /* A class with a default constructor, initialized by "{}" -- do
          value initialization. */
+      p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
-                           &is_constant, &dip, &constant);
+                           &is_constant, &dip, &constant,
+                           p_error_detected);
+      if (arg_match != NULL) {
+        if (error_detected) {
+          arg_match_err = TRUE;
+        } else {
+          /* [over.ics.list]p3 says initializing a non-aggregate class
+             from a braced-init-list, calling a constructor, is a
+             user-defined conversion sequence. */
+          arg_match->match_level = aml_user_conversion;
+        }  /* if */
+      }  /* if */
     } else if (dest_type_is_class &&
                symbol_for_std_initializer_list != NULL &&
                is_instance_of_class_template(skip_typerefs(dest_type),
@@ -19910,40 +20212,76 @@ is->no_diagnostics and is->check_validity_only.
       make_initializer_list_object(icp,
                                    element_type,
                                    dest_type,
-                                   &operand);
+                                   &operand,
+                                   arg_match);
     } else if (dest_type_is_class &&
                (ctor_sym = symbol_supplement_for_class(dest_type)->constructor)
                                                                      != NULL) {
       /* A class with constructors.  Process as constructor arguments. */
-      scan_ctor_arguments(ctor_sym,
-                          init_component_pos(icp),
-                          (a_type_ptr)NULL,
-                          (a_type_ptr)NULL,
-                          fill_in_dtor,
-                          /*elision_allowed=*/TRUE,
-                          (a_rescan_control_block *)NULL,
-                          /*arg_list_supplied=*/TRUE,
-                          list,
-                          /*trivial_ctor=*/(a_boolean *)NULL,
-                          /*unboxing_conv=*/(a_boolean *)NULL,
-                          /*string_ctor_skip=*/(a_boolean *)NULL,
-                          /*simple_result=*/(an_operand *)NULL,
-                          &dip,
-                          (an_expr_node_ptr *)NULL,
-                          (a_source_position *)NULL);
-      if (dip == NULL) {
-        /* There was an error. */
-        make_error_operand(&operand);
-      } else if (!is_direct_init &&
-                 dip->kind == (a_dynamic_init_kind)dik_constructor) {
-        a_routine_ptr ctor_rout = dip->variant.constructor.ptr;
-        if (ctor_rout != NULL &&
-            ctor_rout->is_explicit_constructor) {
-          /* An explicit constructor cannot be used for
-             copy-list-initialization.  This is tested after overload
-             resolution, rather than as usual causing the constructor not
-             to be viable within overload resolution.  See [over.match.list]
-             in the C++11 standard. */
+      a_routine_ptr ctor_rout = NULL;
+      if (arg_match != NULL) {
+        /* Overload resolution. */
+        a_conv_descr conversion;
+        a_boolean    ambiguous;
+        if (conversion_to_class_possible((an_operand *)NULL,
+                                         icp,
+                                         dest_type,
+                                         /*try_bitwise_copy=*/TRUE,
+                                         /*is_copy_initialization=*/
+                                                               !is_direct_init,
+                                         /*orig_is_copy_initialization=*/
+                                                               !is_direct_init,
+                                         /*is_reference_binding=*/FALSE,
+                                         conv_context,
+                                         &conversion,
+                                         (a_conv_descr *)NULL,
+                                         &ambiguous,
+                                         (a_candidate_function_ptr *)NULL) ||
+            ambiguous) {
+          /* [over.ics.list]p3 says initializing a non-aggregate class
+             from a braced-init-list, calling a constructor, is a
+             user-defined conversion sequence. */
+          arg_match->match_level = aml_user_conversion;
+          arg_match->conversion = conversion;
+          if (!ambiguous) ctor_rout = conversion.routine;
+        } else {
+          arg_match->match_level = aml_none;
+        }  /* if */
+      } else {
+        /* Initialization case (not overload resolution). */
+        scan_ctor_arguments(ctor_sym,
+                            init_component_pos(icp),
+                            (a_type_ptr)NULL,
+                            (a_type_ptr)NULL,
+                            fill_in_dtor,
+                            /*elision_allowed=*/TRUE,
+                            (a_rescan_control_block *)NULL,
+                            /*arg_list_supplied=*/TRUE,
+                            list,
+                            /*trivial_ctor=*/(a_boolean *)NULL,
+                            /*unboxing_conv=*/(a_boolean *)NULL,
+                            /*string_ctor_skip=*/(a_boolean *)NULL,
+                            /*simple_result=*/(an_operand *)NULL,
+                            &dip,
+                            (an_expr_node_ptr *)NULL,
+                            (a_source_position *)NULL);
+        if (dip == NULL) {
+          /* There was an error. */
+          make_error_operand(&operand);
+        } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+          ctor_rout = dip->variant.constructor.ptr;
+        }  /* if */
+      }  /* if */
+      if (!is_direct_init && ctor_rout != NULL &&
+          ctor_rout->is_explicit_constructor) {
+        /* An explicit constructor cannot be used for
+           copy-list-initialization.  This is tested after overload
+           resolution, rather than as usual causing the constructor not
+           to be viable within overload resolution.  See [over.match.list]
+           in the C++11 standard. */
+        if (arg_match != NULL) {
+          arg_match_err = TRUE;
+        } else {
           expr_pos_error(ec_explicit_ctor_in_copy_list_init,
                          init_component_pos(icp));
         }  /* if */
@@ -19961,69 +20299,97 @@ is->no_diagnostics and is->check_validity_only.
       if (is_braced_init_component(list)) {
         /* Multiple levels of braces on a scalar initialization.  Only one
            is allowed. */
-        if (expr_diagnostic_should_be_issued(es_discretionary_error,
+        if (arg_match != NULL) {
+          arg_match_err = TRUE;
+        } else if (expr_diagnostic_should_be_issued(es_discretionary_error,
                                              ec_extra_braces_on_simple_init)) {
           pos_ty_diagnostic(es_discretionary_error,
                             ec_extra_braces_on_simple_init,
                             init_component_pos(list),
                             dest_type);
         }  /* if */
+        while (is_braced_init_component(list)) {
+          /* Drop the extra braces as long as they contain a single
+             element. */
+          list = list->variant.braced.list;
+          if (list == NULL || list->next != NULL) break;
+        }  /* while */
       }  /* if */
-      prep_list_initializer(list, dest_type, check_narrowing,
-                            conv_context, fill_in_dtor,
+      prep_list_initializer(list, dest_type, is_direct_init, check_narrowing,
+                            conv_context, fill_in_dtor, force_temp,
                             ((result != NULL) ? &operand : (an_operand *)NULL),
-                            is);
-      if (result == NULL) {
+                            is,
+                            arg_match);
+      if (result == NULL && generate_il) {
+        check_assertion(is != NULL);
         constant = is->init_con;
         dip = is->init_dip;
       }  /* if */
       fill_in_dtor = FALSE;
+      force_temp = FALSE;
     } else if (is_any_reference_type(dest_type)) {
       /* For a reference, allocate a temporary and copy-list-initialize it
          from the braced-init-list. */
-      a_type_ptr underlying_type = type_pointed_to(dest_type);
-      prep_list_initializer(icp, underlying_type, check_narrowing,
-                            conv_context & (CCO_CAST | CCO_FUNC_NOTATION_CAST),
-                            /*fill_in_dtor=*/TRUE, /* ignored */
-                            &operand,
-                            (an_init_state *)NULL);
-      if (!operand_is_temp_init(&operand) && !is_error_operand(&operand)) {
-        /* Force a temporary so we can set the braced-init flag in the
-           dynamic init. */
-        a_boolean create_lvalue = FALSE;
-        if (!is_class_struct_union_type(underlying_type) &&
-            is_lvalue_reference_type(dest_type) &&
-            is_const_qualified_type(underlying_type)) {
-          /* To avoid creating two temporaries, change the temporary to
-             an lvalue when the reference is an lvalue reference to const
-             non-class.  This doesn't match the letter of the standard,
-             but it's probably unobservable, and it avoids a problem
-             in reproducing the source when the cp_gen_be is used. */
-          create_lvalue = TRUE;
-        }  /* if */
-        temp_init_from_operand(&operand, create_lvalue);
-        if (operand_is_temp_init(&operand)) {
-          /* Find the dynamic init and set the is_braced_initializer flag. */
-          a_dynamic_init_ptr tdip;
-          an_expr_node_ptr   temp_init_node =
-                                       skip_parens(operand.variant.expression);
-          check_assertion(temp_init_node->kind ==
-                                             (an_expr_node_kind)enk_temp_init);
-          tdip = temp_init_node->variant.init.dynamic_init;
-          tdip->is_braced_initializer = TRUE;
-        }  /* if */
+      a_conv_context_set rconv_context =
+                            conv_context & (CCO_CAST | CCO_FUNC_NOTATION_CAST);
+      a_type_ptr         underlying_type = type_pointed_to(dest_type);
+      if (!is_class_struct_union_type(underlying_type) &&
+          is_lvalue_reference_type(dest_type) &&
+          is_const_qualified_type(underlying_type)) {
+        /* To avoid creating two temporaries, make an lvalue temporary
+           when the reference is an lvalue reference to const non-class.
+           This doesn't match the letter of the standard, but it makes
+           sense and is probably unobservable, and it avoids a problem
+           in reproducing the source when the cp_gen_be is used. */
+        rconv_context |= CCO_MAKE_LVALUE_TEMP_FOR_LIST_INIT;
       }  /* if */
-      prep_reference_initializer_operand(&operand, dest_type,
-                                         (a_conv_descr *)NULL,
-                                         /*leave_as_object=*/is_cast,
-                                         conv_context,
-                                         ec_bad_initializer_type);
+      /* The cost of a reference initialization in overload resolution is the
+         cost of the underlying initialization of the temporary, so pass
+         arg_match down to the next level. */
+      prep_list_initializer(icp, underlying_type,
+                            /*is_direct_init=*/FALSE,
+                            check_narrowing,
+                            rconv_context,
+                            /*fill_in_dtor=*/TRUE,
+                            /*force_temp=*/TRUE,
+                            &operand,
+                            (an_init_state *)NULL,
+                            arg_match);
+      if (arg_match != NULL) {
+        /* Overload resolution. */
+        if (arg_match->match_level == aml_none) {
+          arg_match_err = TRUE;
+        } else if (is_lvalue_reference_type(dest_type) &&
+                   !is_const_qualified_type(underlying_type)) {
+          /* An lvalue reference to non-const cannot bind to the rvalue
+             produced in the first step. */
+          arg_match_err = TRUE;
+        }  /* if */
+      } else {
+        /* Not overload resolution. */
+        prep_reference_initializer_operand(&operand, dest_type,
+                                           (a_conv_descr *)NULL,
+                                           /*leave_as_object=*/is_cast,
+                                           conv_context,
+                                           ec_bad_initializer_type);
+      }  /* if */
       braced_init = FALSE;
     } else if (list == NULL) {
       /* An empty list ("{}") -- do value initialization. */
+      p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
-                           &is_constant, &dip, &constant);
+                           &is_constant, &dip, &constant,
+                           p_error_detected);
+      if (arg_match != NULL) {
+        if (error_detected) {
+          arg_match_err = TRUE;
+        } else {
+          /* [over.ics.list]p6 says initializing a non-class from an
+             empty braced-init-list is an identity conversion. */
+          arg_match->match_level = aml_exact;
+        }  /* if */
+      }  /* if */
     } else {
       /* Something else (e.g., an "int" initialized by a list with two
          elements); error. */
@@ -20039,16 +20405,23 @@ is->no_diagnostics and is->check_validity_only.
      If constant != NULL, the result is that constant.
      Otherwise, the result is in "operand".  If the required result is
      in a different format, convert to that. */
-  if (is != NULL && is->check_validity_only) {
+  if (!generate_il) {
     /* Generate no IL if we're only checking validity. */
   } else if (result != NULL) {
     /* The caller wants the result in an_operand form in *result. */
     check_assertion(is == NULL);
+    if (dip == NULL && constant != NULL && force_temp) {
+      /* We've been asked to force a temporary, so force a constant case
+         to use a dynamic init. */
+      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
+      dip->variant.constant = constant;
+      constant = NULL;
+    }  /* if */
     if (dip != NULL) {
       /* We have a dynamic init entry.  Make an operand for it. */
       an_expr_node_ptr expr;
       dip->is_braced_initializer = braced_init;
-      if (fill_in_dtor) {
+      if (dest_type_is_class && fill_in_dtor) {
         add_dtor_to_dynamic_init(dip, dest_type, dest_type,
                                  init_component_pos(icp));
       }  /* if */
@@ -20056,10 +20429,34 @@ is->no_diagnostics and is->check_validity_only.
                                   /*is_explicit_cast=*/is_cast);
       make_expression_operand(expr, result);
     } else if (constant != NULL) {
+      check_assertion(!force_temp);
       make_constant_operand(constant, result);
     } else {
-      /* We want an operand, and we have an operand.  The destruction will
-         already be recorded if needed. */
+      /* We want an operand, and we have an operand. */
+      an_expr_node_ptr   temp_init_node;
+      a_dynamic_init_ptr tdip;
+      if (force_temp) {
+        /* We're supposed to force a temporary at the top level. */
+        if (!operand_is_temp_init_full(&operand, &temp_init_node) ||
+            /* If the temp is present but it is already representing something
+               special, make another temporary. */
+            ((tdip = temp_init_node->variant.init.dynamic_init),
+              (tdip->is_braced_initializer ||
+               tdip->is_compound_literal ||
+               tdip->is_explicit_cast))) {
+          if (!is_error_operand(&operand)) {
+            /* Make a temporary.  Normally, it's an rvalue, but make an
+               lvalue if the caller has requested it. */
+            a_boolean create_lvalue = (conv_context &
+                                       CCO_MAKE_LVALUE_TEMP_FOR_LIST_INIT) !=0;
+            temp_init_from_operand(&operand, create_lvalue);
+          }  /* if */
+          if (operand_is_temp_init_full(&operand, &temp_init_node)) {
+            tdip = temp_init_node->variant.init.dynamic_init;
+            tdip->is_braced_initializer = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       copy_operand(&operand, result);
     }  /* if */
     result->position = *init_component_pos(icp);
@@ -20110,7 +20507,13 @@ is->no_diagnostics and is->check_validity_only.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (is != NULL) {
+  if (arg_match != NULL) {
+    /* Just evaluating for overload resolution.  arg_match is set already, but
+       if there was an error reset it now. */
+    if (arg_match_err) {
+      arg_match->match_level = aml_error;
+    }  /* if */
+  } else if (is != NULL) {
     /* Restore things after an exploratory evaluation. */
     if (is->check_validity_only) {
       expr_stack->potentially_evaluated = saved_potentially_evaluated;
@@ -20232,7 +20635,7 @@ found to be acceptable, and *conversion describes it.
       }  /* if */
       conv_to_error_operand(source_operand);
     } else {
-     /* Build an enk_temp_init node and a dynamic init entry that
+      /* Build an enk_temp_init node and a dynamic init entry that
          will initialize the temporary.  The temporary's address is passed
          to the called routine. */
       determine_dynamic_init_for_class_init(source_operand, param_type,
@@ -20240,8 +20643,8 @@ found to be acceptable, and *conversion describes it.
                                             /*fill_in_dtor=*/TRUE,
                                             &dip, &temp_init_node);
       make_lvalue_expression_operand(temp_init_node, source_operand);
-      restore_operand_details(source_operand, &orig_operand);
     }  /* if */
+    restore_operand_details(source_operand, &orig_operand);
     rule_out_expr_kinds(ROEK_CONSTANT, source_operand);
   }  /* if */
 }  /* prep_arg_passed_via_copy_constructor */
@@ -20295,9 +20698,8 @@ to be acceptable (as far as overload resolution checks that), and
   a_boolean  is_transparent = formal_param->is_transparent;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_conv_context_set
-             conv_context = (formal_param->move_ctor_or_assign_parameter ?
-                               CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER :
-                               CCO_DEFAULT);
+             conv_context =
+                     add_conv_context_for_parameter(formal_param, CCO_DEFAULT);
 
   /* If the parameter is a template class, make sure it is instantiated so
      we know if a copy constructor should be used. */
@@ -20421,20 +20823,27 @@ checks that), and *conversion describes it.
     copy_operand(operand_of_arg_list_elem(alep), result);
     prep_argument_operand(result,
                           formal_param, conversion, err_code);
-  } else if (is_braced_init_component(alep)) {
+  } else {
     /* The argument is a braced-init-list. */
-    a_conv_context_set
-             conv_context = (formal_param->move_ctor_or_assign_parameter ?
-                               CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER :
-                               CCO_DEFAULT);
+    a_conv_context_set conv_context =
+                     add_conv_context_for_parameter(formal_param, CCO_DEFAULT);
+    check_assertion(is_braced_init_component(alep));
     prep_list_initializer(alep, formal_param->type,
+                          /*is_direct_init=*/FALSE,
                           /*check_narrowing=*/TRUE,
                           conv_context,
                           /*fill_in_dtor=*/TRUE,
+                          /*force_temp=*/
+                                     formal_param->passed_via_copy_constructor,
                           result,
-                          (an_init_state *)NULL);
-  } else {
-    unexpected_condition();
+                          (an_init_state *)NULL,
+                          (an_arg_match_summary *)NULL);
+    if (formal_param->passed_via_copy_constructor) {
+      /* Argument is passed via a copy constructor, so adjust the operand
+         so the address of a temporary will be passed. */
+      prep_arg_passed_via_copy_constructor(result, formal_param->type,
+                                           (a_conv_descr *)NULL, err_code);
+    }  /* if */
   }  /* if */
 }  /* prep_argument */
 
@@ -20801,6 +21210,7 @@ can convert to or from handles.
       conv_dest_type = rvalue_type(op2_type);
       if (is_class_struct_union_type(op2_type)) {
         if (conversion_to_class_possible(op1,
+                                         (an_arg_list_elem *)NULL,
                                          conv_dest_type,
                                          /*try_bitwise_copy=*/TRUE,
                                          /*is_copy_initialization=*/TRUE,

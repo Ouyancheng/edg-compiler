@@ -15421,7 +15421,6 @@ expression, and return the result in *result (or an error indication in
     }  /* if */
   } else if (has_braced_initializer) {
     /* A C++11-style list initializer, e.g., new T{x, y}. */
-    a_conv_context_set   conv_context = CCO_DIRECT_INITIALIZATION;
     an_init_state        init_state;
     an_arg_list_elem_ptr alep;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -15430,9 +15429,14 @@ expression, and return the result in *result (or an error indication in
     alep = scan_braced_init_list_internal(/*is_full_expr=*/FALSE,
                                           (a_decl_parse_state *)NULL);
     clear_init_state(&init_state);
-    prep_list_initializer(alep, new_type, /*check_narrowing=*/TRUE,
-                          conv_context, /*fill_in_dtor=*/FALSE,
-                          (an_operand *)NULL, &init_state);
+    prep_list_initializer(alep, new_type,
+                          /*is_direct_init=*/TRUE,
+                          /*check_narrowing=*/TRUE,
+                          CCO_DEFAULT,
+                          /*fill_in_dtor=*/FALSE,
+                          /*force_temp=*/FALSE,
+                          (an_operand *)NULL, &init_state,
+                          (an_arg_match_summary *)NULL);
     if (init_state.init_error) {
       err = TRUE;
     } else {
@@ -17090,6 +17094,7 @@ called only in C++ mode.
                  ([expr.static.cast] paragraph 2).  That's discovered later. */
             } else if (conversion_to_class_possible(
                                   operand,
+                                  (an_arg_list_elem *)NULL,
                                   eff_type_cast_to,
                                   /*try_bitwise_copy=*/TRUE,
                                   /*is_copy_initialization=*/TRUE, /*sic*/
@@ -19752,16 +19757,22 @@ the closing brace.
 */
 {
   an_init_component_ptr icp;
-  a_conv_context_set    conv_context = (CCO_CAST | CCO_DIRECT_INITIALIZATION);
+  a_conv_context_set    conv_context = CCO_CAST;
 
   check_assertion(list_init_enabled);
   if (source_form == csf_functional) conv_context |= CCO_FUNC_NOTATION_CAST;
   icp = scan_braced_init_list_internal(/*is_full_expr=*/FALSE,
                                        (a_decl_parse_state *)NULL);
   check_assertion(result != NULL);  /* For lint. */
-  prep_list_initializer(icp, type_cast_to, /*check_narrowing=*/TRUE,
-                        conv_context, /*fill_in_dtor=*/TRUE,
-                        result, (an_init_state *)NULL);
+  prep_list_initializer(icp, type_cast_to,
+                        /*is_direct_init=*/TRUE,
+                        /*check_narrowing=*/TRUE,
+                        conv_context,
+                        /*fill_in_dtor=*/TRUE,
+                        /*force_temp=*/
+                                      is_class_struct_union_type(type_cast_to),
+                        result, (an_init_state *)NULL,
+                        (an_arg_match_summary *)NULL);
   free_init_component_list(icp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = *init_component_end_pos(icp);
@@ -28490,8 +28501,6 @@ a new-initializer).
 }  /* scan_braced_init_list */
 
 
-/*FIXME*/
-/*ARGSUSED*/
 void convert_initializer(an_init_component_ptr icp,
                          a_type_ptr            dest_type,
                          a_boolean             is_var_init,
@@ -28535,15 +28544,18 @@ the dynamic init entry if one is created to represent this initializer
     dest_type = var->type;
     conv_context |= CCO_INITIALIZING_VARIABLE;
   }  /* if */
-  if (is->direct_init) conv_context |= CCO_DIRECT_INITIALIZATION;
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   transfer_expr_context_if_applicable(saved_expr_stack);
-  prep_list_initializer(icp, dest_type, check_narrowing,
-                        conv_context, fill_in_dtor, (an_operand *)NULL,
-                        is);
+  prep_list_initializer(icp, dest_type,
+                        is->direct_init,
+                        check_narrowing,
+                        conv_context, fill_in_dtor,
+                        /*force_temp=*/FALSE,
+                        (an_operand *)NULL,
+                        is, (an_arg_match_summary *)NULL);
   dip = is->init_dip;
   /* If this conversion was treated as full expression, wrap up the
      object lifetime.  expr_stack->lifetime is non-NULL here if a full
@@ -31464,11 +31476,16 @@ required_type will be void if the expression should have void type
     /* When the return is via copy constructor, get an operand back so
        it can be fed into the elision optimization below.
        Otherwise, get back either a dynamic init or a constant. */
-    prep_list_initializer(icp, required_type, /*check_narrowing=*/TRUE,
-                          conv_context, /*fill_in_dtor=*/FALSE,
+    prep_list_initializer(icp, required_type,
+                          /*is_direct_init=*/FALSE,
+                          /*check_narrowing=*/TRUE,
+                          conv_context,
+                          /*fill_in_dtor=*/return_by_cctor_case,
+                          /*force_temp=*/return_by_cctor_case,
                           return_by_cctor_case ? &result : (an_operand *)NULL,
                           return_by_cctor_case ? (an_init_state *)NULL :
-                                                 &init_state);
+                                                 &init_state,
+                          (an_arg_match_summary *)NULL);
   } else {
     /* Normal case: Scan the expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
@@ -33904,7 +33921,8 @@ element of aggregate class type dest_type (as a whole; not just a field of it).
     a_boolean     ambiguous;
     check_assertion(symbol_supplement_for_class(dest_type)
                                                         ->is_class_aggregate);
-    result = conversion_to_class_possible(operand_of_arg_list_elem(icp),
+    result = conversion_to_class_possible((an_operand *)NULL,
+                                          icp,
                                           dest_type,
                                           /*try_bitwise_copy=*/TRUE,
                                           /*is_copy_initialization=*/TRUE,
@@ -34067,6 +34085,7 @@ a thrown exception) if that is appropriate.
             types_are_compatible_ignoring_qualifiers(result.type,
                                                      required_type) :
             (conversion_to_class_possible(&result,
+                                          (an_arg_list_elem *)NULL,
                                           required_type,
                                           /*try_bitwise_copy=*/TRUE,
                                           /*is_copy_initialization=*/TRUE,
