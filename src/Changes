@@ -15,7 +15,7 @@ it was previously defined to 199711L.
 6/11/12  [EDGcpfe/12708]
 Microsoft compatibility: access checking in function template instantiations
 
-The Microsoft compilers does not do access checking in SFINAE contexts,
+The Microsoft compiler does not do access checking in SFINAE contexts,
 and in addition, does not do access checking during the partial instantiation
 of a function template.  The front end was doing C++11 SFINAE access
 checking in Microsoft mode, but should not have.  This is now fixed.
