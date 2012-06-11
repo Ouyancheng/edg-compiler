@@ -8208,17 +8208,38 @@ command line -D options.
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
-  /* __cplusplus is defined as 199711L if we are compiling C++, left undefined
-     otherwise.  In most modes, __cplusplus can be redefined as this is
-     needed in some environments.  In Microsoft mode it can't be redefined
-     because the Microsoft compiler actually ignores attempts to redefine
-     it.  For compatibility, c_plusplus is defined in cfront mode. */
+  /* __cplusplus is defined to reflect the appropriate variant if we are
+     compiling C++, left undefined otherwise.  In most modes, __cplusplus
+     can be redefined as this is needed in some environments.  In Microsoft
+     mode it can't be redefined because the Microsoft compiler actually
+     ignores attempts to redefine it.  For compatibility, c_plusplus is
+     defined in cfront mode. */
   if (C_dialect == C_dialect_cplusplus) {
-    (void)enter_predef_macro((char *)(((microsoft_mode &&
-                                        microsoft_version < 1310) ||
-                                       gpp_mode ||
-                                       any_cfront_mode()) ? "1" : "199711L"),
-			     "__cplusplus",
+    char *val;
+    char *cpp98_date = "199711L";
+    char *cpp11_date = "201103L";
+    if (microsoft_mode) {
+      if (microsoft_version < 1310) {
+        val = "1";
+      } else {
+        val = cpp98_date;
+      }  /* if */
+    } else if (gpp_mode) {
+      if (gnu_version < 40700) {
+        val = "1";
+      } else if (cpp11_mode) {
+        val = cpp11_date;
+      } else {
+        val = cpp98_date;
+      }  /* if */
+    } else if (any_cfront_mode()) {
+      val = "1";
+    } else if (cpp11_mode) {
+      val = cpp11_date;
+    } else {
+      val = cpp98_date;
+    }  /* if */
+    (void)enter_predef_macro(val, "__cplusplus",
 			     /*cannot_be_redefined=*/microsoft_mode,
                              /*ref_suppresses_pch_file=*/FALSE);
     if (any_cfront_mode()) {

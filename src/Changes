@@ -1,5 +1,17 @@
 Version 4.5
 
+6/11/12  [EDGcpfe/12758]
+GNU compatibility: value of __cplusplus
+
+Beginning with version 4.7, g++ defines the macro __cplusplus to either
+199711L or 201103L, depending on whether -std=c++11 is specified or not.
+(In previous versions it was defined as the value 1.)  The front end has
+now been changed to emulate that behavior when --gnu_version >= 40700,
+reflecting the presence or absence of the --c++11 command-line option.  In
+addition, --c++11 now also defines __cplusplus to 201103L in default mode;
+it was previously defined to 199711L.
+
+
 6/11/12  [EDGcpfe/12708]
 Microsoft compatibility: access checking in function template instantiations
 
