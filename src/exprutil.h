@@ -1173,6 +1173,9 @@ extern a_boolean is_pack_expansion_component(an_init_component_ptr  icp);
 
 extern void db_init_component(an_init_component_ptr icp);
 
+extern
+void conv_braced_init_component_to_error_expression(an_arg_list_elem_ptr alep);
+
 extern void check_arg_list_elem_is_expression(an_arg_list_elem_ptr alep);
 
 extern void clear_expression_cache(struct an_expression_cache *cache);

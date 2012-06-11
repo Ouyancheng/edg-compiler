@@ -888,6 +888,30 @@ Display an init component for debugging purposes.
 
 #endif /* DEBUG */
 
+void conv_braced_init_component_to_error_expression(an_arg_list_elem_ptr alep)
+/*
+Convert a braced-init-list component to an error expression component.
+*/
+{
+  a_source_position start_pos = alep->variant.braced.start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_pos = alep->variant.braced.end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  an_operand        *operand;
+
+  arg_list_will_not_be_used_because_of_error(alep);
+  free_init_component_list(alep->variant.braced.list);
+  set_init_component_kind(alep, (an_init_component_kind)ick_expression);
+  /* Note that the "next" pointer is preserved. */
+  operand = operand_of_arg_list_elem(alep);
+  make_error_operand(operand);
+  operand->position = start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  operand->end_position = end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* conv_braced_init_component_to_error_expression */
+
+
 void check_arg_list_elem_is_expression(an_arg_list_elem_ptr alep)
 /*
 Check that the given member of an argument list is an expression.
@@ -898,22 +922,9 @@ change it to an error expression.
   if (is_expression_component(alep)) {
     /* Okay. */
   } else if (is_braced_init_component(alep)) {
-    a_source_position start_pos = alep->variant.braced.start_pos;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    a_source_position end_pos = alep->variant.braced.end_pos;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    an_operand        *operand;
-    expr_pos_error(ec_braced_init_list_not_allowed, &start_pos);
-    arg_list_will_not_be_used_because_of_error(alep);
-    free_init_component_list(alep->variant.braced.list);
-    set_init_component_kind(alep, (an_init_component_kind)ick_expression);
-    /* Note that the "next" pointer is preserved. */
-    operand = operand_of_arg_list_elem(alep);
-    make_error_operand(operand);
-    operand->position = start_pos;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    operand->end_position = end_pos;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    expr_pos_error(ec_braced_init_list_not_allowed,
+                   init_component_pos(alep));
+    conv_braced_init_component_to_error_expression(alep);
   } else {
     unexpected_condition();
   }  /* if */

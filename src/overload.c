@@ -10840,6 +10840,12 @@ next parameter.
   if (do_default_promotion) {
     /* Either an ellipsis was encountered or this is an old-style argument
        list; do the default argument promotion. */
+    if (is_braced_init_component(arg_list_elem) &&
+        arg_block->has_ellipsis) {
+      /* A braced-init-list passed to an ellipsis. */
+      expr_pos_error(ec_braced_list_passed_to_ellipsis, pos);
+      conv_braced_init_component_to_error_expression(arg_list_elem);
+    }  /* if */
     check_arg_list_elem_is_expression(arg_list_elem);
     operand = operand_of_arg_list_elem(arg_list_elem);
     operand_set = TRUE;
