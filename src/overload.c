@@ -17086,7 +17086,7 @@ the temporary.
         do_operand_transformations(operand, TOPT_NO_OPTIONS);
       }  /* if */
       /* Do any necessary standard or trivial conversion. */
-      if (is_an_rvalue(operand)) {
+      if (is_an_rvalue(operand) && !is_error_operand(operand)) {
         an_expr_node_ptr before_cast = (is_expression_operand(operand)) ?
                                             operand->variant.expression : NULL;
         cast_operand(dest_type, operand,
