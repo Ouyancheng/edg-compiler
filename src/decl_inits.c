@@ -3946,6 +3946,7 @@ The presence of a nonconstant initializer component is reflected in *is.
                       /*check_narrowing=*/TRUE,
                       /*fill_in_dtor=*/exceptions_enabled,
                       (a_decl_parse_state*)NULL, &elem_is);
+  is->init_error = elem_is.init_error;
   if (elem_is.init_con != NULL) {
     /* A constant initializer: Return it. */
     *init_con = elem_is.init_con;
@@ -4581,6 +4582,7 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
   an_init_component_ptr  icp = *p_icp;
   a_boolean              pack_expansion = FALSE;
 
+  check_assertion(init_con != NULL);
   if (is_pack_expansion_component(icp)) {
     /* If this component is a pack expansion, don't attempt to match up types
        since we don't know how many elements it should match. */
@@ -4608,8 +4610,12 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
     aggr_init_simple_element(icp, etype, is, init_con);
     *p_icp = icp->next;
   }  /* if */
-  (*init_con)->is_pack_expansion = pack_expansion;
+  if (!is->check_validity_only) {
+    check_assertion(*init_con != NULL);
+    (*init_con)->is_pack_expansion = pack_expansion;
+  }  /* if */
 }  /* aggr_init_element */
+
 
 /*FIXME*/
 /*ARGSUSED*/
@@ -4677,20 +4683,22 @@ placed on any object lifetime list (the caller must do that).
       unexpected_condition();
   }  /* switch */
   if (!is->init_error) {
-    /* The routines for aggregate initialization produce a constant entry, but
-       those entries may embed a dynamic initialization.  If so, return a
-       dynamic initialization entry for a nonconstant aggregate to the
-       caller. */
-    check_assertion(is->init_con != NULL);
-    if (is->has_dynamic_init_component && !is_error_constant(is->init_con)) {
-      check_assertion(is->init_con->kind ==
+    if (!is->check_validity_only) {
+      /* The routines for aggregate initialization produce a constant entry,
+         but those entries may embed a dynamic initialization.  If so, return a
+         dynamic initialization entry for a nonconstant aggregate to the
+         caller. */
+      check_assertion(is->init_con != NULL);
+      if (is->has_dynamic_init_component && !is_error_constant(is->init_con)) {
+        check_assertion(is->init_con->kind ==
                                            (a_constant_repr_kind)ck_aggregate);
-      is->init_dip = alloc_dynamic_init(
+        is->init_dip = alloc_dynamic_init(
                                (a_dynamic_init_kind)dik_nonconstant_aggregate);
-      is->init_dip->variant.constant = is->init_con;
-      is->init_dip->destructor = dtor_rp;
-      is->init_dip->is_braced_initializer = TRUE;
-      is->init_con = NULL;
+        is->init_dip->variant.constant = is->init_con;
+        is->init_dip->destructor = dtor_rp;
+        is->init_dip->is_braced_initializer = TRUE;
+        is->init_con = NULL;
+      }  /* if */
     }  /* if */
     if (is->any_uninitialized_const_or_ref_member) {
       /* A const or reference field was not initialized.  Issue a diagnostic,
