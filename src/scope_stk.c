@@ -2605,6 +2605,8 @@ the scope being pushed.
   ssep->explicitly_declared_namespace_extension = FALSE;
   ssep->microsoft_specialization_instantiation_scope =
                                   (options & PS_MICROSOFT_SPECIALIZATION) != 0;
+  ssep->function_partial_instantiation =
+                            (options & PS_FUNCTION_PARTIAL_INSTANTIATION) != 0;
   ssep->is_instantiation_context = FALSE;
   ssep->ignore_during_normal_lookup = FALSE;
   ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;

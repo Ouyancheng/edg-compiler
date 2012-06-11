@@ -1,5 +1,27 @@
 Version 4.5
 
+6/11/12  [EDGcpfe/12708]
+Microsoft compatibility: access checking in function template instantiations
+
+The Microsoft compilers does not do access checking in SFINAE contexts,
+and in addition, does not do access checking during the partial instantiation
+of a function template.  The front end was doing C++11 SFINAE access
+checking in Microsoft mode, but should not have.  This is now fixed.
+In addition, access errors that occur during the partial instantiation
+of a function template are now ignored in Microsoft mode.
+
+  struct A {
+    template <class T> static typename T::X f(T);
+  };
+  class B {
+    typedef int X;
+  };
+  int main() {
+    B b;
+    A::f(b);
+  }
+
+
 6/8/12   [EDGcpfe/12961]
 Building the front end on Windows in 64-bit mode
 

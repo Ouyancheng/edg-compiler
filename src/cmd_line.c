@@ -2066,7 +2066,7 @@ by a command line option.
       cpp11_sfinae_enabled = (microsoft_version >= 1600);
     } /* if */
     if (!option_kind_used[(int)optk_cpp11_sfinae_ignore_access]) {
-      if (cpp11_sfinae_enabled) cpp11_sfinae_ignore_access = FALSE;
+      if (cpp11_sfinae_enabled) cpp11_sfinae_ignore_access = TRUE;
     }  /* if */
     if (microsoft_version >= 1700 || cppcli_enabled) {
       range_based_for_enabled = TRUE;
@@ -8792,49 +8792,6 @@ enable_microsoft_mode:
   if (strict_ansi_mode) {
     check_and_set_ansi_mode_options();
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
-    /* C++/CLI requires Microsoft C++ mode. */
-    if (!microsoft_mode) {
-      if (option_kind_used[(int)optk_cppcli] &&
-          option_kind_used[(int)optk_microsoft_mode]) {
-        /* Issue an error if Microsoft mode is explicitly turned off and
-           C++/CLI mode is explicitly turned on. */
-        command_line_error(ec_cl_cppcli_only_in_microsoft_cplusplus);
-      }  /* if */
-      cppcli_enabled = FALSE;
-    } else if (C_mode()) {
-      if (option_kind_used[(int)optk_cppcli]) {
-        /* Issue an error if C++/CLI was turned on explicitly in C mode. */
-        command_line_error(ec_cl_cppcli_only_in_microsoft_cplusplus);
-      }  /* if */
-      cppcli_enabled = FALSE;
-    } else if (microsoft_version < 1600) {
-      /* microsoft_version must be at least 1600 for C++/CLI features. */
-      if (option_kind_used[(int)optk_microsoft_version]) {
-        /* Issue an error if microsoft_version is explicitly set to a low
-           value. */
-        command_line_error(ec_cl_microsoft_version_insufficient_for_cppcli);
-      }  /* if */
-      microsoft_version = 1600;
-    }  /* if */
-  }  /* if */
-  if (microsoft_mode) {
-    /* Turn on features implied by Microsoft mode. */
-    set_microsoft_mode_flags();
-  } else {
-    /* Microsoft mode is not being used. */
-    microsoft_bugs = FALSE;
-    if (import_dir_name != NULL) {
-      /* --import_dir is allowed only in Microsoft mode. */
-      command_line_error(ec_cl_import_only_in_microsoft);
-    }  /* if */
-  }  /* if */
-  /* If no directory was specified for #import, use the current directory. */
-  if (import_dir_name == NULL) {
-    import_dir_name = ".";
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (extended_designators_allowed) {
     /* If extended designators are allowed, the normal designators must
        be allowed also. */
@@ -8959,6 +8916,49 @@ enable_microsoft_mode:
       auto_type_specifier_enabled = TRUE;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    /* C++/CLI requires Microsoft C++ mode. */
+    if (!microsoft_mode) {
+      if (option_kind_used[(int)optk_cppcli] &&
+          option_kind_used[(int)optk_microsoft_mode]) {
+        /* Issue an error if Microsoft mode is explicitly turned off and
+           C++/CLI mode is explicitly turned on. */
+        command_line_error(ec_cl_cppcli_only_in_microsoft_cplusplus);
+      }  /* if */
+      cppcli_enabled = FALSE;
+    } else if (C_mode()) {
+      if (option_kind_used[(int)optk_cppcli]) {
+        /* Issue an error if C++/CLI was turned on explicitly in C mode. */
+        command_line_error(ec_cl_cppcli_only_in_microsoft_cplusplus);
+      }  /* if */
+      cppcli_enabled = FALSE;
+    } else if (microsoft_version < 1600) {
+      /* microsoft_version must be at least 1600 for C++/CLI features. */
+      if (option_kind_used[(int)optk_microsoft_version]) {
+        /* Issue an error if microsoft_version is explicitly set to a low
+           value. */
+        command_line_error(ec_cl_microsoft_version_insufficient_for_cppcli);
+      }  /* if */
+      microsoft_version = 1600;
+    }  /* if */
+  }  /* if */
+  if (microsoft_mode) {
+    /* Turn on features implied by Microsoft mode. */
+    set_microsoft_mode_flags();
+  } else {
+    /* Microsoft mode is not being used. */
+    microsoft_bugs = FALSE;
+    if (import_dir_name != NULL) {
+      /* --import_dir is allowed only in Microsoft mode. */
+      command_line_error(ec_cl_import_only_in_microsoft);
+    }  /* if */
+  }  /* if */
+  /* If no directory was specified for #import, use the current directory. */
+  if (import_dir_name == NULL) {
+    import_dir_name = ".";
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (sun_mode) {
     check_and_set_sun_mode_options();
   } else {

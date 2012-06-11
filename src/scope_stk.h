@@ -87,6 +87,11 @@ typedef int a_push_scope_options_set;
 			   indicate that certain operations, such as the
 			   end-of-scope symbol check, should be suppressed
 			   because the scope will be reactivated. */
+#define PS_FUNCTION_PARTIAL_INSTANTIATION \
+					0x10000
+			/* TRUE when rescanning a function template declaration
+			   from tokens to create the partial instantiation of
+			   the function. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
 			   a function. */
@@ -885,6 +890,11 @@ typedef struct a_scope_stack_entry {
   a_bit_field	in_decltype_context:1;
 			/* TRUE when scanning the expression in a decltype
 			   operator. */
+  a_bit_field	function_partial_instantiation:1;
+			/* TRUE for template instantiation scopes when the
+			   tokens of a function template are being rescanned
+			   to create a partial instantiation of the
+			   function. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;

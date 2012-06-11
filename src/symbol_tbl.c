@@ -10685,6 +10685,13 @@ in the source program.
   if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Suppress access checking during prototype instantiations.  Access
        checking cannot be done for a template, only for instances. */
+  } else if (microsoft_mode &&
+             depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+             scope_stack[depth_innermost_instantiation_scope].
+                                              function_partial_instantiation) {
+    /* The Microsoft compiler ignores certain access errors during the rescan
+       of function template declarations when creating the partial
+       instantiation of the function. */
   } else if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
     /* For overloaded functions, do not check access now.  The check will
        be done after the specific function is determined. */
