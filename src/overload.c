@@ -3771,6 +3771,33 @@ specifier) for which bindings are sought.
 }  /* deduce_from_one_pair */
 
 
+static a_boolean is_instance_of_std_initializer_list(a_type_ptr type,
+                                                     a_type_ptr *elem_type)
+/*
+Return TRUE if "type" is an instance of std::initializer_list<X>, and
+if so also return *elem_type set to the argument type X.
+*/
+{
+  a_boolean          is_instance = FALSE;
+  a_template_arg_ptr templ_arg_list;
+
+  *elem_type = NULL;
+  type = skip_typerefs(type);
+  if (is_immediate_class_type(type) &&
+      symbol_for_std_initializer_list != NULL &&
+      is_instance_of_class_template(type,
+                                    symbol_for_std_initializer_list,
+                                    &templ_arg_list)) {
+    check_assertion(templ_arg_list != NULL &&
+                    templ_arg_list->next == NULL &&
+                    is_type_templ_arg(templ_arg_list));
+    is_instance = TRUE;
+    *elem_type = templ_arg_list->variant.type;
+  }  /* if */
+  return is_instance;
+}  /* is_instance_of_std_initializer_list */
+
+
 static a_boolean deduce_one_parameter(a_param_type_ptr      ptp,
                                       a_type_ptr            param_type,
                                       an_arg_list_elem_ptr  *p_arg,
@@ -3836,13 +3863,63 @@ succeeds, FALSE if it fails.
   /* Loop through the arguments that match a parameter pack, or just once
      through in other cases. */
   for (;;) {
+    if (ptp != NULL) param_type = ptp->type;
     if (arg != NULL) {
-      /* A braced-init-list is a nondeduced context. */
-      if (!is_expression_component(arg)) goto next_iteration;
+      if (is_braced_init_component(arg)) {
+        /* A braced-init-list is a nondeduced context, except if the
+           parameter is an instance of std::initializer<T>, in which case
+           deduction for T is done against the members of the initializer
+           list. */
+        a_type_ptr elem_type;
+        if (!is_instance_of_std_initializer_list(param_type,
+                                                 &elem_type)) {
+          /* Not std::initializer_list<T>, so consider a nondeduced context. */
+        } else {
+          /* std::initializert_list<T>, deduce with T as a parameter type
+             against each expression in the list. */
+          an_arg_list_elem_ptr elem;
+          for (elem = arg->variant.braced.list;
+               elem != NULL;
+               elem = elem->next) {
+            a_type_ptr elem_arg_type;
+            a_type_ptr elem_param_type = elem_type;
+            an_operand *elem_operand;
+            if (!is_expression_component(elem)) {
+              /* Deduction fails if the member is not an expression (e.g.,
+                 it's a braced-init-list). */
+              deduction_okay = FALSE;
+              goto end_of_routine;
+            }  /* if */
+            elem_operand = operand_of_arg_list_elem(elem);
+            elem_arg_type = elem_operand->type;
+            if (!adjust_deduction_pair(&elem_param_type,
+                                       &elem_arg_type,
+                                       elem_operand,
+                                       templ_params, *template_arg_list,
+                                       &qc_param_type, &qc_arg_type,
+                                       &consider_nondeduced)) {
+              if (consider_nondeduced) continue;
+              deduction_okay = FALSE;
+              goto end_of_routine;
+            }  /* if */
+            deduction_okay = deduce_from_one_pair(elem_param_type,
+                                                  elem_arg_type,
+                                                  qc_param_type,
+                                                  qc_arg_type,
+                                                  template_arg_list,
+                                                  templ_params);
+            if (!deduction_okay) {
+              deduction_okay = FALSE;
+              goto end_of_routine;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+        goto next_iteration;
+      }  /* if */
+      check_assertion(is_expression_component(arg));
       operand = operand_of_arg_list_elem(arg);
       arg_type = operand->type;
     }  /* if */
-    if (ptp != NULL) param_type = ptp->type;
     /* Adjust the types (e.g., for references) to prepare for the
        deduction. */
     if (!adjust_deduction_pair(&param_type, &arg_type, operand,
@@ -3869,10 +3946,7 @@ succeeds, FALSE if it fails.
     /* Do the deduction. */
     deduction_okay = deduce_from_one_pair(
                          param_type, arg_type, qc_param_type, qc_arg_type,
-                         template_arg_list,
-                         template_sym->variant.template_info
-                                     ->variant.function.decl_cache.decl_info
-                                     ->parameters);
+                         template_arg_list, templ_params);
     if (!deduction_okay) break;
 next_iteration:
     if (arg != NULL) arg = arg->next;
@@ -19902,6 +19976,7 @@ etc.)
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
       dip->is_creation_of_initializer_list_object = TRUE;
       dip->variant.constructor.ptr = ctor;
+      if_evaluating_mark_routine_referenced(ctor);
       check_assertion(is_pointer_type(param1_type));
       arg1 = add_cast_if_necessary(expr, param1_type);
       param2_type = skip_typerefs(param2_type);
@@ -20143,7 +20218,7 @@ etc.)
     }  /* if */
   } else if (braced_init) {
     /* The entity is initialized by a brace-enclosed list. */
-    a_template_arg_ptr    templ_arg_list;
+    a_type_ptr            element_type;
     an_init_component_ptr list = icp->variant.braced.list;
     /* The tests that follow are based on the bullet list in [dcl.init.list]
        of the C++11 standard. */
@@ -20204,17 +20279,9 @@ etc.)
         }  /* if */
       }  /* if */
     } else if (dest_type_is_class &&
-               symbol_for_std_initializer_list != NULL &&
-               is_instance_of_class_template(skip_typerefs(dest_type),
-                                             symbol_for_std_initializer_list,
-                                             &templ_arg_list)) {
+               is_instance_of_std_initializer_list(dest_type, &element_type)) {
       /* dest_type is an instance of std::initializer_list<X>, so build
          an initializer_list object from the braced-init-list. */
-      a_type_ptr element_type;
-      check_assertion(templ_arg_list != NULL &&
-                      templ_arg_list->next == NULL &&
-                      is_type_templ_arg(templ_arg_list));
-      element_type = templ_arg_list->variant.type;
       make_initializer_list_object(icp,
                                    element_type,
                                    dest_type,
