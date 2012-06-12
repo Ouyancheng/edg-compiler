@@ -2026,10 +2026,11 @@ by a command line option.
       decls_using_types_without_linkage_allowed = TRUE;
     }  /* if */
     if (microsoft_version >= 1600) {
-      if (!option_kind_used[(int)optk_auto_type]) {
+      /* If the treatment of "auto" was not explicitly specified by the
+         user, set it appropriately now. */
+      if (!option_kind_used[(int)optk_auto_type] &&
+          !option_kind_used[(int)optk_auto_storage]) {
         auto_type_specifier_enabled = TRUE;
-      }  /* if */
-      if (!option_kind_used[(int)optk_auto_storage]) {
         auto_storage_class_specifier_enabled = FALSE;
       }  /* if */
       decltype_enabled = TRUE;
