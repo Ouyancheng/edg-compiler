@@ -5249,7 +5249,7 @@ check_typerefs:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
           }  /* if */
           if (identical &&
-              flags & ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED &&
+              (flags & ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED) != 0 &&
               rtsp1->does_not_return != rtsp2->does_not_return) {
             /* Routines differ in setting of do_not_return flag. */
             identical = FALSE;
