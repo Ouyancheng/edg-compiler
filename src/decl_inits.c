@@ -5121,7 +5121,9 @@ returned set to TRUE.
     if (first_token == tok_lbrace) {
       error(ec_auto_brace_initialization_not_allowed);
       vp->type = vp_type = error_type();
+      invalidate_type(dps);
       dps->auto_type_specifier_seen = FALSE;
+      dps->auto_type = NULL;
     } else {
       prescan_initializer_for_auto_type_deduction(dps,
                                                   parenthesized_initializer);
