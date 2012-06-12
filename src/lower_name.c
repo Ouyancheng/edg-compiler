@@ -8471,10 +8471,12 @@ top_of_loop:
          a new type that represents the same type without the "noreturn"
          attribute (since these get separate substitutions).  E.g.,
           void f(void (*)() __attribute__((noreturn)), void (*)()) ; */
-      a_type_ptr new_type = alloc_type(tk_routine);
+      a_type_ptr new_type = alloc_type((a_type_kind)tk_routine);
       qualifiers |= TQ_VOLATILE;
       copy_type(type, new_type);
+#if DO_IL_LOWERING
       il_lowering_flag_of(new_type) = il_lowering_flag_of(type);
+#endif /* DO_IL_LOWERING */
       new_type->variant.routine.extra_info->does_not_return = FALSE;
       type = new_type;
     }  /* if */
