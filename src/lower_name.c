@@ -555,6 +555,11 @@ static void close_ia64_nested_name(
 #if ABI_COMPATIBILITY_VERSION >= 402
 static a_boolean gnu_requires_decltype_mangling(a_type_ptr type);
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+static a_boolean substitution_available(
+                                    char                     *entity,
+                                    an_il_entry_kind         kind,
+                                    a_boolean                is_pack_expansion,
+                                    a_mangling_control_block *mctl);
 #endif /* IA64_ABI */
 static void mangled_template_arguments(
                                     a_template_arg_ptr       template_arg_list,
@@ -705,6 +710,11 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
   a_substitution_ptr sp;
 
   check_assertion(!is_pack_expansion || kind == iek_type);
+#if CHECKING && ABI_COMPATIBILITY_VERSION >= 405
+  check_assertion_str(!substitution_available(entity, kind, is_pack_expansion,
+                                              mctl),
+                      "alloc_substitution: missed mangling substitution");
+#endif /* CHECKING && ABI_COMPATIBILITY_VERSION >= 405 */
   if (mctl->suppress_substitutions == 0) {
     /* If the entity is a proxy class for a template parameter, use the
        template parameter. */
@@ -1373,8 +1383,30 @@ whether a substitution is available; do not put it out.
             if (is_pack_expansion == sp->variant.type_sub.is_pack_expansion &&
                 f_identical_types((a_type_ptr)entity,
                                   sp->variant.type_sub.type,
-                                  ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
-              result = TRUE;
+                                  ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED
+#if ABI_COMPATIBILITY_VERSION >= 405
+                                  | ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 */
+                                                                           )) {
+#if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
+              if (sp->variant.type_sub.type->kind !=
+                                                  ((a_type_ptr)entity)->kind &&
+                  ((sp->variant.type_sub.type->kind ==
+                                                     (a_type_kind)tk_typeref &&
+                    sp->variant.type_sub.type->variant.typeref.is_typeof) ||
+                   (((a_type_ptr)entity)->kind == (a_type_kind)tk_typeref &&
+                    ((a_type_ptr)entity)->variant.typeref.is_typeof))) {
+                /* One type is a typeof typeref and the other type isn't;
+                   these get separate substitutions (the mangling for
+                   __typeof is non-standard).  decltype and __underlying_type
+                   don't have this problem because the underlying type isn't
+                   part of the mangling. */
+              } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
+              /* Do not add code here. */
+              {
+                result = TRUE;
+              }  /* if */
             }  /* if */
             break;
           case iek_namespace:
@@ -8435,7 +8467,16 @@ top_of_loop:
     a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
     check_assertion(rtsp != NULL);
     if (rtsp->does_not_return) {
+      /* Add a "volatile" qualifier to the mangled type, but also create
+         a new type that represents the same type without the "noreturn"
+         attribute (since these get separate substitutions).  E.g.,
+          void f(void (*)() __attribute__((noreturn)), void (*)()) ; */
+      a_type_ptr new_type = alloc_type(tk_routine);
       qualifiers |= TQ_VOLATILE;
+      copy_type(type, new_type);
+      il_lowering_flag_of(new_type) = il_lowering_flag_of(type);
+      new_type->variant.routine.extra_info->does_not_return = FALSE;
+      type = new_type;
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -8748,14 +8789,7 @@ top_of_loop:
         /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/
            __underlying_types/typeofs should have been stripped, leaving only
            dependent decltype/__underlying_type/typeof typerefs. */
-#if GNU_EXTENSIONS_ALLOWED
-        check_assertion(type->variant.typeref.is_decltype ||
-                        type->variant.typeref.is_underlying_type ||
-                        type->variant.typeref.is_typeof);
-#else /* !GNU_EXTENSIONS_ALLOWED */
-        check_assertion(type->variant.typeref.is_decltype ||
-                        type->variant.typeref.is_underlying_type);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+        check_assertion(typeref_is_type_operator(type));
         if (type->variant.typeref.is_decltype) {
           /* Provide mangling for decltype. */
           an_expr_node_ptr decltype_expr = decltype_arg(type);

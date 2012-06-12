@@ -655,6 +655,9 @@ typedef unsigned int an_itf_flag_set;
 #define ITF_IGNORE_MS_CALLING_CONVENTION 0x400
 			/* Ignore Microsoft style calling convention (like
 			   "cdecl") specifications. */
+#define ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED 0x800
+			/* TRUE if the does_not_return field must match
+                           when comparing function types. */
 
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))

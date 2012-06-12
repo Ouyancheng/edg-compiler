@@ -1,5 +1,33 @@
 Version 4.5
 
+6/12/12  [EDGcpfe/12862]
+Changes to some g++-specific IA-64 mangling
+
+Changes have been made to better emulate g++'s mangling of the "noreturn"
+attribute on function types (the IA-64 substitutions had been improperly
+handled previously).  Additionally, changes have also been made to
+the mangling for __typeof so that a unique IA-64 substitution is used
+for the __typeof(<type>) and <type> entities (previously these had used
+the same substitution).  Note that g++ doesn't appear to have a mangling
+for __typeof, so there is no g++-compatibility issue here.  These changes
+were motivated by a new assertion check that verifies that each IA-64
+substitution is unique within a mangled name.  The previous behavior can be
+restored by setting ABI_COMPATIBILITY_VERSION to a value less than 405.
+For example (with --g++ --c++11):
+
+  template <class T, class U> struct A {
+    int m;
+  };
+  void f(void (*)() __attribute__((noreturn)), void (*)());
+  template <class T> auto g(T p1) -> decltype(A<typeof(T),typeof(T)>::m,p1);
+  int main() {
+    f(0, 0);  // had been _Z1fPVFvvES1_
+              // now      _Z1fPVFvvEPS_
+    g(0);     // had been _Z1gIiEDTcmsr1AIDyT_ES0_EE1mfp_ES0_
+              // now      _Z1gIiEDTcmsr1AIDyT_ES1_EE1mfp_ES0_
+  }
+
+
 6/11/12  [EDGcpfe/12758]
 GNU compatibility: value of __cplusplus
 
