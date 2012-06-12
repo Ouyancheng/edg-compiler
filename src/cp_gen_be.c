@@ -15526,10 +15526,14 @@ handle_as_definition:
     if (rout->assoc_scope == NULL_region_number &&
         !rout->is_deleted && !rout->is_defaulted) {
       /* A member function of a template class might not be instantiated.
+         Friend functions and Microsoft in-class specializations are
+         not fixed-up unless they are used, so they might also not have
+         bodies (indicated by a non-NULL routine_fixup pointer).
          (On the other hand, deleted and defaulted functions should always be
          treated as "definitions".) */
 #if !STANDALONE_UTILITY_PROGRAM
       check_assertion_str(rout->is_template_function ||
+                          rout->routine_fixup != NULL ||
                           (rout->is_prototype_instantiation &&
                            !nonclass_prototype_instantiations),
                           "gen_routine_decl: missing definition");
