@@ -773,6 +773,15 @@ typedef struct an_input_stack_entry {
   a_bit_field	do_not_advance_past_end_of_file:1;
 			/* TRUE if when we reach the end of this file we
 			   should stay there and not advance beyond it. */
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+  a_bit_field	prev_line_terminator_was_carriage_return:1;
+			/* TRUE if the most recent line read from this file
+			   ended with a carriage return.  This allows
+			   treating a carriage return followed by a newline
+			   as a single line terminator instead of the
+			   newline being treated as the end of an empty
+			   line. */
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
   bitfield_to_avoid_codecenter_warnings()
   a_byte        ifg_state;
 			/* Include file guard state information used to

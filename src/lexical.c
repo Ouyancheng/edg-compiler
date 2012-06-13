@@ -570,15 +570,6 @@ static sizeof_t	offset_of_nonsplice_backslash;
 			   curr_source_line is reallocated between calls
 			   to read_logical_source_line. */
 
-#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-static a_boolean prev_line_terminator_was_carriage_return;
-			/* TRUE if the previous line ended with a carriage
-			   return.  This allows treating a carriage return
-			   followed by a newline as a single line
-			   terminator instead of the newline being treated
-			   as the end of an empty line. */
-#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
-
 /*
 Hash table used by nested_source_line_modif to find the source
 line modification associated with the ATTENTION_MARKER at a given
@@ -5186,6 +5177,9 @@ used to find this file.
   }  /* if */
 #endif /* UNICODE_SOURCE_SUPPORTED */
   any_tokens_fetched_from_curr_input_file = FALSE;
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+  curr_ise->prev_line_terminator_was_carriage_return = FALSE;
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
 #if CENTERLINE_CHECKING
   curr_ise->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -6165,6 +6159,23 @@ in which a cr or cr/lf terminator should be accepted.
 #define is_carriage_return_line_terminator(ch) FALSE /*lint --e(506,845)*/
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
 
+/*
+Macro that discards a newline following a carriage return if we are in a
+mode in which a cr or cr/lf terminator should be accepted.
+*/
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+#define discard_newline_after_gnu_cr(ch)                           \
+  { if (curr_ise->prev_line_terminator_was_carriage_return) {      \
+      curr_ise->prev_line_terminator_was_carriage_return = FALSE;  \
+      if ((ch) == '\n') {                                          \
+        (ch) = getc_curr_input_stream();                           \
+      }  /* if */                                                  \
+    }  /* if */                                                    \
+  }
+#else /* !ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+#define discard_newline_after_gnu_cr(ch)  /* nothing */
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+
 
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
                                    a_boolean extend_current_line)
@@ -6240,9 +6251,6 @@ for the GNU C multiline string extension.
     /* Do not issue a warning for a backslash followed by whitespace on
        the line being extended. */
     pending_nonsplice_backslash = FALSE;
-#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-    prev_line_terminator_was_carriage_return = FALSE;
-#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
     goto entry_for_extend_current_line;
   }  /* if */
   /* If the current line ended in a backslash followed by whitespace (i.e.,
@@ -6278,25 +6286,13 @@ for the GNU C multiline string extension.
      line; this call needs to return the end of file indication). */
   if (!eof_read_on_curr_input_stream) {
     ch = getc_curr_input_stream();
-#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-    if (prev_line_terminator_was_carriage_return) {
-      prev_line_terminator_was_carriage_return = FALSE;
-      if (ch == '\n') {
-        /* This is the second character of a carriage return, newline pair,
-           not the end of the next line.  Skip over it. */
-        ch = getc_curr_input_stream();
-      }  /* if */
-    }  /* if */
-#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+    discard_newline_after_gnu_cr(ch);
   }  /* if */
   while (eof_read_on_curr_input_stream || is_eof_char(ch)) {
     /* End of file encountered in the expected way, i.e., before a line
        has started. */
     eof_read_on_curr_input_stream = TRUE;
     at_end_of_source_file = TRUE;
-#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-    prev_line_terminator_was_carriage_return = FALSE;
-#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
     if (!do_pop_on_end_of_file || curr_ise->do_not_advance_past_end_of_file) {
       /* We're asked not to do the pop, so just return things as they
          are (at_end_of_source_file is TRUE). */
@@ -6313,6 +6309,7 @@ for the GNU C multiline string extension.
     }  /* if */
     /* Loop to try reading from the file reopened by pop_input_stack. */
     ch = getc_curr_input_stream();
+    discard_newline_after_gnu_cr(ch);
   }  /* while */
   /* Either the end of all source, or a real line to read.  For the
      end of source case, a line with just a line-end lexical escape
@@ -6388,7 +6385,7 @@ for the GNU C multiline string extension.
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
     } else if (is_carriage_return_line_terminator(ch)) {
       /* A carriage return that is treated as a line terminator. */
-      prev_line_terminator_was_carriage_return = TRUE;
+      curr_ise->prev_line_terminator_was_carriage_return = TRUE;
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
     } else {
       /* Use local variables in the inner loop, because some compilers
@@ -6442,7 +6439,7 @@ for the GNU C multiline string extension.
       ch = local_ch;
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
       if (ch == '\r') {
-        prev_line_terminator_was_carriage_return = TRUE;
+        curr_ise->prev_line_terminator_was_carriage_return = TRUE;
       }  /* if */
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
       loc_in_line = local_loc_in_line;
@@ -6671,7 +6668,7 @@ line_loop:
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
   } else if (is_carriage_return_line_terminator(ch)) {
     /* A carriage return that is treated as a line terminator. */
-    prev_line_terminator_was_carriage_return = TRUE;
+    curr_ise->prev_line_terminator_was_carriage_return = TRUE;
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
   } else {
     /* Process characters until a newline is read. */
@@ -6804,7 +6801,7 @@ entry_for_expand_buffer:
     } while (ch != '\n' && !is_carriage_return_line_terminator(ch));
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
     if (ch == '\r') {
-      prev_line_terminator_was_carriage_return = TRUE;
+      curr_ise->prev_line_terminator_was_carriage_return = TRUE;
     }  /* if */
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
     if (loc_in_line != curr_source_line) {
@@ -6892,16 +6889,7 @@ entry_for_line_splice:
         /* Begin reading the next line.  It is an error if end of file is
            encountered. */
         ch = getc_curr_input_stream();
-#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-        if (prev_line_terminator_was_carriage_return) {
-          prev_line_terminator_was_carriage_return = FALSE;
-          if (ch == '\n') {
-            /* This is the second character of a carriage return, newline
-               pair.  Skip over it. */
-            ch = getc_curr_input_stream();
-          }  /* if */
-        }  /* if */
-#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+        discard_newline_after_gnu_cr(ch);
         if (!is_eof_char(ch)) goto line_loop;
         eof_read_on_curr_input_stream = TRUE;
         /* Backslash at end of last line in a file -- error. */
@@ -6925,8 +6913,11 @@ entry_for_extend_current_line:
                                after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
   }  /* if */
   loc_in_line = curr_char_loc;
-  if (!eof_read_on_curr_input_stream &&
-      (ch = getc_curr_input_stream(), !is_eof_char(ch))) goto line_loop;
+  if (!eof_read_on_curr_input_stream) {
+    ch = getc_curr_input_stream();
+    discard_newline_after_gnu_cr(ch);
+  }  /* if */
+  if (!eof_read_on_curr_input_stream && !is_eof_char(ch)) goto line_loop;
   eof_read_on_curr_input_stream = TRUE;
   at_end_of_source_file = TRUE;
   goto add_newline_and_line_end_and_return;
@@ -19686,9 +19677,6 @@ done to determine whether a precompiled header may be used.
 #endif /* ASM_SUPPORT_NEEDED */
   pending_nonsplice_backslash = FALSE;
   offset_of_nonsplice_backslash = 0;
-#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-  prev_line_terminator_was_carriage_return = FALSE;
-#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
   (void)memzero((char *)source_line_modif_hash_table,
                 sizeof(source_line_modif_hash_table));
 }  /* lexical_reset */
