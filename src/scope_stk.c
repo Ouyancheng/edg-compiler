@@ -4699,15 +4699,15 @@ the template that is being rescanned and can be NULL.
   a_routine_ptr			rp = NULL;
   a_scope_stack_entry_ptr	ssep;
 
-  check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template ||
-                  template_sym->kind == (a_symbol_kind)sk_function_template);
   if (cpp11_sfinae_enabled && !cpp11_sfinae_ignore_access &&
       template_sym != NULL) {
     a_template_symbol_supplement_ptr	tssp;
     tssp = template_supplement_for_symbol(template_sym);
+    check_assertion(tssp != NULL);
     /* Get the template decl. info. to get the context to be used for
        access checking. */
-    if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+    if (template_sym->kind == (a_symbol_kind)sk_function_template ||
+        template_sym->kind == (a_symbol_kind)sk_member_function) {
       rp = tssp->variant.function.routine;
       tdip = tssp->variant.function.decl_cache.decl_info;
     } else {

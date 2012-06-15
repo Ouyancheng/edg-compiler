@@ -3189,6 +3189,7 @@ is a class member, parent_class points to the entry for its parent class
 an_attribute_ptr copy_of_attributes_with_substitution(
                                            an_attribute_ptr      attributes,
                                            a_boolean             primary_only,
+                                           a_symbol_ptr          template_sym,
                                            a_template_param_ptr  t_params,
                                            a_template_arg_ptr    t_args,
                                            a_type_ptr            parent_class,
@@ -3197,7 +3198,8 @@ an_attribute_ptr copy_of_attributes_with_substitution(
 Return a copy of the given list of attributes (which may be NULL) after
 substituting template parameters (if any).  If primary_only is TRUE, only the
 attributes whose on_primary_declaration flag is set are copied.  If the entity
-to which the attributes are to be applied is a template specialization, t_args
+to which the attributes are to be applied is a template specialization,
+template_sym is the template associated with the specialization, t_args
 represents the template arguments for that specialization and t_params the
 associated template parameters; otherwise, t_args and t_params are NULL.  If
 the entity to which the attributes are to be applied is a class member,
@@ -3218,9 +3220,16 @@ an error.
 {
   an_attribute_ptr  result = NULL, *p_attr = &result, ap;
   a_boolean         err = FALSE, substitution_error_reported = FALSE;
+  a_boolean         rescan_pushed = FALSE;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     if (primary_only && !ap->on_primary_declaration) continue;
+    if (!rescan_pushed && template_sym != NULL) {
+      /* If we will be substituting template arguments below, push a rescan
+         context if one has not already been pushed. */
+      push_instantiation_scope_for_rescan(template_sym);
+      rescan_pushed = TRUE;
+    }  /* if */
     *p_attr = alloc_attribute();
     **p_attr = *ap;
     if ((*p_attr)->arguments != NULL) {
@@ -3281,6 +3290,11 @@ an error.
     }  /* if */
     p_attr = &(*p_attr)->next;
   }  /* for */
+  if (rescan_pushed) {
+    /* If a rescan context was pushed above, pop it now. */
+    pop_instantiation_scope_for_rescan();
+    rescan_pushed = TRUE;
+  }  /* if */
   if (err && p_error != NULL) *p_error = TRUE;
   return result;
 }  /* copy_of_attributes_with_substitution */

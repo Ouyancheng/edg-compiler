@@ -3588,6 +3588,7 @@ be completed here.
         an_attribute_ptr  ap;
         ap = copy_of_attributes_with_substitution(
                    tssp_of_prototype->attributes, /*primary_only=*/TRUE,
+                   template_sym,
                    tssp_of_prototype->cache.decl_info->parameters,
                    template_arg_list, parent_class_or_null(class_type),
                    (a_boolean*)NULL);
@@ -4919,13 +4920,15 @@ on_primary_declaration flag is TRUE.
 
 static void attach_attributes_to_routine_instance(
                                a_routine_ptr                     rp,
+                               a_symbol_ptr                      template_sym,
                                a_template_symbol_supplement_ptr  tssp,
                                a_boolean                         primary_only)
 /*
-rp represents an instance of the template associated with tssp.  Instantiate
-any attributes recorded in the prototype instantiation of that template, and
-attach the result to rp.  If primary_only is TRUE, only do this for the
-attributes whose on_primary_declaration flag is TRUE.
+rp represents an instance of the template associated with template_sym
+and tssp.  Instantiate any attributes recorded in the prototype
+instantiation of that template, and attach the result to rp.  If
+primary_only is TRUE, only do this for the attributes whose
+on_primary_declaration flag is TRUE.
 */
 {
   an_attribute_ptr  inst_attr;
@@ -4934,6 +4937,7 @@ attributes whose on_primary_declaration flag is TRUE.
   inst_attr = copy_of_attributes_with_substitution(
                     tssp->variant.function.routine->source_corresp.attributes,
                     primary_only,
+                    template_sym,
                     cache_for_template(tssp)->decl_info->parameters,
                     rp->template_arg_list, parent_class_or_null(rp),
                     (a_boolean*)NULL);
@@ -5082,7 +5086,7 @@ Instantiate the body of the template function associated with tip.
     /* Attributes were specified on the template definition after this instance
        was created by make_template_function.  Attach the definition attributes
        now. */
-    attach_attributes_to_routine_instance(rout_ptr, proto_tssp,
+    attach_attributes_to_routine_instance(rout_ptr, template_sym, proto_tssp,
                                           /*primary_only=*/TRUE);
   }  /* if */
   ++(tssp->pending_instantiations);
@@ -6754,6 +6758,7 @@ error type is used.
       if (tssp->attributes != NULL) {
         dps.id_attributes = copy_of_attributes_with_substitution(
                                    tssp->attributes, /*primary_only=*/FALSE,
+                                   template_sym,
                                    tssp->cache.decl_info->parameters,
                                    template_arg_list, parent_class,
                                    (a_boolean*)NULL);
@@ -12021,7 +12026,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
                                     // templ_rout->source_corresp.attributes is
                                     // not null.
       */
-      attach_attributes_to_routine_instance(rp, tssp, /*primary_only=*/FALSE);
+      attach_attributes_to_routine_instance(rp, templ_sym, tssp,
+                                            /*primary_only=*/FALSE);
     }  /* if */
 #if DECL_MODIFIERS_IN_USE
     { a_decl_modifiers_block  decl_modifiers;
