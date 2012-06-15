@@ -1790,13 +1790,13 @@ array initialization is currently handled here).  Insert the statement at
          array is being initialized via bitwise copy (the front end doesn't
          currently generate IL to partially initialize an implied source
          array via bitwise copy). */
+      an_init_pos_modifier *ipmp = dest->modifiers;
       check_assertion(is_array_type(source_node->type) &&
                       num_array_elements(source_node->type) ==
                                                     dest->array_element_count);
       /* In preparation for an array element copy, an array modifier has
          already been added to the destination; remove it now so that the
          assignment generated below is an array-to-array assignment. */
-      an_init_pos_modifier *ipmp = dest->modifiers;
       check_assertion(ipmp != NULL &&
                       ipmp->curr_base == NULL &&
                       ipmp->curr_field == NULL);
