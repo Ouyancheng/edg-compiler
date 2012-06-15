@@ -1744,8 +1744,10 @@ Generate code to implement an initialization by bitwise copy.  dest
 describes the destination of the move.  source_desc describes the implied
 source of the bitwise copy (e.g., a constructor initialization entry).
 have_complete_object is TRUE if we are copying a complete object, FALSE if we
-are copying a base class subobject.  Insert the statement at *insert_location
-and update *insert_location.
+are copying a base class subobject.  If dest->array_element_sequence is TRUE,
+the initialization is for a sequence of array elements (but only an entire
+array initialization is currently handled here).  Insert the statement at
+*insert_location and update *insert_location.
 */
 {
   an_expr_node_ptr      source_node, dest_node, assign_node;
@@ -1782,6 +1784,28 @@ and update *insert_location.
                                            /*result_is_lvalue=*/TRUE);
     }  /* if */
     /* Make an expression for the destination entity. */
+    if (dest->array_element_sequence) {
+      /* The caller has specified a sequence of array elements to be
+         initialized via bitwise copy.  Handle only the case where an entire
+         array is being initialized via bitwise copy (the front end doesn't
+         currently generate IL to partially initialize an implied source
+         array via bitwise copy). */
+      check_assertion(is_array_type(source_node->type) &&
+                      num_array_elements(source_node->type) ==
+                                                    dest->array_element_count);
+      /* In preparation for an array element copy, an array modifier has
+         already been added to the destination; remove it now so that the
+         assignment generated below is an array-to-array assignment. */
+      an_init_pos_modifier *ipmp = dest->modifiers;
+      check_assertion(ipmp != NULL &&
+                      ipmp->curr_base == NULL &&
+                      ipmp->curr_field == NULL);
+      dest->modifiers = ipmp->next;
+      ipmp->next = NULL;
+      free_init_pos_modifier_list(ipmp);
+      /* Destination is no longer an array element sequence. */
+      dest->array_element_sequence = FALSE;
+    }  /* if */
     dest_node = make_init_entity_node(dest, /*result_is_lvalue=*/TRUE,
                                       /*using_as_dest=*/TRUE);
     assign_node = make_assignment_expr_with_subobject_fix(dest_node,
@@ -8076,8 +8100,9 @@ do_assignment:;
     case dik_bitwise_copy:
       /* Bitwise copy of a value.  The source location is implied.
          This is used for copying members of classes in ctor-initializers
-         of copy constructors, and for the parameter of catch clauses.
-         ctor_init is non-NULL for the first of those cases. */
+         of copy constructors, for the parameter of catch clauses, for
+         captured lambda parameters, etc.  ctor_init is non-NULL for the first
+         of those cases. */
       add_bitwise_copy(ipdp, source_desc, have_complete_object,
                        eff_insert_location);
       break;

@@ -26792,10 +26792,8 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
          entry.  The source is implied (always, for dik_bitwise_copy). */
       dip = alloc_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
       /* For arrays, the bitwise copy can handle the whole array so no
-         ck_init_repeat is needed.  However, if a destructor must be
-         indicated for each element of the array, we still need the
-         array repeat. */
-      if (array_case && dtor_routine == NULL) array_case = FALSE;
+         ck_init_repeat is needed. */
+      array_case = FALSE;
     } else if (cctor_routine != NULL) {
       /* The copy uses a copy constructor.  Use a dik_constructor dynamic
          init entry with an implied source. */

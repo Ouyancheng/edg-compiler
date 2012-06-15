@@ -5623,6 +5623,7 @@ process_assignment:
           goto done_with_binary_operation;
         case eok_bassign:
           /* Block assignment, generated only by IL lowering of C++ code. */
+          check_assertion(operand_1->type->size == operand_2->type->size);
           if (!is_aggregate_or_union_type(operand_1->type)) {
             /* The copy can be done by an assignment.  (This case is here
                for completeness; the front end doesn't actually generate any

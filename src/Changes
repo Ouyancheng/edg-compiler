@@ -1,5 +1,30 @@
 Version 4.5
 
+6/15/12  [EDGcpfe/12922]
+Incorrect lowered code for certain array types during a lambda capture
+
+In cases where an array variable is captured by a lambda, the front end had
+generated IL for a repeated bitwise copy of all elements of the array variable,
+but lowering had generated incorrect code for this construct (copying only
+the initial element).  Lowering has been changed to copy the entire array
+variable in this case and the front end has also been changed to generate
+a bitwise copy for the entire array.  This behavior had occurred only when
+the underlying type of the array has a destructor.  For example:
+
+  struct A {
+    ~A() {}
+    int m;
+  };
+  int main() {
+    A a[2];
+    a[0].m = 99;
+    a[1].m = 99;
+    return [=](){
+      return a[0].m != a[1].m;  // Now returns zero; had been undefined.
+    }();
+  }
+
+
 6/12/12  [EDGcpfe/12862]
 Changes to some g++-specific IA-64 mangling
 
