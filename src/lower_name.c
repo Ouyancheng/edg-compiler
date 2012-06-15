@@ -710,11 +710,11 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
   a_substitution_ptr sp;
 
   check_assertion(!is_pack_expansion || kind == iek_type);
-#if CHECKING && ABI_COMPATIBILITY_VERSION >= 405
+#if EXPENSIVE_CHECKING && ABI_COMPATIBILITY_VERSION >= 405
   check_assertion_str(!substitution_available(entity, kind, is_pack_expansion,
                                               mctl),
                       "alloc_substitution: missed mangling substitution");
-#endif /* CHECKING && ABI_COMPATIBILITY_VERSION >= 405 */
+#endif /* EXPENSIVE_CHECKING && ABI_COMPATIBILITY_VERSION >= 405 */
   if (mctl->suppress_substitutions == 0) {
     /* If the entity is a proxy class for a template parameter, use the
        template parameter. */
@@ -1384,9 +1384,9 @@ whether a substitution is available; do not put it out.
                 f_identical_types((a_type_ptr)entity,
                                   sp->variant.type_sub.type,
                                   ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED
-#if ABI_COMPATIBILITY_VERSION >= 405
+#if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
                                   | ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED
-#endif /* ABI_COMPATIBILITY_VERSION >= 405 */
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
                                                                            )) {
 #if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
               if (sp->variant.type_sub.type->kind !=
