@@ -15778,6 +15778,12 @@ handle_as_definition:
     gen_storage_class(storage_class);
     /* Generate other leading specifiers. */
     gen_sun_link_scope_specifiers(rout->decl_modifiers);
+    if (rout->is_inline && !is_definition && c99_mode &&
+        !rout->definition_for_inlining_only) {
+      /* We must omit the "inline" specifier on a non-defining declaration
+         so that the definition will be an external definition. */
+      suppress_inline_kwd = TRUE;
+    }  /* if */
     if (rout->is_inline && !decl_within_function && !suppress_inline_kwd &&
         !(friend_decl && (rout->expl_template_arg_list_used ||
                           rout->source_corresp.is_class_member)) &&
