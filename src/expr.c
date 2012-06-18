@@ -28525,10 +28525,14 @@ a new-initializer).
 {
   an_expr_stack_entry   *saved_expr_stack;
   an_expr_stack_entry   expr_stack_entry;
+  an_expression_kind    ekind = (an_expression_kind)ek_normal;
   an_init_component_ptr icp;
 
+  if (dps != NULL && dps->init_state.initializer_must_be_constant) {
+    ekind = (an_expression_kind)ek_init_constant;
+  }  /* if */
   if (is_full_expr) save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+  push_expr_stack(ekind, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   if (is_full_expr) transfer_expr_context_if_applicable(saved_expr_stack);
@@ -28719,10 +28723,14 @@ the dynamic init entry if one is created to represent this initializer
 {
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
+  an_expression_kind  ekind = (an_expression_kind)ek_normal;
   a_variable_ptr      var = NULL;
   a_dynamic_init_ptr  dip;
   a_conv_context_set  conv_context = CCO_DEFAULT;
 
+  if (dps != NULL && dps->init_state.initializer_must_be_constant) {
+    ekind = (an_expression_kind)ek_init_constant;
+  }  /* if */
   if (is_var_init) {
     /* This is a top-level variable initialization. */
     a_symbol_ptr   var_sym;
@@ -28735,7 +28743,7 @@ the dynamic init entry if one is created to represent this initializer
     conv_context |= CCO_INITIALIZING_VARIABLE;
   }  /* if */
   save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+  push_expr_stack(ekind, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   if ((dps != NULL && dps->init_state.static_lifetime_init) ||
