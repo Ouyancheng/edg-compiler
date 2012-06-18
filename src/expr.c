@@ -28532,6 +28532,10 @@ a new-initializer).
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   if (is_full_expr) transfer_expr_context_if_applicable(saved_expr_stack);
+  if ((dps != NULL && dps->init_state.static_lifetime_init) ||
+      favor_constant_result_for_nonstatic_init) {
+    expr_stack_entry.favor_constant_result = TRUE;
+  }  /* if */
   if (dps != NULL) {
     set_up_initializer_rescan(dps);
   }  /* if */
@@ -28734,6 +28738,10 @@ the dynamic init entry if one is created to represent this initializer
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
+  if ((dps != NULL && dps->init_state.static_lifetime_init) ||
+      favor_constant_result_for_nonstatic_init) {
+    expr_stack_entry.favor_constant_result = TRUE;
+  }  /* if */
   transfer_expr_context_if_applicable(saved_expr_stack);
   prep_list_initializer(icp, dest_type,
                         is->direct_init,
