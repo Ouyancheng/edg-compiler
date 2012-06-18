@@ -1181,12 +1181,13 @@ extern void check_arg_list_elem_is_expression(an_arg_list_elem_ptr alep);
 
 extern void clear_initializer_cache(struct an_initializer_cache *cache);
 
-extern void flush_initializer_cache(an_initializer_cache *cache);
+extern void flush_initializer_cache(struct an_initializer_cache *cache);
 
 extern
-void add_init_component_to_initializer_cache(an_init_component_ptr icp,
-                                             a_boolean             to_front,
-                                             an_initializer_cache  *cache);
+void add_init_component_to_initializer_cache(
+                                          an_init_component_ptr       icp,
+                                          a_boolean                   to_front,
+                                          struct an_initializer_cache *cache);
 
 extern void add_operand_to_initializer_cache(
                                  an_operand                  *operand,
@@ -1195,7 +1196,7 @@ extern void add_operand_to_initializer_cache(
                                  struct an_initializer_cache *cache);
 
 extern an_init_component_ptr fetch_init_component_from_initializer_cache(
-                                                  an_initializer_cache *cache);
+                                           struct an_initializer_cache *cache);
 
 extern
 a_boolean fetch_operand_from_initializer_cache(
