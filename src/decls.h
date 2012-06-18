@@ -323,6 +323,9 @@ typedef struct an_init_state {
   a_bit_field	static_lifetime_init:1;
 			/* TRUE if this is for the initialization of an object
 			   with static lifetime. */
+  a_bit_field	aggr_init_must_be_constant:1;
+			/* TRUE if an aggregate initializer is required to be
+			   constant. */
   a_bit_field	no_diagnostics:1;
 			/* TRUE if no diagnostics should be issued (this is
 			   useful for overload-resolution matching and for

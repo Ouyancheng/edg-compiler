@@ -4963,6 +4963,9 @@ returned set to TRUE.
     static_lifetime = (depth_innermost_function_scope == NO_SCOPE_DEPTH);
   }  /* if */
   dps->init_state.static_lifetime_init = static_lifetime;
+  dps->init_state.aggr_init_must_be_constant =
+                    C_mode() && (static_lifetime ||
+                                 !allow_nonconstant_auto_aggr_init_in_c_mode);
   if (!var_err) {
     vp_type = vp->type;
     if (vla_enabled && is_vla_type(vp->type)) {
