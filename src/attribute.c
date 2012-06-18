@@ -3201,9 +3201,9 @@ attributes whose on_primary_declaration flag is set are copied.  If the entity
 to which the attributes are to be applied is a template specialization,
 template_sym is the template associated with the specialization, t_args
 represents the template arguments for that specialization and t_params the
-associated template parameters; otherwise, t_args and t_params are NULL.  If
-the entity to which the attributes are to be applied is a class member,
-parent_class is the enclosing class: That parent class may itself be a
+associated template parameters; otherwise, template_symm, t_args and t_params
+are NULL.  If the entity to which the attributes are to be applied is a class
+member, parent_class is the enclosing class: That parent class may itself be a
 specialization, and its parameter substitutions are also applied to the
 attributes.  E.g.:
   template<typename T> struct S { struct N; };
@@ -3293,7 +3293,6 @@ an error.
   if (rescan_pushed) {
     /* If a rescan context was pushed above, pop it now. */
     pop_instantiation_scope_for_rescan();
-    rescan_pushed = TRUE;
   }  /* if */
   if (err && p_error != NULL) *p_error = TRUE;
   return result;
