@@ -53,9 +53,15 @@ static a_boolean cast_type_pre_check(
                                  a_source_position *type_position,
                                  a_boolean          has_explicit_cv_qualifiers,
                                  a_boolean          allow_array);
+static an_init_component_ptr scan_expr_or_braced_init_list(
+                                                   a_boolean bundle_lifetimes);
 static an_init_component_ptr scan_braced_init_list_internal(
-                                               a_boolean          is_full_expr,
-                                               a_decl_parse_state *dps);
+                                                   a_boolean bundle_lifetimes);
+static
+an_init_component_ptr scan_init_component_with_potential_pack_expansion(
+                                         a_decl_parse_state *dps,
+                                         a_boolean          bundle_lifetimes,
+                                         a_boolean          *expr_not_present);
 static void process_boolean_controlling_expression(an_operand *result);
 static a_boolean operand_is_instantiation_dependent(an_operand *operand);
 static void scan_compound_literal(a_type_ptr               *p_literal_type,
@@ -66,10 +72,6 @@ static void scan_expr_full(an_operand              *result,
                            an_operand              *bound_function_selector,
                            int                      prec_level,
                            a_local_expr_options_set local_options);
-static void scan_initializer_expr_with_potential_pack_expansion(
-                                         a_decl_parse_state *dps,
-                                         an_operand         *operand,
-                                         a_boolean          *expr_not_present);
 static an_arg_list_elem_ptr scan_expr_list(a_token_kind closing_token,
                                            a_boolean    is_delegate_init,
                                            a_boolean    empty_list_okay,
@@ -165,23 +167,26 @@ on entry) is cleared to FALSE if there was a deduction error, and
 dps->deduced_auto_type is returned NULL if deduction was not done because
 the type or initializer is still dependent.  The prescanned operand
 can later be accessed using set_up_initializer_rescan.  The
-initializer is parenthesized if parenthesized_init is TRUE; otherwise,
-it's "="-form.
+initializer is parenthesized if parenthesized_init is TRUE (and the
+opening parenthesis has already been swallowed); otherwise, it's
+"="-form or "{...}" form.
 */
 {
-  an_expr_stack_entry expr_stack_entry;
-  an_expr_stack_entry *saved_expr_stack;
-  an_expression_kind  expr_kind = (an_expression_kind)ek_normal;
-  an_operand          operand;
-  a_type_ptr          deduced_auto_type;
-  a_boolean           still_dependent;
+  an_expr_stack_entry   expr_stack_entry;
+  an_expr_stack_entry   *saved_expr_stack;
+  an_expression_kind    expr_kind = (an_expression_kind)ek_normal;
+  an_init_component_ptr icp;
+  an_operand            *operand = NULL;
+  a_type_ptr            deduced_auto_type;
+  a_boolean             still_dependent;
+  a_boolean             is_full_expr = !dps->is_new_expr_type;
 
   check_assertion(dps->auto_type_specifier_seen && dps->auto_type != NULL);
   /* Usually an initializer is a full expression and we must push an entry
      on the expression stack.  However, the initializer for a new-expression
      is not a full expression and a stack entry will already have been
      pushed in that case. */
-  if (!dps->is_new_expr_type) {
+  if (is_full_expr) {
     save_expr_stack(&saved_expr_stack);
     if (dps->in_class_scope) {
       /* In-class initializers are only valid for static const data members of
@@ -200,7 +205,7 @@ it's "="-form.
       expr_stack_entry.favor_constant_result = TRUE;
     }  /* if */
   }  /* if */
-  /* Scan the expression and save it in an expression cache so it can be
+  /* Scan the expression and save it in an initializer cache so it can be
      scanned as the initializer later, and deduce the "auto" type it
      implies. */
   if (parenthesized_init) {
@@ -209,20 +214,24 @@ it's "="-form.
        which means potentially it is a pack expansion. */
     dps->initializer_is_expr_list = TRUE;
     dps->initializer_is_single_expr = TRUE;
-    scan_initializer_expr_with_potential_pack_expansion(dps, &operand,
-                                                        (a_boolean *)NULL);
+    icp = scan_init_component_with_potential_pack_expansion(
+                                            dps,
+                                            /*bundle_lifetimes=*/is_full_expr,
+                                            (a_boolean *)NULL);
   } else {
-    /* In the non-parenthesized case, it's just a simple expression. */
-    scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    /* In the non-parenthesized case, it's a simple expression or
+       a braced-init-list. */
+    icp = scan_expr_or_braced_init_list(/*bundle_lifetimes=*/is_full_expr);
   }  /* if */
-  add_operand_to_expression_cache(&operand,
-                                  /*to_front=*/TRUE,
-                                  /*preserve_lifetime=*/!dps->is_new_expr_type,
-                                  &dps->prescanned_initializer_cache);
+  add_init_component_to_initializer_cache(icp,
+                                          /*to_front=*/TRUE,
+                                          &dps->prescanned_initializer_cache);
+  if (is_expression_component(icp)) operand = operand_of_arg_list_elem(icp);
   /* Do type deduction. */
-  if (!deduce_auto_type(dps->declared_type,
+  if (operand != NULL &&  /* FIXME */
+      !deduce_auto_type(dps->declared_type,
                         dps->auto_type,
-                        &operand,
+                        operand,
                         &dps->declarator_pos,
                         &dps->type,
                         &deduced_auto_type,
@@ -277,7 +286,7 @@ it's "="-form.
 static void set_up_initializer_rescan(a_decl_parse_state *dps)
 /*
 If the initializer for an entity was previously scanned and saved in
-dps->prescanned_initializer_cache, activate that expression cache so
+dps->prescanned_initializer_cache, activate that initializer cache so
 that the expression will be consumed next before any more expressions
 are scanned.  Otherwise, do nothing.  Also do nothing if dps is NULL
 on entry.
@@ -286,8 +295,8 @@ on entry.
   if (dps != NULL &&
       anything_cached(&dps->prescanned_initializer_cache)) {
     check_assertion(expr_stack != NULL &&
-                    expr_stack->expression_cache == NULL);
-    expr_stack->expression_cache = &dps->prescanned_initializer_cache;
+                    expr_stack->initializer_cache == NULL);
+    expr_stack->initializer_cache = &dps->prescanned_initializer_cache;
   }  /* if */
 }  /* set_up_initializer_rescan */
 
@@ -1531,15 +1540,10 @@ list is returned.
 
   if (is_delegate_init) options |= EOPT_DELEGATE_INITIALIZER;
   /* Pick up any cached expressions first. */
-  while (cached_expression_present()) {
-    alep = alloc_init_component((an_init_component_kind)ick_expression);
-    scan_expr(operand_of_arg_list_elem(alep), PREC_LOWEST, options);
-    if (expr_list == NULL) {
-      expr_list = alep;
-    } else {
-      end_expr_list->next = alep;
-    }  /* if */
-    end_expr_list = alep;
+  while (cached_initializer_present()) {
+    expr_list = expr_stack->initializer_cache->first_init;
+    end_expr_list = expr_stack->initializer_cache->last_init;
+    clear_initializer_cache(expr_stack->initializer_cache);
     after_cached_expr = TRUE;
   }  /* while */
   /* Check for an empty argument list (or the end, if we picked up some
@@ -1752,7 +1756,7 @@ template pack expansions into multiple expressions as necessary.
   an_arg_list_elem_ptr expr_list = NULL, end_expr_list = NULL;
   an_operand           *operand;
 
-  if (cached_expression_present()) {
+  if (cached_initializer_present()) {
     /* Pick up any cached expressions instead of rescanning them.  It's
        assumed that the cached expressions are replacing all the expressions
        on the rescan list.  That works because rescanned expressions are
@@ -1771,7 +1775,7 @@ template pack expansions into multiple expressions as necessary.
         end_expr_list->next = alep;
       }  /* if */
       end_expr_list = alep;
-    } while (cached_expression_present());
+    } while (cached_initializer_present());
   } else {
     /* No cached expressions; rescan the expression list. */
     for (arg_expr = src_list;
@@ -1991,9 +1995,9 @@ to TRUE.
     }  /* if */
   }  /* if */
   if (single_operand != NULL &&
-      arg_list != NULL && arg_list->next == NULL) {
+      arg_list != NULL && arg_list->next == NULL &&
+      is_expression_component(arg_list)) {
     /* Return a single operand through *single_operand. */
-    check_assertion(is_expression_component(arg_list));/*FIXME*/
     copy_operand(operand_of_arg_list_elem(arg_list), single_operand);
     mark_expr_of_operand_as_pack_expansion_if_necessary(single_operand);
     if (arg_list_allocated_locally) free_arg_list(arg_list);
@@ -2105,7 +2109,7 @@ list given by supplied_arg_list (but do not free the list).
   if (arg_list_supplied) {
     /* Argument list was already created. */
     arg_list_will_not_be_used_because_of_error(supplied_arg_list);
-  } else if (rcblock != NULL) {
+  } else if (rcblock != NULL && !cached_initializer_present()) {
     /* Rescanning an initializer. */
   } else {
     /* Scan the argument list. */
@@ -2137,10 +2141,11 @@ does some special error-recovery processing to handle additional
 unexpected expressions more gracefully.
 */
 {
-  if (cached_expression_present()) {
+  if (cached_initializer_present()) {
     /* There's a cached expression, so the closing paren is not "next". */
-    an_arg_operand_ptr arg_op = expr_stack->expression_cache->first_expression;
-    expr_pos_error(ec_exp_rparen, &arg_op->operand.position);
+    an_init_component_ptr icp = expr_stack->initializer_cache->first_init;
+    expr_pos_error(ec_exp_rparen, init_component_pos(icp));
+    flush_initializer_cache(expr_stack->initializer_cache);
   } else {
     a_token_set_array_element save_comma_stop_token_count;
     a_token_set_array_element *comma_entry_ptr;
@@ -2180,34 +2185,49 @@ rcblock->argument_list, and return the result as usual (or an error
 indication in *rcblock).
 */
 {
-  an_expr_node_ptr  expr;
-  an_operand        result;
+  an_expr_node_ptr      expr;
+  an_operand            result;
+  an_init_component_ptr icp = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position end_position;
+  a_source_position     end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_boolean         have_result = TRUE;
+  a_boolean             have_result = TRUE;
 
   check_assertion(dps != NULL);
   if (expr_not_present != NULL) *expr_not_present = FALSE;
   if (rcblock == NULL) add_matching_stop_token(tok_rparen);
   /* Note that if there is a cached expression we take it in preference to
      rescanning from rcblock. */
-  if (rcblock != NULL && !cached_expression_present()) {
+  if (rcblock != NULL && !cached_initializer_present()) {
     make_rescan_operand(rcblock->argument_list, rcblock, &result);
   } else {
     dps->initializer_is_expr_list = TRUE;
     dps->initializer_is_single_expr = TRUE;
-    scan_initializer_expr_with_potential_pack_expansion(dps, &result,
-                                                        expr_not_present);
-    if (expr_not_present != NULL && *expr_not_present) have_result = FALSE;
+    icp = scan_init_component_with_potential_pack_expansion(
+                                                   dps,
+                                                   /*bundle_lifetimes=*/FALSE,
+                                                   expr_not_present);
+    if (icp == NULL) have_result = FALSE;
   }  /* if */
   if (have_result) {
     /* Convert to the required type. */
-    prep_initializer_operand(&result, dest_type, (a_boolean *)NULL,
-                             (a_conv_descr_ptr)NULL,
-                             /*is_copy_initialization=*/FALSE,
-                             CCO_DEFAULT,
-                             err_code);
+    if (icp != NULL) {
+      prep_list_initializer(icp, dest_type,
+                            /*is_direct_init=*/TRUE,
+                            /*check_narrowing=*/TRUE,
+                            CCO_DEFAULT,
+                            /*fill_in_dtor=*/TRUE,
+                            /*force_temp=*/FALSE,
+                            &result, (an_init_state *)NULL,
+                            (an_arg_match_summary *)NULL);
+      free_init_component_list(icp);
+    } else {
+      prep_initializer_operand(&result, dest_type, (a_boolean *)NULL,
+                               (a_conv_descr_ptr)NULL,
+                               /*is_copy_initialization=*/FALSE,
+                               CCO_DEFAULT,
+                               err_code);
+    }  /* if */
     if (rcblock == NULL) {
       /* Check for the required closing parenthesis. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -14466,8 +14486,8 @@ expression, and return the result in *result (or an error indication in
                     rescan_ndsp = NULL;
   a_decl_parse_state
                     dps;
-  an_expression_cache
-                    *saved_expression_cache = NULL;
+  an_initializer_cache
+                    *saved_initializer_cache = NULL;
   a_token_kind      operator_token;
   a_boolean         templ_init_scanned = FALSE;
   an_arg_list_elem_ptr
@@ -14707,10 +14727,10 @@ expression, and return the result in *result (or an error indication in
       }  /* if */
       /* Save the expression in the cache so it will get picked up below,
          avoiding rescanning it again. */
-      add_operand_to_expression_cache(&auto_operand,
-                                      /*to_front=*/TRUE,
-                                      /*preserve_lifetime=*/FALSE,
-                                      &dps.prescanned_initializer_cache);
+      add_operand_to_initializer_cache(&auto_operand,
+                                       /*to_front=*/TRUE,
+                                       /*preserve_lifetime=*/FALSE,
+                                       &dps.prescanned_initializer_cache);
       using_expr_cache = TRUE;
     }  /* if */
   } else {
@@ -14788,10 +14808,10 @@ expression, and return the result in *result (or an error indication in
     }  /* if */
   }  /* if */
   if (using_expr_cache) {
-    /* Activate the prescanned expression cache so the expression will be
+    /* Activate the prescanned initializer cache so the expression will be
        considered pre-scanned for the code below. */
-    saved_expression_cache = expr_stack->expression_cache;
-    expr_stack->expression_cache = NULL;
+    saved_initializer_cache = expr_stack->initializer_cache;
+    expr_stack->initializer_cache = NULL;
     set_up_initializer_rescan(&dps);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -15165,7 +15185,7 @@ expression, and return the result in *result (or an error indication in
      (or, if list initializers are allowed, an empty set of braces; in that
      case the current token is still the opening brace). */
   empty_initializer = (has_new_initializer &&
-                       !cached_expression_present() &&
+                       !cached_initializer_present() &&
                        ((rcblock != NULL) ?
                           (rcblock->argument_list == NULL) :
                           (has_braced_initializer ?
@@ -15426,8 +15446,7 @@ expression, and return the result in *result (or an error indication in
 #if MICROSOFT_EXTENSIONS_ALLOWED
     check_assertion(!cli_array_new);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    alep = scan_braced_init_list_internal(/*is_full_expr=*/FALSE,
-                                          (a_decl_parse_state *)NULL);
+    alep = scan_braced_init_list_internal(/*bundle_lifetimes=*/FALSE);
     clear_init_state(&init_state);
     prep_list_initializer(alep, new_type,
                           /*is_direct_init=*/TRUE,
@@ -15811,11 +15830,11 @@ handle_empty_parens_new_initializer:
   expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
   if (using_expr_cache) {
-    /* Deactivate the expression cache used for "auto". */
-    check_assertion(expr_stack->expression_cache ==
+    /* Deactivate the initializer cache used for "auto". */
+    check_assertion(expr_stack->initializer_cache ==
                                             &dps.prescanned_initializer_cache);
-    expr_stack->expression_cache = saved_expression_cache;
-    saved_expression_cache = NULL;
+    expr_stack->initializer_cache = saved_initializer_cache;
+    saved_initializer_cache = NULL;
   }  /* if */
   /* Now build the IL for the operation. */
   if (err || (function_symbol == NULL && !unknown_dependent_new &&
@@ -15956,8 +15975,8 @@ handle_empty_parens_new_initializer:
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
-  /* Make sure we restored the expression cache if we saved it. */
-  check_assertion(saved_expression_cache == NULL);
+  /* Make sure we restored the initializer cache if we saved it. */
+  check_assertion(saved_initializer_cache == NULL);
   db_exit();
 }  /* scan_new_operator */
 
@@ -19761,8 +19780,7 @@ the closing brace.
 
   check_assertion(list_init_enabled);
   if (source_form == csf_functional) conv_context |= CCO_FUNC_NOTATION_CAST;
-  icp = scan_braced_init_list_internal(/*is_full_expr=*/FALSE,
-                                       (a_decl_parse_state *)NULL);
+  icp = scan_braced_init_list_internal(/*bundle_lifetimes=*/FALSE);
   check_assertion(result != NULL);  /* For lint. */
   prep_list_initializer(icp, type_cast_to,
                         /*is_direct_init=*/TRUE,
@@ -27027,9 +27045,9 @@ see expr.h).
     fprintf(f_debug, "precedence level = %d\n", prec_level);
   }  /* if */
 #endif /* DEBUG */
-  if (cached_expression_present() &&
-      fetch_operand_from_expression_cache(result,
-                                          expr_stack->expression_cache)) {
+  if (cached_initializer_present() &&
+      fetch_operand_from_initializer_cache(result,
+                                           expr_stack->initializer_cache)) {
     /* Return a cached expression rather than scanning a new one from
        source. */
     error_position = result->position;
@@ -28343,20 +28361,96 @@ the expression is also allowed to have that type.
 }  /* scan_typed_expression */
 
 
-static an_init_component_ptr scan_braced_init_list_internal(
-                                               a_boolean          is_full_expr,
-                                               a_decl_parse_state *dps)
+static an_init_component_ptr scan_expr_as_init_component(
+                                                    a_boolean bundle_lifetimes)
 /*
-Scan a brace-enclosed initializer list and return a structure describing it.
-The current token on entry must be the opening "{".  On return, the current
-token will be the token following the closing "}".  dps describes the
-current declaration state, or is NULL if there is no declaration associated
-with this scan.  If is_full_expr is TRUE, this initializer should be
-considered its own full-expression rather than one nested within something
-else (so, for example, is_full_expr would be FALSE for a call for
-a new-initializer).  This is the "internal" version of the routine, to be
-called only from inside the expression routines, with the expression
-stack already set.
+Scan an expression, from source and not from a cache, and return an
+init component entry describing what was scanned.  bundle_lifetimes is
+TRUE if an extra lifetime should be placed around each expression and
+preserved for restoration when the expression is used.  Roughly
+speaking, this is true when the expression is to be treated as a
+full-expression.
+*/
+{
+  an_init_component_ptr  icp;
+  an_arg_operand         *arg_op;
+  an_object_lifetime_ptr wrap_lifetime = NULL;
+  an_object_lifetime_ptr saved_stack_lifetime = NULL;
+  an_object_lifetime_ptr saved_curr_lifetime = NULL;
+  
+  /* If the initializer is considered a full-expression, we put
+     an object lifetime around each scanned expression.  Later, when
+     we know how the expression is used, we may merge the lifetime
+     into a parent expression lifetime. */
+  if (bundle_lifetimes && curr_object_lifetime != NULL) {
+    saved_curr_lifetime = curr_object_lifetime;
+    if (curr_object_lifetime->kind == 
+                                 (an_object_lifetime_kind)olk_expr_temporary) {
+      curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+    }  /* if */
+    push_object_lifetime((an_il_entry_kind)iek_expr_node,
+                         (char *)NULL,
+                         (an_object_lifetime_kind)olk_expr_temporary);
+    wrap_lifetime = curr_object_lifetime;
+    saved_stack_lifetime = expr_stack->lifetime;
+    expr_stack->lifetime = wrap_lifetime;
+  }  /* if */
+  /* Scan the initializer expression and put it into an init-component. */
+  icp = alloc_init_component((an_init_component_kind)ick_expression);
+  arg_op = icp->variant.expr;
+  scan_expr(&arg_op->operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  if (wrap_lifetime != NULL) {
+    /* Save the lifetime created for this expression for use later
+       when convert_initializer is called to convert it.  Don't save
+       the lifetime if it wasn't really used. */
+    check_assertion(curr_object_lifetime == wrap_lifetime);
+    if (pop_object_lifetime_full(/*unbound_okay=*/TRUE)) {
+      arg_op->lifetime = wrap_lifetime;
+      detach_from_object_lifetime_tree(wrap_lifetime);
+    }  /* if */
+    curr_object_lifetime = saved_curr_lifetime;
+    expr_stack->lifetime = saved_stack_lifetime;
+  }  /* if */
+  return icp;
+}  /* scan_expr_as_init_component */
+
+
+static an_init_component_ptr scan_expr_or_braced_init_list(
+                                                    a_boolean bundle_lifetimes)
+/*
+Scan either an expression or a brace-enclosed list, from source and
+not from a cache, and return an init component entry describing what was
+scanned.  bundle_lifetimes is TRUE if an extra lifetime should be placed
+around each expression and preserved for restoration when the expression
+is used.  Roughly speaking, this is true when the expression is to be
+treated as a full-expression.
+*/
+{
+  an_init_component_ptr icp;
+
+  if (curr_token == tok_lbrace && list_init_enabled) {
+    /* A brace-enclosed list. */
+    icp = scan_braced_init_list_internal(bundle_lifetimes);
+  } else {
+    /* An expression. */
+    icp = scan_expr_as_init_component(bundle_lifetimes);
+  }  /* if */
+  return icp;
+}  /* scan_expr_or_braced_init_list */
+
+
+static an_init_component_ptr scan_braced_init_list_internal(
+                                                    a_boolean bundle_lifetimes)
+/*
+Scan a brace-enclosed initializer list and return a structure
+describing it.  The current token on entry must be the opening "{".
+On return, the current token will be the token following the closing
+"}".  bundle_lifetimes is TRUE if an extra lifetime should be placed
+around each expression and preserved for restoration when the
+expression is used.  Roughly speaking, this is true when the
+expression is to be treated as a full-expression.  This is the
+"internal" version of the routine, to be called only from inside the
+expression routines, with the expression stack already set.
 */
 {
   an_init_component_ptr icp =
@@ -28385,54 +28479,7 @@ stack already set.
       any_more = begin_potential_pack_expansion_context(&pesep);
       while (any_more) {
         a_pack_expansion_descr_ptr pedep;
-        if (curr_token == tok_lbrace) {
-          /* A nested brace-enclosed list. */
-          elem_icp = scan_braced_init_list_internal(is_full_expr, dps);
-        } else {
-          /* An expression. */
-          an_arg_operand         *arg_op;
-          an_object_lifetime_ptr wrap_lifetime = NULL;
-          an_object_lifetime_ptr saved_stack_lifetime = NULL;
-          an_object_lifetime_ptr saved_curr_lifetime = NULL;
-  
-          /* If the initializer is considered a full-expression, we put
-             an object lifetime around each scanned expression.  Later, when
-             we know how the expression is used, we may merge the lifetime
-             into a parent expression lifetime. */
-          if (is_full_expr && curr_object_lifetime != NULL) {
-            saved_curr_lifetime = curr_object_lifetime;
-            if (curr_object_lifetime->kind == 
-                                 (an_object_lifetime_kind)olk_expr_temporary) {
-              curr_object_lifetime = curr_object_lifetime->parent_lifetime;
-            }  /* if */
-            push_object_lifetime((an_il_entry_kind)iek_expr_node,
-                                 (char *)NULL,
-                                 (an_object_lifetime_kind)olk_expr_temporary);
-            wrap_lifetime = curr_object_lifetime;
-            saved_stack_lifetime = expr_stack->lifetime;
-            expr_stack->lifetime = wrap_lifetime;
-          }  /* if */
-          /* Scan the initializer expression and put it into an
-             init-component. */
-          elem_icp =
-                  alloc_init_component((an_init_component_kind)ick_expression);
-          arg_op = elem_icp->variant.expr;
-          scan_expr(&arg_op->operand, PREC_LOWEST,
-                    EOPT_DISALLOW_COMMA_OPERATOR);
-          if (wrap_lifetime != NULL) {
-            /* Save the lifetime created for this expression for use later
-               when convert_initializer is called to convert it.  Don't save
-               the lifetime if it wasn't really used. */
-            check_assertion(curr_object_lifetime == wrap_lifetime);
-            if (pop_object_lifetime_full(/*unbound_okay=*/TRUE)) {
-              arg_op->lifetime = wrap_lifetime;
-              detach_from_object_lifetime_tree(wrap_lifetime);
-              wrap_lifetime->parent_destruction_sublist = NULL;
-            }  /* if */
-            curr_object_lifetime = saved_curr_lifetime;
-            expr_stack->lifetime = saved_stack_lifetime;
-          }  /* if */
-        }  /* if */
+        elem_icp = scan_expr_or_braced_init_list(bundle_lifetimes);
         /* Add the entry to the end of the list. */
         if (end_icp == NULL) {
           icp->variant.braced.list = elem_icp;
@@ -28485,18 +28532,159 @@ a new-initializer).
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   if (is_full_expr) transfer_expr_context_if_applicable(saved_expr_stack);
-#if CHECKING
   if (dps != NULL) {
-    check_assertion(!dps->auto_type_specifier_seen);
-    check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
-    check_assertion(!cached_expression_present());
+    set_up_initializer_rescan(dps);
   }  /* if */
-#endif /* CHECKING */
-  icp = scan_braced_init_list_internal(is_full_expr, dps);
+  if (cached_initializer_present()) {
+    /* Get a previously-scanned braced-init-list out of the cache.  This
+       happens when the list is prescanned to resolve an "auto" declaration. */
+    icp = fetch_init_component_from_initializer_cache(
+                                                expr_stack->initializer_cache);
+    
+    check_assertion(is_braced_init_component(icp) &&
+                    !cached_initializer_present());
+  } else {
+    /* Scan the braced-init-list from source. */
+    icp = scan_braced_init_list_internal(/*bundle_lifetimes=*/is_full_expr);
+  }  /* if */
   pop_expr_stack();
   if (is_full_expr) restore_expr_stack(saved_expr_stack);
   return icp;
 }  /* scan_braced_init_list */
+
+
+static void scan_potential_pack_expansion_initializer_expr(
+                                           a_decl_parse_state *dps,
+                                           a_boolean          bundle_lifetimes)
+/*
+Scan a single initializer expression in a context where, potentially,
+variadic template pack expansion might apply.  The context is assumed
+to be a comma-separated initializer expression list.  Push the
+expressions or braced-init-lists that result from the pack expansion
+into dps->prescanned_initializer_cache.  If the entity scanned is
+not a pack expansion, just push the one expression or braced-init-list
+into the cache.  Note that, with zero-length parameter packs, it is
+possible that the pack expansion will produce no expressions.  That
+just results in no expressions being pushed into the cache.
+bundle_lifetimes is TRUE if an extra lifetime should be placed
+around each expression and preserved for restoration when the expression
+is used.  Roughly speaking, this is true when the expression is to be
+treated as a full-expression.
+*/
+{
+  a_pack_expansion_stack_entry_ptr pesep;
+  a_boolean                        any_more;
+
+  check_assertion(dps != NULL);
+  if (cached_initializer_present()) {
+    /* If there's already a cached expression, just return.  A cached
+       expression is already on the other side of pack expansion and the
+       loop below is not required. */
+  } else {    
+    /* Note that the code here is very similar to scan_expr_list and
+       scan_expression_list_context_expr. */
+    check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
+    any_more = begin_potential_pack_expansion_context(&pesep);
+    while (any_more) {
+      an_init_component_ptr      icp;
+      a_pack_expansion_descr_ptr pedep;
+
+      /* Scan the initializer expression and put it into the cache. */
+      icp = scan_expr_or_braced_init_list(bundle_lifetimes);
+      add_init_component_to_initializer_cache(
+                                           icp,
+                                           /*to_front=*/FALSE,
+                                           &dps->prescanned_initializer_cache);
+      /* If this is a pack expansion, swallow the trailing "..." and
+         loop for the next iteration of the expansion. */
+      pedep = end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
+      if (pedep != NULL) {
+        /* This expression is a variadic template pack expansion, i.e.,
+           it's followed by "...".  Furthermore, we're in the prototype
+           instantiation, so we record the expansion information on the
+           expression. */
+        mark_arg_list_elem_as_pack_expansion(icp, pedep);
+      }  /* if */
+      any_more = advance_to_next_pack_element(pesep);
+    }  /* while */
+  }  /* if */
+}  /* scan_potential_pack_expansion_initializer_expr */
+
+
+static
+an_init_component_ptr scan_init_component_with_potential_pack_expansion(
+                                          a_decl_parse_state *dps,
+                                          a_boolean          bundle_lifetimes,
+                                          a_boolean          *expr_not_present)
+/*
+Scan a single initializer component (expression or braced-init-list)
+and return a pointer to it.  If we're in a context that allows
+variadic template pack expansions (i.e., a comma-separated list of
+initializer expressions), as indicated by dps, process the expression
+as a potential pack expansion.  If it is one, the first
+expression/list from the expansion is returned, and any additional
+expressions/lists are pushed into dps->prescanned_initializer_cache.
+If the pack expansion is empty, issue an error and return NULL, unless
+expr_not_present is non-NULL, in which case *expr_not_present is
+returned TRUE (and NULL is returned).  This routine is also called to
+prescan the initializer for an "auto", including for "new auto(x)",
+which is not a conventional initializer context.  bundle_lifetimes is
+TRUE if an extra lifetime should be placed around each expression and
+preserved for restoration when the expression is used.  Roughly
+speaking, this is true when the expression is to be treated as a
+full-expression.
+*/
+{
+  an_init_component_ptr icp = NULL;
+
+  if (expr_not_present != NULL) *expr_not_present = FALSE;
+  check_assertion(dps != NULL);
+  if (!dps->initializer_is_expr_list) {
+    /* This is not a context that allows a list, so neither a pack
+       expansion nor a braced-init-list is allowed, only an expression. */
+    icp = scan_expr_as_init_component(bundle_lifetimes);
+  } else if (!is_variadic_template_context()) {
+    /* This is not a context that allows a pack expansion, but we could
+       have either an expression or a braced-init_list. */
+    icp = scan_expr_or_braced_init_list(bundle_lifetimes);
+  } else {
+    /* Scan a potential pack expansion. */
+    a_source_position start_pos;
+    /* Get the start position of the first expression. */
+    if (anything_cached(&dps->prescanned_initializer_cache)) {
+      start_pos =
+             *init_component_pos(dps->prescanned_initializer_cache.first_init);
+    } else {
+      start_pos = pos_curr_token;
+    }  /* if */
+    /* Do the scan.  The whole list of expressions goes into the initializer
+       cache, and then we fetch the first one and return it. */
+    scan_potential_pack_expansion_initializer_expr(dps, bundle_lifetimes);
+    if ((icp = fetch_init_component_from_initializer_cache(
+                                &dps->prescanned_initializer_cache)) == NULL) {
+      /* The expression is missing, presumably because of a zero-trip
+         pack expansion. */
+      if (expr_not_present != NULL) {
+        *expr_not_present = TRUE;
+      } else {
+        pos_error(ec_empty_pack_expansion, &start_pos);
+        icp = alloc_init_component((an_init_component_kind)ick_expression);
+        make_error_operand(operand_of_arg_list_elem(icp));
+        operand_of_arg_list_elem(icp)->position = start_pos;
+      }  /* if */
+    } else if (dps->initializer_is_single_expr &&
+               anything_cached(&dps->prescanned_initializer_cache)) {
+      /* The pack expansion generated more than one expression, which is
+         an error in this context. */
+      expr_pos_error(ec_excess_pack_expansion,
+                     init_component_pos(dps->prescanned_initializer_cache.
+                                                                  first_init));
+      flush_initializer_cache(&dps->prescanned_initializer_cache);
+    }  /* if */
+  }  /* if */
+  return icp;
+}  /* scan_init_component_with_potential_pack_expansion */
 
 
 void convert_initializer(an_init_component_ptr icp,
@@ -31468,8 +31656,7 @@ required_type will be void if the expression should have void type
       pos_warning(ec_list_initializer_nonstandard_in_current_mode,
                   &pos_curr_token);
     }  /* if */
-    icp = scan_braced_init_list_internal(/*is_full_expr=*/TRUE,
-                                         (a_decl_parse_state *)NULL);
+    icp = scan_braced_init_list_internal(/*bundle_lifetimes=*/FALSE);
     clear_init_state(&init_state);
     /* When the return is via copy constructor, get an operand back so
        it can be fed into the elision optimization below.
@@ -33212,150 +33399,6 @@ dynamic initialization after substitution.
 }  /* rescan_dynamic_init_with_substitution */
 
 
-static void scan_potential_pack_expansion_initializer_expr(
-                                                    a_decl_parse_state *dps)
-/*
-Scan a single initializer expression in a context where, potentially,
-variadic template pack expansion might apply.  The context is assumed
-to be a comma-separated initializer expression list.  Push the
-expressions that result from the pack expansion into
-dps->prescanned_initializer_cache.  If the expression scanned is not a
-pack expansion, just push the one expression into the cache.  Note
-that, with zero-length parameter packs, it is possible that the pack
-expansion will produce no expressions.  That just results in no
-expressions being pushed into the cache.
-*/
-{
-  a_pack_expansion_stack_entry_ptr pesep;
-  a_boolean                        any_more;
-  a_boolean                        has_assoc_lifetime = FALSE;
-  a_boolean                        preserve_lifetime = TRUE;
-
-  check_assertion(dps != NULL);
-  if (dps->is_new_expr_type) {
-    /* In a "new auto(x)" context, the full lifetime is further up and we
-       shouldn't mess around with lifetimes at this level. */
-    preserve_lifetime = FALSE;
-  } else if (expr_stack->lifetime != NULL) {
-    /* The expression has its own full-expression lifetime, so we'll need
-       to put a new lifetime around each expression from the pack expansion. */
-    check_assertion(expr_stack->lifetime == curr_object_lifetime &&
-                    expr_stack->lifetime->kind ==
-                                  (an_object_lifetime_kind)olk_expr_temporary);
-    has_assoc_lifetime = TRUE;
-  }  /* if */
-  if (cached_expression_present()) {
-    /* If there's already a cached expression, just return.  A cached
-       expression is already on the other side of pack expansion and the
-       loop below is not required. */
-  } else {    
-    /* Note that the code here is very similar to scan_expr_list and
-       scan_expression_list_context_expr. */
-    check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
-    any_more = begin_potential_pack_expansion_context(&pesep);
-    while (any_more) {
-      an_operand                 operand;
-      a_pack_expansion_descr_ptr pedep;
-
-      /* Scan the initializer expression and put it into the cache. */
-      scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-      add_operand_to_expression_cache(&operand,
-                                      /*to_front=*/FALSE,
-                                      preserve_lifetime,
-                                      &dps->prescanned_initializer_cache);
-      if (has_assoc_lifetime) {
-        /* The object lifetime was saved with the expression in the cache,
-           and cleared, so create a new lifetime.  This is needed for the
-           next iteration, and also so the caller gets back a state consistent
-           with what was in effect when this routine started. */
-        check_assertion(expr_stack->lifetime == NULL);
-        push_object_lifetime(iek_none, (char *)NULL,
-                             (an_object_lifetime_kind)olk_expr_temporary);
-        expr_stack->lifetime = curr_object_lifetime;
-      }  /* if */
-      /* If this is a pack expansion, swallow the trailing "..." and
-         loop for the next iteration of the expansion. */
-      pedep = end_potential_pack_expansion_context(pesep,
-                                                   /*is_declarator=*/FALSE);
-      if (pedep != NULL) {
-        /* This expression is a variadic template pack expansion, i.e.,
-           it's followed by "...".  Furthermore, we're in the prototype
-           instantiation, so we record the expansion information on the
-           expression. */
-        mark_operand_as_pack_expansion(
-                   &dps->prescanned_initializer_cache.last_expression->operand,
-                  pedep);
-      }  /* if */
-      any_more = advance_to_next_pack_element(pesep);
-    }  /* while */
-  }  /* if */
-}  /* scan_potential_pack_expansion_initializer_expr */
-
-
-static void scan_initializer_expr_with_potential_pack_expansion(
-                                          a_decl_parse_state *dps,
-                                          an_operand         *operand,
-                                          a_boolean          *expr_not_present)
-/*
-Scan a single initializer expression and return it in *operand.  If we're
-in a context that allows variadic template pack expansions (i.e., a
-comma-separated list of initializer expressions), as indicated by dps,
-process the expression as a potential pack expansion.  If it is one,
-the first expression from the expansion is returned in *operand, and
-any additional expressions are pushed into dps->prescanned_initializer_cache.
-If the pack expansion produces zero expressions, issue an error and
-return an error operand in *operand, unless expr_not_present is
-non-NULL, in which case *expr_not_present is returned TRUE (and
-*operand is not set).  This routine is also called to prescan the
-initializer for an "auto", including for "new auto(x)", which is not a
-conventional initializer context.
-*/
-{
-  if (expr_not_present != NULL) *expr_not_present = FALSE;
-  check_assertion(dps != NULL);
-  if (!dps->initializer_is_expr_list ||
-      !is_variadic_template_context()) {
-    /* This is not a context that allows a pack expansion, so just scan
-       a single normal expression. */
-    scan_expr(operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  } else {
-    /* Scan a potential pack expansion. */
-    a_source_position start_pos;
-    /* Get the start position of the first expression. */
-    if (anything_cached(&dps->prescanned_initializer_cache)) {
-      start_pos =
-          dps->prescanned_initializer_cache.first_expression->operand.position;
-    } else {
-      start_pos = pos_curr_token;
-    }  /* if */
-    /* Do the scan.  The whole list of expressions goes into the expression
-       cache, and then we fetch the first one and return it. */
-    scan_potential_pack_expansion_initializer_expr(dps);
-    if (!fetch_operand_from_expression_cache(
-                                         operand,
-                                         &dps->prescanned_initializer_cache)) {
-      /* The expression is missing, presumably because of a zero-trip
-         pack expansion. */
-      if (expr_not_present != NULL) {
-        *expr_not_present = TRUE;
-      } else {
-        pos_error(ec_empty_pack_expansion, &start_pos);
-        make_error_operand(operand);
-        operand->position = start_pos;
-      }  /* if */
-    } else if (dps->initializer_is_single_expr &&
-               anything_cached(&dps->prescanned_initializer_cache)) {
-      /* The pack expansion generated more than one expression, which is
-         an error in this context. */
-      expr_pos_error(ec_excess_pack_expansion,
-                     &dps->prescanned_initializer_cache.
-                                           first_expression->operand.position);
-      clear_expression_cache(&dps->prescanned_initializer_cache);
-    }  /* if */
-  }  /* if */
-}  /* scan_initializer_expr_with_potential_pack_expansion */
-
-
 void scan_member_constant_initializer_expression(a_decl_parse_state  *dps,
                                                  a_constant          *constant)
 /*
@@ -33567,12 +33610,13 @@ is not used when copy constructor elision is possible; see
 scan_class_initializer_expression and scan_aggregate_initializer_expression.
 */
 {
-  an_operand          result;
-  an_expr_stack_entry *saved_expr_stack;
-  an_expr_stack_entry expr_stack_entry;
-  a_variable_ptr      sdm_var = NULL;
-  a_boolean           local_is_pack_expansion;
-  a_conv_context_set  conv_context;
+  an_operand            result;
+  an_init_component_ptr icp;
+  an_expr_stack_entry   *saved_expr_stack;
+  an_expr_stack_entry   expr_stack_entry;
+  a_variable_ptr        sdm_var = NULL;
+  a_boolean             local_is_pack_expansion;
+  a_conv_context_set    conv_context;
 
   db_enter(3, "scan_initializer_expression");
   check_assertion(dps != NULL);
@@ -33611,26 +33655,37 @@ scan_class_initializer_expression and scan_aggregate_initializer_expression.
   }  /* if */
   set_up_initializer_rescan(dps);
   /* Scan the expression. */
-  scan_initializer_expr_with_potential_pack_expansion(dps, &result,
-                                                      expr_not_present);
-  if (expr_not_present != NULL && *expr_not_present) {
+  icp = scan_init_component_with_potential_pack_expansion(
+                                                    dps,
+                                                    /*bundle_lifetimes=*/FALSE,
+                                                    expr_not_present);
+  if (icp == NULL) {
     /* The expression scanned was a pack expansion that expanded to zero
        expressions, so we have no operand to process. */
     goto end_of_routine;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Check for a bug related to null pointer constants in Microsoft C mode. */
-  process_microsoft_null_pointer_constant_bug(&result, required_type);
+  if (microsoft_mode && is_expression_component(icp)) {
+    process_microsoft_null_pointer_constant_bug(operand_of_arg_list_elem(icp),
+                                                required_type);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Convert to the required type. */
   conv_context = CCO_INITIALIZING_VARIABLE;
   if (static_lifetime) conv_context |= CCO_STATIC_LIFETIME;
-  prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
-                           (a_conv_descr_ptr)NULL,
-                           is_copy_initialization,
-                           conv_context,
-                           ec_bad_initializer_type);
-  local_is_pack_expansion = (result.pack_expansion_descr != NULL);
+  prep_list_initializer(icp,
+                        required_type,
+                        /*is_direct_init=*/!is_copy_initialization,
+                        /*check_narrowing=*/TRUE,
+                        conv_context,
+                        /*fill_in_dtor=*/TRUE,
+                        /*force_temp=*/FALSE,
+                        &result,
+                        (an_init_state *)NULL,
+                        (an_arg_match_summary *)NULL);
+  local_is_pack_expansion = (icp->pack_expansion_descr != NULL);
+  free_init_component_list(icp);
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
   switch (result.kind) {
@@ -34028,14 +34083,15 @@ it to indicate destruction for a partially-constructed aggregate (on
 a thrown exception) if that is appropriate.
 */
 {
-  an_operand          result;
-  an_expr_stack_entry *saved_expr_stack;
-  an_expr_stack_entry expr_stack_entry;
-  a_boolean           okay = TRUE, ambiguous;
-  a_boolean           string_case = FALSE, empty_aggregate = FALSE;
-  a_constant_ptr      string_con;
-  a_conv_descr        conversion;
-  unsigned long       levels_down;
+  an_operand            result;
+  an_init_component_ptr icp;
+  an_expr_stack_entry   *saved_expr_stack;
+  an_expr_stack_entry   expr_stack_entry;
+  a_boolean             okay = TRUE, ambiguous;
+  a_boolean             string_case = FALSE, empty_aggregate = FALSE;
+  a_constant_ptr        string_con;
+  a_conv_descr          conversion;
+  unsigned long         levels_down;
 
   db_enter(3, "scan_aggregate_initializer_expression");
   check_assertion(dps != NULL);
@@ -34065,9 +34121,14 @@ a thrown exception) if that is appropriate.
     levels_down = 0;
   }  /* if */
   /* Scan the expression. */
-  scan_initializer_expr_with_potential_pack_expansion(dps, &result,
-                                                      (a_boolean *)NULL);
-  *is_pack_expansion = (result.pack_expansion_descr != NULL);
+  icp = scan_init_component_with_potential_pack_expansion(
+                                                    dps,
+                                                    /*bundle_lifetimes=*/FALSE,
+                                                    (a_boolean *)NULL);
+  *is_pack_expansion = (icp->pack_expansion_descr != NULL);
+  check_arg_list_elem_is_expression(icp);
+  copy_operand(operand_of_arg_list_elem(icp), &result);
+  free_init_component_list(icp);
   /* See whether the expression can initialize the aggregate class.  If not,
      go down to the first member of the class and try again.  Loop until the
      right level is found or until we can go no further. */
@@ -34156,19 +34217,19 @@ required_type_determined:
      member we've chosen; there may yet be an error later. */
   if (levels_down > 0) {
     /* We're not going to use the expression at this level, so put it into
-       the expression cache for use at some later point. */
-    add_operand_to_expression_cache(&result,
-                                    /*to_front=*/TRUE,
-                                    /*preserve_lifetime=*/TRUE,
-                                    &dps->prescanned_initializer_cache);
+       the initializer cache for use at some later point. */
+    add_operand_to_initializer_cache(&result,
+                                     /*to_front=*/TRUE,
+                                     /*preserve_lifetime=*/TRUE,
+                                     &dps->prescanned_initializer_cache);
   } else if (string_case && whole_string_init != NULL) {
     /* The caller has asked that a whole-string initialization not be
        handled in this routine. */
     *whole_string_init = TRUE;
-    add_operand_to_expression_cache(&result,
-                                    /*to_front=*/TRUE,
-                                    /*preserve_lifetime=*/TRUE,
-                                    &dps->prescanned_initializer_cache);
+    add_operand_to_initializer_cache(&result,
+                                     /*to_front=*/TRUE,
+                                     /*preserve_lifetime=*/TRUE,
+                                     &dps->prescanned_initializer_cache);
   } else if (is_aggregate_or_union_type(required_type)) {
     /* The entity being initialized has a class or array type. */
     if (string_case) {
@@ -34307,7 +34368,8 @@ to being able to fetch a next expression).
                                               static_lifetime,
                                               suppress_object_lifetime);
 scan_more:
-    scan_potential_pack_expansion_initializer_expr(dps);
+    scan_potential_pack_expansion_initializer_expr(dps,
+                                                   /*bundle_lifetimes=*/TRUE);
     if (!anything_cached(&dps->prescanned_initializer_cache)) {
       if (curr_token == tok_rbrace) {
 got_closing_brace:

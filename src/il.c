@@ -20192,30 +20192,35 @@ it points.
 }  /* unbind_object_lifetime */
 
       
-void push_object_lifetime(an_il_entry_kind         entity_kind,
-                          char                     *entity_ptr,
-                          an_object_lifetime_kind  kind)
+void push_or_repush_object_lifetime(an_il_entry_kind         entity_kind,
+                                    char                     *entity_ptr,
+                                    an_object_lifetime_ptr   olp,
+                                    an_object_lifetime_kind  kind)
 /*
 Create a new object lifetime entry of the specified kind and push it onto the
-object lifetime stack by setting its parent pointer and then changing
-curr_object_lifetime to point to it.  Also, set its sibling pointer, and, if
-entity_ptr is non-NULL, bind it to the IL entity with which it is associated.
-(When entity_ptr is NULL, the binding takes place later, when we are sure the
+object lifetime stack, or if olp is non-NULL re-push a previously-created
+object lifetime onto the stack.  If entity_ptr is non-NULL, bind the
+object lifetime to the IL entity with which it is associated.  (When
+entity_ptr is NULL, the binding takes place later, when we are sure the
 entry is needed.)
 */
 {
-  an_object_lifetime_ptr   olp, parent;
+  an_object_lifetime_ptr parent;
 
-  db_enter(3, "push_object_lifetime");
+  db_enter(3, "push_or_repush_object_lifetime");
   check_assertion_str(kind != (an_object_lifetime_kind)olk_function_static,
-                      "push_object_lifetime: olk_function_static not allowed");
-  olp = alloc_object_lifetime(kind);
+            "push_or_repush_object_lifetime: olk_function_static not allowed");
+  if (olp == NULL) {
+    olp = alloc_object_lifetime(kind);
+  } else {
+    kind = olp->kind;
+  }  /* if */
   if (kind == (an_object_lifetime_kind)olk_global_static) {
     /* No parent pointer. */
   } else {
     check_assertion_str2(curr_object_lifetime->kind !=
                                   (an_object_lifetime_kind)olk_expr_temporary,
-                         "push_object_lifetime:",
+                         "push_or_repush_object_lifetime:",
                          "pushing on top of olk_expr_temporary not allowed");
     /* Link the new entry into the object lifetime tree. */
     parent = curr_object_lifetime;
@@ -20234,11 +20239,13 @@ entry is needed.)
 #if CHECKING
       if (in_file_scope(olp) != in_file_scope(parent)) {
         if (in_file_scope(parent)) {
-          unexpected_condition_str2("push_object_lifetime: parent is in",
-                                    "file scope memory, new olp is not");
+          unexpected_condition_str2(
+                         "push_or_repush_object_lifetime: parent is in",
+                         "file scope memory, new olp is not");
         } else {
-          unexpected_condition_str2("push_object_lifetime: new olp is in",
-                                    "file scope memory, parent is not");
+          unexpected_condition_str2(
+                         "push_or_repush_object_lifetime: new olp is in",
+                         "file scope memory, parent is not");
         }  /* if */
       }  /* if */
 #endif /* CHECKING */
@@ -20271,6 +20278,23 @@ entry is needed.)
   if (debug_level >= 3) db_object_lifetime_stack();
 #endif /* DEBUG */
   db_exit();
+}  /* push_or_repush_object_lifetime */
+
+      
+void push_object_lifetime(an_il_entry_kind         entity_kind,
+                          char                     *entity_ptr,
+                          an_object_lifetime_kind  kind)
+/*
+Create a new object lifetime entry of the specified kind and push it onto the
+object lifetime stack by setting its parent pointer and then changing
+curr_object_lifetime to point to it.  Also, set its sibling pointer, and, if
+entity_ptr is non-NULL, bind it to the IL entity with which it is associated.
+(When entity_ptr is NULL, the binding takes place later, when we are sure the
+entry is needed.)
+*/
+{
+  push_or_repush_object_lifetime(entity_kind, entity_ptr,
+                                 (an_object_lifetime_ptr)NULL, kind);
 }  /* push_object_lifetime */
 
 
@@ -21261,6 +21285,7 @@ list of its parent.  If olp is NULL, do nothing.
     }  /* if */
     olp->parent_lifetime = NULL;
     olp->next = NULL;
+    olp->parent_destruction_sublist = NULL;
 #if DEBUG
     if (debug_level >= 4) {
       fputs("lifetime unlinked:\n", f_debug);

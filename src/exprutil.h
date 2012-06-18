@@ -512,7 +512,7 @@ typedef struct an_arg_operand {
 			/* The argument value. */
   an_object_lifetime_ptr
 		lifetime;
-			/* When this entry is in an expression cache, non-NULL
+			/* When this entry is in an initializer cache, non-NULL
 			   to preserve a full-expression lifetime until the
 			   point when the expression is rescanned. */
 } an_arg_operand;
@@ -664,8 +664,8 @@ typedef struct a_dynamic_init_dtor_fixup {
 } a_dynamic_init_dtor_fixup;
 
 
-/* an_expression_cache is in decls.h because of header ordering reasons. */
-typedef struct an_expression_cache an_expression_cache_dummy_typedef;
+/* an_initializer_cache is in decls.h because of header ordering reasons. */
+typedef struct an_initializer_cache an_initializer_cache_dummy_typedef;
 
 /*
 Entry in a stack used during expression processing to record transitions
@@ -876,9 +876,9 @@ typedef struct an_expr_stack_entry {
 			   otherwise.  This is used to provide default rescan
 			   information (e.g., source positions) for expressions
 			   that don't have any. */
-  struct an_expression_cache
-		*expression_cache;
-			/* If non-NULL, points to an expression cache that
+  struct an_initializer_cache
+		*initializer_cache;
+			/* If non-NULL, points to an initializer cache that
 			   may contain queued up expressions that should be
 			   taken before new ones are scanned from source or
 			   rescanned. */
@@ -1007,14 +1007,15 @@ i.e., it's an unevaluated operand or the operand of typeid.
 
 
 /*
-Macro that returns TRUE if there is at least one expression cached for the
+Macro that returns TRUE if there is at least one initializer cached for the
 current context (as indicated by the expression stack).  Any such expression(s)
-should be consumed before taking more expressions from source or a rescan.
+or braced-init-list(s) should be consumed before taking more from source or
+a rescan.
 */
-#define cached_expression_present() \
+#define cached_initializer_present() \
   (expr_stack != NULL && \
-   expr_stack->expression_cache != NULL && \
-   anything_cached(expr_stack->expression_cache))
+   expr_stack->initializer_cache != NULL && \
+   anything_cached(expr_stack->initializer_cache))
 
 /*
 TRUE if the current mode allows binding an rvalue reference to an lvalue
@@ -1178,18 +1179,28 @@ void conv_braced_init_component_to_error_expression(an_arg_list_elem_ptr alep);
 
 extern void check_arg_list_elem_is_expression(an_arg_list_elem_ptr alep);
 
-extern void clear_expression_cache(struct an_expression_cache *cache);
+extern void clear_initializer_cache(struct an_initializer_cache *cache);
 
-extern void add_operand_to_expression_cache(
-                                  an_operand                 *operand,
-                                  a_boolean                  to_front,
-                                  a_boolean                  preserve_lifetime,
-                                  struct an_expression_cache *cache);
+extern void flush_initializer_cache(an_initializer_cache *cache);
 
 extern
-a_boolean fetch_operand_from_expression_cache(
-                                            an_operand          *operand,
-                                            struct an_expression_cache *cache);
+void add_init_component_to_initializer_cache(an_init_component_ptr icp,
+                                             a_boolean             to_front,
+                                             an_initializer_cache  *cache);
+
+extern void add_operand_to_initializer_cache(
+                                 an_operand                  *operand,
+                                 a_boolean                   to_front,
+                                 a_boolean                   preserve_lifetime,
+                                 struct an_initializer_cache *cache);
+
+extern an_init_component_ptr fetch_init_component_from_initializer_cache(
+                                                  an_initializer_cache *cache);
+
+extern
+a_boolean fetch_operand_from_initializer_cache(
+                                          an_operand                  *operand,
+                                          struct an_initializer_cache *cache);
 
 extern void free_dynamic_init_dtor_fixup(a_dynamic_init_dtor_fixup_ptr didfp);
 

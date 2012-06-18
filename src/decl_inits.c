@@ -5857,11 +5857,14 @@ lifetime was promoted to match a reference.
 */
 {
   an_object_lifetime_ptr olp = init_expr_lifetime_of(dip);
-  a_dynamic_init_ptr     outer_dip;
 
   if (olp != NULL) {
+    a_dynamic_init_ptr outer_dip = olp->parent_destruction_sublist;
     detach_from_object_lifetime_tree(olp);
-    outer_dip = olp->parent_destruction_sublist;
+    /* Restore the parent destruction list (cleared by the call above) so
+       that when we re-insert the lifetime we can fix the related overlapping
+       dynamic init also. */
+    olp->parent_destruction_sublist = outer_dip;
     if (outer_dip != NULL &&
         outer_dip->overlaps_temps_in_inner_lifetime &&
         outer_dip->lifetime_of_overlapping_temps == olp) {

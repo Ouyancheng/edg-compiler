@@ -931,92 +931,152 @@ change it to an error expression.
 }  /* check_arg_list_elem_is_expression */
 
 
-void clear_expression_cache(an_expression_cache *cache)
+void clear_initializer_cache(an_initializer_cache *cache)
 /*
-Set the fields of an expression cache to default values.
+Set the fields of an initializer cache to default values.
 */
 {
-  cache->first_expression = NULL;
-  cache->last_expression  = NULL;
-}  /* clear_expression_cache */
+  cache->first_init = NULL;
+  cache->last_init  = NULL;
+}  /* clear_initializer_cache */
 
 
-void add_operand_to_expression_cache(an_operand          *operand,
-                                     a_boolean           to_front,
-                                     a_boolean           preserve_lifetime,
-                                     an_expression_cache *cache)
+void flush_initializer_cache(an_initializer_cache *cache)
 /*
-Add the indicated operand to the end of the queue of expressions in the
-indicated expression cache (or the front if to_front is TRUE).  If
+Empty out an existing initializer cache, discarding any expressions or
+braced-init-lists currently in it.
+*/
+{
+  free_init_component_list(cache->first_init);
+  clear_initializer_cache(cache);
+}  /* flush_initializer_cache */
+
+
+void add_init_component_to_initializer_cache(an_init_component_ptr icp,
+                                             a_boolean             to_front,
+                                             an_initializer_cache  *cache)
+/*
+Add the indicated initializer list component to the end of the queue of
+initializer components in the indicated initializer cache (or the front
+if to_front is TRUE).
+*/
+{
+  if (to_front) {
+    /* Add to the front of the queue. */
+    icp->next = cache->first_init;
+    cache->first_init = icp;
+    if (icp->next == NULL) cache->last_init = icp;
+  } else {
+    /* Add to the end of the queue. */
+    if (cache->first_init == NULL) {
+      cache->first_init = icp;
+    } else {
+      cache->last_init->next = icp;
+    }  /* if */
+    cache->last_init = icp;
+  }  /* if */
+}  /* add_init_component_to_initializer_cache */
+
+
+void add_operand_to_initializer_cache(an_operand           *operand,
+                                      a_boolean            to_front,
+                                      a_boolean            preserve_lifetime,
+                                      an_initializer_cache *cache)
+/*
+Add the indicated operand to the end of the queue of initializer components
+in the indicated initializer cache (or the front if to_front is TRUE).  If
 preserve_lifetime is TRUE, save the current expression stack lifetime
 for later restoration when the operand is removed from the cache.
 */
 {
-  an_arg_operand_ptr arg_op = alloc_arg_operand();
+  an_init_component_ptr icp = alloc_arg_list_elem_for_operand(operand);
+  an_arg_operand_ptr    arg_op = icp->variant.expr;
 
-  copy_operand(operand, &arg_op->operand);
   if (preserve_lifetime && expr_stack->lifetime != NULL) {
-    /* Preserve the lifetime associated with the expression. */
+    /* Preserve the lifetime associated with the expression.  This is related
+       to what scan_expr_as_init_component does, but in this case the
+       operand has already been scanned, or taken out of a cache and its
+       lifetime restored, so we're just saving here, not wrapping. */
     check_assertion(curr_object_lifetime == expr_stack->lifetime);
     arg_op->lifetime = expr_stack->lifetime;
     curr_object_lifetime = curr_object_lifetime->parent_lifetime;
     expr_stack->lifetime = NULL;
+    detach_from_object_lifetime_tree(arg_op->lifetime);
   }  /* if */
-  if (to_front) {
-    /* Add to the front of the queue. */
-    arg_op->next = cache->first_expression;
-    cache->first_expression = arg_op;
-    if (arg_op->next == NULL) cache->last_expression = arg_op;
-  } else {
-    /* Add to the end of the queue. */
-    if (cache->first_expression == NULL) {
-      cache->first_expression = arg_op;
-    } else {
-      cache->last_expression->next = arg_op;
-    }  /* if */
-    cache->last_expression = arg_op;
-  }  /* if */
-}  /* add_operand_to_expression_cache */
+  add_init_component_to_initializer_cache(icp, to_front, cache);
+}  /* add_operand_to_initializer_cache */
 
 
-a_boolean fetch_operand_from_expression_cache(an_operand          *operand,
-                                              an_expression_cache *cache)
+an_init_component_ptr fetch_init_component_from_initializer_cache(
+                                                   an_initializer_cache *cache)
 /*
-Remove the first expression from the indicated expression cache,
-return it in *operand, and return TRUE.  If there is no cache
-(cache == NULL) or the cache is empty, return FALSE.  Also restore the
-lifetime associated with the expression, if any.  The current lifetime
-on the expression stack is discarded in that case.  That implies that
-this routine must be called after the expression stack has been
-pushed.
+Remove the first initializer component from the indicated initializer cache
+and return it to the caller.  If there is no cache (cache == NULL), or if
+the cache is empty, return NULL.
 */
 {
-  a_boolean result = FALSE;
+  an_init_component_ptr icp = NULL;
 
   if (cache != NULL) {
-    an_arg_operand_ptr arg_op = cache->first_expression;
-    if (arg_op != NULL) {
-      result = TRUE;
-      copy_operand(&arg_op->operand, operand);
-      if (arg_op->lifetime != NULL) {
-        /* Restore the object lifetime associated with the cached
-           expression. */
-        check_assertion(curr_object_lifetime != NULL &&
-                        is_useless_object_lifetime(curr_object_lifetime) &&
-                        curr_object_lifetime == expr_stack->lifetime);
-        (void)pop_object_lifetime();
-        curr_object_lifetime = expr_stack->lifetime = arg_op->lifetime;
+    icp = cache->first_init;
+    if (icp != NULL) {
+      cache->first_init = icp->next;
+      if (cache->first_init == NULL) {
+        cache->last_init = NULL;
       }  /* if */
-      cache->first_expression = arg_op->next;
-      if (cache->first_expression == NULL) {
-        cache->last_expression = NULL;
-      }  /* if */
-      arg_op->next = NULL;
-      free_arg_operand_list(arg_op);
+      icp->next = NULL;
     }  /* if */
   }  /* if */
+  return icp;
+}  /* fetch_init_component_from_initializer_cache */
+
+
+a_boolean fetch_operand_from_initializer_cache(an_operand           *operand,
+                                               an_initializer_cache *cache)
+/*
+Remove the first expression from the indicated initializer cache,
+return it in *operand, and return TRUE.  Free the init-component entry
+removed from the cache.  If there is no cache (cache == NULL) or the
+cache is empty, return FALSE.  If the entity removed from the cache is
+a braced-init-list, issue an error and return an error operand.
+
+Also restore the lifetime associated with the expression, if any.  The
+current lifetime on the expression stack is discarded in that case.
+That implies that this routine must be called after the expression
+stack has been pushed.
+*/
+{
+  a_boolean             result = FALSE;
+  an_init_component_ptr icp;
+
+  icp = fetch_init_component_from_initializer_cache(cache);
+  if (icp != NULL) {
+    an_object_lifetime_ptr olp_to_restore;
+    an_arg_operand         *arg_op;
+    result = TRUE;
+    /* Issue an error if the thing removed is a braced-init-list rather
+       than an expression. */
+    check_arg_list_elem_is_expression(icp);
+    arg_op = icp->variant.expr;
+    copy_operand(&arg_op->operand, operand);
+    olp_to_restore = arg_op->lifetime;
+    if (olp_to_restore != NULL) {
+      /* Restore the object lifetime associated with the cached
+         expression. */
+      check_assertion(curr_object_lifetime != NULL &&
+                      curr_object_lifetime->kind == olp_to_restore->kind &&
+                      is_useless_object_lifetime(curr_object_lifetime) &&
+                      curr_object_lifetime == expr_stack->lifetime);
+      (void)pop_object_lifetime();
+      push_or_repush_object_lifetime(iek_none, (char *)NULL,
+                                     olp_to_restore,
+                                     olp_to_restore->kind);
+      expr_stack->lifetime = olp_to_restore;
+    }  /* if */
+    free_init_component_list(icp);
+  }  /* if */
   return result;
-}  /* fetch_operand_from_expression_cache */
+}  /* fetch_operand_from_initializer_cache */
 
 
 static a_dynamic_init_dtor_fixup_ptr alloc_dynamic_init_dtor_fixup(
@@ -1298,7 +1358,7 @@ is pushed regardless of any of the other factors.
   new_entry->current_lambda_in_header = NULL;
   new_entry->p_end_of_entities_defined_in_expression = NULL;
   new_entry->default_rescan_info = NULL;
-  new_entry->expression_cache = NULL;
+  new_entry->initializer_cache = NULL;
   new_entry->rcblock = NULL;
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
@@ -1418,6 +1478,7 @@ major expression.
   if (expr_stack->lifetime != NULL) {
     /* An object lifetime was pushed for the expression, so it must be
        popped now. */
+    check_assertion(curr_object_lifetime == expr_stack->lifetime);
     (void)pop_object_lifetime();
   }  /* if */
   /* Flush the reference entries list for the current expression. */

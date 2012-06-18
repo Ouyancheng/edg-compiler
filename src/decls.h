@@ -364,23 +364,23 @@ Macro to initialize the "init state" pointed to by the argument.
 
 
 /*
-Structure used to hold a list of pre-scanned expressions so they
-can be retrieved and scanned later.  Used, for example, for the expression
-in an "auto" declaration, so it can be scanned, examined for its type, and
-then put in a cache so it will be picked up again later as if scanned from
-source at that point.
+Structure used to hold a list of pre-scanned expressions or braced-init-lists
+so they can be retrieved and scanned later.  Used, for example, for the
+expression in an "auto" declaration, so it can be scanned, examined for its
+type, and then put in a cache so it will be picked up again later as if
+scanned from source at that point.
 */
-typedef struct an_arg_operand an_arg_operand_dummy_typedef;
-typedef struct an_expression_cache {
-  an_arg_operand_ptr
-		first_expression,
-		last_expression;
-			/* First and last expressions on a list of
-			   expressions in the cache. */
-} an_expression_cache;
+typedef struct an_init_component an_init_component_dummy_typedef;
+typedef struct an_initializer_cache {
+  struct an_init_component
+		*first_init,
+		*last_init;
+			/* First and last entities on a list of expressions
+			   or braced-initializers in the cache. */
+} an_initializer_cache;
 
-/* Macro to test whether an expression cache contains something. */
-#define anything_cached(pc) ((pc)->first_expression != NULL)
+/* Macro to test whether an initializer cache contains something. */
+#define anything_cached(pc) ((pc)->first_init != NULL)
 
 
 /*
@@ -791,7 +791,7 @@ typedef struct a_decl_parse_state {
 		deduced_auto_type;
 			/* The type that "auto" was deduced to after scanning
 			   the initializer. */
-  an_expression_cache
+  an_initializer_cache
 		prescanned_initializer_cache;
 			/* A cache containing an expression scanned early
 			   to deduce the type of the "auto" type specifier,

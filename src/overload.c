@@ -20184,10 +20184,7 @@ etc.)
          processing.  In some modes we may suppress errors or discard the
          IL/operand created. */
       copy_operand(operand_of_arg_list_elem(icp), &operand);
-      if (is_template_dependent_type(dest_type)) {
-        /* The destination type is template dependent. */
-        prep_generic_operand(&operand);
-      } else if (dest_type_is_class && !is_direct_init) {
+      if (dest_type_is_class && !is_direct_init) {
         /* See if we can elide the copy for copy-initialization of
            class-typed objects. */
         prep_elision_initializer_operand(&operand, dest_type,

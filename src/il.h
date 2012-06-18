@@ -1847,6 +1847,12 @@ extern void bind_object_lifetime(an_object_lifetime_ptr  olp,
 
 extern void unbind_object_lifetime(an_object_lifetime_ptr  olp);
 
+extern
+void push_or_repush_object_lifetime(an_il_entry_kind         entity_kind,
+                                    char                     *entity_ptr,
+                                    an_object_lifetime_ptr   olp,
+                                    an_object_lifetime_kind  kind);
+
 extern void push_object_lifetime(an_il_entry_kind         entity_kind,
                                  char                     *entity_ptr,
                                  an_object_lifetime_kind  kind);

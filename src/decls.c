@@ -27,7 +27,7 @@ decls.c -- Scanning of declarations.
 /* Additional header files. */
 #include "folding.h"
 #include "statements.h"
-/* To get clear_expression_cache: */
+/* To get clear_initializer_cache: */
 #include "exprutil.h"
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
@@ -224,7 +224,7 @@ be restored).
   dps->id_attributes = NULL;
   dps->asm_name = NULL;
   dps->asm_name_pos = null_source_position;
-  clear_expression_cache(&dps->prescanned_initializer_cache);
+  clear_initializer_cache(&dps->prescanned_initializer_cache);
   dps->prescanned_initializer_levels_down = 0;
   dps->source_sequence_entry = NULL;
   dps->alignment = 0;
