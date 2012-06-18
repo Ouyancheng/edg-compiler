@@ -228,7 +228,7 @@ opening parenthesis has already been swallowed); otherwise, it's
                                           &dps->prescanned_initializer_cache);
   if (is_expression_component(icp)) operand = operand_of_arg_list_elem(icp);
   /* Do type deduction. */
-  if (operand != NULL &&  /* FIXME */
+  if (operand == NULL ||  /* FIXME */
       !deduce_auto_type(dps->declared_type,
                         dps->auto_type,
                         operand,
@@ -236,7 +236,7 @@ opening parenthesis has already been swallowed); otherwise, it's
                         &dps->type,
                         &deduced_auto_type,
                         &still_dependent)) {
-    if (still_dependent) {
+    if (operand != NULL && still_dependent) {  /* FIXME? */
       /* Deduction was not done because the types are still dependent. */
       dps->type = dps->declared_type;
       dps->deduced_auto_type = NULL;
