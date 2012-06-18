@@ -4867,6 +4867,9 @@ is part of.  diag_pos is the position to be used by default for diagnostics
   check_assertion(vp != NULL);
   vp->has_direct_braced_initializer = direct;
   dps->init_state.direct_init = direct;
+  dps->init_state.initializer_must_be_constant =
+                    C_mode() && (dps->init_state.static_lifetime_init ||
+                                 !allow_nonconstant_auto_aggr_init_in_c_mode);
   braced_initializer(dps->type, &dps->init_state, dps, diag_pos);
   if (dps->init_state.partial_initializer) {
     vp->is_partially_initialized = TRUE;
@@ -4963,9 +4966,6 @@ returned set to TRUE.
     static_lifetime = (depth_innermost_function_scope == NO_SCOPE_DEPTH);
   }  /* if */
   dps->init_state.static_lifetime_init = static_lifetime;
-  dps->init_state.aggr_init_must_be_constant =
-                    C_mode() && (static_lifetime ||
-                                 !allow_nonconstant_auto_aggr_init_in_c_mode);
   if (!var_err) {
     vp_type = vp->type;
     if (vla_enabled && is_vla_type(vp->type)) {
@@ -5157,7 +5157,6 @@ returned set to TRUE.
       /* Depending on the arguments present, a constructor, possibly the copy
          constructor, will be selected and returned. */
       a_source_position  pos;
-
       /* Use the source position of the first argument as the call position. */
       pos = pos_first_token;
       if (dependent_class_type) {
@@ -5183,6 +5182,7 @@ returned set to TRUE.
       /* Scan the initializer.  Either a constant pointer is returned or else
          a dynamic init entry representing an expression. */
       nonconstant_allowed = (!C_mode() || !static_lifetime);
+      dps->init_state.initializer_must_be_constant = !nonconstant_allowed;
       init_con =
           scan_initializer_of_simple_object(dps,
                                             (an_aggregate_init_info *)NULL,
