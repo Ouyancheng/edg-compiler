@@ -89,6 +89,7 @@ Clear the fields of *is.
   is->init_dip = NULL;
   is->init_error = FALSE;
   is->direct_init = FALSE;
+  is->static_lifetime_init = FALSE;
   is->no_diagnostics = FALSE;
   is->check_validity_only = FALSE;
   is->has_dynamic_init_component = FALSE;

@@ -320,6 +320,9 @@ typedef struct an_init_state {
   a_bit_field	direct_init:1;
 			/* TRUE if this is for "direct" initialization as
 			   opposed to "copy" initialization.  C++ mode only. */
+  a_bit_field	static_lifetime_init:1;
+			/* TRUE if this is for the initialization of an object
+			   with static lifetime. */
   a_bit_field	no_diagnostics:1;
 			/* TRUE if no diagnostics should be issued (this is
 			   useful for overload-resolution matching and for

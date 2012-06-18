@@ -4962,6 +4962,7 @@ returned set to TRUE.
        the declaration appears. */
     static_lifetime = (depth_innermost_function_scope == NO_SCOPE_DEPTH);
   }  /* if */
+  dps->init_state.static_lifetime_init = static_lifetime;
   if (!var_err) {
     vp_type = vp->type;
     if (vla_enabled && is_vla_type(vp->type)) {
