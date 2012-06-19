@@ -50,7 +50,7 @@ Changes have been made to better emulate g++'s mangling of the "noreturn"
 attribute on function types (the IA-64 substitutions had been improperly
 handled previously).  Additionally, changes have also been made to
 the mangling for __typeof so that a unique IA-64 substitution is used
-for the __typeof(<type>) and <type> entities (previously these had used
+for a dependent __typeof(<type>) and <type> entities (previously these had used
 the same substitution).  Note that g++ doesn't appear to have a mangling
 for __typeof, so there is no g++-compatibility issue here.  These changes
 were motivated by a new assertion check that verifies that each IA-64
