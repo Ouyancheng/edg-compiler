@@ -1298,6 +1298,86 @@ and thus is eligible for a special substitution.
   return result;
 }  /* is_stream_substitution */
 
+#if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
+
+static a_type_ptr topmost_dependent_typeof(a_type_ptr           tp,
+                                           a_type_qualifier_set *qualifiers)
+/*
+Returns the topmost dependent typeof typeref for the specified type or NULL if
+the type has no dependent typeof typeref.  *qualifiers is set to a bit vector
+of cv-qualifiers that were found while stripping typerefs.  Since this is never
+called in C mode, if tp is an array, check for a qualifier on the element type.
+*/
+{
+  *qualifiers = TQ_NONE;
+
+  check_assertion(!C_mode());
+  for (;;) {
+    if (tp->kind == (a_type_kind)tk_typeref) {
+      if (tp->variant.typeref.is_typeof &&
+          tp->variant.typeref.is_dependent_type_operator) {
+        /* Found a dependent typeof; return it. */
+        break;
+      } else {
+        /* May be a typedef or a qualification. */
+        *qualifiers |= tp->variant.typeref.qualifiers;
+        tp = tp->variant.typeref.type;
+      }  /* if */
+    } else if (tp->kind == (a_type_kind)tk_array) {
+      /* Check the array element type. */
+      tp = tp->variant.array.element_type;
+    } else {
+      /* Type doesn't have a typeof typeref. */
+      tp = NULL;
+      break;
+    }  /* if */
+  }  /* for */
+  return tp;
+}  /* topmost_dependent_typeof */
+
+
+static a_boolean identical_types_differ_in_typeof(a_type_ptr type_1,
+                                                  a_type_ptr type_2)
+/*
+Returns TRUE if the two types (which the caller ensures are "identical") differ
+in that one contains a typeof typeref and the other doesn't, for example,
+typeof(T) and T are "identical", but not for mangling purposes.
+Used only in g++ emulation mode.
+*/
+{
+  a_type_ptr           typeof_type_1, typeof_type_2;
+  a_type_qualifier_set type_1_quals, type_2_quals;
+  a_boolean            result;
+
+  check_assertion(gpp_mode);
+  if (type_1 == type_2) {
+    /* Identical types can't differ. */
+    result = FALSE;
+  } else {
+    typeof_type_1 = topmost_dependent_typeof(type_1, &type_1_quals);
+    typeof_type_2 = topmost_dependent_typeof(type_2, &type_2_quals);
+    if (typeof_type_1 == NULL && typeof_type_2 == NULL) {
+      /* Neither type has a typeof. */
+      result = FALSE;
+    } else if (typeof_type_1 != NULL && typeof_type_2 != NULL) {
+      /* Both types have a typeof. */
+      if (type_1_quals != type_2_quals) {
+        /* Different qualifiers on top of the typeofs. */
+        result = TRUE;
+      } else {
+        result = identical_types_differ_in_typeof(
+                                          typeof_type_1->variant.typeref.type,
+                                          typeof_type_2->variant.typeref.type);
+      }  /* if */
+    } else {
+      /* One has a typeof and the other doesn't. */
+      return TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* identical_types_differ_in_typeof */
+
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
 
 static a_boolean add_substitution_if_available_full(
                                     char                     *entity,
@@ -1389,15 +1469,11 @@ whether a substitution is available; do not put it out.
 #endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
                                                                            )) {
 #if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
-              if (sp->variant.type_sub.type->kind !=
-                                                  ((a_type_ptr)entity)->kind &&
-                  ((sp->variant.type_sub.type->kind ==
-                                                     (a_type_kind)tk_typeref &&
-                    sp->variant.type_sub.type->variant.typeref.is_typeof) ||
-                   (((a_type_ptr)entity)->kind == (a_type_kind)tk_typeref &&
-                    ((a_type_ptr)entity)->variant.typeref.is_typeof))) {
-                /* One type is a typeof typeref and the other type isn't;
-                   these get separate substitutions (the mangling for
+              if (gpp_mode &&
+                  identical_types_differ_in_typeof((a_type_ptr)entity,
+                                                   sp->variant.type_sub.type)){
+                /* One type is a dependent typeof typeref and the other type
+                   isn't; these get separate substitutions (the mangling for
                    __typeof is non-standard).  decltype and __underlying_type
                    don't have this problem because the underlying type isn't
                    part of the mangling. */
@@ -8260,14 +8336,7 @@ specified type.  Substitutions are not allocated for <builtin-type>s
       /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/typeofs
          should have been stripped, leaving only dependent decltype/typeof
          typerefs (for which substitutions are created). */
-#if GNU_EXTENSIONS_ALLOWED
-      check_assertion(type->variant.typeref.is_decltype ||
-                      type->variant.typeref.is_underlying_type ||
-                      type->variant.typeref.is_typeof);
-#else /* !GNU_EXTENSIONS_ALLOWED */
-      check_assertion(type->variant.typeref.is_decltype ||
-                      type->variant.typeref.is_underlying_type);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+      check_assertion(typeref_is_type_operator(type));
       result = TRUE;
       break;
     case tk_pointer:
