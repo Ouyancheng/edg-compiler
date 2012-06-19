@@ -5103,11 +5103,13 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         if (is_scoped_enum != integer_type_is_scoped_enum(enum_type)) {
           pos_sy_error(ec_incompatible_enum_kinds, &locator.source_position,
                        tag_sym);
-          if (!is_definition && is_scoped_enum) {
-            /* If this is not a definition, continue to treat it as an unscoped
-               enumeration since this provides for slightly better error
-               recovery. */
-            is_scoped_enum = FALSE;
+          /* If this is a definition, it determines whether the type is
+             scoped for error recovery purposes.  Otherwise, the prior
+             declaration prevails. */
+          if (is_definition) {
+            enum_type->variant.integer.is_scoped_enum = is_scoped_enum;
+          } else {
+            is_scoped_enum = enum_type->variant.integer.is_scoped_enum;
           }  /* if */
         }  /* if */
       } else if (opaque_enum_decls_enabled && is_scoped_enum) {
