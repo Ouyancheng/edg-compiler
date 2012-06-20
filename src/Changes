@@ -1,5 +1,21 @@
 Version 4.5
 
+6/20/12  [EDGcpfe/9250,EDGcpfe/11871,EDGcpfe/12413]
+C++11 and Microsoft compatibility: Opaque enum declarations
+
+In C++11 mode and in Microsoft mode with microsoft_version >= 1700, the front
+end now accepts "opaque enumeration declarations"; i.e., declarations of
+enumeration types with a known underlying type (hence, complete), but
+without a definition.  For example:
+
+  enum E1: char;  // Now okay in some modes, including strict C++11 mode.
+  enum class E2;  // Ditto (underlying type is int).
+  enum E3;        // An error in strict modes.  Accepted as an incomplete
+                  // enumeration class in most modes (i.e., not an opaque
+                  // enum declaration), except in Microsoft mode, where the
+                  // underlying type is int.
+
+
 6/20/12  [EDGcpfe/12995]
 GNU compatibility: sync functions now allowed in both 32 and 64 bit versions
 

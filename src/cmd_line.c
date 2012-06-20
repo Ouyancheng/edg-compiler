@@ -9637,6 +9637,7 @@ variables declared in cmd_line.h.
   explicit_conversion_functions_enabled = FALSE;
   explicit_enum_base_enabled = FALSE;
   enum_qualifiers_enabled = FALSE;
+  opaque_enum_decls_enabled = FALSE;
   lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;
   rvalue_references_enabled = DEFAULT_RVALUE_REFERENCES_ENABLED;
   rvalue_ctor_is_copy_ctor = TRUE;
