@@ -54,7 +54,8 @@ static a_boolean cast_type_pre_check(
                                  a_boolean          has_explicit_cv_qualifiers,
                                  a_boolean          allow_array);
 static an_init_component_ptr scan_expr_or_braced_init_list(
-                                                   a_boolean bundle_lifetimes);
+                                                a_boolean bundle_lifetimes,
+                                                a_boolean always_allow_braced);
 static an_init_component_ptr scan_braced_init_list_internal(
                                                    a_boolean bundle_lifetimes);
 static
@@ -221,7 +222,8 @@ opening parenthesis has already been swallowed); otherwise, it's
   } else {
     /* In the non-parenthesized case, it's a simple expression or
        a braced-init-list. */
-    icp = scan_expr_or_braced_init_list(/*bundle_lifetimes=*/is_full_expr);
+    icp = scan_expr_or_braced_init_list(/*bundle_lifetimes=*/is_full_expr,
+                                        /*always_allow_braced=*/FALSE);
   }  /* if */
   add_init_component_to_initializer_cache(icp,
                                           /*to_front=*/TRUE,
@@ -28416,11 +28418,14 @@ full-expression.
 
 
 static an_init_component_ptr scan_expr_or_braced_init_list(
-                                                    a_boolean bundle_lifetimes)
+                                                 a_boolean bundle_lifetimes,
+                                                 a_boolean always_allow_braced)
 /*
 Scan either an expression or a brace-enclosed list, from source and
 not from a cache, and return an init component entry describing what was
-scanned.  bundle_lifetimes is TRUE if an extra lifetime should be placed
+scanned.  A brace-enclosed list is allowed only if list-initialization
+is allowed (list_init_enabled is TRUE) or if always_allow_braced is TRUE.
+bundle_lifetimes is TRUE if an extra lifetime should be placed
 around each expression and preserved for restoration when the expression
 is used.  Roughly speaking, this is true when the expression is to be
 treated as a full-expression.
@@ -28428,7 +28433,8 @@ treated as a full-expression.
 {
   an_init_component_ptr icp;
 
-  if (curr_token == tok_lbrace && list_init_enabled) {
+  if (curr_token == tok_lbrace &&
+      (always_allow_braced || list_init_enabled)) {
     /* A brace-enclosed list. */
     icp = scan_braced_init_list_internal(bundle_lifetimes);
   } else {
@@ -28479,7 +28485,8 @@ expression routines, with the expression stack already set.
       any_more = begin_potential_pack_expansion_context(&pesep);
       while (any_more) {
         a_pack_expansion_descr_ptr pedep;
-        elem_icp = scan_expr_or_braced_init_list(bundle_lifetimes);
+        elem_icp = scan_expr_or_braced_init_list(bundle_lifetimes,
+                                                 /*always_allow_braced=*/TRUE);
         /* Add the entry to the end of the list. */
         if (end_icp == NULL) {
           icp->variant.braced.list = elem_icp;
@@ -28598,7 +28605,8 @@ treated as a full-expression.
       a_pack_expansion_descr_ptr pedep;
 
       /* Scan the initializer expression and put it into the cache. */
-      icp = scan_expr_or_braced_init_list(bundle_lifetimes);
+      icp = scan_expr_or_braced_init_list(bundle_lifetimes,
+                                          /*always_allow_braced=*/FALSE);
       add_init_component_to_initializer_cache(
                                            icp,
                                            /*to_front=*/FALSE,
@@ -28655,7 +28663,8 @@ full-expression.
   } else if (!is_variadic_template_context()) {
     /* This is not a context that allows a pack expansion, but we could
        have either an expression or a braced-init_list. */
-    icp = scan_expr_or_braced_init_list(bundle_lifetimes);
+    icp = scan_expr_or_braced_init_list(bundle_lifetimes,
+                                        /*always_allow_braced=*/FALSE);
   } else {
     /* Scan a potential pack expansion. */
     a_source_position start_pos;
