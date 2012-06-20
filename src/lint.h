@@ -70,6 +70,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(551,caching_tokens)*/
 /*lint -esym(759,crc_32)*/
 /*lint -esym(765,crc_32)*/
+/*lint -esym(759,add_to_inline_namespace_list)*/
+/*lint -esym(765,add_to_inline_namespace_list)*/
 /*lint -esym(714,db_format_integer_value)*/
 /*lint -esym(714,db_prefix)*/
 /*lint -esym(714,db_prefix_ptr)*/
