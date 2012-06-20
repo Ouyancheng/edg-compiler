@@ -239,6 +239,14 @@ typedef struct a_scope_pointers_block {
 			/* For sck_file and sck_namespace scopes only, pointer
 			   to the symbol representing the unnamed namespace
 			   for the current scope; NULL if there is none. */
+  a_namespace_list_entry_ptr
+		inline_namespaces;
+			/* A list of the inline namespaces in this namespace.
+			   This is also used for the list of namespaces that
+			   used this namespace via a GNU strong
+			   using-directive.  Such namespaces are considered
+			   associated namespaces for lookups for which this
+			   namespace is an associated namespace. */
   a_hash_table_ptr
 		lookup_table;
 			/* Some scopes have an associated hash table to aid

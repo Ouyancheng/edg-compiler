@@ -45,6 +45,7 @@ typedef struct a_hash_table *a_hash_table_ptr;
 typedef struct a_param_id *a_param_id_ptr;
 typedef struct a_pack_expansion_stack_entry *a_pack_expansion_stack_entry_ptr;
 typedef struct a_type_list_entry *a_type_list_entry_ptr;
+typedef struct a_namespace_list_entry *a_namespace_list_entry_ptr;
 
 /* The pointer types to a_routine_fixup and an_initializer_fixup are declared
    here even though the struct themselves are defined in class_decl.c.  This
@@ -815,7 +816,6 @@ typedef struct a_substituted_type_list_entry {
 } a_substituted_type_list_entry;
 
 
-typedef struct a_namespace_list_entry *a_namespace_list_entry_ptr;
 typedef struct a_namespace_list_entry {
   /* Entry created to produce a list of namespaces for some special purpose.
      For example, the list of namespaces in which operators may be found
@@ -2663,15 +2663,6 @@ typedef struct a_namespace_symbol_supplement {
 			/* The lowest declaration sequence number of any active
 			   using-directives that name this namespace.  This is
 			   used by g++ instantiation lookup emulation. */
-#if GNU_EXTENSIONS_ALLOWED
-  a_namespace_list_entry_ptr
-		strong_using_directives;
-			/* A list of namespaces that used this namespace via
-			   a GNU strong using-directive.  Such namespaces
-			   are considered associated namespaces for lookups
-			   for which this namespace is an associated
-			   namespace. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   a_name_qualifier_ptr
 		name_qualifiers;
 			/* Points to a list of the various forms of name
@@ -4049,6 +4040,12 @@ extern a_symbol_ptr enter_namespace_projection_symbol(
 extern void add_friend_function_to_lookup_list_for_class(
                                                   a_symbol_ptr  rout_sym,
                                                   a_type_ptr    class_type);
+
+extern
+a_boolean is_symbol_from_inline_namespace_of_scope(a_symbol_ptr	sym,
+						   a_scope_ptr	scope);
+
+extern a_boolean is_symbol_from_inline_namespace(a_symbol_ptr	sym);
 
 extern a_symbol_ptr enter_synthesized_projection_symbol(
                                a_symbol_ptr		fund_sym,

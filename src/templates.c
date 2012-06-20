@@ -14910,6 +14910,12 @@ parent class or namespace in locator_parent_sym.
   } else if (qualifier_namespace_ptr(*locator) != NULL) {
     a_namespace_ptr	parent_namespace = qualifier_namespace_ptr(*locator);
     result = parent_namespace == sym_parent_namespace(sym);
+    if (!result) {
+      /* If the parent of the symbol is not the parent namespace, check to see
+         it is from an inline namespace of the parent namespace. */
+      result = is_symbol_from_inline_namespace_of_scope(
+                                   sym, parent_namespace->variant.assoc_scope);
+    }  /* if */
     parent_sym = symbol_for(parent_namespace);
   } else {
     /* No parent information in the locator. */
@@ -14986,7 +14992,7 @@ of which it is a member.
                  &locator->source_position, sym);
     result = TRUE;
   } else if (!locator_parent_matches_symbol(locator, sym, &parent_sym) &&
-             parent_sym != NULL) {
+             parent_sym != NULL && !is_symbol_from_inline_namespace(sym)) {
     /* The symbol is something like X::Y, but the locator has a parent
        class or namespace of Z.  This can occur if X::Y is an inherited
        member or one made visible by a using-directive. */
@@ -21369,7 +21375,7 @@ template.  "pos" is the position to be used if an error is to be issued.
   a_namespace_ptr	sym_nsp;
   a_namespace_ptr	curr_nsp;
 
-  if (strict_ansi_mode) {
+  if (strict_ansi_mode && !is_symbol_from_inline_namespace(sym)) {
     sym_nsp = parent_namespace_for_symbol(sym);
     curr_nsp = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
     if (sym_nsp != curr_nsp) {

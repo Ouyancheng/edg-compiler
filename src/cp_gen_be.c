@@ -7293,6 +7293,10 @@ until nsp_scope is the currently active namespace scope.
          the directly-enclosing namespace. */
       open_namespace(nsp_scope->parent, orig_scope);
     }  /* if */
+    if (nsp->is_inline) {
+      write_tok_str("inline");
+      write_space();
+    }  /* if */
     write_tok_str("namespace");
     if (has_name_before_mangling(nsp)) {
       write_space();
@@ -12664,6 +12668,10 @@ Generate code for a namespace definition or namespace alias declaration.
   adv_curr_source_sequence_entry();
   /* Position the output file to the declaration position. */
   set_decl_position(&nsp->source_corresp, sec_decl);
+  if (nsp->is_inline) {
+    write_tok_str("inline");
+    write_space();
+  }  /* if */
   write_tok_str("namespace");
   if (has_name_before_mangling(nsp)) {
     write_space();

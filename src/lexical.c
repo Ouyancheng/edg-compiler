@@ -15237,6 +15237,9 @@ a previously created entry that can be reused.
   if (db_flag_is_set("name_refs")) {
     fprintf(f_debug, "Looking for allocated name reference for: ");
     db_name_reference(entry_to_copy);
+    if (entry_to_copy->qualifier != NULL) {
+      db_name_qualifier(entry_to_copy->qualifier);
+    }  /* if */
     fprintf(f_debug, "  scp name=%s\n", scp->name);
   }  /* if */
 #endif /* DEBUG */

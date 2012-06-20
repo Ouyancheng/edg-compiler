@@ -2078,6 +2078,10 @@ typedef struct an_id_linkage_block {
 			/* TRUE if a namespace reactivation scope was
 			   pushed during linkage processing; it must be
 			   popped by the caller. */
+  a_byte_boolean
+		from_inline_namespace;
+			/* TRUE if the symbol found is a projection symbol
+			   for a symbol made visible by an inline namespace. */
   a_template_param_ptr
 		templ_param_list;
 			/* When is_function_template is TRUE, a pointer to
@@ -2119,6 +2123,7 @@ static void clear_id_linkage_block(an_id_linkage_block *idlbp)
   idlbp->extern_C_name_linkage_specified = FALSE;
   idlbp->direct_linkage_specifier = FALSE;
   idlbp->namespace_reactivated = FALSE;
+  idlbp->from_inline_namespace = FALSE;
   idlbp->templ_param_list = NULL;
   idlbp->linkage = idl_none;
   idlbp->name_linkage = (a_name_linkage_kind)nlk_none;
@@ -2527,6 +2532,7 @@ called by id_linkage.
   a_boolean     is_namespace_member_def = FALSE;
   a_symbol_locator  *locator = idlbp->locator;
   a_boolean     is_guiding_decl = FALSE;
+  a_boolean     orig_other_decl_from_using_directive = FALSE;
 
   db_enter(3, "find_linked_symbol");
   if (locator->specific_symbol != NULL &&
@@ -2540,9 +2546,12 @@ called by id_linkage.
     other_decl = locator->specific_symbol;
     /* If the name, looked up as a member of the specified scope, turns out
        to be a namespace projection, it must have been pulled into the
-       scope via a using declaration or a using directive.  In either case it
-       is not a valid declarator -- ignore it. */
-    if (other_decl->kind == (a_symbol_kind)sk_namespace_projection) {
+       scope via a using declaration or a using directive.  Unless it is
+       a symbol for an inline namespace member it is not a valid
+       declarator and should be ignored. */
+    if (other_decl->synthesized_namespace_projection) {
+      orig_other_decl_from_using_directive = TRUE;
+    } else if (other_decl->kind == (a_symbol_kind)sk_namespace_projection) {
       other_decl = NULL;
     }  /* if */
   } else {
@@ -2579,8 +2588,11 @@ called by id_linkage.
   /* We are only interested in variable and function declarations.  If
      something else was found, we're not interested. */
   if (other_decl != NULL) {
+    a_symbol_ptr  fund_other_decl = fundamental_symbol_of(other_decl);
+    a_boolean     from_inline_namespace;
+    from_inline_namespace = !other_decl->ambiguous &&
+                            is_symbol_from_inline_namespace(fund_other_decl);
     kind = other_decl->kind;
-
     decls_at_same_scope = (other_decl->decl_scope ==
                             scope_stack[idlbp->effective_decl_level].number);
     if ((microsoft_mode || sun_mode || gpp_mode) &&
@@ -2591,7 +2603,6 @@ called by id_linkage.
            namespace N { void f(); }  using N::f; void f() {} // Fine: N::f
          We emulate this only if the entity has C name linkage or if it is
          a variable.  In GNU C++ mode, we also emulate this for variables. */
-      a_symbol_ptr  fund_other_decl = fundamental_symbol_of(other_decl);
       if ((!gpp_mode &&
            source_corresp_entry_for_symbol(fund_other_decl)->name_linkage ==
                                           (a_name_linkage_kind)nlk_external) ||
@@ -2604,6 +2615,9 @@ called by id_linkage.
         kind == (a_symbol_kind)sk_function_template ||
         kind == (a_symbol_kind)sk_overloaded_function) {
       /* Okay to use other_decl. */
+    } else if (from_inline_namespace) {
+      /* An inline namespace member can be defined or redeclared using
+         a projection symbol. */
     } else {
       if (!C_mode() && kind == (a_symbol_kind)sk_namespace_projection) {
         a_symbol_kind  fund_kind = fundamental_symbol_of(other_decl)->kind;
@@ -2685,9 +2699,15 @@ called by id_linkage.
              other_decl = is_list ? other_decl->next : NULL) {
         a_type_ptr  tp;
         a_symbol_ptr	fund_other_decl;
+        a_boolean	function_from_inline_namespace;
         fund_other_decl = fundamental_symbol_of(other_decl);
+        function_from_inline_namespace = !other_decl->ambiguous &&
+                              is_symbol_from_inline_namespace(fund_other_decl);
         if (other_decl->kind == (a_symbol_kind)sk_namespace_projection &&
+            !function_from_inline_namespace &&
             !locator->is_template_id &&
+            (!locator->is_qualified_name ||
+             !orig_other_decl_from_using_directive) &&
             !((sun_mode || microsoft_mode) &&
               (source_corresp_entry_for_symbol(fund_other_decl)->name_linkage
                                       == (a_name_linkage_kind)nlk_external ||
@@ -2698,8 +2718,9 @@ called by id_linkage.
                using N::f;
                void f();
                int f(int);           // Does *not* match N::f(int)
-             (except in Sun and Microsoft modes.)
-          */
+             (except in Sun and Microsoft modes.)  Symbols from inline
+             namespaces are made visible by synthesized namespace projection
+             symbols.  Those are allowed. */
         } else if (fund_other_decl->kind ==
                                          (a_symbol_kind)sk_function_template) {
           a_template_symbol_supplement_ptr  tssp;
@@ -2851,6 +2872,13 @@ called by id_linkage.
       }  /* if */
     } else if (is_namespace_member_def) {
       idlbp->linked_symbol = other_decl;
+    }  /* if */
+    if (idlbp->linked_symbol != NULL) {
+      /* Find out whether the linked symbol was made visible because it
+         is a member of an inline namespace. */
+      a_symbol_ptr	sym = idlbp->linked_symbol;
+      a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+      idlbp->from_inline_namespace = is_symbol_from_inline_namespace(fund_sym);
     }  /* if */
     if (other_decl != NULL &&
         (idlbp->is_block_extern_decl || idlbp->is_local_class_friend_decl) &&
@@ -5291,6 +5319,11 @@ namespace-extension scope.
     /* Look up the name. */
     find_linked_symbol(idlbp);
     linked_symbol = idlbp->linked_symbol;
+    if (idlbp->from_inline_namespace) {
+      /* If the linked symbol is a namespace projection for an inline namespace
+         member, use the fundamental symbol. */
+      linked_symbol = fundamental_symbol_of(linked_symbol);
+    }  /* if */
     storage_class = idlbp->storage_class;
     if (linked_symbol != NULL &&
         linked_symbol->kind != (a_symbol_kind)sk_overloaded_function) {
@@ -5352,6 +5385,7 @@ namespace-extension scope.
     } else {
       /* The lookup failed.  Issue the right error. */
       a_symbol_ptr  sym = locator->specific_symbol;
+      err = TRUE;
       if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
         /* The qualified name referred to an overloaded function.  We want
            to issue the appropriate error after disregarding namespace
@@ -5379,7 +5413,12 @@ namespace-extension scope.
       }  /* if */
       if (sym == NULL || sym->kind == (a_symbol_kind)sk_namespace_projection) {
         /* There's no entry directly declared in the specified scope. */
-        if (nsp != NULL) {
+        if (sym != NULL && sym->ambiguous) {
+          /* The lookup was ambiguous. */
+          pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
+        } else if (sym != NULL && is_symbol_from_inline_namespace(sym)) {
+          /* A symbol found via an inline namespace -- this is okay. */
+        } else if (nsp != NULL) {
           /* Namespace scope. */
           pos_stsy_error(ec_not_an_actual_member, &locator->source_position,
                          locator->symbol_header->identifier,
@@ -5399,7 +5438,6 @@ namespace-extension scope.
         pos_sy_error(ec_not_compatible_with_previous_decl,
                      &locator->source_position, sym);
       }  /* if */
-      err = TRUE;
     }  /* if */
     if (err && nsp != NULL) {
       if (idlbp->is_friend_decl) {
@@ -5428,43 +5466,52 @@ namespace-extension scope.
 
 
 static void move_variable_to_end_of_list(a_variable_ptr  var,
-                                         a_symbol_ptr    linked_decl)
+                                         a_symbol_ptr    linked_decl,
+                                         a_boolean       from_inline_namespace)
 /*
 The given variable is being redeclared (and defined).  Move the corresponding
 IL entry to the end of the associated scope list.  linked_decl is a symbol
 representing the previous declaration; in Sun and Microsoft modes it could
-be a using-declaration.
+be a using-declaration.  from_inline_namespace is TRUE if linked_decl
+is a namespace projection symbol made visible by an inline namespace.
 */
 {
   a_scope_depth  depth;
-  a_boolean      namespace_scope_reopened = FALSE;
+  a_boolean      namespace_scope_needed = FALSE;
 
   if (var->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external) {
     /* Variables with C linkage are always placed on the file scope list. */
     depth = DEPTH_OF_FILE_SCOPE;
   } else {
-    if ((sun_mode || microsoft_mode) &&
-        depth_innermost_function_scope == NO_SCOPE_DEPTH &&
-        linked_decl != NULL &&
-        linked_decl->kind == (a_symbol_kind)sk_namespace_projection) {
+    a_symbol_ptr     fund_linked_decl;
+    fund_linked_decl = linked_decl == NULL
+                                   ? NULL : fundamental_symbol_of(linked_decl);
+    if (from_inline_namespace) {
+      /* The scope for the inline namespace must be pushed. */
+      namespace_scope_needed = TRUE;
+    } else if ((sun_mode || microsoft_mode) &&
+               depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+               linked_decl != NULL &&
+               linked_decl->kind == (a_symbol_kind)sk_namespace_projection) {
       /* In Sun and Microsoft modes it is possible to redeclare a variable
          outside its namespace when that variable is visible through a
          using-declaration.  In that case, we must push that namespace
          scope so that the associated variable can be found by
          remove_from_variables_list and add_to_variables_list. */
-      a_symbol_ptr     fund_linked_decl = fundamental_symbol_of(linked_decl);
       if (sym_is_namespace_member(fund_linked_decl)) {
-        namespace_scope_reopened = TRUE;
-        f_push_namespace_extension_scope(
-                                sym_parent_namespace(fund_linked_decl), TRUE);
+        namespace_scope_needed = TRUE;
       }  /* if */
+    }  /* if */
+    if (namespace_scope_needed) {
+      f_push_namespace_extension_scope(
+                                sym_parent_namespace(fund_linked_decl), TRUE);
     }  /* if */
     depth = depth_innermost_namespace_scope;
   }  /* if */
   check_assertion(in_file_scope(var));
   remove_from_variables_list(var, depth);
   add_to_variables_list(var, depth);
-  if (namespace_scope_reopened) {
+  if (namespace_scope_needed) {
     pop_namespace_extension_scope();
   }  /* if */
 }  /* move_variable_to_end_of_list */
@@ -5986,6 +6033,11 @@ for use in generating cross-reference output describing this declaration.
   locator = idlb.locator;
   storage_class = idlb.storage_class;
   linked_symbol = idlb.linked_symbol;
+  if (idlb.from_inline_namespace) {
+      /* If the linked symbol is a namespace projection for an inline namespace
+         member, use the fundamental symbol. */
+    linked_symbol = fundamental_symbol_of(linked_symbol);
+  }  /* if */
   effective_decl_level = idlb.effective_decl_level;
   linkage = idlb.linkage;
   if (gpp_mode && idlb.is_block_extern_decl &&
@@ -6254,7 +6306,8 @@ for use in generating cross-reference output describing this declaration.
            variables, since it is only by means of a prior extern declaration
            or (in C mode only) a prior tentative definition that we can be
            defining a variable that has already been declared. */
-        move_variable_to_end_of_list(variable_ptr, idlb.linked_symbol);
+        move_variable_to_end_of_list(variable_ptr, idlb.linked_symbol,
+                                     idlb.from_inline_namespace);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -12396,6 +12449,24 @@ is "false".  If leave_semicolon is TRUE, do not consume the final token.
 }  /* static_assert_declaration */
 
 
+void add_to_inline_namespace_list(a_scope_stack_entry_ptr	ssep,
+				  a_using_decl_ptr		udp)
+/*
+Add the using-directive specified by udp to the inline namespace list of the
+namespace scope specified by ssep.
+*/
+{
+  a_namespace_list_entry_ptr         nlep = alloc_namespace_list_entry();
+  a_scope_pointers_block_ptr         spbp;
+
+  check_assertion(is_file_or_namespace_scope(ssep));
+  spbp = get_pointers_block_for_scope(ssep->il_scope);
+  nlep->ptr = (a_namespace_ptr)udp->entity.ptr;
+  nlep->next = spbp->inline_namespaces;
+  spbp->inline_namespaces = nlep;
+}  /* add_to_inline_namespace_list */
+
+
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes is not used in this case. */
 #endif /* !GNU_EXTENSIONS_ALLOWED */
@@ -12403,7 +12474,8 @@ void make_using_directive(a_namespace_ptr    nsp,
 			  a_scope_depth	     depth,
                           a_source_position  *pos,
 			  a_boolean	     compiler_generated,
-			  an_attribute_ptr   attributes) 
+			  a_boolean	     inline_namespace,
+			  an_attribute_ptr   attributes)
 /*
 Create a using-decl entry for a using-directive that specifies the indicated
 namespace, add it to the list of using-decl entries for the scope specified
@@ -12412,8 +12484,10 @@ to the namespace will be found during name lookup.
 
 compiler_generated is TRUE for implicit using-directives created for
 unnamed namespaces, and for certain using-directives created to emulate
-a Microsoft bug.  attributes is a list of attributes specified on this
-using-directive.
+a Microsoft bug.  inline_namespace is TRUE if this using-directive is
+being created to indicate that the specified namespace is an inline namespace
+of the current namespace.  attributes is a list of attributes specified on
+this using-directive.
 */
 {
   a_using_decl_ptr		udp;
@@ -12426,7 +12500,13 @@ using-directive.
   udp->entity.ptr = (char *)nsp;
   udp->is_using_directive = TRUE;
   udp->compiler_generated = compiler_generated;
+  udp->inline_namespace = inline_namespace;
   ssep = &scope_stack[depth_scope_stack];
+  if (inline_namespace) {
+    /* For inline namespaces, add the using-directive to the inline namespace
+       list of the enclosing namespace. */
+    add_to_inline_namespace_list(ssep, udp);
+  }  /* if */
   if (ssep->kind == (a_scope_kind)sck_namespace ||
       ssep->kind == (a_scope_kind)sck_namespace_extension ||
       ssep->kind == (a_scope_kind)sck_file) {
@@ -12456,13 +12536,13 @@ an extension namespace definition, an unnamed namespace definition, or a
 namespace alias definition.  The syntax is:
 
   original-namespace-definition:
-    namespace identifier { namespace-body }
+    inline opt namespace identifier { namespace-body }
 
   extension-namespace-definition:
-    namespace original-namespace-name { namespace-body }
+    inline opt namespace original-namespace-name { namespace-body }
 
   unnamed-namespace:
-    namespace { namespace-body }
+    inline opt namespace { namespace-body }
 
   namespace-alias-definition:
     namespace identifier = qualified-namespace-specifier;
@@ -12472,6 +12552,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
 */
 {
   a_source_position           namespace_pos;
+  a_source_position           start_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position           identifier_end_pos, def_start_pos;
   a_decl_position_supplement_ptr
@@ -12490,9 +12571,18 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   a_boolean		      namespace_scope_pushed = FALSE;
   a_boolean		      initial_decl_of_namespace_std = FALSE;
   an_attribute_ptr            attributes = NULL;
+  a_boolean	              is_inline = FALSE;
 
   db_enter(3, "namespace_declaration");
-  /* Save the source position of the declaration. */
+  /* Save the source position of the start of the declaration. */
+  start_pos = pos_curr_token;
+  if (curr_token == tok_inline) {
+    /* This is an inline namespace declaration. */
+    is_inline = TRUE;
+    (void)get_token();
+    check_assertion(curr_token == tok_namespace);
+  }  /* if */
+  /* Save the source position of the namespace keyword. */
   namespace_pos = pos_curr_token;
   /* A namespace declaration is outside the "Embedded C++" subset. */
   feature_is_not_part_of_embedded_cplusplus_subset(
@@ -12551,6 +12641,10 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     if (attributes != NULL) {
       pos_error(ec_attribute_not_allowed, &attributes->position);
       attributes = NULL;
+    }  /* if */
+    if (is_inline) {
+      /* The inline specifier cannot be used on a namespace alias. */
+      pos_error(ec_inline_on_alias, &start_pos);
     }  /* if */
   } else {
     /* A syntax error */
@@ -12781,6 +12875,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
                                (a_namespace_ptr)NULL);
       nsp->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
+      nsp->is_inline = is_inline;
       ns_sym->variant.namespace_info.ptr = nsp;
       /* Set a flag indicating that this namespace is itself an unnamed
          namespace or is enclosed by an unnamed namespace. */
@@ -12803,7 +12898,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
         nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
         namespace_scope_pushed = TRUE;
       }  /* if */
-      if (is_unnamed_namespace) {
+      if (is_unnamed_namespace || is_inline) {
         /* The model for the initial definition of an unnamed namespace
              namespace { ... }
            is this:
@@ -12818,11 +12913,13 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
            The model is implemented by immediately popping the
            original definition of the unnamed namespace, inserting the
            implicit using directive, and then reopening the namespace as
-           as an extension. */
+           as an extension.  A similar process is used for inline
+           namespaces -- an inline namespace using-directive is created in
+           the namespace containing the inline namespace. */
         pop_scope();
         /* Do an implicit "using" directive of the unnamed namespace. */
         make_using_directive(nsp, depth_scope_stack, &pos_curr_token,
-                             /*compiler_generated=*/TRUE,
+                             /*compiler_generated=*/TRUE, is_inline,
                              (an_attribute_ptr)NULL);
         (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
                                    nsp);
@@ -12837,6 +12934,14 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
          declaration. */
       process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
       nsp = ns_sym->variant.namespace_info.ptr;
+      /* If any declaration of a namespace is inline, all declarations
+         must be. */
+      if (nsp->is_inline != is_inline) {
+        an_error_code	error_code = is_inline ? ec_prev_ns_not_inline
+                                               : ec_prev_ns_inline;
+        pos_sy_diagnostic(strict_ansi_discretionary_severity, error_code,
+                          &start_pos, ns_sym);
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* User code is not permitted to extend the cli namespace. */
       if (cppcli_enabled && !scanning_generated_code_from_metadata && 
@@ -13032,7 +13137,7 @@ A using-directive entry is created and activated for the current scope.
          activate it. */
       make_using_directive(sym->variant.namespace_info.ptr, depth_scope_stack,
                            &decl_start_pos, /*compiler_generated=*/FALSE,
-                           attributes);
+                           /*inline_namespace=*/FALSE, attributes);
     }  /* if */
   }  /* if */
   remove_stop_token(tok_semicolon);
@@ -15456,8 +15561,11 @@ processing should proceed after the call.
       /* Swallow the current token if it is the same as *final_token, then
          return. */
       end_of_decl_action = eoda_skip_final_token;
-    } else if (curr_token == tok_namespace) {
-      /* Attributes cannot precede the "namespace" keyword. */
+    } else if (curr_token == tok_namespace ||
+               (inline_namespaces_enabled && curr_token == tok_inline &&
+                next_token() == tok_namespace)) {
+      /* "namespace" or "inline namespace".  Attributes cannot begin
+          a "namespace" declaration. */
       disallow_attributes(&state->prefix_attributes);
       /* Process a namespace definition or a namespace alias declaration. */
       namespace_declaration(final_token);

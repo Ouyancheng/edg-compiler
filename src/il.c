@@ -13449,7 +13449,8 @@ the cost of list traversals over multiple moves).
   a_scope_pointers_block_ptr  pointers_block;
 
   /* Get the pointers block for the scope in which the routine is declared. */
-  sp = get_scope_for_list(scope_depth, &rp->source_corresp, &pointers_block);
+  sp = get_scope_for_list(NO_SCOPE_DEPTH, &rp->source_corresp,
+                          &pointers_block);
   check_assertion(sp != NULL && pointers_block != NULL &&
                   pointers_block->last_routine != NULL);
   if (rp == pointers_block->last_routine) {

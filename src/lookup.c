@@ -4863,25 +4863,26 @@ is found is returned, or NULL if no matching symbol is found.
 
 
 /* Forward declaration. */
-static
-a_symbol_ptr lookup_in_namespace(a_symbol_locator         *locator,
-                                 a_namespace_ptr          ns_ptr,
-                                 an_id_lookup_options_set options,
-                                 a_namespace_ptr	  orig_ns_ptr,
-				 a_symbol_ptr		  *synth_sym,
-                                 a_boolean                *any_errors);
+static a_symbol_ptr lookup_in_namespace(
+		a_symbol_locator		*locator,
+		a_namespace_ptr			ns_ptr,
+		an_id_lookup_options_set	options,
+		a_namespace_ptr			orig_ns_ptr,
+		a_symbol_ptr			*synth_sym,
+		a_boolean			inline_namespace_lookup,
+		a_boolean			*any_errors);
 
 
 static
 a_symbol_ptr qualified_using_directive_lookup(
-                                 a_symbol_locator         *locator,
-				 a_namespace_ptr	  ns_ptr,
-				 a_scope_ptr		  ns_scope,
-                                 an_id_lookup_options_set options,
-                                 a_namespace_ptr	  orig_ns_ptr,
-				 a_symbol_ptr		  *synth_sym,
-                                 a_boolean                *any_errors,
-				 a_boolean		  strong_only)
+			a_symbol_locator		*locator,
+			a_namespace_ptr			ns_ptr,
+			a_scope_ptr			ns_scope,
+			an_id_lookup_options_set	options,
+			a_namespace_ptr			orig_ns_ptr,
+			a_symbol_ptr			*synth_sym,
+			a_boolean			*any_errors,
+			a_boolean			inline_namespace_only)
 /*
 Do a qualified lookup of namespaces nominated by using directives
 in this scope.  This is used for qualified namespace and file scope
@@ -4930,9 +4931,9 @@ as follows:
 	A::g('x')	C::g(char)
 	A::g(2.0)	ambiguous (B::g or C::g.  D::g is hidden)
 
-strong_only is TRUE in g++ mode if a symbol was found in a given
-namespace and that symbol can overload with symbols from namespaces
-named in strong using-directives.
+inline_namespace_only is TRUE if a symbol was found in a given namespace
+and that symbol can overload with symbols from inline namespaces (or
+named in strong using-directives in g++ mode).
 
 If no symbol is found in the specified namespace, NULL is returned.
 */
@@ -4958,9 +4959,10 @@ If no symbol is found in the specified namespace, NULL is returned.
      returned may differ depending on the lookup options so we need
      to check each symbol to make sure we return the appropriate one. */
   for (; udp != NULL; udp = udp->next) {
-    /* Ignore using-directives that are not GNU strong using-directives
-       if the strong_only flag was passed in. */
-    if (udp->is_using_directive && (!strong_only || udp->strong)) {
+    /* Ignore using-directives that are not for inline namespaces
+       if the inline_namespace_only flag was passed in. */
+    if (udp->is_using_directive &&
+        (!inline_namespace_only || udp->inline_namespace)) {
       a_namespace_symbol_supplement_ptr	next_nssp;
       a_namespace_ptr			assoc_namespace;
 
@@ -4971,7 +4973,7 @@ If no symbol is found in the specified namespace, NULL is returned.
       if (next_nssp->visited_by_qualified_lookup) continue;
       sym = lookup_in_namespace(locator, assoc_namespace, options,
                                 orig_ns_ptr, synth_sym,
-                                any_errors);
+                                inline_namespace_only, any_errors);
       if (sym != NULL && !sym->synthesized_namespace_projection) {
         /* If this lookup found a symbol, add it to the lookup set.
            Don't do this if it is already a synthesized namespace
@@ -4999,13 +5001,14 @@ If no symbol is found in the specified namespace, NULL is returned.
 }  /* qualified_using_directive_lookup */
 
 
-static
-a_symbol_ptr lookup_in_namespace(a_symbol_locator         *locator,
-                                 a_namespace_ptr          ns_ptr,
-                                 an_id_lookup_options_set options,
-                                 a_namespace_ptr	  orig_ns_ptr,
-				 a_symbol_ptr		  *synth_sym,
-                                 a_boolean                *any_errors)
+static a_symbol_ptr lookup_in_namespace(
+		a_symbol_locator		*locator,
+		a_namespace_ptr			ns_ptr,
+		an_id_lookup_options_set	options,
+		a_namespace_ptr			orig_ns_ptr,
+		a_symbol_ptr			*synth_sym,
+		a_boolean			inline_namespace_lookup,
+		a_boolean			*any_errors)
 /*
 Look up the identifier indicated by *locator in the namespace indicated by
 ns_ptr, and return a pointer to the symbol found, or NULL if
@@ -5020,7 +5023,9 @@ supplement when each namespace is searched.  This flag is checked
 to make sure that no namespace is searched more than once.
 
 orig_ns_ptr is a pointer to the namespace specified in the call to
-namespace_qualified_id_lookup.
+namespace_qualified_id_lookup.  inline_namespace_lookup is TRUE if
+a using-directive lookup done from this namespace should only consider
+inline namespaces.
 */
 {
   a_symbol_ptr	sym;
@@ -5122,23 +5127,23 @@ namespace_qualified_id_lookup.
       sym = namespace_symbol;
     }  /* if */
   }  /* if */
-  if ((sym == NULL || (gpp_mode && is_function_or_template_symbol(sym))) &&
-      !is_linkage_or_friend_lookup && !direct_namespace_members_only) {
+  if ((!is_linkage_or_friend_lookup ||
+       (options & IDL_TREAT_AS_TEMPLATE_ID) != 0) &&
+      !direct_namespace_members_only) {
      /* If the symbol was not found in this namespace, look in namespaces
-        visible because of using directives.  Skip this process for a
+        visible because of an inline namespace.  Skip this process for a
         linkage lookup.  A linkage or friend lookup should only find names
-        that are actually defined in a scope.  The using-directive lookup
-        is still done in g++ mode if a function symbol was found, because
-        strong using-directives can add names that overload with the symbol
-        found in the current namespace.  The "strong_only" flag is TRUE
-        in this case. */
+        that are actually defined in a scope.  The template-id exception
+        is made because class template declarations use a linkage lookup
+        but should do the inline namespace processing. */
     a_symbol_ptr	new_sym;
     new_sym = qualified_using_directive_lookup(
                                   locator, ns_ptr, ns_ptr->variant.assoc_scope,
                                   options, orig_ns_ptr, synth_sym,
-                                  any_errors, /*strong_only=*/sym != NULL);
-    /* In g++ mode we may have to merge the result of the using-directive
-       lookup and the lookup in the current namespace. */
+                                  any_errors,
+                                  /*inline_namespace_only=*/TRUE);
+    /* For the inline namespace case, we may have to merge the result of the
+       using-directive lookup and the lookup in the current namespace. */
     if (new_sym != NULL) {
       if (sym == NULL) {
         sym = new_sym;
@@ -5149,6 +5154,18 @@ namespace_qualified_id_lookup.
                                        any_errors);
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (sym == NULL && !is_linkage_or_friend_lookup &&
+      !inline_namespace_lookup && !direct_namespace_members_only) {
+     /* If the symbol was not found in this namespace, look in namespaces
+        visible because of using directives.  Skip this process for a
+        linkage lookup.  A linkage or friend lookup should only find names
+        that are actually defined in a scope. */
+    sym = qualified_using_directive_lookup(
+                                  locator, ns_ptr, ns_ptr->variant.assoc_scope,
+                                  options, orig_ns_ptr, synth_sym,
+                                  any_errors,
+                                  /*inline_namespace_only=*/FALSE);
   }  /* if */
   db_exit();
   return sym;
@@ -5184,7 +5201,7 @@ namespace.  This routine is used only in C++ mode.
   } else {
     /* Search for a symbol in the right scope. */
     sym = lookup_in_namespace(locator, ns_ptr, options, ns_ptr, &synth_sym,
-                              &any_errors);
+                              /*inline_namespace_lookup=*/FALSE, &any_errors);
     locator->specific_symbol = sym;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5381,17 +5398,18 @@ file scope.
           visible because of using directives.  Skip this process for a
           linkage lookup.  A linkage or friend lookup should only find names
           that are actually defined in a scope.  The using-directive lookup
-          is still done in g++ mode if a function symbol was found, because
-          strong using-directives can add names that overload with the symbol
-          found in the file scope.  The "strong_only" flag is TRUE
-          in this case. */
+          is still done if a function symbol was found, because inline
+          namespaces (or g++ strong using-directives) can add names that
+          overload with the symbol found in the current namespace.  The
+          "inline_namespace_only" flag is TRUE in this case. */
       a_symbol_ptr	new_sym;
       new_sym = qualified_using_directive_lookup(
                              locator, (a_namespace_ptr)NULL, file_scope_to_use,
                              options, (a_namespace_ptr)NULL, &synth_sym,
-                             &any_errors, /*strong_only=*/sym != NULL);
-      /* In g++ mode we may have to merge the result of the using-directive
-         lookup and the lookup in the current namespace. */
+                             &any_errors,
+                             /*inline_namespace_only=*/sym != NULL);
+      /* For the inline namespace case, we may have to merge the result of the
+         using-directive lookup and the lookup in the current namespace. */
       if (new_sym != NULL) {
         if (sym == NULL) {
           sym = new_sym;
@@ -5630,26 +5648,35 @@ that "nsp" can be NULL to represent the global namespace.
     if (nlep->ptr == nsp) break;
   }  /* for */
   if (nlep == NULL) {
+    a_scope_pointers_block_ptr	spbp;
+    a_scope_ptr			namespace_scope;
+    a_namespace_list_entry_ptr	inline_namespace_nlep;
     /* The namespace was not found.  Add it to the list now. */
     nlep = alloc_namespace_list_entry();
     nlep->ptr = nsp;
     nlep->next = *namespace_list;
     *namespace_list = nlep;
-#if GNU_EXTENSIONS_ALLOWED
-    /* If the namespace was nominated by any strong using-directives, add
-       the nominating namespace(s) to the namespace list. */
-    if (nsp != NULL) {
-      a_namespace_symbol_supplement_ptr	nssp;
-      a_namespace_list_entry_ptr	strong_using_nlep;
-      nssp = symbol_supplement_for_namespace(nsp);
-      for (strong_using_nlep = nssp->strong_using_directives;
-	   strong_using_nlep != NULL;
-	   strong_using_nlep = strong_using_nlep->next) {
-        add_namespace_to_namespace_list(strong_using_nlep->ptr,
-					namespace_list);
-      }  /* for */
+    /* If the namespace contains any inline namespaces (or was named in
+       any strong using-directives), add inline namespaces (or named
+       namespace(s) in the strong using-directive case) to the namespace
+       list. */
+    namespace_scope = nsp == NULL ? il_header.primary_scope
+                                  : nsp->variant.assoc_scope;
+    spbp = get_pointers_block_for_scope(namespace_scope);
+    for (inline_namespace_nlep = spbp->inline_namespaces;
+         inline_namespace_nlep != NULL;
+         inline_namespace_nlep = inline_namespace_nlep->next) {
+      add_namespace_to_namespace_list(inline_namespace_nlep->ptr,
+                                      namespace_list);
+    }  /* for */
+    if (nsp != NULL && (nsp->is_inline || nsp->named_in_strong_using)) {
+      /* If the namespace is inline, add the enclosing namespace to the
+         namespace list.  Note that "nsp" will be NULL for global scope
+         namespaces. */
+      a_namespace_ptr	parent_nsp;
+      parent_nsp = parent_namespace_or_null(nsp);
+      add_namespace_to_namespace_list(parent_nsp, namespace_list);
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* add_namespace_to_namespace_list */
 

@@ -2397,6 +2397,7 @@ process.
   cpp11_sfinae_enabled = FALSE;
   cpp11_sfinae_ignore_access = FALSE;
   variadic_templates_enabled = FALSE;
+  inline_namespaces_enabled = FALSE;
   assume_references_cannot_be_null = FALSE;
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
@@ -2650,6 +2651,7 @@ handling).
   list_init_enabled = value;
   std_attributes_enabled = value;
   alias_declarations_enabled = value;
+  inline_namespaces_enabled = value;
   if (!option_kind_used[(int)optk_variadic_templates]) {
     variadic_templates_enabled = value;
   }  /* if */
@@ -3760,6 +3762,11 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
        constructor even when a move constructor was explicitly declared
        (if they support move constructors at all, that is). */
     rvalue_ctor_is_copy_ctor = FALSE;
+  }  /* if */
+  if (gnu_version >= 40400) {
+    /* g++ versions 4.4 and above support inline namespaces in all modes
+       (not just C++11 mode). */
+    inline_namespaces_enabled = TRUE;
   }  /* if */
   if (cpp11_mode &&
       !option_kind_used[(int)optk_gen_move_operations]) {
@@ -9650,6 +9657,7 @@ variables declared in cmd_line.h.
   list_init_enabled = FALSE;
   alias_declarations_enabled = FALSE;
   variadic_templates_enabled = FALSE;
+  inline_namespaces_enabled = FALSE;
   std_attributes_enabled = FALSE;
   gnu_attributes_enabled = FALSE;
   ms_declspec_attributes_enabled = FALSE;

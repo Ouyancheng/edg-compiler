@@ -3849,6 +3849,8 @@ is_alias is TRUE.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   nsp->proxy_class = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  nsp->is_inline = FALSE;
+  nsp->named_in_strong_using = FALSE;
   if (is_alias) {
     nsp->variant.assoc_namespace = NULL;
   } else {
@@ -3897,6 +3899,7 @@ Allocate a using-decl entry, initialize its fields, and return a pointer to it.
   udp->is_class_member       = FALSE;
   udp->hidden                = FALSE;
   udp->compiler_generated    = FALSE;
+  udp->inline_namespace      = FALSE;
   udp->strong                = FALSE;
   udp->access                = (an_access_specifier)as_public;
   udp->qualifier.namespace_ptr

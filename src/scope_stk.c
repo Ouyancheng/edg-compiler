@@ -2183,6 +2183,7 @@ Initialize the fields in a scope-pointers-block substructure.
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   spbp->last_template                = NULL;
   spbp->unnamed_namespace_sym        = NULL;
+  spbp->inline_namespaces            = NULL;
   spbp->add_symbols_to_inactive_list = FALSE;
 #if CENTERLINE_CHECKING 
   spbp->avoid_codecenter_warnings    = FALSE;
@@ -3579,6 +3580,7 @@ file scope if it refers to the namespace being popped.
         make_using_directive(udp_nsp, DEPTH_OF_FILE_SCOPE,
                              &null_source_position,
                              /*compiler_generated=*/TRUE,
+                             /*inline_namespace=*/FALSE,
 			     (an_attribute_ptr)NULL);
         any_using_dirs_added = TRUE;
         switch_back_to_original_region(region_to_switch_back_to);

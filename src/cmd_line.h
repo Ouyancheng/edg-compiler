@@ -1098,6 +1098,14 @@ EXTERN a_boolean
 			   accepted. */
 
 EXTERN a_boolean
+		inline_namespaces_enabled;
+			/* TRUE if C++11 inline namespaces are accepted.
+			   Note that when this is FALSE, g++ mode strong
+			   using directives (which are implemented using
+			   a variant of the inline namespace mechanism)
+			   are still allowed in g++ mode. */
+
+EXTERN a_boolean
 		gnu_attributes_enabled;
 			/* TRUE if GNU attribute syntax is accepted (e.g.,
 			   __attribute((noreturn))). */

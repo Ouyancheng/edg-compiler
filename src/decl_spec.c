@@ -1735,65 +1735,25 @@ Set the name_linkage field of the class or enum type pointed to by tp.
 }  /* set_name_linkage_for_type */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- sym is only used when GNU extension are allowed. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-static a_boolean is_symbol_from_strong_using_namespace(a_symbol_ptr	sym)
-/*
-Determine whether sym is from a namespace that has been made visible by
-a GNU strong using-directive in the current namespace.
-*/
-{
-  a_boolean			result = FALSE;
-#if GNU_EXTENSIONS_ALLOWED
-  a_scope_stack_entry_ptr	ssep;
-
-  ssep = scope_stack_entry_for(depth_scope_stack);
-  /* Strong using-directives an only appear at namespace scope. */
-  if (ssep->kind == (a_scope_kind)sck_namespace ||
-      ssep->kind == (a_scope_kind)sck_namespace_extension ||
-      ssep->kind == (a_scope_kind)sck_file) {
-    a_using_decl_ptr	udp;
-    a_namespace_ptr	parent_nsp;
-    parent_nsp = parent_namespace_for_symbol(sym);
-    /* Go through the using-directives of the current scope.  Look for a
-       strong using-directive that names the parent namespace of the symbol. */
-    for (udp = ssep->il_scope->using_decls; udp != NULL;
-         udp = udp->next) {
-      if (udp->is_using_directive && udp->strong) {
-        a_namespace_ptr	udp_nsp = (a_namespace_ptr)udp->entity.ptr;
-        if (same_entities(parent_nsp, udp_nsp)) {
-          result = TRUE;
-          break;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  return result;
-}  /* is_symbol_from_strong_using_namespace */
-
-
 static a_boolean namespace_scope_should_be_pushed(
 				a_symbol_ptr		tag_sym,
 				a_source_position	*pos,
 				a_boolean		*err,
-				a_boolean		strong_using_okay)
+				a_boolean		inline_namespace)
 /*
 The class or enum indicated by tag_sym is being defined, having originally
 been declared a namespace member.  Determine whether it's legal in this
 context (if not, issue a diagnostic and return *err set to TRUE), and if it
 is legal, determine whether a scope stack entry needs to be pushed (in which
-case return TRUE).  strong_using_okay is TRUE if it is okay for tag_sym
-to be defined in a namespace containing a GNU strong using-directive that
-names the namespace containing tag_sym.
+case return TRUE).  inline_namespace is TRUE if it is okay for tag_sym
+to be defined in an inline namespace of the namespace containing tag_sym.
 */
 {
   a_boolean    should_be_pushed = FALSE;
   a_scope_ptr  scope = scope_stack[decl_scope_level].il_scope;
 
-  if (strong_using_okay &&
-      is_symbol_from_strong_using_namespace(tag_sym)) {
+  if (inline_namespace &&
+      is_symbol_from_inline_namespace(tag_sym)) {
     /* Push a namespace extension scope. */
     should_be_pushed = TRUE;
   } else if (!namespace_is_enclosed_by_curr_scope(tag_sym)) {
@@ -2061,12 +2021,22 @@ to qualify the nested class name does not directly contain the nested class
   struct B { struct N; };
   struct D: B {}:
   struct D::N {};  // Error in strict mode.
+
 Similarly, if sym represents a namespace scope class defined in a namespace
 that is different from the namespace indicated by the qualifier (due to a
 using-declaration), issue an error.  For example:
   namespace N { struct S; }
   namespace M { using N::S; }
   struct M::S {};  // Error in strict mode.
+
+A symbol from an inline namespace can be defined as if it were a member of
+the enclosing namespace:
+  namespace N {
+    inline namespace I {
+      struct A;
+    }
+  }
+  struct N::A {};  // Okay
 */
 {
   if (sym->is_class_member) {
@@ -2084,7 +2054,8 @@ using-declaration), issue an error.  For example:
     a_namespace_ptr  qualifier_nsp;
     check_assertion(!loc->is_class_member);
     qualifier_nsp = qualifier_namespace_ptr(*loc);
-    if (!same_entities(qualifier_nsp, sym_parent_namespace_or_null(sym))) {
+    if (!same_entities(qualifier_nsp, sym_parent_namespace_or_null(sym)) &&
+        !is_symbol_from_inline_namespace(sym)) {
       pos_ty_diagnostic(strict_ansi_discretionary_severity,
                         ec_bad_qualifier_for_delayed_class_definition,
                         &loc->source_position,
@@ -3593,17 +3564,17 @@ defined.  Detailed position information is recorded in *decl_pos_block.
               /* Redeclaration. */
               *declares_something = FALSE;
             } else {
-              /* The "is_symbol_from_strong_using_namespace" test is used to
+              /* The "is_symbol_from_inline_namespace" test is used to
                  check for specializations allowed in g++ mode when a
                  specializations in one namespace refers to an entity in
-                 a namespace made visible by a GNU strong using-directive. */
+                 a namespace made visible by an inline namespace. */
               if (tag_sym->decl_scope !=
                                        scope_stack[depth_scope_stack].number &&
                   !(microsoft_mode &&
                     is_allowed_ms_spec_of_base_template(tag_sym)) &&
                   (!sym_is_class_or_namespace_member(tag_sym) ||
                    !(namespace_is_enclosed_by_curr_scope(tag_sym) ||
-                     is_symbol_from_strong_using_namespace(tag_sym)))) {
+                     is_symbol_from_inline_namespace(tag_sym)))) {
                 pos_sy_error(ec_bad_scope_for_specialization,
                              &tag_position, tag_sym);
                 tag_sym = NULL;
@@ -3754,7 +3725,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
             a_boolean  scope_err = FALSE;
             if (namespace_scope_should_be_pushed(
                                             tag_sym, &tag_position, &scope_err,
-                                            /*strong_using_allowed=*/TRUE)) {
+                                            /*inline_allowed=*/TRUE)) {
               /* Push a namespace extension scope. */
               push_namespace_extension_scope(sym_parent_namespace(tag_sym));
               namespace_extension_pushed = TRUE;
@@ -4995,7 +4966,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       } else if (sym_is_namespace_member(tag_sym)) {
         err = FALSE;
         if (namespace_scope_should_be_pushed(tag_sym, &tag_position, &err,
-                                             /*strong_using_okay=*/FALSE)) {
+                                             /*inline_namespace=*/FALSE)) {
           /* Push a namespace extension scope. */
           push_namespace_extension_scope(sym_parent_namespace(tag_sym));
           namespace_extension_pushed = TRUE;

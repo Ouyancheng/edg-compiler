@@ -3252,9 +3252,6 @@ return a pointer to it.
   nssp->namespace_list_entry = NULL;
   nssp->symbol = NULL;
   nssp->using_dir_decl_seq = NO_DECL_SEQUENCE_NUMBER;
-#if GNU_EXTENSIONS_ALLOWED
-  nssp->strong_using_directives = NULL;
-#endif /* GNU_EXTENSIONS_ALLOWED */
   nssp->name_qualifiers = NULL;
 #if NEED_NAME_MANGLING
   nssp->last_unnamed_type_number = 0;
@@ -5489,6 +5486,65 @@ in argument dependent lookup.
     }  /* if */
   }  /* if */
 }  /* add_friend_function_to_lookup_list_for_class */
+
+
+a_boolean is_symbol_from_inline_namespace_of_scope(a_symbol_ptr	sym,
+						   a_scope_ptr	scope)
+/*
+Return TRUE if the parent namespace of sym is an inline namespace of scope.
+*/
+{
+  a_using_decl_ptr	udp;
+  a_namespace_ptr	parent_nsp;
+  a_boolean		result = FALSE;
+
+  parent_nsp = parent_namespace_for_symbol(sym);
+  /* Go through the using-directives of the scope.  Look for an
+     inline namespace using-directive that names the parent namespace of
+     the symbol. */
+  for (udp = scope->using_decls; udp != NULL; udp = udp->next) {
+    if (udp->is_using_directive && udp->inline_namespace) {
+      a_namespace_ptr	udp_nsp = (a_namespace_ptr)udp->entity.ptr;
+      if (same_entities(parent_nsp, udp_nsp)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* is_symbol_from_inline_namespace_of_scope */
+
+
+a_boolean is_symbol_from_inline_namespace(a_symbol_ptr	sym)
+/*
+Determine whether sym is from a namespace that has been made visible by
+an inline namespace or a GNU strong using-directive in the current
+namespace.
+*/
+{
+  a_boolean			result = FALSE;
+  a_scope_stack_entry_ptr	ssep;
+
+  /* Suppress the processing if inline namespaces are not enabled.  The
+     g++ strong using directive feature is implemented using the inline
+     namespace mechanism, so this processing is also required in g++ mode. */
+  if (inline_namespaces_enabled || gpp_mode) {
+    for (ssep = scope_stack_entry_for(depth_scope_stack);
+         !result && ssep != NULL;
+         ssep = previous_scope_of(ssep)) {
+      /* Inline namespace using-directives only appear at namespace scope. */
+      if (ssep->kind == (a_scope_kind)sck_namespace ||
+          ssep->kind == (a_scope_kind)sck_namespace_extension ||
+          ssep->kind == (a_scope_kind)sck_file) {
+        if (is_symbol_from_inline_namespace_of_scope(sym, ssep->il_scope)) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* is_symbol_from_inline_namespace */
 
 
 static

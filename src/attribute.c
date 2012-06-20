@@ -5311,15 +5311,14 @@ attribute to it and return the entity.
        which it appears, it is only valid in a namespace scope (including the
        file scope). */
     if (is_file_or_namespace_scope(ssep)) {
-      /* Add the current namespace to the list of namespaces that contain a
-         strong using of the named namespace. */
-      a_namespace_list_entry_ptr         nlep = alloc_namespace_list_entry();
-      a_namespace_symbol_supplement_ptr  nssp;
-      nssp = symbol_supplement_for_namespace((a_namespace_ptr)udp->entity.ptr);
-      nlep->ptr = ssep->assoc_namespace;
-      nlep->next = nssp->strong_using_directives;
-      nssp->strong_using_directives = nlep;
+      /* Add the current namespace to the inline namespace list.  Strong
+         using-directives make use of a variant of the inline namespace
+         mechanism. */
+      a_namespace_ptr	udp_nsp =  (a_namespace_ptr)udp->entity.ptr;
+      udp->inline_namespace = TRUE;
       udp->strong = TRUE;
+      udp_nsp->named_in_strong_using = TRUE;
+      add_to_inline_namespace_list(ssep, udp);
     } else {
       /* The strong using appeared in an invalid scope. */
       pos_error(ec_bad_strong_using_scope, &ap->position);

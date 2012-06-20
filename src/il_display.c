@@ -5654,6 +5654,12 @@ Display the indicated namespace entry.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   disp_ptr("proxy_class", (char *)ptr->proxy_class, iek_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (ptr->is_inline) {
+    disp_boolean("is_inline", TRUE);
+  }  /* if */
+  if (ptr->named_in_strong_using) {
+    disp_boolean("named_in_strong_using", TRUE);
+  }  /* if */
   if (ptr->is_namespace_alias) {
     disp_boolean("is_namespace_alias", TRUE);
     disp_ptr("assoc_namespace", (char *)ptr->variant.assoc_namespace,
@@ -5693,6 +5699,9 @@ Display the indicated using-directive entry.
   }  /* if */
   if (ptr->compiler_generated) {
     disp_boolean("compiler_generated", ptr->compiler_generated);
+  }  /* if */
+  if (ptr->inline_namespace) {
+    disp_boolean("inline_namespace", ptr->inline_namespace);
   }  /* if */
   if (ptr->strong) {
     disp_boolean("strong", ptr->strong);

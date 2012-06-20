@@ -1174,10 +1174,14 @@ extern void for_each_iterator_declaration(a_statement_ptr sp);
 
 extern void static_assert_declaration(a_boolean  leave_semicolon);
 
+extern void add_to_inline_namespace_list(a_scope_stack_entry_ptr	ssep,
+					 a_using_decl_ptr		udp);
+
 extern void make_using_directive(a_namespace_ptr    nsp,
 				 a_scope_depth	    depth,
                                  a_source_position  *pos,
 		   	         a_boolean	    compiler_generated,
+				 a_boolean	    inline_namespace,
 				 an_attribute_ptr   attributes); 
 
 #if DECL_MODIFIERS_IN_USE

@@ -2840,6 +2840,14 @@ typedef struct a_namespace {
   a_byte_boolean
 		is_namespace_alias;
 			/* TRUE when the name is a namespace alias. */
+  a_byte_boolean
+		is_inline;
+			/* TRUE if the namespace was declared as an inline
+			   namespace. */
+  a_byte_boolean
+		named_in_strong_using;
+			/* TRUE if the namespace was named in a g++ strong
+			   using directive. */
   union {
     /* When is_namespace_alias == FALSE: */
     a_scope_ptr	assoc_scope;
@@ -2861,7 +2869,9 @@ member using-declaration has the form "using A::y" (where A is the name of a
 base class of the class in which the declaration appears).  A nonmember
 using-declaration has the form "using N::y" (where N is a namespace name) or
 "using ::y".  A using-directive is of the form "using namespace N", where N
-is a namespace name.
+is a namespace name.  Entries are also created to represent C++11 inline
+namespaces.  Inline namespaces are the mechanism used to standardize the
+g++ feature originally known as strong using-directives.
 */
 typedef struct a_using_decl *a_using_decl_ptr;
 typedef struct a_using_decl {
@@ -2907,21 +2917,34 @@ typedef struct a_using_decl {
 			   unnamed namespaces and is also TRUE for the
 			   using-directive created to simulate a Microsoft
 			   bug (in Microsoft bugs mode). */
-  a_bit_field	strong:1;
-			/* TRUE for a GNU strong using-directive.  A strong
-			   using-directive differs from a normal
-			   using-directive in the following ways:
-			   1. Class templates from the used namespace can be
-			      specialized as if they were members of the
-			      namespace containing the using-directive.
-			   2. The namespace containing the using-directive is
-			      considered an associated namespace for types
-			      in the used namespace (for argument-dependent
-			      lookup).
-			   3. In a qualified lookup, namespaces in strong
+  a_bit_field	inline_namespace:1;
+			/* TRUE to represent an entry created for an inline
+			   namespace or a GNU strong using-directive.  A
+			   namespace named in a strong-using directive is
+			   treated as if the namespace were declared inline.
+			   An entry created to represent an inline namespace
+			   differs from a normal using-directive in the
+			   following ways:
+			   1. Entities declared in inline namespaces can be
+			      defined as if they were members of the namespace
+			      containing the inline namespace.
+			   2. Templates from the inline namespace can be
+			      specialized or instantiated as if they were
+			      members of the namespace containing the
+			      inline namespace.
+			   3. For argument dependent lookup, if an associated
+			      namespace is an inline namespace, its enclosing
+			      namespace is also an associated namespace.  If
+			      an associated namespace directly contains an
+			      inline namespace, it is included in the set of
+			      associated namespaces.
+			   4. In a qualified lookup, namespaces in strong
 			      using-directives are examined even if the
 			      namespace named in the qualified name contains
 			      the named member. */
+  a_bit_field	strong:1;
+			/* TRUE if this was made an inline namespace through
+			   use of the g++ strong attribute. */
   an_access_specifier
                 access;
 			/* For class member using-declarations only, the
