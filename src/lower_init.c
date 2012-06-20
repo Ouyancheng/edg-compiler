@@ -9148,7 +9148,7 @@ The subtree of the node has not yet been lowered.
 {
   a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
   a_dynamic_init_ptr          dip = ndsp->dynamic_init;
-  a_type_ptr                  base_type, ptr_array_type;
+  a_type_ptr                  base_type, ptr_new_type;
   a_variable_ptr              temp_var;
   an_expr_node_ptr            assign_node, test_node;
   an_expr_node_ptr            init_node, call_node, null_node, delete_args;
@@ -9265,12 +9265,12 @@ The subtree of the node has not yet been lowered.
                            (dip->kind == (a_dynamic_init_kind)dik_constructor);
 #endif /* CTORS_RETURN_THIS */
       /* Allocate the temporary. */
-      ptr_array_type = make_pointer_type(ndsp->type);
-      temp_var = make_local_temporary(ptr_array_type);
+      ptr_new_type = make_pointer_type(ndsp->type);
+      temp_var = make_local_temporary(ptr_new_type);
       /* Assign the entity address expression to the temporary. */
       assign_node = make_var_assignment_expr(temp_var,
                                              add_cast_if_necessary(call_node,
-                                                              ptr_array_type));
+                                                                ptr_new_type));
       set_expr_creation_insert_location(&insert_location);
       if (is_array_type(ndsp->type) &&
           dip->kind == (a_dynamic_init_kind)dik_zero &&
@@ -9332,12 +9332,12 @@ The subtree of the node has not yet been lowered.
          pointer; its second is the initialization code; and its third is a
          NULL constant of the right type. */
       test_node = boolean_controlling_expr(assign_node);
-      make_zero_of_proper_type(ptr_array_type, &null_constant);
+      make_zero_of_proper_type(ptr_new_type, &null_constant);
       null_node = alloc_node_for_constant(&null_constant);
       test_node->next = init_node;
       init_node->next = null_node;
       call_node = make_operator_node((an_expr_operator_kind)eok_question,
-                                     ptr_array_type, test_node);
+                                     ptr_new_type, test_node);
     }  /* if */
     /* Turn the original enk_new_delete node into a cast to the right
        pointer type. */
