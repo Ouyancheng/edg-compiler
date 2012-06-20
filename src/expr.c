@@ -177,7 +177,6 @@ opening parenthesis has already been swallowed); otherwise, it's
   an_expr_stack_entry   *saved_expr_stack;
   an_expression_kind    expr_kind = (an_expression_kind)ek_normal;
   an_init_component_ptr icp;
-  an_operand            *operand = NULL;
   a_type_ptr            deduced_auto_type;
   a_boolean             still_dependent;
   a_boolean             is_full_expr = !dps->is_new_expr_type;
@@ -228,17 +227,16 @@ opening parenthesis has already been swallowed); otherwise, it's
   add_init_component_to_initializer_cache(icp,
                                           /*to_front=*/TRUE,
                                           &dps->prescanned_initializer_cache);
-  if (is_expression_component(icp)) operand = operand_of_arg_list_elem(icp);
   /* Do type deduction. */
-  if (operand == NULL ||  /* FIXME */
-      !deduce_auto_type(dps->declared_type,
+  if (!deduce_auto_type(dps->declared_type,
                         dps->auto_type,
-                        operand,
+                        (an_operand *)NULL,
+                        icp,
                         &dps->declarator_pos,
                         &dps->type,
                         &deduced_auto_type,
                         &still_dependent)) {
-    if (operand != NULL && still_dependent) {  /* FIXME? */
+    if (still_dependent) {
       /* Deduction was not done because the types are still dependent. */
       dps->type = dps->declared_type;
       dps->deduced_auto_type = NULL;
@@ -14712,7 +14710,9 @@ expression, and return the result in *result (or an error indication in
       make_rescan_operand(rcblock->argument_list, rcblock, &auto_operand);
       /* Deduce the type. */
       if (deduce_auto_type(new_type, /*auto_type=*/(a_type_ptr)NULL,
-                           &auto_operand, &type_position,
+                           &auto_operand,
+                           (an_arg_list_elem_ptr)NULL,
+                           &type_position,
                            &deduced_new_type,
                            &deduced_auto_type,
                            &still_dependent)) {
@@ -29017,6 +29017,7 @@ type of element_operand and sets the variable type to the deduced type.
     if (deduce_auto_type(iterator->type,
                          /*auto_type=*/(a_type_ptr)NULL,
                          element_operand,
+                         (an_arg_list_elem_ptr)NULL,
                          &iterator->source_corresp.decl_position,
                          &deduced_type,
                          &deduced_auto_type,

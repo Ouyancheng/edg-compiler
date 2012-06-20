@@ -3798,6 +3798,66 @@ if so also return *elem_type set to the argument type X.
 }  /* is_instance_of_std_initializer_list */
 
 
+static a_boolean deduce_from_braced_init_list(
+                                      an_arg_list_elem_ptr alep,
+                                      a_type_ptr           elem_type,
+                                      a_template_param_ptr templ_params,
+                                      a_template_arg_ptr   *template_arg_list)
+/*
+alep is a brace-enclosed list.  Do template deduction on each element of
+the list, to produce a template argument list in *template_arg_list that
+will transform the dependent type elem_type into the type of the elements
+in the list.  So, for example, is elem_type is T, and the list is
+{1, 2, 3}, the argument list sought is one that sets T=int.  templ_params
+is the list of parameters for the template for which deduction is
+being done.  This routine is also used for deduction for "auto" with
+a braced-initializer, and elem_type in that case is the template
+parameter standing in for "auto"; when deduction is done, the variable's
+type will be std::initializer_list<template-arg-list>.
+*/
+{
+  a_boolean            deduction_okay = TRUE;
+  a_boolean            consider_nondeduced;
+  a_type_ptr           qc_param_type;
+  a_type_ptr           qc_arg_type;
+  an_arg_list_elem_ptr elem;
+
+  for (elem = alep->variant.braced.list;
+       elem != NULL;
+       elem = elem->next) {
+    a_type_ptr elem_arg_type;
+    a_type_ptr elem_param_type = elem_type;
+    an_operand *elem_operand;
+    if (!is_expression_component(elem)) {
+      /* Deduction fails if the member is not an expression (e.g., it's a
+         braced-init-list). */
+      deduction_okay = FALSE;
+      break;
+    }  /* if */
+    elem_operand = operand_of_arg_list_elem(elem);
+    elem_arg_type = elem_operand->type;
+    if (!adjust_deduction_pair(&elem_param_type,
+                               &elem_arg_type,
+                               elem_operand,
+                               templ_params, *template_arg_list,
+                               &qc_param_type, &qc_arg_type,
+                               &consider_nondeduced)) {
+      if (consider_nondeduced) continue;
+      deduction_okay = FALSE;
+      break;
+    }  /* if */
+    deduction_okay = deduce_from_one_pair(elem_param_type,
+                                          elem_arg_type,
+                                          qc_param_type,
+                                          qc_arg_type,
+                                          template_arg_list,
+                                          templ_params);
+    if (!deduction_okay) break;
+  }  /* for */
+  return deduction_okay;
+}  /* deduce_from_braced_init_list */
+
+
 static a_boolean deduce_one_parameter(a_param_type_ptr      ptp,
                                       a_type_ptr            param_type,
                                       an_arg_list_elem_ptr  *p_arg,
@@ -3877,42 +3937,11 @@ succeeds, FALSE if it fails.
         } else {
           /* std::initializert_list<T>, deduce with T as a parameter type
              against each expression in the list. */
-          an_arg_list_elem_ptr elem;
-          for (elem = arg->variant.braced.list;
-               elem != NULL;
-               elem = elem->next) {
-            a_type_ptr elem_arg_type;
-            a_type_ptr elem_param_type = elem_type;
-            an_operand *elem_operand;
-            if (!is_expression_component(elem)) {
-              /* Deduction fails if the member is not an expression (e.g.,
-                 it's a braced-init-list). */
-              deduction_okay = FALSE;
-              goto end_of_routine;
-            }  /* if */
-            elem_operand = operand_of_arg_list_elem(elem);
-            elem_arg_type = elem_operand->type;
-            if (!adjust_deduction_pair(&elem_param_type,
-                                       &elem_arg_type,
-                                       elem_operand,
-                                       templ_params, *template_arg_list,
-                                       &qc_param_type, &qc_arg_type,
-                                       &consider_nondeduced)) {
-              if (consider_nondeduced) continue;
-              deduction_okay = FALSE;
-              goto end_of_routine;
-            }  /* if */
-            deduction_okay = deduce_from_one_pair(elem_param_type,
-                                                  elem_arg_type,
-                                                  qc_param_type,
-                                                  qc_arg_type,
-                                                  template_arg_list,
-                                                  templ_params);
-            if (!deduction_okay) {
-              deduction_okay = FALSE;
-              goto end_of_routine;
-            }  /* if */
-          }  /* for */
+          deduction_okay = deduce_from_braced_init_list(arg,
+                                                        elem_type,
+                                                        templ_params,
+                                                        template_arg_list);
+          if (!deduction_okay) goto end_of_routine;
         }  /* if */
         goto next_iteration;
       }  /* if */
@@ -21998,6 +22027,7 @@ next_function:;
 a_boolean deduce_auto_type(a_type_ptr        orig_type,
                            a_type_ptr        auto_type,
                            an_operand        *initializer_operand,
+                           an_arg_list_elem  *initializer_alep,
                            a_source_position *source_pos,
                            a_type_ptr        *type_after_deduction,
                            a_type_ptr        *deduced_auto_type,
@@ -22008,14 +22038,16 @@ construct.  orig_type is the type of the declared entity, with "auto"
 embedded in it.  auto_type is the "auto" type that's embedded (a
 template parameter type); it can be NULL, in which case this routine
 will find it inside orig_type.  initializer_operand is the initializer,
-whose type is used to do the deduction.  source_pos is the source
-position of the declaration.  If the deduction succeeds,
-*type_after_deduction is set to the deduced version of orig_type,
-*deduced_auto_type is set to the type deduced for "auto" itself, and
-TRUE is returned.  If an error is detected, FALSE is returned (but no
-diagnostic is issued).  If the deduction was not attempted because
-the types involved are still dependent, *still_dependent is
-returned TRUE and FALSE is returned.
+whose type is used to do the deduction.  Alternatively,
+initializer_alep can be used to specify the initializer in
+init-component form; if it's non-NULL it is used instead of
+initializer_operand.  source_pos is the source position of the
+declaration.  If the deduction succeeds, *type_after_deduction is set
+to the deduced version of orig_type, *deduced_auto_type is set to the
+type deduced for "auto" itself, and TRUE is returned.  If an error is
+detected, FALSE is returned (but no diagnostic is issued).  If the
+deduction was not attempted because the types involved are still
+dependent, *still_dependent is returned TRUE and FALSE is returned.
 */
 {
   a_boolean             okay = TRUE;
@@ -22044,16 +22076,33 @@ returned TRUE and FALSE is returned.
     }  /* if */
   }  /* if */
   check_assertion(is_auto_type(auto_type));
-  arg_type = initializer_operand->type;
-  if (is_managed_nullptr_type(arg_type)) {
-    /* The Microsoft C++/CLI compiler deduces std::nullptr_t from an auto
-       initializer of the managed nullptr type. */
-    arg_type = standard_nullptr_type();
-    initializer_operand = NULL;
+  if (initializer_alep != NULL) {
+    /* The initializer is given in init-component form. */
+    if (is_expression_component(initializer_alep)) {
+      initializer_operand = operand_of_arg_list_elem(initializer_alep);
+      initializer_alep = NULL;
+    } else {
+      initializer_operand = NULL;
+    }  /* if */
+  } else {
+    check_assertion(initializer_operand != NULL);
+  }  /* if */
+  if (initializer_operand != NULL) {
+    arg_type = initializer_operand->type;
+    if (is_managed_nullptr_type(arg_type)) {
+      /* The Microsoft C++/CLI compiler deduces std::nullptr_t from an auto
+         initializer of the managed nullptr type. */
+      arg_type = standard_nullptr_type();
+      initializer_operand = NULL;
+    }  /* if */
+  } else {
+    /* The initializer is a braced-init-list, so its type is not known. */
+    arg_type = NULL;
   }  /* if */
   if (is_template_dependent_context()) {
     /* See whether deduction can be done. */
-    if (is_template_dependent_type(arg_type)) {
+    if (arg_type != NULL ? is_template_dependent_type(arg_type) :
+                           arg_list_is_dependent(initializer_alep)) {
       /* No, the initializer is dependent. */
       do_deduction = FALSE;
     } else {
@@ -22072,19 +22121,32 @@ returned TRUE and FALSE is returned.
   } else {
     /* Do deduction. */
     templ_param = alloc_template_param(symbol_for(auto_type));
-    /* Adjust the argument and parameter types for deduction.  Some types can
-       never succeed:  Issue an error and don't attempt deduction any
-       further. */
-    if (!adjust_deduction_pair(&type, &arg_type, initializer_operand,
-                               templ_param, (a_template_arg *)NULL,
-                               &qc_param_type, &qc_arg_type,
-                               (a_boolean *)NULL)) {
-      okay = FALSE;
-    } else if (!deduce_from_one_pair(type, arg_type,
-                                     qc_param_type, qc_arg_type,
-                                     &templ_arg, templ_param)) {
-      /* Deduction failed. */
-      okay = FALSE;
+    if (initializer_alep == NULL) {
+      /* Adjust the argument and parameter types for deduction.  Some types can
+         never succeed:  Issue an error and don't attempt deduction any
+         further. */
+      if (!adjust_deduction_pair(&type, &arg_type, initializer_operand,
+                                 templ_param, (a_template_arg *)NULL,
+                                 &qc_param_type, &qc_arg_type,
+                                 (a_boolean *)NULL)) {
+        okay = FALSE;
+      } else if (!deduce_from_one_pair(type, arg_type,
+                                       qc_param_type, qc_arg_type,
+                                       &templ_arg, templ_param)) {
+        /* Deduction failed. */
+        okay = FALSE;
+      }  /* if */
+    } else {
+      /* Deduce from a braced-init-list. */
+      if (!deduce_from_braced_init_list(initializer_alep,
+                                        type,
+                                        templ_param,
+                                        &templ_arg)) {
+        okay = FALSE;
+      }  /* if */
+    }  /* if */
+    if (!okay) {
+      /* Previous error. */
     } else if (templ_arg == NULL) {
       /* Deduction produced no argument because an error type was involved. */
       if (is_error_type(arg_type) || is_error_type(type)) {
@@ -22098,6 +22160,28 @@ returned TRUE and FALSE is returned.
     } else {
       /* Deduction succeeded. */
       check_assertion(templ_arg->kind == (a_templ_arg_kind)tak_type);
+      if (initializer_alep != NULL) {
+        /* When the deduction was from a braced-init-list, the deduced type
+           for "auto" is std::initializer_list<T>, not simply T. */
+        a_symbol_ptr       sym;
+        a_template_arg_ptr local_arg_list;
+        if (symbol_for_std_initializer_list == NULL) {
+          /* The <initializer_list> header has not been included. */
+          expr_pos_error(ec_initializer_list_not_included,
+                         init_component_pos(initializer_alep));
+          okay = FALSE;
+          goto end_of_routine;
+        }  /* if */
+        local_arg_list = alloc_template_arg((a_templ_arg_kind)tak_type);
+        local_arg_list->variant.type = templ_arg->variant.type;
+        sym = find_template_class(symbol_for_std_initializer_list,
+                                  &local_arg_list,
+                                  /*any_prototype_allowed=*/FALSE,
+                                  /*specific_prototype_allowed=*/
+                                                              (a_symbol *)NULL,
+                                  /*instantiate_nonreal=*/FALSE);
+        templ_arg->variant.type = type_symbol_type(sym);
+      }  /* if */
       *deduced_auto_type = templ_arg->variant.type;
       /* Substitute the deduced type to obtain the actual type for the current
          declaration. */

@@ -2394,10 +2394,11 @@ ec_extra_braces_on_simple_init;;"only one level of braces is allowed on an initi
 ec_not_an_enum_type_name;;"%nd cannot be used as an enumeration type name"
 ec_lambda_returns_with_diff_types;;"in a lambda with an implicit return type, all return statements must return the same type"
 ec_auto_new_with_braced_init;;"a braced-initializer cannot be used with \"new auto\""
-ec_missing_initializer_list_ctor;;"the definition of initializer_list does not contain the expected constructor"
+ec_missing_initializer_list_ctor;;"the definition of std::initializer_list does not contain the expected constructor"
 ec_variable_hides_entity;;"declaration hides %nd"
 ec_invalid_std_initializer_list_parameter_list;;"invalid template parameter list for std::initializer_list (it should be one ordinary type parameter with no default)"
 ec_braced_list_passed_to_ellipsis;;"a brace-enclosed list cannot be passed for an ellipsis parameter"
+ec_initializer_list_not_included;;"an #include <initializer_list> is needed prior to a use of std::initializer_list, including an implicit use"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

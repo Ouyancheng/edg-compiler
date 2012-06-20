@@ -4737,7 +4737,8 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
   a_class_symbol_supplement_ptr
                          cssp;
 
-  check_assertion(curr_token == tok_lbrace);
+  check_assertion(curr_token == tok_lbrace ||
+                  anything_cached(&dps->prescanned_initializer_cache));
   dtype = skip_typerefs(dtype);
   /* Parse the list structure (which may be nested and therefore really a tree
      structure). */
@@ -5122,7 +5123,7 @@ returned set to TRUE.
   if (dps->auto_type_specifier_seen && !dps->has_trailing_return_type &&
       !is_error_type(vp_type)) {
     /* An initializer for a variable declared with the "auto" type specifier.*/
-    if (first_token == tok_lbrace) {
+    if (first_token == tok_lbrace && !list_init_enabled) {
       error(ec_auto_brace_initialization_not_allowed);
       vp->type = vp_type = error_type();
       invalidate_type(dps);
