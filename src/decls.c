@@ -8137,19 +8137,13 @@ skip_overloading:;
     }  /* if */
     if (is_function_def) {
       a_boolean      saved_referenced_flag;
-      a_scope_depth  scope_depth = depth_innermost_namespace_scope;
       if (!linked_redecl_error) {
         /* If this is a definition, unlink the routine entry and relink it
            at the end of the routines list, so that routines appear in the
            order that their bodies appear.  If a redeclaration error
            occurred, the scope depth is unreliable and this operation
            might not be possible. */
-        if (routine_ptr->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_external) {
-          scope_depth = DEPTH_OF_FILE_SCOPE;
-        }  /* if */
-        schedule_move_to_current_end_of_routines_list(routine_ptr,
-                                                      scope_depth);
+        schedule_move_to_current_end_of_routines_list(routine_ptr);
       }  /* if */
       /* Put in the storage class for the definition (static or 
          unspecified). */

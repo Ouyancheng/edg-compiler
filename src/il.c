@@ -13433,11 +13433,9 @@ done:;
 }  /* perform_scheduled_routine_moves */
 
 
-void schedule_move_to_current_end_of_routines_list(a_routine_ptr  rp,
-                                                   a_scope_depth  scope_depth)
+void schedule_move_to_current_end_of_routines_list(a_routine_ptr  rp)
 /*
-Record the given routine (declared in the scope associated with the given
-scope stack depth) as needing to be moved to what is currently the end of
+Record the given routine As needing to be moved to what is currently the end of
 the routines list for that scope.  In most cases, the actual move will be
 performed later by a call to perform_scheduled_routine_moves (to amortize
 the cost of list traversals over multiple moves).
