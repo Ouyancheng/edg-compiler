@@ -2532,7 +2532,6 @@ called by id_linkage.
   a_boolean     is_namespace_member_def = FALSE;
   a_symbol_locator  *locator = idlbp->locator;
   a_boolean     is_guiding_decl = FALSE;
-  a_boolean     orig_other_decl_from_using_directive = FALSE;
 
   db_enter(3, "find_linked_symbol");
   if (locator->specific_symbol != NULL &&
@@ -2549,9 +2548,8 @@ called by id_linkage.
        scope via a using declaration or a using directive.  Unless it is
        a symbol for an inline namespace member it is not a valid
        declarator and should be ignored. */
-    if (other_decl->synthesized_namespace_projection) {
-      orig_other_decl_from_using_directive = TRUE;
-    } else if (other_decl->kind == (a_symbol_kind)sk_namespace_projection) {
+    if (!other_decl->synthesized_namespace_projection &&
+        other_decl->kind == (a_symbol_kind)sk_namespace_projection) {
       other_decl = NULL;
     }  /* if */
   } else {
