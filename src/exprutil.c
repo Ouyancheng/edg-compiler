@@ -590,6 +590,64 @@ are left on the list but are marked as having been already recorded.
 }  /* record_operand_modification_refs */
 
 
+void detach_ref_entries_from_curr_expr(an_operand *operand)
+/*
+The given operand is going to be saved off to the side and brought back
+later (e.g., by being put into an initializer cache).  Detach its
+reference entries from the current expression so they will not be closed
+out when the expression terminates.
+*/
+{
+  a_ref_entry_ptr rep, rep2, prev_rep2;
+
+  for (rep = operand->ref_entries_list;
+       rep != NULL;
+       rep = rep->next_operand_ref) {
+    for (prev_rep2 = NULL, rep2 = curr_expr_ref_entries;
+         rep2 != NULL;
+         prev_rep2 = rep2, rep2 = rep2->next) {
+      if (rep == rep2) {
+        /* Remove this entry from the curr_expr_ref_entries list. */
+        if (prev_rep2 == NULL) {
+          curr_expr_ref_entries = rep2->next;
+        } else {
+          prev_rep2->next = rep2->next;
+        }  /* if */
+        rep2->next = NULL;
+        goto outer_loop;
+      }  /* if */
+    }  /* for */
+    unexpected_condition_str("detach_ref_entries_from_curr_expr: not found");
+outer_loop:;
+  }  /* for */
+}  /* detach_ref_entries_from_curr_expr */
+
+
+void reattach_ref_entries_to_curr_expr(an_operand *operand)
+/*
+The given operand was saved off to the side (e.g., by being put into an
+initializer cache).  Now, it's being brought back for the rest of its
+processing.  If it has attached reference entries, add them to the list for
+the current expression.
+*/
+{
+  a_ref_entry_ptr first_rep = operand->ref_entries_list;
+
+  if (first_rep != NULL) {
+    a_ref_entry_ptr rep;
+    /* Find the end of the list linked on next_operand_ref, and on the way
+       relink the entries on that list with the "next" pointer as well. */
+    for (rep = first_rep;
+         rep->next_operand_ref != NULL;
+         rep = rep->next_operand_ref) {
+      rep->next = rep->next_operand_ref;
+    }  /* for */
+    rep->next = curr_expr_ref_entries;
+    curr_expr_ref_entries = first_rep;
+  }  /* if */
+}  /* reattach_ref_entries_to_curr_expr */
+
+
 an_arg_operand_ptr alloc_arg_operand(void)
 /*
 Allocate an argument operand entry and return a pointer to it.  Such
@@ -713,7 +771,7 @@ kind to "kind" and its fields to default values, and return a pointer to it.
 #endif /* DEBUG */
   }  /* if */
   icp->next = NULL;
-  icp->lifetimes_promoted = FALSE;
+  icp->bundled = FALSE;
   icp->pack_expansion_descr = NULL;
   set_init_component_kind(icp, kind);
   return icp;
@@ -980,28 +1038,33 @@ if to_front is TRUE).
 
 void add_operand_to_initializer_cache(an_operand           *operand,
                                       a_boolean            to_front,
-                                      a_boolean            preserve_lifetime,
+                                      a_boolean            bundle,
                                       an_initializer_cache *cache)
 /*
 Add the indicated operand to the end of the queue of initializer components
-in the indicated initializer cache (or the front if to_front is TRUE).  If
-preserve_lifetime is TRUE, save the current expression stack lifetime
-for later restoration when the operand is removed from the cache.
+in the indicated initializer cache (or the front if to_front is TRUE).
+bundle is TRUE if the expression should be "bundled", meaning packaged
+with related information so it can be saved off to the side (e.g., in
+an initializer cache) for later restoration and further processing.
 */
 {
   an_init_component_ptr icp = alloc_arg_list_elem_for_operand(operand);
   an_arg_operand_ptr    arg_op = icp->variant.expr;
 
-  if (preserve_lifetime && expr_stack->lifetime != NULL) {
-    /* Preserve the lifetime associated with the expression.  This is related
-       to what scan_expr_as_init_component does, but in this case the
-       operand has already been scanned, or taken out of a cache and its
-       lifetime restored, so we're just saving here, not wrapping. */
-    check_assertion(curr_object_lifetime == expr_stack->lifetime);
-    arg_op->lifetime = expr_stack->lifetime;
-    curr_object_lifetime = curr_object_lifetime->parent_lifetime;
-    expr_stack->lifetime = NULL;
-    detach_from_object_lifetime_tree(arg_op->lifetime);
+  if (bundle) {
+    if (expr_stack->lifetime != NULL) {
+      /* Preserve the lifetime associated with the expression.  This is related
+         to what scan_expr_as_init_component does, but in this case the
+         operand has already been scanned, or taken out of a cache and its
+         lifetime restored, so we're just saving here, not wrapping. */
+      check_assertion(curr_object_lifetime == expr_stack->lifetime);
+      arg_op->lifetime = expr_stack->lifetime;
+      curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+      expr_stack->lifetime = NULL;
+      detach_from_object_lifetime_tree(arg_op->lifetime);
+    }  /* if */
+    detach_ref_entries_from_curr_expr(operand);
+    icp->bundled = TRUE;
   }  /* if */
   add_init_component_to_initializer_cache(icp, to_front, cache);
 }  /* add_operand_to_initializer_cache */
@@ -1031,38 +1094,29 @@ the cache is empty, return NULL.
 }  /* fetch_init_component_from_initializer_cache */
 
 
-a_boolean fetch_operand_from_initializer_cache(an_operand           *operand,
-                                               an_initializer_cache *cache)
+void extract_operand_from_expression_component(an_init_component_ptr icp,
+                                               an_operand            *operand,
+                                               a_boolean             free_icp)
 /*
-Remove the first expression from the indicated initializer cache,
-return it in *operand, and return TRUE.  Free the init-component entry
-removed from the cache.  If there is no cache (cache == NULL) or the
-cache is empty, return FALSE.  If the entity removed from the cache is
-a braced-init-list, issue an error and return an error operand.
-
-Also restore the lifetime associated with the expression, if any.  The
-current lifetime on the expression stack is discarded in that case.
-That implies that this routine must be called after the expression
-stack has been pushed.
+Extract an expression operand from the init-component given by icp, and
+return it in *operand.  Free icp if free_icp is TRUE.  Aside from
+copying the operand, this does whatever other processing might be
+needed to unbundle the operand.
 */
 {
-  a_boolean             result = FALSE;
-  an_init_component_ptr icp;
+  an_arg_operand *arg_op;
 
-  icp = fetch_init_component_from_initializer_cache(cache);
-  if (icp != NULL) {
-    an_object_lifetime_ptr olp_to_restore;
-    an_arg_operand         *arg_op;
-    result = TRUE;
-    /* Issue an error if the thing removed is a braced-init-list rather
-       than an expression. */
-    check_arg_list_elem_is_expression(icp);
-    arg_op = icp->variant.expr;
-    copy_operand(&arg_op->operand, operand);
-    olp_to_restore = arg_op->lifetime;
+  /* Issue an error if the thing removed is a braced-init-list rather
+     than an expression. */
+  check_arg_list_elem_is_expression(icp);
+  arg_op = icp->variant.expr;
+  copy_operand(&arg_op->operand, operand);
+  if (icp->bundled) {
+    an_object_lifetime_ptr olp_to_restore = arg_op->lifetime;
+    arg_op->lifetime = NULL;
+    icp->bundled = FALSE;
     if (olp_to_restore != NULL) {
-      /* Restore the object lifetime associated with the cached
-         expression. */
+      /* Restore the object lifetime associated with the cached expression. */
       check_assertion(curr_object_lifetime != NULL &&
                       curr_object_lifetime->kind == olp_to_restore->kind &&
                       is_useless_object_lifetime(curr_object_lifetime) &&
@@ -1073,7 +1127,34 @@ stack has been pushed.
                                      olp_to_restore->kind);
       expr_stack->lifetime = olp_to_restore;
     }  /* if */
-    free_init_component_list(icp);
+    reattach_ref_entries_to_curr_expr(operand);
+    arg_op->operand.ref_entries_list = NULL;
+  }  /* if */
+  if (free_icp) free_init_component_list(icp);
+}  /* extract_operand_from_expression_component */
+
+
+a_boolean fetch_operand_from_initializer_cache(an_operand           *operand,
+                                               an_initializer_cache *cache)
+/*
+Remove the first expression from the indicated initializer cache,
+return it in *operand, and return TRUE.  Free the init-component entry
+removed from the cache.  If there is no cache (cache == NULL) or the
+cache is empty, return FALSE.  If the entity removed from the cache is
+a braced-init-list, issue an error and return an error operand.
+If the expression is bundled, unbundle it; the current lifetime on
+the expression stack is discarded in that case.  That implies that
+this routine must be called after the expression stack has been
+pushed.
+*/
+{
+  a_boolean             result = FALSE;
+  an_init_component_ptr icp;
+
+  icp = fetch_init_component_from_initializer_cache(cache);
+  if (icp != NULL) {
+    result = TRUE;
+    extract_operand_from_expression_component(icp, operand, /*free_icp=*/TRUE);
   }  /* if */
   return result;
 }  /* fetch_operand_from_initializer_cache */

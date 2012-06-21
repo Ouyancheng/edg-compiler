@@ -104,9 +104,14 @@ typedef struct an_init_component {
   an_init_component_kind
 		kind;	/* The kind of initializer value (e.g., brace-enclosed
 			   list). */
-  a_bit_field	lifetimes_promoted:1;
-			/* Set to TRUE if promote_lifetimes_in_init_component
-			   has been called on this entry. */
+  a_bit_field	bundled:1;
+			/* Set to TRUE if expressions within this component
+			   have been "bundled," meaning some things like
+			   object lifetimes have been detached from the
+			   enclosing context and attached to this entry so
+			   they can be pulled out and restored later when the
+			   rest of the processing for the expression is
+			   done. */
   a_pack_expansion_descr_ptr
 		pack_expansion_descr;
 			/* If non-NULL, this entity is a pack expansion

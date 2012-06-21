@@ -20027,57 +20027,54 @@ etc.)
 }  /* make_initializer_list_object */
 
 
-static void promote_init_component_lifetimes(an_init_component_ptr icp)
+static void unbundle_init_component_expressions(an_init_component_ptr icp)
 /*
-Promote the object lifetimes in icp and its subtree into the current
-lifetime context, either by pushing the top lifetime and entering it into
-the expression stack, or by promoting the things in the lifetime into an
-existing surrounding expression lifetime.  If expr_stack->lifetime is
-non-NULL on return, a new full-expression object lifetime has been pushed.
-This processing is needed because when we scanned the expressions we
-didn't know how they were going to be used, and therefore we didn't know
-which ones should be considered full expressions and which should be
-part of something else.  So we put a unique wrapper lifetime around each
-expression, and here we break things out of those lifetimes and move them
-into the proper final lifetimes.
+If any of the expressions in icp were previously "bundled," meaning
+packaged up so they could be saved off to the side (e.g., in an
+initializer cache) for later processing, unbundle them now because we're
+about to do the "later processing."  One main function is to process
+any wrapper object lifetimes, merging them as necessary into the current
+object lifetime context.
 */
 {
-  check_assertion(!C_mode() && curr_object_lifetime != NULL);
-  /* Don't promote if it has been done previously.  Also don't promote if
-     the current code is unevaluated. */
-  if (!icp->lifetimes_promoted &&
-      curr_expr_is_potentially_evaluated()) {
-    icp->lifetimes_promoted = TRUE;
+  if (icp->bundled) {
+    icp->bundled = FALSE;
     if (is_expression_component(icp)) {
-      /* For an expression with a lifetime, process the lifetime. */
-      an_object_lifetime_ptr wrap_lifetime = icp->variant.expr->lifetime;
-      icp->variant.expr->lifetime = NULL;
-      if (wrap_lifetime != NULL) {
-        if (curr_object_lifetime->kind ==
+      if (!C_mode() && curr_expr_is_potentially_evaluated()) {
+        /* For an expression with a lifetime, process the lifetime. */
+        an_object_lifetime_ptr wrap_lifetime = icp->variant.expr->lifetime;
+        icp->variant.expr->lifetime = NULL;
+        check_assertion(curr_object_lifetime != NULL);
+        if (wrap_lifetime != NULL) {
+          if (curr_object_lifetime->kind ==
                                  (an_object_lifetime_kind)olk_expr_temporary) {
-          /* Promote the contents of the added lifetime into the current
-             full-expression object lifetime. */
-          promote_lifetime_contents_to_curr_object_lifetime(wrap_lifetime);
-          free_object_lifetime(wrap_lifetime);
-        } else {
-          /* Re-push the created lifetime. */
-          add_as_child_of_curr_object_lifetime(wrap_lifetime);
-          curr_object_lifetime = wrap_lifetime;
-          check_assertion(expr_stack->lifetime == NULL);
-          expr_stack->lifetime = curr_object_lifetime;
+            /* Promote the contents of the added lifetime into the current
+               full-expression object lifetime. */
+            promote_lifetime_contents_to_curr_object_lifetime(wrap_lifetime);
+            free_object_lifetime(wrap_lifetime);
+          } else {
+            /* Re-push the created lifetime. */
+            add_as_child_of_curr_object_lifetime(wrap_lifetime);
+            curr_object_lifetime = wrap_lifetime;
+            check_assertion(expr_stack->lifetime == NULL);
+            expr_stack->lifetime = curr_object_lifetime;
+          }  /* if */
         }  /* if */
       }  /* if */
+      /* If the operand has any reference entries, re-attach them to the
+         current expression context. */
+      reattach_ref_entries_to_curr_expr(operand_of_arg_list_elem(icp));
     } else if (is_braced_init_component(icp)) {
       /* For a braced-init-list, process the subtree. */
       an_init_component_ptr nicp;
       for (nicp = icp->variant.braced.list; nicp != NULL; nicp = nicp->next) {
-        promote_init_component_lifetimes(nicp);
+        unbundle_init_component_expressions(nicp);
       }  /* for */
     } else {
       unexpected_condition();
     }  /* if */
   }  /* if */
-}  /* promote_init_component_lifetimes */
+}  /* unbundle_init_component_expressions */
 
 
 void prep_list_initializer(an_init_component_ptr icp,
@@ -20186,10 +20183,9 @@ etc.)
   /* If the destination type is a template class, make sure it is
      instantiated. */
   complete_type_is_needed(dest_type);
-  if (!C_mode() && generate_il) {
-    /* Reactivate and/or adjust the lifetimes added around expressions in
-       the initializer list. */
-    promote_init_component_lifetimes(icp);
+  if (generate_il) {
+    /* Unbundle any expressions that are bundled. */
+    unbundle_init_component_expressions(icp);
   }  /* if */
   braced_init = is_braced_init_component(icp);
   if (is_expression_component(icp)) {

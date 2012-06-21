@@ -1147,6 +1147,10 @@ extern void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
 
 extern void record_operand_modification_refs(an_operand *operand);
 
+extern void detach_ref_entries_from_curr_expr(an_operand *operand);
+
+extern void reattach_ref_entries_to_curr_expr(an_operand *operand);
+
 extern an_arg_operand_ptr alloc_arg_operand(void);
 
 extern void free_attachments_to_operand(an_operand *operand);
@@ -1192,12 +1196,16 @@ void add_init_component_to_initializer_cache(
 extern void add_operand_to_initializer_cache(
                                  an_operand                  *operand,
                                  a_boolean                   to_front,
-                                 a_boolean                   preserve_lifetime,
+                                 a_boolean                   bundle,
                                  struct an_initializer_cache *cache);
 
 extern an_init_component_ptr fetch_init_component_from_initializer_cache(
                                            struct an_initializer_cache *cache);
 
+extern
+void extract_operand_from_expression_component(an_init_component_ptr icp,
+                                               an_operand            *operand,
+                                               a_boolean             free_icp);
 extern
 a_boolean fetch_operand_from_initializer_cache(
                                           an_operand                  *operand,
