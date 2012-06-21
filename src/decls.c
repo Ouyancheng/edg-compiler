@@ -2706,8 +2706,8 @@ called by id_linkage.
         if (other_decl->kind == (a_symbol_kind)sk_namespace_projection &&
             !function_from_inline_namespace &&
             !locator->is_template_id &&
-            (!locator->is_qualified_name ||
-             !orig_other_decl_from_using_directive) &&
+            (qualifier_namespace_ptr(*locator) !=
+                                     fund_other_decl->parent.namespace_ptr) &&
             !((sun_mode || microsoft_mode) &&
               (source_corresp_entry_for_symbol(fund_other_decl)->name_linkage
                                       == (a_name_linkage_kind)nlk_external ||
