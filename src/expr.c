@@ -28737,7 +28737,7 @@ the dynamic init entry if one is created to represent this initializer
   a_dynamic_init_ptr  dip;
   a_conv_context_set  conv_context = CCO_DEFAULT;
 
-  if (dps != NULL && dps->init_state.initializer_must_be_constant) {
+  if (is->initializer_must_be_constant) {
     ekind = (an_expression_kind)ek_init_constant;
   }  /* if */
   if (is_var_init) {
@@ -28755,7 +28755,7 @@ the dynamic init entry if one is created to represent this initializer
   push_expr_stack(ekind, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
-  if ((dps != NULL && dps->init_state.static_lifetime_init) ||
+  if (is->static_lifetime_init ||
       favor_constant_result_for_nonstatic_init) {
     expr_stack_entry.favor_constant_result = TRUE;
   }  /* if */
