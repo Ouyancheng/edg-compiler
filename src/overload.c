@@ -22145,7 +22145,8 @@ dependent, *still_dependent is returned TRUE and FALSE is returned.
       /* Previous error. */
     } else if (templ_arg == NULL) {
       /* Deduction produced no argument because an error type was involved. */
-      if (is_error_type(arg_type) || is_error_type(type)) {
+      if ((arg_type != NULL && is_error_type(arg_type)) ||
+          is_error_type(type)) {
         *type_after_deduction = *deduced_auto_type = error_type();
         okay = TRUE;
       } else {
