@@ -7736,6 +7736,26 @@ elements of type element_type.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+a_type_ptr make_auto_type(a_source_position *pos)
+/*
+Create a type entry representing the "auto" type specifier (a special kind of
+tk_template_param) and return it.  pos is used to establish the type entry's
+position information.
+*/
+{
+  a_type_ptr  type = alloc_type((a_type_kind)tk_template_param);
+
+  type->source_corresp.assoc_info =
+                       (char*)make_unnamed_symbol((a_symbol_kind)sk_type, pos);
+  symbol_for(type)->variant.type.ptr = type;
+  type->variant.template_param.extra_info
+      ->coordinates.depth = AUTO_TYPE_NESTING_DEPTH;
+  type->variant.template_param.extra_info->coordinates.position = 1;
+  set_type_size(type);
+  return type;
+}  /* make_auto_type */
+
+
 a_base_class_derivation_ptr preferred_virtual_derivation_of(
                                                      a_base_class_ptr  bcp)
 /*

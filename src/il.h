@@ -2066,6 +2066,8 @@ a routine.
    (con)->variant.address.kind == (an_address_base_kind)abk_routine &&\
    (con)->variant.address.offset == 0 && !(con)->implicit_cast)
 
+extern a_type_ptr make_auto_type(a_source_position *pos);
+
 extern a_base_class_derivation_ptr preferred_virtual_derivation_of(
                                                       a_base_class_ptr  bcp);
 

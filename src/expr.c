@@ -31220,12 +31220,52 @@ Sets *expr_position to the beginning position of the range expression.
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
-  /* We don't want to have arrays decay to pointers or lvalues to rvalues. */
-  options = TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-            TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION;
-  do_operand_transformations(&result, options);
+  if (curr_token == tok_lbrace && list_init_enabled) {
+    /* The "expression" is a braced-init-list. */
+    a_type_ptr           auto_type, deduced_type, deduced_auto_type;
+    a_boolean            still_dependent;
+    an_arg_list_elem_ptr alep;
+    alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
+    auto_type = make_auto_type(init_component_pos(alep));
+    /* Deduce the underlying type of the list. */
+    if (!deduce_auto_type(auto_type, auto_type,
+                          (an_operand *)NULL,
+                          alep,
+                          init_component_pos(alep),
+                          &deduced_type,
+                          &deduced_auto_type,
+                          &still_dependent)) {
+      /* Deduction failed. */
+      if (still_dependent) {
+        unexpected_condition_str(
+                       "dependent auto in range-based for");  /* FIXME */
+      } else {
+        expr_pos_error(ec_cannot_deduce_auto_type, init_component_pos(alep));
+        conv_braced_init_component_to_error_expression(alep);
+        copy_operand(operand_of_arg_list_elem(alep), &result);
+      }  /* if */
+    } else {
+      /* Deduction succeeded.  Convert the braced-init-list to the
+         destination type (which will be std::initializer_list<T> for some
+         type T).  Below we will bind a reference to the object. */
+      prep_list_initializer(alep, deduced_type,
+                            /*is_direct_init=*/FALSE,
+                            /*check_narrowing=*/TRUE,
+                            CCO_DEFAULT,
+                            /*fill_in_dtor=*/TRUE,
+                            /*force_temp=*/FALSE,
+                            &result, (an_init_state *)NULL,
+                            (an_arg_match_summary *)NULL);
+    }  /* if */
+    free_init_component_list(alep);
+  } else {
+    /* Scan the expression. */
+    scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+    /* We don't want to have arrays decay to pointers or lvalues to rvalues. */
+    options = TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION;
+    do_operand_transformations(&result, options);
+  }  /* if */
   /* Determine the type for the reference variable to use to refer to the
      expression. */
   expr_type = result.type;

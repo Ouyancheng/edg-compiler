@@ -7948,27 +7948,6 @@ done:;
 }  /* process_storage_class_specifier */
 
 
-static void make_auto_type(a_decl_parse_state  *state)
-/*
-Create a type entry representing the "auto" type specifier (a special kind of
-tk_template_param) and make state->auto_type point to it.  state->auto_pos is
-used to establish the type entry's position information.
-*/
-{
-  a_type_ptr  type = alloc_type((a_type_kind)tk_template_param);
-
-  type->source_corresp.assoc_info =
-             (char*)make_unnamed_symbol((a_symbol_kind)sk_type,
-                                        &state->auto_pos);
-  symbol_for(type)->variant.type.ptr = type;
-  type->variant.template_param.extra_info
-      ->coordinates.depth = AUTO_TYPE_NESTING_DEPTH;
-  type->variant.template_param.extra_info->coordinates.position = 1;
-  set_type_size(type);
-  state->auto_type = type;
-}  /* make_auto_type */
-
-
 static void process_auto_specifier(
                                  a_boolean              auto_type_allowed,
                                  a_boolean              auto_is_first,
@@ -8022,8 +8001,7 @@ is set to TRUE if an error is issued.
       state->auto_type_specifier_seen = FALSE;
     } else {
       *basic_type = bt_auto;
-      make_auto_type(state);
-      *type_ptr = state->auto_type;
+      *type_ptr = state->auto_type = make_auto_type(&state->auto_pos);
     }  /* if */
     *decl_specifiers_seen |= DS_TYPE;
   } else {
