@@ -7734,7 +7734,6 @@ elements of type element_type.
 }  /* make_vector_type */
 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_type_ptr make_auto_type(a_source_position *pos)
 /*
@@ -7755,6 +7754,7 @@ position information.
   return type;
 }  /* make_auto_type */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_base_class_derivation_ptr preferred_virtual_derivation_of(
                                                      a_base_class_ptr  bcp)
