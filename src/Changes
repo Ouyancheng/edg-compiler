@@ -1,5 +1,36 @@
 Version 4.5
 
+6/21/12  [EDGcpfe/10667,EDGcpfe/9162,EDGcpfe/11237,EDGcpfe/11318,EDGcpfe/12640]
+C++11: Inline namespaces
+
+Inline namespaces are now supported.  Inline namespaces are the standard
+version of g++ strong using-directives.  An entity declared in an inline
+namespace can be defined or specialized as a member of the enclosing
+namespace.  In addition, argument dependent lookup considers inline
+namespaces of associated namespaces and the enclosing scope of an inline
+namespace that is an associated namespace.
+
+  namespace N {
+    template <class T> struct A {};
+    template <class T> void g(T){}
+    inline namespace M {
+      template <class T> void f(T){}
+      template <> void f(A<int>);
+      struct B;
+    }
+  }
+  template <> void N::f(A<int>){}  // specialized as if member of N
+  struct N::B {};  // defined as if member of N
+  int main() {
+    N::A<int> na;
+    f(na);  // argument dependent lookup finds N::M::f
+    g(na);  // argument dependent lookup finds N::g
+    N::B nb;
+    f(nb);  // argument dependent lookup finds N::M::f
+    g(nb);  // argument dependent lookup finds N::g
+  }
+
+
 6/20/12  [EDGcpfe/9250,EDGcpfe/11871,EDGcpfe/12413]
 C++11 and Microsoft compatibility: Opaque enum declarations
 

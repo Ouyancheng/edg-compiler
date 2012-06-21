@@ -21151,25 +21151,26 @@ found.  Return the symbol for the instance, or NULL if no instance is found.
     for (; sym != NULL; sym = is_list ? sym->next : NULL) {
       /* If this is a function template symbol, use it to find a function
          that matches the type we are looking for. */
-      if (sym->kind != (a_symbol_kind)sk_function_template) continue;
+      a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+      if (fund_sym->kind != (a_symbol_kind)sk_function_template) continue;
       if (!any_templates && nesting_depth != NO_NESTING_DEPTH) {
         /* When we encounter the first template, if a nesting depth was
            supplied, make sure this matches the supplied depth. */
         a_template_nesting_depth		depth_of_template;
         a_template_symbol_supplement_ptr	tssp;
         a_template_param_ptr		param_list;
-        tssp = sym->variant.template_info;
+        tssp = fund_sym->variant.template_info;
         param_list = tssp->cache.decl_info->parameters;
         depth_of_template = nesting_depth_of_template_param(param_list);
         if (nesting_depth != depth_of_template) break;
       }  /* if */
       any_templates = TRUE;
-      if (has_matching_template_function(sym, type, explicit_arg_list,
+      if (has_matching_template_function(fund_sym, type, explicit_arg_list,
                                          /*is_decl_context=*/TRUE)) {
         /* This template can generate an instance of the appropriate
            type.  Add the matching template to a list of matching
            candidates. */
-        add_to_partial_order_candidates_list(&candidates_list, sym,
+        add_to_partial_order_candidates_list(&candidates_list, fund_sym,
                                              (a_template_arg_ptr)NULL);
       }  /* if */
     }  /* for */
@@ -21612,6 +21613,25 @@ that follows.
            declaration is disallowed. */
         pos_error(ec_inherited_member_not_allowed, &locator.source_position);
         reduce_projection_symbol_to_fundamental_symbol(sym);
+      } else if (sym->kind == (a_symbol_kind)sk_namespace_projection ||
+                 sym->synthesized_namespace_projection) {
+        /* Specifying a name made visible by a using-declaration or
+           using-directive is not allowed unless it is an inline namespace
+           member. */
+        a_namespace_ptr	parent_namespace = qualifier_namespace_ptr(locator);
+        a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+        if (sym->synthesized_namespace_projection &&
+            locator.is_qualified_name &&
+            (sym->kind == (a_symbol_kind)sk_overloaded_function ||
+              is_symbol_from_inline_namespace_of_scope(
+                           fund_sym, parent_namespace->variant.assoc_scope))) {
+          /* This is a symbol made visible by an inline namespace. */
+        } else {
+          pos_stsy_error(ec_not_an_actual_member, &locator.source_position,
+                         locator.symbol_header->identifier,
+                         symbol_for(parent_namespace));
+        }  /* if */
+        sym = fund_sym;
       }  /* if */
       if (is_function_type(dps->type) && is_function_or_template_symbol(sym)) {
         sym = find_matching_template_instance(
