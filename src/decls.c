@@ -87,6 +87,7 @@ Clear the fields of *is.
 {
   is->init_con = NULL;
   is->init_dip = NULL;
+  is->decl_parse_state = NULL;
   is->init_error = FALSE;
   is->direct_init = FALSE;
   is->static_lifetime_init = FALSE;

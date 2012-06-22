@@ -295,6 +295,18 @@ function parameter and return types.
    where "unsigned int" would be too small.) */
 typedef unsigned long a_decl_flag_set;
 
+/*
+Forward declaration of a structure used to pass around information about a
+template being declared.
+*/
+typedef struct a_tmpl_decl_state *a_tmpl_decl_state_ptr;
+
+/*
+Forward declaration of a structure to track information while parsing a
+declaration (definition is below).
+*/
+typedef struct a_decl_parse_state *a_decl_parse_state_ptr;
+
 
 /*
 Structure used to track information while processing a general initializer
@@ -317,6 +329,15 @@ typedef struct an_init_state {
 			   represented using a constant, or init_error is TRUE
 			   and no representation of the initializer is
 			   available at all). */
+  a_decl_parse_state_ptr
+		decl_parse_state;
+			/* For the initialization of a variable, this points
+			   back to the block describing the declaration of
+			   that variable.  This is non-NULL even when
+			   describing just a part of a variable initializer in
+			   an aggregate initializer.  When the initialization
+			   is not that of a variable (e.g., for a temporary or
+			   in a mem-initializer), NULL. */
   a_bit_field	direct_init:1;
 			/* TRUE if this is for "direct" initialization as
 			   opposed to "copy" initialization.  C++ mode only. */
@@ -388,18 +409,6 @@ typedef struct an_initializer_cache {
 /* Macro to test whether an initializer cache contains something. */
 #define anything_cached(pc) ((pc)->first_init != NULL)
 
-
-/*
-Forward declaration of a structure used to pass around information about a
-template being declared.
-*/
-typedef struct a_tmpl_decl_state *a_tmpl_decl_state_ptr;
-
-/*
-Forward declaration of a structure to track information while parsing a
-declaration (definition is below).
-*/
-typedef struct a_decl_parse_state *a_decl_parse_state_ptr;
 
 /*
 Type of callback functions to call at end of declaration processing.
@@ -884,6 +893,7 @@ argument.
 #define init_decl_parse_state(ps) {                                          \
   *(ps) = null_decl_parse_state;                                             \
   (ps)->start_pos = pos_curr_token;                                          \
+  (ps)->init_state.decl_parse_state = (ps);                                  \
 }
 
 /*
