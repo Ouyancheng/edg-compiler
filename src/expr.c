@@ -28744,7 +28744,11 @@ this initializer (but it's not put on a lifetime list yet).
     var = var_for_symbol(var_sym);
     check_assertion(var != NULL);
     dest_type = var->type;
+  }  /* if */
+  if (dps != NULL) {
+    /* We're initializing a variable or part of a variable. */
     conv_context |= CCO_INITIALIZING_VARIABLE;
+    if (is->static_lifetime_init) conv_context |= CCO_STATIC_LIFETIME;
   }  /* if */
   save_expr_stack(&saved_expr_stack);
   push_expr_stack(ekind, &expr_stack_entry,

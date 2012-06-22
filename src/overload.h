@@ -188,7 +188,7 @@ typedef int a_conv_context_set;
 #define CCO_DEFAULT ((a_conv_context_set)0x0)
 #define CCO_INITIALIZING_VARIABLE ((a_conv_context_set)0x1)
 			/* The result of the conversion initializes a
-			   variable. */
+			   variable (or a part of an aggregate variable). */
 #define CCO_INITIALIZING_RETURN_VALUE ((a_conv_context_set)0x2)
 			/* The result of the conversion initializes the
 			   return value of a function. */
