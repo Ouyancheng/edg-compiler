@@ -5222,6 +5222,19 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       check_assertion(expr->variant.operation.type_kind != 
                                                   (a_type_kind)tk_fixed_point);
 #endif /* LOWER_FIXED_POINT */
+      /* Check that equality, relational, and logical operations have
+         type int. */
+      check_assertion(!((op == (an_expr_operator_kind)eok_eq ||
+                         op == (an_expr_operator_kind)eok_ne ||
+                         op == (an_expr_operator_kind)eok_gt ||
+                         op == (an_expr_operator_kind)eok_lt ||
+                         op == (an_expr_operator_kind)eok_ge ||
+                         op == (an_expr_operator_kind)eok_le ||
+                         op == (an_expr_operator_kind)eok_land ||
+                         op == (an_expr_operator_kind)eok_lor) &&
+                       (expr->type->kind != tk_integer ||
+                        expr->type->variant.integer.int_kind !=
+                                                  ((an_integer_kind)ik_int))));
 #if CHECKING
       check_operation_node_consistency(expr);
 #endif /* CHECKING */

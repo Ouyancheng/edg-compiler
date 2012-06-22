@@ -1,5 +1,20 @@
 Version 4.5
 
+6/22/12  [EDGcpfe/13001]
+Incorrect type on lowered expression for static guard variable
+
+When generating an eok_eq comparison expression as part of the test for
+a static variable, the generated eok_eq expression had an incorrect type
+(it should always be int).  Now fixed.  For example:
+
+  struct A {
+    A();
+  };
+  void f() {
+    static A a;   // test for added static guard had incorrect type
+  }
+
+
 6/21/12  [EDGcpfe/10667,EDGcpfe/9162,EDGcpfe/11237,EDGcpfe/11318,EDGcpfe/12640]
 C++11: Inline namespaces
 

@@ -6344,7 +6344,8 @@ location is the insert_location2 value (after the assignment statement).
 #endif /* IA64_ABI_USE_INT_STATIC_INIT_GUARD */
 #endif /* IA64_ABI */
   compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
-                                    int_type, test_var_node);
+                                    integer_type((an_integer_kind)ik_int),
+                                    test_var_node);
   /* Make an "if" statement and insert it into the program. */
   insert_if_statement(compare_node, /*is_initialization_guard=*/TRUE,
                       insert_location,
