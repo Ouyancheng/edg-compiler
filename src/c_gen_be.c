@@ -5232,7 +5232,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                          op == (an_expr_operator_kind)eok_le ||
                          op == (an_expr_operator_kind)eok_land ||
                          op == (an_expr_operator_kind)eok_lor) &&
-                       (expr->type->kind != tk_integer ||
+                       (expr->type->kind != (a_type_kind)tk_integer ||
                         expr->type->variant.integer.int_kind !=
                                                   ((an_integer_kind)ik_int))));
 #if CHECKING
