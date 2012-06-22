@@ -28706,27 +28706,25 @@ void convert_initializer(an_init_component_ptr icp,
                          a_boolean             is_var_init,
                          a_boolean             check_narrowing,
                          a_boolean             fill_in_dtor,
-                         a_decl_parse_state    *dps,
                          an_init_state         *is)
 /*
 Convert an initializer value represented in init-component form (icp)
 to the type of the entity being initialized, given by dest_type.  If
 is_var_init is TRUE, this is the complete initializer for a variable
-(given by dps->sym), and the type of that variable is used for
-dest_type.  In either case, dest_type must not be an aggregate type
-unless the initializer is an expression or an empty braced list "{}".
+(given by is->decl_parse_state->sym), and the type of that variable is
+used for dest_type.  In either case, dest_type must not be an aggregate
+type unless the initializer is an expression or an empty braced list "{}".
 If check_narrowing is TRUE, issue diagnostics for narrowing conversions.
-dps describes the current declaration state, or is NULL if there is no
-declaration associated with this scan.  is describes the initialization
-processed by this function, including whether diagnostics should be
-avoided (is->no_diagnostics) or whether no IL should be generated
-(is->check_validity_only).  The converted result, if any, is returned
-through either is->init_con or is->init_dip; the other pointer is
-set to NULL.  If fill_in_dtor is TRUE, the destructor will be added to
-the dynamic init entry if one is created to represent this initializer
-(but it's not put on a lifetime list yet).
+is describes the initialization processed by this function, including
+whether diagnostics should be avoided (is->no_diagnostics) or whether no
+IL should be generated (is->check_validity_only).  The converted result,
+if any, is returned through either is->init_con or is->init_dip; the
+other pointer is set to NULL.  If fill_in_dtor is TRUE, the destructor
+will be added to the dynamic init entry if one is created to represent
+this initializer (but it's not put on a lifetime list yet).
 */
 {
+  a_decl_parse_state  *dps = is->decl_parse_state;
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   an_expression_kind  ekind = (an_expression_kind)ek_normal;

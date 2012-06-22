@@ -3944,8 +3944,7 @@ The presence of a nonconstant initializer component is reflected in *is.
   elem_is.direct_init = FALSE;
   convert_initializer(icp, dest_type, /*is_var_init=*/FALSE,
                       /*check_narrowing=*/TRUE,
-                      /*fill_in_dtor=*/exceptions_enabled,
-                      (a_decl_parse_state*)NULL, &elem_is);
+                      /*fill_in_dtor=*/exceptions_enabled, &elem_is);
   is->init_error = elem_is.init_error;
   if (elem_is.init_con != NULL) {
     /* A constant initializer: Return it. */
@@ -4797,13 +4796,13 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       } else {
         /* Non-aggregate class type. */
         convert_initializer(icp, dtype, is_var_init, /*check_narrowing=*/TRUE,
-                            /*fill_in_dtor=*/TRUE, dps, is);
+                            /*fill_in_dtor=*/TRUE, is);
       }  /* if */
       break;
     default:
       /* Non-class, non-aggregate initialization. */
       convert_initializer(icp, dtype, is_var_init, /*check_narrowing=*/TRUE,
-                          /*fill_in_dtor=*/TRUE, dps, is);
+                          /*fill_in_dtor=*/TRUE, is);
       break;
   }  /* switch */
   free_init_component_list(icp_tree);

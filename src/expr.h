@@ -464,7 +464,6 @@ void convert_initializer(an_init_component_ptr icp,
                          a_boolean             is_var_init,
                          a_boolean             check_narrowing,
                          a_boolean             fill_in_dtor,
-                         a_decl_parse_state    *dps,
                          an_init_state         *is);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
