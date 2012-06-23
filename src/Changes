@@ -1,5 +1,32 @@
 Version 4.5
 
+6/23/12  [EDGcpfe/12736]
+C++-generating back end, GNU compatibility: name of partial specialization of
+member class template used as qualifier
+
+The fix for EDGcpfe/11900 (included in version 4.4) caused the
+C++-generating back end no longer to add an unnecessary "template" keyword
+when the name of a partial specialization of a member class template is
+used as a qualifier.  For example, in the code generated for
+
+  template<typename T> struct A {
+    template<typename U> struct B;
+    template<typename U> struct B<U ()> : T {
+      typedef typename B::X type;
+    };
+  };
+
+the typedef was previously generated as
+
+  typedef typename ::A< T> ::template B< U (void)> ::X type;
+
+After the fix for EDGcpfe/11900, the template keyword no longer appeared in
+the generated typedef.  While this form is correct, g++ issues a spurious
+error when the template keyword is missing.  The C++-generating back end
+has now been changed to put out the template keyword for this case once
+again.
+
+
 6/22/12  [EDGcpfe/13001]
 Incorrect type on some lowered expressions
 

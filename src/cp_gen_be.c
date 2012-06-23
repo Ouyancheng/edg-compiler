@@ -3405,6 +3405,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                     extra_info->assoc_template->source_corresp;
         }  /* if */
         if (tp->variant.class_struct_union.is_prototype_instantiation &&
+            (options & GN_DECLARATION) &&
             tp->variant.class_struct_union.extra_info->
                                       partial_spec_template_arg_list != NULL) {
           /* This is the prototype instantiation of the definition of a
