@@ -5224,14 +5224,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* LOWER_FIXED_POINT */
       /* Check that equality, relational, and logical operations have
          type int. */
-      check_assertion(!((op == (an_expr_operator_kind)eok_eq ||
-                         op == (an_expr_operator_kind)eok_ne ||
-                         op == (an_expr_operator_kind)eok_gt ||
-                         op == (an_expr_operator_kind)eok_lt ||
-                         op == (an_expr_operator_kind)eok_ge ||
-                         op == (an_expr_operator_kind)eok_le ||
-                         op == (an_expr_operator_kind)eok_land ||
-                         op == (an_expr_operator_kind)eok_lor) &&
+      check_assertion(!(is_operator_returning_bool(op) &&
                        (expr->type->kind != (a_type_kind)tk_integer ||
                         expr->type->variant.integer.int_kind !=
                                                   ((an_integer_kind)ik_int))));

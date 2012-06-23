@@ -16794,7 +16794,8 @@ statements don't contain an enk_condition).
         if_stmt = alloc_statement((a_statement_kind)stmk_if);
         /* The "if" statement tests the "not" of the value expression. */
         if_stmt->expr = make_operator_node((an_expr_operator_kind)eok_not,
-                                           value_expr->type, value_expr);
+                                         integer_type((an_integer_kind)ik_int),
+                                         value_expr);
         /* The dependent statement of the "if" is the "goto break_label". */
         if_stmt->variant.if_stmt.then_statement = goto_stmt;
         /* Insert the "if" statement following the initialization code and

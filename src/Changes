@@ -1,17 +1,22 @@
 Version 4.5
 
 6/22/12  [EDGcpfe/13001]
-Incorrect type on lowered expression for static guard variable
+Incorrect type on some lowered expressions
 
-When generating an eok_eq comparison expression as part of the test for
-a static variable, the generated eok_eq expression had an incorrect type
-(it should always be int).  Now fixed.  For example:
+As per the C standard, the type of equality (eok_eq, eok_ne), relational
+(eok_ge, eok_gt, eok_le, eok_lt) and logical (eok_land, eok_lor, eok_not)
+expressions should always be int.  Some code inserted during the lowering
+process had inadvertently used a non-int type.  When generating an eok_eq
+comparison expression as part of the test for a static variable, the generated
+eok_eq expression had an incorrect type.  Similarly, the eok_not expression in
+some loop constructs had incorrect types.  Now fixed.  For example:
 
   struct A {
     A();
   };
   void f() {
-    static A a;   // test for added static guard had incorrect type
+    static A a;              // test for added static guard had incorrect type
+    while (float x = 1.5) {} // eok_not test had incorrect type
   }
 
 
