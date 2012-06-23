@@ -201,6 +201,12 @@ typedef struct a_ref_entry {
 			   the symbol pointer has to be kept around in case
 			   the address of the entity is taken for a reference
 			   parameter to an overloaded operator function. */
+#if CHECKING
+  a_byte_boolean
+		freed;
+			/* TRUE if the entry has been freed and is on the
+			   available list. */
+#endif /* CHECKING */
   a_symbol_ptr	symbol;	/* Pointer to the referenced symbol. */
   a_source_correspondence
 		*specific_il_entry;
@@ -404,8 +410,8 @@ typedef struct an_operand {
 			   not allowed in an integral constant expression,
 			   the roek_integral_constant bit will be set.
 			   Of use in checking after a scan whether an
-			   scanned in default mode meets the requirements of
-			   a certain expression kind. */
+			   expression scanned in default mode meets the
+			   requirements of a certain expression kind. */
   a_source_position
 		position;
 			/* The source position for the operand. */

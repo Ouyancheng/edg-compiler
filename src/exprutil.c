@@ -125,6 +125,9 @@ the current expression, headed by curr_expr_ref_entries.
     rep->kind |= SRK_DEFAULT_ARG_EXPR;
   }  /* if */
   rep->already_recorded = FALSE;
+#if CHECKING
+  rep->freed = FALSE;
+#endif /* CHECKING */
   rep->symbol = sym_ptr;
   rep->specific_il_entry = NULL;
   copy_source_position(*pos, rep->position);
@@ -183,6 +186,10 @@ static void free_ref_entry(a_ref_entry_ptr rep)
 Free the reference entry pointed to by rep.
 */
 {
+#if CHECKING
+  check_assertion_str(!rep->freed, "ref entry freed twice");
+  rep->freed = TRUE;
+#endif /* CHECKING */
   /* Add the entry to the available list. */
   rep->next = avail_ref_entries;
   avail_ref_entries = rep;
@@ -620,6 +627,10 @@ out when the expression terminates.
     unexpected_condition_str("detach_ref_entries_from_curr_expr: not found");
 outer_loop:;
   }  /* for */
+  /* Discard any ref entries saved so we can turn an rvalue back into an
+     lvalue in gcc mode.  We're going to assume they won't be needed in
+     the contexts where bundling is done. */
+  operand->saved_ref_entries_list = NULL;
 }  /* detach_ref_entries_from_curr_expr */
 
 
@@ -14766,6 +14777,7 @@ explicit "&" operator in the source and *operator_position gives its position.
       /* Change the kind in the reference entries to address-taken. */
       /* This will check for taking the address of a register variable. */
       change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
+      if (!is_an_lvalue(operand)) operand->ref_entries_list = NULL;
     }  /* if */
   }  /* if */
   operand->is_simple_string_literal = FALSE;
