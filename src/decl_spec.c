@@ -3725,7 +3725,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
             a_boolean  scope_err = FALSE;
             if (namespace_scope_should_be_pushed(
                                             tag_sym, &tag_position, &scope_err,
-                                            /*inline_allowed=*/TRUE)) {
+                                            /*inline_namespace=*/TRUE)) {
               /* Push a namespace extension scope. */
               push_namespace_extension_scope(sym_parent_namespace(tag_sym));
               namespace_extension_pushed = TRUE;
