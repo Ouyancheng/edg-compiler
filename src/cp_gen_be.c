@@ -10581,16 +10581,18 @@ problems.
       operand = expr_from_const;
       operand_changed = TRUE;
     } else if (operand->kind == (an_expr_node_kind)enk_temp_init) {
-      if (operand->variant.init.dynamic_init->kind ==
-                                         (a_dynamic_init_kind)dik_expression ||
-          operand->variant.init.dynamic_init->kind ==
+      a_dynamic_init_ptr dip = operand->variant.init.dynamic_init;
+      if (dip->is_explicit_cast ||
+          dip->is_braced_initializer ||
+          dip->is_compound_literal) {
+        /* These are not implicit. */
+      } else if (dip->kind == (a_dynamic_init_kind)dik_expression ||
+                 dip->kind ==
                      (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
-        operand = operand->variant.init.dynamic_init->variant.expression;
+        operand = dip->variant.expression;
         operand_changed = TRUE;
-      } else if (operand->variant.init.dynamic_init->kind ==
-                                        (a_dynamic_init_kind)dik_constructor &&
-                 !operand->variant.init.dynamic_init->is_explicit_cast) {
-        operand = operand->variant.init.dynamic_init->variant.constructor.args;
+      } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        operand = dip->variant.constructor.args;
         operand_changed = TRUE;
       }  /* if */
     }  /* if */
