@@ -57,6 +57,7 @@ static an_init_component_ptr scan_expr_or_braced_init_list(
                                                 a_boolean bundle,
                                                 a_boolean always_allow_braced);
 static an_init_component_ptr scan_braced_init_list_internal(a_boolean bundle);
+static void scan_braced_init_list_as_operand(an_operand *operand);
 static
 an_init_component_ptr scan_init_component_with_potential_pack_expansion(
                                          a_decl_parse_state *dps,
@@ -712,6 +713,12 @@ to be handled in the general code).
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (!is_overloadable &&
+      is_braced_init_list_operand(operand)) {
+    /* A braced-init-list might have a class type and therefore is
+       overloadable. */
+    is_overloadable = TRUE;
+  }  /* if */
   if (!is_overloadable && CFOO_guard &&
       is_template_dependent_context() &&
       is_template_dependent_type(operand->type)) {
@@ -23128,13 +23135,27 @@ number.
     orig_result_type = operand_1->type;
     result_type = rvalue_type(orig_result_type);
     op = which_binary_operator(tok_assign, result_type);
+    /* do_operand_transformations is not done in the second operand,
+       because the processing for that is done in the conversion stuff. */
+    if (is_braced_init_list_operand(operand_2)) {
+      /* When the second operand is a braced-init-list, do
+         list-initialization of an object of the right type and then copy. */
+      an_init_component_ptr icp = operand_2->variant.braced_init_list;
+      prep_list_initializer(icp, result_type,
+                            /*is_direct_init=*/TRUE,
+                            /*check_narrowing=*/TRUE,
+                            CCO_DEFAULT,
+                            /*fill_in_dtor=*/TRUE,
+                            /*force_temp=*/FALSE,
+                            operand_2, (an_init_state *)NULL,
+                            (an_arg_match_summary *)NULL);
+      free_init_component_list(icp);
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Check for a bug related to null pointer constants in
        Microsoft C mode. */
     process_microsoft_null_pointer_constant_bug(operand_2, result_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* do_operand_transformations is not done in the second operand,
-       because the processing for that is done in the conversion stuff. */
     prep_assignment_operand(operand_2, result_type,
                             ec_incompatible_assignment_operands,
                             operator_position);
@@ -23151,6 +23172,11 @@ number.
                                           operator_position,
                                           operator_tok_seq_number,
                                           (a_source_position *)NULL);
+  if (is_braced_init_list_operand(operand_2)) {
+    /* Free the braced-init-list attached to operand_2 if operator overloading
+       was used. */
+    free_attachments_to_operand(operand_2);
+  }  /* if */
 }  /* process_simple_assignment */
 
 
@@ -23198,7 +23224,14 @@ that case.
   if (rcblock == NULL) {
     /* Scan the second operand. */
     (void)get_token();
-    scan_expr(&operand_2, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
+    if (curr_token == tok_lbrace && list_init_enabled) {
+      /* In C++11, the expression on the right is allowed to be a
+         brace-enclosed list. */
+      scan_braced_init_list_as_operand(&operand_2);
+    } else {
+      /* Normal case, an expression. */
+      scan_expr(&operand_2, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
+    }  /* if */
   }  /* if */
 
   if (err) {
@@ -28565,6 +28598,23 @@ a new-initializer).
   if (is_full_expr) restore_expr_stack(saved_expr_stack);
   return icp;
 }  /* scan_braced_init_list */
+
+
+static void scan_braced_init_list_as_operand(an_operand *operand)
+/*
+Scan a brace-enclosed list in a place where it's allowed as a special case
+in place of an expression, e.g., the right side of a simple assignment.
+Return a special kind of operand representing the braced-init-list.
+*/
+{
+  an_arg_list_elem_ptr alep;
+
+  check_assertion(list_init_enabled && curr_token == tok_lbrace);
+  alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
+  clear_operand((an_operand_kind)ok_braced_init_list, operand);
+  operand->variant.braced_init_list = alep;
+  operand->type = unknown_type();
+}  /* scan_braced_init_list_as_operand */
 
 
 static void scan_potential_pack_expansion_initializer_expr(

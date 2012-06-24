@@ -685,9 +685,6 @@ entries are used to hold arguments of function calls.
 }  /* alloc_arg_operand */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void free_attachments_to_operand(an_operand *operand)
 /*
 Free any dynamically-allocated attachments to the indicated operand.
@@ -702,6 +699,10 @@ The operand will not be used further.
     operand->variant.property_ref.subscripts = NULL;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (is_braced_init_list_operand(operand)) {
+    free_init_component_list(operand->variant.braced_init_list);
+    operand->variant.braced_init_list = NULL;
+  }  /* if */
 }  /* free_attachments_to_operand */
 
 
@@ -927,6 +928,10 @@ void db_init_component(an_init_component_ptr icp)
 Display an init component for debugging purposes.
 */
 {
+  if (icp == NULL) {
+    (void)fprintf(f_debug, "<null pointer>\n");
+    goto end_of_routine;
+  }  /* if */
   switch (icp->kind) {
     case ick_expression:
       db_operand(&icp->variant.expr->operand);
@@ -953,6 +958,7 @@ Display an init component for debugging purposes.
   if (icp->pack_expansion_descr != NULL) {
     (void)fprintf(f_debug, "...\n");
   }  /* if */
+end_of_routine:;
 }  /* db_init_component */
 
 #endif /* DEBUG */
@@ -2132,6 +2138,9 @@ to default values.
       operand->variant.event_ref.object = NULL;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case ok_braced_init_list:
+      operand->variant.braced_init_list = NULL;
+      break;
 #if CHECKING
     default:
       internal_error("set_operand_kind: bad kind");
@@ -2338,6 +2347,9 @@ Display an expression operand for debugging purposes.
       db_symbol(operand->symbol, "", 0);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case ok_braced_init_list:
+      db_init_component(operand->variant.braced_init_list);
+      break;
     default:
       (void)fprintf(f_debug, "<bad operand kind>");
       break;
@@ -2876,6 +2888,7 @@ lowering (as lvalueness is known at that time).
       }  /* if */
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case ok_braced_init_list:
     default:
       unexpected_condition_str("clone_operand: unexpected operand kind");
   }  /* switch */
@@ -11454,6 +11467,10 @@ a secondary operator (e.g., the "]" of a subscript operation).
       result_type = boolean_result_type();
     }  /* if */
   }  /* if */
+  if (is_braced_init_list_operand(operand_2)) {
+    /* FIXME */
+    eliminate_unusual_operand_kinds(operand_2);
+  }  /* if */
   do_binary_operation_full(op, operand_1, operand_2, result_type,
                            /*result_is_lvalue=*/FALSE,
                            result, operator_position, operator_tok_seq_number,
@@ -17678,7 +17695,10 @@ The transformations are:
   (3)  (Not really a transformation, but...) Checking for indefinite functions.
   (4)  Conversion of an lvalue to an rvalue.
   (5)  Conversion of a reference to a member declared as a Microsoft
-       property to a call of the appropriate "get" function.
+       property to a call of the appropriate "get" function, and
+       similarly for event references.
+  (6)  (Also not really a transformation...) Checking for braced-init-lists
+       not handled explicitly elsewhere.
 The flags in options can be used to suppress one or more of these
 transformations.
 */
@@ -17759,6 +17779,12 @@ transformations.
                                                   allow_ctor,
                                                   will_call);
     }  /* if */
+  }  /* if */
+  if (is_braced_init_list_operand(operand)) {
+    /* Issue an error for a braced-init-list not handled explicitly.  There
+       is no option to suppress this. */
+    check_arg_list_elem_is_expression(operand->variant.braced_init_list);
+    conv_to_error_operand(operand);
   }  /* if */
 }  /* do_operand_transformations */
 

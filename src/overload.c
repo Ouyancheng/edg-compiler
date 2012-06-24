@@ -3320,6 +3320,7 @@ argument-passing is copy-initialization).
                           (an_operand *)NULL,
                           (an_init_state *)NULL,
                           arg_summary);
+    arg_summary->param_type = param_type;
   }  /* if */
 }  /* determine_arg_list_elem_match_level */
 
@@ -7756,6 +7757,12 @@ means type-dependent rather than value-dependent.
 {
   a_boolean is_dependent = (is_template_dependent_type(operand->type) ||
                            is_template_dependent_indefinite_function(operand));
+  if (is_braced_init_list_operand(operand)) {
+    /* See if a braced-init-list is dependent by checking its elements. */
+    if (arg_list_is_dependent(operand->variant.braced_init_list)) {
+      is_dependent = TRUE;
+    }  /* if */
+  }  /* if */
   return is_dependent;
 }  /* operand_is_dependent */
 
@@ -14606,7 +14613,8 @@ call_depth is usually zero, but if non-zero is a disambiguator for
 operator_tok_seq_number.  This routine also checks for
 template-dependent operands in a prototype instantiation, and builds a
 generic expression for such cases (where operator overloading might
-apply, but we can't tell).
+apply, but we can't tell).  operand_2 is allowed to be a braced-init-list
+operand when initializer lists are enabled.
 */
 {
   an_arg_list_elem_ptr     arg_list, arg_list2, arg_list_elem;
@@ -14693,9 +14701,20 @@ apply, but we can't tell).
           is_managed_class_type(eff_operand_1_type)) {
         /* Yes, operator synthesis may apply. */
         potential_operator_synthesis_case = TRUE;
+        check_assertion(operand_2 != NULL);
+        if (is_braced_init_list_operand(operand_2)) {
+          /* Suppress that if the second operand is a braced-init-list. */
+          potential_operator_synthesis_case = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Don't try conversions for built-in operators if the second operand
+       is a braced-init-list. */
+    if (!unary_operator &&
+        is_braced_init_list_operand(operand_2)) {
+      try_conversions = FALSE;
+    }  /* if */
     if (is_error_operand(operand_1) || 
         (!unary_operator && is_error_operand(operand_2))) {
       /* One or both of the operands is an error operand. */
@@ -14758,7 +14777,13 @@ apply, but we can't tell).
         if (unary_operator) {
           arg_list2 = NULL;
         } else {
-          arg_list2 = alloc_arg_list_elem_for_operand(operand_2);
+          if (is_braced_init_list_operand(operand_2)) {
+            /* Use the arg list encapsuled in operand_2 instead of allocating
+               a new one. */
+            arg_list2 = operand_2->variant.braced_init_list;
+          } else {
+            arg_list2 = alloc_arg_list_elem_for_operand(operand_2);
+          }  /* if */
           arg_list->next = arg_list2;
         }  /* if */
         /* candidate_functions will contain the list of viable functions. */
@@ -15308,6 +15333,7 @@ no_applicable_operator_function:
                                                 op_1_inside_conditional,
                                                 arg_match);
             if (!unary_operator) {
+              check_assertion(!is_braced_init_list_operand(operand_2));
               adjust_operand_for_builtin_operator(operand_2,
                                                   candidate_functions, 2,
                                                   op_2_inside_conditional,
@@ -15422,14 +15448,28 @@ no_applicable_operator_function:
                 conv_class_operand_to_object_pointer(bound_function_selector);
                 conv_object_pointer_to_lvalue(bound_function_selector);
               }  /* if */
-              /* Cast the source operand to the right type. */
-              check_assertion(is_expression_component(arg_list_elem));
-              prep_assignment_operand(operand_of_arg_list_elem(arg_list_elem),
-                                      result_type,
-                                      ec_incompatible_param,
-                                      operator_position);
-              rhs_node = make_node_from_operand(
-                                      operand_of_arg_list_elem(arg_list_elem));
+              { an_operand source, *source_op;
+                if (is_expression_component(arg_list_elem)) {
+                  source_op = operand_of_arg_list_elem(arg_list_elem);
+                } else {
+                  /* The source operand is a braced-init-list. */
+                  prep_list_initializer(arg_list_elem, result_type,
+                                        /*is_direct_init=*/FALSE,
+                                        /*check_narrowing=*/TRUE,
+                                        CCO_DEFAULT,
+                                        /*fill_in_dtor=*/TRUE,
+                                        /*force_temp=*/FALSE,
+                                        &source, (an_init_state *)NULL,
+                                        (an_arg_match_summary *)NULL);
+                  source_op = &source;
+                }  /* if */
+                /* Cast the source operand to the right type. */
+                prep_assignment_operand(source_op,
+                                        result_type,
+                                        ec_incompatible_param,
+                                        operator_position);
+                rhs_node = make_node_from_operand(source_op);
+              }
               lhs_node = make_node_from_operand(bound_function_selector);
               lhs_node->next = rhs_node;
               assign_node = make_lvalue_operator_node(
@@ -15502,6 +15542,13 @@ no_applicable_operator_function:
           change_arg_list_refs_to_error(arg_list);
         }  /* if */
         /* Free the argument list. */
+        if (!unary_operator &&
+            is_braced_init_list_operand(operand_2)) {
+          /* The second item on the list was borrowed from operand_2 and
+             should not be freed at this level. */
+          check_assertion(arg_list2 == operand_2->variant.braced_init_list);
+          arg_list->next = NULL;
+        }  /* if */
         free_arg_list(arg_list);
       }  /* if */
     }  /* if */
@@ -20440,14 +20487,14 @@ etc.)
       }  /* if */
       /* The cost of a reference initialization in overload resolution is the
          cost of the underlying initialization of the temporary, so pass
-         arg_match down to the next level. */
+         arg_match down to the next level.  See below for class cases. */
       prep_list_initializer(icp, underlying_type,
                             /*is_direct_init=*/FALSE,
                             check_narrowing,
                             rconv_context,
                             /*fill_in_dtor=*/TRUE,
                             /*force_temp=*/TRUE,
-                            &operand,
+                            (arg_match == NULL) ? &operand : NULL,
                             (an_init_state *)NULL,
                             arg_match);
       if (arg_match != NULL) {
@@ -20459,6 +20506,11 @@ etc.)
           /* An lvalue reference to non-const cannot bind to the rvalue
              produced in the first step. */
           arg_match_err = TRUE;
+        } else if (is_class_struct_union_type(underlying_type)) {
+          /* The reference always binds directly to a class temporary
+             (whether it's an lvalue reference or an rvalue reference),
+             so the conversion is an identity conversion. */
+          arg_match->match_level = aml_exact;
         }  /* if */
       } else {
         /* Not overload resolution. */

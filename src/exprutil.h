@@ -259,6 +259,11 @@ enum an_operand_kind_tag {
   ok_event_ref,		/* A reference to a Microsoft event member of a
 			   managed class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  ok_braced_init_list,	/* A C++11 brace-enclosed list.  Note that this is
+			   used only in somewhat unusual situations, as most
+			   braced-init-lists are scanned as part of an
+			   expression list and are represented by
+			   an_init_component (aka an_arg_list_elem). */
   ok_undefined_symbol	/* An undefined symbol encountered while scanning an
 			   expression.  Could be an implicit function
 			   declaration or a genuine undefined symbol.
@@ -501,6 +506,17 @@ typedef struct an_operand {
 			   used to select the accessor). */
     } event_ref;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* When kind == ok_braced_init_list: */
+    an_arg_list_elem_ptr
+		braced_init_list;
+			/* Pointer to a brace-enclosed list.  The entry pointed
+			   to will always be a single entry (not a list)
+			   of type ick_braced, representing a brace-enclosed
+			   list.  Note that this kind of entry is only used
+			   in some unusual situations, as most
+			   braced-init-lists are scanned as part of an
+			   expression list and are represented directly
+			   by an_init_component (aka an_arg_list_elem). */
   } variant;
 } an_operand;
 
@@ -1105,6 +1121,13 @@ with the Microsoft C++/CLI event syntax.
 #define is_event_ref_operand(operand)				\
 	((operand)->kind == (an_operand_kind)ok_event_ref)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Macro that is TRUE if the operand represents a brace-enclosed list used
+as a single expression.
+*/
+#define is_braced_init_list_operand(operand) \
+	((operand)->kind == (an_operand_kind)ok_braced_init_list)
 
 /*
 Macro that is TRUE if the operand is an lvalue.  Note that this isn't
