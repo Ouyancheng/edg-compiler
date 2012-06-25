@@ -10599,6 +10599,7 @@ problems.
   } while (operand_changed);
   if (operand->kind == (an_expr_node_kind)enk_variable ||
       operand->kind == (an_expr_node_kind)enk_param_ref ||
+      operand->kind == (an_expr_node_kind)enk_braced_init_list ||
       operand->kind == (an_expr_node_kind)enk_temp_init) {
     /* These can't have precedence problems. */
     parens_needed = FALSE;
@@ -11724,6 +11725,16 @@ done_with_operation_after_parens:
         gen_param_name_from_param_type(
                    get_param_for_param_ref(expr, octl.func_prototype_stack));
       }  /* if */
+      break;
+    case enk_braced_init_list:
+      /* A C++11 brace-enclosed initializer list, which comes up in
+         prototype instantiations of templates. */
+      check_assertion(prototype_instantiations_in_il);
+      write_tok_ch('{');
+      gen_argument_list_no_parens(expr->variant.braced_init_list,
+                                  (a_type_ptr)NULL,
+                                  /*skip_num=*/0);
+      write_tok_ch('}');
       break;
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");

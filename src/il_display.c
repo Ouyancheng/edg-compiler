@@ -4145,6 +4145,11 @@ cleanup_state_common:
       disp_unsigned_long("param_ref.levels_up",
                          (unsigned long)ptr->variant.param_ref.levels_up);
       break;
+    case enk_braced_init_list:
+      (void)printf("enk_braced_init_list\n");
+      disp_ptr("braced_init_list", (char *)ptr->variant.braced_init_list,
+               iek_expr_node);
+      break;
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */

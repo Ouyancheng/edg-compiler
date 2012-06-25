@@ -3044,6 +3044,9 @@ fields to default values.
       node->variant.param_ref.param_num = 0;
       node->variant.param_ref.levels_up = 0;
       break;
+    case enk_braced_init_list:
+      node->variant.braced_init_list = NULL;
+      break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
   }  /* switch */

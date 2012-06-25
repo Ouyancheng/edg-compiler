@@ -6230,6 +6230,8 @@ done_with_operation:
     case enk_reuse_value: /* enk_reuse_value is expected to be lowered in
                              both C and C++. */
     case enk_sizeof_pack: /* enk_sizeof_pack is used in C++ only. */
+    case enk_braced_init_list:
+                          /* enk_braced_init_list is used in C++ only. */
     default:
       unexpected_condition_str("dump_expr: bad expr node kind");
   }  /* switch */

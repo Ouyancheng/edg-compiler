@@ -4562,6 +4562,9 @@ on every expression.
           octl->output_str(">", octl);
         }  /* if */
         break;
+      case enk_braced_init_list:
+        octl->output_str("{ ... }", octl);
+        break;
       default:
         octl->output_str("<expression>", octl);
         break;

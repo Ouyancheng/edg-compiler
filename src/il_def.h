@@ -12975,6 +12975,7 @@ enum an_expr_node_kind_tag {
 			   declaration "auto f(X a)->decltype(*a)" the use
 			   of "a" in the decltype construct is represented
 			   with an enk_param_ref node. */
+  enk_braced_init_list,	/* A C++11 brace-enclosed initializer list. */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -14362,6 +14363,15 @@ typedef struct an_expr_node {
 			     void k(T p, int (*(*)(T p))[sizeof(p)]); // L = 1
 			   */
     } param_ref;
+    /* When kind == enk_braced_init_list: */
+    an_expr_node_ptr
+		braced_init_list;
+			/* A list of expressions (possibly empty) that appear
+			   inside a C++11 brace-enclosed initializer list.
+			   This kind of node appears only in template-dependent
+			   code, because in other contexts initializer lists
+			   are always resolved to something else (e.g., a
+			   constructor call). */
   } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range

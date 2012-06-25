@@ -3252,6 +3252,9 @@ as specified in the control block.
       break;
     case enk_param_ref:
       break;
+    case enk_braced_init_list:
+      traverse_expr_list(expr->variant.braced_init_list, tblock);
+      break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");
   }  /* switch */
