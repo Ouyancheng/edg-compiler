@@ -4268,7 +4268,7 @@ type that reflects the length of the initializer.
       (*init_con)->type = atype;
     }  /* if */
     /* Determine the element count in the destination type if known. */
-    if (has_unknown_specified_bound(atype) ||
+    if (has_any_unknown_specified_bound(atype) ||
         (atype->variant.array.variant.number_of_elements == 0 &&
          !atype->variant.array.bound_is_zero)) {
       /* An array whose number of elements is not a priori bound. */

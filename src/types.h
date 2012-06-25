@@ -315,9 +315,7 @@ unknown (e.g., a template parameter or a run-time quantity).
   ((array_type)->variant.array.is_variable_size_array ||              \
    (array_type)->variant.array.is_template_dependent_size_array)
 
-#if IA64_ABI
 a_boolean has_any_unknown_specified_bound(a_type_ptr  array_type);
-#endif /* IA64_ABI */
 
 /*
 Macro that returns TRUE if a type is a template class type that has

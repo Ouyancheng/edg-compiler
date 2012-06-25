@@ -2034,7 +2034,6 @@ tp itself.
   return is_array_type(tp) ? underlying_array_element_type(tp) : tp;
 }  /* skip_array_types */
 
-#if IA64_ABI
 
 a_boolean has_any_unknown_specified_bound(a_type_ptr  array_type)
 /*
@@ -2058,7 +2057,6 @@ return TRUE if this is the case for any of the bounds.
   return result;
 }  /* has_any_unknown_specified_bound */
 
-#endif /* IA64_ABI */
 
 a_targ_size_t num_array_elements(a_type_ptr array_type)
 /*
