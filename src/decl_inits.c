@@ -4164,22 +4164,22 @@ set *result to the a_constant entry representing the initializer.
 
 static void aggr_init_array_remainder_if_needed(a_constant_ptr     array_con,
                                                 a_targ_size_t      count,
+                                                a_type_ptr         etype,
                                                 an_init_state      *is,
                                                 a_source_position  *diag_pos)
 /*
-The given ck_aggregate constant initializes an array, but does not explicitly
-initialize the last count elements of that array.  If applicable, append a
-constant to the list embedded in array_con that adds any missing dynamic
-initializations (plain zero initialization is done elsewhere if needed).
+An array of elements of type etype has an initializer that doesn't initialize
+all the array elements.  If is->check_validity_only is FALSE, array_con points
+to an ck_aggregate constant that represent the explicit initialization.
+Check that the remaining elements of the array can be initialized, and if
+is->check_validity_only is FALSE and the remaining element need dynamic
+initialization, append a constant representing that initialization to the list
+embedded in array_con (plain zero initialization is done elsewhere if needed).
 *is describes the initialization as a whole, and diag_pos indicates the
 position at which diagnostics should be issued.
 */
 {
-  a_type_ptr  atype = array_con->type, etype;
-
-  check_assertion(atype->kind == (a_type_kind)tk_array &&
-                  array_con->kind == (a_constant_repr_kind)ck_aggregate);
-  etype = skip_typerefs(atype->variant.array.element_type);
+  etype = skip_typerefs(etype);
   if (etype->kind == (a_type_kind)tk_array) {
     /* The element is a sub-array.  Create a single potentially-repeated
        initializer for all array levels. */
@@ -4208,6 +4208,8 @@ position at which diagnostics should be issued.
       if (!is->check_validity_only) {
         /* Add the constant entry to the list of constants, but add a
            ck_repeat_init on top of it if needed. */
+        check_assertion(array_con->type->kind == (a_type_kind)tk_array &&
+                        array_con->kind == (a_constant_repr_kind)ck_aggregate);
         append_constant_in_aggr(add_repeat_con_if_needed(remainder_con, count),
                                 array_con);
       }  /* if */
@@ -4304,7 +4306,7 @@ type that reflects the length of the initializer.
     if (!no_bound && icount < ecount) {
       /* Not all array elements are explicitly initialized: Append an entry
          to initialize the remaining elements. */
-      aggr_init_array_remainder_if_needed(*init_con, ecount-icount, is,
+      aggr_init_array_remainder_if_needed(*init_con, ecount-icount, etype, is,
                                           diag_pos);
     }  /* if */
     if (braced) {
