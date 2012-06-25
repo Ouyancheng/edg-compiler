@@ -7881,6 +7881,10 @@ case.
       if (!check_scalar_operand(operand)) {
         /* Operand is not scalar. */
         err = TRUE;
+      } else if (is_nullptr_type(operand->type)) {
+        /* Increment/decrement not permitted on std::nullptr_t. */
+        error_in_operand(ec_expr_not_arithmetic_or_unscoped_enum, operand);
+        err = TRUE;
       } else {
         if (is_pointer_type(operand->type)) {
           if (gcc_mode && (is_void_type(type_pointed_to(operand->type)) ||
@@ -8149,6 +8153,10 @@ and return the result in *result (or an error indication in *rcblock).
          be a pointer to an object. */
       if (!check_scalar_operand(&operand)) {
         /* Operand is not scalar. */
+        err = TRUE;
+      } else if (is_nullptr_type(operand.type)) {
+        /* Increment/decrement not permitted on std::nullptr_t. */
+        error_in_operand(ec_expr_not_arithmetic_or_unscoped_enum, &operand);
         err = TRUE;
       } else {
         if (is_pointer_type(operand.type)) {

@@ -186,8 +186,11 @@ predicates.
 #define is_reference_ptr(tp) (is_any_reference(tp))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* Scalar types are the arithmetic and enum types plus the pointer
-   types.  C++/CLI handle types are also scalar (ECMA-372, 12). */
-#define is_scalar(tp) (is_arithmetic_or_enum(tp) || is_pointer_or_handle(tp))
+   types and the nullptr type.  C++/CLI handle types are also scalar
+   (ECMA-372, 12). */
+#define is_scalar(tp) (is_arithmetic_or_enum(tp) || \
+                       is_pointer_or_handle(tp) ||  \
+                       is_nullptr(tp))
 
 /* Array types are simply array types. */
 #define is_array(tp) ((tp)->kind == (a_type_kind)tk_array)
