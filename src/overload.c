@@ -20453,8 +20453,9 @@ etc.)
         while (is_braced_init_component(list)) {
           /* Drop the extra braces as long as they contain a single
              element. */
-          list = list->variant.braced.list;
-          if (list == NULL || list->next != NULL) break;
+          an_init_component_ptr new_list = list->variant.braced.list;
+          if (new_list == NULL || new_list->next != NULL) break;
+          list = new_list;
         }  /* while */
       }  /* if */
       prep_list_initializer(list, dest_type, is_direct_init, check_narrowing,
