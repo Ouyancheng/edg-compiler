@@ -805,6 +805,22 @@ interior_ptr and pin_ptr types.
 }  /* is_pointer_type */
 
 
+a_boolean is_pointer_to_object_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a pointer to an object type.  Note that
+object types can be incomplete in some cases.
+*/
+{
+  a_boolean result = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_pointer(tp)) {
+    result = is_object_type(tp->variant.pointer.type);
+  }  /* if */
+  return result;
+}  /* is_pointer_to_object_type */
+
+
 a_boolean is_pointer_or_handle_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a pointer type or a C++/CLI handle type.

@@ -3320,6 +3320,10 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_pow:
       case bfk_powf:
       case bfk_powl:
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+      case bfk_atomic_always_lock_free:
+      case bfk_atomic_is_lock_free:
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
         result = TRUE;
         break;
       default:
@@ -3733,6 +3737,22 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
             }  /* if */
           }
           break;
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+        case bfk_atomic_always_lock_free:
+          if (!is_constant_node(args)) {
+            /* __atomic_always_lock_free's first argument must be a
+               constant. */
+            expr_pos_error(ec_first_arg_must_be_integer_constant,
+                           &op->position);
+          }  /* if */
+          /*FALLTHROUGH*/
+        case bfk_atomic_is_lock_free:
+          check_assertion(args2 != NULL);
+          folded = fold_lock_free_query_if_possible(
+                                           rp->variant.builtin_function_kind,
+                                           args, args2, &result, result_type);
+          break;
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
         default:
           /* Nothing to be done. */
           break;
@@ -4071,12 +4091,12 @@ static a_boolean is_gnu_sync_call(a_routine_ptr rout,
                                   int           *n_args,
                                   a_type_ptr    *result_type)
 /*
-A GNU built-in function (described by rout) is being called.  See if it
-is a __sync__... function and if so return TRUE.  Also return *n_args set to
-the number of arguments expected and *result_type set to the result type of the
-function (or NULL if the result type will be based on the first argument
-type).  After the arguments are scanned, adjust_gnu_sync_call will be
-called to check and adjust the argument types.
+A GNU built-in function (described by rout) is being called.  See if it is a
+__sync__... or __atomic_... function and if so return TRUE.  Also return
+*n_args set to the number of arguments expected and *result_type set to the
+result type of the function (or NULL if the result type will be based on the
+first argument type).  After the arguments are scanned, adjust_gnu_sync_call
+will be called to check and adjust the argument types.
 */
 {
   a_builtin_function_kind  bfk;
@@ -4110,6 +4130,41 @@ called to check and adjust the argument types.
       *result_type = bool_type();
       /*FALLTHROUGH*/
     case bfk_sync_val_compare_and_swap:
+      *n_args = 3;
+      break;
+    case bfk_atomic_load_n:
+      *n_args = 2;
+      break;
+    case bfk_atomic_load:
+    case bfk_atomic_store_n:
+    case bfk_atomic_store:
+      *result_type = void_type();
+      *n_args = 3;
+      break;
+    case bfk_atomic_exchange_n:
+      *n_args = 3;
+      break;
+    case bfk_atomic_exchange:
+      *result_type = void_type();
+      *n_args = 4;
+      break;
+    case bfk_atomic_compare_exchange_n:
+    case bfk_atomic_compare_exchange:
+      *result_type = bool_type();
+      *n_args = 6;
+      break;
+    case bfk_atomic_add_fetch:
+    case bfk_atomic_fetch_add:
+    case bfk_atomic_sub_fetch:
+    case bfk_atomic_fetch_sub:
+    case bfk_atomic_and_fetch:
+    case bfk_atomic_fetch_and:
+    case bfk_atomic_xor_fetch:
+    case bfk_atomic_fetch_xor:
+    case bfk_atomic_or_fetch:
+    case bfk_atomic_fetch_or:
+    case bfk_atomic_nand_fetch:
+    case bfk_atomic_fetch_nand:
       *n_args = 3;
       break;
     default:
@@ -4156,17 +4211,17 @@ static a_routine_ptr adjust_gnu_sync_call(
                                   a_source_position    *closing_paren_position,
                                   an_expr_node_ptr     *arg_list)
 /*
-is_gnu_sync_call previously decided that the call being worked on is of
-a GNU __sync_... function.  *target describes the function specified in
-the call; on return it is updated to describe the appropriate concrete
+is_gnu_sync_call previously decided that the call being worked on is of a GNU
+__sync_... or __atomic_... function.  *target describes the function specified
+in the call; on return it is updated to describe the appropriate concrete
 function based on the argument types.  args gives the argument list.
 n_args is the expected number of arguments, and *result_type the
 result type, as determined by is_gnu_sync_call.  *closing_paren_position
 gives the position of the final ")" in the argument list.  On return,
 *arg_list is set to point to the argument list in expression form.
 
-This routine adjusts a call to refer instead to the proper concrete
-__sync_... function.  For example, a call like:
+This routine adjusts a call to refer instead to the proper concrete __sync_...
+or __atomic_... function.  For example, a call like:
 	__sync_fetch_and_add(&x, 3, ignored())
 must be replaced by
 	(typeof(x))__sync_fetch_and_add_4((void*)&x, (typeof(x)3))
@@ -4181,13 +4236,17 @@ that the final call needs to be cast to the indicated type.
   a_routine_ptr            rout;
   a_builtin_function_kind  bfk;
   a_source_position        first_arg_pos;
-  a_type_ptr               dispatch_type;
-  a_boolean                err = FALSE, template_case = FALSE;
+  a_type_ptr               dispatch_type, ptr_type;
+  a_boolean                err = FALSE, template_case = FALSE, is_generic;
 
   *arg_list = NULL;
   rout = routine_from_function_operand(target);
   check_assertion(rout != NULL);
   bfk = rout->variant.builtin_function_kind;
+  is_generic = (bfk == (a_builtin_function_kind)bfk_atomic_load ||
+                bfk == (a_builtin_function_kind)bfk_atomic_store ||
+                bfk == (a_builtin_function_kind)bfk_atomic_exchange ||
+                bfk == (a_builtin_function_kind)bfk_atomic_compare_exchange);
   if (args == NULL) {
     /* If there is no first argument, we cannot determine the concrete
        version to call. */
@@ -4216,7 +4275,8 @@ that the final call needs to be cast to the indicated type.
       goto done;
     }  /* if */
     check_arg_list_elem_is_expression(args);
-    dispatch_type = f_skip_typerefs(operand_of_arg_list_elem(args)->type);
+    ptr_type = operand_of_arg_list_elem(args)->type;
+    dispatch_type = f_skip_typerefs(ptr_type);
     /* Check that the dispatch type is a pointer (or a template parameter,
        which could be a pointer). */
     if (is_pointer_type(dispatch_type)) {
@@ -4226,7 +4286,9 @@ that the final call needs to be cast to the indicated type.
       template_case = TRUE;
     } else {
       if (!is_error_type(dispatch_type)) {
-        expr_pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
+        expr_pos_error(is_generic ? ec_expr_not_object_pointer
+                                  : ec_bad_type_for_gnu_sync_function,
+                       &first_arg_pos);
       }  /* if */
       conv_to_error_operand(target);
       err = TRUE;
@@ -4244,8 +4306,11 @@ that the final call needs to be cast to the indicated type.
       /* An error has already been issued. */
       if (expr_error_should_be_issued()) expect_error();
       err = TRUE;
-    } else if (!is_integral_or_enum_type(dispatch_type) &&
+    } else if (!is_generic && !is_integral_or_enum_type(dispatch_type) &&
                !is_pointer_type(dispatch_type)) {
+      /* Except for the generic __atomic_... functions, the first argument
+         must be a pointer to an integral type (or enum) or a pointer to a
+         pointer. */
       expr_pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
       err = TRUE;
     } else if (is_template_dependent_type(dispatch_type)) {
@@ -4253,23 +4318,44 @@ that the final call needs to be cast to the indicated type.
          test is after the integer/enum/pointer test above so that we don't
          let class types get by as dispatch_type. */
       template_case = TRUE;
+    } else if (is_generic) {
+      /* The generic __atomic_... functions take a pointer to a complete
+         object type. */
+      if (!is_complete_object_type(dispatch_type)) {
+        expr_pos_error(ec_expr_not_object_pointer, &first_arg_pos);
+        err = TRUE;
+        goto done;
+      }  /* if */
+      /* In the "generic" case, we do not have to map "rout" onto a more
+         concrete implementation. */
     } else if (dispatch_type->size != 1 && dispatch_type->size != 2 &&
-               dispatch_type->size != 4 && dispatch_type->size != 8) {
+               dispatch_type->size != 4 && dispatch_type->size != 8
+#if INT128_EXTENSIONS_ALLOWED
+               && dispatch_type->size != 16
+#endif /* INT128_EXTENSIONS_ALLOWED */
+                                           ) {
       expr_pos_error(ec_invalid_gnu_sync_size, &first_arg_pos);
       err = TRUE;
     } else {
       /* Find the concrete routine to dispatch the operation to. */
       a_symbol_ptr  sym;
       an_operand    orig_operand;
-      char          name[100], suffix[3];
+      char          name[100];
+      sizeof_t      name_len = strlen(builtin_function_kind_names[bfk]);
       /* Construct the concrete routine's name: */
-      check_assertion(strlen(builtin_function_kind_names[bfk]) < 90);
+      check_assertion(name_len < 90);
       strcpy(name, builtin_function_kind_names[bfk]);
-      suffix[0] = '_';
-      suffix[1] = '0'+ dispatch_type->size;
-      suffix[2] = '\0';
-      strcat(name, suffix);
-      /* Look it up: */
+      if (bfk == (a_builtin_function_kind)bfk_atomic_load_n ||
+          bfk == (a_builtin_function_kind)bfk_atomic_store_n ||
+          bfk == (a_builtin_function_kind)bfk_atomic_exchange_n ||
+          bfk == (a_builtin_function_kind)bfk_atomic_compare_exchange_n) {
+        /* Remove the trailing "_n" suffix. */
+        name_len -= 2;
+        name[name_len] = '\0';
+      }  /* if */
+      /* Append _1, _2, _4, _8, or _16. */
+      (void)snprintf(name+name_len, 4, "_%u", (unsigned)dispatch_type->size);
+      /* Look up the resulting concrete routine name: */
       sym = gnu_builtin_func_by_name(name);
       check_assertion(sym != NULL);
       /* Update the operand: */
@@ -4289,6 +4375,20 @@ that the final call needs to be cast to the indicated type.
       an_arg_list_elem_ptr ap;
       a_param_type_ptr     ptp;
       an_expr_node_ptr     end_arg_list = NULL;
+      if (is_generic) {
+        /* For generic __atomic_... functions, the size of the operand
+           pointed to is passed via an implicitly-inserted first argument. */
+        an_operand        size_operand;
+        a_constant        size_constant;
+        an_expr_node_ptr  expr_arg;
+        set_integer_constant(&size_constant,
+                             (a_host_large_integer)dispatch_type->size,
+                             targ_size_t_int_kind);
+        make_constant_operand(&size_constant, &size_operand);
+        expr_arg = make_node_from_operand_for_expr_list(&size_operand);
+        *arg_list = expr_arg;
+        end_arg_list = expr_arg;
+      } /* if */
       /* Convert the prescanned arguments to the type expected by the
          function (if needed) and built the argument list in expression
          form.  In the template-dependent case, build the argument list
@@ -4312,6 +4412,32 @@ that the final call needs to be cast to the indicated type.
             /* Pointer operands are allowed and must be converted to an integer
                value. */
             cast_operand(ptp->type, operand, /*is_implicit_cast=*/TRUE);
+          } else if (is_generic && ptp->param_num > 1 && 
+                     is_pointer_type(ptp->type)) {
+            /* For generic __atomic_... functions, check that the types
+               pointed to by subsequent pointer operands match the type
+               pointed to by the first argument. */
+            /* A pointer to a complete object type is required. */
+            a_type_ptr arg_type = skip_typerefs(operand->type);
+            if (!is_pointer_to_object_type(arg_type)) {
+              expr_pos_error(ec_expr_not_object_pointer, &operand->position);
+              goto done;
+            } else {
+              arg_type = type_pointed_to(arg_type);
+              if (is_incomplete_type(arg_type)) {
+                expr_pos_error(ec_expr_not_object_pointer, &operand->position);
+                goto done;
+              } else if (skip_typerefs(arg_type)->size !=
+                                                        dispatch_type->size) {
+                /* The type pointed to by this argument has a different size
+                   than the type pointed to by the first argument. */
+                if (expr_error_should_be_issued()) {
+                  pos_opt_ty2_error(ec_incompatible_param, &operand->position,
+                                    ptr_type, operand->type);
+                }  /* if */
+                goto done;
+              }  /* if */
+            }  /* if */
           }  /* if */
           prep_argument_operand(operand, ptp, (a_conv_descr *)NULL,
                                 ec_incompatible_param);

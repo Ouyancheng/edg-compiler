@@ -475,7 +475,12 @@ depending on the type of the first argument (see adjust_gnu_sync_call).
 {
   an_integer_kind  u2_kind, u4_kind, u8_kind;
   a_type_ptr       u1_type, u2_type, u4_type, u8_type;
+#if INT128_EXTENSIONS_ALLOWED
+  an_integer_kind  u16_kind;
+  a_type_ptr       u16_type;
+#endif /* INT128_EXTENSIONS_ALLOWED */
   a_type_ptr       no_return_type, volatile_void_star_type, boolean_type;
+  a_type_ptr       int_type, size_t_type;
 
   /* Construct unsigned integer types of size 1, 2, 4, and 8, respectively. */
   u2_kind = int_kind_for_bit_size(2*CHAR_BIT, /*is_signed=*/FALSE);
@@ -489,11 +494,233 @@ depending on the type of the first argument (see adjust_gnu_sync_call).
   u2_type = integer_type(u2_kind);
   u4_type = integer_type(u4_kind);
   u8_type = integer_type(u8_kind);
+#if INT128_EXTENSIONS_ALLOWED
+  if (int128_extensions_enabled) {
+    u16_kind = int_kind_for_bit_size(16*CHAR_BIT, /*is_signed=*/FALSE);
+    check_assertion_str(u16_kind != (an_integer_kind)ik_none,
+                        "Missing __int128 for GNU __sync... functions");
+    u16_type = integer_type(u16_kind);
+  }  /* if */
+#endif /* INT128_EXTENSIONS_ALLOWED */
   no_return_type = void_type();
   volatile_void_star_type = 
              make_pointer_type(make_qualified_type(void_type(), TQ_VOLATILE));
   boolean_type = (!C_mode() || c99_mode) ? bool_type() : u1_type;
-  
+  int_type = integer_type((an_integer_kind)ik_int);
+  size_t_type = integer_type(targ_size_t_int_kind);
+
+  if (gnu_version >= 40700) {
+    /* __atomic_... functions introduced in GCC 4.7 in support of C++11. */
+    enter_gnu_builtin_func2(_atomic_always_lock_free, boolean, size_t, 
+                            volatile_void_star);
+    enter_gnu_builtin_func2(_atomic_is_lock_free, boolean, size_t, 
+                            volatile_void_star);
+    enter_gnu_builtin_func1(_atomic_thread_fence, no_return, int);
+    enter_gnu_builtin_func1(_atomic_signal_fence, no_return, int);
+    enter_gnu_builtin_func3(_atomic_load, no_return,
+                            volatile_void_star, volatile_void_star, int);
+    enter_gnu_builtin_func3(_atomic_store, no_return, 
+                            volatile_void_star, volatile_void_star, int);
+    enter_gnu_builtin_func4(_atomic_exchange, no_return,
+                            volatile_void_star, volatile_void_star,
+                            volatile_void_star, int);
+    enter_gnu_builtin_func6(_atomic_compare_exchange, boolean,
+                            volatile_void_star, volatile_void_star,
+                            volatile_void_star, boolean, int, int);
+    enter_gnu_builtin_func2(_atomic_clear, no_return, volatile_void_star, int);
+    enter_gnu_builtin_func2(_atomic_test_and_set, boolean,
+                            volatile_void_star, int);
+    enter_gnu_builtin_vararg_func0(_atomic_load_n, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_store_n, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_exchange_n, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_compare_exchange_n, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_add_fetch, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_fetch_add, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_sub_fetch, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_fetch_sub, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_and_fetch, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_fetch_and, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_xor_fetch, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_fetch_xor, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_or_fetch, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_fetch_or, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_nand_fetch, no_return);
+    enter_gnu_builtin_vararg_func0(_atomic_fetch_nand, no_return);
+
+    enter_gnu_builtin_func2(_atomic_load_1, u1,
+                            volatile_void_star, int);
+    enter_gnu_builtin_func3(_atomic_store_1, no_return,
+                            volatile_void_star, u1, int);
+    enter_gnu_builtin_func3(_atomic_exchange_1, u1,
+                            volatile_void_star, u1, int);
+    enter_gnu_builtin_func6(_atomic_compare_exchange_1, boolean,
+                            volatile_void_star, volatile_void_star, u1,
+                            boolean, int, int);
+    enter_gnu_builtin_func3(_atomic_add_fetch_1, u1,
+                            volatile_void_star, u1, int);
+    enter_gnu_builtin_func3(_atomic_fetch_add_1, u1,
+                            volatile_void_star, u1, int);
+    enter_gnu_builtin_func3(_atomic_sub_fetch_1, u1,
+                            volatile_void_star, u1, int);
+    enter_gnu_builtin_func3(_atomic_fetch_sub_1, u1,
+                            volatile_void_star, u1, int);
+    enter_gnu_builtin_func3(_atomic_and_fetch_1, u1,
+                            volatile_void_star, u1, int);
+    enter_gnu_builtin_func3(_atomic_fetch_and_1, u1,
+                            volatile_void_star, u1, int);
+    enter_gnu_builtin_func3(_atomic_xor_fetch_1, u1,
+                            volatile_void_star, u1, int);
+    enter_gnu_builtin_func3(_atomic_fetch_xor_1, u1,
+                            volatile_void_star, u1, int);
+    enter_gnu_builtin_func3(_atomic_or_fetch_1, u1,
+                            volatile_void_star, u1, int);
+    enter_gnu_builtin_func3(_atomic_fetch_or_1, u1,
+                            volatile_void_star, u1, int);
+    enter_gnu_builtin_func3(_atomic_nand_fetch_1, u1,
+                            volatile_void_star, u1, int);
+    enter_gnu_builtin_func3(_atomic_fetch_nand_1, u1,
+                            volatile_void_star, u1, int);
+
+    enter_gnu_builtin_func2(_atomic_load_2, u2,
+                            volatile_void_star, int);
+    enter_gnu_builtin_func3(_atomic_store_2, no_return,
+                            volatile_void_star, u2, int);
+    enter_gnu_builtin_func3(_atomic_exchange_2, u2,
+                            volatile_void_star, u2, int);
+    enter_gnu_builtin_func6(_atomic_compare_exchange_2, boolean,
+                            volatile_void_star, volatile_void_star, u2,
+                            boolean, int, int);
+    enter_gnu_builtin_func3(_atomic_add_fetch_2, u2,
+                            volatile_void_star, u2, int);
+    enter_gnu_builtin_func3(_atomic_fetch_add_2, u2,
+                            volatile_void_star, u2, int);
+    enter_gnu_builtin_func3(_atomic_sub_fetch_2, u2,
+                            volatile_void_star, u2, int);
+    enter_gnu_builtin_func3(_atomic_fetch_sub_2, u2,
+                            volatile_void_star, u2, int);
+    enter_gnu_builtin_func3(_atomic_and_fetch_2, u2,
+                            volatile_void_star, u2, int);
+    enter_gnu_builtin_func3(_atomic_fetch_and_2, u2,
+                            volatile_void_star, u2, int);
+    enter_gnu_builtin_func3(_atomic_xor_fetch_2, u2,
+                            volatile_void_star, u2, int);
+    enter_gnu_builtin_func3(_atomic_fetch_xor_2, u2,
+                            volatile_void_star, u2, int);
+    enter_gnu_builtin_func3(_atomic_or_fetch_2, u2,
+                            volatile_void_star, u2, int);
+    enter_gnu_builtin_func3(_atomic_fetch_or_2, u2,
+                            volatile_void_star, u2, int);
+    enter_gnu_builtin_func3(_atomic_nand_fetch_2, u2,
+                            volatile_void_star, u2, int);
+    enter_gnu_builtin_func3(_atomic_fetch_nand_2, u2,
+                            volatile_void_star, u2, int);
+
+    enter_gnu_builtin_func2(_atomic_load_4, u4,
+                            volatile_void_star, int);
+    enter_gnu_builtin_func3(_atomic_store_4, no_return,
+                            volatile_void_star, u4, int);
+    enter_gnu_builtin_func3(_atomic_exchange_4, u4,
+                            volatile_void_star, u4, int);
+    enter_gnu_builtin_func6(_atomic_compare_exchange_4, boolean,
+                            volatile_void_star, volatile_void_star, u4,
+                            boolean, int, int);
+    enter_gnu_builtin_func3(_atomic_add_fetch_4, u4,
+                            volatile_void_star, u4, int);
+    enter_gnu_builtin_func3(_atomic_fetch_add_4, u4,
+                            volatile_void_star, u4, int);
+    enter_gnu_builtin_func3(_atomic_sub_fetch_4, u4,
+                            volatile_void_star, u4, int);
+    enter_gnu_builtin_func3(_atomic_fetch_sub_4, u4,
+                            volatile_void_star, u4, int);
+    enter_gnu_builtin_func3(_atomic_and_fetch_4, u4,
+                            volatile_void_star, u4, int);
+    enter_gnu_builtin_func3(_atomic_fetch_and_4, u4,
+                            volatile_void_star, u4, int);
+    enter_gnu_builtin_func3(_atomic_xor_fetch_4, u4,
+                            volatile_void_star, u4, int);
+    enter_gnu_builtin_func3(_atomic_fetch_xor_4, u4,
+                            volatile_void_star, u4, int);
+    enter_gnu_builtin_func3(_atomic_or_fetch_4, u4,
+                            volatile_void_star, u4, int);
+    enter_gnu_builtin_func3(_atomic_fetch_or_4, u4,
+                            volatile_void_star, u4, int);
+    enter_gnu_builtin_func3(_atomic_nand_fetch_4, u4,
+                            volatile_void_star, u4, int);
+    enter_gnu_builtin_func3(_atomic_fetch_nand_4, u4,
+                            volatile_void_star, u4, int);
+
+    enter_gnu_builtin_func2(_atomic_load_8, u8,
+                            volatile_void_star, int);
+    enter_gnu_builtin_func3(_atomic_store_8, no_return,
+                            volatile_void_star, u8, int);
+    enter_gnu_builtin_func3(_atomic_exchange_8, u8,
+                            volatile_void_star, u8, int);
+    enter_gnu_builtin_func6(_atomic_compare_exchange_8, boolean,
+                            volatile_void_star, volatile_void_star, u8,
+                            boolean, int, int);
+    enter_gnu_builtin_func3(_atomic_add_fetch_8, u8,
+                            volatile_void_star, u8, int);
+    enter_gnu_builtin_func3(_atomic_fetch_add_8, u8,
+                            volatile_void_star, u8, int);
+    enter_gnu_builtin_func3(_atomic_sub_fetch_8, u8,
+                            volatile_void_star, u8, int);
+    enter_gnu_builtin_func3(_atomic_fetch_sub_8, u8,
+                            volatile_void_star, u8, int);
+    enter_gnu_builtin_func3(_atomic_and_fetch_8, u8,
+                            volatile_void_star, u8, int);
+    enter_gnu_builtin_func3(_atomic_fetch_and_8, u8,
+                            volatile_void_star, u8, int);
+    enter_gnu_builtin_func3(_atomic_xor_fetch_8, u8,
+                            volatile_void_star, u8, int);
+    enter_gnu_builtin_func3(_atomic_fetch_xor_8, u8,
+                            volatile_void_star, u8, int);
+    enter_gnu_builtin_func3(_atomic_or_fetch_8, u8,
+                            volatile_void_star, u8, int);
+    enter_gnu_builtin_func3(_atomic_fetch_or_8, u8,
+                            volatile_void_star, u8, int);
+    enter_gnu_builtin_func3(_atomic_nand_fetch_8, u8,
+                            volatile_void_star, u8, int);
+    enter_gnu_builtin_func3(_atomic_fetch_nand_8, u8,
+                            volatile_void_star, u8, int);
+
+#if INT128_EXTENSIONS_ALLOWED
+    if (int128_extensions_enabled) {
+      enter_gnu_builtin_func2(_atomic_load_16, u16,
+                              volatile_void_star, int);
+      enter_gnu_builtin_func3(_atomic_store_16, no_return,
+                              volatile_void_star, u16, int);
+      enter_gnu_builtin_func3(_atomic_exchange_16, u16,
+                              volatile_void_star, u16, int);
+      enter_gnu_builtin_func6(_atomic_compare_exchange_16, boolean,
+                              volatile_void_star, volatile_void_star,
+                              u16, boolean, int, int);
+      enter_gnu_builtin_func3(_atomic_add_fetch_16, u16,
+                              volatile_void_star, u16, int);
+      enter_gnu_builtin_func3(_atomic_fetch_add_16, u16,
+                              volatile_void_star, u16, int);
+      enter_gnu_builtin_func3(_atomic_sub_fetch_16, u16,
+                              volatile_void_star, u16, int);
+      enter_gnu_builtin_func3(_atomic_fetch_sub_16, u16,
+                              volatile_void_star, u16, int);
+      enter_gnu_builtin_func3(_atomic_and_fetch_16, u16,
+                              volatile_void_star, u16, int);
+      enter_gnu_builtin_func3(_atomic_fetch_and_16, u16,
+                              volatile_void_star, u16, int);
+      enter_gnu_builtin_func3(_atomic_xor_fetch_16, u16,
+                              volatile_void_star, u16, int);
+      enter_gnu_builtin_func3(_atomic_fetch_xor_16, u16,
+                              volatile_void_star, u16, int);
+      enter_gnu_builtin_func3(_atomic_or_fetch_16, u16,
+                              volatile_void_star, u16, int);
+      enter_gnu_builtin_func3(_atomic_fetch_or_16, u16,
+                              volatile_void_star, u16, int);
+      enter_gnu_builtin_func3(_atomic_nand_fetch_16, u16,
+                              volatile_void_star, u16, int);
+      enter_gnu_builtin_func3(_atomic_fetch_nand_16, u16,
+                              volatile_void_star, u16, int);
+    }  /* if */
+#endif /* INT128_EXTENSIONS_ALLOWED */
+  }  /* if */
   enter_gnu_builtin_func0(_sync_synchronize, no_return);
   enter_gnu_builtin_vararg_func0(_sync_fetch_and_add, no_return);
   enter_gnu_builtin_vararg_func0(_sync_fetch_and_sub, no_return);

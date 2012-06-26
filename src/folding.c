@@ -7650,6 +7650,53 @@ floating-point value of the given type).  Otherwise, return FALSE.
 }  /* fold_pow_if_possible */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+
+a_boolean fold_lock_free_query_if_possible(
+                                         a_builtin_function_kind  bfk,
+                                         an_expr_node_ptr         size_arg,
+                                         an_expr_node_ptr         ptr_arg,
+                                         a_constant_ptr           result,
+                                         a_type_ptr               result_type)
+/*
+bfk is either bfk_atomic_always_lock_free or bfk_atomic_is_lock_free.
+If possible, fold a call to the corresponding "built-in functions" with the
+given arguments, and return the result in *result.  If successful, return
+TRUE.
+*/
+{
+  a_boolean  folded = FALSE, err;
+
+  if (is_constant_node(size_arg)) {
+    /* These queries can only be folded if the first argument is a
+       constant. */
+    a_constant_ptr         size_con = size_arg->variant.constant;
+    a_host_large_unsigned  size;
+    a_boolean              size_8_foldable = FALSE;
+    if (bfk == (a_builtin_function_kind)bfk_atomic_always_lock_free ||
+        is_constant_node(ptr_arg)) {
+      /* For __atomic_is_lock_free, GCC appears to always fold the cases where
+         the size argument is 1, 2, or 4.  The case where it is 8, is only
+         folded if ptr_arg represents an address constant expression or a
+         null pointer constant. */
+      size_8_foldable = TRUE;
+    }  /* if */
+    size = unsigned_value_of_integer_constant(size_con, &err);
+    if (size == 1 || size == 2 || size == 4 ||
+        (size == 8 && size_8_foldable)) {
+      set_unsigned_integer_constant(result, (a_host_large_unsigned)1,
+                                    result_type->variant.integer.int_kind);
+      folded = TRUE;
+    } else if (bfk == (a_builtin_function_kind)bfk_atomic_always_lock_free) {
+      set_unsigned_integer_constant(result, (a_host_large_unsigned)0,
+                                    result_type->variant.integer.int_kind);
+      folded = TRUE;
+    }  /* if */
+  }  /* if */
+  return folded;
+}  /* fold_lock_free_query_if_possible */
+
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
 
 

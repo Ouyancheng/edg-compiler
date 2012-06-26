@@ -9835,6 +9835,16 @@ enum a_builtin_function_kind_tag {
   bfk_ynf,                      /* "__builtin_ynf" */
   bfk_ynl,                      /* "__builtin_ynl" */
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+  bfk_atomic_always_lock_free,  /* __atomic_always_lock_free */
+  bfk_atomic_is_lock_free,      /* __atomic_is_lock_free */
+  bfk_atomic_thread_fence,      /* __atomic_thread_fence */
+  bfk_atomic_signal_fence,      /* __atomic_signal_fence */
+  bfk_atomic_load,              /* __atomic_load */
+  bfk_atomic_store,             /* __atomic_store */
+  bfk_atomic_exchange,          /* __atomic_exchange */
+  bfk_atomic_compare_exchange,  /* __atomic_compare_exchange */
+  bfk_atomic_clear,             /* __atomic_clear */
+  bfk_atomic_test_and_set,      /* __atomic_test_and_set */
   bfk_sync_synchronize,         /* __sync_synchronize */
   bfk_sync_fetch_and_add,       /* __sync_fetch_and_add */
   bfk_sync_fetch_and_sub,       /* __sync_fetch_and_sub */
@@ -9854,6 +9864,23 @@ enum a_builtin_function_kind_tag {
                                 /* __sync_val_compare_and_swap */
   bfk_sync_lock_test_and_set,   /* __sync_lock_test_and_set */
   bfk_sync_lock_release,        /* __sync_lock_release */
+  bfk_atomic_load_n,            /* __atomic_load_n */
+  bfk_atomic_store_n,           /* __atomic_store_n */
+  bfk_atomic_exchange_n,        /* __atomic_exchange_n */
+  bfk_atomic_compare_exchange_n,
+                                /* __atomic_compare_exchange_n */
+  bfk_atomic_add_fetch,         /* __atomic_add_fetch */
+  bfk_atomic_fetch_add,         /* __atomic_fetch_add */
+  bfk_atomic_sub_fetch,         /* __atomic_sub_fetch */
+  bfk_atomic_fetch_sub,         /* __atomic_fetch_sub */
+  bfk_atomic_and_fetch,         /* __atomic_and_fetch */
+  bfk_atomic_fetch_and,         /* __atomic_fetch_and */
+  bfk_atomic_xor_fetch,         /* __atomic_xor_fetch */
+  bfk_atomic_fetch_xor,         /* __atomic_fetch_xor */
+  bfk_atomic_or_fetch,          /* __atomic_or_fetch */
+  bfk_atomic_fetch_or,          /* __atomic_fetch_or */
+  bfk_atomic_nand_fetch,        /* __atomic_nand_fetch */
+  bfk_atomic_fetch_nand,        /* __atomic_fetch_nand */
   bfk_sync_fetch_and_add_1,     /* __sync_fetch_and_add_1 */
   bfk_sync_fetch_and_sub_1,     /* __sync_fetch_and_sub_1 */
   bfk_sync_fetch_and_or_1,      /* __sync_fetch_and_or_1 */
@@ -9872,6 +9899,23 @@ enum a_builtin_function_kind_tag {
                                 /* __sync_val_compare_and_swap_1 */
   bfk_sync_lock_test_and_set_1, /* __sync_lock_test_and_set_1 */
   bfk_sync_lock_release_1,      /* __sync_lock_release_1 */
+  bfk_atomic_load_1,            /* __atomic_load_1 */
+  bfk_atomic_store_1,           /* __atomic_store_1 */
+  bfk_atomic_exchange_1,        /* __atomic_exchange_1 */
+  bfk_atomic_compare_exchange_1,
+                                /* __atomic_compare_exchange_1 */
+  bfk_atomic_add_fetch_1,       /* __atomic_add_fetch_1 */
+  bfk_atomic_fetch_add_1,       /* __atomic_fetch_add_1 */
+  bfk_atomic_sub_fetch_1,       /* __atomic_sub_fetch_1 */
+  bfk_atomic_fetch_sub_1,       /* __atomic_fetch_sub_1 */
+  bfk_atomic_and_fetch_1,       /* __atomic_and_fetch_1 */
+  bfk_atomic_fetch_and_1,       /* __atomic_fetch_and_1 */
+  bfk_atomic_xor_fetch_1,       /* __atomic_xor_fetch_1 */
+  bfk_atomic_fetch_xor_1,       /* __atomic_fetch_xor_1 */
+  bfk_atomic_or_fetch_1,        /* __atomic_or_fetch_1 */
+  bfk_atomic_fetch_or_1,        /* __atomic_fetch_or_1 */
+  bfk_atomic_nand_fetch_1,      /* __atomic_nand_fetch_1 */
+  bfk_atomic_fetch_nand_1,      /* __atomic_fetch_nand_1 */
   bfk_sync_fetch_and_add_2,     /* __sync_fetch_and_add_2 */
   bfk_sync_fetch_and_sub_2,     /* __sync_fetch_and_sub_2 */
   bfk_sync_fetch_and_or_2,      /* __sync_fetch_and_or_2 */
@@ -9890,6 +9934,23 @@ enum a_builtin_function_kind_tag {
                                 /* __sync_val_compare_and_swap_2 */
   bfk_sync_lock_test_and_set_2, /* __sync_lock_test_and_set_2 */
   bfk_sync_lock_release_2,      /* __sync_lock_release_2 */
+  bfk_atomic_load_2,            /* __atomic_load_2 */
+  bfk_atomic_store_2,           /* __atomic_store_2 */
+  bfk_atomic_exchange_2,        /* __atomic_exchange_2 */
+  bfk_atomic_compare_exchange_2,
+                                /* __atomic_compare_exchange_2 */
+  bfk_atomic_add_fetch_2,       /* __atomic_add_fetch_2 */
+  bfk_atomic_fetch_add_2,       /* __atomic_fetch_add_2 */
+  bfk_atomic_sub_fetch_2,       /* __atomic_sub_fetch_2 */
+  bfk_atomic_fetch_sub_2,       /* __atomic_fetch_sub_2 */
+  bfk_atomic_and_fetch_2,       /* __atomic_and_fetch_2 */
+  bfk_atomic_fetch_and_2,       /* __atomic_fetch_and_2 */
+  bfk_atomic_xor_fetch_2,       /* __atomic_xor_fetch_2 */
+  bfk_atomic_fetch_xor_2,       /* __atomic_fetch_xor_2 */
+  bfk_atomic_or_fetch_2,        /* __atomic_or_fetch_2 */
+  bfk_atomic_fetch_or_2,        /* __atomic_fetch_or_2 */
+  bfk_atomic_nand_fetch_2,      /* __atomic_nand_fetch_2 */
+  bfk_atomic_fetch_nand_2,      /* __atomic_fetch_nand_2 */
   bfk_sync_fetch_and_add_4,     /* __sync_fetch_and_add_4 */
   bfk_sync_fetch_and_sub_4,     /* __sync_fetch_and_sub_4 */
   bfk_sync_fetch_and_or_4,      /* __sync_fetch_and_or_4 */
@@ -9908,6 +9969,23 @@ enum a_builtin_function_kind_tag {
                                 /* __sync_val_compare_and_swap_4 */
   bfk_sync_lock_test_and_set_4, /* __sync_lock_test_and_set_4 */
   bfk_sync_lock_release_4,      /* __sync_lock_release_4 */
+  bfk_atomic_load_4,            /* __atomic_load_4 */
+  bfk_atomic_store_4,           /* __atomic_store_4 */
+  bfk_atomic_exchange_4,        /* __atomic_exchange_4 */
+  bfk_atomic_compare_exchange_4,
+                                /* __atomic_compare_exchange_4 */
+  bfk_atomic_add_fetch_4,       /* __atomic_add_fetch_4 */
+  bfk_atomic_fetch_add_4,       /* __atomic_fetch_add_4 */
+  bfk_atomic_sub_fetch_4,       /* __atomic_sub_fetch_4 */
+  bfk_atomic_fetch_sub_4,       /* __atomic_fetch_sub_4 */
+  bfk_atomic_and_fetch_4,       /* __atomic_and_fetch_4 */
+  bfk_atomic_fetch_and_4,       /* __atomic_fetch_and_4 */
+  bfk_atomic_xor_fetch_4,       /* __atomic_xor_fetch_4 */
+  bfk_atomic_fetch_xor_4,       /* __atomic_fetch_xor_4 */
+  bfk_atomic_or_fetch_4,        /* __atomic_or_fetch_4 */
+  bfk_atomic_fetch_or_4,        /* __atomic_fetch_or_4 */
+  bfk_atomic_nand_fetch_4,      /* __atomic_nand_fetch_4 */
+  bfk_atomic_fetch_nand_4,      /* __atomic_fetch_nand_4 */
   bfk_sync_fetch_and_add_8,     /* __sync_fetch_and_add_8 */
   bfk_sync_fetch_and_sub_8,     /* __sync_fetch_and_sub_8 */
   bfk_sync_fetch_and_or_8,      /* __sync_fetch_and_or_8 */
@@ -9926,6 +10004,61 @@ enum a_builtin_function_kind_tag {
                                 /* __sync_val_compare_and_swap_8 */
   bfk_sync_lock_test_and_set_8, /* __sync_lock_test_and_set_8 */
   bfk_sync_lock_release_8,      /* __sync_lock_release_8 */
+  bfk_atomic_load_8,            /* __atomic_load_8 */
+  bfk_atomic_store_8,           /* __atomic_store_8 */
+  bfk_atomic_exchange_8,        /* __atomic_exchange_8 */
+  bfk_atomic_compare_exchange_8,
+                                /* __atomic_compare_exchange_8 */
+  bfk_atomic_add_fetch_8,       /* __atomic_add_fetch_8 */
+  bfk_atomic_fetch_add_8,       /* __atomic_fetch_add_8 */
+  bfk_atomic_sub_fetch_8,       /* __atomic_sub_fetch_8 */
+  bfk_atomic_fetch_sub_8,       /* __atomic_fetch_sub_8 */
+  bfk_atomic_and_fetch_8,       /* __atomic_and_fetch_8 */
+  bfk_atomic_fetch_and_8,       /* __atomic_fetch_and_8 */
+  bfk_atomic_xor_fetch_8,       /* __atomic_xor_fetch_8 */
+  bfk_atomic_fetch_xor_8,       /* __atomic_fetch_xor_8 */
+  bfk_atomic_or_fetch_8,        /* __atomic_or_fetch_8 */
+  bfk_atomic_fetch_or_8,        /* __atomic_fetch_or_8 */
+  bfk_atomic_nand_fetch_8,      /* __atomic_nand_fetch_8 */
+  bfk_atomic_fetch_nand_8,      /* __atomic_fetch_nand_8 */
+#if INT128_EXTENSIONS_ALLOWED
+  bfk_sync_fetch_and_add_16,    /* __sync_fetch_and_add_16 */
+  bfk_sync_fetch_and_sub_16,    /* __sync_fetch_and_sub_16 */
+  bfk_sync_fetch_and_or_16,     /* __sync_fetch_and_or_16 */
+  bfk_sync_fetch_and_and_16,    /* __sync_fetch_and_and_16 */
+  bfk_sync_fetch_and_xor_16,    /* __sync_fetch_and_xor_16 */
+  bfk_sync_fetch_and_nand_16,   /* __sync_fetch_and_nand_16 */
+  bfk_sync_add_and_fetch_16,    /* __sync_add_and_fetch_16 */
+  bfk_sync_sub_and_fetch_16,    /* __sync_sub_and_fetch_16 */
+  bfk_sync_or_and_fetch_16,     /* __sync_or_and_fetch_16 */
+  bfk_sync_and_and_fetch_16,    /* __sync_and_and_fetch_16 */
+  bfk_sync_xor_and_fetch_16,    /* __sync_xor_and_fetch_16 */
+  bfk_sync_nand_and_fetch_16,   /* __sync_nand_and_fetch_16 */
+  bfk_sync_bool_compare_and_swap_16,
+                                /* __sync_bool_compare_and_swap_16 */
+  bfk_sync_val_compare_and_swap_16,
+                                /* __sync_val_compare_and_swap_16 */
+  bfk_sync_lock_test_and_set_16,
+                                /* __sync_lock_test_and_set_16 */
+  bfk_sync_lock_release_16,     /* __sync_lock_release_16 */
+  bfk_atomic_load_16,           /* __atomic_load_16 */
+  bfk_atomic_store_16,          /* __atomic_store_16 */
+  bfk_atomic_exchange_16,       /* __atomic_exchange_16 */
+  bfk_atomic_compare_exchange_16,
+                                /* __atomic_compare_exchange_16 */
+  bfk_atomic_add_fetch_16,      /* __atomic_add_fetch_16 */
+  bfk_atomic_fetch_add_16,      /* __atomic_fetch_add_16 */
+  bfk_atomic_sub_fetch_16,      /* __atomic_sub_fetch_16 */
+  bfk_atomic_fetch_sub_16,      /* __atomic_fetch_sub_16 */
+  bfk_atomic_and_fetch_16,      /* __atomic_and_fetch_16 */
+  bfk_atomic_fetch_and_16,      /* __atomic_fetch_and_16 */
+  bfk_atomic_xor_fetch_16,      /* __atomic_xor_fetch_16 */
+  bfk_atomic_fetch_xor_16,      /* __atomic_fetch_xor_16 */
+  bfk_atomic_or_fetch_16,       /* __atomic_or_fetch_16 */
+  bfk_atomic_fetch_or_16,       /* __atomic_fetch_or_16 */
+  bfk_atomic_nand_fetch_16,     /* __atomic_nand_fetch_16 */
+  bfk_atomic_fetch_nand_16,     /* __atomic_fetch_nand_16 */
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED
   /* MMX functions. */
@@ -11120,6 +11253,17 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_ynf */                      "__builtin_ynf",
   /* bfk_ynl */                      "__builtin_ynl",
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+  /* bfk_atomic_always_lock_free */  "__atomic_always_lock_free",
+  /* bfk_atomic_is_lock_free */      "__atomic_is_lock_free",
+  /* bfk_atomic_thread_fence */      "__atomic_thread_fence",
+  /* bfk_atomic_signal_fence */      "__atomic_signal_fence",
+  /* bfk_atomic_load */              "__atomic_load",
+  /* bfk_atomic_store */             "__atomic_store",
+  /* bfk_atomic_exchange */          "__atomic_exchange",
+  /* bfk_atomic_compare_exchange */
+                                     "__atomic_compare_exchange",
+  /* bfk_atomic_clear */             "__atomic_clear",
+  /* bfk_atomic_test_and_set */      "__atomic_test_and_set",
   /* bfk_sync_synchronize */         "__sync_synchronize",
   /* bfk_sync_fetch_and_add */       "__sync_fetch_and_add",
   /* bfk_sync_fetch_and_sub */       "__sync_fetch_and_sub",
@@ -11139,6 +11283,23 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
                                      "__sync_val_compare_and_swap",
   /* bfk_sync_lock_test_and_set */   "__sync_lock_test_and_set",
   /* bfk_sync_lock_release */        "__sync_lock_release",
+  /* bfk_atomic_load_n */            "__atomic_load_n",
+  /* bfk_atomic_store_n */           "__atomic_store_n",
+  /* bfk_atomic_exchange_n */        "__atomic_exchange_n",
+  /* bfk_atomic_compare_exchange_n */
+                                     "__atomic_compare_exchange_n",
+  /* bfk_atomic_add_fetch */         "__atomic_add_fetch",
+  /* bfk_atomic_fetch_add */         "__atomic_fetch_add",
+  /* bfk_atomic_sub_fetch */         "__atomic_sub_fetch",
+  /* bfk_atomic_fetch_sub */         "__atomic_fetch_sub",
+  /* bfk_atomic_and_fetch */         "__atomic_and_fetch",
+  /* bfk_atomic_fetch_and */         "__atomic_fetch_and",
+  /* bfk_atomic_xor_fetch */         "__atomic_xor_fetch",
+  /* bfk_atomic_fetch_xor */         "__atomic_fetch_xor",
+  /* bfk_atomic_or_fetch */          "__atomic_or_fetch",
+  /* bfk_atomic_fetch_or */          "__atomic_fetch_or",
+  /* bfk_atomic_nand_fetch */        "__atomic_nand_fetch",
+  /* bfk_atomic_fetch_nand */        "__atomic_fetch_nand",
   /* bfk_sync_fetch_and_add_1 */     "__sync_fetch_and_add_1",
   /* bfk_sync_fetch_and_sub_1 */     "__sync_fetch_and_sub_1",
   /* bfk_sync_fetch_and_or_1 */      "__sync_fetch_and_or_1",
@@ -11157,6 +11318,23 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
                                      "__sync_val_compare_and_swap_1",
   /* bfk_sync_lock_test_and_set_1 */ "__sync_lock_test_and_set_1",
   /* bfk_sync_lock_release_1 */      "__sync_lock_release_1",
+  /* bfk_atomic_load_1 */            "__atomic_load_1",
+  /* bfk_atomic_store_1 */           "__atomic_store_1",
+  /* bfk_atomic_exchange_1 */        "__atomic_exchange_1",
+  /* bfk_atomic_compare_exchange_1 */
+                                     "__atomic_compare_exchange_1",
+  /* bfk_atomic_add_fetch_1 */       "__atomic_add_fetch_1",
+  /* bfk_atomic_fetch_add_1 */       "__atomic_fetch_add_1",
+  /* bfk_atomic_sub_fetch_1 */       "__atomic_sub_fetch_1",
+  /* bfk_atomic_fetch_sub_1 */       "__atomic_fetch_sub_1",
+  /* bfk_atomic_and_fetch_1 */       "__atomic_and_fetch_1",
+  /* bfk_atomic_fetch_and_1 */       "__atomic_fetch_and_1",
+  /* bfk_atomic_xor_fetch_1 */       "__atomic_xor_fetch_1",
+  /* bfk_atomic_fetch_xor_1 */       "__atomic_fetch_xor_1",
+  /* bfk_atomic_or_fetch_1 */        "__atomic_or_fetch_1",
+  /* bfk_atomic_fetch_or_1 */        "__atomic_fetch_or_1",
+  /* bfk_atomic_nand_fetch_1 */      "__atomic_nand_fetch_1",
+  /* bfk_atomic_fetch_nand_1 */      "__atomic_fetch_nand_1",
   /* bfk_sync_fetch_and_add_2 */     "__sync_fetch_and_add_2",
   /* bfk_sync_fetch_and_sub_2 */     "__sync_fetch_and_sub_2",
   /* bfk_sync_fetch_and_or_2 */      "__sync_fetch_and_or_2",
@@ -11175,6 +11353,23 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
                                      "__sync_val_compare_and_swap_2",
   /* bfk_sync_lock_test_and_set_2 */ "__sync_lock_test_and_set_2",
   /* bfk_sync_lock_release_2 */      "__sync_lock_release_2",
+  /* bfk_atomic_load_2 */            "__atomic_load_2",
+  /* bfk_atomic_store_2 */           "__atomic_store_2",
+  /* bfk_atomic_exchange_2 */        "__atomic_exchange_2",
+  /* bfk_atomic_compare_exchange_2 */
+                                     "__atomic_compare_exchange_2",
+  /* bfk_atomic_add_fetch_2 */       "__atomic_add_fetch_2",
+  /* bfk_atomic_fetch_add_2 */       "__atomic_fetch_add_2",
+  /* bfk_atomic_sub_fetch_2 */       "__atomic_sub_fetch_2",
+  /* bfk_atomic_fetch_sub_2 */       "__atomic_fetch_sub_2",
+  /* bfk_atomic_and_fetch_2 */       "__atomic_and_fetch_2",
+  /* bfk_atomic_fetch_and_2 */       "__atomic_fetch_and_2",
+  /* bfk_atomic_xor_fetch_2 */       "__atomic_xor_fetch_2",
+  /* bfk_atomic_fetch_xor_2 */       "__atomic_fetch_xor_2",
+  /* bfk_atomic_or_fetch_2 */        "__atomic_or_fetch_2",
+  /* bfk_atomic_fetch_or_2 */        "__atomic_fetch_or_2",
+  /* bfk_atomic_nand_fetch_2 */      "__atomic_nand_fetch_2",
+  /* bfk_atomic_fetch_nand_2 */      "__atomic_fetch_nand_2",
   /* bfk_sync_fetch_and_add_4 */     "__sync_fetch_and_add_4",
   /* bfk_sync_fetch_and_sub_4 */     "__sync_fetch_and_sub_4",
   /* bfk_sync_fetch_and_or_4 */      "__sync_fetch_and_or_4",
@@ -11193,6 +11388,23 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
                                      "__sync_val_compare_and_swap_4",
   /* bfk_sync_lock_test_and_set_4 */ "__sync_lock_test_and_set_4",
   /* bfk_sync_lock_release_4 */      "__sync_lock_release_4",
+  /* bfk_atomic_load_4 */            "__atomic_load_4",
+  /* bfk_atomic_store_4 */           "__atomic_store_4",
+  /* bfk_atomic_exchange_4 */        "__atomic_exchange_4",
+  /* bfk_atomic_compare_exchange_4 */
+                                     "__atomic_compare_exchange_4",
+  /* bfk_atomic_add_fetch_4 */       "__atomic_add_fetch_4",
+  /* bfk_atomic_fetch_add_4 */       "__atomic_fetch_add_4",
+  /* bfk_atomic_sub_fetch_4 */       "__atomic_sub_fetch_4",
+  /* bfk_atomic_fetch_sub_4 */       "__atomic_fetch_sub_4",
+  /* bfk_atomic_and_fetch_4 */       "__atomic_and_fetch_4",
+  /* bfk_atomic_fetch_and_4 */       "__atomic_fetch_and_4",
+  /* bfk_atomic_xor_fetch_4 */       "__atomic_xor_fetch_4",
+  /* bfk_atomic_fetch_xor_4 */       "__atomic_fetch_xor_4",
+  /* bfk_atomic_or_fetch_4 */        "__atomic_or_fetch_4",
+  /* bfk_atomic_fetch_or_4 */        "__atomic_fetch_or_4",
+  /* bfk_atomic_nand_fetch_4 */      "__atomic_nand_fetch_4",
+  /* bfk_atomic_fetch_nand_4 */      "__atomic_fetch_nand_4",
   /* bfk_sync_fetch_and_add_8 */     "__sync_fetch_and_add_8",
   /* bfk_sync_fetch_and_sub_8 */     "__sync_fetch_and_sub_8",
   /* bfk_sync_fetch_and_or_8 */      "__sync_fetch_and_or_8",
@@ -11211,6 +11423,61 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
                                      "__sync_val_compare_and_swap_8",
   /* bfk_sync_lock_test_and_set_8 */ "__sync_lock_test_and_set_8",
   /* bfk_sync_lock_release_8 */      "__sync_lock_release_8",
+  /* bfk_atomic_load_8 */            "__atomic_load_8",
+  /* bfk_atomic_store_8 */           "__atomic_store_8",
+  /* bfk_atomic_exchange_8 */        "__atomic_exchange_8",
+  /* bfk_atomic_compare_exchange_8 */
+                                     "__atomic_compare_exchange_8",
+  /* bfk_atomic_add_fetch_8 */       "__atomic_add_fetch_8",
+  /* bfk_atomic_fetch_add_8 */       "__atomic_fetch_add_8",
+  /* bfk_atomic_sub_fetch_8 */       "__atomic_sub_fetch_8",
+  /* bfk_atomic_fetch_sub_8 */       "__atomic_fetch_sub_8",
+  /* bfk_atomic_and_fetch_8 */       "__atomic_and_fetch_8",
+  /* bfk_atomic_fetch_and_8 */       "__atomic_fetch_and_8",
+  /* bfk_atomic_xor_fetch_8 */       "__atomic_xor_fetch_8",
+  /* bfk_atomic_fetch_xor_8 */       "__atomic_fetch_xor_8",
+  /* bfk_atomic_or_fetch_8 */        "__atomic_or_fetch_8",
+  /* bfk_atomic_fetch_or_8 */        "__atomic_fetch_or_8",
+  /* bfk_atomic_nand_fetch_8 */      "__atomic_nand_fetch_8",
+  /* bfk_atomic_fetch_nand_8 */      "__atomic_fetch_nand_8",
+#if INT128_EXTENSIONS_ALLOWED
+  /* bfk_sync_fetch_and_add_16 */    "__sync_fetch_and_add_16",
+  /* bfk_sync_fetch_and_sub_16 */    "__sync_fetch_and_sub_16",
+  /* bfk_sync_fetch_and_or_16 */     "__sync_fetch_and_or_16",
+  /* bfk_sync_fetch_and_and_16 */    "__sync_fetch_and_and_16",
+  /* bfk_sync_fetch_and_xor_16 */    "__sync_fetch_and_xor_16",
+  /* bfk_sync_fetch_and_nand_16 */   "__sync_fetch_and_nand_16",
+  /* bfk_sync_add_and_fetch_16 */    "__sync_add_and_fetch_16",
+  /* bfk_sync_sub_and_fetch_16 */    "__sync_sub_and_fetch_16",
+  /* bfk_sync_or_and_fetch_16 */     "__sync_or_and_fetch_16",
+  /* bfk_sync_and_and_fetch_16 */    "__sync_and_and_fetch_16",
+  /* bfk_sync_xor_and_fetch_16 */    "__sync_xor_and_fetch_16",
+  /* bfk_sync_nand_and_fetch_16 */   "__sync_nand_and_fetch_16",
+  /* bfk_sync_bool_compare_and_swap_16 */
+                                     "__sync_bool_compare_and_swap_16",
+  /* bfk_sync_val_compare_and_swap_16 */
+                                     "__sync_val_compare_and_swap_16",
+  /* bfk_sync_lock_test_and_set_16 */
+                                     "__sync_lock_test_and_set_16",
+  /* bfk_sync_lock_release_16 */     "__sync_lock_release_16",
+  /* bfk_atomic_load_16 */           "__atomic_load_16",
+  /* bfk_atomic_store_16 */          "__atomic_store_16",
+  /* bfk_atomic_exchange_16 */       "__atomic_exchange_16",
+  /* bfk_atomic_compare_exchange_16 */
+                                     "__atomic_compare_exchange_16",
+  /* bfk_atomic_add_fetch_16 */      "__atomic_add_fetch_16",
+  /* bfk_atomic_fetch_add_16 */      "__atomic_fetch_add_16",
+  /* bfk_atomic_sub_fetch_16 */      "__atomic_sub_fetch_16",
+  /* bfk_atomic_fetch_sub_16 */      "__atomic_fetch_sub_16",
+  /* bfk_atomic_and_fetch_16 */      "__atomic_and_fetch_16",
+  /* bfk_atomic_fetch_and_16 */      "__atomic_fetch_and_16",
+  /* bfk_atomic_xor_fetch_16 */      "__atomic_xor_fetch_16",
+  /* bfk_atomic_fetch_xor_16 */      "__atomic_fetch_xor_16",
+  /* bfk_atomic_or_fetch_16 */       "__atomic_or_fetch_16",
+  /* bfk_atomic_fetch_or_16 */       "__atomic_fetch_or_16",
+  /* bfk_atomic_nand_fetch_16 */     "__atomic_nand_fetch_16",
+  /* bfk_atomic_fetch_nand_16 */     "__atomic_fetch_nand_16",
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED
   /* MMX functions. */

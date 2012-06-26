@@ -1,5 +1,29 @@
 Version 4.5
 
+6/26/12  [EDGcpfe/12939,EDGcpfe/12978]
+GNU compatibility: built-in __atomic_... functions
+
+In GNU modes with gnu_version >= 40700, the front end now predeclares several
+__atomic_... functions (these can be used to implement certain parts of the
+C++11 and C11 standard libraries).  These functions can be classified in two
+groups.  The first group contains __atomic_always_lock_free, 
+__atomic_is_lock_free, __atomic_thread_fence, __atomic_signal_fence, 
+__atomic_load, __atomic_store, __atomic_exchange, __atomic_compare_exchange, 
+__atomic_clear, and __atomic_test_and_set.  The second group contains the
+functions __atomic_load_n, __atomic_store_n, __atomic_exchange_n, 
+__atomic_compare_exchange_n, __atomic_add_fetch, __atomic_fetch_add, 
+__atomic_sub_fetch, __atomic_fetch_sub, __atomic_and_fetch, __atomic_fetch_and,
+__atomic_xor_fetch, __atomic_fetch_xor, __atomic_or_fetch, __atomic_fetch_or, 
+__atomic_nand_fetch, and __atomic_fetch_nand.  The functions in the first
+group are mostly unremarkable from the front end's perspective (although a few
+are folded in the front end, and code-generating back ends are likely to map
+the others to special instruction sequences).  The functions in the second
+group are "generic" in the same sense as the GNU __sync_... functions: See
+the Changes entry of 7/31/07 for details.  Like the GNU __sync_... functions,
+the __atomic_... functions are only predeclared when the configuration macro
+GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED is TRUE.
+
+
 6/26/12  [EDGcpfe/12707]
 C++-generating back end, C++/CLI: dependent properties and events
 

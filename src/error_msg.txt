@@ -2402,6 +2402,7 @@ ec_initializer_list_not_included;;"an #include <initializer_list> is needed prio
 ec_inline_on_alias;;"the \"inline\" keyword cannot be used on a namespace alias declaration"
 ec_prev_ns_not_inline;;"the previous declaration of %n was not declared inline"
 ec_prev_ns_inline;;"a redeclaration of inline %n must be declared inline"
+ec_first_arg_must_be_integer_constant;;"the first argument must be an integer constant"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

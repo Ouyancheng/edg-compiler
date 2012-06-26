@@ -11943,22 +11943,6 @@ by this routine.
 }  /* select_and_prepare_to_call_overloaded_function */
 
 
-static a_boolean is_pointer_to_object_type(a_type_ptr tp)
-/*
-Return TRUE if the given type is a pointer to an object type.  Note that
-object types can be incomplete in some cases.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (is_pointer_type(tp)) {
-    a_type_ptr underlying_type = type_pointed_to(tp);
-    result = is_object_type(underlying_type);
-  }  /* if */
-  return result;
-}  /* is_pointer_to_object_type */
-
-
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- only_std_funcs not used in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */

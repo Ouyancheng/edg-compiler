@@ -180,6 +180,15 @@ extern a_boolean fold_pow_if_possible(a_constant_ptr  base,
                                       a_type_ptr      result_type);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+extern a_boolean fold_lock_free_query_if_possible(
+                                         a_builtin_function_kind  bfk,
+                                         an_expr_node_ptr         size_arg,
+                                         an_expr_node_ptr         ptr_arg,
+                                         a_constant_ptr           result,
+                                         a_type_ptr               result_type);
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+
 #endif /* ifndef FOLDING_H */
 
 /******************************************************************************
