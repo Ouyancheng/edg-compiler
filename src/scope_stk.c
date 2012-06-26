@@ -10240,7 +10240,8 @@ suppression is on the stack.
     pesep = pack_expansion_stack;
     pedp = pesep->expansion_descr;
     any_args = TRUE;
-  } else if (is_real_instantiation_context() &&
+  } else if ((is_real_instantiation_context() ||
+              !is_prototype_instantiation_context()) &&
              (pedp = get_pack_expansion_for_curr_context()) != NULL &&
               (pedp->uses_only_enclosing_packs ||
                !is_prototype_instantiation_context())) {

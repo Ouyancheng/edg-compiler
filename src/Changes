@@ -1,5 +1,17 @@
 Version 4.5
 
+6/26/12  [EDGcpfe/12946]
+Spurious error on pack expansion in alias template
+
+A spurious error could occur on a pack expansion in an alias template
+definition when the alias template was referenced from a dependent
+context.  Now fixed.
+
+  template <typename T> void f();
+  template<typename T, typename... U> using A = decltype( T (f<U>()...) );
+  template<typename T> using _B = A<T>;
+
+
 6/23/12  [EDGcpfe/12736]
 C++-generating back end, GNU compatibility: name of partial specialization of
 member class template used as qualifier
