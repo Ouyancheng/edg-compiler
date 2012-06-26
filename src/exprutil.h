@@ -512,7 +512,7 @@ typedef struct an_operand {
 			/* Pointer to a brace-enclosed list.  The entry pointed
 			   to will always be a single entry (not a list)
 			   of type ick_braced, representing a brace-enclosed
-			   list.  Note that this kind of entry is only used
+			   list.  Note that this kind of operand is used only
 			   in some unusual situations, as most
 			   braced-init-lists are scanned as part of an
 			   expression list and are represented directly
@@ -2261,10 +2261,12 @@ extern void generic_cast_operand(an_operand         *operand,
                                  a_boolean          is_implicit_cast,
                                  a_source_position  *type_position);
 
-
 extern void prep_generic_argument(an_arg_list_elem_ptr arg);
 
 extern void prep_generic_argument_list(an_arg_list_elem_ptr arg_list);
+
+extern void make_braced_init_list_operand(an_arg_list_elem_ptr alep,
+                                          an_operand           *result);
 
 extern an_expr_node_ptr make_expr_from_argument(an_arg_list_elem_ptr arg);
 

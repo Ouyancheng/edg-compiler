@@ -1695,6 +1695,33 @@ additional ones over the basic ones implied for this case.
 }  /* scan_expression_list_context_expr */
 
 
+static an_arg_list_elem_ptr rescan_expr_as_arg_list_elem(
+                                               an_expr_node_ptr       expr,
+                                               a_rescan_control_block *rcblock)
+/*
+Rescan the given expression, producing an argument list element as the
+result.  rcblock gives the rescan control information, including
+information on the template parameter substitutions to be done.
+*/
+{
+  an_arg_list_elem_ptr alep;
+  an_operand           rescanned_operand;
+
+  make_rescan_operand(expr, rcblock, &rescanned_operand);
+  if (is_braced_init_list_operand(&rescanned_operand)) {
+    /* The operand returned is for a braced-init-list, so just
+       use the entry contained therein.  We can do that because we just
+       created the copy, so we're holding the responsibility for
+       freeing it. */
+    alep = rescanned_operand.variant.braced_init_list;
+    rescanned_operand.variant.braced_init_list = NULL;
+  } else {
+    alep = alloc_arg_list_elem_for_operand(&rescanned_operand);
+  }  /* if */
+  return alep;
+}  /* rescan_expr_as_arg_list_elem */
+
+
 static void rescan_pack_expansion(an_expr_node_ptr       expr,
                                   an_arg_list_elem_ptr   *expr_list,
                                   an_arg_list_elem_ptr   *end_expr_list,
@@ -1731,10 +1758,7 @@ done.
   while (any_more) {
     /* Rescan one iteration of the pack expansion and add the resulting
        expression to the list. */
-    an_arg_list_elem_ptr alep =
-                  alloc_init_component((an_init_component_kind)ick_expression);
-    an_operand           *operand = operand_of_arg_list_elem(alep);
-    make_rescan_operand(expr, rcblock, operand);
+    an_arg_list_elem_ptr alep = rescan_expr_as_arg_list_elem(expr, rcblock);
     if (*expr_list == NULL) {
       *expr_list = alep;
     } else {
@@ -1794,9 +1818,7 @@ template pack expansions into multiple expressions as necessary.
                               rcblock);
       } else {
         /* Normal case, not a pack expansion. */
-        alep = alloc_init_component((an_init_component_kind)ick_expression);
-        operand = operand_of_arg_list_elem(alep);
-        make_rescan_operand(arg_expr, rcblock, operand);
+        alep = rescan_expr_as_arg_list_elem(arg_expr, rcblock);
         if (expr_list == NULL) {
           expr_list = alep;
         } else {
@@ -28619,9 +28641,7 @@ Return a special kind of operand representing the braced-init-list.
 
   check_assertion(list_init_enabled && curr_token == tok_lbrace);
   alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
-  clear_operand((an_operand_kind)ok_braced_init_list, operand);
-  operand->variant.braced_init_list = alep;
-  operand->type = unknown_type();
+  make_braced_init_list_operand(alep, operand);
 }  /* scan_braced_init_list_as_operand */
 
 
@@ -32517,6 +32537,35 @@ This is callable from outside of the expression processing routines.
 }  /* conv_nontype_template_arg_to_param_type */
 
 
+static void rescan_braced_init_list(an_expr_node_ptr       expr,
+                                    a_rescan_control_block *rcblock,
+                                    an_operand             *result)
+/*
+expr is an expression that represents a braced initializer list,
+encountered while redoing semantic analysis on an expression as part of
+template deduction.  Make an operand in *result for a copy of the
+braced-init-list after template substitution.  rcblock provides the
+deduction context, e.g., the template argument list being tried.  It
+also has an error_detected flag, which is set to TRUE if any
+error is detected during the processing.
+*/
+{
+  an_arg_list_elem_ptr          list, alep;
+  an_expr_rescan_info_entry_ptr eriep;
+
+  eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+  check_assertion(expr->kind == (an_expr_node_kind)enk_braced_init_list);
+  list = rescan_expr_list(expr->variant.braced_init_list, rcblock);
+  alep = alloc_init_component((an_init_component_kind)ick_braced);
+  alep->variant.braced.list = list;
+  alep->variant.braced.start_pos = eriep->saved_operand.position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  alep->variant.braced.end_pos = eriep->saved_operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  make_braced_init_list_operand(alep, result);
+}  /* rescan_braced_init_list */
+
+
 static void make_operand_for_rescanned_identifier(
                                an_expr_node_ptr       expr,
                                a_rescan_control_block *rcblock,
@@ -32968,9 +33017,6 @@ set accordingly.
     if (dip->is_compound_literal) {
       /* We don't support rescanning compound literals at this time. */
       rescannable = FALSE;
-    } else if (dip->is_braced_initializer) {
-      /* Or the C++11 list-initialization form. */
-      rescannable = FALSE;
     } else if (dip->is_explicit_cast) {
       if (expr->is_static_cast) {
         operator_token = tok_static_cast;
@@ -33041,6 +33087,9 @@ set accordingly.
     /* A reference to a parameter name or "this" in the header of the
        function. */
     operator_token = tok_identifier;
+  } else if (expr->kind == (an_expr_node_kind)enk_braced_init_list) {
+    /* A braced-init-list. */
+    operator_token = tok_lbrace;
   } else {
     rescannable = FALSE;
   }  /* if */
@@ -33303,6 +33352,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_function_call((an_operand *)NULL, (an_operand *)NULL,
                            rcblock, result);
         break;
+      case tok_lbrace:
+        rescan_braced_init_list(expr, rcblock, result);
+        break;
       case tok_period:
       case tok_arrow:
         { a_boolean offsetof_case =
@@ -33491,9 +33543,8 @@ dynamic initialization after substitution.
 {
   an_expr_node_ptr expr;
 
-  if (dip->is_compound_literal || dip->is_braced_initializer) {
-    /* We don't do rescans on compound literals or C++ list-initializers
-       currently. */
+  if (dip->is_compound_literal) {
+    /* We don't do rescans on compound literals currently. */
     rcblock->error_detected = TRUE;
     make_error_operand(result);
   } else if (dip->is_explicit_cast) {

@@ -14507,6 +14507,41 @@ produced.  See copy_template_param_expr for the parameter descriptions.
 }  /* copy_template_param_expr_as_rvalue */
 
 
+static an_expr_node_ptr copy_template_param_expr_list(
+                                  an_expr_node_ptr         args,
+                                  a_template_arg_ptr       template_arg_list,
+                                  a_template_param_ptr     template_param_list,
+                                  a_source_position        *source_pos,
+                                  a_ctws_options_set       options,
+                                  a_boolean                *copy_error,
+                                  a_ctws_state_ptr         ctws_state)
+/*
+Copy an expression list, given by args, and return a pointer to the copy,
+as part of a template argument expression.  See copy_template_param_expr
+for the parameter descriptions.
+*/
+{
+  an_expr_node_ptr  new_args = NULL;
+  an_expr_node_ptr  arg = args, *new_arg = &new_args;
+  a_constant        const_result;
+  a_constant_ptr    alloc_const_result;
+
+  while (arg != NULL) {
+    *new_arg =  copy_template_param_expr(
+                            arg, template_arg_list, template_param_list,
+                            (a_type_ptr)NULL,
+                            source_pos, options, copy_error, ctws_state,
+                            &const_result, &alloc_const_result);
+    if (*copy_error) break;
+    *new_arg = alloc_copied_template_param_expr(*new_arg, &const_result,
+                                                alloc_const_result);
+    arg = arg->next;
+    new_arg = &((*new_arg)->next);
+  }  /* while */
+  return new_args;
+}  /* copy_template_param_expr_list */
+
+
 static an_expr_node_ptr copy_template_param_builtin_operation(
                                   an_expr_node_ptr         expr,
                                   a_template_arg_ptr       template_arg_list,
@@ -14523,24 +14558,12 @@ expression.  See copy_template_param_expr for the parameter descriptions.
 */
 {
   an_expr_node_ptr  args = expr->variant.builtin_operation.operands;
-  an_expr_node_ptr  expr_copy = NULL, new_args = NULL;
-  an_expr_node_ptr  arg = args, *new_arg = &new_args;
-  a_constant      const_result;
-  a_constant_ptr  alloc_const_result;
+  an_expr_node_ptr  expr_copy = NULL, new_args;
 
   /* First copy the argument list with any necessary substitutions. */
-  while (arg != NULL) {
-    *new_arg =  copy_template_param_expr(
-                            arg, template_arg_list, template_param_list,
-                            (a_type_ptr)NULL,
-                            source_pos, options, copy_error, ctws_state,
-                            &const_result, &alloc_const_result);
-    if (*copy_error) break;
-    *new_arg = alloc_copied_template_param_expr(*new_arg, &const_result,
-                                                alloc_const_result);
-    arg = arg->next;
-    new_arg = &((*new_arg)->next);
-  }  /* while */
+  new_args = 
+    copy_template_param_expr_list(args, template_arg_list, template_param_list,
+                                  source_pos, options, copy_error, ctws_state);
   if (!*copy_error) {
     a_boolean  not_a_constant;
     /* Copy the expression node and attach the copied argument list to it. */
@@ -15138,7 +15161,17 @@ options is a set of name lookup options.
       }
       break;
     case enk_braced_init_list:
-      unexpected_condition();  /* FIXME */
+      { an_expr_node_ptr list;
+        list = copy_template_param_expr_list(expr->variant.braced_init_list,
+                                             template_arg_list,
+                                             template_param_list,
+                                             source_pos, options, copy_error,
+                                             ctws_state);
+        if (!*copy_error) {
+          expr_copy = copy_node(expr);
+          expr_copy->variant.braced_init_list = list;
+        }  /* if */
+      }
       break;
     case enk_error:
       *copy_error = TRUE;

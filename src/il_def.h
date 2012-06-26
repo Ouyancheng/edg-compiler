@@ -14375,10 +14375,10 @@ typedef struct an_expr_node {
 		braced_init_list;
 			/* A list of expressions (possibly empty) that appear
 			   inside a C++11 brace-enclosed initializer list.
-			   This kind of node appears only in template-dependent
-			   code, because in other contexts initializer lists
-			   are always resolved to something else (e.g., a
-			   constructor call). */
+			   This kind of node appears only in template prototype
+			   instantiations, because in other contexts
+			   initializer lists are always resolved to something
+			   else (e.g., a constructor call). */
   } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range

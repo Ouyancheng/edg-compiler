@@ -46,6 +46,8 @@ an_expr_node_ptr conv_rvalue_expr_to_lvalue(an_expr_node_ptr node,
                                             a_boolean        gcc_lvalue,
                                             a_boolean        ignore_casts,
                                             a_type_ptr       *p_lvalue_type);
+static an_expr_node_ptr make_braced_init_list_expr_from_argument_list(
+                                                an_arg_list_elem_ptr arg_list);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static a_boolean check_for_address_of_or_reference_to_initonly_field(
                                            an_operand        *operand,
@@ -797,6 +799,12 @@ Allocate an init component/arg list element containing the given operand.
 {
   an_init_component_ptr icp =
                   alloc_init_component((an_init_component_kind)ick_expression);
+
+  /* If the operand is a braced-init-list, the copy should be handled
+     explicitly by the caller.  At this level, we can't deal with the
+     allocation/freeing issues without modifying the source operand
+     or deep copying. */
+  check_assertion(!is_braced_init_list_operand(icp));
   copy_operand(operand, operand_of_arg_list_elem(icp));
   return icp;
 }  /* alloc_arg_list_elem_for_operand */
@@ -2210,11 +2218,11 @@ Set the start, end, and operator positions in an expression node.
 operator_position can be NULL if there is no operator position.
 */
 {
-    expr->expr_range.start = *start_position;
-    expr->expr_range.end   = *end_position;
-    if (operator_position != NULL && is_operation_node(expr)) {
-      expr->operator_position = *operator_position;
-    }  /* if */
+  expr->expr_range.start = *start_position;
+  expr->expr_range.end   = *end_position;
+  if (operator_position != NULL && is_operation_node(expr)) {
+    expr->operator_position = *operator_position;
+  }  /* if */
 }  /* set_expr_position */
 
 
@@ -4203,6 +4211,10 @@ instead.
       /* Create a constant node and copy the constant in the operand to the
          node. */
       node = alloc_node_for_constant_operand(operand);
+      break;
+    case ok_braced_init_list:
+      node = make_braced_init_list_expr_from_argument_list(
+                                            operand->variant.braced_init_list);
       break;
 #if CHECKING
     default:
@@ -11375,17 +11387,73 @@ instantiation for which we do not know the actual function to be called.
 }  /* prep_generic_argument_list */
 
 
+void make_braced_init_list_operand(an_arg_list_elem_ptr alep,
+                                   an_operand           *result)
+/*
+Make an ok_braced_init_list operand from an init-component that is a brace-
+enclosed list.
+*/
+{
+  check_assertion(is_braced_init_component(alep));
+  clear_operand((an_operand_kind)ok_braced_init_list, result);
+  result->variant.braced_init_list = alep;
+  result->type = unknown_type();
+  result->position = *init_component_pos(alep);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  result->end_position = *init_component_end_pos(alep);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* make_braced_init_list_operand */
+
+
+static an_expr_node_ptr make_braced_init_list_expr_from_argument_list(
+                                                 an_arg_list_elem_ptr arg_list)
+/*
+Make an enk_braced_init_list expression node from the given argument list
+and return a pointer to it.  enk_braced_init_list nodes are used in
+template prototype instantiations; in other contexts initializer lists
+always resolve to some other kind of expression (e.g., a constructor call).
+*/
+{
+  an_expr_node_ptr node =
+                      alloc_expr_node((an_expr_node_kind)enk_braced_init_list);
+
+  node->variant.braced_init_list = make_expr_list_from_argument_list(arg_list);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  set_expr_position(node,
+                    init_component_pos(arg_list),
+                    init_component_end_pos(arg_list),
+                    (a_source_position *)NULL);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  return node;
+}  /* make_braced_init_list_expr_from_argument_list */
+
+
 an_expr_node_ptr make_expr_from_argument(an_arg_list_elem_ptr arg)
 /*
 Make and return an expression for an argument in arg-list-element form.
 */
 {
   an_expr_node_ptr expr;
-  an_operand       *operand;
 
-  check_assertion(is_expression_component(arg));  /*FIXME*/
-  operand = operand_of_arg_list_elem(arg);
-  expr = make_node_from_operand_for_expr_list(operand);
+  if (is_expression_component(arg)) {
+    /* The argument is an expression. */
+    expr = make_node_from_operand_for_expr_list(operand_of_arg_list_elem(arg));
+  } else {
+    /* The argument is a brace-enclosed list. */
+    check_assertion(is_braced_init_component(arg));
+    expr = make_braced_init_list_expr_from_argument_list(
+                                                     arg->variant.braced.list);
+    if (arg->pack_expansion_descr != NULL) {
+      expr->is_pack_expansion = TRUE;
+    }  /* if */
+    if (expr_stack->possible_rescan_context) {
+      /* In a potential rescan context, make a dummy operand that has the
+         source position information and record it as rescan information. */
+      an_operand dummy_operand;
+      make_braced_init_list_operand(arg, &dummy_operand);
+      save_operand_info_in_expr_rescan_info_entry(&dummy_operand, expr);
+    }  /* if */
+  }  /* if */
   return expr;
 }  /* make_expr_from_argument */
 
@@ -11466,10 +11534,6 @@ a secondary operator (e.g., the "]" of a subscript operation).
     if (is_operator_returning_bool(op)) {
       result_type = boolean_result_type();
     }  /* if */
-  }  /* if */
-  if (is_braced_init_list_operand(operand_2)) {
-    /* FIXME */
-    eliminate_unusual_operand_kinds(operand_2);
   }  /* if */
   do_binary_operation_full(op, operand_1, operand_2, result_type,
                            /*result_is_lvalue=*/FALSE,
