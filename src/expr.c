@@ -1140,7 +1140,11 @@ constructs, in which case offsetof_case is TRUE.
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
-    {
+    if (curr_token == tok_lbrace && list_init_enabled) {
+      /* In C++11, the expression inside the brackets is allowed to be a
+         brace-enclosed list. */
+      scan_braced_init_list_as_operand(&operand_2);
+    } else {
       /* The subscript is the usual single expression.  Top-level commas
          are operators, e.g., x[1, 2] has a single subscript expression that
          is the comma expression "1, 2". */
@@ -1475,6 +1479,12 @@ constructs, in which case offsetof_case is TRUE.
   }  /* if */
 
   free_arg_list(operand_2_list);
+  if (!subscript_is_expr_list &&
+      is_braced_init_list_operand(&operand_2)) {
+    /* Free the braced-init-list attached to operand_2 if operator overloading
+       was used. */
+    free_attachments_to_operand(&operand_2);
+  }  /* if */
   if (rcblock == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Save the position of the "]". */
