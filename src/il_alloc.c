@@ -683,6 +683,8 @@ ck_template_param constant.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       cp->variant.template_param.variant.unknown_function
                                                .property_or_event_descr = NULL;
+      cp->variant.template_param.variant.unknown_function.special_kind =
+                                                                      sfk_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       cp->variant.template_param.variant.unknown_function.symbol = NULL;
       cp->variant.template_param.variant.unknown_function.opname_kind =

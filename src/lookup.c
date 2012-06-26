@@ -757,6 +757,8 @@ of the symbol header.
       if (rout_is_cli_accessor(rp)) {
         con->variant.template_param.variant.unknown_function
                 .property_or_event_descr = rp->variant.property_or_event_descr;
+        con->variant.template_param.variant.unknown_function.special_kind =
+                                                              rp->special_kind;
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

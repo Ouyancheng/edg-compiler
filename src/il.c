@@ -6538,7 +6538,11 @@ definition of the CC flags in il.h for more information.
                 } else if (cp1->variant.template_param.variant.unknown_function
                                                     .property_or_event_descr !=
                            cp2->variant.template_param.variant.unknown_function
-                                                    .property_or_event_descr) {
+                                                    .property_or_event_descr ||
+                           cp1->variant.template_param.variant.unknown_function
+                                                               .special_kind !=
+                           cp2->variant.template_param.variant.unknown_function
+                                                               .special_kind) {
                   eq = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                 }  /* if */

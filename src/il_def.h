@@ -3515,6 +3515,68 @@ enum a_character_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_character_kind;
 
+/*
+An enumeration of C++ special function kinds.  These may be user written
+or compiler generated functions for which special rules may apply.  (See
+ARM chapter 12.)
+*/
+enum a_special_function_kind_tag {
+  sfk_none,		/* Not a special function. */
+  sfk_constructor,	/* A constructor. */
+  sfk_destructor,	/* A destructor. */
+  sfk_conversion,	/* A conversion operator function. */
+  sfk_operator,		/* Any other operator function. */
+  sfk_lambda_entry_point,
+			/* A static member representing an alternative entry
+			   point for the invocation of a lambda with no capture
+			   fields.  (A pointer to this entry point is returned
+			   by the conversion function declared in such a
+			   lambda.) */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sfk_static_constructor,
+			/* A C++/CLI static constructor. */
+  sfk_finalizer,	/* A C++/CLI finalizer. */
+  sfk_idisposable_dispose,
+			/* A compiler-generated implementation of the
+			   IDisposable::Dispose() member. */
+  sfk_dispose_bool,	/* A compiler-generated Dispose(bool) member. */
+  sfk_object_finalize,	/* A compiler-generated overrider for the
+			   Object::Finalize() member. */
+  sfk_property_get,	/* A "get" accessor function of a C++/CLI property. */
+  sfk_first_accessor = sfk_property_get,
+  sfk_property_set,	/* A "set" accessor function of a C++/CLI property. */
+  sfk_event_add,	/* An "add" accessor function of a C++/CLI event. */
+  sfk_event_remove,	/* A "remove" accessor function of a C++/CLI event. */
+  sfk_event_raise,	/* A "raise" accessor function of a C++/CLI event. */
+  sfk_last_accessor = sfk_event_raise,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  sfk_last		/* Must be last. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_special_function_kind;
+
+#if DEBUG
+/*
+Table of names corresponding to special function kinds, for debug purposes.
+*/
+EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
+#if VAR_INITIALIZERS
+= {
+   "none", "constructor", "destructor", "conversion", "operator",
+   "lambda entry point",
+#if MICROSOFT_EXTENSIONS_ALLOWED
+   "static constructor", "finalizer",
+   "IDisposable::Dispose implementation", "Dispose(bool)",
+   "Object::Finalize overrider",
+   "property getter", "property setter",
+   "event add", "event remove", "event raise",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+   "last" /* used to check that initialization is right. */
+}
+#endif /* VAR_INITIALIZERS */
+;
+#endif /* DEBUG */
+
 typedef struct a_constant {
   /* Description of a constant.  Also used as an element on an initializer
      list; in such cases, it may indicate something about the initialization
@@ -3956,6 +4018,13 @@ typedef struct a_constant {
 		opname_kind;
 			/* If the unknown function represents an overloaded
 			   operator function, this is the operator kind. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          a_special_function_kind
+		special_kind;
+			/* If the unknown function is a C++/CLI accessor,
+			   this specifies the kind of accessor; sfk_none
+			   otherwise. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } unknown_function;
         /* When template param constant kind == tpck_cast or tpck_address: */
         a_constant_ptr
@@ -9251,68 +9320,6 @@ typedef struct a_field {
 #endif /* BACK_END_IS_C_GEN_BE */
 } a_field;
 
-
-/*
-An enumeration of C++ special function kinds.  These may be user written
-or compiler generated functions for which special rules may apply.  (See
-ARM chapter 12.)
-*/
-enum a_special_function_kind_tag {
-  sfk_none,		/* Not a special function. */
-  sfk_constructor,	/* A constructor. */
-  sfk_destructor,	/* A destructor. */
-  sfk_conversion,	/* A conversion operator function. */
-  sfk_operator,		/* Any other operator function. */
-  sfk_lambda_entry_point,
-			/* A static member representing an alternative entry
-			   point for the invocation of a lambda with no capture
-			   fields.  (A pointer to this entry point is returned
-			   by the conversion function declared in such a
-			   lambda.) */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  sfk_static_constructor,
-			/* A C++/CLI static constructor. */
-  sfk_finalizer,	/* A C++/CLI finalizer. */
-  sfk_idisposable_dispose,
-			/* A compiler-generated implementation of the
-			   IDisposable::Dispose() member. */
-  sfk_dispose_bool,	/* A compiler-generated Dispose(bool) member. */
-  sfk_object_finalize,	/* A compiler-generated overrider for the
-			   Object::Finalize() member. */
-  sfk_property_get,	/* A "get" accessor function of a C++/CLI property. */
-  sfk_first_accessor = sfk_property_get,
-  sfk_property_set,	/* A "set" accessor function of a C++/CLI property. */
-  sfk_event_add,	/* An "add" accessor function of a C++/CLI event. */
-  sfk_event_remove,	/* A "remove" accessor function of a C++/CLI event. */
-  sfk_event_raise,	/* A "raise" accessor function of a C++/CLI event. */
-  sfk_last_accessor = sfk_event_raise,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  sfk_last		/* Must be last. */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_special_function_kind;
-
-#if DEBUG
-/*
-Table of names corresponding to special function kinds, for debug purposes.
-*/
-EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
-#if VAR_INITIALIZERS
-= {
-   "none", "constructor", "destructor", "conversion", "operator",
-   "lambda entry point",
-#if MICROSOFT_EXTENSIONS_ALLOWED
-   "static constructor", "finalizer",
-   "IDisposable::Dispose implementation", "Dispose(bool)",
-   "Object::Finalize overrider",
-   "property getter", "property setter",
-   "event add", "event remove", "event raise",
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-   "last" /* used to check that initialization is right. */
-}
-#endif /* VAR_INITIALIZERS */
-;
-#endif /* DEBUG */
 
 /*
 An enumeration of C++ operator kinds to identify user-defined overloaded

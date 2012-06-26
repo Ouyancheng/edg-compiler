@@ -1,5 +1,22 @@
 Version 4.5
 
+6/26/12  [EDGcpfe/12707]
+C++-generating back end, C++/CLI: dependent properties and events
+
+The C++-generating back end put out references to accessors of dependent
+C++/CLI properties and events in function-call form instead of as operators
+referring to the property or event name.  It has now been changed to retain
+the form used in the source code for such references.  For example:
+
+  template <typename T> ref class Foo {
+    typedef T PropertyType;
+    property PropertyType ^m_prop;
+    Foo(PropertyType^ p) {
+      m_prop = p;    // Previously generated as "this->m_prop::set(p)"
+    }
+  };
+
+
 6/26/12  [EDGcpfe/12946]
 Spurious error on pack expansion in alias template
 

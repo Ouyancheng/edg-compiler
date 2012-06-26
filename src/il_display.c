@@ -69,6 +69,7 @@ static void disp_ptr(char             *ptr_name,
 static void disp_opname_kind_name(an_opname_kind kind);
 static void disp_template_arg_list(char                *name,
                                    a_template_arg_ptr  ptr);
+static void disp_special_function_kind_name(a_special_function_kind kind);
 
 
 static void disp_string(char    *string_ptr,
@@ -919,8 +920,18 @@ Display a ck_template_param constant.
         if (opname_kind != (an_opname_kind)onk_none) {
           disp_name("opname_kind");
           disp_opname_kind_name(opname_kind);
+          (void)printf("\n");
         }  /* if */
       }
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (ptr->variant.template_param.variant.unknown_function.special_kind !=
+                                           (a_special_function_kind)sfk_none) {
+        disp_name("special_kind");
+        disp_special_function_kind_name(ptr->variant.template_param.variant.
+                                                unknown_function.special_kind);
+        (void)printf("\n");
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* unknown_function.symbol is front-end-only and is not printed. */
       break;
     case tpck_cast:
