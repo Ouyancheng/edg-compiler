@@ -46,8 +46,8 @@ an_expr_node_ptr conv_rvalue_expr_to_lvalue(an_expr_node_ptr node,
                                             a_boolean        gcc_lvalue,
                                             a_boolean        ignore_casts,
                                             a_type_ptr       *p_lvalue_type);
-static an_expr_node_ptr make_braced_init_list_expr_from_argument_list(
-                                                an_arg_list_elem_ptr arg_list);
+static an_expr_node_ptr make_braced_init_expr_from_arg_list_elem(
+                                                    an_arg_list_elem_ptr alep);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static a_boolean check_for_address_of_or_reference_to_initonly_field(
                                            an_operand        *operand,
@@ -4213,7 +4213,7 @@ instead.
       node = alloc_node_for_constant_operand(operand);
       break;
     case ok_braced_init_list:
-      node = make_braced_init_list_expr_from_argument_list(
+      node = make_braced_init_expr_from_arg_list_elem(
                                             operand->variant.braced_init_list);
       break;
 #if CHECKING
@@ -11405,27 +11405,40 @@ enclosed list.
 }  /* make_braced_init_list_operand */
 
 
-static an_expr_node_ptr make_braced_init_list_expr_from_argument_list(
-                                                 an_arg_list_elem_ptr arg_list)
+static an_expr_node_ptr make_braced_init_expr_from_arg_list_elem(
+                                                     an_arg_list_elem_ptr alep)
 /*
 Make an enk_braced_init_list expression node from the given argument list
-and return a pointer to it.  enk_braced_init_list nodes are used in
-template prototype instantiations; in other contexts initializer lists
-always resolve to some other kind of expression (e.g., a constructor call).
+entry (which is an ick_braced entry) and return a pointer to it.
+enk_braced_init_list nodes are used in template prototype
+instantiations; in other contexts initializer lists always resolve to
+some other kind of expression (e.g., a constructor call).
 */
 {
   an_expr_node_ptr node =
                       alloc_expr_node((an_expr_node_kind)enk_braced_init_list);
 
-  node->variant.braced_init_list = make_expr_list_from_argument_list(arg_list);
+  check_assertion(is_braced_init_component(alep));
+  node->variant.braced_init_list =
+              make_expr_list_from_argument_list(alep->variant.braced.list);
+  if (alep->pack_expansion_descr != NULL) {
+    node->is_pack_expansion = TRUE;
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_expr_position(node,
-                    init_component_pos(arg_list),
-                    init_component_end_pos(arg_list),
+                    init_component_pos(alep),
+                    init_component_end_pos(alep),
                     (a_source_position *)NULL);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (expr_stack->possible_rescan_context) {
+    /* In a potential rescan context, make a dummy operand that has the
+       source position information and record it as rescan information. */
+    an_operand dummy_operand;
+    make_braced_init_list_operand(alep, &dummy_operand);
+    save_operand_info_in_expr_rescan_info_entry(&dummy_operand, node);
+  }  /* if */
   return node;
-}  /* make_braced_init_list_expr_from_argument_list */
+}  /* make_braced_init_expr_from_arg_list_elem */
 
 
 an_expr_node_ptr make_expr_from_argument(an_arg_list_elem_ptr arg)
@@ -11441,18 +11454,7 @@ Make and return an expression for an argument in arg-list-element form.
   } else {
     /* The argument is a brace-enclosed list. */
     check_assertion(is_braced_init_component(arg));
-    expr = make_braced_init_list_expr_from_argument_list(
-                                                     arg->variant.braced.list);
-    if (arg->pack_expansion_descr != NULL) {
-      expr->is_pack_expansion = TRUE;
-    }  /* if */
-    if (expr_stack->possible_rescan_context) {
-      /* In a potential rescan context, make a dummy operand that has the
-         source position information and record it as rescan information. */
-      an_operand dummy_operand;
-      make_braced_init_list_operand(arg, &dummy_operand);
-      save_operand_info_in_expr_rescan_info_entry(&dummy_operand, expr);
-    }  /* if */
+    expr = make_braced_init_expr_from_arg_list_elem(arg);
   }  /* if */
   return expr;
 }  /* make_expr_from_argument */
