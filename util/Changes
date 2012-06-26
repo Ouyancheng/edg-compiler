@@ -1,5 +1,15 @@
 Version 4.5
 
+6/26/12  [EDGcpfe/9170]
+Add demangling for C++11 brace-enclosed initializer lists
+
+Changes have been made to demangle C++11 brace-enclosed initializer
+lists in both IA-64 and Cfront ABIs.  The EDG-specific Cfront ABI mangling
+mirrors that of the IA-64 ABI and uses the same character sequence
+(i.e., "il" and "tl") for its encoding.  In the Cfront ABI, the "bi" sequence
+is used to indicate a brace-enclosed initializer on a new/gcnew operation.
+
+
 5/30/12  [EDGcpfe/12923]
 Add demangling for g++ "restrict" qualifier in Cfront ABIs
 

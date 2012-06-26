@@ -212,6 +212,7 @@ static char *demangle_operator(char                       *ptr,
                                a_boolean                  *is_new_style_cast,
                                a_boolean                  *is_postfix,
                                a_boolean                  *need_adl_parens,
+                               a_boolean                  *is_initializer_list,
                                a_decode_control_block_ptr dctl);
 static char *demangle_type(char                       *ptr,
                            a_decode_control_block_ptr dctl);
@@ -1240,7 +1241,7 @@ position following what was demangled.
   int           op_length;
   unsigned long num_operands, i, num_dimensions;
   a_boolean     takes_type, is_new_style_cast, is_postfix, need_adl_parens;
-  a_boolean     has_variable_number_of_operands = FALSE;
+  a_boolean     has_variable_number_of_operands = FALSE, is_initializer_list;
   a_boolean     is_call = FALSE, is_cli_subscript = FALSE;
 
   /* An operation has the form
@@ -1258,16 +1259,25 @@ position following what was demangled.
   /* Decode the operator name, e.g., "pl" is "+". */
   operator_str = demangle_operator(p, &op_length, &takes_type,
                                    &is_new_style_cast, &is_postfix,
-                                   &need_adl_parens, dctl);
+                                   &need_adl_parens, &is_initializer_list,
+                                   dctl);
   if (operator_str == NULL) {
     bad_mangled_name(dctl);
   } else {
     p += op_length;
     /* Put parentheses around the operation if necessary. */
     if (need_parens) write_id_ch('(', dctl);
-    /* For casts, sizeof, __alignof__, __uuidof__, typeid, new, or sizeof...
-       get the type. */
-    if (takes_type) {
+    if (is_initializer_list) {
+      /* An initializer list (with an optional type). */
+      if (takes_type) {
+        p = demangle_type(p, dctl);
+      }  /* if */
+      write_id_str(operator_str, dctl);
+      has_variable_number_of_operands = TRUE;
+      close_str = "}";
+    } else if (takes_type) {
+      /* For casts, sizeof, __alignof__, __uuidof__, typeid, new, or sizeof...
+         get the type. */
       if (strcmp(operator_str, "cast") == 0) {
         char *num_args_ptr;
         /* A "cast" can have zero or more operands (aside from the type).
@@ -1394,12 +1404,21 @@ position following what was demangled.
         write_id_str(") ", dctl);
       }  /* if */
       p = demangle_type(p, dctl);
+handle_new_operands:
       if (get_char(p, dctl) == 'O') {
         /* There are no initializers; skip the loop below. */
         goto skip_operand_loop;
       }  /* if */
-      write_id_ch('(', dctl);
-      close_str = ")";
+      if (get_char(p, dctl) == 'b' && get_char(p+1, dctl) == 'i') {
+        /* A brace-enclosed initializer list. */
+        p += 2;
+        write_id_ch('{', dctl);
+        close_str = "}";
+      } else {
+        /* A parenthesized initializer list. */
+        write_id_ch('(', dctl);
+        close_str = ")";
+      }  /* if */
     } else if (strcmp(operator_str, "gcnew") == 0) {
       /* C++/CLI gcnew. */
       write_id_str(operator_str, dctl);
@@ -1427,12 +1446,7 @@ position following what was demangled.
         }  /* for */
         write_id_str(") ", dctl);
       }  /* if */
-      if (get_char(p, dctl) == 'O') {
-        /* There are no initializers; skip the loop below. */
-        goto skip_operand_loop;
-      }  /* if */
-      write_id_ch('(', dctl);
-      close_str = ")";
+      goto handle_new_operands;
     } else if (strcmp(operator_str, "delete") == 0 ||
                strcmp(operator_str, "delete[]") == 0) {
       /* delete may have an optional "g" indicating a global scope delete. */
@@ -1688,6 +1702,7 @@ static char *demangle_operator(char                       *ptr,
                                a_boolean                  *is_new_style_cast,
                                a_boolean                  *is_postfix,
                                a_boolean                  *need_adl_parens,
+                               a_boolean                  *is_initializer_list,
                                a_decode_control_block_ptr dctl)
 /*
 Examine the first few characters at ptr to see if they are an encoding for
@@ -1699,6 +1714,7 @@ is a new style cast (and needs a closing '>' and expression emitted).
 *is_postfix is set to TRUE if the operator is a postfix operator (unary
 operators are typically emitted as prefix).  *need_adl_parens is set to TRUE
 if the operator is a call that requires parentheses to suppress ADL.
+*is_initializer_list is set to TRUE if the operator is an initializer list.
 If the first few characters are not an operator encoding, return NULL.
 */
 {
@@ -1709,6 +1725,7 @@ If the first few characters are not an operator encoding, return NULL.
   *is_new_style_cast = FALSE;
   *is_postfix = FALSE;
   *need_adl_parens = FALSE;
+  *is_initializer_list = FALSE;
   /* The length-3 codes are tested first to avoid taking their first two
      letters as one of the length-2 codes. */
   if (start_of_id_is("apl", ptr, dctl)) {
@@ -1894,6 +1911,13 @@ If the first few characters are not an operator encoding, return NULL.
     s = "%";
   } else if (start_of_id_is("sb", ptr, dctl)) {
     s = "subscript";
+  } else if (start_of_id_is("il", ptr, dctl)) {
+    s = "{";
+    *is_initializer_list = TRUE;
+  } else if (start_of_id_is("tl", ptr, dctl)) {
+    s = "{";
+    *takes_type = TRUE;
+    *is_initializer_list = TRUE;
   } else {
     s = NULL;
   }  /* if */
@@ -1916,10 +1940,12 @@ the demangled form, and *mangled_length to the length of the mangled form.
   char      *s, *end_ptr;
   int       len;
   a_boolean takes_type, is_new_style_cast, is_postfix, need_adl_parens;
+  a_boolean is_initializer_list;
 
   /* Get the operator name. */
   s = demangle_operator(ptr, &len, &takes_type, &is_new_style_cast, 
-                        &is_postfix, &need_adl_parens, dctl);
+                        &is_postfix, &need_adl_parens, &is_initializer_list,
+                        dctl);
   if (s != NULL) {
     /* Make sure we took the whole name and nothing more. */
     end_ptr = ptr + len;
@@ -5992,19 +6018,21 @@ The syntax is:
 }  /* demangle_expr_primary */
 
 
-static char *demangle_expression_list(
+static char *demangle_expression_list_full(
                                  char                       *ptr,
                                  char                       stop_char,
+                                 char                       open_paren,
+                                 char                       close_paren,
                                  a_decode_control_block_ptr dctl)
 /*
 Demangle zero or more expressions, terminated by stop_char.  The expression
-list output is enclosed in parentheses and separated by commas.  Returns a
-pointer to the terminating character (unless an error occurs).
+list output is enclosed by open_paren/close_paren and separated by commas.
+Returns a pointer to the terminating character (unless an error occurs).
 */
 {
   a_boolean first_time = TRUE;
 
-  write_id_ch('(', dctl);
+  write_id_ch(open_paren, dctl);
   while (*ptr != stop_char && !dctl->err_in_id) {
     if (*ptr == '\0') {
       bad_mangled_name(dctl);
@@ -6017,8 +6045,22 @@ pointer to the terminating character (unless an error occurs).
     }  /* if */
     ptr = demangle_expression(ptr, dctl);
   }  /* while */
-  write_id_ch(')', dctl);
+  write_id_ch(close_paren, dctl);
   return ptr;
+}  /* demangle_expression_list_full */
+
+
+static char *demangle_expression_list(
+                                 char                       *ptr,
+                                 char                       stop_char,
+                                 a_decode_control_block_ptr dctl)
+/*
+Demangle zero or more expressions, terminated by stop_char.  The expression
+list output is enclosed in parentheses and separated by commas.  Returns a
+pointer to the terminating character (unless an error occurs).
+*/
+{
+  return demangle_expression_list_full(ptr, stop_char, '(', ')', dctl);
 }  /* demangle_expression_list */
 
 
@@ -6029,6 +6071,7 @@ static char *demangle_initializer(
 Demangle an <initializer> (or an 'E') starting at ptr.
 
   <initializer> ::= pi <expression>* E  # parenthesized initialization
+  <initializer> ::= il <expression>* E  # braced-init list
 
 */
 {
@@ -6037,6 +6080,9 @@ Demangle an <initializer> (or an 'E') starting at ptr.
   } else {
     if (*ptr == 'p' && ptr[1] == 'i') {
       ptr = demangle_expression_list(ptr+2, 'E', dctl);
+      ptr = advance_past('E', ptr, dctl);
+    } else if (*ptr == 'i' && ptr[1] == 'l') {
+      ptr = demangle_expression_list_full(ptr+2, 'E', '{', '}', dctl);
       ptr = advance_past('E', ptr, dctl);
     } else {
       bad_mangled_name(dctl);
@@ -6122,6 +6168,10 @@ The syntax is:
                               # size of a function parameter pack
                ::= sp <expression>
                               # pack expansion
+               ::= il <expression>* E
+                              # initializer list
+               ::= tl <type> <expression>* E
+                              # typed initializer list
                ::= <expr-primary>
 
 Also, these non-standard expressions (EDG-specific) are demangled:
@@ -6287,6 +6337,18 @@ Also, these non-standard expressions (EDG-specific) are demangled:
     ptr+=2;
     ptr = demangle_expression(ptr, dctl);
     write_id_str("...", dctl);
+  } else if ((*ptr == 't' || *ptr == 'i') && ptr[1] == 'l') {
+    /* Initializer list. */
+    if (*ptr == 't') {
+      /* A type is included. */
+      ptr = demangle_type(ptr+2, dctl);
+    } else {
+      ptr += 2;
+    }  /* if */
+    if (!dctl->err_in_id) {
+      ptr = demangle_expression_list_full(ptr, 'E', '{', '}', dctl);
+      ptr = advance_past('E', ptr, dctl);
+    }  /* if */
   } else if ((op_str = get_operator_name(ptr, &num_operands, &length,
                                          &close_str, dctl)) != NULL) {
     /* An expression beginning with an operator name. */

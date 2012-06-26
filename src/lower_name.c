@@ -5232,6 +5232,48 @@ this expression is part of a template-dependent expression.
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 
+static void mangled_braced_init_list(an_expr_node_ptr         expr_list,
+                                     a_type_ptr               type,
+                                     a_mangling_control_block *mctl)
+/*
+Provide mangling for a brace-enclosed initializer list for the given list of
+expressions.  An optional type is mangled (when non-NULL) when the
+brace-enclosed list is a cast variant.  Note that this is also used in the
+IA-64 ABI (but not the Cfront ABI) to mangle a brace-enclosed <initializer>
+production (it can't be used in the Cfront ABI because the 'O' characters
+that open this "operation" are seen as closing the new/gcnew operation by
+the demangler).
+*/
+{
+#if !IA64_ABI
+  /* Brace-enclosed initializer list (EDG-specific):
+       OtlZ1Z_1_I1IO <-- encoding for "T1{param#1}"
+                   ^---- "O" to end the operation encoding.
+                ^^^----- Expression(s) in the list.
+             ^^^-------- Expression count.
+          ^^^----------- Type of the list (only with "tl" encoding).
+        ^^-------------- Brace-enclosed list ("il" or "tl").
+       ^---------------- "O" for operation.
+  */
+  add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+  add_str_to_mangled_name(type == NULL ? "il" : "tl", mctl);
+  if (type != NULL) {
+    mangled_encoding_for_type(type, mctl);
+  }  /* if */
+#if !IA64_ABI
+  store_digits_and_underscore(number_of_operands_in_list(expr_list),
+                              /*old_form=*/FALSE, mctl);
+#endif /* !IA64_ABI */
+  mangled_expression_list(expr_list, /*in_dependent_expr=*/TRUE, mctl);
+#if IA64_ABI
+  add_to_mangled_name('E', mctl);
+#else /* !IA64_ABI */
+  add_to_mangled_name('O', mctl);
+#endif /* IA64_ABI */
+}  /* mangled_braced_init_list */
+
+
 static void mangled_dynamic_init(a_dynamic_init_ptr       dip,
                                  a_type_ptr               type,
                                  a_boolean                is_static_cast,
@@ -5251,48 +5293,53 @@ static_cast.  Compound literals are not handled at this time.
   check_assertion(dip != NULL &&
                   dip->is_explicit_cast && !dip->is_compound_literal);
   args = arg_list_from_dyn_init(dip);
-  num_operands = number_of_operands_in_list(args);
-  /* Determine whether to mangle this as a static cast or a conversion. */
-  if (is_static_cast
+  if (dip->is_braced_initializer) {
+    /* Use encoding for braced-initializer lists. */
+    mangled_braced_init_list(args, type, mctl);
+  } else {
+    num_operands = number_of_operands_in_list(args);
+    /* Determine whether to mangle this as a static cast or a conversion. */
+    if (is_static_cast
 #if IA64_ABI
-      && !emulate_gnu_abi_bugs
+        && !emulate_gnu_abi_bugs
 #endif /* !IA64_ABI */
-                              ) {
-    check_assertion(num_operands == 1);
-    str = MANGLING_STRING_FOR_STATIC_CAST;
-  } else {
-    str = MANGLING_STRING_FOR_CAST;
-  }  /* if */
+                                ) {
+      check_assertion(num_operands == 1);
+      str = MANGLING_STRING_FOR_STATIC_CAST;
+    } else {
+      str = MANGLING_STRING_FOR_CAST;
+    }  /* if */
 #if IA64_ABI
-  add_str_to_mangled_name(str, mctl);
-  mangled_encoding_for_type(type, mctl);
-  if (num_operands != 1) {
-    /* Zero or more than one argument (args with generated_default_arg
-       are ignored). */
-    add_to_mangled_name('_', mctl);
-    mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
-    add_to_mangled_name('E', mctl);
-  } else {
-    /* Exactly one argument. */
-    mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
-  }  /* if */
+    add_str_to_mangled_name(str, mctl);
+    mangled_encoding_for_type(type, mctl);
+    if (num_operands != 1) {
+      /* Zero or more than one argument (args with generated_default_arg
+         are ignored). */
+      add_to_mangled_name('_', mctl);
+      mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
+      add_to_mangled_name('E', mctl);
+    } else {
+      /* Exactly one argument. */
+      mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
+    }  /* if */
 #else /* !IA64_ABI */
-  /* Conversion.  Output has the form
-       Ocs1A_1_I1IO <-- encoding for "A(p1)"
-                  ^---- "O" to end the operation encoding.
-               ^^^----- Argument(s) to conversion.
-            ^^^-------- Argument count.
-          ^^----------- Type to convert to.
-        ^^------------- Conversion operation ("cs" or "sc").
-       ^--------------- "O" for operation.
-  */
-  add_to_mangled_name('O', mctl);
-  add_str_to_mangled_name(str, mctl);
-  mangled_encoding_for_type(type, mctl);
-  store_digits_and_underscore(num_operands, /*old_form=*/FALSE, mctl);
-  mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
-  add_to_mangled_name('O', mctl);
+    /* Conversion.  Output has the form
+         Ocs1A_1_I1IO <-- encoding for "A(p1)"
+                    ^---- "O" to end the operation encoding.
+                 ^^^----- Argument(s) to conversion.
+              ^^^-------- Argument count.
+            ^^----------- Type to convert to.
+          ^^------------- Conversion operation ("cs" or "sc").
+         ^--------------- "O" for operation.
+    */
+    add_to_mangled_name('O', mctl);
+    add_str_to_mangled_name(str, mctl);
+    mangled_encoding_for_type(type, mctl);
+    store_digits_and_underscore(num_operands, /*old_form=*/FALSE, mctl);
+    mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
+    add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
+  }  /* if */
 }  /* mangled_dynamic_init */
 
 
@@ -5305,9 +5352,10 @@ Provide a mangled encoding for the initializer in a new/gcnew expression.
 dip specifies the initialization that is being performed.  In the IA-64 ABI,
 in_dependent_expr is TRUE if this expression is part of a template-dependent
 expression.  For the IA-64 ABI, if there is no <initializer>, an 'E' is
-emitted.  Only parenthesized initialization is currently supported.
+emitted.
 
   <initializer> ::= pi <expression>* E    # parenthesized initialization
+  <initializer> ::= il <expression>* E    # braced-init list
 */
 {
   an_expr_node_ptr  inits;
@@ -5316,17 +5364,30 @@ emitted.  Only parenthesized initialization is currently supported.
     /* We need to include an initializer expression list. */
     inits = arg_list_from_dyn_init(dip);
 #if IA64_ABI
-    add_str_to_mangled_name("pi", mctl);
-#else /* !IA64_ABI */
-    store_digits_and_underscore(number_of_operands_in_list(inits),
-                                /*old_form=*/FALSE, mctl);
+    if (dip->is_braced_initializer) {
+      /* Use braced-enclosed initializer list mangling. */
+      mangled_braced_init_list(inits, (a_type_ptr)NULL, mctl);
+    } else
 #endif /* IA64_ABI */
-    if (inits != NULL) {
-      mangled_expression_list(inits, in_dependent_expr, mctl);
-    }  /* if */
+    /* Do not insert code here. */
+    {
 #if IA64_ABI
-    add_to_mangled_name('E', mctl);
+      add_str_to_mangled_name("pi", mctl);
+#else /* !IA64_ABI */
+      if (dip->is_braced_initializer) {
+        /* Indicate brace-enclosed list (otherwise parenthesized list). */
+        add_str_to_mangled_name("bi", mctl);
+      }  /* if */
+      store_digits_and_underscore(number_of_operands_in_list(inits),
+                                  /*old_form=*/FALSE, mctl);
 #endif /* IA64_ABI */
+      if (inits != NULL) {
+        mangled_expression_list(inits, in_dependent_expr, mctl);
+      }  /* if */
+#if IA64_ABI
+      add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+    }  /* if */
 #if IA64_ABI
   } else {
     /* No <initializer>; indicate such with an "E". */
@@ -5820,6 +5881,11 @@ is TRUE.
         check_assertion(dip != NULL && dip->is_explicit_cast);
         mangled_dynamic_init(dip, expr->type, expr->is_static_cast, mctl);
       }
+      break;
+    case enk_braced_init_list:
+      /* Mangling for a brace-enclosed initializer list. */
+      mangled_braced_init_list(expr->variant.braced_init_list,
+                               (a_type_ptr)NULL, mctl);
       break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
