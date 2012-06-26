@@ -5695,7 +5695,10 @@ is TRUE.
                 v--------------vvvvvvvvvv----- These are optional.
              Onwg_1_CiL_2_10Z1Z_1_CiL_1_0O <-- encoding for "::new (10) T (0)"
                                          ^---- "O" to end the encoding.
-                                  ^^^^^^^----- Initializers (if any).
+                                  ^^^^^^^----- Initializers (if any).  An
+                                               optional "bi" indicates the
+                                               use of a brace-enclosed
+                                               initializer list.
                                ^^^------------ Optional initializer count (zero
                                                or more).  Omitted (along with
                                                initializers) if none were
