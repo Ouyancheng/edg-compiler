@@ -5257,7 +5257,7 @@ the demangler).
   */
   add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
-  add_str_to_mangled_name(type == NULL ? "il" : "tl", mctl);
+  add_str_to_mangled_name((char *)(type == NULL ? "il" : "tl"), mctl);
   if (type != NULL) {
     mangled_encoding_for_type(type, mctl);
   }  /* if */
