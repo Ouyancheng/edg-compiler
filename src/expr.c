@@ -25710,9 +25710,11 @@ normal_function:
                 expr_stack->objectless_nonstatic_data_ref_pos =
                                                        locator.source_position;
                 is_objectless_nonstatic_data_mem_ref = TRUE;
-                if (sun_mode || cpp11_mode) {
+                if (sun_mode || cpp11_mode ||
+                    (gnu_mode && gnu_version >= 40400)) {
                   /* Objectless references to non-static data members are
-                     permitted in C++11 and accepted by the Sun compiler. */
+                     permitted in C++11 and accepted by the Sun compiler
+                     and g++ versions 4.4 and later. */
                 } else if (strict_ansi_mode) {
                   expr_pos_diagnostic(strict_ansi_discretionary_severity,
                                       ec_member_ref_requires_object,

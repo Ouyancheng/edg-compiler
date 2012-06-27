@@ -1,5 +1,19 @@
 Version 4.5
 
+6/27/12  [EDGcpfe/13021]
+GNU compatibility: objectless references to non-static data members
+
+Beginning with version 4.4, g++ supports the C++11 feature permitting use
+of non-static data members without an object expression in unevaluated
+contexts (see EDGcpfe/8402 below).  The front end has now been changed to
+accept such expressions in g++ mode when gnu_version >= 40400.  For
+example:
+
+  struct S { int i; };
+  int j = sizeof(S::i);  // Previously an error in g++ mode for all versions,
+                         // now accepted with gnu_version >= 40400
+
+
 6/26/12  [EDGcpfe/12939,EDGcpfe/12978]
 GNU compatibility: built-in __atomic_... functions
 
