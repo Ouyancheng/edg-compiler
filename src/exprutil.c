@@ -11421,6 +11421,7 @@ some other kind of expression (e.g., a constructor call).
   check_assertion(is_braced_init_component(alep));
   node->variant.braced_init_list =
               make_expr_list_from_argument_list(alep->variant.braced.list);
+  node->type = type_of_unknown_templ_param_nontype;
   if (alep->pack_expansion_descr != NULL) {
     node->is_pack_expansion = TRUE;
   }  /* if */
