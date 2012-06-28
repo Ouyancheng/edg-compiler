@@ -4404,6 +4404,7 @@ that the final call needs to be cast to the indicated type.
         operand = operand_of_arg_list_elem(ap);
         do_operand_transformations(operand, TOPT_NO_OPTIONS);
         if (!template_case) {
+          a_boolean  skip_arg_prep = FALSE;
           check_assertion(ptp != NULL);
           if (is_pointer_type(operand->type) &&
               is_integral_type(ptp->type) &&
@@ -4419,7 +4420,10 @@ that the final call needs to be cast to the indicated type.
                pointed to by the first argument. */
             /* A pointer to a complete object type is required. */
             a_type_ptr arg_type = skip_typerefs(operand->type);
-            if (!is_pointer_to_object_type(arg_type)) {
+            if (is_template_dependent_type(arg_type)) {
+              /* Don't attempt to check a template-dependent pointer type. */
+              skip_arg_prep = TRUE;
+            } else if (!is_pointer_to_object_type(arg_type)) {
               expr_pos_error(ec_expr_not_object_pointer, &operand->position);
               goto done;
             } else {
@@ -4439,8 +4443,10 @@ that the final call needs to be cast to the indicated type.
               }  /* if */
             }  /* if */
           }  /* if */
-          prep_argument_operand(operand, ptp, (a_conv_descr *)NULL,
-                                ec_incompatible_param);
+          if (!skip_arg_prep) {
+            prep_argument_operand(operand, ptp, (a_conv_descr *)NULL,
+                                  ec_incompatible_param);
+          }  /* if */
         }  /* if */
         expr_arg = make_node_from_operand_for_expr_list(operand);
         if (*arg_list == NULL) {
