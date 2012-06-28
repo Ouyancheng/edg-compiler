@@ -7862,6 +7862,17 @@ C99 mode for the same reason.
         simple_constant = dip->variant.constant;
         break;
       }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (initializing_vector_element(ipdp->modifiers)) {
+        /* We're initializing an element of a vector.  Normally, we'd
+           create an assignment for this element, but since
+           vector elements aren't individually addressable, keep the
+           (now) lowered constant in the aggregate initializer. */
+        check_assertion(constant_to_keep != NULL);
+        *constant_to_keep = dip->variant.constant;
+        break;
+      }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       /* For the normal cases, go on and generate an assignment. */
       goto do_assignment;
     case dik_expression:
