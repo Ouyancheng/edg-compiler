@@ -4255,7 +4255,7 @@ size.
     /* Permit an extra level of braces. */
     if (is_braced_init_component(icp)) icp = icp->variant.braced.list;
     if (icp != NULL && is_string_literal_component(icp, &string_constant)) {
-      a_type_ptr  string_type = string_constant->type;
+      a_type_ptr  orig_string_type = string_constant->type;
       a_boolean   excess = FALSE, *p_excess = gcc_mode ? &excess : NULL;
       success = TRUE;
       if (check_string_constant_initializer_full(p_array_type, string_constant,
@@ -4286,7 +4286,7 @@ size.
              string constant if needed.  So we must use the type of the string
              prior to that call. */
           pos_ty2_error(ec_bad_initializer_type, init_component_pos(icp),
-                        string_type, *p_array_type);
+                        orig_string_type, *p_array_type);
         }  /* if */
         if (!is->check_validity_only) {
           *result = alloc_error_constant();
@@ -4382,7 +4382,7 @@ position at which diagnostics should be issued.
 static void aggr_init_array_designator(an_init_component_ptr  *p_icp,
                                        a_type_ptr             atype,
                                        an_init_state          *is,
-                                       a_targ_size_t          *index,
+                                       a_targ_size_t          *idx,
                                        a_constant_ptr         aggr_con,
                                        a_source_position      *diag_pos)
 /*
@@ -4391,7 +4391,7 @@ initializer for the given array type.  Check if the designator is valid, and,
 if so, append a matching ck_designator constant to aggr_con.  This routine also
 consumes initializer components up to and including a non-designator (and
 *p_icp is updated to point to the component after that, or NULL if there is
-none).  *is describes the initialization and *index describes the index of the
+none).  *is describes the initialization and *idx describes the index of the
 next element to be initialized (which is updated by this routine).  diag_pos is
 the position at which to issue diagnostics if no more specific position is
 available.
@@ -4417,8 +4417,8 @@ available.
               icp->variant.designator.last_element_index <
                             atype->variant.array.variant.number_of_elements)) {
     okay = TRUE;
-    *index = icp->variant.designator.element_index;
-    repeat_count = icp->variant.designator.last_element_index - *index + 1;
+    *idx = icp->variant.designator.element_index;
+    repeat_count = icp->variant.designator.last_element_index - *idx + 1;
   } else {
     /* The designator indicates a subscript outside the array bounds. */
     okay = FALSE;
@@ -4444,7 +4444,7 @@ available.
          aggregate constant. */
       a_constant_ptr  des_con;
       des_con = alloc_constant((a_constant_repr_kind)ck_designator);
-      des_con->variant.designator.array_element = *index;
+      des_con->variant.designator.array_element = *idx;
       append_constant_in_aggr(des_con, aggr_con);
       aggr_con->uses_designated_initializers = TRUE;
     }  /* if */
@@ -4484,7 +4484,7 @@ available.
           is->has_dynamic_init_component = TRUE;
         }  /* if */
       }  /* if */
-      ++*index;
+      ++*idx;
       if (next_con != NULL) {
         check_assertion(!is->check_validity_only);
         if (repeat_count > 1) {
@@ -4540,7 +4540,7 @@ type that reflects the length of the initializer.
     *p_icp = icp->next;
   } else {
     /* Ordinary element-by-element array initialization. */
-    a_targ_size_t  ecount, index = 0, icount = 0;
+    a_targ_size_t  ecount, idx = 0, icount = 0;
     a_type_ptr     etype = atype->variant.array.element_type;
     a_boolean      no_bound = FALSE, braced = is_braced_init_component(icp),
                    zero_sized_element = FALSE;
@@ -4601,9 +4601,9 @@ type that reflects the length of the initializer.
           break;
         } else {
           is->chained_designator_okay = FALSE;
-          aggr_init_array_designator(&icp, atype, is, &index, *init_con,
+          aggr_init_array_designator(&icp, atype, is, &idx, *init_con,
                                      diag_pos);
-          if (index > icount) icount = index;
+          if (idx > icount) icount = idx;
         }  /* if */
       } else if (zero_sized_element) {
         /* Some modes allow zero-length arrays.  If the member type contains
@@ -4611,14 +4611,14 @@ type that reflects the length of the initializer.
               int a[][0] = { 0 };  // Excess initializer.
         */
         break;
-      } else if (no_bound || index < ecount) {
+      } else if (no_bound || idx < ecount) {
         a_constant_ptr  elem_con;
         aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
         if (!is->check_validity_only) {
           append_constant_in_aggr(elem_con, *init_con);
         }  /* if */
-        ++index;
-        if (index > icount) icount = index;
+        ++idx;
+        if (idx > icount) icount = idx;
         if (is->pack_expansion_handled) {
           /* If a pack expansion was seen, don't try to track element
              counts. */
@@ -4860,7 +4860,7 @@ position is available).
 {
   a_field_ptr            fp = *p_field;
   a_type_ptr             class_type = parent_class_of(fp), dtype = fp->type;
-  a_boolean              flexible_init = FALSE, ms_enum_bit_field = FALSE;
+  a_boolean              ms_enum_bit_field = FALSE;
   an_init_component_ptr  icp = *p_icp;
   a_constant_ptr         elem_con;
 
@@ -4880,7 +4880,6 @@ position is available).
   } else if ((fp->next == NULL || class_type->kind == (a_type_kind)tk_union) &&
              is_incomplete_array_type(fp->type)) {
     /* A flexible array member. */
-    flexible_init = TRUE;
     check_flexible_array_init(icp, fp, is);
   }  /* if */
   aggr_init_element(p_icp, dtype, is, diag_pos, &elem_con);
@@ -5587,7 +5586,6 @@ is part of.  diag_pos is the position to be used by default for diagnostics
 /*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void string_init_variable(a_decl_parse_state  *dps,
-                                 a_boolean           direct,
                                  an_id_linkage_kind  linkage,
                                  a_source_position   *diag_pos,
                                  a_decl_pos_block    *decl_pos_block)
@@ -6087,8 +6085,7 @@ returned set to TRUE.
         /* A string variable can be initialized using a string literal (or, in
            some modes, an expression that is considered equivalent to a simple
            string literal). */
-        string_init_variable(dps, /*direct=*/FALSE, linkage, source_pos,
-                             decl_pos_block);
+        string_init_variable(dps, linkage, source_pos, decl_pos_block);
         init_err = dps->init_state.init_error;
         init_con = dps->init_state.init_con;
         init_dip = dps->init_state.init_dip;
@@ -6097,7 +6094,7 @@ returned set to TRUE.
            initializer (of the form "= <expr>") and report an error. */
 #if /*FIXME*/0
         unexpected_condition();
-#else /*FIXME*/1
+#else /*FIXME*/
       if (scan_initializer_list(dps, &vp_type, vp, static_lifetime, &init_con,
                                 &init_dip, source_pos, decl_pos_block,
                                 (a_cli_array_init_scan_info_ptr)NULL)) {
@@ -6162,7 +6159,7 @@ returned set to TRUE.
     /* A non-aggregate object is being initialized.  Braces are permitted
        but not required.  A constant or non-constant expression may be
        permitted as the initializer. */
-    if (0 && first_token == tok_lbrace) {
+    if (0/*lint --e(506)*/ && first_token == tok_lbrace) {
       /* FIXME: This should just go up with the aggregate case.  Currently
          disabled until aggregate cases are fully straightened out. */
       brace_init_variable(dps, /*direct=*/FALSE, linkage, source_pos,

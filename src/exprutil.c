@@ -1010,7 +1010,7 @@ Display an init component for debugging purposes.
                                            ->identifier);
       } else {
         (void)fprintf(f_debug, "[%lu]\n",
-                      icp->variant.designator.element_index);
+                      (unsigned long)icp->variant.designator.element_index);
       }  /* if */
       break;
     default:
