@@ -20078,7 +20078,8 @@ object lifetime context.
         check_assertion(curr_object_lifetime != NULL);
         if (wrap_lifetime != NULL) {
           if (curr_object_lifetime->kind ==
-                                 (an_object_lifetime_kind)olk_expr_temporary) {
+                                 (an_object_lifetime_kind)olk_expr_temporary ||
+              long_lifetime_temps) {
             /* Promote the contents of the added lifetime into the current
                full-expression object lifetime. */
             promote_lifetime_contents_to_curr_object_lifetime(wrap_lifetime);
