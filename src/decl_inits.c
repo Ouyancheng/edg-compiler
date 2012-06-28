@@ -55,6 +55,9 @@ aconstant.
     aconstant->variant.aggregate.last_constant->next = econstant;
   }  /* if */
   aconstant->variant.aggregate.last_constant = econstant;
+  if (econstant->uses_designated_initializers) {
+    aconstant->uses_designated_initializers = TRUE;
+  }  /* if */
 }  /* append_constant_in_aggr */
 
 
@@ -3863,76 +3866,129 @@ diagnostics are not issued, errors are reflected in is->init_error.
 
 
 /* Forward declaration. */
+static void aggr_init_chained_designator(an_init_component_ptr  *p_icp,
+                                         a_type_ptr             sub_type,
+                                         an_init_state          *is,
+                                         a_constant_ptr         *result);
+
 static void aggr_init_element(an_init_component_ptr  *p_icp,
                               a_type_ptr             etype,
                               an_init_state          *is,
                               a_source_position      *diag_pos,
                               a_constant_ptr         *init_con);
 
-static void aggr_init_simple_element(an_init_component_ptr  icp,
+
+static an_init_component_ptr skip_designators(an_init_component_ptr  icp)
+/*
+Return the first non-designator component on the list pointed to by icp (or
+NULL if there is no such component).
+*/
+{
+  while (icp != NULL && is_designator_component(icp)) {
+    icp = icp->next;
+  }  /* while */
+  return icp;
+}  /* skip_designators */
+
+
+static void aggr_init_simple_element(an_init_component_ptr  *p_icp,
                                      a_type_ptr             dest_type,
                                      an_init_state          *is,
                                      a_constant_ptr         *init_con)
 /*
-The given initialization component is a single element in an aggregate
-initializer.  It initializes an array element or a field of type dest_type, in
-a declaration described by dps.  Return a constant in *init_con describing this
-element, and if it is nonconstant (which results in a ck_dynamic_init entry)
+*p_icp is a single element in an aggregate initialization described by *is.
+Ordinarily, *p_icp initializes an array element or a field of type dest_type,
+but in error cases it could also be an invalid designator.
+Return a constant in *init_con describing the element-level initialization, and
+update *p_icp to the next component to be consumed.
 The presence of a nonconstant initializer component is reflected in *is.
 */
 {
-  an_init_state       elem_is;
+  an_init_state          elem_is;
+  an_init_component_ptr  orig_icp = *p_icp, icp = orig_icp;
+  a_boolean              braced = is_braced_init_component(icp);
 
-  if (is_braced_init_component(icp) && icp->variant.braced.list != NULL &&
-      !is_class_struct_union_type(dest_type)) {
-    /* A redundantly braced initializer. */
-    an_error_severity   sev = es_none;
-    a_source_position   *brace_pos = init_component_pos(icp);
-    a_source_position   *excess_init_pos = NULL;
-    icp = icp->variant.braced.list;
-    if (icp->next != NULL) {
-      /* Check for excess initializers. */
-      excess_init_pos = init_component_pos(icp->next);
-    }  /* if */
-    if (!C_mode()) {
-      /* A single level of braces is standard in C, but not in C++. */
-      sev = strict_ansi_mode ? strict_ansi_error_severity : es_warning; 
-    }  /* if */
-    if (is_braced_init_component(icp) && icp->variant.braced.list != NULL) {
-      /* Multiple levels of extra braces. */
-      if (gcc_mode ||
-          (microsoft_mode && (!C_mode() || microsoft_version < 1310))) {
-        /* In GNU C mode and in some Microsoft modes, extraneous braces are
-           ignored.  Issue a warning at least. */
-        if (sev == es_none) sev = es_warning;
-      } else {
-        sev = es_error;
+remove_any_extraneous_braces:
+  if (braced && !is_class_struct_union_type(dest_type)) {
+    if (icp->variant.braced.list == NULL) {
+      /* Empty braces: Pass the braces to convert_initializer below (which
+         results in "value initialization"). */
+      if (C_mode() && !gcc_mode) {
+        /* Empty initializer lists are not permitted in C mode (except GNU C
+           mode). */
+        pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
       }  /* if */
-      /* Skip the levels of extra braces. */
-      do {
-        icp = icp->variant.braced.list;
-        if (icp->next != NULL) {
-          /* Check for excess initializers. */
-          excess_init_pos = init_component_pos(icp->next);
-        }  /* if */
-      } while (is_braced_init_component(icp) &&
-               icp->variant.braced.list != NULL);
-    }  /* if */
-    if (is->no_diagnostics) {
-      is->init_error = is_effective_error(ec_nonstd_braces, sev);
     } else {
-      pos_diagnostic(sev, ec_nonstd_braces, brace_pos);
-    }  /* if */
-    if (excess_init_pos != NULL) {
-      if (gcc_mode) {
-        pos_warning(ec_excess_initializers_ignored, excess_init_pos);
-      } else {
-        if (is->no_diagnostics) {
-          is->init_error = TRUE;
+      /* A redundantly braced initializer: Strip off the "brace components". */
+      an_error_severity      sev = es_none;
+      a_source_position      *brace_pos = init_component_pos(icp);
+      a_source_position      *excess_init_pos = NULL;
+      an_init_component_ptr  next_icp;
+      braced = TRUE;
+      icp = icp->variant.braced.list;
+      /* Check for excess initializers (designators don't count). */
+      next_icp = skip_designators(icp);
+      if (next_icp == NULL) {
+        expect_error();
+      } else if (next_icp->next != NULL) {
+        excess_init_pos = init_component_pos(next_icp->next);
+      }  /* if */
+      if (!C_mode()) {
+        /* A single level of braces is standard in C, but not in C++. */
+        sev = strict_ansi_mode ? strict_ansi_error_severity : es_warning; 
+      }  /* if */
+      if (is_braced_init_component(icp) && icp->variant.braced.list != NULL) {
+        /* Multiple levels of extra braces. */
+        if (gcc_mode ||
+            (microsoft_mode && (!C_mode() || microsoft_version < 1310))) {
+          /* In GNU C mode and in some Microsoft modes, extraneous braces are
+             ignored.  Issue a warning at least. */
+          if (sev == es_none) sev = es_warning;
         } else {
-          pos_error(ec_too_many_initializer_values, excess_init_pos);
+          sev = es_error;
+        }  /* if */
+        /* Skip the levels of extra braces. */
+        do {
+          icp = icp->variant.braced.list;
+          /* Check for excess initializers (designators don't count). */
+          next_icp = skip_designators(icp);
+          if (next_icp == NULL) {
+            expect_error();
+          } else if (next_icp->next != NULL) {
+            excess_init_pos = init_component_pos(next_icp->next);
+          }  /* if */
+        } while (is_braced_init_component(icp) &&
+                 icp->variant.braced.list != NULL);
+      }  /* if */
+      if (is->no_diagnostics) {
+        is->init_error = is_effective_error(ec_nonstd_braces, sev);
+      } else {
+        pos_diagnostic(sev, ec_nonstd_braces, brace_pos);
+      }  /* if */
+      if (excess_init_pos != NULL) {
+        if (gcc_mode) {
+          pos_warning(ec_excess_initializers_ignored, excess_init_pos);
+        } else {
+          if (is->no_diagnostics) {
+            is->init_error = TRUE;
+          } else {
+            pos_error(ec_too_many_initializer_values, excess_init_pos);
+          }  /* if */
         }  /* if */
       }  /* if */
+    }  /* if */
+  }  /* if */
+  if (is_designator_component(icp)) {
+    if (is->no_diagnostics) {
+      is->init_error = TRUE;
+    } else {
+      pos_ty_error(ec_designator_requires_aggregate_type,
+                   init_component_pos(icp), dest_type);
+    }  /* if */
+    dest_type = error_type();
+    icp = skip_designators(icp);
+    if (!is_expression_component(icp)) {
+      goto remove_any_extraneous_braces;
     }  /* if */
   }  /* if */
   /* Convert the single value as appropriate. */
@@ -3952,18 +4008,31 @@ The presence of a nonconstant initializer component is reflected in *is.
   } else if (elem_is.init_dip != NULL) {
     /* A nonconstant entry: Wrap it in a ck_dynamic_init entry, and record the
        fact that a nonconstant entry was seen. */
+    a_dynamic_init_ptr  dip = elem_is.init_dip;
     check_assertion(!is->check_validity_only);
     *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-    (*init_con)->variant.dynamic_init = elem_is.init_dip;
+    (*init_con)->variant.dynamic_init = dip;
     (*init_con)->type = dest_type;
+    if (dip->kind == (a_dynamic_init_kind)dik_constant ||
+        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+      /* If this dynamic initialization embeds a designator, record it in the
+         newly created constant. */
+      (*init_con)->uses_designated_initializers =
+                           dip->variant.constant->uses_designated_initializers;
+    }  /* if */
     is->has_dynamic_init_component = TRUE;
-    if (exceptions_enabled && elem_is.init_dip->destructor != NULL) {
-      elem_is.init_dip
-                  ->destruction_is_for_partially_constructed_aggregate = TRUE;
-      record_end_of_lifetime_destruction(elem_is.init_dip,
-                                         /*static_lifetime=*/FALSE,
+    if (exceptions_enabled && dip->destructor != NULL) {
+      dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+      record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
                                          /*block_lifetime=*/FALSE);
     }  /* if */
+  }  /* if */
+  if (braced) {
+    /* Proceed with the component after the braces. */
+    *p_icp = orig_icp->next;
+  } else {
+    /* Proceed with the next component in the sequence. */
+    *p_icp = icp->next;
   }  /* if */
 }  /* aggr_init_simple_element */
 
@@ -3979,13 +4048,17 @@ through *init_con (unless is->check_validity_only is TRUE).  Update the state
 of the whole initialization (*is) as appropriate.
 */
 {
-  check_assertion(is_template_param_type(gtype) || is_error_type(gtype));
-  if (is->check_validity_only) {
-    /* This routine always "succeeds" without diagnostics.  So if no IL should
-       be produced, there is nothing to be done. */
+  check_assertion(is_template_param_type(gtype) ||
+                  (is_immediate_class_type(gtype) &&
+                   gtype->variant.class_struct_union.is_nonreal_class) ||
+                  is_error_type(gtype));
+  if (is->check_validity_only && !designators_allowed) {
+    /* Except for designators, this routine always "succeeds" without
+       diagnostics.  So if no IL should be produced, there is nothing to be
+       done. */
   } else if (is_expression_component(icp)) {
     /* A simple expression: No more recursion is needed. */
-    aggr_init_simple_element(icp, gtype, is, init_con);
+    aggr_init_simple_element(&icp, gtype, is, init_con);
   } else if (is_braced_init_component(icp)) {
     /* A braced list: Recursively treat every item in the list. */
     a_type_ptr  dest_type = type_of_unknown_templ_param_nontype;
@@ -3996,13 +4069,86 @@ of the whole initialization (*is) as appropriate.
     for (icp = icp->variant.braced.list; icp != NULL; icp = icp->next) {
       a_constant_ptr  elem_con;
       aggr_init_generic_element(icp, dest_type, is, &elem_con);
-      append_constant_in_aggr(elem_con, *init_con);
+      if (elem_con != NULL) {
+        append_constant_in_aggr(elem_con, *init_con);
+      } else {
+        check_assertion(is->init_error);
+      }  /* if */
+    }  /* if */
+  } else if (is_designator_component(icp)) {
+    /* We don't permit designators in templates because we cannot represent a
+       field designator in the IL if we don't actually have a field entry to
+       point to. */
+    is->init_error = TRUE;
+    *init_con = NULL;
+    if (!is->check_validity_only && !is_error_type(gtype)) {
+      pos_error(ec_designator_for_template_dependent_type,
+                init_component_pos(icp));
     }  /* if */
   } else {
     unexpected_condition();
   }  /* if */
 }  /* aggr_init_generic_element */
 
+#if GNU_VECTOR_TYPES_ALLOWED
+
+static void aggr_init_vector(an_init_component_ptr  *p_icp,
+                             a_type_ptr             vtype,
+                             an_init_state          *is,
+                             a_constant_ptr         *init_con)
+/*
+Produce an aggregate constant (in *init_con) for the initialization of a GNU
+vector type.
+*/
+{
+  an_init_component_ptr  icp = *p_icp;
+  a_source_position      *diag_pos;
+  a_targ_size_t          ecount, icount = 0;
+  a_type_ptr             etype;
+  a_boolean              no_bound = FALSE;
+
+  check_assertion(is_braced_init_component(icp));
+  diag_pos = &icp->variant.braced.end_pos;
+  icp = icp->variant.braced.list;
+  vtype = skip_typerefs(vtype);
+  check_assertion(is_vector_type(vtype));
+  ecount = num_vector_elements(vtype);
+  etype = vtype->variant.vector.element_type;
+  check_assertion(!is_aggregate_or_union_type(etype));
+  /* Create the result type (unless we are only checking validity). */
+  if (!is->check_validity_only) {
+    *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    (*init_con)->type = vtype;
+    (*init_con)->explicit_braces_on_aggregate = TRUE;
+  }  /* if */
+  while (icp != NULL && (no_bound || icount < ecount)) {
+    a_constant_ptr  elem_con;
+    aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
+    if (!is->check_validity_only) {
+      append_constant_in_aggr(elem_con, *init_con);
+    }  /* if */
+    if (is->pack_expansion_handled) {
+      /* If a pack expansion was seen, don't try to track element counts. */
+      no_bound = TRUE;
+    } else {
+      ++icount;
+    }  /* if */
+  }  /* if */
+  /* Diagnose any extraneous elements (an error in GNU C++ mode; a warning
+     otherwise). */
+  if (icp != NULL && !no_bound) {
+    if (!is->no_diagnostics) {
+      pos_diagnostic(gpp_mode ? es_error : es_warning,
+                     ec_too_many_initializer_values, init_component_pos(icp));
+    } else if (gpp_mode) {
+      is->init_error = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Move to the next element after the braces. */
+  *p_icp = (*p_icp)->next;
+}  /* aggr_init_vector */
+
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 static a_constant_ptr default_nontrivial_init_constant_for_aggr_member(
                                                  a_type_ptr         tp,
@@ -4102,13 +4248,18 @@ size.
 {
   a_boolean  success = FALSE;
 
-  if (is_string_type(*p_array_type)) {
+  if (is_string_type(*p_array_type) ||
+      (is_array_type(*p_array_type) &&
+       is_template_param_type(array_element_type(*p_array_type)))) {
     a_constant_ptr  string_constant;
     /* Permit an extra level of braces. */
     if (is_braced_init_component(icp)) icp = icp->variant.braced.list;
     if (icp != NULL && is_string_literal_component(icp, &string_constant)) {
+      a_type_ptr  string_type = string_constant->type;
+      a_boolean   excess = FALSE, *p_excess = gcc_mode ? &excess : NULL;
       success = TRUE;
-      if (check_string_constant_initializer(p_array_type, string_constant)) {
+      if (check_string_constant_initializer_full(p_array_type, string_constant,
+                                                 p_excess)) {
         if (!is->check_validity_only) {
           *result = alloc_unshared_constant(string_constant);
         }  /* if */
@@ -4123,13 +4274,19 @@ size.
           pos_diagnostic(strict_ansi_discretionary_severity,
                          ec_nonstandard_parenthesized_string_initializer,
                          init_component_pos(icp));
+        } else if (excess && !is->no_diagnostics) {
+          pos_warning(ec_excess_characters_in_literal_ignored,
+                      init_component_pos(icp));
         }  /* if */
       } else {
         if (is->no_diagnostics) {
           is->init_error = TRUE;
         } else {
+          /* Note: The call to check_string_constant_initializer truncates the
+             string constant if needed.  So we must use the type of the string
+             prior to that call. */
           pos_ty2_error(ec_bad_initializer_type, init_component_pos(icp),
-                        string_constant->type, *p_array_type);
+                        string_type, *p_array_type);
         }  /* if */
         if (!is->check_validity_only) {
           *result = alloc_error_constant();
@@ -4147,7 +4304,6 @@ size.
 }  /* try_string_literal_init */
 
 
-/*ARGSUSED*/  /*FIXME*/
 static a_boolean try_whole_array_init(an_init_component_ptr  icp,
                                       a_type_ptr             array_type,
                                       a_constant_ptr         *result)
@@ -4157,8 +4313,13 @@ icp represents an expression that might initialize an array of the given type
 set *result to the a_constant entry representing the initializer.
 */
 {
-  /* FIXME. */
-  return FALSE;
+  a_boolean  success = FALSE;
+
+  check_assertion(is_expression_component(icp));
+  if (whole_array_init_possible(icp, array_type, result)) {
+    success = TRUE;
+  }  /* if */
+  return success;
 }  /* try_whole_array_init */
 
 
@@ -4218,6 +4379,133 @@ position at which diagnostics should be issued.
 }  /* aggr_init_array_remainder_if_needed */
 
 
+static void aggr_init_array_designator(an_init_component_ptr  *p_icp,
+                                       a_type_ptr             atype,
+                                       an_init_state          *is,
+                                       a_targ_size_t          *index,
+                                       a_constant_ptr         aggr_con,
+                                       a_source_position      *diag_pos)
+/*
+*p_icp points to a designator component encountered while processing a braced
+initializer for the given array type.  Check if the designator is valid, and,
+if so, append a matching ck_designator constant to aggr_con.  This routine also
+consumes initializer components up to and including a non-designator (and
+*p_icp is updated to point to the component after that, or NULL if there is
+none).  *is describes the initialization and *index describes the index of the
+next element to be initialized (which is updated by this routine).  diag_pos is
+the position at which to issue diagnostics if no more specific position is
+available.
+*/
+{
+  a_boolean              okay, no_bound;
+  an_init_component_ptr  icp = *p_icp;
+  a_targ_size_t          repeat_count = 1;
+
+  atype = skip_typerefs(atype);
+  check_assertion(atype->kind == (a_type_kind)tk_array);
+  no_bound = has_unknown_specified_bound(atype) ||
+             (atype->variant.array.variant.number_of_elements == 0 &&
+              !atype->variant.array.bound_is_zero);
+  if (icp->variant.designator.field_name != NULL) {
+    /* This is not an array designator, but we're in an array initializer.
+       Issue an error. */
+    okay = FALSE;
+    pos_error(ec_invalid_designator_kind, init_component_pos(icp));
+  } else if (no_bound ||
+             (icp->variant.designator.element_index <
+                            atype->variant.array.variant.number_of_elements &&
+              icp->variant.designator.last_element_index <
+                            atype->variant.array.variant.number_of_elements)) {
+    okay = TRUE;
+    *index = icp->variant.designator.element_index;
+    repeat_count = icp->variant.designator.last_element_index - *index + 1;
+  } else {
+    /* The designator indicates a subscript outside the array bounds. */
+    okay = FALSE;
+    pos_error(ec_subscript_out_of_range, init_component_pos(icp));
+  }  /* if */
+  if (!C_mode() && okay) {
+    a_type_ptr  etype = underlying_array_element_type(atype);
+    etype = skip_typerefs(etype);
+    if (is_immediate_class_type(etype) &&
+        !etype->variant.class_struct_union.is_nonreal_class &&
+        !symbol_supplement_for_class(etype)->is_POD) {
+      /* Allowing designators in non-POD types would raise subtle questions
+         about order of initialization and destruction.  For now, at least,
+         we disallow such constructs.  (The error is only issued on the first
+         designator if there is a sequence of consecutive designators.) */
+      pos_error(ec_designator_for_non_POD, init_component_pos(icp));
+    }  /* if */
+  }  /* if */
+  icp = icp->next;
+  if (okay) {
+    if (!is->check_validity_only) {
+      /* Append the array designator constant to the end of the enclosing
+         aggregate constant. */
+      a_constant_ptr  des_con;
+      des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+      des_con->variant.designator.array_element = *index;
+      append_constant_in_aggr(des_con, aggr_con);
+      aggr_con->uses_designated_initializers = TRUE;
+    }  /* if */
+    if (icp != NULL) {
+      /* Process the component following this designator.  If it is another
+         designator (i.e., a "chained" designator), special care must be taken
+         to go down a level in the aggregate structure. */
+      a_constant_ptr     next_con;
+      a_boolean          saved_has_dynamic_init_component;
+      a_source_position  *pos;
+      if (repeat_count > 1) {
+        /* Temporarily clear the has_dynamic_init_component flag so we can
+           find out if the designated element has a dynamic component. */
+        saved_has_dynamic_init_component = is->has_dynamic_init_component;
+        is->has_dynamic_init_component = FALSE;
+        pos = init_component_pos(icp);
+      }  /* if */
+      if (is_designator_component(icp)) {
+        /* A chained designator follows (e.g., ".x.y =" or ".x[n] ="). */
+        aggr_init_chained_designator(&icp, atype->variant.array.element_type,
+                                     is, &next_con);
+      } else {
+        aggr_init_element(&icp, atype->variant.array.element_type, is,
+                          diag_pos, &next_con);
+      }  /* if */
+      if (repeat_count > 1) {
+        /* A repeated initializer cannot have a dynamic component. */
+        if (is->has_dynamic_init_component) {
+          if (is->no_diagnostics) {
+            is->init_error = TRUE;
+          } else {
+            pos_error(ec_no_range_designator_with_dynamic_init, pos);
+          }  /* if */
+        }  /* if */
+        if (saved_has_dynamic_init_component) {
+          /* If a prior component was dynamic, merge that into the state. */
+          is->has_dynamic_init_component = TRUE;
+        }  /* if */
+      }  /* if */
+      ++*index;
+      if (next_con != NULL) {
+        check_assertion(!is->check_validity_only);
+        if (repeat_count > 1) {
+          a_constant_ptr  elem_con = next_con;
+          next_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+          next_con->variant.init_repeat.count = repeat_count;
+          next_con->variant.init_repeat.constant = elem_con;
+        }  /* if */
+        append_constant_in_aggr(next_con, aggr_con);
+      }  /* if */
+    } else {
+      expect_error();
+    }  /* if */
+  } else {
+    /* The designator was invalid.  Skip any chained designators. */
+    icp = skip_designators(icp);
+  }  /* if */
+  *p_icp = icp;
+}  /* aggr_init_array_designator */
+
+
 static void aggr_init_array(an_init_component_ptr  *p_icp,
                             a_type_ptr             *p_array_type,
                             an_init_state          *is,
@@ -4243,17 +4531,20 @@ type that reflects the length of the initializer.
   if (try_string_literal_init(icp, p_array_type, is, init_con)) {
     /* A string literal initializer.  Nothing more to be done. */
     *p_icp = icp->next;
-  } else if (!is_braced_init_component(icp) &&
+  } else if (is_expression_component(icp) &&
              try_whole_array_init(icp, atype, init_con)) {
-    /* FIXME.  Do whole-array cases ever get here? */
-    check_assertion(!var_init);
-    unexpected_condition_str("NYI: Whole-array initialization");
+    /* Whole-array initialization.  Currently, this is only possible in GNU C
+       mode with compound literals.  For example:
+         struct X { int i[3]; } x = { (int[3]){1, 2, 3} };
+    */
+    *p_icp = icp->next;
   } else {
     /* Ordinary element-by-element array initialization. */
-    a_targ_size_t  ecount, icount = 0;
+    a_targ_size_t  ecount, index = 0, icount = 0;
     a_type_ptr     etype = atype->variant.array.element_type;
     a_boolean      no_bound = FALSE, braced = is_braced_init_component(icp),
-                   saved_pack_expansion_handled;
+                   zero_sized_element = FALSE;
+    a_boolean      saved_pack_expansion_handled;
     if (braced) {
       /* The element values are enclosed in braces. */
       /* Diagnostics not associated with a particular element should be issued
@@ -4261,6 +4552,11 @@ type that reflects the length of the initializer.
       if (braced) diag_pos = &icp->variant.braced.end_pos;
       /* Unwrap the braced list for the processing that follows. */
       icp = icp->variant.braced.list;
+      if (icp == NULL && C_mode() && !gcc_mode) {
+        /* Empty initializer lists are not permitted in C mode (except GNU C
+           mode). */
+        pos_error(ec_exp_primary_expr, diag_pos);
+      }  /* if */
       /* Save the pack-expansion-handled state: Any expansions seen have an
          effect only within the braces. */
       saved_pack_expansion_handled = is->pack_expansion_handled;
@@ -4268,6 +4564,7 @@ type that reflects the length of the initializer.
     if (!is->check_validity_only) {
       *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
       (*init_con)->type = atype;
+      (*init_con)->explicit_braces_on_aggregate = braced;
     }  /* if */
     /* Determine the element count in the destination type if known. */
     if (has_any_unknown_specified_bound(atype) ||
@@ -4289,18 +4586,47 @@ type that reflects the length of the initializer.
     } else {
       ecount = atype->variant.array.variant.number_of_elements;
     }  /* if */
+    if (is_array_type(etype) &&
+        skip_typerefs(etype)->variant.array.bound_is_zero) {
+      zero_sized_element = TRUE;
+    }  /* if */
     /* Loop through the initializer components and create individual constant
        entries for each of them. */
-    while (icp != NULL && (no_bound || icount < ecount)) {
-      a_constant_ptr  elem_con;
-      aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
-      if (!is->check_validity_only) {
-        append_constant_in_aggr(elem_con, *init_con);
-      }  /* if */
-      ++icount;
-      if (is->pack_expansion_handled) {
-        /* If a pack expansion was seen, don't try to track element counts. */
-        no_bound = TRUE;
+    while (icp != NULL) {
+      if (is_designator_component(icp)) {
+        /* One or more designators. */
+        if (!braced && !is->chained_designator_okay) {
+          /* The designator doesn't apply at this level.  Return to a previous
+             level. */
+          break;
+        } else {
+          is->chained_designator_okay = FALSE;
+          aggr_init_array_designator(&icp, atype, is, &index, *init_con,
+                                     diag_pos);
+          if (index > icount) icount = index;
+        }  /* if */
+      } else if (zero_sized_element) {
+        /* Some modes allow zero-length arrays.  If the member type contains
+           such an array, do not attempt to initialize it.  E.g.:
+              int a[][0] = { 0 };  // Excess initializer.
+        */
+        break;
+      } else if (no_bound || index < ecount) {
+        a_constant_ptr  elem_con;
+        aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
+        if (!is->check_validity_only) {
+          append_constant_in_aggr(elem_con, *init_con);
+        }  /* if */
+        ++index;
+        if (index > icount) icount = index;
+        if (is->pack_expansion_handled) {
+          /* If a pack expansion was seen, don't try to track element
+             counts. */
+          no_bound = TRUE;
+        }  /* if */
+      } else {
+        /* No more elements to initialize. */
+        break;
       }  /* if */
     }  /* while */
     if (!no_bound && icount < ecount) {
@@ -4320,13 +4646,18 @@ type that reflects the length of the initializer.
           set_initialized_array_size(p_array_type, icount,
                                      /*unknown_dependent=*/FALSE);
         }  /* if */
-      } else if (icp != NULL) {
+      }  /* if */
+      if (icp != NULL && (!no_bound || zero_sized_element)) {
         /* Initializers remain at this level, but no elements. */
-        check_assertion(icount == ecount);
+        an_error_severity  sev = gcc_mode ? es_warning : es_error;
         if (is->no_diagnostics) {
-          is->init_error = TRUE;
+          is->init_error = sev == es_error;
         } else {
-          pos_error(ec_too_many_initializer_values, init_component_pos(icp));
+          pos_diagnostic(sev, 
+                         (int)sev >= (int)es_error ?
+                                               ec_too_many_initializer_values
+                                             : ec_excess_initializers_ignored,
+                         init_component_pos(icp));
         }  /* if */
       }  /* if */
       is->pack_expansion_handled = saved_pack_expansion_handled;
@@ -4341,15 +4672,16 @@ type that reflects the length of the initializer.
 }  /* aggr_init_array */
 
 
-static a_boolean try_whole_aggr_class_init(an_init_component_ptr  icp,
+static a_boolean try_whole_aggr_class_init(an_init_component_ptr  *p_icp,
                                            a_type_ptr             class_type,
                                            an_init_state          *is,
                                            a_constant_ptr         *result)
 /*
-icp represents an expression that might initialize an aggregate class of the
+p_icp represents an expression that might initialize an aggregate class of the
 given type (the whole class object; not just a field of it).  If it does,
-return TRUE, and set *result to the a_constant entry representing the
-initializer.  For example:
+return TRUE, set *result to the a_constant entry representing the initializer,
+and update *p_icp to the next component that hasn't been consumed.
+For example:
          struct S { int i; } s, as[]{ 1, s };
 Here the component 1 does not wholly initialize an element of as (so FALSE is
 returned with no further action), but the component s does (so this function
@@ -4359,8 +4691,9 @@ initialization of as[1]).
 {
   a_boolean  success = FALSE;
 
-  if (whole_aggr_class_init_possible(icp, class_type)) {
-    aggr_init_simple_element(icp, class_type, is, result);
+  check_assertion(is_expression_component(*p_icp));
+  if (whole_aggr_class_init_possible(*p_icp, class_type)) {
+    aggr_init_simple_element(p_icp, class_type, is, result);
     success = TRUE;
   }  /* if */
   return success;
@@ -4461,6 +4794,252 @@ position for which diagnostics should be issued.
 }  /* aggr_init_class_remainder_if_needed */
 
 
+static void check_flexible_array_init(an_init_component_ptr  icp,
+                                      a_field_ptr            fp,
+                                      an_init_state          *is)
+/*
+icp is an aggregate initializer component for a flexible array member fp in an
+initialization described by *is.  Check if that situation is valid; if not,
+issue an error or set is->init_error to TRUE (depending on other flags in *is).
+*/
+{
+  if (microsoft_mode || (gcc_mode && is->static_lifetime_init)) {
+    a_type_ptr  etype = underlying_array_element_type(fp->type);
+    etype = skip_typerefs(etype);
+    if (!C_mode() && is_immediate_class_type(etype)) {
+      a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(etype);
+      if (has_nontrivial_destructor(cssp)) {
+        /* Microsoft C++ allows the aggregate initialization of flexible array
+           members only if they do not have nontrivial destructors. */
+        if (is->no_diagnostics) {
+          is->init_error = TRUE;
+        } else {
+          pos_error(ec_cannot_initialize_destructible_flexible_array,
+                    init_component_pos(icp));
+        }  /* if */
+      }  /* if */
+    } else if (gcc_mode && is->non_top_level_aggregate &&
+               !(is_braced_init_component(icp) &&
+                 icp->variant.braced.list == NULL)) {
+      /* GNU C does not allow flexible array member initializers that are not
+         at the top level, except if the initializer is empty.  For example:
+           struct F { int n; int a[]; };
+           struct T { struct F f; };
+           T x1 = { { 1, {} } };     // Okay: non-top-level but empty.
+           T x2 = { { 1, { 2 } } };  // Error.
+      */
+      if (is->no_diagnostics) {
+        is->init_error = TRUE;
+      } else {
+        pos_error(ec_cannot_initialize_indirect_flexible_array,
+                  init_component_pos(icp));
+      }  /* if */
+    }  /* if */
+  } else if (is->no_diagnostics) {
+    is->init_error = TRUE;
+  } else {
+    pos_error(gcc_mode ? ec_cannot_init_auto_flexible_array_member
+                       : ec_cannot_initialize_flexible_array_member,
+              init_component_pos(icp));
+  }  /* if */
+}  /* check_flexible_array_init */
+
+
+static void aggr_init_field(an_init_component_ptr  *p_icp,
+                            a_field_ptr            *p_field,
+                            an_init_state          *is,
+                            a_constant_ptr         aggr_con,
+                            a_source_position      *diag_pos)
+/*
+*p_icp is non-NULL and describes an initializer for *p_field (also non-NULL).
+Append a constant representing this initializer to the given aggregate constant
+(aggr_con).  *is tracks state information for the complete initializer and
+diag_pos is the position to use for diagnostics by default (if no more specific
+position is available).
+*/
+{
+  a_field_ptr            fp = *p_field;
+  a_type_ptr             class_type = parent_class_of(fp), dtype = fp->type;
+  a_boolean              flexible_init = FALSE, ms_enum_bit_field = FALSE;
+  an_init_component_ptr  icp = *p_icp;
+  a_constant_ptr         elem_con;
+
+  if (is->pack_expansion_handled) {
+    /* If a pack expansion has been seen, we cannot match up types anymore.
+       Change the destination type to "the unknown type". */
+    dtype = type_of_unknown_templ_param_nontype;
+  } else if (fp->is_bit_field) {
+    if (microsoft_mode && !C_mode() && is_enum_type(dtype)) {
+      /* Microsoft's C++ compiler allow bit fields of enumeration types to be
+         initialized by integer values.  We emulate this by converting to the
+         underlying integer type, and then converting the result back to the
+         enumeration type. */
+      dtype = integer_type(skip_typerefs(dtype)->variant.integer.int_kind);
+      ms_enum_bit_field = TRUE;
+    }  /* if */
+  } else if ((fp->next == NULL || class_type->kind == (a_type_kind)tk_union) &&
+             is_incomplete_array_type(fp->type)) {
+    /* A flexible array member. */
+    flexible_init = TRUE;
+    check_flexible_array_init(icp, fp, is);
+  }  /* if */
+  aggr_init_element(p_icp, dtype, is, diag_pos, &elem_con);
+  if (ms_enum_bit_field) {
+    /* A Microsoft enum bit field being initialized with an integer.
+       Implicitly cast the result back to the enumeration type. */
+    a_boolean  did_not_fold = FALSE;
+    type_change_constant_full(elem_con, fp->type,
+                              /*is_implicit_cast=*/TRUE,
+                              /*constant_context=*/FALSE,
+                              /*evaluated_context=*/TRUE,
+                              /*fold_constant_addr_exprs=*/FALSE,
+                              /*check_cast_access=*/FALSE,
+                              /*check_ambiguity=*/FALSE,
+                              /*is_reinterpret_cast=*/FALSE,
+                              /*maintain_expression=*/TRUE,
+                              &did_not_fold,
+                              /*error_detected=*/(an_error_code *)NULL,
+                              init_component_pos(icp));
+  }  /* if */
+  if (!is->check_validity_only) {
+    append_constant_in_aggr(elem_con, aggr_con);
+  }  /* if */
+  if (class_type->kind == (a_type_kind)tk_union) {
+    /* In the case of a union, only one field is usually initialized.
+       (Designated initializers can override that.) */
+    *p_field = NULL;
+  } else if (!is->pack_expansion_handled) {
+    *p_field = next_initializable_field(fp->next);
+  }  /* if */
+}  /* aggr_init_field */
+
+
+static void aggr_init_field_designator(an_init_component_ptr  *p_icp,
+                                       a_type_ptr             class_type,
+                                       an_init_state          *is,
+                                       a_field_ptr            *field,
+                                       a_constant_ptr         aggr_con,
+                                       a_source_position      *diag_pos)
+/*
+*p_icp points to a designator component encountered while processing a braced
+initializer for class_type.  Check if the designator is valid, and, if so,
+append a matching ck_designator constant to aggr_con.  This routine also
+consumes initializer components up to and including a non-designator (and
+*p_icp is updated to point to the component after that, or NULL if there is
+none).  diag_pos is the position at which to issue diagnostics if no more
+specific position is available.
+*/
+{
+  a_boolean              okay;
+  an_init_component_ptr  icp = *p_icp;
+  a_type_ptr             class_to_look_in = class_type;
+  a_symbol_locator       loc;
+  a_symbol_ptr           sym;
+
+  if (!C_mode()) {
+    /* If we're in an anonymous union, look for the field in the enclosing
+       class scope. */
+    a_class_type_supplement_ptr  ctsp = class_type_supp(class_to_look_in);
+    while (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
+      class_to_look_in = parent_class_of(class_to_look_in);
+      ctsp = class_type_supp(class_to_look_in);
+    }  /* while */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  } else if (class_to_look_in
+                 ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
+    /* Nonstandard anonymous-union-like constructs are possible in some C
+       modes, but no meaningful "parent" structure is available in that case.
+       *is therefore records the last traversed class that is not a nonstandard
+       anonymous union type. */
+    class_to_look_in = is->class_to_look_in;
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  }  /* if */
+  if (icp->variant.designator.field_name == NULL) {
+    /* This is not a field designator, but we're in a class initializer.
+       Issue an error. */
+    okay = FALSE;
+    pos_error(ec_invalid_designator_kind, init_component_pos(icp));
+  } else {
+    clear_locator(&loc, init_component_pos(icp));
+    loc.symbol_header = icp->variant.designator.field_name;
+    sym = class_qualified_id_lookup(&loc, class_to_look_in, IDL_NO_OPTIONS);
+    if (sym == NULL) {
+      /* The name was not found. */
+      okay = FALSE;
+      pos_stsy_error(ec_not_a_field, init_component_pos(icp),
+                     loc.symbol_header->identifier, symbol_for(class_type));
+    } else if (!symbol_is(sym, sk_field)) {
+      /* The name was found, but it's not a field. */
+      okay = FALSE;
+      pos_st_error(ec_not_a_field_name, init_component_pos(icp),
+                   loc.symbol_header->identifier);
+      check_assertion(!C_mode());
+    } else {
+      okay = TRUE;
+      *field = sym->variant.field.ptr;
+      if (sym->variant.field.anonymous_parent_object != NULL) {
+        /* This field is a member of an anonymous union or (nonstandard)
+           anonymous struct.  This is possible in GNU modes, but GCC apparently
+           only allows this if the braced structure has already brought us to
+           the anonymous type.  For example:
+             struct S { struct { int i; float f; }; };
+             struct S s1 = {{ .i = 1 }};  // Accepted by GCC
+             struct S s2 = { .i = 1 };    // Always an error.
+        */
+        a_type_ptr  anon_parent = parent_class_of(*field);
+        if (!same_entities(anon_parent, class_type)) {
+          okay = FALSE;
+          pos_error(ec_indirect_anon_union_designator,
+                    init_component_pos(icp));
+
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!C_mode() && okay &&
+      !class_type->variant.class_struct_union.is_nonreal_class &&
+      !symbol_supplement_for_class(class_type)->is_POD) {
+    /* Allowing designators in non-POD types would raise subtle questions about
+       order of initialization and destruction.  For now, at least, we disallow
+       such constructs.  (The error is only issued on the first designator if
+       there is a sequence of consecutive designators.) */
+    pos_error(ec_designator_for_non_POD, init_component_pos(icp));
+  }  /* if */
+  icp = icp->next;
+  if (okay) {
+    if (!is->check_validity_only) {
+      a_constant_ptr  des_con;
+      des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+      des_con->variant.designator.field = *field;
+      append_constant_in_aggr(des_con, aggr_con);
+      aggr_con->uses_designated_initializers = TRUE;
+    }  /* if */
+    if (icp != NULL) {
+      /* Process the component following this designator.  If it is another
+         designator (i.e., a "chained" designator), special care must be taken
+         to go down a level in the aggregate structure. */
+      if (is_designator_component(icp)) {
+        /* A chained designator follows (e.g., ".x.y =" or ".x[n] ="). */
+        a_constant_ptr  next_con;
+        aggr_init_chained_designator(&icp, (*field)->type, is, &next_con);
+        *field = (*field)->next;
+        if (next_con == NULL) {
+          check_assertion(is->init_error);
+        } else if (!is->check_validity_only) {
+          append_constant_in_aggr(next_con, aggr_con);
+        }  /* if */
+      } else {
+        aggr_init_field(&icp, field, is, aggr_con, diag_pos);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* The designator was invalid.  Skip any chained designators. */
+    icp = skip_designators(icp);
+  }  /* if */
+  *p_icp = icp;
+}  /* aggr_init_field_designator */
+
+
 static void aggr_init_class(an_init_component_ptr  *p_icp,
                             a_type_ptr             class_type,
                             an_init_state          *is,
@@ -4479,23 +5058,31 @@ issued if no more specific position is available.
 {
   an_init_component_ptr  icp = *p_icp;
 
+  class_type = skip_typerefs(class_type);
   check_assertion(is_immediate_class_type(class_type));
   if (is_expression_component(icp) && (!C_mode() || c99_mode || gcc_mode) &&
-      try_whole_aggr_class_init(icp, class_type, is, init_con)) {
+      try_whole_aggr_class_init(p_icp, class_type, is, init_con)) {
     /* Even though class type is an aggregate class, it is completely
        initialized by the expression represented by icp.  E.g.:
          struct S { int i; } s, as[]{ 1, s };
        Here the use of s as a component wholly initializes as[1]. */
-    *p_icp = icp->next;
   } else {
     a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
     a_boolean    braced = is_braced_init_component(icp),
                  saved_pack_expansion_handled;
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+    a_type_ptr   saved_class_to_look_in = is->class_to_look_in;
+    if (!class_type
+                 ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
+      is->class_to_look_in = class_type;
+    }  /* if */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     /* Skip unnamed bit fields. */ 
     fp = next_initializable_field(fp);
     if (!is->check_validity_only) {
       *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
       (*init_con)->type = class_type;
+      (*init_con)->explicit_braces_on_aggregate = braced;
     }  /* if */
     if (braced) {
       /* The element values are enclosed in braces. */
@@ -4504,6 +5091,11 @@ issued if no more specific position is available.
       diag_pos = &icp->variant.braced.end_pos;
       /* Unwrap the braced list for the processing that follows. */
       icp = icp->variant.braced.list;
+      if (icp == NULL && C_mode() && !gcc_mode) {
+        /* Empty initializer lists are not permitted in C mode (except GNU C
+           mode). */
+        pos_error(ec_exp_primary_expr, diag_pos);
+      }  /* if */
       /* Save the pack-expansion-handled state: Any expansions seen have an
          effect only within the braces. */
       saved_pack_expansion_handled = is->pack_expansion_handled;
@@ -4512,28 +5104,46 @@ issued if no more specific position is available.
          E.g.:
            struct E {};
            struct A { E e; int x; } a{ 1 };  // Error: a.e uninitialized.
-         Treat it as an attempt to do a "whole aggregate class initialization".
-         It is essential to move forward in the list of initializers to avoid
-         non-terminated loops.  */
-      a_constant_ptr  empty_con = NULL;
-      aggr_init_simple_element(icp, class_type, is, &empty_con);
-      /* The call to aggr_init_simple_element must have resulted in an error,
-         since we previously determined that whole aggregate class
-         initialization is not possible. */
-      if (is->no_diagnostics) {
-        check_assertion(is->init_error);
+      */
+      if (gcc_mode) {
+        /* GCC accepts this with a warning about excess initializers. */
+        pos_warning(ec_excess_initializers_ignored, init_component_pos(icp));
+        icp = NULL;
       } else {
-        check_assertion(total_errors != 0);
+        /* In non-GCC modes, we treat it as an attempt to do a "whole aggregate
+           class initialization".  It is essential to move forward in the list
+           of initializers to avoid non-terminating loops.  */
+        a_constant_ptr  empty_con = NULL;
+        aggr_init_simple_element(&icp, class_type, is, &empty_con);
+        /* The call to aggr_init_simple_element must have resulted in an error,
+           since we previously determined that whole aggregate class
+           initialization is not possible. */
+        if (is->no_diagnostics) {
+          check_assertion(is->init_error);
+        } else {
+          check_assertion(total_errors != 0);
+        }  /* if */
       }  /* if */
-      icp = icp->next;
     }  /* if */
-    while (fp != NULL && icp != NULL) {
-      a_constant_ptr  elem_con;
-      aggr_init_element(&icp, fp->type, is, diag_pos, &elem_con);
-      if (!is->check_validity_only) {
-        append_constant_in_aggr(elem_con, *init_con);
+    while (icp != NULL) {
+      if (is_designator_component(icp)) {
+        /* One or more designators. */
+        if (!braced && !is->chained_designator_okay) {
+          /* The designator doesn't apply at this level.  Return to a previous
+             level. */
+          break;
+        } else {
+          is->chained_designator_okay = FALSE;
+          aggr_init_field_designator(&icp, class_type, is, &fp, *init_con,
+                                     diag_pos);
+        }  /* if */
+      } else if (fp != NULL) {
+        /* A field is available for the next initializer component. */
+        aggr_init_field(&icp, &fp, is, *init_con, diag_pos);
+      } else {
+        /* No more fields to initialize. */
+        break;
       }  /* if */
-      if (!is->pack_expansion_handled) fp = next_initializable_field(fp->next);
     }  /* for */
     if (fp != NULL && !is->pack_expansion_handled) {
       /* Not all class fields are explicitly initialized: Append entries to
@@ -4548,7 +5158,10 @@ issued if no more specific position is available.
         /* Initializers remain at this level, but no fields. */
         check_assertion(fp == NULL);
         if (is->no_diagnostics) {
-          is->init_error = TRUE;
+          is->init_error = !gcc_mode;
+        } else if (gcc_mode) {
+          /* GNU C (but not GNU C++) ignores extraneous initializers here. */
+          pos_warning(ec_excess_initializers_ignored, init_component_pos(icp));
         } else {
           pos_error(ec_too_many_initializer_values, init_component_pos(icp));
         }  /* if */
@@ -4557,11 +5170,59 @@ issued if no more specific position is available.
     } else {
       /* Braces were omitted at this level of aggregate initialization: The
          the caller should continue associating the next component with any
-         aggregate elements that follow this array. */
+         aggregate elements that follow those consumed here. */
       *p_icp = icp;
     }  /* if */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+    is->class_to_look_in = saved_class_to_look_in;
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   }  /* if */
 }  /* aggr_init_class */
+
+
+static void aggr_init_chained_designator(an_init_component_ptr  *p_icp,
+                                         a_type_ptr             aggr_type,
+                                         an_init_state          *is,
+                                         a_constant_ptr         *result)
+/*
+*p_icp represents a "chained" designator; i.e., a designator immediately
+following another designator.  For example, ".i" and "[3]" in ".x.i[3]".
+aggr_type is the type into which the designator refers
+*/
+{
+  an_init_component_ptr  icp = *p_icp;
+
+  check_assertion(icp != NULL && is_designator_component(icp));
+  *result = NULL;
+  if (is_class_struct_union_type(aggr_type)) {
+    /* Call aggr_init_class but set a flag in the initialization state to
+       accept the upcoming designator even though there are no braces around
+       the subaggregate constant. */
+    is->chained_designator_okay = TRUE;
+    aggr_init_class(&icp, aggr_type, is, init_component_pos(icp),
+                    result);
+  } else if (is_array_type(aggr_type)) {
+    /* Call aggr_init_array but set a flag in the initialization state to
+       accept the upcoming designator even though there are no braces around
+       the subaggregate constant. */
+    is->chained_designator_okay = TRUE;
+    aggr_init_array(&icp, &aggr_type, is, init_component_pos(icp),
+                    /*var_init=*/FALSE, result);
+  } else if (is_template_param_type(aggr_type)) {
+    /* We cannot represent designators in nonreal types.  This diagnosed early
+       in a way that should prevent us from getting here. */
+    unexpected_condition();
+  } else {
+    /* Not a type for which designators are valid. */
+    is->init_error = TRUE;
+    if (!is->no_diagnostics) {
+      pos_ty_error(ec_designator_requires_aggregate_type,
+                   init_component_pos(icp), aggr_type);
+    }  /* if */
+    icp = skip_designators(icp);
+  }  /* if */
+  *p_icp = icp;
+}  /* aggr_init_chained_designator */
 
 
 static void aggr_init_element(an_init_component_ptr  *p_icp,
@@ -4582,6 +5243,8 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
 {
   an_init_component_ptr  icp = *p_icp;
   a_boolean              pack_expansion = FALSE;
+  a_boolean              saved_non_top_level_aggregate;
+  a_type_kind            etype_kind;
 
   check_assertion(init_con != NULL);
   if (is_pack_expansion_component(icp)) {
@@ -4589,27 +5252,42 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
        since we don't know how many elements it should match. */
     etype = type_of_unknown_templ_param_nontype;
     pack_expansion = is->pack_expansion_handled = TRUE;
-  } else {
-    etype = skip_typerefs(etype);
   }  /* if */
-  if (etype->kind == (a_type_kind)tk_array) {
+  etype_kind = skip_typerefs(etype)->kind;
+  if (etype_kind == (a_type_kind)tk_array) {
     /* Array. */
+    saved_non_top_level_aggregate = is->non_top_level_aggregate;
+    is->non_top_level_aggregate = TRUE;
     aggr_init_array(p_icp, &etype, is, diag_pos, /*var_init=*/FALSE, init_con);
-  } else if (is_immediate_class_type(etype) &&
-             symbol_for(etype)->variant.class_struct_union.extra_info
-                              ->is_class_aggregate) {
-    /* Aggregate class. */
+    is->non_top_level_aggregate = saved_non_top_level_aggregate;
+  } else if (is_aggregate_type(etype)) {
+    /* Aggregate class (since the array case was already tested for). */
+    saved_non_top_level_aggregate = is->non_top_level_aggregate;
+    is->non_top_level_aggregate = TRUE;
     aggr_init_class(p_icp, etype, is, diag_pos, init_con);
-  } else if (etype->kind == (a_type_kind)tk_template_param ||
-             etype->kind == (a_type_kind)tk_error) {
+    is->non_top_level_aggregate = saved_non_top_level_aggregate;
+  } else if (etype_kind == (a_type_kind)tk_template_param ||
+             etype_kind == (a_type_kind)tk_error) {
     /* Create a constant that matches the initializer structure (since the
        element structure is not a priori known). */
+    saved_non_top_level_aggregate = is->non_top_level_aggregate;
+    is->non_top_level_aggregate = TRUE;
     aggr_init_generic_element(icp, etype, is, init_con);
+    is->non_top_level_aggregate = saved_non_top_level_aggregate;
     *p_icp = icp->next;
+#if GNU_VECTOR_TYPES_ALLOWED
+  } else if (etype_kind == (a_type_kind)tk_vector &&
+             is_braced_init_component(icp))  {
+    /* A braced component can initialize the elements of a GNU vector
+       individually. */
+    saved_non_top_level_aggregate = is->non_top_level_aggregate;
+    is->non_top_level_aggregate = TRUE;
+    aggr_init_vector(p_icp, etype, is, init_con);
+    is->non_top_level_aggregate = saved_non_top_level_aggregate;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else {
     /* Use the single value in *p_icp to initialize one element. */
-    aggr_init_simple_element(icp, etype, is, init_con);
-    *p_icp = icp->next;
+    aggr_init_simple_element(p_icp, etype, is, init_con);
   }  /* if */
   if (!is->check_validity_only) {
     check_assertion(*init_con != NULL);
@@ -4637,8 +5315,6 @@ placed on any object lifetime list (the caller must do that).
 {
   a_source_position_ptr  diag_pos = init_component_pos(icp);
   a_routine_ptr          dtor_rp = NULL;
-  a_class_symbol_supplement_ptr
-                         cssp;
 
   check_assertion(!C_mode());
   is->init_con = NULL;
@@ -4661,23 +5337,23 @@ placed on any object lifetime list (the caller must do that).
       } else {
         a_type_ptr  etype = underlying_array_element_type(dtype);
         etype = skip_typerefs(etype);
-        if (is_immediate_class_type(etype)) {
+        if (fill_in_dtor && is_immediate_class_type(etype)) {
           dtor_rp = get_init_destructor(etype, is, diag_pos);
         }  /* if */
       }  /* if */
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
-      /*FIXME*/
-      unexpected_condition_str("NYI: List-init of vector types");
+      aggr_init_vector(&icp, dtype, is, &is->init_con);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_class:
     case tk_struct:
     case tk_union:
-      cssp = symbol_for(dtype)->variant.class_struct_union.extra_info;
-      check_assertion(cssp->is_class_aggregate);
-      dtor_rp = get_init_destructor(dtype, is, diag_pos);
+      check_assertion(is_aggregate_type(dtype));
+      if (fill_in_dtor) {
+        dtor_rp = get_init_destructor(dtype, is, diag_pos);
+      }  /* if */
       aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
       break;
     default:
@@ -4735,8 +5411,6 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
   a_boolean              is_aggregate = FALSE, is_var_init;
   a_type_ptr             atype;
   a_routine_ptr          dtor_rp = NULL;
-  a_class_symbol_supplement_ptr
-                         cssp;
 
   check_assertion(curr_token == tok_lbrace ||
                   anything_cached(&dps->prescanned_initializer_cache));
@@ -4782,23 +5456,32 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
-      /*FIXME*/
-      unexpected_condition_str("NYI: List-init of vector types");
+      /* A GNU vector type. */
+      is_aggregate = TRUE;
+      aggr_init_vector(&icp, dtype, is, &is->init_con);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_class:
     case tk_struct:
     case tk_union:
-      cssp = symbol_for(dtype)->variant.class_struct_union.extra_info;
-      if (cssp->is_class_aggregate) {
-        /* A class aggregate requires aggregate initialization. */
+      if (dtype->variant.class_struct_union.is_nonreal_class) {
+        /* For nonreal classes, don't attempt to track the class structure. */
         is_aggregate = TRUE;
-        dtor_rp = get_init_destructor(dtype, is, diag_pos);
-        aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
+        aggr_init_generic_element(icp, dtype, is, &is->init_con);
       } else {
-        /* Non-aggregate class type. */
-        convert_initializer(icp, dtype, is_var_init, /*check_narrowing=*/TRUE,
-                            /*fill_in_dtor=*/TRUE, is);
+        a_class_symbol_supplement_ptr
+              cssp = symbol_for(dtype)->variant.class_struct_union.extra_info;
+        if (cssp->is_class_aggregate) {
+          /* A class aggregate requires aggregate initialization. */
+          is_aggregate = TRUE;
+          dtor_rp = get_init_destructor(dtype, is, diag_pos);
+          aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
+        } else {
+          /* Non-aggregate class type. */
+          convert_initializer(icp, dtype, is_var_init,
+                              /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
+                              is);
+        }  /* if */
       }  /* if */
       break;
     default:
@@ -4814,6 +5497,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
        dynamic initialization entry for a nonconstant aggregate to the
        caller. */
     check_assertion(is->init_con != NULL);
+    if (dtor_rp != NULL) is->has_dynamic_init_component = TRUE;
     if (is->has_dynamic_init_component && !is_error_constant(is->init_con)) {
       check_assertion(is->init_con->kind ==
                                           (a_constant_repr_kind)ck_aggregate);
@@ -4864,11 +5548,22 @@ is part of.  diag_pos is the position to be used by default for diagnostics
   a_variable_ptr  vp;
 
   check_assertion(dps != NULL && dps->sym != NULL);
-  check_assertion(dps->has_direct_initializer == direct);
   vp = var_for_symbol(dps->sym);
   check_assertion(vp != NULL);
+  if (direct) {
+    if (!list_init_enabled) {
+      /* Direct list initializers are not explicitly enabled but we may get
+         here in GNU C++ mode because GCC accepts some of these cases in
+         non-C++11 mode with a warning. */
+      check_assertion(gpp_mode);
+      direct = FALSE;
+      pos_warning(ec_list_initializer_nonstandard_in_current_mode,
+                  &pos_curr_token);
+    }  /* if */
+    vp->has_direct_braced_initializer = direct;
+    dps->init_state.direct_init = direct;
+  }  /* if */
   vp->has_direct_braced_initializer = direct;
-  dps->init_state.direct_init = direct;
   dps->init_state.initializer_must_be_constant =
                     C_mode() && (dps->init_state.static_lifetime_init ||
                                  !allow_nonconstant_auto_aggr_init_in_c_mode);
@@ -4886,6 +5581,57 @@ is part of.  diag_pos is the position to be used by default for diagnostics
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* brace_init_variable */
+
+
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+static void string_init_variable(a_decl_parse_state  *dps,
+                                 a_boolean           direct,
+                                 an_id_linkage_kind  linkage,
+                                 a_source_position   *diag_pos,
+                                 a_decl_pos_block    *decl_pos_block)
+/*
+dps, linkage,  decl_pos_block describe a variable of string type (or potential
+string type, in template-dependent contexts) that should be initialized with a
+string literal.  Check and record the initialization as appropriate.  diag_pos
+is the position to use for diagnostics by default.
+*/
+{
+  an_init_component_ptr  icp;
+  an_init_state          *is = &dps->init_state;
+  a_variable_ptr         vp;
+
+  check_assertion(!dps->has_direct_initializer);
+  check_assertion(dps != NULL && dps->sym != NULL);
+  vp = var_for_symbol(dps->sym);
+  check_assertion(vp != NULL);
+  icp = scan_full_initializer_expr_as_component();
+  check_assertion(icp->next == NULL);
+  if (!try_string_literal_init(icp, &dps->type, is, &is->init_con)) {
+    /* No valid string initializer found. */
+    if (is_error_component(icp)) {
+      expect_error();
+      is->init_error = TRUE;
+      dps->type = error_type();
+      if (!is->check_validity_only) is->init_con = alloc_error_constant();
+    } else {
+      /*FIXME?*/
+      check_assertion(!is->init_error);
+    }  /* if */
+  }  /* if */
+  if (icp != NULL) free_init_component_list(icp);
+  if (is_incomplete_array_type(vp->type) &&
+      (is_array_type(dps->type) || is_error_type(dps->type))) {
+    put_type_back_into_variable(vp, dps->sym, diag_pos, linkage, dps->type);
+    dps->type = vp->type;
+  }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    decl_pos_block->var_init_range.end = curr_construct_end_position;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* string_init_variable */
 
 
 void initializer(a_decl_parse_state  *dps,
@@ -5223,14 +5969,11 @@ returned set to TRUE.
         init_dip->destructor = select_destructor(vp_type, vp_type, source_pos);
       }  /* if */
     }  /* if */
-  } else if (first_token == tok_lbrace && list_init_enabled &&
-             /* FIXME: Exclude the GNU aggregate case for now, since it is not
-                yet implemented in the new initializer framework, but we do
-                handle it in the old framework. */
-             !(gpp_mode && gnu_version >=40400 &&
-               is_aggregate_or_union_type(dps->type)) &&
-             dps->has_direct_initializer) {
-    /* Direct list initialization (e.g., "X x{1, 2};"). */
+  } else if (first_token == tok_lbrace && dps->has_direct_initializer &&
+             (list_init_enabled || (gpp_mode && gnu_version >= 40400))) {
+    /* Direct list initialization (e.g., "X x{1, 2};").  This is a C++11
+       feature, but GCC 4.4 and later accept it with a warning in C++03
+       mode. */
     brace_init_variable(dps, /*direct=*/TRUE, linkage, source_pos,
                         decl_pos_block);
     init_err = dps->init_state.init_error;
@@ -5255,7 +5998,7 @@ returned set to TRUE.
                (gnu_mode && is_vector_type(vp_type)) ||
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
                is_template_param_type(vp_type)))) {
-    /* Either a brace enclosed list of initializers or other aggregate
+    /* Either a brace-enclosed list of initializers or other aggregate
        initialization. */
     if (first_token != tok_lbrace && is_class_struct_union_type(vp_type) &&
         (C_dialect == C_dialect_cplusplus || !static_lifetime)) {
@@ -5327,6 +6070,34 @@ returned set to TRUE.
       /* Ordinary C-style aggregate initialization, usually with a brace-
          enclosed list of values.  Except that in C++ such lists may include
          non-constants. */
+      /*FIXME: Enable the new code only for some modes right now.  We'll
+        enable it in all modes as issues are straightened out. */
+      a_boolean  enable_new_code = !gnu_mode && !microsoft_mode;
+      if (enable_new_code && first_token == tok_lbrace) {
+        /* An initializer of the form "= { ... }". */
+        brace_init_variable(dps, /*direct=*/FALSE, linkage, source_pos,
+                            decl_pos_block);
+        init_err = dps->init_state.init_error;
+        init_con = dps->init_state.init_con;
+        init_dip = dps->init_state.init_dip;
+      } else if (enable_new_code &&
+                 (is_string_type(vp_type) ||
+                  (is_array_type(vp_type) &&
+                   is_template_param_type(array_element_type(vp_type))))) {
+        /* A string variable can be initialized using a string literal (or, in
+           some modes, an expression that is considered equivalent to a simple
+           string literal). */
+        string_init_variable(dps, /*direct=*/FALSE, linkage, source_pos,
+                             decl_pos_block);
+        init_err = dps->init_state.init_error;
+        init_con = dps->init_state.init_con;
+        init_dip = dps->init_state.init_dip;
+      } else {
+        /* The remaining class and array cases are invalid.  Consume the
+           initializer (of the form "= <expr>") and report an error. */
+#if /*FIXME*/0
+        unexpected_condition();
+#else /*FIXME*/1
       if (scan_initializer_list(dps, &vp_type, vp, static_lifetime, &init_con,
                                 &init_dip, source_pos, decl_pos_block,
                                 (a_cli_array_init_scan_info_ptr)NULL)) {
@@ -5348,6 +6119,8 @@ returned set to TRUE.
              initialization. */
           *incomplete_type_error_reported = TRUE;
         }  /* if */
+      }  /* if */
+#endif /*FIXME*/
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5389,8 +6162,18 @@ returned set to TRUE.
     /* A non-aggregate object is being initialized.  Braces are permitted
        but not required.  A constant or non-constant expression may be
        permitted as the initializer. */
-    init_con = simple_initializer(dps, static_lifetime, vp_type, &init_dip,
-                                  decl_pos_block);
+    if (0 && first_token == tok_lbrace) {
+      /* FIXME: This should just go up with the aggregate case.  Currently
+         disabled until aggregate cases are fully straightened out. */
+      brace_init_variable(dps, /*direct=*/FALSE, linkage, source_pos,
+                          decl_pos_block);
+      init_err = dps->init_state.init_error;
+      init_con = dps->init_state.init_con;
+      init_dip = dps->init_state.init_dip;
+    } else {
+      init_con = simple_initializer(dps, static_lifetime, vp_type, &init_dip,
+                                    decl_pos_block);
+    }  /* if */
   }  /* if */
   /* Verify that any prescanned operand was consumed. */
   check_assertion(!anything_cached(&dps->prescanned_initializer_cache) ||

@@ -338,6 +338,14 @@ typedef struct an_init_state {
 			   an aggregate initializer.  When the initialization
 			   is not that of a variable (e.g., for a temporary or
 			   in a mem-initializer), NULL. */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  a_type_ptr	class_to_look_in;
+			/* While traversing an aggregate initializer, the class
+			   type in which field designators should be looked up.
+			   This is only really needed when dealing with
+			   nonstandard anonymous unions (whose parents cannot
+			   otherwise be identified). */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   a_bit_field	direct_init:1;
 			/* TRUE if this is for "direct" initialization as
 			   opposed to "copy" initialization.  C++ mode only. */
@@ -376,6 +384,15 @@ typedef struct an_init_state {
 			/* TRUE if a pack expansion has been handled in an
 			   aggregate initializer: Thereafter, matching
                            initializer components may not be possible. */
+  a_bit_field	chained_designator_okay:1;
+			/* TRUE just after a designator for an aggregate member
+			   has been scanned.  In that case another ("chained")
+			   designator can be accepted without the current
+			   ck_aggregate being associated with explicit
+			   braces. */
+  a_bit_field	non_top_level_aggregate:1;
+			/* TRUE while processing the components of an
+			   aggregate that is not at the top level. */
 } an_init_state;
 
 

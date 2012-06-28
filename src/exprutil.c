@@ -756,6 +756,12 @@ variant fields to default values.
       icp->variant.braced.start_pos = null_source_position;
       icp->variant.braced.end_pos = null_source_position;
       break;
+    case ick_designator:
+      icp->variant.designator.field_name = NULL;
+      icp->variant.designator.element_index = 0;
+      icp->variant.designator.last_element_index = 0;
+      icp->variant.designator.position = null_source_position;
+      break;
     default:
       unexpected_condition_str("set_init_component_kind: bad kind");
   }  /* switch */
@@ -786,6 +792,7 @@ kind to "kind" and its fields to default values, and return a pointer to it.
   }  /* if */
   icp->next = NULL;
   icp->bundled = FALSE;
+  icp->contains_designator = FALSE;
   icp->pack_expansion_descr = NULL;
   set_init_component_kind(icp, kind);
   return icp;
@@ -831,6 +838,9 @@ the whole list.  If called with NULL, do nothing.
         free_init_component_list(icp->variant.braced.list);
         icp->variant.braced.list = NULL;
         break;
+      case ick_designator:
+        icp->variant.designator.field_name = NULL;
+        break;
       default:
         unexpected_condition_str("free_init_component: bad entry kind");
     }  /* switch */
@@ -861,24 +871,54 @@ a_source_position *init_component_pos(an_init_component_ptr icp)
 Return the position of the given init component.
 */
 {
-  return icp->kind == (an_init_component_kind)ick_braced ?
-                                          &icp->variant.braced.start_pos
-                                        : &icp->variant.expr->operand.position;
+  a_source_position  *result;
+
+  switch (icp->kind) {
+    case ick_braced:
+      result = &icp->variant.braced.start_pos;
+      break;
+    case ick_expression:
+      result = &icp->variant.expr->operand.position;
+      break;
+    case ick_designator:
+      result = &icp->variant.designator.position;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
 }  /* init_component_pos */
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 
 a_source_position *init_component_end_pos(an_init_component_ptr icp)
 /*
-Return the end position of the given init component.
+Return the end position of the given init component: It can represent a braced
+list or an expression, but not a designator.
 */
 {
+  check_assertion(!is_designator_component(icp));
   return icp->kind == (an_init_component_kind)ick_braced ?
                                       &icp->variant.braced.end_pos
                                     : &icp->variant.expr->operand.end_position;
 }  /* init_component_end_pos */
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+a_boolean is_error_component(an_init_component_ptr  icp)
+/*
+If the given initialization component is an error expression, return TRUE.
+Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_expression_component(icp)) {
+    result = is_error_operand(operand_of_arg_list_elem(icp));
+  }  /* if */
+  return result;
+}  /* is_error_component */
+
 
 a_boolean is_string_literal_component(an_init_component_ptr  icp,
                                       a_constant_ptr         *p_con)
@@ -892,12 +932,17 @@ FALSE.
 
   if (is_expression_component(icp)) {
     an_operand *operand = operand_of_arg_list_elem(icp);
-    if (operand->is_simple_string_literal) {
+    if (operand_is_string_literal(operand)) {
       /* The operand is a simple string literal (e.g., it has not been
          cast). */
-      check_assertion(is_constant_operand(operand));
       result = TRUE;
       *p_con = &operand->variant.constant;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode) {
+      /* In Microsoft mode, a string literal cast to a matching character
+         pointer type is treated as a literal too. */
+      result = operand_is_cast_string_literal(operand, p_con);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   return result;
@@ -958,6 +1003,15 @@ Display an init component for debugging purposes.
       (void)fprintf(f_debug, "} (%lu,%lu)\n",
                     (unsigned long)icp->variant.braced.end_pos.seq,
                     (unsigned long)icp->variant.braced.end_pos.column);
+      break;
+    case ick_designator:
+      if (icp->variant.designator.field_name != NULL) {
+        (void)fprintf(f_debug, ".%s\n", icp->variant.designator.field_name
+                                           ->identifier);
+      } else {
+        (void)fprintf(f_debug, "[%lu]\n",
+                      icp->variant.designator.element_index);
+      }  /* if */
       break;
     default:
       (void)fprintf(f_debug, "Bad init component kind\n");

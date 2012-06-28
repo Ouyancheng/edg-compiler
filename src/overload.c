@@ -20101,6 +20101,8 @@ object lifetime context.
       for (nicp = icp->variant.braced.list; nicp != NULL; nicp = nicp->next) {
         unbundle_init_component_expressions(nicp);
       }  /* for */
+    } else if (is_designator_component(icp)) {
+      /* Nothing to be done. */
     } else {
       unexpected_condition();
     }  /* if */

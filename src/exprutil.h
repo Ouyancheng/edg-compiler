@@ -1198,6 +1198,8 @@ extern a_source_position* init_component_pos(an_init_component_ptr icp);
 a_source_position *init_component_end_pos(an_init_component_ptr icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+extern a_boolean is_error_component(an_init_component_ptr  icp);
+
 extern a_boolean is_string_literal_component(an_init_component_ptr  icp,
                                              a_constant_ptr         *p_con);
 

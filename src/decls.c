@@ -88,6 +88,9 @@ Clear the fields of *is.
   is->init_con = NULL;
   is->init_dip = NULL;
   is->decl_parse_state = NULL;
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  is->class_to_look_in = NULL;
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   is->init_error = FALSE;
   is->direct_init = FALSE;
   is->static_lifetime_init = FALSE;
@@ -98,6 +101,8 @@ Clear the fields of *is.
   is->any_uninitialized_const_or_ref_member = FALSE;
   is->partial_initializer = FALSE;
   is->pack_expansion_handled = FALSE;
+  is->chained_designator_okay = FALSE;
+  is->non_top_level_aggregate = FALSE;
 }  /* clear_init_state_fields */
 
 
@@ -12268,21 +12273,15 @@ Return a pointer to the variable that is declared.
       if (curr_token == tok_assign) {
         /* Advance past the "=". */
         (void)get_token();
-      } else if (list_init_enabled && curr_token == tok_lbrace) {
+      } else if (!C_mode() && curr_token == tok_lbrace) {
+        /* This looks like a C++11-style direct list initializer. */
         state.has_direct_initializer = TRUE;
       } else {
         (void)required_token(tok_assign, ec_exp_assign);
       }  /* if */
-      if (!list_init_enabled && curr_token == tok_lbrace) {
-        /* The syntax does not permit initialization with a brace enclosed
-           initializer list. */
-        error_position = pos_curr_token;
-        syntax_error(ec_exp_primary_expr);
-      } else {
-        initializer(&state, &locator.source_position, idl_none,
-                    /*parenthesized_initializer=*/FALSE,
-                    &incomplete_type_error_reported, &decl_pos_block);
-      }  /* if */
+      initializer(&state, &locator.source_position, idl_none,
+                  /*parenthesized_initializer=*/FALSE,
+                  &incomplete_type_error_reported, &decl_pos_block);
     }  /* if */
     /* Reset the error position to the source position of the declarator. */
     error_position = locator.source_position;
@@ -15002,23 +15001,8 @@ if one is present.
   } else if (curr_token == tok_assign) {
     has_initializer = TRUE;
     decl_pos_block->var_init_range.start = pos_curr_token;
-  } else if (list_init_enabled && curr_token == tok_lbrace) {
+  } else if (!C_mode() && curr_token == tok_lbrace) {
     has_initializer = TRUE;
-#if GNU_EXTENSIONS_ALLOWED
-  } else if (gpp_mode && gnu_version >= 40400 && curr_token == tok_lbrace &&
-             is_aggregate_or_union_type(state->type)) {
-    /* Recent versions of GCC support general C++11 list initialization.  We
-       do not yet implement that feature, but at least one standard header of
-       GCC has a simple "{}" initializer on an aggregate variable.  As a
-       temporary measure to enable parsing of that construct, we treat "T x{}"
-       as "T x = {}" when T is a class or array type. */
-    if (!cpp11_mode) {
-      pos_warning(ec_list_initializer_nonstandard_in_current_mode,
-                  &pos_curr_token);
-    }  /* if */
-    has_initializer = TRUE;
-    decl_pos_block->var_init_range.start = pos_curr_token;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if C_ANACHRONISMS_ALLOWED
   } else if (C_dialect == C_dialect_pcc && is_initializer_start()) {
     /* In pcc mode, the "=" may be omitted (K&R first edition, Appendix A,

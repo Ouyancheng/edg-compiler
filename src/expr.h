@@ -83,7 +83,9 @@ an_init_component.
 */
 enum an_init_component_kind_tag {
   ick_expression,	/* An expression. */
-  ick_braced		/* A brace-enclosed list. */
+  ick_braced,		/* A brace-enclosed list. */
+  ick_designator	/* A designator (for C99-style or GNU-style
+			   designated initializers. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_init_component_kind;
@@ -112,6 +114,9 @@ typedef struct an_init_component {
 			   they can be pulled out and restored later when the
 			   rest of the processing for the expression is
 			   done. */
+  a_bit_field	contains_designator:1;
+			/* Set to TRUE if this is an ick_braced component that
+			   directly contains an ick_designator component. */
   a_pack_expansion_descr_ptr
 		pack_expansion_descr;
 			/* If non-NULL, this entity is a pack expansion
@@ -137,6 +142,29 @@ typedef struct an_init_component {
 			/* The source positions of the opening and closing
 			   brace tokens. */
     } braced;
+    /* When kind == ick_designator: */
+    struct {
+      a_symbol_header_ptr
+		field_name;
+			/* Pointer to the symbol header for a field designator
+			   or NULL if this is an array element designator. */
+      a_targ_size_t
+		element_index;
+			/* The constant value specified in an array element
+			   designator (the first one in the case of a GNU-style
+			   array range designator), or zero if this is a field
+			   designator. */
+      a_targ_size_t
+		last_element_index;
+			/* If this component represents a GNU-style array range
+			   designator, the second constant value specified in
+			   the range.  Otherwise, zero for a field designator
+			   and the same value as element_index for an array
+			   designator. */
+      a_source_position
+		position;
+			/* The source position of the designator. */
+    } designator;
   } variant;
 } an_init_component;
 typedef an_init_component an_arg_list_elem;
@@ -154,6 +182,12 @@ Macro to identify braced initialization components.
 */
 #define is_braced_init_component(icp)                                        \
   ((icp)->kind == (an_init_component_kind)ick_braced)
+
+/*
+Macro to identify designator components.
+*/
+#define is_designator_component(icp)                                        \
+  ((icp)->kind == (an_init_component_kind)ick_designator)
 
 /*
 Return the operand address from an expression init component.
@@ -256,12 +290,17 @@ extern a_boolean do_expression_level_string_literal_concatenation(void);
 extern void set_curr_token_to_function_name_string(a_boolean do_concat);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-a_boolean set_curr_token_to_microsoft_lprefix_operator_string(void);
+extern a_boolean set_curr_token_to_microsoft_lprefix_operator_string(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern char *spelling_for_function_name_token(a_token_kind token);
 
 extern a_boolean operand_is_string_literal(an_operand_ptr operand);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean operand_is_cast_string_literal(an_operand_ptr operand,
+                                                a_constant_ptr *string_con);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void record_start_of_lambda_header(a_lambda_ptr lambda);
 
@@ -405,6 +444,10 @@ extern a_boolean whole_aggr_class_init_possible(
                                             an_init_component_ptr  icp,
                                             a_type_ptr             dest_type);
 
+extern a_boolean whole_array_init_possible(an_init_component_ptr  icp,
+                                           a_type_ptr             dest_type,
+                                           a_constant_ptr         *result);
+
 extern a_boolean scan_aggregate_initializer_expression(
                                    a_type_ptr         required_type,
                                    a_boolean          static_lifetime,
@@ -457,6 +500,8 @@ extern void conv_nontype_template_arg_to_param_type(
 extern
 an_init_component_ptr scan_braced_init_list(a_boolean          is_full_expr,
                                             a_decl_parse_state *dps);
+
+extern an_init_component_ptr scan_full_initializer_expr_as_component(void);
 
 extern
 void convert_initializer(an_init_component_ptr icp,

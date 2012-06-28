@@ -3707,7 +3707,8 @@ typedef struct a_constant {
   a_bit_field	uses_designated_initializers:1;
 			/* For a ck_aggregate constant in an initializer,
 			   TRUE if the initializer contains designated
-			   initializers. */
+			   initializers (possibly within a nested aggregate
+			   constant). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	is_literal_field:1;
 			/* TRUE if this entry represents a C++/CLI literal
@@ -4078,7 +4079,7 @@ typedef struct a_constant {
                         /* NULL if the designator indicates an array element.
                            Otherwise, the field indicated by a designator. */
       a_targ_size_t   array_element;
-                        /* Undefined if field != NULL. Otherwise the subscript
+                        /* Undefined if field != NULL.  Otherwise the subscript
                            indicated by the designator. */
     } designator;
   } variant;

@@ -26853,24 +26853,30 @@ Return TRUE if the indicated operand is an lvalue for a string literal
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean operand_is_cast_string_literal(an_operand     *operand,
-                                                a_constant_ptr *string_con)
+a_boolean operand_is_cast_string_literal(an_operand_ptr operand,
+                                         a_constant_ptr *string_con)
 /*
-Return TRUE if the indicated operand is a string literal (not wide) cast
-to pointer to char.  Also set *string_con to point to the string
-constant.  This comes up in a Microsoft quirk.
+Return TRUE if the indicated operand is a string literal cast to pointer to
+character.  Also set *string_con to point to the string constant.  This comes
+up in a Microsoft quirk.
 */
 {
   a_boolean is_cast_string_literal = FALSE;
 
   *string_con = NULL;
   if (is_an_rvalue(operand) &&
-      is_constant_operand(operand) &&
       is_pointer_type(operand->type) &&
       is_narrow_or_wide_character_type(type_pointed_to(operand->type))) {
-    if (constant_is_pointer_to_string_literal(&operand->variant.constant,
-                                              string_con)) {
-      is_cast_string_literal = TRUE;
+    if (is_constant_operand(operand)) {
+      if (constant_is_pointer_to_string_literal(&operand->variant.constant,
+                                                string_con)) {
+        is_cast_string_literal = TRUE;
+      }  /* if */
+    } else if (is_expression_operand(operand)) {
+      if (expr_is_pointer_to_string_literal(operand->variant.expression,
+                                            string_con)) {
+        is_cast_string_literal = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return is_cast_string_literal;
@@ -28651,6 +28657,232 @@ an initializer cache) for later restoration and further processing.
 }  /* scan_expr_or_braced_init_list */
 
 
+static a_boolean designator_not_lambda_next(void)
+/*
+The current token is a left bracket introducing a braced initializer element.
+It could therefore be a lambda or an array designator.  Return TRUE if it
+looks like the latter.
+*/
+{
+  a_boolean      result = FALSE;
+  a_token_cache  cache;
+
+  check_assertion(lambdas_enabled && curr_token == tok_lbracket);
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  /* Cache up to the matching right bracket. */
+  if (cache_token_stream_until_matching_token(&cache,
+                                              /*coalesce_ids=*/FALSE)) {
+    /* Put the current token (tok_rbracket) in the cache. */
+    cache_curr_token(&cache);
+    (void)get_token();
+    /* Assume a designator if the next token is a "=" or if it looks like
+       the beginning of another designator.  We don't consider GNU C-style
+       array designators (i.e., without a trailing "=") here, since g++
+       doesn't either. */
+    result = curr_token == tok_assign || curr_token == tok_lbracket ||
+             curr_token == tok_period;
+  }  /* if */
+  rescan_cached_tokens(&cache);
+  return result;
+}  /* designator_not_lambda_next */
+
+
+static a_boolean scan_array_designator_value(a_targ_size_t  *value)
+/*
+Scan a constant value specified in an array designator (for GNU-style range
+designators this could be the second specified value) and return it through
+*value.  In error cases (e.g., template dependent values, negative values, or
+overflow), FALSE is returned and *value is undefined.  Otherwise, TRUE is
+returned.
+*/
+{
+  a_constant         constant;
+  a_boolean          okay = TRUE;
+  a_source_position  pos;
+
+  pos = pos_curr_token;
+  scan_integral_constant_expression(&constant);
+  switch (constant.kind) {
+    case ck_integer:
+      if (sign_of_integer_constant(&constant) >= 0) {
+        a_boolean  overflow;
+        *value = unsigned_value_of_integer_constant(&constant, &overflow);
+        /* Check for overflow. */
+        if (overflow) {
+          pos_error(ec_subscript_out_of_range, &pos);
+          okay = FALSE;
+        }  /* if */
+      } else {
+        /* Negative subscript. */
+        pos_error(ec_subscript_out_of_range, &pos);
+        okay = FALSE;
+      }  /* if */
+      break;
+    case ck_template_param:
+      pos_error(ec_template_dependent_designator, &pos);
+      okay = FALSE;
+      break;
+    case ck_error:
+      okay = FALSE;
+      break;
+    default:
+      unexpected_condition_str(
+                            "scan_array_designator_value: bad constant kind");
+  }  /* switch */
+  return okay;
+}  /* scan_array_designator_value */
+
+
+static a_boolean scan_designators(an_init_component_ptr  braced_icp,
+                                  an_init_component_ptr  *p_last_icp)
+/*
+If the upcoming tokens form one or more designators, scan them and append
+their initializer component representation at the end of the list pointed to
+by braced_icp (which represents a braced initializer list).  *p_last_icp
+points to the last element of that list, or is NULL if the list is empty;
+update *p_last_icp to reflect the last appended component.
+Both C99-style and GNU-style designators are handled here.
+*/
+{
+  a_boolean              designator_seen = FALSE;
+  a_boolean              first_designator_seen = FALSE;
+  a_boolean              std_designator_seen = FALSE;
+  a_boolean              gnu_field_designator_seen = FALSE;
+  an_init_component_ptr  designator;
+
+  add_stop_token(tok_assign);
+  for (;;) {
+    designator = NULL;
+    if (curr_token == tok_period &&
+        (first_designator_seen || next_token() == tok_identifier)) {
+      /* A C99-style field designator.  Note that if we're just starting to
+         parse a chain of designators, a "." not followed by an identifier is
+         not assumed to be a malformed designator (e.g., it could just as
+         likely be a malformed member selection), but if it immediately
+         follows a designator, then we do proceed with the assumption that the
+         source was meant to be a designator). */
+      /* Skip the period. */
+      (void)get_token();
+      add_stop_token(tok_lbracket);
+      add_stop_token(tok_period);
+      (void)required_token_no_advance(tok_identifier, ec_exp_identifier);
+      remove_stop_token(tok_period);
+      remove_stop_token(tok_lbracket);
+      if (curr_token == tok_identifier) {
+        designator = alloc_init_component
+                                     ((an_init_component_kind)ick_designator);
+        designator->variant.designator.position = pos_curr_token;
+        designator->variant.designator.field_name =
+                                            locator_for_curr_id.symbol_header;
+        /* Skip the identifier. */
+        (void)get_token();
+        if (gcc_mode && gnu_version < 40000 &&
+            curr_token != tok_assign && curr_token != tok_period) {
+          /* Early versions of GCC treated ".x 20" like "x: 20". */
+          gnu_field_designator_seen = TRUE;
+        } else {
+          std_designator_seen = TRUE;
+        }  /* if */
+      }  /* if */
+    } else if (curr_token == tok_lbracket &&
+               (!lambdas_enabled || designator_not_lambda_next())) {
+      /* An array element designator. */
+      a_source_position  start_pos, pos;
+      a_targ_size_t      index, last_index;
+      a_boolean          okay = TRUE;
+      start_pos = pos_curr_token;
+      /* Skip the left bracket. */
+      (void)get_token();
+      add_stop_token(tok_rbracket);
+      add_stop_token(tok_ellipsis);
+      okay &= scan_array_designator_value(&index);
+      if (extended_designators_allowed && curr_token == tok_ellipsis) {
+        /* A GNU-style array range designator.  Skip the ellipsis and scan
+           the end-of-range index. */
+        (void)get_token();
+        pos = pos_curr_token;
+        okay &= scan_array_designator_value(&last_index);
+        if (okay && last_index < index) {
+          pos_error(ec_no_negative_designator_range, &pos);
+          okay = FALSE;
+        }  /* if */
+      } else {
+        /* No range: Set the "last index" to equal the first. */
+        last_index = index;
+      }  /* if */
+      remove_stop_token(tok_ellipsis);
+      (void)required_token(tok_rbracket, ec_exp_rbracket);
+      remove_stop_token(tok_rbracket);
+      if (okay) {
+        designator = alloc_init_component
+                                     ((an_init_component_kind)ick_designator);
+        designator->variant.designator.position = start_pos;
+        designator->variant.designator.element_index = index;
+        designator->variant.designator.last_element_index = last_index;
+      }  /* if */
+      if (curr_token == tok_assign || !extended_designators_allowed) {
+        std_designator_seen = TRUE;
+      }  /* if */
+    } else if (extended_designators_allowed && !std_designator_seen &&
+               !gnu_field_designator_seen &&
+               curr_token == tok_identifier && next_token() == tok_colon) {
+      /* A GNU-style field designator.  Only one is allowed in a chain of
+         designators. */
+      gnu_field_designator_seen = TRUE;
+      designator = alloc_init_component
+                                     ((an_init_component_kind)ick_designator);
+      designator->variant.designator.position = pos_curr_token;
+      check_assertion(curr_token == tok_identifier);
+      designator->variant.designator.field_name =
+                                            locator_for_curr_id.symbol_header;
+      /* Skip the identifier. */
+      (void)get_token();
+      /* Skip the colon. */
+      (void)get_token();
+    } else {
+      /* What's next is not a designator. */
+      break;
+    }  /* if */
+    if (designator != NULL) {
+      designator_seen = TRUE;
+      /* Append the designator that was just scanned. */
+      if (*p_last_icp == NULL) {
+        braced_icp->variant.braced.list = designator;
+      } else {
+        (*p_last_icp)->next = designator;
+      }  /* if */
+      *p_last_icp = designator;
+      braced_icp->contains_designator = TRUE;
+      if (first_designator_seen) {
+        /* This was not the first designator in a "chain".  GNU-style
+           designators cannot be "chained"; i.e., something like { [1][2] 3 }
+           is not valid, but the C99 syntax { [1][2] = 3 } can be valid.  So
+           this must be a standard designator. */
+        std_designator_seen = TRUE;
+      } else {
+        first_designator_seen = TRUE;
+      }  /* if */
+      if (designator->variant.designator.field_name != NULL &&
+          !std_designator_seen) {
+        /* A GNU-style field designator of the form "id:" cannot be chained
+           with additional designators. */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (std_designator_seen) {
+    /* A "=" should be next.  If not, issue an ordinary error rather than a
+       syntax error since it makes for better error recovery. */
+    if (curr_token != tok_assign) {
+      pos_error(ec_exp_assign, &pos_curr_token);
+    } else {
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+  remove_stop_token(tok_assign);
+  return designator_seen;
+}  /* scan_designators */
+
+                
 static an_init_component_ptr scan_braced_init_list_internal(a_boolean bundle)
 /*
 Scan a brace-enclosed initializer list and return a structure
@@ -28677,13 +28909,17 @@ stack already set.
   if (curr_token != tok_rbrace) {
     /* Loop to scan a list of expressions or brace-enclosed lists. */
     an_init_component_ptr elem_icp, end_icp = NULL;
+    a_boolean             elem_seen = FALSE;
     do {
       a_pack_expansion_stack_entry_ptr pesep;
       a_boolean                        any_more;
-      if (end_icp != NULL && curr_token == tok_rbrace) {
+      if (elem_seen && curr_token == tok_rbrace) {
         /* The syntax allows an extra comma at the end of the list.
            The end_icp test disallows that on the first iteration. */
         break;
+      }  /* if */
+      if (designators_allowed && scan_designators(icp, &end_icp)) {
+        elem_seen = FALSE;
       }  /* if */
       /* An element of the list might be a pack expansion in some modes
          and contexts. */
@@ -28692,6 +28928,7 @@ stack already set.
         a_pack_expansion_descr_ptr pedep;
         elem_icp = scan_expr_or_braced_init_list(bundle,
                                                  /*always_allow_braced=*/TRUE);
+        elem_seen = TRUE;
         /* Add the entry to the end of the list. */
         if (end_icp == NULL) {
           icp->variant.braced.list = elem_icp;
@@ -28921,6 +29158,28 @@ initializer cache) for later restoration and further processing.
   }  /* if */
   return icp;
 }  /* scan_init_component_with_potential_pack_expansion */
+
+
+an_init_component_ptr scan_full_initializer_expr_as_component(void)
+/*
+Scan an initializer that is a non-braced-enclosed expression and return it as
+an initializer component.
+*/
+{
+  an_expr_stack_entry   *saved_expr_stack;
+  an_expr_stack_entry   expr_stack_entry;
+  an_init_component_ptr icp;
+
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
+  icp = scan_expr_as_init_component(/*bundle_lifetimes=*/TRUE);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return icp;
+}  /*  */
 
 
 void convert_initializer(an_init_component_ptr icp,
@@ -34307,6 +34566,33 @@ element of aggregate class type dest_type (as a whole; not just a field of it).
   }  /* if */
   return result;
 }  /* whole_aggr_class_init_possible */
+
+
+a_boolean whole_array_init_possible(an_init_component_ptr  icp,
+                                    a_type_ptr             dest_type,
+                                    a_constant_ptr         *result)
+/*
+Return TRUE if the initializer component icp can initialize a field or array
+element of array type dest_type (as a whole; not just an element of it), and
+if so allocate an initializer constant and result it through *result.
+Currently, this can only happen in GNU C mode with compound literals.
+*/
+{
+  a_boolean  possible = FALSE;
+
+  check_assertion(is_expression_component(icp) &&
+                  dest_type->kind == (a_type_kind)tk_array);
+  if (gcc_mode) {
+    an_operand_ptr  operand = operand_of_arg_list_elem(icp);
+    if (is_an_rvalue(operand) && is_constant_operand(operand) &&
+        types_are_compatible_ignoring_qualifiers(operand->type, dest_type)) {
+      possible = TRUE;
+      *result = alloc_constant((a_constant_repr_kind)ck_error);
+      copy_constant(&operand->variant.constant, *result);
+    }  /* if */
+  }  /* if */
+  return possible;
+}  /* whole_array_init_possible */
 
 
 static void push_expr_stack_for_aggregate_initializer(
