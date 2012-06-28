@@ -28788,27 +28788,27 @@ Both C99-style and GNU-style designators are handled here.
                (!lambdas_enabled || designator_not_lambda_next())) {
       /* An array element designator. */
       a_source_position  start_pos, pos;
-      a_targ_size_t      index, last_index;
+      a_targ_size_t      idx, last_idx;
       a_boolean          okay = TRUE;
       start_pos = pos_curr_token;
       /* Skip the left bracket. */
       (void)get_token();
       add_stop_token(tok_rbracket);
       add_stop_token(tok_ellipsis);
-      okay &= scan_array_designator_value(&index);
+      okay &= scan_array_designator_value(&idx);
       if (extended_designators_allowed && curr_token == tok_ellipsis) {
         /* A GNU-style array range designator.  Skip the ellipsis and scan
            the end-of-range index. */
         (void)get_token();
         pos = pos_curr_token;
-        okay &= scan_array_designator_value(&last_index);
-        if (okay && last_index < index) {
+        okay &= scan_array_designator_value(&last_idx);
+        if (okay && last_idx < idx) {
           pos_error(ec_no_negative_designator_range, &pos);
           okay = FALSE;
         }  /* if */
       } else {
         /* No range: Set the "last index" to equal the first. */
-        last_index = index;
+        last_idx = idx;
       }  /* if */
       remove_stop_token(tok_ellipsis);
       (void)required_token(tok_rbracket, ec_exp_rbracket);
@@ -28817,8 +28817,8 @@ Both C99-style and GNU-style designators are handled here.
         designator = alloc_init_component
                                      ((an_init_component_kind)ick_designator);
         designator->variant.designator.position = start_pos;
-        designator->variant.designator.element_index = index;
-        designator->variant.designator.last_element_index = last_index;
+        designator->variant.designator.element_index = idx;
+        designator->variant.designator.last_element_index = last_idx;
       }  /* if */
       if (curr_token == tok_assign || !extended_designators_allowed) {
         std_designator_seen = TRUE;
