@@ -725,8 +725,9 @@ expression is permitted.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (type_name_next(gid_options)) {
       /* Identifier that is a type name (a typedef name or, in C++,
-         the name of a class, struct, or union). */
-      is_start = TRUE;
+         the name of a class, struct, or union).  A type name cannot be
+         followed by an opening brace of an initializer list. */
+      is_start = !(list_init_enabled && next_token() == tok_lbrace);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_microsoft_w64) {
       is_start = TRUE;
@@ -802,11 +803,13 @@ of declarations that are permitted.
     is_start = TRUE;
 #endif /* SUN_EXTENSIONS_ALLOWED */
   } else if (curr_token == tok_identifier &&
+             !(list_init_enabled && next_token() == tok_lbrace) &&
              !is_error_locator(locator_for_curr_id)) {
     /* A special check to produce better error recovery in certain cases.
        If the lexical sequence suggests that this is a declaration even
        though the current identifier is not defined (and therefore not
-       recognized as a type name), call it a declaration anyway. */
+       recognized as a type name), call it a declaration anyway.  A type
+       name cannot be followed by an opening brace of an initializer list. */
     if ((options & IDS_REAL_DECLARATOR_ALLOWED) == 0) {
       /* With a sizeof or cast operation, real_declarator_allowed will come
          in as FALSE.  There's no point in looking ahead in such cases:
