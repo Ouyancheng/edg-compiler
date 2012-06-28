@@ -4390,7 +4390,7 @@ that the final call needs to be cast to the indicated type.
         end_arg_list = expr_arg;
       } /* if */
       /* Convert the prescanned arguments to the type expected by the
-         function (if needed) and built the argument list in expression
+         function (if needed) and build the argument list in expression
          form.  In the template-dependent case, build the argument list
          but don't convert the arguments. */
       if (!template_case) {
