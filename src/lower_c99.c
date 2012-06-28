@@ -3592,7 +3592,6 @@ in C99 mode to represent a compound literal.
   a_type_ptr         temp_type = expr->type;
   an_insert_location insert_location;
   an_init_pos_descr  ipd;
-  a_boolean          keep_dynamic_init;
   a_boolean          variably_modified = (vla_enabled &&
                                         is_variably_modified_type(temp_type));
 #if LOWER_VARIABLE_LENGTH_ARRAYS
@@ -3642,7 +3641,7 @@ in C99 mode to represent a compound literal.
                      LDIO_NONE,
                      /*others_follow_in_aggr=*/FALSE,
                      &insert_location,
-                     &keep_dynamic_init,
+                     (a_boolean *)NULL,
                      (a_constant **)NULL);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   /* After lowering, the type will no longer be variably modified. */
@@ -3658,9 +3657,6 @@ in C99 mode to represent a compound literal.
     add_to_end_of_temp_init_statements_list(stmk_vla_decl_stmt);
   }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-  if (keep_dynamic_init) {
-    add_stmk_init_for_temp_init(var, dip);
-  }  /* if */
   if (var->init_kind == (an_init_kind)initk_zero &&
       !has_static_storage_duration(var->storage_class)) {
     /* If an automatic temporary ends up with initk_zero initialization,

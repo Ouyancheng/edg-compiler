@@ -7532,6 +7532,8 @@ C99 mode for the same reason.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   a_constructor_init_ptr
                      ctor_init = NULL;
+  a_dynamic_init_kind
+                     orig_dip_kind = dip->kind;
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -8290,6 +8292,14 @@ do_assignment:;
   code_pos_for_lowering = saved_code_pos;
   if (keep_dynamic_init != NULL) {
     *keep_dynamic_init = local_keep_dynamic_init;
+  } else if (local_keep_dynamic_init &&
+             (orig_dip_kind == (a_dynamic_init_kind)dik_nonconstant_aggregate||
+              orig_dip_kind == (a_dynamic_init_kind)dik_constant) &&
+             variable != NULL) {
+    /* The variable doesn't currently have an stmk_init statement, but
+       needs one because some portion of the initialization is being kept;
+       add an stmk_init to initialize the variable. */
+    add_stmk_init_for_temp_init(variable, dip);
   } else {
     check_assertion_str(!local_keep_dynamic_init,
    "lower_dynamic_init: keep_dynamic_init param NULL and want to return TRUE");
@@ -9679,8 +9689,6 @@ Do IL lowering of an enk_temp_init expression node.
   an_insert_location insert_location;
   a_boolean          is_constructor_init;
   a_variable_ptr     temp_var;
-  a_boolean          keep_dynamic_init = FALSE;
-  a_boolean          *eff_keep_dynamic_init = NULL;
 
   dip = expr->variant.init.dynamic_init;
   if (dip->kind == (a_dynamic_init_kind)dik_expression &&
@@ -9736,14 +9744,6 @@ Do IL lowering of an enk_temp_init expression node.
                                            (a_scope_ptr)NULL,
                                            (a_boolean)dip->static_temp,
                                            /*promote_if_necessary=*/TRUE);
-        /* With a unique temporary, there is the possibility of keeping
-           some part of the initialization on the variable. */
-        eff_keep_dynamic_init = &keep_dynamic_init;
-      }  /* if */
-      if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-        /* Lowering of a non-constant aggregate may result in a constant
-           aggregate that is kept as an initial value for the temporary. */
-        eff_keep_dynamic_init = &keep_dynamic_init;
       }  /* if */
     }  /* if */
     if (temp_var == NULL) {
@@ -9790,7 +9790,8 @@ Do IL lowering of an enk_temp_init expression node.
                        (a_variable_ptr)NULL,
                        LDIO_NONE,
                        /*others_follow_in_aggr=*/FALSE,
-                       &insert_location, eff_keep_dynamic_init,
+                       &insert_location,
+                       (a_boolean *)NULL,
                        (a_constant **)NULL);
     if (temp_var != NULL) {
 #if LOWER_VARIABLE_LENGTH_ARRAYS
@@ -9807,11 +9808,6 @@ Do IL lowering of an enk_temp_init expression node.
         add_to_end_of_temp_init_statements_list(stmk_vla_decl_stmt);
       }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-      if (keep_dynamic_init) {
-        /* Record any dynamic initialization that might have been created
-           while lowering a compound literal or dik_nonconstant_aggregate. */
-        add_stmk_init_for_temp_init(temp_var, dip);
-      }  /* if */
       if (temp_var->init_kind == (an_init_kind)initk_zero) {
         if (!has_static_storage_duration(temp_var->storage_class)) {
           /* If an automatic temporary ends up with initk_zero initialization,

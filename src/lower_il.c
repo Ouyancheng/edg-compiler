@@ -16441,6 +16441,8 @@ Lower an stmk_return statement.
            the value of the temporary. */
         temp_var = make_local_temporary(skip_typerefs(return_type));
         set_var_init_pos_descr(temp_var, &ipd);
+        check_assertion(dip->variable == NULL);
+        dip->variable = temp_var;
       }  /* if */
       /* Put the return statement under a block so we can insert in
          front of it. */
