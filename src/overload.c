@@ -4721,8 +4721,7 @@ the point of call.  conv_context describes the context of the conversion.
           /* The parameter was a parameter pack, but it generated no
              parameters in spite of the fact that there is an argument, so
              there must have been an error. */
-          if (expr_error_should_be_issued()) expect_error();
-          arg_match->match_level = aml_error;
+          goto reject_function;
         } else {
           unexpected_condition_str(
                            "determine_function_viability: ran off param list");
