@@ -95,6 +95,8 @@ static a_boolean call_to_ctor_or_dtor_has_no_effect(
                                          an_expr_node_ptr args,
                                          a_boolean        call_can_be_virtual);
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
+static void add_stmk_init_for_temp_init(a_variable_ptr      var,
+                                        a_dynamic_init_ptr  dip);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -10235,8 +10237,8 @@ Caller must be aware that the statement kind may change (into an stmk_block).
 }  /* insert_temp_init_statements */
 
 
-void add_stmk_init_for_temp_init(a_variable_ptr      var,
-                                 a_dynamic_init_ptr  dip)
+static void add_stmk_init_for_temp_init(a_variable_ptr      var,
+                                        a_dynamic_init_ptr  dip)
 /*
 var represents a temporary variable created to hold the value of a compound
 literal or array, while dip describes the required dynamic initialization.
