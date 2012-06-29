@@ -28950,11 +28950,13 @@ stack already set.
         any_more = advance_to_next_pack_element(pesep);
       }  /* while */
       /* A comma or a closing brace should be next.  If not, we recover
-         assuming a closing brace is missing by default.  However, if the
-         next token looks like the beginning of an expression, treat this
-         as a missing comma. */
+         assuming a closing brace is missing by default.  However, if the next
+         tokens look like the beginning of another initializer component,
+         treat this as a missing comma. */
       if (curr_token != tok_comma && curr_token != tok_rbrace &&
-          is_expr_start_token(curr_token)) {
+          (is_expr_start_token(curr_token) || curr_token == tok_period ||
+           (curr_token == tok_lbrace && next_token() != tok_semicolon &&
+            next_token() != tok_comma))) {
         add_stop_token(tok_comma);
         (void)required_token_no_advance(tok_comma, ec_exp_comma);
         remove_stop_token(tok_comma);

@@ -4499,8 +4499,11 @@ available.
       expect_error();
     }  /* if */
   } else {
-    /* The designator was invalid.  Skip any chained designators. */
-    icp = skip_designators(icp);
+    /* The designator was invalid.  Subsequent initializer components are
+       likely not going to match up with the destination type.  So for error
+       recovery purposes, skip remaining initializer components. */
+    icp = NULL;
+    is->init_error = TRUE;
   }  /* if */
   *p_icp = icp;
 }  /* aggr_init_array_designator */
@@ -5038,8 +5041,11 @@ specific position is available.
       }  /* if */
     }  /* if */
   } else {
-    /* The designator was invalid.  Skip any chained designators. */
-    icp = skip_designators(icp);
+    /* The designator was invalid.  Subsequent initializer components are
+       likely not going to match up with the destination type.  So for error
+       recovery purposes, skip remaining initializer components. */
+    icp = NULL;
+    is->init_error = TRUE;
   }  /* if */
   *p_icp = icp;
 }  /* aggr_init_field_designator */
@@ -5577,7 +5583,15 @@ is part of.  diag_pos is the position to be used by default for diagnostics
     vp->is_partially_initialized = TRUE;
   }  /* if */
   if (is_incomplete_array_type(vp->type) && is_array_type(dps->type)) {
-    put_type_back_into_variable(vp, dps->sym, diag_pos, linkage, dps->type);
+    /* An array declarator of the form "X[]" followed by a braced initializer:
+       Dimension it according to the initializer. */
+    a_type_ptr  dim_type = dps->type;
+    if (dps->init_state.init_error && is_incomplete_array_type(dim_type)) {
+      /* An error occurred while processing the initializer and no dimension
+         could be deduced for the array.  Proceed with an error type. */
+      dim_type = error_type();
+    }  /* if */
+    put_type_back_into_variable(vp, dps->sym, diag_pos, linkage, dim_type);
     dps->type = vp->type;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
