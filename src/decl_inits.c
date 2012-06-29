@@ -5609,14 +5609,15 @@ is the position to use for diagnostics by default.
   if (!try_string_literal_init(icp, &dps->type, is, &is->init_con)) {
     /* No valid string initializer found. */
     if (is_error_component(icp)) {
+      /* A diagnostic should have been issued already. */
       expect_error();
-      is->init_error = TRUE;
-      dps->type = error_type();
-      if (!is->check_validity_only) is->init_con = alloc_error_constant();
     } else {
-      /*FIXME?*/
-      check_assertion(!is->init_error);
+      /* Presumably the initializer wasn't a string. */
+      pos_error(ec_missing_initializer_list, init_component_pos(icp));
     }  /* if */
+    is->init_error = TRUE;
+    dps->type = error_type();
+    if (!is->check_validity_only) is->init_con = alloc_error_constant();
   }  /* if */
   if (icp != NULL) free_init_component_list(icp);
   if (is_incomplete_array_type(vp->type) &&
