@@ -28949,6 +28949,16 @@ stack already set.
         }  /* if */
         any_more = advance_to_next_pack_element(pesep);
       }  /* while */
+      /* A comma or a closing brace should be next.  If not, we recover
+         assuming a closing brace is missing by default.  However, if the
+         next token looks like the beginning of an expression, treat this
+         as a missing comma. */
+      if (curr_token != tok_comma && curr_token != tok_rbrace &&
+          is_expr_start_token(curr_token)) {
+        add_stop_token(tok_comma);
+        (void)required_token_no_advance(tok_comma, ec_exp_comma);
+        remove_stop_token(tok_comma);
+      }  /* if */
     } while (loop_token(tok_comma));
   }  /* if */
   /* Check for and advance past the closing "}". */
