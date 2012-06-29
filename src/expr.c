@@ -28776,8 +28776,14 @@ Both C99-style and GNU-style designators are handled here.
                                             locator_for_curr_id.symbol_header;
         /* Skip the identifier. */
         (void)get_token();
-        if (gcc_mode && gnu_version < 40000 &&
-            curr_token != tok_assign && curr_token != tok_period) {
+        if (extended_designators_allowed && curr_token == tok_colon) {
+          /* Something like ".f:" -- i.e., a mix of GNU-style and C99-style
+             designators. */
+          pos_error(ec_no_ordinary_and_extended_designators, &pos_curr_token);
+          (void)get_token();
+          gnu_field_designator_seen = TRUE;
+        } else if (gcc_mode && gnu_version < 40000 &&
+                   curr_token != tok_assign && curr_token != tok_period) {
           /* Early versions of GCC treated ".x 20" like "x: 20". */
           gnu_field_designator_seen = TRUE;
         } else {
