@@ -3909,8 +3909,17 @@ The presence of a nonconstant initializer component is reflected in *is.
   a_boolean              braced = is_braced_init_component(icp);
 
 remove_any_extraneous_braces:
-  if (braced && !is_class_struct_union_type(dest_type)) {
-    if (icp->variant.braced.list == NULL) {
+  if (braced) {
+    if (is_class_struct_union_type(dest_type)) {
+      /* If we get here with a class type, it must be a non-aggregate.  Braced
+         initializers for non-aggregates are only permitted when list
+         initialization is enabled. */
+      check_assertion(!is_aggregate_type(dest_type));
+      if (!list_init_enabled) {
+        pos_ty_error(ec_brace_initialization_not_allowed,
+                     init_component_pos(icp), dest_type);
+      }  /* if */
+    } else if (icp->variant.braced.list == NULL) {
       /* Empty braces: Pass the braces to convert_initializer below (which
          results in "value initialization"). */
       if (C_mode() && !gcc_mode) {
