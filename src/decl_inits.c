@@ -5020,6 +5020,12 @@ specific position is available.
       if (is_designator_component(icp)) {
         /* A chained designator follows (e.g., ".x.y =" or ".x[n] ="). */
         a_constant_ptr  next_con;
+        if (((*field)->next == NULL ||
+             class_type->kind == (a_type_kind)tk_union) &&
+            is_incomplete_array_type((*field)->type)) {
+          /* A flexible array member. */
+          check_flexible_array_init(icp, *field, is);
+        }  /* if */
         aggr_init_chained_designator(&icp, (*field)->type, is, &next_con);
         *field = (*field)->next;
         if (next_con == NULL) {
