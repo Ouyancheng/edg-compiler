@@ -8205,13 +8205,22 @@ fixed_point_suffix:
      digit is any decimal digit (0-9).
      nondigit is an alphabetic or "_".
   */
-  /* Do this only in strict ANSI or GNU modes, or in other modes when
-     scanning preprocessing tokens (except when that is the result of
-     producing preprocessing output -- let the emulation mode govern the
-     choice in that case, so that the results are the same when compiling
-     and in preprocessing output), but never in pcc mode. */
+  /* The decision for whether to scan for a pp-number is complex.  We never
+     do so in pcc mode, but we always do so in strict and GNU modes.  In
+     other modes, we generally do so only when pp-tokens are explicitly
+     requested, i.e., when fetch_pp_tokens is TRUE, for example, when
+     handling preprocessor directives and expanding macros.  Unfortunately,
+     however, that flag is always TRUE when producing preprocessing output,
+     regardless of the context, so we check explicitly for those cases when
+     generate_pp_output is TRUE.  Further complicating the situation is the
+     fact that the Microsoft compiler behaves differently when compiling
+     and when producing preprocessing output, scanning for pp-numbers in
+     the latter case but not the former, so in Microsoft mode we always
+     scan for pp-numbers when fetch_pp_tokens is TRUE, regardless of the
+     value of generate_pp_output. */
   if ((strict_ansi_mode || gnu_mode ||
-       (fetch_pp_tokens && !generate_pp_output)) &&
+       (fetch_pp_tokens && (!generate_pp_output || microsoft_mode ||
+                            in_preprocessing_directive || macro_depth > 0))) &&
       C_dialect != C_dialect_pcc) {
     while (is_id_char[(ch = *curr_char_loc)-CHAR_MIN] || ch == '.' ||
            ((ch == '+' || ch == '-') &&
