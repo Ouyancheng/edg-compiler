@@ -6027,6 +6027,7 @@ Scan and process a #define directive.
   a_source_position
                   start_pos;
   a_boolean       need_end_of_token_marker;
+  a_token_kind    prev_token = tok_error;
   static char     str_end_of_token_marker[LE_ESCAPE_LEN] =
                                                 { LE_ESCAPE, LE_END_OF_TOKEN };
 #if RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
@@ -6329,10 +6330,14 @@ Scan and process a #define directive.
             put_start_of_non_text_section(rt_paste, 0);
             if (param_num != 0) {
               /* The token following "##" is a parameter. */
-              if (microsoft_mode && microsoft_version >= 1400 && variadic &&
-                  param_num == n_params) {
+              if (microsoft_mode && 
+                  (prev_token != tok_identifier ||
+                   (microsoft_version >= 1400 && variadic &&
+                    param_num == n_params))) {
                 /* The Microsoft compiler expands variadic arguments before
-                   substitution, even after "##". */
+                   substitution, even after "##".  It also expands a normal
+                   argument if the token before "##" is not an
+                   identifier. */
                 put_start_of_non_text_section(rt_argument, param_num);
                 param_ptr->need_expanded_form = TRUE;
               } else {
@@ -6500,6 +6505,7 @@ Scan and process a #define directive.
                                 &any_white_space_skipped);
         }  /* if */
       }  /* if */
+      prev_token = curr_token;
     }  /* while */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_of_replacement = pos_curr_token;

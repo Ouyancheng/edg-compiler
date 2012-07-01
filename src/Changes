@@ -1,5 +1,24 @@
 Version 4.5
 
+6/29/12  [EDGcpfe/13024]
+Microsoft compatibility: macro expansion of arguments in paste operations
+
+According to the C and C++ Standards, if a macro parameter follows a ##
+(paste) operator, the tokens of the corresponding macro argument are copied
+verbatim into the expansion rather than first being macro-expanded, as
+macro arguments usually are.  The Microsoft preprocessor follows this rule
+only if the token preceding the ## in the macro definition is an
+identifier; otherwise, the argument is macro-expanded before substitution.
+The front end has now been changed to do the same in Microsoft mode.  For
+example:
+
+  #define A b
+  #define M1(z) 0x ## z
+  int i = M1(A);   // argument is expanded, giving 0xb
+  #define M2(z) q ## z
+  int M2(A);       // argument is not expanded, giving qA
+
+
 6/27/12  [EDGcpfe/13021]
 GNU compatibility: objectless references to non-static data members
 
