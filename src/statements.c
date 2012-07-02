@@ -6110,11 +6110,9 @@ called to scan the second constant in a GNU C case range.
       check_assertion(!did_not_fold);
       constant.expr = expr;
     }  /* if */
-    /* Allocate a copy of the case constant. */
-    constant_ptr = alloc_unshared_constant(&constant);
-    constant_ptr->source_corresp.decl_position = label_position;
+    /* Allocate the case constant in IL memory. */
+    constant_ptr = alloc_shareable_constant(&constant);
   }  /* if */
-
   return constant_ptr;
 }  /* scan_case_label_constant */
 
@@ -6133,7 +6131,7 @@ GNU also allows the "case range" form:
   a_struct_stmt_stack_entry_ptr sssep;
   a_constant_ptr                constant_ptr;
   a_constant_ptr                range_end = NULL;
-  a_source_position             case_position;
+  a_source_position             case_position, constant_position;
   a_boolean                     save_reachability =
                                                    curr_reachability.reachable;
 
@@ -6157,6 +6155,7 @@ GNU also allows the "case range" form:
   check_assertion_str(curr_token == tok_case, "case_label: expected case");
   case_position = pos_curr_token;
   (void)get_token();
+  constant_position = pos_curr_token;
   constant_ptr = scan_case_label_constant(sssep);
   if (gnu_mode && curr_token == tok_ellipsis) {
     /* This is a GNU C case range. E.g.: case 'a' ... 'z': */
@@ -6185,7 +6184,7 @@ GNU also allows the "case range" form:
 #if GNU_EXTENSIONS_ALLOWED
     scep->range_end = range_end;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    scep->position = constant_ptr->source_corresp.decl_position,
+    scep->position = constant_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     scep->end_position = curr_construct_end_position;
     scep->colon_position = pos_curr_token;

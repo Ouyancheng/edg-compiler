@@ -1,5 +1,30 @@
 Version 4.5
 
+7/2/12  [EDGcpfe/13034]
+Case label constants (IL CHANGE)
+
+Prior to the rework of the representation of switch statements (see Changes
+entry of 4/15/08), the position of case label constants was recorded in the
+a_constant entries themselves.  As a result, the constants could not be
+shared.  An unintended consequence of this was that no backing expression was
+recorded in those constants.
+The reworked representation of case labels records the position of the case
+label constant in the corresponding a_switch_case entry, but the position was
+still recorded in the constant entry itself (which was therefore still not
+shareable).  Now, the constant entry itself is treated as shareable and
+therefore no longer records the case label position.  However, the backing
+expression is now retained, which is particularly noticeable in output of the
+C++-generating back end when a case label constant expression is an enumerator
+constant in C mode.  For example:
+
+  enum { zero };
+  void f(int i) {
+    switch(i) {
+      case zero: ;  // Previously, the C++-generating back end rendered this
+    }               // as "case 0:" in C mode.  Now it renders "case zero:".
+  }
+
+
 6/29/12  [EDGcpfe/13024]
 Microsoft compatibility: macro expansion of arguments in paste operations
 
