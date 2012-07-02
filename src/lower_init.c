@@ -8934,9 +8934,11 @@ arrays with class elements.
     /* The newly allocated storage must be initialized in some way.  The
        address has to be saved in a temporary and then returned after
        being properly initialized. */
-    new_temp_var = make_lowered_temporary(make_pointer_type(ndsp->type));
+    new_temp_var = make_lowered_temporary(make_pointer_type(array_type));
     /* Assign the result of the "new" call to the temporary. */
-    vec_new_node = make_var_assignment_expr(new_temp_var, vec_new_node);
+    vec_new_node = make_var_assignment_expr(new_temp_var,
+                                            add_cast_if_necessary(vec_new_node,
+                                               make_pointer_type(array_type)));
   }  /* if */
   insert_expr(vec_new_node, &insert_location);
   if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_zero) {
@@ -8963,7 +8965,7 @@ arrays with class elements.
        by the temporary variable).  Adjust the type so that it is an array. */
     an_init_pos_descr ipd;
     set_var_indirect_init_pos_descr(new_temp_var, &ipd);
-    ipd.base_type = ndsp->type;
+    ipd.base_type = array_type;
     /* If exceptions are enabled, and if necessary, set up to free the
        storage allocated if an exception is thrown before the storage
        is initialized. */
