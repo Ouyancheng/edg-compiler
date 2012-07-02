@@ -97,6 +97,15 @@ static a_boolean call_to_ctor_or_dtor_has_no_effect(
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 static void add_stmk_init_for_temp_init(a_variable_ptr      var,
                                         a_dynamic_init_ptr  dip);
+static void set_up_freeing_of_storage_on_exception(
+                                 a_new_delete_supplement_ptr ndsp,
+                                 an_init_pos_descr_ptr       ipdp,
+                                 an_insert_location          *insert_location);
+static void turn_off_freeing_of_storage_on_exception(
+                                 a_new_delete_supplement_ptr ndsp,
+                                 an_init_pos_descr_ptr       ipdp,
+                                 an_expr_node_ptr            delete_args,
+                                 an_insert_location          *insert_location);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -8586,35 +8595,32 @@ of the array.
 
 static a_dynamic_init_ptr elem_dynamic_init(a_dynamic_init_ptr dip)
 /*
-dip points to a dynamic init entry that initializes a whole array.  Find
-the dynamic init entry that applies to each element and return a pointer to it.
+dip points to a dynamic init entry that initializes a whole array.  If all
+elements of the array are being identically initialized, return the
+dynamic init entry for an array element; otherwise return NULL.
 */
 {
   a_constant_ptr     con;
-  a_dynamic_init_ptr elem_dip;
+  a_dynamic_init_ptr elem_dip = NULL;
 
 #if CHECKING
   if (dip->kind != (a_dynamic_init_kind)dik_nonconstant_aggregate) {
     internal_error("elem_dynamic_init: not nonconst aggregate");
   }  /* if */
 #endif /* CHECKING */
-  /* The nonconstant aggregate case has ck_aggregate constant ->
+  /* If initializing all elements of the array in an identical fashion,
+     the nonconstant aggregate case has ck_aggregate constant ->
      ck_init_repeat constant -> ck_dynamic_init constant ->
-     dynamic init entry. */
+     dynamic init entry (and it's the only entry). */
   con = dip->variant.constant;
   con = con->variant.aggregate.first_constant;
-#if CHECKING
-  if (con->kind != (a_constant_repr_kind)ck_init_repeat) {
-    internal_error("elem_dynamic_init: not ck_init_repeat");
+  if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
+    con = con->variant.init_repeat.constant;
+    if (con->next == NULL &&
+        con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+      elem_dip = con->variant.dynamic_init;
+    }  /* if */
   }  /* if */
-#endif /* CHECKING */
-  con = con->variant.init_repeat.constant;
-#if CHECKING
-  if (con->kind != (a_constant_repr_kind)ck_dynamic_init) {
-    internal_error("elem_dynamic_init: not ck_dynamic_init");
-  }  /* if */
-#endif /* CHECKING */
-  elem_dip = con->variant.dynamic_init;
   return elem_dip;
 }  /* elem_dynamic_init */
 
@@ -8670,7 +8676,7 @@ arrays with class elements.
   an_expr_node_ptr            entity_node, new_node, test_node;
   an_expr_node_ptr            assign_node, num_elem_node, vec_new_node;
   a_constant                  null_constant;
-  a_variable_ptr              temp_var, zero_temp_var;
+  a_variable_ptr              temp_var, new_temp_var;
   an_expr_node_ptr            size_node;
   a_routine_ptr               ctor_routine, dtor_routine, delete_routine;
   an_insert_location          insert_location;
@@ -8678,6 +8684,7 @@ arrays with class elements.
   an_expr_node_ptr            delete_args = NULL;
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   a_boolean                   zero_storage = FALSE;
+  a_boolean                   needs_dynamic_initialization = FALSE;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
   an_expr_node_ptr            prefix_size_node = NULL;
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
@@ -8815,70 +8822,82 @@ arrays with class elements.
   if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_zero) {
     /* There is a dynamic init entry to initialize the storage after it is
        allocated.  dik_zero initialization is handled below. */
-    /* Get a pointer to the dynamic init entry that applies to the array
-       elements instead of the whole array. */
+    /* See if the array can be initialized by calling the same constructor
+       for every element in the array. */
     elem_dip = elem_dynamic_init(dip);
-    check_assertion(elem_dip->kind == (a_dynamic_init_kind)dik_constructor);
-    zero_storage = need_zeroing_for_value_initialization(elem_dip);
-    /* Get the constructor routine to call. */
-    ctor_routine = elem_dip->variant.constructor.ptr;
+    if (elem_dip != NULL) {
+      /* All elements of the array receive the same initialization treatment
+         so we can use a call to a runtime routine to initialize the
+         entire array. */
+      check_assertion(elem_dip->kind == (a_dynamic_init_kind)dik_constructor);
+      zero_storage = need_zeroing_for_value_initialization(elem_dip);
+      /* Get the constructor routine to call. */
+      ctor_routine = elem_dip->variant.constructor.ptr;
 #if IA64_ABI
-    ctor_routine = alternate_entry_point(ctor_routine,
-                                         (a_ctor_or_dtor_kind)cdk_complete,
-                                         /*define_now=*/FALSE);
-#endif /* IA64_ABI */
-    /* If the constructor has default arguments, make a routine that
-       calls the constructor with the necessary default arguments. */
-    /* Note that elem_dip->variant.constructor.args must not be lowered
-       before passing it to default_version_of_routine. */
-    ctor_routine = default_version_of_routine(
-                                          ctor_routine,
-                                          elem_dip->variant.constructor.args);
-    if (elem_dip->init_expr_lifetime != NULL) {
-      unbind_object_lifetime(elem_dip->init_expr_lifetime);
-    }  /* if */
-#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
-    /* Remove unneeded construction/destructions if possible. */
-    if (call_to_ctor_or_dtor_has_no_effect(elem_dip->variant.constructor.ptr,
-                                           elem_dip->variant.constructor.args,
-                                           /*call_can_be_virtual=*/FALSE)) {
-      /* There's no need to call this constructor (zero_storage has already
-         been set above if zero-initialization is required). */
-#if DEBUG
-      if (db_flag_is_set("remove_ctors_dtors")) {
-        (void)fprintf(f_debug, "Removing array new construction for: ");
-        db_dynamic_initializer(elem_dip, 0);
-      }  /* if */
-#endif /* DEBUG */
-      remove_constructor_with_no_effect(elem_dip);
-      ctor_routine = NULL;
-    }  /* if */
-    if (elem_dip->destructor != NULL &&
-        call_to_ctor_or_dtor_has_no_effect(elem_dip->destructor,
-                                           (an_expr_node_ptr)NULL,
-                                           /*call_can_be_virtual=*/FALSE)) {
-      /* There's no need to call this destructor; any deletions that
-         may be necessary (i.e., a throw during construction) are handled by
-         the delete routine. */
-#if DEBUG
-      if (db_flag_is_set("remove_ctors_dtors")) {
-        (void)fprintf(f_debug, "Removing array new destruction for: ");
-        db_dynamic_initializer(elem_dip, 0);
-      }  /* if */
-#endif /* DEBUG */
-      elem_dip->destructor = NULL;
-    }  /* if */
-#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
-    /* If exceptions are enabled, a destructor will be specified if
-       appropriate. */
-    dtor_routine = elem_dip->destructor;
-#if IA64_ABI
-    if (dtor_routine != NULL) {
-      dtor_routine = alternate_entry_point(dtor_routine,
+      ctor_routine = alternate_entry_point(ctor_routine,
                                            (a_ctor_or_dtor_kind)cdk_complete,
                                            /*define_now=*/FALSE);
-    }  /* if */
 #endif /* IA64_ABI */
+      /* If the constructor has default arguments, make a routine that
+         calls the constructor with the necessary default arguments. */
+      /* Note that elem_dip->variant.constructor.args must not be lowered
+         before passing it to default_version_of_routine. */
+      ctor_routine = default_version_of_routine(
+                                          ctor_routine,
+                                          elem_dip->variant.constructor.args);
+      if (elem_dip->init_expr_lifetime != NULL) {
+        unbind_object_lifetime(elem_dip->init_expr_lifetime);
+      }  /* if */
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+      /* Remove unneeded construction/destructions if possible. */
+      if (call_to_ctor_or_dtor_has_no_effect(elem_dip->variant.constructor.ptr,
+                                            elem_dip->variant.constructor.args,
+                                             /*call_can_be_virtual=*/FALSE)) {
+        /* There's no need to call this constructor (zero_storage has already
+           been set above if zero-initialization is required). */
+#if DEBUG
+        if (db_flag_is_set("remove_ctors_dtors")) {
+          (void)fprintf(f_debug, "Removing array new construction for: ");
+          db_dynamic_initializer(elem_dip, 0);
+        }  /* if */
+#endif /* DEBUG */
+        remove_constructor_with_no_effect(elem_dip);
+        ctor_routine = NULL;
+      }  /* if */
+      if (elem_dip->destructor != NULL &&
+          call_to_ctor_or_dtor_has_no_effect(elem_dip->destructor,
+                                             (an_expr_node_ptr)NULL,
+                                             /*call_can_be_virtual=*/FALSE)) {
+        /* There's no need to call this destructor; any deletions that
+           may be necessary (i.e., a throw during construction) are handled by
+           the delete routine. */
+#if DEBUG
+        if (db_flag_is_set("remove_ctors_dtors")) {
+          (void)fprintf(f_debug, "Removing array new destruction for: ");
+          db_dynamic_initializer(elem_dip, 0);
+        }  /* if */
+#endif /* DEBUG */
+        elem_dip->destructor = NULL;
+      }  /* if */
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
+      /* If exceptions are enabled, a destructor will be specified if
+         appropriate. */
+      dtor_routine = elem_dip->destructor;
+#if IA64_ABI
+      if (dtor_routine != NULL) {
+        dtor_routine = alternate_entry_point(dtor_routine,
+                                             (a_ctor_or_dtor_kind)cdk_complete,
+                                             /*define_now=*/FALSE);
+      }  /* if */
+#endif /* IA64_ABI */
+    } else {
+      /* The array needs to be initialized after it is allocated, but it
+         can't be done by a call to the runtime routine.  Indicate that
+         dynamic initialization is needed after the storage is allocated. */
+      ctor_routine = NULL;
+      dtor_routine = NULL;
+      needs_dynamic_initialization = TRUE;
+    }  /* if */
   } else {
     /* There is no dynamic init entry; the storage is not initialized after
        allocation. */
@@ -8912,13 +8931,14 @@ arrays with class elements.
                                                  zero_storage);
   }  /* if */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
-  if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_zero) {
-    /* Add a runtime routine call to zero the allocated storage.  The
+  if (needs_dynamic_initialization ||
+      (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_zero)) {
+    /* The newly allocated storage must be initialized in some way.  The
        address has to be saved in a temporary and then returned after
-       the zeroing call. */
-    zero_temp_var = make_lowered_temporary(vec_new_node->type);
+       being properly initialized. */
+    new_temp_var = make_lowered_temporary(make_pointer_type(ndsp->type));
     /* Assign the result of the "new" call to the temporary. */
-    vec_new_node = make_var_assignment_expr(zero_temp_var, vec_new_node);
+    vec_new_node = make_var_assignment_expr(new_temp_var, vec_new_node);
   }  /* if */
   insert_expr(vec_new_node, &insert_location);
   if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_zero) {
@@ -8932,13 +8952,40 @@ arrays with class elements.
     }  /* if */
     insert_call_to_zero_entity(eff_type,
                                /*have_complete_object=*/TRUE,
-                               var_rvalue_expr(zero_temp_var),
+                               var_rvalue_expr(new_temp_var),
                                eff_num_elem_node,
                                (a_targ_size_t)0,
                                &insert_location);
     /* Insert the value of the temporary as the final value of the
        expression. */
-    insert_expr(var_rvalue_expr(zero_temp_var), &insert_location);
+    insert_expr(var_rvalue_expr(new_temp_var), &insert_location);
+  } else if (needs_dynamic_initialization) {
+    /* Need dynamic initialization of the storage that has just been allocated;
+       build a description of the entity to be initialized (as pointed to
+       by the temporary variable).  Adjust the type so that it is an array. */
+    an_init_pos_descr ipd;
+    set_var_indirect_init_pos_descr(new_temp_var, &ipd);
+    ipd.base_type = ndsp->type;
+    /* If exceptions are enabled, and if necessary, set up to free the
+       storage allocated if an exception is thrown before the storage
+       is initialized. */
+    set_up_freeing_of_storage_on_exception(ndsp, &ipd, &insert_location);
+    /* Generate code for the initialization. */
+    lower_dynamic_init(dip, &ipd,
+                       (an_implied_copy_source *)NULL,
+                       (a_variable_ptr)NULL,
+                       LDIO_NONE,
+                       /*others_follow_in_aggr=*/FALSE,
+                       &insert_location,
+                       (a_boolean *)NULL,
+                       (a_constant **)NULL);
+    /* Now that the entity is initialized, turn off the freeing on
+       exception. */
+    turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
+                                             &insert_location);
+    /* Insert the value of the temporary as the final value of the
+       expression. */
+    insert_expr(var_rvalue_expr(new_temp_var), &insert_location);
   }  /* if */
   vec_new_node = insert_location.variant.expr;
   if (ndsp->placement_new) {
