@@ -8680,9 +8680,7 @@ arrays with class elements.
   an_expr_node_ptr            size_node;
   a_routine_ptr               ctor_routine, dtor_routine, delete_routine;
   an_insert_location          insert_location;
-#if ABI_CHANGES_FOR_PLACEMENT_DELETE
   an_expr_node_ptr            delete_args = NULL;
-#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   a_boolean                   zero_storage = FALSE;
   a_boolean                   needs_dynamic_initialization = FALSE;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
