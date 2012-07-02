@@ -2955,9 +2955,10 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
      can be updated on any reallocation. */
   char          *pos_in_aux_buffer, *save_curr_char_loc;
   char          *loc_following_insertion;
+  char          *inert_macro_escape;
   a_pointer_registration
                 pos_in_aux_buffer_reg, save_curr_char_loc_reg,
-                loc_following_insertion_reg;
+                loc_following_insertion_reg, inert_macro_escape_reg;
   a_pointer_registration_ptr
                 save_registered_pointers = registered_pointers;
 
@@ -2965,6 +2966,7 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
   register_pointer_variable(save_curr_char_loc,  save_curr_char_loc_reg);
   register_pointer_variable(loc_following_insertion,
                                                  loc_following_insertion_reg);
+  register_pointer_variable(inert_macro_escape,  inert_macro_escape_reg);
 
   db_enter(4, "expand_top_level_pcc_macro");
   /* The macro body is at main_slmp->inserted_text.  It's a single piece
@@ -2994,6 +2996,7 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
   check_assertion(aux_buffer_for_pcc_macros != NULL);
   pos_in_aux_buffer = aux_buffer_for_pcc_macros;
   last_token_of_expansion = tok_end_of_source;
+  inert_macro_escape = NULL;
   /* Set up check for whether a newline token is pushed onto a queue for
      rescanning. */
   newline_ungotten = FALSE;
@@ -3031,6 +3034,18 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
        we ran off the modification (an error would have been issued already
        in that case). */
     if (get_token() == tok_end_of_source || curr_token == tok_newline) break;
+    if (inert_macro_escape != NULL) {
+      /* We flagged the preceding identifier as an inert macro. */
+      if (!any_white_space_skipped &&
+          (curr_token == tok_identifier || curr_token == tok_pp_number)) {
+        /* We're adding identifier characters with no white space
+           separating them from the preceding identifier.  The
+           combination will no longer name an inert macro, so change
+           the escape from LE_INERT_MACRO to LE_END_OF_TOKEN. */
+        *inert_macro_escape = LE_END_OF_TOKEN;
+      }  /* if */
+      inert_macro_escape = NULL;
+    }  /* if */
     need_inert_macro_indication = (!pcc_preprocessing_mode &&
                                    curr_token_is_inert_macro &&
                                    !curr_token_is_temporarily_inert_macro);
@@ -3046,6 +3061,7 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
     if (need_inert_macro_indication) {
       /* Keep the inert macro indication (e.g., for Microsoft mode). */
       *pos_in_aux_buffer++ = LE_ESCAPE;
+      inert_macro_escape = pos_in_aux_buffer;
       *pos_in_aux_buffer++ = LE_INERT_MACRO;
     } else if (curr_token_is_temporarily_inert_macro) {
       /* The auxiliary buffer won't have the LE_TEMPORARILY_INERT_MACRO

@@ -1,5 +1,22 @@
 Version 4.5
 
+7/2/12  [EDGcpfe/13003]
+Microsoft compatibility: token pasting and inert macro names
+
+When expanding a macro invocation in Microsoft mode involving a token
+pasting operation ("##") in which the left operand is the name of the
+current macro (marked as "inert," i.e., not to be expanded in order to
+prevent infinite recursion) and the resulting token is the name of a
+different macro, the front end failed to expand the resulting macro
+invocation.  This is now fixed.  For example:
+
+  #define AZ i
+  #define B(x) x
+  #define A(x) B(A) ## x
+  int i = 0;
+  int j = A(Z);   // Previously expanded to AZ, now to i
+
+
 7/2/12  [EDGcpfe/13034]
 Case label constants (IL CHANGE)
 
