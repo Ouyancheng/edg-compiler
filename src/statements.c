@@ -6070,10 +6070,14 @@ called to scan the second constant in a GNU C case range.
 {
   a_constant_ptr     constant_ptr = NULL;
   a_constant         constant;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position  label_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean          did_not_fold;
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   label_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Scan the constant expression. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
