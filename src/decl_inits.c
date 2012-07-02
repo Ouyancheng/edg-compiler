@@ -4349,6 +4349,8 @@ embedded in array_con (plain zero initialization is done elsewhere if needed).
 position at which diagnostics should be issued.
 */
 {
+  a_boolean  partial_init_flag = TRUE;
+
   etype = skip_typerefs(etype);
   if (etype->kind == (a_type_kind)tk_array) {
     /* The element is a sub-array.  Create a single potentially-repeated
@@ -4372,6 +4374,7 @@ position at which diagnostics should be issued.
       /* Initialization must be represented in the IL since it is not
          trivial. */
       a_constant_ptr  remainder_con;
+      partial_init_flag = FALSE;
       is->has_dynamic_init_component = TRUE;
       remainder_con = default_nontrivial_init_constant_for_aggr_member(
                                                          etype, is, diag_pos);
@@ -4384,6 +4387,11 @@ position at which diagnostics should be issued.
                                 array_con);
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (partial_init_flag) {
+    /* The missing initializations are not explicit in the initializer.  Set
+       the partial initializer flag in the initializer state. */
+    is->partial_initializer = TRUE;
   }  /* if */
 }  /* aggr_init_array_remainder_if_needed */
 
