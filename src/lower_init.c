@@ -7800,6 +7800,17 @@ C99 mode for the same reason.
                                                CE_TRANSFER_DESTR_ENTITY_DESCR);
         }  /* if */
       }  /* if */
+    } else if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+      /* Constants need to be copied as well (they may contain nested
+         expressions). */
+      a_constant_ptr aggr_con = dip->variant.constant;
+      if (in_file_scope(aggr_con)) {
+        dip->variant.constant = copy_constant_full(
+                                               aggr_con,
+                                               (a_constant *)NULL,
+                                               CE_UNLINK_SOURCE_DESTRUCTIONS |
+                                               CE_TRANSFER_DESTR_ENTITY_DESCR);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (init_expr_lifetime != NULL) {
