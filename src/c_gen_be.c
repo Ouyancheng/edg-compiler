@@ -5654,6 +5654,7 @@ process_assignment:
 #endif /* __BSD__ */
             /* Add the length of the move. */
             { a_type_ptr operand_1_type = skip_typerefs(operand_1->type);
+              check_assertion(!operand_1_type->incomplete);
               write_tok_ch(',');
               /* No cast to size_t or the like is needed; in BSD and System V
                  the length is int, and in ANSI C the function is prototyped
