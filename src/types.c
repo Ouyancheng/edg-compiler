@@ -12985,6 +12985,8 @@ embedded somewhere within the tree) remove them and return the modified type
 to the caller.  If no modification is done return the original type.
 */
 {
+  a_boolean  type_operator_stripped = FALSE;
+
   while (type->kind == (a_type_kind)tk_typeref) {
     a_boolean  is_nonreal = FALSE;
     a_boolean  is_local;
@@ -13008,15 +13010,21 @@ to the caller.  If no modification is done return the original type.
       }  /* if */
     }  /* if */
     if (!is_local && !is_nonreal && typeref_is_type_operator(type)) {
-      if (type->variant.typeref.extra_info->expr == NULL
+      if ((type->variant.typeref.extra_info->expr == NULL ||
+           type_operator_stripped)
 #if GNU_EXTENSIONS_ALLOWED
           && !type->variant.typeref.is_typeof_with_type_operand
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                                                ) {
-        /* This is a decltype or typeof applied to a local expression (which
-           is indicated by the expr field being NULL, meaning the expression
-           is stored elsewhere for memory region reasons). */
+        /* This is a decltype or typeof applied to a local expression (which is
+           indicated by the expr field being NULL, meaning the expression is
+           stored elsewhere for memory region reasons).   If a type operator
+           has been stripped already (in a previous iteration of this loop),
+           any other type operator argument is considered "local" (since it
+           might contain an enk_param_ref node that has no meaning in the
+           current context). */
         is_local = TRUE;
+        type_operator_stripped = TRUE;
       }  /* if */
     }  /* if */
     /* Only continue processing this typedef if it is either a local typedef

@@ -1,5 +1,28 @@
 Version 4.5
 
+7/3/12  [EDGcpfe/13025]
+C++-generating back end aborts on certain decltype instantiations
+
+Previously, when TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to
+TRUE, the C++-generating back end sometimes aborted when attempting to render
+a template entity whose argument is expressed using a decltype or GNU typeof
+construct.  The abort was triggered in get_param_for_param_ref (il_to_str.c).
+For example (assuming C++11 mode):
+
+  struct X { static bool const value = true; };
+  template<typename T> auto f(T p)->decltype(p, X());
+  template<typename T> struct S { static bool const value = T::value; };
+  template<typename T>
+  void g(T p) {
+    static_assert(S<decltype(f(p))>::value, "Test!");
+      // The rendering of this specialization of template S triggered an
+      // abort.
+  }
+  int main() { g(1); }
+
+This is now fixed.
+
+
 7/3/12  [EDGcpfe/12790]
 Abort on multiple GNU type attributes
 
