@@ -317,8 +317,14 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
     }  /* if */
 #if IA64_ABI
     /* Predeclare the namespace defined by the IA-64 ABI, which contains
-       the derived classes of type_info, among other things. */
+       the derived classes of type_info, among other things.   As with
+       namespace std, the symbol is not entered in the symbol table until
+       namespace std is explicitly defined, except in GNU C++ mode. */
     make_symbol_for_namespace_abi();
+    if (gpp_mode) {
+      clear_locator(&locator_for_curr_id, &null_source_position);
+      enter_symbol_for_namespace_abi(&locator_for_curr_id);
+    }  /* if */
 #endif /* IA64_ABI */
     /* This is done even when RTTI is not enabled because the type_info
        struct may still be defined when RTTI is disabled. */

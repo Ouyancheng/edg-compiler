@@ -1,5 +1,13 @@
 Version 4.5
 
+7/3/12  [EDGcpfe/12931]
+GNU C++ compatibility: Namespace __cxxabiv1
+
+When IA64_ABI is TRUE, the front end now predeclares namespace __cxxabiv1
+(which is where IA-64 ABI linkable entities live) in GNU C++ mode.  (In other
+modes, the namespace is known to the front end, but not entered in the symbol
+table, and therefore not visible to user code until it is explicitly declared.)
+
 7/3/12  [EDGcpfe/13025]
 C++-generating back end aborts on certain decltype instantiations
 
