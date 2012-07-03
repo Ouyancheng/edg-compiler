@@ -2993,14 +2993,24 @@ a_type_ptr make_typeref_with_attributes(a_type_ptr        tp,
                                         an_attribute_ptr  attributes)
 /*
 Return a new tk_typeref entry with the given attributes and whose underlying
-type is tp.
+type is tp, except if tp is already such a typeref (in that case, just append
+the given attributes to it).
 */
 {
-  a_type_ptr  result = alloc_type((a_type_kind)tk_typeref);
+  a_type_ptr  result;
 
-  result->variant.typeref.type = tp;
-  result->variant.typeref.for_type_attributes = TRUE;
-  result->source_corresp.attributes = attributes;
+  if (tp->kind == (a_type_kind)tk_typeref &&
+      tp->variant.typeref.for_type_attributes) {
+    /* Reuse the existing "for attributes" typeref entry. */
+    result = tp;
+    *last_attribute_link(&tp->source_corresp.attributes) = attributes;
+  } else {
+    /* Create a new "for attributes" typeref entry. */
+    result = alloc_type((a_type_kind)tk_typeref);
+    result->variant.typeref.type = tp;
+    result->variant.typeref.for_type_attributes = TRUE;
+    result->source_corresp.attributes = attributes;
+  }  /* if */
   return result;
 }  /* make_typeref_with_attributes */
 

@@ -1,5 +1,20 @@
 Version 4.5
 
+7/3/12  [EDGcpfe/12790]
+Abort on multiple GNU type attributes
+
+GNU type attributes are attributes that modify a type.  In some cases, when
+multiple type attributes were specified on the same type, the front end could
+abort in output_type_attributes (il_to_str.c).  For example:
+
+  #define MA __attribute((may_alias))  // A GNU type attribute.
+  void g(void MA MA *p);
+  int i = g(0);
+
+In this example, the C++-generating back end aborted when attempting to render
+the declaration of g.  This is now fixed.
+
+
 7/2/12  [EDGcpfe/13003]
 Microsoft compatibility: token pasting and inert macro names
 
