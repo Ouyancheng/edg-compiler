@@ -1143,15 +1143,15 @@ caution when modifying this routine.
     error(ec_exp_identifier);
     tag_err = TRUE;
   }  /* if */
-  if (!C_mode() || microsoft_mode) {
+  if (!C_mode() || !func_prototype_tags_enabled) {
     /* The effective scope depth for the current declaration may need to be
        reset.  Compute the depth to which it should be reset now, since it's
        used for processing declarations of predeclared types.  The actual
        resetting, if required, will be done later. */
-    /* In C++ mode or Microsoft C, don't enter tags in prototype scopes. */
+    /* In C++ mode or Microsoft C, don't enter tags in prototype scopes (nor
+       in any other C mode with func_prototype_tags_enabled set to FALSE). */
     a_boolean     done = FALSE;
     a_symbol_ptr  instance_sym;
-
     computed_decl_level = *effective_decl_level;
     do {
       switch (scope_stack[computed_decl_level].kind) {
@@ -1645,9 +1645,9 @@ caution when modifying this routine.
              declaration of a member function within the definition of class
              A does not introduce the name of nested class A::B; rather, B
              is entered in the same scope as A.) */
-          /* Note: in Microsoft C mode, tags are not entered in function
-             prototype scopes. */
-          if (C_dialect == C_dialect_cplusplus || microsoft_mode) {
+          /* Note: in some C modes (like Microsoft C mode), tags are not
+             entered in function prototype scopes. */
+          if (!C_mode() || !func_prototype_tags_enabled) {
             *effective_decl_level = computed_decl_level;
           }  /* if */
         } else if (is_injected_class_symbol(tag_sym)) {
@@ -3845,9 +3845,10 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     if (scope_stack[effective_decl_level].kind ==
                                            (a_scope_kind)sck_func_prototype) {
       /* A type is actually declared in a function prototype scope only in
-         C mode.  In C++ the type is injected into a containing scope. */
-      check_assertion(err || C_dialect != C_dialect_cplusplus ||
-                      is_class_definition);
+         C mode.  In C++ the type is injected into a containing scope (except
+         in some nonstandard cases involving class definitions in a function
+         prototype scope). */
+      check_assertion(err || C_mode || is_class_definition);
       class_type->declared_in_function_prototype = TRUE;
     }  /* if */
     if (C_dialect == C_dialect_cplusplus && error_tag_sym != NULL) {

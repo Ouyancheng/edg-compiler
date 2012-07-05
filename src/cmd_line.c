@@ -1338,6 +1338,12 @@ Initialize the option information table.
                          pchek_none);
   add_option_description(optk_cpp03_mode, "c++03", '\0', /*value=*/TRUE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_func_prototype_tags, "func_prototype_tags", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_func_prototype_tags, "no_func_prototype_tags",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1868,6 +1874,10 @@ by a command line option.
     /* Allow nonconstant expressions in aggregate initializers for automatic
        variables. */
     allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
+    if (!option_kind_used[(int)optk_func_prototype_tags]) {
+      /* Microsoft C never enters tag names in function prototype scopes. */
+      func_prototype_tags_enabled = FALSE;
+    }  /* if */
   } else {
     /* Microsoft C++ mode. */
     type_info_in_namespace_std = MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD;
@@ -2404,6 +2414,11 @@ process.
 #endif /* DO_IL_LOWERING */
   char16_t_and_char32_t_are_keywords = FALSE;
   range_based_for_enabled = FALSE;
+  if (!option_kind_used[(int)optk_func_prototype_tags]) {
+    /* In standard C tag names are sometimes entered in function prototype
+       scopes.  Microsoft C mode will override this. */
+    func_prototype_tags_enabled = TRUE;
+  }  /* if */
 }  /* set_c_mode_flags */
 
 
@@ -2850,6 +2865,14 @@ setting is used, and to set various unmentioned settings as needed.
     command_line_error(ec_cl_gnu_c89_inlining_option_only_in_C);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (func_prototype_tags_enabled) {
+    /* In C++, tags are never allowed in function prototype scopes.  Diagnose
+       an explicit option attempting to make it otherwise. */
+    if (option_kind_used[(int)optk_func_prototype_tags]) {
+      command_line_error(ec_cl_func_prototype_tags_option_only_in_C);
+    }  /* if */
+    func_prototype_tags_enabled = FALSE;
+  }  /* if */
 }  /* check_and_set_cplusplus_mode_options */
 
 
@@ -8760,6 +8783,9 @@ enable_microsoft_mode:
       case optk_variadic_templates:
         variadic_templates_enabled = opt_value;
         break;
+      case optk_func_prototype_tags:
+        func_prototype_tags_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -9699,6 +9725,7 @@ variables declared in cmd_line.h.
   address_of_ellipsis_allowed = DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED;
   allow_ellipsis_only_param_in_C_mode =
                                    DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE;
+  func_prototype_tags_enabled = FALSE;
   allow_nonconst_ref_anachronism = DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM;
   building_runtime = FALSE;
   remove_unneeded_entities = DEFAULT_REMOVE_UNNEEDED_ENTITIES;

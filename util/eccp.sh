@@ -647,6 +647,7 @@ check_abbreviation()
 --fixed_point
 --force_vtbl
 --friend_injection
+--func_prototype_tags
 --g++
 --gcc
 --gcc89_inlining
@@ -729,6 +730,7 @@ check_abbreviation()
 --no_extern_inline
 --no_fixed_point
 --no_friend_injection
+--no_func_prototype_tags
 --no_g++
 --no_gcc
 --no_gen_move_operations
@@ -1428,6 +1430,8 @@ process_option()
          --no_c++11_sfinae_ignore_access | \
          --variadic_templates | \
          --no_variadic_templates | \
+         --func_prototype_tags | \
+         --no_func_prototype_tags | \
          --using_framework_directory | \
          --no_using_framework_directory | \
          --force_vtbl)

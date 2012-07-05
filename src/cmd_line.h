@@ -290,6 +290,7 @@ typedef enum /*an_option_kind*/ {
   optk_mscorlib_file_name,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_cpp03_mode,
+  optk_func_prototype_tags,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1278,6 +1279,13 @@ EXTERN a_boolean
 		allow_ellipsis_only_param_in_C_mode;
 			/* TRUE if an ellipsis alone is allowed as a parameter
 			   list in C mode (e.g., "void f(...)"). */
+
+EXTERN a_boolean
+		func_prototype_tags_enabled;
+			/* TRUE if tags can be entered in a function prototype
+			   scope.  This is standard behavior in C that can be
+			   overridden (e.g., when emulating Microsoft).  In C++
+			   mode, this is always FALSE. */
 
 EXTERN a_boolean
                 allow_nonconst_ref_anachronism;

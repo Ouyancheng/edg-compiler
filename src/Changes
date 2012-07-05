@@ -1,5 +1,26 @@
 Version 4.5
 
+7/5/12  [EDGcpfe/13002]
+Tags in C-mode function prototypes
+
+In standard C, a tag type first declared in a function prototype scope belongs
+to that scope and cannot be redeclared later on (it is therefore of limited
+use).  For example (assuming normal C mode):
+
+  void g(struct S *p);  /* This "struct S" belongs to the prototype scope. */
+  struct S { int i; };  /* This "struct S" is different from the one above. */
+  void g(struct S *p);  /* Error: This "struct S" is the one declared in file
+                           scope, and this declaration of g is therefore
+                           incompatible with the first declaration. */
+
+In Microsoft mode, the front end treats this example differently (see Changes
+entry of 6/30/96): The first "struct S" is not entered in prototype scope, but
+in the surrounding (file) scope.  That behavior is now available in other C
+modes through the command-line option --no_func_prototype_tags.  The Microsoft
+C mode behavior can also be undo with the option --func_prototype_tags (that
+option cannot be combined with C++ mode, however).
+
+
 7/3/12  [EDGcpfe/12931]
 GNU C++ compatibility: Namespace __cxxabiv1
 
