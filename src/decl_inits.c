@@ -4465,6 +4465,10 @@ available.
       append_constant_in_aggr(des_con, aggr_con);
       aggr_con->uses_designated_initializers = TRUE;
     }  /* if */
+    /* Designators complicate the determination of whether an aggregate
+       initializer completely covers the target entity.  Assume partial
+       initialization by default. */
+    is->partial_initializer = TRUE;
     if (icp != NULL) {
       /* Process the component following this designator.  If it is another
          designator (i.e., a "chained" designator), special care must be taken
@@ -5033,6 +5037,10 @@ specific position is available.
       append_constant_in_aggr(des_con, aggr_con);
       aggr_con->uses_designated_initializers = TRUE;
     }  /* if */
+    /* Designators complicate the determination of whether an aggregate
+       initializer completely covers the target entity.  Assume partial
+       initialization by default. */
+    is->partial_initializer = TRUE;
     if (icp != NULL) {
       /* Process the component following this designator.  If it is another
          designator (i.e., a "chained" designator), special care must be taken
@@ -5534,6 +5542,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       is->init_dip->variant.constant = is->init_con;
       is->init_dip->destructor = dtor_rp;
       is->init_dip->is_braced_initializer = TRUE;
+      is->init_dip->is_partially_initialized = is->partial_initializer;
       is->init_con = NULL;
     }  /* if */
     if (is->any_uninitialized_const_or_ref_member) {

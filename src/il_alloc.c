@@ -2018,6 +2018,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->is_explicit_cast = FALSE;
   dip->is_compound_literal = FALSE;
   dip->is_braced_initializer = FALSE;
+  dip->is_partially_initialized = FALSE;
   dip->is_partially_initialized_compound_literal = FALSE;
   dip->is_result_for_class_rvalue_question_mark = FALSE;
   dip->is_optimized_class_rvalue_question_mark = FALSE;

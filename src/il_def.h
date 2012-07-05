@@ -3202,6 +3202,22 @@ typedef struct a_dynamic_init {
   a_bit_field	is_braced_initializer:1;
 			/* If TRUE, the source construct that generated this
 			   initialization is a brace-enclosed initializer. */
+  a_bit_field	is_partially_initialized:1;
+			/* TRUE if the initialized entity is an array or class
+			   aggregate is not completely initialized by the
+			   associated aggregate constant.  This can also
+			   indicate that trailing elements not covered by an
+			   aggregate initializer need to be zeroed prior to
+			   being initialized by a generated default constructor
+			   (because of the value-initialization rules).  The
+			   use of designated initializers during initialization
+			   of array and class aggregates circumvents the normal
+			   detection of partially initialized aggregates: This
+			   field is therefore also set to TRUE if any member of
+			   an array or class aggregate is initialized using a
+			   designator.  In some of these cases, the flag will
+			   be set to FALSE during lowering if the constant is
+			   found to fully initialize the aggregate. */
   a_bit_field	is_partially_initialized_compound_literal:1;
 			/* If TRUE, the source construct is a compound
 			   literal (C99) and the entity was not fully
