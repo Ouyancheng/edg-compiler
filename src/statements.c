@@ -4467,7 +4467,9 @@ The affinity can be an expression or the keyword "continue".
   push_stmt_stack(is_range_based_for ? ssk_range_based_for : ssk_for,
                   sp, (an_object_lifetime_ptr)NULL);
   /* Ignore the initial "for". */
-  check_assertion_str(processing_upc_forall || curr_token == tok_for,
+  check_assertion_str(processing_upc_forall ||
+                      curr_token == tok_for ||
+                      curr_token == tok_end_of_source,
                       "for_statement: expected for");
   (void)get_token();
   /* Check for and skip the opening parenthesis. */

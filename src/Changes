@@ -1,5 +1,15 @@
 Version 4.5
 
+7/5/12  [EDGcpfe/13042]
+Assertion failure in for_statement on incomplete code
+
+In configurations where a range-based for statement is allowed, an incomplete
+"for" statement had caused an assertion failure (for_statement: expected for)
+during prototype instantiation.  For example:
+
+  template <class T> void f(T) {for
+
+
 7/5/12  [EDGcpfe/13002]
 Tags in C-mode function prototypes
 
