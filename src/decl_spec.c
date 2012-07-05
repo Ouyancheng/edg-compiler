@@ -3848,7 +3848,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
          C mode.  In C++ the type is injected into a containing scope (except
          in some nonstandard cases involving class definitions in a function
          prototype scope). */
-      check_assertion(err || C_mode || is_class_definition);
+      check_assertion(err || C_mode() || is_class_definition);
       class_type->declared_in_function_prototype = TRUE;
     }  /* if */
     if (C_dialect == C_dialect_cplusplus && error_tag_sym != NULL) {
