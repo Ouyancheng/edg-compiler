@@ -3302,6 +3302,7 @@ function get_initializer does all the hard work.
     (*dip)->is_compound_literal = TRUE;
     if (info.any_uninitialized_member ||
         info.uses_designated_initializers) {
+      (*dip)->is_partially_initialized = TRUE;
       (*dip)->is_partially_initialized_compound_literal = TRUE;
     }  /* if */
   }  /* if */
@@ -3385,6 +3386,10 @@ processed.  The function returns TRUE unless there were errors in the scan
       (*init_dip)->variant.constant = *init_con;
       (*init_dip)->destructor = dtor_rp;
       *init_con = NULL;
+      if ((init_info.any_uninitialized_member ||
+           init_info.uses_designated_initializers)) {
+        (*init_dip)->is_partially_initialized = TRUE;
+      }  /* if */
 #if CHECKING
     } else {
       check_assertion((*init_con)->kind == (a_constant_repr_kind)ck_string ||
@@ -6254,6 +6259,8 @@ returned set to TRUE.
         init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
         init_dip->variant.constant = init_con;
         init_dip->is_braced_initializer = (first_token == tok_lbrace);
+        init_dip->is_partially_initialized =
+                                          dps->init_state.partial_initializer;
         init_con = NULL;
         /* If a destructor was found, add a pointer to it to the dynamic init
            entry. */
@@ -7520,6 +7527,7 @@ entries are replaced as needed for each mem-initializer that is encountered.
             is.init_dip->variant.constant = alloc_error_constant();
           }  /* if */
           is.init_dip->is_braced_initializer = TRUE;
+          is.init_dip->is_partially_initialized = is.partial_initializer;
           is.init_con = NULL;
         }  /* if */
         new_cip->initializer = is.init_dip;
