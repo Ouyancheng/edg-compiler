@@ -3390,8 +3390,12 @@ processed.  The function returns TRUE unless there were errors in the scan
            init_info.uses_designated_initializers)) {
         (*init_dip)->is_partially_initialized = TRUE;
       }  /* if */
-#if CHECKING
     } else {
+      if ((init_info.any_uninitialized_member ||
+           init_info.uses_designated_initializers)) {
+        dps->init_state.partial_initializer = TRUE;
+      }  /* if */
+#if CHECKING
       check_assertion((*init_con)->kind == (a_constant_repr_kind)ck_string ||
                       (*init_con)->kind == (a_constant_repr_kind)ck_aggregate);
 #endif /* CHECKING */
@@ -6265,8 +6269,9 @@ returned set to TRUE.
         init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
         init_dip->variant.constant = init_con;
         init_dip->is_braced_initializer = (first_token == tok_lbrace);
-        init_dip->is_partially_initialized =
-                                          dps->init_state.partial_initializer;
+        if (dps->init_state.partial_initializer) {
+          init_dip->is_partially_initialized = TRUE;
+        }  /* if */
         init_con = NULL;
         /* If a destructor was found, add a pointer to it to the dynamic init
            entry. */
