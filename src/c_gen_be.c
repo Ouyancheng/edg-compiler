@@ -6738,7 +6738,8 @@ If this assignment is the first one, put out anything that must precede it.
         get_variable_initializer(variable, curr_scope, &init_kind,
                                  &initializer);
         if (init_kind == (an_init_kind)initk_zero ||
-            variable->is_partially_initialized) {
+            (init_kind == (an_init_kind)initk_dynamic &&
+             variable->initializer.dynamic->is_partially_initialized)) {
           zero_variable(variable);
         }  /* if */
       }  /* if */

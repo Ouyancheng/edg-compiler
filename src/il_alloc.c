@@ -2019,7 +2019,6 @@ Initialize a dynamic_init entry of the kind specified.
   dip->is_compound_literal = FALSE;
   dip->is_braced_initializer = FALSE;
   dip->is_partially_initialized = FALSE;
-  dip->is_partially_initialized_compound_literal = FALSE;
   dip->is_result_for_class_rvalue_question_mark = FALSE;
   dip->is_optimized_class_rvalue_question_mark = FALSE;
   dip->is_reused_value = FALSE;
@@ -2220,7 +2219,6 @@ Clear the fields of the given variable to default values.
   vp->param_used_more_than_once   = FALSE;
   vp->is_handler_param            = FALSE;
   vp->is_this_parameter           = FALSE;
-  vp->is_partially_initialized    = FALSE;
   vp->is_anonymous_parent_object  = FALSE;
   vp->is_member_constant          = FALSE;
   vp->superseded_external         = FALSE;

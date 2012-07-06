@@ -3218,13 +3218,6 @@ typedef struct a_dynamic_init {
 			   designator.  In some of these cases, the flag will
 			   be set to FALSE during lowering if the constant is
 			   found to fully initialize the aggregate. */
-  a_bit_field	is_partially_initialized_compound_literal:1;
-			/* If TRUE, the source construct is a compound
-			   literal (C99) and the entity was not fully
-			   initialized by the initializer.  Also set if
-			   designated initializers were used to initialize
-			   fields in the aggregate, potentially leading
-			   to undetected partial initialization. */
   a_bit_field	is_result_for_class_rvalue_question_mark:1;
 			/* If TRUE, this entity is the temporary that is
 			   the result of a "?" operator that returns a
@@ -8930,26 +8923,6 @@ typedef struct a_variable {
   a_bit_field	is_this_parameter:1;
 			/* TRUE if the variable represents a "this" parameter
 			   (C++ only). */
-  a_bit_field	is_partially_initialized:1;
-			/* TRUE if the variable or static data member is an
-			   array or class aggregate and has been initialized
-			   but only partially -- i.e., one or more array
-			   elements or fields remains uninitialized (or
-			   partially uninitialized).  This can also indicate
-			   that trailing elements not covered by an aggregate
-			   initializer need to be zeroed prior to being
-			   initialized by a generated default constructor
-			   (because of the value-initialization rules). 
-			   The use of designated initializers during
-			   initialization of array and class aggregates
-			   circumvents the normal detection of partially
-			   initialized aggregates, therefore this field is
-			   also set to TRUE if any member of an array or
-			   class aggregate was initialized by designated
-			   initializer.  In some of these cases, the
-			   flag will be set to FALSE during lowering if
-			   the constant is found to fully initialize
-			   the aggregate. */
   a_bit_field	is_anonymous_parent_object:1;
 			/* TRUE if type is the type of an anonymous union --
 			   this variable is the "parent object" of which the

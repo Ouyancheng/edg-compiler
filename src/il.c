@@ -2250,21 +2250,19 @@ Dump the initializer of a variable for debug purposes.
 */
 {
   int  a;
-  char *partial;
 
   if (var->init_kind != (an_init_kind)initk_none) {
-    partial = (char *)(var->is_partially_initialized ? " (partial)" : "");
     for (a = 0; a < level; a++) fputs(" ", f_debug);
     if (var->init_kind == (an_init_kind)initk_function_local) {
-      fprintf(f_debug, "local static initialization%s\n", partial);
+      fprintf(f_debug, "local static initialization\n");
     } else if (var->init_kind == (an_init_kind)initk_static) {
-      fprintf(f_debug, "static init%s: ", partial);
+      fprintf(f_debug, "static init: ");
       db_static_initializer(var->initializer.constant);
       (void)fputc('\n', f_debug);
     } else if (var->init_kind == (an_init_kind)initk_zero) {
-      fprintf(f_debug, "zero init%s\n", partial);
+      fprintf(f_debug, "zero init\n");
     } else {
-      fprintf(f_debug, "dynamic init%s: ", partial);
+      fprintf(f_debug, "dynamic init: ");
       db_dynamic_initializer(var->initializer.dynamic, level + 2);
     }  /* if */
   }  /* if */

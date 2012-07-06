@@ -6920,7 +6920,7 @@ from entity_type itself.  Insert the code for the call at *insert_location.
   if (is_array_type(entity_type)) {
     element_type = underlying_array_element_type(entity_type);
     array_element_count *= num_array_elements(entity_type);
-  } /* if */
+  }  /* if */
   element_type = skip_typerefs(element_type);
   if (is_immediate_class_type(element_type) &&
       element_type->variant.class_struct_union.is_empty_class) {
@@ -7545,6 +7545,9 @@ C99 mode for the same reason.
                      ctor_init = NULL;
   a_dynamic_init_kind
                      orig_dip_kind = dip->kind;
+#if CHECKING
+  a_boolean          need_zero_initialization = FALSE;
+#endif /* CHECKING */
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -8044,6 +8047,25 @@ do_assignment:;
         latest_initialization_on_entry = eff_context->latest_initialization;
       }  /* if */
       keep_constant = FALSE;
+      if (dip->is_partially_initialized && ipdp->indirect_through_variable) {
+        /* We're partially initializing an aggregate through a pointer,
+           which could indicate a ctor-initializer or braced-initializer list
+           for a new expression.  In such cases, ensure that the initializer
+           is zeroed.  Partially initialized variables (with either static
+           or automatic storage duration) are assumed to be zeroed by the
+           back end (so no explicit zeroing is performed here). */
+        insert_call_to_zero_entity(f_skip_typerefs(
+                                               type_from_init_pos_descr(ipdp)),
+                                   have_complete_object,
+                                   make_address_of_init_entity_node(ipdp,
+                                                       /*using_as_dest=*/TRUE),
+                                   (an_expr_node_ptr)NULL,
+                                   (a_targ_size_t)0,
+                                   eff_insert_location);
+#if CHECKING
+        need_zero_initialization = TRUE;
+#endif /* CHECKING */
+      }  /* if */
       lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
                                             /*dtor_case=*/FALSE, source_desc,
                                             others_follow_in_aggr,
@@ -8057,6 +8079,7 @@ do_assignment:;
                                             options);
       if (keep_constant) {
         /* There is a constant part of the initialization to be kept. */
+        check_assertion(!need_zero_initialization);
         if (variable == NULL) {
           /* There is no variable, so we are down inside an aggregate
              initialization.  Pass this constant back to the caller. */
@@ -8289,7 +8312,7 @@ do_assignment:;
            (variable->decl_modifiers && DM_DLLIMPORT) == 0 &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
            !local_static_that_requires_dynamic_init) ||
-          variable->is_partially_initialized) {
+          dip->is_partially_initialized) {
         variable->init_kind = (an_init_kind)initk_zero;
 #if IA64_ABI
         /* Check for the need to generate code to zero pointers to data
@@ -9819,12 +9842,6 @@ Do IL lowering of an enk_temp_init expression node.
     } else {
       /* Normal case (not return). */
       dip->variable = temp_var;
-      if (dip->is_partially_initialized_compound_literal) {
-        /* Note that compound literals created outside of functions do not use
-           enk_temp_init so they are not seen here (the front end creates an
-           initialized static variable for them). */
-        temp_var->is_partially_initialized = TRUE;
-      }  /* if */
       if (variably_modified) {
         temp_var->has_variably_modified_type = TRUE;
       }  /* if */
@@ -10483,25 +10500,6 @@ the aggregate.
     set_aggregate_position_for_field(field, aggr_pos);
   }  /* if */
 }  /* advance_aggregate_position_to_next_member */
-
-
-static a_boolean any_more_members_in_aggregate(an_aggregate_position *aggr_pos)
-/*
-Return TRUE if there are additional initializable fields after the
-position indicated by aggr_pos.
-*/
-{
-  a_boolean more_members;
-
-  if (aggr_pos->array_init) {
-    more_members = (aggr_pos->curr_elem < aggr_pos->number_of_elements - 1);
-  } else {
-    a_field_ptr field = aggr_pos->curr_field;
-    more_members = (field != NULL &&
-                    next_initializable_field(field->next) != NULL);
-  }  /* if */
-  return more_members;
-}  /* any_more_members_in_aggregate */
 
 
 static a_constant_ptr make_init_zero_constant(a_type_ptr type)
@@ -11395,76 +11393,6 @@ have already had their designated initializers lowered.
 }  /* lower_aggregate_designated_initializers */
 
 
-static a_boolean recompute_partially_initialized_flag(a_constant_ptr aggr_con,
-                                                      a_type_ptr     aggr_type)
-/*
-Check the initialization constant aggr_con to determine if
-it partially initializes the aggregate.  aggr_type is the type of the
-aggregate being initialized.  Returns TRUE if the constant only
-partially initializes the aggregate; otherwise returns FALSE.
-*/
-{ 
-  a_constant_ptr        temp_con;
-  an_aggregate_position aggr_pos;
-  an_init_con_pos       con_pos;
-  a_boolean             is_partially_initialized;
-
-  if (aggr_con->kind == (a_constant_repr_kind)ck_string) {
-    check_assertion(is_array_type(aggr_type));
-    is_partially_initialized = (aggr_con->variant.string.length < 
-           skip_typerefs(aggr_type)->variant.array.variant.number_of_elements);
-  } else {
-    check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
-    temp_con = aggr_con->variant.aggregate.first_constant;
-    /* Union is fully initialized if it has at least one initializer. */
-    if (is_union_type(aggr_con->type)) {
-      is_partially_initialized = (temp_con == NULL);
-      goto done;
-    }  /* if */
-    /* Set initial positions in both aggregate and constant. */
-    init_aggregate_position(aggr_con, &aggr_pos);
-    set_init_con_pos(temp_con, &con_pos);
-    /* Iterate for each constant in the aggregate constant. */
-    while (con_pos.ptr != NULL) {
-      temp_con = con_pos.ptr;
-      if (temp_con->kind == (a_constant_repr_kind)ck_init_repeat) {
-        temp_con = temp_con->variant.init_repeat.constant;
-      }  /* if */
-      if (is_aggregate_or_union_type(aggr_pos.member_type)) {
-        /* Aggregates that are initialized by a ck_dynamic_init are
-           fully initialized. */
-        if (temp_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
-          if (recompute_partially_initialized_flag(temp_con,
-                                                   aggr_pos.member_type)) {
-            /* Any partially initialized sub-aggregate results in a partially
-               initialized aggregate. */
-            is_partially_initialized = TRUE;
-            goto done;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (con_pos.repeat_count > 0) {
-        /* When dealing with a repeated constant, we can skip directly over
-           all the corresponding elements. */
-        aggr_pos.curr_elem += (con_pos.repeat_count - 1);
-        con_pos.repeat_count = 0;
-      }  /* if */
-      /* Advance to next position in both constant and aggregate. */
-      advance_init_con_pos(&con_pos);
-      if (con_pos.ptr != NULL) {
-        advance_aggregate_position_to_next_member(&aggr_pos);
-      }  /* if */
-    }  /* while */
-    /* We've exhausted the list of constants.  If there are any more
-       fields in the aggregate, this initializer only partially
-       initializes the aggregate. */
-    is_partially_initialized = any_more_members_in_aggregate(&aggr_pos);
-  }  /* if */
-done:
-  return is_partially_initialized;
-}  /* recompute_partially_initialized_flag */
-
-
 void lower_designated_initializers(a_constant_ptr init_con,
                                    a_variable_ptr variable)
 /*
@@ -11483,12 +11411,6 @@ called in C mode as well as C++ mode.
     }  /* if */
     lower_aggregate_designated_initializers(init_con,
                                             (a_constant_ptr)NULL);
-    /* Lowering may have changed the initializer from partially
-       initialized to fully initialized, so re-compute it. */
-    if (variable != NULL && variable->is_partially_initialized) {
-      variable->is_partially_initialized = 
-                recompute_partially_initialized_flag(init_con, variable->type);
-    }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
 }  /* lower_designated_initializers */

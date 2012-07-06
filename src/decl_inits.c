@@ -3303,7 +3303,6 @@ function get_initializer does all the hard work.
     if (info.any_uninitialized_member ||
         info.uses_designated_initializers) {
       (*dip)->is_partially_initialized = TRUE;
-      (*dip)->is_partially_initialized_compound_literal = TRUE;
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -3413,17 +3412,6 @@ processed.  The function returns TRUE unless there were errors in the scan
             pos_sy_error(ec_var_with_uninitialized_member, err_pos, sym);
           }  /* if */
         }  /* if */
-      }  /* if */
-      /* If the initializer doesn't initialize every member of an
-         aggregate, make note that the variable is only partially initialized.
-         In cases where designated initializers have been used, we don't know
-         if the aggregate is partially initialized or not so to be safe
-         assume it is.  During lowering if it is discovered that the
-         aggregate is indeed fully initialized, this field will be
-         set appropriately. */
-      if ((init_info.any_uninitialized_member ||
-           init_info.uses_designated_initializers)) {
-        vp->is_partially_initialized = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
       /* Record whether an initializer for a flexible array member was seen. */
@@ -5620,9 +5608,6 @@ is part of.  diag_pos is the position to be used by default for diagnostics
                     C_mode() && (dps->init_state.static_lifetime_init ||
                                  !allow_nonconstant_auto_aggr_init_in_c_mode);
   braced_initializer(dps->type, &dps->init_state, dps, diag_pos);
-  if (dps->init_state.partial_initializer) {
-    vp->is_partially_initialized = TRUE;
-  }  /* if */
   if (is_incomplete_array_type(vp->type) && is_array_type(dps->type)) {
     /* An array declarator of the form "X[]" followed by a braced initializer:
        Dimension it according to the initializer. */
@@ -6111,14 +6096,6 @@ returned set to TRUE.
           set_initialized_array_size(&array_type, num_elems,
                                      /*unknown_dependent=*/FALSE);
           vp->type = array_type;
-        } else if (is_array_type(array_type) && 
-                   !has_unknown_specified_bound(array_type) &&
-                   init_con->kind == (a_constant_repr_kind)ck_string) {
-          /* Flag the variable as partially initialized if the string
-             contains fewer elements than the array. */
-          vp->is_partially_initialized = 
-                         array_type->variant.array.variant.number_of_elements >
-                                               init_con->variant.string.length;
         }  /* if */
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

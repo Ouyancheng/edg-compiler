@@ -2669,9 +2669,6 @@ Display the indicated variable.
     disp_boolean("param_used_more_than_once",
                  (a_boolean)ptr->param_used_more_than_once);
   }  /* if */
-  if (ptr->is_partially_initialized) {
-    disp_boolean("is_partially_initialized", TRUE);
-  }  /* if */
   if (ptr->is_anonymous_parent_object) {
     disp_boolean("is_anonymous_parent_object", TRUE);
   }  /* if */
@@ -5803,9 +5800,6 @@ Display the indicated dynamic_init structure.
   }  /* if */
   if (ptr->is_partially_initialized) {
     disp_boolean("is_partially_initialized", TRUE);
-  }  /* if */
-  if (ptr->is_partially_initialized_compound_literal) {
-    disp_boolean("is_partially_initialized_compound_literal", TRUE);
   }  /* if */
   if (ptr->is_result_for_class_rvalue_question_mark) {
     disp_boolean("is_result_for_class_rvalue_question_mark", TRUE);
