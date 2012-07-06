@@ -4148,15 +4148,21 @@ vector type.
       ++icount;
     }  /* if */
   }  /* if */
-  /* Diagnose any extraneous elements (an error in GNU C++ mode; a warning
-     otherwise). */
-  if (icp != NULL && !no_bound) {
+  if (no_bound) {
+    /* The number of elements in the initializer isn't really known: Don't
+       attempt related checks. */
+  } else if (icp != NULL) {
+    /* Extraneous elements: Issue a diagnostic (an error in GNU C++ mode; a
+       warning otherwise). */
     if (!is->no_diagnostics) {
       pos_diagnostic(gpp_mode ? es_error : es_warning,
                      ec_too_many_initializer_values, init_component_pos(icp));
     } else if (gpp_mode) {
       is->init_error = TRUE;
     }  /* if */
+  } else if (icount < ecount) {
+    /* No more initializers, but not all elements were initialized. */
+    is->partial_initializer = TRUE;
   }  /* if */
   /* Move to the next element after the braces. */
   *p_icp = (*p_icp)->next;
