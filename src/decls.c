@@ -732,7 +732,8 @@ expression is permitted.
       /* Identifier that is a type name (a typedef name or, in C++,
          the name of a class, struct, or union).  A type name cannot be
          followed by an opening brace of an initializer list. */
-      is_start = !(list_init_enabled && next_token() == tok_lbrace);
+      is_start = !(is_expr_context &&
+                   list_init_enabled && next_token() == tok_lbrace);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_microsoft_w64) {
       is_start = TRUE;
@@ -808,7 +809,8 @@ of declarations that are permitted.
     is_start = TRUE;
 #endif /* SUN_EXTENSIONS_ALLOWED */
   } else if (curr_token == tok_identifier &&
-             !(list_init_enabled && next_token() == tok_lbrace) &&
+             !(expr_context && list_init_enabled &&
+               next_token() == tok_lbrace) &&
              !is_error_locator(locator_for_curr_id)) {
     /* A special check to produce better error recovery in certain cases.
        If the lexical sequence suggests that this is a declaration even

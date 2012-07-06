@@ -1603,7 +1603,10 @@ routine to do lookahead, etc.
   an_is_decl_start_options_set	is_decl_start_options;
   a_boolean			result = FALSE;
 
-  is_decl_start_options = IDS_EXPR_CONTEXT;
+  /* When processing what might be an enum base, do not treat this as an
+     expression context for is_decl_start purposes. */
+  is_decl_start_options = (flags & DFS_POSSIBLE_ENUM_BASE) == 0
+                                           ? IDS_EXPR_CONTEXT : IDS_NO_OPTIONS;
   if ((flags & DFS_REAL_DECLARATOR_ALLOWED) != 0) {
     is_decl_start_options |= IDS_REAL_DECLARATOR_ALLOWED;
   }  /* if */

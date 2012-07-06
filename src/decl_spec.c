@@ -946,7 +946,8 @@ lambda, not the definition of X).
       /* Check that what follows the colon is not an expression (which would
          indicate a bit field length). */
       result = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                                DFS_SINGLE_TYPE_REQUIRED);
+                                DFS_SINGLE_TYPE_REQUIRED |
+                                DFS_POSSIBLE_ENUM_BASE);
       rescan_cached_tokens(&cache);
     } else {
       result = FALSE;
