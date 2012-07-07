@@ -4249,7 +4249,8 @@ variable indicates the variable that is being initialized.
     case initk_static:
       /* The initializer is a constant. */
 #if LOWER_DESIGNATED_INITIALIZERS
-      lower_designated_initializers(initializer->constant, variable);
+      lower_designated_initializers(initializer->constant,
+                                    (a_dynamic_init *)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
       lower_c99_constant(initializer->constant);
       break;

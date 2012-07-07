@@ -8954,7 +8954,8 @@ a location at which code can be inserted.
       break;
     case initk_static:
 #if LOWER_DESIGNATED_INITIALIZERS
-      lower_designated_initializers(initializer->constant, variable);
+      lower_designated_initializers(initializer->constant,
+                                    (a_dynamic_init *)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
       lower_constant(initializer->constant);
       break;

@@ -11483,12 +11483,12 @@ done:
 
 
 void lower_designated_initializers(a_constant_ptr init_con,
-                                   a_variable_ptr variable)
+                                   a_dynamic_init *dip)
 /*
 If the initial value constant indicated by init_con contains any
-designated initializers, rewrite them as standard C.  variable points to the
-variable that is being initialized by init_con.  Note that this is
-called in C mode as well as C++ mode.
+designated initializers, rewrite them as standard C.  dip points to the
+dynamic initialization (and is NULL if this is a static initialization).
+Note that this is called in C mode as well as C++ mode.
 */
 {
   if (designators_allowed &&
@@ -11502,11 +11502,11 @@ called in C mode as well as C++ mode.
                                             (a_constant_ptr)NULL);
     /* Lowering may have changed the initializer from partially
        initialized to fully initialized, so re-compute it. */
-    if (variable != NULL &&
-        variable->init_kind == (an_init_kind)initk_dynamic &&
-        variable->initializer.dynamic->is_partially_initialized) {
-      variable->initializer.dynamic->is_partially_initialized =
-                recompute_partially_initialized_flag(init_con, variable->type);
+    if (dip != NULL && dip->is_partially_initialized) {
+      check_assertion(dip->variable != NULL);
+      dip->is_partially_initialized =
+                     recompute_partially_initialized_flag(init_con,
+                                                          dip->variable->type);
     }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
@@ -11523,7 +11523,7 @@ C mode as well as C++ mode.
   if (designators_allowed &&
       (dip->kind == (a_dynamic_init_kind)dik_constant ||
        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
-    lower_designated_initializers(dip->variant.constant, dip->variable);
+    lower_designated_initializers(dip->variant.constant, dip);
   }  /* if */
 }  /* lower_dynamic_init_designated_initializers */
 
