@@ -4237,12 +4237,10 @@ Do C99 lowering on the indicated statement.
 
 
 static void lower_c99_initializer(an_init_kind    init_kind,
-                                  an_initializer  *initializer,
-                                  a_variable_ptr  variable)
+                                  an_initializer  *initializer)
 /*
 Do C99 lowering for an initializer (e.g., from a variable).  init_kind
 indicates the kind of initialization, and *initializer provides the details.
-variable indicates the variable that is being initialized.
 */
 {
   switch (init_kind) {
@@ -4296,7 +4294,7 @@ Do C99 lowering on the indicated variable and its subtree.
   saved_error_position = error_position;
   error_position = var->source_corresp.decl_position;
   lower_c99_source_correspondence(&var->source_corresp);
-  lower_c99_initializer(var->init_kind, &var->initializer, var);
+  lower_c99_initializer(var->init_kind, &var->initializer);
 #if GNU_EXTENSIONS_ALLOWED
   if (force_variable_definition_via_zeroing &&
       (var->is_not_common ||
@@ -4436,8 +4434,7 @@ Do C99 lowering for all entities in and under the given scope.
   for (lsvip = scope->local_static_variable_inits;
        lsvip != NULL;
        lsvip = lsvip->next) {
-    lower_c99_initializer(lsvip->init_kind, &lsvip->initializer, 
-                          lsvip->variable);
+    lower_c99_initializer(lsvip->init_kind, &lsvip->initializer);
   }  /* for */
   if (scope->kind == (a_scope_kind)sck_function) {
     /* Lower the function block statement. */
