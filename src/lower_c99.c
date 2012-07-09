@@ -3630,7 +3630,7 @@ in C99 mode to represent a compound literal.
   set_var_init_pos_descr(var, &ipd);
   /* Lower the initialization. */
 #if LOWER_DESIGNATED_INITIALIZERS
-  lower_dynamic_init_designated_initializers(dip);
+  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
   lower_dynamic_init(dip, &ipd,
                      (an_implied_copy_source *)NULL,
@@ -3952,7 +3952,7 @@ Do C99 lowering on the indicated stmk_init statement.
   a_dynamic_init_ptr dip = statement->variant.dynamic_init;
 
 #if LOWER_DESIGNATED_INITIALIZERS
-  lower_dynamic_init_designated_initializers(dip);
+  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
   /* This routine is similar to lower_stmk_init. */
   switch (dip->kind) {
@@ -4248,7 +4248,8 @@ indicates the kind of initialization, and *initializer provides the details.
       /* The initializer is a constant. */
 #if LOWER_DESIGNATED_INITIALIZERS
       lower_designated_initializers(initializer->constant,
-                                    (a_dynamic_init *)NULL);
+                                    (a_dynamic_init *)NULL,
+                                    (a_type_ptr)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
       lower_c99_constant(initializer->constant);
       break;

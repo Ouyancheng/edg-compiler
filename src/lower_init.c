@@ -9860,7 +9860,7 @@ Do IL lowering of an enk_temp_init expression node.
     set_expr_insert_location(expr, &insert_location);
     /* Lower the initialization. */
 #if LOWER_DESIGNATED_INITIALIZERS
-    lower_dynamic_init_designated_initializers(dip);
+    lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
     lower_dynamic_init(dip, &ipd,
                        (an_implied_copy_source *)NULL,
@@ -10144,7 +10144,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
   a_boolean          non_C_case = FALSE;
 
 #if LOWER_DESIGNATED_INITIALIZERS
-  lower_dynamic_init_designated_initializers(dip);
+  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
   /* Only lower the cases that do not come up in C: */
   if (dip->destructor != NULL) {
@@ -11164,7 +11164,8 @@ have already had their designated initializers lowered.
         if (con.ptr->kind == (a_constant_repr_kind)ck_dynamic_init) {
           /* Lower designators in a dynamic initialization subtree. */
           lower_dynamic_init_designated_initializers(
-                                                con.ptr->variant.dynamic_init);
+                                                con.ptr->variant.dynamic_init,
+                                                con.ptr->type);
         }  /* if */
         if (earlier_con.ptr != NULL) {
           /* con overwrites an earlier initialization at the same location,
@@ -11483,12 +11484,16 @@ done:
 
 
 void lower_designated_initializers(a_constant_ptr init_con,
-                                   a_dynamic_init *dip)
+                                   a_dynamic_init *dip,
+                                   a_type_ptr     aggr_type)
 /*
 If the initial value constant indicated by init_con contains any
 designated initializers, rewrite them as standard C.  dip points to the
 dynamic initialization (and is NULL if this is a static initialization).
-Note that this is called in C mode as well as C++ mode.
+If non-NULL, aggr_type specifies the type of the aggregate being initialized
+(it can be NULL in cases where dip->variable is non-NULL, in which case
+the type of dip->variable is used).  Note that this is called in C mode as well
+as C++ mode.
 */
 {
   if (designators_allowed &&
@@ -11503,27 +11508,35 @@ Note that this is called in C mode as well as C++ mode.
     /* Lowering may have changed the initializer from partially
        initialized to fully initialized, so re-compute it. */
     if (dip != NULL && dip->is_partially_initialized) {
-      check_assertion(dip->variable != NULL);
+      /* In most cases, the aggregate type is just the type of the variable
+         being initialized, but in the sub-aggregate case, it's passed in
+         explicitly. */
+      if (aggr_type == NULL) {
+        check_assertion(dip->variable != NULL);
+        aggr_type = dip->variable->type;
+      }  /* if */
       dip->is_partially_initialized =
-                     recompute_partially_initialized_flag(init_con,
-                                                          dip->variable->type);
+                     recompute_partially_initialized_flag(init_con, aggr_type);
     }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
 }  /* lower_designated_initializers */
 
 
-void lower_dynamic_init_designated_initializers(a_dynamic_init_ptr dip)
+void lower_dynamic_init_designated_initializers(a_dynamic_init_ptr dip,
+                                                a_type_ptr         aggr_type)
 /*
 If the dynamic initialization pointed to by dip contains any designated
-initializers, rewrite them as standard C.  Note that this is called in
-C mode as well as C++ mode.
+initializers, rewrite them as standard C.  If non-NULL, aggr_type specifies the
+type of the aggregate being initialized (it can be NULL in cases where
+dip->variable is non-NULL, in which case the type of dip->variable is used).
+Note that this is called in C mode as well as C++ mode.
 */
 {
   if (designators_allowed &&
       (dip->kind == (a_dynamic_init_kind)dik_constant ||
        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
-    lower_designated_initializers(dip->variant.constant, dip);
+    lower_designated_initializers(dip->variant.constant, dip, aggr_type);
   }  /* if */
 }  /* lower_dynamic_init_designated_initializers */
 
@@ -14333,7 +14346,7 @@ to cause the back end to invoke the routine at initialization.
       dip->next = NULL;
       set_var_init_pos_descr(dip->variable, &ipd);
 #if LOWER_DESIGNATED_INITIALIZERS
-      lower_dynamic_init_designated_initializers(dip);
+      lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
       /* Shouldn't be any pending compound literal initialization
          statements. */
