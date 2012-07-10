@@ -214,6 +214,7 @@ EXTERN a_function_pointer function_pointers[(int)fn_last+1]
   (a_function_pointer)diag_pragma,
 #if INCLUDE_EDG_TEST_PRAGMAS
   (a_function_pointer)test_immediate_pragma,
+  (a_function_pointer)test_next_construct_pragma,
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
 #if DEBUG
   (a_function_pointer)db_opt_pragma,

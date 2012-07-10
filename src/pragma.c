@@ -1572,6 +1572,22 @@ by EDG for testing purposes.
     create_il_entry_for_pragma(ppp, sym, (a_statement_ptr)NULL);
   }  /* if */
 }  /* test_immediate_pragma */
+
+
+void test_next_construct_pragma(a_pending_pragma_ptr ppp,
+				a_symbol_ptr	     sym_ptr,
+				a_statement_ptr	     stmt_ptr)
+/*
+Routine called by the test_next_decl and test_next_statement pragmas that
+are included by EDG for testing purposes.
+*/
+{
+#if DEBUG
+  if (db_flag_is_set("test_pragmas")) {
+    fprintf(f_debug, "In test_next_construct pragma\n");
+  }  /* if */
+#endif /* DEBUG */
+}  /* test_next_construct_pragma */
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
 
 void pragma_one_time_init(void)
@@ -1989,7 +2005,7 @@ Initialize the pragma description table.
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,
-		 (a_function_number)fn_null,
+		 fn_for_function(test_next_construct_pragma),
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/FALSE,
@@ -2004,7 +2020,7 @@ Initialize the pragma description table.
                  es_error);
   (void)add_next_construct_pragma_kind_description
  		((a_pragma_kind)pk_test_next_statement,
-		 (a_function_number)fn_null,
+		 fn_for_function(test_next_construct_pragma),
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/FALSE,
 		 /*may_bind_to_stmt=*/TRUE,

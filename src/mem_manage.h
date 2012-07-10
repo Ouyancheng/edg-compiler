@@ -448,6 +448,7 @@ enum a_function_number_tag {
   fn_diag_pragma,
 #if INCLUDE_EDG_TEST_PRAGMAS
   fn_test_immediate_pragma,
+  fn_test_next_construct_pragma,
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
 #if DEBUG
   fn_db_opt_pragma,

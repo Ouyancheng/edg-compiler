@@ -376,6 +376,9 @@ EXTERN unsigned long
 
 #if INCLUDE_EDG_TEST_PRAGMAS
 extern void test_immediate_pragma(a_pending_pragma_ptr ppp);
+extern void test_next_construct_pragma(a_pending_pragma_ptr  ppp,
+				       a_symbol_ptr          sym_ptr,
+				       a_statement_ptr	     stmt_ptr);
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
 
 extern a_pending_pragma_ptr alloc_pending_pragma
