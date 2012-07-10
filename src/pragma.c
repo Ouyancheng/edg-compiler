@@ -1574,6 +1574,7 @@ by EDG for testing purposes.
 }  /* test_immediate_pragma */
 
 
+/*ARGSUSED*/ /* Parameter are not used. */
 void test_next_construct_pragma(a_pending_pragma_ptr ppp,
 				a_symbol_ptr	     sym_ptr,
 				a_statement_ptr	     stmt_ptr)
