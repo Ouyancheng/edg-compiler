@@ -1,5 +1,29 @@
 Version 4.5
 
+7/10/12  [EDGcpfe/13019]
+Pragmas not applied to certain instantiations
+
+Pragmas placed on member function templates were not being applied to
+instantiations of the template.  Now fixed.  This was being done properly
+for namespace scope function templates.  Note that pragmas are applied
+both at the point of the partial instantiation of the function template
+and at the point of the full instantiation (if one is done).  In
+addition, if pragmas were applied to both the declaration and the
+definition of a template (of any kind) only the definition pragmas
+were applied after the point of definition of the template.  Now the
+list of definition pragmas is appended to the list from the declaration.
+
+  template <typename T> struct A {
+    template <typename U> void f(U);
+  };
+  #pragma mypragma
+  template <typename T> template <typename U> inline void A<T>::f(U) { }
+  int main() {
+    A<int> a;
+    a.f<double>(10);
+  }
+
+
 7/5/12  [EDGcpfe/13042]
 Assertion failure in for_statement on incomplete code
 

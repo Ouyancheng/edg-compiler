@@ -4842,6 +4842,7 @@ supplement already associated with ft_symbol.
       rp->source_corresp.name_linkage = orig_rp->source_corresp.name_linkage;
       tssp->variant.function.func_info.is_deleted =
                               orig_tssp->variant.function.func_info.is_deleted;
+      tssp->pragmas_bound_to_template = orig_tssp->pragmas_bound_to_template;
       rp->is_deleted = orig_rp->is_deleted;
       /* A member template cannot be "defaulted". */
       check_assertion(!orig_rp->is_defaulted);
@@ -20906,8 +20907,19 @@ any non-empty template parameter lists that were scanned.
       if (tssp != NULL) {
         /* A null pointer could be returned if the symbol has an invalid
            kind because of an earlier error. */
-        tssp->pragmas_bound_to_template =
+        a_pending_pragma_ptr	last_ppp;
+        /* Find the end of the current list of pragmas and append any new
+           pragmas from this declaration to the list. */
+        for (last_ppp = tssp->pragmas_bound_to_template; last_ppp != NULL;
+             last_ppp = last_ppp->next) {
+          if (last_ppp->next == NULL) break;
+        }  /* if */
+        if (last_ppp == NULL) {
+          tssp->pragmas_bound_to_template =
                                         decl_state->pragmas_bound_to_template;
+        } else {
+          last_ppp->next = decl_state->pragmas_bound_to_template;
+        }  /* if */
         saved_pragmas = TRUE;
       }  /* if */
     }  /* if */
