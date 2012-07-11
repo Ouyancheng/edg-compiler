@@ -1,5 +1,19 @@
 Version 4.5
 
+7/11/12  [EDGcpfe/12388]
+GNU C++ compatibility: explicit template arguments on constructor declarations
+
+Starting with version 4.5, g++ allows an explicit template argument list on
+a declaration that names an instance of a constructor template (e.g.,
+an explicit specialization or friend declaration).  We now allow this
+usage in g++ mode when gnu_version >= 40500.
+
+  struct A {
+    template <typename T> A(T);
+  };
+  template <> A::A<int>(int){ }
+
+
 7/11/12  [EDGcpfe/13058]
 C++-generating back end: template argument lists and argument-dependent lookup
 

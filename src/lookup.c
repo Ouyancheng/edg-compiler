@@ -4130,7 +4130,9 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
    avoid a problem with names like A<T>::A<T>.  Starting with g++ 3.4,
    injected class names are returned in fewer contexts.  We emulate this
    by returning them only for tentative type lookup, typename lookups,
-   and lookups in expression contexts. */
+   and lookups in expression contexts.  In g++ 4.5 emulation mode,
+   tentative template lookups are excluded from returning the injected
+   class name. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->is_class_member &&					      \
    (!is_injected_class_symbol(sym) ||				      \
@@ -4139,8 +4141,9 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
      !is_using_declaration &&					      \
        (gnu_version < 30400 ||               			      \
         (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0 ||	              \
-        (options & IDL_IS_EXPR_CONTEXT) != 0 ||	              \
-        (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0)) ||	      \
+        (options & IDL_IS_EXPR_CONTEXT) != 0 ||			      \
+        (gnu_version < 40500  &&				      \
+         (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0))) ||	      \
     is_field_selection_operand ||				      \
     must_be_class_or_namespace ||				      \
     must_be_class ||						      \
