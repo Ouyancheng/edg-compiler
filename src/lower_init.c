@@ -1454,13 +1454,13 @@ initial value pointed to by dip or con is already lowered.
   a_statement_ptr       assign_stmt;
   an_expr_operator_kind op;
   a_boolean             array_assignment = FALSE;
+  a_type_ptr            entity_type = entity_node->type;
 
   check_assertion(entity_node->is_lvalue);
   switch ((dip == NULL) ? (a_dynamic_init_kind)dik_constant : dip->kind) {
     case dik_zero:
       /* Set the entity to zero (default initialization). */
       { a_constant     zero_constant;
-        a_type_ptr     entity_type = entity_node->type;
         make_lowered_zero_of_proper_type(entity_type, &zero_constant);
         init_val_node = alloc_node_for_constant(&zero_constant);
       }
@@ -1508,32 +1508,39 @@ initial value pointed to by dip or con is already lowered.
       internal_error("add_init_assignment: bad kind");
 #endif /* CHECKING */
   }  /* switch */
-  /* Make an assignment statement.  Note that we know that no constructor
-     (copy or other) is involved because we have this kind of dynamic
-     initialization. */
-  op = (an_expr_operator_kind)(array_assignment ? eok_bassign : eok_assign);
-  if (needs_cast_because_type_has_param_passed_via_cctor(entity_node->type)) {
-    /* If the entity being assigned has a type that contains a
-       function with a parameter that is passed via a copy constructor,
-       we need to add a cast to the destination type to avoid a type
-       mismatch. */
-    init_val_node = add_cast(init_val_node, entity_node->type);
-  } else if (is_lambda_capture &&
-             is_ptr_or_ref_type(init_val_node->type) &&
-             is_incomplete_type(type_pointed_to(init_val_node->type))) {
-    /* Handle a case like:
-         int x[] = {37, 47, [&x]{return x[0] + x[1];}()};
-       where a lambda capture's type is incomplete at the time of the capture.
-       Add an explicit cast to the incomplete type (since the source type,
-       while incomplete now, will be complete in the generated C code). */
-    init_val_node = add_cast(init_val_node, entity_node->type);
+  if (array_assignment && is_incomplete_array_type(entity_type)) {
+    /* Don't bother to create an assignment to an array with an incomplete
+       type.  These come up in cases like "new int[0]{};". */
+    check_assertion(is_incomplete_array_type(init_val_node->type));
+  } else {
+    /* Make an assignment statement.  Note that we know that no constructor
+       (copy or other) is involved because we have this kind of dynamic
+       initialization. */
+    op = (an_expr_operator_kind)(array_assignment ? eok_bassign : eok_assign);
+    if (needs_cast_because_type_has_param_passed_via_cctor(entity_type)) {
+      /* If the entity being assigned has a type that contains a
+         function with a parameter that is passed via a copy constructor,
+         we need to add a cast to the destination type to avoid a type
+         mismatch. */
+      init_val_node = add_cast(init_val_node, entity_type);
+    } else if (is_lambda_capture &&
+               is_ptr_or_ref_type(init_val_node->type) &&
+               is_incomplete_type(type_pointed_to(init_val_node->type))) {
+      /* Handle a case like:
+           int x[] = {37, 47, [&x]{return x[0] + x[1];}()};
+         where a lambda capture's type is incomplete at the time of the
+         capture.  Add an explicit cast to the incomplete type (since the
+         source type, while incomplete now, will be complete in the generated
+         C code). */
+      init_val_node = add_cast(init_val_node, entity_type);
+    }  /* if */
+    assign_node = make_assignment_expr_with_subobject_fix(entity_node,
+                                                          have_complete_object,
+                                                          op,
+                                                          init_val_node);
+    assign_stmt = insert_expr_statement(assign_node, insert_location);
+    set_stmt_pos_to_code_pos_for_lowering(assign_stmt);
   }  /* if */
-  assign_node = make_assignment_expr_with_subobject_fix(entity_node,
-                                                        have_complete_object,
-                                                        op,
-                                                        init_val_node);
-  assign_stmt = insert_expr_statement(assign_node, insert_location);
-  set_stmt_pos_to_code_pos_for_lowering(assign_stmt);
 }  /* add_init_assignment */
 
 
