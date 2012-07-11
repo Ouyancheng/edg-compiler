@@ -1,5 +1,26 @@
 Version 4.5
 
+7/11/12  [EDGcpfe/13058]
+C++-generating back end: template argument lists and argument-dependent lookup
+
+Under some circumstances, the C++-generating back end emitted a template
+argument list for the name of a function found only by argument-dependent
+lookup.  In order to use a template argument list, however, the name would
+need to be visibly declared as a template, and that is not true of a name
+found only by argument-dependent lookup.  The C++-generating back end has
+now been changed to suppress the template argument list in such cases.  For
+example:
+
+  namespace N {
+    struct S { };
+    template<typename T> void f(struct S, T);
+  };
+  void g() {
+    N::f<int>(N::S(), 0);
+    f(N::S(), 0);   // Previously generated as f<int>(N::S(), 0)
+  }
+
+
 7/10/12  [EDGcpfe/13019]
 Pragmas not applied to certain instantiations
 

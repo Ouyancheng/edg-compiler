@@ -3896,8 +3896,12 @@ static void gen_name_from_routine_node(an_expr_node_ptr node,
                                        a_boolean        qualified)
 /*
 Generate the name of a routine from an enk_routine node.  If unqualified is
-TRUE, force the generation of an unqualified name.  If qualified is TRUE,
-force the generation of a qualified name.
+TRUE, force the generation of an unqualified name with no template argument
+list (the name was used in a function call and found only by
+argument-dependent lookup; a qualified name suppresses argument-dependent
+lookup, and a declaration of the name would have been required in order for
+a template argument list to be valid).  If qualified is TRUE, force the
+generation of a qualified name.
 */
 {
   a_routine_ptr rout = routine_from_function_expr(node);
@@ -3908,7 +3912,7 @@ force the generation of a qualified name.
     /* We have information on the exact form of reference and used that
        to generate the name. */
   } else if (unqualified) {
-    gen_unqualified_name(&rout->source_corresp, iek_routine);
+    gen_bare_name(&rout->source_corresp, iek_routine);
   } else {
     a_boolean saved_qualification_needed =
                                      rout->source_corresp.qualification_needed;
