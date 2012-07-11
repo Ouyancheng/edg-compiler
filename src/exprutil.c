@@ -6419,9 +6419,22 @@ so it can go into the IL.
     if (tap->arg_operand != NULL) {
       /* A template argument in arg_operand form. */
       an_operand             *operand = &tap->arg_operand->operand;
-      a_constant_ptr          constant;
+      a_constant_ptr         constant;
+      an_expr_stack_entry    expr_stack_entry;
       a_memory_region_number region_to_switch_back_to;
 
+      /* Push an expression stack entry while we do the conversion of
+         the template argument to a constant, so we're in the right
+         kind of context.  Also, the ref entries attached to the operand
+         get moved to the stack entry and are then recorded when the
+         stack is popped. */
+      push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
+                      /*force_object_lifetime=*/FALSE,
+                      /*suppress_object_lifetime=*/FALSE);
+      expr_stack_entry.is_template_arg_expression = TRUE;
+      reattach_ref_entries_to_curr_expr(operand);
+      /* Prepare the operand so we can save it without knowing the context
+         in which it will be used. */
       prep_generic_nontype_template_argument(operand);
       /* Fetch the constant and use it as the template argument. */
       switch_to_file_scope_region(&region_to_switch_back_to);
@@ -6431,6 +6444,7 @@ so it can go into the IL.
       switch_back_to_original_region(region_to_switch_back_to);
       free_arg_operand_list(tap->arg_operand);
       tap->arg_operand = NULL;
+      pop_expr_stack();
     } else if (tap->kind == (a_templ_arg_kind)tak_type) {
       /* Eliminate any local or nonreal typedefs. */
       tap->variant.type = strip_local_and_nonreal_typedefs(tap->variant.type);

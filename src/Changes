@@ -1,5 +1,23 @@
 Version 4.5
 
+7/11/12  [EDGcpfe/12991]
+Spurious "never referenced" warnings on variables used as template arguments
+
+In some cases, variables used as nontype template arguments within a template
+were incorrectly flagged as "declared but never referenced".  This occurred
+in modes that do prototype instantiations of templates, e.g., --c++11 mode.
+Now fixed.
+
+  template<typename T> struct foo {
+    static const int value = 1;
+  };
+  template<int i> void f() {}
+  template<typename T> void bar(void) {
+    const int i = foo<T>::value;  // Got warning that i is never referenced
+    f<i>();  // ... but it is referenced here
+  }
+
+
 7/11/12  [EDGcpfe/9170]
 is_partially_initialized field moved (IL CHANGE)
 
