@@ -24,7 +24,7 @@ list of definition pragmas is appended to the list from the declaration.
   }
 
 
-7/5/12  [EDGcpfe/13042]
+7/5/12   [EDGcpfe/13042]
 Assertion failure in for_statement on incomplete code
 
 In configurations where a range-based for statement is allowed, an incomplete
@@ -34,7 +34,7 @@ during prototype instantiation.  For example:
   template <class T> void f(T) {for
 
 
-7/5/12  [EDGcpfe/13002]
+7/5/12   [EDGcpfe/13002]
 Tags in C-mode function prototypes
 
 In standard C, a tag type first declared in a function prototype scope belongs
@@ -55,7 +55,7 @@ C mode behavior can also be undo with the option --func_prototype_tags (that
 option cannot be combined with C++ mode, however).
 
 
-7/3/12  [EDGcpfe/12931]
+7/3/12   [EDGcpfe/12931]
 GNU C++ compatibility: Namespace __cxxabiv1
 
 When IA64_ABI is TRUE, the front end now predeclares namespace __cxxabiv1
@@ -63,7 +63,7 @@ When IA64_ABI is TRUE, the front end now predeclares namespace __cxxabiv1
 modes, the namespace is known to the front end, but not entered in the symbol
 table, and therefore not visible to user code until it is explicitly declared.)
 
-7/3/12  [EDGcpfe/13025]
+7/3/12   [EDGcpfe/13025]
 C++-generating back end aborts on certain decltype instantiations
 
 Previously, when TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to
@@ -86,7 +86,7 @@ For example (assuming C++11 mode):
 This is now fixed.
 
 
-7/3/12  [EDGcpfe/12790]
+7/3/12   [EDGcpfe/12790]
 Abort on multiple GNU type attributes
 
 GNU type attributes are attributes that modify a type.  In some cases, when
@@ -101,7 +101,7 @@ In this example, the C++-generating back end aborted when attempting to render
 the declaration of g.  This is now fixed.
 
 
-7/2/12  [EDGcpfe/13003]
+7/2/12   [EDGcpfe/13003]
 Microsoft compatibility: token pasting and inert macro names
 
 In certain cases involving implicit token concatenation (when, according to
@@ -123,7 +123,7 @@ the resulting macro invocation.  This is now fixed.  For example:
   int j = A(Z);   // Previously expanded to AZ, now to i
 
 
-7/2/12  [EDGcpfe/13034]
+7/2/12   [EDGcpfe/13034]
 Case label constants (IL CHANGE)
 
 Prior to the rework of the representation of switch statements (see Changes
