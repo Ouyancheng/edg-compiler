@@ -1,5 +1,17 @@
 Version 4.5
 
+7/11/12  [EDGcpfe/9170]
+is_partially_initialized field moved (IL CHANGE)
+
+As part of the changes for C++11 initializers, the is_partially_initialized
+field has been moved from a_variable to a_dynamic_init where it now
+encompasses the entity being initialized by the dynamic initialization
+(which may or may not be a whole variable).  The
+is_partially_initialized_compound_literal field in a_dynamic_init has also been
+removed (its functionality has now been folded into the
+is_partially_initialized field).
+
+
 7/11/12  [EDGcpfe/12388]
 GNU C++ compatibility: explicit template arguments on constructor declarations
 
