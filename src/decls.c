@@ -708,7 +708,10 @@ expression is permitted.
 {
   a_boolean    is_start = FALSE;
 
-  if (is_type_specifier() || is_type_qualifier() ||
+  if ((is_type_specifier() &&
+       !(is_expr_context && list_init_enabled &&
+         is_type_keyword(curr_token) && next_token() == tok_lbrace)) ||
+      is_type_qualifier() ||
       is_function_specifier() || curr_token == tok_friend) {
     is_start = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
