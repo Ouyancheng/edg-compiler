@@ -4511,7 +4511,7 @@ type that reflects the length of the initializer.
            permits such elision.  (We don't issue an error if another error
            has already been issued for this initialization.) */
         if (!is->no_diagnostics && !is->init_error) {
-          pos_error(ec_exp_lbrace, init_component_pos(icp));
+          pos_error(ec_cannot_elide_braces, init_component_pos(icp));
         }  /* if */
         is->init_error = TRUE;
       }  /* if */
@@ -5285,7 +5285,7 @@ issued if no more specific position is available.
          permits such elision.  (We don't issue an error if another error has
          already been issued for this initialization.) */
       if (!is->no_diagnostics && !is->init_error) {
-        pos_error(ec_exp_lbrace, init_component_pos(icp));
+        pos_error(ec_cannot_elide_braces, init_component_pos(icp));
       }  /* if */
       is->init_error = TRUE;
     }  /* if */
