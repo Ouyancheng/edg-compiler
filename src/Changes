@@ -116,8 +116,8 @@ In Microsoft mode, the front end treats this example differently (see Changes
 entry of 6/30/96): The first "struct S" is not entered in prototype scope, but
 in the surrounding (file) scope.  That behavior is now available in other C
 modes through the command-line option --no_func_prototype_tags.  The Microsoft
-C mode behavior can also be undo with the option --func_prototype_tags (that
-option cannot be combined with C++ mode, however).
+C mode behavior can also be disabled with the option --func_prototype_tags
+(that option cannot be combined with C++ mode, however).
 
 
 7/3/12   [EDGcpfe/12931]
