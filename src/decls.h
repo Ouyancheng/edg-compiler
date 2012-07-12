@@ -393,6 +393,12 @@ typedef struct an_init_state {
   a_bit_field	non_top_level_aggregate:1;
 			/* TRUE while processing the components of an
 			   aggregate that is not at the top level. */
+  a_bit_field	elided_braces_allowed:1;
+			/* TRUE if an aggregate initializer can omit braces.
+			   E.g., for "int x[2][2] = { 1, 2, 3, 4 };" this flag
+			   should be TRUE (making the example well-formed), but
+			   for "int y[2][2]{ 1, 2, 3, 4 };" is should be FALSE
+			   (and the example is an error). */
 } an_init_state;
 
 

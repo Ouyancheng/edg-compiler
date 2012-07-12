@@ -103,6 +103,7 @@ Clear the fields of *is.
   is->pack_expansion_handled = FALSE;
   is->chained_designator_okay = FALSE;
   is->non_top_level_aggregate = FALSE;
+  is->elided_braces_allowed = FALSE;
 }  /* clear_init_state_fields */
 
 

@@ -4505,6 +4505,13 @@ type that reflects the length of the initializer.
       /* Save the pack-expansion-handled state: Any expansions seen have an
          effect only within the braces. */
       saved_pack_expansion_handled = is->pack_expansion_handled;
+    } else {
+      /* Braces were elided at this level.  Issue an error if that is not
+         permitted. */
+      if (!is->elided_braces_allowed) {
+        pos_diagnostic(es_discretionary_error, ec_exp_lbrace,
+                       init_component_pos(icp));
+      }  /* if */
     }  /* if */
     if (!is->check_validity_only) {
       *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
@@ -5722,6 +5729,9 @@ is part of.  diag_pos is the position to be used by default for diagnostics
     }  /* if */
     vp->has_direct_braced_initializer = direct;
     dps->init_state.direct_init = direct;
+  } else {
+    /* Traditional aggregate initialization of the form "T x = { ... }". */
+    dps->init_state.elided_braces_allowed = TRUE;
   }  /* if */
   vp->has_direct_braced_initializer = direct;
   dps->init_state.initializer_must_be_constant =
