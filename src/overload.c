@@ -7905,6 +7905,37 @@ an argument of a call in gpp mode even though the standard says it's not.
 }  /* is_gpp_falsely_dependent_argument */
 
 
+static void evaluate_unused_template_arguments(
+                                        a_symbol_ptr       function_symbol,
+                                        a_template_arg_ptr template_arg_list,
+                                        a_source_position  *pos)
+/*
+function_symbol is an instance of a template that's being called.  The
+routine to call has been determined without evaluating the explicit
+template argument list on the call (template_arg_list), because the
+call is non-dependent and we had recorded the chosen routine during
+the prototype instantiation.  Evaluate the template arguments anyway
+to make sure any references in them are recorded.  For example, in the
+call "f<x>(y)", we want to be sure to record the reference to x even
+though we didn't need it to know the function to call.  pos is a
+source position for errors.
+*/
+{
+  a_symbol_ptr                     templ_sym;
+  a_template_symbol_supplement_ptr tssp;
+  a_template_param_ptr             templ_param_list;
+
+  check_assertion(is_simple_function_symbol(function_symbol) &&
+                  function_symbol->variant.routine.instance_ptr != NULL);
+  templ_sym = function_symbol->variant.routine.instance_ptr->template_sym;
+  tssp = template_supplement_for_symbol(templ_sym);
+  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+  (void)create_initial_template_arg_list(templ_param_list,
+                                         template_arg_list,
+                                         pos);
+}  /* evaluate_unused_template_arguments */
+
+
 #if !BACK_END_IS_CP_GEN_BE
 /*ARGSUSED*/  /* found_through_adl is only used with the C++-generating
                  back end. */
@@ -8154,6 +8185,14 @@ in_instantiation:
         overloaded_function_symbol = ndcall_info->symbol;
         do_arg_dep_lookup = FALSE;
         known_to_be_visible = TRUE;
+        if (template_arg_list != NULL) {
+          /* Evaluate the template argument list anyway to get references
+             recorded.  E.g., in f<x>(y) we'd like to record the reference to
+             x even though we already have the symbol the right f. */
+          evaluate_unused_template_arguments(overloaded_function_symbol,
+                                             template_arg_list,
+                                             call_position);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
