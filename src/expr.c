@@ -14544,7 +14544,13 @@ Return a newly created list of expression nodes for each of these dimensions
   an_expr_node_ptr  result = NULL, *p_next = &result;
 
   for (; rank != 0; --rank) {
-    *p_next = node_for_host_large_integer(dims[rank], targ_size_t_int_kind);
+    a_host_large_integer  dim = dims[rank];
+    if (dim == -1) {
+      /* This dimensions could not be deduced.  Use a special value mandated
+         by ECMA-372. */
+      dim = UNSPECIFIED_CLI_ARRAY_LENGTH;
+    }  /* if */
+    *p_next = node_for_host_large_integer(dim, targ_size_t_int_kind);
     p_next = &(*p_next)->next;
   }  /* for */
   return result;
