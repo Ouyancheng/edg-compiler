@@ -14550,51 +14550,6 @@ Return a newly created list of expression nodes for each of these dimensions
   return result;
 }  /* make_cli_array_length_nodes */
 
-
-an_expr_node_ptr create_cli_array_length_list(a_type_ptr cli_array_type)
-/*
-Create a list of n expression nodes for the C++/CLI array type cli_array_type
-of rank n.  This list is used to track the inferred length of each dimension of
-a C++/CLI array during array-init scanning.  If the rank of cli_array_type
-cannot be determined, a list is not created and the function returns NULL.
-*/
-{
-  a_boolean                    is_cli_array_rank_unknown;
-  a_host_large_unsigned        local_cli_array_rank;
-  an_expr_node_ptr             head;
-
-  check_assertion(is_cli_array_type(cli_array_type));
-  local_cli_array_rank = (a_host_large_unsigned)cli_array_rank(
-                                                   cli_array_type,
-                                                   &is_cli_array_rank_unknown);
-  if (!is_cli_array_rank_unknown) {
-    a_host_large_unsigned        x;
-    an_expr_node_ptr             *curr;
-
-    /* Initialize the list to use for tracking dimension lengths with
-       defaults since we know the array rank at this point (but not the
-       dimension lengths themselves). */
-    for (x = 0, curr = &head;
-         x < local_cli_array_rank;
-         ++x, curr = &(*curr)->next) {
-      /* Allocate a constant expression node.  Do not use
-         node_for_host_large_integer because the constant cannot be shared.
-         It will be mutated while scanning the C++/CLI array-init. */
-      *curr = alloc_expr_node((an_expr_node_kind)enk_constant);
-      (*curr)->variant.constant =
-                              alloc_constant((a_constant_repr_kind)ck_integer);
-      set_integer_constant((*curr)->variant.constant,
-                           /*value=*/INTERNAL_UNSPECIFIED_CLI_ARRAY_LENGTH,
-                           (an_integer_kind)ik_int);
-      (*curr)->type = (*curr)->variant.constant->type;
-    }  /* for */
-    *curr = NULL;
-  } else {
-    head = NULL;
-  }  /* if */
-  return head;
-}  /* create_cli_array_length_list */
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_new_operator(a_rescan_control_block *rcblock,
