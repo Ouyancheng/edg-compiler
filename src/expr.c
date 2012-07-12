@@ -14533,6 +14533,24 @@ delegate initializer, given by rcblock->argument_list.
 }  /* scan_delegate_initializer */
 
 
+an_expr_node_ptr make_cli_array_length_nodes(a_host_large_unsigned  rank,
+                                             a_host_large_integer   dims[])
+/*
+dims[1] ... dims[rank] contains (deduced) dimensions for a C++/CLI array.
+Return a newly created list of expression nodes for each of these dimensions
+(in reverse order; i.e., starting with dims[rank]).
+*/
+{
+  an_expr_node_ptr  result = NULL, *p_next = &result;
+
+  for (; rank != 0; --rank) {
+    *p_next = node_for_host_large_integer(dims[rank], targ_size_t_int_kind);
+    p_next = &(*p_next)->next;
+  }  /* for */
+  return result;
+}  /* make_cli_array_length_nodes */
+
+
 an_expr_node_ptr create_cli_array_length_list(a_type_ptr cli_array_type)
 /*
 Create a list of n expression nodes for the C++/CLI array type cli_array_type
@@ -14605,7 +14623,7 @@ Syntax:
 new-type-name, the "( type-name )" case, and type-specifier-seq are handled
 by the routine new_type_name called from this routine.  The first two forms
 of type specification allow a variable-sized array as the top type whereas
-the latter does not.  array-init is handled by scan_cli_array_init and is only
+the latter does not.  array-init is handled by aggr_init_cli_array and is only
 applicable if type-specifier-seq is a C++/CLI array type.  If rcblock is
 non-NULL, redo semantic analysis on a previously-scanned new or gcnew
 expression, and return the result in *result (or an error indication in
@@ -15933,14 +15951,11 @@ handle_empty_parens_new_initializer:
       }  /* if */
       if (has_array_init) {
         /* Scan the CLI array-init. */
-        a_dynamic_init_ptr  init_dip;
-        a_type_ptr          temp_type;
-        a_decl_pos_block    decl_pos_block;
-
+        a_type_ptr  temp_type;
         if (is_cli_array_type(new_type)) {
           temp_type = ptr_new_type;
         } else if (is_template_param_or_nonreal_class_type(new_type)) {
-          temp_type = type_of_unknown_templ_param_nontype;
+          temp_type = make_handle_type(type_of_unknown_templ_param_nontype);
         } else {
           temp_type = error_type();
           if (!is_error_type(new_type)) {
@@ -15951,26 +15966,20 @@ handle_empty_parens_new_initializer:
         }  /* if */
         if (rcblock == NULL) {
           /* Scan the CLI array-init.  If cli_array_new_init_args is NULL
-             (i.e., if a new-init is not present) then scan_cli_array_init
-             will create and populate the inferred dimension lengths of the
-             array, returning them through cli_array_new_init_args.  If
-             cli_array_new_init_args is non-NULL, then any constant arguments
-             specified in the new-init will serve as compile-time bound checks
-             for each array dimension. */
-          if (scan_cli_array_init(&dps,
-                                  &temp_type,
-                                  /*vp=*/NULL,
-                                  /*static_lifetime=*/FALSE,
-                                  &pos_curr_token,
-                                  &init_dip,
-                                  &decl_pos_block,
-                                  &cli_array_new_init_args)) {
-            dip = init_dip;
-          } else {
-            err = TRUE;
-          }  /* if */
+             (i.e., if a new-init is not present) then aggr_init_cli_array
+             will infer dimension lengths of the array, returning them
+             through cli_array_new_init_args.  If cli_array_new_init_args is
+             non-NULL, then any constant arguments specified in the new-init
+             will serve as compile-time bound checks for each array
+             dimension. */
+          an_init_component_ptr  icp_tree;
+          icp_tree = scan_braced_init_list(/*is_full_expr=*/FALSE, &dps);
+          aggr_init_cli_array(icp_tree, temp_type, &dps.init_state, &dip, 
+                              &cli_array_new_init_args);
+          free_init_component_list(icp_tree);
+          if (dps.init_state.init_error) err = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-          end_position = decl_pos_block.var_init_range.end;
+          end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         } else {
           /* Rescanning of array inits is not currently supported.

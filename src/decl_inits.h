@@ -45,6 +45,12 @@ extern void prep_aggr_initializer(an_init_component_ptr  icp,
                                   a_boolean              check_narrowing,
                                   a_boolean              fill_in_dtor);
 
+extern void aggr_init_cli_array(an_init_component_ptr  icp,
+                                a_type_ptr             hatype,
+                                an_init_state          *is,
+                                a_dynamic_init_ptr     *result,
+                                an_expr_node_ptr       *dim_exprs);
+
 extern void initializer(a_decl_parse_state  *state,
                         a_source_position   *source_pos,
                         an_id_linkage_kind  linkage,

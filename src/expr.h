@@ -749,6 +749,10 @@ the pointer operand of these nodes.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+extern an_expr_node_ptr make_cli_array_length_nodes(
+                                               a_host_large_unsigned  rank,
+                                               a_host_large_integer   dims[]);
+
 #define INTERNAL_UNSPECIFIED_CLI_ARRAY_LENGTH ((a_host_large_integer)-1)
 			/* Internal default value representing an unspecified
 			   length for an array dimension.  The internal
