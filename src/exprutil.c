@@ -39,6 +39,10 @@ static a_boolean is_bit_field_expr(an_expr_node_ptr node);
 static a_boolean check_for_taking_the_address_of_a_bit_field(
                                                   an_operand        *operand,
                                                   a_source_position *err_pos);
+static a_constant_ptr value_of_constant_var_lvalue_expr(
+                                               an_expr_node_ptr node,
+                                               a_boolean        copy_for_reuse,
+                                               a_variable_ptr   *p_var);
 static
 an_expr_node_ptr conv_rvalue_expr_to_lvalue(an_expr_node_ptr node,
                                             a_boolean        *converted,
@@ -6391,6 +6395,18 @@ and saved in the IL with enough information to recover whether it
 was an lvalue or rvalue, etc.
 */
 {
+  a_variable_ptr var;
+
+  if (is_expression_operand(operand) &&
+      value_of_constant_var_lvalue_expr(operand->variant.expression,
+                                        /*copy_for_reuse=*/FALSE,
+                                        &var) != NULL &&
+      var->source_corresp.is_local_to_function) {
+    /* Convert a use of a function-local const variable to its value so
+       that we don't end up with memory region problems.   You can't use
+       a reference to such a variable as a nontype template parameter. */
+    conv_lvalue_to_rvalue(operand);
+  }  /* if */
   prep_generic_operand(operand);
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
