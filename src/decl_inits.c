@@ -6330,9 +6330,13 @@ returned set to TRUE.
                                     decl_pos_block);
     }  /* if */
   }  /* if */
-  /* Verify that any prescanned operand was consumed. */
-  check_assertion(!anything_cached(&dps->prescanned_initializer_cache) ||
-                  is_error_type(dps->type));
+  if (anything_cached(&dps->prescanned_initializer_cache)) {
+    /* Normally, prescanned components should have been consumed by now.
+       Only in error cases can it be otherwise. */
+    check_assertion(is_or_contains_error_type(dps->type));
+    expect_error();
+    flush_initializer_cache(&dps->prescanned_initializer_cache);
+  }  /* if */
   if (!var_err) {
     /* There was no error that precludes initialization, so update the
        variable entry with the initializer. */
