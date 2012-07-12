@@ -4506,11 +4506,14 @@ type that reflects the length of the initializer.
          effect only within the braces. */
       saved_pack_expansion_handled = is->pack_expansion_handled;
     } else {
-      /* Braces were elided at this level.  Issue an error if that is not
-         permitted. */
       if (!is->elided_braces_allowed) {
-        pos_diagnostic(es_discretionary_error, ec_exp_lbrace,
-                       init_component_pos(icp));
+        /* Braces were elided at this level, but this is not a context that
+           permits such elision.  (We don't issue an error if another error
+           has already been issued for this initialization.) */
+        if (!is->no_diagnostics && !is->init_error) {
+          pos_error(ec_exp_lbrace, init_component_pos(icp));
+        }  /* if */
+        is->init_error = TRUE;
       }  /* if */
     }  /* if */
     if (!is->check_validity_only) {
@@ -5277,6 +5280,14 @@ issued if no more specific position is available.
           check_assertion(total_errors != 0);
         }  /* if */
       }  /* if */
+    } else if (!is->elided_braces_allowed) {
+      /* Braces were elided at this level, but this is not a context that
+         permits such elision.  (We don't issue an error if another error has
+         already been issued for this initialization.) */
+      if (!is->no_diagnostics && !is->init_error) {
+        pos_error(ec_exp_lbrace, init_component_pos(icp));
+      }  /* if */
+      is->init_error = TRUE;
     }  /* if */
     while (icp != NULL) {
       if (is_designator_component(icp)) {
