@@ -45,11 +45,13 @@ extern void prep_aggr_initializer(an_init_component_ptr  icp,
                                   a_boolean              check_narrowing,
                                   a_boolean              fill_in_dtor);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern void aggr_init_cli_array(an_init_component_ptr  icp,
                                 a_type_ptr             hatype,
                                 an_init_state          *is,
                                 a_dynamic_init_ptr     *result,
                                 an_expr_node_ptr       *dim_exprs);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void initializer(a_decl_parse_state  *state,
                         a_source_position   *source_pos,
@@ -101,20 +103,6 @@ typedef struct a_cli_array_init_scan_info
 }  a_cli_array_init_scan_info;
 
 typedef a_cli_array_init_scan_info *a_cli_array_init_scan_info_ptr;
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-extern a_boolean scan_cli_array_init(
-                    a_decl_parse_state_ptr      dps,
-                    a_type_ptr                  *handle_to_cli_array_type,
-                    a_variable_ptr              vp,
-                    a_boolean                   static_lifetime,
-                    a_source_position           *err_pos,
-                    a_dynamic_init_ptr          *init_dip,
-                    a_decl_pos_block_ptr        decl_pos_block,
-                    an_expr_node_ptr            *cli_array_dimension_lengths);
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef DECL_INITS_H */
 
