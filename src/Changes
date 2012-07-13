@@ -159,7 +159,7 @@ multiple type attributes were specified on the same type, the front end could
 abort in output_type_attributes (il_to_str.c).  For example:
 
   #define MA __attribute((may_alias))  // A GNU type attribute.
-  void g(void MA MA *p);
+  int g(void MA MA *p);
   int i = g(0);
 
 In this example, the C++-generating back end aborted when attempting to render
