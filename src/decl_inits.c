@@ -4740,10 +4740,11 @@ a list of dimension expressions suitable for use in an enk_gcnew node.
 dik_nonconstant_aggregate entry for the initialization.
 */
 {
-  a_boolean       unknown_rank = FALSE;
+  a_boolean       unknown_rank = FALSE, saved_elided_braces_allowed;
   a_type_ptr      atype;
   a_constant_ptr  aggr_con;
 
+  check_assertion(dim_exprs != NULL);
   if (is_handle_type(hatype)) {
     /* The normal case: A handle type. */
     atype = type_pointed_to(hatype);
@@ -4753,7 +4754,13 @@ dik_nonconstant_aggregate entry for the initialization.
     check_assertion(is_error_type(hatype));
     atype = hatype;
   }  /* if */
-  check_assertion(dim_exprs != NULL);
+  /* Microsoft allows brace elision for initializers of CLI arrays with
+     aggregate element types in all contexts. */
+  saved_elided_braces_allowed = is->elided_braces_allowed;
+  is->elided_braces_allowed = TRUE;
+  /* If the array type is known, work through each level of the array,
+     and deduce the dimension lengths if needed.  Otherwise, just scan a
+     generic initializer. */
   if (is_cli_array_type(atype)) {
     a_type_ptr             etype = cli_array_element_type(atype);
     a_host_large_unsigned  rank = cli_array_rank(atype, &unknown_rank);
@@ -4772,6 +4779,8 @@ dik_nonconstant_aggregate entry for the initialization.
                     is_error_type(atype));
     aggr_init_generic_element(icp, atype, is, &aggr_con);
   }  /* if */
+  /* Restore the state wrt. brace elision. */
+  is->elided_braces_allowed = saved_elided_braces_allowed;
   /* Wrap the aggregate constant in the appropriate kind of dynamic init
      entry. */
   *result = alloc_dynamic_init((a_dynamic_init_kind)
