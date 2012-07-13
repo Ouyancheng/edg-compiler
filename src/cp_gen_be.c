@@ -3896,13 +3896,8 @@ static void gen_name_from_routine_node(an_expr_node_ptr node,
                                        a_boolean        qualified)
 /*
 Generate the name of a routine from an enk_routine node.  If unqualified is
-TRUE, force the generation of an unqualified name with no template argument
-list (the name was used in a function call and found only by
-argument-dependent lookup; a qualified name suppresses argument-dependent
-lookup, and a declaration of the name would have been required in order for
-a template argument list to be valid).  If qualified is TRUE, force the
-generation of a qualified name.
-*/
+TRUE, force the generation of an unqualified name.  If qualified is TRUE,
+force the generation of a qualified name.  */
 {
   a_routine_ptr rout = routine_from_function_expr(node);
 
@@ -3912,7 +3907,30 @@ generation of a qualified name.
     /* We have information on the exact form of reference and used that
        to generate the name. */
   } else if (unqualified) {
-    gen_bare_name(&rout->source_corresp, iek_routine);
+    /* The function call was marked as only having been found through
+       argument-dependent lookup, so we must avoid using a qualified name,
+       which would suppress argument-dependent lookup. */
+    if (rout->source_corresp.parent_scope != NULL &&
+        !scope_is_in_name_context_stack(rout->source_corresp.parent_scope)) {
+      /* In general, a function is marked as having been found only through
+         argument-dependent because it is a member of a namespace and not
+         visible at the point of the call.  In that case, we cannot use a
+         template argument list because the function name is not known to
+         be a template. */
+      gen_bare_name(&rout->source_corresp, iek_routine);
+    } else {
+      /* This case can arise when source sequence entries for nonclass
+         template instantiations are recorded in the IL.  Consider a
+         function template f containing a call to g.  If g is declared as a
+         function template before the definition of f but overload
+         resolution of the call to g in an instance of f actually selects
+         an overload of g that is declared after f, the call in that
+         instance of f will be marked as having been found only through
+         argument-dependent lookup.  In such a case, a template argument
+         list is permissible and might be necessary, so we must not
+         suppress it. */
+      gen_unqualified_name(&rout->source_corresp, iek_routine);
+    }  /* if */
   } else {
     a_boolean saved_qualification_needed =
                                      rout->source_corresp.qualification_needed;
