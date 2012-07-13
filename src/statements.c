@@ -4460,9 +4460,6 @@ The affinity can be an expression or the keyword "continue".
     }  /* if */
   }  /* if */
   stmt_update_source_sequence_list(sp);
-  if (curr_token == tok_end_of_source) {
-    goto found_end_of_source;
-  }  /* if */
   /* Do processing required for any pragmas that are bound to the current
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
@@ -4633,7 +4630,6 @@ The affinity can be an expression or the keyword "continue".
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-found_end_of_source:
   /* Pop a scope in C99 mode. */
   pop_c99_statement_scope();
   if (microsoft_mode && !is_range_based_for) {

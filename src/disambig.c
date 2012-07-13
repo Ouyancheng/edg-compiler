@@ -1658,8 +1658,6 @@ a_boolean is_start_of_range_based_for(void)
 /*
 This routine is called when the current token is tok_for of a for statement.
 Return TRUE if it is a ranged-based-for, FALSE if it is not.
-The current token remains unchanged unless tok_end_of_source is found (in
-which case curr_token is set to that).
 */
 {
   a_disambig_state	state;
