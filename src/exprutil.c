@@ -6398,6 +6398,7 @@ was an lvalue or rvalue, etc.
   a_variable_ptr var;
 
   if (is_expression_operand(operand) &&
+      is_an_lvalue(operand) &&
       value_of_constant_var_lvalue_expr(operand->variant.expression,
                                         /*copy_for_reuse=*/FALSE,
                                         &var) != NULL &&
