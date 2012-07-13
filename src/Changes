@@ -64,6 +64,12 @@ example:
     f(N::S(), 0);   // Previously generated as f<int>(N::S(), 0)
   }
 
+As part of this change, overload resolution was changed to discard
+duplicate functions (e.g., introduced by argument-dependent lookup)
+earlier in the process, which improves the setting of the
+only_found_through_arg_dependent_lookup flag on calls, and may
+improve compilation speed a bit.
+
 
 7/10/12  [EDGcpfe/13019]
 Pragmas not applied to certain instantiations

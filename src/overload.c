@@ -1902,10 +1902,6 @@ This applies to projection and namespace projection symbols.
 }  /* is_ambiguous_by_inheritance */
 
 
-static a_boolean same_candidate_function(a_candidate_function_ptr cfp1,
-                                         a_candidate_function_ptr cfp2);
-
-
 static void diagnose_overload_ambiguity(
                              a_candidate_function_ptr candidate_functions,
                              an_operand               *bound_function_selector,
@@ -1933,14 +1929,6 @@ call.
     function_sym = cfp->function_symbol;
     if (function_sym != NULL) {
       /* Normal function case. */
-      a_candidate_function_ptr temp_cfp;
-      /* Ignore a function that has appeared earlier on the list, so as
-         not to put it out twice. */
-      for (temp_cfp = candidate_functions;
-           temp_cfp != cfp;
-           temp_cfp = temp_cfp->next) {
-        if (same_candidate_function(temp_cfp, cfp)) goto next_function;
-      }  /* for */
       if (is_ambiguous_by_inheritance(function_sym)) {
         /* Function symbol is ambiguous by inheritance.  Use a special
            message.  This happens for conversion functions inherited
@@ -1986,7 +1974,6 @@ call.
       }  /* if */
       str_add_diag_info(ec_builtin_operator_add_on, buf);
     }  /* if */
-next_function:;
   }  /* for */
   if (arg_list != NULL) {
     /* Display the operand types. */
@@ -4363,6 +4350,93 @@ the argument match information for the match, if there is one.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean same_function(a_symbol_ptr sym1,
+                               a_symbol_ptr sym2)
+/*
+Return TRUE if sym1 and sym2 represent the same function.  Either pointer
+may be NULL.
+*/
+{
+  a_boolean same = FALSE;
+
+  if (sym1 != NULL && sym2 != NULL) {
+    if (sym1 == sym2) {
+      same = TRUE;
+    } else if (sym1->kind == (a_symbol_kind)sk_projection &&
+               sym2->kind == (a_symbol_kind)sk_projection &&
+               !same_base_classes(sym1->variant.projection.extra_info->
+                                                     fundamental_base_class,
+                                  sym2->variant.projection.extra_info->
+                                                     fundamental_base_class)) {
+      /* When dealing with class member projections, if the subobjects
+         involved are different (e.g., because of an ambiguous base class)
+         the functions are different because they deal with different base
+         class subobjects. */
+      /* same = FALSE; -- already set. */
+    } else {
+      sym1 = fundamental_symbol_of(sym1);
+      sym2 = fundamental_symbol_of(sym2);
+      if (sym1 == sym2) {
+        same = TRUE;
+      } else if (sym1->kind == sym2->kind) {
+        if (sym1->kind == (a_symbol_kind)sk_routine ||
+            sym1->kind == (a_symbol_kind)sk_member_function) {
+           /* Compare IL entry pointers to deal with block extern symbols. */
+          a_routine_ptr rout1 = sym1->variant.routine.ptr;
+          a_routine_ptr rout2 = sym2->variant.routine.ptr;
+          same = corresponding_routines(rout1, rout2);
+          if (!same && gpp_mode) {
+            /* In g++ mode we create distinct routine entries for extern "C"
+               functions in different namespaces.  g++ treats such routines
+               as identical if they have the same type. */
+            a_routine_ptr	rp1 = sym1->variant.routine.ptr;
+            a_routine_ptr	rp2 = sym2->variant.routine.ptr;
+            if (rp1->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_external &&
+                rp2->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_external &&
+                identical_types(rp1->type, rp2->type)) {
+              same = TRUE;
+            }  /* if */
+          }  /* if */
+        } else {
+          /* A function template.  Compare the canonical a_template entries. */
+          a_template_ptr temp1, temp2;
+          check_assertion(sym1->kind == (a_symbol_kind)sk_function_template);
+          temp1 = sym1->variant.template_info->il_template_entry->
+                                                            canonical_template;
+          temp2 = sym2->variant.template_info->il_template_entry->
+                                                            canonical_template;
+          same = corresponding_templates(temp1, temp2);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return same;
+}  /* same_function */
+
+
+static a_boolean already_on_candidates_list(
+                                  a_symbol_ptr             function_symbol,
+                                  a_candidate_function_ptr candidate_functions)
+/*
+Return TRUE if the indicated function already appears on the candidate
+functions list.
+*/
+{
+  a_boolean                on_list = FALSE;
+  a_candidate_function_ptr cfp;
+
+  for (cfp = candidate_functions; cfp != NULL; cfp = cfp->next) {
+    if (same_function(cfp->function_symbol, function_symbol)) {
+      on_list = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return on_list;
+}  /* already_on_candidates_list */
+
+
 static void determine_function_viability(
                  a_symbol_ptr             proj_function_symbol,
                  a_symbol_ptr             overloaded_function_symbol,
@@ -4469,6 +4543,14 @@ the point of call.  conv_context describes the context of the conversion.
     /* Normal case: a known function. */
     a_boolean invisible_because_explicit;
     a_boolean invisible_because_post_decl;
+    if (already_on_candidates_list(proj_function_symbol,
+                                   *candidate_functions)) {
+      /* The function has already been found to be a viable candidate,
+         so don't examine it again.  This is presumably because it shows
+         up on the symbol list more than once, perhaps once for direct
+         lookup and once because of ADL. */
+      goto reject_function;
+    }  /* if */
     if (!known_to_be_visible &&
         !candidate_function_is_visible(proj_function_symbol,
                                        is_template_id,
@@ -6759,73 +6841,6 @@ other.  Return
 }  /* compare_candidate_functions */
 
 
-static a_boolean same_candidate_function(a_candidate_function_ptr cfp1,
-                                         a_candidate_function_ptr cfp2)
-/*
-Return TRUE if the candidate functions cfp1 and cfp2 are the same function.
-*/
-{
-  a_boolean    same = FALSE;
-  a_symbol_ptr sym1 = cfp1->function_symbol;
-  a_symbol_ptr sym2 = cfp2->function_symbol;
-
-  if (sym1 != NULL && sym2 != NULL) {
-    if (sym1 == sym2) {
-      same = TRUE;
-    } else if (sym1->kind == (a_symbol_kind)sk_projection &&
-               sym2->kind == (a_symbol_kind)sk_projection &&
-               !same_base_classes(sym1->variant.projection.extra_info->
-                                                     fundamental_base_class,
-                                  sym2->variant.projection.extra_info->
-                                                     fundamental_base_class)) {
-      /* When dealing with class member projections, if the subobjects
-         involved are different (e.g., because of an ambiguous base class)
-         the functions are different because they deal with different base
-         class subobjects. */
-      /* same = FALSE; -- already set. */
-    } else {
-      sym1 = fundamental_symbol_of(sym1);
-      sym2 = fundamental_symbol_of(sym2);
-      if (sym1 == sym2) {
-        same = TRUE;
-      } else if (sym1->kind == sym2->kind) {
-        if (sym1->kind == (a_symbol_kind)sk_routine ||
-            sym1->kind == (a_symbol_kind)sk_member_function) {
-           /* Compare IL entry pointers to deal with block extern symbols. */
-          a_routine_ptr rout1 = sym1->variant.routine.ptr;
-          a_routine_ptr rout2 = sym2->variant.routine.ptr;
-          same = corresponding_routines(rout1, rout2);
-          if (!same && gpp_mode) {
-            /* In g++ mode we create distinct routine entries for extern "C"
-               functions in different namespaces.  g++ treats such routines
-               as identical if they have the same type. */
-            a_routine_ptr	rp1 = sym1->variant.routine.ptr;
-            a_routine_ptr	rp2 = sym2->variant.routine.ptr;
-            if (rp1->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_external &&
-                rp2->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_external &&
-                identical_types(rp1->type, rp2->type)) {
-              same = TRUE;
-            }  /* if */
-          }  /* if */
-        } else {
-          /* A function template.  Compare the canonical a_template entries. */
-          a_template_ptr temp1, temp2;
-          check_assertion(sym1->kind == (a_symbol_kind)sk_function_template);
-          temp1 = sym1->variant.template_info->il_template_entry->
-                                                            canonical_template;
-          temp2 = sym2->variant.template_info->il_template_entry->
-                                                            canonical_template;
-          same = corresponding_templates(temp1, temp2);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return same;
-}  /* same_candidate_function */
-
-
 static a_boolean match_is_better_on_at_least_one_arg(
                                            a_candidate_function_ptr best_cfp,
                                            a_candidate_function_ptr candidates)
@@ -6853,9 +6868,6 @@ of something based strictly on the function itself or the call context
   for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
     if (cfp == best_cfp) {
       /* Skip the chosen function itself. */
-    } else if (same_candidate_function(cfp, best_cfp)) {
-      /* Skip other symbols that are the same function, which can appear
-         in synthesized overload sets. */
     } else {
       /* Compare the match level of each argument of the chosen function
          with the same argument of another function. */
@@ -6931,25 +6943,20 @@ its candidate function entry.  Otherwise, return NULL.
   an_arg_match_level       worst_match, best_worst_match = aml_none;
 
   for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
-    if (best_cfp != NULL &&
-        same_candidate_function(best_cfp, cfp)) {
-      /* This function is the same as the best one, so skip it. */
+    worst_match = worst_arg_match_level_for_candidate_arg(cfp);
+    if ((int)worst_match < (int)best_worst_match) {
+      /* A new best function. */
+      best_cfp = cfp;
+      best_worst_match = worst_match;
+    } else if ((int)worst_match > (int)best_worst_match) {
+      /* The worst match for this candidate is worse than the best
+         worst match we've seen previously, so ignore it. */
     } else {
-      worst_match = worst_arg_match_level_for_candidate_arg(cfp);
-      if ((int)worst_match < (int)best_worst_match) {
-        /* A new best function. */
-        best_cfp = cfp;
-        best_worst_match = worst_match;
-      } else if ((int)worst_match > (int)best_worst_match) {
-        /* The worst match for this candidate is worse than the best
-           worst match we've seen previously, so ignore it. */
-      } else {
-        /* A tie between the best so far and this one, so neither
-           one is best.  Note that best_worst_match remains set so
-           that only better functions will be considered in the
-           rest of the list. */
-        best_cfp = NULL;
-      }  /* if */
+      /* A tie between the best so far and this one, so neither
+         one is best.  Note that best_worst_match remains set so
+         that only better functions will be considered in the
+         rest of the list. */
+      best_cfp = NULL;
     }  /* if */
   }  /* for */
   if (best_cfp != NULL) {
@@ -7463,13 +7470,6 @@ is set to TRUE.
           if (best_cfp == NULL) {
             /* First function.  Take it as the best so far by definition. */
             best_cfp = cfp;
-          } else if (same_candidate_function(cfp, best_cfp)) {
-            /* The same function appears twice in the overload set,
-               probably because the set is synthesized for a member lookup
-               or because of a using directive.  Ignore the second function. */
-            cfp->in_best_match_set = FALSE;
-            number_in_best_match_set--;
-            if (number_in_best_match_set == 1) goto end_func_winnow;
           } else {
             /* Compare the current function against the best so far. */
             cmp = compare_candidate_functions(cfp, best_cfp);
@@ -8308,7 +8308,7 @@ in_instantiation:
           /* This must be either the only entry on the list, or all other
              entries on the list must be the same symbol. */
           for (slep = symbol_list->next; slep != NULL; slep = slep->next) {
-            if (slep->symbol != symbol_list->symbol) break;
+            if (!same_function(slep->symbol, symbol_list->symbol)) break;
           }  /* for */
           if (slep == NULL) {
             free_list_of_symbol_list_entries(symbol_list);
