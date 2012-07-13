@@ -8625,32 +8625,35 @@ of the array.
 
 static a_dynamic_init_ptr elem_dynamic_init(a_dynamic_init_ptr dip)
 /*
-dip points to a dynamic init entry that initializes a whole array.  If all
-elements of the array are being identically initialized, return the
-dynamic init entry for an array element; otherwise return NULL.
+dip points to a dynamic init entry that initializes a whole array.  Find
+the dynamic init entry that applies to each element and return a pointer to it.
 */
 {
   a_constant_ptr     con;
-  a_dynamic_init_ptr elem_dip = NULL;
+  a_dynamic_init_ptr elem_dip;
 
 #if CHECKING
   if (dip->kind != (a_dynamic_init_kind)dik_nonconstant_aggregate) {
     internal_error("elem_dynamic_init: not nonconst aggregate");
   }  /* if */
 #endif /* CHECKING */
-  /* If initializing all elements of the array in an identical fashion,
-     the nonconstant aggregate case has ck_aggregate constant ->
+  /* The nonconstant aggregate case has ck_aggregate constant ->
      ck_init_repeat constant -> ck_dynamic_init constant ->
-     dynamic init entry (and it's the only entry). */
+     dynamic init entry. */
   con = dip->variant.constant;
   con = con->variant.aggregate.first_constant;
-  if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
-    con = con->variant.init_repeat.constant;
-    if (con->next == NULL &&
-        con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-      elem_dip = con->variant.dynamic_init;
-    }  /* if */
+#if CHECKING
+  if (con->kind != (a_constant_repr_kind)ck_init_repeat) {
+    internal_error("elem_dynamic_init: not ck_init_repeat");
   }  /* if */
+#endif /* CHECKING */
+  con = con->variant.init_repeat.constant;
+#if CHECKING
+  if (con->kind != (a_constant_repr_kind)ck_dynamic_init) {
+    internal_error("elem_dynamic_init: not ck_dynamic_init");
+  }  /* if */
+#endif /* CHECKING */
+  elem_dip = con->variant.dynamic_init;
   return elem_dip;
 }  /* elem_dynamic_init */
 
@@ -8850,10 +8853,18 @@ arrays with class elements.
   if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_zero) {
     /* There is a dynamic init entry to initialize the storage after it is
        allocated.  dik_zero initialization is handled below. */
-    /* See if the array can be initialized by calling the same constructor
-       for every element in the array. */
-    elem_dip = elem_dynamic_init(dip);
-    if (elem_dip != NULL) {
+    if (ndsp->new_initializer_is_brace_enclosed) {
+      /* The array needs to be initialized after it is allocated, but it
+         can't be done by a call to the runtime routine.  Indicate that
+         dynamic initialization is needed after the storage is allocated. */
+      ctor_routine = NULL;
+      dtor_routine = NULL;
+      needs_dynamic_initialization = TRUE;
+    } else {
+      /* The array can be initialized by calling the same constructor
+         for every element in the array. */
+      elem_dip = elem_dynamic_init(dip);
+      check_assertion(elem_dip != NULL);
       /* All elements of the array receive the same initialization treatment
          so we can use a call to a runtime routine to initialize the
          entire array. */
@@ -8918,13 +8929,6 @@ arrays with class elements.
                                              /*define_now=*/FALSE);
       }  /* if */
 #endif /* IA64_ABI */
-    } else {
-      /* The array needs to be initialized after it is allocated, but it
-         can't be done by a call to the runtime routine.  Indicate that
-         dynamic initialization is needed after the storage is allocated. */
-      ctor_routine = NULL;
-      dtor_routine = NULL;
-      needs_dynamic_initialization = TRUE;
     }  /* if */
   } else {
     /* There is no dynamic init entry; the storage is not initialized after
