@@ -5621,8 +5621,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       /* Arrays are aggregates. */
       is_aggregate = TRUE;
       atype = dtype;
-      aggr_init_array(&icp, &atype, is, diag_pos, /*var_init=*/TRUE,
-                      &is->init_con);
+      aggr_init_array(&icp, &atype, is, diag_pos, is_var_init, &is->init_con);
       if (atype != dtype) {
         /* Presumably an incomplete array type whose length is now known.
            Update the recorded type. */
