@@ -3600,14 +3600,17 @@ vp had an incomplete array type that has been completed by an initializer.
   db_enter(5, "put_type_back_into_variable");
   check_assertion(is_array_type(vp->type) && is_incomplete_type(vp->type));
   /* See if the variable has linkage. */
-  if (symbol_ptr->kind == (a_symbol_kind)sk_variable && linkage != idl_none) {
-    /* The type of a variable with linkage has been adjusted because it
-       is an incomplete array that has been initialized.  Check that the
-       new type is compatible with other declarations of the variable.
-       This is necessary for cases like
+  if (symbol_is(symbol_ptr, sk_variable) && linkage != idl_none &&
+      !is_template_dependent_context()) {
+    /* The type of a variable with linkage has been adjusted because it is an
+       incomplete array that has been initialized.  Check that the new type is
+       compatible with other declarations of the variable.  This is necessary
+       for cases like
          main () {extern char a[5];}
          char a[] = "abc";  <-- Error; int [3] is incompatible with int [5].
-    */
+       However, in prototype instantiations variables with linkage aren't
+       really allocated and should therefore not be unified with other
+       declarations. */
     make_locator_for_symbol(symbol_ptr, &locator);
     if (!is_error_locator(locator)) {
       name_linkage = symbol_ptr->
