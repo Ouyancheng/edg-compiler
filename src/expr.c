@@ -32192,6 +32192,7 @@ required_type will be void if the expression should have void type
     }  /* if */
     icp = scan_braced_init_list_internal(/*bundle=*/FALSE);
     clear_init_state(&init_state);
+    init_state.elements_are_full_expressions = TRUE;
     /* When the return is via copy constructor, get an operand back so
        it can be fed into the elision optimization below.
        Otherwise, get back either a dynamic init or a constant. */

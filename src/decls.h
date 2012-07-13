@@ -399,6 +399,11 @@ typedef struct an_init_state {
 			   should be TRUE (making the example well-formed), but
 			   for "int y[2][2]{ 1, 2, 3, 4 };" is should be FALSE
 			   (and the example is an error). */
+  a_bit_field	elements_are_full_expressions:1;
+			/* TRUE if the elements of a braced initializer are
+			   full expressions.  E.g., in "T x = { f() };", "f()"
+			   should be treated as a full expression, but in
+			   "g({ f() })" is should not. */
 } an_init_state;
 
 

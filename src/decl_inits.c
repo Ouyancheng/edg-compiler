@@ -5753,6 +5753,7 @@ is part of.  diag_pos is the position to be used by default for diagnostics
     dps->init_state.elided_braces_allowed = TRUE;
   }  /* if */
   vp->has_direct_braced_initializer = direct;
+  dps->init_state.elements_are_full_expressions = TRUE;
   dps->init_state.initializer_must_be_constant =
                     C_mode() && (dps->init_state.static_lifetime_init ||
                                  !allow_nonconstant_auto_aggr_init_in_c_mode);
@@ -7631,6 +7632,7 @@ entries are replaced as needed for each mem-initializer that is encountered.
       lbrace_pos = pos_curr_token;
       clear_init_state(&is);
       is.direct_init = TRUE;
+      is.elements_are_full_expressions = TRUE;
       /* Scan the initializer. */
       braced_initializer(dtype, &is, (a_decl_parse_state*)NULL, &lbrace_pos);
       /* If no dynamic init entry was produced, wrap the result (a constant
