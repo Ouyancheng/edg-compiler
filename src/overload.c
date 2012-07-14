@@ -1090,6 +1090,28 @@ is the source indefinite function operand.
 }  /* arg_type_for_unique_specialization */
 
 
+static a_boolean template_does_not_use_its_template_parameters(
+                                                              a_symbol_ptr sym)
+/*
+sym is a function template.  Return TRUE if it is an odd template that does
+not make use of its parameters in the function signature, e.g.,
+
+  template <typename T> void f();
+
+*/
+{
+  a_boolean                        does_not_use_params = FALSE;
+  a_template_symbol_supplement_ptr tssp;
+
+  check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
+  tssp = template_supplement_for_symbol(sym);
+  if (!is_template_dependent_type(tssp->variant.function.routine->type)) {
+    does_not_use_params = TRUE;
+  }  /* if */
+  return does_not_use_params;
+}  /* template_does_not_use_its_template_parameters */
+
+
 static
 a_boolean indefinite_function_can_be_template_arg(
                                    an_operand           *operand,
@@ -1150,9 +1172,15 @@ from previous arguments; in the standard case, it is always NULL.
           /* If an overload set contains any function templates (and the
              operand is not a template-id), the parameter is considered a
              nondeduced context. */
-          /* MSVC doesn't do this (checked in 7.1 - 10.0).  The template is
-             just considered not to match. */
-          if (!microsoft_bugs) {
+          if (microsoft_bugs) {
+            /* MSVC doesn't do this (checked in 7.1 - 10.0).  The template is
+               just considered not to match. */
+          } else if (gpp_mode &&
+                     template_does_not_use_its_template_parameters(sym)) {
+            /* g++ seems to ignore templates that do not use their template
+               parameters (they couldn't be made to match, because there's
+               no way to deduce the parameter types).  Checked in 4.0 - 4.6. */
+          } else {
             can_be_arg = FALSE;
             break;
           }  /* if */

@@ -1,5 +1,31 @@
 Version 4.5
 
+7/14/12  [EDGcpfe/12985]
+GNU C++ quirk on deduction with overloaded function argument
+
+According to the C++ standard, if an overloaded function name is passed
+as the argument in a call that requires deduction, the argument is
+treated as a non-deduced context.  g++ seems to add a special case to
+that: in the overload set of the argument, any templates that do not
+make use of their template parameters in their signatures are discarded.
+This can allow deduction if what's left is a single non-template.
+
+  struct A {
+    A(); 
+  };
+  struct B {
+    bool bar(const B& b);
+    template <typename T> bool bar();  // Note no use of T
+    void baz();
+  };
+  template <typename T, typename S, typename C>
+  static void foo(A &a, S (C::*method)(T)) {}
+  void B::baz() {
+    A a;
+    foo(a, &B::bar);
+  }
+
+
 7/11/12  [EDGcpfe/12991]
 Spurious "never referenced" warnings on variables used as template arguments
 
