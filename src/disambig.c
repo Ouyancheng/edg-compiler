@@ -113,10 +113,12 @@ Perform any operations that must be done to clean up after disambiguation.
   /* If we are accumulating cached tokens, extract the tokens and rescan
      them.  The test of dsp->first_tsn is used to avoid doing this when the
      only token put in the cache was the current token at the start of
-     caching. */
+     caching.  An exception is made when the current token is tok_end_of_source
+     because the last_tsn_in_cache may not have been updated in that case. */
   if (dsp->cache_tokens) {
     end_caching_fetched_tokens();
-    if (curr_lexical_state_stack_entry->last_tsn_in_cache != dsp->first_tsn) {
+    if (curr_lexical_state_stack_entry->last_tsn_in_cache != dsp->first_tsn ||
+        curr_token == tok_end_of_source) {
       a_token_cache	cache;
       clear_token_cache(&cache, /*is_reusable=*/FALSE);
       /* Get the tokens that were fetched by this routine from the cache

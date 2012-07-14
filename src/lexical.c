@@ -1494,7 +1494,7 @@ If include_last_token is TRUE, last_tsn is included in the cache.
   for (; ctp != NULL; ctp = ctp->next) {
     /* Stop when we find the specified token, or if we reach an end of
        source token marking the end of the cache. */
-    if (ctp->token_sequence_number >= last_tsn ||
+    if (ctp->ending_token_sequence_number >= last_tsn ||
         (a_token_kind)ctp->token == tok_end_of_source) break;
     if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
       /* The token sequence looks something like:
@@ -12167,9 +12167,9 @@ added to the cache.
   }  /* if */
   lssep->cache_tokens++;
   if (include_curr_token &&
-      curr_token_sequence_number > lssep->last_tsn_in_cache) {
+      last_token_sequence_number_of_token > lssep->last_tsn_in_cache) {
     cache_curr_token(&lssep->cache);
-    lssep->last_tsn_in_cache = curr_token_sequence_number;
+    lssep->last_tsn_in_cache = last_token_sequence_number_of_token;
   }  /* if */
 }  /* begin_caching_fetched_tokens */
 
