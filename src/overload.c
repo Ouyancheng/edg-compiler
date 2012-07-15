@@ -20194,10 +20194,6 @@ object lifetime context.
           }  /* if */
         }  /* if */
       }  /* if */
-      /* If the operand has any reference entries, re-attach them to the
-         current expression context. */
-      reattach_ref_entries_to_curr_expr(operand_of_arg_list_elem(icp));
-      operand_of_arg_list_elem(icp)->ref_entries_list = NULL;
     } else if (is_braced_init_component(icp)) {
       /* For a braced-init-list, process the subtree. */
       unbundle_init_component_list_expressions(icp->variant.braced.list);
@@ -20206,6 +20202,12 @@ object lifetime context.
     } else {
       unexpected_condition();
     }  /* if */
+  }  /* if */
+  /* If the operand has any reference entries, re-attach them to the
+     current expression context. */
+  if (is_expression_component(icp)) {
+    reattach_ref_entries_to_curr_expr(operand_of_arg_list_elem(icp));
+    operand_of_arg_list_elem(icp)->ref_entries_list = NULL;
   }  /* if */
 }  /* unbundle_init_component_expressions */
 

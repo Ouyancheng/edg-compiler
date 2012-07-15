@@ -1194,7 +1194,7 @@ needed to unbundle the operand.
   check_arg_list_elem_is_expression(icp);
   arg_op = icp->variant.expr;
   copy_operand(&arg_op->operand, operand);
-  if (icp->bundled) unbundle_init_component_expressions(icp);
+  unbundle_init_component_expressions(icp);
   if (free_icp) free_init_component_list(icp);
 }  /* extract_operand_from_expression_component */
 
