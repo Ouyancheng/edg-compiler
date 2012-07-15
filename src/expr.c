@@ -29200,6 +29200,7 @@ this initializer (but it's not put on a lifetime list yet).
   a_variable_ptr      var = NULL;
   a_dynamic_init_ptr  dip;
   a_conv_context_set  conv_context = CCO_DEFAULT;
+  a_boolean           is_full_expr = is->elements_are_full_expressions;
 
   if (is->initializer_must_be_constant) {
     ekind = (an_expression_kind)ek_init_constant;
@@ -29219,15 +29220,15 @@ this initializer (but it's not put on a lifetime list yet).
     conv_context |= CCO_INITIALIZING_VARIABLE;
     if (is->static_lifetime_init) conv_context |= CCO_STATIC_LIFETIME;
   }  /* if */
-  save_expr_stack(&saved_expr_stack);
+  if (is_full_expr) save_expr_stack(&saved_expr_stack);
   push_expr_stack(ekind, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/TRUE);
+                  /*suppress_object_lifetime=*/FALSE);
   if (is->static_lifetime_init ||
       favor_constant_result_for_nonstatic_init) {
     expr_stack_entry.favor_constant_result = TRUE;
   }  /* if */
-  transfer_expr_context_if_applicable(saved_expr_stack);
+  if (is_full_expr) transfer_expr_context_if_applicable(saved_expr_stack);
   prep_list_initializer(icp, dest_type,
                         is->direct_init,
                         check_narrowing,
@@ -29235,16 +29236,20 @@ this initializer (but it's not put on a lifetime list yet).
                         /*force_temp=*/FALSE,
                         (an_operand *)NULL,
                         is, (an_arg_match_summary *)NULL);
-  dip = is->init_dip;
-  /* If this conversion was treated as full expression, wrap up the
-     object lifetime.  expr_stack->lifetime is non-NULL here if a full
-     expression lifetime was pushed sometime during the processing. */
-  if (!is->check_validity_only && expr_stack->lifetime != NULL) {
-    check_assertion(dip != NULL);
-    wrap_up_dynamic_init_full_expression(dip);
+  if (is->init_error) {
+    dip = NULL;
+  } else {
+    dip = is->init_dip;
+  }  /* if */
+  if (!is->check_validity_only) {
+    /* If this conversion was treated as full expression, wrap up the
+       object lifetime. */
+    if (is_full_expr && dip != NULL) {
+      wrap_up_dynamic_init_full_expression(dip);
+    }  /* if */
   }  /* if */
   pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
+  if (is_full_expr) restore_expr_stack(saved_expr_stack);
   if (!is->check_validity_only && is_var_init) {
     if (dip != NULL) dip->variable = var;
   }  /* if */

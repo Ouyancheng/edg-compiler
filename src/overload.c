@@ -20124,7 +20124,23 @@ etc.)
 }  /* make_initializer_list_object */
 
 
-static void unbundle_init_component_expressions(an_init_component_ptr icp)
+static void unbundle_init_component_list_expressions(
+                                                    an_init_component_ptr list)
+/*
+Unbundle all the expressions in the list of init components given by list.
+This is done when the whole list is going to be used at once, as for example
+as an argument list.
+*/
+{
+  an_init_component_ptr icp;
+
+  for (icp = list; icp != NULL; icp = icp->next) {
+    unbundle_init_component_expressions(icp);
+  }  /* for */
+}  /* unbundle_init_component_list_expressions */
+
+
+void unbundle_init_component_expressions(an_init_component_ptr icp)
 /*
 If any of the expressions in icp were previously "bundled," meaning
 packaged up so they could be saved off to the side (e.g., in an
@@ -20143,31 +20159,48 @@ object lifetime context.
         icp->variant.expr->lifetime = NULL;
         check_assertion(curr_object_lifetime != NULL);
         if (wrap_lifetime != NULL) {
+          check_assertion(wrap_lifetime->kind ==
+                                 (an_object_lifetime_kind)olk_expr_temporary);
           if (curr_object_lifetime->kind ==
-                                 (an_object_lifetime_kind)olk_expr_temporary ||
-              long_lifetime_temps) {
-            /* Promote the contents of the added lifetime into the current
-               full-expression object lifetime. */
+                                 (an_object_lifetime_kind)olk_expr_temporary) {
+            check_assertion(curr_object_lifetime == expr_stack->lifetime);
+            if (is_useless_object_lifetime(curr_object_lifetime)) {
+              /* The current object lifetime is an expression temporary
+                 lifetime that is empty (perhaps one pushed by
+                 convert_initializer just to make sure there's a lifetime
+                 around a full expression).  Pop it to discard it, and
+                 re-push the wrap lifetime in its place. */
+               (void)pop_object_lifetime();
+               push_or_repush_object_lifetime(iek_none, (char *)NULL,
+                                              wrap_lifetime,
+                                              wrap_lifetime->kind);
+               expr_stack->lifetime = wrap_lifetime;
+            } else {
+              /* The current object lifetime is an expression temporary
+                 lifetime, but it already has something in it.  Promote
+                 the contents of the wrap lifetime into the current
+                 object lifetime. */
+              promote_lifetime_contents_to_curr_object_lifetime(wrap_lifetime);
+              free_object_lifetime(wrap_lifetime);
+            }  /* if */
+          } else {
+            /* The current lifetime can be something other than an
+               expression temporary lifetime in long lifetime temporaries
+               mode.  Promote into the current lifetime, whatever it is,
+               in that case. */
+            check_assertion(long_lifetime_temps);
             promote_lifetime_contents_to_curr_object_lifetime(wrap_lifetime);
             free_object_lifetime(wrap_lifetime);
-          } else {
-            /* Re-push the created lifetime. */
-            add_as_child_of_curr_object_lifetime(wrap_lifetime);
-            curr_object_lifetime = wrap_lifetime;
-            check_assertion(expr_stack->lifetime == NULL);
-            expr_stack->lifetime = curr_object_lifetime;
           }  /* if */
         }  /* if */
       }  /* if */
       /* If the operand has any reference entries, re-attach them to the
          current expression context. */
       reattach_ref_entries_to_curr_expr(operand_of_arg_list_elem(icp));
+      operand_of_arg_list_elem(icp)->ref_entries_list = NULL;
     } else if (is_braced_init_component(icp)) {
       /* For a braced-init-list, process the subtree. */
-      an_init_component_ptr nicp;
-      for (nicp = icp->variant.braced.list; nicp != NULL; nicp = nicp->next) {
-        unbundle_init_component_expressions(nicp);
-      }  /* for */
+      unbundle_init_component_list_expressions(icp->variant.braced.list);
     } else if (is_designator_component(icp)) {
       /* Nothing to be done. */
     } else {
@@ -20226,22 +20259,24 @@ resolution terms (e.g., is it an exact match or a user-defined conversion,
 etc.)
 */
 {
-  a_dynamic_init_ptr  dip = NULL;
-  a_constant_ptr      constant = NULL;
-  a_boolean           is_constant;
-  a_boolean           braced_init;
-  a_boolean           is_cast = (conv_context & CCO_CAST) != 0;
-  a_symbol_ptr        ctor_sym;
-  an_operand          operand;
-  a_boolean           dest_type_is_class=is_class_struct_union_type(dest_type);
-  a_boolean           saved_potentially_evaluated;
-  a_boolean           saved_suppress_diagnostics;
-  a_boolean           saved_any_suppressed_error;
-  a_boolean           issue_errors = TRUE;
-  a_boolean           generate_il = TRUE;
-  a_boolean           *p_error_detected;
-  a_boolean           error_detected;
-  a_boolean           arg_match_err = FALSE;
+  a_dynamic_init_ptr   dip = NULL;
+  a_constant_ptr       constant = NULL;
+  a_boolean            is_constant;
+  a_boolean            braced_init;
+  a_boolean            is_cast = (conv_context & CCO_CAST) != 0;
+  a_symbol_ptr         ctor_sym;
+  an_operand           operand;
+  a_boolean            dest_type_is_class =
+                                         is_class_struct_union_type(dest_type);
+  a_boolean            saved_potentially_evaluated;
+  a_boolean            saved_suppress_diagnostics;
+  a_boolean            saved_any_suppressed_error;
+  a_boolean            issue_errors = TRUE;
+  a_boolean            generate_il = TRUE;
+  a_boolean            *p_error_detected;
+  a_boolean            error_detected;
+  a_boolean            arg_match_err = FALSE;
+  an_arg_match_summary internal_arg_match;
 
   /* The basic modes are:
                       issue_errors   generate_il
@@ -20262,12 +20297,20 @@ etc.)
   } else if (is != NULL) {
     /* If we're only doing an exploratory evaluation, turn off some
        error output etc. */
-    if (is->check_validity_only) {
+    if (is->check_validity_only && is->no_diagnostics) {
+      /* This is an overload resolution case specified through the init_state
+         interface, e.g., when a braced-init-list is being evaluated against
+         a parameter with an aggregate type.  Use an internal argument
+         match entry. */
+      arg_match = &internal_arg_match;
+      clear_arg_match_summary(arg_match);
+      issue_errors = FALSE;
+      generate_il = FALSE;
+    } else if (is->check_validity_only) {
       generate_il = FALSE;
       saved_potentially_evaluated = expr_stack->potentially_evaluated;
       expr_stack->potentially_evaluated = FALSE;
-    }  /* if */
-    if (is->no_diagnostics) {
+    } else if (is->no_diagnostics) {
       issue_errors = FALSE;
       saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
       expr_stack->suppress_diagnostics = TRUE;
@@ -20283,10 +20326,6 @@ etc.)
   /* If the destination type is a template class, make sure it is
      instantiated. */
   complete_type_is_needed(dest_type);
-  if (generate_il) {
-    /* Unbundle any expressions that are bundled. */
-    unbundle_init_component_expressions(icp);
-  }  /* if */
   braced_init = is_braced_init_component(icp);
   if (is_expression_component(icp)) {
     /* The object is initialized by an expression. */
@@ -20308,7 +20347,9 @@ etc.)
       /* Not an overload resolution case.  Do the actual initialization
          processing.  In some modes we may suppress errors or discard the
          IL/operand created. */
-      copy_operand(operand_of_arg_list_elem(icp), &operand);
+      check_assertion(generate_il);
+      extract_operand_from_expression_component(icp, &operand,
+                                                /*free_icp=*/FALSE);
       if (dest_type_is_class && !is_direct_init) {
         /* See if we can elide the copy for copy-initialization of
            class-typed objects. */
@@ -20348,7 +20389,8 @@ etc.)
       /* Dependent case.  Pretend this is a constructor invocation. */
       /* The dependent case should have been handled higher up for
          overload resolution. */
-      check_assertion(arg_match == NULL);
+      check_assertion(arg_match == NULL && generate_il);
+      unbundle_init_component_list_expressions(list);
       scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
                                                /*arg_list_supplied=*/TRUE,
                                                list,
@@ -20363,6 +20405,8 @@ etc.)
         if (!issue_errors) eff_is->no_diagnostics = TRUE;
         if (!generate_il) eff_is->check_validity_only = TRUE;
       }  /* if */
+      /* No unbundling here, since we will still want to handle the
+         expressions individually at the next level down. */
       prep_aggr_initializer(icp, dest_type, eff_is,
                             check_narrowing,
                             fill_in_dtor);
@@ -20404,6 +20448,7 @@ etc.)
                is_instance_of_std_initializer_list(dest_type, &element_type)) {
       /* dest_type is an instance of std::initializer_list<X>, so build
          an initializer_list object from the braced-init-list. */
+      if (generate_il) unbundle_init_component_list_expressions(list);
       make_initializer_list_object(icp,
                                    element_type,
                                    dest_type,
@@ -20444,6 +20489,8 @@ etc.)
         }  /* if */
       } else {
         /* Initialization case (not overload resolution). */
+        check_assertion(generate_il);
+        unbundle_init_component_list_expressions(list);
         scan_ctor_arguments(ctor_sym,
                             init_component_pos(icp),
                             (a_type_ptr)NULL,
@@ -20594,6 +20641,7 @@ etc.)
     } else {
       /* Something else (e.g., an "int" initialized by a list with two
          elements); error. */
+      if (generate_il) unbundle_init_component_list_expressions(list);
       expr_pos_error(ec_too_many_initializer_values,
                      init_component_pos(list->next));
       make_error_operand(&operand);
@@ -20713,6 +20761,15 @@ etc.)
        if there was an error reset it now. */
     if (arg_match_err) {
       arg_match->match_level = aml_error;
+    }  /* if */
+    if (is != NULL) {
+      /* We were asked by way of the init_state interface to do an
+         overload-resolution check.  Return the result via "is". */
+      check_assertion(arg_match == &internal_arg_match);
+      is->init_error = (arg_match->match_level == aml_error ||
+                        arg_match->match_level == aml_none);
+      is->init_con = NULL;
+      is->init_dip = NULL;
     }  /* if */
   } else if (is != NULL) {
     /* Restore things after an exploratory evaluation. */

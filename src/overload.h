@@ -1017,6 +1017,8 @@ void prep_reference_initializer_operand(an_operand         *source_operand,
                                         a_conv_context_set conv_context,
                                         an_error_code      incompatible_err);
 #if !STANDALONE_UTILITY_PROGRAM
+extern void unbundle_init_component_expressions(an_init_component_ptr icp);
+
 extern
 void prep_list_initializer(an_init_component_ptr icp,
                            a_type_ptr            dest_type,

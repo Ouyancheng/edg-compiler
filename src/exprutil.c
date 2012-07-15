@@ -1194,25 +1194,7 @@ needed to unbundle the operand.
   check_arg_list_elem_is_expression(icp);
   arg_op = icp->variant.expr;
   copy_operand(&arg_op->operand, operand);
-  if (icp->bundled) {
-    an_object_lifetime_ptr olp_to_restore = arg_op->lifetime;
-    arg_op->lifetime = NULL;
-    icp->bundled = FALSE;
-    if (olp_to_restore != NULL) {
-      /* Restore the object lifetime associated with the cached expression. */
-      check_assertion(curr_object_lifetime != NULL &&
-                      curr_object_lifetime->kind == olp_to_restore->kind &&
-                      is_useless_object_lifetime(curr_object_lifetime) &&
-                      curr_object_lifetime == expr_stack->lifetime);
-      (void)pop_object_lifetime();
-      push_or_repush_object_lifetime(iek_none, (char *)NULL,
-                                     olp_to_restore,
-                                     olp_to_restore->kind);
-      expr_stack->lifetime = olp_to_restore;
-    }  /* if */
-    reattach_ref_entries_to_curr_expr(operand);
-    arg_op->operand.ref_entries_list = NULL;
-  }  /* if */
+  if (icp->bundled) unbundle_init_component_expressions(icp);
   if (free_icp) free_init_component_list(icp);
 }  /* extract_operand_from_expression_component */
 

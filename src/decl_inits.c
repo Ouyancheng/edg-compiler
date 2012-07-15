@@ -3929,7 +3929,12 @@ remove_any_extraneous_braces:
                       /*check_narrowing=*/TRUE,
                       /*fill_in_dtor=*/exceptions_enabled, &elem_is);
   is->init_error = elem_is.init_error;
-  if (elem_is.init_con != NULL) {
+  if (is->check_validity_only) {
+    /* No return value. */
+    *init_con = NULL;
+  } else if (is->init_error) {
+    *init_con = alloc_error_constant();
+  } else if (elem_is.init_con != NULL) {
     /* A constant initializer: Return it. */
     *init_con = elem_is.init_con;
   } else if (elem_is.init_dip != NULL) {
