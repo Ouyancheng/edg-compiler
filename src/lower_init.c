@@ -1508,7 +1508,9 @@ initial value pointed to by dip or con is already lowered.
       internal_error("add_init_assignment: bad kind");
 #endif /* CHECKING */
   }  /* switch */
-  if (array_assignment && is_incomplete_array_type(entity_type)) {
+  if (array_assignment &&
+      skip_typerefs(entity_type)->variant.array.variant.number_of_elements ==
+                                                                           0) {
     /* Don't bother to create an assignment to an array with an incomplete
        type.  These come up in cases like "new int[0]{};". */
     check_assertion(is_incomplete_array_type(init_val_node->type));
