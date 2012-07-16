@@ -1,5 +1,26 @@
 Version 4.5
 
+7/15/12  [EDGcpfe/12992]
+C++-generating back end, GNU compatibility: destructor name of a different
+template instance
+
+g++ has a bug such that if the destructor of an instance of a class
+template explicitly calls the destructor of a different instance of the
+same class template, the destructor must be named using the template
+arguments of that other instance.  In configurations with
+PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the C++-generating back end has
+now been changed to put out the template argument list in such destructor
+calls when gcc_is_generated_code_target is TRUE.  For example:
+
+  template<typename T, typename U> struct S {
+    S<U, T>* p;
+    ~S() {
+      p->~S<U, T>();  // Previously generated as p->~S()
+    }
+  };
+  S<int, char> sic;
+
+
 7/14/12  [EDGcpfe/12985]
 GNU C++ quirk on deduction with overloaded function argument
 

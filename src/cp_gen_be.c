@@ -8300,7 +8300,7 @@ indicated by opstr.
 */
 {
   a_boolean          unknown_function_case = FALSE;
-  a_constant_ptr     con;
+  a_constant_ptr     con = NULL;
   a_type_ptr         operand_1_type;
   a_name_context_ptr new_name_context = NULL;
   a_boolean          use_comma = FALSE;
@@ -8402,6 +8402,19 @@ indicated by opstr.
   }  /* if */
   if (curr_name_context == new_name_context) {
     pop_name_context();
+  }  /* if */
+  if (gcc_is_generated_code_target && con != NULL && operand_1_type != NULL &&
+      con->kind == (a_constant_repr_kind)ck_template_param &&
+      con->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member &&
+      has_name_before_mangling(con) &&
+      *unmangled_name_of(&con->source_corresp) == '~' &&
+      !scope_is_in_name_context_stack(con->source_corresp.parent_scope)) {
+    /* If the destructor of an instance of a class template explicitly
+       calls the destructor of a different instance of the same class
+       template, g++ requires that the destructor name have a template
+       argument list. */
+    gen_template_arguments(&operand_1_type->source_corresp, iek_type, -1);
   }  /* if */
 }  /* gen_dot_static */
 
