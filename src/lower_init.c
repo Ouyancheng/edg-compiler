@@ -1511,8 +1511,8 @@ initial value pointed to by dip or con is already lowered.
   if (array_assignment &&
       skip_typerefs(entity_type)->variant.array.variant.number_of_elements ==
                                                                            0) {
-    /* Don't bother to create an assignment to an array with an incomplete
-       type.  These come up in cases like "new int[0]{};". */
+    /* Don't bother to create an assignment to an array with zero elements.
+       These come up in cases like "new int[0]{};". */
     check_assertion(skip_typerefs(init_val_node->type)->
                                 variant.array.variant.number_of_elements == 0);
   } else {
