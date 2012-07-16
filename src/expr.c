@@ -29283,8 +29283,10 @@ operation implementing the allocation of the array and its initialization.
   gsp->has_new_initializer = FALSE;
   gsp->is_cli_array = TRUE;
   gsp->compiler_generated = TRUE;
+  is->elements_are_full_expressions = FALSE;
   aggr_init_cli_array(icp, hatype, is, &gsp->dynamic_init,
                       &gsp->cli_array_dimension_lengths);
+  is->elements_are_full_expressions = is_full_expr;
   gsp->type = type_pointed_to(hatype);
   /* Finally, create the dik_expression entry. */
   *result = dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
