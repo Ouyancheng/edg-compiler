@@ -29254,6 +29254,49 @@ this initializer (but it's not put on a lifetime list yet).
 }  /* convert_initializer */
 
 
+void aggr_init_cli_array_with_alloc(an_init_component_ptr  icp,
+                                    a_type_ptr             hatype,
+                                    an_init_state          *is,
+                                    a_dynamic_init_ptr     *result)
+/*
+The given brace-enclosed initializer appears as an initializer for the given
+handle type (presumably to a CLI array type, although it could also be a
+generic or error type).  Create a dik_expression entry in *result for a gcnew
+operation implementing the allocation of the array and its initialization.
+*/
+{
+  an_expr_node_ptr        gcnew_node;
+  a_dynamic_init_ptr      dip;
+  a_gcnew_supplement_ptr  gsp;
+  an_expr_stack_entry     *saved_expr_stack;
+  an_expr_stack_entry     expr_stack_entry;
+
+  check_assertion(is_braced_init_component(icp));
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
+  /* Construct the enk_gcnew expression and the gcnew supplement. */
+  gcnew_node = alloc_expr_node((an_expr_node_kind)enk_gcnew);
+  gcnew_node->type = hatype;
+  gsp = gcnew_node->variant.gcnew_info;
+  gsp->has_new_initializer = FALSE;
+  gsp->is_cli_array = TRUE;
+  gsp->compiler_generated = TRUE;
+  aggr_init_cli_array(icp, hatype, is, &gsp->dynamic_init,
+                      &gsp->cli_array_dimension_lengths);
+  gsp->type = type_pointed_to(hatype);
+  /* Finally, create the dik_expression entry. */
+  *result = dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+  dip->variant.expression = gcnew_node;
+  wrap_up_dynamic_init_full_expression(dip);
+  is->has_dynamic_init_component = TRUE;
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+}  /* aggr_init_cli_array_with_alloc */
+
+
 static a_symbol_ptr look_up_enhanced_for_member_function(
                                                      a_type_ptr       type,
                                                      char             *name,

@@ -20163,18 +20163,24 @@ object lifetime context.
                                  (an_object_lifetime_kind)olk_expr_temporary);
           if (curr_object_lifetime->kind ==
                                  (an_object_lifetime_kind)olk_expr_temporary) {
-            check_assertion(curr_object_lifetime == expr_stack->lifetime);
             if (is_useless_object_lifetime(curr_object_lifetime)) {
               /* The current object lifetime is an expression temporary
                  lifetime that is empty (perhaps one pushed by
                  convert_initializer just to make sure there's a lifetime
                  around a full expression).  Pop it to discard it, and
                  re-push the wrap lifetime in its place. */
-               (void)pop_object_lifetime();
-               push_or_repush_object_lifetime(iek_none, (char *)NULL,
-                                              wrap_lifetime,
-                                              wrap_lifetime->kind);
-               expr_stack->lifetime = wrap_lifetime;
+              /* Find the current object lifetime in the expression stack
+                 so we can update that pointer too. */
+              an_expr_stack_entry *pese = expr_stack;
+              while (pese->lifetime != curr_object_lifetime) {
+                pese = pese->prev;
+                check_assertion(pese != NULL);
+              }  /* while */
+              (void)pop_object_lifetime();
+              push_or_repush_object_lifetime(iek_none, (char *)NULL,
+                                             wrap_lifetime,
+                                             wrap_lifetime->kind);
+              pese->lifetime = wrap_lifetime;
             } else {
               /* The current object lifetime is an expression temporary
                  lifetime, but it already has something in it.  Promote
