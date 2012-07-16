@@ -29253,6 +29253,7 @@ this initializer (but it's not put on a lifetime list yet).
   }  /* if */
 }  /* convert_initializer */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void aggr_init_cli_array_with_alloc(an_init_component_ptr  icp,
                                     a_type_ptr             hatype,
@@ -29296,6 +29297,7 @@ operation implementing the allocation of the array and its initialization.
   restore_expr_stack(saved_expr_stack);
 }  /* aggr_init_cli_array_with_alloc */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_symbol_ptr look_up_enhanced_for_member_function(
                                                      a_type_ptr       type,
