@@ -1594,16 +1594,7 @@ list is returned.
         a_pack_expansion_descr_ptr pedep;
         if (curr_token == tok_lbrace && list_init_enabled) {
           /* A brace-enclosed list. */
-          alep = alloc_init_component((an_init_component_kind)ick_braced);
-          alep->variant.braced.start_pos = pos_curr_token;
-          (void)get_token();
-          alep->variant.braced.list = scan_expr_list(
-                                                tok_rbrace,
-                                                /*is_delegate_init=*/FALSE,
-                                                /*empty_list_okay=*/TRUE,
-                                                /*trailing_comma_okay=*/FALSE);
-          alep->variant.braced.end_pos = pos_curr_token;
-          (void)required_token(tok_rbrace, ec_exp_rbrace);
+          alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
         } else {
           /* An expression. */
           alep = alloc_init_component((an_init_component_kind)ick_expression);
@@ -28318,7 +28309,9 @@ bad_start_of_primary:
   if (saved_ref_list != NULL) {
     for (last_rep = saved_ref_list;
          last_rep->next != NULL;
-         last_rep = last_rep->next) {}
+         last_rep = last_rep->next) {
+      check_assertion(last_rep != curr_expr_ref_entries);
+    }  /* for */
     last_rep->next = curr_expr_ref_entries;
     curr_expr_ref_entries = saved_ref_list;
   }  /* if */
@@ -29218,7 +29211,11 @@ this initializer (but it's not put on a lifetime list yet).
     conv_context |= CCO_INITIALIZING_VARIABLE;
     if (is->static_lifetime_init) conv_context |= CCO_STATIC_LIFETIME;
   }  /* if */
-  if (is_full_expr) save_expr_stack(&saved_expr_stack);
+  if (is_full_expr) {
+    save_expr_stack(&saved_expr_stack);
+  } else {
+    check_assertion(expr_stack != NULL);
+  }  /* if */
   push_expr_stack(ekind, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);

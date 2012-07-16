@@ -152,7 +152,9 @@ the current expression, headed by curr_expr_ref_entries.
     a_ref_entry_ptr last_rep;
     for (last_rep = curr_expr_ref_entries;
          last_rep->next != NULL;
-         last_rep = last_rep->next) {}
+         last_rep = last_rep->next) {
+      check_assertion(last_rep != rep);
+    }  /* for */
     last_rep->next = rep;
   }  /* if */
   return rep;
@@ -657,6 +659,7 @@ the current expression.
     for (rep = first_rep;
          rep->next_operand_ref != NULL;
          rep = rep->next_operand_ref) {
+      check_assertion(rep != curr_expr_ref_entries);
       rep->next = rep->next_operand_ref;
     }  /* for */
     rep->next = curr_expr_ref_entries;
@@ -1146,9 +1149,9 @@ an initializer cache) for later restoration and further processing.
       expr_stack->lifetime = NULL;
       detach_from_object_lifetime_tree(arg_op->lifetime);
     }  /* if */
-    detach_ref_entries_from_curr_expr(operand);
     icp->bundled = TRUE;
   }  /* if */
+  detach_ref_entries_from_curr_expr(operand);
   add_init_component_to_initializer_cache(icp, to_front, cache);
 }  /* add_operand_to_initializer_cache */
 
