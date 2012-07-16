@@ -19958,6 +19958,11 @@ etc.)
     if (arg_match != NULL) {
       if (local_error_detected) arg_match_err = TRUE;
     }  /* if */
+  } else if (!is_complete_object_type(element_type)) {
+    /* Something like initializer_list<void>.  There was presumably a
+       previous error. */
+    if (expr_error_should_be_issued()) expect_error();
+    element_type = error_type();
   }  /* if */
   /* First we create a temporary of array type initialized to the values
      in the braced-init-list.  Its value is an aggregate constant
