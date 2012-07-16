@@ -29268,13 +29268,14 @@ operation implementing the allocation of the array and its initialization.
   a_gcnew_supplement_ptr  gsp;
   an_expr_stack_entry     *saved_expr_stack;
   an_expr_stack_entry     expr_stack_entry;
+  a_boolean               is_full_expr = is->elements_are_full_expressions;
 
   check_assertion(is_braced_init_component(icp));
-  save_expr_stack(&saved_expr_stack);
+  if (is_full_expr) save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  transfer_expr_context_if_applicable(saved_expr_stack);
+  if (is_full_expr) transfer_expr_context_if_applicable(saved_expr_stack);
   /* Construct the enk_gcnew expression and the gcnew supplement. */
   gcnew_node = alloc_expr_node((an_expr_node_kind)enk_gcnew);
   gcnew_node->type = hatype;
@@ -29288,10 +29289,10 @@ operation implementing the allocation of the array and its initialization.
   /* Finally, create the dik_expression entry. */
   *result = dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
   dip->variant.expression = gcnew_node;
-  wrap_up_dynamic_init_full_expression(dip);
+  if (is_full_expr) wrap_up_dynamic_init_full_expression(dip);
   is->has_dynamic_init_component = TRUE;
   pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
+  if (is_full_expr) restore_expr_stack(saved_expr_stack);
 }  /* aggr_init_cli_array_with_alloc */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
