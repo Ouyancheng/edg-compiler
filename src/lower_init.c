@@ -1513,7 +1513,8 @@ initial value pointed to by dip or con is already lowered.
                                                                            0) {
     /* Don't bother to create an assignment to an array with an incomplete
        type.  These come up in cases like "new int[0]{};". */
-    check_assertion(is_incomplete_array_type(init_val_node->type));
+    check_assertion(skip_typerefs(init_val_node->type)->
+                                variant.array.variant.number_of_elements == 0);
   } else {
     /* Make an assignment statement.  Note that we know that no constructor
        (copy or other) is involved because we have this kind of dynamic
