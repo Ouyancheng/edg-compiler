@@ -403,7 +403,7 @@ typedef struct an_init_state {
 			/* TRUE if the elements of a braced initializer are
 			   full expressions.  E.g., in "T x = { f() };", "f()"
 			   should be treated as a full expression, but in
-			   "g({ f() })" is should not. */
+			   "g({ f() })" it should not. */
 } an_init_state;
 
 

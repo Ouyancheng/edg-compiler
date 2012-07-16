@@ -85,7 +85,7 @@ enum an_init_component_kind_tag {
   ick_expression,	/* An expression. */
   ick_braced,		/* A brace-enclosed list. */
   ick_designator	/* A designator (for C99-style or GNU-style
-			   designated initializers. */
+			   designated initializers). */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_init_component_kind;

@@ -29148,7 +29148,7 @@ initializer cache) for later restoration and further processing.
 
 an_init_component_ptr scan_full_initializer_expr_as_component(void)
 /*
-Scan an initializer that is a non-braced-enclosed expression and return it as
+Scan an initializer that is a non-brace-enclosed expression and return it as
 an initializer component.
 */
 {
@@ -29165,7 +29165,7 @@ an initializer component.
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   return icp;
-}  /*  */
+}  /* scan_full_initializer_expr_as_component */
 
 
 void convert_initializer(an_init_component_ptr icp,

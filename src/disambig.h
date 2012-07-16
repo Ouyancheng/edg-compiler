@@ -51,8 +51,8 @@ typedef uint16_t a_disambig_flag_set;
 #define DFS_POSSIBLE_ENUM_BASE		0x100
 			/* We are processing what follows colon in
 			   "enum E : X ...".  In an enum definition, what
-			    follows will be "{ ...".  Something like
-			    "X(expression)" is a bit field declaration. */
+			   follows will be "{ ...".  Something like
+			   "X(expression)" is a bit field declaration. */
 
 extern a_boolean is_decl_not_expr(a_disambig_flag_set flags);
 

@@ -4047,7 +4047,7 @@ vector type.
   ecount = num_vector_elements(vtype);
   etype = vtype->variant.vector.element_type;
   check_assertion(!is_aggregate_or_union_type(etype));
-  /* Create the result type (unless we are only checking validity). */
+  /* Create the result entry (unless we are only checking validity). */
   if (!is->check_validity_only) {
     *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
     (*init_con)->type = vtype;
@@ -4640,10 +4640,10 @@ static void set_cli_array_constant_dimensions(an_expr_node_ptr       dim_exprs,
                                               a_host_large_unsigned  rank,
                                               a_host_large_integer   dims[])
 /*
-For every constant in the list pointed to by dim_exprs, the corresponding
-dims[] element (which is in reversed order) to the value of that constant.
-Set all other elements of dims[] to -1.  dim_exprs can be NULL (in which case
-dims[1] ... dims[rank] will be set to -1).
+For every constant in the list of CLI array dimension expressions pointed to by
+dim_exprs, set the corresponding dims[] element (which is in reversed order) to
+the value of that constant.  Set all other elements of dims[] to -1.  dim_exprs
+can be NULL (in which case dims[1] ... dims[rank] will be set to -1).
 */
 {
   an_expr_node_ptr  expr = dim_exprs;
@@ -4741,11 +4741,12 @@ void aggr_init_cli_array(an_init_component_ptr  icp,
                          an_expr_node_ptr       *dim_exprs)
 /*
 icp is a brace-enclosed initializer for a handle to CLI array type hatype.
-*is describes the initialization as a whole.  If *dim_exprs is NULL, deduce
-the dimensions of the array type from the initializer, and set *dim_exprs to
-a list of dimension expressions suitable for use in an enk_gcnew node.
-(dim_exprs itself must be non-NULL.)  Record in *result a dik_constant or
-dik_nonconstant_aggregate entry for the initialization.
+*is describes the initialization as a whole.  Produce a dynamic init entry
+(dik_constant or dik_nonconstant_aggregate) representing the initialization in
+*result.
+If *dim_exprs is NULL, deduce the dimensions of the array type from the
+initializer, and set *dim_exprs to a list of dimension expressions suitable
+for use in an enk_gcnew node.  (dim_exprs itself must be non-NULL.)
 */
 {
   a_boolean       unknown_rank = FALSE, saved_elided_braces_allowed;
@@ -4782,7 +4783,7 @@ dik_nonconstant_aggregate entry for the initialization.
     }  /*if */
   } else {
     /* Presumably a handle to a generic type (that could end up being a CLI
-       array type. */
+       array type). */
     check_assertion(is_template_param_or_nonreal_class_type(atype) ||
                     is_error_type(atype));
     aggr_init_generic_element(icp, atype, is, &aggr_con);
@@ -5335,7 +5336,12 @@ static void aggr_init_chained_designator(an_init_component_ptr  *p_icp,
 /*
 *p_icp represents a "chained" designator; i.e., a designator immediately
 following another designator.  For example, ".i" and "[3]" in ".x.i[3]".
-aggr_type is the type into which the designator refers
+aggr_type is the type into which the designator refers.  Call aggr_init_class
+or aggr_init_array at the level that the designator applies to, or issue a
+diagnostic if aggr_type is not a type in which designators can be used.  The
+designated constant, if any, is produced in *result and *p_icp is updated to
+point to the component following the designated component (or NULL if no more
+components follow at the current level).
 */
 {
   an_init_component_ptr  icp = *p_icp;
@@ -5357,8 +5363,8 @@ aggr_type is the type into which the designator refers
     aggr_init_array(&icp, &aggr_type, is, init_component_pos(icp),
                     /*var_init=*/FALSE, result);
   } else if (is_template_param_type(aggr_type)) {
-    /* We cannot represent designators in nonreal types.  This diagnosed early
-       in a way that should prevent us from getting here. */
+    /* We cannot represent designators in nonreal types.  This was diagnosed
+       earlier in a way that should prevent us from getting here. */
     unexpected_condition();
   } else {
     /* Not a type for which designators are valid. */

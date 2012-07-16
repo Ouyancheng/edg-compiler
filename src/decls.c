@@ -91,12 +91,12 @@ Clear the fields of *is.
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   is->class_to_look_in = NULL;
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-  is->init_error = FALSE;
   is->direct_init = FALSE;
   is->static_lifetime_init = FALSE;
   is->initializer_must_be_constant = FALSE;
   is->no_diagnostics = FALSE;
   is->check_validity_only = FALSE;
+  is->init_error = FALSE;
   is->has_dynamic_init_component = FALSE;
   is->any_uninitialized_const_or_ref_member = FALSE;
   is->partial_initializer = FALSE;
