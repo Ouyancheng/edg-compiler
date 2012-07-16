@@ -510,10 +510,12 @@ void convert_initializer(an_init_component_ptr icp,
                          a_boolean             check_narrowing,
                          a_boolean             fill_in_dtor,
                          an_init_state         *is);
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern void aggr_init_cli_array_with_alloc(an_init_component_ptr  icp,
                                            a_type_ptr             hatype,
                                            an_init_state          *is,
                                            a_dynamic_init_ptr     *result);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern a_boolean expr_is_rescannable(an_expr_node_ptr expr);
