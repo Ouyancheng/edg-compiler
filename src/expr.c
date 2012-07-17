@@ -14602,7 +14602,7 @@ expression, and return the result in *result (or an error indication in
   a_symbol_ptr      proj_function_symbol;
   a_routine_ptr     delete_routine = NULL;
   a_boolean         delete_ambiguous = FALSE;
-  a_boolean         needs_initialization;
+  a_boolean         needs_initialization, variable_size_array = FALSE;
   a_boolean         zero_initialization, has_new_initializer = FALSE;
   a_boolean         has_braced_initializer = FALSE;
   an_expr_node_ptr  arg_expr_list, init_val_node;
@@ -15000,6 +15000,7 @@ expression, and return the result in *result (or an error indication in
     base_new_type = element_type = array_element_type(new_type);
     array_new = TRUE;
     if (unqual_new_type->variant.array.is_variable_size_array) {
+      variable_size_array = TRUE;
       /* The first bound is an expression.  Extract the expression. */
       new_array_dimension =
                      unqual_new_type->variant.array.variant.element_count_expr;
@@ -15597,6 +15598,7 @@ expression, and return the result in *result (or an error indication in
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
     clear_init_state(&init_state);
+    init_state.variable_size_array = variable_size_array;
     prep_list_initializer(alep, new_type,
                           /*is_direct_init=*/TRUE,
                           /*check_narrowing=*/TRUE,
@@ -15615,6 +15617,7 @@ expression, and return the result in *result (or an error indication in
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
         dip->variant.constant = init_state.init_con;
         dip->is_braced_initializer = TRUE;
+        dip->is_partially_initialized = init_state.partial_initializer;
       }  /* if */
     }  /* if */
     free_init_component_list(alep);

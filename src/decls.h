@@ -404,6 +404,9 @@ typedef struct an_init_state {
 			   full expressions.  E.g., in "T x = { f() };", "f()"
 			   should be treated as a full expression, but in
 			   "g({ f() })" it should not. */
+  a_bit_field	variable_size_array:1;
+			/* TRUE for an initializer for a variable-size array
+			   new-expression (e.g., "new int[n]{1, 2}"). */
 } an_init_state;
 
 

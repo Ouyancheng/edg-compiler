@@ -105,6 +105,7 @@ Clear the fields of *is.
   is->non_top_level_aggregate = FALSE;
   is->elided_braces_allowed = FALSE;
   is->elements_are_full_expressions = FALSE;
+  is->variable_size_array = FALSE;
 }  /* clear_init_state_fields */
 
 

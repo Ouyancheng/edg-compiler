@@ -4463,7 +4463,7 @@ static void aggr_init_array(an_init_component_ptr  *p_icp,
                             a_type_ptr             *p_array_type,
                             an_init_state          *is,
                             a_source_position      *diag_pos,
-                            a_boolean              var_init,
+                            a_boolean              update_type,
                             a_constant_ptr         *init_con)
 /*
 Produce an aggregate constant (in *init_con) for the initialization of an
@@ -4471,10 +4471,10 @@ object or subobject of the array type given by *p_array_type.  The initializer
 is described by *p_icp, and that value is updated to the next initializer to be
 considered by the caller (if the initializer is braced, just one initializer is
 "consumed", but otherwise an arbitrary number may be used for this array
-initialization).  *is describes the initialization as a whole.  var_init is
-TRUE for a top-level array variable (or static data member) initialization: In
-that case, an incomplete array type in *p_array_type is replaced by an array
-type that reflects the length of the initializer.
+initialization).  *is describes the initialization as a whole.  update_type is
+TRUE for a top-level array initialization: In that case, an incomplete array
+type in *p_array_type is replaced by an array type that reflects the length of
+the initializer.
 */
 {
   an_init_component_ptr  icp = *p_icp;
@@ -4603,7 +4603,7 @@ type that reflects the length of the initializer.
          list (if any). */
       *p_icp = (*p_icp)->next;
       if (no_bound) {
-        if (var_init && !has_unknown_specified_bound(atype)) {
+        if (update_type && !has_unknown_specified_bound(atype)) {
           /* A top-level array declarator of the form "X[]": Update the type to
              reflect the size implied by the initializer. */
           set_initialized_array_size(p_array_type, icount,
@@ -4628,7 +4628,7 @@ type that reflects the length of the initializer.
       /* Braces were omitted at this level of aggregate initialization: The
          the caller should continue associating the next component with any
          aggregate elements that follow this array. */
-      check_assertion(!var_init);
+      check_assertion(!update_type);
       *p_icp = icp;
     }  /* if */
   }  /* if */
@@ -5496,7 +5496,7 @@ placed on any object lifetime list (the caller must do that).
       break;
     case tk_array:
       /* Arrays are aggregates. */
-      aggr_init_array(&icp, &dtype, is, diag_pos, /*var_init=*/FALSE,
+      aggr_init_array(&icp, &dtype, is, diag_pos, /*update_type=*/TRUE,
                       &is->init_con);
       if (is_error_type(dtype)) {
         is->init_error = TRUE;
@@ -5506,6 +5506,16 @@ placed on any object lifetime list (the caller must do that).
         etype = skip_typerefs(etype);
         if (fill_in_dtor && is_immediate_class_type(etype)) {
           dtor_rp = get_init_destructor(etype, is, diag_pos);
+        }  /* if */
+        if (is->variable_size_array && is->init_con != NULL) {
+          /* In a new-expression like "new T[n]{1, 2}", the aggregate
+             constant's type should be set to reflect its number of elements
+             rather than the destination type (which is an incomplete array
+             in such cases). */
+          is->init_con->type = dtype;
+          /* Also: Assume that the initializer doesn't cover the whole
+             allocated array. */
+          is->partial_initializer = TRUE;
         }  /* if */
       }  /* if */
       break;
