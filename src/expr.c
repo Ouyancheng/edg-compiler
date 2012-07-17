@@ -29271,7 +29271,11 @@ operation implementing the allocation of the array and its initialization.
   a_boolean               is_full_expr = is->elements_are_full_expressions;
 
   check_assertion(is_braced_init_component(icp));
-  if (is_full_expr) save_expr_stack(&saved_expr_stack);
+  if (is_full_expr) {
+    save_expr_stack(&saved_expr_stack);
+  } else {
+    check_assertion(expr_stack != NULL);
+  }  /* if */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
@@ -32240,7 +32244,7 @@ required_type will be void if the expression should have void type
     }  /* if */
     icp = scan_braced_init_list_internal(/*bundle=*/FALSE);
     clear_init_state(&init_state);
-    /* init_state.elements_are_full_expressions Is not set to TRUE because
+    /* init_state.elements_are_full_expressions is not set to TRUE because
        the expression stack has already been pushed for the full expression,
        and we'll handle the full-expression wrapup at this level. */
     /* When the return is via copy constructor, get an operand back so
