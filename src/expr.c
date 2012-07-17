@@ -15415,6 +15415,9 @@ expression, and return the result in *result (or an error indication in
                                        !value_init &&
                                        has_trivial_default_constructor(cssp));
         if (!value_init && !trivial_ctor_init &&
+            /* A braced-initializer always does some kind of initialization
+               (at least value-initialization), so we can't fold. */
+            !has_braced_initializer &&
             /* If the expression that follows might be an empty pack
                expansion, we might end up with value initialization anyway
                so we can't fold. */
