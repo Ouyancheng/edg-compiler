@@ -1453,7 +1453,7 @@ initial value pointed to by dip or con is already lowered.
   an_expr_node_ptr      init_val_node, assign_node;
   a_statement_ptr       assign_stmt;
   an_expr_operator_kind op;
-  a_boolean             array_assignment = FALSE;
+  a_boolean             array_assignment = FALSE, needs_cast = FALSE;
   a_type_ptr            entity_type = entity_node->type;
 
   check_assertion(entity_node->is_lvalue);
@@ -1523,7 +1523,7 @@ initial value pointed to by dip or con is already lowered.
          function with a parameter that is passed via a copy constructor,
          we need to add a cast to the destination type to avoid a type
          mismatch. */
-      init_val_node = add_cast(init_val_node, entity_type);
+      needs_cast = TRUE;
     } else if (is_lambda_capture &&
                is_ptr_or_ref_type(init_val_node->type) &&
                is_incomplete_type(type_pointed_to(init_val_node->type))) {
@@ -1533,7 +1533,15 @@ initial value pointed to by dip or con is already lowered.
          capture.  Add an explicit cast to the incomplete type (since the
          source type, while incomplete now, will be complete in the generated
          C code). */
-      init_val_node = add_cast(init_val_node, entity_type);
+      needs_cast = TRUE;
+    }  /* if */
+    if (needs_cast) {
+      /* If we need a cast, make sure we don't change the lvalueness. */
+      if (init_val_node->is_lvalue) {
+        init_val_node = add_cast_to_lvalue(init_val_node, entity_type);
+      } else {
+        init_val_node = add_cast(init_val_node, entity_type);
+      }  /* if  */
     }  /* if */
     assign_node = make_assignment_expr_with_subobject_fix(entity_node,
                                                           have_complete_object,
