@@ -94,6 +94,7 @@ Clear the fields of *is.
   is->direct_init = FALSE;
   is->static_lifetime_init = FALSE;
   is->initializer_must_be_constant = FALSE;
+  is->force_dynamic_init = FALSE;
   is->no_diagnostics = FALSE;
   is->check_validity_only = FALSE;
   is->init_error = FALSE;
@@ -106,6 +107,7 @@ Clear the fields of *is.
   is->elided_braces_allowed = FALSE;
   is->elements_are_full_expressions = FALSE;
   is->variable_size_array = FALSE;
+  is->initializer_can_dimension_array = FALSE;
 }  /* clear_init_state_fields */
 
 

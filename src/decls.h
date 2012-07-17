@@ -355,6 +355,10 @@ typedef struct an_init_state {
   a_bit_field	initializer_must_be_constant:1;
 			/* TRUE if an initializer is required to be
 			   constant. */
+  a_bit_field	force_dynamic_init:1;
+			/* TRUE if a dynamic init entry should be produces in
+			   all cases (i.e., if a constant is produced, it
+			   should be wrapped). */
   a_bit_field	no_diagnostics:1;
 			/* TRUE if no diagnostics should be issued (this is
 			   useful for overload-resolution matching and for
@@ -407,6 +411,10 @@ typedef struct an_init_state {
   a_bit_field	variable_size_array:1;
 			/* TRUE for an initializer for a variable-size array
 			   new-expression (e.g., "new int[n]{1, 2}"). */
+  a_bit_field	initializer_can_dimension_array:1;
+			/* TRUE if in this context, an initializer for a top-
+			   level array can determine the dimension of that
+			   array (e.g., as in "T x[] = { y, z };"). */
 } an_init_state;
 
 

@@ -15599,6 +15599,7 @@ expression, and return the result in *result (or an error indication in
     alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
     clear_init_state(&init_state);
     init_state.variable_size_array = variable_size_array;
+    init_state.initializer_can_dimension_array = TRUE;
     prep_list_initializer(alep, new_type,
                           /*is_direct_init=*/TRUE,
                           /*check_narrowing=*/TRUE,
@@ -19527,7 +19528,6 @@ return.
   a_dynamic_init_ptr dip;
   a_boolean          is_static = (expr_stack->in_static_initializer ||
                                   curr_expr_kind_is_const());
-  a_routine_ptr      dtor = NULL;
   a_boolean          saved_same_expression;
 
   check_assertion((C_mode() || gpp_mode) &&
@@ -19570,19 +19570,6 @@ return.
       report_gnu_extension_if_needed(&error_position,
                                      ec_compound_literal_is_nonstandard);
     }  /* if */
-    if (!C_mode()) {
-      /* Check if the temporary (possibly an array) created for the literal
-         requires destruction and if so record the destructor. */
-      a_type_ptr  etype = skip_typerefs(literal_type);
-      if (is_array_type(etype)) etype = underlying_array_element_type(etype);
-      if (is_class_struct_union_type(etype)) {
-        dtor = expr_select_destructor(etype, etype, type_position,
-                                      /*honor_virtual=*/FALSE);
-        /* If a destructor must be invoked, don't statically initialize the
-           literal (even if it has static storage duration). */
-        if (dtor != NULL) is_static = FALSE;
-      }  /* if */
-    }  /* if */
   }  /* if */
   /* The expression stack push that will be done for the initializer
      expression is to be considered part of the same expression as the
@@ -19595,8 +19582,6 @@ return.
   if (dip == NULL) {
     /* No dynamic init entry will be returned if an error occurred. */
     err = TRUE;
-  } else {
-    dip->destructor = dtor;
   }  /* if */
   /* The type can be updated for an incomplete array. */
   *p_literal_type = literal_type;

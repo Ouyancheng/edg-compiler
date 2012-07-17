@@ -3231,88 +3231,6 @@ this function points to a tree that includes a dynamic-init entry.
 }  /* get_initializer */
 
 
-void scan_compound_literal_initializer(a_type_ptr         *type,
-                                       a_boolean          is_static,
-                                       a_dynamic_init_ptr *dip)
-/*
-Scan the brace-enclosed part of a C99 compound literal.  Such literals are of
-the form (type){initializer} or (type){initializer,}.  The type provided in
-parentheses is passed to this function through parameter *type; if this type
-is incomplete, the complete type should be deduced from the initializer and
-*type will be updated with that complete type.  is_static indicates whether
-the literal appears outside a function body (in which case it has static
-storage duration) or inside a function body (in which case it is automatic and
-hence is_static is passed as FALSE).  A dynamic init entry is created by this
-function and a pointer to it is returned through dip.  The caller is
-responsible for ensuring that the current token is a brace, and the
-function get_initializer does all the hard work.
-*/
-{
-  a_constant_ptr         compound_constant;
-  an_aggregate_init_info info;
-  a_decl_parse_state     dps;
-  a_boolean              no_token_consumed, any_dynamic_init;
-  a_boolean		 err = FALSE;
-
-  check_assertion((C_mode() || gpp_mode) && (curr_token == tok_lbrace));
-  init_decl_parse_state(&dps);
-  initialize_init_info(&info, is_static, &dps,
-                       (a_cli_array_init_scan_info_ptr)NULL);
-  info.compound_literal = TRUE;
-  compound_constant = get_initializer(type, &info,
-                                      (an_aggregate_init_context_ptr)NULL,
-                                      &no_token_consumed,
-                                      &any_dynamic_init);
-  compound_constant->explicit_cast_applied = TRUE;
-  if (is_error_type(*type)) {
-    /* The literal has an invalid type.  Don't build a dynamic init entry. */
-    err = TRUE;
-    *dip = NULL;
-  } else if (!any_dynamic_init) {
-    /* A truly constant value (scalar or aggregate). */
-    *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-    (*dip)->variant.constant = compound_constant;
-  } else {
-    /* There is a dynamic component to this literal, so create a dynamic init
-       entry of kind dik_expression (for nonaggregates) or
-       dik_nonconstant_aggregate depending on the type of the literal. */
-    if (is_aggregate_or_union_type(*type) ||
-#if GNU_VECTOR_TYPES_ALLOWED
-        is_vector_type(*type) ||
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-        /* A g++-mode compound literal like (T){42, f()} with T a template
-           parameter can result in a ck_aggregate constant with a
-           tk_template_param type. */
-        (is_template_param_type(*type) &&
-         compound_constant->kind == (a_constant_repr_kind)ck_aggregate)) {
-      check_assertion(compound_constant->kind ==
-                                          (a_constant_repr_kind)ck_aggregate);
-      *dip =
-           alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-      (*dip)->variant.constant = compound_constant;
-    } else {
-      /* get_initializer (through get_single_value_for_aggregate_initializer
-         and its helpers) created a constant on top of a dynamic init entry.
-         Extract it back out of the constant. */
-      check_assertion(compound_constant->kind ==
-                                       (a_constant_repr_kind)ck_dynamic_init);
-      *dip = compound_constant->variant.dynamic_init;
-    }  /* if */
-  }  /* if */
-  if (!err) {
-    (*dip)->is_compound_literal = TRUE;
-    if (info.any_uninitialized_member ||
-        info.uses_designated_initializers) {
-      (*dip)->is_partially_initialized = TRUE;
-    }  /* if */
-  }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  /* Record the position of the closing brace. */
-  curr_construct_end_position = info.init_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-}  /* scan_compound_literal_initializer */
-
-
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -4466,7 +4384,6 @@ static void aggr_init_array(an_init_component_ptr  *p_icp,
                             a_type_ptr             *p_array_type,
                             an_init_state          *is,
                             a_source_position      *diag_pos,
-                            a_boolean              update_type,
                             a_constant_ptr         *init_con)
 /*
 Produce an aggregate constant (in *init_con) for the initialization of an
@@ -4474,10 +4391,7 @@ object or subobject of the array type given by *p_array_type.  The initializer
 is described by *p_icp, and that value is updated to the next initializer to be
 considered by the caller (if the initializer is braced, just one initializer is
 "consumed", but otherwise an arbitrary number may be used for this array
-initialization).  *is describes the initialization as a whole.  update_type is
-TRUE for a top-level array initialization: In that case, an incomplete array
-type in *p_array_type is replaced by an array type that reflects the length of
-the initializer.
+initialization).  *is describes the initialization as a whole.
 */
 {
   an_init_component_ptr  icp = *p_icp;
@@ -4554,6 +4468,8 @@ the initializer.
     }  /* if */
     if (is_array_type(etype) &&
         skip_typerefs(etype)->variant.array.bound_is_zero) {
+      /* Some modes permit an array of zero-length arrays.  In that case, each
+         element has size zero. */
       zero_sized_element = TRUE;
     }  /* if */
     /* Loop through the initializer components and create individual constant
@@ -4606,7 +4522,9 @@ the initializer.
          list (if any). */
       *p_icp = (*p_icp)->next;
       if (no_bound) {
-        if (update_type && !has_unknown_specified_bound(atype)) {
+        if (is->initializer_can_dimension_array &&
+            !is->non_top_level_aggregate &&
+            !has_unknown_specified_bound(atype)) {
           /* A top-level array declarator of the form "X[]": Update the type to
              reflect the size implied by the initializer. */
           set_initialized_array_size(p_array_type, icount,
@@ -4631,7 +4549,7 @@ the initializer.
       /* Braces were omitted at this level of aggregate initialization: The
          the caller should continue associating the next component with any
          aggregate elements that follow this array. */
-      check_assertion(!update_type);
+      check_assertion(is->non_top_level_aggregate);
       *p_icp = icp;
     }  /* if */
   }  /* if */
@@ -5348,9 +5266,12 @@ components follow at the current level).
 */
 {
   an_init_component_ptr  icp = *p_icp;
+  a_boolean              saved_non_top_level_aggregate =
+                                                  is->non_top_level_aggregate;
 
   check_assertion(icp != NULL && is_designator_component(icp));
   *result = NULL;
+  is->non_top_level_aggregate = TRUE;
   if (is_class_struct_union_type(aggr_type)) {
     /* Call aggr_init_class but set a flag in the initialization state to
        accept the upcoming designator even though there are no braces around
@@ -5363,8 +5284,7 @@ components follow at the current level).
        accept the upcoming designator even though there are no braces around
        the subaggregate constant. */
     is->chained_designator_okay = TRUE;
-    aggr_init_array(&icp, &aggr_type, is, init_component_pos(icp),
-                    /*var_init=*/FALSE, result);
+    aggr_init_array(&icp, &aggr_type, is, init_component_pos(icp), result);
   } else if (is_template_param_type(aggr_type)) {
     /* We cannot represent designators in nonreal types.  This was diagnosed
        earlier in a way that should prevent us from getting here. */
@@ -5379,6 +5299,7 @@ components follow at the current level).
     icp = skip_designators(icp);
   }  /* if */
   *p_icp = icp;
+  is->non_top_level_aggregate = saved_non_top_level_aggregate;
 }  /* aggr_init_chained_designator */
 
 
@@ -5415,7 +5336,7 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
     /* Array. */
     saved_non_top_level_aggregate = is->non_top_level_aggregate;
     is->non_top_level_aggregate = TRUE;
-    aggr_init_array(p_icp, &etype, is, diag_pos, /*var_init=*/FALSE, init_con);
+    aggr_init_array(p_icp, &etype, is, diag_pos, init_con);
     is->non_top_level_aggregate = saved_non_top_level_aggregate;
   } else if (is_aggregate_type(etype)) {
     /* Aggregate class (since the array case was already tested for). */
@@ -5466,7 +5387,42 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
 }  /* aggr_init_element */
 
 
-/*FIXME*/
+static void prep_initializer_result(an_init_state  *is,
+                                    a_routine_ptr  dtor_rp)
+/*
+The given init state describes an initializer that has been processed: It is
+either an error state, or it points to a constant or dynamic init entry.
+dtor_rp is the destructor needed to destroy the initializer value (or NULL if
+none is needed).
+Ensure that is->init_con or is_init_dip is non-NULL as appropriate given *is
+and dtor_rp.  In particular, create a dynamic init entry for the initialization
+if is->has_dynamic_init_component or is->force_dynamic_init are TRUE.
+*/
+{
+  if (is->init_dip == NULL) {
+    a_dynamic_init_kind  dik = (a_dynamic_init_kind)dik_constant;
+    if (is->init_con == NULL) {
+      check_assertion(is->init_error);
+      is->init_con = alloc_error_constant();
+    }  /* if */
+    if (dtor_rp != NULL) is->has_dynamic_init_component = TRUE;
+    if (is->has_dynamic_init_component &&
+        is->init_con->kind == (a_constant_repr_kind)ck_aggregate) {
+      dik = (a_dynamic_init_kind)dik_nonconstant_aggregate;
+    }  /* if */
+    if (is->has_dynamic_init_component || is->force_dynamic_init) {
+      is->init_dip = alloc_dynamic_init(dik);
+      is->init_dip->variant.constant = is->init_con;
+      is->init_dip->destructor = dtor_rp;
+      is->init_dip->is_braced_initializer = TRUE;
+      is->init_dip->is_partially_initialized = is->partial_initializer;
+      is->init_con = NULL;
+    }  /* if */
+  }  /* if */
+}  /* prep_initializer_result */
+
+
+/*FIXME: check_narrowing is not currently used. */
 /*ARGSUSED*/
 void prep_aggr_initializer(an_init_component_ptr  icp,
                            a_type_ptr             dtype,
@@ -5499,8 +5455,7 @@ placed on any object lifetime list (the caller must do that).
       break;
     case tk_array:
       /* Arrays are aggregates. */
-      aggr_init_array(&icp, &dtype, is, diag_pos, /*update_type=*/TRUE,
-                      &is->init_con);
+      aggr_init_array(&icp, &dtype, is, diag_pos, &is->init_con);
       if (is_error_type(dtype)) {
         is->init_error = TRUE;
         if (!is->no_diagnostics) expect_error();
@@ -5539,33 +5494,18 @@ placed on any object lifetime list (the caller must do that).
     default:
       unexpected_condition();
   }  /* switch */
-  if (!is->init_error) {
-    if (!is->check_validity_only) {
-      /* The routines for aggregate initialization produce a constant entry,
-         but those entries may embed a dynamic initialization.  If so, return a
-         dynamic initialization entry for a nonconstant aggregate to the
-         caller. */
-      check_assertion(is->init_con != NULL);
-      if (is->has_dynamic_init_component && !is_error_constant(is->init_con)) {
-        check_assertion(is->init_con->kind ==
-                                           (a_constant_repr_kind)ck_aggregate);
-        is->init_dip = alloc_dynamic_init(
-                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
-        is->init_dip->variant.constant = is->init_con;
-        is->init_dip->destructor = dtor_rp;
-        is->init_dip->is_braced_initializer = TRUE;
-        is->init_con = NULL;
-      }  /* if */
-    }  /* if */
-    if (is->any_uninitialized_const_or_ref_member) {
-      /* A const or reference field was not initialized.  Issue a diagnostic,
-         except in unions. */
-      if (!is_union_type(dtype)) {
-        if (is->no_diagnostics) {
-          is->init_error = TRUE;
-        } else {
-          pos_error(ec_unnamed_object_with_uninitialized_field, diag_pos);
-        }  /* if */
+  if (!is->check_validity_only) {
+    /* Ensure is->init_con and is->init_dip are set properly. */
+    prep_initializer_result(is, dtor_rp);
+  }  /* if */
+  if (is->any_uninitialized_const_or_ref_member && !is->init_error) {
+    /* A const or reference field was not initialized.  Issue a diagnostic,
+       except in unions. */
+    if (!is_union_type(dtype)) {
+      if (is->no_diagnostics) {
+        is->init_error = TRUE;
+      } else {
+        pos_error(ec_unnamed_object_with_uninitialized_field, diag_pos);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5597,7 +5537,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
   dtype = skip_typerefs(dtype);
   /* Parse the list structure (which may be nested and therefore really a tree
      structure). */
-  icp_tree = scan_braced_init_list(/*is_full_expr=*/TRUE, dps);
+  icp_tree = scan_braced_init_list(is->elements_are_full_expressions, dps);
   icp = icp_tree;
   check_assertion(icp != NULL && is_braced_init_component(icp));
   is_var_init = dps != NULL && dps->sym != NULL &&
@@ -5615,7 +5555,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       /* Arrays are aggregates. */
       is_aggregate = TRUE;
       atype = dtype;
-      aggr_init_array(&icp, &atype, is, diag_pos, is_var_init, &is->init_con);
+      aggr_init_array(&icp, &atype, is, diag_pos, &is->init_con);
       if (atype != dtype) {
         /* Presumably an incomplete array type whose length is now known.
            Update the recorded type. */
@@ -5670,37 +5610,27 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       break;
   }  /* switch */
   free_init_component_list(icp_tree);
-  if (is_aggregate && !is->init_error) {
+  if ((is_aggregate || (is->force_dynamic_init && is->init_dip == NULL)) &&
+      !is->init_error) {
     /* The routines for aggregate initialization produce a constant entry, but
        those entries may embed a dynamic initialization.  If so, return a
-       dynamic initialization entry for a nonconstant aggregate to the
-       caller. */
-    check_assertion(is->init_con != NULL);
-    if (dtor_rp != NULL) is->has_dynamic_init_component = TRUE;
-    if (is->has_dynamic_init_component && !is_error_constant(is->init_con)) {
-      check_assertion(is->init_con->kind ==
-                                          (a_constant_repr_kind)ck_aggregate);
-      is->init_dip = alloc_dynamic_init(
-                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
-      is->init_dip->variant.constant = is->init_con;
-      is->init_dip->destructor = dtor_rp;
-      is->init_dip->is_braced_initializer = TRUE;
-      is->init_dip->is_partially_initialized = is->partial_initializer;
-      is->init_con = NULL;
-    }  /* if */
-    if (is->any_uninitialized_const_or_ref_member) {
-      /* A const or reference field was not initialized.  Issue a diagnostic,
-         except in unions. */
-      if (!is_union_type(dtype)) {
-        if (C_mode()) {
-          pos_sy_warning(ec_var_with_uninitialized_field, diag_pos, dps->sym);
-        } else if (is->no_diagnostics) {
-          is->init_error = TRUE;
-        } else if (is_var_init) {
-          pos_sy_error(ec_var_with_uninitialized_member, diag_pos, dps->sym);
-        } else {
-          pos_error(ec_unnamed_object_with_uninitialized_field, diag_pos);
-        }  /* if */
+       dynamic initialization entry for a nonconstant aggregate to the caller.
+       Also produce a dynamic init entry if the caller requested it through the
+       force_dynamic_init state flag. */
+    prep_initializer_result(is, dtor_rp);
+  }  /* if */
+  if (is->any_uninitialized_const_or_ref_member && !is->init_error) {
+    /* A const or reference field was not initialized.  Issue a diagnostic,
+       except in unions. */
+    if (!is_union_type(dtype)) {
+      if (C_mode()) {
+        pos_sy_warning(ec_var_with_uninitialized_field, diag_pos, dps->sym);
+      } else if (is->no_diagnostics) {
+        is->init_error = TRUE;
+      } else if (is_var_init) {
+        pos_sy_error(ec_var_with_uninitialized_member, diag_pos, dps->sym);
+      } else {
+        pos_error(ec_unnamed_object_with_uninitialized_field, diag_pos);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5820,6 +5750,61 @@ is the position to use for diagnostics by default.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* string_init_variable */
+
+
+void scan_compound_literal_initializer(a_type_ptr         *type,
+                                       a_boolean          is_static,
+                                       a_dynamic_init_ptr *dip)
+/*
+Scan the brace-enclosed part of a compound literal.  Such literals are of the
+form (type){initializer} or (type){initializer,}.  The type provided in
+parentheses is passed to this function through parameter *type; if this type
+is incomplete, the complete type should be deduced from the initializer and
+*type will be updated with that complete type.  is_static indicates whether
+the literal appears outside a function body (in which case it has static
+storage duration) or inside a function body (in which case it is automatic and
+hence is_static is passed as FALSE).  A dynamic init entry is created by this
+function and a pointer to it is returned through dip.  The caller is
+responsible for ensuring that the current token is a brace, and the function
+braced_initializer does all the hard work.
+*/
+{
+  a_source_position   start_pos;
+  a_decl_parse_state  dps;
+
+  check_assertion((C_mode() || gpp_mode) && (curr_token == tok_lbrace));
+  start_pos = pos_curr_token;
+  /* Call braced_initializer to scan the brace-enclosed initializer part of
+     the compound initializer.  Set up the "init state" to ensure a dynamic
+     initializer entry if created. */
+  init_decl_parse_state(&dps);
+  dps.type = *type;
+  dps.init_state.force_dynamic_init = TRUE;
+  dps.init_state.init_error = is_error_type(dps.type);
+  dps.init_state.elided_braces_allowed = TRUE;
+  dps.init_state.initializer_can_dimension_array = TRUE;
+  if (C_mode() && (is_static || !allow_nonconstant_auto_aggr_init_in_c_mode)) {
+    dps.init_state.initializer_must_be_constant = TRUE;
+  }  /* if */
+  braced_initializer(dps.type, &dps.init_state, &dps, &start_pos);
+  /* A compound literal of the form (T[]){...} needs its type to be updated. */
+  *type = dps.type;
+  /* Adjust the dynamic initializer entry that was produced to reflect that it
+     represents a compound initializer. */
+  *dip = dps.init_state.init_dip;
+  if (*dip != NULL) {
+    (*dip)->is_compound_literal = TRUE;
+    if ((*dip)->kind == (a_dynamic_init_kind)dik_constant ||
+      (*dip)->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+      (*dip)->variant.constant->explicit_cast_applied = TRUE;
+      if (!is_incomplete_array_type(dps.type)) {
+        (*dip)->variant.constant->type = dps.type;
+      }  /* if */
+    }  /* if */
+  } else {
+    check_assertion(dps.init_state.init_error);
+  }  /* if */
+}  /* scan_compound_literal_initializer */
 
 
 void initializer(a_decl_parse_state  *dps,
@@ -6034,6 +6019,9 @@ returned set to TRUE.
      treated as full expressions.  E.g., in "T x = { f(), g() };" both "f()"
      and "g()" are full expressions. */
   dps->init_state.elements_are_full_expressions = TRUE;
+  /* In this context, the dimension of an array might be determined by the
+     initializer. */
+  dps->init_state.initializer_can_dimension_array = TRUE;
   /* If the initialization is invalid in some way, init_err will be set to
      TRUE.  It will be used to assure that the initialization bound to the
      variable will be an error constant (or a dynamic initializer pointing
@@ -7629,25 +7617,14 @@ entries are replaced as needed for each mem-initializer that is encountered.
       lbrace_pos = pos_curr_token;
       clear_init_state(&is);
       is.direct_init = TRUE;
+      is.force_dynamic_init = TRUE;
       is.elements_are_full_expressions = TRUE;
       /* Scan the initializer. */
       braced_initializer(dtype, &is, (a_decl_parse_state*)NULL, &lbrace_pos);
-      /* If no dynamic init entry was produced, wrap the result (a constant
-         or an error) in a dynamic init entry. */
       if (new_cip != NULL) {
-        if (is.init_dip == NULL) {
-          is.init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-          if (!is.init_error) {
-            check_assertion(is.init_con != NULL);
-            is.init_dip->variant.constant = is.init_con;
-          } else {
-            /* Use a placeholder error constant. */
-            is.init_dip->variant.constant = alloc_error_constant();
-          }  /* if */
-          is.init_dip->is_braced_initializer = TRUE;
-          is.init_dip->is_partially_initialized = is.partial_initializer;
-          is.init_con = NULL;
-        }  /* if */
+        /* A dynamic init entry has been produced: Record it in the
+           constructor init entry. */
+        check_assertion(is.init_dip != NULL);
         new_cip->initializer = is.init_dip;
         new_cip->is_braced = TRUE;
       }  /* if */
