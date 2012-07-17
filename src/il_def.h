@@ -7894,10 +7894,9 @@ typedef struct a_type {
 			   (Only set when is_vla is TRUE.)  */
       a_bit_field
 		bound_is_zero:1;
-			/* TRUE if this array actually has a zero bound.
-			   This is used in GNU C mode to distinguish zero-
-			   length array types ([0]) from array types with
-			   unspecified bounds ([]). */
+			/* TRUE if this array actually has a zero bound.  This
+			   is used to distinguish zero-length array types ([0])
+			   from array types with unspecified bounds ([]). */
       a_bit_field
 		is_static:1;
 			/* TRUE if this array is tagged with the C99 keyword

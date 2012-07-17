@@ -327,9 +327,10 @@ may be shared, and therefore a copy is made and modified.
     array_type->variant.array.variant.element_count_constant = NULL;
   } else {
     array_type->variant.array.variant.number_of_elements = size;
-    if (gnu_mode && size == 0) {
-      /* In GNU C and C++ mode, an empty pair of braces can
-         be a valid initializer for a zero-length array. */
+    if (size == 0) {
+      /* In GNU C and C++ mode, an empty pair of braces can be a valid
+         initializer for a zero-length array.  In C++11, this is also
+         possible with something like "new T[n]{}". */
       array_type->variant.array.bound_is_zero = TRUE;
     }  /* if */
   }  /* if */
