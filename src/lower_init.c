@@ -6143,8 +6143,9 @@ resulting expression.
 */
 {
   an_expr_node_ptr expr_copy = copy_expr_tree(expr,
-                                              CE_TRANSFER_DESTR_ENTITY_DESCR |
-                                              CE_UNLINK_SOURCE_DESTRUCTIONS);
+                                           CE_TRANSFER_DESTR_ENTITY_DESCR |
+                                           CE_COPYING_EXPRESSION_FOR_CONSTANT |
+                                           CE_UNLINK_SOURCE_DESTRUCTIONS);
   /* If the expression has an object lifetime node at the top, eliminate
      it, because the source expression will not remain in the IL tree. */
   eliminate_expr_object_lifetime(expr);
