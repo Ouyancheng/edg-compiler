@@ -13224,6 +13224,38 @@ tk_unknown is returned.
 }  /* operation_type_kind */
 
 
+a_dynamic_init_ptr effective_dynamic_init_for_initializer_list_object(
+                                          a_dynamic_init_ptr dip,
+                                          a_type_ptr         *init_entity_type)
+/*
+dip is a dynamic initialization for the creation of a std::initializer_list
+object from a braced initializer.  The dynamic initialization entry calls
+a hidden constructor passing a temporary array initialized by the contents
+of the braced-init-list.  Return the dynamic initialization entry for the
+underlying temporary array, and the type for that in *init_entity_type,
+thus allowing the caller to skip over the implicit part of that operation.
+*/
+{
+  an_expr_node_ptr arg1;
+
+  check_assertion(dip->is_creation_of_initializer_list_object &&
+                  dip->kind == (a_dynamic_init_kind)dik_constructor);
+  arg1 = dip->variant.constructor.args;
+  check_assertion(arg1 != NULL);
+  while (is_cast_operation_node(arg1) &&
+         arg1->variant.operation.compiler_generated) {
+    arg1 = arg1->variant.operation.operands;
+  }  /* while */
+  check_assertion(is_operation_node(arg1) &&
+                  node_operator_is(arg1, eok_array_to_pointer));
+  arg1 = arg1->variant.operation.operands;
+  check_assertion(arg1->kind == (an_expr_node_kind)enk_temp_init);
+  dip = arg1->variant.init.dynamic_init;
+  *init_entity_type = arg1->type;
+  return dip;
+}  /* effective_dynamic_init_for_initializer_list_object */
+
+
 /*
 The routines lists in file and namespace scopes is normally constructed by
 appending newly created routine entries at the end of the appropriate list.

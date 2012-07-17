@@ -18629,6 +18629,18 @@ like
     if (dip != NULL) {
       if (static_lifetime) dip->static_temp = TRUE;
       dip->has_temporary_lifetime = FALSE;
+      if (dip->is_creation_of_initializer_list_object) {
+        /* If the lifetime of an initializer_list object is extended, the
+           lifetime of the array fed into it is extended also
+           ([dcl.init.list]p6: "The lifetime of the array is the same
+           as that of the initializer_list object."). */
+        a_type_ptr         init_entity_type;
+        a_dynamic_init_ptr dipa =
+         effective_dynamic_init_for_initializer_list_object(dip,
+                                                            &init_entity_type);
+        dipa->static_temp = dip->static_temp;
+        dipa->has_temporary_lifetime = dip->has_temporary_lifetime;
+      }  /* if */
       lifetime = dip->lifetime;
       /* The "lifetime != NULL" test here deals with initializations that
          do not need a destructor. */
@@ -19913,6 +19925,7 @@ parameters, and return TRUE.
 static void make_initializer_list_object(an_init_component_ptr list_icp,
                                          a_type_ptr            element_type,
                                          a_type_ptr            list_type,
+                                         a_boolean             static_lifetime,
                                          an_operand            *operand,
                                          an_arg_match_summary  *arg_match)
 /*
@@ -19921,12 +19934,13 @@ object from the braced-init-list given by list_icp.  list_type is the
 initializer_list<element_type> type, which is the type of the operand
 returned in *operand.  A temporary of array type is created and
 initialized with the contents of the braced-init-list, and that temporary
-is passed to a constructor for std::initializer_list.
-If arg_match is non-NULL, do an evaluation of whether the initialization
-is valid, without issuing errors or building IL, and return *arg_match
-set to indicate how good a match the initialization is, in overload
-resolution terms (e.g., is it an exact match or a user-defined conversion,
-etc.)
+is passed to a constructor for std::initializer_list.  The temporary
+is given static lifetime if static_lifetime is TRUE.  If arg_match is
+non-NULL, do an evaluation of whether the initialization is valid,
+without issuing errors or building IL, and return *arg_match set to
+indicate how good a match the initialization is, in overload
+resolution terms (e.g., is it an exact match or a user-defined
+conversion, etc.)
 */
 {
   a_routine_ptr      dtor = NULL, ctor;
@@ -20084,6 +20098,7 @@ etc.)
                                (a_dynamic_init_kind)dik_constant);
     dip->variant.constant = aggr_constant;
     dip->is_braced_initializer = TRUE;
+    dip->static_temp = static_lifetime;
     dip->destructor = dtor;
     expr = alloc_temp_init_node(array_type, dip,
                                 /*is_lvalue=*/TRUE,
@@ -20106,6 +20121,7 @@ etc.)
     } else {
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
       dip->is_creation_of_initializer_list_object = TRUE;
+      dip->static_temp = static_lifetime;
       dip->variant.constructor.ptr = ctor;
       if_evaluating_mark_routine_referenced(ctor);
       check_assertion(is_pointer_type(param1_type));
@@ -20465,6 +20481,8 @@ etc.)
       make_initializer_list_object(icp,
                                    element_type,
                                    dest_type,
+                                   (is != NULL) ? is->static_lifetime_init :
+                                                  FALSE,
                                    &operand,
                                    arg_match);
     } else if (dest_type_is_class &&

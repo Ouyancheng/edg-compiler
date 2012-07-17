@@ -1459,6 +1459,11 @@ extern a_type_kind binary_operation_type_kind(an_expr_operator_kind  op,
                                               a_type_ptr             op1_type,
                                               a_type_ptr             op2_type);
 
+extern
+a_dynamic_init_ptr effective_dynamic_init_for_initializer_list_object(
+                                         a_dynamic_init_ptr dip,
+                                         a_type_ptr         *init_entity_type);
+
 extern void perform_scheduled_routine_moves(void);
 
 extern void schedule_move_to_current_end_of_routines_list(a_routine_ptr  rp);
