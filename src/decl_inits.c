@@ -3626,7 +3626,9 @@ vp had an incomplete array type that has been completed by an initializer.
   /* An empty aggregate initializer ({}) is not valid for an array variable
      with unspecified bound, except in GNU mode (where the type of the
      initializer is complete). */
-  if (is_incomplete_type(vp_type)) {
+  if (is_incomplete_type(vp_type) ||
+      (!gnu_mode && is_array_type(vp_type) &&
+       skip_typerefs(vp_type)->variant.array.bound_is_zero)) {
     pos_error(ec_bad_initializer_for_array_with_unspecified_bound, source_pos);
     vp_type = error_type();
   }  /* if */
