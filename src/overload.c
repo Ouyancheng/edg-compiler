@@ -20305,6 +20305,7 @@ etc.)
   a_boolean            *p_error_detected;
   a_boolean            error_detected;
   a_boolean            arg_match_err = FALSE;
+  a_boolean            partial_initializer = FALSE;
   an_arg_match_summary internal_arg_match;
 
   /* The basic modes are:
@@ -20441,6 +20442,7 @@ etc.)
                             fill_in_dtor);
       constant = eff_is->init_con;
       dip = eff_is->init_dip;
+      partial_initializer = eff_is->partial_initializer;
       fill_in_dtor = FALSE;
       if (arg_match != NULL) {
         if (eff_is->init_error) {
@@ -20695,6 +20697,7 @@ etc.)
          to use a dynamic init. */
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
       dip->variant.constant = constant;
+      dip->is_partially_initialized = partial_initializer;
       constant = NULL;
     }  /* if */
     if (dip != NULL) {
