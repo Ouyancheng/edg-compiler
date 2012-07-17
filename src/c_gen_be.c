@@ -5629,40 +5629,46 @@ process_assignment:
           goto done_with_binary_operation;
         case eok_bassign:
           /* Block assignment, generated only by IL lowering of C++ code. */
-          check_assertion(operand_1->type->size == operand_2->type->size);
-          if (!is_aggregate_or_union_type(operand_1->type)) {
-            /* The copy can be done by an assignment.  (This case is here
-               for completeness; the front end doesn't actually generate any
-               of these.) */
-            dump_expr_with_parens(operand_1);
-            write_tok_str(" = ");
-            dump_expr_with_parens(operand_2);
-          } else {
-            /* Use a block copy. */
+          { a_type_ptr operand_1_type = skip_typerefs(operand_1->type);
+            a_type_ptr operand_2_type = skip_typerefs(operand_2->type);
+            /* Typically, the source and destination types are the same size,
+               but allow an assignment to a variably-sized array. */
+            check_assertion((operand_1_type->size == operand_2_type->size ||
+                             is_incomplete_array_type(operand_1_type)) &&
+                            operand_2_type->size != 0);
+            if (!is_aggregate_or_union_type(operand_1_type)) {
+              /* The copy can be done by an assignment.  (This case is here
+                 for completeness; the front end doesn't actually generate any
+                 of these.) */
+              dump_expr_with_parens(operand_1);
+              write_tok_str(" = ");
+              dump_expr_with_parens(operand_2);
+            } else {
+              /* Use a block copy. */
 #if __BSD__
-            /* BSD UNIX -- use bcopy. */
-            write_tok_str("(void)bcopy((char *)&");
-            dump_expr_with_parens(operand_2);
-            write_tok_str(", (char *)&");
-            dump_expr_with_parens(operand_1);
+              /* BSD UNIX -- use bcopy. */
+              write_tok_str("(void)bcopy((char *)&");
+              dump_expr_with_parens(operand_2);
+              write_tok_str(", (char *)&");
+              dump_expr_with_parens(operand_1);
 #else  /* !__BSD__ */
-            /* System V or ANSI -- use memcpy. */
-            write_tok_str("(void)memcpy((char *)&");
-            dump_expr_with_parens(operand_1);
-            write_tok_str(", (char *)&");
-            dump_expr_with_parens(operand_2);
+              /* System V or ANSI -- use memcpy. */
+              write_tok_str("(void)memcpy((char *)&");
+              dump_expr_with_parens(operand_1);
+              write_tok_str(", (char *)&");
+              dump_expr_with_parens(operand_2);
 #endif /* __BSD__ */
-            /* Add the length of the move. */
-            { a_type_ptr operand_1_type = skip_typerefs(operand_1->type);
-              check_assertion(!operand_1_type->incomplete);
+              /* Add the length of the move. */
               write_tok_ch(',');
               /* No cast to size_t or the like is needed; in BSD and System V
                  the length is int, and in ANSI C the function is prototyped
                  so the conversion will be implicit. */
-              write_unsigned_num((a_host_large_unsigned)operand_1_type->size);
+              /* Use the size of the source operand (since the destination
+                 may be a variably-sized array). */
+              write_unsigned_num((a_host_large_unsigned)operand_2_type->size);
               write_tok_ch(')');
-            }
-          }  /* if */
+            }  /* if */
+          }
           goto done_with_binary_operation;
         case eok_subscript:
           ptr_operand = subscript_or_padd_pointer_operand(expr);

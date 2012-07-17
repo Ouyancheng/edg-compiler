@@ -1509,12 +1509,10 @@ initial value pointed to by dip or con is already lowered.
 #endif /* CHECKING */
   }  /* switch */
   if (array_assignment &&
-      skip_typerefs(entity_type)->variant.array.variant.number_of_elements ==
-                                                                           0) {
-    /* Don't bother to create an assignment to an array with zero elements.
+      skip_typerefs(init_val_node->type)->
+                              variant.array.variant.number_of_elements == 0) {
+    /* Don't bother to create an assignment from an array with zero elements.
        These come up in cases like "new int[0]{};". */
-    check_assertion(skip_typerefs(init_val_node->type)->
-                                variant.array.variant.number_of_elements == 0);
   } else {
     /* Make an assignment statement.  Note that we know that no constructor
        (copy or other) is involved because we have this kind of dynamic

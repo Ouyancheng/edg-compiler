@@ -13571,7 +13571,12 @@ enum an_expr_operator_kind_tag {
   eok_bassign,		/* Block assignment.  Only used in C++ after IL
 			   lowering, for copy constructors etc.  Both the
 			   source and destination are lvalues; does a memcpy
-			   equivalent.  The result is void. */
+			   equivalent.  The result is void.  The size of the
+			   source operand should be used as the size of the
+			   block copy (the destination operand may be a
+			   variably-sized array), otherwise the source and
+			   destination operand types should have the same
+			   size. */
   eok_land,		/* Logical intersection ("&&" operator).  Operands are
 			   standardized to integer/boolean in some
 			   configurations. */
