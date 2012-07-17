@@ -3892,12 +3892,14 @@ to indicate that the name reference was successfully emitted.
 
 
 static void gen_name_from_routine_node(an_expr_node_ptr node,
-                                       a_boolean        unqualified,
+                                       a_boolean        only_found_by_adl,
                                        a_boolean        qualified)
 /*
-Generate the name of a routine from an enk_routine node.  If unqualified is
-TRUE, force the generation of an unqualified name.  If qualified is TRUE,
-force the generation of a qualified name.  */
+Generate the name of a routine from an enk_routine node.  If
+only_found_by_adl is TRUE, force the generation of an unqualified name
+(since a qualified name would suppress argument-dependent lookup).  If
+qualified is TRUE, force the generation of a qualified name.
+*/
 {
   a_routine_ptr rout = routine_from_function_expr(node);
 
@@ -3906,7 +3908,7 @@ force the generation of a qualified name.  */
                                    iek_routine, /*is_declaration=*/FALSE)) {
     /* We have information on the exact form of reference and used that
        to generate the name. */
-  } else if (unqualified) {
+  } else if (only_found_by_adl) {
     /* The function call was marked as only having been found through
        argument-dependent lookup, so we must avoid using a qualified name,
        which would suppress argument-dependent lookup. */
@@ -11605,7 +11607,7 @@ done_with_operation_after_parens:
       gen_name_from_variable_node(expr);
       break;
     case enk_routine:
-      gen_name_from_routine_node(expr, /*unqualified=*/FALSE,
+      gen_name_from_routine_node(expr, /*only_found_by_adl=*/FALSE,
                                  /*qualified=*/FALSE);
       break;
     case enk_throw:
