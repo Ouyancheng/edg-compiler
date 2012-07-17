@@ -5734,7 +5734,6 @@ is part of.  diag_pos is the position to be used by default for diagnostics
     dps->init_state.elided_braces_allowed = TRUE;
   }  /* if */
   vp->has_direct_braced_initializer = direct;
-  dps->init_state.elements_are_full_expressions = TRUE;
   dps->init_state.initializer_must_be_constant =
                     C_mode() && (dps->init_state.static_lifetime_init ||
                                  !allow_nonconstant_auto_aggr_init_in_c_mode);
@@ -6018,6 +6017,10 @@ returned set to TRUE.
       local_static_lifetime = curr_object_lifetime;
     }  /* if */
   }  /* if */
+  /* In variable initializations, the initializer elements should each be
+     treated as full expressions.  E.g., in "T x = { f(), g() };" both "f()"
+     and "g()" are full expressions. */
+  dps->init_state.elements_are_full_expressions = TRUE;
   /* If the initialization is invalid in some way, init_err will be set to
      TRUE.  It will be used to assure that the initialization bound to the
      variable will be an error constant (or a dynamic initializer pointing
