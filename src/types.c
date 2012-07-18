@@ -1906,6 +1906,18 @@ no user-provided constructors, etc.
 }  /* is_aggregate_type */
 
 
+a_boolean is_std_initializer_list_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an instance of std::initializer_list.  (Also
+TRUE for the prototype instantiation.)
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_immediate_class_type(tp) &&
+         class_type_supp(tp)->is_initializer_list;
+}  /* is_std_initializer_list_type */
+
+
 a_boolean is_ptr_to_member_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a pointer-to-member type (C++ only).

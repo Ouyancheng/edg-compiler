@@ -6535,12 +6535,14 @@ such classes.
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+  if (class_template_sym == symbol_for_std_initializer_list) {
+    ctsp->is_initializer_list = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (class_template_sym == cli_symbol_from_kind(csk_cli_array)) {
+  } else if (class_template_sym == cli_symbol_from_kind(csk_cli_array)) {
     /* This is a C++/CLI array type. */
     ctsp->is_cli_array = TRUE;
-  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
 #if DEBUG
   if (db_sym_trace("instantiations", sym)) {
     fprintf(f_debug, "Partial instantiation of: ");
@@ -14490,6 +14492,9 @@ initially used when processing the declaration of a partial specialization.
       prototype_sym->variant.class_struct_union.type = prototype_type;
       prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
       prototype_ctsp->assoc_template = decl_state->il_template_entry;
+      if (sym == symbol_for_std_initializer_list) {
+        prototype_ctsp->is_initializer_list = TRUE;
+      }  /* if */
     }  /* if */
     prototype_type->source_corresp.access = access_for_symbol(sym);
     set_source_corresp(&(prototype_type->source_corresp), prototype_sym);

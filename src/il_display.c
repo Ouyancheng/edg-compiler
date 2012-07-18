@@ -3110,6 +3110,9 @@ Display the indicated routine.
   if (ptr->is_trivial_copy_function) {
     disp_boolean("is_trivial_copy_function", TRUE);
   }  /* if */
+  if (ptr->is_initializer_list_ctor) {
+    disp_boolean("is_initializer_list_ctor", TRUE);
+  }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   if (ptr->assignment_to_this_done) {
     disp_boolean("assignment_to_this_done", TRUE);
@@ -6166,6 +6169,12 @@ Display the indicated class type supplement entry.
 #endif /* DO_IL_LOWERING */
   if (ptr->is_lambda_closure_class) {
     disp_boolean("is_lambda_closure_class", TRUE);
+  }  /* if */
+  if (ptr->is_initializer_list) {
+    disp_boolean("is_initializer_list", TRUE);
+  }  /* if */
+  if (ptr->has_initializer_list_ctor) {
+    disp_boolean("has_initializer_list_ctor", TRUE);
   }  /* if */
   if (ptr->has_anonymous_union_member) {
     disp_boolean("has_anonymous_union_member", TRUE);

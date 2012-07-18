@@ -12165,6 +12165,28 @@ set the locator to an error locator, and return FALSE.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void set_initializer_list_ctor_flags(a_routine_ptr  ctor_rp,
+                                            a_type_ptr     class_type)
+/*
+The given routine is a constructor being declared in the given class type.
+If the constructor is an initializer-list constructor, set the corresponding
+flags in the routine entry and in the class type supplement associated with
+the class.
+*/
+{
+  a_param_type_ptr  ptp;
+
+  ptp = skip_typerefs(ctor_rp->type)->variant.routine.extra_info
+                                    ->param_type_list;
+  if (ptp != NULL && is_std_initializer_list_type(ptp->type) &&
+      (ptp->next == NULL || ptp->next->has_default_arg)) {
+    /* The given routine is an initializer-list constructor. */
+    ctor_rp->is_initializer_list_ctor = TRUE;
+    class_type_supp(class_type)->has_initializer_list_ctor = TRUE;
+  }  /* if */
+}  /* set_initializer_list_ctor_flags */
+
+
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_func_info_block_ptr   func_info,
                                  a_class_def_state_ptr   class_state,
@@ -12376,6 +12398,9 @@ implicitly declared member functions.
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_conversion);
   } else if (decl_info->is_constructor) {
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_constructor);
+    if (list_init_enabled) {
+      set_initializer_list_ctor_flags(rtn, class_type);
+    }  /* if */
   } else if (decl_info->is_destructor) {
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_destructor);
 #if MICROSOFT_EXTENSIONS_ALLOWED

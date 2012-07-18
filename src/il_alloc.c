@@ -1508,6 +1508,8 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->compiler_generated                = FALSE;
 #endif /* DO_IL_LOWERING */
   ctsp->is_lambda_closure_class           = FALSE;
+  ctsp->is_initializer_list               = FALSE;
+  ctsp->has_initializer_list_ctor         = FALSE;
   ctsp->has_anonymous_union_member        = FALSE;
 #if NEED_NAME_MANGLING
   ctsp->defined_in_static_data_member_initializer
@@ -2501,6 +2503,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_explicit_conversion_function = FALSE;
   rp->is_trivial_default_constructor = FALSE;
   rp->is_trivial_copy_function    = FALSE;
+  rp->is_initializer_list_ctor    = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   rp->assignment_to_this_done     = FALSE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */

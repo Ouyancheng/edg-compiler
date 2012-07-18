@@ -6915,6 +6915,12 @@ typedef struct a_class_type_supplement {
   a_bit_field	is_lambda_closure_class:1;
 			/* TRUE if the class is the closure class generated as
 			   the representation of a lambda. */
+  a_bit_field	is_initializer_list:1;
+			/* TRUE if the class is an instance of the C++11
+			   template std::initializer_list. */
+  a_bit_field	has_initializer_list_ctor:1;
+			/* TRUE if the class has an initializer_list
+			   constructor. */
   a_bit_field	has_anonymous_union_member:1;
 			/* TRUE if the class contains an anonymous union
 			   member (which makes it a union-like class in C++11
@@ -12435,6 +12441,9 @@ typedef struct a_routine {
 			   constructor or a trivial copy or move assignment
 			   operator.  The operation performed by such a
 			   routine is a bitwise copy.  C++ only. */
+  a_bit_field	is_initializer_list_ctor:1;
+			/* TRUE if this routine is an initializer list
+			   constructor. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   a_bit_field	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)
