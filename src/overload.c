@@ -19926,6 +19926,8 @@ static void make_initializer_list_object(an_init_component_ptr list_icp,
                                          a_type_ptr            element_type,
                                          a_type_ptr            list_type,
                                          a_boolean             static_lifetime,
+                                         a_boolean             is_new_expr,
+                                         a_dynamic_init_ptr    *p_dip,
                                          an_operand            *operand,
                                          an_arg_match_summary  *arg_match)
 /*
@@ -19935,12 +19937,15 @@ initializer_list<element_type> type, which is the type of the operand
 returned in *operand.  A temporary of array type is created and
 initialized with the contents of the braced-init-list, and that temporary
 is passed to a constructor for std::initializer_list.  The temporary
-is given static lifetime if static_lifetime is TRUE.  If arg_match is
-non-NULL, do an evaluation of whether the initialization is valid,
-without issuing errors or building IL, and return *arg_match set to
-indicate how good a match the initialization is, in overload
-resolution terms (e.g., is it an exact match or a user-defined
-conversion, etc.)
+is given static lifetime if static_lifetime is TRUE or if is_new_expr
+is TRUE (indicating the initializer list creation is in the
+initializer for a "new").  If p_dip is non-NULL, a pointer to the top
+dynamic initialization is returned in *p_dip.  If operand is NULL, the
+operand on top of that is not created.  If arg_match is non-NULL, do
+an evaluation of whether the initialization is valid, without issuing
+errors or building IL, and return *arg_match set to indicate how good
+a match the initialization is, in overload resolution terms (e.g., is
+it an exact match or a user-defined conversion, etc.)
 */
 {
   a_routine_ptr      dtor = NULL, ctor;
@@ -19959,6 +19964,7 @@ conversion, etc.)
   a_boolean          arg_match_err = FALSE;
 
   check_assertion(is_braced_init_component(list_icp));
+  if (p_dip != NULL) *p_dip = NULL;
   if (arg_match != NULL) clear_arg_match_summary(arg_match);
   if (is_class_struct_union_type(element_type)) {
     a_boolean local_error_detected;
@@ -20098,11 +20104,21 @@ conversion, etc.)
                                (a_dynamic_init_kind)dik_constant);
     dip->variant.constant = aggr_constant;
     dip->is_braced_initializer = TRUE;
-    dip->static_temp = static_lifetime;
-    dip->destructor = dtor;
-    expr = alloc_temp_init_node(array_type, dip,
-                                /*is_lvalue=*/TRUE,
-                                /*is_explicit_cast=*/FALSE);
+    if (is_new_expr) {
+      /* For a "new", the array temp gets heap lifetime, so do not enter
+         the destructor or lifetime.  We can't really allocate a temporary
+         on the heap, so we just give it static lifetime so the storage
+         stays around forever. */
+      dip->static_temp = TRUE;
+      expr = alloc_temp_init_node_simple(array_type, dip, /*is_lvalue=*/TRUE);
+    } else {
+      /* Normal, non-"new", case. */
+      dip->static_temp = static_lifetime;
+      dip->destructor = dtor;
+      expr = alloc_temp_init_node(array_type, dip,
+                                  /*is_lvalue=*/TRUE,
+                                  /*is_explicit_cast=*/FALSE);
+    }  /* if */
     /* Add the decay from array to pointer. */
     expr = conv_array_expr_to_pointer(expr);
   }  /* if */
@@ -20117,11 +20133,10 @@ conversion, etc.)
   } else {
     /* Not overload resolution. */
     if (ctor == NULL) {
-      make_error_operand(operand);
+      if (operand != NULL) make_error_operand(operand);
     } else {
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
       dip->is_creation_of_initializer_list_object = TRUE;
-      dip->static_temp = static_lifetime;
       dip->variant.constructor.ptr = ctor;
       if_evaluating_mark_routine_referenced(ctor);
       check_assertion(is_pointer_type(param1_type));
@@ -20132,15 +20147,31 @@ conversion, etc.)
                                         param2_type->variant.integer.int_kind);
       arg1->next = arg2;
       dip->variant.constructor.args = arg1;
-      expr = alloc_temp_init_node(list_type, dip,
-                                  /*is_lvalue=*/FALSE,
-                                  /*is_explicit_cast=*/FALSE);
-      make_expression_operand(expr, operand);
+      /* Assuming no destructor for initializer_list. */
+      if (p_dip != NULL) *p_dip = dip;
+      if (operand != NULL) {
+        if (is_new_expr) {
+          /* For a "new", the object gets heap lifetime.  Since we can't
+             allocate a temporary on the heap, give it static lifetime so
+             the storage stays around forever. */
+          dip->static_temp = TRUE;
+          expr = alloc_temp_init_node_simple(list_type, dip,
+                                             /*is_lvalue=*/FALSE);
+        } else {
+          dip->static_temp = static_lifetime;
+          expr = alloc_temp_init_node(list_type, dip,
+                                      /*is_lvalue=*/FALSE,
+                                      /*is_explicit_cast=*/FALSE);
+        }  /* if */
+        make_expression_operand(expr, operand);
+      }  /* if */
     }  /* if */
-    operand->position = *pos;
+    if (operand != NULL) {
+      operand->position = *pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    operand->end_position = *init_component_end_pos(list_icp);
+      operand->end_position = *init_component_end_pos(list_icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    }  /* if */
   }  /* if */
 }  /* make_initializer_list_object */
 
@@ -20480,13 +20511,28 @@ etc.)
       /* dest_type is an instance of std::initializer_list<X>, so build
          an initializer_list object from the braced-init-list. */
       if (generate_il) unbundle_init_component_list_expressions(list);
-      make_initializer_list_object(icp,
-                                   element_type,
-                                   dest_type,
-                                   (is != NULL) ? is->static_lifetime_init :
-                                                  FALSE,
-                                   &operand,
-                                   arg_match);
+      if (is != NULL) {
+        make_initializer_list_object(icp,
+                                     element_type,
+                                     dest_type,
+                                     is->static_lifetime_init,
+                                     is->is_new_expr_init,
+                                     &dip,
+                                     (an_operand *)NULL,
+                                     arg_match);
+        if (arg_match == NULL && dip == NULL) {
+          make_error_operand(&operand);
+        }  /* if */
+      } else {
+        make_initializer_list_object(icp,
+                                     element_type,
+                                     dest_type,
+                                     /*static_lifetime=*/FALSE,
+                                     /*is_new_expr=*/FALSE,
+                                     (a_dynamic_init_ptr *)NULL,
+                                     &operand,
+                                     arg_match);
+      }  /* if */
     } else if (dest_type_is_class &&
                (ctor_sym = symbol_supplement_for_class(dest_type)->constructor)
                                                                      != NULL) {

@@ -15603,6 +15603,7 @@ expression, and return the result in *result (or an error indication in
     clear_init_state(&init_state);
     init_state.variable_size_array = variable_size_array;
     init_state.initializer_can_dimension_array = TRUE;
+    init_state.is_new_expr_init = TRUE;
     prep_list_initializer(alep, new_type,
                           /*is_direct_init=*/TRUE,
                           /*check_narrowing=*/TRUE,

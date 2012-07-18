@@ -13247,6 +13247,34 @@ requires a later destruction, put it into the current object lifetime.
 }  /* set_temp_init_dynamic_init_lifetime */
 
 
+an_expr_node_ptr alloc_temp_init_node_simple(a_type_ptr         temp_type,
+                                             a_dynamic_init_ptr dip,
+                                             a_boolean          is_lvalue)
+/*
+Create an enk_temp_init node and return a pointer to it.  The implied
+temporary has type temp_type.  The initialization to be done is pointed
+to by dip.  The enk_temp_init is an lvalue for the temporary (rather than
+an value) if is_lvalue is TRUE.  In this "simple" version, no lifetime
+and no destructor are filled in; see alloc_temp_init_node for the usual
+case.
+*/
+{
+  an_expr_node_ptr temp_init_node;
+
+  temp_init_node = alloc_expr_node((an_expr_node_kind)enk_temp_init);
+  temp_init_node->variant.init.dynamic_init = dip;
+  temp_init_node->is_lvalue = is_lvalue;
+  if (is_lvalue) {
+    temp_init_node->type = temp_type;
+  } else {
+    /* The result is the value of the temporary, so the type is the type
+       of the temporary as an rvalue. */
+    temp_init_node->type = rvalue_type(temp_type);
+  }  /* if */
+  return temp_init_node;
+}  /* alloc_temp_init_node_simple */
+
+
 an_expr_node_ptr alloc_temp_init_node(a_type_ptr         temp_type,
                                       a_dynamic_init_ptr dip,
                                       a_boolean          is_lvalue,
@@ -13262,15 +13290,7 @@ represents an explicit cast.
   an_expr_node_ptr         temp_init_node;
   a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
 
-  temp_init_node = alloc_expr_node((an_expr_node_kind)enk_temp_init);
-  temp_init_node->is_lvalue = is_lvalue;
-  if (is_lvalue) {
-    temp_init_node->type = temp_type;
-  } else {
-    /* The result is the value of the temporary, so the type is the type
-       of the temporary as an rvalue. */
-    temp_init_node->type = rvalue_type(temp_type);
-  }  /* if */
+  temp_init_node = alloc_temp_init_node_simple(temp_type, dip, is_lvalue);
   dip->is_explicit_cast = is_explicit_cast;
   /* Make sure the IL scope that the temporary is part of exists.  Even though
      the temporary does not exist as a variable, it's still (from a language
@@ -13285,7 +13305,6 @@ represents an explicit cast.
       ssep->kind != (a_scope_kind)sck_template_instantiation) {
     (void)ensure_il_scope_exists(ssep);
   }  /* if */
-  temp_init_node->variant.init.dynamic_init = dip;
   /* Put the dynamic initialization on a destruction list if appropriate. */
   set_temp_init_dynamic_init_lifetime(temp_init_node);
   return temp_init_node;
