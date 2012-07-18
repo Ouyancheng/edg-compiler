@@ -20069,6 +20069,7 @@ it an exact match or a user-defined conversion, etc.)
       if (dip != NULL) {
         /* The initialization is dynamic, so use a ck_dynamic_init. */
         con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+        con->type = element_type;
         con->variant.dynamic_init = dip;
         any_nonconstant = TRUE;
         if (will_need_partial_aggregate_destructor) {
