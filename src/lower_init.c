@@ -9401,10 +9401,15 @@ The subtree of the node has not yet been lowered.
                                                                 ptr_new_type));
       set_expr_creation_insert_location(&insert_location);
       if (is_array_type(ndsp->type) &&
-          dip->kind == (a_dynamic_init_kind)dik_zero &&
-          skip_typerefs(ndsp->type)->size == 0) {
+          skip_typerefs(ndsp->type)->size == 0 &&
+          (dip->kind == (a_dynamic_init_kind)dik_zero ||
+           (dip->kind == (a_dynamic_init_kind)dik_constant &&
+            dip->is_braced_initializer &&
+            dip->is_partially_initialized &&
+            skip_typerefs(dip->variant.constant->type)->size == 0))) {
         /* lower_dynamic_init can't handle a variable-length array, so
-           do that specially. */
+           do that specially.  Also, handle an empty brace-init initializer
+           here (e.g., "new int[n]{}"). */
         an_expr_node_ptr entity_size_node =
                                   make_reusable_copy(ndsp->arg,
                                                      /*vars_can_change=*/TRUE);
