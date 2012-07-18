@@ -986,6 +986,7 @@ Clear an initialization position description entry to default values.
   ipdp->modifiers                 = NULL;
   ipdp->array_element_count       = 0;
   ipdp->array_element_type        = NULL;
+  ipdp->num_elem_node             = NULL;
 }  /* clear_init_pos_descr */
 
 
@@ -6922,7 +6923,8 @@ whose type is entity_type; it is an rvalue pointer that points to
 a complete object if have_complete_object is TRUE.  If num_elem_node
 is non-NULL, the entity is an array and the expression value gives
 the number of elements (the entity_type in that case is the array
-element type).  If array_element_count is non-zero, it gives the
+element type).  num_elem_node must be non-NULL when initializing a
+variably-sized array.  If array_element_count is non-zero, it gives the
 number of elements in an array sequence (and again, entity_type is
 the array element type).  If neither of those provides information,
 the entity can still be an array; the array attributes are fetched
@@ -6936,7 +6938,13 @@ from entity_type itself.  Insert the code for the call at *insert_location.
   if (array_element_count == 0) array_element_count = 1;
   if (is_array_type(entity_type)) {
     element_type = underlying_array_element_type(entity_type);
-    array_element_count *= num_array_elements(entity_type);
+    if (is_incomplete_array_type(entity_type)) {
+      /* For variably-sized arrays, make sure we have a run-time count of
+         the number of elements in the array. */
+      check_assertion(num_elem_node != NULL);
+    } else {
+      array_element_count *= num_array_elements(entity_type);
+    }  /* if */
   }  /* if */
   element_type = skip_typerefs(element_type);
   if (is_immediate_class_type(element_type) &&
@@ -8076,7 +8084,7 @@ do_assignment:;
                                    have_complete_object,
                                    make_address_of_init_entity_node(ipdp,
                                                        /*using_as_dest=*/TRUE),
-                                   (an_expr_node_ptr)NULL,
+                                   ipdp->num_elem_node,
                                    (a_targ_size_t)0,
                                    eff_insert_location);
 #if CHECKING
@@ -8516,16 +8524,19 @@ virtual table table pointer that should be passed to the destructor
 
 
 static an_expr_node_ptr make_number_of_elements_expr_for_array_new(
-                                        a_new_delete_supplement_ptr ndsp,
-                                        a_type_ptr                  array_type,
-                                        a_type_ptr                  elem_type)
+                              a_new_delete_supplement_ptr ndsp,
+                              a_type_ptr                  array_type,
+                              a_type_ptr                  elem_type,
+                              a_boolean                   return_reusable_copy)
 /*
 Make an expression whose value is the number of elements in an
 array, for use in an array "new" operation.  ndsp points to the
 new/delete supplement that gives information about the "new".
 ndsp->arg, if relevant, must be lowered already.  array_type
 gives the array type.  elem_type gives the ultimate element type
-of the array.
+of the array.  If return_reusable_copy is TRUE, the caller needs
+a reusable copy, otherwise, in some cases, the size node for
+the "new" operation is used instead.
 */
 {
   an_expr_node_ptr num_elem_node;
@@ -8542,7 +8553,6 @@ of the array.
     num_elem_node = alloc_node_for_constant(&num_elem_constant);
   } else {
     an_expr_node_ptr size_node;
-    a_boolean        preserve_size_node;
     a_targ_size_t    elem_size;
     an_expr_node_ptr constant_node, nonconstant_node;
     a_constant       size_constant;
@@ -8555,14 +8565,13 @@ of the array.
        a reusable copy must be made of whatever part is reused here. */
     /* Note that the size node is already lowered. */
     size_node = ndsp->arg;
-    preserve_size_node = ndsp->placement_new;
     elem_type = skip_typerefs(elem_type);
     /* Get the size of each element, in bytes. */
     elem_size = elem_type->size;
     if (elem_size == 1) {
       /* The element size is 1, so the number of elements is equal to the
          total size. */
-      if (preserve_size_node) {
+      if (return_reusable_copy) {
         /* size_node must be preserved, so make a copy of it. */
         num_elem_node = make_reusable_copy(size_node,
                                            /*vars_can_change=*/TRUE);
@@ -8592,7 +8601,7 @@ of the array.
       nonconstant_node = size_node->variant.operation.operands;
       constant_node = nonconstant_node->next;
       check_assertion(is_constant_node(constant_node));
-      if (preserve_size_node) {
+      if (return_reusable_copy) {
         /* We need to preserve size_node, and therefore we need a copy of the
            nonconstant node. */
         nonconstant_node = make_reusable_copy(nonconstant_node,
@@ -8753,9 +8762,11 @@ arrays with class elements.
        such (pieces might be put into an argument list). */
     lower_expr_list(ndsp->arg, 0, 0);
     /* Make an expression for the number of elements in the array. */
-    num_elem_node = make_number_of_elements_expr_for_array_new(ndsp,
-                                                               array_type,
-                                                               elem_type);
+    num_elem_node = make_number_of_elements_expr_for_array_new(
+                                                          ndsp,
+                                                          array_type,
+                                                          elem_type,
+                                                          ndsp->placement_new);
   } else {
     /* This is a placement new, so the allocation must be done before
        calling the __vec_new routine.  This happens for something like
@@ -8787,9 +8798,11 @@ arrays with class elements.
        temporary to be used later, and we want to know that before we try
        to inline the "new" call (without the assignment in place, the size
        expression could be eliminated altogether). */
-    num_elem_node = make_number_of_elements_expr_for_array_new(ndsp,
-                                                               array_type,
-                                                               elem_type);
+    num_elem_node = make_number_of_elements_expr_for_array_new(
+                                                          ndsp,
+                                                          array_type,
+                                                          elem_type,
+                                                          ndsp->placement_new);
     size_node = ndsp->arg;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Add the size of the runtime prefix used to keep track of the array
@@ -9404,6 +9417,15 @@ The subtree of the node has not yet been lowered.
         an_init_pos_descr ipd;
         set_var_indirect_init_pos_descr(temp_var, &ipd);
         ipd.base_type = ndsp->type;
+        if (is_incomplete_array_type(ndsp->type)) {
+          /* For a variably-sized array, create a run-time expression for the
+             number of elements in the array. */
+          ipd.num_elem_node = make_number_of_elements_expr_for_array_new(
+                         ndsp,
+                         skip_typerefs(ndsp->type),
+                         new_delete_base_type_from_operation_type(ndsp->type),
+                         /*return_reusable_copy=*/TRUE);
+        }  /* if */
         /* If exceptions are enabled, and if necessary, set up to free the
            storage allocated if an exception is thrown before the storage
            is initialized. */

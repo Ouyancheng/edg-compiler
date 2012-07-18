@@ -211,6 +211,11 @@ typedef struct an_init_pos_descr {
 			   Useful in distinguishing cases where the
 			   element sequence is a flattened multi-dimensional
 			   array. */
+  an_expr_node_ptr
+		num_elem_node;
+			/* For variably-sized arrays, an expression that
+			   gives (at runtime) the number of elements
+			   in the array.  NULL otherwise. */
 } an_init_pos_descr;
 
 typedef struct a_destructible_entity_descr *a_destructible_entity_descr_ptr;
