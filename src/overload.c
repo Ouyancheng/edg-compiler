@@ -20410,7 +20410,11 @@ etc.)
         eicp = eicp->next;
         check_assertion(eicp != NULL);
       }  /* if */
-      expr_pos_error(ec_designator_in_non_aggregate, init_component_pos(eicp));
+      if (expr_error_should_be_issued()) {
+        pos_ty_error(ec_designator_requires_aggregate_type,
+                     init_component_pos(eicp),
+                     dest_type);
+      }  /* if */
       make_error_operand(&operand);
     }  /* if */
   } else if (is_expression_component(icp)) {
