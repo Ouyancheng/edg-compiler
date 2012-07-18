@@ -20830,8 +20830,6 @@ etc.)
       /* We already have a constant operand that can be easily turned into
          an allocated constant. */
       is->init_con = alloc_unshared_constant(&operand.variant.constant);
-    } else if (dip == NULL && is_error_operand(&operand)) {
-      is->init_con = alloc_error_constant();
     } else {
       /* If dip is non-NULL, we already have a dynamic init. */
       if (dip == NULL) {
