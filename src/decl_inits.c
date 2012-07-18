@@ -5685,9 +5685,9 @@ is part of.  diag_pos is the position to be used by default for diagnostics
     /* An array declarator of the form "X[]" followed by a braced initializer:
        Dimension it according to the initializer. */
     a_type_ptr  dim_type = dps->type;
-    if (dps->init_state.init_error && is_incomplete_array_type(dim_type)) {
-      /* An error occurred while processing the initializer and no dimension
-         could be deduced for the array.  Proceed with an error type. */
+    if (dps->init_state.init_error) {
+      /* An error occurred while processing the initializer: Proceed with an
+         error type. */
       dim_type = error_type();
     }  /* if */
     put_type_back_into_variable(vp, dps->sym, diag_pos, linkage, dim_type);
