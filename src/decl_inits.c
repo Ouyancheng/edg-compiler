@@ -5605,6 +5605,11 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       break;
     default:
       /* Non-class, non-aggregate initialization. */
+      if (!list_init_enabled && icp->variant.braced.list == NULL) {
+        /* Empty braces initializing a scalar are a C++11 list initialization
+           feature. */
+        pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
+      }  /* if */
       convert_initializer(icp, dtype, is_var_init, /*check_narrowing=*/TRUE,
                           /*fill_in_dtor=*/TRUE, is);
       break;
