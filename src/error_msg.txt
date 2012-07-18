@@ -2407,6 +2407,7 @@ ec_designator_requires_aggregate_type;;"a designator cannot be used with a non-a
 ec_indirect_anon_union_designator;;"a designator for an anonymous union member can only appear within braces corresponding to that anonymous union"
 ec_cl_func_prototype_tags_option_only_in_C;;"function prototype tags can only be enabled when compiling C"
 ec_cannot_elide_braces;;"braces cannot be omitted for this subobject initializer"
+ec_designator_in_non_aggregate;;"a designator can be used only in an array or aggregate class initializer"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

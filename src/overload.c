@@ -20339,6 +20339,7 @@ etc.)
   a_boolean            arg_match_err = FALSE;
   a_boolean            partial_initializer = FALSE;
   an_arg_match_summary internal_arg_match;
+  a_boolean            aggregate_case = FALSE;
 
   /* The basic modes are:
                       issue_errors   generate_il
@@ -20389,7 +20390,30 @@ etc.)
      instantiated. */
   complete_type_is_needed(dest_type);
   braced_init = is_braced_init_component(icp);
-  if (is_expression_component(icp)) {
+  if (braced_init &&
+      (is_aggregate_type(dest_type) ||
+       (icp->contains_designator &&
+        (is_error_type(dest_type) ||
+         could_be_dependent_class_type(dest_type))))) {
+    /* This is the initialization of an aggregate type from a braced-init-list.
+       We also go that way for cases that have designators, when the
+       destination type is not known but might be an aggregate. */
+    aggregate_case = TRUE;
+  }  /* if */
+  if (icp->contains_designator && !aggregate_case) {
+    /* Designators are not allowed in non-aggregate initializations. */
+    if (arg_match != NULL) {
+      arg_match_err = TRUE;
+    } else {
+      an_init_component_ptr eicp = icp->variant.braced.list;
+      while (!is_designator_component(eicp)) {
+        eicp = eicp->next;
+        check_assertion(eicp != NULL);
+      }  /* if */
+      expr_pos_error(ec_designator_in_non_aggregate, init_component_pos(eicp));
+      make_error_operand(&operand);
+    }  /* if */
+  } else if (is_expression_component(icp)) {
     /* The object is initialized by an expression. */
     if (arg_match != NULL) {
       /* We allow this for generality, but usually this routine will
@@ -20447,17 +20471,7 @@ etc.)
     an_init_component_ptr list = icp->variant.braced.list;
     /* The tests that follow are based on the bullet list in [dcl.init.list]
        of the C++11 standard. */
-    if (could_be_dependent_class_type(dest_type)) {
-      /* Dependent case.  Pretend this is a constructor invocation. */
-      /* The dependent case should have been handled higher up for
-         overload resolution. */
-      check_assertion(arg_match == NULL && generate_il);
-      unbundle_init_component_list_expressions(list);
-      scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
-                                               /*arg_list_supplied=*/TRUE,
-                                               list,
-                                               (an_operand *)NULL, &dip);
-    } else if (is_aggregate_type(dest_type)) {
+    if (aggregate_case) {
       /* Aggregate cases go back to the initialization code in decl_inits.c. */
       an_init_state init_state;
       an_init_state *eff_is = is;
@@ -20485,6 +20499,16 @@ etc.)
           arg_match->match_level = aml_user_conversion;
         }  /* if */
       }  /* if */
+    } else if (could_be_dependent_class_type(dest_type)) {
+      /* Dependent case.  Pretend this is a constructor invocation. */
+      /* The dependent case should have been handled higher up for
+         overload resolution. */
+      check_assertion(arg_match == NULL && generate_il);
+      unbundle_init_component_list_expressions(list);
+      scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
+                                               /*arg_list_supplied=*/TRUE,
+                                               list,
+                                               (an_operand *)NULL, &dip);
     } else if (list == NULL &&
                dest_type_is_class &&
                f_type_has_default_constructor(dest_type,
