@@ -19984,6 +19984,8 @@ it an exact match or a user-defined conversion, etc.)
     if (expr_error_should_be_issued()) expect_error();
     element_type = error_type();
   }  /* if */
+  /* The array element type is const-qualified (core issue 1418). */
+  element_type = make_qualified_type(element_type, TQ_CONST);
   /* First we create a temporary of array type initialized to the values
      in the braced-init-list.  Its value is an aggregate constant
      containing the values in the braced-init-list. */
