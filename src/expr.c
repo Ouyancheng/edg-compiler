@@ -29151,7 +29151,6 @@ an initializer component.
 void convert_initializer(an_init_component_ptr icp,
                          a_type_ptr            dest_type,
                          a_boolean             is_var_init,
-                         a_boolean             check_narrowing,
                          a_boolean             fill_in_dtor,
                          an_init_state         *is)
 /*
@@ -29159,8 +29158,7 @@ Convert an initializer value represented in init-component form (icp)
 to the type of the entity being initialized, given by dest_type.  If
 is_var_init is TRUE, this is the complete initializer for a variable
 (given by is->decl_parse_state->sym), and the type of that variable is
-used for dest_type.  If check_narrowing is TRUE, issue diagnostics for
-narrowing conversions.  is describes the initialization processed by
+used for dest_type.  is describes the initialization processed by
 this function, including whether diagnostics should be avoided
 (is->no_diagnostics) or whether no IL should be generated
 (is->check_validity_only).  The converted result, if any, is returned
@@ -29212,7 +29210,7 @@ dynamic init entry if one is created to represent this initializer
   if (is_full_expr) transfer_expr_context_if_applicable(saved_expr_stack);
   prep_list_initializer(icp, dest_type,
                         is->direct_init,
-                        check_narrowing,
+                        /*check_narrowing=*/TRUE,
                         conv_context, fill_in_dtor,
                         /*force_temp=*/FALSE,
                         (an_operand *)NULL,

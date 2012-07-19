@@ -20489,9 +20489,7 @@ etc.)
       }  /* if */
       /* No unbundling here, since we will still want to handle the
          expressions individually at the next level down. */
-      prep_aggr_initializer(icp, dest_type, eff_is,
-                            check_narrowing,
-                            fill_in_dtor);
+      prep_aggr_initializer(icp, dest_type, eff_is, fill_in_dtor);
       constant = eff_is->init_con;
       dip = eff_is->init_dip;
       partial_initializer = eff_is->partial_initializer;

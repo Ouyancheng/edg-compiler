@@ -371,6 +371,12 @@ typedef struct an_init_state {
 			   initializer.  This is useful for overload-resolution
 			   matching.  If TRUE, no_diagnostics must be TRUE
 			   too.  C++ mode only. */
+  a_bit_field	error_on_narrowing:1;
+			/* TRUE if an error should be issued when narrowing is
+			   required for the initialization. */
+  a_bit_field	warning_on_narrowing:1;
+			/* TRUE if a warning should be issued when narrowing is
+			   required for the initialization. */
   a_bit_field	init_error:1;
 			/* TRUE if processing the initializer has run into an
 			   error that is severe enough to prevent the

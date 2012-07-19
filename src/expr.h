@@ -507,7 +507,6 @@ extern
 void convert_initializer(an_init_component_ptr icp,
                          a_type_ptr            dest_type,
                          a_boolean             is_var_init,
-                         a_boolean             check_narrowing,
                          a_boolean             fill_in_dtor,
                          an_init_state         *is);
 #if MICROSOFT_EXTENSIONS_ALLOWED

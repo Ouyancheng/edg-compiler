@@ -42,7 +42,6 @@ extern void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
 extern void prep_aggr_initializer(an_init_component_ptr  icp,
                                   a_type_ptr             dtype,
                                   an_init_state          *is,
-                                  a_boolean              check_narrowing,
                                   a_boolean              fill_in_dtor);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

@@ -97,6 +97,8 @@ Clear the fields of *is.
   is->force_dynamic_init = FALSE;
   is->no_diagnostics = FALSE;
   is->check_validity_only = FALSE;
+  is->error_on_narrowing = FALSE;
+  is->warning_on_narrowing = FALSE;
   is->init_error = FALSE;
   is->has_dynamic_init_component = FALSE;
   is->any_uninitialized_const_or_ref_member = FALSE;

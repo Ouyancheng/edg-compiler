@@ -3847,7 +3847,6 @@ remove_any_extraneous_braces:
   elem_is = *is;
   elem_is.direct_init = FALSE;
   convert_initializer(icp, dest_type, /*is_var_init=*/FALSE,
-                      /*check_narrowing=*/TRUE,
                       /*fill_in_dtor=*/exceptions_enabled, &elem_is);
   is->init_error = elem_is.init_error;
   if (is->check_validity_only) {
@@ -5422,21 +5421,17 @@ if is->has_dynamic_init_component or is->force_dynamic_init are TRUE.
 }  /* prep_initializer_result */
 
 
-/*FIXME: check_narrowing is not currently used. */
-/*ARGSUSED*/
 void prep_aggr_initializer(an_init_component_ptr  icp,
                            a_type_ptr             dtype,
                            an_init_state          *is,
-                           a_boolean              check_narrowing,
                            a_boolean              fill_in_dtor)
 /*
-Convert an initializer value represented by icp to the aggregate type
-dtype of the entity being initialized.  The result is returned through
-*is (in particular, is->init_con and is->init_dip).  If
-check_narrowing is TRUE, issue diagnostics for narrowing conversions.
-If fill_in_dtor is TRUE a destructor will be added to the dynamic
-initialization if one is needed, but the dynamic init will not be
-placed on any object lifetime list (the caller must do that).
+Convert an initializer value represented by icp to the aggregate type dtype of
+the entity being initialized.  The result is returned through *is (in
+particular, is->init_con and is->init_dip).  If fill_in_dtor is TRUE a
+destructor will be added to the dynamic initialization if one is needed, but
+the dynamic init will not be placed on any object lifetime list (the caller
+must do that).
 */
 {
   a_source_position_ptr  diag_pos = init_component_pos(icp);
@@ -5604,8 +5599,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
           aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
         } else {
           /* Non-aggregate class type. */
-          convert_initializer(icp, dtype, is_var_init,
-                              /*check_narrowing=*/TRUE, /*fill_in_dtor=*/TRUE,
+          convert_initializer(icp, dtype, is_var_init, /*fill_in_dtor=*/TRUE,
                               is);
         }  /* if */
       }  /* if */
@@ -5617,8 +5611,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
            feature. */
         pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
       }  /* if */
-      convert_initializer(icp, dtype, is_var_init, /*check_narrowing=*/TRUE,
-                          /*fill_in_dtor=*/TRUE, is);
+      convert_initializer(icp, dtype, is_var_init, /*fill_in_dtor=*/TRUE, is);
       break;
   }  /* switch */
   free_init_component_list(icp_tree);
@@ -5683,11 +5676,22 @@ is part of.  diag_pos is the position to be used by default for diagnostics
       pos_warning(ec_list_initializer_nonstandard_in_current_mode,
                   &pos_curr_token);
     }  /* if */
+    dps->init_state.error_on_narrowing = TRUE;
     vp->has_direct_braced_initializer = direct;
     dps->init_state.direct_init = direct;
   } else {
     /* Traditional aggregate initialization of the form "T x = { ... }". */
     dps->init_state.elided_braces_allowed = TRUE;
+    if (list_init_enabled) {
+      /* C++11 requires a diagnostic on narrowing in this case, but since it
+         is a backward compatibility issue, we make it warning only in non-
+         strict modes. */
+      if (strict_ansi_mode) {
+        dps->init_state.error_on_narrowing = TRUE;
+      } else {
+        dps->init_state.warning_on_narrowing = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   vp->has_direct_braced_initializer = direct;
   dps->init_state.initializer_must_be_constant =
