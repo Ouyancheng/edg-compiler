@@ -6,11 +6,9 @@ GNU compatibility: completely wrong second argument on va_start gets warning
 gcc gives only a warning on a completely-wrong second argument to the
 va_start builtin, presumably because it knows what the correct value is
 (i.e., the final parameter before the ellipsis).  We now do the same in
-GNU C or C++ mode.  However, note that this change is only relevant
+GNU C or C++ mode.  However, note that this change is only effective
 when the built-in processing for <stdarg.h> is turned on (see
-DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE), and ordinarily that
-processing is turned off in GNU mode; a customer modification would
-be required to see a difference.
+DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE) in GNU mode.
 
   #include <stdarg.h>
   int xx;
