@@ -3798,17 +3798,20 @@ if so also return *elem_type set to the argument type X.
   a_template_arg_ptr templ_arg_list;
 
   *elem_type = NULL;
-  type = skip_typerefs(type);
-  if (is_immediate_class_type(type) &&
-      symbol_for_std_initializer_list != NULL &&
-      is_instance_of_class_template(type,
-                                    symbol_for_std_initializer_list,
-                                    &templ_arg_list)) {
-    check_assertion(templ_arg_list != NULL &&
-                    templ_arg_list->next == NULL &&
-                    is_type_templ_arg(templ_arg_list));
-    is_instance = TRUE;
-    *elem_type = templ_arg_list->variant.type;
+  if (is_std_initializer_list_type(type)) {
+    type = skip_typerefs(type);
+    check_assertion(symbol_for_std_initializer_list != NULL);
+    if (is_instance_of_class_template(type,
+                                      symbol_for_std_initializer_list,
+                                      &templ_arg_list)) {
+      check_assertion(templ_arg_list != NULL &&
+                      templ_arg_list->next == NULL &&
+                      is_type_templ_arg(templ_arg_list));
+      is_instance = TRUE;
+      *elem_type = templ_arg_list->variant.type;
+    } else {
+      unexpected_condition();
+    }  /* if */
   }  /* if */
   return is_instance;
 }  /* is_instance_of_std_initializer_list */
