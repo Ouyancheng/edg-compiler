@@ -15603,6 +15603,7 @@ expression, and return the result in *result (or an error indication in
     clear_init_state(&init_state);
     init_state.variable_size_array = variable_size_array;
     init_state.initializer_can_dimension_array = TRUE;
+    init_state.force_dynamic_init = TRUE;
     init_state.is_new_expr_init = TRUE;
     prep_list_initializer(alep, new_type,
                           /*is_direct_init=*/TRUE,
@@ -15616,14 +15617,8 @@ expression, and return the result in *result (or an error indication in
       err = TRUE;
     } else {
       needs_initialization = TRUE;
-      if (init_state.init_dip != NULL) {
-        dip = init_state.init_dip;
-      } else {
-        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-        dip->variant.constant = init_state.init_con;
-        dip->is_braced_initializer = TRUE;
-        dip->is_partially_initialized = init_state.partial_initializer;
-      }  /* if */
+      dip = init_state.init_dip;
+      check_assertion(dip != NULL);
     }  /* if */
     free_init_component_list(alep);
   } else {

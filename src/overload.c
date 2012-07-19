@@ -20824,29 +20824,41 @@ etc.)
   } else {
     /* The caller wants the result as a constant or a dynamic init,
        returned via either is->init_con or is->init_dip. */
+    a_boolean constant_ok;
     check_assertion(is != NULL);
+    constant_ok = !is->force_dynamic_init;
+    check_assertion(!curr_expr_kind_is_const() || constant_ok);
     is->init_con = NULL;
     is->init_dip = NULL;
-    if (constant != NULL) {
+    if (constant != NULL && constant_ok) {
       /* We already have an allocated constant. */
       is->init_con = constant;
-    } else if (dip == NULL && is_constant_operand(&operand)) {
+    } else if (dip == NULL && constant_ok && is_constant_operand(&operand)) {
       /* We already have a constant operand that can be easily turned into
          an allocated constant. */
       is->init_con = alloc_unshared_constant(&operand.variant.constant);
+    } else if (dip == NULL && constant_ok && is_error_operand(&operand) &&
+               curr_expr_kind_is_const()) {
+      is->init_con = alloc_error_constant();
     } else {
       /* If dip is non-NULL, we already have a dynamic init. */
       if (dip == NULL) {
         an_expr_node_ptr temp_init_node;
-        if (is_temp_init_usable_in_optimization(&operand,
+        if (constant == NULL &&
+            is_temp_init_usable_in_optimization(&operand,
                                                /*suppress_dtor=*/!fill_in_dtor,
-                                               &temp_init_node,
-                                               &dip)) {
+                                                &temp_init_node,
+                                                &dip)) {
           /* We already have a dynamic init in the operand that we can just
              use. */
         } else {
           /* Make a dynamic init for the expression. */
-          an_expr_node_ptr expr = make_node_from_operand(&operand);
+          an_expr_node_ptr expr;
+          if (constant != NULL) {
+            expr = alloc_node_for_allocated_constant(constant);
+          } else {
+            expr = make_node_from_operand(&operand);
+          }  /* if */
           dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
           dip->variant.expression = expr;
         }  /* if */
