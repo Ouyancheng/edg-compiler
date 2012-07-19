@@ -3908,6 +3908,7 @@ of the whole initialization (*is) as appropriate.
     /* Except for designators, this routine always "succeeds" without
        diagnostics.  So if no IL should be produced, there is nothing to be
        done. */
+    *init_con = NULL;
   } else if (is_expression_component(icp)) {
     /* A simple expression: No more recursion is needed. */
     aggr_init_simple_element(&icp, gtype, is, init_con);
@@ -3968,7 +3969,9 @@ vector type.
   etype = vtype->variant.vector.element_type;
   check_assertion(!is_aggregate_or_union_type(etype));
   /* Create the result entry (unless we are only checking validity). */
-  if (!is->check_validity_only) {
+  if (is->check_validity_only) {
+    *init_con = NULL;
+  } else {
     *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
     (*init_con)->type = vtype;
     (*init_con)->explicit_braces_on_aggregate = TRUE;
@@ -4440,7 +4443,9 @@ initialization).  *is describes the initialization as a whole.
         is->init_error = TRUE;
       }  /* if */
     }  /* if */
-    if (!is->check_validity_only) {
+    if (is->check_validity_only) {
+      *init_con = NULL;
+    } else {
       *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
       (*init_con)->type = atype;
       (*init_con)->explicit_braces_on_aggregate = braced;
@@ -5140,7 +5145,9 @@ issued if no more specific position is available.
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     /* Skip unnamed bit fields. */ 
     fp = next_initializable_field(fp);
-    if (!is->check_validity_only) {
+    if (is->check_validity_only) {
+      *init_con = NULL;
+    } else {
       *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
       (*init_con)->type = class_type;
       (*init_con)->explicit_braces_on_aggregate = braced;
@@ -5370,9 +5377,13 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
                                                   type_pointed_to(etype)))) {
     a_dynamic_init_ptr  cli_array_dip;
     aggr_init_cli_array_with_alloc(icp, etype, is, &cli_array_dip);
-    *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-    (*init_con)->variant.dynamic_init = cli_array_dip;
-    (*init_con)->type = etype;
+    if (is->check_validity_only) {
+      *init_con = NULL;
+    } else {
+      *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      (*init_con)->variant.dynamic_init = cli_array_dip;
+      (*init_con)->type = etype;
+    }  /* if */
     *p_icp = icp->next;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
