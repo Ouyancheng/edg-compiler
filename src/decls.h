@@ -356,9 +356,12 @@ typedef struct an_init_state {
 			/* TRUE if an initializer is required to be
 			   constant. */
   a_bit_field	force_dynamic_init:1;
-			/* TRUE if a dynamic init entry should be produces in
+			/* TRUE if a dynamic init entry should be produced in
 			   all cases (i.e., if a constant is produced, it
-			   should be wrapped). */
+			   should be wrapped).  For aggregate initializers,
+			   this flag is cleared when processing the element
+			   initializers (so only the top-level constant is
+			   wrapped). */
   a_bit_field	no_diagnostics:1;
 			/* TRUE if no diagnostics should be issued (this is
 			   useful for overload-resolution matching and for

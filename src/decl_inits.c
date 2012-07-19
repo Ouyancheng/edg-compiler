@@ -5441,10 +5441,13 @@ placed on any object lifetime list (the caller must do that).
 {
   a_source_position_ptr  diag_pos = init_component_pos(icp);
   a_routine_ptr          dtor_rp = NULL;
+  a_boolean              saved_force_dynamic_init = is->force_dynamic_init;
 
   check_assertion(!C_mode());
   is->init_con = NULL;
   is->init_dip = NULL;
+  /* The force_dynamic_init flag only applies to the top-level result. */
+  is->force_dynamic_init = FALSE;
   dtype = skip_typerefs(dtype);
   switch (dtype->kind) {
     case tk_error:
@@ -5494,6 +5497,7 @@ placed on any object lifetime list (the caller must do that).
     default:
       unexpected_condition();
   }  /* switch */
+  is->force_dynamic_init = saved_force_dynamic_init;
   if (!is->check_validity_only) {
     /* Ensure is->init_con and is->init_dip are set properly. */
     prep_initializer_result(is, dtor_rp);
@@ -5529,6 +5533,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
 {
   an_init_component_ptr  icp_tree, icp;
   a_boolean              is_aggregate = FALSE, is_var_init;
+  a_boolean              saved_force_dynamic_init = is->force_dynamic_init;
   a_type_ptr             atype;
   a_routine_ptr          dtor_rp = NULL;
 
@@ -5543,6 +5548,8 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
   is_var_init = dps != NULL && dps->sym != NULL &&
                 (symbol_is(dps->sym, sk_variable) ||
                  symbol_is(dps->sym, sk_static_data_member));
+  /* The force_dynamic_init flag only applies to the top-level result. */
+  is->force_dynamic_init = FALSE;
   switch (dtype->kind) {
     case tk_error:
     case tk_template_param:
@@ -5615,6 +5622,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       break;
   }  /* switch */
   free_init_component_list(icp_tree);
+  is->force_dynamic_init = saved_force_dynamic_init;
   if ((is_aggregate || (is->force_dynamic_init && is->init_dip == NULL)) &&
       !is->init_error) {
     /* The routines for aggregate initialization produce a constant entry, but
