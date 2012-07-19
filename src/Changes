@@ -1,5 +1,30 @@
 Version 4.5
 
+7/19/12  [EDGcpfe/13069]
+GNU compatibility: completely wrong second argument on va_start gets warning
+
+gcc gives only a warning on a completely-wrong second argument to the
+va_start builtin, presumably because it knows what the correct value is
+(i.e., the final parameter before the ellipsis).  We now do the same in
+GNU C or C++ mode.  However, note that this change is only relevant
+when the built-in processing for <stdarg.h> is turned on (see
+DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE), and ordinarily that
+processing is turned off in GNU mode; a customer modification would
+be required to see a difference.
+
+  #include <stdarg.h>
+  int xx;
+  void f(int i, ...) {
+    va_list vl;
+    va_start(vl, xx);  // Second argument should be "i"
+  }
+
+As part of this change, some diagnostics on misuse of va_start have
+been made more strict in other modes.  For example, use of va_start
+in a function that does not have an ellipsis now gets an error instead
+of a warning.
+
+
 7/15/12  [EDGcpfe/12992]
 C++-generating back end, GNU compatibility: destructor name of a different
 template instance

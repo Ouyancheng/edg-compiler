@@ -2831,6 +2831,7 @@ been scanned: builtin_func represents the reference to the builtin function
   an_operand        operand;
   an_expr_node_ptr  node1, node2;
   a_boolean         err = FALSE;
+  a_variable_ptr    last_param_var = NULL;
 
   db_enter(4, "scan_va_start_operator");
   /* va_start not possible in preprocessing expressions. */
@@ -2855,23 +2856,29 @@ been scanned: builtin_func represents the reference to the builtin function
     expr_pos_error(ec_bad_va_start, &start_position);
     err = TRUE;
   } else {
-    /* Check if we are in a valid function for the use of va_start.
-       GNU C is a little stricter about this than our default mode. */
-    a_boolean  bad_scope = TRUE;
+    /* Check if we are in a valid function for the use of va_start. */
+    a_boolean bad_scope = TRUE;
     if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
       a_routine_ptr  routine =
                      scope_stack[depth_innermost_function_scope].assoc_routine;
       a_type_ptr     routine_type = skip_typerefs(routine->type);
-      if (routine_type->variant.routine.extra_info->has_ellipsis ||
-          (!gnu_mode &&
-           !routine_type->variant.routine.extra_info->prototyped)) {
+      if (routine_type->variant.routine.extra_info->has_ellipsis) {
         bad_scope = FALSE;
+        /* Find the last parameter variable so we can check that it is the
+           one referenced in the second operand. */
+        last_param_var = innermost_function_scope->variant.routine.parameters;
+        if (last_param_var == NULL) {
+          bad_scope = TRUE;
+        } else {
+          while (last_param_var->next != NULL) {
+            last_param_var = last_param_var->next;
+          }  /* while */
+        }  /* if */
       }  /* if */
     }  /* if */
     if (bad_scope) {
-      expr_pos_diagnostic(gnu_mode ? es_error : es_warning,
-                          ec_va_start_requires_ellipsis_function,
-                          &start_position);
+      expr_pos_error(ec_va_start_requires_ellipsis_function, &start_position);
+      err = TRUE;
     }  /* if */
   }  /* if */
   if (!single_operand) {
@@ -2904,6 +2911,7 @@ been scanned: builtin_func represents the reference to the builtin function
        it when emulating recent GNU C++ compilers. */
     if (is_an_lvalue(&operand) &&
         is_expression_operand(&operand)) {
+      a_boolean okay = FALSE;
       node2 = operand.variant.expression;
       if (gpp_mode && gnu_version >= 30200) {
         /* Strip a reference indirection in g++ mode so we can check what's
@@ -2911,21 +2919,39 @@ been scanned: builtin_func represents the reference to the builtin function
         node2 = strip_ref_indirect(node2, /*parens_also=*/TRUE);
       }  /* if */
       node2 = skip_parens(node2);
-      if (is_variable_node(node2) &&
-          node2->variant.variable->is_parameter) {
-        /* Okay. */
+      if (is_variable_node(node2)) {
+        if (last_param_var != NULL &&
+            node2->variant.variable == last_param_var) {
+          /* Correct use of the final parameter. */
+          okay = TRUE;
+        } else if (last_param_var == NULL) {
+          /* Previous error. */
+          check_assertion(err);
+        } else if (node2->variant.variable->is_parameter) {
+          /* A parameter, but not the last one.  Call that a warning. */
+          pos_warning(ec_bad_va_start, &operand.position);
+          okay = TRUE;
+        }  /* if */
+      }  /* if */
+      if (!okay && !err) {
+        /* Other weird cases.  GNU calls these warnings, presumably because
+           it knows the right parameter to name. */
+        if (gnu_mode) {
+          pos_warning(ec_bad_va_start, &operand.position);
+          okay = TRUE;
+        } else {
+          error_in_operand(ec_bad_va_start, &operand);
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+      if (!err) {
 #if BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE
         /* Many implementations of va_start expose the address of the
            parameter variable.  Also consider this a use of the parameter. */
         change_ref_kinds(operand.ref_entries_list,
                          SRK_USE | SRK_ADDRESS_TAKEN);
 #endif /* BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE */
-        if (!err) {
-          node1->next = node2;
-        }  /* if */
-      } else {
-        error_in_operand(ec_bad_va_start, &operand);
-        err = TRUE;
+        node1->next = node2;
       }  /* if */
     } else {
       if (!is_error_operand(&operand)) {
