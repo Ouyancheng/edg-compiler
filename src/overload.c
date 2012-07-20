@@ -20752,10 +20752,36 @@ etc.)
     } else {
       /* Something else (e.g., an "int" initialized by a list with two
          elements); error. */
-      if (generate_il) unbundle_init_component_list_expressions(list);
-      expr_pos_error(ec_too_many_initializer_values,
-                     init_component_pos(list->next));
-      make_error_operand(&operand);
+      if (gcc_mode) {
+        /* gcc (but not g++) issues a warning and ignores the excess values. */
+        expr_pos_warning(ec_excess_initializers_ignored,
+                         init_component_pos(list->next));
+        arg_list_will_not_be_used_because_of_error(list->next);
+        free_init_component_list(list->next);
+        list->next = NULL;
+        prep_list_initializer(icp,
+                              dest_type,
+                              is_direct_init,
+                              check_narrowing,
+                              conv_context,
+                              fill_in_dtor,
+                              force_temp,
+                              ((result != NULL) ? &operand :
+                                                  (an_operand *)NULL),
+                              is,
+                              arg_match);
+        if (result == NULL && generate_il) {
+          check_assertion(is != NULL);
+          constant = is->init_con;
+          dip = is->init_dip;
+        }  /* if */
+      } else {
+        /* Normal case: error. */
+        if (generate_il) unbundle_init_component_list_expressions(list);
+        expr_pos_error(ec_too_many_initializer_values,
+                       init_component_pos(list->next));
+        make_error_operand(&operand);
+      }  /* if */
     }  /* if */
   } else {
     /* Unexpected init component kind. */
