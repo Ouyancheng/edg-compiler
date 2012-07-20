@@ -6343,8 +6343,6 @@ returned set to TRUE.
       /* Ordinary C-style aggregate initialization, usually with a brace-
          enclosed list of values.  Except that in C++ such lists may include
          non-constants. */
-      /*FIXME: Enable the new code only for some modes right now.  We'll
-        enable it in all modes as issues are straightened out. */
       if (first_token == tok_lbrace) {
         /* An initializer of the form "= { ... }". */
         brace_init_variable(dps, /*direct=*/FALSE, linkage, source_pos,
