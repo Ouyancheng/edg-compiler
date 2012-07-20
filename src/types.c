@@ -4594,6 +4594,24 @@ TCF_CONTEXTUAL_GENERIC_PARAMETERS).
             }  /* if */
           }  /* if */
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (type_1->source_corresp.is_class_member &&
+                 type_2->source_corresp.is_class_member &&
+                 type_1->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class &&
+                 type_2->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class) {
+        /* In most cases nested classes of nonreal classes are represented a
+           tptk_member template parameters, so they are not compared here.
+           But Microsoft instantiated nonreal classes have actual nested
+           classes as members.  They are considered the same if their names
+           are the same and their parent classes are the same. */
+        a_symbol_ptr	sym_1 = symbol_for(type_1);
+        a_symbol_ptr	sym_2 = symbol_for(type_2);
+        equiv = sym_1->header == sym_2->header &&
+                identical_types(parent_class_of(type_1),
+                                parent_class_of(type_2));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
   }  /* if */

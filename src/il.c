@@ -11635,7 +11635,7 @@ no value is returned for that.
       (ptp->next == NULL || ptp->next->has_default_arg)) {
     a_type_ptr  tp = type_pointed_to(ptp->type);
     a_type_ptr  unqualified_tp = skip_typerefs(tp);
-    if (unqualified_tp == class_of_which_a_member) {
+    if (identical_types(unqualified_tp, class_of_which_a_member)) {
       /* It is probably a copy constructor. */
       is_cctor = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

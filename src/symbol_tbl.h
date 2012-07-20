@@ -2502,6 +2502,10 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if this template cannot be explicitly 
 			   specialized. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      a_bit_field
+		any_ms_instantiated_nonreal_classes:1;
+			/* TRUE if this template has any instantiations that
+			   are Microsoft mode instantiated nonreal classes. */
       bitfield_to_avoid_codecenter_warnings()
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr

@@ -6319,6 +6319,9 @@ such classes.
     class_type->variant.class_struct_union.is_open_constructed_type = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (instantiate_nonreal) {
+    tssp->variant.class_template.any_ms_instantiated_nonreal_classes = TRUE;
+  }  /* if */
   class_type->variant.class_struct_union.is_template_class = TRUE;
   sym->variant.class_struct_union.type = class_type;
   set_source_corresp(&(class_type->source_corresp), sym);
@@ -6815,6 +6818,47 @@ error type is used.
   return instance_sym;
 }  /* instantiate_template_alias */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean has_ms_instantiated_nonreal_class(
+		a_template_symbol_supplement_ptr	tssp,
+		a_template_arg_ptr			template_arg_list,
+		an_equiv_templ_arg_options_set		eta_options)
+/*
+Return TRUE if the template specified by tssp has a Microsoft mode
+instantiated nonreal class that matches template_arg_list.  eta_options is
+the options set to be passed to equiv_template_arg_lists.  This check does
+not require an exact match on nonreal template arguments, so the search
+must be done using the complete list of types, not the usual hash table
+mechanism (and this routine is only called after the hash lookup has failed).
+Return TRUE if a matching instantiated nonreal class is found, FALSE otherwise.
+*/
+{
+  a_boolean			result = FALSE;
+  a_symbol_list_entry_ptr	slep;
+
+  for (slep = tssp->variant.class_template.instantiations;
+       slep != NULL; slep = slep->next) {
+    a_template_arg_ptr	old_list;
+    a_symbol_ptr	sym;
+    a_type_ptr		class_type;
+    sym = slep->symbol;
+    class_type = sym->variant.class_struct_union.type;
+    /* Only consider existing Microsoft instantiated nonreal classes. */
+    if (class_type->
+                 variant.class_struct_union.is_ms_instantiated_nonreal_class) {
+      old_list = template_arg_list_for_symbol(sym);
+      if (equiv_template_arg_lists(old_list, template_arg_list, eta_options)) {
+        /* We've found a match. */
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* has_ms_instantiated_nonreal_class */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr find_template_class(
 			     a_symbol_ptr        template_sym,
@@ -6945,6 +6989,22 @@ because the Microsoft compiler does actual name lookup in such classes.
     /* hash_table_sym will be NULL if no entry is found, otherwise it will
        point to the symbol in the hash table. */
     sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (sym == NULL && !instantiate_nonreal && !is_alias_template &&
+      tssp->variant.class_template.any_ms_instantiated_nonreal_classes &&
+      template_arg_list_is_dependent(*new_list)) {
+      /* Check whether there are any instantiations of this template that are
+         Microsoft mode nonreal instantiations that have the same template
+         argument list we are looking for.  Such instances will not be found
+         above because the search requires an exact match on nonreal template
+         arguments.  Do a second search without requiring an exact match.
+         If an instance is found, we won't use it, we will just cause the
+         newly created instance to also be an instantiated nonreal class. */
+      if (has_ms_instantiated_nonreal_class(tssp, *new_list, eta_options)) {
+        instantiate_nonreal = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("ftc")) {
@@ -14085,6 +14145,9 @@ any classes that declared the nested class as a template friend.
         tssp->variant.class_template.instantiations = slep;
         cssp->corresp_prototype_sym = ct_symbol;
         class_type->variant.class_struct_union.is_template_class = TRUE;
+        class_type->variant.class_struct_union.is_nonreal_class =
+                           parent_class->variant.class_struct_union.
+                                                             is_nonreal_class;
         class_type->variant.class_struct_union.
                                              is_ms_instantiated_nonreal_class =
                            parent_class->variant.class_struct_union.
