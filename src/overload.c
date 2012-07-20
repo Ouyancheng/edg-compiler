@@ -20910,7 +20910,7 @@ etc.)
     /* Just evaluating for overload resolution.  arg_match is set already, but
        if there was an error reset it now. */
     if (arg_match_err) {
-      arg_match->match_level = aml_error;
+      arg_match->match_level = aml_none;
     }  /* if */
     if (is != NULL) {
       /* We were asked by way of the init_state interface to do an
