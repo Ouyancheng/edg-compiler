@@ -7941,6 +7941,11 @@ C99 mode for the same reason.
         } else {
           /* Normal case: not a full expression. */
           lower_expr(source_node);
+          if (options & LDIO_FULL_EXPR) {
+            /* Make sure that all "full expressions" are subject to a lowering
+               post-pass. */
+            perform_post_pass_on_lowered_expression(source_node);
+          }  /* if */
         }  /* if */
         { a_constant con;
           if (!simple_constant_init_opt_ruled_out &&
