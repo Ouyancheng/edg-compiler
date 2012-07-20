@@ -6353,7 +6353,6 @@ returned set to TRUE.
   if (anything_cached(&dps->prescanned_initializer_cache)) {
     /* Normally, prescanned components should have been consumed by now.
        Only in error cases can it be otherwise. */
-    check_assertion(is_or_contains_error_type(dps->type));
     expect_error();
     flush_initializer_cache(&dps->prescanned_initializer_cache);
   }  /* if */
