@@ -3903,6 +3903,7 @@ of the whole initialization (*is) as appropriate.
   check_assertion(is_template_param_type(gtype) ||
                   (is_immediate_class_type(gtype) &&
                    gtype->variant.class_struct_union.is_nonreal_class) ||
+                  (gpp_mode && is_prototype_instantiation_context()) ||
                   is_error_type(gtype));
   if (is->check_validity_only && !designators_allowed) {
     /* Except for designators, this routine always "succeeds" without
@@ -3997,7 +3998,9 @@ vector type.
        warning otherwise). */
     if (!is->no_diagnostics) {
       pos_diagnostic(gpp_mode ? es_error : es_warning,
-                     ec_too_many_initializer_values, init_component_pos(icp));
+                     gpp_mode ? ec_too_many_initializer_values
+                              : ec_excess_initializers_ignored,
+                     init_component_pos(icp));
     } else if (gpp_mode) {
       is->init_error = TRUE;
     }  /* if */
@@ -4211,7 +4214,12 @@ position at which diagnostics should be issued.
     etype = underlying_array_element_type(etype);
     etype = skip_typerefs(etype);
   }  /* if */
-  if (is_real_class_type(etype)) {
+  if (count == 0) {
+    /* This can happen in GNU modes with arrays of zero-element arrays.  No
+       further initializations are needed at this level. */
+    check_assertion(gnu_mode);
+    partial_init_flag = FALSE;
+  } else if (is_real_class_type(etype)) {
     /* It is an array of class objects. */
     a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(etype);
     if (has_trivial_default_constructor(cssp) &&
@@ -4246,6 +4254,63 @@ position at which diagnostics should be issued.
     is->partial_initializer = TRUE;
   }  /* if */
 }  /* aggr_init_array_remainder_if_needed */
+
+
+static void set_aggr_tail_not_repeated_flag(a_constant_ptr  repeat_con)
+/*
+repeat_con is a ck_init_repeat constant generated for a GNU range designator.
+The repeated constant is already recorded.  If the repeated constant
+represents more than one element initializer value, the "repeat" should not
+apply to any but the first value.  For example:
+   int x[3][3] = { [0 ... 2][0] = 4, 5, 6 };
+The constant struct for this is as follows:
+   <ck_aggregate[3]>
+     <ck_designator[0]><ck_init_repeat[3]>
+                         <ck_aggregate[3]>
+                            <ck_designator[0]> 4
+                            5
+                            6
+Here, the ck_init_repeat should apply only to the first value (4), and not to
+the "tail" of the ck_aggregate constant it points to.  This is indicated with
+the multidimensional_aggr_tail_not_repeated flag.  This routine sets that flag
+to TRUE if needed.
+*/
+{
+  a_constant_ptr cp = repeat_con->variant.init_repeat.constant;
+
+  /* Look through any chained designators to see if it was followed by more
+     than one designated value. */
+  while (cp != NULL) {
+    if (cp->kind == (a_constant_repr_kind)ck_aggregate &&
+        !cp->explicit_braces_on_aggregate) {
+      /* An aggregate constant created by a designator. */
+      a_constant_ptr  head = cp->variant.aggregate.first_constant;
+      if (head != NULL && head->kind == (a_constant_repr_kind)ck_designator) {
+        /* A chained designator: It must be followed by at least one element.
+           If it is followed by more than one, then the repetition doesn't
+           apply to the subsequent elements. */
+        check_assertion(head->next != NULL);
+        if (head->next->next != NULL) {
+          repeat_con->variant.init_repeat
+                             .multidimensional_aggr_tail_not_repeated = TRUE;
+          break;
+        } else {
+          /* Examine the designated initializer. */
+          cp = head->next;
+        }  /* if */
+      } else {
+        cp = head;
+      }  /* if */
+    } else if (cp->kind == (a_constant_repr_kind)ck_init_repeat) {
+      /* Another repetition, presumably from a chained array range
+         designator. */
+      cp = cp->variant.init_repeat.constant;
+    } else {
+      /* Not a constant created by chained designators. */
+      break;
+    }  /* if */
+  }  /* while */
+}  /* set_aggr_tail_not_repeated_flag */
 
 
 static void aggr_init_array_designator(an_init_component_ptr  *p_icp,
@@ -4357,7 +4422,7 @@ available.
           is->has_dynamic_init_component = TRUE;
         }  /* if */
       }  /* if */
-      ++*idx;
+      *idx += repeat_count;
       if (next_con != NULL) {
         check_assertion(!is->check_validity_only);
         if (repeat_count > 1) {
@@ -4365,6 +4430,7 @@ available.
           next_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
           next_con->variant.init_repeat.count = repeat_count;
           next_con->variant.init_repeat.constant = elem_con;
+          set_aggr_tail_not_repeated_flag(next_con);
         }  /* if */
         append_constant_in_aggr(next_con, aggr_con);
       }  /* if */
@@ -5336,6 +5402,10 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
        since we don't know how many elements it should match. */
     etype = type_of_unknown_templ_param_nontype;
     pack_expansion = is->pack_expansion_handled = TRUE;
+  } else if (gpp_mode && is_prototype_instantiation_context()) {
+    /* GCC doesn't attempt to match the initializer to the type in template
+       definitions, even if the type is fully known (i.e., nondependent). */
+    etype = type_of_unknown_templ_param_nontype;
   }  /* if */
   etype_kind = skip_typerefs(etype)->kind;
   if (etype_kind == (a_type_kind)tk_array) {
@@ -5596,8 +5666,12 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
     case tk_class:
     case tk_struct:
     case tk_union:
-      if (dtype->variant.class_struct_union.is_nonreal_class) {
-        /* For nonreal classes, don't attempt to track the class structure. */
+      if (dtype->variant.class_struct_union.is_nonreal_class ||
+          (gpp_mode && is_prototype_instantiation_context())) {
+        /* For nonreal classes, don't attempt to track the class structure.
+           GCC doesn't appear to match the class structure in any prototype
+           instantiation context (even if the type being initialized is non-
+           dependent). */
         is_aggregate = TRUE;
         aggr_init_generic_element(icp, dtype, is, &is->init_con);
       } else {
@@ -5810,6 +5884,7 @@ braced_initializer does all the hard work.
   dps.init_state.force_dynamic_init = TRUE;
   dps.init_state.init_error = is_error_type(dps.type);
   dps.init_state.elided_braces_allowed = TRUE;
+  dps.init_state.static_lifetime_init = is_static;
   dps.init_state.initializer_can_dimension_array = TRUE;
   if (C_mode() && (is_static || !allow_nonconstant_auto_aggr_init_in_c_mode)) {
     dps.init_state.initializer_must_be_constant = TRUE;
@@ -6270,18 +6345,16 @@ returned set to TRUE.
          non-constants. */
       /*FIXME: Enable the new code only for some modes right now.  We'll
         enable it in all modes as issues are straightened out. */
-      a_boolean  enable_new_code = !gnu_mode;
-      if (enable_new_code && first_token == tok_lbrace) {
+      if (first_token == tok_lbrace) {
         /* An initializer of the form "= { ... }". */
         brace_init_variable(dps, /*direct=*/FALSE, linkage, source_pos,
                             decl_pos_block);
         init_err = dps->init_state.init_error;
         init_con = dps->init_state.init_con;
         init_dip = dps->init_state.init_dip;
-      } else if (enable_new_code &&
-                 (is_string_type(vp_type) ||
-                  (is_array_type(vp_type) &&
-                   is_template_param_type(array_element_type(vp_type))))) {
+      } else if (is_string_type(vp_type) ||
+                 (is_array_type(vp_type) &&
+                  is_template_param_type(array_element_type(vp_type)))) {
         /* A string variable can be initialized using a string literal (or, in
            some modes, an expression that is considered equivalent to a simple
            string literal). */

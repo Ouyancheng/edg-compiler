@@ -28721,7 +28721,7 @@ Both C99-style and GNU-style designators are handled here.
   a_boolean              designator_seen = FALSE;
   a_boolean              first_designator_seen = FALSE;
   a_boolean              std_designator_seen = FALSE;
-  a_boolean              gnu_field_designator_seen = FALSE;
+  a_boolean              gnu_designator_seen = FALSE;
   an_init_component_ptr  designator;
 
   add_stop_token(tok_assign);
@@ -28755,11 +28755,11 @@ Both C99-style and GNU-style designators are handled here.
              designators. */
           pos_error(ec_no_ordinary_and_extended_designators, &pos_curr_token);
           (void)get_token();
-          gnu_field_designator_seen = TRUE;
+          gnu_designator_seen = TRUE;
         } else if (gcc_mode && gnu_version < 40000 &&
                    curr_token != tok_assign && curr_token != tok_period) {
           /* Early versions of GCC treated ".x 20" like "x: 20". */
-          gnu_field_designator_seen = TRUE;
+          gnu_designator_seen = TRUE;
         } else {
           std_designator_seen = TRUE;
         }  /* if */
@@ -28800,15 +28800,19 @@ Both C99-style and GNU-style designators are handled here.
         designator->variant.designator.element_index = idx;
         designator->variant.designator.last_element_index = last_idx;
       }  /* if */
-      if (curr_token == tok_assign || !extended_designators_allowed) {
+      if (extended_designators_allowed && curr_token == tok_colon) {
+        /* Something like "[4]:" -- i.e., a mix of GNU-style and C99-style
+           designators. */
+        pos_error(ec_no_ordinary_and_extended_designators, &pos_curr_token);
+        (void)get_token();
+      } else if (curr_token == tok_assign || !extended_designators_allowed) {
         std_designator_seen = TRUE;
       }  /* if */
-    } else if (extended_designators_allowed && !std_designator_seen &&
-               !gnu_field_designator_seen &&
+    } else if (extended_designators_allowed && !first_designator_seen &&
                curr_token == tok_identifier && next_token() == tok_colon) {
       /* A GNU-style field designator.  Only one is allowed in a chain of
          designators. */
-      gnu_field_designator_seen = TRUE;
+      gnu_designator_seen = TRUE;
       designator = alloc_init_component
                                      ((an_init_component_kind)ick_designator);
       designator->variant.designator.position = pos_curr_token;
@@ -28840,12 +28844,25 @@ Both C99-style and GNU-style designators are handled here.
            this must be a standard designator. */
         std_designator_seen = TRUE;
       } else {
+#if GNU_EXTENSIONS_ALLOWED
+        if (gnu_mode) {
+          /* Report the use of GNU extensions. */
+          if (gnu_designator_seen) {
+            report_gnu_extension_if_needed(
+                                     init_component_pos(designator),
+                                     ec_extended_designator_is_gnu_extension);
+          } else if (!c99_mode) {
+            report_gnu_extension_if_needed(init_component_pos(designator),
+                                           ec_designator_is_nonstandard);
+          }  /* if */
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        if (gnu_designator_seen) {
+          /* A GNU-style designator cannot be chained with additional
+             designators. */
+          break;
+        }  /* if */
         first_designator_seen = TRUE;
-      }  /* if */
-      if (designator->variant.designator.field_name != NULL &&
-          !std_designator_seen) {
-        /* A GNU-style field designator of the form "id:" cannot be chained
-           with additional designators. */
       }  /* if */
     }  /* if */
   }  /* for */
@@ -28978,8 +28995,10 @@ a new-initializer).
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   if (is_full_expr) transfer_expr_context_if_applicable(saved_expr_stack);
-  if ((dps != NULL && dps->init_state.static_lifetime_init) ||
-      favor_constant_result_for_nonstatic_init) {
+  if (dps != NULL && dps->init_state.static_lifetime_init) {
+    expr_stack_entry.in_static_initializer = TRUE;
+    expr_stack_entry.favor_constant_result = TRUE;
+  } else if (favor_constant_result_for_nonstatic_init) {
     expr_stack_entry.favor_constant_result = TRUE;
   }  /* if */
   if (dps != NULL) {
