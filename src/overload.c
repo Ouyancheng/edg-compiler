@@ -68,6 +68,10 @@ static a_boolean adjust_deduction_pair(
                                     a_type_ptr           *qc_param_type,
                                     a_type_ptr           *qc_arg_type,
                                     a_boolean            *consider_nondeduced);
+static a_boolean check_narrowing_conversion(an_operand  *source_operand,
+                                            a_type_ptr  dest_type,
+                                            a_boolean   error_on_narrowing,
+                                            a_boolean   warning_on_narrowing);
 
 
 #if DEBUG
@@ -3312,14 +3316,25 @@ argument-passing is copy-initialization).
 {
   if (is_expression_component(alep)) {
     /* The argument is an expression. */
-    determine_arg_match_level(operand_of_arg_list_elem(alep),
-                              (a_type *)NULL,
-                              param_type,
-                              ptp,
-                              param_type_is_deduced,
-                              try_user_conversions,
-                              allow_expl_conv_funcs,
-                              arg_summary);
+    if (alep->check_narrowing &&
+        check_narrowing_conversion(operand_of_arg_list_elem(alep),
+                                   param_type,
+                                   /*error_on_narrowing=*/FALSE,
+                                   /*warning_on_narrowing=*/FALSE)) {
+      /* This requires a narrowing conversion, which is an error
+         in this context. */
+      clear_arg_match_summary(arg_summary);
+      arg_summary->match_level = aml_none;
+    } else {
+      determine_arg_match_level(operand_of_arg_list_elem(alep),
+                                (a_type *)NULL,
+                                param_type,
+                                ptp,
+                                param_type_is_deduced,
+                                try_user_conversions,
+                                allow_expl_conv_funcs,
+                                arg_summary);
+    }  /* if */
   } else {
     /* The argument is a braced-init-list. */
     a_conv_context_set conv_context =
@@ -3328,7 +3343,7 @@ argument-passing is copy-initialization).
     prep_list_initializer(alep,
                           param_type,
                           /*is_direct_init=*/FALSE,
-                          /*check_narrowing=*/TRUE,
+                          /*check_narrowing=*/FALSE, /* Flag in alep used */
                           conv_context,
                           /*fill_in_dtor=*/FALSE,
                           /*force_temp=*/FALSE,
@@ -19872,6 +19887,125 @@ there are any errors (that's used for overload resolution).
 }  /* value_initialization */
 
 
+static a_boolean check_narrowing_conversion(an_operand  *source_operand,
+                                            a_type_ptr  dest_type,
+                                            a_boolean   error_on_narrowing,
+                                            a_boolean   warning_on_narrowing)
+/*
+Check for the narrowing conversions defined in [dcl.init.list] of the
+C++11 standard.  source_operand is being converted to dest_type.
+On narrowing, issue an error if error_on_narrowing is TRUE, a warning
+if warning_on_narrowing is TRUE, no diagnostic at all otherwise.  In all
+cases, return TRUE if the conversion is a narrowing conversion.
+When warning_on_narrowing is in effect, warnings are issued only for
+those narrowing conversions that would not get warnings in normal
+initialization processing.
+*/
+{
+  a_boolean               is_narrowing = FALSE, con_check_done = FALSE;
+  a_type_ptr              source_type = source_operand->type;
+  a_constant              *con = NULL;
+  an_internal_float_value fval;
+  a_boolean               err, depends_on_fp_mode;
+
+  source_type = skip_typerefs(source_type);
+  dest_type = skip_typerefs(dest_type);
+  if (is_constant_operand(source_operand)) {
+    con = &source_operand->variant.constant;
+  }  /* if */
+  if (is_floating_type(source_type)) {
+    if (is_integral_type(dest_type)) {
+      /* Floating-point to integer is always narrowing. */
+      is_narrowing = TRUE;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    } else if (is_nonreal_floating_type(source_type) &&
+               source_type->kind != dest_type->kind) {
+      /* Something like complex --> float.  Not covered by the standard,
+         but logically a narrowing conversion. */
+      is_narrowing = TRUE;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    } else if (is_floating_type(dest_type)) {
+      /* We ruled out complex and imaginary cases above. */
+      check_assertion(source_type->kind == (a_type_kind)tk_float &&
+                      dest_type->kind   == (a_type_kind)tk_float);
+      if ((int)source_type->variant.float_kind >
+                                          (int)dest_type->variant.float_kind) {
+        /* Floating-point to smaller floating_point.  Okay if the value is
+           constant and preserved, even if not with full precision. */
+        is_narrowing = TRUE;
+        if (con != NULL && con->kind == (a_constant_repr_kind)ck_float) {
+          con_check_done = TRUE;
+          fp_change_kind(&con->variant.float_value,
+                         con->type->variant.float_kind,
+                         &fval,
+                         dest_type->variant.float_kind,
+                         &err,
+                         &depends_on_fp_mode);
+          if (!err) is_narrowing = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else if (is_integral_or_unscoped_enum_type(source_type)) {
+    if (is_floating_type(dest_type)) {
+      /* Integer or unscoped enum to floating.  Okay if the value is constant
+         and is preserved. */
+      is_narrowing = TRUE;
+      if (con != NULL && con->kind == (a_constant_repr_kind)ck_integer
+#if C99_IL_EXTENSIONS_SUPPORTED
+          && !is_imaginary_type(dest_type)
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+         ) {
+        con_check_done = TRUE;
+        conv_integer_value_to_float(&con->variant.integer_value,
+                                    int_constant_is_signed(con),
+			            &fval,
+				    dest_type->variant.float_kind,
+				    &err);
+        if (!err) is_narrowing = FALSE;
+      }  /* if */
+    } else if (is_integral_type(dest_type)) {
+      check_assertion(source_type->kind == (a_type_kind)tk_integer &&
+                      dest_type->kind   == (a_type_kind)tk_integer);
+      if (source_type->size > dest_type->size ||
+          (source_type->size == dest_type->size &&
+           int_kind_is_signed[(int)source_type->variant.integer.int_kind] !=
+           int_kind_is_signed[(int)  dest_type->variant.integer.int_kind])) {
+        /* Integer or unscoped enum to integer to integer that cannot represent
+           all the values of the source type.  Okay if the value is constant
+           and is preserved. */
+        is_narrowing = TRUE;
+        if (con != NULL && con->kind == (a_constant_repr_kind)ck_integer) {
+          if (warning_on_narrowing) {
+            /* Don't do this check for warning purposes, since we issue
+               warnings for these cases anyway. */
+            is_narrowing = FALSE;
+          } else {
+            con_check_done = TRUE;
+            if (in_range_for_integer_kind(con, con,
+                                        dest_type->variant.integer.int_kind)) {
+              is_narrowing = FALSE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (is_narrowing &&
+      (error_on_narrowing || warning_on_narrowing)) {
+    an_error_code     err_code = (con_check_done ?
+                                    ec_constant_narrowing_conversion :
+                                    ec_narrowing_conversion);
+    an_error_severity sev = (error_on_narrowing ? es_discretionary_error :
+                                                  es_warning);
+    if (expr_diagnostic_should_be_issued(sev, err_code)) {
+      pos_ty2_diagnostic(sev, err_code, &source_operand->position,
+                         source_type, dest_type);
+    }  /* if */
+  } /* if */
+  return is_narrowing;
+}  /* check_narrowing_conversion */
+
+
 static a_routine_ptr find_initializer_list_constructor(
                                                 a_type_ptr        list_type,
                                                 a_source_position *pos,
@@ -20276,6 +20410,24 @@ object lifetime context.
 }  /* unbundle_init_component_expressions */
 
 
+static void force_narrowing_check_on_arg_list_members(
+                                                   an_init_component_ptr list,
+                                                   a_boolean             value)
+/*
+Set a flag in each member of the given argument list to force checking for
+narrowing conversions later.  This is done when a braced-init-list is
+considered as an argument list.  The "value" parameter gives the value to
+set, e.g., value FALSE clears the flags.
+*/
+{
+  an_init_component_ptr icp;
+
+  for (icp = list; icp != NULL; icp = icp->next) {
+    icp->check_narrowing = value;
+  }  /* for */
+}  /* force_narrowing_check_on_arg_list_members */
+
+
 void prep_list_initializer(an_init_component_ptr icp,
                            a_type_ptr            dest_type,
                            a_boolean             is_direct_init,
@@ -20290,8 +20442,7 @@ void prep_list_initializer(an_init_component_ptr icp,
 Convert an initializer value represented in init-component form (icp)
 to the type of the entity being initialized, given by dest_type.  The
 initialization is direct-initialization if is_direct_init is TRUE,
-copy-initialization if is_direct_init is FALSE.  If check_narrowing is
-TRUE, issue diagnostics for narrowing conversions.  conv_context
+copy-initialization if is_direct_init is FALSE.  conv_context
 describes the context of the conversion.  Note that while a main
 purpose of this routine is to handle braced-init-lists, it also
 handles expression initializers.
@@ -20323,6 +20474,15 @@ is valid, without issuing errors or building IL, and return *arg_match
 set to indicate how good a match the initialization is, in overload
 resolution terms (e.g., is it an exact match or a user-defined conversion,
 etc.)
+
+Checks for narrowing conversions are done where appropriate.
+check_narrowing or the icp->check_narrowing flag or (if present) the
+is->error_on_narrowing flag, if TRUE, indicate that narrowing checks
+should be done at the current level of initialization, and errors (not
+warnings) should be issued (subject to the error-suppression controls
+described above).  When is->warning_on_narrowing is TRUE (and none of
+the above flags is TRUE), the checks are done but only warnings are
+issued (again, subject to the error-suppression controls).
 */
 {
   a_dynamic_init_ptr   dip = NULL;
@@ -20334,7 +20494,6 @@ etc.)
   an_operand           operand;
   a_boolean            dest_type_is_class =
                                          is_class_struct_union_type(dest_type);
-  a_boolean            saved_potentially_evaluated;
   a_boolean            saved_suppress_diagnostics;
   a_boolean            saved_any_suppressed_error;
   a_boolean            issue_errors = TRUE;
@@ -20345,6 +20504,8 @@ etc.)
   a_boolean            partial_initializer = FALSE;
   an_arg_match_summary internal_arg_match;
   a_boolean            aggregate_case = FALSE;
+  a_boolean            error_on_narrowing;
+  a_boolean            warning_on_narrowing;
 
   /* The basic modes are:
                       issue_errors   generate_il
@@ -20374,22 +20535,36 @@ etc.)
       clear_arg_match_summary(arg_match);
       issue_errors = FALSE;
       generate_il = FALSE;
-    } else if (is->check_validity_only) {
-      generate_il = FALSE;
-      saved_potentially_evaluated = expr_stack->potentially_evaluated;
-      expr_stack->potentially_evaluated = FALSE;
     } else if (is->no_diagnostics) {
+      /* SFINAE-type context.  Generate IL but not errors. */
       issue_errors = FALSE;
       saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
       expr_stack->suppress_diagnostics = TRUE;
       saved_any_suppressed_error = expr_stack->any_suppressed_error;
       expr_stack->any_suppressed_error = FALSE;
+    } else if (is->check_validity_only) {
+      /* Unexpected mode: check validity only, but do not issue errors. */
+      unexpected_condition();
     }  /* if */
   } else {
     /* When a temporary is forced when an operand is returned, the destructor
        is always filled in. */
     if (force_temp) fill_in_dtor = TRUE;
   }  /* if */
+  /* Set the mode for checking of narrowing conversions.  check_narrowing is
+     TRUE if the check for narrowing conversions as errors should be done, and
+     error_on_narrowing indicates whether diagnostics should be issued
+     in that case.  (check_narrowing TRUE and error_on_narrowing FALSE
+     is used for overload resolution cases; a narrowing conversion
+     causes failure but not a diagnostic.)  If check_narrowing is FALSE,
+     warning_on_narrowing can be TRUE to indicate that warnings should be
+     issued for narrowing conversions. */
+  if (icp->check_narrowing || (is != NULL && is->error_on_narrowing)) {
+    check_narrowing = TRUE;
+  }  /* if */
+  error_on_narrowing = check_narrowing && issue_errors;
+  warning_on_narrowing = (!check_narrowing &&
+                          is != NULL && is->warning_on_narrowing);
   if (is_direct_init) conv_context |= CCO_DIRECT_INITIALIZATION;
   /* If the destination type is a template class, make sure it is
      instantiated. */
@@ -20411,6 +20586,7 @@ etc.)
       arg_match_err = TRUE;
     } else {
       an_init_component_ptr eicp = icp->variant.braced.list;
+      if (generate_il) arg_list_will_not_be_used_because_of_error(eicp);
       while (!is_designator_component(eicp)) {
         eicp = eicp->next;
         check_assertion(eicp != NULL);
@@ -20430,14 +20606,24 @@ etc.)
          that would be handled higher up.  We don't have full information
          about the parameter here, but we probably don't need it because
          we're likely only to get here for non-parameter cases. */
-      determine_arg_match_level(operand_of_arg_list_elem(icp),
-                                (a_type_ptr)NULL,
-                                dest_type,
-                                (a_param_type_ptr)NULL,
-                                /*param_type_is_deduced=*/FALSE,
-                                /*try_user_conversions=*/TRUE,
-                                /*allow_expl_conv_funcs=*/FALSE,
-                                arg_match);
+      if (check_narrowing &&
+          check_narrowing_conversion(operand_of_arg_list_elem(icp),
+                                     dest_type,
+                                     /*error_on_narrowing=*/FALSE,
+                                     /*warning_on_narrowing=*/FALSE)) {
+        /* This requires a narrowing conversion, which is an error
+           in this context. */
+        arg_match_err = TRUE;
+      } else {
+        determine_arg_match_level(operand_of_arg_list_elem(icp),
+                                  (a_type_ptr)NULL,
+                                  dest_type,
+                                  (a_param_type_ptr)NULL,
+                                  /*param_type_is_deduced=*/FALSE,
+                                  /*try_user_conversions=*/TRUE,
+                                  /*allow_expl_conv_funcs=*/FALSE,
+                                  arg_match);
+      }  /* if */
     } else {
       /* Not an overload resolution case.  Do the actual initialization
          processing.  In some modes we may suppress errors or discard the
@@ -20445,7 +20631,15 @@ etc.)
       check_assertion(generate_il);
       extract_operand_from_expression_component(icp, &operand,
                                                 /*free_icp=*/FALSE);
-      if (dest_type_is_class && !is_direct_init) {
+      if (check_narrowing &&
+          check_narrowing_conversion(&operand,
+                                     dest_type,
+                                     error_on_narrowing,
+                                     /*warning_on_narrowing=*/FALSE)) {
+        /* This requires a narrowing conversion, which is an error
+           in this context. */
+        conv_to_error_operand(&operand);
+      } else if (dest_type_is_class && !is_direct_init) {
         /* See if we can elide the copy for copy-initialization of
            class-typed objects. */
         prep_elision_initializer_operand(&operand, dest_type,
@@ -20466,6 +20660,16 @@ etc.)
                                            ec_bad_initializer_type);
       } else {
         /* Non-class-copy, non-dependent, non-reference cases. */
+        if (!is_error_operand(&operand) &&
+            warning_on_narrowing &&
+            check_narrowing_conversion(&operand,
+                                       dest_type,
+                                       /*error_on_narrowing=*/FALSE,
+                                       /*warning_on_narrowing=*/TRUE)) {
+          /* Issue a warning for a narrowing conversion.  The narrowing
+             tests are scaled back for this warning case to avoid issuing
+             near-duplicate warnings. */
+        }  /* if */
         prep_initializer_operand(&operand, dest_type,
                                  /*is_transparent=*/(a_boolean *)NULL,
                                  /*conversion=*/(a_conv_descr_ptr)NULL,
@@ -20602,6 +20806,7 @@ etc.)
         /* Initialization case (not overload resolution). */
         check_assertion(generate_il);
         unbundle_init_component_list_expressions(list);
+        force_narrowing_check_on_arg_list_members(list, /*value=*/TRUE);
         scan_ctor_arguments(ctor_sym,
                             init_component_pos(icp),
                             (a_type_ptr)NULL,
@@ -20618,6 +20823,7 @@ etc.)
                             &dip,
                             (an_expr_node_ptr *)NULL,
                             (a_source_position *)NULL);
+        force_narrowing_check_on_arg_list_members(list, /*value=*/FALSE);
         if (dip == NULL) {
           /* There was an error. */
           make_error_operand(&operand);
@@ -20702,7 +20908,7 @@ etc.)
          arg_match down to the next level.  See below for class cases. */
       prep_list_initializer(icp, underlying_type,
                             /*is_direct_init=*/FALSE,
-                            check_narrowing,
+                            /*check_narrowing=*/TRUE,
                             rconv_context,
                             /*fill_in_dtor=*/TRUE,
                             /*force_temp=*/TRUE,
@@ -20752,17 +20958,22 @@ etc.)
     } else {
       /* Something else (e.g., an "int" initialized by a list with two
          elements); error. */
-      if (gcc_mode) {
+      if (arg_match != NULL) {
+        arg_match_err = TRUE;
+      } else if (gcc_mode) {
         /* gcc (but not g++) issues a warning and ignores the excess values. */
+        check_assertion(generate_il);
         expr_pos_warning(ec_excess_initializers_ignored,
                          init_component_pos(list->next));
+        /* Throw away the elements after the first and redo the
+           initialization. */
         arg_list_will_not_be_used_because_of_error(list->next);
         free_init_component_list(list->next);
         list->next = NULL;
         prep_list_initializer(icp,
                               dest_type,
                               is_direct_init,
-                              check_narrowing,
+                              /*check_narrowing=*/FALSE,
                               conv_context,
                               fill_in_dtor,
                               force_temp,
@@ -20770,14 +20981,15 @@ etc.)
                                                   (an_operand *)NULL),
                               is,
                               arg_match);
-        if (result == NULL && generate_il) {
+        if (result == NULL) {
           check_assertion(is != NULL);
           constant = is->init_con;
           dip = is->init_dip;
         }  /* if */
       } else {
         /* Normal case: error. */
-        if (generate_il) unbundle_init_component_list_expressions(list);
+        check_assertion(generate_il);
+        unbundle_init_component_list_expressions(list);
         expr_pos_error(ec_too_many_initializer_values,
                        init_component_pos(list->next));
         make_error_operand(&operand);
@@ -20923,9 +21135,6 @@ etc.)
     }  /* if */
   } else if (is != NULL) {
     /* Restore things after an exploratory evaluation. */
-    if (is->check_validity_only) {
-      expr_stack->potentially_evaluated = saved_potentially_evaluated;
-    }  /* if */
     if (is->no_diagnostics) {
       expr_stack->suppress_diagnostics = saved_suppress_diagnostics;
       if (expr_stack->any_suppressed_error) is->init_error = TRUE;
@@ -21238,7 +21447,7 @@ checks that), and *conversion describes it.
     check_assertion(is_braced_init_component(alep));
     prep_list_initializer(alep, formal_param->type,
                           /*is_direct_init=*/FALSE,
-                          /*check_narrowing=*/TRUE,
+                          /*check_narrowing=*/FALSE, /* Flag in alep used */
                           conv_context,
                           /*fill_in_dtor=*/TRUE,
                           /*force_temp=*/

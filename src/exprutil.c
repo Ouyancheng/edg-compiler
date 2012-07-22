@@ -800,6 +800,7 @@ kind to "kind" and its fields to default values, and return a pointer to it.
   icp->next = NULL;
   icp->bundled = FALSE;
   icp->contains_designator = FALSE;
+  icp->check_narrowing = FALSE;
   icp->pack_expansion_descr = NULL;
   set_init_component_kind(icp, kind);
   return icp;
@@ -4946,6 +4947,8 @@ cleanup required.  The list is not freed.
                                                operand_of_arg_list_elem(alep));
     } else if (is_braced_init_component(alep)) {
       arg_list_will_not_be_used_because_of_error(alep->variant.braced.list);
+    } else if (is_designator_component(alep)) {
+      /* No action required. */
     } else {
       unexpected_condition();
     }  /* if */

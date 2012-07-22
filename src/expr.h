@@ -117,6 +117,16 @@ typedef struct an_init_component {
   a_bit_field	contains_designator:1;
 			/* Set to TRUE if this is an ick_braced component that
 			   directly contains an ick_designator component. */
+  a_bit_field	check_narrowing:1;
+			/* TRUE if the narrowing conversion checks should
+			   be forced when this component is processed.
+			   This flag is set, for example, on the elements
+			   of a braced-init-list when it is being used
+			   as an argument list, since in that context even
+			   the simple conversions of the arguments to the
+			   parameter types are prohibited from involving
+			   narrowing conversions.  The narrowing checks
+			   generate errors, not warnings, in these cases. */
   a_pack_expansion_descr_ptr
 		pack_expansion_descr;
 			/* If non-NULL, this entity is a pack expansion

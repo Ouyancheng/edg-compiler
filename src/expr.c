@@ -2242,7 +2242,7 @@ indication in *rcblock).
     if (icp != NULL) {
       prep_list_initializer(icp, dest_type,
                             /*is_direct_init=*/TRUE,
-                            /*check_narrowing=*/TRUE,
+                            /*check_narrowing=*/FALSE,
                             CCO_DEFAULT,
                             /*fill_in_dtor=*/TRUE,
                             /*force_temp=*/FALSE,
@@ -29255,7 +29255,7 @@ dynamic init entry if one is created to represent this initializer
   if (is_full_expr) transfer_expr_context_if_applicable(saved_expr_stack);
   prep_list_initializer(icp, dest_type,
                         is->direct_init,
-                        /*check_narrowing=*/TRUE,
+                        /*check_narrowing=*/FALSE,  /* Ignored */
                         conv_context, fill_in_dtor,
                         /*force_temp=*/FALSE,
                         (an_operand *)NULL,
@@ -34325,7 +34325,7 @@ scan_class_initializer_expression and scan_aggregate_initializer_expression.
   prep_list_initializer(icp,
                         required_type,
                         /*is_direct_init=*/!is_copy_initialization,
-                        /*check_narrowing=*/TRUE,
+                        /*check_narrowing=*/FALSE,
                         conv_context,
                         /*fill_in_dtor=*/TRUE,
                         /*force_temp=*/FALSE,
