@@ -1,5 +1,16 @@
 Version 4.5
 
+7/22/12  [EDGcpfe/12692]
+C++-generating back end: multiple function declarators with extern "C"
+
+When msvc_is_generated_code_target is TRUE, the C++-generating back end
+placed the closing "}" incorrectly for a braced extern "C" linkage
+specification containing a declaration with multiple function declarators.
+This is now fixed.  For example:
+
+  extern "C" { int f(), g(); }  // Previously generated as "f(), } g();"
+
+
 7/19/12  [EDGcpfe/13069]
 GNU compatibility: completely wrong second argument on va_start gets warning
 

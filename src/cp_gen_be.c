@@ -15434,6 +15434,7 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     force_unqualified_name;
   a_boolean                     need_to_unset_typedefs = FALSE;
   a_scope_ptr                   common_scope, orig_scope = NULL;
+  a_boolean                     need_extern_C = FALSE;
   a_boolean                     brace_form_linkage_spec = FALSE;
   a_boolean                     out_of_class_redecl = FALSE;
   a_template_decl_ptr           template_decl = NULL;
@@ -15751,54 +15752,56 @@ handle_as_definition:
       need_to_unset_typedefs = TRUE;
     }  /* if */
   }  /* if */
-  if (!suppress_specifiers) {
-    /* Check for `extern "C"'.  This applies even on a definition. */
-    if (!C_mode() &&
-        /* Check whether the function is extern "C". */
-        (rout->source_corresp.name_linkage ==
+  /* Check for `extern "C"'.  This applies even on a definition. */
+  if (!C_mode() &&
+      /* Check whether the function is extern "C". */
+      (rout->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_external ||
-         /* Check whether the function is surrounded by an extern "C" block
-            even though it is not itself extern "C". */
-         (!decl_within_class && rout->surrounding_name_linkage_state == 
+       /* Check whether the function is surrounded by an extern "C" block
+          even though it is not itself extern "C". */
+       (!decl_within_class && rout->surrounding_name_linkage_state == 
                                          (a_name_linkage_kind)nlk_external)) &&
-        /* Don't put it out on "main", however; it's implied there, and it's
-           not allowed. */
-        !(is_definition ? (rout == il_header.main_routine) :
-                          (rout->source_corresp.name != NULL &&
-                           strcmp(rout->source_corresp.name, "main") == 0)) &&
-        /* Don't put it out on a friend either. */
-        !friend_decl &&
-        /* Inside a function, this is not allowed, and can only have come from
-           an extern "C" { ... } wrapped around the function. */
-        !decl_within_function &&
-        /* If it's a definition, only put it out if the linkage was explicitly
-           specified. */
-        (!is_definition || rout->definition_C_name_linkage_specified)) {
-      write_tok_str("extern \"C\" ");
-      /* We must use the form of linkage specification with braces if the
-         function has static linkage.  Otherwise, we generally follow the
-         form used in the source, except that we will use the brace form for
-         inline functions if the target is other than MSVC++, because some
-         compilers reject the combination of a linkage specification with the
-         "inline" keyword. */
-      if (storage_class == (a_storage_class)sc_static) {
-        brace_form_linkage_spec = TRUE;
-      }
+      /* Don't put it out on "main", however; it's implied there, and it's
+         not allowed. */
+      !(is_definition ? (rout == il_header.main_routine) :
+                        (rout->source_corresp.name != NULL &&
+                         strcmp(rout->source_corresp.name, "main") == 0)) &&
+      /* Don't put it out on a friend either. */
+      !friend_decl &&
+      /* Inside a function, this is not allowed, and can only have come from
+         an extern "C" { ... } wrapped around the function. */
+      !decl_within_function &&
+      /* If it's a definition, only put it out if the linkage was explicitly
+         specified. */
+      (!is_definition || rout->definition_C_name_linkage_specified)) {
+    need_extern_C = TRUE;
+    /* We must use the form of linkage specification with braces if the
+       function has static linkage.  Otherwise, we generally follow the
+       form used in the source, except that we will use the brace form for
+       inline functions if the target is other than MSVC++, because some
+       compilers reject the combination of a linkage specification with the
+       "inline" keyword. */
+    if (storage_class == (a_storage_class)sc_static) {
+      brace_form_linkage_spec = TRUE;
+    }
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      else if (!is_definition && msvc_is_generated_code_target) {
-        /* Maintain the original source form.  This is especially important
-           for inline functions, because the non-brace form causes MSVC++
-           to generate code even for unused inline functions. */
-        brace_form_linkage_spec =
-                                !rout->direct_linkage_specifier_on_nondef_decl;
-      }
+    else if (!is_definition && msvc_is_generated_code_target) {
+      /* Maintain the original source form.  This is especially important
+         for inline functions, because the non-brace form causes MSVC++
+         to generate code even for unused inline functions. */
+      brace_form_linkage_spec = !rout->direct_linkage_specifier_on_nondef_decl;
+    }
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      else if ((rout->is_inline && !decl_within_function &&
-                !msvc_is_generated_code_target) ||
-               (is_definition &&
-                !rout->definition_has_direct_linkage_specifier)) {
-        brace_form_linkage_spec = TRUE;
-      }  /* if */
+    else if ((rout->is_inline && !decl_within_function &&
+              !msvc_is_generated_code_target) ||
+             (is_definition &&
+              !rout->definition_has_direct_linkage_specifier)) {
+      brace_form_linkage_spec = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!suppress_specifiers) {
+    if (need_extern_C) {
+      write_tok_str("extern \"C\" ");
       if (brace_form_linkage_spec) {
         write_tok_str("{ ");
       } else if (storage_class == (a_storage_class)sc_extern) {
@@ -16027,7 +16030,7 @@ handle_as_definition:
   if (context_pop_needed) {
     pop_name_context_if_member(&rout->source_corresp);
   }  /* if */
-  if (brace_form_linkage_spec) {
+  if (brace_form_linkage_spec && !*another_decl_in_comma_list) {
     write_tok_ch('}');
     write_space();
   }  /* if */
