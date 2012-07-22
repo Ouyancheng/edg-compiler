@@ -20693,6 +20693,7 @@ issued (again, subject to the error-suppression controls).
         eff_is = &init_state;
         if (!issue_errors) eff_is->no_diagnostics = TRUE;
         if (!generate_il) eff_is->check_validity_only = TRUE;
+        if (is_cast) eff_is->force_dynamic_init = TRUE;
       }  /* if */
       /* No unbundling here, since we will still want to handle the
          expressions individually at the next level down. */
