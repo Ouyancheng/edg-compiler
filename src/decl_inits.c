@@ -4197,7 +4197,7 @@ An array of elements of type etype has an initializer that doesn't initialize
 all the array elements.  If is->check_validity_only is FALSE, array_con points
 to an ck_aggregate constant that represent the explicit initialization.
 Check that the remaining elements of the array can be initialized, and if
-is->check_validity_only is FALSE and the remaining element need dynamic
+is->check_validity_only is FALSE and the remaining elements need dynamic
 initialization, append a constant representing that initialization to the list
 embedded in array_con (plain zero initialization is done elsewhere if needed).
 *is describes the initialization as a whole, and diag_pos indicates the
