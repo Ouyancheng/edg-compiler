@@ -975,6 +975,9 @@ extern
 a_type_ptr make_pointer_type_of_same_kind(a_type_ptr base_type,
                                           a_type_ptr model_pointer_type);
 
+a_type_ptr make_reference_type_of_same_kind(a_type_ptr base_type,
+                                            a_type_ptr model_ref_type);
+
 extern a_type_ptr make_reference_to_reference(
                                           a_type_ptr            base_ref_type,
                                           a_boolean             rvalue_ref,

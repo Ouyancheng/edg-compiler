@@ -10002,6 +10002,31 @@ are pointer-like types).
   return result_type;
 }  /* make_pointer_type_of_same_kind */
 
+
+a_type_ptr make_reference_type_of_same_kind(a_type_ptr base_type,
+                                            a_type_ptr model_ref_type)
+/*
+Make a reference type with base_type as the underlying type, and return it.
+Make the same kind of reference as the kind indicated by model_ref_type,
+e.g., an rvalue reference if model_ref_type is an rvalue reference.
+*/
+{
+  a_type_ptr result_type;
+
+  check_assertion(is_reference_type(model_ref_type));
+  if (is_rvalue_reference_type(model_ref_type)) {
+    result_type = make_rvalue_reference_type(base_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && is_tracking_reference_type(model_ref_type)) {
+    result_type = make_tracking_reference_type(base_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else {
+    result_type = make_reference_type(base_type);
+  }  /* if */
+  return result_type;
+}  /* make_reference_type_of_same_kind */
+
+
 #if !NEAR_AND_FAR_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
 /* ARGSUSED */  /* <- is_error and tracking_ref are not used in some
                       configurations. */

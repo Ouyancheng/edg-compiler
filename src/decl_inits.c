@@ -5503,21 +5503,25 @@ if is->has_dynamic_init_component or is->force_dynamic_init are TRUE.
 
 
 void prep_aggr_initializer(an_init_component_ptr  icp,
-                           a_type_ptr             dtype,
+                           a_type_ptr             *p_type,
                            an_init_state          *is,
                            a_boolean              fill_in_dtor)
 /*
-Convert an initializer value represented by icp to the aggregate type dtype of
-the entity being initialized.  The result is returned through *is (in
+Convert an initializer value represented by icp to the aggregate type *p_type
+of the entity being initialized.  The result is returned through *is (in
 particular, is->init_con and is->init_dip).  If fill_in_dtor is TRUE a
 destructor will be added to the dynamic initialization if one is needed, but
 the dynamic init will not be placed on any object lifetime list (the caller
-must do that).
+must do that).  If the entity being initialized is an unknown-bound
+array, *p_type will be updated to the complete array type matching the
+number of elements initialized.
 */
 {
   a_source_position_ptr  diag_pos = init_component_pos(icp);
   a_routine_ptr          dtor_rp = NULL;
+  a_type_ptr             dtype = *p_type;
   a_boolean              saved_force_dynamic_init = is->force_dynamic_init;
+  a_boolean              unknown_bound_array;
 
   check_assertion(!C_mode());
   is->init_con = NULL;
@@ -5534,6 +5538,8 @@ must do that).
       break;
     case tk_array:
       /* Arrays are aggregates. */
+      unknown_bound_array = is_incomplete_array_type(dtype);
+      is->initializer_can_dimension_array = TRUE;
       aggr_init_array(&icp, &dtype, is, diag_pos, &is->init_con);
       if (is_error_type(dtype)) {
         is->init_error = TRUE;
@@ -5544,12 +5550,13 @@ must do that).
         if (fill_in_dtor && is_immediate_class_type(etype)) {
           dtor_rp = get_init_destructor(etype, is, diag_pos);
         }  /* if */
-        if (is->variable_size_array && is->init_con != NULL) {
+        if (unknown_bound_array && is->init_con != NULL) {
           /* In a new-expression like "new T[n]{1, 2}", the aggregate
              constant's type should be set to reflect its number of elements
              rather than the destination type (which is an incomplete array
              in such cases). */
           is->init_con->type = dtype;
+          *p_type = dtype;
           /* Also: Assume that the initializer doesn't cover the whole
              allocated array. */
           is->partial_initializer = TRUE;

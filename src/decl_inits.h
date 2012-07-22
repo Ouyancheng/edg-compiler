@@ -40,7 +40,7 @@ extern void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
                                     a_targ_size_t       count);
 
 extern void prep_aggr_initializer(an_init_component_ptr  icp,
-                                  a_type_ptr             dtype,
+                                  a_type_ptr             *p_type,
                                   an_init_state          *is,
                                   a_boolean              fill_in_dtor);
 

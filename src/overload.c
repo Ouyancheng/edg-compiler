@@ -20696,7 +20696,7 @@ issued (again, subject to the error-suppression controls).
       }  /* if */
       /* No unbundling here, since we will still want to handle the
          expressions individually at the next level down. */
-      prep_aggr_initializer(icp, dest_type, eff_is, fill_in_dtor);
+      prep_aggr_initializer(icp, &dest_type, eff_is, fill_in_dtor);
       constant = eff_is->init_con;
       dip = eff_is->init_dip;
       partial_initializer = eff_is->partial_initializer;
@@ -20932,6 +20932,19 @@ issued (again, subject to the error-suppression controls).
         }  /* if */
       } else {
         /* Not overload resolution. */
+        if (is_incomplete_array_type(underlying_type) &&
+            !is_error_operand(&operand)) {
+          /* If the entity initialized was an incomplete array, adjust
+             the reference to point to the complete array type determined
+             by the number of initializers. */
+          underlying_type = type_plus_qualifiers_from_second_type(
+                                                       operand.type,
+                                                       underlying_type);
+          check_assertion(is_array_type(underlying_type) &&
+                          !is_incomplete_array_type(underlying_type));
+          dest_type = make_reference_type_of_same_kind(underlying_type,
+                                                       dest_type);
+        }  /* if */
         prep_reference_initializer_operand(&operand, dest_type,
                                            (a_conv_descr *)NULL,
                                            /*leave_as_object=*/is_cast,

@@ -16663,9 +16663,12 @@ C++ functional-notation type conversions, and C++ new-style casts.
     /* We are in a prototype instantiation of a template.  The type is
        a template parameter type, i.e., we don't know what it is.  Assume
        it's okay and go on. */
-  } else if (is_incomplete_type(type_cast_to) && !is_void_type(type_cast_to) &&
-             !is_managed_nullptr_type(type_cast_to)) {
-    /* This check catches incomplete enum types. */
+  } else if (is_incomplete_type(type_cast_to) &&
+             !is_void_type(type_cast_to) &&
+             !is_managed_nullptr_type(type_cast_to) &&
+             !is_incomplete_array_type(type_cast_to)) {
+    /* Don't allow a cast to an incomplete type (e.g., an incomplete enum
+       type), but allow certain exceptions. */
     expr_pos_error(ec_incomplete_type_not_allowed, type_position);
     err = TRUE;
   } else if (is_class_struct_union_type(type_cast_to)) {
@@ -16720,6 +16723,9 @@ C++ functional-notation type conversions, and C++ new-style casts.
     /* Casting to an array type is not allowed. */
     if (allow_array) {
       /* The caller will check further. */
+    } else if (list_init_enabled) {
+      /* In C++ 11, it's possible to initialize an array with a brace-enclosed
+         list, as in array_type{1, 2, 3}. */
     } else if (cfront_2_1_mode) {
       /* In cfront 2.1 mode, treat a cast to an array type as a cast to
          a pointer to. */

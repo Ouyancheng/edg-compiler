@@ -10339,11 +10339,8 @@ calling disentangle_default_args).
               comp_type = base_type_2;
             } else {
 	      if (base_type_1->variant.pointer.is_reference) {
-                if (base_type_1->variant.pointer.is_rvalue_reference) {
-                  comp_type = make_rvalue_reference_type(comp_elem);
-                } else {
-                  comp_type = make_reference_type(comp_elem);
-                }  /* if */
+                comp_type = make_reference_type_of_same_kind(comp_elem,
+                                                             base_type_1);
 	      } else {
                 comp_type = make_pointer_type_full(comp_elem, modifiers);
               }  /* if */
