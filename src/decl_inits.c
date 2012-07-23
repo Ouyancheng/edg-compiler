@@ -5053,6 +5053,70 @@ position is available).
 }  /* aggr_init_field */
 
 
+static void make_designators_for_nested_anonymous_union(
+                                                a_symbol_ptr    field_sym,
+                                                a_type_ptr      *p_class_type,
+                                                a_constant_ptr  *p_aggr_con)
+/*
+field_sym represents a field in an anonymous union: That field was named with
+a designator appearing in an initializer *p_aggr_con whose type *p_class_type
+is not the anonymous union itself.  For example:
+
+  struct S { int i; struct { union { int d; }; }; } s = { .d = 3 };
+
+Here struct S is passed for *p_class_type.
+Create anonymous designators representing the "navigation" to the given field.
+In the example, let __S denote the anonymous struct and __U denote the
+anonymous union, then the original *p_aggr_con is modified as follows:
+
+  <original *p_aggr_con, ck_aggregate>
+    <ck_designator for anonymous field of type __S>
+    <ck_aggregate for anonymous field of type __S>
+      <ck_designator for anonymous field of type __U>
+      <ck_aggregate for anonymous field of type __U; new *p_aggr_con>
+
+The aggregate constant representing the innermost anonymous union is returned
+through *p_aggr_con (and its type through *p_class_type).
+*/
+{
+  a_type_ptr      orig_class_type = *p_class_type;
+  a_constant_ptr  orig_aggr_con = *p_aggr_con, des_con = NULL, au_con;
+
+  /* Move up the anonymous union parent object chain and create a designator
+     constant and corresponding aggregate constant for each one. */
+  while (field_sym->variant.field.anonymous_parent_object != NULL) {
+    a_field_ptr     field = field_sym->variant.field.ptr;
+    a_type_ptr      anon_parent = parent_class_of(field);
+    if (same_entities(anon_parent, orig_class_type)) break;
+    au_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    au_con->type = anon_parent;
+    if (des_con == NULL) {
+      /* We just created the bottom-most aggregate: Record it as the new
+         aggregate in which to place the named designator. */
+      *p_aggr_con = au_con;
+    } else {
+      /* We created a designator->anonymous-union-constant pair in a previous
+         iteration.  Append it to the parent anonymous union. */
+      append_constant_in_aggr(des_con, au_con);
+      au_con->uses_designated_initializers = TRUE;
+      append_constant_in_aggr(des_con->next, au_con);
+    }  /* if */
+    /* Create the designator for the next level out. */
+    des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+    des_con->variant.designator.field =
+          field_sym->variant.field.anonymous_parent_object->variant.field.ptr;
+    des_con->next = au_con;
+    field_sym = field_sym->variant.field.anonymous_parent_object;
+  }  /* while */
+  /* This routine is only called for fields in anonymous unions that are not
+     the original class type.  So we must have iterated at least once. */
+  check_assertion(des_con != NULL);
+  append_constant_in_aggr(des_con, orig_aggr_con);
+  orig_aggr_con->uses_designated_initializers = TRUE;
+  append_constant_in_aggr(des_con->next, orig_aggr_con);
+}  /* make_designators_for_nested_anonymous_union */
+
+
 static void aggr_init_field_designator(an_init_component_ptr  *p_icp,
                                        a_type_ptr             class_type,
                                        an_init_state          *is,
@@ -5118,19 +5182,25 @@ specific position is available.
       *field = sym->variant.field.ptr;
       if (sym->variant.field.anonymous_parent_object != NULL) {
         /* This field is a member of an anonymous union or (nonstandard)
-           anonymous struct.  This is possible in GNU modes, but GCC apparently
-           only allows this if the braced structure has already brought us to
-           the anonymous type.  For example:
-             struct S { struct { int i; float f; }; };
-             struct S s1 = {{ .i = 1 }};  // Accepted by GCC
-             struct S s2 = { .i = 1 };    // Always an error.
-        */
+           anonymous struct. */
         a_type_ptr  anon_parent = parent_class_of(*field);
         if (!same_entities(anon_parent, class_type)) {
-          okay = FALSE;
-          pos_error(ec_indirect_anon_union_designator,
-                    init_component_pos(icp));
-
+          /* The anonymous union does not correspond to the current aggregate
+             constant.  GNU C++ and earlier versions of GNU C do not permit
+             this.
+               struct S { struct { int i; float f; }; };
+               struct S s1 = {{ .i = 1 }};  // Accepted by GCC
+               struct S s2 = { .i = 1 };    // Sometimes an error.
+             In modes where it is permitted, we must generate
+             anonymous designators to navigate the aggregate structure. */
+          if (!C_mode() || (gcc_mode && gnu_version < 40600)) {
+            okay = FALSE;
+            pos_error(ec_indirect_anon_union_designator,
+                      init_component_pos(icp));
+          } else {
+            make_designators_for_nested_anonymous_union(sym, &class_type,
+                                                        &aggr_con);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
