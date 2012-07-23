@@ -4596,6 +4596,9 @@ initialization).  *is describes the initialization as a whole.
          list (if any). */
       *p_icp = (*p_icp)->next;
       if (incomplete_array) {
+        /* If appropriate, update the type of the constant and/or the type of
+           the destination to reflect the actual number of initializer
+           elements. */
         set_initialized_array_size(&atype, icount,
                                    /*unknown_dependent=*/FALSE);
         if (is->init_con != NULL) is->init_con->type = atype;
