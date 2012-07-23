@@ -1,5 +1,18 @@
 Version 4.5
 
+7/23/12  [EDGcpfe/10292]
+Incorrect constant folding of address of dependent static array variable
+
+In a case like the following, the address of the local static variable
+was not properly treated as dependent, which could cause later errors,
+for example an assertion failure in binary_operation in folding.c:
+
+  template <class T> void f(T x) {
+    static T arr[] = {x};
+    arr == 0;
+  }
+
+
 7/23/12  [EDGcpfe/13074]
 IA-64 ABI: Suppress reference to __cxa_bad_typeid when possible
 

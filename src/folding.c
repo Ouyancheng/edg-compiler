@@ -5679,6 +5679,9 @@ that higher up.
             /* In a prototype instantiation, a static data member of the
                current class is template-dependent. */
             *template_constant = TRUE;
+          } else if (is_template_dependent_type(var->type)) {
+            /* The variable has a template-dependent type. */
+            *template_constant = TRUE;
           }  /* if */
         }  /* if */
       }
