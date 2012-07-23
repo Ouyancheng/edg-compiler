@@ -19906,7 +19906,7 @@ initialization processing.
   a_type_ptr              source_type = source_operand->type;
   a_constant              *con = NULL;
   an_internal_float_value fval;
-  a_boolean               err, depends_on_fp_mode;
+  a_boolean               err, depends_on_fp_mode, dependent_constant = FALSE;
 
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
@@ -19917,6 +19917,9 @@ initialization processing.
     /* Look also for cases where a const variable would become a constant
        when converted to an rvalue. */
     con = value_of_constant_var_lvalue_operand(source_operand);
+  }  /* if */
+  if (con != NULL && con->kind == (a_constant_repr_kind)ck_template_param) {
+    dependent_constant = TRUE;
   }  /* if */
   if (is_floating_type(source_type)) {
     if (is_integral_type(dest_type)) {
@@ -19940,13 +19943,18 @@ initialization processing.
         is_narrowing = TRUE;
         if (con != NULL && con->kind == (a_constant_repr_kind)ck_float) {
           con_check_done = TRUE;
-          fp_change_kind(&con->variant.float_value,
-                         con->type->variant.float_kind,
-                         &fval,
-                         dest_type->variant.float_kind,
-                         &err,
-                         &depends_on_fp_mode);
-          if (!err) is_narrowing = FALSE;
+          if (dependent_constant) {
+            /* A dependent constant might have an appropriate value. */
+            is_narrowing = FALSE;
+          } else {
+            fp_change_kind(&con->variant.float_value,
+                           con->type->variant.float_kind,
+                           &fval,
+                           dest_type->variant.float_kind,
+                           &err,
+                           &depends_on_fp_mode);
+            if (!err) is_narrowing = FALSE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -19961,12 +19969,17 @@ initialization processing.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
          ) {
         con_check_done = TRUE;
-        conv_integer_value_to_float(&con->variant.integer_value,
-                                    int_constant_is_signed(con),
-			            &fval,
-				    dest_type->variant.float_kind,
-				    &err);
-        if (!err) is_narrowing = FALSE;
+        if (dependent_constant) {
+          /* A dependent constant might have an appropriate value. */
+          is_narrowing = FALSE;
+        } else {
+          conv_integer_value_to_float(&con->variant.integer_value,
+                                      int_constant_is_signed(con),
+                                      &fval,
+                                      dest_type->variant.float_kind,
+                                      &err);
+          if (!err) is_narrowing = FALSE;
+        }  /* if */
       }  /* if */
     } else if (is_integral_type(dest_type)) {
       check_assertion(source_type->kind == (a_type_kind)tk_integer &&
@@ -19979,12 +19992,16 @@ initialization processing.
            all the values of the source type.  Okay if the value is constant
            and is preserved. */
         is_narrowing = TRUE;
-        if (con != NULL && con->kind == (a_constant_repr_kind)ck_integer) {
+        if (con != NULL) {
+          /* Don't do this check for warning purposes, since we issue
+             warnings for these cases anyway. */
           if (warning_on_narrowing) {
-            /* Don't do this check for warning purposes, since we issue
-               warnings for these cases anyway. */
             is_narrowing = FALSE;
-          } else {
+          } else if (dependent_constant) {
+            /* A dependent constant might have an appropriate value. */
+            is_narrowing = FALSE;
+            con_check_done = TRUE;  /* For consistency with other cases. */
+          } else if (con->kind == (a_constant_repr_kind)ck_integer) {
             con_check_done = TRUE;
             if (in_range_for_integer_kind(con, con,
                                         dest_type->variant.integer.int_kind)) {
