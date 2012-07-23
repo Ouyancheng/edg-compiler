@@ -9038,6 +9038,12 @@ arrays with class elements.
     an_init_pos_descr ipd;
     set_var_indirect_init_pos_descr(new_temp_var, &ipd);
     ipd.base_type = array_type;
+    if (is_incomplete_array_type(array_type)) {
+      /* For a variably-sized array, create a run-time expression for the
+         number of elements in the array. */
+      ipd.num_elem_node = make_reusable_copy(num_elem_node,
+                                             /*vars_can_change=*/TRUE);
+    }  /* if */
     /* If exceptions are enabled, and if necessary, set up to free the
        storage allocated if an exception is thrown before the storage
        is initialized. */
