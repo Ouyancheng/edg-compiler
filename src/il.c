@@ -17027,7 +17027,7 @@ the test means its address cannot be NULL.
 
 a_boolean cannot_be_null(an_expr_node_ptr expr)
 /*
-Return TRUE if the value of the indicated expression (an rvalue of
+Return TRUE if the value of the indicated expression (an lvalue or an rvalue of
 pointer type) cannot be NULL (0).  This routine is used for an optimization,
 and a diagnostic, so it doesn't have to be perfect.  The safe return value
 is FALSE.
@@ -17035,7 +17035,7 @@ is FALSE.
 {
   an_expr_or_stmt_traversal_block tblock;
 
-  check_assertion(!expr->is_lvalue &&
+  check_assertion(expr->is_lvalue ||
                   is_pointer_type(expr->type));
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = examine_expr_for_cannot_be_null;

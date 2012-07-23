@@ -2335,6 +2335,7 @@ conversion in cases where their value is not used.
   a_constant       null_constant;
 #if IA64_ABI
   an_expr_node_ptr minus_one_expr, bad_typeid_expr;
+  a_boolean        non_null;
 #else /* !IA64_ABI */
   an_expr_node_ptr question_node;
 #endif /* !IA64_ABI */
@@ -2369,6 +2370,12 @@ conversion in cases where their value is not used.
     /* Polymorphic class case with expression. */
     check_assertion(is_immediate_class_type(typeid_type) &&
                     is_polymorphic_class_type(typeid_type));
+#if IA64_ABI
+    /* Before lowering the expression and turning it into an rvalue pointer,
+       see if we can tell that the address of the lvalue cannot be NULL
+       (in which case we don't need to generate code to handle that case). */
+    non_null = cannot_be_null(typeid_expr);
+#endif /* IA64_ABI */
     lower_expr(typeid_expr);
     /* The expression is an lvalue.  The standard specifically notes that
        if the expression is obtained by applying the unary * operator to a
@@ -2394,6 +2401,7 @@ conversion in cases where their value is not used.
     /* For the IA-64 ABI, generate
          typeid_expr ? (typeinfo*)(vptr[-1]) :
                        (__cxa_bad_typeid(), (typeinfo*)0)
+       but only in cases where typeid_expr can have a NULL value.
     */
     /* Make code to get the virtual function table pointer. */
     vptr_expr = make_reusable_copy(typeid_expr, /*vars_can_change=*/FALSE);
@@ -2407,26 +2415,31 @@ conversion in cases where their value is not used.
                                    vptr_expr);
     vptr_expr = add_cast_if_necessary(vptr_expr, 
                                make_pointer_type(make_user_typeinfo_type()));
-    /* Make "__cxa_bad_typeid(), (std::typeinfo*)0". */
-    (void)make_prototyped_runtime_routine("__cxa_bad_typeid",
-                                          &bad_typeid_routine,
-                                          void_type(),
-                                          (a_type_ptr)NULL,
-                                          (a_type_ptr)NULL,
-                                          (a_type_ptr)NULL);
-    bad_typeid_expr = make_call_node(bad_typeid_routine,
-                                     (an_expr_node_ptr)NULL,
-                                     (an_insert_location *)NULL);
-    make_zero_of_proper_type(make_pointer_type(make_user_typeinfo_type()),
-                             &null_constant);
-    null_constant_node = alloc_node_for_constant(&null_constant);
-    bad_typeid_expr = make_comma_node(bad_typeid_expr, null_constant_node);
-    /* Assemble the "?" operation. */
-    test_node = boolean_controlling_expr(typeid_expr);
-    test_node->next = vptr_expr;
-    vptr_expr->next = bad_typeid_expr;
-    new_expr = make_operator_node((an_expr_operator_kind)eok_question,
-                                  vptr_expr->type, test_node);
+    if (non_null) {
+      /* No need to check for a NULL value in this case. */
+      new_expr = vptr_expr;
+    } else {
+      /* Make "__cxa_bad_typeid(), (std::typeinfo*)0". */
+      (void)make_prototyped_runtime_routine("__cxa_bad_typeid",
+                                            &bad_typeid_routine,
+                                            void_type(),
+                                            (a_type_ptr)NULL,
+                                            (a_type_ptr)NULL,
+                                            (a_type_ptr)NULL);
+      bad_typeid_expr = make_call_node(bad_typeid_routine,
+                                       (an_expr_node_ptr)NULL,
+                                       (an_insert_location *)NULL);
+      make_zero_of_proper_type(make_pointer_type(make_user_typeinfo_type()),
+                               &null_constant);
+      null_constant_node = alloc_node_for_constant(&null_constant);
+      bad_typeid_expr = make_comma_node(bad_typeid_expr, null_constant_node);
+      /* Assemble the "?" operation. */
+      test_node = boolean_controlling_expr(typeid_expr);
+      test_node->next = vptr_expr;
+      vptr_expr->next = bad_typeid_expr;
+      new_expr = make_operator_node((an_expr_operator_kind)eok_question,
+                                    vptr_expr->type, test_node);
+    }  /* if */
 #else /* !IA64_ABI */
     /* Make a NULL pointer constant of the vptr type. */
     make_zero_of_proper_type(vptr_expr->type, &null_constant);

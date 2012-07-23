@@ -1,5 +1,32 @@
 Version 4.5
 
+7/23/12  [EDGcpfe/13074]
+IA-64 ABI: Suppress reference to __cxa_bad_typeid when possible
+
+The standard requires that an std::bad_typeid exception be thrown
+(implemented by calling __cxa_bad_typeid) when a NULL pointer is provided
+as an argument to typeid.  A change has been made to suppress the runtime
+check for a NULL pointer in cases where the front end can determine that
+the expression cannot ever be NULL.  See also changes for EDGcpfe/10628 that
+have bearing on whether a reference can be assumed to be non-NULL.
+For example:
+
+  #include <typeinfo>
+  struct A {
+    void f(const int& i) {
+      const std::type_info &x = typeid(this); // "this" cannot be NULL in a
+                                              // non-static member function.
+      const std::type_info &y = typeid(i);  // References cannot be NULL if
+                                            // assume_references_cannot_be_null
+                                            // is TRUE.
+    }
+  };
+  int main() {
+    A a;
+    a.f(1);
+  }
+
+
 7/22/12  [EDGcpfe/12692]
 C++-generating back end: multiple function declarators with extern "C"
 
