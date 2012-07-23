@@ -20258,6 +20258,8 @@ it an exact match or a user-defined conversion, etc.)
           /* Add the destructor for partial-aggregate exception cleanup. */
           dip->destructor = dtor;
           dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+          record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                             /*block_lifetime=*/FALSE);
         }  /* if */
       }  /* if */
       /* Add con to the aggregate constant list. */
