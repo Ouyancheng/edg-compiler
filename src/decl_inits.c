@@ -6534,6 +6534,16 @@ returned set to TRUE.
       init_con = dps->init_state.init_con;
       init_dip = dps->init_state.init_dip;
     } else {
+      if (list_init_enabled) {
+        /* C++11 requires a diagnostic on narrowing in this case, but since it
+           is a backward compatibility issue, we make it warning only in non-
+           strict modes. */
+        if (strict_ansi_mode) {
+          dps->init_state.error_on_narrowing = TRUE;
+        } else {
+          dps->init_state.warning_on_narrowing = TRUE;
+        }  /* if */
+      }  /* if */
       init_con = simple_initializer(dps, static_lifetime, vp_type, &init_dip,
                                     decl_pos_block);
     }  /* if */
