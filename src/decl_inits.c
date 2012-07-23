@@ -5585,7 +5585,19 @@ number of elements initialized.
           } else {
             /* Update the destination entity's type to reflect the number of
                elements in the initializer. */
-            *p_type = dtype;
+            if (!gnu_mode && is_array_type(dtype) &&
+                skip_typerefs(dtype)->variant.array.bound_is_zero) {
+              /* Zero-length initializers are only allowed in GNU mode in this
+                 context. */
+              if (!is->no_diagnostics) {
+                pos_error(ec_bad_initializer_for_array_with_unspecified_bound,
+                          diag_pos);
+              }  /* if */
+              is->init_error = TRUE;
+              *p_type = error_type();
+            } else {
+              *p_type = dtype;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
