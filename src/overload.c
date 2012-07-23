@@ -71,7 +71,8 @@ static a_boolean adjust_deduction_pair(
 static a_boolean check_narrowing_conversion(an_operand  *source_operand,
                                             a_type_ptr  dest_type,
                                             a_boolean   error_on_narrowing,
-                                            a_boolean   warning_on_narrowing);
+                                            a_boolean   warning_on_narrowing,
+                                            a_boolean   *treat_as_warning);
 
 
 #if DEBUG
@@ -3320,7 +3321,8 @@ argument-passing is copy-initialization).
         check_narrowing_conversion(operand_of_arg_list_elem(alep),
                                    param_type,
                                    /*error_on_narrowing=*/FALSE,
-                                   /*warning_on_narrowing=*/FALSE)) {
+                                   /*warning_on_narrowing=*/FALSE,
+                                   (a_boolean *)NULL)) {
       /* This requires a narrowing conversion, which is an error
          in this context. */
       clear_arg_match_summary(arg_summary);
@@ -19890,13 +19892,19 @@ there are any errors (that's used for overload resolution).
 static a_boolean check_narrowing_conversion(an_operand  *source_operand,
                                             a_type_ptr  dest_type,
                                             a_boolean   error_on_narrowing,
-                                            a_boolean   warning_on_narrowing)
+                                            a_boolean   warning_on_narrowing,
+                                            a_boolean   *treat_as_warning)
 /*
 Check for the narrowing conversions defined in [dcl.init.list] of the
 C++11 standard.  source_operand is being converted to dest_type.
 On narrowing, issue an error if error_on_narrowing is TRUE, a warning
 if warning_on_narrowing is TRUE, no diagnostic at all otherwise.  In all
 cases, return TRUE if the conversion is a narrowing conversion.
+If a narrowing conversion that would have been issued as an error
+has been given a lower severity by the user, return *treat_as_warning
+set to TRUE to alert the caller to call this routine again later to issue
+the warning; the return value of this function is FALSE in that case.
+treat_as_warning can be NULL if error_on_narrowing is FALSE.
 When warning_on_narrowing is in effect, warnings are issued only for
 those narrowing conversions that would not get warnings in normal
 initialization processing.
@@ -19908,6 +19916,13 @@ initialization processing.
   an_internal_float_value fval;
   a_boolean               err, depends_on_fp_mode, dependent_constant = FALSE;
 
+  check_assertion(!(error_on_narrowing && warning_on_narrowing));
+  check_assertion(!C_mode());
+  if (treat_as_warning != NULL) {
+    *treat_as_warning = FALSE;
+  } else {
+    check_assertion(!error_on_narrowing);
+  }  /* if */
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
   /* See if the operand has a constant value. */
@@ -20019,7 +20034,13 @@ initialization processing.
                                     ec_narrowing_conversion);
     an_error_severity sev = (error_on_narrowing ? es_discretionary_error :
                                                   es_warning);
-    if (expr_diagnostic_should_be_issued(sev, err_code)) {
+    if (error_on_narrowing && !is_effective_error(err_code, sev)) {
+      /* The error has been given a non-error severity by the user.
+         call this case not a narrowing error, and we'll come back again
+         later to issue the warning. */
+      is_narrowing = FALSE;
+      *treat_as_warning = TRUE;
+    } else if (expr_diagnostic_should_be_issued(sev, err_code)) {
       pos_ty2_diagnostic(sev, err_code, &source_operand->position,
                          source_type, dest_type);
     }  /* if */
@@ -20632,7 +20653,8 @@ issued (again, subject to the error-suppression controls).
           check_narrowing_conversion(operand_of_arg_list_elem(icp),
                                      dest_type,
                                      /*error_on_narrowing=*/FALSE,
-                                     /*warning_on_narrowing=*/FALSE)) {
+                                     /*warning_on_narrowing=*/FALSE,
+                                     (a_boolean *)NULL)) {
         /* This requires a narrowing conversion, which is an error
            in this context. */
         arg_match_err = TRUE;
@@ -20650,6 +20672,7 @@ issued (again, subject to the error-suppression controls).
       /* Not an overload resolution case.  Do the actual initialization
          processing.  In some modes we may suppress errors or discard the
          IL/operand created. */
+      a_boolean force_narrowing_warning_check = FALSE;
       check_assertion(generate_il);
       extract_operand_from_expression_component(icp, &operand,
                                                 /*free_icp=*/FALSE);
@@ -20657,7 +20680,8 @@ issued (again, subject to the error-suppression controls).
           check_narrowing_conversion(&operand,
                                      dest_type,
                                      error_on_narrowing,
-                                     /*warning_on_narrowing=*/FALSE)) {
+                                     /*warning_on_narrowing=*/FALSE,
+                                     &force_narrowing_warning_check)) {
         /* This requires a narrowing conversion, which is an error
            in this context. */
         conv_to_error_operand(&operand);
@@ -20683,11 +20707,12 @@ issued (again, subject to the error-suppression controls).
       } else {
         /* Non-class-copy, non-dependent, non-reference cases. */
         if (!is_error_operand(&operand) &&
-            warning_on_narrowing &&
+            (warning_on_narrowing || force_narrowing_warning_check) &&
             check_narrowing_conversion(&operand,
                                        dest_type,
                                        /*error_on_narrowing=*/FALSE,
-                                       /*warning_on_narrowing=*/TRUE)) {
+                                       /*warning_on_narrowing=*/TRUE,
+                                       (a_boolean *)NULL)) {
           /* Issue a warning for a narrowing conversion.  The narrowing
              tests are scaled back for this warning case to avoid issuing
              near-duplicate warnings. */
