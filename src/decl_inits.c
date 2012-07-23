@@ -5552,15 +5552,21 @@ number of elements initialized.
           dtor_rp = get_init_destructor(etype, is, diag_pos);
         }  /* if */
         if (unknown_bound_array && is->init_con != NULL) {
-          /* In a new-expression like "new T[n]{1, 2}", the aggregate
-             constant's type should be set to reflect its number of elements
-             rather than the destination type (which is an incomplete array
-             in such cases). */
+          /* The destination type is incomplete, but the initializer constant
+             should reflect the actual number of elements. */
           is->init_con->type = dtype;
-          *p_type = dtype;
-          /* Also: Assume that the initializer doesn't cover the whole
-             allocated array. */
-          is->partial_initializer = TRUE;
+          if (is->variable_size_array) {
+            /* In a new-expression like "new T[n]{1, 2}", n could be larger
+               than the number of elements in the initializer.  It is therefore
+               incorrect to replace the incomplete array type *p_type by dtype.
+               Instead, we assume that the initializer doesn't cover the whole
+               array. */
+            is->partial_initializer = TRUE;
+          } else {
+            /* Update the destination entity's type to reflect the number of
+               elements in the initializer. */
+            *p_type = dtype;
+          }  /* if */
         }  /* if */
       }  /* if */
       break;
