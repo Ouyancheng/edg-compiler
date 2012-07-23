@@ -51,8 +51,9 @@ static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(
                                  a_type_ptr        *p_type_cast_to,
                                  a_source_position *type_position,
-                                 a_boolean          has_explicit_cv_qualifiers,
-                                 a_boolean          allow_array);
+                                 a_boolean         has_explicit_cv_qualifiers,
+                                 a_boolean         allow_array,
+                                 a_boolean         allow_unk_bound_array);
 static an_init_component_ptr scan_expr_or_braced_init_list(
                                                 a_boolean bundle,
                                                 a_boolean always_allow_braced);
@@ -13359,7 +13360,8 @@ indication in *rcblock).
   }  /* if */
   /* Do initial checking on the type. */
   err = cast_type_pre_check(cast_type, type_position,
-                            explicit_cv_qualifiers, allow_array);
+                            explicit_cv_qualifiers, allow_array,
+                            /*allow_unk_bound_array=*/FALSE);
   if (rcblock == NULL) {
     /* Check for and pass over the ">". */
     (void)required_token(tok_gt, ec_exp_gt);
@@ -16637,8 +16639,9 @@ The cast is compiler-generated if compiler_generated is TRUE.
 static a_boolean cast_type_pre_check(
                                  a_type_ptr        *p_type_cast_to,
                                  a_source_position *type_position,
-                                 a_boolean          has_explicit_cv_qualifiers,
-                                 a_boolean          allow_array)
+                                 a_boolean         has_explicit_cv_qualifiers,
+                                 a_boolean         allow_array,
+                                 a_boolean         allow_unk_bound_array)
 /*
 Do a first check on the destination type of a cast to see if it is legal.
 This is very top-level checking applicable to all casts.  Return TRUE if
@@ -16647,7 +16650,8 @@ which may be updated on return if the cast should be to some other type.
 type_position is its source position.  If explicit_cv_qualifiers is
 set, warn about those qualifiers being useless when the type cast to
 is a nonclass type.  If allow_array is TRUE, do not issue an error for
-a cast to an array type.  This routine is called for C-style casts,
+a cast to a (complete) array type.  If allow_unk_bound_array is TRUE, allow
+an unknown-bound array type as well.  This routine is called for C-style casts,
 C++ functional-notation type conversions, and C++ new-style casts.
 */
 {
@@ -16666,7 +16670,7 @@ C++ functional-notation type conversions, and C++ new-style casts.
   } else if (is_incomplete_type(type_cast_to) &&
              !is_void_type(type_cast_to) &&
              !is_managed_nullptr_type(type_cast_to) &&
-             !is_incomplete_array_type(type_cast_to)) {
+             !is_array_type(type_cast_to)) {
     /* Don't allow a cast to an incomplete type (e.g., an incomplete enum
        type), but allow certain exceptions. */
     expr_pos_error(ec_incomplete_type_not_allowed, type_position);
@@ -16720,12 +16724,18 @@ C++ functional-notation type conversions, and C++ new-style casts.
       }  /* if */
     }  /* if */
   } else if (is_array_type(type_cast_to)) {
-    /* Casting to an array type is not allowed. */
-    if (allow_array) {
-      /* The caller will check further. */
-    } else if (list_init_enabled) {
-      /* In C++ 11, it's possible to initialize an array with a brace-enclosed
-         list, as in array_type{1, 2, 3}. */
+    /* Casting to an array type is generally not allowed. */
+    if (allow_unk_bound_array && is_incomplete_array_type(type_cast_to)) {
+      /* Allow an unknown-bound array if the caller says to allow it. */
+    } else if (is_incomplete_type(type_cast_to)) {
+      /* Otherwise, an unknown-bound array type cannot be used. */
+      if (expr_error_should_be_issued()) {
+        pos_ty_error(ec_cast_to_incomplete_array_type, type_position,
+                     type_cast_to);
+      }  /* if */
+      err = TRUE;
+    } else if (allow_array) {
+      /* Allow other kinds of arrays (not incomplete) if the caller says to. */
     } else if (cfront_2_1_mode) {
       /* In cfront 2.1 mode, treat a cast to an array type as a cast to
          a pointer to. */
@@ -19736,7 +19746,8 @@ Also scans GNU statement expressions:
         a_boolean allow_array = microsoft_bugs && !C_mode();
         /* Check the type to see if it is valid in general terms. */
         err = cast_type_pre_check(&type_cast_to, &type_position,
-                                  explicit_cv_qualifiers, allow_array);
+                                  explicit_cv_qualifiers, allow_array,
+                                  /*allow_unk_bound_array=*/FALSE);
         if (type_defined && !C_mode() && (!gpp_mode || gnu_version >= 30400)) {
           /* Only g++ versions earlier than 3.4 allow type definitions as part
              of casts. */
@@ -19992,7 +20003,7 @@ is not freed by this routine.
   a_boolean                     ctor_case = FALSE;
   a_class_symbol_supplement_ptr cssp;
   an_operand                    local_bound_function_selector;
-  a_boolean                     allow_array = microsoft_bugs && !C_mode();
+  a_boolean                     allow_ms_array = microsoft_bugs && !C_mode();
   a_ruled_out_expr_kind_set     ruled_out_expr_kinds = ROEK_NONE;
   a_dynamic_init_ptr            dip;
   an_expr_node_ptr              temp_init_node, orig_operand_expression = NULL;
@@ -20033,8 +20044,13 @@ is not freed by this routine.
      this does a worthwhile check even in the class case (abstract class).
      However, cv-qualifiers cannot syntactically appear in this sort of
      explicit conversion. */
+  /* In C++11, it's possible to initialize an array with a brace-enclosed
+     list, as in array_type{1, 2, 3}.  Allow array types, then check below
+     to issue the error if the initializer is not brace-enclosed. */
   err = cast_type_pre_check(&type_cast_to, &type_position,
-                            /*explicit_cv_qualifiers=*/FALSE, allow_array);
+                            /*explicit_cv_qualifiers=*/FALSE,
+                            allow_ms_array || list_init_enabled,
+                            /*allow_unk_bound_array=*/list_init_enabled);
   if (scanning_source && curr_token == tok_lbrace && list_init_enabled) {
     /* C++11 list-initializer syntax, e.g., T{x, y}. */
     scan_braced_init_list_cast(type_cast_to, csf_functional, result);
@@ -20042,6 +20058,19 @@ is not freed by this routine.
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     goto have_result;
+  }  /* if */
+  if (list_init_enabled && is_array_type(type_cast_to) &&
+      (!allow_ms_array || is_incomplete_array_type(type_cast_to))) {
+    /* We allowed array cases above in case the initializer is
+       brace-enclosed, but since it isn't, issue an error now. */
+    if (expr_error_should_be_issued()) {
+      pos_ty_error(is_incomplete_array_type(type_cast_to) ?
+                     ec_cast_to_incomplete_array_type :
+                     ec_cast_to_bad_type,
+                   &type_position, type_cast_to);
+    }  /* if */
+    type_cast_to = error_type();
+    err = TRUE;
   }  /* if */
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {

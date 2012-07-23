@@ -2409,6 +2409,7 @@ ec_cl_func_prototype_tags_option_only_in_C;;"function prototype tags can only be
 ec_cannot_elide_braces;;"braces cannot be omitted for this subobject initializer"
 ec_narrowing_conversion;;"invalid narrowing conversion from %t1 to %t2"
 ec_constant_narrowing_conversion;;"invalid narrowing conversion from %t1 to %t2: constant value does not fit in destination type"
+ec_cast_to_incomplete_array_type;;"cast to incomplete array type %t is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
