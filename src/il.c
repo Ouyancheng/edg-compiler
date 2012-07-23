@@ -5412,9 +5412,7 @@ copy_constant_full should be called to start a copy.
        because it may refer to local variables.) */
     new_constant->expr = NULL;
   } else if (options & CE_COPYING_EXPRESSION_FOR_CONSTANT &&
-             new_constant_in_il &&
-             old_constant->expr != NULL &&
-             in_file_scope(old_constant->expr) != in_file_scope(new_constant)){
+             old_constant->expr != NULL && new_constant->expr == NULL) {
     /* We are copying a constant's expression, but the expression in the
        old constant had memory region problems; make a copy in the current
        memory region. */
