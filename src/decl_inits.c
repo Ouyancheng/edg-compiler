@@ -4481,7 +4481,7 @@ initialization).  *is describes the initialization as a whole.
     a_targ_size_t  ecount, idx = 0, icount = 0;
     a_type_ptr     etype = atype->variant.array.element_type;
     a_boolean      no_bound = FALSE, braced = is_braced_init_component(icp),
-                   zero_sized_element = FALSE;
+                   zero_sized_element = FALSE, incomplete_array = FALSE;
     a_boolean      saved_pack_expansion_handled;
     if (braced) {
       /* The element values are enclosed in braces. */
@@ -4517,11 +4517,15 @@ initialization).  *is describes the initialization as a whole.
       (*init_con)->explicit_braces_on_aggregate = braced;
     }  /* if */
     /* Determine the element count in the destination type if known. */
-    if (has_any_unknown_specified_bound(atype) ||
-        (atype->variant.array.variant.number_of_elements == 0 &&
-         !atype->variant.array.bound_is_zero)) {
+    if (has_any_unknown_specified_bound(atype)) {
+      /* An array with a specified bound that cannot be evaluated (e.g., a
+         template-dependent bound). */
+      no_bound = TRUE;
+    } else if (atype->variant.array.variant.number_of_elements == 0 &&
+               !atype->variant.array.bound_is_zero) {
       /* An array whose number of elements is not a priori bound. */
       no_bound = TRUE;
+      incomplete_array = TRUE;
     } else if (is_template_param_type(etype)) {
       /* For something like "T x[2] = { 1, 2, 3, 4 };" we cannot tell how the
          initializer elements should be allocated to the array elements, since
@@ -4591,14 +4595,22 @@ initialization).  *is describes the initialization as a whole.
       /* The caller should move on to the component that follows the braced
          list (if any). */
       *p_icp = (*p_icp)->next;
-      if (no_bound) {
-        if (is->initializer_can_dimension_array &&
-            !is->non_top_level_aggregate &&
-            !has_unknown_specified_bound(atype)) {
-          /* A top-level array declarator of the form "X[]": Update the type to
-             reflect the size implied by the initializer. */
+      if (incomplete_array && !is->non_top_level_aggregate) {
+        /* An aggregate initializer for a top-level incomplete array type.
+           This is either an error, or the caller has requested to derive the
+           dimension from the initializer (as, e.g., in "T x[] = { 1, 2, 3 }").
+           This also happens with variable-size array new expressions such as
+           "new T[n]{ 1, 2 }", where the destination type "T[]" is passed to
+           this routine and the initializer_can_dimension_array is set to TRUE
+           (even though the type recorded in the associated new/delete
+           supplement won't be updated).  (Note: The non-top-level case is only
+           possible with flexible array initializers; the validity of that case
+           is mode-dependent and checked elsewhere.) */
+        if (is->initializer_can_dimension_array) {
           set_initialized_array_size(p_array_type, icount,
                                      /*unknown_dependent=*/FALSE);
+        } else {
+          expect_error();
         }  /* if */
       }  /* if */
       if (icp != NULL && (!no_bound || zero_sized_element)) {
