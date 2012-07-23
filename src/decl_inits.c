@@ -4595,22 +4595,26 @@ initialization).  *is describes the initialization as a whole.
       /* The caller should move on to the component that follows the braced
          list (if any). */
       *p_icp = (*p_icp)->next;
-      if (incomplete_array && !is->non_top_level_aggregate) {
-        /* An aggregate initializer for a top-level incomplete array type.
-           This is either an error, or the caller has requested to derive the
-           dimension from the initializer (as, e.g., in "T x[] = { 1, 2, 3 }").
-           This also happens with variable-size array new expressions such as
-           "new T[n]{ 1, 2 }", where the destination type "T[]" is passed to
-           this routine and the initializer_can_dimension_array is set to TRUE
-           (even though the type recorded in the associated new/delete
-           supplement won't be updated).  (Note: The non-top-level case is only
-           possible with flexible array initializers; the validity of that case
-           is mode-dependent and checked elsewhere.) */
-        if (is->initializer_can_dimension_array) {
-          set_initialized_array_size(p_array_type, icount,
-                                     /*unknown_dependent=*/FALSE);
-        } else {
-          expect_error();
+      if (incomplete_array) {
+        set_initialized_array_size(&atype, icount,
+                                   /*unknown_dependent=*/FALSE);
+        if (is->init_con != NULL) is->init_con->type = atype;
+        if (!is->non_top_level_aggregate) {
+          /* An aggregate initializer for a top-level incomplete array type.
+             This is either an error, or the caller has requested to derive the
+             dimension from the initializer (as, e.g., in "T x[] = { 1, 2}").
+             This also happens with variable-size array new-expressions such as
+             "new T[n]{ 1, 2 }", where the destination type "T[]" is passed to
+             this routine and is->initializer_can_dimension_array is TRUE (even
+             though the type recorded in the associated new/delete supplement
+             won't be updated).  (Note: The non-top-level case is only possible
+             with flexible array initializers; the validity of that case is
+             mode-dependent and checked elsewhere.) */
+          if (is->initializer_can_dimension_array) {
+            *p_array_type = atype;
+          } else {
+            expect_error();
+          }  /* if */
         }  /* if */
       }  /* if */
       if (icp != NULL && (!no_bound || zero_sized_element)) {
