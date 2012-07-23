@@ -4540,7 +4540,7 @@ initialization).  *is describes the initialization as a whole.
     } else {
       ecount = atype->variant.array.variant.number_of_elements;
     }  /* if */
-    if (is_array_type(etype) && num_array_elements(etype) == 0) {
+    if (is_array_type(etype) && has_any_zero_bound(etype)) {
       /* Some modes permit an array of zero-length arrays.  In that case, each
          element has size zero.  Note that etype may have a zero length
          dimension at a deeper level (e.g., int[3][0][1]); hence the use of

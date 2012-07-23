@@ -319,6 +319,9 @@ unknown (e.g., a template parameter or a run-time quantity).
 
 a_boolean has_any_unknown_specified_bound(a_type_ptr  array_type);
 
+a_boolean has_any_zero_bound(a_type_ptr  array_type);
+
+
 /*
 Macro that returns TRUE if a type is a template class type that has
 not been specialized.
