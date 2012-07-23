@@ -7939,11 +7939,14 @@ C99 mode for the same reason.
         if ((options & LDIO_FULL_EXPR) && init_expr_lifetime == NULL) {
           lower_full_expr(source_node, (a_statement_ptr)NULL);
         } else {
-          /* Normal case: not a full expression. */
+          /* Normal case: not a full expression (or a full expression
+             with a non-null init_expr_lifetime). */
           lower_expr(source_node);
           if (options & LDIO_FULL_EXPR) {
             /* Make sure that all "full expressions" are subject to a lowering
-               post-pass. */
+               post-pass (a post-pass isn't needed for expressions that aren't
+               "full" as it'll be performed as part of the top-level "full"
+               expression or when the lowered code is inserted). */
             perform_post_pass_on_lowered_expression(source_node);
           }  /* if */
         }  /* if */
@@ -8540,7 +8543,7 @@ new/delete supplement that gives information about the "new".
 ndsp->arg, if relevant, must be lowered already.  array_type
 gives the array type.  elem_type gives the ultimate element type
 of the array.  If return_reusable_copy is TRUE, the caller needs
-a reusable copy, otherwise, in some cases, the size node for
+a reusable copy; otherwise, in some cases, the size node for
 the "new" operation is used instead.
 */
 {
