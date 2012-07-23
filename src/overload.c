@@ -19943,9 +19943,9 @@ initialization processing.
 #if C99_IL_EXTENSIONS_SUPPORTED
     } else if (is_nonreal_floating_type(source_type) &&
                source_type->kind != dest_type->kind) {
-      /* Something like complex --> float.  Not covered by the standard,
-         but logically a narrowing conversion. */
-      is_narrowing = TRUE;
+      /* Something like complex --> float.  Not covered by the standard.
+         May or may not be valid as an implicit conversion, but leave that
+         to the caller; don't call it a narrowing conversion. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     } else if (is_floating_type(dest_type)) {
       /* We ruled out complex and imaginary cases above. */
