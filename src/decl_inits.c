@@ -5795,21 +5795,22 @@ is part of.  diag_pos is the position to be used by default for diagnostics
       pos_warning(ec_list_initializer_nonstandard_in_current_mode,
                   &pos_curr_token);
     }  /* if */
-    dps->init_state.error_on_narrowing = TRUE;
     vp->has_direct_braced_initializer = direct;
     dps->init_state.direct_init = direct;
   } else {
     /* Traditional aggregate initialization of the form "T x = { ... }". */
     dps->init_state.elided_braces_allowed = TRUE;
-    if (list_init_enabled) {
-      /* C++11 requires a diagnostic on narrowing in this case, but since it
-         is a backward compatibility issue, we make it warning only in non-
-         strict modes. */
-      if (strict_ansi_mode) {
-        dps->init_state.error_on_narrowing = TRUE;
-      } else {
-        dps->init_state.warning_on_narrowing = TRUE;
-      }  /* if */
+  }  /* if */
+  if (list_init_enabled) {
+    /* C++11 requires a diagnostic on narrowing in this case, but since it
+       is a backward compatibility issue, we make it warning only in non-
+       strict modes.  (Strictly speaking, it is only a backward compatibility
+       issue for non-direct initialization syntax, but since GCC only warns on
+       the direct syntax too, we follow suit in nonstrict mode.) */
+    if (strict_ansi_mode) {
+      dps->init_state.error_on_narrowing = TRUE;
+    } else {
+      dps->init_state.warning_on_narrowing = TRUE;
     }  /* if */
   }  /* if */
   vp->has_direct_braced_initializer = direct;
