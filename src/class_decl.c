@@ -12178,11 +12178,15 @@ the class.
 
   ptp = skip_typerefs(ctor_rp->type)->variant.routine.extra_info
                                     ->param_type_list;
-  if (ptp != NULL && is_std_initializer_list_type(ptp->type) &&
-      (ptp->next == NULL || ptp->next->has_default_arg)) {
-    /* The given routine is an initializer-list constructor. */
-    ctor_rp->is_initializer_list_ctor = TRUE;
-    class_type_supp(class_type)->has_initializer_list_ctor = TRUE;
+  if (ptp != NULL && (ptp->next == NULL || ptp->next->has_default_arg)) {
+    /* A constructor callable with one argument. */
+    a_type_ptr  tp = ptp->type;
+    if (is_reference_type(tp)) tp = type_pointed_to(tp);
+    if (is_std_initializer_list_type(tp)) {
+      /* The given routine is an initializer-list constructor. */
+      ctor_rp->is_initializer_list_ctor = TRUE;
+      class_type_supp(class_type)->has_initializer_list_ctor = TRUE;
+    }  /* if */
   }  /* if */
 }  /* set_initializer_list_ctor_flags */
 
