@@ -5411,12 +5411,6 @@ copy_constant_full should be called to start a copy.
        scope memory region.  (The expression tree can't even be copied,
        because it may refer to local variables.) */
     new_constant->expr = NULL;
-  } else if (options & CE_COPYING_EXPRESSION_FOR_CONSTANT &&
-             old_constant->expr != NULL && new_constant->expr == NULL) {
-    /* We are copying a constant's expression, but the expression in the
-       old constant had memory region problems; make a copy in the current
-       memory region. */
-    new_constant->expr = copy_expr_tree(old_constant->expr, options);
   }  /* if */
   if (may_be_shared) {
     new_constant = alloc_shareable_constant(new_constant);
