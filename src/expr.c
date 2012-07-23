@@ -2244,6 +2244,7 @@ indication in *rcblock).
       prep_list_initializer(icp, dest_type,
                             /*is_direct_init=*/TRUE,
                             /*check_narrowing=*/FALSE,
+                            /*warning_on_narrowing=*/FALSE,
                             CCO_DEFAULT,
                             /*fill_in_dtor=*/TRUE,
                             /*force_temp=*/FALSE,
@@ -15636,6 +15637,7 @@ expression, and return the result in *result (or an error indication in
     prep_list_initializer(alep, new_type,
                           /*is_direct_init=*/TRUE,
                           /*check_narrowing=*/TRUE,
+                          /*warning_on_narrowing=*/FALSE,
                           CCO_DEFAULT,
                           /*fill_in_dtor=*/FALSE,
                           /*force_temp=*/FALSE,
@@ -19947,6 +19949,7 @@ the closing brace.
 {
   an_init_component_ptr icp;
   a_conv_context_set    conv_context = CCO_CAST;
+  a_boolean             error_on_narrowing = strict_ansi_mode;
 
   check_assertion(list_init_enabled);
   if (source_form == csf_functional) conv_context |= CCO_FUNC_NOTATION_CAST;
@@ -19954,7 +19957,8 @@ the closing brace.
   check_assertion(result != NULL);  /* For lint. */
   prep_list_initializer(icp, type_cast_to,
                         /*is_direct_init=*/TRUE,
-                        /*check_narrowing=*/TRUE,
+                        error_on_narrowing,
+                        /*warning_on_narrowing=*/!error_on_narrowing,
                         conv_context,
                         /*fill_in_dtor=*/TRUE,
                         /*force_temp=*/
@@ -23325,6 +23329,7 @@ number.
       prep_list_initializer(icp, result_type,
                             /*is_direct_init=*/TRUE,
                             /*check_narrowing=*/TRUE,
+                            /*warning_on_narrowing=*/FALSE,
                             CCO_DEFAULT,
                             /*fill_in_dtor=*/TRUE,
                             /*force_temp=*/FALSE,
@@ -29291,6 +29296,7 @@ dynamic init entry if one is created to represent this initializer
   prep_list_initializer(icp, dest_type,
                         is->direct_init,
                         /*check_narrowing=*/FALSE,  /* Ignored */
+                        /*warning_on_narrowing=*/FALSE,  /* Ditto */
                         conv_context, fill_in_dtor,
                         /*force_temp=*/FALSE,
                         (an_operand *)NULL,
@@ -31838,6 +31844,7 @@ Sets *expr_position to the beginning position of the range expression.
       prep_list_initializer(alep, deduced_type,
                             /*is_direct_init=*/FALSE,
                             /*check_narrowing=*/TRUE,
+                            /*warning_on_narrowing=*/FALSE,
                             CCO_DEFAULT,
                             /*fill_in_dtor=*/TRUE,
                             /*force_temp=*/FALSE,
@@ -32317,6 +32324,7 @@ required_type will be void if the expression should have void type
     prep_list_initializer(icp, required_type,
                           /*is_direct_init=*/FALSE,
                           /*check_narrowing=*/TRUE,
+                          /*warning_on_narrowing=*/FALSE,
                           conv_context,
                           /*fill_in_dtor=*/return_by_cctor_case,
                           /*force_temp=*/return_by_cctor_case,
@@ -34360,7 +34368,8 @@ scan_class_initializer_expression and scan_aggregate_initializer_expression.
   prep_list_initializer(icp,
                         required_type,
                         /*is_direct_init=*/!is_copy_initialization,
-                        /*check_narrowing=*/FALSE,
+                        dps->init_state.error_on_narrowing,
+                        dps->init_state.warning_on_narrowing,
                         conv_context,
                         /*fill_in_dtor=*/TRUE,
                         /*force_temp=*/FALSE,

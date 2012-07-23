@@ -3346,6 +3346,7 @@ argument-passing is copy-initialization).
                           param_type,
                           /*is_direct_init=*/FALSE,
                           /*check_narrowing=*/FALSE, /* Flag in alep used */
+                          /*warning_on_narrowing=*/FALSE,
                           conv_context,
                           /*fill_in_dtor=*/FALSE,
                           /*force_temp=*/FALSE,
@@ -15526,6 +15527,7 @@ no_applicable_operator_function:
                   prep_list_initializer(arg_list_elem, result_type,
                                         /*is_direct_init=*/FALSE,
                                         /*check_narrowing=*/TRUE,
+                                        /*warning_on_narrowing=*/FALSE,
                                         CCO_DEFAULT,
                                         /*fill_in_dtor=*/TRUE,
                                         /*force_temp=*/FALSE,
@@ -20203,6 +20205,7 @@ it an exact match or a user-defined conversion, etc.)
     prep_list_initializer(elem_icp, element_type,
                           /*is_direct_init=*/FALSE,
                           /*check_narrowing=*/TRUE,
+                          /*warning_on_narrowing=*/FALSE,
                           CCO_DEFAULT,
                           /*fill_in_dtor=*/FALSE,
                           /*force_temp=*/FALSE,
@@ -20477,6 +20480,7 @@ void prep_list_initializer(an_init_component_ptr icp,
                            a_type_ptr            dest_type,
                            a_boolean             is_direct_init,
                            a_boolean             check_narrowing,
+                           a_boolean             warning_on_narrowing,
                            a_conv_context_set    conv_context,
                            a_boolean             fill_in_dtor,
                            a_boolean             force_temp,
@@ -20525,9 +20529,10 @@ check_narrowing or the icp->check_narrowing flag or (if present) the
 is->error_on_narrowing flag, if TRUE, indicate that narrowing checks
 should be done at the current level of initialization, and errors (not
 warnings) should be issued (subject to the error-suppression controls
-described above).  When is->warning_on_narrowing is TRUE (and none of
-the above flags is TRUE), the checks are done but only warnings are
-issued (again, subject to the error-suppression controls).
+described above).  When warning_on_narrowing or is->warning_on_narrowing
+is TRUE (and none of the above flags is TRUE), the checks are done but
+only warnings are issued (again, subject to the error-suppression
+controls).
 */
 {
   a_dynamic_init_ptr   dip = NULL;
@@ -20550,7 +20555,6 @@ issued (again, subject to the error-suppression controls).
   an_arg_match_summary internal_arg_match;
   a_boolean            aggregate_case = FALSE;
   a_boolean            error_on_narrowing;
-  a_boolean            warning_on_narrowing;
 
   /* The basic modes are:
                       issue_errors   generate_il
@@ -20607,9 +20611,12 @@ issued (again, subject to the error-suppression controls).
   if (icp->check_narrowing || (is != NULL && is->error_on_narrowing)) {
     check_narrowing = TRUE;
   }  /* if */
+  if (is != NULL && is->warning_on_narrowing) {
+    warning_on_narrowing = TRUE;
+  }  /* if */
   error_on_narrowing = check_narrowing && issue_errors;
-  warning_on_narrowing = (!check_narrowing &&
-                          is != NULL && is->warning_on_narrowing);
+  warning_on_narrowing = warning_on_narrowing && !check_narrowing &&
+                         issue_errors;
   if (is_direct_init) conv_context |= CCO_DIRECT_INITIALIZATION;
   /* If the destination type is a template class, make sure it is
      instantiated. */
@@ -20925,7 +20932,9 @@ issued (again, subject to the error-suppression controls).
           list = new_list;
         }  /* while */
       }  /* if */
-      prep_list_initializer(list, dest_type, is_direct_init, check_narrowing,
+      prep_list_initializer(list, dest_type, is_direct_init,
+                            check_narrowing,
+                            warning_on_narrowing,
                             conv_context, fill_in_dtor, force_temp,
                             ((result != NULL) ? &operand : (an_operand *)NULL),
                             is,
@@ -20959,6 +20968,7 @@ issued (again, subject to the error-suppression controls).
       prep_list_initializer(icp, underlying_type,
                             /*is_direct_init=*/FALSE,
                             /*check_narrowing=*/TRUE,
+                            /*warning_on_narrowing=*/FALSE,
                             rconv_context,
                             /*fill_in_dtor=*/TRUE,
                             /*force_temp=*/TRUE,
@@ -21037,6 +21047,7 @@ issued (again, subject to the error-suppression controls).
                               dest_type,
                               is_direct_init,
                               /*check_narrowing=*/FALSE,
+                              /*warning_on_narrowing=*/FALSE,
                               conv_context,
                               fill_in_dtor,
                               force_temp,
@@ -21511,6 +21522,7 @@ checks that), and *conversion describes it.
     prep_list_initializer(alep, formal_param->type,
                           /*is_direct_init=*/FALSE,
                           /*check_narrowing=*/FALSE, /* Flag in alep used */
+                          /*warning_on_narrowing=*/FALSE,
                           conv_context,
                           /*fill_in_dtor=*/TRUE,
                           /*force_temp=*/
