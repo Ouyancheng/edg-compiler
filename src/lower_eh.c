@@ -2335,7 +2335,7 @@ conversion in cases where their value is not used.
   a_constant       null_constant;
 #if IA64_ABI
   an_expr_node_ptr minus_one_expr, bad_typeid_expr;
-  a_boolean        non_null;
+  a_boolean        non_null, save_assume_references_cannot_be_null;
 #else /* !IA64_ABI */
   an_expr_node_ptr question_node;
 #endif /* !IA64_ABI */
@@ -2373,8 +2373,17 @@ conversion in cases where their value is not used.
 #if IA64_ABI
     /* Before lowering the expression and turning it into an rvalue pointer,
        see if we can tell that the address of the lvalue cannot be NULL
-       (in which case we don't need to generate code to handle that case). */
+       (in which case we don't need to generate code to handle that case).
+       To match GNU's behavior in this case, make sure
+       assume_references_cannot_be_null is set to TRUE. */
+    if (gnu_mode) {
+      save_assume_references_cannot_be_null = assume_references_cannot_be_null;
+      assume_references_cannot_be_null = TRUE;
+    }  /* if */
     non_null = cannot_be_null(typeid_expr);
+    if (gnu_mode) {
+      assume_references_cannot_be_null = save_assume_references_cannot_be_null;
+    }  /* if */
 #endif /* IA64_ABI */
     lower_expr(typeid_expr);
     /* The expression is an lvalue.  The standard specifically notes that

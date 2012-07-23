@@ -21,8 +21,10 @@ The standard requires that an std::bad_typeid exception be thrown
 as an argument to typeid.  A change has been made to suppress the runtime
 check for a NULL pointer in cases where the front end can determine that
 the expression cannot ever be NULL.  See also changes for EDGcpfe/10628 that
-have bearing on whether a reference can be assumed to be non-NULL.
-For example:
+have bearing on whether a reference can be assumed to be non-NULL (to
+match GNU's behavior in this area, assume_references_cannot_be_null is
+temporarily set to TRUE when deciding whether the typeid expression can
+be non-NULL).  For example:
 
   #include <typeinfo>
   struct A {
@@ -31,7 +33,7 @@ For example:
                                               // non-static member function.
       const std::type_info &y = typeid(i);  // References cannot be NULL if
                                             // assume_references_cannot_be_null
-                                            // is TRUE.
+                                            // is TRUE (or in --g++ mode).
     }
   };
   int main() {

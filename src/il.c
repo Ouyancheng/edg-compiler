@@ -17025,10 +17025,11 @@ the test means its address cannot be NULL.
 
 a_boolean cannot_be_null(an_expr_node_ptr expr)
 /*
-Return TRUE if the value of the indicated expression (an lvalue or an rvalue of
-pointer type) cannot be NULL (0).  This routine is used for an optimization,
-and a diagnostic, so it doesn't have to be perfect.  The safe return value
-is FALSE.
+For expressions with rvalue pointer type, returns TRUE if the value of the
+expression cannot be NULL (0).  For lvalue expressions, returns TRUE if the
+address of the expression cannot be NULL.  This routine is used for an
+optimization, and a diagnostic, so it doesn't have to be perfect.  The safe
+return value is FALSE.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
