@@ -19910,8 +19910,13 @@ initialization processing.
 
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
+  /* See if the operand has a constant value. */
   if (is_constant_operand(source_operand)) {
     con = &source_operand->variant.constant;
+  } else if (is_an_lvalue(source_operand)) {
+    /* Look also for cases where a const variable would become a constant
+       when converted to an rvalue. */
+    con = value_of_constant_var_lvalue_operand(source_operand);
   }  /* if */
   if (is_floating_type(source_type)) {
     if (is_integral_type(dest_type)) {
