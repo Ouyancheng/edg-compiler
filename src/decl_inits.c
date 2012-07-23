@@ -4194,14 +4194,14 @@ static void aggr_init_array_remainder_if_needed(a_constant_ptr     array_con,
                                                 a_source_position  *diag_pos)
 /*
 An array of elements of type etype has an initializer that doesn't initialize
-all the array elements.  If is->check_validity_only is FALSE, array_con points
-to an ck_aggregate constant that represent the explicit initialization.
-Check that the remaining elements of the array can be initialized, and if
-is->check_validity_only is FALSE and the remaining elements need dynamic
-initialization, append a constant representing that initialization to the list
-embedded in array_con (plain zero initialization is done elsewhere if needed).
-*is describes the initialization as a whole, and diag_pos indicates the
-position at which diagnostics should be issued.
+all the array elements.  array_con points to an ck_aggregate constant that
+represent the explicit initialization (unless is->check_validity_only flag is
+FALSE).  Check that the remaining elements of the array can be initialized, and
+if the flag is->check_validity_only is FALSE and the remaining elements need
+dynamic initialization, append a constant representing that initialization to
+the list embedded in array_con (plain zero initialization is done elsewhere if
+needed).  *is describes the initialization as a whole, and diag_pos indicates
+the position at which diagnostics should be issued.
 */
 {
   a_boolean  partial_init_flag = TRUE;
@@ -5476,7 +5476,8 @@ dtor_rp is the destructor needed to destroy the initializer value (or NULL if
 none is needed).
 Ensure that is->init_con or is_init_dip is non-NULL as appropriate given *is
 and dtor_rp.  In particular, create a dynamic init entry for the initialization
-if is->has_dynamic_init_component or is->force_dynamic_init are TRUE.
+if any of the flags is->has_dynamic_init_component or is->force_dynamic_init
+are TRUE.
 */
 {
   if (is->init_dip == NULL) {
