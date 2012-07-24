@@ -2426,16 +2426,16 @@ typedef struct a_template_symbol_supplement {
 			   determined that the reference is to the non-generic
 			   version.  It is NULL if there is no non-generic
 			   version. */
-       uint32_t	arity;
+      uint32_t	arity;
 			/* For C++/CLI generic classes, the number of generic
 			   parameters for this generic. */
-       uint32_t	min_arity;
+      uint32_t	min_arity;
 			/* For C++/CLI generics, this field is set in the
 			   generic found by lookup and is the minimum number
 			   of generic parameters of the various versions of
 			   the generic.  It is also set if there is only
 			   one arity. */
-       uint32_t	max_arity;
+      uint32_t	max_arity;
 			/* For C++/CLI generics, this field is set in the
 			   generic found by lookup and is the maximum number
 			   of generic parameters of the various versions of
