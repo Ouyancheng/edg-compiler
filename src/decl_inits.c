@@ -6534,7 +6534,7 @@ returned set to TRUE.
       init_con = dps->init_state.init_con;
       init_dip = dps->init_state.init_dip;
     } else {
-      if (list_init_enabled) {
+      if (list_init_enabled && first_token == tok_lbrace) {
         /* C++11 requires a diagnostic on narrowing in this case, but since it
            is a backward compatibility issue, we make it warning only in non-
            strict modes. */
