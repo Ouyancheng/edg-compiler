@@ -3554,6 +3554,9 @@ be completed here.
         class_type->variant.class_struct_union.abstract =
                                     tssp->variant.class_template.is_interface;
       }  /* if */
+      if (is_nonreal_instantiation) {
+        ++(tssp->variant.class_template.pending_nonreal_instantiations);
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Update the associated template.  This is set when the incomplete
          class type is created, but must be updated now in case the actual
@@ -3650,6 +3653,9 @@ be completed here.
                              class_type_supp(proto_type)->cli_class_type_kind;
           ctsp->is_hide_by_sig = class_type_supp(proto_type)->is_hide_by_sig;
         }  /* if */
+      }  /* if */
+      if (is_nonreal_instantiation) {
+        ++(tssp->variant.class_template.pending_nonreal_instantiations);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
@@ -6318,10 +6324,18 @@ such classes.
   if (open_constructed_arg_list) {
     class_type->variant.class_struct_union.is_open_constructed_type = TRUE;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (instantiate_nonreal &&
+      tssp->variant.class_template.pending_nonreal_instantiations > 0) {
+    /* If there are pending nonreal instantiations, don't make this a
+       Microsoft mode nonreal instantiation.  This is done to prevent
+       runaway nonreal instantiations.  Real instantiations have a way to
+       terminate the recursion, but nonreal instantiations don't. */
+    instantiate_nonreal = FALSE;
+  }  /* if */
   if (instantiate_nonreal) {
     tssp->variant.class_template.any_ms_instantiated_nonreal_classes = TRUE;
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   class_type->variant.class_struct_union.is_template_class = TRUE;
   sym->variant.class_struct_union.type = class_type;
   set_source_corresp(&(class_type->source_corresp), sym);

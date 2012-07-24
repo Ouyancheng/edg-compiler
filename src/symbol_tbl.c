@@ -3358,6 +3358,7 @@ and return a pointer to it.
       tssp->variant.class_template.arity = 0;
       tssp->variant.class_template.min_arity = 0;
       tssp->variant.class_template.max_arity = 0;
+      tssp->variant.class_template.pending_nonreal_instantiations = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       tssp->variant.class_template.not_standalone_nested_class = FALSE;
       tssp->variant.class_template.template_template_param = FALSE;
@@ -3366,8 +3367,8 @@ and return a pointer to it.
       tssp->variant.class_template.alias_uses_own_type = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       tssp->variant.class_template.cannot_be_specialized = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       tssp->variant.class_template.any_ms_instantiated_nonreal_classes = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       tssp->variant.class_template.argument_template = NULL;
       tssp->variant.class_template.substituted_param_template = NULL;
       clear_template_cache(&tssp->variant.class_template.initial_decl_cache,

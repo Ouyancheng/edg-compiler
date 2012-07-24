@@ -2441,6 +2441,14 @@ typedef struct a_template_symbol_supplement {
 			   of generic parameters of the various versions of
 			   the generic.  It is also set if there is only
 			   one arity. */
+      a_pending_instantiation_count
+		pending_nonreal_instantiations;
+			/* The number of Microsoft nonreal instantiations
+			   of this template that are in the process of being
+			   instantiated.  Used to prevent recursive nonreal
+			   instantiations that have a way of being terminated
+			   for real instantiations, but do not for nonreal
+			   instantiations. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
 		is_alias_template:1;
@@ -2501,11 +2509,11 @@ typedef struct a_template_symbol_supplement {
 		cannot_be_specialized:1;
 			/* TRUE if this template cannot be explicitly 
 			   specialized. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
 		any_ms_instantiated_nonreal_classes:1;
 			/* TRUE if this template has any instantiations that
 			   are Microsoft mode instantiated nonreal classes. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       bitfield_to_avoid_codecenter_warnings()
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr
