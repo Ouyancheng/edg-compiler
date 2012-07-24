@@ -2413,7 +2413,16 @@ conversion in cases where their value is not used.
        but only in cases where typeid_expr can have a NULL value.
     */
     /* Make code to get the virtual function table pointer. */
-    vptr_expr = make_reusable_copy(typeid_expr, /*vars_can_change=*/FALSE);
+#if IA64_ABI
+    if (non_null) {
+      /* No need for a reusable copy in this case. */
+      vptr_expr = typeid_expr;
+    } else
+#endif /* IA64_ABI */
+    /* Do not insert code here. */
+    {
+      vptr_expr = make_reusable_copy(typeid_expr, /*vars_can_change=*/FALSE);
+    }  /* if */
     vptr_expr = make_any_vptr_rvalue(vptr_expr, (an_expr_node_ptr *)NULL);
 #if IA64_ABI
     /* Make (std::type_info*)vptr[-1]. */
