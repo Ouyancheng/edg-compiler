@@ -469,12 +469,6 @@ extern a_boolean scan_aggregate_initializer_expression(
                                    a_dynamic_init_ptr *dip,
                                    a_constant         *constant);
 
-void prescan_aggregate_initializer_expression(
-                         a_decl_parse_state *dps,
-                         a_boolean          static_lifetime,
-                         a_boolean          suppress_object_lifetime,
-                         a_boolean          *empty_expansion_at_closing_brace);
-
 extern a_boolean token_ends_initializer(a_token_kind  token);
 
 extern

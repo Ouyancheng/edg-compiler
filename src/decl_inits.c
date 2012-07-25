@@ -69,19 +69,6 @@ aconstant.
 
 
 /*
-While scanning a designation in an aggregate initializer, we may be in one
-of three states: (1) no designators have just been scanned, (2) a designator
-was just scanned, but another one is expected right after it, or (3) a
-designator that completes a designation was just scanned.
-*/
-typedef enum a_designation_state {
-  ds_no_designation,
-  ds_partial_designation,
-  ds_complete_designation
-} a_designation_state;
-
-
-/*
 Data structure containing information to be passed among get_initializer
 and its subroutines.  There is one such entry for each top-level (i.e.,
 non-recursive) call to get_initializer.
@@ -99,49 +86,12 @@ typedef struct an_aggregate_init_info {
   a_boolean	any_uninitialized_member;
 			/* Set to TRUE if any member of the aggregate remains
 			   uninitialized. */
-  a_boolean	any_uninitialized_const_or_ref_member;
-			/* Set to TRUE if any member of the aggregate that
-			   is uninitialized has const or reference type. */
-  a_boolean	comma_seen;
-			/* Set to TRUE when a comma was skipped while looking
-			   ahead to find that there are no more initializers
-			   for the current aggregate. */
   a_boolean	compound_literal;
 			/* Set to TRUE when get_initializer is called to parse
 			   a compound literal. */
-  a_boolean	has_flexible_array_initializer;
-			/* Set to TRUE when get_initializer encounters values
-			   that initialize a flexible array member. */
   a_boolean     uses_designated_initializers;
                         /* Set to TRUE if any member of the aggregate was
                            initialized by a designated initializer. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position
-		init_end_position;
-			/* Source position of the end of the initializer. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_designation_state
-                designation_state;
-                        /* Have we just collected a partial or complete
-                           designation? */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  an_expr_node_ptr
-		cli_array_dimensions;
-			/* Points to a list of expressions used during C++/CLI
-			   array initializer scanning that represent the
-			   length of each dimension. */
-  a_boolean	is_cli_array_initializer;
-			/* TRUE if currently scanning a CLI array
-			   initializer. */
-  a_boolean	populate_cli_array_lengths;
-			/* TRUE if cli_array_dimensions should be populated
-			   with the greatest length of each dimension while
-			   scanning a CLI array-init.  FALSE if
-			   cli_array_dimensions should be used as bounds checks
-			   for each dimension length.  This is only relevant if
-			   is_cli_array_initializer is TRUE and
-			   cli_array_dimensions is non-NULL. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } an_aggregate_init_info;
 
 
@@ -152,61 +102,17 @@ and when they are linked together, they create a context stack.
 */
 typedef struct an_aggregate_init_context *an_aggregate_init_context_ptr;
 typedef struct an_aggregate_init_context {
-  an_aggregate_init_context_ptr
-		prev_context;
-			/* Pointer to the previous init-context (i.e., when
-			   get_initializer is called recursively); NULL when
-			   it is a top-level call. */
   a_type_ptr	type;
 			/* The type of the aggregate or subaggregate
 			   associated with this context structure.  An error
 			   type if we've lost our position because of
 			   errors. */
-  a_field_ptr	field;
-			/* The field currently being initialized.  NULL if
-			   the current context is not a struct or if all fields
-			   have been initialized. */
-  a_constant_ptr
-		constant_list;
-			/* Pointer to the head of the list of constant entries
-			   representing the initializations at the current
-			   level; NULL when there are no initializations in
-			   the current context. */
-  a_constant_ptr
-		end_of_constant_list;
-			/* Pointer to the end of the list that constant_list
-			   heads. */
-  a_constant_ptr
-		repeat;
-			/* NULL when the next initializer was not preceded by a
-			   designator of the form '[' <expr> '...' <expr> ']'.
-			   Otherwise, a ck_init_repeat constant describing how
-			   many times the initializer should be repeated. */
   a_byte_boolean
 		any_dynamic_initialization;
 			/* Flag that is TRUE if the current aggregate member
 			   requires dynamic initialization.  This information
 			   percolates back up when returning from recursive
 			   calls to get_initializer. */
-  a_symbol_ptr	anonymous_union_field_sym;
-			/* In a case where a designated initializer names
-			   a field of an anonymous union or (nonstandard)
-			   anonymous struct, this points to the symbol for
-			   the field; NULL otherwise.  This is non-NULL while
-			   processing the implicit designator levels needed
-			   to get down to the field, at which point it is
-			   cleared to NULL. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  an_expr_node_ptr
-		curr_dimension_length;
-			/* Pointer to a node in a list that represents
-			   the current dimension's length in a C++/CLI
-			   array. */
-  a_boolean	scanning_for_cli_array_dimension_init;
-			/* TRUE if the elements currently being scanned in this
-			   aggregate represent dimensions of a multidimensional
-			   C++/CLI array.*/
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } an_aggregate_init_context;
 
 
@@ -819,11 +725,7 @@ decl parse state, which otherwise is gotten from init_info->dps.
                                   ((init_info != NULL) ?
                                        init_info->static_lifetime : FALSE),
                                   ((init_info != NULL) ?
-                                       init_info->compound_literal
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                       || init_info->is_cli_array_initializer
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                       : FALSE),
+                                       init_info->compound_literal : FALSE),
                                   dps,
                                   (allow_whole_string_init ?
                                        NULL :

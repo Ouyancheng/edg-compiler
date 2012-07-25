@@ -35048,61 +35048,6 @@ wrap_up:
 }  /* scan_aggregate_initializer_expression */
 
 
-void prescan_aggregate_initializer_expression(
-                          a_decl_parse_state *dps,
-                          a_boolean          static_lifetime,
-                          a_boolean          suppress_object_lifetime,
-                          a_boolean          *empty_expansion_at_closing_brace)
-/*
-If we're in a context that allows a variadic template pack expansion,
-scan the next initializer expression as part of an aggregate
-initializer list, and put the expression into the cache associated
-with dps.  static_lifetime is TRUE if the variable being initialized
-has static lifetime.  suppress_object_lifetime is TRUE if the usual
-object lifetime around the initializer expression should be suppressed,
-e.g., for a compound literal.  If the expression scanned is a variadic
-template pack expansion, put the expressions from its expansion into
-the cache; in the degenerate case where the expansion produces no
-expressions, nothing is cached.  In that case, if the empty expansion
-is immediately followed by a right brace, return
-*empty_expansion_at_closing_brace set to TRUE (which is really the
-point of this routine; that's used to break out of the initializer
-list loop before we get to a point where we've already committed
-to being able to fetch a next expression).
-*/
-{
-  *empty_expansion_at_closing_brace = FALSE;
-  if (is_variadic_template_context() &&
-      dps->initializer_is_expr_list &&
-      !is_prototype_instantiation_context() &&
-      !anything_cached(&dps->prescanned_initializer_cache)) {
-    an_expr_stack_entry *saved_expr_stack;
-    an_expr_stack_entry expr_stack_entry;
-
-    push_expr_stack_for_aggregate_initializer(&saved_expr_stack,
-                                              &expr_stack_entry,
-                                              static_lifetime,
-                                              suppress_object_lifetime);
-scan_more:
-    scan_potential_pack_expansion_initializer_expr(dps, /*bundle=*/TRUE);
-    if (!anything_cached(&dps->prescanned_initializer_cache)) {
-      if (curr_token == tok_rbrace) {
-got_closing_brace:
-        *empty_expansion_at_closing_brace = TRUE;
-      } else if (curr_token == tok_comma) {
-        /* If we have a comma, swallow it and scan another expression
-           (empty pack expansion plus a comma is treated as empty). */
-        (void)get_token();
-        if (curr_token == tok_rbrace) goto got_closing_brace;
-        goto scan_more;
-      }  /* if */
-    }  /* if */
-    pop_expr_stack();
-    restore_expr_stack(saved_expr_stack);
-  }  /* if */
-}  /* prescan_aggregate_initializer_expression */
-
-
 void scan_class_parenthesized_initializer(
                                    a_type_ptr         class_type,
                                    a_type_ptr         object_class_type,
