@@ -5632,8 +5632,11 @@ process_assignment:
           { a_type_ptr operand_1_type = skip_typerefs(operand_1->type);
             a_type_ptr operand_2_type = skip_typerefs(operand_2->type);
             /* Typically, the source and destination types are the same size,
-               but allow an assignment to a variably-sized array. */
-            check_assertion((operand_1_type->size == operand_2_type->size ||
+               but when assigning to a variably-sized array the size of the
+               destination is unknown (and checked at run-time).  This is
+               also used to partially-initialize an array, in which case
+               the source must be smaller than the destination. */
+            check_assertion((operand_1_type->size >= operand_2_type->size ||
                              is_incomplete_array_type(operand_1_type)) &&
                             operand_2_type->size != 0);
             if (!is_aggregate_or_union_type(operand_1_type)) {
@@ -5663,8 +5666,7 @@ process_assignment:
               /* No cast to size_t or the like is needed; in BSD and System V
                  the length is int, and in ANSI C the function is prototyped
                  so the conversion will be implicit. */
-              /* Use the size of the source operand (since the destination
-                 may be a variably-sized array). */
+              /* Use the size of the source operand. */
               write_unsigned_num((a_host_large_unsigned)operand_2_type->size);
               write_tok_ch(')');
             }  /* if */

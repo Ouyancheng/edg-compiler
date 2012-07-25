@@ -13582,10 +13582,11 @@ enum an_expr_operator_kind_tag {
 			   source and destination are lvalues; does a memcpy
 			   equivalent.  The result is void.  The size of the
 			   source operand should be used as the size of the
-			   block copy (the destination operand may be a
-			   variably-sized array), otherwise the source and
-			   destination operand types should have the same
-			   size. */
+			   block copy; the source and destination operand types
+			   typically have the same size, but may not
+			   (e.g., in the case of a variably-sized array
+			   destination where the size is unknown or when
+			   partially initializing an array). */
   eok_land,		/* Logical intersection ("&&" operator).  Operands are
 			   standardized to integer/boolean in some
 			   configurations. */
