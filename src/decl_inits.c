@@ -2077,7 +2077,7 @@ initialization).  *is describes the initialization as a whole.
          the destination to reflect the actual number of initializer
          elements. */
       set_initialized_array_size(&atype, icount, /*unknown_dependent=*/FALSE);
-      if (is->init_con != NULL) is->init_con->type = atype;
+      if (*init_con != NULL) (*init_con)->type = atype;
       if (!is->non_top_level_aggregate) {
         /* An aggregate initializer for a top-level incomplete array type.
            This is either an error, or the caller has requested to derive the
