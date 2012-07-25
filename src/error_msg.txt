@@ -1409,7 +1409,7 @@ ec_attribute_after_parenthesized_initializer;;"variable attributes appearing aft
 ec_gcc_use_of_cast_as_lvalue;;"the result of this cast cannot be used as an lvalue"
 ec_unsigned_fixed_point_negation;;"negation of an unsigned fixed-point value"
 ec_operator_not_allowed;;"this operator is not allowed at this point; use parentheses"
-ec_nonconstant_flexible_array_member_init;;"flexible array member initializer must be constant"
+REMOVED;ec_nonconstant_flexible_array_member_init;;"flexible array member initializer must be constant"
 ec_register_name_on_nonregister;;"register names can only be used for register variables"
 ec_void_named_register;;"named-register variables cannot have void type"
 REMOVED;ec_declspec_invalid;;"__declspec modifiers not valid for this declaration"

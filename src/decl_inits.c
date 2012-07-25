@@ -1184,6 +1184,28 @@ NULL if there is no such component).
 }  /* skip_designators */
 
 
+static a_boolean diagnose_empty_braced_component(an_init_component_ptr  icp)
+/*
+If the tree of components pointed to by icp contains empty braces ("{}"),
+issue an error and return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  for (; icp != NULL && !result; icp = icp->next) {
+    if (is_braced_init_component(icp)) {
+      if (icp->variant.braced.list == NULL) {
+        pos_error(ec_invalid_empty_initializer_list, init_component_pos(icp));
+        result = TRUE;
+      } else if (diagnose_empty_braced_component(icp->variant.braced.list)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* diagnose_empty_braced_component */
+
+
 static void aggr_init_simple_element(an_init_component_ptr  *p_icp,
                                      a_type_ptr             dest_type,
                                      an_init_state          *is,
@@ -1269,7 +1291,11 @@ remove_any_extraneous_braces:
       }  /* if */
       if (excess_init_pos != NULL) {
         if (gcc_mode) {
-          pos_warning(ec_excess_initializers_ignored, excess_init_pos);
+          /* GCC accepts excess initializers here with a warning, unless one
+             of those initializers contains "{}". */
+          if (!diagnose_empty_braced_component(icp->next)) {
+            pos_warning(ec_excess_initializers_ignored, excess_init_pos);
+          }  /* if */
         } else {
           if (is->no_diagnostics) {
             is->init_error = TRUE;
