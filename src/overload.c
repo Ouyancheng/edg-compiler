@@ -20266,6 +20266,7 @@ it an exact match or a user-defined conversion, etc.)
        elem_icp = elem_icp->next) {
     an_init_state        init_state;
     an_arg_match_summary local_arg_match;
+    a_boolean            check_narrowing = TRUE, saved_check_narrowing;
     a_boolean            will_need_partial_aggregate_destructor = FALSE;
     if (unknown_num_elements ||
         elem_icp->pack_expansion_descr != NULL) {
@@ -20287,9 +20288,16 @@ it an exact match or a user-defined conversion, etc.)
     }  /* if */
     clear_init_state(&init_state);
     /* Convert the list element to the element type. */
+    if (arg_match != NULL) {
+      /* In overload resolution narrowing conversions are not disallowed (see
+         [over.ics.list]p2 in the C++11 standard, which does not mention
+         narrowing conversions as precluding a match). */
+      saved_check_narrowing = elem_icp->check_narrowing;
+      check_narrowing = elem_icp->check_narrowing = FALSE;
+    }  /* if */
     prep_list_initializer(elem_icp, element_type,
                           /*is_direct_init=*/FALSE,
-                          /*check_narrowing=*/TRUE,
+                          check_narrowing,
                           /*warning_on_narrowing=*/FALSE,
                           CCO_DEFAULT,
                           /*fill_in_dtor=*/FALSE,
@@ -20302,6 +20310,7 @@ it an exact match or a user-defined conversion, etc.)
     if (arg_match != NULL) {
       /* We're checking for overload resolution.  The result is in
          local_arg_match. */
+      elem_icp->check_narrowing = saved_check_narrowing;
       if (local_arg_match.match_level == aml_none) {
         arg_match_err = TRUE;
         break;
