@@ -3999,6 +3999,9 @@ are non-NULL when they should be used for the outermost instantiation scope.
       ps_options = PS_PROTOTYPE_INSTANTIATION;
     } else if (is_cli_generic_definition_type(class_type)) {
       ps_options |= PS_GENERIC_DEFINITION;
+    } else if (class_type->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class) {
+      ps_options |= PS_NONREAL_INSTANTIATION;
     }  /* if */
     template_arg_list = templ_arg_list_for_class(class_type);
     (void)push_scope_full((a_scope_kind)sck_template_instantiation,
