@@ -4779,9 +4779,12 @@ for handling virtual bases and functions.
 #endif /* IA64_ABI */
 
   db_enter(3, "do_class_layout");
-  if (class_type->variant.class_struct_union.is_prototype_instantiation) {
+  if (class_type->variant.class_struct_union.is_prototype_instantiation ||
+      class_type->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class) {
     /* In general, no meaningful layout can be computed for prototype
-       instantiations.  We just make sure that it has a nonzero size. */
+       instantiations or Microsoft mode instantiated nonreal classes.  We
+       just make sure that it has a nonzero size. */
     goto set_size_for_complete_object;
   }  /* if */
 #if DEBUG
