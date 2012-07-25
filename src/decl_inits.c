@@ -145,49 +145,6 @@ typedef struct an_aggregate_init_info {
 } an_aggregate_init_info;
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- cli_array_init is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void initialize_init_info(
-                               an_aggregate_init_info_ptr      init_info,
-                               a_boolean                       static_lifetime,
-                               a_decl_parse_state              *dps,
-                               a_cli_array_init_scan_info_ptr  cli_array_init)
-/*
-Initialize an entry of type an_aggregrate_init_info.
-*/
-{
-  check_assertion(dps != NULL);
-  init_info->dps = dps;
-  init_info->static_lifetime = static_lifetime;
-  init_info->any_uninitialized_member = FALSE;
-  init_info->any_uninitialized_const_or_ref_member = FALSE;
-  init_info->comma_seen = FALSE;
-  init_info->compound_literal = FALSE;
-  init_info->has_flexible_array_initializer = FALSE;
-  init_info->uses_designated_initializers = FALSE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  init_info->init_end_position = null_source_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  init_info->designation_state = ds_no_designation;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cli_array_init != NULL) {
-    /* If cli_array_init is non-NULL, a C++/CLI array initializer is being
-       scanned. */
-    init_info->is_cli_array_initializer = TRUE;
-    init_info->cli_array_dimensions = 
-                                   cli_array_init->cli_array_dimension_lengths;
-    init_info->populate_cli_array_lengths = 
-                                    cli_array_init->populate_cli_array_lengths;
-  } else {
-    init_info->is_cli_array_initializer = FALSE;
-    init_info->cli_array_dimensions = NULL;
-    init_info->populate_cli_array_lengths = FALSE;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-}  /* initialize_init_info */
-
-
 /*
 Data structure to represent the context of the current get_initializer
 processing.  A new entry is created each time get_initializer is called,
@@ -3231,124 +3188,6 @@ this function points to a tree that includes a dynamic-init entry.
 }  /* get_initializer */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static a_boolean scan_initializer_list(
-                               a_decl_parse_state              *dps,
-                               a_type_ptr                      *type,
-                               a_variable_ptr                  vp,
-                               a_boolean                       static_lifetime,
-                               a_constant_ptr                  *init_con,
-                               a_dynamic_init_ptr              *init_dip,
-                               a_source_position               *err_pos,
-                               a_decl_pos_block_ptr            decl_pos_block,
-                               a_cli_array_init_scan_info_ptr  cli_array_init)
-/*
-Scan an initializer list for an aggregate initialization.  Usually it is a
-brace-enclosed list of initializers, but the case of initializing an
-array-of-char with a string is also handled here.  *dps describes general
-properties of the declaration (and its initializer).  *type points to the type
-of the variable being initialized, and vp (which may be NULL in error cases)
-points to the variable.  (*type is passed independently because it may be
-modified as part of initializer processing, but the variable should not
-necessarily be updated.)  static_lifetime is TRUE for global and local static
-variables.  Either *init_con or *init_dip (but not both) will be updated,
-depending on whether this is an instance of dynamic initialization.  *err_pos
-indicates the source position for diagnostics.  If non-NULL, cli_array_init
-indicates that the initializer list being scanned is an array-init for a
-C++/CLI array and describes how the lengths of each dimension should be
-processed.  The function returns TRUE unless there were errors in the scan
-(other than those reporting the detection of uninitialized fields).
-*/
-{
-  an_aggregate_init_info  init_info;
-  a_boolean               nothing_taken, any_dynamic_init;
-  a_boolean               err = FALSE;
-  a_routine_ptr           dtor_rp = NULL;
-
-  db_enter(3, "scan_initializer_list");
-  /* Scan the initializer list. */
-#if DEBUG
-  if (debug_level == 4) {
-    fputs("scanning initializer list for variable \"", f_debug);
-    if (vp == NULL) {
-      fputs("<null>", f_debug);
-    } else {
-      db_name(&vp->source_corresp);
-    }  /* if */
-    fputs("\", type = ", f_debug);
-    db_abbreviated_type(*type);
-    fputc('\n', f_debug);
-  }  /* if */
-#endif /* DEBUG */
-  initialize_init_info(&init_info, static_lifetime, dps, cli_array_init);
-  *init_con = get_initializer(type, &init_info,
-                              (an_aggregate_init_context_ptr)NULL,
-                              &nothing_taken, &any_dynamic_init);
-  if ((*init_con)->kind == (a_constant_repr_kind)ck_error) {
-    err = TRUE;
-  } else {
-    a_type_ptr  tp = *type;
-    if (is_array_type(*type)) tp = underlying_array_element_type(tp);
-    tp = skip_typerefs(tp);
-    if (is_immediate_class_type(tp)) {
-      dtor_rp = select_destructor(tp, tp, err_pos);
-      if (dtor_rp != NULL) any_dynamic_init = TRUE;
-    }  /* if */
-    if (any_dynamic_init) {
-      check_assertion((*init_con)->kind == (a_constant_repr_kind)ck_aggregate);
-      *init_dip = alloc_dynamic_init(
-                         (a_dynamic_init_kind)dik_nonconstant_aggregate);
-      (*init_dip)->variant.constant = *init_con;
-      (*init_dip)->destructor = dtor_rp;
-      *init_con = NULL;
-      if ((init_info.any_uninitialized_member ||
-           init_info.uses_designated_initializers)) {
-        (*init_dip)->is_partially_initialized = TRUE;
-      }  /* if */
-    } else {
-      if ((init_info.any_uninitialized_member ||
-           init_info.uses_designated_initializers)) {
-        dps->init_state.partial_initializer = TRUE;
-      }  /* if */
-#if CHECKING
-      check_assertion((*init_con)->kind == (a_constant_repr_kind)ck_string ||
-                      (*init_con)->kind == (a_constant_repr_kind)ck_aggregate);
-#endif /* CHECKING */
-    }  /* if */
-    if (vp != NULL) {
-      if (init_info.any_uninitialized_const_or_ref_member) {
-        /* A const or ref field was not initialized. */
-        if (is_union_type(*type)) {
-          /* No diagnostic for unions. */
-        } else {
-          a_symbol_ptr  sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
-          if (C_mode()) {
-            pos_sy_warning(ec_var_with_uninitialized_field, err_pos, sym);
-          } else {
-            pos_sy_error(ec_var_with_uninitialized_member, err_pos, sym);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
-      /* Record whether an initializer for a flexible array member was seen. */
-      vp->has_flexible_array_initializer =
-                                     init_info.has_flexible_array_initializer;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
-    }  /* if */
-  }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (decl_pos_block != NULL) {
-    decl_pos_block->var_init_range.end = init_info.init_end_position;
-  }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  db_exit();
-  return !err;
-}  /* scan_initializer_list */
-
-
 static void gen_dynamic_initialization(
                                   a_variable_ptr        vp,
                                   a_dynamic_init_ptr    dip,
@@ -4592,35 +4431,34 @@ initialization).  *is describes the initialization as a whole.
       aggr_init_array_remainder_if_needed(*init_con, ecount-icount, etype, is,
                                           diag_pos);
     }  /* if */
+    if (incomplete_array) {
+      /* If appropriate, update the type of the constant and/or the type of
+         the destination to reflect the actual number of initializer
+         elements. */
+      set_initialized_array_size(&atype, icount, /*unknown_dependent=*/FALSE);
+      if (is->init_con != NULL) is->init_con->type = atype;
+      if (!is->non_top_level_aggregate) {
+        /* An aggregate initializer for a top-level incomplete array type.
+           This is either an error, or the caller has requested to derive the
+           dimension from the initializer (as, e.g., in "T x[] = { 1, 2 }").
+           This also happens with variable-size array new-expressions such as
+           "new T[n]{ 1, 2 }", where the destination type "T[]" is passed to
+           this routine and is->initializer_can_dimension_array is TRUE (even
+           though the type recorded in the associated new/delete supplement
+           won't be updated).  (Note: The non-top-level case is only possible
+           with flexible array initializers; the validity of that case is
+           mode-dependent and checked elsewhere.) */
+        if (is->initializer_can_dimension_array) {
+          *p_array_type = atype;
+        } else {
+          expect_error();
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (braced) {
       /* The caller should move on to the component that follows the braced
          list (if any). */
       *p_icp = (*p_icp)->next;
-      if (incomplete_array) {
-        /* If appropriate, update the type of the constant and/or the type of
-           the destination to reflect the actual number of initializer
-           elements. */
-        set_initialized_array_size(&atype, icount,
-                                   /*unknown_dependent=*/FALSE);
-        if (is->init_con != NULL) is->init_con->type = atype;
-        if (!is->non_top_level_aggregate) {
-          /* An aggregate initializer for a top-level incomplete array type.
-             This is either an error, or the caller has requested to derive the
-             dimension from the initializer (as, e.g., in "T x[] = { 1, 2}").
-             This also happens with variable-size array new-expressions such as
-             "new T[n]{ 1, 2 }", where the destination type "T[]" is passed to
-             this routine and is->initializer_can_dimension_array is TRUE (even
-             though the type recorded in the associated new/delete supplement
-             won't be updated).  (Note: The non-top-level case is only possible
-             with flexible array initializers; the validity of that case is
-             mode-dependent and checked elsewhere.) */
-          if (is->initializer_can_dimension_array) {
-            *p_array_type = atype;
-          } else {
-            expect_error();
-          }  /* if */
-        }  /* if */
-      }  /* if */
       if (icp != NULL && (!no_bound || zero_sized_element)) {
         /* Initializers remain at this level, but no elements. */
         an_error_severity  sev = gcc_mode ? es_warning : es_error;
@@ -4639,7 +4477,7 @@ initialization).  *is describes the initialization as a whole.
       /* Braces were omitted at this level of aggregate initialization: The
          the caller should continue associating the next component with any
          aggregate elements that follow this array. */
-      check_assertion(is->non_top_level_aggregate);
+      check_assertion_or_expect_error(is->non_top_level_aggregate || C_mode());
       *p_icp = icp;
     }  /* if */
   }  /* if */
@@ -5708,6 +5546,82 @@ number of elements initialized.
 }  /* prep_aggr_initializer */
 
 
+static void process_simple_init_component(an_init_component_ptr  icp,
+                                          a_type_ptr             dtype,
+                                          an_init_state          *is,
+                                          a_boolean              is_var_init)
+/*
+icp is an init component for a scalar type dtype (it may or may not be braced).
+*is describes the associated initialization.  Process the component, returning
+any results through *is.  is_var_init is TRUE if the initializer is for a
+variable initialization.
+*/
+{
+  an_init_component_ptr  icp2 = NULL, icp3;
+  an_init_state          saved_is, is2;
+
+  if (is_braced_init_component(icp)) {
+    if (icp->variant.braced.list == NULL) {
+      if (!list_init_enabled) {
+        /* Empty braces initializing a scalar are a C++11 list initialization
+           feature. */
+        pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
+      }  /* if */
+    } else if (microsoft_bugs && microsoft_version < 1310 && is_var_init &&
+               icp->variant.braced.list->next != NULL) {
+      /* Earlier microsoft compilers accept e.g.  "int x = { f(), { 3 } }".
+         The last value replaces previous ones (though side-effects take
+         place), unless they're both constants and x is not automatic. */
+      icp = icp->variant.braced.list;
+      icp2 = icp->next;
+      icp->next = NULL;
+      saved_is = *is;
+    }  /* if */
+  }  /* if */
+  convert_initializer(icp, dtype, is_var_init, /*fill_in_dtor=*/TRUE, is);
+  while (icp2 != NULL) {
+    /* If there are more components following the second one, detach them:
+       They'll be handled in subsequent iterations. */
+    icp3 = icp2->next;
+    icp2->next = NULL;
+    /* Handle the extra components recursively. */
+    is2 = saved_is;
+    process_simple_init_component(icp2, dtype, &is2, is_var_init);
+    if (is->static_lifetime_init &&
+        is->init_con != NULL && is2.init_con != NULL) {
+      /* Approximately emulate the Microsoft behavior that if only true
+         constants are involved, the first value is kept for variables with
+         static lifetime (i.e., is2 is discarded).  The emulation is not
+         perfect when more nesting is involved; for example in
+         "int x = { f(), { 1, { 2 }}};". */
+    } else if (!is->check_validity_only &&
+               !is->init_error && !is2.init_error) {
+      /* Combine the effects of the initializers, retaining the value of the
+         second one. */
+      combine_initializers(is->init_con, is->init_dip,
+                           is2.init_con, is2.init_dip);
+      *is = is2;
+      /* If the combined initializer is non-constant, keep using the
+         dynamic-initializer representation. */
+      if (is->init_dip != NULL) {
+        is->init_con = NULL;
+      } else if (is->init_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+        is->init_dip = is->init_con->variant.dynamic_init;
+        is->init_con = NULL;
+      } else {
+        is->init_dip = NULL;
+      }  /* if */
+      check_assertion(is->init_con != NULL || is->init_dip != NULL);
+    }  /* if */
+    /* Restore the component chain so it can be freed by the caller. */
+    icp->next = icp2;
+    /* Move to the next component (if any). */
+    icp = icp2;
+    icp2 = icp3;
+  }  /* while */
+}  /* process_simple_init_component */
+
+
 static void braced_initializer(a_type_ptr          dtype,
                                an_init_state       *is,
                                a_decl_parse_state  *dps,
@@ -5807,12 +5721,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       break;
     default:
       /* Non-class, non-aggregate initialization. */
-      if (!list_init_enabled && icp->variant.braced.list == NULL) {
-        /* Empty braces initializing a scalar are a C++11 list initialization
-           feature. */
-        pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
-      }  /* if */
-      convert_initializer(icp, dtype, is_var_init, /*fill_in_dtor=*/TRUE, is);
+      process_simple_init_component(icp, dtype, is, is_var_init);
       break;
   }  /* switch */
   free_init_component_list(icp_tree);
@@ -5869,13 +5778,15 @@ is part of.  diag_pos is the position to be used by default for diagnostics
   check_assertion(vp != NULL);
   if (direct) {
     if (!list_init_enabled) {
-      /* Direct list initializers are not explicitly enabled but we may get
-         here in GNU C++ mode because GCC accepts some of these cases in
-         non-C++11 mode with a warning. */
-      check_assertion(gpp_mode);
+      /* Direct list initializers are not explicitly enabled. */
+      if (gpp_mode) {
+        /* GCC accepts some of these cases in non-C++11 mode with a warning. */
+        pos_warning(ec_list_initializer_nonstandard_in_current_mode,
+                    &pos_curr_token);
+      } else if (!is_or_contains_error_type(dps->type)) {
+        pos_error(ec_exp_assign, &pos_curr_token);
+      }  /* if */
       direct = FALSE;
-      pos_warning(ec_list_initializer_nonstandard_in_current_mode,
-                  &pos_curr_token);
     }  /* if */
     vp->has_direct_braced_initializer = direct;
     dps->init_state.direct_init = direct;
@@ -5923,41 +5834,93 @@ is part of.  diag_pos is the position to be used by default for diagnostics
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void string_init_variable(a_decl_parse_state  *dps,
-                                 an_id_linkage_kind  linkage,
-                                 a_source_position   *diag_pos,
-                                 a_decl_pos_block    *decl_pos_block)
+static void expr_init_aggr_variable(a_decl_parse_state  *dps,
+                                    an_id_linkage_kind  linkage,
+                                    a_source_position   *diag_pos,
+                                    a_decl_pos_block    *decl_pos_block)
 /*
-dps, linkage,  decl_pos_block describe a variable of string type (or potential
-string type, in template-dependent contexts) that should be initialized with a
-string literal.  Check and record the initialization as appropriate.  diag_pos
-is the position to use for diagnostics by default.
+dps, linkage,  decl_pos_block describe a variable of class or array type
+initialized with what looks like an expression.  I.e., an initialization of
+the form:
+
+	T x = <expr>
+
+Check and record the initialization as appropriate.  diag_pos is the position
+to use for diagnostics by default.
 */
 {
-  an_init_component_ptr  icp;
+  an_init_component_ptr  expr_icp, icp;
   an_init_state          *is = &dps->init_state;
   a_variable_ptr         vp;
+  a_boolean              is_string_var, missing_braces_diagnosed = FALSE;
+  a_boolean              make_error_result = FALSE;
 
   check_assertion(!dps->has_direct_initializer);
   check_assertion(dps != NULL && dps->sym != NULL);
   vp = var_for_symbol(dps->sym);
   check_assertion(vp != NULL);
-  icp = scan_full_initializer_expr_as_component();
-  check_assertion(icp->next == NULL);
-  if (!try_string_literal_init(icp, &dps->type, is, &is->init_con)) {
-    /* No valid string initializer found. */
-    if (is_error_component(icp)) {
-      /* A diagnostic should have been issued already. */
-      expect_error();
-    } else {
-      /* Presumably the initializer wasn't a string. */
-      pos_error(ec_missing_initializer_list, init_component_pos(icp));
-    }  /* if */
-    is->init_error = TRUE;
-    dps->type = error_type();
-    if (!is->check_validity_only) is->init_con = alloc_error_constant();
+  is_string_var = is_string_type(dps->type) ||
+                  (is_array_type(dps->type) &&
+                   is_template_param_type(array_element_type(dps->type)));
+  if (!is_string_var && !C_mode()) {
+    /* In C++, the only valid case here is string initialization.  We cannot
+       in general know whether this is a string initialization until we've
+       parsed the expression, but if the destination type isn't a string type,
+       we can issue the diagnostic early (which is nicer in cases where
+       parsing the expression triggers severe syntax errors). */
+    pos_error(ec_missing_initializer_list, &pos_curr_token);
+    missing_braces_diagnosed = TRUE;
   }  /* if */
-  if (icp != NULL) free_init_component_list(icp);
+  expr_icp = scan_full_initializer_expr_as_component();
+  check_assertion(expr_icp->next == NULL);
+  if (is_error_component(expr_icp)) {
+    /* An error occurred earlier.  Continue with an error constant. */
+    make_error_result = TRUE;
+  } else if (is_string_var &&
+             try_string_literal_init(expr_icp, &dps->type, is,
+                                     &is->init_con)) {
+    /* String initialization. */
+  } else {
+    /* A braced initializer is normally required here.  However, pcc allows
+       the braces to be omitted (e.g., "int a[2] = 1;" is treated as equivalent
+       to "int a[2] = { 1 };"), and we also accept it with a warning in
+       nonstrict C modes. */
+    an_error_severity  severity = es_none;
+    if (!missing_braces_diagnosed && C_dialect != C_dialect_pcc) {
+      if (C_dialect == C_dialect_cplusplus) {
+        severity = es_error;
+      } else if (strict_ansi_mode) {
+        severity = strict_ansi_error_severity;
+      } else {
+        /* Issue a warning in non-ANSI C mode. */
+        severity = es_warning;
+      }  /* if */
+      pos_diagnostic(severity, ec_missing_initializer_list,
+                     init_component_pos(expr_icp));
+    }  /* if */
+    is->elided_braces_allowed = TRUE;
+    icp = expr_icp;
+    if (severity == es_error) {
+      /* We already issued an error and the expression is unlikely to be a
+         valid initializer for the destination element.  Avoid further errors
+         an just return an error constant. */
+      make_error_result = TRUE;
+    } else if (is_array_type(dps->type)) {
+      is->initializer_can_dimension_array = TRUE;
+      aggr_init_array(&icp, &dps->type, is, init_component_pos(icp),
+                      &is->init_con);
+    } else {
+      check_assertion(is_class_struct_union_type(dps->type));
+      aggr_init_class(&icp, dps->type, is, init_component_pos(icp),
+                      &is->init_con);
+    }  /* if */
+  }  /* if */
+  if (expr_icp != NULL) free_init_component_list(expr_icp);
+  if (make_error_result) {
+    is->init_con = alloc_error_constant();
+    is->init_error = TRUE;
+    if (is_incomplete_array_type(dps->type)) dps->type = error_type();
+  }  /* if */
   if (is_incomplete_array_type(vp->type) &&
       (is_array_type(dps->type) || is_error_type(dps->type))) {
     put_type_back_into_variable(vp, dps->sym, diag_pos, linkage, dps->type);
@@ -5968,7 +5931,7 @@ is the position to use for diagnostics by default.
     decl_pos_block->var_init_range.end = curr_construct_end_position;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-}  /* string_init_variable */
+}  /* expr_init_aggr_variable */
 
 
 void scan_compound_literal_initializer(a_type_ptr         *type,
@@ -6080,6 +6043,7 @@ returned set to TRUE.
 
   db_enter(3, "initializer");
   dps->has_initializer = TRUE;
+  dps->init_state.decl_parse_state = dps;
   /* There are a number of tests to determine whether the variable can take
      an initializer.  If it cannot, set var_err; it will be checked later
      to decide whether to update the variable with information about the
@@ -6367,16 +6331,6 @@ returned set to TRUE.
         init_dip->destructor = select_destructor(vp_type, vp_type, source_pos);
       }  /* if */
     }  /* if */
-  } else if (first_token == tok_lbrace && dps->has_direct_initializer &&
-             (list_init_enabled || (gpp_mode && gnu_version >= 40400))) {
-    /* Direct list initialization (e.g., "X x{1, 2};").  This is a C++11
-       feature, but GCC 4.4 and later accept it with a warning in C++03
-       mode. */
-    brace_init_variable(dps, /*direct=*/TRUE, linkage, source_pos,
-                        decl_pos_block);
-    init_err = dps->init_state.init_error;
-    init_con = dps->init_state.init_con;
-    init_dip = dps->init_state.init_dip;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled && is_value_class_type(vp_type) &&
              is_cli_generic_definition_argument_type(vp_type)) {
@@ -6388,17 +6342,29 @@ returned set to TRUE.
     */
     init_con = simple_initializer(dps, static_lifetime, vp_type, &init_dip,
                                   decl_pos_block);
+  } else if (cppcli_enabled && first_token == tok_lbrace &&
+             !dps->has_direct_initializer &&
+             (is_handle_to_cli_array_type(vp_type) ||
+              (is_handle_type(vp_type) &&
+               is_template_param_or_nonreal_class_type(
+                                                 type_pointed_to(vp_type))))) {
+    /* A C++/CLI array initializer. */
+    an_init_component_ptr  icp_tree;
+    icp_tree = scan_braced_init_list(/*is_full_expr=*/TRUE, dps);
+    aggr_init_cli_array_with_alloc(icp_tree, vp_type, &dps->init_state,
+                                   &init_dip);
+    free_init_component_list(icp_tree);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (is_aggregate_or_union_type(vp_type) ||
-             (first_token == tok_lbrace &&
-              (is_error_type(vp_type) ||
-#if GNU_VECTOR_TYPES_ALLOWED
-               (gnu_mode && is_vector_type(vp_type)) ||
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-               is_template_param_type(vp_type)))) {
-    /* Either a brace-enclosed list of initializers or other aggregate
-       initialization. */
-    if (first_token != tok_lbrace && is_class_struct_union_type(vp_type) &&
+  } else if (first_token == tok_lbrace) {
+    /* Braced initialization (e.g., "X x{1, 2};" or "X x = { y };"). */
+    brace_init_variable(dps, dps->has_direct_initializer, linkage, source_pos,
+                        decl_pos_block);
+    init_err = dps->init_state.init_error;
+    init_con = dps->init_state.init_con;
+    init_dip = dps->init_state.init_dip;
+  } else if (is_aggregate_or_union_type(vp_type)) {
+    /* Class or array initialization without braces. */
+    if (is_class_struct_union_type(vp_type) &&
         (C_dialect == C_dialect_cplusplus || !static_lifetime)) {
       /* Special C++ case:  a class aggregate may be initialized with an
          object of its class or a class derived from it.  E.g., if S is the
@@ -6419,7 +6385,7 @@ returned set to TRUE.
         /* No appropriate constructor was found.  Abort the initialization. */
         init_err = TRUE;
       }  /* if */
-    } else if (gnu_mode && first_token != tok_lbrace && static_lifetime) {
+    } else if (gnu_mode && static_lifetime) {
       /* In GNU modes, a compound literal is treated as a constant-expression
          that can initialize a variable with a static lifetime.  We may also
          arrive here when the initializer is a (possibly parenthesized) string
@@ -6457,96 +6423,30 @@ returned set to TRUE.
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else {
-      /* Ordinary C-style aggregate initialization, usually with a brace-
-         enclosed list of values.  Except that in C++ such lists may include
-         non-constants. */
-      if (first_token == tok_lbrace) {
-        /* An initializer of the form "= { ... }". */
-        brace_init_variable(dps, /*direct=*/FALSE, linkage, source_pos,
-                            decl_pos_block);
-        init_err = dps->init_state.init_error;
-        init_con = dps->init_state.init_con;
-        init_dip = dps->init_state.init_dip;
-      } else if (is_string_type(vp_type) ||
-                 (is_array_type(vp_type) &&
-                  is_template_param_type(array_element_type(vp_type)))) {
-        /* A string variable can be initialized using a string literal (or, in
-           some modes, an expression that is considered equivalent to a simple
-           string literal). */
-        string_init_variable(dps, linkage, source_pos, decl_pos_block);
-        init_err = dps->init_state.init_error;
-        init_con = dps->init_state.init_con;
-        init_dip = dps->init_state.init_dip;
-      } else {
-        /* The remaining class and array cases are invalid.  Consume the
-           initializer (of the form "= <expr>") and report an error. */
-#if /*FIXME*/0
-        unexpected_condition();
-#else /*FIXME*/
-      if (scan_initializer_list(dps, &vp_type, vp, static_lifetime, &init_con,
-                                &init_dip, source_pos, decl_pos_block,
-                                (a_cli_array_init_scan_info_ptr)NULL)) {
-        /* The scan was successful. */
-        if (!var_err && vp != NULL &&
-            is_incomplete_type(vp->type) && is_array_type(vp->type)) {
-          /* An array variable with unspecified bound is dimensioned
-             according to its initializer: Copy the type back into the
-             variable. */
-          put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
-                                      vp_type);
-        }  /* if */
-      } else {
-        /* Errors were encountered (and reported) during the scan. */
-        init_err =  TRUE;
-        if (is_incomplete_type(vp_type) && is_array_type(vp_type)) {
-          /* Initialization of an incomplete array failed and some appropriate
-             error has been reported.  Suppress further errors on this failed
-             initialization. */
-          *incomplete_type_error_reported = TRUE;
-        }  /* if */
-      }  /* if */
-#endif /*FIXME*/
-      }  /* if */
+      /* Other initializations of array or class types using an expression
+         not enclosed in braces.  That includes the special case of
+         initializing a character array with a string literal. */
+      expr_init_aggr_variable(dps, linkage, source_pos, decl_pos_block);
+      init_err = dps->init_state.init_error;
+      init_con = dps->init_state.init_con;
+      init_dip = dps->init_state.init_dip;
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && first_token == tok_lbrace &&
-             (is_handle_to_cli_array_type(vp_type) ||
-              (is_handle_type(vp_type) &&
-               is_template_param_or_nonreal_class_type(
-                                                 type_pointed_to(vp_type))))) {
-    /* A C++/CLI array initializer. */
-    an_init_component_ptr  icp_tree;
-    icp_tree = scan_braced_init_list(/*is_full_expr=*/TRUE, dps);
-    aggr_init_cli_array_with_alloc(icp_tree, vp_type, &dps->init_state,
-                                   &init_dip);
-    free_init_component_list(icp_tree);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* A non-aggregate object is being initialized.  Braces are permitted
        but not required.  A constant or non-constant expression may be
        permitted as the initializer. */
-    if (0/*lint --e(506)*/ && first_token == tok_lbrace) {
-      /* FIXME: This should just go up with the aggregate case.  Currently
-         disabled until aggregate cases are fully straightened out. */
-      brace_init_variable(dps, /*direct=*/FALSE, linkage, source_pos,
-                          decl_pos_block);
-      init_err = dps->init_state.init_error;
-      init_con = dps->init_state.init_con;
-      init_dip = dps->init_state.init_dip;
-    } else {
-      if (list_init_enabled && first_token == tok_lbrace) {
-        /* C++11 requires a diagnostic on narrowing in this case, but since it
-           is a backward compatibility issue, we make it warning only in non-
-           strict modes. */
-        if (strict_ansi_mode) {
-          dps->init_state.error_on_narrowing = TRUE;
-        } else {
-          dps->init_state.warning_on_narrowing = TRUE;
-        }  /* if */
+    if (list_init_enabled && first_token == tok_lbrace) {
+      /* C++11 requires a diagnostic on narrowing in this case, but since it
+         is a backward compatibility issue, we make it warning only in non-
+         strict modes. */
+      if (strict_ansi_mode) {
+        dps->init_state.error_on_narrowing = TRUE;
+      } else {
+        dps->init_state.warning_on_narrowing = TRUE;
       }  /* if */
-      init_con = simple_initializer(dps, static_lifetime, vp_type, &init_dip,
-                                    decl_pos_block);
     }  /* if */
+    init_con = simple_initializer(dps, static_lifetime, vp_type, &init_dip,
+                                  decl_pos_block);
   }  /* if */
   if (anything_cached(&dps->prescanned_initializer_cache)) {
     /* Normally, prescanned components should have been consumed by now.
