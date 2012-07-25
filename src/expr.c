@@ -2291,6 +2291,7 @@ void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          a_rescan_control_block   *rcblock,
                          a_boolean                arg_list_supplied,
                          an_arg_list_elem_ptr     supplied_arg_list,
+                         an_arg_list_elem_ptr     init_list_ctor_arg_list,
                          a_boolean                *trivial_ctor,
                          a_boolean                *unboxing_conv,
                          a_boolean                *string_ctor_skip,
@@ -2351,7 +2352,12 @@ expression, and return the result as usual (or an error indication in
 *rcblock).  If arg_list_supplied is TRUE, a third interface
 alternative: the possibly-empty list of arguments is supplied by
 supplied_arg_list, and no source is scanned.  supplied_arg_list is not
-freed by this routine.
+freed by this routine.  In addition, if init_list_ctor_arg_list
+is non-NULL, it points to a braced-init-list that we should try to match
+as a single argument for an initializer-list constructor (see
+[over.match.list] in the C++11 standard) in addition to trying to
+match supplied_arg_list in the usual way.  In that case, supplied_arg_list
+will be equal to init_list_ctor_arg_list->variant.braced.list.
 */
 {
   a_boolean           overloaded_function_case = FALSE;
@@ -2366,7 +2372,7 @@ freed by this routine.
   a_class_symbol_supplement_ptr
                       cssp;
   an_arg_list_elem_ptr
-                      arg_list = NULL;
+                      arg_list = NULL, eff_arg_list;
   an_arg_match_summary_ptr
                       arg_match_list = NULL;
   an_expr_node_ptr    arg_expr_list;
@@ -2376,8 +2382,15 @@ freed by this routine.
   a_boolean           unboxing_conv_should_be_tried = FALSE;
   a_boolean           literal_case = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean           init_list_ctor_case = FALSE;
 
   db_enter(4, "scan_ctor_arguments");
+
+  check_assertion(init_list_ctor_arg_list == NULL ||
+                  (arg_list_supplied &&
+                   is_braced_init_component(init_list_ctor_arg_list) &&
+                   init_list_ctor_arg_list->variant.braced.list ==
+                                                           supplied_arg_list));
   if (trivial_ctor != NULL) *trivial_ctor = FALSE;
   if (unboxing_conv != NULL) *unboxing_conv = FALSE;
   if (string_ctor_skip != NULL) *string_ctor_skip = FALSE;
@@ -2431,6 +2444,7 @@ freed by this routine.
                       &arg_list,
                       (an_operand *)NULL, (a_boolean *)NULL,
                       closing_paren_position);
+  eff_arg_list = arg_list;
   error_position = *source_pos;
   if (value_initialization_enabled &&
       (overloaded_function_case ? (arg_list == NULL) :
@@ -2490,6 +2504,7 @@ freed by this routine.
                                         /*have_selector=*/TRUE,
                                         (an_operand *)NULL,
                                         arg_list,
+                                        init_list_ctor_arg_list,
                                         /*effects_direct_initialization=*/TRUE,
                                         /*do_arg_dep_lookup=*/FALSE,
                                         /*use_pure_arg_dep_lookup=*/FALSE,
@@ -2501,6 +2516,7 @@ freed by this routine.
                                         source_pos,
                                         (a_token_sequence_number)0,
                                         (a_boolean *)NULL,
+                                        &init_list_ctor_case,
                                         &unknown_dependent_ctor,
                                         (a_boolean *)NULL,
                                         (a_symbol_ptr *)NULL,
@@ -2510,6 +2526,9 @@ freed by this routine.
     /* No error; we know which constructor is to be called. */
     an_arg_match_summary_ptr arg_match;
     a_type_ptr               param_type, source_type;
+    /* If we matched an initializer-list constructor, the effective argument
+       list is just the single braced-init-list. */
+    if (init_list_ctor_case) eff_arg_list = init_list_ctor_arg_list;
     routine = constructor_sym->variant.routine.ptr;
     if (routine->is_trivial_default_constructor) {
       /* The constructor selected is a trivial default constructor, which
@@ -2527,8 +2546,8 @@ freed by this routine.
                                    /*include_move_ctors=*/TRUE,
                                    /*is_declarative_context=*/FALSE) &&
                /* Avoid problems with specified arguments with defaults: */
-               arg_list != NULL &&
-               arg_list->next == NULL &&
+               eff_arg_list != NULL &&
+               eff_arg_list->next == NULL &&
                (check_assertion(overloaded_function_case), /* Forced above. */
                 (arg_match = arg_match_list->next),
                 /* Watch out for an ambiguous conversion. */
@@ -2537,19 +2556,19 @@ freed by this routine.
       a_type_ptr    conv_rout_type;
       /* The constructor selected is a copy constructor, so certain
          optimizations may be possible. */
-      check_assertion(is_expression_component(arg_list));  /* FIXME */
+      check_assertion(is_expression_component(eff_arg_list));  /* FIXME */
       param_type =
               routine->type->variant.routine.extra_info->param_type_list->type;
       source_type = type_pointed_to(param_type);
       if (is_null_user_conv_descr(&arg_match->conversion) &&
           f_same_entities(f_skip_typerefs(
-                                     operand_of_arg_list_elem(arg_list)->type),
+                                 operand_of_arg_list_elem(eff_arg_list)->type),
                           class_type) &&
           is_temp_init_usable_in_optimization(
-                                            operand_of_arg_list_elem(arg_list),
-                                            /*suppress_dtor=*/!fill_in_dtor,
-                                            &temp_init_node,
-                                            &dip)) {
+                                        operand_of_arg_list_elem(eff_arg_list),
+                                        /*suppress_dtor=*/!fill_in_dtor,
+                                        &temp_init_node,
+                                        &dip)) {
         /* The source operand for the copy is itself a temporary of the
            same cv-unqualified type as the destination, so copy constructor
            elision can be done.  In this case the dynamic init entry already
@@ -2605,13 +2624,13 @@ freed by this routine.
       if (is_trivial_construction) {
         /* Call of a trivial default constructor.  No argument list, and the
            reference to the constructor has already been recorded. */
-        check_assertion(arg_list == NULL);
+        check_assertion(eff_arg_list == NULL);
       } else {
         /* Note that the code here also does not append default argument
            values as adjust_overloaded_function_call_arguments would. */
         an_operand *operand;
-        check_assertion(is_expression_component(arg_list)); /* FIXME */
-        operand = operand_of_arg_list_elem(arg_list);
+        check_assertion(is_expression_component(eff_arg_list)); /* FIXME */
+        operand = operand_of_arg_list_elem(eff_arg_list);
         check_assertion(overloaded_function_case);
         if (is_null_user_conv_descr(&arg_match->conversion)) {
           arg_match->conversion.class_object_adjustment_required = TRUE;
@@ -2664,7 +2683,7 @@ freed by this routine.
                                               (a_type_ptr)NULL,
                                               /*have_selector=*/TRUE,
                                               (an_operand *)NULL,
-                                              arg_list,
+                                              eff_arg_list,
                                               arg_match_list,
                                               &arg_expr_list);
   }  /* if */
@@ -15335,6 +15354,7 @@ expression, and return the result in *result (or an error indication in
                                         /*have_selector=*/FALSE,
                                         (an_operand *)NULL,
                                         arg_list,
+                                        (an_arg_list_elem *)NULL,
                                         /*effects_direct_initialization=*/TRUE,
                                         /*do_arg_dep_lookup=*/FALSE,
                                         /*use_pure_arg_dep_lookup=*/FALSE,
@@ -15345,6 +15365,7 @@ expression, and return the result in *result (or an error indication in
                                         ec_undefined_identifier,
                                         &new_position,
                                         (a_token_sequence_number)0,
+                                        (a_boolean *)NULL,
                                         (a_boolean *)NULL,
                                         &unknown_dependent_new,
                                         (a_boolean *)NULL,
@@ -15746,6 +15767,7 @@ expression, and return the result in *result (or an error indication in
                           /*elision_allowed=*/(new_routine != NULL),
                           rcblock,
                           /*arg_list_supplied=*/FALSE,
+                          (an_arg_list_elem *)NULL,
                           (an_arg_list_elem *)NULL,
                           &trivial_ctor,
                           /*unboxing_conv=*/(a_boolean *)NULL,
@@ -20119,6 +20141,7 @@ is not freed by this routine.
                         /*elision_allowed=*/TRUE,
                         rcblock,
                         arg_list_supplied, supplied_arg_list,
+                        (an_arg_list_elem *)NULL,
                         /*trivial_ctor=*/(a_boolean *)NULL,
                         &unboxing_conv,
                         /*string_ctor_skip=*/(a_boolean *)NULL,
@@ -23281,6 +23304,13 @@ number.
         has_predef_meaning = FALSE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (is_braced_init_list_operand(operand_2) &&
+          symbol_supplement_for_class(operand_1->type)->
+                                          assignment_by_bitwise_copy_allowed) {
+        /* We can convert a braced-init-list to a class value and use the
+           built-in assignment. */
+        has_predef_meaning = TRUE;
+      }  /* if */
     }  /* if */
     check_for_operator_overloading((an_opname_kind)onk_assign,
                                    /*unary_operator=*/FALSE,
@@ -35104,6 +35134,7 @@ overall errors.
                       fill_in_dtor, /*elision_allowed=*/TRUE,
                       (a_rescan_control_block *)NULL,
                       /*arg_list_supplied=*/FALSE,
+                      (an_arg_list_elem *)NULL,
                       (an_arg_list_elem *)NULL,
                       /*trivial_ctor=*/(a_boolean *)NULL,
                       /*unboxing_conv=*/(a_boolean *)NULL,

@@ -1402,6 +1402,7 @@ are used in resolving calls to overloaded functions.
   cfp->operand_type_pattern = NULL;
   cfp->surrogate_function_conv_sym = NULL;
   cfp->uses_microsoft_explicit_anachronism = FALSE;
+  cfp->init_list_ctor_case = FALSE;
   cfp->is_user_conversion = FALSE;
   clear_conv_descr(&cfp->conversion);
   cfp->specific_type = NULL;
@@ -5211,6 +5212,7 @@ static void try_overloaded_function_match(
                  a_boolean                is_template_id,
                  a_template_arg_ptr       template_arg_list,
                  an_arg_list_elem_ptr     arg_list,
+                 an_arg_list_elem_ptr     init_list_ctor_arg_list,
                  a_boolean                have_selector,
                  an_operand               *bound_function_selector,
                  a_boolean                ctor_conversion_case,
@@ -5247,26 +5249,32 @@ been found except for a mismatch on the selector, set
 *matched_except_for_selector TRUE; those allow different error
 messages.  If inaccessible_match is non-NULL, in C++/CLI mode it will
 be set to a symbol that would have been chosen except that it was
-inaccessible because of hide-by-sig lookup.  If ctor_conversion_case
-is TRUE, this analysis is being done as part of resolving an implicit
-or explicit conversion to a class type: the functions are
-constructors, have_selector is FALSE (sic; the "this" parameter is not
-matched up); the "conversion" field is set in any candidate function
-entries created.  effects_copy_initialization is TRUE if this call is
-the user-defined conversion in a copy-initialization; constructors
-that are marked "explicit" are ignored.  allow_udc_on_arguments is
-TRUE if user-defined conversions should be allowed on the argument
-matches.  arg_dep_lookup_done is TRUE if argument-dependent lookup is
-enabled for this call.  from_arg_dep_lookup is TRUE if the function
-was found by argument-dependent lookup.  dependent_call is TRUE if the
-call is a template-dependent call.  forced_dependent is TRUE if
-dependent_call was forced to TRUE for reasons of g++ emulation.
-ignore_templates is TRUE if template functions should be ignored.
-known_to_be_visible is TRUE if the function is known to be visible and
-the visibility check should be suppressed.  is_overloaded_operator is
-TRUE if the call is written in operator form, e.g., a+b rather than
-operator+(a, b).  conv_context describes the context of the
-conversion.
+inaccessible because of hide-by-sig lookup.  If init_list_ctor_arg_list
+is non-NULL, it points to a braced-init-list that we should try to match
+as a single argument for an initializer-list constructor (see
+[over.match.list] in the C++11 standard) in addition to trying to
+match arg_list in the usual way.  In that case, arg_list will
+be equal to init_list_ctor_arg_list->variant.braced.list and
+overloaded_function_symbol will be a constructor or set of constructors.
+If ctor_conversion_case is TRUE, this analysis is being done as part
+of resolving an implicit or explicit conversion to a class type: the
+functions are constructors, have_selector is FALSE (sic; the "this"
+parameter is not matched up); the "conversion" field is set in any
+candidate function entries created.  effects_copy_initialization is
+TRUE if this call is the user-defined conversion in a
+copy-initialization; constructors that are marked "explicit" are
+ignored.  allow_udc_on_arguments is TRUE if user-defined conversions
+should be allowed on the argument matches.  arg_dep_lookup_done is
+TRUE if argument-dependent lookup is enabled for this call.
+from_arg_dep_lookup is TRUE if the function was found by
+argument-dependent lookup.  dependent_call is TRUE if the call is a
+template-dependent call.  forced_dependent is TRUE if dependent_call
+was forced to TRUE for reasons of g++ emulation.  ignore_templates is
+TRUE if template functions should be ignored.  known_to_be_visible is
+TRUE if the function is known to be visible and the visibility check
+should be suppressed.  is_overloaded_operator is TRUE if the call is
+written in operator form, e.g., a+b rather than operator+(a, b).
+conv_context describes the context of the conversion.
 */
 {
   a_symbol_ptr  function_symbol, proj_function_symbol;
@@ -5278,7 +5286,11 @@ conversion.
                 saved_candidate_functions = *candidate_functions;
   an_overload_set_traversal_block
                 ostblock;
+  a_boolean     in_init_list_ctor_pass;
 
+  check_assertion(init_list_ctor_arg_list == NULL ||
+                  (is_braced_init_component(init_list_ctor_arg_list) &&
+                   init_list_ctor_arg_list->variant.braced.list == arg_list));
   /* Get the first symbol to be considered in the overload set. */
   proj_function_symbol = set_up_overload_set_traversal(
                                                     overloaded_function_symbol,
@@ -5346,13 +5358,25 @@ conversion.
     allow_post_declared_functions = TRUE;
   }  /* if */
 retry:
+  in_init_list_ctor_pass = FALSE;
+  if (init_list_ctor_arg_list != NULL) {
+    /* If the class has any initializer-list constructors, do a first pass
+       to try to match them to the braced-init-list as a whole. */
+    a_type_ptr class_type = sym_parent_class(overloaded_function_symbol);
+    if (class_type_supp(class_type)->has_initializer_list_ctor) {
+      in_init_list_ctor_pass = TRUE;
+    }  /* if */
+  }  /* if */
+retry2:
   any_discarded_because_post_decl = FALSE;
   any_not_discarded_because_post_decl = FALSE;
   /* Look at each instance of the overloaded function and see whether or
      not it can match the actual arguments, and if so, how well. */
   for (; proj_function_symbol != NULL;
        proj_function_symbol = next_symbol_in_overload_set(&ostblock)) {
-    a_boolean discarded_because_post_decl;
+    a_boolean                discarded_because_post_decl;
+    a_candidate_function_ptr saved2_candidate_functions = *candidate_functions;
+    an_arg_list_elem_ptr     eff_arg_list = arg_list;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_display_overload_level();
@@ -5367,6 +5391,20 @@ retry:
         goto bottom_of_loop;
       }  /* if */
     }  /* if */
+    if (in_init_list_ctor_pass) {
+      /* In the initial pass to match initializer-list constructors, skip
+         other kinds of constructors.  In the second pass we analyze all
+         constructors. */
+      a_symbol_ptr fund_sym = fundamental_symbol_of(proj_function_symbol);
+      /* No templates are considered initializer-list constructors. */
+      if (!is_simple_function_symbol(fund_sym) ||
+          !fund_sym->variant.routine.ptr->is_initializer_list_ctor) {
+        goto bottom_of_loop;
+      }  /* if */
+      /* Try matching this initializer-list constructor using the braced-init-
+         list as a single argument. */
+      eff_arg_list = init_list_ctor_arg_list;
+    }  /* if */
     /* Determine whether the function is viable by looking at the arguments.
        Add the function to the candidates list if it is viable. */
     determine_function_viability(proj_function_symbol,
@@ -5375,7 +5413,7 @@ retry:
                                  template_arg_list,
                                  (a_symbol_ptr)NULL,
                                  (a_type_ptr)NULL,
-                                 arg_list,
+                                 eff_arg_list,
                                  have_selector,
                                  bound_function_selector,
                                  implicit_selector_type,
@@ -5393,6 +5431,13 @@ retry:
                                  matched_except_for_missing_selector,
                                  matched_except_for_selector,
                                  &discarded_because_post_decl);
+    if (in_init_list_ctor_pass &&
+        *candidate_functions != saved2_candidate_functions) {
+      /* We just matched an initializer-list constructor using the
+         braced-init-list as a single argument.  Remember that in the
+         candidate function entry. */
+      (*candidate_functions)->init_list_ctor_case = TRUE;
+    }  /* if */
     if (discarded_because_post_decl) {
       any_discarded_because_post_decl = TRUE;
     } else {
@@ -5400,6 +5445,18 @@ retry:
     }  /* if */
 bottom_of_loop:;
   }  /* for */
+  if (in_init_list_ctor_pass &&
+      *candidate_functions == saved_candidate_functions) {
+    /* We tried matching initializer-list constructors, but none matched, so
+       try again doing the usual matching. */
+    in_init_list_ctor_pass = FALSE;
+    proj_function_symbol = set_up_overload_set_traversal(
+                                                    overloaded_function_symbol,
+                                                    candidate_functions,
+                                                    inaccessible_match,
+                                                    &ostblock);
+    goto retry2;
+  }  /* if */
   if (gpp_mode && gnu_version >= 40100 &&
       *candidate_functions == saved_candidate_functions &&
       any_discarded_because_post_decl &&
@@ -5442,6 +5499,7 @@ are viable functions, FALSE if not.  Issues no errors.
                                 is_template_id,
                                 template_arg_list,
                                 arg_list,
+                                (an_arg_list_elem *)NULL,
                                 have_selector,
                                 bound_function_selector,
                                 /*ctor_conversion_case=*/FALSE,
@@ -7996,6 +8054,7 @@ a_symbol_ptr select_overloaded_function(
                         a_boolean                have_selector,
                         an_operand               *bound_function_selector,
                         an_arg_list_elem_ptr     arg_list,
+                        an_arg_list_elem_ptr     init_list_ctor_arg_list,
                         a_boolean                effects_direct_initialization,
                         a_boolean                do_arg_dep_lookup,
                         a_boolean                use_pure_arg_dep_lookup,
@@ -8007,6 +8066,7 @@ a_symbol_ptr select_overloaded_function(
                         a_source_position        *call_position,
                         a_token_sequence_number  paren_tok_seq_number,
                         a_boolean                *single_function,
+                        a_boolean                *init_list_ctor_case,
                         a_boolean                *unknown_dependent_function,
                         a_boolean                *found_through_adl,
                         a_symbol_ptr             *surrogate_function_conv_sym,
@@ -8038,7 +8098,15 @@ be set to TRUE to add the std namespace as an associated namespace
 (e.g., for range-based-for).  force_dependent is TRUE if the call
 should be treated as dependent even when argument-dependent lookup
 is not done (that would usually force the call to be treated as
-nondependent).  call_position is the source position of the call.
+nondependent).  If init_list_ctor_arg_list is non-NULL, it points to a
+braced-init-list that we should try to match as a single argument for
+an initializer-list constructor (see [over.match.list] in the C++11
+standard) in addition to trying to match arg_list in the usual way.
+In that case, init_list_ctor_arg_list->variant.braced.list will be
+equal to arg_list and overloaded_function_symbol will be a constructor
+or set of constructors.  If the match is made with an initializer-list
+constructor, *init_list_ctor_case will be returned TRUE.
+call_position is the source position of the call.
 paren_tok_seq_number is the token sequence number of the opening
 parenthesis of the argument list, but it's required only when
 do_arg_dep_lookup is TRUE; it can be zero otherwise.  If an error of
@@ -8097,6 +8165,7 @@ and return NULL.  This routine is called only in C++ mode.
   if (unknown_dependent_function != NULL) *unknown_dependent_function = FALSE;
   if (found_through_adl != NULL) *found_through_adl = FALSE;
   if (single_function != NULL) *single_function = FALSE;
+  if (init_list_ctor_case != NULL) *init_list_ctor_case = FALSE;
   /* The "single function" processing is not compatible with trying
      surrogate functions. */
   if (surrogate_function_conv_sym != NULL) {
@@ -8283,6 +8352,7 @@ in_instantiation:
                                     is_template_id,
                                     template_arg_list,
                                     arg_list,
+                                    init_list_ctor_arg_list,
                                     have_selector,
                                     bound_function_selector,
                                     /*ctor_conversion_case=*/FALSE,
@@ -8310,6 +8380,7 @@ in_instantiation:
       a_symbol_list_entry_ptr symbol_list, slep;
       a_symbol_ptr            normal_lookup_function_symbol;
 
+      check_assertion(init_list_ctor_arg_list == NULL);
       /* Accumulate the types used in the arguments. */
       for (arg_list_elem = arg_list;
            arg_list_elem != NULL;
@@ -8380,6 +8451,7 @@ in_instantiation:
                                       is_template_id,
                                       template_arg_list,
                                       arg_list,
+                                      (an_arg_list_elem *)NULL,
                                       have_selector,
                                       bound_function_selector,
                                       /*ctor_conversion_case=*/FALSE,
@@ -8411,6 +8483,7 @@ in_instantiation:
        class to pointers to functions.  The functions found in that
        way are surrogate functions. */
     check_assertion(have_selector);
+    check_assertion(init_list_ctor_arg_list == NULL);
     try_surrogate_function_match(bound_function_selector,
                                  arg_list,
                                  &candidate_functions,
@@ -8574,6 +8647,10 @@ normal_no_function_matches:
     /* Prevent freeing of the arg_match_list when the candidate_functions
        list is freed. */
     candidate_functions->arg_matches = NULL;
+    if (candidate_functions->init_list_ctor_case) {
+      check_assertion(init_list_ctor_case != NULL);
+      *init_list_ctor_case = TRUE;
+    }  /* if */
     if (candidate_functions->surrogate_function_conv_sym != NULL) {
       /* The best function is a surrogate function. */
       check_assertion(surrogate_function_conv_sym != NULL);  /* For Coverity */
@@ -11875,6 +11952,7 @@ by this routine.
                                        have_selector,
                                        bound_function_selector,
                                        arg_list,
+                                       (an_arg_list_elem *)NULL,
                                        /*effects_direct_initialization=*/FALSE,
                                        do_arg_dep_lookup,
                                        use_pure_arg_dep_lookup,
@@ -11886,6 +11964,7 @@ by this routine.
                                        call_position,
                                        paren_tok_seq_number,
                                        &single_function,
+                                       (a_boolean *)NULL,
                                        &unknown_dependent_function,
                                        found_through_adl,
                                        try_surrogate_functions ?
@@ -14905,6 +14984,7 @@ operand when initializer lists are enabled.
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
                                          have_selector ? arg_list2 : arg_list,
+                                         (an_arg_list_elem *)NULL,
                                          have_selector,
                                          have_selector ? operand_1 :
                                                          (an_operand *)NULL,
@@ -14952,6 +15032,7 @@ operand when initializer lists are enabled.
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
                                          arg_list2,
+                                         (an_arg_list_elem *)NULL,
                                          /*have_selector=*/TRUE,
                                          operand_1,
                                          /*ctor_conversion_case=*/FALSE,
@@ -14980,6 +15061,7 @@ operand when initializer lists are enabled.
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
                                          arg_list,
+                                         (an_arg_list_elem *)NULL,
                                          /*have_selector=*/FALSE,
                                          (an_operand *)NULL,
                                          /*ctor_conversion_case=*/FALSE,
@@ -15024,6 +15106,7 @@ operand when initializer lists are enabled.
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
                                          arg_list,
+                                         (an_arg_list_elem *)NULL,
                                          /*have_selector=*/FALSE,
                                          (an_operand *)NULL,
                                          /*ctor_conversion_case=*/FALSE,
@@ -15111,6 +15194,7 @@ operand when initializer lists are enabled.
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
                                          arg_list,
+                                         (an_arg_list_elem *)NULL,
                                          /*have_selector=*/FALSE,
                                          (an_operand *)NULL,
                                          /*ctor_conversion_case=*/FALSE,
@@ -15815,6 +15899,7 @@ conversion.
                                     /*is_template_id=*/FALSE,
                                     (a_template_arg_ptr)NULL,
                                     arg_list,
+                                    (an_arg_list_elem *)NULL,
                                     /*have_selector=*/FALSE, /* sic */
                                     (an_operand *)NULL,
                                     /*ctor_conversion_case=*/TRUE,
@@ -20219,6 +20304,7 @@ it an exact match or a user-defined conversion, etc.)
          local_arg_match. */
       if (local_arg_match.match_level == aml_none) {
         arg_match_err = TRUE;
+        break;
       } else {
         /* arg_match remembers the worst match on any member. */
         if (arg_match->match_level == aml_none ||
@@ -20316,7 +20402,7 @@ it an exact match or a user-defined conversion, etc.)
   if (arg_match != NULL) {
     /* Just evaluating for overload resolution. */
     if (arg_match_err || ctor == NULL) {
-      arg_match->match_level = aml_error;
+      arg_match->match_level = aml_none;
     }  /* if */
   } else {
     /* Not overload resolution. */
@@ -20873,6 +20959,7 @@ controls).
                             (a_rescan_control_block *)NULL,
                             /*arg_list_supplied=*/TRUE,
                             list,
+                            icp,
                             /*trivial_ctor=*/(a_boolean *)NULL,
                             /*unboxing_conv=*/(a_boolean *)NULL,
                             /*string_ctor_skip=*/(a_boolean *)NULL,
@@ -22077,6 +22164,7 @@ find_default_constructor.
     try_overloaded_function_match(cssp->constructor,
                                   /*is_template_id=*/FALSE,
                                   (a_template_arg_ptr)NULL,
+                                  (an_arg_list_elem *)NULL,
                                   (an_arg_list_elem *)NULL,
                                   /*have_selector=*/FALSE,
                                   (an_operand *)NULL,

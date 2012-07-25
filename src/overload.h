@@ -465,6 +465,14 @@ typedef struct a_candidate_function {
 			   that should not have been seen but was considered
 			   viable because of a Microsoft bug. */
   a_byte_boolean
+		init_list_ctor_case;
+			/* If TRUE, this candidate was matched by using a
+			   braced-init-list as a single argument instead of
+			   using the elements of the list as the arguments,
+			   when matching an initializer-list constructor in
+			   a special way (see [over.match.list] in the C++11
+			   standard). */
+  a_byte_boolean
 		is_user_conversion;
 			/* TRUE if this function is a user-defined conversion
 			   being examined to resolve an implicit conversion.
@@ -728,6 +736,7 @@ extern a_symbol_ptr select_overloaded_function(
                         a_boolean                have_selector,
                         an_operand               *bound_function_selector,
                         an_arg_list_elem_ptr     arg_list,
+                        an_arg_list_elem_ptr     init_list_ctor_arg_list,
                         a_boolean                effects_direct_initialization,
                         a_boolean                do_arg_dep_lookup,
                         a_boolean                use_pure_arg_dep_lookup,
@@ -739,6 +748,7 @@ extern a_symbol_ptr select_overloaded_function(
                         a_source_position        *call_position,
                         a_token_sequence_number  paren_tok_seq_number,
                         a_boolean                *single_function,
+                        a_boolean                *init_list_ctor_case,
                         a_boolean                *unknown_dependent_function,
                         a_boolean                *found_through_adl,
                         a_symbol_ptr             *surrogate_function_conv_sym,
