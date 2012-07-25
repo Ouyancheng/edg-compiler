@@ -1604,6 +1604,11 @@ size.
       success = TRUE;
       if (check_string_constant_initializer_full(p_array_type, string_constant,
                                                  p_excess)) {
+        if (!has_unknown_specified_bound(*p_array_type) &&
+            num_array_elements(*p_array_type) >
+                                  num_array_elements(string_constant->type)) {
+          is->partial_initializer = TRUE;
+        }  /* if */
         if (!is->check_validity_only) {
           *result = alloc_unshared_constant(string_constant);
         }  /* if */
