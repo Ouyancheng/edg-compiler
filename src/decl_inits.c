@@ -5817,8 +5817,8 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
   }  /* switch */
   free_init_component_list(icp_tree);
   is->force_dynamic_init = saved_force_dynamic_init;
-  if ((is_aggregate || (is->force_dynamic_init && is->init_dip == NULL)) &&
-      !is->init_error) {
+  if ((is_aggregate && !is->init_error) ||
+      (is->force_dynamic_init && is->init_dip == NULL)) {
     /* The routines for aggregate initialization produce a constant entry, but
        those entries may embed a dynamic initialization.  If so, return a
        dynamic initialization entry for a nonconstant aggregate to the caller.
