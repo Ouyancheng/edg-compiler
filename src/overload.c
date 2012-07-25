@@ -18666,6 +18666,48 @@ be a reference type.  Only used in C++.  This is copy-initialization.
 }  /* convert_operand_into_temp */
 
 
+static void extend_temporary_lifetime(a_dynamic_init_ptr dip,
+                                      a_boolean          static_lifetime)
+/*
+dip represents a temporary.  Extend its lifetime, either to block scope
+(static_lifetime == FALSE) or static lifetime (static_lifetime == TRUE).
+This comes up, for example, when a reference is bound to the temporary:
+the lifetime of the temporary is extended to match that of the reference.
+*/
+{
+  an_object_lifetime_ptr lifetime = dip->lifetime;
+
+  if (static_lifetime) dip->static_temp = TRUE;
+  dip->has_temporary_lifetime = FALSE;
+  if (dip->is_creation_of_initializer_list_object) {
+    /* If the lifetime of an initializer_list object is extended, the
+       lifetime of the array fed into it is extended also
+       ([dcl.init.list]p6: "The lifetime of the array is the same
+       as that of the initializer_list object."). */
+    a_type_ptr         init_entity_type;
+    a_dynamic_init_ptr dipa =
+         effective_dynamic_init_for_initializer_list_object(dip,
+                                                            &init_entity_type);
+    dipa->static_temp = dip->static_temp;
+    dipa->has_temporary_lifetime = dip->has_temporary_lifetime;
+  }  /* if */
+  /* The "lifetime != NULL" test here deals with initializations that
+     do not need a destructor. */
+  if (lifetime != NULL) {
+    an_object_lifetime_kind kind = lifetime->kind;
+    if (static_lifetime ?
+                   !is_static_object_lifetime_kind(kind) :
+                   (kind == (an_object_lifetime_kind)olk_expr_temporary)) {
+      /* The dynamic init for the temporary is attached to an inappropriate
+         lifetime, so it must be removed and put into another lifetime. */
+      remove_from_destruction_list(dip);
+      record_end_of_lifetime_destruction(dip, static_lifetime,
+                                         /*block_lifetime=*/TRUE);
+    }  /* if */
+  }  /* if */
+}  /* extend_temporary_lifetime */
+
+
 static void adjust_top_temporary_for_binding_to_reference(
                                                     an_operand *operand,
                                                     a_boolean  static_lifetime)
@@ -18686,9 +18728,8 @@ like
 
 */
 {
-  an_expr_node_ptr       node;
-  a_dynamic_init_ptr     dip;
-  an_object_lifetime_ptr lifetime;
+  an_expr_node_ptr   node;
+  a_dynamic_init_ptr dip;
 
   if (is_expression_operand(operand)) {
     node = operand->variant.expression;
@@ -18734,36 +18775,8 @@ like
       dip = node->variant.lambda.initialization;
     }  /* if */
     if (dip != NULL) {
-      if (static_lifetime) dip->static_temp = TRUE;
-      dip->has_temporary_lifetime = FALSE;
-      if (dip->is_creation_of_initializer_list_object) {
-        /* If the lifetime of an initializer_list object is extended, the
-           lifetime of the array fed into it is extended also
-           ([dcl.init.list]p6: "The lifetime of the array is the same
-           as that of the initializer_list object."). */
-        a_type_ptr         init_entity_type;
-        a_dynamic_init_ptr dipa =
-         effective_dynamic_init_for_initializer_list_object(dip,
-                                                            &init_entity_type);
-        dipa->static_temp = dip->static_temp;
-        dipa->has_temporary_lifetime = dip->has_temporary_lifetime;
-      }  /* if */
-      lifetime = dip->lifetime;
-      /* The "lifetime != NULL" test here deals with initializations that
-         do not need a destructor. */
-      if (lifetime != NULL) {
-        an_object_lifetime_kind kind = lifetime->kind;
-        if (static_lifetime ?
-                   !is_static_object_lifetime_kind(kind) :
-                   (kind == (an_object_lifetime_kind)olk_expr_temporary)) {
-          /* The dynamic init for the temporary is attached to an
-             inappropriate lifetime, so it must be removed and put into another
-             lifetime. */
-          remove_from_destruction_list(dip);
-          record_end_of_lifetime_destruction(dip, static_lifetime,
-                                             /*block_lifetime=*/TRUE);
-        }  /* if */
-      }  /* if */
+      /* Extend the temporary lifetime appropriately. */
+      extend_temporary_lifetime(dip, static_lifetime);
     }  /* if */
   }  /* if */
 }  /* adjust_top_temporary_for_binding_to_reference */
@@ -20424,11 +20437,13 @@ it an exact match or a user-defined conversion, etc.)
       expr = alloc_temp_init_node_simple(array_type, dip, /*is_lvalue=*/TRUE);
     } else {
       /* Normal, non-"new", case. */
-      dip->static_temp = static_lifetime;
       dip->destructor = dtor;
       expr = alloc_temp_init_node(array_type, dip,
                                   /*is_lvalue=*/TRUE,
                                   /*is_explicit_cast=*/FALSE);
+      if (static_lifetime) {
+        extend_temporary_lifetime(dip, /*static_lifetime=*/TRUE);
+      }  /* if */
     }  /* if */
     /* Add the decay from array to pointer. */
     expr = conv_array_expr_to_pointer(expr);
