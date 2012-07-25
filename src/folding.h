@@ -71,6 +71,12 @@ extern void conv_integer_to_integer(a_constant        *old_constant,
                                     an_error_code     *err_code,
                                     an_error_severity *err_severity);
 
+extern void conv_float_to_integer(a_constant        *old_constant,
+                                  a_constant        *new_constant,
+                                  an_error_code     *err_code,
+                                  an_error_severity *err_severity,
+                                  a_boolean         *depends_on_fp_mode,
+                                  a_boolean         constant_context);
 extern
 void type_change_constant_full(a_constant        *constant,
                                a_type_ptr        new_type,

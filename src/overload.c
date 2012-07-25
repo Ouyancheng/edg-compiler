@@ -19998,6 +19998,7 @@ initialization processing.
 */
 {
   a_boolean               is_narrowing = FALSE, con_check_done = FALSE;
+  a_boolean               fp_precision_check_failed = FALSE;
   a_type_ptr              source_type = source_operand->type;
   a_constant              *con = NULL;
   an_internal_float_value fval;
@@ -20075,12 +20076,36 @@ initialization processing.
           /* A dependent constant might have an appropriate value. */
           is_narrowing = FALSE;
         } else {
+          a_constant fp_constant;
+          clear_constant(&fp_constant, (a_constant_repr_kind)ck_float);
+          fp_constant.type = dest_type;
           conv_integer_value_to_float(&con->variant.integer_value,
                                       int_constant_is_signed(con),
-                                      &fval,
+                                      &fp_constant.variant.float_value,
                                       dest_type->variant.float_kind,
                                       &err);
-          if (!err) is_narrowing = FALSE;
+          if (!err) {
+            /* Convert back to the original integral type to see if we lost
+               anything due to precision issues. */
+            an_error_code     err_code;
+            an_error_severity err_severity;
+            a_constant        int_constant;
+            clear_constant(&int_constant, (a_constant_repr_kind)ck_integer);
+            int_constant.type = con->type;
+            conv_float_to_integer(&fp_constant,
+                                  &int_constant,
+                                  &err_code,
+                                  &err_severity,
+                                  &depends_on_fp_mode,
+                                  /*constant_context=*/FALSE);
+            
+            if (err_code == ec_no_error &&
+                cmp_integer_constants(con, &int_constant) == 0) {
+              is_narrowing = FALSE;
+            } else {
+              fp_precision_check_failed = TRUE;
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (is_integral_type(dest_type)) {
@@ -20121,6 +20146,9 @@ initialization processing.
                                     ec_narrowing_conversion);
     an_error_severity sev = (error_on_narrowing ? es_discretionary_error :
                                                   es_warning);
+    if (fp_precision_check_failed) {
+      err_code = ec_constant_narrowing_conversion_to_float;
+    }  /* if */
     if (error_on_narrowing && !is_effective_error(err_code, sev)) {
       /* The error has been given a non-error severity by the user.
          call this case not a narrowing error, and we'll come back again

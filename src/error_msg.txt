@@ -2410,6 +2410,7 @@ ec_cannot_elide_braces;;"braces cannot be omitted for this subobject initializer
 ec_narrowing_conversion;;"invalid narrowing conversion from %t1 to %t2"
 ec_constant_narrowing_conversion;;"invalid narrowing conversion from %t1 to %t2: constant value does not fit in destination type"
 ec_cast_to_incomplete_array_type;;"cast to incomplete array type %t is not allowed"
+ec_constant_narrowing_conversion_to_float;;"invalid narrowing conversion from %t1 to %t2: constant value cannot be represented exactly in destination type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

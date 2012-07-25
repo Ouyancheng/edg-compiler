@@ -507,12 +507,12 @@ conversion_done:;
 }  /* conv_integer_to_float */
 
 
-static void conv_float_to_integer(a_constant        *old_constant,
-			          a_constant        *new_constant,
-			          an_error_code     *err_code,
-				  an_error_severity *err_severity,
-                                  a_boolean         *depends_on_fp_mode,
-				  a_boolean	    constant_context)
+void conv_float_to_integer(a_constant        *old_constant,
+                           a_constant        *new_constant,
+                           an_error_code     *err_code,
+                           an_error_severity *err_severity,
+                           a_boolean         *depends_on_fp_mode,
+                           a_boolean         constant_context)
 /*
 Convert a float of some kind (in *old_constant) to an integer constant
 in *new_constant, with type as indicated therein.  Return *err_code and
