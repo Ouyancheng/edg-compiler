@@ -3500,11 +3500,16 @@ to use for diagnostics by default.
   a_variable_ptr         vp;
   a_boolean              is_string_var, missing_braces_diagnosed = FALSE;
   a_boolean              make_error_result = FALSE;
+  an_error_severity      severity = es_none;
 
   check_assertion(!dps->has_direct_initializer);
   check_assertion(dps != NULL && dps->sym != NULL);
   vp = var_for_symbol(dps->sym);
   check_assertion(vp != NULL);
+  is->elided_braces_allowed = TRUE;
+  is->initializer_must_be_constant =
+                    C_mode() && (is->static_lifetime_init ||
+                                 !allow_nonconstant_auto_aggr_init_in_c_mode);
   is_string_var = is_string_type(dps->type) ||
                   (is_array_type(dps->type) &&
                    is_template_param_type(array_element_type(dps->type)));
@@ -3514,6 +3519,7 @@ to use for diagnostics by default.
        parsed the expression, but if the destination type isn't a string type,
        we can issue the diagnostic early (which is nicer in cases where
        parsing the expression triggers severe syntax errors). */
+    severity = es_error;
     pos_error(ec_missing_initializer_list, &pos_curr_token);
     missing_braces_diagnosed = TRUE;
   }  /* if */
@@ -3531,7 +3537,6 @@ to use for diagnostics by default.
        the braces to be omitted (e.g., "int a[2] = 1;" is treated as equivalent
        to "int a[2] = { 1 };"), and we also accept it with a warning in
        nonstrict C modes. */
-    an_error_severity  severity = es_none;
     if (!missing_braces_diagnosed && C_dialect != C_dialect_pcc) {
       if (C_dialect == C_dialect_cplusplus) {
         severity = es_error;
@@ -3544,7 +3549,6 @@ to use for diagnostics by default.
       pos_diagnostic(severity, ec_missing_initializer_list,
                      init_component_pos(expr_icp));
     }  /* if */
-    is->elided_braces_allowed = TRUE;
     icp = expr_icp;
     if (severity == es_error) {
       /* We already issued an error and the expression is unlikely to be a
