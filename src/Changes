@@ -1,5 +1,15 @@
 Version 4.5
 
+7/26/12  [EDGcpfe/13084]
+Incorrectly allocated symbol header identifiers could leak into the IL
+
+Under certain (rare) circumstances, strings that point to string literal
+constants in the front end, or strings that were not necessarily allocated
+in the primary file scope memory region could be used as names of IL
+entities.  This could cause IL read errors when an IL file is used.
+Now fixed.
+
+
 7/23/12  [EDGcpfe/9170]
 eok_bassign length (IL CHANGE)
 
