@@ -20484,10 +20484,12 @@ it an exact match or a user-defined conversion, etc.)
           expr = alloc_temp_init_node_simple(list_type, dip,
                                              /*is_lvalue=*/FALSE);
         } else {
-          dip->static_temp = static_lifetime;
           expr = alloc_temp_init_node(list_type, dip,
                                       /*is_lvalue=*/FALSE,
                                       /*is_explicit_cast=*/FALSE);
+          if (static_lifetime) {
+            extend_temporary_lifetime(dip, /*static_lifetime=*/TRUE);
+          }  /* if */
         }  /* if */
         make_expression_operand(expr, operand);
       }  /* if */
