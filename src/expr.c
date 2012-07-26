@@ -29339,8 +29339,13 @@ dynamic init entry if one is created to represent this initializer
   if (!is->check_validity_only) {
     /* If this conversion was treated as full expression, wrap up the
        object lifetime. */
-    if (is_full_expr && dip != NULL) {
-      wrap_up_dynamic_init_full_expression(dip);
+    if (is_full_expr) {
+      if (dip != NULL) {
+        wrap_up_dynamic_init_full_expression(dip);
+      } else if (is->init_error ||
+                 (is->init_con != NULL && is_error_constant(is->init_con))) {
+        discard_curr_expr_object_lifetime();
+      }  /* if */
     }  /* if */
   }  /* if */
   pop_expr_stack();
