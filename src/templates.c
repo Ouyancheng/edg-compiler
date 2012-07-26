@@ -3654,9 +3654,6 @@ be completed here.
           ctsp->is_hide_by_sig = class_type_supp(proto_type)->is_hide_by_sig;
         }  /* if */
       }  /* if */
-      if (is_nonreal_instantiation) {
-        ++(tssp->variant.class_template.pending_nonreal_instantiations);
-      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
                                 instance_sym, &instance_sym->decl_position,
@@ -3728,6 +3725,11 @@ be completed here.
       /* Decrement the count of instantiations-in-progress for the current
          class template. */
       cssp->instantiation_in_progress = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (is_nonreal_instantiation) {
+        --(tssp->variant.class_template.pending_nonreal_instantiations);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       --(tssp->pending_instantiations);
       /* Process the declarations of any partial specializations declared
          outside of the class. */
