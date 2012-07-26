@@ -21298,7 +21298,11 @@ controls).
       } else {
         a_constant con;
         extract_constant_from_operand(&operand, &con);
-        constant = alloc_unshared_constant(&con);
+        if (error_on_nonconstant_constant(&con, start_position)) {
+          constant = alloc_error_constant();
+        } else {
+          constant = alloc_unshared_constant(&con);
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Get the result in the right form if it's not already. */
