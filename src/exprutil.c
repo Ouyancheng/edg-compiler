@@ -4483,12 +4483,6 @@ Extract the constant value from the operand *operand and place it in
       break;
     case ok_constant:
       copy_constant(&operand->variant.constant, constant);
-      if (error_on_nonconstant_constant(constant, &operand->position)) {
-        /* Error has been issued for constant that doesn't really have
-           constant value. */
-        set_error_constant(constant);
-        break;
-      }  /* if */
       if (operand->name_reference_set &&
           constant->kind != (a_constant_repr_kind)ck_template_param &&
           curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {

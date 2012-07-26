@@ -34272,6 +34272,11 @@ constants; assumes copy-initialization ("="-form).
                              ec_bad_initializer_type);
     /* The operand could be a constant or an error. */
     extract_constant_from_operand(&result, constant);
+    if (error_on_nonconstant_constant(constant, &result.position)) {
+      /* Error has been issued for constant that doesn't really have
+         constant value, e.g., UPC THREADS. */
+      set_error_constant(constant);
+    }  /* if */
   }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
