@@ -13060,18 +13060,21 @@ to the caller.  If no modification is done return the original type.
     }  /* if */
     if (!is_local && !is_nonreal && typeref_is_type_operator(type)) {
       if ((type->variant.typeref.extra_info->expr == NULL ||
-           type_operator_stripped)
+           type_operator_stripped) &&
 #if GNU_EXTENSIONS_ALLOWED
-          && !type->variant.typeref.is_typeof_with_type_operand
+           !type->variant.typeref.is_typeof_with_type_operand &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                                                               ) {
+           !is_or_contains_local_type(type->variant.typeref.type)) {
         /* This is a decltype or typeof applied to a local expression (which is
            indicated by the expr field being NULL, meaning the expression is
            stored elsewhere for memory region reasons).   If a type operator
            has been stripped already (in a previous iteration of this loop),
            any other type operator argument is considered "local" (since it
            might contain an enk_param_ref node that has no meaning in the
-           current context). */
+           current context).  If the type under the typeref involves a
+           local type, don't strip it because we know it can't be referred
+           from other contexts and the type may not be able to be named
+           without the decltype or typeof. */
         is_local = TRUE;
         type_operator_stripped = TRUE;
       }  /* if */

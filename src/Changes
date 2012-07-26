@@ -1,5 +1,21 @@
 Version 4.5
 
+7/26/12  [EDGcpfe/13085]
+C++-generating back end: decltype of local type used as template argument
+
+If a decltype was used to refer to an unnamed local type, the decltype
+was stripped when the type was used as a template argument.  This
+resulted in the C++-generating back end producing incorrect code.  Now fixed.
+
+  template <class T, class R> class A {};
+  int main() {
+    auto f = [](char* p){};
+    typedef A<char[], decltype(f)> buffer;
+    // Emitted as something like:
+    // typedef A< char [], class __T1790154560>  buffer;
+  }
+
+
 7/26/12  [EDGcpfe/13084]
 Incorrectly allocated symbol header identifiers could leak into the IL
 
