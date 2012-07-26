@@ -34272,18 +34272,6 @@ constants; assumes copy-initialization ("="-form).
                              ec_bad_initializer_type);
     /* The operand could be a constant or an error. */
     extract_constant_from_operand(&result, constant);
-#if UPC_EXTENSIONS_ALLOWED
-    if (upc_mode && constant != NULL) {
-      /* We cannot use THREADS or MYTHREAD as a constant initializer. */
-      if (constant->kind == (a_constant_repr_kind)ck_upc_threads) {
-        expr_pos_error(ec_threads_constant_not_allowed, &result.position);
-        set_error_constant(constant);
-      } else if (constant->kind == (a_constant_repr_kind)ck_upc_mythread) {
-        expr_pos_error(ec_mythread_constant_not_allowed, &result.position);
-        set_error_constant(constant);
-      }  /* if */
-    }  /* if */
-#endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);

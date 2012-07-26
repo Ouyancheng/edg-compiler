@@ -4439,6 +4439,36 @@ is constant, turn the operand into that constant.
 }  /* force_operand_to_constant_if_possible */
 
 
+#if !UPC_EXTENSIONS_ALLOWED
+/*ARGSUSED*/
+#endif /* !UPC_EXTENSIONS_ALLOWED */
+a_boolean error_on_nonconstant_constant(a_constant        *constant,
+                                        a_source_position *pos)
+/*
+If constant is a constant entry that nevertheless does not have a constant
+value, issue an error at the indicated position and return TRUE.
+Otherwise, return FALSE.  This is used for certain UPC constants that
+don't really have constant values.
+*/
+{
+  a_boolean err = FALSE;
+
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_mode) {
+    /* We cannot use THREADS or MYTHREAD as a constant initializer. */
+    if (constant->kind == (a_constant_repr_kind)ck_upc_threads) {
+      expr_pos_error(ec_threads_constant_not_allowed, pos);
+      err = TRUE;
+    } else if (constant->kind == (a_constant_repr_kind)ck_upc_mythread) {
+      expr_pos_error(ec_mythread_constant_not_allowed, pos);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+  return err;
+}  /* error_on_nonconstant_constant */
+
+
 void extract_constant_from_operand(an_operand     *operand,
                                    a_constant_ptr constant)
 /*
@@ -4453,6 +4483,12 @@ Extract the constant value from the operand *operand and place it in
       break;
     case ok_constant:
       copy_constant(&operand->variant.constant, constant);
+      if (error_on_nonconstant_constant(constant, &operand->position)) {
+        /* Error has been issued for constant that doesn't really have
+           constant value. */
+        set_error_constant(constant);
+        break;
+      }  /* if */
       if (operand->name_reference_set &&
           constant->kind != (a_constant_repr_kind)ck_template_param &&
           curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {

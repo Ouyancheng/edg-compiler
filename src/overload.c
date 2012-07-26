@@ -20695,6 +20695,7 @@ controls).
   an_arg_match_summary internal_arg_match;
   a_boolean            aggregate_case = FALSE;
   a_boolean            error_on_narrowing;
+  a_source_position    *start_position = init_component_pos(icp);
 
   /* The basic modes are:
                       issue_errors   generate_il
@@ -21005,7 +21006,7 @@ controls).
         unbundle_init_component_list_expressions(list);
         force_narrowing_check_on_arg_list_members(list, /*value=*/TRUE);
         scan_ctor_arguments(ctor_sym,
-                            init_component_pos(icp),
+                            start_position,
                             (a_type_ptr)NULL,
                             (a_type_ptr)NULL,
                             fill_in_dtor,
@@ -21039,8 +21040,7 @@ controls).
         if (arg_match != NULL) {
           arg_match_err = TRUE;
         } else {
-          expr_pos_error(ec_explicit_ctor_in_copy_list_init,
-                         init_component_pos(icp));
+          expr_pos_error(ec_explicit_ctor_in_copy_list_init, start_position);
         }  /* if */
       }  /* if */
       fill_in_dtor = FALSE;
@@ -21236,8 +21236,7 @@ controls).
       an_expr_node_ptr expr;
       dip->is_braced_initializer = braced_init;
       if (dest_type_is_class && fill_in_dtor) {
-        add_dtor_to_dynamic_init(dip, dest_type, dest_type,
-                                 init_component_pos(icp));
+        add_dtor_to_dynamic_init(dip, dest_type, dest_type, start_position);
       }  /* if */
       expr = alloc_temp_init_node(dest_type, dip, /*is_lvalue=*/FALSE,
                                   /*is_explicit_cast=*/is_cast);
@@ -21273,7 +21272,7 @@ controls).
       }  /* if */
       copy_operand(&operand, result);
     }  /* if */
-    result->position = *init_component_pos(icp);
+    result->position = *start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     result->end_position = *init_component_end_pos(icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -21282,10 +21281,27 @@ controls).
        returned via either is->init_con or is->init_dip. */
     a_boolean constant_ok;
     check_assertion(is != NULL);
-    constant_ok = !is->force_dynamic_init;
-    check_assertion(!curr_expr_kind_is_const() || constant_ok);
     is->init_con = NULL;
     is->init_dip = NULL;
+    constant_ok = !is->force_dynamic_init;
+    if (curr_expr_kind_is_const()) {
+      /* The result is required to be constant.  Check that it is. */
+      check_assertion(constant_ok);
+      if (dip != NULL) {
+        expr_pos_error(ec_expr_not_constant, start_position);
+        constant = alloc_error_constant();
+        dip = NULL;
+      } else if (constant != NULL) {
+        if (error_on_nonconstant_constant(constant, start_position)) {
+          constant = alloc_error_constant();
+        }  /* if */
+      } else {
+        a_constant con;
+        extract_constant_from_operand(&operand, &con);
+        constant = alloc_unshared_constant(&con);
+      }  /* if */
+    }  /* if */
+    /* Get the result in the right form if it's not already. */
     if (constant != NULL && constant_ok) {
       /* We already have an allocated constant. */
       is->init_con = constant;
@@ -21328,7 +21344,7 @@ controls).
         /* Fill in the destructor if one is needed. */
         dip->destructor = expr_select_destructor(dest_type,
                                                  dest_type,
-                                                 init_component_pos(icp),
+                                                 start_position,
                                                  /*honor_virtual=*/FALSE);
       }  /* if */
     }  /* if */

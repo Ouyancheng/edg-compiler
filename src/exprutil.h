@@ -2018,6 +2018,9 @@ extern void set_operand_id_details_from_locator(an_operand       *operand,
 
 extern void force_operand_to_constant_if_possible(an_operand *operand);
 
+extern a_boolean error_on_nonconstant_constant(a_constant        *constant,
+                                               a_source_position *pos);
+
 extern void extract_constant_from_operand(an_operand     *operand,
                                           a_constant_ptr constant);
 
