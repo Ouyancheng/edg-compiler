@@ -21288,21 +21288,24 @@ controls).
       /* The result is required to be constant.  Check that it is. */
       check_assertion(constant_ok);
       if (dip != NULL) {
-        expr_pos_error(ec_expr_not_constant, start_position);
-        constant = alloc_error_constant();
-        dip = NULL;
-      } else if (constant != NULL) {
-        if (error_on_nonconstant_constant(constant, start_position)) {
+        if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+          constant = dip->variant.constant;
+        } else {
+          expr_pos_error(ec_expr_not_constant, start_position);
           constant = alloc_error_constant();
         }  /* if */
+        dip = NULL;
+      } else if (constant != NULL) {
+        /* Already constant. */
       } else {
         a_constant con;
         extract_constant_from_operand(&operand, &con);
-        if (error_on_nonconstant_constant(&con, start_position)) {
-          constant = alloc_error_constant();
-        } else {
-          constant = alloc_unshared_constant(&con);
-        }  /* if */
+        constant = alloc_unshared_constant(&con);
+      }  /* if */
+      /* Disallow certain constants that don't actually have a constant
+         value, e.g., UPC THREADS. */
+      if (error_on_nonconstant_constant(constant, start_position)) {
+        constant = alloc_error_constant();
       }  /* if */
     }  /* if */
     /* Get the result in the right form if it's not already. */
