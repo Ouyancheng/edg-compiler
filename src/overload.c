@@ -20389,6 +20389,9 @@ it an exact match or a user-defined conversion, etc.)
         con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
         con->type = element_type;
         con->variant.dynamic_init = dip;
+        if (elem_icp->pack_expansion_descr != NULL) {
+          con->is_pack_expansion = TRUE;
+        }  /* if */
         any_nonconstant = TRUE;
         if (will_need_partial_aggregate_destructor) {
           /* Add the destructor for partial-aggregate exception cleanup. */
