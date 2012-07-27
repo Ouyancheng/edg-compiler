@@ -19855,10 +19855,7 @@ there are any errors (that's used for overload resolution).
   } else if (is_class_struct_union_type(dest_type)) {
     a_boolean     trivial_ctor = FALSE;
     a_routine_ptr ctor_routine = NULL;
-    if (is_union_type(dest_type)) {
-      /* A union type has no constructor. */
-      trivial_ctor = TRUE;
-    } else if (!is_real_class_type(dest_type)) {
+    if (!is_real_class_type(dest_type)) {
       /* A nonreal class type. */
     } else {
       /* A real class type.  Find the default constructor. */
