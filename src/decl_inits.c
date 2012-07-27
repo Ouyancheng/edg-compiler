@@ -417,56 +417,6 @@ done:
 }  /* process_string_constant_initializer */
 
 
-static void check_for_opening_brace(a_boolean *flag)
-/*
-In some cases, an extra pair of braces can surround an initializer.  This
-routine checks for and ignores an extra left brace.  It sets *flag to a value
-that should be passed to check_for_matching_closing_brace so the latter
-can ignore the closing brace if necessary.
-*/
-{
-  /* Note:  db_enter/db_exit CANNOT be called, because this routine
-     exits with the stop tokens set different than on entry. */
-  *flag = FALSE;
-  if (curr_token == tok_lbrace) {
-    *flag = TRUE;
-    (void)get_token();
-    add_stop_token(tok_rbrace);
-  }  /* if */
-}  /* check_for_opening_brace */
-
-
-static void check_for_matching_closing_brace(a_boolean flag)
-/*
-Companion to check_for_opening_brace.  flag should be the flag returned by
-that routine.  This routine ignores a closing brace if that is appropriate.
-*/
-{
-  /* Note:  db_enter/db_exit CANNOT be called, because this routine
-     exits with the stop tokens set different than on entry. */
-  if (flag) {
-    if (curr_token == tok_rbrace) {
-      /* The brace is there.  Skip over it. */
-      (void)get_token();
-    } else {
-      /* Error, the brace is not there.  Change the stop tokens set to
-         just skip to a right brace (flush_tokens has some other "hard"
-         tokens wired in), then record an error and flush tokens.  Always
-         stop at a semicolon, however, if one is already in the stop-token
-         array. */
-      a_boolean  stop_at_semicolon = curr_stop_token_stack_entry->
-                                         stop_tokens[(int)tok_semicolon] != 0;
-      push_stop_token_stack();
-      if (stop_at_semicolon) add_stop_token(tok_semicolon);
-      (void)required_token(tok_rbrace, ec_exp_rbrace);
-      if (stop_at_semicolon) remove_stop_token(tok_semicolon);
-      pop_stop_token_stack();
-    }  /* if */
-    remove_stop_token(tok_rbrace);
-  }  /* if */
-}  /* check_for_matching_closing_brace */
-
-
 static void copy_ctor_default_args_to_dynamic_init(a_dynamic_init_ptr  dip)
 /*
 dip points to a dik_constructor dynamic init entry.  Make a copy of the
