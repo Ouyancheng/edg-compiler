@@ -3453,9 +3453,16 @@ is part of.  diag_pos is the position to be used by default for diagnostics
     }  /* if */
   }  /* if */
   vp->has_direct_braced_initializer = direct;
-  dps->init_state.initializer_must_be_constant =
-                    C_mode() && (dps->init_state.static_lifetime_init ||
-                                 !allow_nonconstant_auto_aggr_init_in_c_mode);
+  if (C_mode() &&
+      (dps->init_state.static_lifetime_init ||
+       (is_aggregate_or_union_type(dps->type) &&
+        !allow_nonconstant_auto_aggr_init_in_c_mode))) {
+    /* In C mode, variables with static life time can only be initialized with
+       constant expressions.  For variables of aggregate types, this may also
+       be true for variables with automatic storage duration (depending on the
+       mode and configuration). */
+    dps->init_state.initializer_must_be_constant = TRUE;
+  }  /* if */
   braced_initializer(dps->type, &dps->init_state, dps, diag_pos);
   if (is_incomplete_array_type(vp->type) && is_array_type(dps->type)) {
     /* An array declarator of the form "X[]" followed by a braced initializer:
