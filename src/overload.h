@@ -1061,6 +1061,12 @@ extern void prep_argument_operand(an_operand       *source_operand,
                                   a_conv_descr     *conversion,
                                   an_error_code    err_code);
 
+extern void prep_argument(an_arg_list_elem_ptr alep,
+                          a_param_type_ptr     formal_param,
+                          a_conv_descr         *conversion,
+                          an_error_code        err_code,
+                          an_operand           *result);
+
 extern void prep_assignment_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,
                                     an_error_code     incompatible_err,

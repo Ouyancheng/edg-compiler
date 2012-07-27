@@ -51,11 +51,6 @@ static void prep_conversion_operand(
                                 a_conv_context_set conv_context,
                                 an_error_code      incompatible_err,
                                 a_source_position  *err_pos);
-static void prep_argument(an_arg_list_elem_ptr alep,
-                          a_param_type_ptr     formal_param,
-                          a_conv_descr         *conversion,
-                          an_error_code        err_code,
-                          an_operand           *result);
 static a_boolean type_matches_type_code(a_type_ptr type,
                                         char       type_code);
 static a_boolean microsoft_can_bind_ref_to_rvalue(an_operand *operand);
@@ -21687,11 +21682,11 @@ to be acceptable (as far as overload resolution checks that), and
 }  /* prep_argument_operand */
 
 
-static void prep_argument(an_arg_list_elem_ptr alep,
-                          a_param_type_ptr     formal_param,
-                          a_conv_descr         *conversion,
-                          an_error_code        err_code,
-                          an_operand           *result)
+void prep_argument(an_arg_list_elem_ptr alep,
+                   a_param_type_ptr     formal_param,
+                   a_conv_descr         *conversion,
+                   an_error_code        err_code,
+                   an_operand           *result)
 /*
 Check that alep is acceptable as an actual argument for the formal
 parameter described by formal_param.  If not, issue the error

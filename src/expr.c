@@ -32019,13 +32019,28 @@ in a template instantiation) just do the scan.
     expr_stack_entry.p_end_of_entities_defined_in_expression =
                                         &ptp->entities_defined_in_default_arg;
   }  /* if */
-  /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  if (list_init_enabled && curr_token == tok_lbrace) {
+    /* Scan a braced-init-list as the default argument. */
+    scan_braced_init_list_as_operand(&result);
+  } else {
+    /* Scan the expression. */
+    scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  }  /* if */
   if (ptp != NULL) {
     /* Convert to the required type. */
-    prep_argument_operand(&result, ptp,
-                          (a_conv_descr_ptr)NULL,
-                          ec_bad_default_arg_type);
+    if (is_braced_init_list_operand(&result)) {
+      an_init_component_ptr icp = result.variant.braced_init_list;
+      prep_argument(icp,
+                    ptp,
+                    (a_conv_descr_ptr)NULL,
+                    ec_bad_default_arg_type,
+                    &result);
+      free_init_component_list(icp);
+    } else {
+      prep_argument_operand(&result, ptp,
+                            (a_conv_descr_ptr)NULL,
+                            ec_bad_default_arg_type);
+    }  /* if */
   } else {
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
