@@ -1969,6 +1969,9 @@ the resulting string and length.
   new_string[length] = '\0';
   hdr_ptr->identifier = new_string;
   hdr_ptr->identifier_length = length;
+#if DEBUG
+  symbol_name_string_space += length + 1;
+#endif /* DEBUG */
 }  /* set_identifier_for_symbol_header */
 
 
