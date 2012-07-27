@@ -61,13 +61,6 @@ aconstant.
 }  /* append_constant_in_aggr */
 
 
-/* TRUE if curr_token is the indicated token, but not if there's anything
-   in the cache that should be taken first. */
-#define curr_token_if_nothing_cached_is(tok, dps) \
-  (curr_token == (tok) && \
-   !anything_cached(&dps->prescanned_initializer_cache))
-
-
 /*
 Data structure containing information to be passed among get_initializer
 and its subroutines.  There is one such entry for each top-level (i.e.,
