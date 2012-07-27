@@ -3298,8 +3298,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
   icp = icp_tree;
   check_assertion(icp != NULL && is_braced_init_component(icp));
   is_var_init = dps != NULL && dps->sym != NULL &&
-                (symbol_is(dps->sym, sk_variable) ||
-                 symbol_is(dps->sym, sk_static_data_member));
+                var_for_symbol(dps->sym) != NULL;
   /* The force_dynamic_init flag only applies to the top-level result. */
   is->force_dynamic_init = FALSE;
   switch (dtype->kind) {
@@ -3342,6 +3341,20 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
     case tk_class:
     case tk_struct:
     case tk_union:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled && is_value_class_type(dtype) &&
+          is_cli_generic_definition_argument_type(dtype)) {
+        /* A constraint type can be a value class type, but should not be
+           treated as an aggregate type since its subobject structure is not
+           known.  E.g.:
+             generic<class T> where T: value class
+             void f(T x) { T y = { x }; }  // Treat as a simple initialization;
+                                           // not as aggregate initialization.
+        */
+        process_simple_init_component(icp, dtype, is, is_var_init);
+      } else 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
       if (dtype->variant.class_struct_union.is_nonreal_class ||
           (gpp_mode && is_prototype_instantiation_context())) {
         /* For nonreal classes, don't attempt to track the class structure.
@@ -3421,7 +3434,7 @@ is part of.  diag_pos is the position to be used by default for diagnostics
 
   check_assertion(dps != NULL && dps->sym != NULL);
   vp = var_for_symbol(dps->sym);
-  check_assertion(vp != NULL);
+  check_assertion_or_expect_error(vp != NULL);
   if (direct) {
     if (!list_init_enabled) {
       /* Direct list initializers are not explicitly enabled. */
@@ -3434,7 +3447,7 @@ is part of.  diag_pos is the position to be used by default for diagnostics
       }  /* if */
       direct = FALSE;
     }  /* if */
-    vp->has_direct_braced_initializer = direct;
+    if (vp != NULL) vp->has_direct_braced_initializer = direct;
     dps->init_state.direct_init = direct;
   } else {
     /* Traditional aggregate initialization of the form "T x = { ... }". */
@@ -3452,7 +3465,7 @@ is part of.  diag_pos is the position to be used by default for diagnostics
       dps->init_state.warning_on_narrowing = TRUE;
     }  /* if */
   }  /* if */
-  vp->has_direct_braced_initializer = direct;
+  if (vp != NULL) vp->has_direct_braced_initializer = direct;
   if (C_mode() &&
       (dps->init_state.static_lifetime_init ||
        (is_aggregate_or_union_type(dps->type) &&
@@ -3464,7 +3477,8 @@ is part of.  diag_pos is the position to be used by default for diagnostics
     dps->init_state.initializer_must_be_constant = TRUE;
   }  /* if */
   braced_initializer(dps->type, &dps->init_state, dps, diag_pos);
-  if (is_incomplete_array_type(vp->type) && is_array_type(dps->type)) {
+  if (vp != NULL && is_incomplete_array_type(vp->type) &&
+      is_array_type(dps->type)) {
     /* An array declarator of the form "X[]" followed by a braced initializer:
        Dimension it according to the initializer. */
     a_type_ptr  dim_type = dps->type;
@@ -3530,7 +3544,7 @@ to use for diagnostics by default.
     pos_error(ec_missing_initializer_list, &pos_curr_token);
     missing_braces_diagnosed = TRUE;
   }  /* if */
-  expr_icp = scan_full_initializer_expr_as_component();
+  expr_icp = scan_full_initializer_expr_as_component(dps);
   check_assertion(expr_icp->next == NULL);
   if (is_error_component(expr_icp)) {
     /* An error occurred earlier.  Continue with an error constant. */
@@ -3589,6 +3603,44 @@ to use for diagnostics by default.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* expr_init_aggr_variable */
+
+
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+static void expr_init_scalar_variable(a_decl_parse_state  *dps,
+                                      a_decl_pos_block    *decl_pos_block)
+/*
+dps (which must be non-NULL) and decl_pos_block describe a variable of scalar
+type initialized with what looks like an expression.  I.e., an initialization
+of the form:
+
+	T x = <expr>
+
+Check and record the initialization as appropriate.  diag_pos is the position
+to use for diagnostics by default.
+*/
+{
+  an_init_component_ptr  expr_icp;
+
+  dps->init_state.initializer_must_be_constant =
+                             C_mode() && dps->init_state.static_lifetime_init;
+  expr_icp = scan_full_initializer_expr_as_component(dps);
+  if (dps->sym == NULL || var_for_symbol(dps->sym) == NULL) {
+    /* In some error cases (e.g., an old-style C parameter with an initializer)
+       dps->sym may not actually represent an initializable variable. */
+    expect_error();
+  } else {
+    convert_initializer(expr_icp, dps->type, /*is_var_init=*/TRUE,
+                        /*fill_in_dtor=*/TRUE, &dps->init_state);
+  }  /* if */
+  free_init_component_list(expr_icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    decl_pos_block->var_init_range.end = curr_construct_end_position;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* expr_init_scalar_variable */
 
 
 void scan_compound_literal_initializer(a_type_ptr         *type,
@@ -3997,8 +4049,11 @@ returned set to TRUE.
          void f(T x) { T y = { x }; }  // Treat as simple initialization and
                                        // not as aggregate initialization.
     */
-    init_con = simple_initializer(dps, static_lifetime, vp_type, &init_dip,
-                                  decl_pos_block);
+    brace_init_variable(dps, dps->has_direct_initializer, linkage, source_pos,
+                        decl_pos_block);
+    init_err = dps->init_state.init_error;
+    init_con = dps->init_state.init_con;
+    init_dip = dps->init_state.init_dip;
   } else if (cppcli_enabled && first_token == tok_lbrace &&
              !dps->has_direct_initializer &&
              (is_handle_to_cli_array_type(vp_type) ||
@@ -4089,21 +4144,13 @@ returned set to TRUE.
       init_dip = dps->init_state.init_dip;
     }  /* if */
   } else {
-    /* A non-aggregate object is being initialized.  Braces are permitted
-       but not required.  A constant or non-constant expression may be
-       permitted as the initializer. */
-    if (list_init_enabled && first_token == tok_lbrace) {
-      /* C++11 requires a diagnostic on narrowing in this case, but since it
-         is a backward compatibility issue, we make it warning only in non-
-         strict modes. */
-      if (strict_ansi_mode) {
-        dps->init_state.error_on_narrowing = TRUE;
-      } else {
-        dps->init_state.warning_on_narrowing = TRUE;
-      }  /* if */
-    }  /* if */
-    init_con = simple_initializer(dps, static_lifetime, vp_type, &init_dip,
-                                  decl_pos_block);
+    /* A non-aggregate object is being initialized with an expression (the
+       braced initializer case was handled above).  A constant or non-constant
+       expression may be permitted as the initializer. */
+    expr_init_scalar_variable(dps, decl_pos_block);
+    init_err = dps->init_state.init_error;
+    init_con = dps->init_state.init_con;
+    init_dip = dps->init_state.init_dip;
   }  /* if */
   if (anything_cached(&dps->prescanned_initializer_cache)) {
     /* Normally, prescanned components should have been consumed by now.

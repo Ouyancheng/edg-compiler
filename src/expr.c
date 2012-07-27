@@ -23203,8 +23203,8 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void process_microsoft_null_pointer_constant_bug(an_operand *operand,
-                                                        a_type_ptr dest_type)
+void process_microsoft_null_pointer_constant_bug(an_operand *operand,
+                                                 a_type_ptr dest_type)
 /*
 Check for a Microsoft C mode bug that allows the expression (void)0 (sic;
 not (void *)0) to be used as a null pointer constant in some contexts.
@@ -29241,22 +29241,69 @@ initializer cache) for later restoration and further processing.
 }  /* scan_init_component_with_potential_pack_expansion */
 
 
-an_init_component_ptr scan_full_initializer_expr_as_component(void)
+an_init_component_ptr scan_full_initializer_expr_as_component(
+                                                      a_decl_parse_state *dps)
 /*
 Scan an initializer that is a non-brace-enclosed expression and return it as
-an initializer component.
+an initializer component.  dps (which must be non-NULL) describes the state of
+the current declaration (i.e., the declaration of the variable being
+initialized).
 */
 {
   an_expr_stack_entry   *saved_expr_stack;
   an_expr_stack_entry   expr_stack_entry;
+  an_expression_kind    ekind = (an_expression_kind)ek_normal;
   an_init_component_ptr icp;
-
+  a_variable_ptr        sdm_var = NULL;
+ 
+  check_assertion(dps != NULL);
   save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
+  if (dps->init_state.initializer_must_be_constant) {
+    ekind = (an_expression_kind)ek_init_constant;
+  }  /* if */
+  push_expr_stack(ekind, &expr_stack_entry, /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
-  icp = scan_expr_as_init_component(/*bundle_lifetimes=*/TRUE);
+  if (dps->init_state.static_lifetime_init) {
+    expr_stack_entry.in_static_initializer = TRUE;
+    expr_stack_entry.favor_constant_result = TRUE;
+  } else if (favor_constant_result_for_nonstatic_init) {
+    expr_stack_entry.favor_constant_result = TRUE;
+  }  /* if */
+  if (symbol_is(dps->sym, sk_static_data_member)) {
+    /* Record entities defined in the initializer expression (needed for
+       correspondence checking and name mangling when the static data
+       member is a template instance).  In the case of aggregate
+       initializers, this routine may be called multiple times for
+       the same initializer: Ensure that additional entries are
+       appended to any existing entries. */
+    an_il_entity_list_entry_ptr  *ep;
+    sdm_var = dps->sym->variant.static_data_member.variable;
+    ep = &sdm_var->entities_defined_in_initializer;
+    while (*ep != NULL) ep = &(*ep)->next;
+    expr_stack_entry.p_end_of_entities_defined_in_expression = ep;
+  } else {
+    check_assertion(symbol_is(dps->sym, sk_variable) ||
+                    dps->sym->is_error ||
+                    symbol_is(dps->sym, sk_parameter));
+  }  /* if */
+  set_up_initializer_rescan(dps);
+  if (cached_initializer_present()) {
+    /* Get a previously-scanned init component out of the cache.  This happens
+       when the list is prescanned to resolve an "auto" declaration. */
+    icp = fetch_init_component_from_initializer_cache(
+                                                expr_stack->initializer_cache);
+    check_assertion(!is_braced_init_component(icp) &&
+                    !cached_initializer_present());
+  } else {
+    /* Scan the expression from source. */
+    icp = scan_expr_as_init_component(/*bundle_lifetimes=*/TRUE);
+  }  /* if */
+  if (sdm_var != NULL) {
+    /* Stop the recording of entities defined in the expression (not strictly
+       necessary, but just to be neat). */
+    expr_stack->p_end_of_entities_defined_in_expression = NULL;
+  }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   return icp;
@@ -29272,9 +29319,8 @@ void convert_initializer(an_init_component_ptr icp,
 Convert an initializer value represented in init-component form (icp)
 to the type of the entity being initialized, given by dest_type.  If
 is_var_init is TRUE, this is the complete initializer for a variable
-(given by is->decl_parse_state->sym), and the type of that variable is
-used for dest_type.  is describes the initialization processed by
-this function, including whether diagnostics should be avoided
+(given by is->decl_parse_state->sym).  is describes the initialization
+processed by this function, including whether diagnostics should be avoided
 (is->no_diagnostics) or whether no IL should be generated
 (is->check_validity_only).  The converted result, if any, is returned
 through either is->init_con or is->init_dip; the other pointer is set
@@ -29303,7 +29349,6 @@ dynamic init entry if one is created to represent this initializer
     check_assertion(var_sym != NULL);
     var = var_for_symbol(var_sym);
     check_assertion(var != NULL);
-    dest_type = var->type;
   }  /* if */
   if (dps != NULL) {
     /* We're initializing a variable or part of a variable. */
@@ -34383,13 +34428,6 @@ scan_class_initializer_expression and scan_aggregate_initializer_expression.
        expressions, so we have no operand to process. */
     goto end_of_routine;
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* Check for a bug related to null pointer constants in Microsoft C mode. */
-  if (microsoft_mode && is_expression_component(icp)) {
-    process_microsoft_null_pointer_constant_bug(operand_of_arg_list_elem(icp),
-                                                required_type);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Convert to the required type. */
   conv_context = CCO_INITIALIZING_VARIABLE;
   if (static_lifetime) conv_context |= CCO_STATIC_LIFETIME;

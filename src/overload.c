@@ -20760,15 +20760,25 @@ controls).
      instantiated. */
   complete_type_is_needed(dest_type);
   braced_init = is_braced_init_component(icp);
-  if (braced_init &&
-      (is_aggregate_type(dest_type) ||
-       (icp->contains_designator &&
-        (is_error_type(dest_type) ||
-         could_be_dependent_class_type(dest_type))))) {
-    /* This is the initialization of an aggregate type from a braced-init-list.
-       We also go that way for cases that have designators, when the
-       destination type is not known but might be an aggregate. */
-    aggregate_case = TRUE;
+  if (braced_init) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && is_value_class_type(dest_type) &&
+        is_cli_generic_definition_argument_type(dest_type)) {
+      /* A constraint type can be a value class type, but should not be treated
+         as an aggregate type since its subobject structure is not known. */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    if (is_aggregate_type(dest_type) ||
+        (icp->contains_designator &&
+         (is_error_type(dest_type) ||
+          could_be_dependent_class_type(dest_type)))) {
+      /* This is the initialization of an aggregate type from a
+         braced-init-list.  We also go that way for cases that have
+         designators, when the destination type is not known but might be an
+         aggregate. */
+      aggregate_case = TRUE;
+    }  /* if */
   }  /* if */
   if (icp->contains_designator && !aggregate_case) {
     /* Designators are not allowed in non-aggregate initializations. */
@@ -20864,6 +20874,13 @@ controls).
              tests are scaled back for this warning case to avoid issuing
              near-duplicate warnings. */
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode && is_expression_component(icp)) {
+          /* Check for an odd bug in Microsoft C mode (causing "(void)0" to be
+             treated as null pointer constant. */
+          process_microsoft_null_pointer_constant_bug(&operand, dest_type);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         prep_initializer_operand(&operand, dest_type,
                                  /*is_transparent=*/(a_boolean *)NULL,
                                  /*conversion=*/(a_conv_descr_ptr)NULL,

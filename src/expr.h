@@ -410,6 +410,11 @@ void rescan_selector_of_call(a_rescan_control_block *rcblock,
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void insert_temporary_initialization(an_expr_node_ptr temp_init_expr,
                                             an_operand_ptr   result);
+
+
+extern void process_microsoft_null_pointer_constant_bug(
+                                                    an_operand_ptr operand,
+                                                    a_type_ptr     dest_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern
@@ -506,7 +511,8 @@ extern
 an_init_component_ptr scan_braced_init_list(a_boolean          is_full_expr,
                                             a_decl_parse_state *dps);
 
-extern an_init_component_ptr scan_full_initializer_expr_as_component(void);
+extern an_init_component_ptr scan_full_initializer_expr_as_component(
+                                                     a_decl_parse_state *dps);
 
 extern
 void convert_initializer(an_init_component_ptr icp,
