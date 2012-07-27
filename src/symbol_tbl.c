@@ -1949,12 +1949,15 @@ be NULL, in which case nothing is done.
 }  /* free_list_of_symbol_list_entries */
 
 
-static char *copy_string_for_symbol_header(char		*string,
-					   sizeof_t	length)
+static void set_identifier_for_symbol_header(
+					a_symbol_header_ptr	hdr_ptr,
+					char			*string,
+					sizeof_t		length)
 /*
 Make a copy of the specified string, whose length is specified by "length"
 in the primary file scope memory region.  If length is 0, strlen is used to
-determine the length.
+determine the length.  Set the symbol header specified by hdr_ptr to use
+the resulting string and length.
 */
 {
   char		*new_string;
@@ -1964,8 +1967,9 @@ determine the length.
   (void)strncpy(new_string, string, size_t_arg(length));
   /* Terminate the string. */
   new_string[length] = '\0';
-  return new_string;
-}  /* copy_string_for_symbol_header */
+  hdr_ptr->identifier = new_string;
+  hdr_ptr->identifier_length = length;
+}  /* set_identifier_for_symbol_header */
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2671,13 +2675,10 @@ caller may have to set it directly.
   hdr_ptr->next = symbol_table[bucket_number];
   symbol_table[bucket_number] = hdr_ptr;
 
-  /* Allocate the identifier string.  It is allocated in the intermediate
-     language memory region because it must be passed to the back end. */
-  hdr_ptr->identifier = copy_string_for_symbol_header(identifier, length);
-#if DEBUG
-  symbol_name_string_space += (unsigned long)(length + 1);
-#endif /* DEBUG */
-  hdr_ptr->identifier_length = length;
+  /* Copy the string to memory in the appropriate memory region.  It is
+     allocated in the intermediate language memory region because it must
+     be passed to the back end. */
+  set_identifier_for_symbol_header(hdr_ptr, identifier, length);
   hdr_ptr->hash_value = hash_value;
 
   /* There is no symbol. */
@@ -3735,9 +3736,7 @@ already been created.
 {
   if (error_symbol_header == NULL) {
     error_symbol_header = alloc_symbol_header();
-    error_symbol_header->identifier =
-                                   copy_string_for_symbol_header("<error>", 7);
-    error_symbol_header->identifier_length = 7;
+    set_identifier_for_symbol_header(error_symbol_header, "<error>", 7);
   }  /* if */
   return error_symbol_header;
 }  /* get_error_symbol_header */
@@ -6948,9 +6947,8 @@ it into the symbol table.
   /* Use the unnamed tag symbol header.  Allocate it if necessary. */
   if (unnamed_tag_symbol_header == NULL) {
     unnamed_tag_symbol_header = alloc_symbol_header();
-    unnamed_tag_symbol_header->identifier =
-                                 copy_string_for_symbol_header("<unnamed>", 9);
-    unnamed_tag_symbol_header->identifier_length = 9;
+    set_identifier_for_symbol_header(unnamed_tag_symbol_header,
+                                     "<unnamed>", 9);
   }  /* if */
   sym = alloc_symbol(sym_kind, unnamed_tag_symbol_header, pos);
   sym->decl_scope = scope_stack[decl_scope_level].number;
@@ -6991,9 +6989,8 @@ sake of identifying a given field entry as representing an unnamed field.
     clear_symbol(&sym, (a_symbol_kind)sk_field);
     /* Set the header. */
     unnamed_field_symbol_header = alloc_symbol_header();
-    unnamed_field_symbol_header->identifier =
-                                 copy_string_for_symbol_header("<unnamed>", 9);
-    unnamed_field_symbol_header->identifier_length = 9;
+    set_identifier_for_symbol_header(unnamed_field_symbol_header,
+                                     "<unnamed>", 9);
     sym.header = unnamed_field_symbol_header;
   }  /* if */
   return &sym;
@@ -7011,9 +7008,8 @@ table.
   /* Use the unnamed namespace symbol header.  Allocate it if necessary. */
   if (unnamed_namespace_symbol_header == NULL) {
     unnamed_namespace_symbol_header = alloc_symbol_header();
-    unnamed_namespace_symbol_header->identifier =
-                                 copy_string_for_symbol_header("<unnamed>", 9);
-    unnamed_namespace_symbol_header->identifier_length = 9;
+    set_identifier_for_symbol_header(unnamed_namespace_symbol_header,
+                                     "<unnamed>", 9);
   }  /* if */
   sym = alloc_symbol((a_symbol_kind)sk_namespace,
                      unnamed_namespace_symbol_header, pos);
@@ -7030,8 +7026,7 @@ Return a unique unnamed symbol header.
   a_symbol_header_ptr	sym_hdr;
 
   sym_hdr = alloc_symbol_header();
-  sym_hdr->identifier = copy_string_for_symbol_header("<unnamed>", 9);
-  sym_hdr->identifier_length = 9;
+  set_identifier_for_symbol_header(sym_hdr, "<unnamed>", 9);
   return sym_hdr;
 }  /* make_unnamed_symbol_header */
 
@@ -7065,9 +7060,8 @@ parent object" for an anonymous union.  Do not enter it in the symbol table.
   /* Use the unnamed class symbol header.  Allocate it if necessary. */
   if (anonymous_parent_object_symbol_header == NULL) {
     anonymous_parent_object_symbol_header = alloc_symbol_header();
-    anonymous_parent_object_symbol_header->identifier =
-                                 copy_string_for_symbol_header("<unnamed>", 9);
-    anonymous_parent_object_symbol_header->identifier_length = 9;
+    set_identifier_for_symbol_header(anonymous_parent_object_symbol_header,
+                                     "<unnamed>", 9);
   }  /* if */
   sym = alloc_symbol(kind, anonymous_parent_object_symbol_header, pos);
   sym->decl_scope = decl_scope;
@@ -9217,10 +9211,8 @@ from other assemblies that haven't been loaded yet).
   a_symbol_ptr         sym;
 
   check_assertion(name_con->kind == (a_constant_repr_kind)ck_string);
-  sym_hdr->identifier_length = (sizeof_t)name_con->variant.string.length;
-  sym_hdr->identifier = 
-                  copy_string_for_symbol_header(name_con->variant.string.value,
-                                                sym_hdr->identifier_length);
+  set_identifier_for_symbol_header(sym_hdr, name_con->variant.string.value,
+                                   (sizeof_t)name_con->variant.string.length);
   sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag, sym_hdr,
                      &null_source_position);
   sym->decl_scope = FILE_SCOPE_NUMBER;
