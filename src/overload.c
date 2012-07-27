@@ -20896,6 +20896,17 @@ controls).
     /* The entity is initialized by a brace-enclosed list. */
     a_type_ptr            element_type;
     an_init_component_ptr list = icp->variant.braced.list;
+    if (icp->braced_init_in_parentheses && !dest_type_is_class &&
+        !could_be_dependent_class_type(dest_type)) {
+      /* A parenthesized initializer list containing a single entity must
+         contain an expression, not a braced-init-list.  See [dcl.init]p13. */
+      if (!gpp_mode) {
+        expr_pos_diagnostic(strict_ansi_mode ?
+                                    strict_ansi_discretionary_severity :
+                                    es_warning,
+                            ec_braced_init_in_paren_init, start_position);
+      }  /* if */
+    }  /* if */
     /* The tests that follow are based on the bullet list in [dcl.init.list]
        of the C++11 standard. */
     if (aggregate_case) {

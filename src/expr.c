@@ -63,6 +63,7 @@ static
 an_init_component_ptr scan_init_component_with_potential_pack_expansion(
                                          a_decl_parse_state *dps,
                                          a_boolean          bundle,
+                                         a_boolean          parenthesized,
                                          a_boolean          *expr_not_present);
 static void process_boolean_controlling_expression(an_operand *result);
 static a_boolean operand_is_instantiation_dependent(an_operand *operand);
@@ -218,6 +219,7 @@ opening parenthesis has already been swallowed); otherwise, it's
     icp = scan_init_component_with_potential_pack_expansion(
                                                        dps,
                                                        /*bundle=*/is_full_expr,
+                                                       /*parenthesized=*/TRUE,
                                                        (a_boolean *)NULL);
   } else {
     /* In the non-parenthesized case, it's a simple expression or
@@ -2233,9 +2235,11 @@ indication in *rcblock).
   } else {
     dps->initializer_is_expr_list = TRUE;
     dps->initializer_is_single_expr = TRUE;
-    icp = scan_init_component_with_potential_pack_expansion(dps,
-                                                            /*bundle=*/FALSE,
-                                                            expr_not_present);
+    icp = scan_init_component_with_potential_pack_expansion(
+                                                       dps,
+                                                       /*bundle=*/FALSE,
+                                                       /*parenthesized=*/TRUE,
+                                                       expr_not_present);
     if (icp == NULL) have_result = FALSE;
   }  /* if */
   if (have_result) {
@@ -29170,6 +29174,7 @@ static
 an_init_component_ptr scan_init_component_with_potential_pack_expansion(
                                           a_decl_parse_state *dps,
                                           a_boolean          bundle,
+                                          a_boolean          parenthesized,
                                           a_boolean          *expr_not_present)
 /*
 Scan a single initializer component (expression or braced-init-list)
@@ -29187,6 +29192,8 @@ which is not a conventional initializer context.  bundle is TRUE if
 the expression should be "bundled," meaning packaged with related
 information so it can be saved off to the side (e.g., in an
 initializer cache) for later restoration and further processing.
+parenthesized is TRUE if this component is immediately inside a
+parenthesized initializer.
 */
 {
   an_init_component_ptr icp = NULL;
@@ -29236,6 +29243,15 @@ initializer cache) for later restoration and further processing.
                                                                   first_init));
       flush_initializer_cache(&dps->prescanned_initializer_cache);
     }  /* if */
+  }  /* if */
+  if (icp != NULL && parenthesized && is_braced_init_component(icp)) {
+    /* Mark a single braced-init-list in parentheses, because the C++11
+       standard ([dcl.init]p13) makes that invalid: "If the entity being
+       initialized does not have class type, the expression-list in a
+       parenthesized initializer shall be a single expression."  Since
+       we don't know yet whether the entity has a class type, set a flag
+       to be checked later when we do know. */
+    icp->braced_init_in_parentheses = TRUE;
   }  /* if */
   return icp;
 }  /* scan_init_component_with_potential_pack_expansion */
@@ -34420,9 +34436,11 @@ scan_class_initializer_expression and scan_aggregate_initializer_expression.
   }  /* if */
   set_up_initializer_rescan(dps);
   /* Scan the expression. */
-  icp = scan_init_component_with_potential_pack_expansion(dps,
-                                                          /*bundle=*/FALSE,
-                                                          expr_not_present);
+  icp = scan_init_component_with_potential_pack_expansion(
+                                     dps,
+                                     /*bundle=*/FALSE,
+                                     /*parenthesized=*/!is_copy_initialization,
+                                     expr_not_present);
   if (icp == NULL) {
     /* The expression scanned was a pack expansion that expanded to zero
        expressions, so we have no operand to process. */
@@ -34906,9 +34924,11 @@ a thrown exception) if that is appropriate.
     levels_down = 0;
   }  /* if */
   /* Scan the expression. */
-  icp = scan_init_component_with_potential_pack_expansion(dps,
-                                                          /*bundle=*/FALSE,
-                                                          (a_boolean *)NULL);
+  icp = scan_init_component_with_potential_pack_expansion(
+                                                       dps,
+                                                       /*bundle=*/FALSE,
+                                                       /*parenthesized=*/FALSE,
+                                                       (a_boolean *)NULL);
   *is_pack_expansion = (icp->pack_expansion_descr != NULL);
   extract_operand_from_expression_component(icp, &result, /*free_icp=*/TRUE);
   /* See whether the expression can initialize the aggregate class.  If not,

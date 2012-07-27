@@ -127,6 +127,13 @@ typedef struct an_init_component {
 			   parameter types are prohibited from involving
 			   narrowing conversions.  The narrowing checks
 			   generate errors, not warnings, in these cases. */
+  a_bit_field	braced_init_in_parentheses:1;
+			/* TRUE if this entity is a braced-init-list that
+			   was scanned in a parenthesized initializer that
+			   expects a single expression.  [dcl.init]p13 of
+			   the C++11 standard disallows a parenthesized
+			   initializer of the form ({x}) if the entity being
+			   initialized is not a class. */
   a_pack_expansion_descr_ptr
 		pack_expansion_descr;
 			/* If non-NULL, this entity is a pack expansion

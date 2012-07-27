@@ -801,6 +801,7 @@ kind to "kind" and its fields to default values, and return a pointer to it.
   icp->bundled = FALSE;
   icp->contains_designator = FALSE;
   icp->check_narrowing = FALSE;
+  icp->braced_init_in_parentheses = FALSE;
   icp->pack_expansion_descr = NULL;
   set_init_component_kind(icp, kind);
   return icp;
