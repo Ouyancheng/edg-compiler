@@ -20694,7 +20694,7 @@ controls).
   a_boolean            is_cast = (conv_context & CCO_CAST) != 0;
   a_boolean            try_user_conversions_in_ovl_res =
                                  !(conv_context &
-                                     CCO_SUPPRESS_USER_CONVERSIONS_in_OVL_RES);
+                                     CCO_SUPPRESS_USER_CONVERSIONS_IN_OVL_RES);
   a_symbol_ptr         ctor_sym;
   an_operand           operand;
   a_boolean            dest_type_is_class =
