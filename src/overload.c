@@ -3338,6 +3338,7 @@ argument-passing is copy-initialization).
     a_conv_context_set conv_context =
                               add_conv_context_for_parameter(ptp, CCO_DEFAULT);
     check_assertion(is_braced_init_component(alep));
+    if (!try_user_conversions) conv_context |= CCO_SUPPRESS_USER_CONVERSIONS;
     prep_list_initializer(alep,
                           param_type,
                           /*is_direct_init=*/FALSE,
@@ -5293,8 +5294,6 @@ conv_context describes the context of the conversion.
                                                     inaccessible_match,
                                                     &ostblock);
   if (proj_function_symbol != NULL) {
-    /* Remove namespace projections, if any. */
-    function_symbol = fundamental_symbol_of(proj_function_symbol);
     /* If we have no selector, see if any one of the functions requires one.
        If so, we will look to see if an implicit "this->" can be generated.
        Don't do this for the constructor case (the "this" parameter of the
@@ -5302,22 +5301,11 @@ conv_context describes the context of the conversion.
        cases written in operator form -- they can't be rewritten by
        preceding them with "this->", so a selector should not be invented. */
     if (!ctor_conversion_case && !is_overloaded_operator && !have_selector) {
-      a_routine_ptr routine;
-      a_type_ptr    routine_type;
-      a_boolean     some_function_needs_selector = FALSE;
+      a_type_ptr routine_type;
+      a_boolean  some_function_needs_selector = FALSE;
       /* Check the first or only function to see whether or not it requires
          a selector. */
-      if (function_symbol->kind == (a_symbol_kind)sk_function_template) {
-        /* Template -- might be a member function template. */
-        routine =
-              function_symbol->variant.template_info->variant.function.routine;
-      } else {
-        check_assertion(function_symbol->kind == (a_symbol_kind)sk_routine ||
-                        function_symbol->kind ==
-                                            (a_symbol_kind)sk_member_function);
-        routine = function_symbol->variant.routine.ptr;
-      }  /* if */
-      routine_type = skip_typerefs(routine->type);
+      routine_type = function_or_template_symbol_type(proj_function_symbol);
       if (routine_type_is_nonstatic_member_function(routine_type)) {
         some_function_needs_selector = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5372,6 +5360,8 @@ retry2:
     a_boolean                discarded_because_post_decl;
     a_candidate_function_ptr saved2_candidate_functions = *candidate_functions;
     an_arg_list_elem_ptr     eff_arg_list = arg_list;
+    a_boolean                eff_allow_udc_on_arguments =
+                                                        allow_udc_on_arguments;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_display_overload_level();
@@ -5390,15 +5380,40 @@ retry2:
       /* In the initial pass to match initializer-list constructors, skip
          other kinds of constructors.  In the second pass we analyze all
          constructors. */
-      a_symbol_ptr fund_sym = fundamental_symbol_of(proj_function_symbol);
+      function_symbol = fundamental_symbol_of(proj_function_symbol);
       /* No templates are considered initializer-list constructors. */
-      if (!is_simple_function_symbol(fund_sym) ||
-          !fund_sym->variant.routine.ptr->is_initializer_list_ctor) {
+      if (!is_simple_function_symbol(function_symbol) ||
+          !function_symbol->variant.routine.ptr->is_initializer_list_ctor) {
         goto bottom_of_loop;
       }  /* if */
       /* Try matching this initializer-list constructor using the braced-init-
          list as a single argument. */
       eff_arg_list = init_list_ctor_arg_list;
+      /* [over.best.ics]p4 says no UDCs are allowed in this case. */
+      eff_allow_udc_on_arguments = FALSE;
+    } else if (init_list_ctor_arg_list != NULL &&
+               arg_list != NULL && arg_list->next == NULL) {
+      /* [over.best.ics]p4 says that no user-defined conversions are allowed
+         on the single member of an initializer list on the first argument
+         of (roughly) a copy or move constructor. */
+      function_symbol = fundamental_symbol_of(proj_function_symbol);
+      if (is_special_function_symbol(function_symbol, sfk_constructor)) {
+        a_type_ptr routine_type =
+                             function_or_template_symbol_type(function_symbol);
+        a_param_type_ptr ptp =
+                     routine_type->variant.routine.extra_info->param_type_list;
+        if (ptp != NULL) {
+          a_type_ptr ctor_class_type = sym_parent_class(function_symbol);
+          a_type_ptr param_type = ptp->type;
+          if (is_any_reference_type(param_type)) {
+            param_type = type_pointed_to(param_type);
+          }  /* if */
+          param_type = skip_typerefs(param_type);
+          if (identical_types(ctor_class_type, param_type)) {
+            eff_allow_udc_on_arguments = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
     /* Determine whether the function is viable by looking at the arguments.
        Add the function to the candidates list if it is viable. */
@@ -5414,7 +5429,7 @@ retry2:
                                  implicit_selector_type,
                                  ctor_conversion_case,
                                  effects_copy_initialization,
-                                 allow_udc_on_arguments,
+                                 eff_allow_udc_on_arguments,
                                  arg_dep_lookup_done,
                                  from_arg_dep_lookup,
                                  dependent_call,
@@ -20675,6 +20690,8 @@ controls).
   a_boolean            is_constant;
   a_boolean            braced_init;
   a_boolean            is_cast = (conv_context & CCO_CAST) != 0;
+  a_boolean            try_user_conversions =
+                               !(conv_context & CCO_SUPPRESS_USER_CONVERSIONS);
   a_symbol_ptr         ctor_sym;
   an_operand           operand;
   a_boolean            dest_type_is_class =
@@ -20819,7 +20836,7 @@ controls).
                                   dest_type,
                                   (a_param_type_ptr)NULL,
                                   /*param_type_is_deduced=*/FALSE,
-                                  /*try_user_conversions=*/TRUE,
+                                  try_user_conversions,
                                   /*allow_expl_conv_funcs=*/FALSE,
                                   arg_match);
       }  /* if */
@@ -20906,29 +20923,33 @@ controls).
        of the C++11 standard. */
     if (aggregate_case) {
       /* Aggregate cases go back to the initialization code in decl_inits.c. */
-      an_init_state init_state;
-      an_init_state *eff_is = is;
-      if (eff_is == NULL) {
-        clear_init_state(&init_state);
-        eff_is = &init_state;
-        if (!issue_errors) eff_is->no_diagnostics = TRUE;
-        if (!generate_il) eff_is->check_validity_only = TRUE;
-        if (is_cast) eff_is->force_dynamic_init = TRUE;
-      }  /* if */
-      /* No unbundling here, since we will still want to handle the
-         expressions individually at the next level down. */
-      prep_aggr_initializer(icp, &dest_type, eff_is, fill_in_dtor);
-      constant = eff_is->init_con;
-      dip = eff_is->init_dip;
-      partial_initializer = eff_is->partial_initializer;
-      fill_in_dtor = FALSE;
-      if (arg_match != NULL) {
-        if (eff_is->init_error) {
-          arg_match_err = TRUE;
-        } else {
-          /* [over.ics.list]p4 says initializing an aggregate from a
-             braced-init-list is a user-defined conversion sequence. */
-          arg_match->match_level = aml_user_conversion;
+      if (arg_match && !try_user_conversions) {
+        arg_match_err = TRUE;
+      } else {
+        an_init_state init_state;
+        an_init_state *eff_is = is;
+        if (eff_is == NULL) {
+          clear_init_state(&init_state);
+          eff_is = &init_state;
+          if (!issue_errors) eff_is->no_diagnostics = TRUE;
+          if (!generate_il) eff_is->check_validity_only = TRUE;
+          if (is_cast) eff_is->force_dynamic_init = TRUE;
+        }  /* if */
+        /* No unbundling here, since we will still want to handle the
+           expressions individually at the next level down. */
+        prep_aggr_initializer(icp, &dest_type, eff_is, fill_in_dtor);
+        constant = eff_is->init_con;
+        dip = eff_is->init_dip;
+        partial_initializer = eff_is->partial_initializer;
+        fill_in_dtor = FALSE;
+        if (arg_match != NULL) {
+          if (eff_is->init_error) {
+            arg_match_err = TRUE;
+          } else {
+            /* [over.ics.list]p4 says initializing an aggregate from a
+               braced-init-list is a user-defined conversion sequence. */
+            arg_match->match_level = aml_user_conversion;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (could_be_dependent_class_type(dest_type)) {
@@ -20948,19 +20969,23 @@ controls).
                                               /*nontrivial_only=*/FALSE)) {
       /* A class with a default constructor, initialized by "{}" -- do
          value initialization. */
-      p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
-      value_initialization(dest_type,
-                           &icp->variant.braced.start_pos,
-                           &is_constant, &dip, &constant,
-                           p_error_detected);
-      if (arg_match != NULL) {
-        if (error_detected) {
-          arg_match_err = TRUE;
-        } else {
-          /* [over.ics.list]p3 says initializing a non-aggregate class
-             from a braced-init-list, calling a constructor, is a
-             user-defined conversion sequence. */
-          arg_match->match_level = aml_user_conversion;
+      if (arg_match != NULL && !try_user_conversions) {
+        arg_match_err = TRUE;
+      } else {
+        p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
+        value_initialization(dest_type,
+                             &icp->variant.braced.start_pos,
+                             &is_constant, &dip, &constant,
+                             p_error_detected);
+        if (arg_match != NULL) {
+          if (error_detected) {
+            arg_match_err = TRUE;
+          } else {
+            /* [over.ics.list]p3 says initializing a non-aggregate class
+               from a braced-init-list, calling a constructor, is a
+               user-defined conversion sequence. */
+            arg_match->match_level = aml_user_conversion;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (dest_type_is_class &&
@@ -20999,21 +21024,22 @@ controls).
         /* Overload resolution. */
         a_conv_descr conversion;
         a_boolean    ambiguous;
-        if (conversion_to_class_possible((an_operand *)NULL,
-                                         icp,
-                                         dest_type,
-                                         /*try_bitwise_copy=*/TRUE,
-                                         /*is_copy_initialization=*/
+        if (try_user_conversions &&
+            (conversion_to_class_possible((an_operand *)NULL,
+                                          icp,
+                                          dest_type,
+                                          /*try_bitwise_copy=*/TRUE,
+                                          /*is_copy_initialization=*/
                                                                !is_direct_init,
-                                         /*orig_is_copy_initialization=*/
+                                          /*orig_is_copy_initialization=*/
                                                                !is_direct_init,
-                                         /*is_reference_binding=*/FALSE,
-                                         conv_context,
-                                         &conversion,
-                                         (a_conv_descr *)NULL,
-                                         &ambiguous,
-                                         (a_candidate_function_ptr *)NULL) ||
-            ambiguous) {
+                                          /*is_reference_binding=*/FALSE,
+                                          conv_context,
+                                          &conversion,
+                                          (a_conv_descr *)NULL,
+                                          &ambiguous,
+                                          (a_candidate_function_ptr *)NULL) ||
+             ambiguous)) {
           /* [over.ics.list]p3 says initializing a non-aggregate class
              from a braced-init-list, calling a constructor, is a
              user-defined conversion sequence. */
@@ -21113,8 +21139,9 @@ controls).
     } else if (is_any_reference_type(dest_type)) {
       /* For a reference, allocate a temporary and copy-list-initialize it
          from the braced-init-list. */
-      a_conv_context_set rconv_context =
-                            conv_context & (CCO_CAST | CCO_FUNC_NOTATION_CAST);
+      a_conv_context_set rconv_context = conv_context &
+                                         (CCO_CAST | CCO_FUNC_NOTATION_CAST |
+                                          CCO_SUPPRESS_USER_CONVERSIONS);
       a_type_ptr         underlying_type = type_pointed_to(dest_type);
       if (!is_class_struct_union_type(underlying_type) &&
           is_lvalue_reference_type(dest_type) &&
