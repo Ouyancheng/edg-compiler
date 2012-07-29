@@ -231,10 +231,11 @@ typedef int a_conv_context_set;
 #define CCO_MAKE_LVALUE_TEMP_FOR_LIST_INIT ((a_conv_context_set)0x1000)
 			/* Force generation of an lvalue temporary (instead
 			   of the usual rvalue) for a list initialization. */
-#define CCO_SUPPRESS_USER_CONVERSIONS ((a_conv_context_set)0x2000)
-			/* Suppress user-defined conversions for some specific
-			   reason related to the context (i.e., not just
-			   because this is copy-initialization). */
+#define CCO_SUPPRESS_USER_CONVERSIONS_in_OVL_RES ((a_conv_context_set)0x2000)
+			/* Suppress user-defined conversions in overload
+			   resolution for some specific reason related to
+			   the context (i.e., not just because this is
+			   copy-initialization). */
 
 /*
 Data structure used by set_up_overload_set_traversal et al. to control the

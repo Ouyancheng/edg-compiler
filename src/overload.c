@@ -3338,7 +3338,9 @@ argument-passing is copy-initialization).
     a_conv_context_set conv_context =
                               add_conv_context_for_parameter(ptp, CCO_DEFAULT);
     check_assertion(is_braced_init_component(alep));
-    if (!try_user_conversions) conv_context |= CCO_SUPPRESS_USER_CONVERSIONS;
+    if (!try_user_conversions) {
+      conv_context |= CCO_SUPPRESS_USER_CONVERSIONS_IN_OVL_RES;
+    }  /* if */
     prep_list_initializer(alep,
                           param_type,
                           /*is_direct_init=*/FALSE,
@@ -20690,8 +20692,9 @@ controls).
   a_boolean            is_constant;
   a_boolean            braced_init;
   a_boolean            is_cast = (conv_context & CCO_CAST) != 0;
-  a_boolean            try_user_conversions =
-                               !(conv_context & CCO_SUPPRESS_USER_CONVERSIONS);
+  a_boolean            try_user_conversions_in_ovl_res =
+                                 !(conv_context &
+                                     CCO_SUPPRESS_USER_CONVERSIONS_in_OVL_RES);
   a_symbol_ptr         ctor_sym;
   an_operand           operand;
   a_boolean            dest_type_is_class =
@@ -20836,7 +20839,7 @@ controls).
                                   dest_type,
                                   (a_param_type_ptr)NULL,
                                   /*param_type_is_deduced=*/FALSE,
-                                  try_user_conversions,
+                                  try_user_conversions_in_ovl_res,
                                   /*allow_expl_conv_funcs=*/FALSE,
                                   arg_match);
       }  /* if */
@@ -20923,7 +20926,7 @@ controls).
        of the C++11 standard. */
     if (aggregate_case) {
       /* Aggregate cases go back to the initialization code in decl_inits.c. */
-      if (arg_match && !try_user_conversions) {
+      if (arg_match && !try_user_conversions_in_ovl_res) {
         arg_match_err = TRUE;
       } else {
         an_init_state init_state;
@@ -20969,7 +20972,7 @@ controls).
                                               /*nontrivial_only=*/FALSE)) {
       /* A class with a default constructor, initialized by "{}" -- do
          value initialization. */
-      if (arg_match != NULL && !try_user_conversions) {
+      if (arg_match != NULL && !try_user_conversions_in_ovl_res) {
         arg_match_err = TRUE;
       } else {
         p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
@@ -21024,7 +21027,7 @@ controls).
         /* Overload resolution. */
         a_conv_descr conversion;
         a_boolean    ambiguous;
-        if (try_user_conversions &&
+        if (try_user_conversions_in_ovl_res &&
             (conversion_to_class_possible((an_operand *)NULL,
                                           icp,
                                           dest_type,
@@ -21140,8 +21143,8 @@ controls).
       /* For a reference, allocate a temporary and copy-list-initialize it
          from the braced-init-list. */
       a_conv_context_set rconv_context = conv_context &
-                                         (CCO_CAST | CCO_FUNC_NOTATION_CAST |
-                                          CCO_SUPPRESS_USER_CONVERSIONS);
+                                    (CCO_CAST | CCO_FUNC_NOTATION_CAST |
+                                     CCO_SUPPRESS_USER_CONVERSIONS_IN_OVL_RES);
       a_type_ptr         underlying_type = type_pointed_to(dest_type);
       if (!is_class_struct_union_type(underlying_type) &&
           is_lvalue_reference_type(dest_type) &&
