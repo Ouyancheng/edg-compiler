@@ -29304,8 +29304,8 @@ expansion), this routine return NULL.
        when the list is prescanned to resolve an "auto" declaration. */
     icp = fetch_init_component_from_initializer_cache(
                                                 expr_stack->initializer_cache);
-    check_assertion(!is_braced_init_component(icp) &&
-                    !cached_initializer_present());
+    check_assertion_or_expect_error(!is_braced_init_component(icp) &&
+                                    !cached_initializer_present());
   } else {
     /* Scan the expression from source. */
     if (allow_empty_expansion) {
