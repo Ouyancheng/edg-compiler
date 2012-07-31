@@ -1086,7 +1086,7 @@ static void aggr_init_array_remainder_if_needed(a_constant_ptr     array_con,
 /*
 An array of elements of type etype has an initializer that doesn't initialize
 all the array elements.  array_con points to an ck_aggregate constant that
-represent the explicit initialization (unless is->check_validity_only flag is
+represents the explicit initialization (unless is->check_validity_only flag is
 FALSE).  Check that the remaining elements of the array can be initialized, and
 if the flag is->check_validity_only is FALSE and the remaining elements need
 dynamic initialization, append a constant representing that initialization to
