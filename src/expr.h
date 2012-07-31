@@ -519,7 +519,8 @@ an_init_component_ptr scan_braced_init_list(a_boolean          is_full_expr,
                                             a_decl_parse_state *dps);
 
 extern an_init_component_ptr scan_full_initializer_expr_as_component(
-                                                     a_decl_parse_state *dps);
+                                     a_decl_parse_state *dps,
+                                     a_boolean          allow_empty_expansion);
 
 extern
 void convert_initializer(an_init_component_ptr icp,

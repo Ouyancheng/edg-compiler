@@ -29258,12 +29258,15 @@ parenthesized initializer.
 
 
 an_init_component_ptr scan_full_initializer_expr_as_component(
-                                                      a_decl_parse_state *dps)
+                                     a_decl_parse_state *dps,
+                                     a_boolean          allow_empty_expansion)
 /*
-Scan an initializer that is a non-brace-enclosed expression and return it as
-an initializer component.  dps (which must be non-NULL) describes the state of
-the current declaration (i.e., the declaration of the variable being
-initialized).
+Scan an initializer that is a non-brace-enclosed expression and return it as an
+initializer component.  dps (which must be non-NULL) describes the state of the
+current declaration (i.e., the declaration of the object being initialized).
+If allow_empty_expansion is TRUE, pack expansions are permissible but they have
+to expand to zero or one expressions: In the case of "zero" (an empty pack
+expansion), this routine return NULL.
 */
 {
   an_expr_stack_entry   *saved_expr_stack;
@@ -29286,7 +29289,9 @@ initialized).
   } else if (favor_constant_result_for_nonstatic_init) {
     expr_stack_entry.favor_constant_result = TRUE;
   }  /* if */
-  if (symbol_is(dps->sym, sk_static_data_member)) {
+  if (dps->sym == NULL) {
+    /* A mem-initializer. */
+  } else if (symbol_is(dps->sym, sk_static_data_member)) {
     /* Record entities defined in the initializer expression (needed for
        correspondence checking and name mangling when the static data
        member is a template instance).  In the case of aggregate
@@ -29313,7 +29318,17 @@ initialized).
                     !cached_initializer_present());
   } else {
     /* Scan the expression from source. */
-    icp = scan_expr_as_init_component(/*bundle_lifetimes=*/TRUE);
+    if (allow_empty_expansion) {
+      /* Permit empty pack expansions. */
+      a_boolean  expr_not_present = FALSE;
+      dps->initializer_is_expr_list = TRUE;
+      dps->initializer_is_single_expr = TRUE;
+      icp = scan_init_component_with_potential_pack_expansion(
+                                 dps, /*bundle=*/TRUE, /*parenthesized=*/TRUE,
+                                 &expr_not_present);
+    } else {
+      icp = scan_expr_as_init_component(/*bundle=*/TRUE);
+    }  /* if */
   }  /* if */
   if (sdm_var != NULL) {
     /* Stop the recording of entities defined in the expression (not strictly

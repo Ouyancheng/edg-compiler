@@ -61,54 +61,6 @@ aconstant.
 }  /* append_constant_in_aggr */
 
 
-/*
-Data structure containing information to be passed among get_initializer
-and its subroutines.  There is one such entry for each top-level (i.e.,
-non-recursive) call to get_initializer.
-*/
-typedef struct an_aggregate_init_info *an_aggregate_init_info_ptr;
-typedef struct an_aggregate_init_info {
-  a_decl_parse_state
-		*dps;
-			/* Points to the state information for the declaration,
-			   sometimes fabricated (e.g., for compound
-			   literals). */
-  a_boolean	static_lifetime;
-			/* TRUE when the variable being initialized has
-			   static lifetime. */
-  a_boolean	any_uninitialized_member;
-			/* Set to TRUE if any member of the aggregate remains
-			   uninitialized. */
-  a_boolean	compound_literal;
-			/* Set to TRUE when get_initializer is called to parse
-			   a compound literal. */
-  a_boolean     uses_designated_initializers;
-                        /* Set to TRUE if any member of the aggregate was
-                           initialized by a designated initializer. */
-} an_aggregate_init_info;
-
-
-/*
-Data structure to represent the context of the current get_initializer
-processing.  A new entry is created each time get_initializer is called,
-and when they are linked together, they create a context stack.
-*/
-typedef struct an_aggregate_init_context *an_aggregate_init_context_ptr;
-typedef struct an_aggregate_init_context {
-  a_type_ptr	type;
-			/* The type of the aggregate or subaggregate
-			   associated with this context structure.  An error
-			   type if we've lost our position because of
-			   errors. */
-  a_byte_boolean
-		any_dynamic_initialization;
-			/* Flag that is TRUE if the current aggregate member
-			   requires dynamic initialization.  This information
-			   percolates back up when returning from recursive
-			   calls to get_initializer. */
-} an_aggregate_init_context;
-
-
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- init_info is not used in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -245,171 +197,6 @@ standard C behavior of trimming the terminating null character if needed),
 }  /* check_string_constant_initializer_full */
 
 
-static a_boolean tentative_aggregate_init(
-                           a_decl_parse_state          *dps,
-                           an_aggregate_init_info_ptr  init_info,
-                           an_aggregate_init_context   *context,
-                           a_boolean                   allow_whole_string_init,
-                           a_constant_ptr              *init_constant);
-
-
-static a_boolean process_string_constant_initializer(
-                                 a_type_ptr                     *type_ptr,
-                                 a_constant_ptr                 *init_con,
-                                 a_decl_parse_state             *dps,
-                                 an_aggregate_init_info_ptr     init_info,
-                                 an_aggregate_init_context_ptr  init_context)
-/*
-If the variable type (given in *type_ptr) is a character array and the
-initializer is a string literal, return TRUE and update *init_con to indicate
-the initialization that is specified.  The given string constant must be
-acceptable as an initial value for the string type *type.  Change the
-constant's type, or remove the final null from a string literal, if necessary.
-If *type_ptr is an incomplete type, change it to reflect the actual size of
-the string literal. (Note the extra level of indirection that allows that.)
-If there is an error, issue an error and return an error constant.
-During prototype instantiations, *type_ptr may also be an array whose
-element type is template dependent.  If this is part of an aggregate
-initialization, init_info and init_context are pointers to blocks of
-information tracking this initialization; otherwise, these pointers
-are NULL.  When they are NULL, dps provides the decl parse state
-block, which otherwise would be found in init_info->dps.  However,
-dps can also be NULL in some cases.  When this initialization is
-part of an aggregate, if the initializer expression initializes the
-first character of the string instead of the whole string, the
-initializer is put into the cache and FALSE is returned, letting the
-caller handle it.
-*/
-{
-  a_boolean          is_string_init = FALSE;
-  a_boolean          is_parenthesized = FALSE;
-  a_source_position  lparen_pos;
-  a_constant_ptr     con_from_expr_scan;
-  a_constant_ptr     cp;
-  a_boolean          err = FALSE;
-  a_boolean          using_prescanned_constant = FALSE;
-
-  if (init_info != NULL) dps = init_info->dps;
-  if (is_string_type(*type_ptr) ||
-      (is_array_type(*type_ptr) &&
-       is_template_param_type(array_element_type(*type_ptr)))) {
-    /* The entity has or might have a string type, so check for a string
-       initializer. */
-    if (dps != NULL &&
-        (anything_cached(&dps->prescanned_initializer_cache) ||
-         (is_parenthesized = (curr_token == tok_lparen)) != FALSE)) {
-      /* An expression starting with a parenthesis is next.  It might be a
-         parenthesized string literal, a string literal cast to "char*"
-         (treated like a string literal in Microsoft mode), or something else
-         altogether.  Or, we've previously cached an expression, which we
-         pick up out of the cache here. */
-      if (is_parenthesized) lparen_pos = pos_curr_token;
-      /* Scan the expression and see whether it matches the string type. */
-      if (!tentative_aggregate_init(dps, init_info, init_context,
-                                    /*allow_whole_string_init=*/TRUE,
-                                    &con_from_expr_scan)) {
-        /* The initializer expression initializes the first character of
-           the string, so leave it in the cache and return FALSE. */
-        is_string_init = FALSE;
-        goto done;
-      }  /* if */
-      /* The expression initializes the string itself, so go on and use
-         the constant below. */
-      cp = con_from_expr_scan;
-      using_prescanned_constant = TRUE;
-      if (cp->kind == (a_constant_repr_kind)ck_string) {
-        is_string_init = TRUE;
-      }  /* if */
-    } else {
-      /* Look for a string literal token that initializes the string. */
-      if (curr_token == tok_string_literal) {
-        is_string_init = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (curr_token == tok_microsoft_lprefix &&
-                 set_curr_token_to_microsoft_lprefix_operator_string()) {
-        is_string_init = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } else if (token_is_function_name_string_literal(curr_token)) {
-        /* In some modes, keywords like __FUNCTION__ are treated as
-           string literals. */
-        set_curr_token_to_function_name_string(/*do_concat=*/TRUE);
-        is_string_init = TRUE;
-      }  /* if */
-      /* If the current token is a string literal (or equivalent), check
-         whether it is "standalone" or followed by an operator (a comma is not
-         an operator in this context).  The latter case is not a string
-         initializer case. */
-      if (is_string_init && !token_ends_initializer(next_token())) {
-        is_string_init = FALSE;
-      }  /* if */
-      if (is_string_init) {
-        /* Do concatenations like "abc" __FUNCTION__. */
-        (void)do_expression_level_string_literal_concatenation();
-        cp = &const_for_curr_token;
-        if (cp->kind != (a_constant_repr_kind)ck_string) {
-          /* The constant is not a string. */
-          err = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  if (is_string_init) {
-    /* The object being initialized has type array of character, and
-       is being initialized with a string. */
-    a_type_ptr  orig_const_type;
-    /* check_string_constant_initializer may trim the string (hence modifying
-       its type).  Save the original type in case it is needed in a
-       diagnostic. */
-    orig_const_type = cp->type;
-    if (!err) {
-      err = !check_string_constant_initializer(type_ptr, cp);
-    }  /* if */
-    if (err) {
-      /* There was an error of some kind. */
-      if (!is_error_type(cp->type)) {
-        pos_ty2_error(ec_bad_initializer_type, &error_position,
-                      orig_const_type, *type_ptr);
-      }  /* if */
-      *init_con = alloc_error_constant();
-    } else {
-      a_type_ptr  array_type = skip_typerefs(*type_ptr);
-      if (!using_prescanned_constant) {
-        /* Allocate the string constant. */
-        *init_con = alloc_unshared_constant(cp);
-      } else {
-        /* The prescanned constant was already allocated. */
-        *init_con = cp;
-      }  /* if */
-      if (init_info != NULL && !is_incomplete_type(array_type) &&
-          !has_unknown_specified_bound(array_type)) {
-        /* Aggregate initialization of an array: Record if any elements remain
-           uninitialized. */
-        if (array_type->variant.array.variant.number_of_elements
-                                                 > cp->variant.string.length) {
-          init_info->any_uninitialized_member = TRUE;
-        }  /* if */
-      }  /* if */
-      if (is_parenthesized && strict_ansi_mode) {
-        /* Parenthesizing a string initializer is nonstandard, but most
-           compilers appear to silently accept such constructs. */
-        pos_diagnostic(strict_ansi_discretionary_severity,
-                       ec_nonstandard_parenthesized_string_initializer,
-                       &lparen_pos);
-      }  /* if */
-    }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    curr_construct_end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (!using_prescanned_constant) {
-      /* Bypass the string and the right paren, if appropriate. */
-      (void)get_token();
-    }  /* if */
-  }  /* if */
-done:
-  return is_string_init;
-}  /* process_string_constant_initializer */
-
-
 static void copy_ctor_default_args_to_dynamic_init(a_dynamic_init_ptr  dip)
 /*
 dip points to a dik_constructor dynamic init entry.  Make a copy of the
@@ -502,248 +289,6 @@ field or array element.
                                        /*block_lifetime=*/FALSE);
   }  /* if */
 }  /* add_dtor_for_partially_constructed_aggregate */
-
-
-static a_constant_ptr scan_initializer_of_simple_object(
-                        a_decl_parse_state            *dps,
-                        an_aggregate_init_info_ptr    init_info,
-                        an_aggregate_init_context_ptr init_context,
-                        a_boolean                     nonconst_allowed,
-                        a_boolean                     static_lifetime,
-                        a_boolean                     force_object_lifetime,
-                        a_boolean                     suppress_object_lifetime,
-                        a_boolean                     is_copy_initialization,
-                        a_boolean                     *is_pack_expansion,
-                        a_boolean                     *expr_not_present,
-                        a_type_ptr                    *p_type,
-                        a_dynamic_init_ptr            *dip_ptr)
-/*
-Scan a nonaggregate initializer (i.e., not a brace-enclosed expression
-list).  dps describes the declaration directly associated with this
-initializer (it's always non-NULL, but it may be fabricated, e.g., for
-ctor-initializers).  If the initializer is an element in an aggregate
-initialization, init_info and init_context give context information on
-the aggregate initialization; otherwise, they are NULL.  If
-nonconst_allowed is TRUE (always the case in C++, sometimes otherwise)
-a nonconstant expression is allowed; if not, a constant is required.
-If static_lifetime is TRUE, the underlying entity has static storage
-duration.  force_object_lifetime is TRUE only in C++ mode and only
-when this function is called in scanning an entry in a ctor
-initializer list; it is passed on to scan_initializer_expression to
-force creation of an object lifetime for expression temporaries even
-if long_lifetime_temps is TRUE.  Conversely, suppress_object_lifetime
-is TRUE when no object lifetime entry should be generated (used when
-parsing compound literals in C++ mode).  If is_copy_initialization is
-TRUE, this is copy-initialization ("="-form); otherwise, it's
-direct-initialization ("()"-form).  *p_type is the data type of the
-object being initialized.  It may be updated if it is an incomplete
-string type and the initializer is a string constant.  dip_ptr is a
-pointer to a dynamic init pointer; if the latter is NULL, a dynamic
-init entry may be allocated and returned, but if *dip_ptr is non-NULL,
-build the initialization information into the object it points to.  A
-(possibly NULL) constant pointer is returned; iff *dip_ptr is updated,
-NULL is returned.  Thus, if nonconst_allowed is FALSE, return a
-pointer to a constant entry.  Otherwise, if the initializer is a
-constant value then return a pointer to a constant only if *dip_ptr is
-NULL.  If the initializer is nonconstant or *dip_ptr is non-NULL,
-return a NULL constant pointer and build *dip_ptr to represent the
-initialization.  If is_pack_expansion is non-NULL, *is_pack_expansion
-is returned TRUE if the initializer expression scanned is a variadic
-template pack expansion.  If expr_not_present is non-NULL, and an
-expression is present but it's a pack expansion that expands to zero
-expressions, return NULL and *expr_not_present TRUE.
-*/
-{
-  an_expr_node_ptr expression;
-  a_boolean        is_constant;
-  a_constant       constant, *cp = NULL;
-
-  check_assertion(dps != NULL);
-  if (is_pack_expansion != NULL) *is_pack_expansion = FALSE;
-  if (expr_not_present != NULL) *expr_not_present = FALSE;
-  if (process_string_constant_initializer(p_type, &cp, dps,
-                                          init_info, init_context)) {
-    /* The object being initialized has type pointer to (narrow or wide)
-       characters, and is being initialized with a string. */
-    is_constant = TRUE;
-  } else if (nonconst_allowed) {
-    /* Scan a potentially non-constant initializer expression.  The result
-       of the scan is a constant if the expression is constant, and an
-       expression node if not. */
-    scan_initializer_expression(
-                         *p_type, dps, static_lifetime, force_object_lifetime,
-                         suppress_object_lifetime, is_copy_initialization,
-                         is_pack_expansion, expr_not_present,
-                         &is_constant, &expression, &constant);
-  } else {
-    /* Non-constant is not allowed. */
-    scan_constant_initializer_expression(*p_type, dps, &constant);
-    is_constant = TRUE;
-  }  /* if */
-  if (expr_not_present != NULL && *expr_not_present) {
-    /* No expression or constant to return. */
-    cp = NULL;
-  } else if (is_constant) {
-    /* Constant. */
-    if (cp == NULL) cp = alloc_unshared_constant(&constant);
-    if (*dip_ptr == NULL) {
-      /* If the caller has not preallocated a dynamic init entry, it signals
-         that a constant should be returned. */
-    } else {         
-      /* Even though this is a constant, the initialization is dynamic. */
-      clear_dynamic_init(*dip_ptr, (a_dynamic_init_kind)dik_constant);
-      (*dip_ptr)->variant.constant = cp;
-      /* Since the constant is being returned in the dynamic init entry,
-         avoid confusion and set cp to NULL. */
-      cp = NULL;
-    }  /* if */
-  } else {
-    /* Non-constant. */
-    /* Set the dynamic init entry to represent non-constant assignment
-       initialization. */
-    if (*dip_ptr == NULL) {
-      /* A new one needs to be allocated. */
-      *dip_ptr = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-    } else {
-      /* Use the one whose address is pointed to by dip_ptr. */
-      clear_dynamic_init(*dip_ptr, (a_dynamic_init_kind)dik_expression);
-    }  /* if */
-    (*dip_ptr)->variant.expression = expression;
-  }  /* if */
-  return cp;
-}  /* scan_initializer_of_simple_object */
-
-
-static a_boolean tentative_aggregate_init(
-                           a_decl_parse_state          *dps,
-                           an_aggregate_init_info_ptr  init_info,
-                           an_aggregate_init_context   *context,
-                           a_boolean                   allow_whole_string_init,
-                           a_constant_ptr              *init_constant)
-/*
-We are parsing an aggregate initializer, with the state of processing
-described by init_info and context.  The next construct is expected to
-be an expression that may (or may not, hence "tentative") initialize a
-complete aggregate (array or class) subobject.  If the expression
-initializes the whole aggregate (for the meaning of that, see
-process_whole_object_init), the initializer is returned through
-*init_constant, and TRUE is returned.  In all other cases, the
-initializer expression is cached for scanning at some other level, and
-FALSE is returned.  If the cache already contains something on entry,
-its first expression is consumed instead of scanning another one from
-source.  If allow_whole_string_init is FALSE, the initialization of an
-array by a string literal is not considered an aggregate
-initialization by this routine, and FALSE is returned for that case.
-In some cases involving initializing an array of characters with
-a string, init_info and context are NULL, and dps provides the
-decl parse state, which otherwise is gotten from init_info->dps.
-*/
-{
-  a_boolean                      is_whole_object_init = TRUE;
-  a_boolean                      is_constant = FALSE;
-  a_boolean                      whole_string_init = FALSE;
-  a_boolean                      is_pack_expansion;
-  a_constant                     constant;
-  a_class_symbol_supplement_ptr  cssp = NULL;
-  a_dynamic_init_ptr             dip;
-  a_type_ptr                     entity_type;
-
-  if (init_info != NULL) dps = init_info->dps;
-  entity_type = (context != NULL) ? context->type : dps->type;
-  check_assertion(dps != NULL);
-  if (is_class_struct_union_type(entity_type)) {
-    cssp = symbol_supplement_for_class(entity_type);
-    check_assertion_str(c99_mode || gcc_mode ||
-                        cssp->has_copy_constructor ||
-                        cssp->has_user_declared_move_constructor ||
-                        cssp->construction_by_bitwise_copy_allowed ||
-                        skip_typerefs(entity_type)->
-                                variant.class_struct_union.is_nonreal_class,
-                        "tentative_aggregate_init: missing copy constructor");
-  }  /* if */
-  /* See whether we can initialize the entire aggregate with the next
-     expression. */
-  if (!scan_aggregate_initializer_expression(
-                                  entity_type,
-                                  ((init_info != NULL) ?
-                                       init_info->static_lifetime : FALSE),
-                                  ((init_info != NULL) ?
-                                       init_info->compound_literal : FALSE),
-                                  dps,
-                                  (allow_whole_string_init ?
-                                       NULL :
-                                       &whole_string_init),
-                                  &is_pack_expansion,
-                                  &is_constant, &dip, &constant)) {
-    /* The initializer expression doesn't match the aggregate or any of
-       its first members.  An error has been issued already. */
-  } else if (dps->prescanned_initializer_levels_down > 0) {
-    /* The expression next up does not apply at this level.  It is supposed
-       to initialize the first member of the aggregate (or its first member,
-       etc.).  Leave it in the cache and pick it up at another level. */
-    is_whole_object_init = FALSE;
-  } else if (whole_string_init) {
-    /* The caller asked us not to treat the initialization of a whole
-       string as a whole-object initialization, so leave the initializing
-       string in the cache to be picked up elsewhere. */
-    is_whole_object_init = FALSE;
-  } else {
-    /* Whole-object initialization applies at the current level. */
-    if (is_constant) {
-      /* A constant initializer. */
-      *init_constant = alloc_unshared_constant(&constant);
-      if (init_info != NULL &&
-          constant.uses_designated_initializers) {
-        /* Propagate the use of designated initializers upwards. */
-        init_info->uses_designated_initializers = TRUE;
-      }  /* if */
-    } else {
-      /* A dynamic initialization. */
-      check_assertion(dip != NULL);
-      *init_constant = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      (*init_constant)->variant.dynamic_init = dip;
-      if (init_info != NULL &&
-          dip->kind == (a_dynamic_init_kind)dik_constant &&
-          dip->variant.constant->uses_designated_initializers) {
-        /* Propagate the use of designated initializers upwards. */
-        init_info->uses_designated_initializers = TRUE;
-      }  /* if */
-    }  /* if */
-    if (is_pack_expansion) {
-      (*init_constant)->is_pack_expansion = TRUE;
-    }  /* if */
-    if (context != NULL) {
-      if ((*init_constant)->kind == (a_constant_repr_kind)ck_string) {
-        /* Don't change the type of a string literal because
-           check_string_constant_initializer_full will have set it
-           appropriately already.  The assignment here would revert a
-           known array size (set from the constant length) to an
-           unknown array size for a flexible array initializer. */
-      } else {
-        (*init_constant)->type = rvalue_type(context->type);
-      }  /* if */
-      if (!is_constant) {
-        context->any_dynamic_initialization = TRUE;
-        /* We should only get here for class types (as opposed to native array
-           types) or C++/CLI array types.  If we emulate GNU C++ whole-object
-           initialization using nonconstant compound literals, some array
-           cases may get here too, and the following may need to be
-           revised. */
-        if (cssp != NULL && exceptions_enabled) {
-          if (has_nontrivial_destructor(cssp)) {
-            /* If appropriate, add a destructor pointer to the dynamic
-               init entry.  This is for the case in which an exception is
-               thrown by the constructor before the entire array has been
-               initialized. */
-            a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
-            add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_whole_object_init;
-}  /* tentative_aggregate_init */
 
 
 static void gen_dynamic_initialization(
@@ -3351,6 +2896,85 @@ is part of.  diag_pos is the position to be used by default for diagnostics
 }  /* brace_init_variable */
 
 
+static void expr_direct_init_object(a_decl_parse_state  *dps,
+                                    an_id_linkage_kind  linkage,
+                                    a_source_position   *diag_pos,
+                                    a_boolean           *expr_not_present)
+/*
+Scan and process the expression in a parenthesized variable or member
+initializer (both are "direct" initializers) where the initialization is not
+via a constructor (e.g., The expression "4" in "int x(4);" or in
+"struct S { S(): x(4) {} int x; };").  dps is the declaration parsing state
+associated with the initialization (a synthetic state in the case of member
+initialization) and idl_linkage describes the linkage of the variable being
+initialized (or idl_none for member initializers).  diag_pos is the position
+to use for diagnostics when no more specific position is available.
+If expr_not_present is non-NULL, a missing expression is permissible as the
+consequence of an empty pack expansion.  In such empty pack expansion cases
+*expr_not_present is set to TRUE and the routine has no further effect;
+otherwise, *expr_not_present is FALSE.
+*/
+{
+  an_init_component_ptr  expr_icp;
+  an_init_state          *is = &dps->init_state;
+  a_boolean              is_var_init;
+  a_boolean              saved_force_dynamic_init = is->force_dynamic_init;
+
+  is_var_init = dps->sym != NULL && var_for_symbol(dps->sym) != NULL;
+  is->direct_init = TRUE;
+  /* If this is not a variable initialization, then an empty pack expansion
+     is allowed. */
+  expr_icp = scan_full_initializer_expr_as_component(
+                                               dps, expr_not_present != NULL);
+  if (expr_not_present != NULL) {
+    if (expr_icp == NULL) {
+      *expr_not_present = TRUE;
+      goto done;
+    } else {
+      *expr_not_present = FALSE;
+    }  /* if */
+  }  /* if */
+  check_assertion(expr_icp != NULL && expr_icp->next == NULL);
+  if (is_error_component(expr_icp)) {
+    /* An error occurred earlier.  Continue with an error constant. */
+    is->init_con = alloc_error_constant();
+    is->init_error = TRUE;
+    if (is_incomplete_array_type(dps->type)) dps->type = error_type();
+  } else if ((is_string_type(dps->type) ||
+              (is_array_type(dps->type) &&
+               is_template_param_type(array_element_type(dps->type)))) &&
+             try_string_literal_init(expr_icp, &dps->type, is,
+                                     &is->init_con)) {
+    /* String initialization. */
+  } else {
+    /* Ordinary initialization. */
+    is->elements_are_full_expressions = TRUE;
+    convert_initializer(expr_icp, dps->type, is_var_init,
+                        /*fill_in_dtor=*/TRUE, is);
+  }  /* if */
+  free_init_component_list(expr_icp);
+  is->force_dynamic_init = saved_force_dynamic_init;
+  if ((is_aggregate_type(dps->type) && !is->init_error) ||
+      (is->force_dynamic_init && is->init_dip == NULL)) {
+    /* The routines for aggregate initialization produce a constant entry, but
+       those entries may embed a dynamic initialization.  If so, return a
+       dynamic initialization entry for a nonconstant aggregate to the caller.
+       Also produce a dynamic init entry if the caller requested it through the
+       force_dynamic_init state flag. */
+    prep_initializer_result(is, /*dtor_rp=*/(a_routine_ptr)NULL);
+  }  /* if */
+  if (is_var_init) {
+    a_variable_ptr  vp = var_for_symbol(dps->sym);
+    if (is_incomplete_array_type(vp->type) &&
+        (is_array_type(dps->type) || is_error_type(dps->type))) {
+      put_type_back_into_variable(vp, dps->sym, diag_pos, linkage, dps->type);
+      dps->type = vp->type;
+    }  /* if */
+  }  /* if */
+done:;
+}  /* expr_direct_init_object */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3397,7 +3021,8 @@ to use for diagnostics by default.
     pos_error(ec_missing_initializer_list, &pos_curr_token);
     missing_braces_diagnosed = TRUE;
   }  /* if */
-  expr_icp = scan_full_initializer_expr_as_component(dps);
+  expr_icp = scan_full_initializer_expr_as_component(
+                                   dps, /*allow_empty_pack_expansion=*/FALSE);
   check_assertion(expr_icp->next == NULL);
   if (is_error_component(expr_icp)) {
     /* An error occurred earlier.  Continue with an error constant. */
@@ -3478,7 +3103,8 @@ to use for diagnostics by default.
 
   dps->init_state.initializer_must_be_constant =
                              C_mode() && dps->init_state.static_lifetime_init;
-  expr_icp = scan_full_initializer_expr_as_component(dps);
+  expr_icp = scan_full_initializer_expr_as_component(
+                                   dps, /*allow_empty_pack_expansion=*/FALSE);
   if (dps->sym == NULL || var_for_symbol(dps->sym) == NULL) {
     /* In some error cases (e.g., an old-style C parameter with an initializer)
        dps->sym may not actually represent an initializable variable. */
@@ -3855,28 +3481,10 @@ returned set to TRUE.
          a dynamic init entry representing an expression. */
       nonconstant_allowed = (!C_mode() || !static_lifetime);
       dps->init_state.initializer_must_be_constant = !nonconstant_allowed;
-      init_con =
-          scan_initializer_of_simple_object(dps,
-                                            (an_aggregate_init_info *)NULL,
-                                            (an_aggregate_init_context *)NULL,
-                                            nonconstant_allowed,
-                                            static_lifetime,
-                                            /*force_object_lifetime=*/FALSE,
-                                            /*suppress_object_lifetime=*/FALSE,
-                                            /*is_copy_initialization=*/FALSE,
-                                            (a_boolean *)NULL,
-                                            (a_boolean *)NULL,
-                                            &vp_type, &init_dip);
-      if (init_con != NULL && vp != NULL &&
-          init_con->kind == (a_constant_repr_kind)ck_string &&
-          is_incomplete_type(vp->type) && is_string_type(vp->type)) {
-        /* Handle something like:
-             char s[]("xx");
-           Update the variable type to reflect the string size. */
-        check_assertion(!is_incomplete_type(vp_type));
-        put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
-                                    vp_type);
-      }  /* if */
+      expr_direct_init_object(dps, linkage, source_pos, (a_boolean*)NULL);
+      init_err = dps->init_state.init_error;
+      init_con = dps->init_state.init_con;
+      init_dip = dps->init_state.init_dip;
       /* The closing right paren will not have been consumed, as it is
          the arg list for a constructor call is scanned, so bypass it
          explicitly. */
@@ -5152,23 +4760,9 @@ empty_parens_mem_initializer:
         a_decl_parse_state  dps;
         init_decl_parse_state(&dps);
         dps.type = init_type;
-        dps.initializer_is_expr_list = TRUE;
-        dps.initializer_is_single_expr = TRUE;
-        /* Allocate a new dynamic init entry, setting the kind to
-           dik_none for now.  It will be adjusted after the scan. */
-        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-        (void)scan_initializer_of_simple_object(
-                                        &dps,
-                                        (an_aggregate_init_info *)NULL,
-                                        (an_aggregate_init_context *)NULL,
-                                        /*nonconst_allowed=*/TRUE,
-                                        /*static_lifetime=*/FALSE,
-                                        /*force_object_lifetime=*/TRUE,
-                                        /*suppress_object_lifetime=*/FALSE,
-                                        /*is_copy_initialization=*/FALSE,
-                                        (a_boolean *)NULL,
-                                        &expr_not_present,
-                                        &init_type, &dip);
+        dps.init_state.force_dynamic_init = TRUE;
+        expr_direct_init_object(&dps, (an_id_linkage_kind)idl_none,
+                                &lparen_pos, &expr_not_present);
         if (expr_not_present) {
           /* There was an expression, but it's a pack expansion that expanded
              to zero expressions, so go handle the mem-initializer as if it
@@ -5176,6 +4770,8 @@ empty_parens_mem_initializer:
           remove_stop_token(tok_rparen);
           goto empty_parens_mem_initializer;
         }  /* if */
+        dip = dps.init_state.init_dip;
+        check_assertion(dip != NULL);
         /* If the initializer produced an object lifetime for the full
            expression, remove it temporarily from the object lifetime tree and
            restore it in the correct position later. */
