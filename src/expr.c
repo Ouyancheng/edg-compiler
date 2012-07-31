@@ -34634,43 +34634,6 @@ Currently, this can only happen in GNU C mode with compound literals.
 }  /* whole_array_init_possible */
 
 
-static void push_expr_stack_for_aggregate_initializer(
-                              an_expr_stack_entry_ptr *saved_expr_stack,
-                              an_expr_stack_entry     *expr_stack_entry,
-                              a_boolean               static_lifetime,
-                              a_boolean               suppress_object_lifetime)
-/*
-Push an expression stack entry for an aggregate initialization context.
-saved_expr_stack provides a place to save the old expression stack.
-expr_stack_entry is the new entry to be pushed on the stack.
-static_lifetime is TRUE if the entity being initialized has static lifetime.
-suppress_object_lifetime is TRUE if the usual push of an object lifetime
-should be suppressed, e.g., for a compound literal.
-*/
-{
-  an_expression_kind expr_kind = (an_expression_kind)ek_normal;
-
-  if (C_mode() && (static_lifetime || !(c99_mode || gcc_mode))) {
-    /* In C89 mode aggregate initializers have to be constant.  In C99 and
-       GNU C modes, that is only true for static initializers. */
-    expr_kind = (an_expression_kind)ek_init_constant;
-  }  /* if */
-  save_expr_stack(saved_expr_stack);
-  push_expr_stack(expr_kind, expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  suppress_object_lifetime);
-  transfer_expr_context_if_applicable(*saved_expr_stack);
-  if (static_lifetime) expr_stack->in_static_initializer = TRUE;
-  if (static_lifetime || favor_constant_result_for_nonstatic_init) {
-    /* Fold constant addressing expressions to constants so that constant
-       initialization can be more easily discerned.  This is necessary for
-       C-mode static initialization, and it can result in better code for
-       auto initialization, as well. */
-    expr_stack->favor_constant_result = TRUE;
-  }  /* if */
-}  /* push_expr_stack_for_aggregate_initializer */
-
-
 void scan_class_parenthesized_initializer(
                                    a_type_ptr         class_type,
                                    a_type_ptr         object_class_type,
