@@ -1989,8 +1989,8 @@ the associated variant fields to default values.
 }  /* set_dynamic_init_kind */
 
 
-void clear_dynamic_init(a_dynamic_init_ptr  dip,
-                        a_dynamic_init_kind kind)
+static void clear_dynamic_init(a_dynamic_init_ptr  dip,
+                               a_dynamic_init_kind kind)
 /*
 Initialize a dynamic_init entry of the kind specified.
 */

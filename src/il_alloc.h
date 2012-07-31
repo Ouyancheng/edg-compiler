@@ -96,9 +96,6 @@ extern a_type_ptr alloc_type(a_type_kind kind);
 extern void set_dynamic_init_kind(a_dynamic_init_ptr  dip,
                                   a_dynamic_init_kind kind);
 
-extern void clear_dynamic_init(a_dynamic_init_ptr  dip,
-                               a_dynamic_init_kind kind);
-
 extern a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind);
 
 extern a_local_static_variable_init_ptr alloc_local_static_variable_init(void);

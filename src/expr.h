@@ -303,8 +303,6 @@ extern a_boolean is_expr_start_token(a_token_kind tok);
 
 extern a_boolean token_is_function_name_string_literal(a_token_kind token);
 
-extern a_boolean do_expression_level_string_literal_concatenation(void);
-
 extern void set_curr_token_to_function_name_string(a_boolean do_concat);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -438,19 +436,6 @@ an_expr_node_ptr scan_asm_operand_expression(a_boolean output,
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !STANDALONE_UTILITY_PROGRAM
-extern void scan_initializer_expression(
-                                 a_type_ptr          required_type,
-                                 a_decl_parse_state  *dps,
-                                 a_boolean           static_lifetime,
-                                 a_boolean           force_object_lifetime,
-                                 a_boolean           suppress_object_lifetime,
-                                 a_boolean           is_copy_initialization,
-                                 a_boolean           *is_pack_expansion,
-                                 a_boolean           *expr_not_present,
-                                 a_boolean           *is_constant,
-                                 an_expr_node_ptr    *expression,
-                                 a_constant          *constant);
-
 extern a_dynamic_init_ptr scan_array_mem_initializer(a_constructor_init  *cip);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -470,19 +455,6 @@ extern a_boolean whole_aggr_class_init_possible(
 extern a_boolean whole_array_init_possible(an_init_component_ptr  icp,
                                            a_type_ptr             dest_type,
                                            a_constant_ptr         *result);
-
-extern a_boolean scan_aggregate_initializer_expression(
-                                   a_type_ptr         required_type,
-                                   a_boolean          static_lifetime,
-                                   a_boolean          suppress_object_lifetime,
-                                   a_decl_parse_state *dps,
-                                   a_boolean          *whole_string_init,
-                                   a_boolean          *is_pack_expansion,
-                                   a_boolean          *is_constant,
-                                   a_dynamic_init_ptr *dip,
-                                   a_constant         *constant);
-
-extern a_boolean token_ends_initializer(a_token_kind  token);
 
 extern
 a_boolean is_overloadable_type_operand_full(an_operand_ptr operand,
