@@ -457,6 +457,7 @@ vp had an incomplete array type that has been completed by an initializer.
   a_symbol_ptr         ext_sym;
   a_name_linkage_kind  name_linkage;
   a_symbol_locator     locator, ext_locator;
+  a_boolean            is_array = is_array_type(vp_type);
 
   db_enter(5, "put_type_back_into_variable");
   check_assertion(is_array_type(vp->type) && is_incomplete_type(vp->type));
@@ -487,9 +488,16 @@ vp had an incomplete array type that has been completed by an initializer.
      with unspecified bound, except in GNU mode (where the type of the
      initializer is complete). */
   if (is_incomplete_type(vp_type) ||
-      (!gnu_mode && is_array_type(vp_type) &&
+      (!gnu_mode && is_array &&
        skip_typerefs(vp_type)->variant.array.bound_is_zero)) {
-    pos_error(ec_bad_initializer_for_array_with_unspecified_bound, source_pos);
+    if (is_array && is_or_contains_error_type(array_element_type(vp_type))) {
+      /* If something when wrong with the element type, additional errors are
+      unlike helpful. */
+      expect_error();
+    } else {
+      pos_error(ec_bad_initializer_for_array_with_unspecified_bound,
+                source_pos);
+    }  /* if */
     vp_type = error_type();
   }  /* if */
   /* Put the updated type into the variable. */
