@@ -6402,6 +6402,7 @@ Scan and process a #define directive.
           }  /* if */
         }  /* if */
       } else {
+        prev_token = curr_token;
         if (need_end_of_token_marker) {
           /* Follow the previous token with an end-of-token marker, so that
              when it is tokenized later, it will always be done in the
@@ -6552,7 +6553,6 @@ Scan and process a #define directive.
                                 &any_white_space_skipped);
         }  /* if */
       }  /* if */
-      prev_token = curr_token;
     }  /* while */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_of_replacement = pos_curr_token;
