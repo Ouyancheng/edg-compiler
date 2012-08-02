@@ -2921,7 +2921,7 @@ lowering (as lvalueness is known at that time).
           /* The lvalueness of subscript operators is not known at this
              point, so make sure treat_as_potential_rvalue is set to
              reflect this. */
-          check_assertion(is_expression_component(alep));  /* FIXME*/
+          check_assertion(is_expression_component(alep));
           clone_operand(operand_of_arg_list_elem(alep),
                         operand_of_arg_list_elem(alep_clone),
                         vars_can_change, &local_temp_init_used,
@@ -4391,9 +4391,17 @@ gotten from the constant.
                         symbol_for(elem_con->variant.designator.field)->header;
       } else {
         /* Array designator.  Copy the element number. */
-        /* FIXME: array range.  Also ck_init_repeat after array range. */
         elem_icp->variant.designator.element_index =
                                     elem_con->variant.designator.array_element;
+        if (elem_con->next != NULL &&
+            elem_con->next->kind == (a_constant_repr_kind)ck_init_repeat) {
+          /* A repeated designator, e.g., "[1 ... 1000] = 0". */
+          a_targ_size_t last_elem =
+                                elem_con->variant.designator.array_element +
+                                elem_con->next->variant.init_repeat.count - 1;
+          
+          elem_icp->variant.designator.last_element_index = last_elem;
+        }  /* if */
       }  /* if */
       aggr_icp->contains_designator = TRUE;
     } else {
