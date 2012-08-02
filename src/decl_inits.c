@@ -2989,6 +2989,23 @@ otherwise, *expr_not_present is FALSE.
        force_dynamic_init state flag. */
     prep_initializer_result(is, /*dtor_rp=*/(a_routine_ptr)NULL);
   }  /* if */
+  if (expr_icp->pack_expansion_descr != NULL) {
+    /* The given component is a pack expansion: Record that in the IL
+       produced by the conversion. */
+    if (is->init_con != NULL) {
+      is->init_con->is_pack_expansion = TRUE;
+    } else if (is->init_dip != NULL) {
+      if (is->init_dip->kind == (a_dynamic_init_kind)dik_expression ||
+          is->init_dip->kind ==
+                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+        is->init_dip->variant.expression->is_pack_expansion = TRUE;
+      } else if (is->init_dip->kind == (a_dynamic_init_kind)dik_constant ||
+                 is->init_dip->kind ==
+                              (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+        is->init_dip->variant.constant->is_pack_expansion = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (is_var_init) {
     a_variable_ptr  vp = var_for_symbol(dps->sym);
     if (is_incomplete_array_type(vp->type) &&
