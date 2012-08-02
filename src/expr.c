@@ -19586,9 +19586,6 @@ indication in *rcblock).
   a_boolean          is_static = (expr_stack->in_static_initializer ||
                                   curr_expr_kind_is_const());
   a_boolean          saved_same_expression;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position  end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   check_assertion((C_mode() || gpp_mode) &&
                   !curr_expr_kind_is(ek_pp));
@@ -19642,15 +19639,6 @@ indication in *rcblock).
      non-NULL). */
   scan_compound_literal_initializer(&literal_type, is_static, rescan_icp,
                                     &dip);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (rescan_icp == NULL) {
-    end_position = curr_construct_end_position;
-  } else {
-    /* On a rescan, we don't have a saved end position, so use the start
-       position. */
-    end_position = *start_position;
-  }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   expr_stack->next_stack_push_considered_same_expression=saved_same_expression;
   if (dip == NULL) {
     /* No dynamic init entry will be returned if an error occurred. */
