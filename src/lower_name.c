@@ -608,6 +608,14 @@ static void mangled_type_name_full(a_type_ptr               type,
 static an_expr_node_ptr skip_compiler_generated_expressions(
                                         an_expr_node_ptr expr,
                                         a_boolean        *suppress_address_of);
+static void mangled_braced_init_list(an_expr_node_ptr         expr_list,
+                                     a_constant_ptr           con,
+                                     a_type_ptr               type,
+                                     a_mangling_control_block *mctl);
+static void mangled_dynamic_init(a_dynamic_init_ptr       dip,
+                                 a_type_ptr               type,
+                                 a_boolean                is_static_cast,
+                                 a_mangling_control_block *mctl);
 
 /*
 Interface to mangled_type_name_full for the usual case, where the
@@ -3906,15 +3914,27 @@ do_unknown_function:
       add_str_to_mangled_name("LS", mctl);
 #endif /* IA64_ABI */
       break;
-#if C99_IL_EXTENSIONS_SUPPORTED
     case ck_aggregate:
+#if C99_IL_EXTENSIONS_SUPPORTED
       /* Mangle a complex aggregate. */
       if (con->type->kind == (a_type_kind)tk_complex) {
         mangled_encoding_for_complex_constant(con, old_form, mctl);
-      } else {
-        unexpected_condition();
+      } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      /* Do not insert code here. */
+      {
+        /* Mangle an aggregate constant using an initializer-list mangling. */
+        mangled_braced_init_list((an_expr_node_ptr)NULL, con, (a_type_ptr)NULL,
+                                 mctl);
       }  /* if */
       break;
+    case ck_dynamic_init:
+      /* These can occur while mangling constants in a compound literal
+         aggregate. */
+      mangled_dynamic_init(con->variant.dynamic_init, con->type,
+                           /*is_static_cast=*/FALSE, mctl);
+      break;
+#if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
       mangled_encoding_for_complex_constant(con, old_form, mctl);
       break;
@@ -3954,8 +3974,11 @@ operation that is part of certain template constants is suppressed
                of variable, etc.
        ^^----- Type of constant, with "const" added.
      If the constant is a template parameter constant, skip the "C" and
-     the type.  Likewise for an address constant. */
+     the type.  Likewise for other constants that don't have a basic
+     type. */
   if (con->kind != (a_constant_repr_kind)ck_template_param &&
+      con->kind != (a_constant_repr_kind)ck_dynamic_init &&
+      con->kind != (a_constant_repr_kind)ck_aggregate &&
       con->kind != (a_constant_repr_kind)ck_address) {
     a_type_ptr con_type = con->type;
     add_to_mangled_name('C', mctl);
@@ -5233,24 +5256,34 @@ this expression is part of a template-dependent expression.
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 
 static void mangled_braced_init_list(an_expr_node_ptr         expr_list,
+                                     a_constant_ptr           con,
                                      a_type_ptr               type,
                                      a_mangling_control_block *mctl)
 /*
 Provide mangling for a brace-enclosed initializer list for the given list of
-expressions.  An optional type is mangled (when non-NULL) when the
-brace-enclosed list is a cast variant.  Note that this is also used in the
-IA-64 ABI (but not the Cfront ABI) to mangle a brace-enclosed <initializer>
-production (it can't be used in the Cfront ABI because the 'O' characters
-that open this "operation" are seen as closing the new/gcnew operation by
-the demangler).
+expressions or aggregate constant.  When con is non-NULL, the 
+constant is emitted as a mangled initializer list (to emulate GNU's mangling
+of compound literals), otherwise, the list of expressions (which may be NULL)
+is mangled as an initializer list.  An optional type is mangled (when non-NULL)
+when the brace-enclosed list is a cast variant.  Note that this is also used in
+the IA-64 ABI (but not the Cfront ABI) to mangle a brace-enclosed <initializer>
+production (it can't be used in the Cfront ABI because the 'O' characters that
+open this "operation" are seen as closing the new/gcnew operation by the
+demangler).
 */
 {
+  a_constant_ptr  cp;
+#if !IA64_ABI
+  unsigned long   count;
+#endif /* !IA64_ABI */
+
+  check_assertion(expr_list == NULL || con == NULL);
 #if !IA64_ABI
   /* Brace-enclosed initializer list (EDG-specific):
        OtlZ1Z_1_I1IO <-- encoding for "T1{param#1}"
                    ^---- "O" to end the operation encoding.
-                ^^^----- Expression(s) in the list.
-             ^^^-------- Expression count.
+                ^^^----- Expression(s)/constant(s) in the list.
+             ^^^-------- Expression or constant count.
           ^^^----------- Type of the list (only with "tl" encoding).
         ^^-------------- Brace-enclosed list ("il" or "tl").
        ^---------------- "O" for operation.
@@ -5262,10 +5295,47 @@ the demangler).
     mangled_encoding_for_type(type, mctl);
   }  /* if */
 #if !IA64_ABI
-  store_digits_and_underscore(number_of_operands_in_list(expr_list),
-                              /*old_form=*/FALSE, mctl);
+  /* Compute the count of expressions/constants that will be mangled. */
+  if (con == NULL) {
+    count = number_of_operands_in_list(expr_list);
+  } else {
+    if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+      count = 0;
+      for (cp = con->variant.aggregate.first_constant;
+           cp != NULL;
+           cp = cp->next) {
+        count++;
+      }  /* for */
+    } else {
+      count = 1;
+    }  /* if */
+  }  /* if */
+  store_digits_and_underscore(count, /*old_form=*/FALSE, mctl);
 #endif /* !IA64_ABI */
-  mangled_expression_list(expr_list, /*in_dependent_expr=*/TRUE, mctl);
+  if (con == NULL) {
+    /* Mangle a list of expressions (that may be NULL). */
+    mangled_expression_list(expr_list, /*in_dependent_expr=*/TRUE, mctl);
+  } else {
+    if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+      /* Mangle a list of constants in the aggregate. */
+      for (cp = con->variant.aggregate.first_constant;
+           cp != NULL;
+           cp = cp->next) {
+        mangled_encoding_for_constant(cp,
+                                      /*old_form=*/FALSE,
+                                      /*in_dependent_expr=*/TRUE,
+                                      /*suppress_address_of=*/FALSE,
+                                      mctl);
+      }  /* for */
+    } else {
+      /* Just one constant. */
+      mangled_encoding_for_constant(con,
+                                    /*old_form=*/FALSE,
+                                    /*in_dependent_expr=*/TRUE,
+                                    /*suppress_address_of=*/FALSE,
+                                    mctl);
+    }  /* if */
+  }  /* if */
 #if IA64_ABI
   add_to_mangled_name('E', mctl);
 #else /* !IA64_ABI */
@@ -5280,23 +5350,36 @@ static void mangled_dynamic_init(a_dynamic_init_ptr       dip,
                                  a_mangling_control_block *mctl)
 
 /*
-Mangle a dynamic initialization with is_explicit_cast set to TRUE as a
-conversion operation to the specified type.  The caller should set
-is_static_cast to TRUE if the dynamic initialization is the result of a
-static_cast.  Compound literals are not handled at this time.
+Provide a mangled encoding for a dynamic initialization.  The mangling used to
+represent the dynamic init varies depending upon the type of dynamic
+initialization being performed.  When dip->is_explicit_cast is set, provide a
+mangling for a cast (static cast if is_static_cast is TRUE).  When
+dip->is_braced_initializer is TRUE, an initializer list mangling is used (also
+used for compound literals).  The caller should set is_static_cast to TRUE if
+the dynamic initialization is the result of a static_cast.
 */
 {
   an_expr_node_ptr    args;
   unsigned long       num_operands;
   char                *str;
 
-  check_assertion(dip != NULL &&
-                  dip->is_explicit_cast && !dip->is_compound_literal);
-  args = arg_list_from_dyn_init(dip);
+  check_assertion(dip != NULL);
   if (dip->is_braced_initializer) {
-    /* Use encoding for braced-initializer lists. */
-    mangled_braced_init_list(args, type, mctl);
-  } else {
+    if (dip->is_compound_literal) {
+      check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant ||
+                      dip->kind ==
+                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
+      /* If the dip contains a constant, mangle it (using an initializer-list
+         mangling). */
+      mangled_braced_init_list((an_expr_node_ptr)NULL, dip->variant.constant,
+                               type, mctl);
+    } else {
+      /* Use encoding for braced-initializer lists. */
+      args = arg_list_from_dyn_init(dip);
+      mangled_braced_init_list(args, (a_constant_ptr)NULL, type, mctl);
+    }  /* if */
+  } else if (dip->is_explicit_cast) {
+    args = arg_list_from_dyn_init(dip);
     num_operands = number_of_operands_in_list(args);
     /* Determine whether to mangle this as a static cast or a conversion. */
     if (is_static_cast
@@ -5339,6 +5422,16 @@ static_cast.  Compound literals are not handled at this time.
     mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
     add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
+  } else {
+    /* Likely a ck_dynamic_init from an aggregate in a compound literal. */
+    switch (dip->kind) {
+      case dik_expression:
+        mangled_encoding_for_expression(dip->variant.expression,
+                                        /*in_dependent_expr=*/TRUE, mctl);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
   }  /* if */
 }  /* mangled_dynamic_init */
 
@@ -5366,7 +5459,8 @@ emitted.
 #if IA64_ABI
     if (dip->is_braced_initializer) {
       /* Use braced-enclosed initializer list mangling. */
-      mangled_braced_init_list(inits, (a_type_ptr)NULL, mctl);
+      mangled_braced_init_list(inits, (a_constant_ptr)NULL, (a_type_ptr)NULL,
+                               mctl);
     } else
 #endif /* IA64_ABI */
     /* Do not insert code here. */
@@ -5858,15 +5952,9 @@ is TRUE.
         add_to_mangled_name('1', mctl);
 #endif /* !IA64_ABI */
         check_assertion(expr->variant.throw_info->dynamic_init != NULL);
-        if (expr->variant.throw_info->dynamic_init->is_explicit_cast) {
-          mangled_dynamic_init(expr->variant.throw_info->dynamic_init,
-                               expr->variant.throw_info->type,
-                               /*is_static_cast=*/FALSE, mctl);
-        } else {
-          mangled_encoding_for_expression(arg_list_from_dyn_init(
-                                       expr->variant.throw_info->dynamic_init),
-                                       /*in_dependent_expr=*/TRUE, mctl);
-        }  /* if */
+        mangled_dynamic_init(expr->variant.throw_info->dynamic_init,
+                             expr->variant.throw_info->type,
+                             /*is_static_cast=*/FALSE, mctl);
       }  /* if */
 #if !IA64_ABI
       add_to_mangled_name('O', mctl);
@@ -5881,13 +5969,15 @@ is TRUE.
          the mangled name. */
       {
         a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
-        check_assertion(dip != NULL && dip->is_explicit_cast);
+        check_assertion(dip != NULL &&
+                        (dip->is_explicit_cast || dip->is_compound_literal));
         mangled_dynamic_init(dip, expr->type, expr->is_static_cast, mctl);
       }
       break;
     case enk_braced_init_list:
       /* Mangling for a brace-enclosed initializer list. */
       mangled_braced_init_list(expr->variant.braced_init_list,
+                               (a_constant_ptr)NULL,
                                (a_type_ptr)NULL, mctl);
       break;
 #if VLA_DEALLOCATIONS_IN_IL
