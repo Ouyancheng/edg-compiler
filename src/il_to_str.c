@@ -1712,14 +1712,21 @@ by octl.
           if (!type->variant.typeref.is_typeof_with_type_operand) {
             /* typeof(expression). */
             an_expr_node_ptr expr = decltype_arg(type);
-            check_assertion(expr != NULL);
-            if (octl->output_expression != NULL) {
-              /* Unlike decltype, typeof is not affected by extra top-level
-                 parentheses.  Suppress them anyway to produce more pleasing
-                 output. */
-              octl->output_expression(expr, /*suppress_parens=*/TRUE);
+            if (expr != NULL) {
+              if (octl->output_expression != NULL) {
+                /* Unlike decltype, typeof is not affected by extra top-level
+                   parentheses.  Suppress them anyway to produce more pleasing
+                   output. */
+                octl->output_expression(expr, /*suppress_parens=*/TRUE);
+              } else {
+                form_expression(expr, octl);
+              }  /* if */
             } else {
-              form_expression(expr, octl);
+              /* No expression is available: Just emit a placeholder for the
+                 expression.  (This should only occur when not emitting
+                 compilable output.) */
+              check_assertion(!octl->gen_compilable_code);
+              octl->output_str("<expr>", octl);
             }  /* if */
           } else {
             /* typeof(type-name). */
