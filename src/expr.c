@@ -2526,7 +2526,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
       a_type_ptr    conv_rout_type;
       /* The constructor selected is a copy constructor, so certain
          optimizations may be possible. */
-      check_assertion(is_expression_component(eff_arg_list));  /* FIXME */
+      check_assertion(is_expression_component(eff_arg_list));
       param_type =
               routine->type->variant.routine.extra_info->param_type_list->type;
       source_type = type_pointed_to(param_type);
@@ -2599,7 +2599,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         /* Note that the code here also does not append default argument
            values as adjust_overloaded_function_call_arguments would. */
         an_operand *operand;
-        check_assertion(is_expression_component(eff_arg_list)); /* FIXME */
+        check_assertion(is_expression_component(eff_arg_list));
         operand = operand_of_arg_list_elem(eff_arg_list);
         check_assertion(overloaded_function_case);
         if (is_null_user_conv_descr(&arg_match->conversion)) {
@@ -20387,11 +20387,8 @@ empty_parentheses:
           expr_pos_error(ec_too_many_cast_operands,
                          init_component_pos(supplied_arg_list->next));
           make_error_operand(result);
-        } else if (!is_expression_component(supplied_arg_list)) {
-          /* A braced init list as the one argument. */
-          /* FIXME */
-          unexpected_condition_str("NYI: braced-init-list in cast");
         } else {
+          check_assertion(is_expression_component(supplied_arg_list));
           copy_operand(operand_of_arg_list_elem(supplied_arg_list), result);
         }  /* if */
       } else if (rcblock != NULL) {
@@ -31983,8 +31980,7 @@ Sets *expr_position to the beginning position of the range expression.
                           &still_dependent)) {
       /* Deduction failed. */
       if (still_dependent) {
-        unexpected_condition_str(
-                       "dependent auto in range-based for");  /* FIXME */
+        unexpected_condition_str("dependent auto in range-based for");
       } else {
         expr_pos_error(ec_cannot_deduce_auto_type, init_component_pos(alep));
         conv_braced_init_component_to_error_expression(alep);
