@@ -2675,6 +2675,7 @@ variable initialization.
 
 
 static void braced_initializer(a_type_ptr          dtype,
+                               an_init_component   *rescan_aggr,
                                an_init_state       *is,
                                a_decl_parse_state  *dps,
                                a_source_position   *diag_pos)
@@ -2687,20 +2688,30 @@ dtype is the type of the entity being initialized.  *is describes the state of
 initializer processing.  *dps describes the declaration that the initializer
 is part of; it is NULL if the initialization is not (directly) part of a
 declaration.  diag_pos is the position to be used by default for diagnostics.  
+If rescan_aggr is non-NULL, a rescan is being done during template
+deduction; rescan_aggr provides a braced-init-list for the
+initializer, already copied and substituted.
 */
 {
   an_init_component_ptr  icp_tree, icp;
   a_boolean              is_aggregate = FALSE, is_var_init;
   a_boolean              saved_force_dynamic_init = is->force_dynamic_init;
+  a_boolean              saved_no_diagnostics = is->no_diagnostics;
   a_type_ptr             atype;
   a_routine_ptr          dtor_rp = NULL;
 
-  check_assertion(curr_token == tok_lbrace ||
+  check_assertion(rescan_aggr != NULL || curr_token == tok_lbrace ||
                   anything_cached(&dps->prescanned_initializer_cache));
   dtype = skip_typerefs(dtype);
-  /* Parse the list structure (which may be nested and therefore really a tree
-     structure). */
-  icp_tree = scan_braced_init_list(is->elements_are_full_expressions, dps);
+  if (rescan_aggr != NULL) {
+    /* Rescan.  The {...} is provided by the caller in init-component form. */
+    is->no_diagnostics = TRUE;
+    icp_tree = rescan_aggr;
+  } else {
+    /* Parse the list structure (which may be nested and therefore really a
+       tree structure). */
+    icp_tree = scan_braced_init_list(is->elements_are_full_expressions, dps);
+  }  /* if */
   icp = icp_tree;
   check_assertion(icp != NULL && is_braced_init_component(icp));
   is_var_init = dps != NULL && dps->sym != NULL &&
@@ -2789,7 +2800,12 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       process_simple_init_component(icp, dtype, is, is_var_init);
       break;
   }  /* switch */
-  free_init_component_list(icp_tree);
+  if (icp_tree != rescan_aggr) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = *init_component_end_pos(icp_tree);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    free_init_component_list(icp_tree);
+  }  /* if */
   is->force_dynamic_init = saved_force_dynamic_init;
   if ((is_aggregate && !is->init_error) ||
       (is->force_dynamic_init && is->init_dip == NULL)) {
@@ -2815,6 +2831,7 @@ declaration.  diag_pos is the position to be used by default for diagnostics.
       }  /* if */
     }  /* if */
   }  /* if */
+  is->no_diagnostics = saved_no_diagnostics;
 }  /* braced_initializer */
 
 
@@ -2882,7 +2899,8 @@ is part of.  diag_pos is the position to be used by default for diagnostics
        mode and configuration). */
     dps->init_state.initializer_must_be_constant = TRUE;
   }  /* if */
-  braced_initializer(dps->type, &dps->init_state, dps, diag_pos);
+  braced_initializer(dps->type, (an_init_component *)NULL,
+                     &dps->init_state, dps, diag_pos);
   if (vp != NULL && is_incomplete_array_type(vp->type) &&
       is_array_type(dps->type)) {
     /* An array declarator of the form "X[]" followed by a braced initializer:
@@ -3132,6 +3150,7 @@ to use for diagnostics by default.
 
 void scan_compound_literal_initializer(a_type_ptr         *type,
                                        a_boolean          is_static,
+                                       an_init_component  *rescan_aggr,
                                        a_dynamic_init_ptr *dip)
 /*
 Scan the brace-enclosed part of a compound literal.  Such literals are of the
@@ -3144,13 +3163,16 @@ storage duration) or inside a function body (in which case it is automatic and
 hence is_static is passed as FALSE).  A dynamic init entry is created by this
 function and a pointer to it is returned through dip.  The caller is
 responsible for ensuring that the current token is a brace, and the function
-braced_initializer does all the hard work.
+braced_initializer does all the hard work.  If rescan_aggr is non-NULL,
+a rescan is being done during template deduction; rescan_aggr provides
+a braced-init-list for the initializer, already copied and substituted.
 */
 {
   a_source_position   start_pos;
   a_decl_parse_state  dps;
 
-  check_assertion((C_mode() || gpp_mode) && (curr_token == tok_lbrace));
+  check_assertion((C_mode() || gpp_mode) &&
+                  (rescan_aggr != NULL || curr_token == tok_lbrace));
   start_pos = pos_curr_token;
   /* Call braced_initializer to scan the brace-enclosed initializer part of
      the compound initializer.  Set up the "init state" to ensure a dynamic
@@ -3165,7 +3187,7 @@ braced_initializer does all the hard work.
   if (C_mode() && (is_static || !allow_nonconstant_auto_aggr_init_in_c_mode)) {
     dps.init_state.initializer_must_be_constant = TRUE;
   }  /* if */
-  braced_initializer(dps.type, &dps.init_state, &dps, &start_pos);
+  braced_initializer(dps.type, rescan_aggr, &dps.init_state, &dps, &start_pos);
   /* A compound literal of the form (T[]){...} needs its type to be updated. */
   *type = dps.type;
   /* Adjust the dynamic initializer entry that was produced to reflect that it
@@ -4904,7 +4926,8 @@ entries are replaced as needed for each mem-initializer that is encountered.
       is.force_dynamic_init = TRUE;
       is.elements_are_full_expressions = TRUE;
       /* Scan the initializer. */
-      braced_initializer(dtype, &is, (a_decl_parse_state*)NULL, &lbrace_pos);
+      braced_initializer(dtype, (an_init_component *)NULL,
+                         &is, (a_decl_parse_state*)NULL, &lbrace_pos);
       if (new_cip != NULL) {
         /* A dynamic init entry has been produced: Record it in the
            constructor init entry. */

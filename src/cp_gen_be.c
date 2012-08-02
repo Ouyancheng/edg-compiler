@@ -10643,10 +10643,8 @@ problems.
       operand_changed = TRUE;
     } else if (operand->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr dip = operand->variant.init.dynamic_init;
-      if (dip->is_explicit_cast ||
-          dip->is_braced_initializer ||
-          dip->is_compound_literal) {
-        /* These are not implicit. */
+      if (!is_generated_dynamic_init(dip)) {
+        /* Not implicit, e.g., an explicit cast. */
       } else if (dip->kind == (a_dynamic_init_kind)dik_expression ||
                  dip->kind ==
                      (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {

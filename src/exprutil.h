@@ -1833,12 +1833,16 @@ void make_sizeof_et_al_rescan_operands(
 
 extern an_expr_node_ptr arg_list_from_dyn_init(a_dynamic_init_ptr dip);
 
+extern a_boolean is_aggr_constant_dynamic_init(a_dynamic_init_ptr dip);
+
 extern void make_cast_rescan_operands(
                               a_rescan_control_block *rcblock,
                               a_dynamic_init_ptr     dip,
                               a_source_position      *start_position,
                               a_type_ptr             *cast_type, 
                               a_source_position      *type_position,
+                              an_arg_list_elem_ptr   *aggr,
+                              a_dynamic_init_ptr     *actual_dip,
                               an_operand             *operand,
                               an_operand             *bound_function_selector);
 
@@ -1869,6 +1873,10 @@ extern void make_type_operand_rescan_type(
                                    a_rescan_control_block *rcblock,
                                    a_type_ptr             *type,
                                    a_source_position      *type_position);
+
+extern an_arg_list_elem_ptr rescan_expr_as_arg_list_elem(
+                                              an_expr_node_ptr       expr,
+                                              a_rescan_control_block *rcblock);
 
 extern
 an_expr_node_ptr find_primary_cast_node(an_expr_node_ptr   orig_operand_expr,

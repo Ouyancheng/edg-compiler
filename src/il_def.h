@@ -2773,7 +2773,7 @@ enum a_constant_repr_kind_tag {
 			   (C++ front end only, except when prototype
 			   instantiations are passed to a back end). */
   ck_designator,        /* Used to change the "current object" in an
-                           aggregate initializer (C99). */
+                           aggregate initializer (C99, some C++ modes). */
 #if UPC_EXTENSIONS_ALLOWED
   ck_upc_threads,       /* A multiple of the UPC pseudo-constant THREADS. */
   ck_upc_mythread,      /* The UPC pseudo-constant MYTHREAD. */
@@ -4081,8 +4081,8 @@ typedef struct a_constant {
     } template_param;
     /* When kind == ck_designator: */
     /* A ck_designator is only used in initialization, and as such is always
-       an unshared constant. The designated field or element is initialized
-       by the constant pointed to by 'next'. */
+       an unshared constant.  The designated field or element is initialized
+       by the constant pointed to by "next". */
     struct {
       a_field_ptr     field;
                         /* NULL if the designator indicates an array element.

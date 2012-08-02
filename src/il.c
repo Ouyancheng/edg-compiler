@@ -14420,6 +14420,20 @@ kind of cast.
   return is_cast;
 }  /* is_cast_operation_node */
 
+
+a_boolean is_generated_dynamic_init(a_dynamic_init_ptr dip)
+/*
+Return TRUE if the given dynamic init entry is a compiler-generated one, i.e.,
+not the result of an explicit source operation like a cast.
+*/
+{
+  a_boolean is_generated = !(dip->is_explicit_cast ||
+                             dip->is_compound_literal ||
+                             dip->is_braced_initializer);
+  return is_generated;
+}  /* is_generated_dynamic_init */
+
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 static an_expr_node_ptr copy_template_param_expr_as_lvalue(
@@ -15872,6 +15886,7 @@ a_constant_ptr copy_template_param_con_with_substitution(
                                   a_ctws_state_ptr         ctws_state)
 /*
 Copy a ck_template_param constant, and return a pointer to the copy.
+If the constant is not a ck_template_param constant, just return a copy.
 In the process of copying, replace any template parameters with the
 corresponding values from the template argument list
 template_arg_list.  template_param_list is the parameter list for
@@ -18972,8 +18987,13 @@ instantiation-dependent.
   if (con->kind == (a_constant_repr_kind)ck_template_param) {
     tblock->result = TRUE;
     tblock->terminate = TRUE;
+  } else if (con->kind == (a_constant_repr_kind)ck_aggregate ||
+             con->kind == (a_constant_repr_kind)ck_dynamic_init ||
+             con->kind == (a_constant_repr_kind)ck_init_repeat) {
+     /* Aggregate constants can contain dynamic members, which might be
+        instantiation-dependent, so walk the subtree for those. */
   } else {
-    /* Constants other than ck_template_param are known not to be dependent. */
+    /* Other constants are known not to be dependent. */
     tblock->suppress_subtree_walk = TRUE;
   }  /* if */
 }  /* examine_constant_for_instantiation_dependence */

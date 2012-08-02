@@ -1534,6 +1534,8 @@ extern a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type);
 
 extern a_boolean is_cast_operation_node(an_expr_node_ptr expr);
 
+extern a_boolean is_generated_dynamic_init(a_dynamic_init_ptr dip);
+
 /*
 Flags used to specify options to copy_type_with_substitution.
 */

@@ -52,6 +52,10 @@ an_expr_node_ptr conv_rvalue_expr_to_lvalue(an_expr_node_ptr node,
                                             a_type_ptr       *p_lvalue_type);
 static an_expr_node_ptr make_braced_init_expr_from_arg_list_elem(
                                                     an_arg_list_elem_ptr alep);
+static an_arg_list_elem_ptr rescan_constant_as_arg_list_elem(
+                                     a_constant             *con,
+                                     a_rescan_control_block *rcblock,
+                                     a_source_position      *default_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static a_boolean check_for_address_of_or_reference_to_initonly_field(
                                            an_operand        *operand,
@@ -3029,11 +3033,8 @@ cast in some modes.  orig_operand_expr can be NULL.
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-      /* An explicit cast is retained.  Also a compound literal or
-         braced-init-list. */
-      if (dip->is_explicit_cast ||
-          dip->is_compound_literal ||
-          dip->is_braced_initializer) goto end_of_loop;
+      /* Explicit casts are retained. */
+      if (!is_generated_dynamic_init(dip)) goto end_of_loop;
       /* Anything else is implicit and stripped. */
       expr = arg_list_from_dyn_init(dip);
     } else {
@@ -3427,11 +3428,8 @@ that has it.
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-      /* An explicit cast is retained.  Also a compound literal or braced
-         list-initializer. */
-      if (dip->is_explicit_cast ||
-          dip->is_compound_literal ||
-          dip->is_braced_initializer) goto end_of_loop;
+      /* Explicit casts are retained. */
+      if (!is_generated_dynamic_init(dip)) goto end_of_loop;
       /* Anything else is implicit and stripped. */
       expr = arg_list_from_dyn_init(dip);
     } else {
@@ -3473,11 +3471,8 @@ rescan_info is NULL or no default information is available, abort.
     eriep = rescan_info;
     default_eriep = expr_stack->default_rescan_info;
     clear_expr_rescan_info_entry(eriep);
-    eriep->saved_operand.position = default_eriep->saved_operand.position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    eriep->saved_operand.end_position =
-                                     default_eriep->saved_operand.end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    copy_operand_position(&default_eriep->saved_operand,
+                          &eriep->saved_operand);
     eriep->expression_kind = default_eriep->expression_kind;
   }  /* if */
   return eriep;
@@ -3984,67 +3979,179 @@ top_of_routine:
 }  /* arg_list_from_dyn_init */
 
 
+a_boolean is_aggr_constant_dynamic_init(a_dynamic_init_ptr dip)
+/*
+Return TRUE if the given dynamic init has an underlying ck_aggregate constant.
+*/
+{
+  a_boolean is_aggr = 
+         ((dip->kind == (a_dynamic_init_kind)dik_constant ||
+           dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
+            dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate);
+  return is_aggr;
+}  /* is_aggr_constant_dynamic_init */
+
+
+static void rescan_constant_as_operand(
+                                   a_constant               *con,
+                                   a_rescan_control_block   *rcblock,
+                                   a_source_position        *default_position,
+                                   a_local_expr_options_set local_options,
+                                   an_operand               *operand)
+/*
+Rescan the given constant, producing an operand for it in *operand.
+rcblock gives the rescan control information, including
+information on the template parameter substitutions to be done.
+local_options provides some options, in particular information about
+the immediate parent operator.  default_position provides a source
+position in case one cannot be gotten from the constant.
+*/
+{
+  an_expr_node_ptr expr = NULL;
+
+  /* See if there's an underlying expression for the constant. */
+  if (con->expr != NULL) {
+    expr = con->expr;
+  } else if (con->kind == (a_constant_repr_kind)ck_template_param &&
+             con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+    expr = con->variant.template_param.variant.expr;
+  }  /* if */
+  if (expr != NULL) {
+    /* The constant has an underlying expression, so rescan from that. */
+    make_rescan_operand_full(expr, rcblock, local_options, operand,
+                             (an_operand *)NULL);
+  } else {
+    /* No expression, so rescan from the constant. */
+    a_constant_ptr copy_con;
+    a_boolean      copy_error = FALSE;
+    copy_con = copy_template_param_con_with_substitution(
+                                                 con,
+                                                 rcblock->template_arg_list,
+                                                 rcblock->template_param_list,
+                                                 (a_type_ptr)NULL,
+                                                 (a_source_position *)NULL,
+                                                 rcblock->options,
+                                                 &copy_error,
+                                                 rcblock->ctws_state);
+    if (copy_error) {
+      rcblock->error_detected = TRUE;
+      make_error_operand(operand);
+    } else {
+      an_expr_rescan_info_entry_ptr eriep = con->rescan_info;
+      make_constant_operand(copy_con, operand);
+      if (eriep != NULL) {
+        restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
+      } else {
+        operand->position = *default_position;
+      }  /* if */
+    } /* if */
+  }  /* if */
+}  /* rescan_constant_as_operand */
+
+
 void make_cast_rescan_operands(a_rescan_control_block *rcblock,
                                a_dynamic_init_ptr     dip,
                                a_source_position      *start_position,
                                a_type_ptr             *cast_type, 
                                a_source_position      *type_position,
+                               an_arg_list_elem_ptr   *aggr,
+                               a_dynamic_init_ptr     *actual_dip,
                                an_operand             *operand,
                                an_operand             *bound_function_selector)
 /*
 As part of redoing semantic analysis on an expression while doing
-template deduction, extract the operand of the cast expression
-given by rcblock->expr and return it in *operand.  (If dip != NULL,
-use that dynamic initialization in place of rcblock->expr.)  Also
-return the type cast to in *cast_type, the starting position of the
-cast in *start_position, and the position of the type in the cast in
-*type_position.  If bound_function_selector is non-NULL, the caller is
-willing to accept a bound function, and *bound_function_selector can
-be set to the selector part of that.  If rcblock->operator_token is
-tok_typename, indicating a functional-notation type conversion (or an
-old-style cast), *operand and *bound_function_selector are not used;
-the argument list for the cast is returned in rcblock->argument_list
-instead.
+template deduction, extract the operand of the cast expression given
+by rcblock->expr and return it in *operand.  If dip != NULL, use that
+as the cast instead of rcblock->expr.  Also return the type cast to in
+*cast_type, the starting position of the cast in *start_position, and
+the position of the type in the cast in *type_position.  If
+bound_function_selector is non-NULL, the caller is willing to accept a
+bound function, and *bound_function_selector can be set to the
+selector part of that.  If rcblock->operator_token is tok_typename,
+indicating a functional-notation type conversion (or an old-style cast
+or compound literal), *operand and *bound_function_selector are not
+used; the argument list for the cast is returned in
+rcblock->argument_list instead (there might be more than one
+argument).  If the cast has an underlying aggregate constant (i.e.,
+some compound literals, and some functional-notation casts with
+brace-enclosed arguments), copy the aggregate constant with
+substitution and return an arg_list_elem entry for the whole
+brace-enclosed aggregate in *aggr; otherwise, if aggr != NULL, return
+*aggr set to NULL.  If actual_dip != NULL, *actual_dip is set to
+point to the actual dynamic init that underlies the cast, if any.
 */
 {
-  an_expr_node_ptr              expr = rcblock->expr, op1;
+  an_expr_node_ptr              op1;
+  a_constant_ptr                op1_con = NULL;
   an_expr_rescan_info_entry_ptr eriep;
   a_token_sequence_number       operator_tok_seq_number;
 
+  if (aggr != NULL)  *aggr = NULL;
+  if (actual_dip != NULL) *actual_dip = NULL;
   if (dip != NULL) {
     /* The cast is specified by a dynamic initialization (dip), not an
        expression. */
     eriep = dip->rescan_info;
-    check_assertion(eriep != NULL);
-    op1 = arg_list_from_dyn_init(dip);
   } else {
     /* The cast is specified by an expression. */
-    check_assertion(expr != NULL);
-    check_assertion(is_cast_operation_node(expr) ||
-                    expr->kind == (an_expr_node_kind)enk_temp_init);
+    an_expr_node_ptr expr = rcblock->expr;
+    check_assertion(expr != NULL &&
+                    (is_cast_operation_node(expr) ||
+                     expr->kind == (an_expr_node_kind)enk_temp_init));
     /* We pass NULL for the second argument because we want to require
        explicit rescan information on all casts. */
     eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
     if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       dip = expr->variant.init.dynamic_init;
-      op1 = arg_list_from_dyn_init(dip);
     } else {
       op1 = expr->variant.operation.operands;
     }  /* if */
   }  /* if */
-  check_assertion(eriep->type != NULL);
+  /* Determine the result type for the cast. */
+  check_assertion(eriep != NULL && eriep->type != NULL);
   *cast_type = do_type_substitution_for_rescan(eriep->type, rcblock, eriep);
-  if (rcblock->operator_token == tok_typename) {
-    /* Functional-notation cast (or old-style cast).  Return the argument
-       list via rcblock->argument_list.  It may have more than one argument. */
-    rcblock->argument_list = op1;
+  if (actual_dip != NULL) *actual_dip = dip;
+  if (dip != NULL && is_aggr_constant_dynamic_init(dip)) {
+    /* A cast with an underlying aggregate constant.  Return the copied
+       and substituted aggregate constant in arg-list-element form. */
+    check_assertion(aggr != NULL);
+    *aggr = rescan_constant_as_arg_list_elem(dip->variant.constant,
+                                             rcblock,
+                                             &eriep->saved_operand.position);
   } else {
-    /* Not a functional-notation cast, e.g., something like static_cast.
-       Return the single argument expression via *operand and
-       *bound_function_selector. */
-    check_assertion(op1->next == NULL);
-    make_rescan_operand_full(op1, rcblock, EOPT_OPERAND_OF_CAST,
-                             operand, bound_function_selector);
+    /* Not a cast with an underlying aggregate constant. */
+    if (dip != NULL) {
+      if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+        op1_con = dip->variant.constant;
+      } else {
+        op1 = arg_list_from_dyn_init(dip);
+      }  /* if */
+    }  /* if */
+    if (rcblock->operator_token == tok_typename) {
+      /* Functional-notation cast (or old-style cast, including non-aggregate
+         compound literals).  Return the argument list via
+         rcblock->argument_list.  There may be more than one argument,
+         or zero. */
+      if (op1_con != NULL) {
+        op1 = alloc_node_for_allocated_constant(op1_con);
+      }  /* if */
+      rcblock->argument_list = op1;
+    } else {
+      /* Not a functional-notation cast, e.g., something like static_cast.
+         Return the single argument expression via *operand and
+         *bound_function_selector. */
+      a_local_expr_options_set options = EOPT_OPERAND_OF_CAST;
+      if (op1_con != NULL) {
+        rescan_constant_as_operand(op1_con, rcblock,
+                                   &eriep->saved_operand.position,
+                                   options, operand);
+      } else {
+        check_assertion(op1->next == NULL);
+        make_rescan_operand_full(op1, rcblock, options,
+                                 operand, bound_function_selector);
+      }  /* if */
+    }  /* if */
   }  /* if */
   get_rescan_operator_positions(eriep, start_position,
                                 &operator_tok_seq_number,
@@ -4185,6 +4292,172 @@ it (using information from rcblock), and return the substituted type in
                                 &operator_tok_seq_number,
                                 (a_source_position *)NULL);
 }  /* make_type_operand_rescan_type */
+
+
+an_arg_list_elem_ptr rescan_expr_as_arg_list_elem(
+                                               an_expr_node_ptr       expr,
+                                               a_rescan_control_block *rcblock)
+/*
+Rescan the given expression, producing an argument list element as the
+result.  rcblock gives the rescan control information, including
+information on the template parameter substitutions to be done.
+*/
+{
+  an_arg_list_elem_ptr alep;
+  an_operand           rescanned_operand;
+
+  make_rescan_operand(expr, rcblock, &rescanned_operand);
+  if (is_braced_init_list_operand(&rescanned_operand)) {
+    /* The operand returned is for a braced-init-list, so just
+       use the entry contained therein.  We can do that because we just
+       created the copy, so we're holding the responsibility for
+       freeing it. */
+    alep = rescanned_operand.variant.braced_init_list;
+    rescanned_operand.variant.braced_init_list = NULL;
+  } else {
+    alep = alloc_arg_list_elem_for_operand(&rescanned_operand);
+  }  /* if */
+  return alep;
+}  /* rescan_expr_as_arg_list_elem */
+
+
+static an_arg_list_elem_ptr rescan_dynamic_init_as_arg_list_elem(
+                                               a_dynamic_init_ptr     dip,
+                                               a_rescan_control_block *rcblock)
+/*
+Rescan the given dynamic init entry, producing an argument list element as
+the result.  rcblock gives the rescan control information, including
+information on the template parameter substitutions to be done.
+*/
+{
+  an_operand           operand;
+  an_arg_list_elem_ptr alep;
+
+  rescan_dynamic_init_with_substitution(dip, rcblock, &operand);
+  alep = alloc_arg_list_elem_for_operand(&operand);
+  return alep;
+}  /* rescan_dynamic_init_as_arg_list_elem */
+
+
+static an_arg_list_elem_ptr rescan_aggr_constant_as_arg_list_elem(
+                                      a_constant             *aggr_con,
+                                      a_rescan_control_block *rcblock,
+                                      a_source_position      *default_position)
+/*
+Rescan the given ck_aggregate constant, producing a single braced
+argument list element as the result.  rcblock gives the rescan control
+information, including information on the template parameter
+substitutions to be done.  Implicit entries in the aggregate are
+ignored (e.g., trailing element default constructor calls).
+default_position provides a source position in case one cannot be
+gotten from the constant.
+*/
+{
+  a_constant_ptr       elem_con;
+  an_expr_rescan_info_entry_ptr
+                       eriep;
+  a_source_position    *start_position;
+  an_arg_list_elem_ptr last_in_aggr_icp = NULL;
+  an_arg_list_elem_ptr aggr_icp =
+                      alloc_init_component((an_init_component_kind)ick_braced);
+
+  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
+  eriep = aggr_con->rescan_info;
+  if (eriep != NULL) {
+    default_position = start_position = &eriep->saved_operand.position;
+  } else {
+    start_position = default_position;
+  }  /* if */
+  /* Loop through the elements in the original aggregate, and make
+     a substituted copy of each and place it in the braced-init-list. */
+  for (elem_con = aggr_con->variant.aggregate.first_constant;
+       elem_con != NULL;
+       elem_con = elem_con->next) {
+    an_arg_list_elem_ptr elem_icp = NULL;
+    if (elem_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+      /* Repeats are added only for implicit initializations, so skip. */
+    } else if (elem_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+      a_dynamic_init_ptr dip = elem_con->variant.dynamic_init;
+      elem_icp = rescan_dynamic_init_as_arg_list_elem(dip, rcblock);
+    } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
+      /* Copy a designator as a designator. */
+      elem_icp = alloc_init_component((an_init_component_kind)ick_designator);
+      /* We don't have the position of the designator, so use the position
+         of the start of the aggregate. */
+      elem_icp->variant.designator.position = *start_position;
+      if (elem_con->variant.designator.field != NULL) {
+        /* For a field designator, record the field name. */
+        elem_icp->variant.designator.field_name =
+                        symbol_for(elem_con->variant.designator.field)->header;
+      } else {
+        /* Array designator.  Copy the element number. */
+        /* FIXME: array range.  Also ck_init_repeat after array range. */
+        elem_icp->variant.designator.element_index =
+                                    elem_con->variant.designator.array_element;
+      }  /* if */
+      aggr_icp->contains_designator = TRUE;
+    } else {
+      /* Normal constant. */
+      elem_icp = rescan_constant_as_arg_list_elem(elem_con, rcblock,
+                                                  default_position);
+    }  /* if */
+    if (elem_icp) {
+      /* Add elem_icp to the end of the aggr_icp list. */
+      if (last_in_aggr_icp == NULL) {
+        aggr_icp->variant.braced.list = elem_icp;
+      } else {
+        last_in_aggr_icp->next = elem_icp;
+      }  /* if */
+      last_in_aggr_icp = elem_icp;
+    }  /* if */
+  }  /* for */
+  aggr_icp->variant.braced.start_pos = *start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  aggr_icp->variant.braced.end_pos = (eriep != NULL ?
+                                         eriep->saved_operand.end_position :
+                                         *default_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  return aggr_icp;
+}  /* rescan_aggr_constant_as_arg_list_elem */
+
+
+static an_arg_list_elem_ptr rescan_constant_as_arg_list_elem(
+                                      a_constant             *con,
+                                      a_rescan_control_block *rcblock,
+                                      a_source_position      *default_position)
+/*
+Rescan the given constant, producing an argument list element as the
+result.  rcblock gives the rescan control information, including
+information on the template parameter substitutions to be done.
+The result is a single entry; in particular, rescanning a ck_aggregate
+constant produces a single braced-init-list entry.  default_position
+provides a source position in case one cannot be gotten from the constant.
+*/
+{
+  an_arg_list_elem_ptr icp;
+
+  if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+    /* For an aggregate, copy the subtree and create a braced-init-list
+       result. */
+    icp = rescan_aggr_constant_as_arg_list_elem(con, rcblock,
+                                                default_position);
+#if CHECKING
+  } else if (con->kind == (a_constant_repr_kind)ck_init_repeat ||
+             con->kind == (a_constant_repr_kind)ck_dynamic_init ||
+             con->kind == (a_constant_repr_kind)ck_designator) {
+    /* These shouldn't come up at this level;
+       rescan_aggr_constant_as_arg_list_elem handles them inside aggregates. */
+    unexpected_condition();
+#endif /* CHECKING */
+  } else {
+    /* Normal constant. */
+    an_operand operand;
+    rescan_constant_as_operand(con, rcblock, default_position,
+                               EOPT_NO_OPTIONS, &operand);
+    icp = alloc_arg_list_elem_for_operand(&operand);
+  }  /* if */
+  return icp;
+}  /* rescan_constant_as_arg_list_elem */
 
 
 an_expr_node_ptr alloc_node_for_constant_operand(an_operand *operand)
@@ -4579,9 +4852,8 @@ destroyed its source position, etc.  Restore such things from
 {
   /* This routine must be callable even when there is nothing on the
      expression stack. */
-  operand->position = orig_operand->position;
+  copy_operand_position(orig_operand, operand);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  operand->end_position = orig_operand->end_position;
   /* If necessary, set the position in the expression too. */
   if (is_expression_operand(orig_operand) &&
       is_expression_operand(operand) &&
@@ -16612,10 +16884,7 @@ cases so we don't do it here.
         /* An lvalue cannot be converted to an rvalue in a constant
            expression.  We've previously ruled out the cases that result
            in a constant. */
-        operand->position = orig_operand.position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        operand->end_position = orig_operand.end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        copy_operand_position(&orig_operand, operand);
         error_in_operand(ec_expr_not_constant, operand);
       } else {
         /* The value of the rvalue expression is not a constant. */

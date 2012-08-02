@@ -76,9 +76,11 @@ extern void check_for_missing_initializer_full(
   (check_for_missing_initializer_full(sym, type,                             \
                                       /*explicitly_internal=*/FALSE))
 
-extern void scan_compound_literal_initializer(a_type_ptr         *type,
-                                              a_boolean          is_static,
-                                              a_dynamic_init_ptr *dip);
+extern
+void scan_compound_literal_initializer(a_type_ptr         *type,
+                                       a_boolean          is_static,
+                                       an_init_component  *rescan_aggr,
+                                       a_dynamic_init_ptr *dip);
 
 #endif /* ifndef DECL_INITS_H */
 
