@@ -29471,23 +29471,6 @@ dynamic init entry if one is created to represent this initializer
   if (!is->check_validity_only && is_var_init) {
     if (dip != NULL) dip->variable = var;
   }  /* if */
-  if (icp->pack_expansion_descr != NULL) {
-    /* The given component is a pack expansion: Record that in the IL produced
-       by the conversion. */
-    if (is->init_con != NULL) {
-      is->init_con->is_pack_expansion = TRUE;
-    } else if (is->init_dip != NULL) {
-      if (is->init_dip->kind == (a_dynamic_init_kind)dik_expression ||
-          is->init_dip->kind ==
-                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
-        is->init_dip->variant.expression->is_pack_expansion = TRUE;
-      } else if (is->init_dip->kind == (a_dynamic_init_kind)dik_constant ||
-                 is->init_dip->kind ==
-                              (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-        is->init_dip->variant.constant->is_pack_expansion = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
 }  /* convert_initializer */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
