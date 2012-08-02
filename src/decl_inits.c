@@ -491,8 +491,8 @@ vp had an incomplete array type that has been completed by an initializer.
       (!gnu_mode && is_array &&
        skip_typerefs(vp_type)->variant.array.bound_is_zero)) {
     if (is_array && is_or_contains_error_type(array_element_type(vp_type))) {
-      /* If something when wrong with the element type, additional errors are
-      unlike helpful. */
+      /* If something went wrong with the element type, additional errors are
+         unlikely to be helpful. */
       expect_error();
     } else {
       pos_error(ec_bad_initializer_for_array_with_unspecified_bound,
