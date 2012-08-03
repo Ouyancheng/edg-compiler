@@ -5,10 +5,11 @@ Abort on use of G++ typeof from different function
 
 In some cases, the front end aborted in form_type_specifier in il_to_str.c
 while trying to render a G++ typeof that is based on a local variable from
-a scope other than the current one.  A change has also been made to
-resolve a mangling abort stemming from __typeof__(this) or decltype(this)
-in configurations where PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE and nonclass
-templates are parsed.  This problem was introduced in version 4.4.  Now fixed.
+a scope other than the current one.  This problem was introduced in
+version 4.4.  A change has also been made to resolve a mangling abort
+stemming from __typeof__(this) or decltype(this) in configurations where
+PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE and nonclass templates are parsed.
+Both problems are now fixed.
 
   template <class T>
   struct C {
