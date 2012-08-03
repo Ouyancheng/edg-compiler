@@ -5365,7 +5365,7 @@ the dynamic initialization is the result of a static_cast.
 
   check_assertion(dip != NULL);
   if (dip->is_braced_initializer) {
-    if (dip->is_compound_literal) {
+    if (dip->is_compound_literal || is_aggr_constant_dynamic_init(dip)) {
       check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant ||
                       dip->kind ==
                                (a_dynamic_init_kind)dik_nonconstant_aggregate);
