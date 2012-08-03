@@ -96,6 +96,12 @@ or a brace-enclosed list.  In the C++11 standard, the corresponding syntax
 term is "initializer-clause".  It does double duty: An expression-list (i.e.,
 an argument list) is an initializer-list, which is a list of
 initializer-clauses with possible variadic template expansions.
+Accordingly, there are two names for this entry: an_init_component
+and an_arg_list_elem.  Generally, the expression routines use
+an_arg_list_elem and the initialization routines use an_init_component.
+A true initializer list can contain designators (and an_init_component
+is typically used), whereas an argument list cannot (and an_arg_list_elem
+is typically used).
 */
 typedef struct an_init_component *an_init_component_ptr;
 typedef struct an_init_component {

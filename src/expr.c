@@ -13326,7 +13326,7 @@ indication in *rcblock).
     make_cast_rescan_operands(rcblock, (a_dynamic_init *)NULL,
                               start_position,
                               cast_type, type_position,
-                              (an_arg_list_elem **)NULL,
+                              (an_init_component **)NULL,
                               (a_dynamic_init **)NULL,
                               operand,
                               bound_function_selector);
@@ -19577,7 +19577,7 @@ appropriately; the caller should set them on return.  If rcblock is
 non-NULL, redo semantic analysis on a previously-scanned compound
 literal whose initializer is given by rescan_icp (which is already
 copied/substituted), and return the result in *result (or an error
-indication in *rcblock).
+indication in *rcblock).  rescan_icp is not freed.
 */
 {
   a_boolean          err = FALSE;
@@ -19586,6 +19586,8 @@ indication in *rcblock).
   a_boolean          is_static = (expr_stack->in_static_initializer ||
                                   curr_expr_kind_is_const());
   a_boolean          saved_same_expression;
+  an_init_component  **return_icp = NULL;
+  an_init_component  *braced_init_list = NULL;
 
   check_assertion((C_mode() || gpp_mode) &&
                   !curr_expr_kind_is(ek_pp));
@@ -19630,6 +19632,11 @@ indication in *rcblock).
                                      ec_compound_literal_is_nonstandard);
     }  /* if */
   }  /* if */
+  if (rescan_icp == NULL && expr_stack->possible_rescan_context) {
+    /* In a context where rescan may be required later, ask to get back the
+       init-component for the braced-init-list. */
+    return_icp = &braced_init_list;
+  }  /* if */
   /* The expression stack push that will be done for the initializer
      expression is to be considered part of the same expression as the
      current one. */
@@ -19638,11 +19645,15 @@ indication in *rcblock).
   /* Scan the brace-enclosed initializer (or rescan, if rescan_icp is
      non-NULL). */
   scan_compound_literal_initializer(&literal_type, is_static, rescan_icp,
-                                    &dip);
+                                    return_icp, &dip);
   expr_stack->next_stack_push_considered_same_expression=saved_same_expression;
   if (dip == NULL) {
     /* No dynamic init entry will be returned if an error occurred. */
     err = TRUE;
+  } else if (braced_init_list != NULL) {
+    /* Save rescan information for the braced-init-list in init-component
+       form. */
+    save_rescan_info_for_braced_init_list(dip, braced_init_list);
   }  /* if */
   /* The type can be updated for an incomplete array. */
   *p_literal_type = literal_type;
@@ -19681,7 +19692,6 @@ indication in *rcblock).
                                       type_position,
                                       literal_type);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
-  free_init_component_list(rescan_icp);
 }  /* scan_compound_literal */
 
 
@@ -20003,7 +20013,23 @@ previously-scanned braced initializer.
                                       is_class_struct_union_type(type_cast_to),
                         result, (an_init_state *)NULL,
                         (an_arg_match_summary *)NULL);
-  if (icp != rescan_icp) free_init_component_list(icp);
+  if (rescan_icp == NULL) {
+    a_dynamic_init_ptr dip_for_rescan = NULL;
+    /* In a potential rescan context, save the init-component form of the
+       braced-init-list in rescan information attached to the dynamic init.
+       Otherwise, free it. */
+    if (expr_stack->possible_rescan_context) {
+      an_expr_node_ptr temp_init_node;
+      if (operand_is_temp_init_full(result, &temp_init_node)) {
+        dip_for_rescan = temp_init_node->variant.init.dynamic_init;
+      }  /* if */
+    }  /* if */
+    if (dip_for_rescan != NULL) {
+      save_rescan_info_for_braced_init_list(dip_for_rescan, icp);
+    } else {
+      free_init_component_list(icp);
+    }  /* if */
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = *init_component_end_pos(icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -20054,7 +20080,7 @@ freed by this routine.
   a_boolean                     expr_not_present = FALSE;
   a_boolean                     scanning_source = (rcblock == NULL &&
                                                    !arg_list_supplied);
-  an_arg_list_elem_ptr          aggr = NULL;
+  an_init_component_ptr         braced_init_list = NULL;
 
   db_enter(4, "scan_functional_notation_type_conversion");
 
@@ -20065,25 +20091,21 @@ freed by this routine.
     start_position = &local_start_position;
     make_cast_rescan_operands(rcblock, rescan_dip, start_position,
                               &type_cast_to, &type_position,
-                              &aggr, &rescan_dip,
+                              &braced_init_list, &rescan_dip,
                               result,
                               &local_bound_function_selector);
-    if (aggr != NULL) {
-      check_assertion(rescan_dip != NULL);
-      if (rescan_dip->is_compound_literal) {
-        /* Treat this as a compound literal rescan.  Compound literal cases
-           without an underlying ck_aggregate constant are treated as casts
-           below. */
-        scan_compound_literal(&type_cast_to,
-                              start_position,
-                              &type_position,
-                              rcblock,
-                              aggr,
-                              result,
-                              local_options);
-        aggr = NULL;
-        goto end_of_routine;
-      }  /* if */
+    if (rescan_dip != NULL && rescan_dip->is_compound_literal) {
+      /* A compound literal rescan.  Handle as such and skip the rest of
+         this routine. */
+      check_assertion(braced_init_list != NULL);
+      scan_compound_literal(&type_cast_to,
+                            start_position,
+                            &type_position,
+                            rcblock,
+                            braced_init_list,
+                            result,
+                            local_options);
+      goto end_of_routine;
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = (rcblock->expr != NULL) ? rcblock->expr->expr_range.end :
@@ -20117,18 +20139,12 @@ freed by this routine.
                             /*allow_unk_bound_array=*/list_init_enabled);
   if (list_init_enabled && 
       (scanning_source ? curr_token == tok_lbrace :
-                         aggr != NULL)) {
+                         braced_init_list != NULL)) {
     /* C++11 list-initializer syntax, e.g., T{x, y}. */
-    /* FIXME: Other brace-enclosed func notation cast rescan cases? */
-    scan_braced_init_list_cast(type_cast_to,
-                               (rescan_dip != NULL &&
-                                rescan_dip->is_compound_literal) ?
-                                                             csf_old_style :
-                                                             csf_functional,
-                               aggr,
-                               result);
+    scan_braced_init_list_cast(type_cast_to, csf_functional,
+                               braced_init_list, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = curr_construct_end_position;
+    if (scanning_source) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     goto have_result;
   }  /* if */
@@ -20472,8 +20488,8 @@ have_result:
                                       &type_position,
                                       type_cast_to);
   rule_out_expr_kinds(ruled_out_expr_kinds, result);
-  free_init_component_list(aggr);
 end_of_routine:
+  free_init_component_list(braced_init_list);
   db_exit();
 }  /* scan_functional_notation_type_conversion */
 

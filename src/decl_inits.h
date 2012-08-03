@@ -80,6 +80,7 @@ extern
 void scan_compound_literal_initializer(a_type_ptr         *type,
                                        a_boolean          is_static,
                                        an_init_component  *rescan_aggr,
+                                       an_init_component  **return_icp,
                                        a_dynamic_init_ptr *dip);
 
 #endif /* ifndef DECL_INITS_H */

@@ -2678,6 +2678,7 @@ static void braced_initializer(a_type_ptr          dtype,
                                an_init_component   *rescan_aggr,
                                an_init_state       *is,
                                a_decl_parse_state  *dps,
+                               an_init_component   **return_icp,
                                a_source_position   *diag_pos)
 /*
 Handle a braced-init-list following a declarator, a mem-initializer-id, or a
@@ -2688,7 +2689,9 @@ dtype is the type of the entity being initialized.  *is describes the state of
 initializer processing.  *dps describes the declaration that the initializer
 is part of; it is NULL if the initialization is not (directly) part of a
 declaration.  diag_pos is the position to be used by default for diagnostics.  
-If rescan_aggr is non-NULL, a rescan is being done during template
+If return_icp is non-NULL, return the init-component entry for the
+braced-init-list in *return_icp instead of freeing it as usual.  If
+rescan_aggr is non-NULL, a rescan is being done during template
 deduction; rescan_aggr provides a braced-init-list for the
 initializer, already copied and substituted.
 */
@@ -2800,11 +2803,17 @@ initializer, already copied and substituted.
       process_simple_init_component(icp, dtype, is, is_var_init);
       break;
   }  /* switch */
-  if (icp_tree != rescan_aggr) {
+  if (rescan_aggr == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = *init_component_end_pos(icp_tree);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    free_init_component_list(icp_tree);
+    if (return_icp == NULL) {
+      free_init_component_list(icp_tree);
+    } else {
+      *return_icp = icp_tree;
+    }  /* if */
+  } else {
+    check_assertion(return_icp == NULL);
   }  /* if */
   is->force_dynamic_init = saved_force_dynamic_init;
   if ((is_aggregate && !is->init_error) ||
@@ -2900,7 +2909,8 @@ is part of.  diag_pos is the position to be used by default for diagnostics
     dps->init_state.initializer_must_be_constant = TRUE;
   }  /* if */
   braced_initializer(dps->type, (an_init_component *)NULL,
-                     &dps->init_state, dps, diag_pos);
+                     &dps->init_state, dps, (an_init_component **)NULL,
+                     diag_pos);
   if (vp != NULL && is_incomplete_array_type(vp->type) &&
       is_array_type(dps->type)) {
     /* An array declarator of the form "X[]" followed by a braced initializer:
@@ -3168,6 +3178,7 @@ to use for diagnostics by default.
 void scan_compound_literal_initializer(a_type_ptr         *type,
                                        a_boolean          is_static,
                                        an_init_component  *rescan_aggr,
+                                       an_init_component  **return_icp,
                                        a_dynamic_init_ptr *dip)
 /*
 Scan the brace-enclosed part of a compound literal.  Such literals are of the
@@ -3178,11 +3189,14 @@ is incomplete, the complete type should be deduced from the initializer and
 the literal appears outside a function body (in which case it has static
 storage duration) or inside a function body (in which case it is automatic and
 hence is_static is passed as FALSE).  A dynamic init entry is created by this
-function and a pointer to it is returned through dip.  The caller is
-responsible for ensuring that the current token is a brace, and the function
-braced_initializer does all the hard work.  If rescan_aggr is non-NULL,
-a rescan is being done during template deduction; rescan_aggr provides
-a braced-init-list for the initializer, already copied and substituted.
+function and a pointer to it is returned through dip.  If return_icp
+is non-NULL, return the init-component entry for the braced-init-list
+in *return_icp instead of freeing it as usual.  The caller is
+responsible for ensuring that the current token is a brace, and the
+function braced_initializer does all the hard work.  If rescan_aggr is
+non-NULL, a rescan is being done during template deduction;
+rescan_aggr provides a braced-init-list for the initializer, already
+copied and substituted.
 */
 {
   a_source_position   start_pos;
@@ -3204,7 +3218,8 @@ a braced-init-list for the initializer, already copied and substituted.
   if (C_mode() && (is_static || !allow_nonconstant_auto_aggr_init_in_c_mode)) {
     dps.init_state.initializer_must_be_constant = TRUE;
   }  /* if */
-  braced_initializer(dps.type, rescan_aggr, &dps.init_state, &dps, &start_pos);
+  braced_initializer(dps.type, rescan_aggr, &dps.init_state, &dps,
+                     return_icp, &start_pos);
   /* A compound literal of the form (T[]){...} needs its type to be updated. */
   *type = dps.type;
   /* Adjust the dynamic initializer entry that was produced to reflect that it
@@ -3213,7 +3228,7 @@ a braced-init-list for the initializer, already copied and substituted.
   if (*dip != NULL) {
     (*dip)->is_compound_literal = TRUE;
     if ((*dip)->kind == (a_dynamic_init_kind)dik_constant ||
-      (*dip)->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+        (*dip)->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
       (*dip)->variant.constant->explicit_cast_applied = TRUE;
       if (!is_incomplete_array_type(dps.type)) {
         (*dip)->variant.constant->type = dps.type;
@@ -4944,7 +4959,8 @@ entries are replaced as needed for each mem-initializer that is encountered.
       is.elements_are_full_expressions = TRUE;
       /* Scan the initializer. */
       braced_initializer(dtype, (an_init_component *)NULL,
-                         &is, (a_decl_parse_state*)NULL, &lbrace_pos);
+                         &is, (a_decl_parse_state*)NULL,
+                         (an_init_component **)NULL, &lbrace_pos);
       if (new_cip != NULL) {
         /* A dynamic init entry has been produced: Record it in the
            constructor init entry. */

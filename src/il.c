@@ -14434,6 +14434,18 @@ not the result of an explicit source operation like a cast.
 }  /* is_generated_dynamic_init */
 
 
+a_boolean is_aggr_constant_dynamic_init(a_dynamic_init_ptr dip)
+/*
+Return TRUE if the given dynamic init has an underlying ck_aggregate constant.
+*/
+{
+  a_boolean is_aggr = 
+         ((dip->kind == (a_dynamic_init_kind)dik_constant ||
+           dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
+            dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate);
+  return is_aggr;
+}  /* is_aggr_constant_dynamic_init */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 static an_expr_node_ptr copy_template_param_expr_as_lvalue(
