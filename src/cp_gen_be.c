@@ -4275,7 +4275,8 @@ suppressed.
     write_tok_ch('(');
     gen_cast(literal_type);
   }  /* if */
-  is_scalar = (!is_aggregate_or_union_type(literal_type)
+  is_scalar = (!is_aggregate_or_union_type(literal_type) &&
+               !is_template_param_type(literal_type)
 #if GNU_VECTOR_TYPES_ALLOWED
                && !is_vector_type(literal_type)
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
