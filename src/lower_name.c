@@ -2749,6 +2749,7 @@ indicates the length, e.g., "3abc" for the name "abc".  name is
 null-terminated.
 */
 {
+  check_assertion(name != NULL);
   add_number_to_mangled_name((unsigned long)strlen(name), mctl);
   add_str_to_mangled_name(name, mctl);
 }  /* mangled_name_with_length */
@@ -5718,14 +5719,27 @@ is TRUE.
       mangled_encoding_for_sizeof_pack(expr, mctl);
       break;
     case enk_variable:
+      if (expr->variant.variable->is_this_parameter) {
+        /* When "this" is used explicitly in a trailing return type, it is
+           mangled as a special type of parameter reference.  Seeing a
+           "this" variable here should occur only in prototype instantiations;
+           use the same mangling as a "this" parameter reference. */
+        check_assertion(prototype_instantiations_in_il);
 #if IA64_ABI
-      mangled_entity_reference(&expr->variant.variable->source_corresp,
-                               (an_il_entry_kind)iek_variable,
-                               (a_routine_info_block *)NULL,
-                               /*add_address_of=*/FALSE, mctl);
+        add_str_to_mangled_name("fpT", mctl);
 #else /* !IA64_ABI */
-      mangled_variable_name(expr->variant.variable, mctl);
+        add_str_to_mangled_name("I0I", mctl);
 #endif /* IA64_ABI */
+      } else {
+#if IA64_ABI
+        mangled_entity_reference(&expr->variant.variable->source_corresp,
+                                 (an_il_entry_kind)iek_variable,
+                                 (a_routine_info_block *)NULL,
+                                 /*add_address_of=*/FALSE, mctl);
+#else /* !IA64_ABI */
+        mangled_variable_name(expr->variant.variable, mctl);
+#endif /* IA64_ABI */
+      }  /* if */
       break;
     case enk_field:
       /* This should only happen for fields of anonymous unions. */
