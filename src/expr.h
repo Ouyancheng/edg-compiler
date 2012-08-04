@@ -422,7 +422,6 @@ void rescan_selector_of_call(a_rescan_control_block *rcblock,
 extern void insert_temporary_initialization(an_expr_node_ptr temp_init_expr,
                                             an_operand_ptr   result);
 
-
 extern void process_microsoft_null_pointer_constant_bug(
                                                     an_operand_ptr operand,
                                                     a_type_ptr     dest_type);

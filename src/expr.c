@@ -29319,9 +29319,11 @@ an_init_component_ptr scan_full_initializer_expr_as_component(
 Scan an initializer that is a non-brace-enclosed expression and return it as an
 initializer component.  dps (which must be non-NULL) describes the state of the
 current declaration (i.e., the declaration of the object being initialized).
-If allow_empty_expansion is TRUE, pack expansions are permissible but they have
-to expand to zero or one expressions: In the case of "zero" (an empty pack
-expansion), this routine return NULL.
+If allow_empty_expansion is TRUE, then if pack expansions are permissible
+they are allowed to expand to zero expressions (that's in addition to the
+usual rules: one expression is always allowed, and two or more are never
+allowed); in the case of an empty pack expansion, this routine returns
+NULL.
 */
 {
   an_expr_stack_entry   *saved_expr_stack;

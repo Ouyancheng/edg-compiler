@@ -1085,7 +1085,7 @@ static void aggr_init_array_remainder_if_needed(a_constant_ptr     array_con,
                                                 a_source_position  *diag_pos)
 /*
 An array of elements of type etype has an initializer that doesn't initialize
-all the array elements.  array_con points to an ck_aggregate constant that
+all the array elements.  array_con points to a ck_aggregate constant that
 represents the explicit initialization (unless is->check_validity_only flag is
 FALSE).  Check that the remaining elements of the array can be initialized, and
 if the flag is->check_validity_only is FALSE and the remaining elements need
@@ -2887,7 +2887,7 @@ is part of.  diag_pos is the position to be used by default for diagnostics
   }  /* if */
   if (list_init_enabled) {
     /* C++11 requires a diagnostic on narrowing in this case, but since it
-       is a backward compatibility issue, we make it warning only in non-
+       is a backward compatibility issue, we make it only a warning in non-
        strict modes.  (Strictly speaking, it is only a backward compatibility
        issue for non-direct initialization syntax, but since GCC only warns on
        the direct syntax too, we follow suit in nonstrict mode.) */
@@ -2902,7 +2902,7 @@ is part of.  diag_pos is the position to be used by default for diagnostics
       (dps->init_state.static_lifetime_init ||
        (is_aggregate_or_union_type(dps->type) &&
         !allow_nonconstant_auto_aggr_init_in_c_mode))) {
-    /* In C mode, variables with static life time can only be initialized with
+    /* In C mode, variables with static lifetime can only be initialized with
        constant expressions.  For variables of aggregate types, this may also
        be true for variables with automatic storage duration (depending on the
        mode and configuration). */
@@ -3040,7 +3040,7 @@ dps, linkage,  decl_pos_block describe a variable of class or array type
 initialized with what looks like an expression.  I.e., an initialization of
 the form:
 
-	T x = <expr>
+	T x = <expr>;
 
 Check and record the initialization as appropriate.  diag_pos is the position
 to use for diagnostics by default.
