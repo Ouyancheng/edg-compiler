@@ -5310,7 +5310,11 @@ demangler).
       for (cp = con->variant.aggregate.first_constant;
            cp != NULL;
            cp = cp->next) {
-        count++;
+        /* Repeated constants and designators are ignored during mangling. */
+        if (cp->kind != (a_constant_repr_kind)ck_init_repeat &&
+            cp->kind != (a_constant_repr_kind)ck_designator) {
+          count++;
+        }  /* if */
       }  /* for */
     } else {
       count = 1;
