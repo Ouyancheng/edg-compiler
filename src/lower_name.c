@@ -5375,19 +5375,24 @@ the dynamic initialization is the result of a static_cast.
 
   check_assertion(dip != NULL);
   if (dip->is_braced_initializer) {
-    if (dip->is_compound_literal || is_aggr_constant_dynamic_init(dip)) {
-      check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant ||
-                      dip->kind ==
-                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
-      /* If the dip contains a constant, mangle it (using an initializer-list
-         mangling). */
-      mangled_braced_init_list((an_expr_node_ptr)NULL, dip->variant.constant,
-                               type, mctl);
-    } else {
-      /* Use encoding for braced-initializer lists. */
-      args = arg_list_from_dyn_init(dip);
-      mangled_braced_init_list(args, (a_constant_ptr)NULL, type, mctl);
-    }  /* if */
+    /* Mangle as an initializer-list (even if is_explicit_cast is also set). */
+    switch (dip->kind) {
+      case dik_constant:
+      case dik_nonconstant_aggregate:
+        /* If the dip contains a constant, mangle it (using an initializer-list
+           mangling). */
+        mangled_braced_init_list((an_expr_node_ptr)NULL, dip->variant.constant,
+                                 type, mctl);
+        break;
+      case dik_expression:
+      case dik_constructor:
+        /* Use encoding for braced-initializer lists. */
+        args = arg_list_from_dyn_init(dip);
+        mangled_braced_init_list(args, (a_constant_ptr)NULL, type, mctl);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
   } else if (dip->is_explicit_cast) {
     args = arg_list_from_dyn_init(dip);
     num_operands = number_of_operands_in_list(args);
