@@ -160,6 +160,111 @@ of a default argument expression, mark the new entry the same way.
 }  /* transfer_expr_context_if_applicable */
 
 
+static void set_up_initializer_rescan(a_decl_parse_state *dps)
+/*
+If the initializer for an entity was previously scanned and saved in
+dps->prescanned_initializer_cache, activate that initializer cache so
+that the expression will be consumed next before any more expressions
+are scanned.  Otherwise, do nothing.
+*/
+{
+  check_assertion(dps != NULL);
+  if (anything_cached(&dps->prescanned_initializer_cache)) {
+    check_assertion(expr_stack != NULL &&
+                    expr_stack->initializer_cache == NULL);
+    expr_stack->initializer_cache = &dps->prescanned_initializer_cache;
+  }  /* if */
+}  /* set_up_initializer_rescan */
+
+
+static void push_expr_stack_for_initializer(
+                                 an_expr_stack_entry *expr_stack_entry,
+                                 an_expr_stack_entry **saved_expr_stack,
+                                 an_expression_kind  expr_kind,
+                                 a_boolean           force_object_lifetime,
+                                 a_boolean           suppress_object_lifetime,
+                                 a_boolean           is_full_expr,
+                                 a_decl_parse_state  *dps,
+                                 an_init_state       *is)
+/*
+Push an expression stack entry for the scanning or processing of an
+initializer.  "dps" and/or "is" describe the entity being initialized.
+Both can be NULL, e.g., for a ctor-initializer.  is_full_expr is TRUE
+if the initializer is to be treated as full-expression.
+expr_stack_entry is the new stack entry to be pushed, and
+saved_expr_stack is used to save the existing expression stack for
+later restoration in the case of a full expression.  expr_kind is the
+kind of expression stack entry to be pushed; however, it will be
+forced to ek_init_constant if dps/is indicate the initializer must be
+constant and expr_kind is not already a constant expression kind.
+force_object_lifetime is TRUE if an object lifetime should be forced,
+and suppress_object_lifetime is TRUE if an object lifetime should be
+suppressed.
+*/
+{
+  if (is == NULL && dps != NULL) is = &dps->init_state;
+  if (dps == NULL && is != NULL) dps = is->decl_parse_state;
+  if (is_full_expr) {
+    save_expr_stack(saved_expr_stack);
+  } else {
+    check_assertion(expr_stack != NULL);
+  }  /* if */
+  if (is != NULL && is->initializer_must_be_constant) {
+    if ((int)expr_kind > (int)ek_init_constant) {
+      expr_kind = (an_expression_kind)ek_init_constant;
+    }  /* if */
+  }  /* if */
+  push_expr_stack(expr_kind, expr_stack_entry,
+                  force_object_lifetime,
+                  suppress_object_lifetime);
+  if (is_full_expr) transfer_expr_context_if_applicable(*saved_expr_stack);
+  if (is != NULL && is->static_lifetime_init) {
+    expr_stack_entry->in_static_initializer = TRUE;
+    expr_stack_entry->favor_constant_result = TRUE;
+  } else if (favor_constant_result_for_nonstatic_init) {
+    expr_stack_entry->favor_constant_result = TRUE;
+  }  /* if */
+  if (dps != NULL && dps->sym != NULL &&
+      symbol_is(dps->sym, sk_static_data_member)) {
+    /* Record entities defined in the initializer expression for a
+       static data member (needed for correspondence checking and name
+       mangling when the static data member is a template instance).
+       In the case of aggregate initializers, this routine may be called
+       multiple times for the same initializer: Ensure that additional
+       entries are appended to any existing entries. */
+    a_variable_ptr sdm_var = dps->sym->variant.static_data_member.variable;
+    an_il_entity_list_entry_ptr
+                   *ep = &sdm_var->entities_defined_in_initializer;
+    while (*ep != NULL) ep = &(*ep)->next;
+    expr_stack_entry->p_end_of_entities_defined_in_expression = ep;
+  }  /* if */
+  if (dps != NULL) set_up_initializer_rescan(dps);
+}  /* push_expr_stack_for_initializer */
+
+
+static void pop_expr_stack_for_initializer(
+                                 an_expr_stack_entry *saved_expr_stack,
+                                 a_boolean           is_full_expr,
+                                 a_decl_parse_state  *dps,
+                                 an_init_state       *is)
+/*
+Pop the expression stack at the end of scanning an initializer.  The
+parameters match the corresponding ones for push_expr_stack_for_initializer.
+*/
+{
+  if (is == NULL && dps != NULL) is = &dps->init_state;
+  if (dps == NULL && is != NULL) dps = is->decl_parse_state;
+  if (dps != NULL && dps->sym != NULL &&
+      symbol_is(dps->sym, sk_static_data_member)) {
+    /* Stop the recording of entities defined in the expression (not strictly
+       necessary, but just to be neat). */
+    expr_stack->p_end_of_entities_defined_in_expression = NULL;
+  }  /* if */
+  pop_expr_stack();
+  if (is_full_expr) restore_expr_stack(saved_expr_stack);
+}  /* pop_expr_stack_for_initializer */
+
+
 void prescan_initializer_for_auto_type_deduction(
                                          a_decl_parse_state *dps,
                                          a_boolean          parenthesized_init)
@@ -192,7 +297,6 @@ opening parenthesis has already been swallowed); otherwise, it's
      is not a full expression and a stack entry will already have been
      pushed in that case. */
   if (is_full_expr) {
-    save_expr_stack(&saved_expr_stack);
     if (dps->in_class_scope) {
       /* In-class initializers are only valid for static const data members of
          integral or enum type: Scan an integral constant expression.  GNU and
@@ -201,14 +305,12 @@ opening parenthesis has already been swallowed); otherwise, it's
          specifier.  (See scan_member_constant_initializer_expression.) */
       expr_kind = (an_expression_kind)ek_integral_constant;
     }  /* if */
-    push_expr_stack(expr_kind, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/FALSE);
-    transfer_expr_context_if_applicable(saved_expr_stack);
-    if (has_static_storage_duration(dps->storage_class) ||
-        favor_constant_result_for_nonstatic_init) {
-      expr_stack_entry.favor_constant_result = TRUE;
-    }  /* if */
+    push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                    expr_kind,
+                                    /*force_object_lifetime=*/FALSE,
+                                    /*suppress_object_lifetime=*/FALSE,
+                                    is_full_expr,
+                                    dps, (an_init_state *)NULL);
   }  /* if */
   /* Scan the expression and save it in an initializer cache so it can be
      scanned as the initializer later, and deduce the "auto" type it
@@ -282,29 +384,12 @@ opening parenthesis has already been swallowed); otherwise, it's
     }  /* if */
   }  /* if */
   /* Pop the expression stack if needed. */
-  if (!dps->is_new_expr_type) {
-    pop_expr_stack();
-    restore_expr_stack(saved_expr_stack);
+  if (is_full_expr) {
+    pop_expr_stack_for_initializer(saved_expr_stack,
+                                   is_full_expr,
+                                   dps, (an_init_state *)NULL);
   }  /* if */
 }  /* prescan_initializer_for_auto_type_deduction */
-
-
-static void set_up_initializer_rescan(a_decl_parse_state *dps)
-/*
-If the initializer for an entity was previously scanned and saved in
-dps->prescanned_initializer_cache, activate that initializer cache so
-that the expression will be consumed next before any more expressions
-are scanned.  Otherwise, do nothing.  Also do nothing if dps is NULL
-on entry.
-*/
-{
-  if (dps != NULL &&
-      anything_cached(&dps->prescanned_initializer_cache)) {
-    check_assertion(expr_stack != NULL &&
-                    expr_stack->initializer_cache == NULL);
-    expr_stack->initializer_cache = &dps->prescanned_initializer_cache;
-  }  /* if */
-}  /* set_up_initializer_rescan */
 
 
 void scan_and_discard_initializer_expression(a_decl_parse_state  *dps)
@@ -317,14 +402,19 @@ If dps is non-NULL, dps->has_initializer is set to FALSE.
 */
 {
   an_expr_stack_entry expr_stack_entry;
+  an_expr_stack_entry *saved_expr_stack;
   an_operand          result;
 
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/TRUE);
-  set_up_initializer_rescan(dps);
+  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                  (an_expression_kind)ek_normal,
+                                  /*force_object_lifetime=*/FALSE,
+                                  /*suppress_object_lifetime=*/TRUE,
+                                  /*is_full_expr=*/TRUE,
+                                  dps, (an_init_state *)NULL);
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  pop_expr_stack();
+  pop_expr_stack_for_initializer(saved_expr_stack,
+                                 /*is_full_expr=*/TRUE,
+                                 dps, (an_init_state *)NULL);
   if (dps != NULL) dps->has_initializer = FALSE;
 }  /* scan_and_discard_initializer_expression */
 
@@ -29113,26 +29203,14 @@ a new-initializer).
 {
   an_expr_stack_entry   *saved_expr_stack;
   an_expr_stack_entry   expr_stack_entry;
-  an_expression_kind    ekind = (an_expression_kind)ek_normal;
   an_init_component_ptr icp;
 
-  if (dps != NULL && dps->init_state.initializer_must_be_constant) {
-    ekind = (an_expression_kind)ek_init_constant;
-  }  /* if */
-  if (is_full_expr) save_expr_stack(&saved_expr_stack);
-  push_expr_stack(ekind, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  if (is_full_expr) transfer_expr_context_if_applicable(saved_expr_stack);
-  if (dps != NULL && dps->init_state.static_lifetime_init) {
-    expr_stack_entry.in_static_initializer = TRUE;
-    expr_stack_entry.favor_constant_result = TRUE;
-  } else if (favor_constant_result_for_nonstatic_init) {
-    expr_stack_entry.favor_constant_result = TRUE;
-  }  /* if */
-  if (dps != NULL) {
-    set_up_initializer_rescan(dps);
-  }  /* if */
+  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                  (an_expression_kind)ek_normal,
+                                  /*force_object_lifetime=*/FALSE,
+                                  /*suppress_object_lifetime=*/FALSE,
+                                  is_full_expr,
+                                  dps, (an_init_state *)NULL);
   if (cached_initializer_present()) {
     /* Get a previously-scanned braced-init-list out of the cache.  This
        happens when the list is prescanned to resolve an "auto" declaration. */
@@ -29145,8 +29223,9 @@ a new-initializer).
     /* Scan the braced-init-list from source. */
     icp = scan_braced_init_list_internal(/*bundle=*/is_full_expr);
   }  /* if */
-  pop_expr_stack();
-  if (is_full_expr) restore_expr_stack(saved_expr_stack);
+  pop_expr_stack_for_initializer(saved_expr_stack,
+                                 is_full_expr,
+                                 dps, (an_init_state *)NULL);
   return icp;
 }  /* scan_braced_init_list */
 
@@ -29328,44 +29407,15 @@ NULL.
 {
   an_expr_stack_entry   *saved_expr_stack;
   an_expr_stack_entry   expr_stack_entry;
-  an_expression_kind    ekind = (an_expression_kind)ek_normal;
   an_init_component_ptr icp;
-  a_variable_ptr        sdm_var = NULL;
  
   check_assertion(dps != NULL);
-  save_expr_stack(&saved_expr_stack);
-  if (dps->init_state.initializer_must_be_constant) {
-    ekind = (an_expression_kind)ek_init_constant;
-  }  /* if */
-  push_expr_stack(ekind, &expr_stack_entry, /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  transfer_expr_context_if_applicable(saved_expr_stack);
-  if (dps->init_state.static_lifetime_init) {
-    expr_stack_entry.in_static_initializer = TRUE;
-    expr_stack_entry.favor_constant_result = TRUE;
-  } else if (favor_constant_result_for_nonstatic_init) {
-    expr_stack_entry.favor_constant_result = TRUE;
-  }  /* if */
-  if (dps->sym == NULL) {
-    /* A mem-initializer. */
-  } else if (symbol_is(dps->sym, sk_static_data_member)) {
-    /* Record entities defined in the initializer expression (needed for
-       correspondence checking and name mangling when the static data
-       member is a template instance).  In the case of aggregate
-       initializers, this routine may be called multiple times for
-       the same initializer: Ensure that additional entries are
-       appended to any existing entries. */
-    an_il_entity_list_entry_ptr  *ep;
-    sdm_var = dps->sym->variant.static_data_member.variable;
-    ep = &sdm_var->entities_defined_in_initializer;
-    while (*ep != NULL) ep = &(*ep)->next;
-    expr_stack_entry.p_end_of_entities_defined_in_expression = ep;
-  } else {
-    check_assertion(symbol_is(dps->sym, sk_variable) ||
-                    dps->sym->is_error ||
-                    symbol_is(dps->sym, sk_parameter));
-  }  /* if */
-  set_up_initializer_rescan(dps);
+  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                  (an_expression_kind)ek_normal,
+                                  /*force_object_lifetime=*/FALSE,
+                                  /*suppress_object_lifetime=*/FALSE,
+                                  /*is_full_expr=*/TRUE,
+                                  dps, (an_init_state *)NULL);
   if (cached_initializer_present()) {
     /* Get a previously-scanned init component out of the cache.  This happens
        when the list is prescanned to resolve an "auto" declaration. */
@@ -29387,13 +29437,9 @@ NULL.
       icp = scan_expr_as_init_component(/*bundle=*/TRUE);
     }  /* if */
   }  /* if */
-  if (sdm_var != NULL) {
-    /* Stop the recording of entities defined in the expression (not strictly
-       necessary, but just to be neat). */
-    expr_stack->p_end_of_entities_defined_in_expression = NULL;
-  }  /* if */
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
+  pop_expr_stack_for_initializer(saved_expr_stack,
+                                 /*is_full_expr=*/TRUE,
+                                 dps, (an_init_state *)NULL);
   return icp;
 }  /* scan_full_initializer_expr_as_component */
 
@@ -29420,15 +29466,11 @@ dynamic init entry if one is created to represent this initializer
   a_decl_parse_state  *dps = is->decl_parse_state;
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
-  an_expression_kind  ekind = (an_expression_kind)ek_normal;
   a_variable_ptr      var = NULL;
   a_dynamic_init_ptr  dip;
   a_conv_context_set  conv_context = CCO_DEFAULT;
   a_boolean           is_full_expr = is->elements_are_full_expressions;
 
-  if (is->initializer_must_be_constant) {
-    ekind = (an_expression_kind)ek_init_constant;
-  }  /* if */
   if (is_var_init) {
     /* This is a top-level variable initialization. */
     a_symbol_ptr   var_sym;
@@ -29438,24 +29480,17 @@ dynamic init entry if one is created to represent this initializer
     var = var_for_symbol(var_sym);
     check_assertion(var != NULL);
   }  /* if */
+  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                  (an_expression_kind)ek_normal,
+                                  /*force_object_lifetime=*/FALSE,
+                                  /*suppress_object_lifetime=*/FALSE,
+                                  is_full_expr,
+                                  dps, is);
   if (dps != NULL) {
     /* We're initializing a variable or part of a variable. */
     conv_context |= CCO_INITIALIZING_VARIABLE;
     if (is->static_lifetime_init) conv_context |= CCO_STATIC_LIFETIME;
   }  /* if */
-  if (is_full_expr) {
-    save_expr_stack(&saved_expr_stack);
-  } else {
-    check_assertion(expr_stack != NULL);
-  }  /* if */
-  push_expr_stack(ekind, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  if (is->static_lifetime_init ||
-      favor_constant_result_for_nonstatic_init) {
-    expr_stack_entry.favor_constant_result = TRUE;
-  }  /* if */
-  if (is_full_expr) transfer_expr_context_if_applicable(saved_expr_stack);
   prep_list_initializer(icp, dest_type,
                         is->direct_init,
                         /*check_narrowing=*/FALSE,  /* Ignored */
@@ -29481,8 +29516,9 @@ dynamic init entry if one is created to represent this initializer
       }  /* if */
     }  /* if */
   }  /* if */
-  pop_expr_stack();
-  if (is_full_expr) restore_expr_stack(saved_expr_stack);
+  pop_expr_stack_for_initializer(saved_expr_stack,
+                                 is_full_expr,
+                                 dps, is);
   if (!is->check_validity_only && is_var_init) {
     if (dip != NULL) dip->variable = var;
   }  /* if */
@@ -29509,15 +29545,12 @@ operation implementing the allocation of the array and its initialization.
   a_boolean               is_full_expr = is->elements_are_full_expressions;
 
   check_assertion(is_braced_init_component(icp));
-  if (is_full_expr) {
-    save_expr_stack(&saved_expr_stack);
-  } else {
-    check_assertion(expr_stack != NULL);
-  }  /* if */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  if (is_full_expr) transfer_expr_context_if_applicable(saved_expr_stack);
+  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                  (an_expression_kind)ek_normal,
+                                  /*force_object_lifetime=*/FALSE,
+                                  /*suppress_object_lifetime=*/FALSE,
+                                  is_full_expr,
+                                  (a_decl_parse_state *)NULL, is);
   /* Construct the enk_gcnew expression and the gcnew supplement. */
   gcnew_node = alloc_expr_node((an_expr_node_kind)enk_gcnew);
   gcnew_node->type = hatype;
@@ -29535,8 +29568,9 @@ operation implementing the allocation of the array and its initialization.
   dip->variant.expression = gcnew_node;
   if (is_full_expr) wrap_up_dynamic_init_full_expression(dip);
   is->has_dynamic_init_component = TRUE;
-  pop_expr_stack();
-  if (is_full_expr) restore_expr_stack(saved_expr_stack);
+  pop_expr_stack_for_initializer(saved_expr_stack,
+                                 is_full_expr,
+                                 (a_decl_parse_state *)NULL, is);
 }  /* aggr_init_cli_array_with_alloc */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -34295,12 +34329,12 @@ standard form).  Assumes copy-initialization ("="-form).
   } else {
     /* The kind of expression stack entry pushed here must match that pushed
        by prescan_initializer_for_auto_type_deduction. */
-    save_expr_stack(&saved_expr_stack);
-    push_expr_stack((an_expression_kind)ek_integral_constant,
-                    &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/FALSE);
-    set_up_initializer_rescan(dps);
+    push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                    (an_expression_kind)ek_integral_constant,
+                                    /*force_object_lifetime=*/FALSE,
+                                    /*suppress_object_lifetime=*/FALSE,
+                                    /*is_full_expr=*/TRUE,
+                                    dps, (an_init_state *)NULL);
     /* Scan the constant expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     /* Convert to the required type. */
@@ -34311,8 +34345,9 @@ standard form).  Assumes copy-initialization ("="-form).
                              ec_bad_initializer_type);
     /* Make a constant from the operand. */
     extract_constant_from_operand(&result, constant);
-    pop_expr_stack();
-    restore_expr_stack(saved_expr_stack);
+    pop_expr_stack_for_initializer(saved_expr_stack,
+                                   /*is_full_expr=*/TRUE,
+                                   dps, (an_init_state *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -34348,12 +34383,12 @@ constants; assumes copy-initialization ("="-form).
 
   db_enter(3, "scan_constant_initializer_expression");
   check_assertion(dps != NULL);
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  transfer_expr_context_if_applicable(saved_expr_stack);
-  set_up_initializer_rescan(dps);
+  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                  (an_expression_kind)ek_init_constant,
+                                  /*force_object_lifetime=*/FALSE,
+                                  /*suppress_object_lifetime=*/FALSE,
+                                  /*is_full_expr=*/TRUE,
+                                  dps, (an_init_state *)NULL);
   check_assertion(C_mode() || !dps->initializer_is_expr_list);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
@@ -34422,8 +34457,9 @@ constants; assumes copy-initialization ("="-form).
       set_error_constant(constant);
     }  /* if */
   }  /* if */
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
+  pop_expr_stack_for_initializer(saved_expr_stack,
+                                 /*is_full_expr=*/TRUE,
+                                 dps, (an_init_state *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -34605,12 +34641,12 @@ As indicated, this is initialization with the "=" semantics
 
   db_enter(3, "scan_class_initializer_expression");
   check_assertion(dps != NULL);
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  transfer_expr_context_if_applicable(saved_expr_stack);
-  set_up_initializer_rescan(dps);
+  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                  (an_expression_kind)ek_normal,
+                                  /*force_object_lifetime=*/FALSE,
+                                  /*suppress_object_lifetime=*/FALSE,
+                                  /*is_full_expr=*/TRUE,
+                                  dps, (an_init_state *)NULL);
   check_assertion(C_mode() || !dps->initializer_is_expr_list);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
@@ -34623,8 +34659,9 @@ As indicated, this is initialization with the "=" semantics
   wrap_up_dynamic_init_full_expression(*dip);
   /* *dip == NULL means there was an error. */
   if (*dip == NULL) okay = FALSE;
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
+  pop_expr_stack_for_initializer(saved_expr_stack,
+                                 /*is_full_expr=*/TRUE,
+                                 dps, (an_init_state *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -34735,18 +34772,18 @@ overall errors.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(4, "scan_class_parenthesized_initializer");
-  save_expr_stack(&saved_expr_stack);
   /* Force an object lifetime around the initialization if this routine is
      called for a ctor-initializer. */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/(dps == NULL),
-                  /*suppress_object_lifetime=*/FALSE);
-  transfer_expr_context_if_applicable(saved_expr_stack);
+  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                  (an_expression_kind)ek_normal,
+                                  /*force_object_lifetime=*/(dps == NULL),
+                                  /*suppress_object_lifetime=*/FALSE,
+                                  /*is_full_expr=*/TRUE,
+                                  dps, (an_init_state *)NULL);
   check_assertion(C_dialect == C_dialect_cplusplus &&
                   is_class_struct_union_type(class_type));
   cssp = symbol_supplement_for_class(class_type);
   check_assertion(cssp->constructor != NULL);
-  set_up_initializer_rescan(dps);
   /* Scan the constructor argument list. */
   scan_ctor_arguments(cssp->constructor, source_pos,
                       object_class_type, (a_type_ptr)NULL,
@@ -34773,8 +34810,9 @@ overall errors.
        to the dynamic initialization entry. */
     wrap_up_dynamic_init_full_expression(*p_dip);
   }  /* if */
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
+  pop_expr_stack_for_initializer(saved_expr_stack,
+                                 /*is_full_expr=*/TRUE,
+                                 dps, (an_init_state *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -34799,14 +34837,14 @@ current token is the one following the closing parenthesis.
 
   db_enter(4, "scan_dependent_type_parenthesized_initializer");
   check_assertion(!C_mode());
-  save_expr_stack(&saved_expr_stack);
   /* Force an object lifetime around the initialization if this routine is
      called for a ctor-initializer. */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/(dps == NULL),
-                  /*suppress_object_lifetime=*/FALSE);
-  transfer_expr_context_if_applicable(saved_expr_stack);
-  set_up_initializer_rescan(dps);
+  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                  (an_expression_kind)ek_normal,
+                                  /*force_object_lifetime=*/(dps == NULL),
+                                  /*suppress_object_lifetime=*/FALSE,
+                                  /*is_full_expr=*/TRUE,
+                                  dps, (an_init_state *)NULL);
   scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
                                            /*arg_list_supplied=*/FALSE,
                                            (an_arg_list_elem *)NULL,
@@ -34815,8 +34853,9 @@ current token is the one following the closing parenthesis.
   /* If there's an object lifetime around the initialization, transfer it
      to the dynamic initialization entry. */
   wrap_up_dynamic_init_full_expression(*dip);
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
+  pop_expr_stack_for_initializer(saved_expr_stack,
+                                 /*is_full_expr=*/TRUE,
+                                 dps, (an_init_state *)NULL);
   db_exit();
 }  /* scan_dependent_type_parenthesized_initializer */
 
