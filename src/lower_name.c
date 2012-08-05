@@ -3940,6 +3940,11 @@ do_unknown_function:
       mangled_encoding_for_complex_constant(con, old_form, mctl);
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case ck_init_repeat:
+    case ck_designator:
+      /* These may show up when mangling constants in compound literals;
+         just ignore them. */
+      break;
     default:
       internal_error("literal_representation: bad constant kind");
 #endif /* CHECKING */
