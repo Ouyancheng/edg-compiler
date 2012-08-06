@@ -18693,9 +18693,8 @@ the lifetime of the temporary is extended to match that of the reference.
   dip->has_temporary_lifetime = FALSE;
   if (dip->is_creation_of_initializer_list_object) {
     /* If the lifetime of an initializer_list object is extended, the
-       lifetime of the array fed into it is extended also
-       ([dcl.init.list]p6: "The lifetime of the array is the same
-       as that of the initializer_list object."). */
+       lifetime of the array fed into it is extended also (see core
+       issue 1290). */
     a_type_ptr         init_entity_type;
     a_dynamic_init_ptr dipa =
          effective_dynamic_init_for_initializer_list_object(dip,
