@@ -2619,6 +2619,16 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
       a_type_ptr    conv_rout_type;
       /* The constructor selected is a copy constructor, so certain
          optimizations may be possible. */
+      if (is_braced_init_component(eff_arg_list)) {
+        /* The list initialization rules for binding a reference to a list
+           containing a single reference-related element call for dropping
+           one set of braces, so do that here to bring the argument to the
+           form we expect. */
+        if (eff_arg_list->variant.braced.list != NULL &&
+            eff_arg_list->variant.braced.list->next == NULL) {
+          eff_arg_list = eff_arg_list->variant.braced.list;
+        }  /* if */
+      }  /* if */
       check_assertion(is_expression_component(eff_arg_list));
       param_type =
               routine->type->variant.routine.extra_info->param_type_list->type;
