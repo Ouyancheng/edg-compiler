@@ -400,8 +400,14 @@ If dps is non-NULL, dps->has_initializer is set to FALSE.
 {
   an_expr_stack_entry expr_stack_entry;
   an_expr_stack_entry *saved_expr_stack;
+  an_object_lifetime  *saved_curr_object_lifetime = curr_object_lifetime;
   an_operand          result;
 
+  if (curr_il_region_number == file_scope_region_number &&
+      curr_object_lifetime != NULL && !in_file_scope(curr_object_lifetime)) {
+    curr_object_lifetime =
+                   scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
+  }  /* if */
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
                                   /*is_full_expr=*/TRUE,
@@ -412,6 +418,7 @@ If dps is non-NULL, dps->has_initializer is set to FALSE.
                                  /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
   if (dps != NULL) dps->has_initializer = FALSE;
+  curr_object_lifetime = saved_curr_object_lifetime;
 }  /* scan_and_discard_initializer_expression */
 
 
