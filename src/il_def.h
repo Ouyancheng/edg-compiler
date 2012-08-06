@@ -3333,6 +3333,12 @@ typedef struct a_dynamic_init {
 			   instead of default-initialized.  In C++/CLI, this
 			   bit is also used to represent zeroing out of the
 			   allocated memory before invoking the constructor. */
+      a_bit_field
+		has_sequenced_arguments:1;
+			/* TRUE if the call arguments must be evaluated in
+			   order from left to right.  This comes up when a
+			   C++11 initializer list ends up being the argument
+			   list for a constructor. */
       bitfield_to_avoid_codecenter_warnings()
     } constructor;
   } variant;

@@ -2775,6 +2775,11 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                                            /*add_default_args=*/FALSE,
                                            /*implied_source=*/FALSE);
         dip->variant.constructor.value_initialization = value_initialization;
+        if (init_list_ctor_arg_list != NULL) {
+          /* A constructor call whose arguments come from a braced-init-list
+             must have its arguments evaluated in order. */
+          dip->variant.constructor.has_sequenced_arguments = TRUE;
+        }  /* if */
       }  /* if */
       if (fill_in_dtor) {
         /* Fill in the destructor information.  Note that we cannot use

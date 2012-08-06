@@ -1977,6 +1977,7 @@ the associated variant fields to default values.
       dip->variant.constructor.is_copy_constructor_with_implied_source = FALSE;
       dip->variant.constructor.is_implicit_copy_for_copy_initialization= FALSE;
       dip->variant.constructor.value_initialization = FALSE;
+      dip->variant.constructor.has_sequenced_arguments = FALSE;
 #if CENTERLINE_CHECKING
       dip->variant.constructor.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
