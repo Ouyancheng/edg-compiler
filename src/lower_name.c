@@ -6217,7 +6217,7 @@ returned and mctl->lacking_module_id is set to TRUE.
     call_operator_type = call_operator_function_type_for_lambda(type);
     check_assertion(symbol_supplement_for_class(type) != NULL);
     discriminator = symbol_supplement_for_class(type)->discriminator;
-    check_assertion(discriminator != 0);
+    check_assertion(discriminator != 0 || total_errors != 0);
     if (mangle_as_lambda_in_default_argument(type)) {
       /* A lambda used in a default argument is given a name with the
          following format:
