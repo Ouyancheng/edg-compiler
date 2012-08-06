@@ -21329,6 +21329,15 @@ controls).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     result->end_position = *init_component_end_pos(icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (curr_expr_kind_is_const()) {
+      /* The result is required to be constant.  Check that it is. */
+      force_operand_to_constant_if_possible(result);
+      if (!is_constant_operand(result)) {
+        if (!is_error_operand(result)) {
+          error_in_operand(ec_expr_not_constant, result);
+        }  /* if */
+      }  /* if */
+    }  /* if */
   } else {
     /* The caller wants the result as a constant or a dynamic init,
        returned via either is->init_con or is->init_dip. */
