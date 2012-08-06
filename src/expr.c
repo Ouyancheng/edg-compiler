@@ -181,7 +181,6 @@ static void push_expr_stack_for_initializer(
                                  an_expr_stack_entry *expr_stack_entry,
                                  an_expr_stack_entry **saved_expr_stack,
                                  an_expression_kind  expr_kind,
-                                 a_boolean           force_object_lifetime,
                                  a_boolean           suppress_object_lifetime,
                                  a_boolean           is_full_expr,
                                  a_decl_parse_state  *dps,
@@ -197,8 +196,7 @@ later restoration in the case of a full expression.  expr_kind is the
 kind of expression stack entry to be pushed; however, it will be
 forced to ek_init_constant if dps/is indicate the initializer must be
 constant and expr_kind is not already a constant expression kind.
-force_object_lifetime is TRUE if an object lifetime should be forced,
-and suppress_object_lifetime is TRUE if an object lifetime should be
+suppress_object_lifetime is TRUE if an object lifetime should be
 suppressed.
 */
 {
@@ -215,7 +213,7 @@ suppressed.
     }  /* if */
   }  /* if */
   push_expr_stack(expr_kind, expr_stack_entry,
-                  force_object_lifetime,
+                  /*force_object_lifetime=*/FALSE,
                   suppress_object_lifetime);
   if (is_full_expr) transfer_expr_context_if_applicable(*saved_expr_stack);
   if (is != NULL && is->static_lifetime_init) {
@@ -307,7 +305,6 @@ opening parenthesis has already been swallowed); otherwise, it's
     }  /* if */
     push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                     expr_kind,
-                                    /*force_object_lifetime=*/FALSE,
                                     /*suppress_object_lifetime=*/FALSE,
                                     is_full_expr,
                                     dps, (an_init_state *)NULL);
@@ -407,7 +404,6 @@ If dps is non-NULL, dps->has_initializer is set to FALSE.
 
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
-                                  /*force_object_lifetime=*/FALSE,
                                   /*suppress_object_lifetime=*/TRUE,
                                   /*is_full_expr=*/TRUE,
                                   dps, (an_init_state *)NULL);
@@ -29207,7 +29203,6 @@ a new-initializer).
 
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
-                                  /*force_object_lifetime=*/FALSE,
                                   /*suppress_object_lifetime=*/FALSE,
                                   is_full_expr,
                                   dps, (an_init_state *)NULL);
@@ -29412,7 +29407,6 @@ NULL.
   check_assertion(dps != NULL);
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
-                                  /*force_object_lifetime=*/FALSE,
                                   /*suppress_object_lifetime=*/FALSE,
                                   /*is_full_expr=*/TRUE,
                                   dps, (an_init_state *)NULL);
@@ -29482,7 +29476,6 @@ dynamic init entry if one is created to represent this initializer
   }  /* if */
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
-                                  /*force_object_lifetime=*/FALSE,
                                   /*suppress_object_lifetime=*/FALSE,
                                   is_full_expr,
                                   dps, is);
@@ -29547,7 +29540,6 @@ operation implementing the allocation of the array and its initialization.
   check_assertion(is_braced_init_component(icp));
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
-                                  /*force_object_lifetime=*/FALSE,
                                   /*suppress_object_lifetime=*/FALSE,
                                   is_full_expr,
                                   (a_decl_parse_state *)NULL, is);
@@ -34331,7 +34323,6 @@ standard form).  Assumes copy-initialization ("="-form).
        by prescan_initializer_for_auto_type_deduction. */
     push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                     (an_expression_kind)ek_integral_constant,
-                                    /*force_object_lifetime=*/FALSE,
                                     /*suppress_object_lifetime=*/FALSE,
                                     /*is_full_expr=*/TRUE,
                                     dps, (an_init_state *)NULL);
@@ -34385,7 +34376,6 @@ constants; assumes copy-initialization ("="-form).
   check_assertion(dps != NULL);
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_init_constant,
-                                  /*force_object_lifetime=*/FALSE,
                                   /*suppress_object_lifetime=*/FALSE,
                                   /*is_full_expr=*/TRUE,
                                   dps, (an_init_state *)NULL);
@@ -34643,7 +34633,6 @@ As indicated, this is initialization with the "=" semantics
   check_assertion(dps != NULL);
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
-                                  /*force_object_lifetime=*/FALSE,
                                   /*suppress_object_lifetime=*/FALSE,
                                   /*is_full_expr=*/TRUE,
                                   dps, (an_init_state *)NULL);
@@ -34776,7 +34765,6 @@ overall errors.
      called for a ctor-initializer. */
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
-                                  /*force_object_lifetime=*/(dps == NULL),
                                   /*suppress_object_lifetime=*/FALSE,
                                   /*is_full_expr=*/TRUE,
                                   dps, (an_init_state *)NULL);
@@ -34841,7 +34829,6 @@ current token is the one following the closing parenthesis.
      called for a ctor-initializer. */
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
-                                  /*force_object_lifetime=*/(dps == NULL),
                                   /*suppress_object_lifetime=*/FALSE,
                                   /*is_full_expr=*/TRUE,
                                   dps, (an_init_state *)NULL);
