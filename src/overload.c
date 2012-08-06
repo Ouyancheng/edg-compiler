@@ -17593,6 +17593,7 @@ is_transparent.  conv_context describes the context of the conversion.
       }  /* if */
     }  /* if */
     /* The types are compatible.  Do the conversion. */
+    if (conv_context & CCO_CAST) conversion->is_explicit_cast = TRUE;
     /* Force the result to be an rvalue. */
     conversion->result_is_an_lvalue = FALSE;
     convert_operand(source_operand, dest_type, conversion);
