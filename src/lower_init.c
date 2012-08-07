@@ -7492,7 +7492,7 @@ un-initialized.
 */
 {
   a_boolean     needs_initializing = FALSE;
-  a_type_ptr    entity_type = skip_typerefs(type_from_init_pos_descr(ipdp));
+  a_type_ptr    entity_type = f_skip_typerefs(type_from_init_pos_descr(ipdp));
 
   check_assertion(dip->is_partially_initialized &&
                   (dip->kind == (a_dynamic_init_kind)dik_constant ||
