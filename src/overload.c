@@ -21260,6 +21260,7 @@ controls).
         unbundle_init_component_list_expressions(list);
         expr_pos_error(ec_too_many_initializer_values,
                        init_component_pos(list->next));
+        arg_list_will_not_be_used_because_of_error(list);
         make_error_operand(&operand);
       }  /* if */
     }  /* if */

@@ -523,15 +523,25 @@ is not needed.
   a_boolean  suppress_warning;
 
   check_assertion(local_static_lifetime == curr_object_lifetime);
-  if (err || local_static_var_init == NULL ||
-      local_static_var_init->init_kind != (an_init_kind)initk_dynamic ||
-      !dynamic_init_has_side_effects(local_static_var_init->
+  if (err) mark_object_lifetime_as_useless(local_static_lifetime);
+  /* Note that the lifetime is for recovery if an exception is thrown during
+     the initialization of the local static variable.  So the test here is
+     not for the lifetime having anything in it, but rather for whether there's
+     anything in the initialization that might throw, in which case the
+     lifetime is needed. */
+  if ((local_static_var_init == NULL ||
+       local_static_var_init->init_kind != (an_init_kind)initk_dynamic ||
+       !dynamic_init_has_side_effects(local_static_var_init->
                                                initializer.dynamic,
-                                     &suppress_warning)) {
-    /* No object lifetime is needed if this is not a dynamic initialization,
-       or if it is represented as a dynamic initialization but the initializer
-       has no side effects (e.g., is a constant). */
-    mark_object_lifetime_as_useless(local_static_lifetime);
+                                      &suppress_warning)) &&
+      is_useless_object_lifetime(local_static_lifetime)) {
+    /* Don't bind the object lifetime, allowing it to be deleted on the pop.
+       (Being bound to a local static init is one of the things that makes
+       a lifetime useful, so doing the binding would prevent it from being
+       removed.)  The is_useless_object_lifetime test is there for error cases
+       where something destructible has been recorded even though the final
+       initializer ends up having no side effects.  We keep the extra
+       object lifetime in that case, just to make things easier. */
   } else {
     bind_object_lifetime(local_static_lifetime,
                          (an_il_entry_kind)
@@ -2286,6 +2296,7 @@ issued if no more specific position is available.
           pos_warning(ec_excess_initializers_ignored, init_component_pos(icp));
         } else {
           pos_error(ec_too_many_initializer_values, init_component_pos(icp));
+          is->init_error = TRUE;
         }  /* if */
       }  /* if */
       is->pack_expansion_handled = saved_pack_expansion_handled;

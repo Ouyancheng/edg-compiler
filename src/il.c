@@ -20748,24 +20748,27 @@ can be discarded when popped off the object lifetime stack.  This is needed
 when errors occur, to avoid complaints at the time of popping that an object
 lifetime containing destructions has not been bound to anything.  The object
 lifetime is marked as useless by removing all the destructions on its
-list.
+list and those of its children.  Since that's destructive, it should only
+be done when there were errors.
 */
 {
-#if CHECKING
-  if ((olp->entity.kind == (a_byte_il_entry_kind)iek_scope &&
-       (((a_scope_ptr)olp->entity.ptr)->kind != (a_scope_kind)sck_block ||
-        ((a_scope_ptr)olp->entity.ptr)->variant.assoc_handler != NULL)) ||
-      olp->entity.kind == (a_byte_il_entry_kind)iek_try_supplement) {
-    /* Cannot be made useless. */
-    internal_error("mark_object_lifetime_as_useless: bad entity kind");
-  }  /* if */
-#endif /* CHECKING */
   /* Clear the destructions pointer by removing the entries and resetting
      their own pointers properly. */
   while (olp->destructions != NULL) {
     check_assertion(olp->destructions->lifetime == olp);
     remove_from_destruction_list(olp->destructions);
   }  /* while */
+  { an_object_lifetime_ptr child_olp;
+    /* Get rid of any children. */
+    for (child_olp = olp->child_lifetime;
+         child_olp != NULL;
+         child_olp = child_olp->next) {
+      mark_object_lifetime_as_useless(child_olp);
+    }  /* for */
+    olp->child_lifetime = NULL;
+  }
+  check_assertion_str(is_useless_object_lifetime(olp),
+                      "failed to mark object lifetime as useless");
 }  /* mark_object_lifetime_as_useless */
 
 
