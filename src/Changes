@@ -1,5 +1,26 @@
 Version 4.5
 
+8/7/12   [EDGcpfe/13102]
+Abort on SFINAE rescan of parameter reference pack expansion
+
+In some cases, SFINAE processing of a pack expansion reference to a
+parameter in a late-specified return type could cause an abort in
+rescan_pack_expansion in expr.c.  The abort requires kicking off the
+SFINAE processing while inside a(nother) prototype instantiation, as
+is arranged in the following (erroneous) example by calling f from
+within itself.  Now fixed.
+
+  // Compile with --c++11 -tused:
+  int ff(int, int);
+  template <class ...T> auto f(T... args) -> decltype(ff(args...)) {
+    f(1);
+    return 0;
+  }
+  int main() {
+    f(37, 47);
+  }
+
+
 8/2/12   [EDGcpfe/13089]
 Abort on use of G++ typeof from different function
 

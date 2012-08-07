@@ -16243,6 +16243,7 @@ Allocate a copy of an expression node and return a pointer to it.
   expr_copy->next = NULL;
   expr_copy->result_is_not_used = FALSE;
   expr_copy->is_pack_expansion = FALSE;
+  expr_copy->rescan_info = NULL;
   if (kind == (an_expr_node_kind)enk_new_delete) {
     /* Copy the new/delete supplement. */
     *copy_new_delete = *expr->variant.new_delete;
