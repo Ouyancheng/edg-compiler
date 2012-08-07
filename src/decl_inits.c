@@ -206,7 +206,7 @@ the dynamic init entry.
 {
   a_routine_ptr           rp;
   a_param_type_ptr        ptp;
-  an_object_lifetime_ptr  expr_temp_lifetime;
+  an_object_lifetime_ptr  expr_temp_lifetime = NULL;
 
   rp = dip->variant.constructor.ptr;
   ptp = skip_typerefs(rp->type)->variant.routine.extra_info->param_type_list;
@@ -218,9 +218,14 @@ the dynamic init entry.
     if (!long_lifetime_temps) {
       /* Push an object lifetime, in case the expression requires
          generating a temporary. */
-      push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
-                           (an_object_lifetime_kind)olk_expr_temporary);
-      expr_temp_lifetime = curr_object_lifetime;
+      check_assertion(curr_object_lifetime != NULL);
+      /* Don't push one if we're already inside an expr temporary lifetime. */
+      if (curr_object_lifetime->kind !=
+                                 (an_object_lifetime_kind)olk_expr_temporary) {
+        push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
+                             (an_object_lifetime_kind)olk_expr_temporary);
+        expr_temp_lifetime = curr_object_lifetime;
+      }  /* if */
     }  /* if */
     /* If there is a default argument value, or several, use them. */
     /* Copy the default-arg list. */
@@ -229,7 +234,7 @@ the dynamic init entry.
                                  /*inside_conditional_expression=*/FALSE,
                                  /*potentially_evaluated=*/TRUE,
                                  /*evaluated=*/TRUE);
-    if (!long_lifetime_temps) {
+    if (expr_temp_lifetime != NULL) {
       /* Pop the object lifetime for the temp, binding the lifetime and
          dynamic init entry if appropriate. */
       if (!is_useless_object_lifetime(expr_temp_lifetime)) {
