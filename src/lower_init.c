@@ -7475,6 +7475,74 @@ statement/expression lowering process (mostly by lower_dynamic_init).
 
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 
+static void stretch_partial_initialization_if_necessary(
+                                   a_dynamic_init_ptr     dip,
+                                   an_init_pos_descr_ptr  ipdp,
+                                   a_boolean              have_complete_object,
+                                   an_insert_location_ptr insert_location)
+/*
+The specified dynamic initialization of the entity represented by ipdp
+has the is_partially_initialized flag set, indicating that the initializer
+did not specify a value for every element of the aggregate.  The entity
+points to a complete object if have_complete_object is TRUE.  If necessary,
+generate code to initialize the elements of the aggregate (by adding code
+at insert_location).  Note that this routine could be optimized to
+zero-initialize only the elements/fields of the aggregate that are
+un-initialized.
+*/
+{
+  a_boolean     needs_initializing = FALSE;
+  a_type_ptr    entity_type = skip_typerefs(type_from_init_pos_descr(ipdp));
+
+  check_assertion(dip->is_partially_initialized &&
+                  (dip->kind == (a_dynamic_init_kind)dik_constant ||
+                   dip->kind ==
+                              (a_dynamic_init_kind)dik_nonconstant_aggregate));
+  if (ipdp->indirect_through_variable) {
+    /* We're partially initializing an aggregate through a pointer,
+       which could indicate a ctor-initializer or braced-initializer list for
+       a new expression.  Partially initialized variables (with either static
+       or automatic storage duration) are assumed to be zeroed by the back end
+       (so no explicit zeroing is performed here). */
+    if (is_array_type(entity_type)) {
+      if (is_incomplete_array_type(entity_type)) {
+        /* If we're initializing a variably-sized array whose size isn't known
+           until run-time, initialization is needed. */
+        needs_initializing = TRUE;
+      } else if (dip->variant.constant->
+                               type->variant.array.variant.number_of_elements <
+                 entity_type->variant.array.variant.number_of_elements) {
+        /* The constant doesn't entirely initialize the entity. */
+        needs_initializing = TRUE;
+      }  /* if */
+    }  /* if */
+#if IA64_ABI
+    if (contains_ptr_to_data_member(entity_type)) {
+      /* In the IA-64 ABI, pointers-to-data-members need to be initialized
+         to -1.  Be safe and pre-initialize the entire entity (we could
+         optimize this by seeing if only the un-initialized fields
+         contain pointer-to-data-members). */
+      needs_initializing = TRUE;
+    }  /* if */
+#endif /* IA64_ABI */
+    if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+      /* A non-constant aggregate will be lowered to executable code (there
+         will be no constant kept to initialize the entity). */
+      needs_initializing = TRUE;
+    }  /* if */
+  }  /* if */
+  if (needs_initializing) {
+    insert_call_to_zero_entity(entity_type,
+                               have_complete_object,
+                               make_address_of_init_entity_node(ipdp,
+                                                   /*using_as_dest=*/TRUE),
+                               ipdp->num_elem_node,
+                               (a_targ_size_t)0,
+                               insert_location);
+  }  /* if */
+}  /* stretch_partial_initialization_if_necessary */
+
+
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
                         an_implied_copy_source *source_desc,
@@ -7569,9 +7637,6 @@ C99 mode for the same reason.
                      ctor_init = NULL;
   a_dynamic_init_kind
                      orig_dip_kind = dip->kind;
-#if CHECKING
-  a_boolean          need_zero_initialization = FALSE;
-#endif /* CHECKING */
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -7894,6 +7959,7 @@ C99 mode for the same reason.
       /* If there is a whole variable of the right kind, this dynamic
          initialization can be rendered as a static initialization. */
       if (do_simple_constant_init_opt) {
+        check_assertion(!dip->is_partially_initialized);
         simple_constant_init = TRUE;
         simple_constant = dip->variant.constant;
         break;
@@ -7904,11 +7970,20 @@ C99 mode for the same reason.
            create an assignment for this element, but since
            vector elements aren't individually addressable, keep the
            (now) lowered constant in the aggregate initializer. */
-        check_assertion(constant_to_keep != NULL);
+        check_assertion(constant_to_keep != NULL &&
+                        !dip->is_partially_initialized);
         *constant_to_keep = dip->variant.constant;
         break;
       }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+      if (dip->is_partially_initialized) {
+        /* For cases where the initialization only partially covers the
+           entity being initialized, initialize the remaining portion
+           of the entity if necessary. */
+        stretch_partial_initialization_if_necessary(dip, ipdp,
+                                                    have_complete_object,
+                                                    insert_location);
+      }  /* if */
       /* For the normal cases, go on and generate an assignment. */
       goto do_assignment;
     case dik_expression:
@@ -8079,24 +8154,13 @@ do_assignment:;
         latest_initialization_on_entry = eff_context->latest_initialization;
       }  /* if */
       keep_constant = FALSE;
-      if (dip->is_partially_initialized && ipdp->indirect_through_variable) {
-        /* We're partially initializing an aggregate through a pointer,
-           which could indicate a ctor-initializer or braced-initializer list
-           for a new expression.  In such cases, ensure that the initializer
-           is zeroed.  Partially initialized variables (with either static
-           or automatic storage duration) are assumed to be zeroed by the
-           back end (so no explicit zeroing is performed here). */
-        insert_call_to_zero_entity(f_skip_typerefs(
-                                               type_from_init_pos_descr(ipdp)),
-                                   have_complete_object,
-                                   make_address_of_init_entity_node(ipdp,
-                                                       /*using_as_dest=*/TRUE),
-                                   ipdp->num_elem_node,
-                                   (a_targ_size_t)0,
-                                   eff_insert_location);
-#if CHECKING
-        need_zero_initialization = TRUE;
-#endif /* CHECKING */
+      if (dip->is_partially_initialized) {
+        /* For cases where the initialization only partially covers the
+           entity being initialized, initialize the remaining portion
+           of the entity if necessary. */
+        stretch_partial_initialization_if_necessary(dip, ipdp,
+                                                    have_complete_object,
+                                                    insert_location);
       }  /* if */
       lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
                                             /*dtor_case=*/FALSE, source_desc,
@@ -8111,7 +8175,6 @@ do_assignment:;
                                             options);
       if (keep_constant) {
         /* There is a constant part of the initialization to be kept. */
-        check_assertion(!need_zero_initialization);
         if (variable == NULL) {
           /* There is no variable, so we are down inside an aggregate
              initialization.  Pass this constant back to the caller. */
@@ -9414,15 +9477,10 @@ The subtree of the node has not yet been lowered.
                                                                 ptr_new_type));
       set_expr_creation_insert_location(&insert_location);
       if (is_array_type(ndsp->type) &&
-          skip_typerefs(ndsp->type)->size == 0 &&
-          (dip->kind == (a_dynamic_init_kind)dik_zero ||
-           (dip->kind == (a_dynamic_init_kind)dik_constant &&
-            dip->is_braced_initializer &&
-            dip->is_partially_initialized &&
-            skip_typerefs(dip->variant.constant->type)->size == 0))) {
+          dip->kind == (a_dynamic_init_kind)dik_zero &&
+          skip_typerefs(ndsp->type)->size == 0) {
         /* lower_dynamic_init can't handle a variable-length array, so
-           do that specially.  Also, handle an empty brace-init initializer
-           here (e.g., "new int[n]{}"). */
+           do that specially. */
         an_expr_node_ptr entity_size_node =
                                   make_reusable_copy(ndsp->arg,
                                                      /*vars_can_change=*/TRUE);
