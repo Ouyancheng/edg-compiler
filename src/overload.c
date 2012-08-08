@@ -21356,7 +21356,8 @@ controls).
     constant_ok = !is->force_dynamic_init;
     if (curr_expr_kind_is_const()) {
       /* The result is required to be constant.  Check that it is. */
-      check_assertion(constant_ok);
+      /* Note that constant_ok FALSE here is allowed.  We'll return
+         a dynamic init to the caller, who will presumably issue an error. */
       if (dip != NULL) {
         if (dip->kind == (a_dynamic_init_kind)dik_constant) {
           constant = dip->variant.constant;
