@@ -215,10 +215,17 @@ the dynamic init entry.
     ptp = ptp->next;
   }  /* if */
   if (ptp != NULL) {
+    an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
     if (!long_lifetime_temps) {
       /* Push an object lifetime, in case the expression requires
          generating a temporary. */
       check_assertion(curr_object_lifetime != NULL);
+      if (curr_il_region_number == file_scope_region_number &&
+          !in_file_scope(curr_object_lifetime)) {
+        /* Switch to under the static object lifetime if we're
+           putting out IL in the file scope. */
+        curr_object_lifetime = il_header.primary_scope->lifetime;
+      }  /* if */
       /* Don't push one if we're already inside an expr temporary lifetime. */
       if (curr_object_lifetime->kind !=
                                  (an_object_lifetime_kind)olk_expr_temporary) {
@@ -244,6 +251,7 @@ the dynamic init entry.
       }  /* if */
       (void)pop_object_lifetime();
     }  /* if */
+    curr_object_lifetime = saved_curr_object_lifetime;
   }  /* if */
 }  /* copy_ctor_default_args_to_dynamic_init */
 
