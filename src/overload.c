@@ -20893,7 +20893,7 @@ controls).
              near-duplicate warnings. */
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && is_expression_component(icp)) {
+        if (microsoft_mode) {
           /* Check for an odd bug in Microsoft C mode (causing "(void)0" to be
              treated as a null pointer constant). */
           process_microsoft_null_pointer_constant_bug(&operand, dest_type);
