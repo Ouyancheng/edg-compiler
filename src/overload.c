@@ -20926,7 +20926,7 @@ controls).
        of the C++11 standard. */
     if (aggregate_case) {
       /* Aggregate cases go back to the initialization code in decl_inits.c. */
-      if (arg_match && !try_user_conversions_in_ovl_res) {
+      if (arg_match != NULL && !try_user_conversions_in_ovl_res) {
         arg_match_err = TRUE;
       } else {
         an_init_state init_state;
@@ -20957,14 +20957,21 @@ controls).
       }  /* if */
     } else if (could_be_dependent_class_type(dest_type)) {
       /* Dependent case.  Pretend this is a constructor invocation. */
-      /* The dependent case should have been handled higher up for
-         overload resolution. */
-      check_assertion(arg_match == NULL && generate_il);
-      unbundle_init_component_list_expressions(list);
-      scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
+      if (arg_match != NULL) {
+        if (!try_user_conversions_in_ovl_res) {
+          arg_match_err = TRUE;
+        } else {
+          arg_match->match_level = aml_user_conversion;
+        }  /* if */
+      } else {
+        check_assertion(generate_il);
+        unbundle_init_component_list_expressions(list);
+        scan_dependent_parenthesized_initializer(
+                                               (a_rescan_control_block *)NULL,
                                                /*arg_list_supplied=*/TRUE,
                                                list,
                                                (an_operand *)NULL, &dip);
+      }  /* if */
     } else if (list == NULL &&
                dest_type_is_class &&
                f_type_has_default_constructor(dest_type,
