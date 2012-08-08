@@ -7958,8 +7958,7 @@ C99 mode for the same reason.
       }  /* if */
       /* If there is a whole variable of the right kind, this dynamic
          initialization can be rendered as a static initialization. */
-      if (do_simple_constant_init_opt) {
-        check_assertion(!dip->is_partially_initialized);
+      if (do_simple_constant_init_opt && !dip->is_partially_initialized) {
         simple_constant_init = TRUE;
         simple_constant = dip->variant.constant;
         break;
