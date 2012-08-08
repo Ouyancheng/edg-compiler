@@ -16120,6 +16120,7 @@ handle_empty_parens_new_initializer:
     /* Deactivate the initializer cache used for "auto". */
     check_assertion(expr_stack->initializer_cache ==
                                             &dps.prescanned_initializer_cache);
+    flush_initializer_cache(expr_stack->initializer_cache);
     expr_stack->initializer_cache = saved_initializer_cache;
     saved_initializer_cache = NULL;
   }  /* if */
