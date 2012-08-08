@@ -3332,6 +3332,15 @@ type within the cast; and cast_type is the type cast to.
         a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
         if (dip->rescan_info == NULL) {
           dip->rescan_info = expr->rescan_info;
+        } else {
+          /* If the dynamic init already has rescan info, as it does when
+             it records a braced-init-list, keep the saved_operand but
+             copy the rest of the fields, so the type and positions are
+             recorded. */
+          an_operand orig_operand;
+          orig_operand = dip->rescan_info->saved_operand;
+          *dip->rescan_info  = *expr->rescan_info;
+          dip->rescan_info->saved_operand = orig_operand;
         }  /* if */
       }  /* if */
     }  /* if */

@@ -21330,6 +21330,10 @@ controls).
             tdip->is_braced_initializer = TRUE;
           }  /* if */
         }  /* if */
+        if (is_cast && operand_is_temp_init_full(&operand, &temp_init_node)) {
+          tdip = temp_init_node->variant.init.dynamic_init;
+          tdip->is_explicit_cast = TRUE;
+        }  /* if */
       }  /* if */
       copy_operand(&operand, result);
     }  /* if */
