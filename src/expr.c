@@ -32057,7 +32057,7 @@ Sets *expr_position to the beginning position of the range expression.
                             /*warning_on_narrowing=*/FALSE,
                             CCO_DEFAULT,
                             /*fill_in_dtor=*/TRUE,
-                            /*force_temp=*/FALSE,
+                            /*force_temp=*/TRUE,  /* For error cases. */
                             &result, (an_init_state *)NULL,
                             (an_arg_match_summary *)NULL);
     }  /* if */
