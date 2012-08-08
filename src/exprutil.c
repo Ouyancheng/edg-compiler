@@ -55,6 +55,8 @@ an_init_component_ptr rescan_init_component(an_init_component_ptr  icp,
                                             a_rescan_control_block *rcblock);
 static an_expr_node_ptr make_braced_init_expr_from_arg_list_elem(
                                                     an_arg_list_elem_ptr alep);
+static void arg_list_elem_will_not_be_used_because_of_error(
+                                                    an_arg_list_elem_ptr alep);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static a_boolean check_for_address_of_or_reference_to_initonly_field(
                                            an_operand        *operand,
@@ -829,51 +831,61 @@ Allocate an init component/arg list element containing the given operand.
 }  /* alloc_arg_list_elem_for_operand */
 
 
-void free_init_component_list(an_init_component_ptr icp)
+static void free_init_component(an_init_component_ptr icp)
 /*
 Free the initializer component entry pointed to by icp.  If it has a
-subtree of entries, free those as well.  If it is a list of entries, free
-the whole list.  If called with NULL, do nothing.
+subtree of entries, free those as well.
+*/
+{
+  check_assertion(icp != NULL);
+  switch (icp->kind) {
+    case ick_expression:
+      check_assertion(icp->variant.expr != NULL &&
+                      icp->variant.expr->next == NULL);
+      free_arg_operand_list(icp->variant.expr);
+      icp->variant.expr = NULL;
+      break;
+    case ick_braced:
+      free_init_component_list(icp->variant.braced.list);
+      icp->variant.braced.list = NULL;
+      break;
+    case ick_designator:
+      icp->variant.designator.field_name = NULL;
+      break;
+    default:
+      unexpected_condition_str("free_init_component: bad entry kind");
+  }  /* switch */
+#if CHECKING && DEBUG
+  /* Make the sure the entry was not previously freed. */
+  if (db_active || EXPENSIVE_CHECKING) {  /*lint !e506*/
+    an_init_component_ptr ticp;
+    for (ticp = avail_init_components;
+         ticp != NULL;
+         ticp = ticp->next) {
+      if (ticp == icp) {
+        internal_error("free_init_component: entry freed twice");
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* CHECKING && DEBUG */
+  icp->next = avail_init_components;
+  avail_init_components = icp;
+#if DEBUG
+  num_init_components_freed++;
+#endif /* DEBUG */
+}  /* free_init_component */
+
+
+void free_init_component_list(an_init_component_ptr icp)
+/*
+Free the initializer component entry list pointed to by icp.
 */
 {
   an_init_component_ptr next_icp;
 
   for (; icp != NULL; icp = next_icp) {
     next_icp = icp->next;
-    switch (icp->kind) {
-      case ick_expression:
-        check_assertion(icp->variant.expr->next == NULL);
-        free_arg_operand_list(icp->variant.expr);
-        icp->variant.expr = NULL;
-        break;
-      case ick_braced:
-        free_init_component_list(icp->variant.braced.list);
-        icp->variant.braced.list = NULL;
-        break;
-      case ick_designator:
-        icp->variant.designator.field_name = NULL;
-        break;
-      default:
-        unexpected_condition_str("free_init_component: bad entry kind");
-    }  /* switch */
-#if CHECKING && DEBUG
-    /* Make the sure the entry was not previously freed. */
-    if (db_active || EXPENSIVE_CHECKING) {  /*lint !e506*/
-      an_init_component_ptr ticp;
-      for (ticp = avail_init_components;
-           ticp != NULL;
-           ticp = ticp->next) {
-        if (ticp == icp) {
-          internal_error("free_init_component_list: entry freed twice");
-        }  /* if */
-      }  /* for */
-    }  /* if */
-#endif /* CHECKING && DEBUG */
-    icp->next = avail_init_components;
-    avail_init_components = icp;
-#if DEBUG
-    num_init_components_freed++;
-#endif /* DEBUG */
+    free_init_component(icp);
   }  /* for */
 }  /* free_init_component_list */
 
@@ -1048,7 +1060,7 @@ Convert a braced-init-list component to an error expression component.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand        *operand;
 
-  arg_list_will_not_be_used_because_of_error(alep);
+  arg_list_elem_will_not_be_used_because_of_error(alep);
   free_init_component_list(alep->variant.braced.list);
   set_init_component_kind(alep, (an_init_component_kind)ick_expression);
   /* Note that the "next" pointer is preserved. */
@@ -4340,7 +4352,7 @@ substitutions to be done.
                                                 operand_of_arg_list_elem(icp));
     copy_icp = rescan_expr_as_arg_list_elem(expr, rcblock);
   } else if (is_braced_init_component(icp)) {
-    /* Rescan a brace-enclosed list if init-components. */
+    /* Rescan a brace-enclosed list of init-components. */
     copy_icp = alloc_init_component((an_init_component_kind)ick_braced);
     copy_icp->variant.braced = icp->variant.braced;
     copy_icp->variant.braced.list =
@@ -5127,6 +5139,27 @@ cleanup required.
 }  /* operand_will_not_be_used_because_of_error */
 
 
+static void arg_list_elem_will_not_be_used_because_of_error(
+                                                     an_arg_list_elem_ptr alep)
+/*
+The indicated arg-list element will not be used further because an error has
+been detected.  There is also the implication that because of the
+error we cannot tell how the operands would have been used.  Do any
+cleanup required.  The entry is not freed.
+*/
+{
+  if (is_expression_component(alep)) {
+    operand_will_not_be_used_because_of_error(operand_of_arg_list_elem(alep));
+  } else if (is_braced_init_component(alep)) {
+    arg_list_will_not_be_used_because_of_error(alep->variant.braced.list);
+  } else if (is_designator_component(alep)) {
+    /* No action required. */
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* arg_list_elem_will_not_be_used_because_of_error */
+
+
 void arg_list_will_not_be_used_because_of_error(
                                              an_arg_list_elem_ptr operand_list)
 /*
@@ -5139,16 +5172,7 @@ cleanup required.  The list is not freed.
   an_arg_list_elem_ptr alep;
 
   for (alep = operand_list; alep != NULL; alep = alep->next) {
-    if (is_expression_component(alep)) {
-      operand_will_not_be_used_because_of_error(
-                                               operand_of_arg_list_elem(alep));
-    } else if (is_braced_init_component(alep)) {
-      arg_list_will_not_be_used_because_of_error(alep->variant.braced.list);
-    } else if (is_designator_component(alep)) {
-      /* No action required. */
-    } else {
-      unexpected_condition();
-    }  /* if */
+    arg_list_elem_will_not_be_used_because_of_error(alep);
   }  /* for */
 }  /* arg_list_will_not_be_used_because_of_error */
 
