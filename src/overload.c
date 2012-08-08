@@ -22907,6 +22907,10 @@ dependent, *still_dependent is returned TRUE and FALSE is returned.
     }  /* if */
   } else {
     check_assertion(initializer_operand != NULL);
+    if (is_braced_init_list_operand(initializer_operand)) {
+      initializer_alep = initializer_operand->variant.braced_init_list;
+      initializer_operand = NULL;
+    }  /* if */
   }  /* if */
   if (initializer_operand != NULL) {
     arg_type = initializer_operand->type;
