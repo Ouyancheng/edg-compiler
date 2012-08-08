@@ -4525,6 +4525,13 @@ user later during real instantiations.
     if (prototype_scope_symbols != NULL) {
       reactivate_prototype_scope_symbols(prototype_scope_symbols);
     }  /* if */
+    /* Make sure the implicit_typename flag is FALSE during prototype
+       instantiations.  It could be set if we are in a mode where
+       nonclass prototype instantiations are not normally done
+       (e.g., if "--microsoft --parse_templates" is used). */
+    if (!force_implicit_typename) {
+      scope_stack_top().implicit_typename = FALSE;
+    }  /* if */
     /* Reactivate the tokens comprising the function body and scan them. */
     rescan_reusable_cache(&daefp->cache.tokens);
     daefp->param_type->default_being_instantiated = TRUE;

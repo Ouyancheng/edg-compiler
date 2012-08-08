@@ -1,5 +1,21 @@
 Version 4.5
 
+8/8/12   [EDGcpfe/13026]
+Spurious error during prototype instantiation of default argument
+
+Spurious errors could occur during the prototype instantiation of a
+default argument of a function template or member function of a class
+template when parsing of non-class templates and implicit typename are both
+enabled (e.g., if "--microsoft --parse_templates" is used).  Now fixed.
+
+  template <class T> struct A {
+    static T f();
+  };
+  template <class T> struct B {
+    B(T t = (A<T>::f)()) {}
+  };
+
+
 8/8/12   [EDGcpfe/13098]
 Internal error on dependent using-declaration of operator new
 
