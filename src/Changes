@@ -1,5 +1,24 @@
 Version 4.5
 
+8/8/12   [EDGcpfe/13087]
+Internal error if equivalent typedefs are declared directly and by
+a using-declaration
+
+If typedefs to the same type were declared in the file scope both
+directly and by a using-declaration, an internal error could result in a
+lookup of that name as a qualified name.  This problem was introduced in
+version 4.4 (see 1/16/12 entry for EDGcpfe/12433).  Now fixed.
+
+  namespace N {
+    typedef int I;
+  }
+  using N::I;
+  typedef int I;
+  namespace M {
+    using ::I;  // internal error on this lookup
+  }
+
+
 8/7/12   [EDGcpfe/13102]
 Abort on SFINAE rescan of parameter reference pack expansion
 

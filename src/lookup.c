@@ -5334,7 +5334,7 @@ file scope.
         /* We found a matching symbol.  If this is a type symbol found
            by a must-be-tag lookup, keep searching for a "real" tag in
            the same scope. */
-        if (must_be_tag && fund_sym->kind == (a_symbol_kind)sk_type) {
+        if (must_be_tag && sym->kind == (a_symbol_kind)sk_type) {
           check_assertion_or_expect_error(type_tag_symbol == NULL);
           type_tag_symbol = sym;
         } else {
