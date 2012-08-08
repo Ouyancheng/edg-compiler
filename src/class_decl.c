@@ -23183,6 +23183,9 @@ in the class designated by tag_sym.
           fund_sym = fundamental_symbol_of(sym);
           /* Ignore function templates. */
           if (fund_sym->kind == (a_symbol_kind)sk_function_template) continue;
+          /* Ignore constants (assumed to be ck_template_param constants)
+             created by dependent using-declarations. */
+          if (fund_sym->kind == (a_symbol_kind)sk_constant) continue;
           del_sym = find_corresponding_operator_delete_sym(
                                                      fund_sym, class_type,
                                                      /*template_okay=*/TRUE,

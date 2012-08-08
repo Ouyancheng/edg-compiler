@@ -1,5 +1,20 @@
 Version 4.5
 
+8/8/12   [EDGcpfe/13098]
+Internal error on dependent using-declaration of operator new
+
+An internal error could occur (in find_corresponding_operator_delete_sym)
+if a class contained a dependent using-declaration of operator new or
+operator new[] in modes where exceptions are enabled.  Now fixed.
+
+  struct B {
+    void operator delete[](void*, void*) {};
+  };
+  template <class T> struct A : public B, public T {
+    using T::operator new[];
+  };
+
+
 8/8/12   [EDGcpfe/13087]
 Internal error if equivalent typedefs are declared directly and by
 a using-declaration
