@@ -202,6 +202,7 @@ constant and expr_kind is not already a constant expression kind.
   if (is_full_expr) {
     save_expr_stack(saved_expr_stack);
   } else {
+    *saved_expr_stack = NULL;
     check_assertion(expr_stack != NULL);
   }  /* if */
   if (is != NULL && is->initializer_must_be_constant) {
