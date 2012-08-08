@@ -57,6 +57,7 @@ static an_expr_node_ptr make_braced_init_expr_from_arg_list_elem(
                                                     an_arg_list_elem_ptr alep);
 static void arg_list_elem_will_not_be_used_because_of_error(
                                                     an_arg_list_elem_ptr alep);
+static void change_to_error_operand(an_operand *operand);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static a_boolean check_for_address_of_or_reference_to_initonly_field(
                                            an_operand        *operand,
@@ -1215,7 +1216,13 @@ needed to unbundle the operand.
   arg_op = icp->variant.expr;
   copy_operand(&arg_op->operand, operand);
   unbundle_init_component_expressions(icp);
-  if (free_icp) free_init_component_list(icp);
+  if (free_icp) {
+    /* Change the source operand so it no longer points to any of the entries
+       in the subtree so they won't be freed (ownership is transferred to
+       the returned operand). */
+    change_to_error_operand(&arg_op->operand);
+    free_init_component_list(icp);
+  }  /* if */
 }  /* extract_operand_from_expression_component */
 
 
@@ -5177,13 +5184,15 @@ cleanup required.  The list is not freed.
 }  /* arg_list_will_not_be_used_because_of_error */
 
 
-void conv_to_error_operand(an_operand *operand)
+static void change_to_error_operand(an_operand *operand)
 /*
-Take an existing operand and convert it to an error operand.  Retain the
-position field as the error position.
+Take an existing operand and convert it to an error operand.  Retain
+some information, like source position.  This routine can can used
+to "neuter" an operand, in particular to detach it from its subtree without
+freeing the subtree; there is no implication that there was an error.
+See conv_to_error_operand for the usual case.
 */
 {
-  operand_will_not_be_used_because_of_error(operand);
   set_operand_kind(operand, (an_operand_kind)ok_error);
   operand->type = error_type();
   operand->state = (an_operand_state)os_none;
@@ -5193,6 +5202,18 @@ position field as the error position.
   operand->selector_is_object_pointer = FALSE;
   operand->is_operand_of_address_of = FALSE;
   operand->has_required_ptr_to_member_form = FALSE;
+}  /* change_to_error_operand */
+
+
+void conv_to_error_operand(an_operand *operand)
+/*
+Take an existing operand and convert it to an error operand, to reflect
+that there was an error on the operand.  Retain some information, like
+source position.
+*/
+{
+  operand_will_not_be_used_because_of_error(operand);
+  change_to_error_operand(operand);
 }  /* conv_to_error_operand */
 
 
