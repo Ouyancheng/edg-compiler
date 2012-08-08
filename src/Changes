@@ -19,10 +19,10 @@ operator new[] in modes where exceptions are enabled.  Now fixed.
 Internal error if equivalent typedefs are declared directly and by
 a using-declaration
 
-If typedefs to the same type were declared in the file scope both
-directly and by a using-declaration, an internal error could result in a
-lookup of that name as a qualified name.  This problem was introduced in
-version 4.4 (see 1/16/12 entry for EDGcpfe/12433).  Now fixed.
+If typedefs to the same type were declared in the file scope both directly
+and by a using-declaration, an internal error (in file_scope_id_lookup)
+could result in a lookup of that name as a qualified name.  This problem was
+introduced in version 4.4 (see 1/16/12 entry for EDGcpfe/12433).  Now fixed.
 
   namespace N {
     typedef int I;
