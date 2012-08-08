@@ -32040,19 +32040,17 @@ Sets *expr_position to the beginning position of the range expression.
                           init_component_pos(alep),
                           &deduced_type,
                           &deduced_auto_type,
-                          &still_dependent)) {
+                          &still_dependent) &&
+        !still_dependent) {
       /* Deduction failed. */
-      if (still_dependent) {
-        unexpected_condition_str("dependent auto in range-based for");
-      } else {
-        expr_pos_error(ec_cannot_deduce_auto_type, init_component_pos(alep));
-        conv_braced_init_component_to_error_expression(alep);
-        copy_operand(operand_of_arg_list_elem(alep), &result);
-      }  /* if */
+      expr_pos_error(ec_cannot_deduce_auto_type, init_component_pos(alep));
+      conv_braced_init_component_to_error_expression(alep);
+      copy_operand(operand_of_arg_list_elem(alep), &result);
     } else {
       /* Deduction succeeded.  Convert the braced-init-list to the
          destination type (which will be std::initializer_list<T> for some
          type T).  Below we will bind a reference to the object. */
+      if (still_dependent) deduced_type = type_of_unknown_templ_param_nontype;
       prep_list_initializer(alep, deduced_type,
                             /*is_direct_init=*/FALSE,
                             /*check_narrowing=*/TRUE,
