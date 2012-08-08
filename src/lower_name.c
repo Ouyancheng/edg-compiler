@@ -5374,6 +5374,14 @@ the dynamic initialization is the result of a static_cast.
   char                *str;
 
   check_assertion(dip != NULL);
+  if (dip->is_creation_of_initializer_list_object) {
+    /* Skip over compiler-generated construction of std::initializer_list<X>
+       for mangling purposes. */
+    a_type_ptr init_entity_type;
+    dip = effective_dynamic_init_for_initializer_list_object(dip,
+                                                            &init_entity_type);
+    check_assertion(dip != NULL);
+  }  /* if */
   if (dip->is_braced_initializer) {
     /* Mangle as an initializer-list (even if is_explicit_cast is also set). */
     switch (dip->kind) {
