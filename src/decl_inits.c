@@ -990,26 +990,20 @@ given position, unless is->no_diagnostics is TRUE.
 }  /* default_nontrivial_init_constant_for_aggr_member */
 
 
-static a_constant_ptr add_repeat_con_if_needed(a_constant_ptr  elem_con,
-                                               a_targ_size_t   count)
+static a_constant_ptr add_repeat_con(a_constant_ptr  elem_con,
+                                     a_targ_size_t   count)
 /*
-If count is larger than one, return a ck_init_repeat for that count on top of
-the given constant.  Otherwise, just return the given constant.
+Return a ck_init_repeat for the given count on top of the given constant.
+The count can be zero.
 */
 {
-  a_constant_ptr  result;
+  a_constant_ptr  result; 
 
-  if (count > 1) {
-    /* A ck_init_repeat entry is needed. */
-    result = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-    result->variant.init_repeat.count = count;
-    result->variant.init_repeat.constant = elem_con;
-  } else {
-    /* Return the given constant. */
-    result = elem_con;
-  }  /* if */
+  result = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+  result->variant.init_repeat.count = count;
+  result->variant.init_repeat.constant = elem_con;
   return result;
-}  /* add_repeat_con_if_needed */
+}  /* add_repeat_con */
 
 
 static a_boolean try_string_literal_init(an_init_component_ptr  icp,
@@ -1163,8 +1157,19 @@ the position at which diagnostics should be issued.
            ck_repeat_init on top of it if needed. */
         check_assertion(array_con->type->kind == (a_type_kind)tk_array &&
                         array_con->kind == (a_constant_repr_kind)ck_aggregate);
-        append_constant_in_aggr(add_repeat_con_if_needed(remainder_con, count),
-                                array_con);
+        if (is->variable_size_array && !is->non_top_level_aggregate) {
+          /* Something like "new T[x]{...}" where x is a run-time value.
+             We don't know a priori how many default initializations are
+             needed, but we have to represent it in some way so that lowering
+             (or a back end) knows which routine to call.  We use a zero count,
+             which somewhat matches the "incomplete array type" recorded in the
+             new/delete supplement. */
+          count = 0;
+        }  /* if */
+        /* Add a ck_init_repeat constant if needed (which includes the case
+           of a run-time count, represented using a "zero" ck_init_repeat. */
+        if (count != 1) remainder_con = add_repeat_con(remainder_con, count);
+        append_constant_in_aggr(remainder_con, array_con);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1506,10 +1511,18 @@ initialization).  *is describes the initialization as a whole.
         break;
       }  /* if */
     }  /* while */
-    if (!no_bound && icount < ecount) {
+    if ((!no_bound && icount < ecount) ||
+        (is->variable_size_array && !is->non_top_level_aggregate)) {
       /* Not all array elements are explicitly initialized: Append an entry
-         to initialize the remaining elements. */
-      aggr_init_array_remainder_if_needed(*init_con, ecount-icount, etype, is,
+         to initialize the remaining elements.  As special case occurs for
+         expressions like "new T[x]{...}" where the number of uninitialized
+         elements is not known, but lowering (or a back end) needs to know
+         which default constructor to call: We arbitrarily pass a count of 1
+         for that case (a count of zero would cause default initialization to
+         be bypassed). */
+      a_targ_size_t  rcount = 1;
+      if (!no_bound) rcount = ecount - icount;
+      aggr_init_array_remainder_if_needed(*init_con, rcount, etype, is,
                                           diag_pos);
     }  /* if */
     if (incomplete_array) {
@@ -1823,8 +1836,8 @@ position for which diagnostics should be issued.
             a_targ_size_t   count = num_array_elements(atp);
             a_constant_ptr  temp_con;
             temp_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-            append_constant_in_aggr(add_repeat_con_if_needed(init_con, count),
-                                    temp_con);
+            if (count > 1) init_con = add_repeat_con(init_con, count);
+            append_constant_in_aggr(init_con, temp_con);
             init_con = temp_con;
             init_con->type = atp;
           }  /* if */
