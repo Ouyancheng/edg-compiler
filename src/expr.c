@@ -31981,16 +31981,16 @@ and can have the following forms (see [stmt.ranged] for specifics):
                                             tok_seq_number,
                                             iterator_pointers_block);
 
-  } else if (rbflp->iterator != NULL &&
-             rbflp->iterator->declared_with_auto_type_specifier &&
-             is_auto_type(find_bottom_of_type(rbflp->iterator->type))) {
-    /* We failed to resolve the auto type of the iterator variable, so
-       make it an error type (or an unknown dependent type). */
-    rbflp->iterator->type = dependent_case ?
-                              type_of_unknown_templ_param_nontype :
-                              error_type();
   }  /* if */
   if (rbflp->iterator != NULL) {
+    if (rbflp->iterator->declared_with_auto_type_specifier &&
+        is_auto_type(find_bottom_of_type(rbflp->iterator->type))) {
+      /* We failed to resolve the auto type of the iterator variable, so
+         make it an error type (or an unknown dependent type). */
+      rbflp->iterator->type = dependent_case ?
+                                type_of_unknown_templ_param_nontype :
+                                error_type();
+    }  /* if */
     /* Mark the iterator variable as having a value. */
     mark_variable_value_set(symbol_for(rbflp->iterator));
   }  /* if */

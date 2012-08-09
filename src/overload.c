@@ -23001,24 +23001,30 @@ dependent, *still_dependent is returned TRUE and FALSE is returned.
       if (initializer_alep != NULL) {
         /* When the deduction was from a braced-init-list, the deduced type
            for "auto" is std::initializer_list<T>, not simply T. */
-        a_symbol_ptr       sym;
-        a_template_arg_ptr local_arg_list;
-        if (symbol_for_std_initializer_list == NULL) {
-          /* The <initializer_list> header has not been included. */
-          expr_pos_error(ec_initializer_list_not_included,
-                         init_component_pos(initializer_alep));
-          okay = FALSE;
-          goto end_of_routine;
-        }  /* if */
-        local_arg_list = alloc_template_arg((a_templ_arg_kind)tak_type);
-        local_arg_list->variant.type = templ_arg->variant.type;
-        sym = find_template_class(symbol_for_std_initializer_list,
-                                  &local_arg_list,
-                                  /*any_prototype_allowed=*/FALSE,
-                                  /*specific_prototype_allowed=*/
+        if (is_error_type(templ_arg->variant.type)) {
+          /* When "T" is an error type, return an error type instead of
+             initializer_list<error-type>. */
+          templ_arg->variant.type = error_type();
+        } else {
+          a_symbol_ptr       sym;
+          a_template_arg_ptr local_arg_list;
+          if (symbol_for_std_initializer_list == NULL) {
+            /* The <initializer_list> header has not been included. */
+            expr_pos_error(ec_initializer_list_not_included,
+                           init_component_pos(initializer_alep));
+            okay = FALSE;
+            goto end_of_routine;
+          }  /* if */
+          local_arg_list = alloc_template_arg((a_templ_arg_kind)tak_type);
+          local_arg_list->variant.type = templ_arg->variant.type;
+          sym = find_template_class(symbol_for_std_initializer_list,
+                                    &local_arg_list,
+                                    /*any_prototype_allowed=*/FALSE,
+                                    /*specific_prototype_allowed=*/
                                                               (a_symbol *)NULL,
-                                  /*instantiate_nonreal=*/FALSE);
-        templ_arg->variant.type = type_symbol_type(sym);
+                                    /*instantiate_nonreal=*/FALSE);
+          templ_arg->variant.type = type_symbol_type(sym);
+        }  /* if */
       }  /* if */
       *deduced_auto_type = templ_arg->variant.type;
       /* Substitute the deduced type to obtain the actual type for the current
