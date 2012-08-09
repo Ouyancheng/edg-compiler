@@ -31987,6 +31987,7 @@ and can have the following forms (see [stmt.ranged] for specifics):
         is_auto_type(find_bottom_of_type(rbflp->iterator->type))) {
       /* We failed to resolve the auto type of the iterator variable, so
          make it an error type (or an unknown dependent type). */
+      check_assertion(!passed);
       rbflp->iterator->type = dependent_case ?
                                 type_of_unknown_templ_param_nontype :
                                 error_type();
