@@ -654,7 +654,13 @@ The presence of a nonconstant initializer component is reflected in *is.
 
 remove_any_extraneous_braces:
   if (braced) {
-    if (is_class_struct_union_type(dest_type)) {
+    if (is_reference_type(dest_type)) {
+      /* Braces are not necessarily redundant: Initializing a reference amounts
+         to initializing a temporary bound to that reference.  If the temporary
+         has an aggregate type, the braces are not redundant.  Either way, this
+         will be handled at the time the temporary initialization is processed.
+         */
+    } else if (is_class_struct_union_type(dest_type)) {
       /* If we get here with a class type, it must be a non-aggregate.  Braced
          initializers for non-aggregates are only permitted when list
          initialization is enabled. */
