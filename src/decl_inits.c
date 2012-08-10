@@ -3870,9 +3870,8 @@ returned set to TRUE.
     /* Note that this call has to be after the select_destructor call in the
        preceding section of code. */
     if (is_incomplete_type(sym_parent_class(symbol_ptr))) {
-      check_assertion(symbol_ptr->is_error ||
-                      is_immediate_managed_class_type(
-                                               sym_parent_class(symbol_ptr)));
+      check_assertion_or_expect_error(
+               is_immediate_managed_class_type(sym_parent_class(symbol_ptr)));
     } else if (reactivation_pushed) {
       pop_class_reactivation_scope();
     }  /* if */
