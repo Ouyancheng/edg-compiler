@@ -2620,25 +2620,22 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
       a_type_ptr    conv_rout_type;
       /* The constructor selected is a copy constructor, so certain
          optimizations may be possible. */
-      if (is_braced_init_component(eff_arg_list)) {
-        /* The list initialization rules for binding a reference to a list
-           containing a single reference-related element call for dropping
-           one set of braces, so do that here to bring the argument to the
-           form we expect. */
-        if (eff_arg_list->variant.braced.list != NULL &&
-            eff_arg_list->variant.braced.list->next == NULL) {
-          eff_arg_list = eff_arg_list->variant.braced.list;
-        }  /* if */
-      }  /* if */
-      check_assertion(is_expression_component(eff_arg_list));
       param_type =
               routine->type->variant.routine.extra_info->param_type_list->type;
       source_type = type_pointed_to(param_type);
-      if (is_null_user_conv_descr(&arg_match->conversion) &&
-          f_same_entities(f_skip_typerefs(
+      if (!is_expression_component(eff_arg_list)) {
+        check_assertion(is_braced_init_component(eff_arg_list));
+        /* The parameter of the copy constructor, of type reference to
+           class, has been bound to a braced-init-list, which means a
+           temporary of the class type will be created.  So the optimization
+           is possible. */
+        handle_elided_copy_constructor(source_type, routine, source_pos);
+        optimized = TRUE;
+      } else if (is_null_user_conv_descr(&arg_match->conversion) &&
+                 f_same_entities(f_skip_typerefs(
                                  operand_of_arg_list_elem(eff_arg_list)->type),
-                          class_type) &&
-          is_temp_init_usable_in_optimization(
+                                 class_type) &&
+                 is_temp_init_usable_in_optimization(
                                         operand_of_arg_list_elem(eff_arg_list),
                                         /*suppress_dtor=*/!fill_in_dtor,
                                         &temp_init_node,
@@ -2699,6 +2696,23 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         /* Call of a trivial default constructor.  No argument list, and the
            reference to the constructor has already been recorded. */
         check_assertion(eff_arg_list == NULL);
+      } else if (is_braced_init_component(eff_arg_list)) {
+        /* For a braced-init-list argument, convert the list to the
+           type of the first parameter. */
+        an_init_state init_state;
+        clear_init_state(&init_state);
+        init_state.force_dynamic_init = TRUE;
+        prep_list_initializer(eff_arg_list, param_type,
+                              /*is_direct_init=*/FALSE,
+                              /*check_narrowing=*/TRUE,
+                              /*warning_on_narrowing=*/FALSE,
+                              CCO_LEAVE_AS_OBJECT,
+                              /*fill_in_dtor=*/TRUE,
+                              /*force_temp=*/FALSE,
+                              (an_operand *)NULL, &init_state,
+                              (an_arg_match_summary *)NULL);
+        dip = init_state.init_dip;
+        check_assertion(dip != NULL);
       } else {
         /* Note that the code here also does not append default argument
            values as adjust_overloaded_function_call_arguments would. */

@@ -236,6 +236,10 @@ typedef int a_conv_context_set;
 			   resolution for some specific reason related to
 			   the context (i.e., not just because this is
 			   copy-initialization). */
+#define CCO_LEAVE_AS_OBJECT ((a_conv_context_set)0x4000)
+			/* On a conversion to a reference type, leave the
+			   result as an object rather than a reference
+			   "pointer".  Implied by CCO_CAST. */
 
 /*
 Data structure used by set_up_overload_set_traversal et al. to control the
