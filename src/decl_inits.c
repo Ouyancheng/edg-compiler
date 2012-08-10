@@ -780,6 +780,7 @@ remove_any_extraneous_braces:
     *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
     (*init_con)->variant.dynamic_init = dip;
     (*init_con)->type = dest_type;
+    (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
     if (dip->kind == (a_dynamic_init_kind)dik_constant ||
         dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
       /* If this dynamic initialization embeds a designator, record it in the
@@ -834,6 +835,7 @@ of the whole initialization (*is) as appropriate.
     if (is_error_type(gtype)) dest_type = gtype;
     *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
     (*init_con)->type = gtype;
+    (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
     (*init_con)->explicit_braces_on_aggregate = TRUE;
     for (icp = icp->variant.braced.list; icp != NULL; icp = icp->next) {
       a_constant_ptr  elem_con;
@@ -878,7 +880,6 @@ vector type.
 
   check_assertion(is_braced_init_component(icp));
   diag_pos = &icp->variant.braced.end_pos;
-  icp = icp->variant.braced.list;
   vtype = skip_typerefs(vtype);
   check_assertion(is_vector_type(vtype));
   ecount = num_vector_elements(vtype);
@@ -890,8 +891,10 @@ vector type.
   } else {
     *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
     (*init_con)->type = vtype;
+    (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
     (*init_con)->explicit_braces_on_aggregate = TRUE;
   }  /* if */
+  icp = icp->variant.braced.list;
   while (icp != NULL && (no_bound || icount < ecount)) {
     a_constant_ptr  elem_con;
     aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
@@ -1304,6 +1307,7 @@ available.
       a_constant_ptr  des_con;
       des_con = alloc_constant((a_constant_repr_kind)ck_designator);
       des_con->variant.designator.array_element = *idx;
+      des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
       append_constant_in_aggr(des_con, aggr_con);
       aggr_con->uses_designated_initializers = TRUE;
     }  /* if */
@@ -1351,10 +1355,7 @@ available.
       if (next_con != NULL) {
         check_assertion(!is->check_validity_only);
         if (repeat_count > 1) {
-          a_constant_ptr  elem_con = next_con;
-          next_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-          next_con->variant.init_repeat.count = repeat_count;
-          next_con->variant.init_repeat.constant = elem_con;
+          next_con = add_repeat_con(next_con, repeat_count);
           set_aggr_tail_not_repeated_flag(next_con);
         }  /* if */
         append_constant_in_aggr(next_con, aggr_con);
@@ -1439,6 +1440,7 @@ initialization).  *is describes the initialization as a whole.
     } else {
       *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
       (*init_con)->type = atype;
+      (*init_con)->source_corresp.decl_position = *init_component_pos(*p_icp);
       (*init_con)->explicit_braces_on_aggregate = braced;
     }  /* if */
     /* Determine the element count in the destination type if known. */
@@ -1628,6 +1630,7 @@ dims[rank].  Produce an aggregate constant representing this initialization in
       a_symbol_ptr  array_type_sym = make_cli_array_type(etype, rank);
       *result = alloc_constant((a_constant_repr_kind)ck_aggregate);
       (*result)->type = make_handle_type(type_symbol_type(array_type_sym));
+      (*result)->source_corresp.decl_position = *init_component_pos(icp);
       (*result)->explicit_braces_on_aggregate = TRUE;
     }  /* if */
     icp = icp->variant.braced.list;
@@ -2152,6 +2155,7 @@ specific position is available.
       a_constant_ptr  des_con;
       des_con = alloc_constant((a_constant_repr_kind)ck_designator);
       des_con->variant.designator.field = *field;
+      des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
       append_constant_in_aggr(des_con, aggr_con);
       aggr_con->uses_designated_initializers = TRUE;
     }  /* if */
@@ -2238,6 +2242,7 @@ issued if no more specific position is available.
     } else {
       *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
       (*init_con)->type = class_type;
+      (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
       (*init_con)->explicit_braces_on_aggregate = braced;
     }  /* if */
     if (braced) {
@@ -2476,6 +2481,7 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
       *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       (*init_con)->variant.dynamic_init = cli_array_dip;
       (*init_con)->type = etype;
+      (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
     }  /* if */
     *p_icp = icp->next;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3915,7 +3921,7 @@ elements in the array to be initialized.  Note that multi-dimensional
 arrays are treated as one-dimensional arrays.
 */
 {
-  a_constant_ptr           aggr_con, repeat_con, dynamic_init_con;
+  a_constant_ptr           aggr_con, dynamic_init_con;
 
   /* The IL structure is
        new dynamic init new_dip (dik_nonconstant_aggregate) ->
@@ -3924,23 +3930,19 @@ arrays are treated as one-dimensional arrays.
              constant (ck_dynamic_init) ->
                original dynamic init ctor_dip (dik_constructor)
   */
-  /* Create a ck_aggregate constant. */
+  /* Create the new ck_dynamic_init constant representing the constructor
+     call. */
+  dynamic_init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+  dynamic_init_con->variant.dynamic_init = ctor_dip;
+  dynamic_init_con->type = elem_type;
+  /* Create a ck_aggregate constant and point *new_dip to it. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   aggr_con->type = array_type;
   new_dip->variant.constant = aggr_con;
   /* Set it to point to a newly created ck_init_repeat constant. */
   aggr_con->variant.aggregate.first_constant =
     aggr_con->variant.aggregate.last_constant =
-    repeat_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-  /* Set the ck_init_repeat constant fields, including a pointer to a new
-     ck_dynamic_init constant. */
-  repeat_con->variant.init_repeat.count = count;
-  repeat_con->variant.init_repeat.constant = dynamic_init_con =
-    alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-  /* Set the ck_dynamic_init_constant to point to the dynamic init entry
-     representing the constructor call. */
-  dynamic_init_con->variant.dynamic_init = ctor_dip;
-  dynamic_init_con->type = elem_type;
+    add_repeat_con(dynamic_init_con, count);
 }  /* repeat_nonconstant_init */
 
 
