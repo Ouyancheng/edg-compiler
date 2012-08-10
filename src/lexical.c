@@ -14471,6 +14471,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
     a_scope_stack_entry_ptr	ssep;
     a_boolean			is_outermost_tmc = TRUE;
     int32_t			*p_min_template_arguments;
+    a_boolean			instantiate_nonreal = FALSE;
     ssep = &scope_stack[depth_scope_stack];
     tmc_sym = ssep->templ_member_class_sym;
     /* Determine whether the template being used is either the class associated
@@ -14522,10 +14523,14 @@ a routine to lookup the appropriate instance (or generate one if needed).
                         is_templ_member_class_sym;
     /* Find or create the template class for these arguments.  In Microsoft
        mode certain nonreal base classes are actually instantiated.  This
-       is done if GID_IS_BASE_CLASS is set. */
+       is done if GID_IS_BASE_CLASS is set and if this is not the qualifier
+       of a qualified name. */
+    if (microsoft_mode && (options & GID_IS_BASE_CLASS) != 0) {
+      instantiate_nonreal = next_token() != tok_colon_colon;
+    }  /* if */
     new_sym = find_template_class(template_sym, &arg_list, prototype_allowed,
                                   current_instantiation_sym,
-                                  (options & GID_IS_BASE_CLASS) != 0);
+                                  instantiate_nonreal);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (is_cli_generic_class_symbol(template_sym) &&
         !is_prototype_instantiation_symbol(new_sym)) {
