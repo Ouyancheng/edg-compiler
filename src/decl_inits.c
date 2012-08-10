@@ -2552,6 +2552,15 @@ number of elements initialized.
   is->init_dip = NULL;
   /* The force_dynamic_init flag only applies to the top-level result. */
   is->force_dynamic_init = FALSE;
+  /* C++11 requires a diagnostic on narrowing in these cases, but in nonstrict
+     modes we only make it a warning to permit the conversions traditionally
+     allowed in C-style aggregate initializations.  That also matches the
+     behavior of newer versions of GCC. */
+  if (strict_ansi_mode || (gpp_mode && gnu_version < 40700)) {
+    is->error_on_narrowing = TRUE;
+  } else {
+    is->warning_on_narrowing = TRUE;
+  }  /* if */
   dtype = skip_typerefs(dtype);
   switch (dtype->kind) {
     case tk_error:
