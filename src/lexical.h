@@ -2301,7 +2301,8 @@ extern void open_file_and_push_input_stack(char      *file_name,
 					   a_boolean preinclude_macros,
                                            a_boolean is_implicit_include,
                                            a_boolean is_include_next,
-					   a_boolean continue_on_open_failure);
+					   a_boolean continue_on_open_failure,
+					   a_boolean *include_was_suppressed);
 
 extern a_boolean open_file_for_input(
 		char				*file_name,

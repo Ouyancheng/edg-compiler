@@ -1355,7 +1355,8 @@ pass_stdarg_references_to_generated_code.
                                      is_include_next,
 				     /*continue_on_open_failure=*/
                                             do_preprocessing_only &&
-                                            (!gnu_mode || generate_pp_output));
+                                            (!gnu_mode || generate_pp_output),
+                                     (a_boolean*)NULL);
     }  /* if */
   }  /* if */
 }  /* proc_include */
@@ -1422,7 +1423,8 @@ simply include that.
 			           /*preinclude_macros=*/FALSE,
                                    /*is_implicit_include=*/FALSE,
                                    /*is_include_next=*/FALSE,
-				   /*continue_on_open_failure=*/FALSE);
+				   /*continue_on_open_failure=*/FALSE,
+                                   (a_boolean*)NULL);
   }  /* if */
 }  /* proc_import */
 

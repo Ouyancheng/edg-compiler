@@ -4293,6 +4293,7 @@ list, we process the normal (non-macro-only) preincludes.
     processing_macro_preincludes = FALSE;
   }  /* if */
   if (next_preinclude_file != NULL) {
+    a_boolean	include_was_suppressed;
     file_name = next_preinclude_file->file_name;
     if (put_dir_of_each_opened_source_file_on_incl_search_path &&
         compare_dir_names(dir_name_of_primary_source_file,
@@ -4319,8 +4320,12 @@ list, we process the normal (non-macro-only) preincludes.
                  /*is_macro_preinclude=*/processing_macro_preincludes,
                  /*is_implicit_include=*/FALSE,
                  /*is_include_next=*/FALSE,
-                 /*continue_on_open_failure=*/FALSE);
+                 /*continue_on_open_failure=*/FALSE,
+                 &include_was_suppressed);
     next_preinclude_file = next_preinclude_file->next;
+    /* Normally the next preinclude file is pushed when the previous one
+       is closed, but if the include was suppressed, push it now. */
+    if (include_was_suppressed) push_next_preinclude_file();
   } else if (preinclude_file_list != NULL ||
              macro_preinclude_file_list != NULL) {
     if (put_dir_of_each_opened_source_file_on_incl_search_path &&
@@ -4358,7 +4363,8 @@ void open_file_and_push_input_stack(char      *file_name,
 				    a_boolean preinclude_macros,
                                     a_boolean is_implicit_include,
                                     a_boolean is_include_next,
-				    a_boolean continue_on_open_failure)
+				    a_boolean continue_on_open_failure,
+				    a_boolean *include_was_suppressed)
 /*
 Push the indicated file onto the input stack, so that the next time a line
 is read, it will come from that file.  If the file cannot be opened,
@@ -4374,7 +4380,9 @@ is TRUE for files included via the preinclude or preinclude_macros
 command-line options (preinclude_macros specifies which).
 is_implicit_include is TRUE for files included for template implicit
 inclusion.  is_include_next is TRUE if the file is being pushed for an
-#include_next directive.
+#include_next directive.  If *include_was_suppressed is not NULL it is set
+to TRUE if file was not included because it had been previously included
+and this include was suppressed, FALSE otherwise.
 */
 {
   char				*full_file_name;
@@ -4387,6 +4395,7 @@ inclusion.  is_include_next is TRUE if the file is being pushed for an
   a_unicode_source_kind         unicode_source_kind;
 
   db_enter(2, "open_file_and_push_input_stack");
+  if (include_was_suppressed != NULL) *include_was_suppressed = FALSE;
   /* coverity[alloc_arg] */
   file_found = open_file_for_input(file_name, use_search_path, is_include_file,
                                    is_system_include, is_include_next,
@@ -4413,6 +4422,7 @@ inclusion.  is_include_next is TRUE if the file is being pushed for an
        redundant inclusion is detected during the search process, but in
        some cases it needs to be checked here too. */
     if (!suppress_include) (void)fclose(input_file);
+    if (include_was_suppressed != NULL) *include_was_suppressed = TRUE;
 #if DEBUG
     if (debug_level >= 4) {
       fprintf(f_debug,

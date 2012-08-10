@@ -1,5 +1,13 @@
 Version 4.5
 
+8/10/12  [EDGcpfe/13113]
+Incorrect processing after suppressed preincluded file
+
+If a file containing include guards was included more than once using one
+of the preinclude options, subsequent preinclude files were ignored and
+the include search directory state was not restored to its proper state.
+Now fixed.
+
 8/10/12  [EDGcpfe/13097]
 Inlining of function with pointer-to-function argument
 

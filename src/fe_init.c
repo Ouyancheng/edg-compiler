@@ -1475,7 +1475,8 @@ scan of a file to build the PCH prefix information.
                /*preinclude_macros=*/FALSE,
                /*is_implicit_include=*/FALSE,
                /*is_include_next=*/FALSE,
-               /*continue_on_open_failure=*/FALSE);
+               /*continue_on_open_failure=*/FALSE,
+               (a_boolean*)NULL);
   /* Save the source file pointer for this translation unit. */
   curr_translation_unit->source_file = curr_ise->assoc_actual_il_file;
   if (!pch_prefix_scan && !using_a_pch_file) {
