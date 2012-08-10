@@ -451,7 +451,7 @@ finish_variable_remapping_for_inlining.
             is_pointer_type(arg_type) &&
             is_function_type(type_pointed_to(arg_type)) &&
             !identical_types(type_pointed_to(arg_type),
-                             type_pointed_to(skip_typerefs(
+                             type_pointed_to(f_skip_typerefs(
                                     arg->variant.operation.operands->type)))) {
           /* Add a check for one special case: If the argument is a cast of
              a function pointer where the cast and the function pointer don't
