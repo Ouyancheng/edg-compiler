@@ -1,5 +1,26 @@
 Version 4.5
 
+8/10/12  [EDGcpfe/13097]
+Inlining of function with pointer-to-function argument
+
+The gcc compiler purposely inserts an illegal instruction (with a compiler
+warning) when calling a function pointer through a cast that is not identical
+to the function type.  Such a construct could be generated during inlining
+of calls such as the example given below.  A change has been made to
+introduce a temporary in such cases (only when gcc_is_generated_code_target
+is TRUE).  For example:
+
+  void f(void *p) {}
+  typedef void (*CB)(char *p);
+  inline void g (CB cb) {
+    char *p = 0;
+    cb(p);
+  }
+  int main() {
+    g((CB)f);
+  }
+
+
 8/8/12   [EDGcpfe/13026]
 Spurious error during prototype instantiation of default argument
 

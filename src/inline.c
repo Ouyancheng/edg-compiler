@@ -445,10 +445,27 @@ finish_variable_remapping_for_inlining.
              that we can copy those). */
           (!is_class_struct_union_type(param_var->type) ||
            is_ptr_to_member_function_constant_expr(arg))) {
-        /* The argument is constant-valued and the parameter is unmodified.
-           The parameter gets remapped to a constant-valued expression. */
-        vrip->kind = vrk_constant_expr;
-        vrip->variant.expr = arg;
+        a_type_ptr arg_type = skip_typerefs(arg->type);
+        if (gcc_is_generated_code_target &&
+            is_cast_operation_node(arg) &&
+            is_pointer_type(arg_type) &&
+            is_function_type(type_pointed_to(arg_type)) &&
+            !identical_types(type_pointed_to(arg_type),
+                             type_pointed_to(skip_typerefs(
+                                    arg->variant.operation.operands->type)))) {
+          /* Add a check for one special case: If the argument is a cast of
+             a function pointer where the cast and the function pointer don't
+             have identical types, use a temporary rather than a constant
+             expression for the parameter, otherwise a gcc back end will insert
+             an illegal instruction if the function pointer cast is not
+             identical to the function type (and the cast function pointer is
+             used to make a call). */
+        } else {
+          /* The argument is constant-valued and the parameter is unmodified.
+             The parameter gets remapped to a constant-valued expression. */
+          vrip->kind = vrk_constant_expr;
+          vrip->variant.expr = arg;
+        }  /* if */
       } else if (param_is_unmodified && is_operation_node(arg)) {
         /* Look for an argument of the form:
                 ( expr-with-side-effects , constant-value-expr )
