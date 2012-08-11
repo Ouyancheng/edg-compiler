@@ -13968,6 +13968,27 @@ to add extra parentheses to disambiguate.
 }  /* expr_may_look_like_type */
 
 
+static a_boolean expr_is_braced_init_list(an_expr_node_ptr expr)
+/*
+Return TRUE if the given expression will be put out as a braced-init-list.
+*/
+{
+  a_boolean is_braced_init = FALSE;
+
+  expr = skip_parens(expr);
+  if (expr->kind == (an_expr_node_kind)enk_braced_init_list) {
+    is_braced_init = TRUE;
+  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+    if (is_generated_dynamic_init(dip) &&
+        dip->is_creation_of_initializer_list_object) {
+      is_braced_init = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_braced_init;
+}  /* expr_is_braced_init_list */
+
+
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              an_expr_node_ptr   assoc_expr,
@@ -14036,9 +14057,10 @@ when possible.
     } else {
       /* See whether the cast has a single argument.  If not, a
          functional-notation cast must be used. */
+      an_expr_node_ptr cexpr = NULL;
       if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
         /* See whether the initialization has one argument. */
-        an_expr_node_ptr cexpr = dip->variant.constructor.args;
+        cexpr = dip->variant.constructor.args;
         if (cexpr != NULL && !cexpr->is_pack_expansion &&
             !cexpr->generated_default_arg &&
             (cexpr->next == NULL || cexpr->next->generated_default_arg)) {
@@ -14046,6 +14068,14 @@ when possible.
         }  /* if */
       } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
         has_one_argument = TRUE;
+        cexpr = dip->variant.expression;
+      }  /* if */
+      if (has_one_argument && expr_is_braced_init_list(cexpr)) {
+        /* If the single argument expression is brace-enclosed, we can't
+           use an old-style cast, because the expression in an old-style
+           cast is not an expression list, and braced-init-lists are
+           allowed only in an expression list. */
+        has_one_argument = FALSE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (has_one_argument &&
