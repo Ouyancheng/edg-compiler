@@ -21309,17 +21309,14 @@ controls).
       make_constant_operand(constant, result);
     } else {
       /* We want an operand, and we have an operand. */
-      an_expr_node_ptr   temp_init_node;
-      a_dynamic_init_ptr tdip;
+      an_expr_node_ptr temp_init_node;
       if (force_temp) {
         /* We're supposed to force a temporary at the top level. */
         if (!operand_is_temp_init_full(&operand, &temp_init_node) ||
             /* If the temp is present but it is already representing something
                special, make another temporary. */
-            ((tdip = temp_init_node->variant.init.dynamic_init),
-              (tdip->is_braced_initializer ||
-               tdip->is_compound_literal ||
-               tdip->is_explicit_cast))) {
+            !is_generated_dynamic_init(
+                                 temp_init_node->variant.init.dynamic_init)) {
           if (!is_error_operand(&operand)) {
             /* Make a temporary.  Normally, it's an rvalue, but make an
                lvalue if the caller has requested it. */
@@ -21327,14 +21324,11 @@ controls).
                                        CCO_MAKE_LVALUE_TEMP_FOR_LIST_INIT) !=0;
             temp_init_from_operand(&operand, create_lvalue);
           }  /* if */
-          if (operand_is_temp_init_full(&operand, &temp_init_node)) {
-            tdip = temp_init_node->variant.init.dynamic_init;
-            tdip->is_braced_initializer = TRUE;
-          }  /* if */
         }  /* if */
-        if (is_cast && operand_is_temp_init_full(&operand, &temp_init_node)) {
-          tdip = temp_init_node->variant.init.dynamic_init;
-          tdip->is_explicit_cast = TRUE;
+        if (operand_is_temp_init_full(&operand, &temp_init_node)) {
+          a_dynamic_init_ptr tdip = temp_init_node->variant.init.dynamic_init;
+          if (is_cast) tdip->is_explicit_cast = TRUE;
+          tdip->is_braced_initializer = TRUE;
         }  /* if */
       }  /* if */
       copy_operand(&operand, result);

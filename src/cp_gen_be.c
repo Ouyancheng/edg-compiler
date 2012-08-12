@@ -13980,8 +13980,9 @@ Return TRUE if the given expression will be put out as a braced-init-list.
     is_braced_init = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
     a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-    if (is_generated_dynamic_init(dip) &&
-        dip->is_creation_of_initializer_list_object) {
+    if (!dip->is_explicit_cast && !dip->is_compound_literal &&
+        (dip->is_braced_initializer ||
+         dip->is_creation_of_initializer_list_object)) {
       is_braced_init = TRUE;
     }  /* if */
   }  /* if */
@@ -14028,7 +14029,9 @@ when possible.
   a_boolean        is_value_init;
   a_type_ptr       bare_init_entity_type;
 
-  if (dip->is_creation_of_initializer_list_object) {
+  if (!dip->is_explicit_cast &&
+      !dip->is_compound_literal &&
+      dip->is_creation_of_initializer_list_object) {
     /* For a dynamic init that is a generated constructor call for the
        creation of a std::initializer_list object, skip down to the
        part of the initializer that is not implicit. */
@@ -14392,10 +14395,8 @@ and the output of the type name.
           expr = expr->variant.operation.operands;
         }  /* while */
         if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-          a_dynamic_init_ptr pdip = expr->variant.init.dynamic_init;
-          if ((pdip->is_braced_initializer && !pdip->is_explicit_cast) ||
-              pdip->is_creation_of_initializer_list_object) {
-            dip = pdip;
+          if (expr_is_braced_init_list(expr)) {
+            dip = expr->variant.init.dynamic_init;
             init_entity_type = expr->type;
           }  /* if */
         }  /* if */
