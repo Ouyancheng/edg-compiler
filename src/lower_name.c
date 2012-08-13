@@ -5449,7 +5449,8 @@ the dynamic initialization is the result of a static_cast.
     /* Likely a ck_dynamic_init from an aggregate in a compound literal. */
     switch (dip->kind) {
       case dik_expression:
-        mangled_encoding_for_expression(dip->variant.expression,
+      case dik_constructor:
+        mangled_encoding_for_expression(arg_list_from_dyn_init(dip),
                                         /*in_dependent_expr=*/TRUE, mctl);
         break;
       default:
