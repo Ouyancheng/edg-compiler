@@ -30157,7 +30157,7 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
 }  /* generate_enhanced_for_ne_and_incr_expressions */
 
 
-static void fill_in_range_based_for_loop_constructs(
+static a_boolean fill_in_range_based_for_loop_constructs(
                                      a_range_based_for_loop_ptr rbflp,
                                      a_source_position          *expr_position,
                                      a_token_sequence_number    tok_seq_number,
@@ -30170,7 +30170,8 @@ enhanced-for expression.  tok_seq_number is the sequence number of the first
 token of the expression.  pointers_block is the pointers block for the iterator
 scope previously created, needed to reactivate that scope.  This routine should
 be called with the proper scope in which to declare the loop variables (i.e.,
-__begin, __end) already on the stack.
+__begin, __end) already on the stack.  Return TRUE if all semantic checks pass,
+FALSE otherwise.
 */
 {
   an_operand          operand1, operand;
@@ -30242,6 +30243,7 @@ __begin, __end) already on the stack.
   pop_expr_stack();
   /* Pop the iterator scope off the scope stack. */
   pop_block_scope(/*is_final_pop=*/FALSE);
+  return passed;
 }  /* fill_in_range_based_for_loop_constructs */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -31990,7 +31992,8 @@ and can have the following forms (see [stmt.ranged] for specifics):
        i.e., the iterator variable, the "__begin != __end" expression,
        and the "++__begin" expression.  The expressions are built in the
        begin_end scope and the iterator is built in the iterator scope. */
-    fill_in_range_based_for_loop_constructs(rbflp,
+    passed = fill_in_range_based_for_loop_constructs(
+                                            rbflp,
                                             expr_position,
                                             tok_seq_number,
                                             iterator_pointers_block);
