@@ -1258,8 +1258,7 @@ typedef int an_expr_copy_options_set;
 			   it's the address of a stack variable). */
 #define CE_COPYING_EXPRESSION_FOR_CONSTANT 0x200
 			/* TRUE if the constant being copied is a backing
-			   expression attached to a constant (which prohibits
-			   creating a shared constant in the copy). */
+			   expression attached to a constant. */
 #define CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER 0x400
 			/* TRUE if the copy is from one function scope
 			   memory region into another. */
