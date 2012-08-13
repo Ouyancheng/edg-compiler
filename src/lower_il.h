@@ -216,6 +216,11 @@ typedef struct an_init_pos_descr {
 			/* For variably-sized arrays, an expression that
 			   gives (at runtime) the number of elements
 			   in the array.  NULL otherwise. */
+  a_host_large_integer
+		partial_initialization_starting_element;
+			/* When not -1, indicates the element to begin
+			   default initializing when a variably-sized array
+			   is partially-initialized. */
 } an_init_pos_descr;
 
 typedef struct a_destructible_entity_descr *a_destructible_entity_descr_ptr;

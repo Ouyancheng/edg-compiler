@@ -987,6 +987,7 @@ Clear an initialization position description entry to default values.
   ipdp->array_element_count       = 0;
   ipdp->array_element_type        = NULL;
   ipdp->num_elem_node             = NULL;
+  ipdp->partial_initialization_starting_element = -1;
 }  /* clear_init_pos_descr */
 
 
@@ -2225,8 +2226,12 @@ for the Cfront-like ABI, type size_t for the IA-64 ABI.
 static an_expr_node_ptr num_elem_node_if_array(an_init_pos_descr_ptr ipdp)
 /*
 ipdp gives the position of an entity.  If it is an array, construct an
-expression that gives the number of elements in the array and return
-a pointer to it.  Otherwise, return NULL.  The node has type int
+expression that gives the effective number of elements in the array and return
+a pointer to it.  Note that the "effective" number of elements in the array
+may be fewer than the actual number of elements in the array (e.g., when
+called to initialize "new A[5] {99}", will return 4, not 5 -- as specified
+by the array_element_count or partial_initialization_starting_element fields
+of ipdp).  Returns NULL for non-array types.  The node has type int
 for the Cfront-like ABI, type size_t for the IA-64 ABI.  For a
 multi-dimensional array, the number of elements is the total across
 all dimensions.
@@ -2238,7 +2243,7 @@ all dimensions.
       ipdp->variable->is_vla &&
       !ipdp->indirect_through_variable &&
       (ipdp->modifiers == NULL || ipdp->array_element_sequence)) {
-    /* The entity being destroyed is a variable-length array (VLA). */
+    /* The entity being accessed is a variable-length array (VLA). */
     a_variable_ptr num_elem_var;
     /* Get the variable that has been set to the number of elements in the
        VLA.  For multi-dimensional arrays, it gives the total across all
@@ -2258,19 +2263,50 @@ all dimensions.
     a_boolean        is_array = FALSE;
     a_targ_ptrdiff_t array_element_count;
     if (ipdp->array_element_sequence) {
-      /* Destruction of a sequence of array elements. */
+      /* Accessing a sequence of array elements. */
       is_array = TRUE;
       array_element_count = ipdp->array_element_count;
     } else {
       a_type_ptr entity_type = type_from_init_pos_descr(ipdp);
       if (is_array_type(entity_type)) {
-        /* Destruction of a whole array. */
+        /* Accessing a whole array. */
         is_array = TRUE;
         array_element_count = num_array_elements(entity_type);
       }  /* if */
     }  /* if */
     if (is_array) {
-      num_elem_node = num_elem_node_from_count(array_element_count);
+      if (ipdp->num_elem_node != NULL) {
+        /* For variably-sized arrays, use the expression that has already
+           been created to describe the number of elements in the array. */
+        num_elem_node = make_reusable_copy(ipdp->num_elem_node,
+                                           /*vars_can_change=*/TRUE);
+        if (ipdp->partial_initialization_starting_element > 0) {
+          /* If we're partially initializing the array, we need to compute
+             at run-time the effective number of elements being accessed
+             (by subtracting the number already initialized).  Note that
+             we're purposely skipping the case where
+             partial_initialization_starting_element is zero (since there's
+             no need to subtract zero in this case). */
+          a_constant starting_elem_constant;
+          set_integer_constant_with_overflow_check(
+                                 &starting_elem_constant,
+                                 ipdp->partial_initialization_starting_element,
+#if IA64_ABI
+                                 targ_size_t_int_kind,
+#else /* !IA64_ABI */
+                                 targ_runtime_elem_count_int_kind,
+#endif /* IA64_ABI */
+                                 (a_type_ptr)NULL);
+          num_elem_node->next = alloc_node_for_constant(
+                                                      &starting_elem_constant);
+          num_elem_node = make_operator_node(
+                                           (an_expr_operator_kind)eok_subtract,
+                                           num_elem_node->type,
+                                           num_elem_node);
+        }  /* if */
+      } else {
+        num_elem_node = num_elem_node_from_count(array_element_count);
+      }  /* if */
     }  /* if */
   }  /* if */
   return num_elem_node;
@@ -5169,9 +5205,18 @@ expression).
         /* Repeated ck_dynamic_init constant. */
         check_assertion(!C_mode());
         ipd.array_element_sequence = TRUE;
-        ipd.array_element_count =
-                          (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
         ipd.array_element_type = repeated_con->type;
+        if (con_ptr->variant.init_repeat.count == 0) {
+          /* If the repeat count is zero, this initialization is being used
+             to complete a partial-initialization of a variably-sized array.
+             Make a note of the starting element that needs initialization
+             (which could be zero, in cases like "new A[n] {}"). */
+          check_assertion(ipd.num_elem_node != NULL);
+          ipd.partial_initialization_starting_element = ipmp->curr_elem;
+        } else {
+          ipd.array_element_count =
+                          (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
+        }  /* if */
         lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, source_desc,
                               others_follow, insert_location, keep_constant,
                               options);
