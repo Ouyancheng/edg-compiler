@@ -2106,20 +2106,20 @@ template).
   for (;;) {
     if (std_attribute_tokens_next()) {
       /* Skip over standard attributes. */
-      flush_until_matching_token();
+      flush_until_matching_token_full(/*limit_flush=*/FALSE);
       if (curr_token == tok_rbracket) (void)get_token();
     } else if (curr_token == tok_attribute && gnu_attributes_enabled) {
       /* Skip over GNU attributes. */
       (void)get_token();
       if (curr_token == tok_lparen) {
-        flush_until_matching_token();
+        flush_until_matching_token_full(/*limit_flush=*/FALSE);
         if (curr_token == tok_rparen) (void)get_token();
       }  /* if */
     } else if (curr_token == tok_declspec && ms_declspec_attributes_enabled) {
       /* Skip over Microsoft __declspec attributes. */
       (void)get_token();
       if (curr_token == tok_lparen) {
-        flush_until_matching_token();
+        flush_until_matching_token_full(/*limit_flush=*/FALSE);
         if (curr_token == tok_rparen) (void)get_token();
       }  /* if */
     } else {

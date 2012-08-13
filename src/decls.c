@@ -12840,7 +12840,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     discard_curr_construct_pragmas();
     if (curr_token == tok_lbrace) {
       /* Ignore the namespace definition. */
-      flush_until_matching_token();
+      flush_until_matching_token_full(/*limit_flush=*/FALSE);
       /* The closing right brace will be swallowed by the caller. */
       *final_token = tok_rbrace;
     }  /* if */

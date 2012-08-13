@@ -1967,7 +1967,7 @@ A Microsoft attribute is next.  Skip over its tokens.
 {
   check_assertion(curr_token == tok_lbracket);
   while (curr_token == tok_lbracket) {
-    flush_until_matching_token();
+    flush_until_matching_token_full(/*limit_flush=*/FALSE);
     (void)get_token();
   }  /* if */
 }  /* skip_microsoft_attribute_tokens */

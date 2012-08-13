@@ -2372,6 +2372,7 @@ extern a_boolean cache_function_body(
 			       stop_token)
 /* Flush to the token that matches an opening token (e.g., parenthesis). */
 extern void flush_until_matching_token(void);
+extern void flush_until_matching_token_full(a_boolean	limit_flush);
 /* Flush tokens on error, to a token in the stop token set. */
 extern void flush_tokens_with_stop_tokens_and_warning_flag(
 				a_token_set_array	stop_tokens,

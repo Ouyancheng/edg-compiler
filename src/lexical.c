@@ -12198,10 +12198,12 @@ lexical state.
 }  /* end_caching_fetched_tokens */
 
 
-void flush_until_matching_token(void)
+void flush_until_matching_token_full(a_boolean	limit_flush)
 /*
 The current token is the opening token of a pair of matched tokens (e.g.,
 an opening parenthesis).  Flush to the corresponding closing token.
+If limit_flush is TRUE the number of lines flushed is limited to avoid
+skipping too far in error cases.
 */
 {
   a_token_kind      closing_token;
@@ -12215,7 +12217,7 @@ an opening parenthesis).  Flush to the corresponding closing token.
   a_symbol_header_ptr
                     prev_sym_header = NULL;
 
-  db_enter(3, "flush_until_matching_token");
+  db_enter(3, "flush_until_matching_token_full");
   /* Save the current position, to see later how much we have flushed. */
   copy_source_position(pos_curr_token, start_pos);
 
@@ -12274,7 +12276,7 @@ an opening parenthesis).  Flush to the corresponding closing token.
       default:;
     }  /* switch */
     /* If we've skipped too many lines, give up the flush. */
-    if ((pos_curr_token.seq - start_pos.seq) > max_lines) break;
+    if (limit_flush && (pos_curr_token.seq - start_pos.seq) > max_lines) break;
     /* Check for the start of a template parameter list. */
     if (curr_token == tok_lt && prev_token == tok_identifier) {
       if (!C_mode() && is_template_reference(prev_sym_header)) {
@@ -12293,6 +12295,16 @@ an opening parenthesis).  Flush to the corresponding closing token.
   }  /* while */
 
   db_exit();
+}  /* flush_until_matching_token_full */
+
+
+void flush_until_matching_token(void)
+/*
+Interface to flush_until_matching_token_full that supplies a default
+value for the limit_flush parameter.
+*/
+{
+  flush_until_matching_token_full(/*limit_flush=*/TRUE);
 }  /* flush_until_matching_token */
 
 
@@ -12328,7 +12340,9 @@ to skip tokens for some purpose other than error recovery.
          ((prev_token == tok_identifier && !C_mode() &&
            is_template_reference(prev_sym_header)) ||
           prev_token == tok_template))) {
-      flush_until_matching_token();
+      /* In contexts where we are not issuing a warning, don't limit the
+         flush because we are flushing to the end of a given construct. */
+      flush_until_matching_token_full(/*limit_flush=*/!suppress_warning);
     }  /* if */
     /* Always stop the flush on:
        1)  End of source;
