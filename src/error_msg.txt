@@ -2412,6 +2412,7 @@ ec_constant_narrowing_conversion;;"invalid narrowing conversion from %t1 to %t2:
 ec_cast_to_incomplete_array_type;;"cast to incomplete array type %t is not allowed"
 ec_constant_narrowing_conversion_to_float;;"invalid narrowing conversion from %t1 to %t2: constant value cannot be represented exactly in destination type"
 ec_braced_init_in_paren_init;;"a parenthesized initializer for a non-class entity must be an expression, not a brace-enclosed list"
+ec_braced_list_for_implicit_lambda_type;;"a brace-enclosed list does not provide a return type for this lambda"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

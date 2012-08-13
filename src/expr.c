@@ -32547,14 +32547,24 @@ required_type will be void if the expression should have void type
     }  /* if */
   }  /* if */
   if (curr_token == tok_lbrace &&
-      (gpp_mode || list_init_enabled) &&
-      !lambda_implicit_return_case) {
+      (gpp_mode || list_init_enabled)) {
     /* A C++11 list initializer. */
     if (!list_init_enabled) {
-      pos_warning(ec_list_initializer_nonstandard_in_current_mode,
-                  &pos_curr_token);
+      expr_pos_warning(ec_list_initializer_nonstandard_in_current_mode,
+                       &pos_curr_token);
     }  /* if */
     icp = scan_braced_init_list_internal(/*bundle=*/FALSE);
+    if (lambda_implicit_return_case) {
+      /* A braced-init-list cannot be used for a lambda with an implicit
+         return type, as it does not provide a type. */
+      expr_pos_error(ec_braced_list_for_implicit_lambda_type,
+                     init_component_pos(icp));
+      arg_list_will_not_be_used_because_of_error(icp);
+      free_init_component_list(icp);
+      icp = NULL;
+      make_error_operand(&result);
+      goto handle_implicit_lambda_return_type;
+    }  /* if */
     clear_init_state(&init_state);
     /* init_state.elements_are_full_expressions is not set to TRUE because
        the expression stack has already been pushed for the full expression,
@@ -32578,6 +32588,7 @@ required_type will be void if the expression should have void type
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
     if (lambda_implicit_return_case) {
       /* Set the lambda return type from the expression type. */
+handle_implicit_lambda_return_type:
       check_and_adjust_lambda_return_type_if_needed(&result, &required_type);
       if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
         /* The routine is now known to return its value via copy
