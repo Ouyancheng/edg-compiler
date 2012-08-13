@@ -449,10 +449,11 @@ finish_variable_remapping_for_inlining.
         if (gcc_is_generated_code_target &&
             is_cast_operation_node(arg) &&
             is_pointer_type(arg_type) &&
+            is_pointer_type(arg->variant.operation.operands->type) &&
             is_function_type(type_pointed_to(arg_type)) &&
             !f_identical_types(type_pointed_to(arg_type),
-                               type_pointed_to(f_skip_typerefs(
-                                       arg->variant.operation.operands->type)),
+                               type_pointed_to(
+                                        arg->variant.operation.operands->type),
                                ITF_NO_FLAGS)) {
           /* Add a check for one special case: If the argument is a cast of
              a function pointer where the cast and the function pointer don't
