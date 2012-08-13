@@ -20072,8 +20072,9 @@ initialization processing.
             /* A dependent constant might have an appropriate value. */
             is_narrowing = FALSE;
           } else {
+            check_assertion(is_floating_type(con->type));
             fp_change_kind(&con->variant.float_value,
-                           con->type->variant.float_kind,
+                           skip_typerefs(con->type)->variant.float_kind,
                            &fval,
                            dest_type->variant.float_kind,
                            &err,
