@@ -21899,11 +21899,17 @@ flag if error recovery should be performed as if the specifier didn't occur.
                is_constructor_decl(class_type, dps)) {
       if (dps->declared_storage_class != (a_storage_class)sc_static) {
         decl_info->is_constructor = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
       } else {
-        check_assertion(cppcli_enabled);
-        decl_info->is_static_constructor = TRUE;
+        /* "static" is not allowed on a constructor, except in C++/CLI mode,
+           which has a concept of "static constructor". */
+        if (cppcli_enabled) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          decl_info->is_static_constructor = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else {
+          expect_error();
+          decl_info->is_constructor = TRUE;
+        }  /* if */
       }  /* if */
       dps->type = dps->declared_type = unknown_type();
     } else if (no_decl_specifiers) {
