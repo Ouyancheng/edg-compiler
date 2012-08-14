@@ -2285,13 +2285,29 @@ the same as depth_scope_stack).
 }  /* compute_effective_decl_level */
 
 
+static a_boolean namespace_extension_is_for_instantiation(
+                                                a_scope_stack_entry_ptr  ssep)
+/*
+Return TRUE if the given namespace extension scope stack entry sits on top of
+an instantiation context (possibly with intervening namespace extensions).
+*/
+{
+  while (scope_is(ssep, sck_namespace_extension) &&
+         !ssep->explicitly_declared_namespace_extension) {
+    ssep -= 1;
+  }  /* while */
+  return scope_is(ssep, sck_instantiation_context);
+}  /* namespace_extension_is_for_instantiation */
+
+
 static a_scope_depth get_effective_depth_innermost_namespace(void)
 /*
 Return the "effective" innermost namespace scope depth.  Usually, this is just
 depth_innermost_namespace_scope.  In GNU C++ modes, however, namespace
 extensions that are implicitly pushed on the scope stack as part of a
-class or namespace reactivation are ignored.  This is used to emulate GCC's
-behavior wrt. certain block extern declarations.  For example:
+class or namespace reactivation are ignored (but reactivations for
+instantiations are treated as "explicit" in this context).  This is used to
+emulate GCC's behavior wrt. certain block extern declarations.  For example:
       namespace N { struct S { void f(); }; }
       void N::S::f() {
         void g();  // ::g in g++ mode, N::g otherwise.
@@ -2302,7 +2318,8 @@ behavior wrt. certain block extern declarations.  For example:
 
   if (gpp_mode && depth != DEPTH_OF_FILE_SCOPE) {
     while (scope_stack[depth].kind == (a_scope_kind)sck_namespace_extension &&
-           !scope_stack[depth].explicitly_declared_namespace_extension) {
+           !scope_stack[depth].explicitly_declared_namespace_extension &&
+           !namespace_extension_is_for_instantiation(&scope_stack[depth])) {
       depth = scope_stack[depth-1].depth_innermost_namespace_scope;
     }  /* while */
   }  /* if */

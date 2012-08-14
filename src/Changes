@@ -1,5 +1,24 @@
 Version 4.5
 
+8/14/12  [EDGcpfe/12822]
+GNU C++ compatibility: Meaning of block-extern declarations in namespaces
+
+The resolution of EDGcpfe/10238 (see entry of 11/23/09) caused the front end
+to ignore namespace scope reactivations when determining the scope in which a
+block extern declaration should be injected.  It turns out that g++ does not
+ignore namespace scopes reactivated for the purpose of template instantiation.
+For example:
+
+  namespace N {
+    int i;
+    template<typename> void f() {
+      extern int i;  // Previously this was ::i; now it is N::i.
+      i = 0;
+    }
+  }
+  int main() { N::f<int>(); }  // Point of instantiation.
+
+
 8/14/12  [EDGcpfe/12938]
 Useless storage class specifiers on member class/enum declarations
 
