@@ -5010,6 +5010,11 @@ entries are replaced as needed for each mem-initializer that is encountered.
       is.direct_init = TRUE;
       is.force_dynamic_init = TRUE;
       is.elements_are_full_expressions = TRUE;
+      if (strict_ansi_mode) {
+        is.error_on_narrowing = TRUE;
+      } else {
+        is.warning_on_narrowing = TRUE;
+      }  /* if */
       /* Scan the initializer. */
       braced_initializer(dtype, (an_init_component *)NULL,
                          &is, (a_decl_parse_state*)NULL,
