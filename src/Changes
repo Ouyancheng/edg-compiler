@@ -1,5 +1,19 @@
 Version 4.5
 
+8/14/12  [EDGcpfe/12938]
+Useless storage class specifiers on member class/enum declarations
+
+In Sun C++ mode, a useless storage class specifier on a member class or enum
+declaration is now a warning instead of an error.  For example:
+
+  struct S {
+    static enum { e };  // Now accepted with a warning in Sun mode.
+  };
+
+Furthermore, in modes where this still elicits an error by default, the error
+is now discretionary.
+
+
 8/14/12  [EDGcpfe/13105]
 Microsoft compatibility: friend lookup when not using ADL
 

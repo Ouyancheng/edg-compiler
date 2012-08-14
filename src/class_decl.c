@@ -19520,8 +19520,9 @@ routine.
                              strict_ansi_error_severity : es_warning,
                          ec_missing_typedef_name, &pos_curr_token);
         } else if (storage_class != (a_storage_class)sc_unspecified) {
-          pos_diagnostic(any_cfront_mode() ? es_warning : es_error,
-                         ec_storage_class_not_allowed, err_pos);
+          an_error_severity  sev = es_discretionary_error;
+          if (sun_mode || any_cfront_mode()) sev = es_warning;
+          pos_diagnostic(sev, ec_storage_class_not_allowed, err_pos);
         }  /* if */
         if (dso_flags & DSO_VIRTUAL) {
           pos_error(ec_virtual_not_allowed, err_pos);
