@@ -9698,7 +9698,7 @@ points to a location to insert code prior to the execution of the call
       temp_node = make_assignment_expr(var_lvalue_expr(temp),
                                       (an_expr_operator_kind)eok_assign,
                                       copy_node(expr));
-      insert_expr_statement(temp_node, insert_location);
+      (void)insert_expr_statement(temp_node, insert_location);
       overwrite_node(expr, var_rvalue_expr(temp));
     }  /* if */
   }  /* for */
