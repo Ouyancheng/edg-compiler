@@ -1142,10 +1142,12 @@ extern a_param_type_ptr unlowered_param_type_list_for_routine(
 
 extern a_param_type_ptr param_type_for_this(a_type_ptr routine_type);
 
-extern void lower_arg_expr_list(an_expr_node_ptr expr_list,
-                                a_type_ptr       called_rout_type,
-                                a_routine_ptr    called_rout,
-                                a_param_type_ptr param);
+extern void lower_arg_expr_list(an_expr_node_ptr   expr_list,
+                                a_type_ptr         called_rout_type,
+                                a_routine_ptr      called_rout,
+                                a_param_type_ptr   param,
+                                a_boolean          maintain_sequencing,
+                                an_insert_location *insert_location);
 
 extern void lower_dynamic_cast(an_expr_node_ptr expr);
 

@@ -9590,10 +9590,12 @@ contains a parameter whose type requires a copy constructor to be called.
 }  /* type_has_param_passed_via_cctor */
 
 
-void lower_arg_expr_list(an_expr_node_ptr expr_list,
-                         a_type_ptr       called_rout_type,
-                         a_routine_ptr    called_rout,
-                         a_param_type_ptr param)
+void lower_arg_expr_list(an_expr_node_ptr   expr_list,
+                         a_type_ptr         called_rout_type,
+                         a_routine_ptr      called_rout,
+                         a_param_type_ptr   param,
+                         a_boolean          maintain_sequencing,
+                         an_insert_location *insert_location)
 /*
 Do IL lowering of the indicated list of expressions and everything under it.
 The expressions are the argument list for a call.  The type of the routine
@@ -9602,11 +9604,17 @@ If the routine is known, called_rout is non-NULL and points to it.  Note
 that if the routine requires control arguments like a "this" pointer, such
 arguments are *not* in expr_list.  If param is non-NULL, start at that
 parameter (this is used when the called routine is a copy constructor,
-to skip the input parameter).
+to skip the input parameter).  If maintain_sequencing is TRUE, the order
+of execution of the arguments is maintained (for C and C++ function calls
+the order of execution is unspecified, but when initializing a constructor
+from an initializer-list the order must be maintained).  insert_location
+points to a location to insert code prior to the execution of the call
+(and can be NULL in cases where maintain_sequencing is also NULL).
 */
 {
   an_expr_node_ptr              expr;
 
+  check_assertion(!(maintain_sequencing && insert_location == NULL));
   called_rout_type = skip_typerefs(called_rout_type);
   /* Get the first parameter type. */
   if (param != NULL) {
@@ -9614,6 +9622,21 @@ to skip the input parameter).
   } else {
     /* Start with the first parameter. */
     param = unlowered_param_type_list_full(called_rout_type, called_rout);
+  }  /* if */
+  if (maintain_sequencing) {
+    /* Sequencing is only needed if there are two or more arguments with
+       side-effects. */
+    a_host_large_integer args_with_side_effects = 0;
+    for (expr = expr_list; expr != NULL; expr = expr->next) {
+      if (args_with_side_effects == 0 && expr->next == NULL) {
+        /* No need to check last argument if there are no previous args
+           with side-effects. */
+        break;
+      } else if (node_has_side_effects(expr, (a_boolean *)NULL)) {
+        if (++args_with_side_effects == 2) break;
+      }  /* if */
+    }  /* for */
+    maintain_sequencing = (args_with_side_effects == 2);
   }  /* if */
   /* Track the current parameter type as we go through the list. */
   for (expr = expr_list; expr != NULL; expr = expr->next) {
@@ -9660,6 +9683,23 @@ to skip the input parameter).
         /* A pointer to data member -- widen if necessary. */
         do_ptr_to_data_member_arg_promotion_on_node(expr);
       }  /* if */
+    }  /* if */
+    if (maintain_sequencing &&
+        node_has_side_effects(expr, (a_boolean *)NULL)) {
+      /* If the caller requests that argument sequencing be maintained
+         (i.e., when an initializer list is used as arguments for a
+         constructor call), create a temporary for any argument that
+         has side-effects and ensure that it is evaluated prior to the call,
+         e.g., "A{i++, i++}" becomes: "t1 = i++; t2 = i++; A(t1, t2)". */
+      a_variable_ptr   temp;
+      an_expr_node_ptr temp_node;
+      check_assertion(!expr->is_lvalue);
+      temp = make_lowered_temporary(expr->type);
+      temp_node = make_assignment_expr(var_lvalue_expr(temp),
+                                      (an_expr_operator_kind)eok_assign,
+                                      copy_node(expr));
+      insert_expr_statement(temp_node, insert_location);
+      overwrite_node(expr, var_rvalue_expr(temp));
     }  /* if */
   }  /* for */
 }  /* lower_arg_expr_list */
@@ -11888,7 +11928,9 @@ the top node of the indicated statement (which is an expression statement).
   /* See if we know the specific routine being called. */
   routine = routine_from_function_expr(first_arg);
   /* Lower the rest of the arguments. */
-  lower_arg_expr_list(arg_node, rout_type, routine, (a_param_type_ptr)NULL);
+  lower_arg_expr_list(arg_node, rout_type, routine, (a_param_type_ptr)NULL,
+                      /*maintain_sequencing=*/FALSE,
+                      (an_insert_location *)NULL);
   if (routine != NULL) {
 #if IA64_ABI
     if (routine->special_kind == (a_special_function_kind)sfk_constructor ||

@@ -4006,7 +4006,8 @@ operator of a no-capture lambda.
          after the copy because you can't copy an expression once it has been
          lowered -- temporaries might have been added. */
       lower_arg_expr_list(default_arg_list, routine_type, routine,
-                          src_param_type);
+                          src_param_type, /*maintain_sequencing=*/FALSE,
+                          (an_insert_location *)NULL);
     }  /* if */
     if (implied_arg_list != NULL) {
       /* Add the implicit arguments to the front of the default argument
@@ -8157,9 +8158,12 @@ do_assignment:;
                                    eff_insert_location);
       } else {
         /* Construct a simple entity (not an array). */
-        /* Lower any added arguments. */
+        /* Lower any added arguments.  Maintain the sequencing of the arguments
+           in certain cases. */
         lower_arg_expr_list(dip->variant.constructor.args, ctor_routine_type,
-                            ctor_routine, param);
+                            ctor_routine, param,
+                            dip->variant.constructor.has_sequenced_arguments,
+                            eff_insert_location);
 #if ABI_COMPATIBILITY_VERSION >= 233
         if (exceptions_enabled && (options & LDIO_THROW) &&
             dip->variant.constructor.is_implicit_copy_for_copy_initialization){
@@ -8893,7 +8897,8 @@ arrays with class elements.
     check_assertion_str(new_routine != NULL,
                        "lower_array_new: placement new with null new_routine");
     lower_arg_expr_list(ndsp->arg, new_routine->type, new_routine,
-                        (a_param_type_ptr)NULL);
+                        (a_param_type_ptr)NULL, /*maintain_sequencing=*/FALSE,
+                        (an_insert_location *)NULL);
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     if (dip != NULL && ndsp->freeing_of_storage_on_exception != NULL) {
       /* This is a placement new for which there is a corresponding placement
@@ -9443,9 +9448,12 @@ The subtree of the node has not yet been lowered.
     }  /* if */
     /* Preserve any additional parameters from the constructor call. */
     if (dip->variant.constructor.args != NULL) {
+      check_assertion(!dip->variant.constructor.has_sequenced_arguments);
       lower_arg_expr_list(dip->variant.constructor.args,
                           ctor_routine->type, ctor_routine,
-                          (a_param_type_ptr)NULL);
+                          (a_param_type_ptr)NULL,
+                          /*maintain_sequencing=*/FALSE,
+                          (an_insert_location *)NULL);
       end_implied_arg_list->next = dip->variant.constructor.args;
     }  /* if */
     /* Make the constructor call. */
@@ -9463,9 +9471,11 @@ The subtree of the node has not yet been lowered.
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
   } else {
     /* Non-array case, or array case that does not require special handling. */
-    /* Lower the arguments for the "new" call. */
+    /* Lower the arguments for the "new" call.  If the arguments need
+       sequencing, that'll be handled later when the dip is lowered. */
     lower_arg_expr_list(ndsp->arg, ndsp->routine->type, ndsp->routine,
-                        (a_param_type_ptr)NULL);
+                        (a_param_type_ptr)NULL, /*maintain_sequencing=*/FALSE,
+                        (an_insert_location *)NULL);
     delete_args = NULL;
     if (ndsp->placement_new && dip != NULL &&
         ndsp->freeing_of_storage_on_exception != NULL) {
