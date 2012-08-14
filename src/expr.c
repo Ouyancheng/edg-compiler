@@ -390,19 +390,20 @@ opening parenthesis has already been swallowed); otherwise, it's
 }  /* prescan_initializer_for_auto_type_deduction */
 
 
-void scan_and_discard_initializer_expression(a_decl_parse_state  *dps)
+void scan_and_discard_init_component(a_decl_parse_state  *dps)
 /*
-Scan and discard an initializer associated with the declaration described by
-*dps (dps may be NULL if no variable or static data member is associated with
-the initializer).  This may amount to simply discarding a prescanned
-initializer.  This routine is usually called for error recovery purposes.
-If dps is non-NULL, dps->has_initializer is set to FALSE.
+Scan and discard an initializer (an expression or a braced initializer list)
+associated with the declaration described by *dps (dps may be NULL if no
+variable or static data member is associated with the initializer).  This may
+amount to simply discarding a prescanned initializer.  This routine is called
+for error recovery purposes.  If dps is non-NULL, dps->has_initializer is set
+to FALSE.
 */
 {
-  an_expr_stack_entry expr_stack_entry;
-  an_expr_stack_entry *saved_expr_stack;
-  an_object_lifetime  *saved_curr_object_lifetime = curr_object_lifetime;
-  an_operand          result;
+  an_expr_stack_entry    expr_stack_entry;
+  an_expr_stack_entry    *saved_expr_stack;
+  an_object_lifetime     *saved_curr_object_lifetime = curr_object_lifetime;
+  an_init_component_ptr  icp;
 
   if (curr_il_region_number == file_scope_region_number &&
       curr_object_lifetime != NULL && !in_file_scope(curr_object_lifetime)) {
@@ -413,14 +414,24 @@ If dps is non-NULL, dps->has_initializer is set to FALSE.
                                   (an_expression_kind)ek_normal,
                                   /*is_full_expr=*/TRUE,
                                   dps, (an_init_state *)NULL);
-  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  if (cached_initializer_present()) {
+    /* Get a previously-scanned init component out of the cache.  This happens
+       when the initializer is prescanned to resolve an "auto" declaration. */
+    icp = fetch_init_component_from_initializer_cache(
+                                                expr_stack->initializer_cache);
+  } else {
+    icp = scan_expr_or_braced_init_list(/*bundle=*/TRUE,
+                                        /*always_allow_braced=*/FALSE);
+  }  /* if */
+  arg_list_will_not_be_used_because_of_error(icp);
+  free_init_component_list(icp);
   discard_curr_expr_object_lifetime();
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
   if (dps != NULL) dps->has_initializer = FALSE;
   curr_object_lifetime = saved_curr_object_lifetime;
-}  /* scan_and_discard_initializer_expression */
+}  /* scan_and_discard_init_component */
 
 
 static a_ref_entry_ptr merge_ref_lists(a_ref_entry_ptr list1,
@@ -34353,41 +34364,36 @@ that type.  Used in C++ for scanning member constants in classes (in the
 standard form).  Assumes copy-initialization ("="-form).
 */
 {
-  an_operand          result;
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_member_constant_initializer_expression");
 
-  if ((gpp_mode || microsoft_mode) && !dps->auto_type_specifier_seen) {
+  if ((gpp_mode || microsoft_mode) && !dps->auto_type_specifier_seen &&
+      curr_token != tok_lbrace) {
     /* GNU and Microsoft C++ allow more than the standard allows. */
     /* Note than g++ did start disallowing some extensions in version 3.4,
        but it continues to allow float constants, so we continue to
        use the slightly-too-broad extended version. */
     scan_constant_initializer_expression(dps->type, dps, constant);
   } else {
-    /* The kind of expression stack entry pushed here must match that pushed
-       by prescan_initializer_for_auto_type_deduction. */
+    an_init_component_ptr  icp;
+    /* The call to push_expr_stack_for_initializer will re-activate a cached
+       initializer (for auto-type deduction) if necessary. */
     push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                     (an_expression_kind)ek_integral_constant,
                                     /*is_full_expr=*/TRUE,
                                     dps, (an_init_state *)NULL);
-    /* Scan the constant expression. */
-    scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-    /* Convert to the required type. */
-    prep_initializer_operand(&result, dps->type, (a_boolean *)NULL,
-                             (a_conv_descr_ptr)NULL,
-                             /*is_copy_initialization=*/TRUE,
-                             CCO_INITIALIZING_VARIABLE, /* Arbitrary. */
-                             ec_bad_initializer_type);
-    /* Make a constant from the operand. */
-    extract_constant_from_operand(&result, constant);
+    dps->init_state.initializer_must_be_constant = TRUE;
+    icp = scan_expr_or_braced_init_list(/*bundle=*/TRUE,
+                                        /*always_allow_braced=*/FALSE);
+    convert_initializer(icp, dps->type, /*is_var_init=*/TRUE,
+                        /*fill_in_dtor=*/TRUE, &dps->init_state);
+    copy_constant(dps->init_state.init_con, constant);
+    free_init_component_list(icp);
     pop_expr_stack_for_initializer(saved_expr_stack,
                                    /*is_full_expr=*/TRUE,
                                    dps, (an_init_state *)NULL);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    curr_construct_end_position = result.end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 
 #if DEBUG

@@ -13557,7 +13557,7 @@ constant and entering the name in the symbol table.
       if (!is_error_type(member_type)) {
         pos_ty_error(ec_invalid_literal_type, &init_pos, member_type);
       }  /* if */
-      scan_and_discard_initializer_expression(dps);
+      scan_and_discard_init_component(dps);
     }  /* if */
   }  /* if */
   db_exit();
@@ -13976,13 +13976,14 @@ specific information about the member declaration, respectively.
   update_variable_decl_modifiers(decl_state);
   if (curr_token == tok_assign &&
       (is_expr_start_token(next_token()) ||
-       (is_immediate_managed_class_type(class_type) &&
+       ((list_init_enabled || is_immediate_managed_class_type(class_type)) &&
         next_token() == tok_lbrace))) {
     a_constant         constant;
     a_source_position  init_pos;
     a_boolean          restore_member_visibility = FALSE;
     a_boolean          delay_initializer_scan = FALSE;
     var->initializer_in_class = TRUE;
+    decl_state->init_state.decl_parse_state = decl_state;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (is_immediate_managed_class_type(class_type)) {
       /* In managed class types, static data members can have any initializer
@@ -14060,7 +14061,7 @@ specific information about the member declaration, respectively.
                        member_type);
         }  /* if */
       }  /* if */
-      scan_and_discard_initializer_expression(decl_state);
+      scan_and_discard_init_component(decl_state);
     }  /* if */
     if (restore_member_visibility) {
       /* Restore the member's visibility. */

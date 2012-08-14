@@ -14388,7 +14388,7 @@ the encountered token and do not attempt to fully parse an initializer.
     /* Skip the assignment operator. */
     (void)required_token(tok_assign, ec_exp_assign);
     /* Scan (and discard) the expression that follows. */
-    scan_and_discard_initializer_expression((a_decl_parse_state*)NULL);
+    scan_and_discard_init_component((a_decl_parse_state*)NULL);
   }  /* if */
 }  /* diagnose_initializer_on_function */
 

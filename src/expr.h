@@ -263,7 +263,7 @@ extern void prescan_initializer_for_auto_type_deduction(
                                         a_decl_parse_state *dps,
                                         a_boolean          parenthesized_init);
 
-extern void scan_and_discard_initializer_expression(a_decl_parse_state  *dps);
+extern void scan_and_discard_init_component(a_decl_parse_state  *dps);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern
