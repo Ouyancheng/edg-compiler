@@ -21180,7 +21180,9 @@ controls).
                             (an_init_state *)NULL,
                             arg_match);
       if (arg_match != NULL) {
-        /* Overload resolution. */
+        /* Overload resolution.  Unless there's an error, the cost of the
+           conversion at this level is the cost of the conversion for the
+           underlying temporary. */
         if (arg_match->match_level == aml_none) {
           arg_match_err = TRUE;
         } else if (is_lvalue_reference_type(dest_type) &&
@@ -21188,11 +21190,6 @@ controls).
           /* An lvalue reference to non-const cannot bind to the rvalue
              produced in the first step. */
           arg_match_err = TRUE;
-        } else if (is_class_struct_union_type(underlying_type)) {
-          /* The reference always binds directly to a class temporary
-             (whether it's an lvalue reference or an rvalue reference),
-             so the conversion is an identity conversion. */
-          arg_match->match_level = aml_exact;
         }  /* if */
       } else {
         /* Not overload resolution. */
