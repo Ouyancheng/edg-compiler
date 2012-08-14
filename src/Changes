@@ -1,5 +1,26 @@
 Version 4.5
 
+8/14/12  [EDGcpfe/13105]
+Microsoft compatibility: friend lookup when not using ADL
+
+In version 4.1 we made a change to emulate the behavior of the Microsoft
+compiler involving the lookup of friend functions with definitions
+in contexts in which argument-dependent lookup is suppressed (see 3/31/09
+entry).  It appears that the special processing done by the Microsoft
+compiler does not apply to function templates, but our emulation did.
+This could result incorrect overload resolution in such cases.  Now fixed.
+
+  struct C {
+    struct B {
+      template <typename T> friend int f(B&) { return 0; }
+    };
+  };
+  void f() {
+    C::B s;
+    ::f<int>(s);  // Formerly: "no instance ... matches the argument list"
+  }
+
+
 8/13/12  [EDGcpfe/13122]
 Incorrect scanning of template static data members spanning several lines
 

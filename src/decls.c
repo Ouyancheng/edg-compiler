@@ -8975,12 +8975,9 @@ definition of a member function of a class template.
   }  /* if */
   dps->sym = sym;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* In Microsoft mode, an operator function that is defined in a friend
-     declaration (and not declared elsewhere) is not visible when
-     referenced using operator notation. */
-  sym->is_microsoft_invisible_operator =
-                          microsoft_mode && !redeclaration &&
-                          idlb.is_friend_decl && func_info->is_definition;
+  /* Note that the is_microsoft_invisible_operator flag is not set for
+     templates as, unlike normal functions, they seem to be visible
+     when defined only in a friend declaration. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* A routine entry is created for the function template, but it is not
      always entered in the IL.  It is a convenient place to keep track of
