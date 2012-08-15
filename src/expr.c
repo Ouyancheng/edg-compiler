@@ -34355,6 +34355,27 @@ dynamic initialization after substitution.
 }  /* rescan_dynamic_init_with_substitution */
 
 
+static a_boolean braced_initializer_next(a_decl_parse_state  *dps)
+/*
+Return TRUE if a braced initializer is next, in a declarative context described
+by dps.  Ordinarily, this amounts to just looking if the current token is a
+left brace, but if the initializer has been cached (e.g., for auto type
+deduction) the cache's content must be examined instead.
+*/
+{
+  a_boolean  result;
+
+  check_assertion(dps != NULL);
+  if (anything_cached(&dps->prescanned_initializer_cache)) {
+    result = is_braced_init_component(
+                                dps->prescanned_initializer_cache.first_init);
+  } else {
+    result = curr_token == tok_lbrace;
+  }  /* if */
+  return result;
+}  /* braced_initializer_next */
+
+
 void scan_member_constant_initializer_expression(a_decl_parse_state  *dps,
                                                  a_constant          *constant)
 /*
@@ -34370,8 +34391,7 @@ standard form).  Assumes copy-initialization ("="-form).
 
   db_enter(3, "scan_member_constant_initializer_expression");
 
-  if ((gpp_mode || microsoft_mode) && !dps->auto_type_specifier_seen &&
-      curr_token != tok_lbrace) {
+  if ((gpp_mode || microsoft_mode) && !braced_initializer_next(dps)) {
     /* GNU and Microsoft C++ allow more than the standard allows. */
     /* Note than g++ did start disallowing some extensions in version 3.4,
        but it continues to allow float constants, so we continue to
