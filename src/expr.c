@@ -213,7 +213,10 @@ constant and expr_kind is not already a constant expression kind.
   push_expr_stack(expr_kind, expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  if (is_full_expr) transfer_expr_context_if_applicable(*saved_expr_stack);
+  if (is_full_expr) {
+    transfer_expr_context_if_applicable(*saved_expr_stack);
+    if (is != NULL) is->elements_are_full_expressions = FALSE;
+  }  /* if */
   if (is != NULL && is->static_lifetime_init) {
     expr_stack_entry->in_static_initializer = TRUE;
     expr_stack_entry->favor_constant_result = TRUE;
@@ -262,7 +265,10 @@ parameters match the corresponding ones for push_expr_stack_for_initializer.
     discard_constant_expr_object_lifetime();
   }  /* if */
   pop_expr_stack();
-  if (is_full_expr) restore_expr_stack(saved_expr_stack);
+  if (is_full_expr) {
+    restore_expr_stack(saved_expr_stack);
+    if (is != NULL) is->elements_are_full_expressions = TRUE;
+  }  /* if */
 }  /* pop_expr_stack_for_initializer */
 
 
@@ -29593,10 +29599,8 @@ operation implementing the allocation of the array and its initialization.
   gsp->has_new_initializer = FALSE;
   gsp->is_cli_array = TRUE;
   gsp->compiler_generated = TRUE;
-  is->elements_are_full_expressions = FALSE;
   aggr_init_cli_array(icp, hatype, is, &gsp->dynamic_init,
                       &gsp->cli_array_dimension_lengths);
-  is->elements_are_full_expressions = is_full_expr;
   gsp->type = type_pointed_to(hatype);
   /* Finally, create the dik_expression entry. */
   *result = dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
