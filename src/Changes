@@ -1,5 +1,19 @@
 Version 4.5
 
+8/15/12  [EDGcpfe/13130]
+GNU C++ compatibility: namespace for type_info with --ignore_std
+
+Very old versions of g++ made namespace std a synonym for the global
+namespace, and the front end provides the --ignore_std command-line option
+to support code that relies on that behavior.  However, specifying
+--ignore_std incorrectly required that type_info be defined in the global
+namespace, even when the front end is configured with
+TYPE_INFO_IN_NAMESPACE_STD set to TRUE.  The front end has now been changed
+to recognize a definition of type_info appearing in either namespace std
+(as it does in the g++ headers) or in the global namespace when the
+--ignore_std command-line option is specified.
+
+
 8/14/12  [EDGcpfe/12822]
 GNU C++ compatibility: Meaning of block-extern declarations in namespaces
 
