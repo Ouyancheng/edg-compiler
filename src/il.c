@@ -5411,6 +5411,13 @@ copy_constant_full should be called to start a copy.
        scope memory region.  (The expression tree can't even be copied,
        because it may refer to local variables.) */
     new_constant->expr = NULL;
+  } else if (in_file_scope(old_constant) &&
+             !in_file_scope(new_constant) &&
+             old_constant->expr != NULL) {
+    /* If we're copying the constant from the file scope memory region to the
+       function scope memory region, remove the backing expression to
+       prevent memory issues. */
+    new_constant->expr = NULL;
   }  /* if */
   if (may_be_shared) {
     new_constant = alloc_shareable_constant(new_constant);
