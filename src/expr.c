@@ -2709,17 +2709,18 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         check_assertion(eff_arg_list == NULL);
       } else if (is_braced_init_component(eff_arg_list)) {
         /* For a braced-init-list argument, convert the list to the
-           type of the first parameter. */
+           underlying type of the first parameter. */
         an_init_state init_state;
         clear_init_state(&init_state);
         init_state.force_dynamic_init = TRUE;
-        prep_list_initializer(eff_arg_list, param_type,
+        prep_list_initializer(eff_arg_list,
+                              source_type,
                               /*is_direct_init=*/FALSE,
                               /*check_narrowing=*/TRUE,
                               /*warning_on_narrowing=*/FALSE,
-                              CCO_LEAVE_AS_OBJECT,
+                              CCO_DEFAULT,
                               /*fill_in_dtor=*/TRUE,
-                              /*force_temp=*/FALSE,
+                              /*force_temp=*/TRUE,
                               (an_operand *)NULL, &init_state,
                               (an_arg_match_summary *)NULL);
         dip = init_state.init_dip;

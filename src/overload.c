@@ -20693,8 +20693,6 @@ controls).
   a_boolean            is_constant;
   a_boolean            braced_init;
   a_boolean            is_cast = (conv_context & CCO_CAST) != 0;
-  a_boolean            leave_as_object = is_cast ||
-                                         (conv_context & CCO_LEAVE_AS_OBJECT);
   a_boolean            try_user_conversions_in_ovl_res =
                                  !(conv_context &
                                      CCO_SUPPRESS_USER_CONVERSIONS_IN_OVL_RES);
@@ -20879,7 +20877,7 @@ controls).
         /* Reference types. */
         prep_reference_initializer_operand(&operand, dest_type,
                                          /*conversion=*/(a_conv_descr_ptr)NULL,
-                                           leave_as_object,
+                                           /*leave_as_object=*/is_cast,
                                            conv_context,
                                            ec_bad_initializer_type);
       } else {
@@ -21208,7 +21206,7 @@ controls).
         }  /* if */
         prep_reference_initializer_operand(&operand, dest_type,
                                            (a_conv_descr *)NULL,
-                                           leave_as_object,
+                                           /*leave_as_object=*/is_cast,
                                            conv_context,
                                            ec_bad_initializer_type);
       }  /* if */
