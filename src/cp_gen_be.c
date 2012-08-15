@@ -8412,12 +8412,20 @@ indicated by opstr.
                                  (a_template_param_constant_kind)tpck_member &&
       has_name_before_mangling(con) &&
       *unmangled_name_of(&con->source_corresp) == '~' &&
-      !scope_is_in_name_context_stack(con->source_corresp.parent_scope)) {
-    /* If the destructor of an instance of a class template explicitly
-       calls the destructor of a different instance of the same class
-       template, g++ requires that the destructor name have a template
-       argument list. */
-    gen_template_arguments(&operand_1_type->source_corresp, iek_type, -1);
+      innermost_function_scope != NULL) {
+    /* This is a call to a dependent destructor.  Check to see if it's
+       being called in a destructor of the same name. */
+    char *fcn_name = unmangled_name_of(
+               &innermost_function_scope->variant.routine.ptr->source_corresp);
+    if (fcn_name != NULL &&
+        strcmp(fcn_name, unmangled_name_of(&con->source_corresp)) == 0 &&
+        !scope_is_in_name_context_stack(con->source_corresp.parent_scope)) {
+      /* If the destructor of an instance of a class template explicitly
+         calls the destructor of a different instance of the same class
+         template, g++ requires that the destructor name have a template
+         argument list. */
+      gen_template_arguments(&operand_1_type->source_corresp, iek_type, -1);
+    }  /* if */
   }  /* if */
 }  /* gen_dot_static */
 
