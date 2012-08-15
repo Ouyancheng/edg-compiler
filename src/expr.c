@@ -313,6 +313,7 @@ opening parenthesis has already been swallowed); otherwise, it's
   /* Scan the expression and save it in an initializer cache so it can be
      scanned as the initializer later, and deduce the "auto" type it
      implies. */
+  check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
   if (parenthesized_init) {
     /* In the parenthesized case, the expression is syntactically part
        of an expression-list, even though there must be a single expression,
@@ -407,22 +408,14 @@ to FALSE.
 
   if (curr_il_region_number == file_scope_region_number &&
       curr_object_lifetime != NULL && !in_file_scope(curr_object_lifetime)) {
-    curr_object_lifetime =
-                   scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
+    curr_object_lifetime = il_header.primary_scope->lifetime;
   }  /* if */
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
                                   /*is_full_expr=*/TRUE,
                                   dps, (an_init_state *)NULL);
-  if (cached_initializer_present()) {
-    /* Get a previously-scanned init component out of the cache.  This happens
-       when the initializer is prescanned to resolve an "auto" declaration. */
-    icp = fetch_init_component_from_initializer_cache(
-                                                expr_stack->initializer_cache);
-  } else {
-    icp = scan_expr_or_braced_init_list(/*bundle=*/TRUE,
-                                        /*always_allow_braced=*/FALSE);
-  }  /* if */
+  icp = scan_expr_or_braced_init_list(/*bundle=*/TRUE,
+                                      /*always_allow_braced=*/FALSE);
   arg_list_will_not_be_used_because_of_error(icp);
   free_init_component_list(icp);
   discard_curr_expr_object_lifetime();
@@ -28830,6 +28823,9 @@ later restoration and further processing.
   an_object_lifetime_ptr saved_stack_lifetime = NULL;
   an_object_lifetime_ptr saved_curr_lifetime = NULL;
   
+  /* scan_expr will consult the current cache, so make sure we're going to
+     get something new (as we expect) and not something cached. */
+  check_assertion(!cached_initializer_present());
   /* If the initializer is to be bundled, we put an object lifetime around
      each scanned expression.  Later, when we know how the expression is
      used, we may merge the lifetime into a parent expression lifetime. */
@@ -28873,19 +28869,24 @@ static an_init_component_ptr scan_expr_or_braced_init_list(
                                                  a_boolean bundle,
                                                  a_boolean always_allow_braced)
 /*
-Scan either an expression or a brace-enclosed list, from source and
-not from a cache, and return an init component entry describing what was
-scanned.  A brace-enclosed list is allowed only if list-initialization
-is allowed (list_init_enabled is TRUE) or if always_allow_braced is TRUE.
-bundle is TRUE if expressions should be "bundled," meaning packaged
-with related information so they can be saved off to the side (e.g., in
-an initializer cache) for later restoration and further processing.
+Scan either an expression or a brace-enclosed list, from source or
+from the current cache, and return an init component entry describing
+what was scanned.  A brace-enclosed list is allowed only if
+list-initialization is allowed (list_init_enabled is TRUE) or if
+always_allow_braced is TRUE.  bundle is TRUE if expressions should be
+"bundled," meaning packaged with related information so they can be
+saved off to the side (e.g., in an initializer cache) for later
+restoration and further processing.
 */
 {
   an_init_component_ptr icp;
 
-  if (curr_token == tok_lbrace &&
-      (always_allow_braced || list_init_enabled)) {
+  if (cached_initializer_present()) {
+    /* Get a previously-scanned init component out of the cache. */
+    icp = fetch_init_component_from_initializer_cache(
+                                                expr_stack->initializer_cache);
+  } else if (curr_token == tok_lbrace &&
+             (always_allow_braced || list_init_enabled)) {
     /* A brace-enclosed list. */
     icp = scan_braced_init_list_internal(bundle);
   } else {
@@ -29147,21 +29148,22 @@ Both C99-style and GNU-style designators are handled here.
                 
 static an_init_component_ptr scan_braced_init_list_internal(a_boolean bundle)
 /*
-Scan a brace-enclosed initializer list and return a structure
-describing it.  The current token on entry must be the opening "{".
-On return, the current token will be the token following the closing
-"}".  bundle is TRUE if expressions should be "bundled," meaning
-packaged with related information so they can be saved off to the side
-(e.g., in an initializer cache) for later restoration and further
-processing.  This is the "internal" version of the routine, to be
-called only from inside the expression routines, with the expression
-stack already set.
+Scan a brace-enclosed initializer list, from source and not a cache,
+and return a structure describing it.  The current token on entry must
+be the opening "{".  On return, the current token will be the token
+following the closing "}".  bundle is TRUE if expressions should be
+"bundled," meaning packaged with related information so they can be
+saved off to the side (e.g., in an initializer cache) for later
+restoration and further processing.  This is the "internal" version of
+the routine, to be called only from inside the expression routines,
+with the expression stack already set.
 */
 {
   an_init_component_ptr icp =
                       alloc_init_component((an_init_component_kind)ick_braced);
 
   /* Note that the code here is very similar to scan_expr_list. */
+  check_assertion(!cached_initializer_present());
   /* Advance past the opening brace. */
   check_assertion(curr_token == tok_lbrace);
   icp->variant.braced.start_pos = pos_curr_token;
@@ -29260,7 +29262,6 @@ a new-initializer).
        happens when the list is prescanned to resolve an "auto" declaration. */
     icp = fetch_init_component_from_initializer_cache(
                                                 expr_stack->initializer_cache);
-    
     check_assertion(is_braced_init_component(icp) &&
                     !cached_initializer_present());
   } else {
@@ -29378,7 +29379,13 @@ parenthesized initializer.
 
   if (expr_not_present != NULL) *expr_not_present = FALSE;
   check_assertion(dps != NULL);
-  if (!dps->initializer_is_expr_list) {
+  if (anything_cached(&dps->prescanned_initializer_cache)) {
+    /* If there's already something cached, just return that.  A cached
+       expression is already on the other side of pack expansion and the
+       loop below is not required. */
+    icp = fetch_init_component_from_initializer_cache(
+                                           &dps->prescanned_initializer_cache);
+  } else if (!dps->initializer_is_expr_list) {
     /* This is not a context that allows a list, so neither a pack
        expansion nor a braced-init-list is allowed, only an expression. */
     icp = scan_expr_as_init_component(bundle);
@@ -29390,13 +29397,7 @@ parenthesized initializer.
   } else {
     /* Scan a potential pack expansion. */
     a_source_position start_pos;
-    /* Get the start position of the first expression. */
-    if (anything_cached(&dps->prescanned_initializer_cache)) {
-      start_pos =
-             *init_component_pos(dps->prescanned_initializer_cache.first_init);
-    } else {
-      start_pos = pos_curr_token;
-    }  /* if */
+    start_pos = pos_curr_token;
     /* Do the scan.  The whole list of expressions goes into the initializer
        cache, and then we fetch the first one and return it. */
     scan_potential_pack_expansion_initializer_expr(dps, bundle);
@@ -29437,48 +29438,41 @@ parenthesized initializer.
 
 an_init_component_ptr scan_full_initializer_expr_as_component(
                                      a_decl_parse_state *dps,
+                                     a_boolean          parenthesized,
                                      a_boolean          allow_empty_expansion)
 /*
-Scan an initializer that is a non-brace-enclosed expression and return it as an
-initializer component.  dps (which must be non-NULL) describes the state of the
-current declaration (i.e., the declaration of the object being initialized).
-If allow_empty_expansion is TRUE, then if pack expansions are permissible
-they are allowed to expand to zero expressions (that's in addition to the
-usual rules: one expression is always allowed, and two or more are never
-allowed); in the case of an empty pack expansion, this routine returns
-NULL.
+Scan an initializer that is a non-brace-enclosed expression and return
+it as an initializer component.  dps (which must be non-NULL)
+describes the state of the current declaration (i.e., the declaration
+of the object being initialized).  parenthesized is TRUE if the
+initializer is a parenthesized initializer; one implication of that is
+that the expression is treated as syntactically part of a list (even
+though only a single expression is to be scanned).  That enables pack
+expansions, among other things.  If allow_empty_expansion is TRUE,
+then if pack expansions are permissible they are allowed to expand to
+zero expressions (that's in addition to the usual rules: one
+expression is always allowed, and two or more are never allowed); in
+the case of an empty pack expansion, this routine returns NULL.
 */
 {
   an_expr_stack_entry   *saved_expr_stack;
   an_expr_stack_entry   expr_stack_entry;
   an_init_component_ptr icp;
+  a_boolean             expr_not_present;
  
-  check_assertion(dps != NULL);
+  check_assertion(dps != NULL &&
+                  !(allow_empty_expansion && !parenthesized));
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
                                   /*is_full_expr=*/TRUE,
                                   dps, (an_init_state *)NULL);
-  if (cached_initializer_present()) {
-    /* Get a previously-scanned init component out of the cache.  This happens
-       when the list is prescanned to resolve an "auto" declaration. */
-    icp = fetch_init_component_from_initializer_cache(
-                                                expr_stack->initializer_cache);
-    check_assertion_or_expect_error(!is_braced_init_component(icp) &&
-                                    !cached_initializer_present());
-  } else {
-    /* Scan the expression from source. */
-    if (allow_empty_expansion) {
-      /* Permit empty pack expansions. */
-      a_boolean  expr_not_present = FALSE;
-      dps->initializer_is_expr_list = TRUE;
-      dps->initializer_is_single_expr = TRUE;
-      icp = scan_init_component_with_potential_pack_expansion(
-                                 dps, /*bundle=*/TRUE, /*parenthesized=*/TRUE,
-                                 &expr_not_present);
-    } else {
-      icp = scan_expr_as_init_component(/*bundle=*/TRUE);
-    }  /* if */
-  }  /* if */
+  dps->initializer_is_expr_list = parenthesized;
+  dps->initializer_is_single_expr = TRUE;
+  icp = scan_init_component_with_potential_pack_expansion(
+                                 dps, /*bundle=*/TRUE, parenthesized,
+                                 (allow_empty_expansion ? &expr_not_present :
+                                                          NULL));
+  if (icp != NULL) check_arg_list_elem_is_expression(icp);
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);

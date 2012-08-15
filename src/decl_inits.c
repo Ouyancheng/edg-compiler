@@ -3020,8 +3020,9 @@ otherwise, *expr_not_present is FALSE.
   is->direct_init = TRUE;
   /* If this is not a variable initialization, then an empty pack expansion
      is allowed. */
-  expr_icp = scan_full_initializer_expr_as_component(
-                                               dps, expr_not_present != NULL);
+  expr_icp = scan_full_initializer_expr_as_component(dps,
+                                                     /*parenthesized=*/TRUE,
+                                                     expr_not_present != NULL);
   if (expr_not_present != NULL) {
     if (expr_icp == NULL) {
       *expr_not_present = TRUE;
@@ -3135,7 +3136,9 @@ to use for diagnostics by default.
     missing_braces_diagnosed = TRUE;
   }  /* if */
   expr_icp = scan_full_initializer_expr_as_component(
-                                   dps, /*allow_empty_pack_expansion=*/FALSE);
+                                         dps,
+                                         /*parenthesized=*/FALSE,
+                                         /*allow_empty_pack_expansion=*/FALSE);
   check_assertion(expr_icp->next == NULL);
   if (is_error_component(expr_icp)) {
     /* An error occurred earlier.  Continue with an error constant. */
@@ -3217,7 +3220,9 @@ to use for diagnostics by default.
   dps->init_state.initializer_must_be_constant =
                              C_mode() && dps->init_state.static_lifetime_init;
   expr_icp = scan_full_initializer_expr_as_component(
-                                   dps, /*allow_empty_pack_expansion=*/FALSE);
+                                         dps,
+                                         /*parenthesized=*/FALSE,
+                                         /*allow_empty_pack_expansion=*/FALSE);
   if (dps->sym == NULL || var_for_symbol(dps->sym) == NULL) {
     /* In some error cases (e.g., an old-style C parameter with an initializer)
        dps->sym may not actually represent an initializable variable. */
