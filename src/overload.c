@@ -23016,6 +23016,7 @@ dependent, *still_dependent is returned TRUE and FALSE is returned.
                                                               (a_symbol *)NULL,
                                     /*instantiate_nonreal=*/FALSE);
           templ_arg->variant.type = type_symbol_type(sym);
+          complete_class_type_is_needed(templ_arg->variant.type);
         }  /* if */
       }  /* if */
       *deduced_auto_type = templ_arg->variant.type;

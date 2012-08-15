@@ -29448,11 +29448,14 @@ of the object being initialized).  parenthesized is TRUE if the
 initializer is a parenthesized initializer; one implication of that is
 that the expression is treated as syntactically part of a list (even
 though only a single expression is to be scanned).  That enables pack
-expansions, among other things.  If allow_empty_expansion is TRUE,
-then if pack expansions are permissible they are allowed to expand to
-zero expressions (that's in addition to the usual rules: one
-expression is always allowed, and two or more are never allowed); in
-the case of an empty pack expansion, this routine returns NULL.
+expansions, among other things.  It also allows the return of a
+braced-init component as icp (which is forbidden by the standard),
+with the expectation that the caller will handle that permissively
+or give a diagnostic.  If allow_empty_expansion is TRUE, then if pack
+expansions are permissible they are allowed to expand to zero
+expressions (that's in addition to the usual rules: one expression is
+always allowed, and two or more are never allowed); in the case of an
+empty pack expansion, this routine returns NULL.
 */
 {
   an_expr_stack_entry   *saved_expr_stack;
@@ -29472,7 +29475,7 @@ the case of an empty pack expansion, this routine returns NULL.
                                  dps, /*bundle=*/TRUE, parenthesized,
                                  (allow_empty_expansion ? &expr_not_present :
                                                           NULL));
-  if (icp != NULL) check_arg_list_elem_is_expression(icp);
+  if (icp != NULL && !parenthesized) check_arg_list_elem_is_expression(icp);
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
