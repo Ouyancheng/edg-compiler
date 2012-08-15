@@ -1514,14 +1514,16 @@ initialization).  *is describes the initialization as a whole.
       }  /* if */
     }  /* while */
     if ((!no_bound && icount < ecount) ||
-        (is->variable_size_array && !is->non_top_level_aggregate)) {
+        (is->variable_size_array && !is->non_top_level_aggregate &&
+         !is_template_dependent_type(etype))) {
       /* Not all array elements are explicitly initialized: Append an entry
          to initialize the remaining elements.  As special case occurs for
          expressions like "new T[x]{...}" where the number of uninitialized
          elements is not known, but lowering (or a back end) needs to know
          which default constructor to call: We arbitrarily pass a count of 1
          for that case (a count of zero would cause default initialization to
-         be bypassed). */
+         be bypassed).  If T is template-dependent, we cannot do that reliably
+         (and such cases do not go through lowering or a back end). */
       a_targ_size_t  rcount = 1;
       if (!no_bound) rcount = ecount - icount;
       aggr_init_array_remainder_if_needed(*init_con, rcount, etype, is,
