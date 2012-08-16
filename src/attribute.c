@@ -5129,13 +5129,23 @@ parameter has a nonpointer type).
   int                            p = 1;
   a_boolean                      no_effect = TRUE;
 
+  if (rtsp->this_class != NULL) {
+    /* For member functions, the count of explicit parameters starts at 2.
+       If "parameter 1" is indicated by the attribute, we just ignore the
+       attribute for checking purposes. */
+    if (param_num == 1) {
+      goto done;
+    } else {
+      ++p;
+    }  /* if */
+  }  /* if */
   for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next, ++p) {
     a_boolean  is_ptr = is_pointer_type(ptp->type);
     assert_not_handle_or_tracking_reference(ptp->type);
     if (p == param_num || (param_num == 0 && is_ptr)) {
-      /* We have have found the specific indicated parameter, or this is a
-         parameter of pointer type and all such parameters should be marked
-         as "non-NULL". */
+      /* We have found the specific indicated parameter, or this is a parameter
+         of pointer type and all such parameters should be marked as
+         "non-NULL". */
       if (!is_ptr) {
         pos_error(ec_nonnull_on_nonpointer, diag_pos);
       } else {
@@ -5156,6 +5166,7 @@ parameter has a nonpointer type).
       pos_warning(ec_no_pointer_parameters, diag_pos);
     }  /* if */
   }  /* if */
+done:;
 }  /* record_nonnull_attr */
 
 
