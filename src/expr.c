@@ -4496,7 +4496,7 @@ that the final call needs to be cast to the indicated type.
         name[name_len] = '\0';
       }  /* if */
       /* Append _1, _2, _4, _8, or _16. */
-      (void)snprintf(name+name_len, 4, "_%u", (unsigned)dispatch_type->size);
+      (void)sprintf(name+name_len, "_%u", (unsigned)dispatch_type->size);
       /* Look up the resulting concrete routine name: */
       sym = gnu_builtin_func_by_name(name);
       check_assertion(sym != NULL);
