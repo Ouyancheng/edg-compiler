@@ -9624,19 +9624,19 @@ points to a location to insert code prior to the execution of the call
     param = unlowered_param_type_list_full(called_rout_type, called_rout);
   }  /* if */
   if (maintain_sequencing) {
-    /* Sequencing is only needed if there are two or more arguments with
-       side-effects. */
-    a_host_large_integer args_with_side_effects = 0;
+    /* Sequencing is only needed if there are two or more invariant args. */
+    a_host_large_integer invariant_args = 0;
     for (expr = expr_list; expr != NULL; expr = expr->next) {
-      if (args_with_side_effects == 0 && expr->next == NULL) {
-        /* No need to check last argument if there are no previous args
-           with side-effects. */
+      if (invariant_args == 0 && expr->next == NULL) {
+        /* No need to check last argument if there are no previous invariant
+           arguments. */
         break;
-      } else if (node_has_side_effects(expr, (a_boolean *)NULL)) {
-        if (++args_with_side_effects == 2) break;
+      } else if (!is_invariant_expr(expr, /*vars_can_change=*/TRUE,
+                                    /*treat_as_potential_rvalue=*/FALSE)) {
+        if (++invariant_args == 2) break;
       }  /* if */
     }  /* for */
-    maintain_sequencing = (args_with_side_effects == 2);
+    maintain_sequencing = (invariant_args == 2);
   }  /* if */
   /* Track the current parameter type as we go through the list. */
   for (expr = expr_list; expr != NULL; expr = expr->next) {
@@ -9685,7 +9685,8 @@ points to a location to insert code prior to the execution of the call
       }  /* if */
     }  /* if */
     if (maintain_sequencing &&
-        node_has_side_effects(expr, (a_boolean *)NULL)) {
+        !is_invariant_expr(expr, /*vars_can_change=*/TRUE,
+                           /*treat_as_potential_rvalue=*/FALSE)) {
       /* If the caller requests that argument sequencing be maintained
          (i.e., when an initializer list is used as arguments for a
          constructor call), create a temporary for any argument that
