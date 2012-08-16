@@ -359,13 +359,22 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
     if (gpp_mode && symbol_for_namespace_std != NULL) {
       /* g++ pre-declares std::type_info as an incomplete type. */
       if (type_info_in_namespace_std) {
-        a_namespace_ptr  std_namespace =
+        if (ignore_std_namespace) {
+          /* The std namespace is to be viewed as a synonym for the global
+             namespace, so type_info should be predeclared there rather
+             than as a member of std. */
+          enter_predeclared_class(type_of_type_info, DEPTH_OF_FILE_SCOPE,
+                                  &null_source_position);
+        } else {
+          /* The type should be a member of namespace std. */
+          a_namespace_ptr  std_namespace =
                          symbol_for_namespace_std->variant.namespace_info.ptr;
-        (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
-                                   std_namespace);
-        enter_predeclared_class(type_of_type_info, depth_scope_stack,
-                                &null_source_position);
-        pop_namespace_scope();
+          (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                                     std_namespace);
+          enter_predeclared_class(type_of_type_info, depth_scope_stack,
+                                  &null_source_position);
+          pop_namespace_scope();
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

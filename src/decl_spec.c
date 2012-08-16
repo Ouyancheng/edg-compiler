@@ -777,18 +777,16 @@ type_info type may be defined.
 #endif /* !IA64_ABI */
   /* Do not add code here. */
   if (kind == tik_user) {
-    if (type_info_in_namespace_std) {
+    if (type_info_in_namespace_std && !ignore_std_namespace) {
       /* When type_info is required to be defined in the std namespace,
-         make sure we are in that namespace now.  (When using the g++
-         compatibility feature where the std namespace is an alias for the
-         global namespace, a file-scope definition is also acceptable.) */
-      if (nsp == symbol_for_namespace_std->variant.namespace_info.ptr ||
-          (ignore_std_namespace && depth_scope_stack == DEPTH_OF_FILE_SCOPE)) {
+         make sure we are in that namespace now. */
+      if (nsp == symbol_for_namespace_std->variant.namespace_info.ptr) {
         result = TRUE;
       }  /* if */
     } else {
-      /* When type_info is not in std, it must be in the global
-         namespace. */
+      /* When type_info is not in std, it must be in the global namespace.
+         This is also the case when using the g++ compatibility feature
+         where the std namespace is an alias for the global namespace. */
       result = depth_scope_stack == DEPTH_OF_FILE_SCOPE;
     }  /* if */
   } else {
