@@ -1,5 +1,20 @@
 Version 4.5
 
+8/16/12  [EDGcpfe/11574]
+GNU compatibility: Attribute "nonnull" on function parameters
+
+The front end previously failed to accept the "nonnull" attribute on function
+parameter declarations.  This is now fixed.  For example:
+
+  void g(void (*pf)(char const*) __attribute((nonnull(1)))) {
+            // The declaration of pf previously elicited an error.
+    pf(0);  // Now a warning, because of the effect of the attribute.
+  }
+
+(See also the Changes entry for EDGcpfe/11809 on 6/17/11 for a similar change
+applied to the "format" attribute.)
+
+
 8/15/12  [EDGcpfe/13130]
 GNU C++ compatibility: namespace for type_info with --ignore_std
 

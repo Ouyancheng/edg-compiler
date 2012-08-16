@@ -605,7 +605,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_no_instrument_function, "r", apply_no_instrument_function_attr },
   { ak_no_check_memory_usage, "r", apply_no_check_memory_usage_attr },
   { ak_nocommon, "v:-a|Wr", apply_nocommon_attr },
-  { ak_nonnull, "t|r|v|d", apply_nonnull_attr },
+  { ak_nonnull, "t|r|v|d|p", apply_nonnull_attr },
   { ak_packed, "c|e|d|Wv|Wp|Wr|Wt", apply_packed_attr },
   { ak_pure, "r|Wv", apply_pure_attr },
   { ak_sentinel, "t|r|v|d", apply_sentinel_attr },
