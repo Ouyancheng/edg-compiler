@@ -841,6 +841,7 @@ that case set *unknown to TRUE.  Otherwise, return FALSE.
     if (get_biased_exponent_if_possible(value, kind, &biased_exp)) {
       result = (biased_exp > 0);
     } else {
+      result = TRUE;
       *unknown = TRUE;
     }  /* if */
   }  /* if */
