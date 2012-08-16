@@ -8414,14 +8414,13 @@ indicated by opstr.
       *unmangled_name_of(&con->source_corresp) == '~' &&
       innermost_function_scope != NULL) {
     /* This is a call to a dependent destructor.  Check to see if it's
-       being called in a destructor of the same name. */
-    char *fcn_name = unmangled_name_of(
-               &innermost_function_scope->variant.routine.ptr->source_corresp);
+       being called in a member function of its class. */
+    char *class_name = unmangled_name_of(&operand_1_type->source_corresp);
     char *dtor_name = unmangled_name_of(&con->source_corresp);
-    if (fcn_name != NULL && dtor_name != NULL &&
-        strcmp(fcn_name, dtor_name) == 0 &&
+    if (class_name != NULL && dtor_name != NULL &&
+        strcmp(class_name, dtor_name + 1) == 0 &&
         !scope_is_in_name_context_stack(con->source_corresp.parent_scope)) {
-      /* If the destructor of an instance of a class template explicitly
+      /* If member function of an instance of a class template explicitly
          calls the destructor of a different instance of the same class
          template, g++ requires that the destructor name have a template
          argument list. */

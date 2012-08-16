@@ -344,7 +344,7 @@ of a warning.
 C++-generating back end, GNU compatibility: destructor name of a different
 template instance
 
-g++ has a bug such that if the destructor of an instance of a class
+g++ has a bug such that if a member function of an instance of a class
 template explicitly calls the destructor of a different instance of the
 same class template, the destructor must be named using the template
 arguments of that other instance.  In configurations with
