@@ -20675,7 +20675,8 @@ If arg_match is non-NULL, do an evaluation of whether the initialization
 is valid, without issuing errors or building IL, and return *arg_match
 set to indicate how good a match the initialization is, in overload
 resolution terms (e.g., is it an exact match or a user-defined conversion,
-etc.)
+etc.)  result and is are ignored, i.e., arg_match != NULL takes priority
+over them.
 
 Checks for narrowing conversions are done where appropriate.
 check_narrowing or the icp->check_narrowing flag or (if present) the
@@ -20725,7 +20726,8 @@ controls).
      it will be discarded. */
   if (arg_match != NULL) {
     /* Doing a tentative evaluation for overload resolution. */
-    check_assertion(result == NULL && is == NULL);
+    result = NULL;
+    is = NULL;
     issue_errors = FALSE;
     generate_il = FALSE;
     clear_arg_match_summary(arg_match);
@@ -20737,6 +20739,9 @@ controls).
          interface, e.g., when a braced-init-list is being evaluated against
          a parameter with an aggregate type.  Use an internal argument
          match entry. */
+      /* Note that "is" is not set to NULL; we use it below to set the
+         narrowing mode, and at the end to produce a result in the form
+         required by the caller. */
       arg_match = &internal_arg_match;
       clear_arg_match_summary(arg_match);
       issue_errors = FALSE;
