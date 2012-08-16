@@ -815,7 +815,25 @@ hidden name checking on its own members, too.
           base_class = proto_inst;
         }  /* if */
       }  /* if */
-      check_hiding_by_inherited_names(base_class, sp, /*top_level=*/FALSE);
+      if (!base_class->variant.class_struct_union.extra_info->
+                                               base_class_hiding_in_progress) {
+        /* Recursively check for hiding by the members of base_class.  The
+           check for base_class_hiding_in_progress is needed to prevent
+           infinite recursion when checking the prototype instantiations
+           of templates like
+
+               template<typename T> struct Base;
+               template<typename T> struct Derived : Base<T> { };
+               template<typename T> struct Base : Derived<T> { };
+
+           where presumably the recursion during instantiation will be
+           broken by an explicit specialization of one of the templates. */
+        class_type->variant.class_struct_union.extra_info->
+                                          base_class_hiding_in_progress = TRUE;
+        check_hiding_by_inherited_names(base_class, sp, /*top_level=*/FALSE);
+        class_type->variant.class_struct_union.extra_info->
+                                         base_class_hiding_in_progress = FALSE;
+      }  /* if */
       if (top_level) {
         /* Copy the base class's hidden member list into this class's list:
            if a member symbol is hidden in the base class, it's hidden here,

@@ -6917,6 +6917,14 @@ typedef struct a_class_type_supplement {
 			   classes are traversed during hidden name processing
 			   both in inheritance order and while processing the
 			   namespaces in which they are defined. */
+  a_bit_field	base_class_hiding_in_progress:1;
+			/* Used only in the front end: TRUE if this class
+			   is currently being processed for hiding by
+			   inherited names.  This is needed to prevent
+			   infinite recursion while processing class
+			   templates that are based on each other
+			   (presumably the recursion is limited during
+			   instantiation by an explicit specialization). */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   a_bit_field	is_lambda_closure_class:1;
 			/* TRUE if the class is the closure class generated as

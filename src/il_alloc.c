@@ -1422,6 +1422,7 @@ class is available.
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if RECORD_HIDDEN_NAMES_IN_IL
   ctsp->hidden_names_processed            = FALSE;
+  ctsp->base_class_hiding_in_progress     = FALSE;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   ctsp->named_in_inline_template_directive
                                           = FALSE;
