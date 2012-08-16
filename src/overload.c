@@ -3352,7 +3352,6 @@ argument-passing is copy-initialization).
                           (an_operand *)NULL,
                           (an_init_state *)NULL,
                           arg_summary);
-    arg_summary->param_type = param_type;
   }  /* if */
 }  /* determine_arg_list_elem_match_level */
 
@@ -20368,9 +20367,9 @@ it an exact match or a user-defined conversion, etc.)
       } else {
         /* arg_match remembers the worst match on any member. */
         if (arg_match->match_level == aml_none ||
-            (int)local_arg_match.match_level > (int)arg_match->match_level) {
-          /* We save the level only, and not the details of the match. */
-          arg_match->match_level = local_arg_match.match_level;
+            compare_arg_match_levels(&local_arg_match, arg_match,
+                                     /*suppress_tiebreakers=*/FALSE) < 0) {
+          *arg_match = local_arg_match;
         }  /* if */
       }  /* if */
     } else {
@@ -20762,6 +20761,10 @@ controls).
        is always filled in. */
     if (force_temp) fill_in_dtor = TRUE;
   }  /* if */
+  /* Set the "parameter" type early so it can be overwritten when an
+     initializer_list is initialized from a braced-init-list.  In that case
+     the param_type is the element type of the list. */
+  if (arg_match != NULL) arg_match->param_type = dest_type;
   /* Set the mode for checking of narrowing conversions.  check_narrowing is
      TRUE if the check for narrowing conversions as errors should be done, and
      error_on_narrowing indicates whether diagnostics should be issued
@@ -21193,6 +21196,11 @@ controls).
           /* An lvalue reference to non-const cannot bind to the rvalue
              produced in the first step. */
           arg_match_err = TRUE;
+        } else {
+          /* Set the "parameter" type back to the reference type. */
+          arg_match->param_type = dest_type;
+          adjust_std_conversion_for_reference_binding(
+                                                   &arg_match->conversion.std);
         }  /* if */
       } else {
         /* Not overload resolution. */
