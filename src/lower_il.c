@@ -15098,13 +15098,20 @@ If insert_location == NULL, no initialization code is generated.
     }  /* if */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     if (dip->is_array_freeing || (ndsp != NULL && ndsp->placement_new)) {
-      /* Freeing of arrays is handled by runtime routines, so the freeing
-         on exception is no longer visible at this level. */
-      /* Likewise for a placement delete (or operator new with default
-         arguments).  In that case an internal "try" block is inserted, with
-         the "catch" a call of the placement delete routine. */
-      remove_from_destruction_list(dip);
-      goto end_of_routine;
+      if (dip->is_array_freeing &&
+          ndsp->new_initializer_is_brace_enclosed) {
+        /* This is an array "new" operation that is brace-initialized and
+           therefore will not be handled by a runtime routine, so we need
+           to retain this destruction. */
+      } else {
+        /* Freeing of arrays is handled by runtime routines, so the freeing
+           on exception is no longer visible at this level. */
+        /* Likewise for a placement delete (or operator new with default
+           arguments).  In that case an internal "try" block is inserted, with
+           the "catch" a call of the placement delete routine. */
+        remove_from_destruction_list(dip);
+        goto end_of_routine;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (dip->inside_conditional_expression
