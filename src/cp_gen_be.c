@@ -5939,6 +5939,7 @@ default arguments should be suppressed (needed for template specializations).
         bypass_prototyped_param_src_seq_entries();
       }  /* if */
       for (;;) {
+        gen_attributes(param->attributes, al_prefix, /*primary_only=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (param->is_cli_param_array) write_tok_str("... ");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

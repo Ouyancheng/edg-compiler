@@ -1,5 +1,17 @@
 Version 4.5
 
+8/17/12  [EDGcpfe/12851]
+Microsoft compatibility: __declspec(<string-literal>)
+
+In Microsoft mode with microsoft_version >= 1700, the front end now accepts
+__declspec attributes where the attribute name is a string literal.  Such an
+attributes has no effect other than being recorded in the IL with attribute
+kind ak_unrecognized (the attribute name includes the delimiting quotation
+marks).  No arguments are permitted on this type of attribute.  For example:
+
+  void f(__declspec("xyz") p);  // Now accepted in some Microsoft modes.
+
+
 8/16/12  [EDGcpfe/13095]
 Spurious error on GNU-mode redeclaration of a variable with calling convention
 

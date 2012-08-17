@@ -1828,6 +1828,33 @@ appear.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         (*p_attribute)->end_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      } else if (curr_token == tok_string_literal &&
+                 microsoft_mode && microsoft_version >= 1700 &&
+                 af == (an_attribute_family)af_ms_declspec) {
+        /* Microsoft permits attributes like:
+	     void g(__declspec("SAL_pre SAL_valid") char *);
+           The normal Microsoft compiler ignores these, but certain tools
+           recognize them.  We just record them as "unrecognized"
+           attributes. */
+        *p_attribute = make_attribute(af);
+        (*p_attribute)->kind = (a_byte_attribute_kind)ak_unrecognized;
+        if (const_for_curr_token.kind == (a_constant_repr_kind)ck_error) {
+          /* A malformed string literal: An error has already been issued. */
+          expect_error();
+        } else if (!is_ordinary_string_constant(&const_for_curr_token)) {
+           pos_error(ec_wide_string_not_allowed, &pos_curr_token);
+        } else {
+          /* Create a name that includes the quotation characters. */
+          (*p_attribute)->name = alloc_il(
+                                const_for_curr_token.variant.string.length+2);
+          sprintf((*p_attribute)->name, "\"%s\"",
+                  const_for_curr_token.variant.string.value);
+        }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        (*p_attribute)->end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        /* Skip the string literal. */
+        (void)get_token();
       } else {
         *p_attribute = scan_attribute(af);
       }  /* if */
@@ -1849,7 +1876,9 @@ appear.
     }  /* while */
     if (curr_token == end_token) {
       break;
-    } else if (curr_token == tok_identifier && af == af_ms_declspec) {
+    } else if ((curr_token == tok_identifier ||
+                curr_token == tok_string_literal) &&
+               af == af_ms_declspec) {
       /* A comma is optional when separating __declspec attributes.  I.e.,
          __declspec(naked noalias) and __declspec(naked, noalias) are
          equivalent. */
