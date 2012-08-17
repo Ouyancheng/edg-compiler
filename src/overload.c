@@ -15910,7 +15910,7 @@ conversion.
                                     /*is_template_id=*/FALSE,
                                     (a_template_arg_ptr)NULL,
                                     arg_list,
-                                    (an_arg_list_elem *)NULL,
+                                    alep,
                                     /*have_selector=*/FALSE, /* sic */
                                     (an_operand *)NULL,
                                     /*ctor_conversion_case=*/TRUE,
