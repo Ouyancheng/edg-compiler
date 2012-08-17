@@ -805,6 +805,7 @@ kind to "kind" and its fields to default values, and return a pointer to it.
   }  /* if */
   icp->next = NULL;
   icp->bundled = FALSE;
+  icp->detached_ref_entries = FALSE;
   icp->contains_designator = FALSE;
   icp->check_narrowing = FALSE;
   icp->braced_init_in_parentheses = FALSE;
@@ -1208,19 +1209,20 @@ copying the operand, this does whatever other processing might be
 needed to unbundle the operand.
 */
 {
-  an_arg_operand *arg_op;
+  an_operand *icp_operand;
 
   /* Issue an error if the thing removed is a braced-init-list rather
      than an expression. */
   check_arg_list_elem_is_expression(icp);
-  arg_op = icp->variant.expr;
-  copy_operand(&arg_op->operand, operand);
+  icp_operand = operand_of_arg_list_elem(icp);
+  copy_operand(icp_operand, operand);
   unbundle_init_component_expressions(icp);
   if (free_icp) {
     /* Change the source operand so it no longer points to any of the entries
        in the subtree so they won't be freed (ownership is transferred to
        the returned operand). */
-    change_to_error_operand(&arg_op->operand);
+    icp_operand->ref_entries_list = NULL;
+    change_to_error_operand(icp_operand);
     free_init_component_list(icp);
   }  /* if */
 }  /* extract_operand_from_expression_component */

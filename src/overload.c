@@ -20601,11 +20601,12 @@ object lifetime context.
       unexpected_condition();
     }  /* if */
   }  /* if */
-  /* If the operand has any reference entries, re-attach them to the
+  /* If the operand has any detached reference entries, re-attach them to the
      current expression context. */
-  if (is_expression_component(icp)) {
+  if (icp->detached_ref_entries) {
+    check_assertion(is_expression_component(icp));
     reattach_ref_entries_to_curr_expr(operand_of_arg_list_elem(icp));
-    operand_of_arg_list_elem(icp)->ref_entries_list = NULL;
+    icp->detached_ref_entries = FALSE;
   }  /* if */
 }  /* unbundle_init_component_expressions */
 
@@ -21275,10 +21276,10 @@ controls).
       } else {
         /* Normal case: error. */
         check_assertion(generate_il);
+        arg_list_will_not_be_used_because_of_error(list);
         unbundle_init_component_list_expressions(list);
         expr_pos_error(ec_too_many_initializer_values,
                        init_component_pos(list->next));
-        arg_list_will_not_be_used_because_of_error(list);
         make_error_operand(&operand);
       }  /* if */
     }  /* if */

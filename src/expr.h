@@ -120,6 +120,10 @@ typedef struct an_init_component {
 			   they can be pulled out and restored later when the
 			   rest of the processing for the expression is
 			   done. */
+  a_bit_field	detached_ref_entries:1;
+			/* Set to TRUE if any ref entries in this (expression)
+			   component are not attached to the current
+			   expression at present. */
   a_bit_field	contains_designator:1;
 			/* Set to TRUE if this is an ick_braced component that
 			   directly contains an ick_designator component. */

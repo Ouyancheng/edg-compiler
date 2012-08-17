@@ -28864,9 +28864,10 @@ later restoration and further processing.
     curr_object_lifetime = saved_curr_lifetime;
     expr_stack->lifetime = saved_stack_lifetime;
   }  /* if */
+  icp->bundled = bundle;
   /* Save any reference entries separately from the current expression. */
   detach_ref_entries_from_curr_expr(&arg_op->operand);
-  icp->bundled = bundle;
+  icp->detached_ref_entries = TRUE;
   return icp;
 }  /* scan_expr_as_init_component */
 
