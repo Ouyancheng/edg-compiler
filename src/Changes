@@ -12,7 +12,7 @@ marks).  No arguments are permitted on this type of attribute.  For example:
   void f(__declspec("xyz") p);  // Now accepted in some Microsoft modes.
 
 
-8/16/12  [EDGcpfe/13095]
+8/17/12  [EDGcpfe/13095]
 Spurious error on GNU-mode redeclaration of a variable with calling convention
 
 In GNU mode, redeclaring a pointer or reference to a function with a calling
