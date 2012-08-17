@@ -1,5 +1,20 @@
 Version 4.5
 
+8/16/12  [EDGcpfe/13095]
+Spurious error on GNU-mode redeclaration of a variable with calling convention
+
+In GNU mode, redeclaring a pointer or reference to a function with a calling
+convention attribute previously resulted in a spurious compatibility error.
+For example:
+
+  extern void (__attribute((stdcall)) *pf)(int);
+  void (__attribute((stdcall)) *pf)(int);  // Previously a spurious error in
+                                           // GNU mode.
+
+This is now fixed.  (See also the entry for EDGcpfe/12593, which discusses
+the similar problem with function declarations.)
+
+
 8/16/12  [EDGcpfe/13073]
 GNU compatibility: Attribute "nonnull" and nonstatic member functions
 

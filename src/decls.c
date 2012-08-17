@@ -5848,7 +5848,9 @@ and set dps->type to the composite type if needed.  Otherwise, return FALSE and
 emit an error.
 */
 {
-  a_boolean  redecl_okay = TRUE;
+  a_boolean                redecl_okay = TRUE;
+  a_type_compat_flags_set  tcf = TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                 TCF_REDECLARATION;
 
   /* If necessary, check that throw-specifications match. */
   if (!C_mode() && ((is_ptr_or_ref_type(dps->type) &&
@@ -5858,7 +5860,11 @@ emit an error.
     check_exception_specification(dps->type, dps->sym, &dps->declarator_pos,
                                   /*is_redecl=*/TRUE);
   }  /* if */
-  if (!types_are_redecl_compatible(dps->type, dps->prev_type)) {
+  /* Check for type incompatibility.  In GNU mode, calling conventions are not
+     checked at this time because the corresponding attributes have not been
+     applied yet. */
+  if (gnu_mode) tcf |= TCF_IGNORE_CALLING_CONVENTIONS;
+  if (!f_types_are_compatible(dps->type, dps->prev_type, tcf)) {
     an_error_severity  severity = es_none;
     a_type_ptr         orig_type = skip_typerefs(dps->prev_type);
     a_type_ptr         redecl_type = skip_typerefs(dps->type);

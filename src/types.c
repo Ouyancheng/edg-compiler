@@ -5819,11 +5819,6 @@ check_typerefs:
         top_level_for_redeclaration = TRUE;
         flags &= ~TCF_REDECLARATION;
       }  /* if */
-      /* Ditto for TCF_IGNORE_CALLING_CONVENTIONS. */
-      if (flags & TCF_IGNORE_CALLING_CONVENTIONS) {
-        ignore_calling_conventions = TRUE;
-        flags &= ~TCF_IGNORE_CALLING_CONVENTIONS;
-      }  /* if */
       switch (type_1->kind) {
         case tk_error:
           /* Error types are not compatible by the test above, so they are not
@@ -5987,6 +5982,13 @@ check_typerefs:
              types must be compatible, and the "this" parameter types (if any)
              must be compatible. */
           { a_type_compat_flags_set  rt_flags;
+            /* The flag indicating that calling conventions should be ignored
+               does not apply to function types on which this function type
+               is based. */
+            if (flags & TCF_IGNORE_CALLING_CONVENTIONS) {
+              ignore_calling_conventions = TRUE;
+              flags &= ~TCF_IGNORE_CALLING_CONVENTIONS;
+            }  /* if */
             rtsp1 = type_1->variant.routine.extra_info;
             rtsp2 = type_2->variant.routine.extra_info;
             if (flags & TCF_IGNORE_RETURN_TYPE_QUALIFIERS) {
