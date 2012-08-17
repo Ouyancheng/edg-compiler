@@ -21766,7 +21766,7 @@ checks that), and *conversion describes it.
     check_assertion(is_braced_init_component(alep));
     prep_list_initializer(alep, formal_param->type,
                           /*is_direct_init=*/FALSE,
-                          /*check_narrowing=*/FALSE, /* Flag in alep used */
+                          /*check_narrowing=*/TRUE,
                           /*warning_on_narrowing=*/FALSE,
                           conv_context,
                           /*fill_in_dtor=*/TRUE,
