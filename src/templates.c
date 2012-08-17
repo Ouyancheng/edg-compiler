@@ -3379,7 +3379,7 @@ be completed here.
     }  /* if */
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (tssp != NULL && tssp->is_delegate) {
+  } else if (tssp->is_delegate) {
     /* This is an instance of a C++/CLI generic delegate. */
     instantiate_cli_generic_delegate(class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
