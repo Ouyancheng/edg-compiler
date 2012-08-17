@@ -13260,6 +13260,7 @@ a hidden constructor passing a temporary array initialized by the contents
 of the braced-init-list.  Return the dynamic initialization entry for the
 underlying temporary array, and the type for that in *init_entity_type,
 thus allowing the caller to skip over the implicit part of that operation.
+init_entity_type can be NULL if the caller does not need that information.
 */
 {
   an_expr_node_ptr arg1;
@@ -13277,7 +13278,7 @@ thus allowing the caller to skip over the implicit part of that operation.
   arg1 = arg1->variant.operation.operands;
   check_assertion(arg1->kind == (an_expr_node_kind)enk_temp_init);
   dip = arg1->variant.init.dynamic_init;
-  *init_entity_type = arg1->type;
+  if (init_entity_type != NULL) *init_entity_type = arg1->type;
   return dip;
 }  /* effective_dynamic_init_for_initializer_list_object */
 
@@ -19725,6 +19726,22 @@ treated as a form of destruction.
   an_object_lifetime_ptr  olp;
 
   db_enter(4, "record_end_of_lifetime_destruction");
+  if (dip->is_creation_of_initializer_list_object) {
+    /* The lifetime of the array underlying an std::initializer_list object
+       matches the lifetime of the object.  See core issue 1290.  Set the
+       array lifetime if it's not set already.  This is done first so
+       if both have destructors (not currently possible, because
+       std::initializer_list has no destructor) the array will be
+       destroyed last. */
+    a_dynamic_init_ptr dipa =
+         effective_dynamic_init_for_initializer_list_object(dip,
+                                                            (a_type **)NULL);
+    if (dipa->lifetime == NULL) {
+      record_end_of_lifetime_destruction(dipa, static_lifetime,
+                                         block_lifetime);
+      dipa->static_temp = static_lifetime;
+    }  /* if */
+  }  /* if */
   if ((dip->destructor != NULL
 #if VLA_DEALLOCATION_REQUIRED
        || is_dynamic_init_for_vla(dip)

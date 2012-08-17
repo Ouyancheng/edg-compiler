@@ -17924,6 +17924,17 @@ for a return, because the caller will do the destruction).
       }  /* if */
       *p_temp_init_node = temp_init_node;
       *p_dip = dip;
+      if (dip->is_creation_of_initializer_list_object) {
+        /* The lifetime of the array underlying an std::initializer_list object
+           matches the lifetime of the object. See core issue 1290.  So erase
+           the lifetime of the array, and it will be set later when
+           record_end_of_lifetime_destruction is called. */
+        a_dynamic_init_ptr dipa =
+           effective_dynamic_init_for_initializer_list_object(dip,
+                                                              (a_type **)NULL);
+        remove_from_destruction_list(dipa);
+        dipa->static_temp = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return is_usable_temp_init;
@@ -18689,19 +18700,19 @@ the lifetime of the temporary is extended to match that of the reference.
 {
   an_object_lifetime_ptr lifetime = dip->lifetime;
 
-  if (static_lifetime) dip->static_temp = TRUE;
-  dip->has_temporary_lifetime = FALSE;
   if (dip->is_creation_of_initializer_list_object) {
-    /* If the lifetime of an initializer_list object is extended, the
-       lifetime of the array fed into it is extended also (see core
-       issue 1290). */
-    a_type_ptr         init_entity_type;
+    /* If the lifetime of an initializer_list temporary is extended, the
+       lifetime of the array used to create it is extended also (see core
+       issue 1290).  Do that first so if both have destructors (not
+       currently possible, because std::initializer_list has no destructor)
+       the array will be destroyed last. */
     a_dynamic_init_ptr dipa =
          effective_dynamic_init_for_initializer_list_object(dip,
-                                                            &init_entity_type);
-    dipa->static_temp = dip->static_temp;
-    dipa->has_temporary_lifetime = dip->has_temporary_lifetime;
+                                                            (a_type **)NULL);
+    extend_temporary_lifetime(dipa, static_lifetime);
   }  /* if */
+  if (static_lifetime) dip->static_temp = TRUE;
+  dip->has_temporary_lifetime = FALSE;
   /* The "lifetime != NULL" test here deals with initializations that
      do not need a destructor. */
   if (lifetime != NULL) {
@@ -20244,7 +20255,6 @@ parameters, and return TRUE.
 static void make_initializer_list_object(an_init_component_ptr list_icp,
                                          a_type_ptr            element_type,
                                          a_type_ptr            list_type,
-                                         a_boolean             static_lifetime,
                                          a_boolean             is_new_expr,
                                          a_dynamic_init_ptr    *p_dip,
                                          an_operand            *operand,
@@ -20254,11 +20264,10 @@ Make an operand for the creation of an std::initializer_list<element_type>
 object from the braced-init-list given by list_icp.  list_type is the
 initializer_list<element_type> type, which is the type of the operand
 returned in *operand.  A temporary of array type is created and
-initialized with the contents of the braced-init-list, and that temporary
-is passed to a constructor for std::initializer_list.  The temporary
-is given static lifetime if static_lifetime is TRUE or if is_new_expr
-is TRUE (indicating the initializer list creation is in the
-initializer for a "new").  If p_dip is non-NULL, a pointer to the top
+initialized with the contents of the braced-init-list, and that
+temporary is passed to a constructor for std::initializer_list.
+is_new_expr is TRUE if the initializer_list creation is in the
+initializer for a "new".  If p_dip is non-NULL, a pointer to the top
 dynamic initialization is returned in *p_dip.  If operand is NULL, the
 operand on top of that is not created.  If arg_match is non-NULL, do
 an evaluation of whether the initialization is valid, without issuing
@@ -20446,7 +20455,8 @@ it an exact match or a user-defined conversion, etc.)
       /* For a "new", the array temp gets heap lifetime, so do not enter
          the destructor or lifetime.  We can't really allocate a temporary
          on the heap, so we just give it static lifetime so the storage
-         stays around forever. */
+         stays around forever.  The standard doesn't mandate this, but
+         not doing it seems gratuitous. */
       dip->static_temp = TRUE;
       expr = alloc_temp_init_node_simple(array_type, dip, /*is_lvalue=*/TRUE);
     } else {
@@ -20455,9 +20465,6 @@ it an exact match or a user-defined conversion, etc.)
       expr = alloc_temp_init_node(array_type, dip,
                                   /*is_lvalue=*/TRUE,
                                   /*is_explicit_cast=*/FALSE);
-      if (static_lifetime) {
-        extend_temporary_lifetime(dip, /*static_lifetime=*/TRUE);
-      }  /* if */
     }  /* if */
     /* Add the decay from array to pointer. */
     expr = conv_array_expr_to_pointer(expr);
@@ -20493,7 +20500,8 @@ it an exact match or a user-defined conversion, etc.)
         if (is_new_expr) {
           /* For a "new", the object gets heap lifetime.  Since we can't
              allocate a temporary on the heap, give it static lifetime so
-             the storage stays around forever. */
+             the storage stays around forever.  The standard doesn't mandate
+             this, but not doing it seems gratuitous. */
           dip->static_temp = TRUE;
           expr = alloc_temp_init_node_simple(list_type, dip,
                                              /*is_lvalue=*/FALSE);
@@ -20501,9 +20509,6 @@ it an exact match or a user-defined conversion, etc.)
           expr = alloc_temp_init_node(list_type, dip,
                                       /*is_lvalue=*/FALSE,
                                       /*is_explicit_cast=*/FALSE);
-          if (static_lifetime) {
-            extend_temporary_lifetime(dip, /*static_lifetime=*/TRUE);
-          }  /* if */
         }  /* if */
         make_expression_operand(expr, operand);
       }  /* if */
@@ -21019,7 +21024,6 @@ controls).
         make_initializer_list_object(icp,
                                      element_type,
                                      dest_type,
-                                     is->static_lifetime_init,
                                      is->is_new_expr_init,
                                      &dip,
                                      (an_operand *)NULL,
@@ -21031,7 +21035,6 @@ controls).
         make_initializer_list_object(icp,
                                      element_type,
                                      dest_type,
-                                     /*static_lifetime=*/FALSE,
                                      /*is_new_expr=*/FALSE,
                                      (a_dynamic_init_ptr *)NULL,
                                      &operand,
