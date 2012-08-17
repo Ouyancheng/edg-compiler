@@ -4392,6 +4392,98 @@ file names are not known to be relative to the current directory.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#if __MICROSOFT_OS__ && EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+
+int compare_file_chars_case_insensitive(char *file1, char *file2)
+/*
+Compare the file names specified by "file1" and "file2" in a
+case-insensitive manner.  Return zero if they are the same.  "file1" and
+"file2" are expected to be encoded in UTF-8.  Each UTF-8 character will be
+converted to UTF-16, and the comparison will be performed using the
+upper-case mapping each UTF-16 code unit.
+*/
+{
+  int             result = 0;
+  unsigned long   unicode_char;
+  a_boolean       err;
+  int             num_utf8_bytes, num_utf16_chars;
+  unsigned short  utf16_chars[2];
+  unsigned char   *p_file1_utf8_char = (unsigned char *)file1;
+  unsigned char   *p_file2_utf8_char = (unsigned char *)file2;
+  unsigned short  file1_utf16_char, file1_next_utf16_char = 0;
+  unsigned short  file2_utf16_char, file2_next_utf16_char = 0;
+
+  check_assertion(p_file1_utf8_char != NULL && p_file2_utf8_char != NULL);
+  for (;;) {
+    /* Obtain the next UTF-16 code unit from "file1". */
+    if (file1_next_utf16_char == 0) {
+      if (*p_file1_utf8_char < 0x80) {
+        /* This is an ASCII character. */
+        file1_utf16_char = (unsigned short)*p_file1_utf8_char;
+        p_file1_utf8_char++;
+      } else {
+        /* Convert a UTF-8 character to a single Unicode code point. */
+        num_utf8_bytes = mbc_to_wide_char((char *)p_file1_utf8_char,
+                                          &unicode_char, &err,
+                                          /*is_native=*/FALSE);
+        /* Convert that to either one UTF-16 value or a pair of surrogates. */
+        num_utf16_chars = ucn_to_utf16(unicode_char, utf16_chars);
+        check_assertion(num_utf16_chars <= 2);
+        file1_utf16_char = utf16_chars[0];
+        if (num_utf16_chars == 2) file1_next_utf16_char = utf16_chars[1];
+        p_file1_utf8_char += num_utf8_bytes;
+      }  /* if */
+    } else {
+      /* The previous UTF-16 code unit was the first of a pair of
+         surrogates. */
+      file1_utf16_char = file1_next_utf16_char;
+      file1_next_utf16_char = 0;
+    }  /* if */
+    /* Obtain the next UTF-16 code unit from "file2". */
+    if (file2_next_utf16_char == 0) {
+      if (*p_file2_utf8_char < 0x80) {
+        /* This is an ASCII character. */
+        file2_utf16_char = (unsigned short)*p_file2_utf8_char;
+        p_file2_utf8_char++;
+      } else {
+        /* Convert a UTF-8 character to a single Unicode code point. */
+        num_utf8_bytes = mbc_to_wide_char((char *)p_file2_utf8_char,
+                                          &unicode_char, &err,
+                                          /*is_native=*/FALSE);
+        /* Convert that to either one UTF-16 value or a pair of surrogates. */
+        num_utf16_chars = ucn_to_utf16(unicode_char, utf16_chars);
+        check_assertion(num_utf16_chars <= 2);
+        file2_utf16_char = utf16_chars[0];
+        if (num_utf16_chars == 2) file2_next_utf16_char = utf16_chars[1];
+        p_file2_utf8_char += num_utf8_bytes;
+      }  /* if */
+    } else {
+      /* The previous UTF-16 code unit was the first of a pair of
+         surrogates. */
+      file2_utf16_char = file2_next_utf16_char;
+      file2_next_utf16_char = 0;
+    }  /* if */
+    if (file1_utf16_char == 0 || file2_utf16_char == 0) {
+      /* The end of either of the names has been reached. */
+      result = file2_utf16_char - file1_utf16_char;
+      break;
+    } else if (file1_utf16_char != file2_utf16_char) {
+      /* The UTF-16 code units are different.  Compare their
+         locale-insensitive upper-case mappings. */
+      file1_utf16_char = (unsigned short)CharUpperW((LPWSTR)file1_utf16_char);
+      file2_utf16_char = (unsigned short)CharUpperW((LPWSTR)file2_utf16_char);
+      if (file1_utf16_char != file2_utf16_char) {
+        /* The upper-case mappings of the UTF-16 code units are different. */
+        result = file2_utf16_char - file1_utf16_char;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+} /* compare_file_chars_case_insensitive */
+
+#endif /* __MICROSOFT_OS__ && EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 
 static a_text_buffer_ptr utf8_to_multibyte_char(char	*str)

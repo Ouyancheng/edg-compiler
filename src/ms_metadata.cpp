@@ -2692,6 +2692,7 @@ public:
 
 private:
   bool get_assembly_info();
+  bool init_assembly_import_interface();
   bool import_all_scopes();
 
 private:
@@ -3056,8 +3057,8 @@ public:
                     ULONG                           bytes_in_signature)
   {
     a_signature_decoder decoder(scope, signature, bytes_in_signature);
-    return decode_method(decoder, token, /*return_type_only=*/false)->
-                                                                as_function();
+    auto type = decode_method(decoder, token, /*return_type_only=*/false);
+    return (type != nullptr) ? type->as_function() : nullptr;
   }  /* decode_return_type */
 
   static a_type_wrapper_ptr decode_method(
@@ -4308,7 +4309,10 @@ public:
       function_type_ = a_signature_decoder::decode_method(*this, token,
                                                           signature,
                                                           bytes_in_signature);
-      if (enclosing_type_ == nullptr) {
+      if (function_type_ == nullptr) {
+        /* The method was not successfully decoded.  It will not be
+           imported. */
+      } else if (enclosing_type_ == nullptr) {
         escape_invalid_identifier(name_);
       } else {
         const wstring &type_name = enclosing_type_->type_name();
@@ -4332,8 +4336,10 @@ public:
                                                      event_or_property_token_,
                                                      &method_semantics);
             CHECK_API_RESULT(hr, GetMethodSemantics);
-            name_ = name_from_method_semantics(method_semantics);
-          } else if (IsMdSpecialName(attributes_)) {
+            if (!IsMsOther(method_semantics)) {
+              name_ = name_from_method_semantics(method_semantics);
+            }  /* if */
+          } else {
             /* Rename any CLI operators to their corresponding C++/CLI operator
                name. */
             cli_operator_kind_ = import_scope_.rename_cli_operator(
@@ -4353,8 +4359,6 @@ public:
               /* Conversion operators don't have a return type. */
               function_type_->omit_return_type();
             }  /* if */
-          } else {
-            escape_invalid_identifier(name_);
           }  /* if  */
         }  /* if  */
       }  /* if */
@@ -4871,15 +4875,13 @@ Get all the pertinent information associated with this assembly.
     } else {
       unexpected_condition();
     }  /* if */
-  hr = alink2_interface->ImportFileEx(assembly_path_.c_str(),
-                                      /*pszTargetName=*/nullptr,
-                                      /*fSmartImport=*/FALSE,
-                                      dwOpenFlags,
-                                      &alink_token_,
-                                      &md_assembly_import_interface_,
-                                      &count_of_scopes_);
-  }  /* if */
-  if (alink2_interface != nullptr) {
+    hr = alink2_interface->ImportFileEx(assembly_path_.c_str(),
+                                        /*pszTargetName=*/nullptr,
+                                        /*fSmartImport=*/FALSE,
+                                        dwOpenFlags,
+                                        &alink_token_,
+                                        &md_assembly_import_interface_,
+                                        &count_of_scopes_);
     alink2_interface->Release();
   }  /* if */
   if (SUCCEEDED(hr)) {
@@ -4888,9 +4890,38 @@ Get all the pertinent information associated with this assembly.
                                               &resolution_scope_);
     CHECK_API_RESULT(hr, GetResolutionScope);
   }  /* if */
-  init_assembly_name();
+  /* If the metadata originates from an assembly, as opposed to a netmodule,
+     initialize the assembly name so that it can be located by
+     find_assembly_by_name when resolving references to types located in other
+     assemblies. */
+  if (SUCCEEDED(hr) && md_assembly_import_interface_ != NULL) {
+    init_assembly_name();
+  }  /* if */
   return SUCCEEDED(hr);
 }  /* an_assembly::get_assembly_info */
+
+
+bool an_assembly::init_assembly_import_interface()
+/*
+Initialize the IMetaDataAssemblyImport interface.  For assemblies, this is
+initialized by the call to IALink2::ImportFileEx when the assembly is opened.
+However, for netmodules, this interface is provided by the same object that
+provides the IMetaDataImport2 interface.
+*/
+{
+  if (md_assembly_import_interface_ == nullptr) {
+    if (count_of_scopes_ == 1) {
+      HRESULT hr;
+      hr = import_scope_from_index(0)->import_interface()->QueryInterface(
+                    IID_IMetaDataAssemblyImport,
+                    reinterpret_cast<void**>(&md_assembly_import_interface_));
+      CHECK_API_RESULT(hr, QueryInterface);
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* if */
+  return md_assembly_import_interface_ != nullptr;
+}  /* an_assembly::init_assembly_import_interface */
 
 
 an_import_scope *an_assembly::import_scope_from_index(int scope_index)
@@ -4992,7 +5023,7 @@ index.  If fails, the assembly index will be 0.
   check_assertion(assembly_index_ == static_cast<an_assembly_index>(-1));
   if (get_assembly_info()) {
     check_assertion(count_of_scopes_ > 0);
-    if (import_all_scopes()) {
+    if (import_all_scopes() && init_assembly_import_interface()) {
       result = true;
     }  /* if */
   }  /* if */
@@ -5171,8 +5202,8 @@ string a_type_definition::process_base_class_list(ostringstream& buffer) const
 {
   ostringstream interface_list;
   auto import_flags = import_scope_.containing_assembly().import_flags();
-  bool use_pending_implements_clause = false &&
-                               (import_flags & cpp_cli_define_all_types) == 0;
+  bool use_pending_implements_clause =
+                                   !(import_flags & cpp_cli_define_all_types);
   bool base_class_processed = process_base_class(buffer);
 
   process_interfaces(interface_list);
@@ -6167,7 +6198,7 @@ an override specifier.
           CHECK_API_RESULT(hr, GetMethodSemantics);
           method_name = event_or_property_name + L"::" +
                                 name_from_method_semantics(method_semantics);
-        } else if (IsMdSpecialName(method_definition->attributes())) {
+        } else {
           /* The overridden name of a CLI operator is the corresponding
              C++/CLI operator name. */
           a_cli_operator_kind cok = rename_cli_operator(
@@ -6176,9 +6207,23 @@ an override specifier.
           if (cok == cok_implicit || cok == cok_explicit) {
             /* Obtain the method's return type to handle user-defined
                conversion operators. */
-            auto return_type = method_definition->function_type()
-                                                ->return_type();
-            method_name = L"operator " + return_type->get_string();
+            auto function_type = method_definition->function_type();
+            if (function_type == nullptr) {
+              /* The function was not successfully decoded.  Return an empty
+                 name, which will result in the method not being added to the
+                 named override list. */
+              goto done;
+            } else {
+              auto return_type = function_type->return_type();
+              if (return_type == nullptr) {
+                /* The return type was not successfully decoded.  Return an
+                   empty name, which will result in the method not being added
+                   to the named override list. */
+                goto done;
+              } else {
+                method_name = L"operator " + return_type->get_string();
+              }  /* if */
+            }  /* if */
           }  /* if */
         }  /* if */
         if (enclosing_class_type == nullptr) {
@@ -6231,7 +6276,9 @@ an override specifier.
                                                           bytes_in_signature);
           }  /* if */
           if (function_type == nullptr) {
-            unexpected_condition();
+            /* The function was not successfully decoded.  Return an empty
+               name, which will result in the method not being added to the
+               named override list. */
             goto done;
           }  /* if */
           vector<a_const_method_definition_ptr> method_list;
@@ -6400,6 +6447,7 @@ enum a_type_modifier_flag : a_type_modifier_flag_set
   tmf_is_sign_unspecified_byte   = 0x1000,
   tmf_is_volatile                = 0x2000,
   tmf_unknown                    = 0x4000,
+  tmf_is_copy_constructed        = 0x8000,
 };
 
 
@@ -6447,6 +6495,8 @@ tmf_unknown if no such mapping exists.
                                                tmf_is_sign_unspecified_byte },
     { L"Microsoft::VisualC::IsVolatileModifier", tmf_is_volatile },
     { L"System::Runtime::CompilerServices::IsVolatile", tmf_is_volatile },
+    { L"System::Runtime::CompilerServices::IsCopyConstructed",
+                                                    tmf_is_copy_constructed },
   };
   a_type_modifier_flag modifier_flag = tmf_unknown;
 
@@ -6692,13 +6742,7 @@ Decode a type signature that is modified with a custom type modifier.
     }  /* if */
   }  /* if */
   if ((modifier_flags & tmf_is_cxx_udt_return) != 0) {
-    if (type->is_of_kind(a_type_wrapper::twk_void)) {
-      type->set_kind(a_type_wrapper::twk_cxx_udt_return);
-    } else {
-      unexpected_condition();
-      type.reset();
-      goto done;
-    }  /* if */
+    type = make_shared<a_type_wrapper>(a_type_wrapper::twk_cxx_udt_return);
   }  /* if */
   if ((modifier_flags & tmf_is_copy_ctor) != 0) {
     if (type->is_of_kind(a_type_wrapper::twk_void)) {
@@ -7066,9 +7110,11 @@ Decode a type signature and return it as a std::wstring.
       break;
     case ELEMENT_TYPE_FNPTR:
       { auto function_type = decode_method(*this, mdTokenNil);
-        type = make_shared<a_type_indirection>(
+        if (function_type != nullptr) {
+          type = make_shared<a_type_indirection>(
                                               a_type_indirection::tik_pointer,
                                               move(function_type));
+        }  /* if */
         break;
       }
     default:
@@ -7124,10 +7170,15 @@ property signature which is almost the same as a method signature.
          IsCopyCtorModifier modifier. */
       return_type.reset();
     } else if (return_type->is_of_kind(a_type_wrapper::twk_cxx_udt_return)) {
-      /* A function that returns a ref class by value is encoded as a
-         function with a void return type (marked with the IsUdtReturn
-         modifier) and who's first parameter is a tracking reference to
-         a handle to the ref class.  */
+      /* A function that returns a ref class by value is encoded in metadata
+         as a function with a void return type (marked with the IsUdtReturn
+         modifier) and whose first parameter is a tracking reference to
+         a handle to the ref class.  A function that returns a native class by
+         value is encoded in metadata as a function whose return type and
+         first parameter are pointers to the native class; the return type is
+         also marked with the IsUdtReturn modifier.  decode_modified_type
+         transforms the return type in both cases to the special
+         twk_cxx_udt_return type. */
       if (number_of_parameters > 0) {
         ++param_index;
         a_type_wrapper_ptr param_type = decoder.decode_type();
@@ -7148,6 +7199,14 @@ property signature which is almost the same as a method signature.
               return_type = move(class_type);
               goto have_return_type;
             }  /* if */
+          }  /* if */
+        } else if (indirection != nullptr &&
+                   indirection->is_of_indirection_kind(
+                                           a_type_indirection::tik_pointer)) {
+          auto class_type = indirection->underlying_type()->as_class();
+          if (class_type != nullptr) {
+            return_type = move(class_type);
+            goto have_return_type;
           }  /* if */
         }  /* if */
       }  /* if */

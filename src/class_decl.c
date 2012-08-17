@@ -24030,7 +24030,8 @@ bits of information that were acquired while parsing.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     class_state->assembly_access = (an_access_specifier)as_public;
     if (cli_class_type_kind_is(class_type, cctk_value)) {
-      /* C++/CLI value classes a bitwise copyable aggregate types "by fiat". */
+      /* C++/CLI value classes are bitwise copyable aggregate types
+         "by fiat". */
       cssp->is_class_aggregate = TRUE;
       cssp->construction_by_bitwise_copy_allowed = TRUE;
       cssp->assignment_by_bitwise_copy_allowed = TRUE;
@@ -24630,6 +24631,11 @@ classes.
       }  /* if */
       scope_stack[decl_scope_level].current_access = class_state.access;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled && is_managed_class_type(class_type)) {
+        /* The default declared assembly access matches the default declared
+           access in managed types. */
+        class_state.assembly_access = class_state.access;
+      }  /* if */
       scope_stack[decl_scope_level].current_assembly_access =
                                                   class_state.assembly_access;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

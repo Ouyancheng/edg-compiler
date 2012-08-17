@@ -7333,7 +7333,7 @@ typedef struct an_integer_type_supplement {
   a_bit_field   assembly_visibility:2;
                         /* Effective visibility of this type at the assembly
 			   level  (Enumeration types in C++/CLI mode only.) */
-  an_assembly_index
+  an_assembly_scope_index
 		assembly_scope_index;
 			/* The index of the assembly and scope in which this
 			   construct was defined, or zero if the construct is

@@ -3214,7 +3214,13 @@ up file names.
 */
 #if __MICROSOFT_OS__
 /* On MS-DOS, the comparison must be case insensitive. */
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+extern int compare_file_chars_case_insensitive(char *file1, char *file2);
+#define compare_file_chars(s1, s2)					\
+  (compare_file_chars_case_insensitive((s1), (s2)))
+#else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
 #define compare_file_chars(s1, s2) strnicmp((s1), (s2), INT_MAX)
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 #else /* !__MICROSOFT_OS__ */
 /* On other systems, the comparison is case sensitive. */
 #define compare_file_chars(s1, s2) strcmp((s1), (s2))
