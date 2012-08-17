@@ -1846,7 +1846,7 @@ appear.
         } else {
           /* Create a name that includes the quotation characters. */
           (*p_attribute)->name = alloc_il(
-                                const_for_curr_token.variant.string.length+2);
+                      (sizeof_t)const_for_curr_token.variant.string.length+2);
           sprintf((*p_attribute)->name, "\"%s\"",
                   const_for_curr_token.variant.string.value);
         }  /* if */
