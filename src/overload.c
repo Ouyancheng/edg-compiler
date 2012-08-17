@@ -21761,13 +21761,14 @@ checks that), and *conversion describes it.
                           formal_param, conversion, err_code);
   } else {
     /* The argument is a braced-init-list. */
+    a_boolean          error_on_narrowing = strict_ansi_mode;
     a_conv_context_set conv_context =
                      add_conv_context_for_parameter(formal_param, CCO_DEFAULT);
     check_assertion(is_braced_init_component(alep));
     prep_list_initializer(alep, formal_param->type,
                           /*is_direct_init=*/FALSE,
-                          /*check_narrowing=*/TRUE,
-                          /*warning_on_narrowing=*/FALSE,
+                          /*check_narrowing=*/error_on_narrowing,
+                          /*warning_on_narrowing=*/!error_on_narrowing,
                           conv_context,
                           /*fill_in_dtor=*/TRUE,
                           /*force_temp=*/
