@@ -19874,11 +19874,13 @@ there are any errors (that's used for overload resolution).
       a_boolean local_error_detected;
       a_boolean *p_error_detected = NULL;
       if (!issue_errors) p_error_detected = &local_error_detected;
+      /* Don't check access if we're doing overload resolution. */
       ctor_routine =
          select_default_constructor_full(unqual_dest_type,
                                          pos,
                                          unqual_dest_type,
                                          curr_expr_is_potentially_evaluated(),
+                                         generate_il &&
                                          expr_access_checking_should_be_done(),
                                          p_error_detected,
                                          &def_ctor_err);
