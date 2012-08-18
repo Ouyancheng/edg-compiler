@@ -20255,6 +20255,7 @@ parameters, and return TRUE.
 static void make_initializer_list_object(an_init_component_ptr list_icp,
                                          a_type_ptr            element_type,
                                          a_type_ptr            list_type,
+                                         a_boolean             static_lifetime,
                                          a_boolean             is_new_expr,
                                          a_dynamic_init_ptr    *p_dip,
                                          an_operand            *operand,
@@ -20264,10 +20265,11 @@ Make an operand for the creation of an std::initializer_list<element_type>
 object from the braced-init-list given by list_icp.  list_type is the
 initializer_list<element_type> type, which is the type of the operand
 returned in *operand.  A temporary of array type is created and
-initialized with the contents of the braced-init-list, and that
-temporary is passed to a constructor for std::initializer_list.
-is_new_expr is TRUE if the initializer_list creation is in the
-initializer for a "new".  If p_dip is non-NULL, a pointer to the top
+initialized with the contents of the braced-init-list, and that temporary
+is passed to a constructor for std::initializer_list.  The temporary
+is given static lifetime if static_lifetime is TRUE or if is_new_expr
+is TRUE (indicating the initializer list creation is in the
+initializer for a "new").  If p_dip is non-NULL, a pointer to the top
 dynamic initialization is returned in *p_dip.  If operand is NULL, the
 operand on top of that is not created.  If arg_match is non-NULL, do
 an evaluation of whether the initialization is valid, without issuing
@@ -20465,6 +20467,9 @@ it an exact match or a user-defined conversion, etc.)
       expr = alloc_temp_init_node(array_type, dip,
                                   /*is_lvalue=*/TRUE,
                                   /*is_explicit_cast=*/FALSE);
+      if (static_lifetime) {
+        extend_temporary_lifetime(dip, /*static_lifetime=*/TRUE);
+      }  /* if */
     }  /* if */
     /* Add the decay from array to pointer. */
     expr = conv_array_expr_to_pointer(expr);
@@ -20509,6 +20514,9 @@ it an exact match or a user-defined conversion, etc.)
           expr = alloc_temp_init_node(list_type, dip,
                                       /*is_lvalue=*/FALSE,
                                       /*is_explicit_cast=*/FALSE);
+          if (static_lifetime) {
+            extend_temporary_lifetime(dip, /*static_lifetime=*/TRUE);
+          }  /* if */
         }  /* if */
         make_expression_operand(expr, operand);
       }  /* if */
@@ -20704,6 +20712,8 @@ controls).
   a_boolean            try_user_conversions_in_ovl_res =
                                  !(conv_context &
                                      CCO_SUPPRESS_USER_CONVERSIONS_IN_OVL_RES);
+  a_boolean            make_lvalue_temp = (conv_context &
+                                       CCO_MAKE_LVALUE_TEMP_FOR_LIST_INIT) !=0;
   a_symbol_ptr         ctor_sym;
   an_operand           operand;
   a_boolean            dest_type_is_class =
@@ -21024,6 +21034,7 @@ controls).
         make_initializer_list_object(icp,
                                      element_type,
                                      dest_type,
+                                     is->static_lifetime_init,
                                      is->is_new_expr_init,
                                      &dip,
                                      (an_operand *)NULL,
@@ -21035,6 +21046,7 @@ controls).
         make_initializer_list_object(icp,
                                      element_type,
                                      dest_type,
+                                     /*static_lifetime=*/FALSE,
                                      /*is_new_expr=*/FALSE,
                                      (a_dynamic_init_ptr *)NULL,
                                      &operand,
@@ -21316,9 +21328,9 @@ controls).
       if (dest_type_is_class && fill_in_dtor) {
         add_dtor_to_dynamic_init(dip, dest_type, dest_type, start_position);
       }  /* if */
-      expr = alloc_temp_init_node(dest_type, dip, /*is_lvalue=*/FALSE,
+      expr = alloc_temp_init_node(dest_type, dip, make_lvalue_temp,
                                   /*is_explicit_cast=*/is_cast);
-      make_expression_operand(expr, result);
+      make_lvalue_or_rvalue_expression_operand(expr, result);
     } else if (constant != NULL) {
       check_assertion(!force_temp);
       make_constant_operand(constant, result);
@@ -21335,9 +21347,7 @@ controls).
           if (!is_error_operand(&operand)) {
             /* Make a temporary.  Normally, it's an rvalue, but make an
                lvalue if the caller has requested it. */
-            a_boolean create_lvalue = (conv_context &
-                                       CCO_MAKE_LVALUE_TEMP_FOR_LIST_INIT) !=0;
-            temp_init_from_operand(&operand, create_lvalue);
+            temp_init_from_operand(&operand, make_lvalue_temp);
           }  /* if */
         }  /* if */
         if (operand_is_temp_init_full(&operand, &temp_init_node)) {

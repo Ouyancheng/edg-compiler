@@ -1612,14 +1612,18 @@ in the user's program.
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   if (promote_if_necessary &&
       innermost_function_scope != NULL &&
-      innermost_function_scope->variant.routine.ptr->
-                                                  statics_have_been_promoted &&
+      (innermost_function_scope->variant.routine.ptr->
+                                                  statics_have_been_promoted ||
+       processing_file_scope_init_routine) &&
       has_static_storage_duration(temp->storage_class)) {
     /* If statics have already been promoted out of this function, promote
        this temporary to the file scope (in case it is referenced in the
        initialization of a static that has already been promoted to the
        file scope).  Do this now (before the temporary has been placed on
-       the scope's variables list). */
+       the scope's variables list).  The generated file-scope initialization
+       routine doesn't undergo the usual promotion (for good reasons; see
+       pop_generated_routine_context), so promote appropriate variables
+       individually in that context. */
     promote_static_variable_out_of_function(temp, scope,
                                 innermost_function_scope->variant.routine.ptr);
   } else
