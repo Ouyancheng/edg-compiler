@@ -18447,6 +18447,21 @@ conversion_determined:
                                           &conversion, &ctor_arg_conversion,
                                           fill_in_dtor,
                                           dip, (an_expr_node_ptr *)NULL);
+    if ((*dip) != NULL &&
+        (*dip)->is_creation_of_initializer_list_object &&
+        (conv_context & CCO_INITIALIZING_VARIABLE)) {
+      /* The lifetime of the array underlying an std::initializer_list object
+         matches the lifetime of the object. See core issue 1290.  When
+         initializing a variable (or a piece of one), set the lifetime of
+         the array to match the lifetime of the variable. */
+      a_boolean static_lifetime = (conv_context & CCO_STATIC_LIFETIME) != 0;
+      a_dynamic_init_ptr dipa =
+           effective_dynamic_init_for_initializer_list_object(*dip,
+                                                              (a_type **)NULL);
+      dipa->static_temp = static_lifetime;
+      record_end_of_lifetime_destruction(dipa, static_lifetime,
+                                         /*block_lifetime=*/TRUE);
+    }  /* if */
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(source_operand, &orig_operand);
@@ -20255,7 +20270,7 @@ parameters, and return TRUE.
 static void make_initializer_list_object(an_init_component_ptr list_icp,
                                          a_type_ptr            element_type,
                                          a_type_ptr            list_type,
-                                         a_boolean             static_lifetime,
+                                         a_conv_context_set    conv_context,
                                          a_boolean             is_new_expr,
                                          a_dynamic_init_ptr    *p_dip,
                                          an_operand            *operand,
@@ -20266,16 +20281,16 @@ object from the braced-init-list given by list_icp.  list_type is the
 initializer_list<element_type> type, which is the type of the operand
 returned in *operand.  A temporary of array type is created and
 initialized with the contents of the braced-init-list, and that temporary
-is passed to a constructor for std::initializer_list.  The temporary
-is given static lifetime if static_lifetime is TRUE or if is_new_expr
-is TRUE (indicating the initializer list creation is in the
-initializer for a "new").  If p_dip is non-NULL, a pointer to the top
-dynamic initialization is returned in *p_dip.  If operand is NULL, the
-operand on top of that is not created.  If arg_match is non-NULL, do
-an evaluation of whether the initialization is valid, without issuing
-errors or building IL, and return *arg_match set to indicate how good
-a match the initialization is, in overload resolution terms (e.g., is
-it an exact match or a user-defined conversion, etc.)
+is passed to a constructor for std::initializer_list.  conv_context
+describes the context of the conversion.  is_new_expr is TRUE if the
+initializer list creation is the initializer for a "new".  If
+p_dip is non-NULL, a pointer to the top dynamic initialization is
+returned in *p_dip.  If operand is NULL, the operand on top of that is
+not created.  If arg_match is non-NULL, do an evaluation of whether
+the initialization is valid, without issuing errors or building IL,
+and return *arg_match set to indicate how good a match the
+initialization is, in overload resolution terms (e.g., is it an exact
+match or a user-defined conversion, etc.)
 */
 {
   a_routine_ptr      dtor = NULL, ctor;
@@ -20292,6 +20307,7 @@ it an exact match or a user-defined conversion, etc.)
   a_type_ptr         param1_type, param2_type;
   an_expr_node_ptr   expr, arg1, arg2;
   a_boolean          arg_match_err = FALSE;
+  a_boolean          static_lifetime = (conv_context & CCO_STATIC_LIFETIME)!=0;
 
   check_assertion(is_braced_init_component(list_icp));
   if (p_dip != NULL) *p_dip = NULL;
@@ -20331,6 +20347,8 @@ it an exact match or a user-defined conversion, etc.)
     an_arg_match_summary local_arg_match;
     a_boolean            check_narrowing = TRUE, saved_check_narrowing;
     a_boolean            will_need_partial_aggregate_destructor = FALSE;
+    a_conv_context_set   econv_context = conv_context &
+                             (CCO_INITIALIZING_VARIABLE | CCO_STATIC_LIFETIME);
     if (unknown_num_elements ||
         elem_icp->pack_expansion_descr != NULL) {
       /* The list element is a pack expansion, or we previously encountered
@@ -20362,7 +20380,7 @@ it an exact match or a user-defined conversion, etc.)
                           /*is_direct_init=*/FALSE,
                           check_narrowing,
                           /*warning_on_narrowing=*/FALSE,
-                          CCO_DEFAULT,
+                          econv_context,
                           /*fill_in_dtor=*/FALSE,
                           /*force_temp=*/FALSE,
                           (an_operand *)NULL,
@@ -20421,9 +20439,7 @@ it an exact match or a user-defined conversion, etc.)
         if (will_need_partial_aggregate_destructor) {
           /* Add the destructor for partial-aggregate exception cleanup. */
           dip->destructor = dtor;
-          dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-          record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                             /*block_lifetime=*/FALSE);
+          record_partial_aggregate_cleanup_destruction(dip);
         }  /* if */
       }  /* if */
       /* Add con to the aggregate constant list. */
@@ -21029,12 +21045,15 @@ controls).
                is_instance_of_std_initializer_list(dest_type, &element_type)) {
       /* dest_type is an instance of std::initializer_list<X>, so build
          an initializer_list object from the braced-init-list. */
+      a_conv_context_set iconv_context = conv_context &
+                             (CCO_STATIC_LIFETIME | CCO_INITIALIZING_VARIABLE);
       if (generate_il) unbundle_init_component_list_expressions(list);
       if (is != NULL) {
+        if (is->static_lifetime_init) iconv_context |= CCO_STATIC_LIFETIME;
         make_initializer_list_object(icp,
                                      element_type,
                                      dest_type,
-                                     is->static_lifetime_init,
+                                     iconv_context,
                                      is->is_new_expr_init,
                                      &dip,
                                      (an_operand *)NULL,
@@ -21046,7 +21065,7 @@ controls).
         make_initializer_list_object(icp,
                                      element_type,
                                      dest_type,
-                                     /*static_lifetime=*/FALSE,
+                                     iconv_context,
                                      /*is_new_expr=*/FALSE,
                                      (a_dynamic_init_ptr *)NULL,
                                      &operand,

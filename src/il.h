@@ -1841,6 +1841,8 @@ extern void record_end_of_lifetime_destruction(
                                         a_boolean           static_lifetime,
                                         a_boolean           block_lifetime);
 
+extern
+void record_partial_aggregate_cleanup_destruction(a_dynamic_init_ptr dip);
 
 extern void promote_lifetime_contents_to_curr_object_lifetime(
                                                       an_object_lifetime *olp);

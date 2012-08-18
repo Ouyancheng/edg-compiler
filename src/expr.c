@@ -27287,15 +27287,11 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
       dip->variant.expression = make_node_from_operand(&operand);
     }  /* if */
-    if (dtor_routine != NULL) {
+    if (dtor_routine != NULL && curr_expr_is_potentially_evaluated()) {
       /* Indicate a destructor to be called for cleanup if an exception is
          thrown part-way through the captures. */
       dip->destructor = dtor_routine;
-      dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-      if (curr_expr_is_potentially_evaluated()) {
-        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                           /*block_lifetime=*/FALSE);
-      }  /* if */
+      record_partial_aggregate_cleanup_destruction(dip);
     }  /* if */
     if (array_case) {
       /* To repeat the initialization for each element of an array,
@@ -34702,6 +34698,7 @@ As indicated, this is initialization with the "=" semantics
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           okay = TRUE;
+  a_conv_context_set  conv_context = CCO_INITIALIZING_VARIABLE;
 
   db_enter(3, "scan_class_initializer_expression");
   check_assertion(dps != NULL);
@@ -34710,13 +34707,14 @@ As indicated, this is initialization with the "=" semantics
                                   /*is_full_expr=*/TRUE,
                                   dps, (an_init_state *)NULL);
   check_assertion(C_mode() || !dps->initializer_is_expr_list);
+  if (expr_stack->in_static_initializer) conv_context |= CCO_STATIC_LIFETIME;
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Find out whether or not the conversion is possible, and
      build a dynamic initialization entry to describe the initialization. */
   prep_elision_initializer_operand(&result, dps->type,
                                    /*fill_in_dtor=*/TRUE,
-                                   CCO_INITIALIZING_VARIABLE,
+                                   conv_context,
                                    ec_bad_initializer_type, dip);
   wrap_up_dynamic_init_full_expression(*dip);
   /* *dip == NULL means there was an error. */

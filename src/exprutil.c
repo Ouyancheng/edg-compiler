@@ -2489,14 +2489,10 @@ the entire array.
   /* If exceptions are enabled, put in a destructor.  It's needed to
      destroy elements if a throw is done part-way through the
      initialization (or destruction, for a delete) of the array. */
-  if (exceptions_enabled && dtor_routine != NULL) {
+  if (exceptions_enabled && dtor_routine != NULL &&
+      curr_expr_is_potentially_evaluated()) {
     element_dip->destructor = dtor_routine;
-    element_dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-    if (curr_expr_is_potentially_evaluated()) {
-      record_end_of_lifetime_destruction(element_dip,
-                                         /*static_lifetime=*/FALSE,
-                                         /*block_lifetime=*/FALSE);
-    }  /* if */
+    record_partial_aggregate_cleanup_destruction(element_dip);
   }  /* if */
   /* The IL structure is
        new dynamic init (dik_nonconstant_aggregate) ->

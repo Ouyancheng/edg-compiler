@@ -19726,22 +19726,6 @@ treated as a form of destruction.
   an_object_lifetime_ptr  olp;
 
   db_enter(4, "record_end_of_lifetime_destruction");
-  if (dip->is_creation_of_initializer_list_object) {
-    /* The lifetime of the array underlying an std::initializer_list object
-       matches the lifetime of the object.  See core issue 1290.  Set the
-       array lifetime if it's not set already.  This is done first so
-       if both have destructors (not currently possible, because
-       std::initializer_list has no destructor) the array will be
-       destroyed last. */
-    a_dynamic_init_ptr dipa =
-         effective_dynamic_init_for_initializer_list_object(dip,
-                                                            (a_type **)NULL);
-    if (dipa->lifetime == NULL) {
-      record_end_of_lifetime_destruction(dipa, static_lifetime,
-                                         block_lifetime);
-      dipa->static_temp = static_lifetime;
-    }  /* if */
-  }  /* if */
   if ((dip->destructor != NULL
 #if VLA_DEALLOCATION_REQUIRED
        || is_dynamic_init_for_vla(dip)
@@ -19822,6 +19806,27 @@ treated as a form of destruction.
   }  /* if */
   db_exit();
 }  /* record_end_of_lifetime_destruction */
+
+
+void record_partial_aggregate_cleanup_destruction(a_dynamic_init_ptr dip)
+/*
+dip is the initialization of a member of an aggregate.  If dip indicates
+a destructor, record a special partial-aggregate exception-cleanup destruction
+for the dynamic initialization.
+*/
+{
+  if (exceptions_enabled) {
+    if (dip->destructor != NULL) {
+      dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+      /* Note -- static_lifetime is FALSE because (for function-local
+         static variables) even though the underlying entity has static
+         lifetime, the lifetime of the destruction is as though it were
+         automatic. */
+      record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                         /*block_lifetime=*/FALSE);
+    }  /* if */
+  }  /* if */
+}  /* record_partial_aggregate_cleanup_destruction */
 
 
 static void move_destruction_to_curr_object_lifetime(a_dynamic_init_ptr dip)

@@ -288,18 +288,9 @@ routine.  dip is a dynamic-init entry created for the initialization of a
 field or array element.
 */
 {
-  if (dip->destructor == NULL && dtor_rp != NULL) {
+  if (dip->destructor == NULL && dtor_rp != NULL && exceptions_enabled) {
     dip->destructor = dtor_rp;
-    dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-    /* Since the destructor has been added to a dynamic init entry that
-       will not be "on top" when gen_dynamic_initialization is called,
-       record the destruction, if needed, with the appropriate
-       object-lifetime entry.  Note -- static_lifetime is FALSE because
-       (for function-local static variables) even though the underlying
-       entity has static lifetime, the lifetime of the destruction is as
-       though it were automatic. */
-    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                       /*block_lifetime=*/FALSE);
+    record_partial_aggregate_cleanup_destruction(dip);
   }  /* if */
 }  /* add_dtor_for_partially_constructed_aggregate */
 
@@ -790,9 +781,7 @@ remove_any_extraneous_braces:
     }  /* if */
     is->has_dynamic_init_component = TRUE;
     if (exceptions_enabled && dip->destructor != NULL) {
-      dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-      record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                         /*block_lifetime=*/FALSE);
+      record_partial_aggregate_cleanup_destruction(dip);
     }  /* if */
   }  /* if */
   if (braced) {
@@ -5629,12 +5618,10 @@ initialized.  These are addressed in the course of the processing.
            the array, so that the already-constructed elements can be
            properly destroyed. */
         check_assertion(exceptions_enabled);
-        ctor_dip->destruction_is_for_partially_constructed_aggregate = TRUE;
         /* The dynamic init for the array as a whole should also indicate
            destruction. */
         dip->destructor = ctor_dip->destructor;
-        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                           /*block_lifetime=*/TRUE);
+        record_partial_aggregate_cleanup_destruction(dip);
       }  /* if */
       /* Overwrite the dynamic-init pointer in the current ctor-init entry. */
       cip->initializer = dip;
