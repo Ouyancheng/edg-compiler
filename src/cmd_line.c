@@ -3561,8 +3561,10 @@ exclude the GNU modes already.  Hence those are not checked again here.)
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   /* Treat "long long" as a standard feature. */
   long_long_is_standard = TRUE;
-  if (c99_mode) {
-    /* If we're emulating gcc's -std=c99 mode, allow promotion to long long. */
+  if (c99_mode ||
+      (cpp11_mode && gnu_version >= 40700)) {
+    /* If we're emulating gcc's -std=c99 mode or, beginning with gcc
+       version 4.7, -std=c++11 mode, allow promotion to long long. */
     long_long_promotion_allowed = TRUE;
   } else {
     long_long_promotion_allowed = FALSE;

@@ -1,5 +1,22 @@
 Version 4.5
 
+8/18/12  [EDGcpfe/12650]
+GNU C++ compatibility: type of large integer literals in C++11
+
+In C++11, as in C99, an integer literal that is larger than can be
+represented as a long int has type long long int, assuming it can be
+represented in that type.  Beginning with version 4.7, g++ now implements
+the C++11 rule with -std=c++11; previously it always followed the c++03
+rule that made such literals unsigned long if they could be represented in
+that type.  The front end's g++ emulation has now been changed to use the
+C++11 rule when --c++11 is specified and gnu_version >= 40700.  For
+example, the value of uses_new_rules in the following is now true with
+--g++ --gnu_version=40700 --c++11, assuming sizeof(long) is 4 and
+sizeof(long long) is 8:
+
+  bool uses_new_rules = (2147483648L > -1);
+
+
 8/17/12  [EDGcpfe/12851]
 Microsoft compatibility: __declspec(<string-literal>)
 
