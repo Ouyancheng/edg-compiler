@@ -5764,8 +5764,6 @@ dip has already been created.
   a_dynamic_init_ptr              next_dip = dedp->next_in_region_table;
 
   if (next_dip == NULL) {
-    check_assertion(
-                !temp_dip->destruction_is_for_partially_constructed_aggregate);
     /* End of the list, beginning of the object lifetime of the temporaries. */
     curr_context->latest_initialization = NULL;
     curr_context->curr_cleanup_state = dip;

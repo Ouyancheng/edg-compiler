@@ -20308,6 +20308,8 @@ match or a user-defined conversion, etc.)
   an_expr_node_ptr   expr, arg1, arg2;
   a_boolean          arg_match_err = FALSE;
   a_boolean          static_lifetime = (conv_context & CCO_STATIC_LIFETIME)!=0;
+  a_boolean          initializing_var = (conv_context &
+                                         CCO_INITIALIZING_VARIABLE) != 0;
 
   check_assertion(is_braced_init_component(list_icp));
   if (p_dip != NULL) *p_dip = NULL;
@@ -20483,8 +20485,8 @@ match or a user-defined conversion, etc.)
       expr = alloc_temp_init_node(array_type, dip,
                                   /*is_lvalue=*/TRUE,
                                   /*is_explicit_cast=*/FALSE);
-      if (static_lifetime) {
-        extend_temporary_lifetime(dip, /*static_lifetime=*/TRUE);
+      if (initializing_var) {
+        extend_temporary_lifetime(dip, static_lifetime);
       }  /* if */
     }  /* if */
     /* Add the decay from array to pointer. */
@@ -20530,8 +20532,8 @@ match or a user-defined conversion, etc.)
           expr = alloc_temp_init_node(list_type, dip,
                                       /*is_lvalue=*/FALSE,
                                       /*is_explicit_cast=*/FALSE);
-          if (static_lifetime) {
-            extend_temporary_lifetime(dip, /*static_lifetime=*/TRUE);
+          if (initializing_var) {
+            extend_temporary_lifetime(dip, static_lifetime);
           }  /* if */
         }  /* if */
         make_expression_operand(expr, operand);
