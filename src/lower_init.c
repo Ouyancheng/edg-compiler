@@ -5779,7 +5779,9 @@ dip has already been created.
                    next_dip->destructible_entity_descr->next_in_region_table) {
     }  /* for */
     dedp->next_in_region_table = next_dip;
-    adjust_cleanup_state_for_inner_lifetime_temporaries(next_dip, dip);
+    if (next_dip != NULL) {
+      adjust_cleanup_state_for_inner_lifetime_temporaries(next_dip, dip);
+    }  /* if */
   }  /* if */
   /* Adjust the pointer to the previous entity, to one after this one on
      the cleanup list. */
