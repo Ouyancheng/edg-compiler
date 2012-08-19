@@ -19816,6 +19816,19 @@ for the dynamic initialization.
 */
 {
   if (exceptions_enabled) {
+    if (dip->is_creation_of_initializer_list_object) {
+      /* The lifetime of the array underlying an std::initializer_list object
+         matches the lifetime of the object.  See core issue 1290.  Add
+         an aggregate cleanup for the array also, and add it first so
+         if both have destructors (not currently possible, because
+         std::initializer_list has no destructor) the array will be
+         destroyed last. */
+      a_dynamic_init_ptr dipa =
+         effective_dynamic_init_for_initializer_list_object(dip,
+                                                            (a_type **)NULL);
+      check_assertion(dipa->lifetime == NULL);
+      record_partial_aggregate_cleanup_destruction(dipa);
+    }  /* if */
     if (dip->destructor != NULL) {
       dip->destruction_is_for_partially_constructed_aggregate = TRUE;
       /* Note -- static_lifetime is FALSE because (for function-local
