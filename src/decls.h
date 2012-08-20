@@ -432,6 +432,9 @@ typedef struct an_init_state {
 			   array (e.g., as in "T x[] = { y, z };"). */
   a_bit_field	is_new_expr_init:1;
 			/* TRUE for the initializer for a "new" operator. */
+  a_bit_field	is_aggr_element_init:1;
+			/* TRUE while processing the initialization of a
+			   member of an aggregate. */
 } an_init_state;
 
 
