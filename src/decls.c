@@ -112,6 +112,7 @@ Clear the fields of *is.
   is->variable_size_array = FALSE;
   is->initializer_can_dimension_array = FALSE;
   is->is_new_expr_init = FALSE;
+  is->is_aggr_element_init = FALSE;
 }  /* clear_init_state_fields */
 
 
