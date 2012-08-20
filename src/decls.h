@@ -346,6 +346,12 @@ typedef struct an_init_state {
 			   nonstandard anonymous unions (whose parents cannot
 			   otherwise be identified). */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  struct an_arg_match_summary
+		*arg_match;
+			/* Used by expression processing to track the worst
+			   argument match during overload resolution.  (The
+			   type pointed to is opaque to declaration
+			   processing. ) */
   a_bit_field	direct_init:1;
 			/* TRUE if this is for "direct" initialization as
 			   opposed to "copy" initialization.  C++ mode only. */

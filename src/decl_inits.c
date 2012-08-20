@@ -2412,8 +2412,11 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
 {
   an_init_component_ptr  icp = *p_icp;
   a_boolean              pack_expansion = FALSE;
-  a_boolean              saved_non_top_level_aggregate;
   a_type_kind            etype_kind;
+  a_boolean              saved_non_top_level_aggregate
+                                                = is->non_top_level_aggregate;
+  struct an_arg_match_summary
+                         *saved_arg_match = is->arg_match;
 
   check_assertion(init_con != NULL);
   if (is_pack_expansion_component(icp)) {
@@ -2429,34 +2432,30 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
   etype_kind = skip_typerefs(etype)->kind;
   if (etype_kind == (a_type_kind)tk_array) {
     /* Array. */
-    saved_non_top_level_aggregate = is->non_top_level_aggregate;
     is->non_top_level_aggregate = TRUE;
+    is->arg_match = NULL;
     aggr_init_array(p_icp, &etype, is, diag_pos, init_con);
-    is->non_top_level_aggregate = saved_non_top_level_aggregate;
   } else if (is_aggregate_type(etype)) {
     /* Aggregate class (since the array case was already tested for). */
-    saved_non_top_level_aggregate = is->non_top_level_aggregate;
     is->non_top_level_aggregate = TRUE;
+    is->arg_match = NULL;
     aggr_init_class(p_icp, etype, is, diag_pos, init_con);
-    is->non_top_level_aggregate = saved_non_top_level_aggregate;
   } else if (etype_kind == (a_type_kind)tk_template_param ||
              etype_kind == (a_type_kind)tk_error) {
     /* Create a constant that matches the initializer structure (since the
        element structure is not a priori known). */
-    saved_non_top_level_aggregate = is->non_top_level_aggregate;
     is->non_top_level_aggregate = TRUE;
+    is->arg_match = NULL;
     aggr_init_generic_element(icp, etype, is, init_con);
-    is->non_top_level_aggregate = saved_non_top_level_aggregate;
     *p_icp = icp->next;
 #if GNU_VECTOR_TYPES_ALLOWED
   } else if (etype_kind == (a_type_kind)tk_vector &&
              is_braced_init_component(icp))  {
     /* A braced component can initialize the elements of a GNU vector
        individually. */
-    saved_non_top_level_aggregate = is->non_top_level_aggregate;
     is->non_top_level_aggregate = TRUE;
+    is->arg_match = NULL;
     aggr_init_vector(p_icp, etype, is, init_con);
-    is->non_top_level_aggregate = saved_non_top_level_aggregate;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled && is_braced_init_component(icp) &&
@@ -2484,6 +2483,8 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
     check_assertion(*init_con != NULL);
     (*init_con)->is_pack_expansion = pack_expansion;
   }  /* if */
+  is->non_top_level_aggregate = saved_non_top_level_aggregate;
+  is->arg_match = saved_arg_match;
 }  /* aggr_init_element */
 
 
@@ -2523,19 +2524,22 @@ are TRUE.
 }  /* prep_initializer_result */
 
 
-void prep_aggr_initializer(an_init_component_ptr  icp,
-                           a_type_ptr             *p_type,
-                           an_init_state          *is,
-                           a_boolean              fill_in_dtor)
+void prep_aggr_initializer(an_init_component_ptr        icp,
+                           a_type_ptr                   *p_type,
+                           an_init_state                *is,
+                           struct an_arg_match_summary  *arg_match,
+                           a_boolean                    fill_in_dtor)
 /*
 Convert an initializer value represented by icp to the aggregate type *p_type
 of the entity being initialized.  The result is returned through *is (in
 particular, is->init_con and is->init_dip).  If fill_in_dtor is TRUE a
 destructor will be added to the dynamic initialization if one is needed, but
 the dynamic init will not be placed on any object lifetime list (the caller
-must do that).  If the entity being initialized is an unknown-bound
-array, *p_type will be updated to the complete array type matching the
-number of elements initialized.
+must do that).  If the entity being initialized is an unknown-bound array,
+*p_type will be updated to the complete array type matching the number of
+elements initialized.  arg_match points to a structure used by expression
+processing to track the worst argument match during overload resolution;
+the type pointed to is opaque to declaration processing.
 */
 {
   a_source_position_ptr  diag_pos = init_component_pos(icp);
@@ -2543,7 +2547,10 @@ number of elements initialized.
   a_type_ptr             dtype = *p_type;
   a_boolean              saved_force_dynamic_init = is->force_dynamic_init;
   a_boolean              unknown_bound_array;
+  struct an_arg_match_summary
+                         *saved_arg_match = is->arg_match;
 
+  is->arg_match = arg_match;
   check_assertion(!C_mode());
   is->init_con = NULL;
   is->init_dip = NULL;
@@ -2644,6 +2651,7 @@ number of elements initialized.
       }  /* if */
     }  /* if */
   }  /* if */
+  is->arg_match = saved_arg_match;
 }  /* prep_aggr_initializer */
 
 

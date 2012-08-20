@@ -39,10 +39,11 @@ extern void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
                                     a_dynamic_init_ptr  new_dip,
                                     a_targ_size_t       count);
 
-extern void prep_aggr_initializer(an_init_component_ptr  icp,
-                                  a_type_ptr             *p_type,
-                                  an_init_state          *is,
-                                  a_boolean              fill_in_dtor);
+extern void prep_aggr_initializer(an_init_component_ptr        icp,
+                                  a_type_ptr                   *p_type,
+                                  an_init_state                *is,
+                                  struct an_arg_match_summary  *arg_match,
+                                  a_boolean                    fill_in_dtor);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void aggr_init_cli_array(an_init_component_ptr  icp,
