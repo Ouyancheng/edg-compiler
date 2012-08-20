@@ -14038,28 +14038,36 @@ when possible.
   a_boolean        is_value_init;
   a_type_ptr       bare_init_entity_type;
 
-  if (!dip->is_explicit_cast &&
-      !dip->is_compound_literal &&
-      dip->is_creation_of_initializer_list_object) {
+  braced_init = dip->is_braced_initializer;
+  if (dip->is_creation_of_initializer_list_object) {
     /* For a dynamic init that is a generated constructor call for the
        creation of a std::initializer_list object, skip down to the
-       part of the initializer that is not implicit. */
-    dip = effective_dynamic_init_for_initializer_list_object(dip,
-                                                            &init_entity_type);
+       part of the initializer that is not implicit.  If the dynamic
+       init is an explicit cast, don't skip down but do use the braced-init
+       flag from the underlying dynamic init. */
+    a_type_ptr         init_entity_typea;
+    a_dynamic_init_ptr dipa =
+        effective_dynamic_init_for_initializer_list_object(dip,
+                                                           &init_entity_typea);
+    braced_init = dipa->is_braced_initializer;
+    if (!dip->is_explicit_cast && !dip->is_compound_literal) {
+      dip = dipa;
+      init_entity_type = init_entity_typea;
+    }  /* if */
   }  /* if */
-  braced_init = dip->is_braced_initializer;
   if (dip->is_explicit_cast) {
     /* An explicit cast.  Decide whether to put it out as a functional-notation
        cast "T(x)" or an old-style cast "(T)(x)". */
-    a_boolean use_func_notation_cast = TRUE;
-    a_boolean has_one_argument = FALSE;
+    a_boolean use_func_notation_cast;
     if (braced_init) {
-      /* A braced initializer should not be put out as an old-style cast.
-         Note that the cases below for generated unnamed type casts can
-         still apply. */
+      /* The source was a braced-init cast, so use the functional-notation
+         form.  If there are extra cv-qualifiers on the entity type they
+         must have been added by the context. */
+      init_entity_type = make_unqualified_type(init_entity_type);
       use_func_notation_cast = TRUE;
     } else if (assoc_expr != NULL && assoc_expr->is_static_cast) {
-      /* The source was a static_cast, so don't analyze further. */
+      /* The source was a static_cast.  That's handled as a variant of the
+         old-style form. */
       use_func_notation_cast = FALSE;
     } else if (dip->is_compound_literal) {
       /* A compound literal, e.g., (T){x, y, z}.  This is a C99 feature
@@ -14067,8 +14075,11 @@ when possible.
       /* We expect that is_explicit_cast is not set on those. */
       unexpected_condition();
     } else {
+      /* We don't know the source form, because the IL doesn't distinguish
+         old-style and parenthesized functional-notation casts. */
       /* See whether the cast has a single argument.  If not, a
          functional-notation cast must be used. */
+      a_boolean has_one_argument = FALSE;
       an_expr_node_ptr cexpr = NULL;
       if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
         /* See whether the initialization has one argument. */
@@ -14082,15 +14093,29 @@ when possible.
         has_one_argument = TRUE;
         cexpr = dip->variant.expression;
       }  /* if */
-      if (has_one_argument && expr_is_braced_init_list(cexpr)) {
-        /* If the single argument expression is brace-enclosed, we can't
-           use an old-style cast, because the expression in an old-style
-           cast is not an expression list, and braced-init-lists are
-           allowed only in an expression list. */
-        has_one_argument = FALSE;
+      if (has_one_argument) {
+        /* Put out a cast that has one argument as an old-style cast.  This
+           avoids some ambiguities, e.g.,
+             int f((int)x);
+           shouldn't become
+             int f(int(x));
+           This will also catch casts to types that aren't named, e.g.,
+           (const X)y instead of the incorrect const X(y). */
+        use_func_notation_cast = FALSE;
+        if (expr_is_braced_init_list(cexpr)) {
+          /* If the single argument expression is brace-enclosed, we can't
+             use an old-style cast, because the expression in an old-style
+             cast is not an expression list, and braced-init-lists are
+             allowed only in an expression list. */
+          use_func_notation_cast = TRUE;
+        }  /* if */
+      } else {
+        /* The cast has zero arguments, or more than one argument, so
+           we have to use a functional-notation cast. */
+        use_func_notation_cast = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (has_one_argument &&
+      if (!use_func_notation_cast &&
           dip->kind == (a_dynamic_init_kind)dik_constructor &&
           is_managed_class_type(init_entity_type)) {
         /* In C++/CLI, a managed class can have a static conversion operator
@@ -14098,26 +14123,18 @@ when possible.
            invokes that conversion rather than the constructor, as in standard
            C++.  A dik_constructor initialization thus must always use the
            functional notation, even with a single argument. */
-        has_one_argument = FALSE;
+        use_func_notation_cast = TRUE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
-    if (has_one_argument) {
-      /* Put out a cast that has one argument as an old-style cast.  This
-         avoids some ambiguities, e.g.,
-           int f((int)x);
-         shouldn't become
-           int f(int(x));
-         This will also catch casts to types that aren't named, e.g.,
-         (const X)y instead of the incorrect const X(y). */
-      use_func_notation_cast = FALSE;
-    } else if (has_name_before_mangling(init_entity_type)) {
-      /* Normal case: functional notation cast, e.g., X(y, z).
-         Note that types like "int" fail that test for braced-init cases,
-         and we use an old-style cast for those. */
-    } else {
-      /* Cast to an unnamed type, with something other than one argument.
-         Put out as an old-style cast, with special tweaks below. */
+    if (use_func_notation_cast &&
+        !has_name_before_mangling(init_entity_type)) {
+      /* We decided we wanted to use a functional-notation cast, but the
+         type is unnamed, so there's no way to write that.  This comes up
+         with generated types in SSI versions.  Use an old-style cast and
+         some tricks; see below.  Note that for braced-init casts we
+         dropped cv-qualifiers above.  We might still get here, but not
+         just for cv-qualifiers. */
       use_func_notation_cast = FALSE;
       unnamed_type_case = TRUE;
     }  /* if */
@@ -14212,7 +14229,7 @@ output_functional_notation_cast_arguments:
            where the copy constructor won't accept a volatile-qualified
            argument if we generate it as
                volatile X x = (volatile X)0; */
-        gen_cast(skip_typerefs(init_entity_type));
+        gen_cast(make_unqualified_type(init_entity_type));
       } else {
         gen_cast(init_entity_type);
       }  /* if */
