@@ -20408,18 +20408,6 @@ match or a user-defined conversion, etc.)
       if (init_state.init_dip != NULL) {
         /* The initialization is dynamic. */
         dip = init_state.init_dip;
-        if (dip->is_creation_of_initializer_list_object &&
-            exceptions_enabled) {
-          a_dynamic_init_ptr dipa =
-           effective_dynamic_init_for_initializer_list_object(dip,
-                                                              (a_type **)NULL);
-          if (dipa->destructor != NULL) {
-            /* This element will need a destructor in case an exception is
-               thrown when part of the aggregate is constructed, to destroy
-               the array underlying the element, itself an initializer_list. */
-            will_need_partial_aggregate_destructor = TRUE;
-          }  /* if */
-        }  /* if */
       } else {
         if (init_state.init_error) {
           /* There was some error. */
@@ -20449,10 +20437,7 @@ match or a user-defined conversion, etc.)
         }  /* if */
         any_nonconstant = TRUE;
         if (will_need_partial_aggregate_destructor) {
-          /* Add the destructor for partial-aggregate exception cleanup.
-             It might be that dtor is NULL here and the destructor is
-             on the underlying array for a member that is itself an
-             initializer_list. */
+          /* Add the destructor for partial-aggregate exception cleanup. */
           dip->destructor = dtor;
           record_partial_aggregate_cleanup_destruction(dip);
         }  /* if */
