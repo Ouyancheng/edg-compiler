@@ -21039,6 +21039,13 @@ controls).
                from a braced-init-list, calling a constructor, is a
                user-defined conversion sequence. */
             arg_match->match_level = aml_user_conversion;
+            if (dest_type_is_class &&
+                is_instance_of_std_initializer_list(dest_type,
+                                                    &element_type)) {
+              /* Except that an initializer_list initialized from an empty
+                 list is an exact match. */
+              arg_match->match_level = aml_exact;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
