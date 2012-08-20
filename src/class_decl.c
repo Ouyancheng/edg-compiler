@@ -25380,14 +25380,16 @@ whether this is a lambda.  Return TRUE if it is.
   /* Get the token after the "[". */
   (void)get_token();
   if (curr_token == tok_assign || curr_token == tok_ampersand ||
-      curr_token == tok_rbracket) {
-    /* Something like "[=...", "[&..." or "[]". Treat this as a lambda. */
+      curr_token == tok_rbracket || curr_token == tok_this) {
+    /* Something like "[=...", "[&...", "[]", or "[this...". Treat this as a
+       lambda. */
   } else if (curr_token != tok_identifier) {
     /* After the cases above have been excluded, both lambdas and Microsoft
        attributes should have an identifier next.  If the next token is
        not an identifier treat this as a lambda for error recovery purposes. */
   } else {
     /* The token is an identifier. */
+    a_token_kind  next_tok;
     /* Cache the identifier. */
     cache_curr_token(&cache);
     (void)get_token();
@@ -25395,19 +25397,19 @@ whether this is a lambda.  Return TRUE if it is.
     while (curr_token == tok_comma) {
       cache_curr_token(&cache);
       (void)get_token();
-      if (curr_token != tok_identifier) break;
+      if (curr_token != tok_identifier && curr_token != tok_this) break;
       cache_curr_token(&cache);
       (void)get_token();
     }  /* while */
     /* Note that next_token() is not called until we've looked at the current
        token.  This is done to avoid caching an unquoted uuid. */
     if ((curr_token == tok_assign || curr_token == tok_ampersand) &&
-        next_token() == tok_identifier) {
+        ((next_tok = next_token()) == tok_identifier ||
+         next_tok == tok_this)) {
       /* We encountered "=x" or "&x".  Treat this is a lambda. */
     } else if (curr_token == tok_rbracket) {
       /* "[x]...": If the token after the right bracket is a "{" or "(",
          assume this is a lambda. */
-      a_token_kind  next_tok;
       next_tok = next_token();
       if (next_tok != tok_lbrace && next_tok != tok_lparen) result = FALSE;
     } else if (curr_token == tok_colon_colon) {
