@@ -5629,10 +5629,12 @@ initialized.  These are addressed in the course of the processing.
            the array, so that the already-constructed elements can be
            properly destroyed. */
         check_assertion(exceptions_enabled);
+        ctor_dip->destruction_is_for_partially_constructed_aggregate = TRUE;
         /* The dynamic init for the array as a whole should also indicate
            destruction. */
         dip->destructor = ctor_dip->destructor;
-        record_partial_aggregate_cleanup_destruction(dip);
+        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                           /*block_lifetime=*/TRUE);
       }  /* if */
       /* Overwrite the dynamic-init pointer in the current ctor-init entry. */
       cip->initializer = dip;
