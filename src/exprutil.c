@@ -3192,7 +3192,8 @@ dynamic init, which is given by icp.
      the prototype instantiation; they may thereafter be the basis of a
      rescan multiple times, but they will never be "used" again. */
   make_braced_init_list_operand(icp, &operand);
-  check_assertion(dip->rescan_info == NULL);
+  /* dip->rescan_info can be non-NULL here if copy elision has been done.
+     We still want to overwrite the old information with the new. */
   eriep = save_operand_info_in_rescan_info_entry(&operand, dip->rescan_info);
   dip->rescan_info = eriep;
 #if CHECKING && DEBUG && ABORT_ON_INIT_COMPONENT_LEAKAGE
