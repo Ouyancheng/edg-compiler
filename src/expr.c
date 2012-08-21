@@ -23822,7 +23822,14 @@ is expected to be NULL in that case.
   if (rcblock == NULL) {
     /* Scan the second operand. */
     (void)get_token();
-    scan_expr(&operand_2, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
+    if (curr_token == tok_lbrace && list_init_enabled) {
+      /* In C++11, the expression on the right is allowed to be a
+         brace-enclosed list. */
+      scan_braced_init_list_as_operand(&operand_2);
+    } else {
+      /* Normal case, an expression. */
+      scan_expr(&operand_2, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
+    }  /* if */
   }  /* if */
 
   if (err) {
@@ -23842,14 +23849,15 @@ is expected to be NULL in that case.
     if (C_dialect == C_dialect_cplusplus &&
         (is_overloadable_type_first_operand(operand_1) ||
          is_overloadable_type_operand(&operand_2))) {
+      a_boolean has_predef_meaning = is_enum_type(operand_1->type) &&
+                                     !is_braced_init_list_operand(&operand_2);
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading(opname_kind_for_token[
                                                           (int)operator_token],
                                      /*unary_operator=*/FALSE,
                                      /*must_be_member_function=*/FALSE,
                                      /*try_conversions=*/TRUE,
-                                     /*has_predef_meaning=*/
-                                                 is_enum_type(operand_1->type),
+                                     has_predef_meaning,
                                      operand_1, &operand_2,
                                      &operator_position,
                                      operator_tok_seq_number,
@@ -24167,6 +24175,11 @@ operation_type_determined:
                                           operator_tok_seq_number,
                                           (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
+  if (is_braced_init_list_operand(&operand_2)) {
+    /* Free the braced-init-list attached to operand_2 if operator overloading
+       was used. */
+    free_attachments_to_operand(&operand_2);
+  }  /* if */
   db_exit();
 }  /* scan_compound_assignment_operator */
 
