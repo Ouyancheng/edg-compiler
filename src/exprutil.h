@@ -2008,6 +2008,10 @@ extern void make_call_rescan_operands(
                              a_token_sequence_number *operator_tok_seq_number,
                              a_source_position       *closing_paren_position);
 
+extern an_init_component_ptr rescan_init_component(
+                                            an_init_component_ptr  icp,
+                                            a_rescan_control_block *rcblock);
+
 extern an_expr_node_ptr alloc_node_for_constant_operand(an_operand *operand);
 
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);

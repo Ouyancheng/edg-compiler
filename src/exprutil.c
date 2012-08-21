@@ -50,9 +50,6 @@ an_expr_node_ptr conv_rvalue_expr_to_lvalue(an_expr_node_ptr node,
                                             a_boolean        gcc_lvalue,
                                             a_boolean        ignore_casts,
                                             a_type_ptr       *p_lvalue_type);
-static
-an_init_component_ptr rescan_init_component(an_init_component_ptr  icp,
-                                            a_rescan_control_block *rcblock);
 static an_expr_node_ptr make_braced_init_expr_from_arg_list_elem(
                                                     an_arg_list_elem_ptr alep);
 static void arg_list_elem_will_not_be_used_because_of_error(
@@ -3183,6 +3180,17 @@ dynamic init, which is given by icp.
   an_operand                    operand;
   an_expr_rescan_info_entry_ptr eriep;
 
+  /* Note that the saved list is going to be used only for rescan purposes,
+     never directly.  So given that rescan mines its input to effectively
+     reconstruct source, a lot of the information in the saved list will
+     never be used.  For example, saved ref entries in the operands in
+     the list would never be reactivated and then completed.  Also, if
+     some of the operands are modified (e.g., to add implicit conversions)
+     during the prototype instantiation, that doesn't matter; the rescan
+     process knows to skip stuff like that.  To possibly belabor the
+     point: the operands in the saved list are "used" only once, in
+     the prototype instantiation; they may thereafter be the basis of a
+     rescan multiple times, but they will never be "used" again. */
   make_braced_init_list_operand(icp, &operand);
   check_assertion(dip->rescan_info == NULL);
   eriep = save_operand_info_in_rescan_info_entry(&operand, dip->rescan_info);
@@ -4348,7 +4356,6 @@ list, not an argument list, so it may include designators.
 }  /* rescan_init_component_list */
 
 
-static
 an_init_component_ptr rescan_init_component(an_init_component_ptr  icp,
                                             a_rescan_control_block *rcblock)
 /*

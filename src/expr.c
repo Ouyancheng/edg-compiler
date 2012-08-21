@@ -14815,6 +14815,8 @@ expression, and return the result in *result (or an error indication in
   a_boolean         is_gcnew_string_special_case = FALSE;
   an_operand        gcnew_special_case_operand;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  an_arg_list_elem_ptr
+                    braced_init_list = NULL;
 
   db_enter(4, "scan_new_operator");
 
@@ -14874,33 +14876,49 @@ expression, and return the result in *result (or an error indication in
     if (has_new_initializer) {
       /* Set up the argument list for the new initializer. */
       a_dynamic_init_ptr init_dip;
+      if (rescan_ndsp != NULL &&
+          (init_dip = rescan_ndsp->dynamic_init) != NULL &&
+          init_dip->is_braced_initializer &&
+          init_dip->rescan_info != NULL &&
+          is_braced_init_list_operand(&init_dip->rescan_info->saved_operand)) {
+        /* A braced-init-list was saved with the dynamic init for the rescan.
+           Use it. */
+        has_braced_initializer = TRUE;
+        braced_init_list = rescan_init_component(
+                 init_dip->rescan_info->saved_operand.variant.braced_init_list,
+                 rcblock);
+        check_assertion(braced_init_list != NULL &&
+                        is_braced_init_component(braced_init_list));
+        init_position = init_dip->rescan_info->saved_operand.position;
+      } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (is_gcnew) {
-        if (rescan_gsp->is_cli_array) {
-          check_assertion(rescan_gsp->cli_array_dimension_lengths != NULL);
-          arg_expr_list = rescan_gsp->cli_array_dimension_lengths;
-        } else {
-          init_dip = rescan_gsp->dynamic_init;
+        if (is_gcnew) {
+          if (rescan_gsp->is_cli_array) {
+            check_assertion(rescan_gsp->cli_array_dimension_lengths != NULL);
+            arg_expr_list = rescan_gsp->cli_array_dimension_lengths;
+          } else {
+            init_dip = rescan_gsp->dynamic_init;
+            check_assertion(init_dip != NULL &&
+                            !init_dip->is_explicit_cast);
+            arg_expr_list = arg_list_from_dyn_init(init_dip);
+          }  /* if */
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          init_dip = rescan_ndsp->dynamic_init;
           check_assertion(init_dip != NULL &&
                           !init_dip->is_explicit_cast);
           arg_expr_list = arg_list_from_dyn_init(init_dip);
         }  /* if */
-      } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      {
-        init_dip = rescan_ndsp->dynamic_init;
-        check_assertion(init_dip != NULL &&
-                        !init_dip->is_explicit_cast);
-        arg_expr_list = arg_list_from_dyn_init(init_dip);
-      }  /* if */
-      rcblock->argument_list = arg_expr_list;
-      if (arg_expr_list != NULL &&
-          arg_expr_list->rescan_info != NULL) {
-        init_position = arg_expr_list->rescan_info->saved_operand.position;
-      } else {
-        /* Use the type position as an approximate initializer position. */
-        init_position = type_position;
+        rcblock->argument_list = arg_expr_list;
+        if (arg_expr_list != NULL &&
+            arg_expr_list->rescan_info != NULL) {
+          init_position = arg_expr_list->rescan_info->saved_operand.position;
+        } else {
+          /* Use the type position as an approximate initializer position. */
+          init_position = type_position;
+        }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* On rescan, use init_position as an approximate
@@ -15019,6 +15037,8 @@ expression, and return the result in *result (or an error indication in
          get here for a rescan. */
       check_assertion(!is_gcnew);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      check_assertion(!has_braced_initializer &&
+                      braced_init_list == NULL);
       make_rescan_operand(rcblock->argument_list, rcblock, &auto_operand);
       /* Deduce the type. */
       if (deduce_auto_type(new_type, /*auto_type=*/(a_type_ptr)NULL,
@@ -15504,7 +15524,9 @@ expression, and return the result in *result (or an error indication in
   empty_initializer = (has_new_initializer &&
                        !cached_initializer_present() &&
                        ((rcblock != NULL) ?
-                          (rcblock->argument_list == NULL) :
+                          (has_braced_initializer ?
+                             braced_init_list->variant.braced.list == NULL :
+                             rcblock->argument_list == NULL) :
                           (has_braced_initializer ?
                              next_token() == tok_rbrace :
                              curr_token == tok_rparen)));
@@ -15766,7 +15788,16 @@ expression, and return the result in *result (or an error indication in
 #if MICROSOFT_EXTENSIONS_ALLOWED
     check_assertion(!cli_array_new);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
+    if (rcblock != NULL) {
+      /* On a rescan, use the substituted version of the braced-init-list
+         scanned originally. */
+      check_assertion(braced_init_list != NULL &&
+                      is_braced_init_component(braced_init_list));
+      alep = braced_init_list;
+    } else {
+      /* Scan from source. */
+      alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
+    }  /* if */
     clear_init_state(&init_state);
     init_state.variable_size_array = variable_size_array;
     init_state.initializer_can_dimension_array = TRUE;
@@ -15788,7 +15819,16 @@ expression, and return the result in *result (or an error indication in
       dip = init_state.init_dip;
       check_assertion(dip != NULL);
     }  /* if */
-    free_init_component_list(alep);
+    if (rcblock != NULL) {
+      free_init_component_list(braced_init_list);
+    } else if (expr_stack->possible_rescan_context && dip != NULL) {
+      /* In a potential rescan context, save the init-component form of the
+         braced-init-list in rescan information attached to the dynamic init.
+         Otherwise, free it. */
+      save_rescan_info_for_braced_init_list(dip, alep);
+    } else {
+      free_init_component_list(alep);
+    }  /* if */
   } else {
     /* A parenthesized new-initializer is present. */
     /* No need to add tok_rparen to the stop tokens set: it's done by
