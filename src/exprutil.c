@@ -5329,7 +5329,12 @@ current token will be used as the operand position.
     copy_constant(constant, &operand->variant.constant);
     operand->type = constant->type;
   }  /* if */
-  operand->state = (an_operand_state)os_rvalue;
+  /* A string literal is an lvalue; other constants are rvalues. */
+  if (constant->kind == (a_constant_repr_kind)ck_string) {
+    operand->state = (an_operand_state)os_lvalue;
+  } else {
+    operand->state = (an_operand_state)os_rvalue;
+  }  /* if */
   set_operand_position_to_pos_curr_token(operand);
 }  /* make_constant_operand */
 
@@ -5372,10 +5377,9 @@ Make a constant operand for the given string constant.  The position of the
 current token will be used as the operand position.
 */
 {
+  /* The operand created will be an lvalue. */
   make_constant_operand(constant, operand);
   if (!is_error_operand(operand)) {
-    /* Treat a string literal constant as an lvalue. */
-    operand->state = (an_operand_state)os_lvalue;
     operand->is_simple_string_literal = TRUE;
   }  /* if */
 }  /* make_string_constant_operand */

@@ -15803,6 +15803,7 @@ expression, and return the result in *result (or an error indication in
     init_state.initializer_can_dimension_array = TRUE;
     init_state.force_dynamic_init = TRUE;
     init_state.is_new_expr_init = TRUE;
+    if (rcblock != NULL) init_state.no_diagnostics = TRUE;
     prep_list_initializer(alep, new_type,
                           /*is_direct_init=*/TRUE,
                           /*check_narrowing=*/TRUE,
@@ -15814,6 +15815,7 @@ expression, and return the result in *result (or an error indication in
                           (an_arg_match_summary *)NULL);
     if (init_state.init_error) {
       err = TRUE;
+      if (rcblock != NULL) rcblock->error_detected = TRUE;
     } else {
       needs_initialization = TRUE;
       dip = init_state.init_dip;
