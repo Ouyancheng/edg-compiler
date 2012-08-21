@@ -6334,6 +6334,7 @@ Clear a standard conversion description to default values.
   std_conv->conv_of_string_literal_to_cli_string = FALSE;
   std_conv->param_array_conversion = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  std_conv->conv_to_std_initializer_list = FALSE;
 }  /* clear_std_conv_descr */
 
 

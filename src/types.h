@@ -1024,6 +1024,11 @@ typedef struct a_std_conv_descr {
 			/* TRUE if this is a conversion to the element type of
 			   a C++/CLI parameter array. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_byte_boolean
+		conv_to_std_initializer_list;
+			/* TRUE if this is a conversion of a braced-init-list
+			   to an std::initializer_list<X> object.  See C++11
+			   [over.ics.rank]p3 last bullet. */
 } a_std_conv_descr;
 
 

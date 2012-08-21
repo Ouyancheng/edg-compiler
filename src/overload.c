@@ -6282,6 +6282,19 @@ apply that would make one better than the other, and return
       }  /* if */
     }  /* if */
   }  /* if */
+  if (cmp == 0 &&
+      arg_match1->conversion.std.conv_to_std_initializer_list !=
+      arg_match2->conversion.std.conv_to_std_initializer_list) {
+    /* C++11 [over.ics.rank]p3 last bullet: "List-initialization sequence L1
+       is a better conversion sequence than list-initialization sequence L2
+       if L1 converts to std::initializer_list<X> for some X and L2 does
+       not." */
+    if (arg_match1->conversion.std.conv_to_std_initializer_list) {
+      cmp = 1;
+    } else {
+      cmp = -1;
+    }  /* if */
+  }  /* if */
   /* Use of an anachronism (e.g., calling a const function for a
      non-const object) can break a tie. */
   if (cmp == 0 &&
@@ -20498,6 +20511,7 @@ match or a user-defined conversion, etc.)
     if (arg_match_err || ctor == NULL) {
       arg_match->match_level = aml_none;
     }  /* if */
+    arg_match->conversion.std.conv_to_std_initializer_list = TRUE;
   } else {
     /* Not overload resolution. */
     if (ctor == NULL) {
@@ -21045,6 +21059,7 @@ controls).
               /* Except that an initializer_list initialized from an empty
                  list is an exact match. */
               arg_match->match_level = aml_exact;
+              arg_match->conversion.std.conv_to_std_initializer_list = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
