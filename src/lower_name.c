@@ -5496,14 +5496,11 @@ the dynamic initialization is the result of a static_cast.
 
 static void mangled_encoding_for_initializer(
                                   a_dynamic_init_ptr       dip,
-                                  a_boolean                in_dependent_expr,
                                   a_mangling_control_block *mctl)
 /*
 Provide a mangled encoding for the initializer in a new/gcnew expression.
-dip specifies the initialization that is being performed.  In the IA-64 ABI,
-in_dependent_expr is TRUE if this expression is part of a template-dependent
-expression.  For the IA-64 ABI, if there is no <initializer>, an 'E' is
-emitted.
+dip specifies the initialization that is being performed.  For the IA-64 ABI,
+if there is no <initializer>, an 'E' is emitted.
 
   <initializer> ::= pi <expression>* E    # parenthesized initialization
   <initializer> ::= il <expression>* E    # braced-init list
@@ -5935,7 +5932,7 @@ is TRUE.
           mangled_encoding_for_type(expr->variant.new_delete->type, mctl);
           mangled_encoding_for_initializer(
                                         expr->variant.new_delete->dynamic_init,
-                                        in_dependent_expr, mctl);
+                                        mctl);
         }  /* if */
 #if !IA64_ABI
         add_to_mangled_name('O', mctl);
@@ -5990,7 +5987,7 @@ is TRUE.
         mangled_encoding_for_type(expr->variant.gcnew_info->type, mctl);
         mangled_encoding_for_initializer(
                                         expr->variant.gcnew_info->dynamic_init,
-                                        in_dependent_expr, mctl);
+                                        mctl);
 #if !IA64_ABI
         add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
