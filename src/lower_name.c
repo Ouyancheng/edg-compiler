@@ -3985,7 +3985,9 @@ operation that is part of certain template constants is suppressed
   if (con->kind != (a_constant_repr_kind)ck_template_param &&
       con->kind != (a_constant_repr_kind)ck_dynamic_init &&
       con->kind != (a_constant_repr_kind)ck_aggregate &&
-      con->kind != (a_constant_repr_kind)ck_address) {
+      con->kind != (a_constant_repr_kind)ck_address &&
+      con->kind != (a_constant_repr_kind)ck_init_repeat &&
+      con->kind != (a_constant_repr_kind)ck_designator) {
     a_type_ptr con_type = con->type;
     add_to_mangled_name('C', mctl);
     /* Put out the constant type. */
@@ -5261,21 +5263,14 @@ this expression is part of a template-dependent expression.
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 
-static void mangled_braced_init_list(an_expr_node_ptr         expr_list,
-                                     a_constant_ptr           con,
-                                     a_type_ptr               type,
-                                     a_mangling_control_block *mctl)
+static void mangled_list(an_expr_node_ptr         expr_list,
+                         a_constant_ptr           con,
+                         a_mangling_control_block *mctl)
 /*
-Provide mangling for a brace-enclosed initializer list for the given list of
-expressions or aggregate constant.  When con is non-NULL, the 
-constant is emitted as a mangled initializer list (to emulate GNU's mangling
-of compound literals), otherwise, the list of expressions (which may be NULL)
-is mangled as an initializer list.  An optional type is mangled (when non-NULL)
-when the brace-enclosed list is a cast variant.  Note that this is also used in
-the IA-64 ABI (but not the Cfront ABI) to mangle a brace-enclosed <initializer>
-production (it can't be used in the Cfront ABI because the 'O' characters that
-open this "operation" are seen as closing the new/gcnew operation by the
-demangler).
+Provide mangling for a list of either expressions or a constant (which may be
+an aggregate).  When con is non-NULL, the constant is emitted as a list (to
+emulate GNU's mangling of compound literals), otherwise, the list of
+expressions (which may be NULL) is mangled.
 */
 {
   a_constant_ptr  cp;
@@ -5284,22 +5279,6 @@ demangler).
 #endif /* !IA64_ABI */
 
   check_assertion(expr_list == NULL || con == NULL);
-#if !IA64_ABI
-  /* Brace-enclosed initializer list (EDG-specific):
-       OtlZ1Z_1_I1IO <-- encoding for "T1{param#1}"
-                   ^---- "O" to end the operation encoding.
-                ^^^----- Expression(s)/constant(s) in the list.
-             ^^^-------- Expression or constant count.
-          ^^^----------- Type of the list (only with "tl" encoding).
-        ^^-------------- Brace-enclosed list ("il" or "tl").
-       ^---------------- "O" for operation.
-  */
-  add_to_mangled_name('O', mctl);
-#endif /* !IA64_ABI */
-  add_str_to_mangled_name((char *)(type == NULL ? "il" : "tl"), mctl);
-  if (type != NULL) {
-    mangled_encoding_for_type(type, mctl);
-  }  /* if */
 #if !IA64_ABI
   /* Compute the count of expressions/constants that will be mangled. */
   if (con == NULL) {
@@ -5346,12 +5325,80 @@ demangler).
                                     mctl);
     }  /* if */
   }  /* if */
+}  /* mangled_list */
+
+
+static void mangled_braced_init_list(an_expr_node_ptr         expr_list,
+                                     a_constant_ptr           con,
+                                     a_type_ptr               type,
+                                     a_mangling_control_block *mctl)
+/*
+Provide mangling for a brace-enclosed initializer list for the given list of
+expressions or constant (which may be an aggregate).  When con is non-NULL,
+the constant is emitted as a mangled initializer list (to emulate GNU's
+mangling of compound literals), otherwise, the list of expressions (which may
+be NULL) is mangled as an initializer list.  An optional type is mangled (when
+non-NULL) when the brace-enclosed list is a cast variant.  Note that this is
+also used in the IA-64 ABI (but not the Cfront ABI) to mangle a brace-enclosed
+<initializer> production (it can't be used in the Cfront ABI because the 'O'
+characters that open this "operation" are seen as closing the new/gcnew
+operation by the demangler).
+*/
+{
+  check_assertion(expr_list == NULL || con == NULL);
+#if !IA64_ABI
+  /* Brace-enclosed initializer list (EDG-specific):
+       OtlZ1Z_1_I1IO <-- encoding for "T1{param#1}"
+                   ^---- "O" to end the operation encoding.
+                ^^^----- Expression(s)/constant(s) in the list.
+             ^^^-------- Expression or constant count.
+          ^^^----------- Type of the list (only with "tl" encoding).
+        ^^-------------- Brace-enclosed list ("il" or "tl").
+       ^---------------- "O" for operation.
+  */
+  add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+  add_str_to_mangled_name((char *)(type == NULL ? "il" : "tl"), mctl);
+  if (type != NULL) {
+    mangled_encoding_for_type(type, mctl);
+  }  /* if */
+  /* Provide a mangling for a list of expressions or constants. */
+  mangled_list(expr_list, con, mctl);
 #if IA64_ABI
   add_to_mangled_name('E', mctl);
 #else /* !IA64_ABI */
   add_to_mangled_name('O', mctl);
 #endif /* IA64_ABI */
 }  /* mangled_braced_init_list */
+
+
+static void get_expr_or_constant_list_from_dip(a_dynamic_init_ptr dip,
+                                               an_expr_node_ptr   *expr_list,
+                                               a_constant_ptr     *con_list)
+/*
+Utility to examine a dynamic initializer and return either a list of
+expressions or a constant (which may be an aggregate) that need to appear in a
+mangled list of some sort.  At least one of *expr_list or *con_list will be
+NULL (and in some cases both will be NULL).
+*/
+{
+  *expr_list = NULL;
+  *con_list = NULL;
+  switch (dip->kind) {
+    case dik_constant:
+    case dik_nonconstant_aggregate:
+      /* Mangle as a constant or aggregate constant. */
+      *con_list = dip->variant.constant;
+      break;
+    case dik_expression:
+    case dik_constructor:
+      /* Mangle a list of expressions. */
+      *expr_list = arg_list_from_dyn_init(dip);
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* get_expr_or_constant_list_from_dip */
 
 
 static void mangled_dynamic_init(a_dynamic_init_ptr       dip,
@@ -5369,6 +5416,8 @@ used for compound literals).  The caller should set is_static_cast to TRUE if
 the dynamic initialization is the result of a static_cast.
 */
 {
+  an_expr_node_ptr    expr_list;
+  a_constant_ptr      con_list;
   an_expr_node_ptr    args;
   unsigned long       num_operands;
   char                *str;
@@ -5384,23 +5433,8 @@ the dynamic initialization is the result of a static_cast.
   }  /* if */
   if (dip->is_braced_initializer) {
     /* Mangle as an initializer-list (even if is_explicit_cast is also set). */
-    switch (dip->kind) {
-      case dik_constant:
-      case dik_nonconstant_aggregate:
-        /* If the dip contains a constant, mangle it (using an initializer-list
-           mangling). */
-        mangled_braced_init_list((an_expr_node_ptr)NULL, dip->variant.constant,
-                                 type, mctl);
-        break;
-      case dik_expression:
-      case dik_constructor:
-        /* Use encoding for braced-initializer lists. */
-        args = arg_list_from_dyn_init(dip);
-        mangled_braced_init_list(args, (a_constant_ptr)NULL, type, mctl);
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
+    get_expr_or_constant_list_from_dip(dip, &expr_list, &con_list);
+    mangled_braced_init_list(expr_list, con_list, type, mctl);
   } else if (dip->is_explicit_cast) {
     args = arg_list_from_dyn_init(dip);
     num_operands = number_of_operands_in_list(args);
@@ -5473,35 +5507,38 @@ emitted.
 
   <initializer> ::= pi <expression>* E    # parenthesized initialization
   <initializer> ::= il <expression>* E    # braced-init list
+
+Note that the Cfront and IA-64 ABIs diverge somewhat here (because the "O"
+characters that open this "operation" don't lend themselves to nesting, so
+in the Cfront ABI, so a "bi" flag is used instead).
 */
 {
-  an_expr_node_ptr  inits;
+  an_expr_node_ptr  expr_list;
+  a_constant_ptr    con_list;
 
   if (dip != NULL) {
     /* We need to include an initializer expression list. */
-    inits = arg_list_from_dyn_init(dip);
 #if IA64_ABI
     if (dip->is_braced_initializer) {
       /* Use braced-enclosed initializer list mangling. */
-      mangled_braced_init_list(inits, (a_constant_ptr)NULL, (a_type_ptr)NULL,
-                               mctl);
+      get_expr_or_constant_list_from_dip(dip, &expr_list, &con_list);
+      mangled_braced_init_list(expr_list, con_list, (a_type_ptr)NULL, mctl);
     } else
 #endif /* IA64_ABI */
     /* Do not insert code here. */
     {
 #if IA64_ABI
+      /* In the IA-64 ABI, must be parenthesized initialization. */
       add_str_to_mangled_name("pi", mctl);
 #else /* !IA64_ABI */
       if (dip->is_braced_initializer) {
         /* Indicate brace-enclosed list (otherwise parenthesized list). */
         add_str_to_mangled_name("bi", mctl);
       }  /* if */
-      store_digits_and_underscore(number_of_operands_in_list(inits),
-                                  /*old_form=*/FALSE, mctl);
 #endif /* IA64_ABI */
-      if (inits != NULL) {
-        mangled_expression_list(inits, in_dependent_expr, mctl);
-      }  /* if */
+      /* Mangle the list of expressions/constants. */
+      get_expr_or_constant_list_from_dip(dip, &expr_list, &con_list);
+      mangled_list(expr_list, con_list, mctl);
 #if IA64_ABI
       add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */
