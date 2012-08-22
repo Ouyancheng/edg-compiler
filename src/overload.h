@@ -1034,6 +1034,9 @@ void prep_reference_initializer_operand(an_operand         *source_operand,
 #if !STANDALONE_UTILITY_PROGRAM
 extern void unbundle_init_component_expressions(an_init_component_ptr icp);
 
+extern void keep_worst_match(an_arg_match_summary *new_arg_match,
+                             an_arg_match_summary *worst_arg_match);
+
 extern
 void prep_list_initializer(an_init_component_ptr icp,
                            a_type_ptr            dest_type,

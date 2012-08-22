@@ -29569,7 +29569,10 @@ dynamic init entry if one is created to represent this initializer
   a_dynamic_init_ptr  dip;
   a_conv_context_set  conv_context = CCO_DEFAULT;
   a_boolean           is_full_expr = is->elements_are_full_expressions;
+  an_arg_match_summary
+                      local_arg_match, *eff_arg_match = NULL;
 
+  check_assertion(is != NULL);
   if (is_var_init) {
     /* This is a top-level variable initialization. */
     a_symbol_ptr   var_sym;
@@ -29588,6 +29591,11 @@ dynamic init entry if one is created to represent this initializer
     conv_context |= CCO_INITIALIZING_VARIABLE;
     if (is->static_lifetime_init) conv_context |= CCO_STATIC_LIFETIME;
   }  /* if */
+  if (is->arg_match != NULL) {
+    /* Keep track of the worst conversion on members of a given aggregate. */
+    check_assertion(is->check_validity_only && is->no_diagnostics);
+    eff_arg_match = &local_arg_match;
+  }  /* if */
   prep_list_initializer(icp, dest_type,
                         is->direct_init,
                         /*check_narrowing=*/FALSE,  /* Ignored */
@@ -29595,7 +29603,15 @@ dynamic init entry if one is created to represent this initializer
                         conv_context, fill_in_dtor,
                         /*force_temp=*/FALSE,
                         (an_operand *)NULL,
-                        is, (an_arg_match_summary *)NULL);
+                        is, eff_arg_match);
+  if (is->arg_match != NULL) {
+    /* Keep track of the worst conversion on members of a given aggregate. */
+    if (local_arg_match.match_level == aml_none) {
+      is->init_error = TRUE;
+    } else {
+      keep_worst_match(&local_arg_match, is->arg_match);
+    }  /* if */
+  }  /* if */
   if (is->init_error) {
     dip = NULL;
   } else {

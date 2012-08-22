@@ -20360,6 +20360,22 @@ parameters, and return TRUE.
 }  /* find_initializer_list_constructor */
 
 
+void keep_worst_match(an_arg_match_summary *new_arg_match,
+                      an_arg_match_summary *worst_arg_match)
+/*
+Keep track of the worst overload resolution match in *worst_arg_match.
+*new_arg_match is the latest match; if it is worse than *worst_arg_match,
+overwrite *worst_arg_match with that new worst match.
+*/
+{
+  if (worst_arg_match->match_level == aml_none ||
+      compare_arg_match_levels(new_arg_match, worst_arg_match,
+                               /*suppress_tiebreakers=*/FALSE) < 0) {
+    *worst_arg_match = *new_arg_match;
+  }  /* if */
+}  /* keep_worst_match */
+
+
 static void make_initializer_list_object(an_init_component_ptr list_icp,
                                          a_type_ptr            element_type,
                                          a_type_ptr            list_type,
@@ -20490,11 +20506,7 @@ match or a user-defined conversion, etc.)
         break;
       } else {
         /* arg_match remembers the worst match on any member. */
-        if (arg_match->match_level == aml_none ||
-            compare_arg_match_levels(&local_arg_match, arg_match,
-                                     /*suppress_tiebreakers=*/FALSE) < 0) {
-          *arg_match = local_arg_match;
-        }  /* if */
+        keep_worst_match(&local_arg_match, arg_match);
       }  /* if */
     } else {
       /* Not checking for overload resolution. */
@@ -21066,8 +21078,9 @@ controls).
       if (arg_match != NULL && !try_user_conversions_in_ovl_res) {
         arg_match_err = TRUE;
       } else {
-        an_init_state init_state;
-        an_init_state *eff_is = is;
+        an_arg_match_summary_ptr aggr_arg_match = NULL;
+        an_init_state            init_state;
+        an_init_state            *eff_is = is;
         if (eff_is == NULL) {
           clear_init_state(&init_state);
           eff_is = &init_state;
@@ -21075,10 +21088,15 @@ controls).
           if (!generate_il) eff_is->check_validity_only = TRUE;
           if (is_cast) eff_is->force_dynamic_init = TRUE;
         }  /* if */
+        if (arg_match != NULL && is_array_type(dest_type)) {
+          /* Keep track of the worst match on converting an element of
+             an array. */
+          aggr_arg_match = arg_match;
+        }  /* if */
         /* No unbundling here, since we will still want to handle the
            expressions individually at the next level down. */
         prep_aggr_initializer(icp, &dest_type, eff_is,
-                              (an_arg_match_summary*)NULL, fill_in_dtor);
+                              aggr_arg_match, fill_in_dtor);
         constant = eff_is->init_con;
         dip = eff_is->init_dip;
         partial_initializer = eff_is->partial_initializer;
@@ -21088,8 +21106,12 @@ controls).
             arg_match_err = TRUE;
           } else {
             /* [over.ics.list]p4 says initializing an aggregate from a
-               braced-init-list is a user-defined conversion sequence. */
-            arg_match->match_level = aml_user_conversion;
+               braced-init-list is a user-defined conversion sequence.
+               However, the cost for an array is the worst conversion
+               cost for an element (that's p2). */
+            if (aggr_arg_match == NULL) {
+              arg_match->match_level = aml_user_conversion;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
