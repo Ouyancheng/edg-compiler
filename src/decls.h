@@ -351,7 +351,7 @@ typedef struct an_init_state {
 			/* Used by expression processing to track the worst
 			   argument match during overload resolution.  (The
 			   type pointed to is opaque to declaration
-			   processing. ) */
+			   processing.) */
   a_bit_field	direct_init:1;
 			/* TRUE if this is for "direct" initialization as
 			   opposed to "copy" initialization.  C++ mode only. */
