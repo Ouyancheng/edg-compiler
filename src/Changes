@@ -1,5 +1,19 @@
 Version 4.5
 
+8/22/12  [EDGcpfe/13137]
+Abort on invalid use of auto-typed static data member
+
+The use of a static data member declared with an "auto" type specifier in the
+initializer for that data member previously triggered an internal error in
+prep_generic_operand_full (expr_util.c).  For example:
+
+  struct A {
+    static auto x = sizeof(x);  // Previously caused the front end to abort.
+  };
+
+This is now fixed; an error is now issued in such cases.
+
+
 8/20/12  [EDGcpfe/13106]
 Spurious error on lambda capturing "this" in Microsoft mode
 

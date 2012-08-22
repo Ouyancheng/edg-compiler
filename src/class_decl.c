@@ -13908,6 +13908,9 @@ specific information about the member declaration, respectively.
      region and put on the variables list for the current class.  The storage
      class will usually be set to extern (except sometimes in cfront mode). */
   var = make_variable(member_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
+  if (decl_state->auto_type_specifier_seen) {
+    var->declared_with_auto_type_specifier = TRUE;
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled) {
     if (decl_state->has_cli_initonly_keyword) {
