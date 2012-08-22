@@ -3312,9 +3312,14 @@ argument-passing is copy-initialization).
 */
 {
   if (is_expression_component(alep)) {
+    an_operand *operand = operand_of_arg_list_elem(alep);
+    if (is_braced_init_list_operand(operand)) {
+      alep = operand->variant.braced_init_list;
+      goto handle_braced_init_list;
+    }  /* if */
     /* The argument is an expression. */
     if (alep->check_narrowing &&
-        check_narrowing_conversion(operand_of_arg_list_elem(alep),
+        check_narrowing_conversion(operand,
                                    param_type,
                                    /*error_on_narrowing=*/FALSE,
                                    /*warning_on_narrowing=*/FALSE,
@@ -3324,7 +3329,7 @@ argument-passing is copy-initialization).
       clear_arg_match_summary(arg_summary);
       arg_summary->match_level = aml_none;
     } else {
-      determine_arg_match_level(operand_of_arg_list_elem(alep),
+      determine_arg_match_level(operand,
                                 (a_type *)NULL,
                                 param_type,
                                 ptp,
@@ -3335,9 +3340,10 @@ argument-passing is copy-initialization).
     }  /* if */
   } else {
     /* The argument is a braced-init-list. */
-    a_conv_context_set conv_context =
-                              add_conv_context_for_parameter(ptp, CCO_DEFAULT);
+    a_conv_context_set conv_context;
+handle_braced_init_list:
     check_assertion(is_braced_init_component(alep));
+    conv_context = add_conv_context_for_parameter(ptp, CCO_DEFAULT);
     if (!try_user_conversions) {
       conv_context |= CCO_SUPPRESS_USER_CONVERSIONS_IN_OVL_RES;
     }  /* if */
@@ -15811,6 +15817,7 @@ conversion.
   a_base_class_ptr              bcp;
   a_type_qualifier_set          source_qualifiers;
   a_source_position             *pos;
+  an_arg_match_summary          arg_match;
 
   /* Note that this routine is like a simplified version of
      select_overloaded_function that works for user-defined conversion
@@ -15857,6 +15864,7 @@ conversion.
   if (alep != NULL) {
     /* With a braced-init-list, there's no source type. */
     source_type = NULL;
+    source_qualifiers = TQ_NONE;
     type_is_same = FALSE;
     source_is_class = FALSE;
     bcp = NULL;
@@ -15894,7 +15902,6 @@ conversion.
   cctor_is_bitwise_copy = (cssp->construction_by_bitwise_copy_allowed &&
                            cssp->constructor == NULL);
   bitwise_copy_okay = try_bitwise_copy &&
-                      alep == NULL &&
                       cctor_is_bitwise_copy &&
                       !any_qualifier_in_set_missing(TQ_CONST, /*lint --e(845)*/
                                                     source_qualifiers);
@@ -15905,6 +15912,27 @@ conversion.
        match. */
     conversion->class_identity_or_bitwise_copy = TRUE;
     okay = TRUE;
+  } else if (alep != NULL && bitwise_copy_okay &&
+             (determine_arg_list_elem_match_level(
+                                 alep,
+                                 make_reference_type(
+                                    make_qualified_type(class_type, TQ_CONST)),
+                                 (a_param_type *)NULL,
+                                 /*param_type_is_deduced=*/FALSE,
+                                 /*try_user_conversions=*/TRUE,
+                                 /*allow_expl_conv_funcs=*/FALSE,
+                                 &arg_match),
+              arg_match.match_level != aml_none)) {
+    /* The source is a braced-init-list, and it can be used to construct
+       an object of the class type that can then be bitwise copied.  The
+       conversion tested above is to the parameter type of the notional
+       bitwise copy constructor. */
+    conversion->class_identity_or_bitwise_copy = TRUE;
+    okay = TRUE;
+    if (ctor_arg_conversion != NULL) {
+      *ctor_arg_conversion = arg_match.conversion;
+      ctor_arg_conversion_set = TRUE;
+    }  /* if */
   } else if (is_template_dependent_context() &&
              (class_type->variant.class_struct_union.is_nonreal_class ||
               (alep != NULL ? arg_list_is_dependent(alep) :
@@ -17052,22 +17080,57 @@ error:
 }  /* conversion_possible */
 
 
+static void actualize_class_object_from_braced_init_list_for_bitwise_copy(
+                                                          an_operand *operand,
+                                                          a_type_ptr dest_type)
+/*
+operand is a braced-init-list operand that has been determined to be
+bitwise-copyable to a destination of type dest_type (a bitwise-copyable
+class type).  Convert the braced-init-list to the class type, producing
+the object that can then be bitwise copied (or, more likely, used
+directly after elision of the copy).
+*/
+{
+  an_operand orig_operand;
+
+  check_assertion(is_braced_init_list_operand(operand));
+  orig_operand = *operand;
+  prep_list_initializer(operand->variant.braced_init_list,
+                        dest_type,
+                        /*is_direct_init=*/FALSE,
+                        /*check_narrowing=*/FALSE,
+                        /*warning_on_narrowing=*/FALSE,
+                        CCO_DEFAULT,
+                        /*fill_in_dtor=*/TRUE,
+                        /*force_temp=*/FALSE,
+                        operand,
+                        (an_init_state *)NULL,
+                        (an_arg_match_summary *)NULL);
+  restore_operand_details(operand, &orig_operand);
+}  /* actualize_class_object_from_braced_init_list_for_bitwise_copy */
+
+
 static void prep_class_bitwise_copy_operand(an_operand *source_operand,
                                             a_type_ptr dest_type)
 /*
 source_operand is to be copied bitwise to an entity of type dest_type.
-Both have class types.  Adjust source_operand if necessary, specifically
-for the case where the source type is a derived class of dest_type,
-and convert it to an rvalue if it isn't one already.  This routine does
-not do the bitwise copy; it just prepares the operand for it.  Note
-also that this routine is called for the identity case where the class
-type is already correct and nothing should be done to it.
+Both have class types (or source_operand is a braced-init-list that
+can be converted to dest_type).  Adjust source_operand if necessary,
+specifically for the case where the source type is a derived class of
+dest_type, and convert it to an rvalue if it isn't one already.  This
+routine does not do the bitwise copy; it just prepares the operand for
+it.  Note also that this routine is called for the identity case where
+the class type is already correct and nothing should be done to it.
 */
 {
   if (C_mode()) {
     /* In C mode, the types will always be the same, ignoring cv-qualifiers.
        We don't want to adjust the cv-qualifiers of the operand to match
        the destination type, since rvalues don't have cv-qualifiers in C. */
+  } else if (is_braced_init_list_operand(source_operand)) {
+    actualize_class_object_from_braced_init_list_for_bitwise_copy(
+                                                                source_operand,
+                                                                dest_type);
   } else {
     /* Adjust the class object type if necessary. */
     full_adjust_class_object_type(source_operand, dest_type);
@@ -18038,6 +18101,15 @@ happen only in C++ mode.
   if (class_bitwise_copy) {
     /* The operation is a class bitwise copy (of the simplest kind, where
        the copy constructor is implicit and not user-declared). */
+    if (is_braced_init_list_operand(source_operand)) {
+      /* When the source is a braced-init-list, perform the conversion on
+         the list (previously determined to be possible) to bring it to the
+         class object that would be copied.  Then elision will always
+         apply. */
+      actualize_class_object_from_braced_init_list_for_bitwise_copy(
+                                                                source_operand,
+                                                                dest_type);
+    }  /* if */
     if (!C_mode() &&
         identical_types_ignoring_qualifiers(source_operand->type,
                                             class_type)) {

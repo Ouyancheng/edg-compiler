@@ -1730,6 +1730,7 @@ list is returned.
 
 static void scan_expression_list_context_expr(
                              a_local_expr_options_set options,
+                             a_boolean                allow_braced_init_list,
                              an_operand               *operand,
                              an_operand               *bound_function_selector,
                              a_boolean                *expr_not_present)
@@ -1737,12 +1738,14 @@ static void scan_expression_list_context_expr(
 Scan a single expression that happens to be in a context that syntactically
 is considered an expression list, and return the expression in *operand.
 Because the context is nominally an expression list, allow pack expansions
-and disallow top-level comma operators.  If an expression is present but
-an empty pack expansion produces no result expression, return
-*expr_not_present TRUE (and nothing in *operand).  If bound_function_selector
-is non-NULL, the expression is allowed to be a bound function, and if it
-is, the selector part is returned in *bound_function_selector.  options is
-a set of expression-scanning options in case the caller wants to provide some
+and disallow top-level comma operators.  Allow a braced-init-list if
+allow_braced_init_list is TRUE (and the current dialect allows them).
+If an expression is present but an empty pack expansion produces no
+result expression, return *expr_not_present TRUE (and nothing in
+*operand).  If bound_function_selector is non-NULL, the expression is
+allowed to be a bound function, and if it is, the selector part is
+returned in *bound_function_selector.  options is a set of
+expression-scanning options in case the caller wants to provide some
 additional ones over the basic ones implied for this case.
 */
 {
@@ -1762,8 +1765,13 @@ additional ones over the basic ones implied for this case.
     an_operand                 local_operand, local_bound_function_selector;
     a_pack_expansion_descr_ptr pedep;
 
-    scan_expr_full(&local_operand, &local_bound_function_selector,
-                   PREC_LOWEST, options);
+    if (allow_braced_init_list && list_init_enabled &&
+        curr_token == tok_lbrace) {
+      scan_braced_init_list_as_operand(&local_operand);
+    } else {
+      scan_expr_full(&local_operand, &local_bound_function_selector,
+                     PREC_LOWEST, options);
+    }  /* if */
     if (first_time) {
       copy_operand(&local_operand, operand);
       if (bound_function_selector != NULL) {
@@ -13977,7 +13985,9 @@ Microsoft, Sun) allow extended forms of integer constants.
   if (top_level) transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the expression. */
   if (is_expr_list) {
-    scan_expression_list_context_expr(EOPT_NO_OPTIONS, operand,
+    scan_expression_list_context_expr(EOPT_NO_OPTIONS,
+                                      /*allow_braced_init_list=*/FALSE,
+                                      operand,
                                       (an_operand *)NULL,
                                       expr_not_present);
   } else {
@@ -19455,7 +19465,9 @@ scanned, return the selector in *bound_function_selector.
     /* Normal case. */
     a_local_expr_options_set cast_options = EOPT_OPERAND_OF_CAST;
     if (is_expr_list) {
-      scan_expression_list_context_expr(cast_options, operand,
+      scan_expression_list_context_expr(cast_options,
+                                        /*allow_braced_init_list=*/TRUE,
+                                        operand,
                                         bound_function_selector,
                                         expr_not_present);
     } else {
