@@ -6870,6 +6870,7 @@ restrictive" relationship, see exception_spec_is_less_restrictive.)
                       type2->kind == (a_type_kind)tk_routine);
       esp1 = type1->variant.routine.extra_info->exception_specification;
       esp2 = type2->variant.routine.extra_info->exception_specification;
+      is_less_restrictive = exception_spec_is_less_restrictive(esp1, esp2);
     }  /* if */
   }  /* if */
   return is_less_restrictive;
