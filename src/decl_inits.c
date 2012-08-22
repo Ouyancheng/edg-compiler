@@ -2742,9 +2742,10 @@ static void braced_initializer(a_type_ptr          dtype,
                                a_source_position   *diag_pos)
 /*
 Handle a braced-init-list following a declarator, a mem-initializer-id, or a
-new-type-id.  If the direct_init flag in the initialization state is TRUE, the
-initializer uses direct initialization syntax (e.g., "T x{3};"); otherwise, it
-uses copy initialization syntax (e.g., "T x = {3};").
+new-type-id, as well as the braced construct in a C99-style compound literal.
+If the direct_init flag in the initialization state is TRUE, the initializer
+uses direct initialization syntax (e.g., "T x{3};"); otherwise, it uses copy
+initialization syntax (e.g., "T x = {3};").
 dtype is the type of the entity being initialized.  *is describes the state of
 initializer processing.  *dps describes the declaration that the initializer
 is part of; it is NULL if the initialization is not (directly) part of a
