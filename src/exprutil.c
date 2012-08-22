@@ -4322,7 +4322,7 @@ list, not an argument list, so it may include designators.
          be substituted.  Likewise the array designator just has an index
          number (or two), which isn't changed by substitution. */
       copy_icp = alloc_init_component((an_init_component_kind)ick_designator);
-      *copy_icp = *icp;
+      copy_icp->variant.designator = icp->variant.designator;
     } else {
       /* Other kinds of entries; rescan in the usual way. */
       copy_icp = rescan_init_component(icp, rcblock);
