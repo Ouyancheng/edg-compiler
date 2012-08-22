@@ -3895,7 +3895,7 @@ returned set to TRUE.
     if (local_static_lifetime != NULL) {
         pop_object_lifetime_for_local_static_init(local_static_lifetime,
                                                   local_static_var_init,
-                                                  init_err);
+                                                  init_err || var_err);
     }  /* if */
     if (sym_is_namespace_member(symbol_ptr)) {
       pop_namespace_reactivation_scope();
