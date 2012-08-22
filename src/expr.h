@@ -144,6 +144,9 @@ typedef struct an_init_component {
 			   the C++11 standard disallows a parenthesized
 			   initializer of the form ({x}) if the entity being
 			   initialized is not a class. */
+  a_bit_field	permanently_allocated:1;
+			/* TRUE if this entry is permanently allocated and
+			   an attempt to free it should be ignored. */
   a_pack_expansion_descr_ptr
 		pack_expansion_descr;
 			/* If non-NULL, this entity is a pack expansion

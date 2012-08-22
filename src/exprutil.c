@@ -96,6 +96,7 @@ Counts of entries allocated, for debugging purposes.
 static unsigned long
 		num_arg_operands_allocated,
 		num_init_components_allocated,
+		num_init_components_permanently_allocated,
 		num_init_components_freed,
 		num_expr_rescan_info_entries_allocated,
 		num_ref_entries_allocated,
@@ -711,10 +712,8 @@ The operand will not be used further.
     operand->variant.property_ref.subscripts = NULL;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (is_braced_init_list_operand(operand)) {
-    free_init_component_list(operand->variant.braced_init_list);
-    operand->variant.braced_init_list = NULL;
-  }  /* if */
+  /* The init-components attached to an ok_braced_init_list entry are
+     permanently allocated to avoid memory management issues. */
 }  /* free_attachments_to_operand */
 
 
@@ -806,6 +805,7 @@ kind to "kind" and its fields to default values, and return a pointer to it.
   icp->contains_designator = FALSE;
   icp->check_narrowing = FALSE;
   icp->braced_init_in_parentheses = FALSE;
+  icp->permanently_allocated = FALSE;
   icp->pack_expansion_descr = NULL;
   set_init_component_kind(icp, kind);
   return icp;
@@ -837,6 +837,10 @@ subtree of entries, free those as well.
 */
 {
   check_assertion(icp != NULL);
+  if (icp->permanently_allocated) {
+    /* Don't free a permanently-allocated entry. */
+    goto end_of_routine;
+  }  /* if */
   switch (icp->kind) {
     case ick_expression:
       check_assertion(icp->variant.expr != NULL &&
@@ -872,6 +876,7 @@ subtree of entries, free those as well.
 #if DEBUG
   num_init_components_freed++;
 #endif /* DEBUG */
+end_of_routine:;
 }  /* free_init_component */
 
 
@@ -3148,26 +3153,6 @@ entry attached to the expression node so it will be available for the rescan.
   node->rescan_info = eriep;
 }  /* save_operand_info_in_expr_rescan_info_entry */
 
-#if CHECKING && DEBUG && ABORT_ON_INIT_COMPONENT_LEAKAGE
-
-static unsigned long count_of_init_components(an_init_component *list_icp)
-/*
-Return a count of the init components on the list given by list_icp.
-*/
-{
-  unsigned long         count = 0;
-  an_init_component_ptr icp;
-
-  for (icp = list_icp; icp != NULL; icp = icp->next) {
-    count++;
-    if (is_braced_init_component(icp)) {
-      count += count_of_init_components(icp->variant.braced.list);
-    }  /* if */
-  }  /* for */
-  return count;
-}  /* count_of_init_components */
-
-#endif /* CHECKING && DEBUG && ABORT_ON_INIT_COMPONENT_LEAKAGE */
 
 void save_rescan_info_for_braced_init_list(a_dynamic_init_ptr    dip,
                                            an_init_component_ptr icp)
@@ -3196,11 +3181,6 @@ dynamic init, which is given by icp.
      We still want to overwrite the old information with the new. */
   eriep = save_operand_info_in_rescan_info_entry(&operand, dip->rescan_info);
   dip->rescan_info = eriep;
-#if CHECKING && DEBUG && ABORT_ON_INIT_COMPONENT_LEAKAGE
-  /* The init-component entries saved in the rescan information will
-     never be freed. */
-  num_init_components_freed += count_of_init_components(icp);
-#endif /* CHECKING && DEBUG && ABORT_ON_INIT_COMPONENT_LEAKAGE */
 }  /* save_rescan_info_for_braced_init_list */
 
 
@@ -11721,6 +11701,44 @@ instantiation for which we do not know the actual function to be called.
 }  /* prep_generic_argument_list */
 
 
+static void mark_init_component_as_permanently_allocated(
+                                                       an_init_component *icp);
+
+static void mark_init_component_list_as_permanently_allocated(
+                                                   an_init_component *list_icp)
+/*
+Mark the entries on the indicated init-component list, and their subtrees,
+as permanently allocated.
+*/
+{
+  an_init_component_ptr icp;
+
+  for (icp = list_icp; icp != NULL; icp = icp->next) {
+    mark_init_component_as_permanently_allocated(icp);
+  }  /* for */
+}  /* mark_init_component_list_as_permanently_allocated */
+
+
+static void mark_init_component_as_permanently_allocated(
+                                                        an_init_component *icp)
+/*
+Mark the indicated init-component and its subtree as permanently allocated.
+We don't plan to free it, and any attempt to free it will be ignored.
+*/
+{
+  if (!icp->permanently_allocated) {
+    icp->permanently_allocated = TRUE;
+#if CHECKING && DEBUG
+    num_init_components_permanently_allocated++;
+#endif /* CHECKING && DEBUG */
+    if (is_braced_init_component(icp)) {
+      mark_init_component_list_as_permanently_allocated(
+                                                     icp->variant.braced.list);
+    }  /* if */
+  }  /* if */
+}  /* mark_init_component_as_permanently_allocated */
+
+
 void make_braced_init_list_operand(an_arg_list_elem_ptr alep,
                                    an_operand           *result)
 /*
@@ -11736,6 +11754,7 @@ enclosed list.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result->end_position = *init_component_end_pos(alep);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  mark_init_component_as_permanently_allocated(alep);
 }  /* make_braced_init_list_operand */
 
 
@@ -18602,7 +18621,8 @@ was ultimately freed.
 {
 #if ABORT_ON_INIT_COMPONENT_LEAKAGE
   check_assertion_str(num_init_components_allocated ==
-                                                     num_init_components_freed,
+                      (num_init_components_freed +
+                       num_init_components_permanently_allocated),
                     "Some allocated init-component entries were never freed");
 #endif /* ABORT_ON_INIT_COMPONENT_LEAKAGE */
 }  /* check_all_init_component_entries_freed */
@@ -18634,6 +18654,7 @@ Do one-time initialization of variables related to expression processing.
 #if DEBUG
       pch_saved_var_array_elem(num_arg_operands_allocated),
       pch_saved_var_array_elem(num_init_components_allocated),
+      pch_saved_var_array_elem(num_init_components_permanently_allocated),
       pch_saved_var_array_elem(num_init_components_freed),
       pch_saved_var_array_elem(num_expr_rescan_info_entries_allocated),
       pch_saved_var_array_elem(num_ref_entries_allocated),
@@ -18691,6 +18712,7 @@ for each compilation.
   num_arg_match_summaries_allocated      = 0;
   num_arg_operands_allocated             = 0;
   num_init_components_allocated          = 0;
+  num_init_components_permanently_allocated = 0;
   num_init_components_freed              = 0;
   num_expr_rescan_info_entries_allocated = 0;
   num_ref_entries_allocated              = 0;

@@ -15846,6 +15846,13 @@ conversion.
          source_operand. */
       source_operand = NULL;
     }  /* if */
+  } else {
+    check_assertion(source_operand != NULL);
+    if (is_braced_init_list_operand(source_operand)) {
+      /* The operand is a braced-init-list, so use that. */
+      alep = source_operand->variant.braced_init_list;
+      source_operand = NULL;
+    }  /* if */
   }  /* if */
   if (alep != NULL) {
     /* With a braced-init-list, there's no source type. */
@@ -15887,6 +15894,7 @@ conversion.
   cctor_is_bitwise_copy = (cssp->construction_by_bitwise_copy_allowed &&
                            cssp->constructor == NULL);
   bitwise_copy_okay = try_bitwise_copy &&
+                      alep == NULL &&
                       cctor_is_bitwise_copy &&
                       !any_qualifier_in_set_missing(TQ_CONST, /*lint --e(845)*/
                                                     source_qualifiers);
