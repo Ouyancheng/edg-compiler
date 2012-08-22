@@ -79,6 +79,9 @@ extern void merge_dll_flags_from_parent_class(a_type_ptr          class_type,
                                               a_decl_parse_state  *dps);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern void form_exception_specification_for_generated_function(
+                                                           a_routine_ptr  rp);
+
 extern void check_for_conflicts_with_using_decls(
                                              a_symbol_ptr       overload_sym,
                                              a_source_position  *pos);

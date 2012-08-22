@@ -26,6 +26,7 @@ func_def.c -- Processing for function definitions (both user supplied and
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#include "class_decl.h"
 #include "exprutil.h"
 #if DO_IL_LOWERING
 #include "il_walk.h"
@@ -2688,10 +2689,10 @@ empty statement block.
     /* Don't bother generating the definition for a member of an unreal
        instantiation of a template class. */
   } else {
-    a_scope_depth  saved_innermost_scope_that_affects_access;
-    a_symbol_ptr   rout_sym;
-    a_boolean      trans_unit_pushed;
-    rout_sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
+    a_scope_depth                   saved_innermost_scope_that_affects_access;
+    an_exception_specification_ptr  declared_exception_spec;
+    a_symbol_ptr                    rout_sym = symbol_for(rout_ptr);
+    a_boolean                       trans_unit_pushed;
     check_assertion(class_type->variant.class_struct_union.extra_info
                               ->assoc_scope != NULL);
     /* Switch translation units if necessary. */
@@ -2720,6 +2721,27 @@ empty statement block.
     }  /* if */
     rtsp = skip_typerefs(rout_ptr->type)->variant.routine.extra_info;
     rtsp->assoc_routine = rout_ptr;
+    if (rout_ptr->is_defaulted) {
+      /* Save any declared exception specification for later comparison to the
+         generated specification. */
+      declared_exception_spec = rtsp->exception_specification;
+      rtsp->exception_specification = NULL;
+      form_exception_specification_for_generated_function(rout_ptr);
+      if (declared_exception_spec != NULL) {
+        /* If an exception specification was specified at all, it must be
+           equivalent to the generated one. */
+        if (exception_spec_is_less_restrictive(
+                    declared_exception_spec, rtsp->exception_specification) ||
+            exception_spec_is_less_restrictive(
+                    rtsp->exception_specification, declared_exception_spec)) {
+          pos_error(ec_invalid_explicit_exception_specification,
+                    &rout_ptr->source_corresp.decl_position);
+        } else {
+          /* Record the declared form. */
+          rtsp->exception_specification = declared_exception_spec;
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (rtsp->this_class != NULL) {
       scope->variant.routine.this_param_variable =
                             make_implicit_this_param_variable(rout_ptr->type);

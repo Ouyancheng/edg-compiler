@@ -5039,7 +5039,7 @@ return_types_are_override_compatible.
      symbol's "decl_position" for diagnostics. */
   if (rout->compiler_generated) source_pos = &overrider_sym->decl_position;
   rout->is_virtual = TRUE;
-  if (exception_spec_is_less_restrictive(rout->type, rp->type)) {
+  if (type_has_less_restrictive_exception_spec(rout->type, rp->type)) {
     /* The exception specification for the overriding virtual
        function is less restrictive that that of the overridden
        function. */
@@ -10340,8 +10340,7 @@ TRUE.
 }  /* merge_exception_specifications */
 
 
-static void form_exception_specification_for_generated_function(
-                                                         a_routine_ptr  rp)
+void form_exception_specification_for_generated_function(a_routine_ptr  rp)
 /*
 Synthesize an exception specification for the implicitly declared (i.e.,
 compiler-generated) member function rp -- a constructor, destructor, or

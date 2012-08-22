@@ -1,5 +1,21 @@
 Version 4.5
 
+8/22/12  [EDGcpfe/12860]
+Exception specifications and defaulted special members
+
+If an exception specification appears on a defaulted special member
+declaration, the front end now issues an error if that exception specification
+is incompatible with the exception specification that would be generated
+implicitly.  For example:
+
+  struct B { B() throw(int); };
+  struct D: B {
+    D() throw(unsigned) = default;
+         // Now an error, since the generated exception specification is
+         // "throw(int)".
+  };
+
+
 8/22/12  [EDGcpfe/13137]
 Abort on invalid use of auto-typed static data member
 

@@ -6760,21 +6760,19 @@ of the C++11 standard.
 }  /* is_non_throwing_routine */
 
 
-a_boolean exception_spec_is_less_restrictive(a_type_ptr  type1,
-                                             a_type_ptr  type2)
+a_boolean exception_spec_is_less_restrictive(
+                                         an_exception_specification_ptr  esp1,
+                                         an_exception_specification_ptr  esp2)
 /*
-Compare the exception specifications associated with function types type1
-and type2.  Return TRUE if the exception specification on the former is less
-restrictive than that on the latter.  The exception specification for one
-function is considered "less restrictive" than that of another if at least
-one type may be thrown from the former that would violate the exception
-specification of the latter (i.e., that would not be caught by handlers for
-the types specified for the latter).  For example, the following are in
-order from most restrictive to least restrictive:
+Compare the given exception specifications.  Return TRUE if esp1 is less
+restrictive than esp2.  An exception specification is considered "less
+restrictive" than another if at least one is permitted by the first while
+violating the second.  For example, the following are in order from most
+restrictive to least restrictive:
 
   void f1() throw();              // Nothing will be thrown
   void f2() throw(T);
-  void f3() throw(T,U);
+  void f3() throw(T, U);
   void f4();                      // Anything might be thrown
 
 Moreover:
@@ -6788,9 +6786,79 @@ g1, because a handler for B can also catch a D, but a handler for D cannot
 catch a B.
 */
 {
+  a_boolean  is_less_restrictive = FALSE;
+
+  if (esp2 == NULL
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      || esp2->throw_any
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                        ) {
+    /* The function associated with type2 can throw any exception; type1
+       cannot be less restrictive than that. */
+    /* is_less_restrictive = FALSE; */
+  } else if (esp1 == NULL
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             || esp1->throw_any
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                               ) {
+    /* Type1's function can can throw any exception, and type2's function
+       has at least some restriction, so the former is less restrictive. */
+    is_less_restrictive = TRUE;
+  } else {
+    /* If any type on the exception specification list of type1's function
+       does not match a type on the list of type2, the former is less
+       restrictive. Corollary 1: if the list of the type1's function is
+       empty (i.e., if its exception specification is maximally
+       restrictive), there is no way it can be less restrictive; in this
+       case, the outer loop stops before it even gets started.  Corollary
+       2: if there is anything on the list for type1 and the list for
+       type2 is empty, type1 has to be less restrictive; in this case it
+       is the inner loop that doesn't run. */
+    /* The outer loop traverses the types specified for type1. */
+    an_exception_specification_type_ptr  estp1, estp2;
+    estp1 = esp1->exception_specification_type_list;
+    for (; estp1 != NULL; estp1 = estp1->next) {
+      /* Ignore entries marked "redundant" -- the type has already been
+         seen on the list. */
+      if (estp1->redundant) continue;
+      /* The inner loop traverses the types specified for type2, looking
+         for an entry that matches the current entry from type1's list. */
+      estp2 = esp2->exception_specification_type_list;
+      for (; estp2 != NULL; estp2 = estp2->next) {
+        /* Ignore entries marked "redundant" -- the type has already been
+           seen on the list. */
+        if (estp2->redundant) continue;
+        /* The types "match" if a handler for estp1->type can catch
+           estp2->type -- e.g., if the types are identical or estp1->type
+           is a public and unambiguous base class of estp2->type. */
+        if (type_is_catchable_by_handler_for_other_type(estp2->type,
+                                                        estp1->type)) {
+          /* Match. */
+          goto continue_outer_loop;
+        }  /* if */
+      }  /* for */
+      /* Falling through to here means a match was not found. */
+      is_less_restrictive = TRUE;
+      break;
+continue_outer_loop:;
+      /* A match was found.  Move on to the next type in type1's list. */
+    }  /* for */
+  }  /* if */
+  return is_less_restrictive;
+}  /* exception_spec_is_less_restrictive */
+
+
+a_boolean type_has_less_restrictive_exception_spec(a_type_ptr  type1,
+                                                   a_type_ptr  type2)
+/*
+type1 and type2 are routine types (or typerefs with an underlying routine
+type).  Return TRUE if the exception specification of type1 is less restrictive
+than the exception specification of type2.  (For details regarding the "less
+restrictive" relationship, see exception_spec_is_less_restrictive.)
+*/
+{
   a_boolean                            is_less_restrictive = FALSE;
   an_exception_specification_ptr       esp1, esp2;
-  an_exception_specification_type_ptr  estp1, estp2;
 
   if (exceptions_enabled) {
     type1 = skip_typerefs(type1);
@@ -6802,65 +6870,10 @@ catch a B.
                       type2->kind == (a_type_kind)tk_routine);
       esp1 = type1->variant.routine.extra_info->exception_specification;
       esp2 = type2->variant.routine.extra_info->exception_specification;
-      if (esp2 == NULL
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          || esp2->throw_any
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                            ) {
-        /* The function associated with type2 can throw any exception; type1
-           cannot be less restrictive than that. */
-        /* is_less_restrictive = FALSE; */
-      } else if (esp1 == NULL
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                 || esp1->throw_any
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                   ) {
-        /* Type1's function can can throw any exception, and type2's function
-           has at least some restriction, so the former is less restrictive. */
-        is_less_restrictive = TRUE;
-      } else {
-        /* If any type on the exception specification list of type1's function
-           does not match a type on the list of type2, the former is less
-           restrictive. Corollary 1: if the list of the type1's function is
-           empty (i.e., if its exception specification is maximally
-           restrictive), there is no way it can be less restrictive; in this
-           case, the outer loop stops before it even gets started.  Corollary
-           2: if there is anything on the list for type1 and the list for
-           type2 is empty, type1 has to be less restrictive; in this case it
-           is the inner loop that doesn't run. */
-        /* The outer loop traverses the types specified for type1. */
-        estp1 = esp1->exception_specification_type_list;
-        for (; estp1 != NULL; estp1 = estp1->next) {
-          /* Ignore entries marked "redundant" -- the type has already been
-             seen on the list. */
-          if (estp1->redundant) continue;
-          /* The inner loop traverses the types specified for type2, looking
-             for an entry that matches the current entry from type1's list. */
-          estp2 = esp2->exception_specification_type_list;
-          for (; estp2 != NULL; estp2 = estp2->next) {
-            /* Ignore entries marked "redundant" -- the type has already been
-               seen on the list. */
-            if (estp2->redundant) continue;
-            /* The types "match" if a handler for estp1->type can catch
-               estp2->type -- e.g., if the types are identical or estp1->type
-               is a public and unambiguous base class of estp2->type. */
-            if (type_is_catchable_by_handler_for_other_type(estp2->type,
-                                                            estp1->type)) {
-              /* Match. */
-              goto continue_outer_loop;
-            }  /* if */
-          }  /* for */
-          /* Falling through to here means a match was not found. */
-          is_less_restrictive = TRUE;
-          break;
-continue_outer_loop:;
-          /* A match was found.  Move on to the next type in type1's list. */
-        }  /* for */
-      }  /* if */
     }  /* if */
   }  /* if */
   return is_less_restrictive;
-}  /* exception_spec_is_less_restrictive */
+}  /* type_has_less_restrictive_exception_spec */
 
 
 a_boolean same_exception_spec(a_type_ptr type_1, a_type_ptr type_2)
@@ -6886,8 +6899,8 @@ specifications match.  For other types, just return TRUE.
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
     if (is_function_type(type_1) && is_function_type(type_2)) {
-      result = !(exception_spec_is_less_restrictive(type_1, type_2) ||
-                 exception_spec_is_less_restrictive(type_2, type_1));
+      result = !(type_has_less_restrictive_exception_spec(type_1, type_2) ||
+                 type_has_less_restrictive_exception_spec(type_2, type_1));
     }  /* if */
   } else if (is_ptr_to_member_type(type_1) &&
              is_ptr_to_member_type(type_2)) {
@@ -6896,12 +6909,12 @@ specifications match.  For other types, just return TRUE.
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
     if (is_function_type(type_1) && is_function_type(type_2)) {
-      result = !(exception_spec_is_less_restrictive(type_1, type_2) ||
-                 exception_spec_is_less_restrictive(type_2, type_1));
+      result = !(type_has_less_restrictive_exception_spec(type_1, type_2) ||
+                 type_has_less_restrictive_exception_spec(type_2, type_1));
     }  /* if */
   } else if (is_function_type(type_1) && is_function_type(type_2)) {
-    result = !(exception_spec_is_less_restrictive(type_1, type_2) ||
-               exception_spec_is_less_restrictive(type_2, type_1));
+    result = !(type_has_less_restrictive_exception_spec(type_1, type_2) ||
+               type_has_less_restrictive_exception_spec(type_2, type_1));
   }  /* if */
   return result;
 }  /* same_exception_spec */
@@ -6957,7 +6970,7 @@ to a pointer to dest_type.
     source_type = skip_typerefs(source_type);
     dest_type = skip_typerefs(dest_type);
     if (is_function(source_type) && is_function(dest_type) &&
-        (exception_spec_is_less_restrictive(source_type, dest_type) ||
+        (type_has_less_restrictive_exception_spec(source_type, dest_type) ||
          !same_exception_spec_on_return_and_param_type(source_type,
                                                        dest_type))) {
       okay = FALSE;
