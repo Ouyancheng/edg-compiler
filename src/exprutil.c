@@ -11792,6 +11792,7 @@ some other kind of expression (e.g., a constructor call).
        source position information and record it as rescan information. */
     an_operand dummy_operand;
     make_braced_init_list_operand(alep, &dummy_operand);
+    dummy_operand.pack_expansion_descr = alep->pack_expansion_descr;
     save_operand_info_in_expr_rescan_info_entry(&dummy_operand, node);
   }  /* if */
   return node;
