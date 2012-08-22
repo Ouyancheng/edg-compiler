@@ -14709,7 +14709,7 @@ at the end of a full expression.
         *prev = tlep->next;
       } else {
         tlep->in_use = FALSE;
-        prev = &tlep;
+        prev = &(tlep->next);
       }  /* if */
     }  /* for */
   }  /* if */
