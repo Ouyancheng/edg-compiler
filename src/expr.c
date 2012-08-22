@@ -34381,7 +34381,6 @@ the rescan.  If there is no error, *result is set to an operand for the
 dynamic initialization after substitution.
 */
 {
-  check_assertion(!is_aggr_constant_dynamic_init(dip));
   if (!is_generated_dynamic_init(dip)) {
     /* Explicit cast, including a compound literal. */
     an_expr_node_ptr saved_expr = rcblock->expr;
