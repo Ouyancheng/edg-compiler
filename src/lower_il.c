@@ -903,7 +903,11 @@ Free a list of temporary list entries by putting them on the available list.
   if (tlep != NULL) {
     /* Find the last entry on the list. */
     a_temporary_list_entry_ptr tlep_last = tlep;
-    while (tlep_last->next != NULL) tlep_last = tlep_last->next;
+    while (tlep_last->next != NULL) {
+      check_assertion(tlep_last->var->init_kind ==
+                                                (a_dynamic_init_kind)dik_none);
+      tlep_last = tlep_last->next;
+    }  /* while */
     /* Put the whole list on the front of the available list. */
     tlep_last->next = avail_temporary_list_entries;
     avail_temporary_list_entries = tlep;
@@ -14695,11 +14699,18 @@ at the end of a full expression.
   /* NULL test is needed when this code is used to lower expressions
      in aggregate initializers in Microsoft C mode. */
   if (curr_context != NULL) {
-    a_temporary_list_entry_ptr tlep;
-    for (tlep = curr_context->local_temporaries;
+    a_temporary_list_entry_ptr tlep, *prev = &curr_context->local_temporaries;
+    for (tlep = *prev;
          tlep != NULL;
          tlep = tlep->next) {
-      tlep->in_use = FALSE;
+      if (tlep->var->init_kind != (a_dynamic_init_kind)dik_none) {
+        /* Remove a "reusable" temporary that has been assigned an initial
+           value during the lowering process (it's no longer reusable). */
+        *prev = tlep->next;
+      } else {
+        tlep->in_use = FALSE;
+        prev = &tlep;
+      }  /* if */
     }  /* for */
   }  /* if */
 }  /* release_reusable_temporaries */
