@@ -23627,11 +23627,6 @@ number.
                                           operator_position,
                                           operator_tok_seq_number,
                                           (a_source_position *)NULL);
-  if (is_braced_init_list_operand(operand_2)) {
-    /* Free the braced-init-list attached to operand_2 if operator overloading
-       was used. */
-    free_attachments_to_operand(operand_2);
-  }  /* if */
 }  /* process_simple_assignment */
 
 
@@ -24175,11 +24170,6 @@ operation_type_determined:
                                           operator_tok_seq_number,
                                           (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
-  if (is_braced_init_list_operand(&operand_2)) {
-    /* Free the braced-init-list attached to operand_2 if operator overloading
-       was used. */
-    free_attachments_to_operand(&operand_2);
-  }  /* if */
   db_exit();
 }  /* scan_compound_assignment_operator */
 

@@ -698,6 +698,9 @@ entries are used to hold arguments of function calls.
 }  /* alloc_arg_operand */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- operand is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void free_attachments_to_operand(an_operand *operand)
 /*
 Free any dynamically-allocated attachments to the indicated operand.
