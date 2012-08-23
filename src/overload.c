@@ -18008,17 +18008,6 @@ for a return, because the caller will do the destruction).
       }  /* if */
       *p_temp_init_node = temp_init_node;
       *p_dip = dip;
-      if (dip->is_creation_of_initializer_list_object) {
-        /* The lifetime of the array underlying an std::initializer_list object
-           matches the lifetime of the object. See core issue 1290.  So erase
-           the lifetime of the array, and it will be set later when
-           record_end_of_lifetime_destruction is called. */
-        a_dynamic_init_ptr dipa =
-           effective_dynamic_init_for_initializer_list_object(dip,
-                                                              (a_type **)NULL);
-        remove_from_destruction_list(dipa);
-        dipa->static_temp = FALSE;
-      }  /* if */
     }  /* if */
   }  /* if */
   return is_usable_temp_init;
@@ -18544,16 +18533,19 @@ conversion_determined:
         (*dip)->is_creation_of_initializer_list_object &&
         (conv_context & CCO_INITIALIZING_VARIABLE)) {
       /* The lifetime of the array underlying an std::initializer_list object
-         matches the lifetime of the object. See core issue 1290.  When
-         initializing a variable (or a piece of one), set the lifetime of
-         the array to match the lifetime of the variable. */
+         sometimes matches the lifetime of the object. See core issue 1290.
+         When initializing a variable (or a piece of one), change the lifetime
+         of the array to match the lifetime of the variable. */
       a_boolean static_lifetime = (conv_context & CCO_STATIC_LIFETIME) != 0;
       a_dynamic_init_ptr dipa =
            effective_dynamic_init_for_initializer_list_object(*dip,
                                                               (a_type **)NULL);
       dipa->static_temp = static_lifetime;
-      record_end_of_lifetime_destruction(dipa, static_lifetime,
-                                         /*block_lifetime=*/TRUE);
+      if (dipa->lifetime != NULL) {
+        remove_from_destruction_list(dipa);
+        record_end_of_lifetime_destruction(dipa, static_lifetime,
+                                           /*block_lifetime=*/TRUE);
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Restore the original source position, etc. */
