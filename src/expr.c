@@ -2726,7 +2726,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                               /*check_narrowing=*/TRUE,
                               /*warning_on_narrowing=*/FALSE,
                               CCO_DEFAULT,
-                              /*fill_in_dtor=*/TRUE,
+                              fill_in_dtor,
                               /*force_temp=*/TRUE,
                               (an_operand *)NULL, &init_state,
                               (an_arg_match_summary *)NULL);
