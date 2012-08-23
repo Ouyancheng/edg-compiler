@@ -20372,7 +20372,6 @@ static void make_initializer_list_object(an_init_component_ptr list_icp,
                                          a_type_ptr            element_type,
                                          a_type_ptr            list_type,
                                          a_conv_context_set    conv_context,
-                                         a_boolean             is_new_expr,
                                          a_dynamic_init_ptr    *p_dip,
                                          an_operand            *operand,
                                          an_arg_match_summary  *arg_match)
@@ -20383,15 +20382,14 @@ initializer_list<element_type> type, which is the type of the operand
 returned in *operand.  A temporary of array type is created and
 initialized with the contents of the braced-init-list, and that temporary
 is passed to a constructor for std::initializer_list.  conv_context
-describes the context of the conversion.  is_new_expr is TRUE if the
-initializer list creation is the initializer for a "new".  If
-p_dip is non-NULL, a pointer to the top dynamic initialization is
-returned in *p_dip.  If operand is NULL, the operand on top of that is
-not created.  If arg_match is non-NULL, do an evaluation of whether
-the initialization is valid, without issuing errors or building IL,
-and return *arg_match set to indicate how good a match the
-initialization is, in overload resolution terms (e.g., is it an exact
-match or a user-defined conversion, etc.)
+describes the context of the conversion.  If p_dip is non-NULL, a
+pointer to the top dynamic initialization is returned in *p_dip.  If
+operand is NULL, the operand on top of that is not created.  If
+arg_match is non-NULL, do an evaluation of whether the initialization
+is valid, without issuing errors or building IL, and return *arg_match
+set to indicate how good a match the initialization is, in overload
+resolution terms (e.g., is it an exact match or a user-defined
+conversion, etc.)
 */
 {
   a_routine_ptr      dtor = NULL, ctor;
@@ -20411,6 +20409,7 @@ match or a user-defined conversion, etc.)
   a_boolean          static_lifetime = (conv_context & CCO_STATIC_LIFETIME)!=0;
   a_boolean          initializing_var = (conv_context &
                                          CCO_INITIALIZING_VARIABLE) != 0;
+  a_boolean          is_new_expr = (conv_context & CCO_NEW_INITIALIZER) != 0;
 
   check_assertion(is_braced_init_component(list_icp));
   if (p_dip != NULL) *p_dip = NULL;
@@ -20451,7 +20450,8 @@ match or a user-defined conversion, etc.)
     a_boolean            check_narrowing = TRUE, saved_check_narrowing;
     a_boolean            will_need_partial_aggregate_destructor = FALSE;
     a_conv_context_set   econv_context = conv_context &
-                             (CCO_INITIALIZING_VARIABLE | CCO_STATIC_LIFETIME);
+                             (CCO_INITIALIZING_VARIABLE | CCO_STATIC_LIFETIME |
+                              CCO_NEW_INITIALIZER);
     if (unknown_num_elements ||
         elem_icp->pack_expansion_descr != NULL) {
       /* The list element is a pack expansion, or we previously encountered
@@ -21163,7 +21163,8 @@ controls).
       /* dest_type is an instance of std::initializer_list<X>, so build
          an initializer_list object from the braced-init-list. */
       a_conv_context_set iconv_context = conv_context &
-                             (CCO_STATIC_LIFETIME | CCO_INITIALIZING_VARIABLE);
+                             (CCO_STATIC_LIFETIME | CCO_INITIALIZING_VARIABLE |
+                              CCO_NEW_INITIALIZER);
       if (generate_il) unbundle_init_component_list_expressions(list);
       if (is != NULL) {
         if (is->static_lifetime_init) iconv_context |= CCO_STATIC_LIFETIME;
@@ -21171,7 +21172,6 @@ controls).
                                      element_type,
                                      dest_type,
                                      iconv_context,
-                                     is->is_new_expr_init,
                                      &dip,
                                      (an_operand *)NULL,
                                      arg_match);
@@ -21183,7 +21183,6 @@ controls).
                                      element_type,
                                      dest_type,
                                      iconv_context,
-                                     /*is_new_expr=*/FALSE,
                                      (a_dynamic_init_ptr *)NULL,
                                      &operand,
                                      arg_match);

@@ -430,8 +430,6 @@ typedef struct an_init_state {
 			/* TRUE if in this context, an initializer for a top-
 			   level array can determine the dimension of that
 			   array (e.g., as in "T x[] = { y, z };"). */
-  a_bit_field	is_new_expr_init:1;
-			/* TRUE for the initializer for a "new" operator. */
   a_bit_field	is_aggr_element_init:1;
 			/* TRUE while processing the initialization of a
 			   member of an aggregate. */

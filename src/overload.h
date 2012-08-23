@@ -236,6 +236,10 @@ typedef int a_conv_context_set;
 			   resolution for some specific reason related to
 			   the context (i.e., not just because this is
 			   copy-initialization). */
+#define CCO_NEW_INITIALIZER ((a_conv_context_set)0x4000)
+			/* The result of the conversion is the initializer
+			   in a "new".  Currently set only for a braced
+			   initializer. */
 
 /*
 Data structure used by set_up_overload_set_traversal et al. to control the

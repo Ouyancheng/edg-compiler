@@ -15817,13 +15817,12 @@ expression, and return the result in *result (or an error indication in
     init_state.variable_size_array = variable_size_array;
     init_state.initializer_can_dimension_array = TRUE;
     init_state.force_dynamic_init = TRUE;
-    init_state.is_new_expr_init = TRUE;
     if (rcblock != NULL) init_state.no_diagnostics = TRUE;
     prep_list_initializer(alep, new_type,
                           /*is_direct_init=*/TRUE,
                           /*check_narrowing=*/TRUE,
                           /*warning_on_narrowing=*/FALSE,
-                          CCO_DEFAULT,
+                          CCO_NEW_INITIALIZER,
                           /*fill_in_dtor=*/FALSE,
                           /*force_temp=*/FALSE,
                           (an_operand *)NULL, &init_state,
