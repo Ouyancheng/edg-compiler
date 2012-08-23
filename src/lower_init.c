@@ -9421,13 +9421,13 @@ any additional code needed to process the deletion.
         }  /* if */
       }  /* if */
     } else {
+      a_destructible_entity_descr_ptr dedp =
+                           dyn_init_to_free_storage->destructible_entity_descr;
       if (init_expr != NULL) {
         /* Add any initialization to the allocation. */
         insert_expr(init_expr, insert_location);
       }  /* if */
       /* Normal, non-placement, non-array delete case. */
-      a_destructible_entity_descr_ptr dedp =
-                           dyn_init_to_free_storage->destructible_entity_descr;
       if (dedp->conditional_flag_var != NULL) {
         /* Reset the flag that indicates that the freeing must be done. */
         reset_conditional_flag_var(dedp->conditional_flag_var,
