@@ -9361,19 +9361,23 @@ any additional code needed to process the deletion.
         an_expr_node_ptr entity_node = make_address_of_init_entity_node(ipdp, 
                                                       /*using_as_dest=*/FALSE);
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
-        if (is_array_type(ndsp->type)) {
+        if (is_array_type(ndsp->type) &&
+            new_or_delete_type_requires_array_handling(
+                          new_delete_base_type_from_operation_type(ndsp->type),
+                          /*check_constructor=*/TRUE)) {
+          /* Get the size of a prefix if there is one. */
           prefix_size_node = get_prefix_size_node(
                                                 array_element_type(ndsp->type),
                                                 new_routine);
-        }  /* if */
-        if (prefix_size_node != NULL) {
-          /* Subtract the array prefix size. */
-          entity_node = add_cast_if_necessary(entity_node, char_star_type());
-          entity_node->next = prefix_size_node;
-          entity_node = make_operator_node(
+          if (prefix_size_node != NULL) {
+            /* Subtract the array prefix size. */
+            entity_node = add_cast_if_necessary(entity_node, char_star_type());
+            entity_node->next = prefix_size_node;
+            entity_node = make_operator_node(
                                           (an_expr_operator_kind)eok_psubtract,
                                           entity_node->type,
                                           entity_node);
+          }  /* if */
         }  /* if */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
         /* Cast the argument to "void *", which is what the delete routine
