@@ -15798,6 +15798,11 @@ expression, and return the result in *result (or an error indication in
 #if MICROSOFT_EXTENSIONS_ALLOWED
     check_assertion(!cli_array_new);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Develop the dynamic init entry, if any, used to free storage
+       if an exception is thrown before the initialization is finished.
+       This must be done after it has been determined that initialization
+       is required, but before the initialization is actually processed. */
+    make_dyn_init_for_deletion_for_throw();
     if (rcblock != NULL) {
       /* On a rescan, use the substituted version of the braced-init-list
          scanned originally. */

@@ -1511,6 +1511,9 @@ extern an_expr_node_ptr make_lvalue_operator_node(
 extern an_expr_node_ptr make_comma_node(an_expr_node_ptr expr1,
                                         an_expr_node_ptr expr2);
 
+extern an_expr_node_ptr make_comma_node_if_necessary(an_expr_node_ptr node1,
+                                                     an_expr_node_ptr node2);
+
 extern void overwrite_node(an_expr_node_ptr node,
                            an_expr_node_ptr source_node);
 

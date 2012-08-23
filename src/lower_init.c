@@ -102,10 +102,12 @@ static void set_up_freeing_of_storage_on_exception(
                                  an_init_pos_descr_ptr       ipdp,
                                  an_insert_location          *insert_location);
 static void turn_off_freeing_of_storage_on_exception(
-                                 a_new_delete_supplement_ptr ndsp,
-                                 an_init_pos_descr_ptr       ipdp,
-                                 an_expr_node_ptr            delete_args,
-                                 an_insert_location          *insert_location);
+                             a_new_delete_supplement_ptr ndsp,
+                             an_init_pos_descr_ptr       ipdp,
+                             an_expr_node_ptr            delete_args,
+                             a_routine_ptr               new_routine,
+                             an_insert_location          *init_insert_location,
+                             an_insert_location          *insert_location);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -8831,6 +8833,42 @@ static a_variable_ptr
 
 #endif /* !IA64_ABI */
 
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+
+#if !IA64_ABI
+/*ARGSUSED*/ /* <-- elem_type, new_routine are not used in that case. */
+#endif /* !IA64_ABI */
+static an_expr_node_ptr get_prefix_size_node(a_type_ptr    elem_type,
+                                             a_routine_ptr new_routine)
+/*
+Utility routine to return an expression that represents the size of the
+prefix that is added to an array whose type is elem_type or NULL (in the
+IA-64 ABI) if no prefix is needed.  If new_routine is non-NULL, it is the
+placement new routine that is being called to allocate the memory.
+*/
+{
+  an_expr_node_ptr prefix_size_node = NULL;
+
+#if !IA64_ABI
+  if (array_new_prefix_size_var == NULL) {
+    /* Create the variable for the runtime __array_new_prefix_size
+       variable. */
+    array_new_prefix_size_var =
+                  make_lowered_variable("__array_new_prefix_size",
+                                        /*already_il_name=*/FALSE,
+                                        integer_type(targ_size_t_int_kind),
+                                        (a_storage_class)sc_extern);
+  }  /* if */
+  prefix_size_node = var_rvalue_expr(array_new_prefix_size_var);
+#else /* IA64_ABI */
+  prefix_size_node = get_array_new_padding(elem_type, new_routine,
+                                           /*even_if_zero=*/FALSE);
+#endif /* IA64_ABI  */
+  return prefix_size_node;
+}  /* get_prefix_size_node */
+
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
+
 static void lower_array_new(an_expr_node_ptr expr)
 /*
 Do lowering of an array new operation.  expr points to the enk_new_delete
@@ -8927,25 +8965,12 @@ arrays with class elements.
     /* Add the size of the runtime prefix used to keep track of the array
        size to the argument for the operator new[] call. */
     { an_expr_node_ptr size_node_next = size_node->next;
-
-#if !IA64_ABI
-      if (array_new_prefix_size_var == NULL) {
-        /* Create the variable for the runtime __array_new_prefix_size
-           variable. */
-        array_new_prefix_size_var =
-                      make_lowered_variable("__array_new_prefix_size",
-                                            /*already_il_name=*/FALSE,
-                                            integer_type(targ_size_t_int_kind),
-                                            (a_storage_class)sc_extern);
-      }  /* if */
-      prefix_size_node = var_rvalue_expr(array_new_prefix_size_var);
-      prefix_size_node = add_cast_if_necessary(prefix_size_node,
-                                               size_node->type);
-#else /* IA64_ABI */
-      prefix_size_node = get_array_new_padding(elem_type, new_routine,
-                                               /*even_if_zero=*/FALSE);
-#endif /* IA64_ABI  */
+      prefix_size_node = get_prefix_size_node(elem_type, new_routine);
       if (prefix_size_node != NULL) {
+#if !IA64_ABI
+        prefix_size_node = add_cast_if_necessary(prefix_size_node,
+                                                 size_node->type);
+#endif /* !IA64_ABI  */
         size_node->next = prefix_size_node;
         size_node = make_operator_node((an_expr_operator_kind)eok_add,
                                        size_node->type, size_node);
@@ -9140,6 +9165,7 @@ arrays with class elements.
        build a description of the entity to be initialized (as pointed to
        by the temporary variable).  Adjust the type so that it is an array. */
     an_init_pos_descr ipd;
+    an_insert_location init_insert_location;
     set_var_indirect_init_pos_descr(new_temp_var, &ipd);
     ipd.base_type = array_type;
     if (is_incomplete_array_type(array_type)) {
@@ -9153,17 +9179,20 @@ arrays with class elements.
        is initialized. */
     set_up_freeing_of_storage_on_exception(ndsp, &ipd, &insert_location);
     /* Generate code for the initialization. */
+    set_expr_creation_insert_location(&init_insert_location);
     lower_dynamic_init(dip, &ipd,
                        (an_implied_copy_source *)NULL,
                        (a_variable_ptr)NULL,
                        LDIO_NONE,
                        /*others_follow_in_aggr=*/FALSE,
-                       &insert_location,
+                       &init_insert_location,
                        (a_boolean *)NULL,
                        (a_constant **)NULL);
     /* Now that the entity is initialized, turn off the freeing on
        exception. */
     turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
+                                             new_routine,
+                                             &init_insert_location,
                                              &insert_location);
     /* Insert the value of the temporary as the final value of the
        expression. */
@@ -9272,9 +9301,9 @@ inserted at *insert_location.
     /* The storage for this "new" is supposed to be freed if an exception
        is thrown before the initialization is completed.  The fact
        that this pointer is non-NULL means exceptions are enabled. */
-    if (ndsp->placement_new) {
-      /* The placement delete case is handled later, by inserting an
-         internal "try" block. */
+    if (ndsp->placement_new || dyn_init_to_free_storage->is_array_freeing) {
+      /* These cases can't be handled by the runtime library; instead they
+         are handled later, by inserting an internal "try" block. */
     } else {
       /* For a default operator delete, the cleanup can be done through a
          cleanup region table entry. */
@@ -9287,57 +9316,116 @@ inserted at *insert_location.
 
 
 static void turn_off_freeing_of_storage_on_exception(
-                                  a_new_delete_supplement_ptr ndsp,
-                                  an_init_pos_descr_ptr       ipdp,
-                                  an_expr_node_ptr            delete_args,
-                                  an_insert_location          *insert_location)
+                             a_new_delete_supplement_ptr ndsp,
+                             an_init_pos_descr_ptr       ipdp,
+                             an_expr_node_ptr            delete_args,
+                             a_routine_ptr               new_routine,
+                             an_insert_location          *init_insert_location,
+                             an_insert_location          *insert_location)
 /*
 ndsp points to the new/delete supplement for a "new".  We're now at a
 location after the initialization related to the "new" has been done,
 so do the second part of the processing begun by
-set_up_freeing_of_storage_on_exception.  ipdp describes the location
-of the allocated storage.  delete_args points to the list of arguments
-for a placement delete call, if one if needed.  *insert_location indicates
-the point at which code should be inserted.
+set_up_freeing_of_storage_on_exception.  ipdp describes the location of the
+allocated storage.  delete_args points to the list of arguments for a placement
+delete call, if one if needed.  If new_routine is non-NULL, it is the placement
+new routine that is being called to allocate the memory.  *init_insert_location
+is an expression insert location into which the initialization (but not
+allocation) for the entity has been inserted (there may be no initialization
+code in some cases).  *insert_location fills two roles: on entry it is an
+expression insert location that encompasses the allocation of the entity; on
+exit it also contains the initialization (in *init_insert_location) as well as
+any additional code needed to process the deletion.
 */
 {
+  an_expr_node_ptr   delete_call, alloc_expr, init_expr, try_expr;
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+  an_expr_node_ptr   prefix_size_node = NULL;
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   a_dynamic_init_ptr dyn_init_to_free_storage =
                                          ndsp->freeing_of_storage_on_exception;
 
+  check_assertion(is_expr_insert_location(init_insert_location) &&
+                  is_expr_insert_location(insert_location));
+  init_expr = init_insert_location->variant.expr;
   if (dyn_init_to_free_storage != NULL) {
-    if (ndsp->placement_new) {
-      /* Placement delete.  Insert an internal "try" block here,
-         with the "catch" an appropriate call of the delete routine. */
-      an_expr_node_ptr delete_call, init_expr;
-      /* Put a pointer to the allocated storage on the front of the argument
-         list for the delete routine. */
-      an_expr_node_ptr entity_node = make_address_of_init_entity_node(ipdp, 
-                                                      /*using_as_dest=*/FALSE);
-      /* Cast the argument to "void *", which is what the delete routine
-         expects. */
-      entity_node = add_cast_if_necessary(entity_node, void_star_type());
-      entity_node->next = delete_args;
-      /* Make a call of the placement delete routine. */
-      delete_call = make_call_node(dyn_init_to_free_storage->destructor,
-                                   entity_node, (an_insert_location *)NULL);
-      /* Extract the overall initialization expression from the insert
-         location, and wrap a "try" expression around it, with the placement
-         delete call as the "catch". */
-      check_assertion(is_expr_insert_location(insert_location));
-      init_expr = insert_location->variant.expr;
-      if (init_expr == NULL) {
-        /* It's possible for there to be no initialization, for example, in
-           the case where a placement new operation specifies a constructor
-           that has no effect.  Nothing to do in this case. */
+    alloc_expr = insert_location->variant.expr;
+    if (ndsp->placement_new || dyn_init_to_free_storage->is_array_freeing) {
+      /* Generally speaking, deletion is handled through region table entries
+         but there are two cases that are handled here that use an internal
+         "try" block with a "catch" to do the requisite deletion. */
+      if (alloc_expr == NULL && init_expr == NULL) {
+        /* If neither allocation nor initialization generated any code,
+           there's nothing to do. */
       } else {
-        init_expr = make_internal_try_expr(init_expr, delete_call);
-        /* Give back to the caller an insert location that allows insertion
-           after the overall expression as modified. */
-        set_expr_creation_insert_location(insert_location);
-        insert_expr(init_expr, insert_location);
+        an_expr_node_ptr entity_node = make_address_of_init_entity_node(ipdp, 
+                                                      /*using_as_dest=*/FALSE);
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+        if (is_array_type(ndsp->type)) {
+          prefix_size_node = get_prefix_size_node(
+                                                array_element_type(ndsp->type),
+                                                new_routine);
+        }  /* if */
+        if (prefix_size_node != NULL) {
+          /* Subtract the array prefix size. */
+          entity_node = add_cast_if_necessary(entity_node, char_star_type());
+          entity_node->next = prefix_size_node;
+          entity_node = make_operator_node(
+                                          (an_expr_operator_kind)eok_psubtract,
+                                          entity_node->type,
+                                          entity_node);
+        }  /* if */
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
+        /* Cast the argument to "void *", which is what the delete routine
+           expects. */
+        entity_node = add_cast_if_necessary(entity_node, void_star_type());
+        /* Put a pointer to the allocated storage on the front of the argument
+           list for the delete routine.  Add any placement delete args if
+           necessary. */
+        entity_node->next = delete_args;
+        /* Make a call of the appropriate delete routine. */
+        delete_call = make_call_node(dyn_init_to_free_storage->destructor,
+                                     entity_node, (an_insert_location *)NULL);
+        if (ndsp->placement_new) {
+          /* Placement delete.  In the placement delete case, code must be
+             generated to delete the entity if a failure occurs anywhere
+             during the allocation or initialization process (the runtime
+             library does not do any deletion during a throw -- because it
+             doesn't know the arguments that need to be passed to the placement
+             delete routine).  */
+          try_expr = make_comma_node_if_necessary(alloc_expr, init_expr);
+          try_expr = make_internal_try_expr(try_expr, delete_call);
+        } else {
+          /* Freeing an array.  This case comes up when a braced-initializer
+             is used to initialize an array (e.g., "new A[4] {1, 2}").  In
+             such cases, the allocation and initialization phases are
+             handled separately.  The allocation portion is handled by the
+             runtime library and any exception that occurs during that
+             period is handled by the runtime library.  The initialization
+             portion must be covered by the internal "try/catch" mechanism
+             here (but not the allocation portion -- otherwise there would
+             be multiple deletes in some cases). */
+          check_assertion(dyn_init_to_free_storage->is_array_freeing);
+          if (init_expr == NULL) {
+            try_expr = init_expr;
+          } else {
+            try_expr = make_internal_try_expr(init_expr, delete_call);
+            try_expr = make_comma_node_if_necessary(alloc_expr, try_expr);
+          }  /* if */
+        }  /* if */
+        if (try_expr != NULL) {
+          /* Give back to the caller an insert location that allows insertion
+             after the overall expression as modified. */
+          set_expr_creation_insert_location(insert_location);
+          insert_expr(try_expr, insert_location);
+        }  /* if */
       }  /* if */
     } else {
-      /* Normal, non-placement delete case. */
+      if (init_expr != NULL) {
+        /* Add any initialization to the allocation. */
+        insert_expr(init_expr, insert_location);
+      }  /* if */
+      /* Normal, non-placement, non-array delete case. */
       a_destructible_entity_descr_ptr dedp =
                            dyn_init_to_free_storage->destructible_entity_descr;
       if (dedp->conditional_flag_var != NULL) {
@@ -9345,6 +9433,11 @@ the point at which code should be inserted.
         reset_conditional_flag_var(dedp->conditional_flag_var,
                                    insert_location);
       }  /* if */
+    }  /* if */
+  } else {
+    if (init_expr != NULL) {
+      /* Add any initialization to the allocation. */
+      insert_expr(init_expr, insert_location);
     }  /* if */
   }  /* if */
 }  /* turn_off_freeing_of_storage_on_exception */
@@ -9544,7 +9637,8 @@ The subtree of the node has not yet been lowered.
       } else {
         /* Build a description of the entity to be initialized.  Adjust the
            type so that it is an array if necessary. */
-        an_init_pos_descr ipd;
+        an_init_pos_descr  ipd;
+        an_insert_location init_insert_location;
         set_var_indirect_init_pos_descr(temp_var, &ipd);
         ipd.base_type = ndsp->type;
         if (is_incomplete_array_type(ndsp->type)) {
@@ -9561,16 +9655,19 @@ The subtree of the node has not yet been lowered.
            is initialized. */
         set_up_freeing_of_storage_on_exception(ndsp, &ipd, &insert_location);
         /* Generate code for the initialization. */
+        set_expr_creation_insert_location(&init_insert_location);
         lower_dynamic_init(dip, &ipd,
                            (an_implied_copy_source *)NULL,
                            (a_variable_ptr)NULL,
                            LDIO_NONE,
                            /*others_follow_in_aggr=*/FALSE,
-                           &insert_location, (a_boolean *)NULL,
+                           &init_insert_location, (a_boolean *)NULL,
                            (a_constant **)NULL);
         /* Now that the entity is initialized, turn off the freeing on
            exception. */
         turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
+                                                 (a_routine_ptr)NULL,
+                                                 &init_insert_location,
                                                  &insert_location);
       }  /* if */
       {

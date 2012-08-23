@@ -13859,6 +13859,27 @@ expression is determined by the lvalueness of its second operand.
 }  /* make_comma_node */
 
 
+an_expr_node_ptr make_comma_node_if_necessary(an_expr_node_ptr node1,
+                                              an_expr_node_ptr node2)
+/*
+Utility to combine two non-NULL expressions into a comma expression or return 
+the "other" expression if one is NULL.  Both expressions cannot be NULL.
+*/
+{
+  an_expr_node_ptr result;
+
+  check_assertion(node1 != NULL || node2 != NULL);
+  if (node1 == NULL) {
+    result = node2;
+  } else if (node2 == NULL) {
+    result = node1;
+  } else {
+    result = make_comma_node(node1, node2);
+  }  /* if */
+  return result;
+}  /* make_comma_node_if_necessary */
+
+
 an_expr_node_ptr error_node(void)
 /*
 Make and return an expression node indicating an error.
