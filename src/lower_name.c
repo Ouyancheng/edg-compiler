@@ -5267,10 +5267,11 @@ static void mangled_list(an_expr_node_ptr         expr_list,
                          a_constant_ptr           con,
                          a_mangling_control_block *mctl)
 /*
-Provide mangling for a list of either expressions or a constant (which may be
-an aggregate).  When con is non-NULL, the constant is emitted as a list (to
-emulate GNU's mangling of compound literals), otherwise, the list of
-expressions (which may be NULL) is mangled.
+Provide mangling for a list of expressions or a constant (which may be
+an aggregate -- in which case each element of the aggregate is mangled --
+to emulate GNU's mangling of compound literals).  When con is non-NULL, a
+mangling for the constant, is provided; otherwise, the list of expressions
+(which may be NULL) is mangled.
 */
 {
   a_constant_ptr  cp;
@@ -5507,7 +5508,7 @@ if there is no <initializer>, an 'E' is emitted.
 
 Note that the Cfront and IA-64 ABIs diverge somewhat here (because the "O"
 characters that open this "operation" don't lend themselves to nesting, so
-in the Cfront ABI, so a "bi" flag is used instead).
+in the Cfront ABI a "bi" flag is used instead).
 */
 {
   an_expr_node_ptr  expr_list;
