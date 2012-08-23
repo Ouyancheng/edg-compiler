@@ -21103,6 +21103,10 @@ controls).
                cost for an element (that's p2). */
             if (aggr_arg_match == NULL) {
               arg_match->match_level = aml_user_conversion;
+            } else if (arg_match->match_level == aml_none) {
+              /* If the array has no elements, call it an exact match. */
+              check_assertion(icp->variant.braced.list == NULL);
+              arg_match->match_level = aml_exact;
             }  /* if */
           }  /* if */
         }  /* if */
