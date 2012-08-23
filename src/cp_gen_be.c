@@ -13897,7 +13897,8 @@ on an array, *value_init is returned TRUE, and the function returns FALSE.
   if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
     a_constant_ptr con = dip->variant.constant;
     check_assertion(con->kind == (a_constant_repr_kind)ck_aggregate);
-    if (con->variant.aggregate.first_constant->kind ==
+    if (con->variant.aggregate.first_constant != NULL &&
+        con->variant.aggregate.first_constant->kind ==
                                         (a_constant_repr_kind)ck_init_repeat) {
       is_default_array_init = TRUE;
       con= con->variant.aggregate.first_constant->variant.init_repeat.constant;
