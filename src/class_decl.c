@@ -10999,17 +10999,14 @@ static a_boolean assignment_operator_for_copy_exists(
                                             a_symbol_ptr  sym,
                                             a_boolean     move_assign_okay,
                                             a_boolean     *p_is_user_provided,
-                                            a_boolean     *p_const_okay,
-                                            a_boolean     *p_has_move_assign)
+                                            a_boolean     *p_const_okay)
 /*
 Return TRUE if sym is not NULL and qualifies as an assignment operator that
 can copy a class object (if move_assign_okay is TRUE, also consider move
 assignment operators).  If sym is an overloaded function, return TRUE if at
 least one of the functions qualifies.  Set *p_const_okay TRUE if a const object
 can be copied.  If p_is_user_provided is non-NULL, set *p_is_user_provided to
-whether one of the operators is user-provided.  If *p_has_move_assign is non-
-NULL, set *p_has_move_assign to whether one of the operators is a move
-assignment operator.
+whether one of the operators is user-provided.
 */
 {
   a_boolean             sym_is_overloaded, const_okay = FALSE;
@@ -11020,7 +11017,6 @@ assignment operator.
 
   db_enter(4, "assignment_operator_for_copy_exists");
   if (p_is_user_provided != NULL) *p_is_user_provided = FALSE;
-  if (p_has_move_assign != NULL) *p_has_move_assign = FALSE;
   if (sym != NULL) {
     sym_is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
     if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
@@ -11030,12 +11026,6 @@ assignment operator.
       a_symbol_ptr  viable_sym = NULL;
       qualifiers_accepted = TQ_NONE;
       if (sym->kind == (a_symbol_kind)sk_member_function) {
-        a_routine_ptr  rp = sym->variant.routine.ptr;
-        if (p_has_move_assign != NULL && !*p_has_move_assign &&
-            routine_is_move_assignment_operator(rp) &&
-            !rp->compiler_generated) {
-          *p_has_move_assign = TRUE;
-        }  /* if */
         if (is_assignment_operator_for_copy(sym, move_assign_okay, &is_ref_arg,
                                             &qualifiers_accepted,
                                             &is_base_class_match)) {
@@ -11098,8 +11088,7 @@ classes and fields of the given class.
       cssp = symbol_supplement_for_class(bcp->type);
       if (assignment_operator_for_copy_exists(cssp->assignment_operator,
                                               /*move_assign_okay=*/FALSE,
-                                              (a_boolean*)NULL, &const_okay,
-                                              (a_boolean*)NULL) &&
+                                              (a_boolean*)NULL, &const_okay) &&
           !const_okay) {
         /* There is a default assignment operator for this base class type,
            but it does not accept a const object.  No need to look any
@@ -11120,8 +11109,8 @@ classes and fields of the given class.
         cssp = symbol_supplement_for_class(tp);
         if (assignment_operator_for_copy_exists(cssp->assignment_operator,
                                                 /*move_assign_okay=*/FALSE,
-                                                (a_boolean*)NULL, &const_okay,
-                                                (a_boolean*)NULL) &&
+                                                (a_boolean*)NULL,
+                                                &const_okay) &&
             !const_okay) {
           /* There is a default assignment operator for this nonstatic data
              member's class type, but it does not accept a const object.
@@ -17747,6 +17736,37 @@ the point of declaration of the conversion function.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void set_move_assign_operator_flags(a_class_symbol_supplement_ptr  cssp)
+/*
+Set the flags has_user_declared_move_assign_operator and
+has_user_provided_move_assign_operator in the given class symbol supplement.
+This routine is called after the definition of the class has been seen, but
+before generating declarations for special members.
+*/
+{
+  a_symbol_ptr  sym = cssp->assignment_operator;
+
+  /* Traverse the assignment operators looking for user declarations. */
+  if (sym != NULL) {
+    a_boolean  overloaded = symbol_is(sym, sk_overloaded_function);
+    if (overloaded) sym = sym->variant.overloaded_function.symbols;
+    for (; sym != NULL; sym = overloaded ? sym->next : NULL) {
+      if (symbol_is(sym, sk_member_function)) {
+        a_routine_ptr  rp = sym->variant.routine.ptr;
+        if (!rp->compiler_generated &&
+            routine_is_move_assignment_operator(rp)) {
+          cssp->has_user_declared_move_assign_operator = TRUE;
+          if (!rp->is_defaulted) {
+            cssp->has_user_provided_move_assign_operator = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* set_move_assign_operator_flags */
+
+
 static void check_special_member_functions(a_type_ptr            class_type,
                                            a_class_def_state_ptr class_state)
 
@@ -17765,7 +17785,6 @@ The routine body is not generated until it is known to be needed.
   a_source_position             *pos;
   a_boolean                     user_declared_copy_assignment_op;
   a_boolean                     user_provided_copy_assignment_op;
-  a_boolean                     has_move_assign;
   a_boolean                     declare_copy_asgn_op, declare_move_asgn_op;
   a_boolean                     declare_copy_ctor, declare_move_ctor;
   a_boolean                     declare_dtor;
@@ -17789,14 +17808,14 @@ The routine body is not generated until it is known to be needed.
                                           cssp->assignment_operator,
                                           rvalue_ctor_is_copy_ctor,
                                           &user_provided_copy_assignment_op,
-                                          &dummy_flag, &has_move_assign) &&
+                                          &dummy_flag) &&
                                      !ctsp->is_lambda_closure_class;
+  set_move_assign_operator_flags(cssp);
   /* A POD cannot have a user-provided copy or move assignment operator.  This
      must be determined before calling add_default_ctor_if_needed, because it
      may affects whether a trivial default constructor is actually generated
      (it wouldn't be generated for a POD). */
-  if (has_move_assign) {
-    cssp->has_user_declared_move_assign_operator = TRUE;
+  if (cssp->has_user_provided_move_assign_operator) {
     class_state->POD_ruled_out = TRUE;
   } else if (user_provided_copy_assignment_op) {
     class_state->POD_ruled_out = TRUE;
@@ -17812,7 +17831,8 @@ The routine body is not generated until it is known to be needed.
          generated below.  However, a user-declared move constructor or move
          assignment operator causes a generated copy constructor to be defined
          as deleted. */
-      if (cssp->has_user_declared_move_constructor || has_move_assign) {
+      if (cssp->has_user_declared_move_constructor ||
+          cssp->has_user_declared_move_assign_operator) {
         gsfd.suppress_copy_ctor = TRUE;
         gsfd.suppress_copy_assign = TRUE;
         gsfd.suppress_move_assign = TRUE;
@@ -17834,7 +17854,8 @@ The routine body is not generated until it is known to be needed.
                          (!any_cfront_mode() ||
                           cssp->assignment_operator == NULL);
   declare_move_asgn_op = generate_move_operations &&
-                         !has_move_assign && !gsfd.suppress_move_assign &&
+                         !cssp->has_user_declared_move_assign_operator &&
+                         !gsfd.suppress_move_assign &&
                          !user_declared_copy_assignment_op &&
                          cssp->destructor == NULL &&
                          !ctsp->is_lambda_closure_class;
@@ -17852,7 +17873,7 @@ The routine body is not generated until it is known to be needed.
                       !cssp->has_copy_constructor &&
                       !cssp->has_user_declared_move_constructor &&
                       !user_declared_copy_assignment_op &&
-                      !has_move_assign &&
+                      !cssp->has_user_declared_move_assign_operator &&
                       cssp->destructor == NULL &&
                       (ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
@@ -17911,7 +17932,8 @@ The routine body is not generated until it is known to be needed.
       check_assertion(microsoft_mode);
       class_type->variant.class_struct_union.copy_ctor_decl_suppressed = TRUE;
     } else if (gpp_mode && gnu_version >= 40600 && gnu_version < 40700 &&
-               (cssp->has_user_declared_move_constructor || has_move_assign)) {
+               (cssp->has_user_declared_move_constructor ||
+                cssp->has_user_declared_move_assign_operator)) {
       /* GCC 4.6 does not generate a copy constructor if there is a
          user-declared move assignment operator or move constructor. */
     } else {
@@ -17956,7 +17978,8 @@ The routine body is not generated until it is known to be needed.
       class_type->variant.class_struct_union.copy_assignment_decl_suppressed
                                                                         = TRUE;
     } else if (gpp_mode && gnu_version >= 40600 && gnu_version < 40700 &&
-               (cssp->has_user_declared_move_constructor || has_move_assign)) {
+               (cssp->has_user_declared_move_constructor ||
+                cssp->has_user_declared_move_assign_operator)) {
       /* GCC 4.6 does not generate a copy assignment operator if there is a
          user-declared move assignment operator or move constructor. */
     } else {
@@ -17978,7 +18001,8 @@ The routine body is not generated until it is known to be needed.
       cssp->has_user_provided_move_constructor) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
   }  /* if */
-  if (user_provided_copy_assignment_op || has_move_assign) {
+  if (user_provided_copy_assignment_op ||
+      cssp->has_user_provided_move_assign_operator) {
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
