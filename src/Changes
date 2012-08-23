@@ -1,5 +1,17 @@
 Version 4.5
 
+8/23/12  [EDGcpfe/12751]
+GNU compatibility: Scoped enumeration types in non-C++11 mode
+
+In GNU C++ mode with gnu_version >= 40400, the front end now accepts the
+declaration of scoped enumeration types with a warning if C++11 mode is not
+enabled.  Use of scoped enumerations as name qualifiers remains an error in
+such modes, however.  For example:
+
+  enum class E { e };   // Now accepted in some non-C++11 GCC modes.
+  long x = (long)E::e;  // Still an error in all non-C++11 GCC modes.
+
+
 8/22/12  [EDGcpfe/12860]
 Exception specifications and defaulted special members
 

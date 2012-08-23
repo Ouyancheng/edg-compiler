@@ -4836,7 +4836,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   a_boolean                    is_redeclaration, is_definition = FALSE;
   a_boolean                    namespace_extension_pushed = FALSE;
   a_boolean                    class_reactivation_pushed = FALSE;
-  a_source_position            tag_position;
+  a_source_position            enum_pos, tag_position;
   a_decl_pos_block             local_decl_pos_block;
   a_boolean                    is_predeclared_type_decl = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4872,6 +4872,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     inside_class_definition = FALSE;
   }  /* if */
   clear_decl_pos_block(&local_decl_pos_block);
+  enum_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   local_decl_pos_block.specifiers_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -4895,9 +4896,15 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   /* In C++11 mode, scoped enums are declared with "enum class" or
      "enum struct".  In a combination of Microsoft and C++11 modes, however,
      we may already have seen a tok_enum_class or tok_enum_struct keyword
-     (with embedded space) and we should accept about "class" or "struct". */
-  if (cpp11_mode && (curr_token == tok_class || curr_token == tok_struct) &&
+     (with embedded space) and we should accept about "class" or "struct".
+     GCC 4.4 and later also accept the C++11 feature in non-C++11 mode with a
+     warning. */
+  if ((cpp11_mode || (gpp_mode && gnu_version >= 40400)) &&
+      (curr_token == tok_class || curr_token == tok_struct) &&
       !is_scoped_enum) {
+    if (!cpp11_mode) {
+      pos_warning(ec_scoped_enum_nonstandard_in_current_mode, &enum_pos);
+    }  /* if */
     is_scoped_enum = TRUE;
     (void)get_token();
   }  /* if */
