@@ -4872,11 +4872,12 @@ empty_parens_mem_initializer:
     } else {
       /* Not default-initialization. */
       add_stop_token(tok_rparen);
-      if (array_type != NULL) {
+      if (array_type != NULL && !is_string_type(array_type)) {
         /* Arrays can only be default- or value-initialized -- i.e., the
-           expression-list must be omitted.  GNU C++, however, is more
-           permissive and allows initialization with an expression of the same
-           array type if the elements of the array have a nontrivial copy
+           expression-list must be omitted.  The exception is a character
+           array, which can be initialized with a string literal.  GNU C++ is
+           more permissive and allows initialization with an expression of the
+           same array type if the elements of the array have a nontrivial copy
            constructor. */
         dip = scan_array_mem_initializer(cip);
       } else {
