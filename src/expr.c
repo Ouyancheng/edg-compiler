@@ -1579,12 +1579,6 @@ constructs, in which case offsetof_case is TRUE.
   }  /* if */
 
   free_arg_list(operand_2_list);
-  if (!subscript_is_expr_list &&
-      is_braced_init_list_operand(&operand_2)) {
-    /* Free the braced-init-list attached to operand_2 if operator overloading
-       was used. */
-    free_attachments_to_operand(&operand_2);
-  }  /* if */
   if (rcblock == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Save the position of the "]". */
@@ -14899,7 +14893,10 @@ expression, and return the result in *result (or an error indication in
                  rcblock);
         check_assertion(braced_init_list != NULL &&
                         is_braced_init_component(braced_init_list));
-        init_position = init_dip->rescan_info->saved_operand.position;
+        init_position = *init_component_pos(braced_init_list);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        end_new_init_position = *init_component_end_pos(braced_init_list);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (is_gcnew) {
@@ -14929,12 +14926,11 @@ expression, and return the result in *result (or an error indication in
           /* Use the type position as an approximate initializer position. */
           init_position = type_position;
         }  /* if */
-      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      /* On rescan, use init_position as an approximate
-         end_new_init_position */
-      end_new_init_position = init_position;
+        /* Use init_position as an approximate end position. */
+        end_new_init_position = init_position;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
     }  /* if */
   } else {
     /* Normal, non-rescan, processing. */
@@ -15835,9 +15831,7 @@ expression, and return the result in *result (or an error indication in
       dip = init_state.init_dip;
       check_assertion(dip != NULL);
     }  /* if */
-    if (rcblock != NULL) {
-      free_init_component_list(braced_init_list);
-    } else if (expr_stack->possible_rescan_context && dip != NULL) {
+    if (expr_stack->possible_rescan_context && dip != NULL) {
       /* In a potential rescan context, save the init-component form of the
          braced-init-list in rescan information attached to the dynamic init.
          Otherwise, free it. */
@@ -19825,7 +19819,7 @@ indication in *rcblock).  rescan_icp is not freed.
                                      ec_compound_literal_is_nonstandard);
     }  /* if */
   }  /* if */
-  if (rescan_icp == NULL && expr_stack->possible_rescan_context) {
+  if (expr_stack->possible_rescan_context) {
     /* In a context where rescan may be required later, ask to get back the
        init-component for the braced-init-list. */
     return_icp = &braced_init_list;
@@ -20187,6 +20181,7 @@ previously-scanned braced initializer.
   an_init_component_ptr icp;
   a_conv_context_set    conv_context = CCO_CAST;
   a_boolean             error_on_narrowing = strict_ansi_mode;
+  a_boolean             need_to_free_icp = FALSE;
 
   check_assertion(list_init_enabled);
   if (source_form == csf_functional) conv_context |= CCO_FUNC_NOTATION_CAST;
@@ -20194,6 +20189,7 @@ previously-scanned braced initializer.
     icp = rescan_icp;
   } else {
     icp = scan_braced_init_list_internal(/*bundle=*/FALSE);
+    need_to_free_icp = TRUE;
   }  /* if */
   check_assertion(result != NULL);  /* For lint. */
   prep_list_initializer(icp, type_cast_to,
@@ -20206,26 +20202,22 @@ previously-scanned braced initializer.
                                       is_class_struct_union_type(type_cast_to),
                         result, (an_init_state *)NULL,
                         (an_arg_match_summary *)NULL);
-  if (rescan_icp == NULL) {
-    a_dynamic_init_ptr dip_for_rescan = NULL;
-    /* In a potential rescan context, save the init-component form of the
-       braced-init-list in rescan information attached to the dynamic init.
-       Otherwise, free it. */
-    if (expr_stack->possible_rescan_context) {
-      an_expr_node_ptr temp_init_node;
-      if (operand_is_temp_init_full(result, &temp_init_node)) {
-        dip_for_rescan = temp_init_node->variant.init.dynamic_init;
-      }  /* if */
-    }  /* if */
-    if (dip_for_rescan != NULL) {
-      save_rescan_info_for_braced_init_list(dip_for_rescan, icp);
-    } else {
-      free_init_component_list(icp);
-    }  /* if */
-  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = *init_component_end_pos(icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (expr_stack->possible_rescan_context) {
+    /* In a potential rescan context, save the init-component form of the
+       braced-init-list in rescan information attached to the dynamic init.
+       Otherwise, free it. */
+    an_expr_node_ptr   temp_init_node;
+    if (operand_is_temp_init_full(result, &temp_init_node)) {
+      a_dynamic_init_ptr dip_for_rescan =
+                                     temp_init_node->variant.init.dynamic_init;
+      save_rescan_info_for_braced_init_list(dip_for_rescan, icp);
+      need_to_free_icp = FALSE;
+    }  /* if */
+  }  /* if */
+  if (need_to_free_icp) free_init_component_list(icp);
 }  /* scan_braced_init_list_cast */
 
 

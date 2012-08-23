@@ -2763,6 +2763,7 @@ initializer, already copied and substituted.
   a_boolean              saved_no_diagnostics = is->no_diagnostics;
   a_type_ptr             atype;
   a_routine_ptr          dtor_rp = NULL;
+  a_boolean              need_to_free_icp_tree = FALSE;
 
   check_assertion(rescan_aggr != NULL || curr_token == tok_lbrace ||
                   anything_cached(&dps->prescanned_initializer_cache));
@@ -2775,6 +2776,7 @@ initializer, already copied and substituted.
     /* Parse the list structure (which may be nested and therefore really a
        tree structure). */
     icp_tree = scan_braced_init_list(is->elements_are_full_expressions, dps);
+    need_to_free_icp_tree = TRUE;
   }  /* if */
   icp = icp_tree;
   check_assertion(icp != NULL && is_braced_init_component(icp));
@@ -2864,18 +2866,17 @@ initializer, already copied and substituted.
       process_simple_init_component(icp, dtype, is, is_var_init);
       break;
   }  /* switch */
-  if (rescan_aggr == NULL) {
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    curr_construct_end_position = *init_component_end_pos(icp_tree);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (return_icp == NULL) {
-      free_init_component_list(icp_tree);
-    } else {
-      *return_icp = icp_tree;
-    }  /* if */
-  } else {
-    check_assertion(return_icp == NULL);
+  if (return_icp != NULL) {
+    /* Return the init-component tree to the caller, as requested. */
+    *return_icp = icp_tree;
+    need_to_free_icp_tree = FALSE;
   }  /* if */
+  if (need_to_free_icp_tree) free_init_component_list(icp_tree);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (rescan_aggr == NULL) {
+    curr_construct_end_position = *init_component_end_pos(icp_tree);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   is->force_dynamic_init = saved_force_dynamic_init;
   if ((is_aggregate && !is->init_error) ||
       (is->force_dynamic_init && is->init_dip == NULL)) {
