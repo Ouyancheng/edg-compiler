@@ -14894,9 +14894,6 @@ expression, and return the result in *result (or an error indication in
         check_assertion(braced_init_list != NULL &&
                         is_braced_init_component(braced_init_list));
         init_position = *init_component_pos(braced_init_list);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        end_new_init_position = *init_component_end_pos(braced_init_list);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (is_gcnew) {
@@ -14926,11 +14923,11 @@ expression, and return the result in *result (or an error indication in
           /* Use the type position as an approximate initializer position. */
           init_position = type_position;
         }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        /* Use init_position as an approximate end position. */
-        end_new_init_position = init_position;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* Use init_position as an approximate end position. */
+      end_new_init_position = init_position;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   } else {
     /* Normal, non-rescan, processing. */
