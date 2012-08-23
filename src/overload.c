@@ -21457,9 +21457,11 @@ controls).
   } else if (result != NULL) {
     /* The caller wants the result in an_operand form in *result. */
     check_assertion(is == NULL);
-    if (dip == NULL && constant != NULL && force_temp) {
+    if (dip == NULL && constant != NULL &&
+        (force_temp || constant->kind == (a_constant_repr_kind)ck_aggregate)) {
       /* We've been asked to force a temporary, so force a constant case
-         to use a dynamic init. */
+         to use a dynamic init.  Also force use of a dynamic init for an
+         aggregate constant. */
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
       dip->variant.constant = constant;
       dip->is_partially_initialized = partial_initializer;
