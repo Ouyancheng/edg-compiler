@@ -4496,10 +4496,10 @@ unchanged).
     }  /* if */
     init_type = field->type;
     if (is_array_type(init_type)) {
+      *p_array_type = init_type;
       if (!is_string_type(init_type)) {
         /* Arrays can be default-initialized if the expression-list is
            omitted. */
-        *p_array_type = init_type;
         init_type = f_skip_typerefs(underlying_array_element_type(init_type));
       }  /* if */
     }  /* if */
