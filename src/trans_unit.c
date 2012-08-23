@@ -356,10 +356,6 @@ pointed to by the translation unit entry.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   tup->il_header.nontag_types_used_in_exception_or_rtti =
                               il_header.nontag_types_used_in_exception_or_rtti;
-#if MACRO_INVOCATION_TREE_IN_IL
-  tup->il_header.root_macro_invocation_record_block =
-                                  il_header.root_macro_invocation_record_block;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
   /* Reset the depth_in_scope stack field of any scopes on the scope stack. */
   if (depth_scope_stack != NO_SCOPE_DEPTH) {
     clear_scope_stack_related_information();
@@ -403,10 +399,6 @@ pointed to by the translation unit entry.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   il_header.nontag_types_used_in_exception_or_rtti =
                          tup->il_header.nontag_types_used_in_exception_or_rtti;
-#if MACRO_INVOCATION_TREE_IN_IL
-  il_header.root_macro_invocation_record_block =
-                             tup->il_header.root_macro_invocation_record_block;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
 #if CPPCLI_ENABLING_POSSIBLE
   if (cppcli_enabled) {
     a_cli_metadata_file_ptr cmfp;

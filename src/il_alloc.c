@@ -141,10 +141,10 @@ static unsigned long
 static unsigned long
 		num_macros_allocated;
 #endif /* RECORD_MACROS_IN_IL */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
 static unsigned long
 		num_macro_invocation_record_blocks_allocated;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 static unsigned long
 		num_decl_position_supplements_allocated;
@@ -4386,7 +4386,7 @@ fields, and return a pointer to it.
 }  /* alloc_macro */
 
 #endif /* RECORD_MACROS_IN_IL */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
 
 a_macro_invocation_record_block_ptr alloc_macro_invocation_record_block(void)
 /*
@@ -4420,7 +4420,7 @@ region, initialize the fields, and return a pointer to it.
 
   return mirbp;
 }  /* alloc_macro_invocation_record_block */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 
 void clear_decl_position_supplement(a_decl_position_supplement_ptr  dpsp)
@@ -5054,11 +5054,11 @@ Display and return the amount of space used for various IL tables.
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
 #endif /* RECORD_MACROS_IN_IL */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   db_space_used("macro_invocation_record_blocks",
                 num_macro_invocation_record_blocks_allocated,
                 a_macro_invocation_record_block);
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   db_space_used("decl-position supplement",
                 num_decl_position_supplements_allocated,
@@ -5357,9 +5357,9 @@ in il_alloc_init.)
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
 #endif /* RECORD_MACROS_IN_IL */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
       pch_saved_var_array_elem(num_macro_invocation_record_blocks_allocated),
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       pch_saved_var_array_elem(num_decl_position_supplements_allocated),
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -5545,10 +5545,10 @@ initializations that are done for each compilation.
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
 #endif /* RECORD_MACROS_IN_IL */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   num_macro_invocation_record_blocks_allocated
                                          = 0;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   num_decl_position_supplements_allocated = 0;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

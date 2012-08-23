@@ -712,33 +712,52 @@ purpose.
 
 /*
 Flag that is TRUE if the IL should contain information detailing the tree
-of macro invocations from the translation unit.  This also expands source
-positions to include a mechanism for determining the macro invocation stack
-in effect at the point the position was captured.  This must be defined here
-in order to be effective for conditional fields in a_source_position.
+of macro invocations from the translation unit.
 */
 #ifndef MACRO_INVOCATION_TREE_IN_IL
 #define MACRO_INVOCATION_TREE_IN_IL FALSE
 #else /* defined(MACRO_INVOCATION_TREE_IN_IL) */
 #if MACRO_INVOCATION_TREE_IN_IL
+#ifndef RECORD_MACRO_INVOCATIONS
+#define RECORD_MACRO_INVOCATIONS TRUE /* Do not change this. */
+#endif /* ifndef RECORD_MACRO_INVOCATIONS */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* ifndef MACRO_INVOCATION_TREE_IN_IL */
+
+/*
+Flag that is TRUE if a record of macro invocations should be kept, e.g.,
+for use in diagnostics.  This also expands source positions to include a
+mechanism for determining the macro invocation stack in effect at the point
+the position was captured.  Thus must be defined here in order to be
+effective for conditional fields in a_source_position.
+*/
+#ifndef RECORD_MACRO_INVOCATIONS
+#define RECORD_MACRO_INVOCATIONS MACRO_INVOCATION_TREE_IN_IL
+#else /* defined(RECORD_MACRO_INVOCATIONS) */
+#if RECORD_MACRO_INVOCATIONS
 #ifndef RECORD_MACROS_IN_IL
 #define RECORD_MACROS_IN_IL TRUE /* Do not change this. */
 #endif /* ifndef RECORD_MACROS_IN_IL */
 #ifndef FULLY_RESOLVED_MACRO_POSITIONS
 #define FULLY_RESOLVED_MACRO_POSITIONS TRUE /* Do not change this. */
 #endif /* ifndef FULLY_RESOLVED_MACRO_POSITIONS */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
-#endif /* ifndef MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
+#endif /* ifndef RECORD_MACRO_INVOCATIONS */
 
-#if MACRO_INVOCATION_TREE_IN_IL && !RECORD_MACROS_IN_IL
+#if RECORD_MACRO_INVOCATIONS && !RECORD_MACROS_IN_IL
  #error -- RECORD_MACROS_IN_IL must be TRUE when \
-           MACRO_INVOCATION_TREE_IN_IL is set.
+          RECORD MACRO_INVOCATIONS is set.
 #endif /* MACRO_INVOCATION_TREE_IN_IL && !RECORD_MACROS_IN_IL */
 
-#if MACRO_INVOCATION_TREE_IN_IL && !FULLY_RESOLVED_MACRO_POSITIONS
+#if RECORD_MACRO_INVOCATIONS && !FULLY_RESOLVED_MACRO_POSITIONS
  #error -- FULLY_RESOLVED_MACRO_POSITIONS must be TRUE when \
-           MACRO_INVOCATION_TREE_IN_IL is set.
+           RECORD_MACRO_INVOCATIONS is set.
 #endif /* MACRO_INVOCATION_TREE_IN_IL && !FULLY_RESOLVED_MACRO_POSITIONS */
+
+#if MACRO_INVOCATION_TREE_IN_IL && !RECORD_MACRO_INVOCATIONS
+ #error -- RECORD_MACRO_INVOCATIONS must be TRUE when \
+           MACRO_INVOCATION_TREE_IN_IL is set.
+#endif /* MACRO_INVOCATION_TREE_IN_IL && !RECORD_MACRO_INVOCATIONS */
 
 /*
 Flag that is TRUE to add an extra seq/column pair to source positions, giving
@@ -774,12 +793,12 @@ typedef unsigned long
 			   indicates "unknown position".  A sequence
 			   number one larger than all those in use indicates
 			   "after end of file, after the last line". */
-#if FULLY_RESOLVED_MACRO_POSITIONS || MACRO_INVOCATION_TREE_IN_IL
+#if FULLY_RESOLVED_MACRO_POSITIONS || RECORD_MACRO_INVOCATIONS
 typedef long 	a_macro_invocation_record_index;
 			/* The index of a macro invocation record (defined in
 			   il_def.h; all we need is the index type here). */
 #define NO_PARENT_MACRO_INVOCATION (-1L)
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS || MACRO_INVOCATION_TREE_IN_IL */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS || RECORD_MACRO_INVOCATIONS */
 typedef struct a_source_position *a_source_position_ptr;
 typedef struct a_source_position {
   /* A source position: sequence number, column.  A source position with
@@ -805,7 +824,7 @@ typedef struct a_source_position {
   a_column_number
 		orig_column;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   a_macro_invocation_record_index
 		macro_context;
 			/* If this location occurs within a macro expansion,
@@ -816,7 +835,7 @@ typedef struct a_source_position {
 			   as well as its invocation tree.  If this location
 			   is not within a macro expansion, macro_context
 			   will have the value NO_PARENT_MACRO_INVOCATION. */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 } a_source_position;
 
 #define SP_LINE_UNKNOWN 0
@@ -848,12 +867,12 @@ following, indicating something special:
 /* Macro to copy the seq/column from a simple source position to both the
    seq/column and orig_seq/orig_column of a full source position, as well as
    setting the macro_context (if any) to NO_PARENT_MACRO_INVOCATION. */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
 #define set_macro_context_to_no_parent(to) \
   (to).macro_context = NO_PARENT_MACRO_INVOCATION;
-#else /* !MACRO_INVOCATION_TREE_IN_IL */
+#else /* !RECORD_MACRO_INVOCATIONS */
 #define set_macro_context_to_no_parent(to)  /* nothing */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 #define copy_simple_position_to_full_position(from, to) \
 { (to).seq = (to).orig_seq = (from).seq;                \
   (to).column = (to).orig_column = (from).column;       \
@@ -866,11 +885,11 @@ following, indicating something special:
 }
 
 /* Macro to extract the macro context from a source position. */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
 #define macro_context_of(pos) ((pos).macro_context)
-#else /* !MACRO_INVOCATION_TREE_IN_IL */
+#else /* !RECORD_MACRO_INVOCATIONS */
 #define macro_context_of(pos) (NO_PARENT_MACRO_INVOCATION)
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 #else /* !FULLY_RESOLVED_MACRO_POSITIONS */
 #define set_position_to(pos, seqno, col)    \
 { (pos).seq = (seqno); (pos).column = (col); }
@@ -895,9 +914,9 @@ EXTERN a_source_position
 #if FULLY_RESOLVED_MACRO_POSITIONS
                                          , 0, SP_COL_UNKNOWN
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
                                          , NO_PARENT_MACRO_INVOCATION
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
                                        }
 #endif /* VAR_INITIALIZERS */
                                        ;
@@ -910,16 +929,16 @@ EXTERN a_source_position
 #if FULLY_RESOLVED_MACRO_POSITIONS
                                          , 0, SP_PREINCLUDE
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
                                          , NO_PARENT_MACRO_INVOCATION
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
                                        }
 #endif /* VAR_INITIALIZERS */
                                        ;
 			/* Special position used for PCH processing of
 			   preincluded files. */
 
-#if FULLY_RESOLVED_MACRO_POSITIONS || MACRO_INVOCATION_TREE_IN_IL
+#if FULLY_RESOLVED_MACRO_POSITIONS || RECORD_MACRO_INVOCATIONS
 typedef struct a_simple_source_position *a_simple_source_position_ptr;
 typedef struct a_simple_source_position {
   /* Indicates a source position without the dual-resolution (macro)
@@ -928,7 +947,7 @@ typedef struct a_simple_source_position {
   a_column_number
 		column;
 } a_simple_source_position;
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS || MACRO_INVOCATION_TREE_IN_IL */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS || RECORD_MACRO_INVOCATIONS */
 
 typedef enum /*a_C_dialect*/ {
   /* Possible C/C++ dialects to compile. */

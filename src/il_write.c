@@ -416,15 +416,15 @@ Write the initial information to the IL file, if there is one.
     }  /* if */
   }
   /* We need a constant that is at least as big as the largest size of
-     a (non-string) IL entry.  If MACRO_INVOCATION_TREE_IN_IL is TRUE, that's
+     a (non-string) IL entry.  If RECORD_MACRO_INVOCATIONS is TRUE, that's
      probably the size of a macro invocation record block.  Otherwise, we
      take a guess by adding the sizes of two of the largest entries, and
      check here that we're okay. */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
 #define MAX_SIZEOF_IL_ENTRY sizeof(a_macro_invocation_record_block)
-#else /* !MACRO_INVOCATION_TREE_IN_IL */
+#else /* !RECORD_MACRO_INVOCATIONS */
 #define MAX_SIZEOF_IL_ENTRY (sizeof(a_scope)+sizeof(a_routine))
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 #if CHECKING
   { int int_entry_kind;
     for (int_entry_kind = (int)iek_none+1;

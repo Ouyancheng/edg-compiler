@@ -677,10 +677,10 @@ typedef enum /*an_il_entry_kind*/ {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_seq_number_lookup_entry,
 			/* a_seq_number_lookup_entry */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   iek_macro_invocation_record_block,
 			/* a_macro_invocation_record_block */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   iek_ms_if_exists,	/* an_ms_if_exists */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
@@ -836,9 +836,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_generic_constraint */		"generic-constraint",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* iek_seq_number_lookup_entry */	"seq-number-lookup-entry",
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
 /* iek_macro_invocation_record_block */ "macro-invocation-record-block",
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 /* iek_ms_if_exists */			"ms-if-exists",
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
@@ -1382,16 +1382,16 @@ EXTERN a_source_range
 #if FULLY_RESOLVED_MACRO_POSITIONS
                                       , 0, SP_COL_UNKNOWN
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
                                       , NO_PARENT_MACRO_INVOCATION
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
                                      }, {0, SP_COL_UNKNOWN
 #if FULLY_RESOLVED_MACRO_POSITIONS
                                          , 0, SP_COL_UNKNOWN
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
                                          , NO_PARENT_MACRO_INVOCATION
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
                                      }}
 #endif /* VAR_INITIALIZERS */
                                                                               ;
@@ -16170,7 +16170,7 @@ typedef struct a_macro {
 
 #endif /* RECORD_MACROS_IN_IL */
 
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
 
 /*
 An entry representing a single invocation of a single macro, for use in the
@@ -16280,7 +16280,7 @@ il_header.root_macro_invocation_record_block).
     (mirp) = (this_block != NULL) ?                                           \
       this_block->records + (idx - this_block->first_record_in_block) : NULL; \
   }
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 
 enum an_object_lifetime_kind_tag {
   olk_global_static,	/* Lifetime of file-scope global variables. */
@@ -17584,9 +17584,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_generic_constraint),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sizeof(a_seq_number_lookup_entry),
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   sizeof(a_macro_invocation_record_block),
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   sizeof(an_ms_if_exists),
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */

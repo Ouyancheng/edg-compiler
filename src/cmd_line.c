@@ -6380,6 +6380,11 @@ file.
 #else /* !defined(RECORD_MACROS_IN_IL) */
   comment_undefined_macro_name(RECORD_MACROS_IN_IL);
 #endif /* defined(RECORD_MACROS_IN_IL) */
+#if defined(RECORD_MACRO_INVOCATIONS)
+  define_numeric_valued_macro(RECORD_MACRO_INVOCATIONS);
+#else /* !defined(RECORD_MACRO_INVOCATIONS) */
+  comment_undefined_macro_name(RECORD_MACRO_INVOCATIONS);
+#endif /* defined(RECORD_MACRO_INVOCATIONS) */
 #if defined(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS)
   define_numeric_valued_macro(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS);
 #else /* !defined(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS) */
@@ -8621,7 +8626,7 @@ enable_microsoft_mode:
       case optk_macro_positions_in_diagnostics:
         /* Diagnostics that refer to text in macro expansions should or should
            not contain information about the original location from which that
-           text was copied and (if MACRO_INVOCATION_TREE_IN_IL is TRUE) the
+           text was copied and (if RECORD_MACRO_INVOCATIONS is TRUE) the
            stack of macro invocations in effect at that point. */
         macro_positions_in_diagnostics = opt_value;
         break;

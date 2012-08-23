@@ -2150,10 +2150,15 @@ do_set_proper_definition_needed_flag:
         }  /* for */
         walk_ptr(ptr->right_subtree, a_macro_invocation_record_block_ptr,
                  iek_macro_invocation_record_block);
+#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
+        /* All the macro invocation record blocks are visited by the
+           tree traversal, so just map the pointers for the doubly-linked
+           list. */
         remap_ptr(ptr->next, a_macro_invocation_record_block_ptr,
                   iek_macro_invocation_record_block);
         remap_ptr(ptr->prev, a_macro_invocation_record_block_ptr,
                   iek_macro_invocation_record_block);
+#endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
       }
       break;
 #endif /* MACRO_INVOCATION_TREE_IN_IL */

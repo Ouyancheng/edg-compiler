@@ -29,9 +29,9 @@ error.c -- Error reporting routines.
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #include "pch.h"
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
 #include "macro.h"
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
@@ -2943,10 +2943,10 @@ compilation.
   a_boolean                     at_end_of_source;
   int                           save_diagnostic_indent;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   static a_source_position      full_pos;
   a_macro_invocation_record_ptr mirp = NULL;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 
   if (write_diagnostic_recursion_level == 0) {
     /* Allocate the diagnostic buffer if this is our first time. */
@@ -3061,7 +3061,7 @@ compilation.
           /* Write the source line text from the error_source_line buffer. */
           write_error_source_line(&local_pos, unicode_source_kind);
         }  /* if */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
         if (error_pos->macro_context != NO_PARENT_MACRO_INVOCATION &&
             macro_positions_in_diagnostics) {
           /* Print a trace of the macro invocation stack in effect at
@@ -3108,7 +3108,7 @@ compilation.
           }  /* for */
           *error_pos = save_error_pos;
         }  /* if */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
       }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
       if (macro_positions_in_diagnostics) {
@@ -3139,7 +3139,7 @@ compilation.
           source_text_needed = FALSE;
           need_generic_introducer = (local_pos.column != error_pos->column);
         }  /* if */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
         if (mirp != NULL) {
           /* We still need to print the last line of the stack trace.  That
              will either stand alone or be the introducer for the source line,
@@ -3158,7 +3158,7 @@ compilation.
           diag_message(ec_in_expansion_of_macro_last, &null_source_position,
                        severity, dck_macro_context);
         }  /* if */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
         if (need_generic_introducer) {
           /* There was no stack trace, so we don't know the name of the
              macro involved -- use a more generic message. */

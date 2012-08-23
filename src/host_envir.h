@@ -256,6 +256,11 @@ input files.
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES &&
           COMPILE_MULTIPLE_TRANSLATION_UNITS */
 
+#if COMPILE_MULTIPLE_TRANSLATION_UNITS && MACRO_INVOCATION_TREE_IN_IL
+ #error -- COMPILE_MULTIPLE_TRANSLATION_UNITS and \
+           MACRO_INVOCATION_TREE_IN_IL cannot both be TRUE.
+#endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS && MACRO_INVOCATION_TREE_IN_IL */
+
 /*
 Flag that is TRUE if the front end is being run from a driver program.
 This suppresses sign-off messages on stderr (like "Compilation terminated."),
@@ -335,7 +340,7 @@ to preserve the diagnostic behavior of earlier versions of the front end.
 /*
 Flag that is TRUE if diagnostics referring to text in macro expansions should
 include information about the original position from which the text was copied
-and, if MACRO_INVOCATION_TREE_IN_IL is TRUE, the macro invocation stack in
+and, if RECORD_MACRO_INVOCATIONS is TRUE, the macro invocation stack in
 effect at that point.  This is the initial value of the variable
 macro_positions_in_diagnostics, which can be overridden by the
 --[no_]macro_positions_in_diagnostics command-line option.

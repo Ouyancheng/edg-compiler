@@ -1,5 +1,25 @@
 Version 4.5
 
+8/23/12  [EDGcpfe/13139]
+MACRO_INVOCATION_TREE_IN_IL and COMPILE_MULTIPLE_TRANSLATION_UNITS
+
+Setting both MACRO_INVOCATION_TREE_IN_IL and
+COMPILE_MULTIPLE_TRANSLATION_UNITS to TRUE could cause the front end to
+crash from infinite recursion or to abort with an assertion failure.  The
+front end now prevents such configurations.  MACRO_INVOCATION_TREE_IN_IL,
+however, controlled both the recording of macro invocations (used by the
+front end to display the macro invocation stack in diagnostics when
+--macro_positions_in_diagnostics is in effect, either from the command line
+or via the DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS configuration macro) and
+the creation of the macro invocation tree in the IL.  Only the latter was
+problematic with COMPILE_MULTIPLE_TRANSLATION_UNITS.  As a result, a new
+configuration macro, RECORD_MACRO_INVOCATIONS, has been introduced to
+control the former behavior.  Its default value is that of
+MACRO_INVOCATION_TREE_IN_IL, so that existing configurations will continue
+to have the same effect, but it can be set to TRUE even when
+MACRO_INVOCATION_TREE_IN_IL is FALSE.
+
+
 8/23/12  [EDGcpfe/12751]
 GNU compatibility: Scoped enumeration types in non-C++11 mode
 

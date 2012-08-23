@@ -2561,11 +2561,11 @@ results in *seq, *column, and *macro_context.
        maintained verbatim. */
     *column = mtmep->corresponding_source_pos.column;
   }  /* if */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   *macro_context = mtmep->macro_context;
-#else /* !MACRO_INVOCATION_TREE_IN_IL */
+#else /* !RECORD_MACRO_INVOCATIONS */
   *macro_context = NO_PARENT_MACRO_INVOCATION;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 }  /* get_source_pos_from_macro_text_map */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
@@ -2759,10 +2759,10 @@ invocations.
   init_macro_text_map(/*num_entries=*/0, &slmp->text_map, /*resizable=*/FALSE);
   slmp->num_active_position_trackers = 0;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   slmp->invocation_record   = NO_PARENT_MACRO_INVOCATION;
   slmp->invocation_depth    = 0;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
   slmp->concatenations = NULL;
   if (line_loc != NULL) {
     /* Normal case: line_loc points to the point of insertion.  Save the
@@ -5968,17 +5968,17 @@ done:
        too. */
     position_var->orig_seq = orig_seq;
     position_var->orig_column = orig_column;
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
     position_var->macro_context = macro_context;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
   } else if (!in_token_insertion_from_string) {
     /* The position is in the current source, so the original position is the
        same as the normal position. */
     position_var->orig_seq = position_var->seq;
     position_var->orig_column = position_var->column;
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
     position_var->macro_context = NO_PARENT_MACRO_INVOCATION;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
   }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   return;
@@ -6009,14 +6009,14 @@ done:
   (position_var) = pos_of_macro_invocation;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
 /* Set the macro context to NO_PARENT_MACRO_INVOCATION, as required for
    positions in ordinary source text, not part of a macro expansion. */
 #define set_macro_context_to_none(position_var) \
   (position_var).macro_context = NO_PARENT_MACRO_INVOCATION;
-#else /* !MACRO_INVOCATION_TREE_IN_IL */
+#else /* !RECORD_MACRO_INVOCATIONS */
 #define set_macro_context_to_none(position_var) /* nothing */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 
 
 /*

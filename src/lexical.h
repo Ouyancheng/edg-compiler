@@ -832,7 +832,7 @@ typedef struct a_macro_text_map_entry {
   sizeof_t	start_of_region;
   a_simple_source_position
 		corresponding_source_pos;
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   a_macro_invocation_record_index
 		macro_context;
 			/* Identifies the macro invocation to which this
@@ -845,7 +845,7 @@ typedef struct a_macro_text_map_entry {
 			   so having the macro context here allows the parent
 			   macro chain to be preserved in spite of the loss of
 			   the source line modifications.) */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 } a_macro_text_map_entry;
 
 typedef struct a_macro_text_map *a_macro_text_map_ptr;
@@ -1351,7 +1351,7 @@ typedef struct a_source_line_modif {
 			   trackers referring to this source line modification
 			   may need to be updated accordingly. */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   a_macro_invocation_record_index
 		invocation_record;
 			/* The invocation record for the macro invocation
@@ -1363,7 +1363,7 @@ typedef struct a_source_line_modif {
 			/* The depth in the invocation stack of this
 			   invocation (0 for modifications that are not the
 			   result of a macro expansion). */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
   a_concatenation_record_ptr
 		concatenations;
 			/* Head of a singly-linked list of concatenation

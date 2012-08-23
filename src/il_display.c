@@ -541,7 +541,7 @@ string.  Note that nothing is printed out when *pos is null_source_position.
       disp_unsigned_long(buffer, (unsigned long)pos->orig_column);
     }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
     if (pos->macro_context != NO_PARENT_MACRO_INVOCATION) {
       /* Values other than NO_PARENT_MACRO_INVOCATION indicate that the
          position is in the expansion of the macro invocation whose record is
@@ -549,7 +549,7 @@ string.  Note that nothing is printed out when *pos is null_source_position.
       (void)sprintf(buffer, "%s.macro_context", str);
       disp_long(buffer, (long)pos->macro_context);
     }  /* if */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
   }  /* if */
 }  /* disp_source_position */
 
@@ -5382,7 +5382,7 @@ Display the indicated macro entry.
 
 #endif /* RECORD_MACROS_IN_IL */
 
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
 
 static void disp_simple_source_position(char                      *str,
                                         a_simple_source_position  *pos)
@@ -5403,6 +5403,9 @@ simple-source-position portion of) null_source_position.
   }  /* if */
 }  /* disp_simple_source_position */
 
+#endif /* RECORD_MACRO_INVOCATIONS */
+
+#if MACRO_INVOCATION_TREE_IN_IL
 
 static void disp_macro_invocation_record(a_macro_invocation_record_ptr   mirp,
                                          a_macro_invocation_record_index idx)
@@ -6614,9 +6617,9 @@ This routine is called during IL walking.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_ms_attribute_arg:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
     case iek_macro_invocation_record_block:
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
     case iek_il_entity_list_entry:
     case iek_integer_type_supplement:
       break;

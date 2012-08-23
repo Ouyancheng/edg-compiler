@@ -105,7 +105,7 @@ static a_macro_text_map
 			   allocated. */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
 static a_macro_invocation_record_block_ptr
 		last_macro_invocation_record_block;
 			/* Pointer to the macro invocation record block
@@ -148,7 +148,7 @@ static unsigned long
 static unsigned long
 		ckpt_depth_of_curr_macro_invocation_record;
 			/* Shadow copy of preceding for checkpoint/revert. */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 static char	*aux_buffer_for_pcc_macros;
 			/* Auxiliary buffer allocated in pcc mode only and
 			   used to construct the full text of a first-level
@@ -547,9 +547,9 @@ Return a pointer to the next free macro text map entry in the specified map.
 }  /* next_macro_text_map_entry */
 
 
-#if !MACRO_INVOCATION_TREE_IN_IL
+#if !RECORD_MACRO_INVOCATIONS
 /*ARGSUSED*/  /* <-- macro_context is not used in that case. */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 static void add_entry_to_macro_text_map(
                                a_macro_text_map_ptr            mtmp,
                                sizeof_t                        start_of_region,
@@ -566,15 +566,15 @@ sequence number, and column.
   mtmep->start_of_region = start_of_region;
   mtmep->corresponding_source_pos.seq = seq;
   mtmep->corresponding_source_pos.column = column;
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   mtmep->macro_context = macro_context;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 }  /* add_entry_to_macro_text_map */
 
 
-#if !MACRO_INVOCATION_TREE_IN_IL
+#if !RECORD_MACRO_INVOCATIONS
 /*ARGSUSED*/  /* <-- macro_context is not used in that case. */
-#endif /* !MACRO_INVOCATION_TREE_IN_IL */
+#endif /* !RECORD_MACRO_INVOCATIONS */
 static void clone_macro_text_map_entries(
                           a_macro_text_map_ptr            src_map,
                           sizeof_t                        starting_src_offset,
@@ -584,8 +584,8 @@ static void clone_macro_text_map_entries(
                           a_macro_invocation_record_index macro_context)
 /*
 Copy the range of macro text map entries in the region designated by
-starting_src_offset and src_region_len from src_map to targ_map, adjusting the
-offsets appropriately.  If MACRO_INVOCATION_TREE_IN_IL is TRUE, the
+starting_src_offset and src_region_len from src_map to targ_map, adjusting
+the offsets appropriately.  If RECORD_MACRO_INVOCATIONS is TRUE, the
 macro_context of the positions in the new text map entries will be set to
 the value specified by macro_context unless it has the value
 NO_PARENT_MACRO_INVOCATION; in that case, the macro_context value from the
@@ -606,12 +606,12 @@ source entry will be preserved.
                                      compare_macro_text_map_entry_with_offset);
   check_assertion_str2(mtmep != NULL, "clone_macro_text_map_entries",
                        "offset not found");
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   if (macro_context == NO_PARENT_MACRO_INVOCATION) {
     /* Copy the context from the source entry. */
     ctx = mtmep->macro_context;
   }  /* if */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
   if (mtmep->corresponding_source_pos.seq == 0) {
     /* Don't change the column number -- it's a special flag, not an actual
        column number. */
@@ -637,12 +637,12 @@ source entry will be preserved.
                        "clone_macro_text_map_entries",
                        "map entry pointer past end of entries array");
   while (mtmep->start_of_region < starting_src_offset + src_region_len) {
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
     if (macro_context == NO_PARENT_MACRO_INVOCATION) {
       /* Copy the context from the source entry. */
       ctx = mtmep->macro_context;
     }  /* if */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
     add_entry_to_macro_text_map(targ_map, starting_targ_offset +
                                 (mtmep->start_of_region - starting_src_offset),
                                 mtmep->corresponding_source_pos.seq,
@@ -991,7 +991,7 @@ the removal of deleted characters resulting from reallocating macro_buffer.
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
 a_macro_invocation_record_ptr macro_invocation_record_at_index(
                                          a_macro_invocation_record_index index)
 /*
@@ -1153,6 +1153,7 @@ invocation.  The return value is the index of the newly-added record, and
   return num_macro_invocation_records - 1;
 }  /* register_macro_invocation */
 
+#if MACRO_INVOCATION_TREE_IN_IL
 
 static a_macro_invocation_record_block_ptr create_macro_inv_record_tree(
                          a_macro_invocation_record_block_ptr mirbp,
@@ -1216,6 +1217,7 @@ macro_invocation_records list, and set the appropriate fields in il_header.
                                             num_macro_invocation_records);
 }  /* copy_macro_invocation_tree_to_il */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 
 
 void adjust_curr_source_line_structure_after_realloc(
@@ -3780,13 +3782,13 @@ associated global variables will also have been set).
   a_pointer_registration
                   after_last_invocation_token_reg;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   a_macro_invocation_record_ptr
                   this_mirp;
   a_macro_invocation_record_index
                   parent_macro_invocation_record;
   unsigned long   macro_invocation_stack_depth;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
   a_concatenation_record_ptr
                   concat_record_head = NULL;
   a_concatenation_record_ptr
@@ -3935,10 +3937,10 @@ end_scan_for_macro_modifs:;
 #if FULLY_RESOLVED_MACRO_POSITIONS
     invocation_slmp = slmp;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
     parent_macro_invocation_record = slmp->invocation_record;
     macro_invocation_stack_depth = slmp->invocation_depth + 1;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
     do {
       if (slmp->assoc_macro == mdp) {
         /* The identifier does appear within its own expansion. */
@@ -3970,11 +3972,11 @@ end_scan_for_macro_modifs:;
          expansion that contains the location we started with, and stop
          when we reach the primary source line. */
     } while ((slmp = parent_source_line_modif(slmp)) != NULL);
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   } else {
     parent_macro_invocation_record = NO_PARENT_MACRO_INVOCATION;
     macro_invocation_stack_depth = 1;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
   }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
   if (invocation_slmp != NULL) {
@@ -4237,7 +4239,7 @@ end_scan_for_macro_modifs:;
                                   SP_COL_UNKNOWN, NO_PARENT_MACRO_INVOCATION);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     }  /* if */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
     if (is_macro_call) {
       /* Only register real macro invocations. */
       this_macro_invocation_record =
@@ -4250,7 +4252,7 @@ end_scan_for_macro_modifs:;
                                      (end_of_curr_token - start_of_curr_token);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
   } else {
     /* Function-like macro.  Look for a "(".  If the left parenthesis is
        not found, return the original identifier as simply an identifier. */
@@ -4273,7 +4275,7 @@ end_scan_for_macro_modifs:;
       macro_depth++;
       fetch_pp_tokens = TRUE;
       expand_macros = FALSE;
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
       /* Register this macro invocation.  We need to do this here so that we
          can put the index of the macro invocation record into the source
          line modifications used for expanding the macro arguments, so that
@@ -4283,7 +4285,7 @@ end_scan_for_macro_modifs:;
                       register_macro_invocation(parent_macro_invocation_record,
                                                 macro_invocation_stack_depth,
                                                 mdp, &start_pos, &this_mirp);
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
       /* Get the "(" as a token, and delete its characters. */
       (void)arg_get_token(&any_white_space_skipped);
       add_stop_token(tok_rparen);
@@ -4573,10 +4575,10 @@ do_argument_again:
           slmp->text_map.num_entries = map->raw_text_map.num_entries;
           slmp->text_map.entries = map->raw_text_map.entries;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
           slmp->invocation_record = this_macro_invocation_record;
           slmp->invocation_depth = macro_invocation_stack_depth;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
           if (map->initial_raw_text_not_in_primary_source_line != NULL) {
             /* Start in the macro-expanded part of the original text of the
                raw argument. */
@@ -4850,10 +4852,10 @@ end_arg_expansion:;
              for the closing parenthesis. */
           remove_stop_token(tok_rparen);
           is_macro_call = FALSE;
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
           /* Remove the record of this invocation. */
           revert_macro_invocation_record();
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
           /* Start the replacement text with the macro name, preceded by
              an LE_TEMPORARILY_INERT_MACRO escape and followed by a '('. */
           repl_text_len = LE_ESCAPE_LEN +
@@ -4971,14 +4973,14 @@ end_arg_expansion:;
            runs into the end of file. */
         pos_error(ec_improperly_terminated_macro_call, &start_pos);
       }  /* if */
-#if MACRO_INVOCATION_TREE_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
+#if RECORD_MACRO_INVOCATIONS && EXTRA_SOURCE_POSITIONS_IN_IL
       if (got_proper_closing_token) {
         /* Record the ending position of the macro invocation, i.e., the
            original position of the closing parenthesis. */
         this_mirp->end.seq = pos_curr_token.orig_seq;
         this_mirp->end.column = pos_curr_token.orig_column;
       }  /* if */
-#endif /* MACRO_INVOCATION_TREE_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS && EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
   }  /* if */
 #if DEBUG
@@ -5382,10 +5384,10 @@ copy_done:
                              macro_text_map.num_entries - first_text_map_entry;
   slmp->text_map.entries = &macro_text_map.entries[first_text_map_entry];
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   slmp->invocation_record = this_macro_invocation_record;
   slmp->invocation_depth = macro_invocation_stack_depth;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
   slmp->concatenations = concat_record_head;
   /* Can't set the parent modification here without looking it up.  In
      particular, the modification from which the macro identifier came may
@@ -8722,11 +8724,11 @@ Do one-time initialization of variables related to macro processing.
       pch_saved_var_array_elem(param_name_string_space),
       pch_saved_var_array_elem(macro_definition_space),
 #endif /* DEBUG */
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
       pch_saved_var_array_elem(last_macro_invocation_record_block),
       pch_saved_var_array_elem(num_macro_invocation_records),
       pch_saved_var_array_elem(max_macro_invocation_depth),
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -8785,7 +8787,7 @@ after this function.
   assert_predicates = NULL;
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
   end_of_cpp_string = NULL;
-#if MACRO_INVOCATION_TREE_IN_IL
+#if RECORD_MACRO_INVOCATIONS
   last_macro_invocation_record_block = NULL;
   ckpt_last_macro_invocation_record_block = NULL;
   saved_next_macro_invocation_record_block = NULL;
@@ -8795,7 +8797,7 @@ after this function.
   ckpt_max_macro_invocation_depth = 0;
   depth_of_curr_macro_invocation_record = 0;
   ckpt_depth_of_curr_macro_invocation_record = 0;
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 }  /* macro_trans_unit_init */
 
 

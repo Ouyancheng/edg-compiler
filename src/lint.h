@@ -137,9 +137,9 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,constant_is_shareable)*/
 /*lint -esym(759,routine_and_node_from_function_expr)*/
 /*lint -esym(765,routine_and_node_from_function_expr)*/
-#if !MACRO_INVOCATION_TREE_IN_IL
+#if !RECORD_MACRO_INVOCATIONS
 /*lint -esym(755,copy_simple_position_to_full_position)*/
-#endif /* !MACRO_INVOCATION_TREE_IN_IL */
+#endif /* !RECORD_MACRO_INVOCATIONS */
 
 /* Used in the main programs for the standalone c_gen_be, cp_gen_be, and
    il_display: */
@@ -575,12 +575,12 @@ extern int fileno(FILE *);
 #if !FULLY_RESOLVED_MACRO_POSITIONS
 /*lint -esym(769,ec_in_macro_expansion_at)*/
 #endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
-#if !MACRO_INVOCATION_TREE_IN_IL
+#if !RECORD_MACRO_INVOCATIONS
 /*lint -esym(769,ec_name_of_unknown_macro)*/
 /*lint -esym(769,ec_in_expansion_of_macro)*/
 /*lint -esym(769,ec_macro_context_lines_skipped)*/
 /*lint -esym(769,ec_in_expansion_of_macro_last)*/
-#endif /* !MACRO_INVOCATION_TREE_IN_IL */
+#endif /* !RECORD_MACRO_INVOCATIONS */
 #if !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 /*lint -esym(769,ec_if_exists_not_allowed)*/
 /*lint -esym(769,ec_if_exists_not_closed)*/

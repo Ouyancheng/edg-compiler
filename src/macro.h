@@ -87,9 +87,11 @@ EXTERN a_boolean
 
 #if MACRO_INVOCATION_TREE_IN_IL
 extern void copy_macro_invocation_tree_to_il(void);
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if RECORD_MACRO_INVOCATIONS
 extern a_macro_invocation_record_ptr macro_invocation_record_at_index(
                                         a_macro_invocation_record_index index);
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#endif /* RECORD_MACRO_INVOCATIONS */
 
 #if FULLY_RESOLVED_MACRO_POSITIONS
 extern void init_macro_text_map(sizeof_t             num_entries,
