@@ -33249,6 +33249,7 @@ free_arg_operand_list to free the entry.
 {
   an_arg_operand_ptr     arg_operand;
   an_expr_stack_entry    expr_stack_entry;
+  an_object_lifetime     *saved_curr_object_lifetime = curr_object_lifetime;
   a_memory_region_number region_to_switch_back_to;
 
   db_enter(3, "scan_nontype_template_argument");
@@ -33258,6 +33259,8 @@ free_arg_operand_list to free the entry.
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
   switch_to_file_scope_region(&region_to_switch_back_to);
+  /* Adjust the object lifetime to avoid error recovery problems. */
+  curr_object_lifetime = il_header.primary_scope->lifetime;
   /* Scan the constant expression. */
   arg_operand = alloc_arg_operand();
   scan_expr(&arg_operand->operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
@@ -33276,6 +33279,7 @@ free_arg_operand_list to free the entry.
   }  /* if */
 #endif /* DEBUG */
   switch_back_to_original_region(region_to_switch_back_to);
+  curr_object_lifetime = saved_curr_object_lifetime;
   if (class_instantiation_sequence_number != initial_inst_seq_num) {
     arg_operand->operand.caused_template_instantiation = TRUE;
   }  /* if */
