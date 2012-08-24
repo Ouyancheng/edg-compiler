@@ -5036,6 +5036,10 @@ entries are replaced as needed for each mem-initializer that is encountered.
         new_cip->initializer = is.init_dip;
         new_cip->initializer->is_constructor_init = TRUE;
         new_cip->is_braced = TRUE;
+        /* If the initializer produced an object lifetime for the full
+           expression, remove it temporarily from the object lifetime tree and
+           restore it in the correct position later. */
+        detach_object_lifetime_for_dynamic_init(new_cip->initializer);
       }  /* if */
     } else {
       /* A syntax error was already issued. */
@@ -5356,7 +5360,6 @@ initialized.  These are addressed in the course of the processing.
          Now that we are reconsidering the initializers in the canonical order
          (not the order in the source), restore the object lifetime. */
       an_object_lifetime_ptr  olp = init_expr_lifetime_of(cip->initializer);
-
       if (olp != NULL) {
         if (!long_lifetime_temps) {
           /* Add the lifetime back in as a child of the current object
