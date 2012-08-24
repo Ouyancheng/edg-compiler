@@ -16795,6 +16795,66 @@ warnings or remarks may be issued.
 }  /* check_suppressed_special_functions */
 
 
+static void mark_suppressed_defaulted_members_as_deleted(
+                               a_type_ptr                          class_type,
+                               a_generated_special_function_descr  *gsfd)
+/*
+Mark any defaulted members of the given class type as deleted if *gsfd
+indicates that they should be suppressed.
+*/
+{
+  a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
+
+  for (; rp != NULL; rp = rp->next) {
+    if (rp->is_defaulted) {
+      a_type_qualifier_set  tqs;
+      if (special_kind_is(rp, sfk_constructor)) {
+        if (is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
+          if (gsfd->suppress_default_ctor) {
+            rp->is_deleted = TRUE;
+            rp->defined = TRUE;
+          }  /* if */
+        } else if (is_copy_constructor(rp, (a_type*)NULL, &tqs,
+                                       /*include_move_ctors=*/FALSE,
+                                       /*is_declarative_context=*/TRUE)) {
+          if (gsfd->suppress_copy_ctor) {
+            rp->is_deleted = TRUE;
+            rp->defined = TRUE;
+          }  /* if */
+        } else if (routine_is_move_constructor(rp)) {
+          if (gsfd->suppress_move_ctor) {
+            rp->is_deleted = TRUE;
+            rp->defined = TRUE;
+          }  /* if */
+        }  /* if */
+      } else if (special_kind_is(rp, sfk_operator) &&
+                 rp->variant.opname_kind == (an_opname_kind)onk_assign) {
+        a_type_qualifier_set  qualifiers;
+        a_boolean             ref_param, is_base_class_match;
+        if (is_assignment_operator_for_copy(
+                             symbol_for(rp), /*move_assign_okay=*/FALSE,
+                             &ref_param, &qualifiers, &is_base_class_match)) {
+          if (gsfd->suppress_copy_assign) {
+            rp->is_deleted = TRUE;
+            rp->defined = TRUE;
+          }  /* if */
+        } else if (routine_is_move_assignment_operator(rp)) {
+          if (gsfd->suppress_move_assign) {
+            rp->is_deleted = TRUE;
+            rp->defined = TRUE;
+          }  /* if */
+        }  /* if */
+      } else if (special_kind_is(rp, sfk_destructor)) {
+        if (gsfd->suppress_dtor) {
+            rp->is_deleted = TRUE;
+            rp->defined = TRUE;
+          }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* mark_suppressed_defaulted_members_as_deleted */
+
+
 static void generate_default_constructor(a_class_def_state_ptr  class_state,
                                          a_boolean              is_deleted)
 /*
@@ -17824,8 +17884,12 @@ The routine body is not generated until it is known to be needed.
     if (cssp->has_copy_constructor) {
       /* A user-defined copy constructor prevents the generation of a move
          constructor and move assignment operator. */
-      gsfd.suppress_move_ctor = TRUE;
-      gsfd.suppress_move_assign = TRUE;
+      if (!cssp->has_user_declared_move_constructor) {
+        gsfd.suppress_move_ctor = TRUE;
+      }  /* if */
+      if (!cssp->has_user_declared_move_assign_operator) {
+        gsfd.suppress_move_assign = TRUE;
+      }  /* if */
     } else {
       /* Since there is no user-declared copy constructor, one might get
          generated below.  However, a user-declared move constructor or move
@@ -17834,8 +17898,12 @@ The routine body is not generated until it is known to be needed.
       if (cssp->has_user_declared_move_constructor ||
           cssp->has_user_declared_move_assign_operator) {
         gsfd.suppress_copy_ctor = TRUE;
-        gsfd.suppress_copy_assign = TRUE;
-        gsfd.suppress_move_assign = TRUE;
+        if (!user_declared_copy_assignment_op) {
+          gsfd.suppress_copy_assign = TRUE;
+        }  /* if */
+        if (!cssp->has_user_declared_move_assign_operator) {
+          gsfd.suppress_move_assign = TRUE;
+        }  /* if */
       }  /* if */
       if (class_type->variant.class_struct_union.any_virtual_base_classes) {
         /* The generated move assignment operator is also suppressed if the
@@ -17909,6 +17977,7 @@ The routine body is not generated until it is known to be needed.
       gsfd.warn_about_suppressed_dtor = declare_dtor;
     }  /* if */
     check_suppressed_special_functions(class_type, &gsfd);
+    mark_suppressed_defaulted_members_as_deleted(class_type, &gsfd);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (declare_static_ctor) {
