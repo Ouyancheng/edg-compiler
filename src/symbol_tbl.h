@@ -1101,7 +1101,7 @@ typedef struct a_class_symbol_supplement {
                            explicitly declared for this class. */
   a_bit_field	has_user_provided_move_assign_operator:1;
 			/* TRUE if a move assignment operator has been user-
-                           provided (i.e., explicitly declared, and the first
+			   provided (i.e., explicitly declared, and the first
 			   declaration was not defaulted). */
   a_bit_field	assignment_by_bitwise_copy_allowed:1;
 			/* TRUE if assignment can be performed by a bitwise
