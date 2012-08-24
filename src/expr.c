@@ -2995,7 +2995,12 @@ been scanned: builtin_func represents the reference to the builtin function
            one referenced in the second operand. */
         last_param_var = innermost_function_scope->variant.routine.parameters;
         if (last_param_var == NULL) {
-          bad_scope = TRUE;
+          if (gpp_mode) {
+            /* g++ allows "this" to be considered as a parameter. */
+            last_param_var = innermost_function_scope->variant.routine
+                                                          .this_param_variable;
+          }  /* if */
+          if (last_param_var == NULL) bad_scope = TRUE;
         } else {
           while (last_param_var->next != NULL) {
             last_param_var = last_param_var->next;
@@ -3036,8 +3041,10 @@ been scanned: builtin_func represents the reference to the builtin function
        If the named parameter is a reference, we do not accept the code in
        most modes (the standard makes it undefined behavior), but we do accept
        it when emulating recent GNU C++ compilers. */
-    if (is_an_lvalue(&operand) &&
-        is_expression_operand(&operand)) {
+    if (is_expression_operand(&operand) &&
+        (is_an_lvalue(&operand) ||
+         /* g++ allows "this", which is an rvalue. */
+         (gpp_mode && is_variable_node(operand.variant.expression)))) {
       a_boolean okay = FALSE;
       node2 = operand.variant.expression;
       if (gpp_mode && gnu_version >= 30200) {

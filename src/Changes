@@ -1,5 +1,21 @@
 Version 4.5
 
+8/24/12  [EDGcpfe/13140]
+GNU C++: va_start second argument can be "this"
+
+In a nonstatic member function that has an ellipsis with no parameters,
+g++ allows "this" to be used as the second argument of va_start,
+acting as the last parameter.  We now allow that as well.
+
+  #include <stdarg.h>
+  struct A {
+    void f(...) {
+      va_list lst;
+      va_start(lst,this);
+      va_end(lst);
+    }
+  };
+
 8/24/12  [EDGcpfe/12993]
 GNU C++: consider address of static member function of current class dependent
 
