@@ -15310,6 +15310,7 @@ expression, and return the result in *result (or an error indication in
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (type_err) {
     new_type = base_new_type = error_type();
+    array_new = FALSE;
   }  /* if */
   unqual_new_type = skip_typerefs(new_type);
   unqual_base_new_type = skip_typerefs(base_new_type);
