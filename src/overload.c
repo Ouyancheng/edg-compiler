@@ -19562,7 +19562,8 @@ the conversion.
       */
       if (!assume_references_cannot_be_null ||
           !curr_expr_is_potentially_evaluated()) {
-        expr_pos_warning(ec_null_reference, &source_operand->position);
+        expr_pos_diagnostic(es_remark, ec_null_reference,
+                            &source_operand->position);
       } else {
         error_in_operand(ec_null_reference, source_operand);
       }  /* if */

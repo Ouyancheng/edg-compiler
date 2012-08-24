@@ -1,5 +1,28 @@
 Version 4.5
 
+8/24/12  [EDGcpfe/12957]
+Remark instead of warning on use of null reference in unevaluated context
+
+The diagnostic issued for a use of a null reference, which was already
+reduced to a warning in unevaluated contexts, is now reduced further
+to a remark.
+
+  struct dereference {
+    template< typename ptr_type >
+    auto operator () ( ptr_type &ptr ) const -> decltype( *ptr ) {
+      return *ptr;
+    }
+  };
+  template< typename fn_type, typename arg_type >
+  auto app( fn_type fn, arg_type arg ) -> decltype(fn(*(arg_type*)nullptr)) {
+    return fn( arg );
+  }
+  int main() {
+    int x = 123;
+    app( dereference(), &x );
+  }
+
+
 8/24/12  [EDGcpfe/13140]
 GNU C++: va_start second argument can be "this"
 
