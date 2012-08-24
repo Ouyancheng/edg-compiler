@@ -15127,6 +15127,7 @@ If insert_location == NULL, no initialization code is generated.
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     if (dip->is_array_freeing || (ndsp != NULL && ndsp->placement_new)) {
       if (dip->is_array_freeing &&
+          ndsp != NULL &&
           ndsp->new_initializer_is_brace_enclosed) {
         /* This is an array "new" operation that is brace-initialized and
            therefore will not be handled by a runtime routine, so we need
