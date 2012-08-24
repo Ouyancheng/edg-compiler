@@ -21087,7 +21087,19 @@ controls).
     }  /* if */
     /* The tests that follow are based on the bullet list in [dcl.init.list]
        of the C++11 standard. */
-    if (aggregate_case) {
+    if (is_incomplete_type(dest_type) &&
+        !is_incomplete_array_type(dest_type)) {
+      /* It's invalid to initialize an incomplete type, though incomplete
+         arrays are okay. */
+      if (arg_match != NULL) {
+        arg_match_err = TRUE;
+      } else {
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_list_init_of_incomplete, start_position, dest_type);
+        }  /* if */
+        make_error_operand(&operand);
+      }  /* if */
+    } else if (aggregate_case) {
       /* Aggregate cases go back to the initialization code in decl_inits.c. */
       if (arg_match != NULL && !try_user_conversions_in_ovl_res) {
         arg_match_err = TRUE;

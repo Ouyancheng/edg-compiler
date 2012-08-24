@@ -2416,6 +2416,7 @@ ec_braced_list_for_implicit_lambda_type;;"a brace-enclosed list does not provide
 ec_invalid_explicit_exception_specification;;"the declared exception specification is incompatible with the generated one"
 ec_scoped_enum_nonstandard_in_current_mode;;"scoped enumeration types are a C++11 feature"
 ec_value_init_of_function;;"a function type cannot be value-initialized"
+ec_list_init_of_incomplete;;"list-initialization of an object type %t is not allowed because the type is incomplete"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
