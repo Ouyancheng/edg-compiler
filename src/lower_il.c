@@ -14838,16 +14838,29 @@ expression statement, statement points to the statement; otherwise, it is NULL.
       overwrite_node(expr, expr_to_lower);
     }  /* if */
   }  /* if */
-  /* Perform a second pass on the lowered expression to optimize it
-     and clean up any remaining issues. */
-  perform_post_pass_on_lowered_expression(expr);
-  /* Release any temporary variables that are no longer needed after the
-     end of the full expression. */
-  release_reusable_temporaries();
+  /* Perform end-of-full-expression processing. */
+  end_of_full_expr_processing(expr);
 #if CHECKING
   curr_context->in_full_expression = FALSE;
 #endif /* CHECKING */
 }  /* lower_full_expr */
+
+
+void end_of_full_expr_processing(an_expr_node_ptr expr)
+/*
+Do end-of-full-expression processing for the specified expression.  expr may
+be NULL in cases where the expression was eliminated (e.g., inlining).
+Also called for C99 expressions.
+*/
+{
+  if (expr != NULL) {
+    /* Perform a second pass on the lowered expression to optimize it
+       and clean up any remaining issues. */
+    perform_post_pass_on_lowered_expression(expr);
+  }  /* if */
+  /* Release any reusable temporaries that were allocated. */
+  release_reusable_temporaries();
+}  /* end_of_full_expr_processing */
 
 
 static void adjust_bool_operation_types(an_expr_node_ptr expr,

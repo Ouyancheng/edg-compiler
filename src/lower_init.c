@@ -8064,11 +8064,9 @@ C99 mode for the same reason.
              with a non-null init_expr_lifetime). */
           lower_expr(source_node);
           if (options & LDIO_FULL_EXPR) {
-            /* Make sure that all "full expressions" are subject to a lowering
-               post-pass (a post-pass isn't needed for expressions that aren't
-               "full" as it'll be performed as part of the top-level "full"
-               expression or when the lowered code is inserted). */
-            perform_post_pass_on_lowered_expression(source_node);
+            /* Make sure that end-of-full-expression processing is performed
+               on expressions marked as full-expressions. */
+            end_of_full_expr_processing(source_node);
           }  /* if */
         }  /* if */
         { a_constant con;

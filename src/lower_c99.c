@@ -3881,22 +3881,6 @@ Do C99 lowering on the indicated expression.
 }  /* lower_c99_expr */
 
 
-static void end_of_c99_full_expr(an_expr_node_ptr expr)
-/*
-Do end-of-full-expression processing for C99 lowering of expr.  expr may
-be NULL in cases where the expression was eliminated (e.g., inlining).
-*/
-{
-  if (expr != NULL) {
-    /* Perform a second pass on the lowered expression to optimize it
-       and clean up any remaining issues. */
-    perform_post_pass_on_lowered_expression(expr);
-  }  /* if */
-  /* Release any reusable temporaries that were allocated. */
-  release_reusable_temporaries();
-}  /* end_of_c99_full_expr */
-
-
 void lower_c99_full_expr(an_expr_node_ptr expr)
 /*
 Do C99 lowering on the indicated full expression.  A full expression is
@@ -3920,7 +3904,7 @@ one not contained inside another expression.
   }  /* if */
 #endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
   lower_c99_expr(expr);
-  end_of_c99_full_expr(expr);
+  end_of_full_expr_processing(expr);
 #if CHECKING
   curr_context->in_full_expression = FALSE;
 #endif /* CHECKING */
@@ -4150,7 +4134,7 @@ Do C99 lowering on the indicated statement.
            inlining. */
         check_assertion(statement->expr != NULL); /* For Coverity. */
         lower_c99_expr_full(statement->expr, statement);
-        end_of_c99_full_expr(statement->expr);
+        end_of_full_expr_processing(statement->expr);
         break;
       case stmk_if:
         check_assertion(statement->expr != NULL); /* For Coverity. */
