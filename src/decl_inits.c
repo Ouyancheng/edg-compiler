@@ -5034,6 +5034,7 @@ entries are replaced as needed for each mem-initializer that is encountered.
            constructor init entry. */
         check_assertion(is.init_dip != NULL);
         new_cip->initializer = is.init_dip;
+        new_cip->initializer->is_constructor_init = TRUE;
         new_cip->is_braced = TRUE;
       }  /* if */
     } else {
