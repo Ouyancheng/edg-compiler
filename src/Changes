@@ -17,19 +17,20 @@ acting as the last parameter.  We now allow that as well.
   };
 
 8/24/12  [EDGcpfe/12993]
-GNU C++: consider address of static member function of current class dependent
+Address of non-overloaded static member function of current class is dependent
 
-g++ apparently considers the address of a static member function of the
-current template class to be dependent.  Now, we emulate that.
+The address of a static member function of the current instantiation is
+considered type-dependent.  We usually recognized that, but we did not
+when a non-overloaded static function name appeared as an argument.
+Now fixed.
 
-  template<typename T> struct B {
-    void f(void(*)());
+  class A {};
+  template<typename T> struct D {
+    static A g();
+    D() { f(g); }  // "g" now considered dependent, so later "f" found
   };
-  template<typename T> struct D: B<T> {
-    static void g();
-    D() { f(g); }  // "g" considered dependent, so "f" found in base class
-  };
-  D<int> di;
+  void f(A(*)()){}
+  D<A> di;
 
 
 8/23/12  [EDGcpfe/13139]

@@ -7891,9 +7891,22 @@ Return TRUE if the indicated operand is dependent.  Specifically, this
 means type-dependent rather than value-dependent.
 */
 {
-  a_boolean is_dependent = (is_template_dependent_type(operand->type) ||
-                           is_template_dependent_indefinite_function(operand));
-  if (is_braced_init_list_operand(operand)) {
+  a_boolean is_dependent = FALSE;
+
+  if (is_template_dependent_type(operand->type) ||
+      is_template_dependent_indefinite_function(operand)) {
+    is_dependent = TRUE;
+  } else if (is_expression_operand(operand) &&
+             is_routine_node(operand->variant.expression)) {
+    /* The address of a static member function of the current class is also
+       considered dependent. */
+    a_routine_ptr rout = operand->variant.expression->variant.routine.ptr;
+    if (rout->source_corresp.is_class_member &&
+        !routine_type_is_nonstatic_member_function(rout->type) &&
+        parent_class_of(rout)->variant.class_struct_union.is_nonreal_class) {
+      is_dependent = TRUE;
+    }  /* if */
+  } else if (is_braced_init_list_operand(operand)) {
     /* See if a braced-init-list is dependent by checking its elements. */
     if (arg_list_is_dependent(operand->variant.braced_init_list)) {
       is_dependent = TRUE;
@@ -8034,15 +8047,6 @@ an argument of a call in gpp mode even though the standard says it's not.
       if (potential_this != NULL &&
           is_variable_node(potential_this) &&
           potential_this->variant.variable->is_this_parameter) {
-        result = TRUE;
-      }  /* if */
-    } else if (is_routine_node(expr)) {
-      /* The address of a static member of the current class is also
-         considered dependent. */
-      a_routine_ptr rout = expr->variant.routine.ptr;
-      if (rout->source_corresp.is_class_member &&
-          !routine_type_is_nonstatic_member_function(rout->type) &&
-          parent_class_of(rout)->variant.class_struct_union.is_nonreal_class) {
         result = TRUE;
       }  /* if */
     }  /* if */
