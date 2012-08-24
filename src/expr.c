@@ -14758,7 +14758,7 @@ expression, and return the result in *result (or an error indication in
 *rcblock).
 */
 {
-  a_boolean         err = FALSE;
+  a_boolean         err = FALSE, type_err = FALSE;
   a_source_position start_position, type_position, init_position;
   /* end_new_init_position is only set for template and array new-init
      cases */
@@ -15216,20 +15216,6 @@ expression, and return the result in *result (or an error indication in
       err = TRUE;
     }  /* if */
   }  /* if */
-  unqual_base_new_type = skip_typerefs(base_new_type);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_gcnew || cli_array_new /* for error recovery. */) {
-    /* For gcnew, base_new_type and new_type and their variants should be
-       equivalent. */
-    check_assertion(identical_types(new_type, base_new_type) &&
-                    identical_types(unqual_new_type, unqual_base_new_type));
-    ptr_new_type = make_handle_type(base_new_type);
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */  
-  {
-    ptr_new_type = make_pointer_type(base_new_type);
-  }  /* if */
   /* Check that the type to be allocated is valid.  It must be an object
      type. */
   if (err) {
@@ -15245,12 +15231,12 @@ expression, and return the result in *result (or an error indication in
     } else {
       expr_pos_error(ec_type_must_be_object_type, &type_position);
     }  /* if */
-    err = TRUE;
+    type_err = err = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled && is_cli_interface_type(new_type)) {
     /* A C++/CLI interface class object can never be allocated. */
     expr_pos_error(ec_new_of_cli_interface_class, &type_position);
-    err = TRUE;
+    type_err = err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_abstract_class_type(new_type)) {
     /* The type is an abstract class type, so an object of the type
@@ -15259,12 +15245,12 @@ expression, and return the result in *result (or an error indication in
       abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
                                 new_type, &type_position);
     }  /* if */
-    err = TRUE;
+    type_err = err = TRUE;
   } else if (vla_enabled && is_variably_modified_type(new_type)) {
     /* Variable-length arrays are not allowed.  These can only come from
        typedefs, because new_type_name will not scan a VLA directly. */
     expr_pos_error(ec_vla_not_allowed, &type_position);
-    err = TRUE;
+    type_err = err = TRUE;
   } else {
     /* Valid type. */
   }  /* if */
@@ -15278,16 +15264,16 @@ expression, and return the result in *result (or an error indication in
     if (is_gcnew) {
       /* Validate that gcnew is used on an appropriate type.
          Any class or struct must be of ref or value type. */
-      if (!(is_ref_class_type(unqual_base_new_type) ||
+      if (!(is_ref_class_type(base_new_type) ||
             /* Note, not interfaces. */
-            is_cli_enum_type(unqual_base_new_type) ||
-            is_value_class_or_fundamental_type(unqual_base_new_type) ||
-            is_error_type(unqual_base_new_type) ||
-            is_template_param_or_nonreal_class_type(unqual_base_new_type))) {
+            is_cli_enum_type(base_new_type) ||
+            is_value_class_or_fundamental_type(base_new_type) ||
+            is_error_type(base_new_type) ||
+            is_template_param_or_nonreal_class_type(base_new_type))) {
         if (expr_error_should_be_issued()) {
           pos_ty_error(ec_invalid_gcnew_type, &type_position, new_type);
         }  /* if */
-        err = TRUE;
+        type_err = err = TRUE;
       }  /* if */
       /* It is illegal to use gcnew with a global qualifier.  However,
          that will have already been caught as a syntax error.  This serves
@@ -15295,33 +15281,52 @@ expression, and return the result in *result (or an error indication in
       check_assertion (!use_global_new);
     } else {
       /* Error checks on standard "new" with C++/CLI managed types. */
-      if (is_managed_class_type(unqual_base_new_type)) {
-        if (is_value_class_type(unqual_base_new_type)) {
-          if (is_simple_value_class_type(unqual_base_new_type)) {
+      if (is_managed_class_type(base_new_type)) {
+        if (is_value_class_type(base_new_type)) {
+          if (is_simple_value_class_type(base_new_type)) {
             /* No semantic error for new with simple value types. */
           } else {
             /* Only simple value types are allowed with "new". */
             expr_pos_error(ec_new_used_on_unsuitable_value_type,
                            &type_position);
-            err = TRUE;
+            type_err = err = TRUE;
           }  /* if */
         } else {
           /* This is an attempt to use new on a ref class or interface type. */
           expr_pos_error(ec_new_used_on_managed_class_type, &type_position);
-          err = TRUE;
+          type_err = err = TRUE;
         }  /* if */
-      } else if (is_handle_or_tracking_ref_type(unqual_base_new_type)) {
+      } else if (is_handle_or_tracking_ref_type(base_new_type)) {
         /* "new" cannot be used to allocate handle or tracking reference
            types. */
         expr_pos_error(ec_new_used_on_handle_or_tracking_reference_type,
                        &type_position);
-        err = TRUE;
+        type_err = err = TRUE;
       } else {
         /* No semantic errors were detected. */
       }  /* if */
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (type_err) {
+    new_type = base_new_type = error_type();
+  }  /* if */
+  unqual_new_type = skip_typerefs(new_type);
+  unqual_base_new_type = skip_typerefs(base_new_type);
+  /* Determine the result type of the "new". */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_gcnew || cli_array_new /* for error recovery. */) {
+    /* For gcnew, base_new_type and new_type and their variants should be
+       equivalent. */
+    check_assertion(identical_types(new_type, base_new_type) &&
+                    identical_types(unqual_new_type, unqual_base_new_type));
+    ptr_new_type = make_handle_type(base_new_type);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */  
+  {
+    ptr_new_type = make_pointer_type(base_new_type);
+  }  /* if */
   if (array_new) {
      /* For multi-dimensional arrays: even though only one level of array is
         dropped to determine the pointer type, all levels must be dropped
