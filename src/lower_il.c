@@ -14690,7 +14690,7 @@ cast.  See lower_expr for typical invocation.
 }  /* lower_expr_full */
 
 
-void release_reusable_temporaries(void)
+static void release_reusable_temporaries(void)
 /*
 Release any reusable temporaries in the current context.  This is used
 at the end of a full expression.

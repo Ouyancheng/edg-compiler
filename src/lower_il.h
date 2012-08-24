@@ -1125,8 +1125,6 @@ Define a macro for the typical invocation of lower_expr_full.
 */
 #define lower_expr(expr) lower_expr_full((expr), FALSE)
 
-extern void release_reusable_temporaries(void);
-
 extern void perform_post_pass_on_lowered_expression(an_expr_node_ptr expr);
 
 extern void lower_full_expr(an_expr_node_ptr expr,
