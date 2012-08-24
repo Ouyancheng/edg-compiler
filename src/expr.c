@@ -23613,7 +23613,7 @@ number.
          list-initialization of an object of the right type and then copy. */
       an_init_component_ptr icp = operand_2->variant.braced_init_list;
       prep_list_initializer(icp, result_type,
-                            /*is_direct_init=*/TRUE,
+                            /*is_direct_init=*/FALSE,
                             /*check_narrowing=*/TRUE,
                             /*warning_on_narrowing=*/FALSE,
                             CCO_DEFAULT,
