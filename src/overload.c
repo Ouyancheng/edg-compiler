@@ -8036,6 +8036,15 @@ an argument of a call in gpp mode even though the standard says it's not.
           potential_this->variant.variable->is_this_parameter) {
         result = TRUE;
       }  /* if */
+    } else if (is_routine_node(expr)) {
+      /* The address of a static member of the current class is also
+         considered dependent. */
+      a_routine_ptr rout = expr->variant.routine.ptr;
+      if (rout->source_corresp.is_class_member &&
+          !routine_type_is_nonstatic_member_function(rout->type) &&
+          parent_class_of(rout)->variant.class_struct_union.is_nonreal_class) {
+        result = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
