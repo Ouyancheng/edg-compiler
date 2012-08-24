@@ -19973,6 +19973,12 @@ there are any errors (that's used for overload resolution).
       expr_pos_error(ec_value_init_of_reference, pos);
     }  /* if */
     err = TRUE;
+  } else if (is_function_type(dest_type)) {
+    /* Can't value-initialize a function type. */
+    if (issue_errors) {
+      expr_pos_error(ec_value_init_of_function, pos);
+    }  /* if */
+    err = TRUE;
   } else if (is_template_param_type(dest_type)) {
     /* A template parameter type.  Could be a non-class type, so create
        a constant result. */

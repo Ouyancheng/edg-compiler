@@ -2415,6 +2415,7 @@ ec_braced_init_in_paren_init;;"a parenthesized initializer for a non-class entit
 ec_braced_list_for_implicit_lambda_type;;"a brace-enclosed list does not provide a return type for this lambda"
 ec_invalid_explicit_exception_specification;;"the declared exception specification is incompatible with the generated one"
 ec_scoped_enum_nonstandard_in_current_mode;;"scoped enumeration types are a C++11 feature"
+ec_value_init_of_function;;"a function type cannot be value-initialized"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
