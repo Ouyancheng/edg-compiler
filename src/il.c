@@ -11990,9 +11990,7 @@ options for the copy.  cblock is a control block for the copy.
 */
 {
   a_dynamic_init_ptr      new_dip;
-#if DO_IL_LOWERING
   an_object_lifetime_ptr  init_expr_lifetime;
-#endif /* DO_IL_LOWERING */
   a_boolean               saved_overlaps_temps_in_inner_lifetime;
 
   new_dip = alloc_dynamic_init(dip->kind);
@@ -12024,15 +12022,15 @@ options for the copy.  cblock is a control block for the copy.
      may change when remove_from_destruction_list is called later. */
   saved_overlaps_temps_in_inner_lifetime =
                                          dip->overlaps_temps_in_inner_lifetime;
-  new_dip->init_expr_lifetime = NULL;
-#if DO_IL_LOWERING
   /* Push an object lifetime if copying a dynamic initializer that
      has an init_expr_lifetime. */
+  new_dip->init_expr_lifetime = NULL;
   init_expr_lifetime = dip->init_expr_lifetime; 
   if (init_expr_lifetime != NULL) {
     push_object_lifetime(iek_dynamic_init, (char *)new_dip,
                                                      init_expr_lifetime->kind);
   }  /* if */
+#if DO_IL_LOWERING
   new_dip->destructible_entity_descr = NULL;
 #endif /* DO_IL_LOWERING */
   switch (dip->kind) {
@@ -12111,19 +12109,21 @@ options for the copy.  cblock is a control block for the copy.
       check_assertion(dip->destructor != NULL);  /* Not expecting VLAs. */
       instantiate_il_entity(&dip->destructor->source_corresp);
     }  /* if */
+#if DO_IL_LOWERING
+    if (options & CE_UNLINK_SOURCE_DESTRUCTIONS) {
+      /* Unlink the source dynamic initialization from its lifetime.  This
+         is requested by the caller when the source expression will not
+         remain in the IL tree. */
+      new_dip->destructible_entity_descr = dip->destructible_entity_descr;
+      dip->destructible_entity_descr = NULL;
+      if (init_expr_lifetime != NULL) {
+        unlink_object_lifetime(init_expr_lifetime);
+      }  /* if */
+      remove_from_destruction_list(dip);
+    }  /* if */
+#endif /* DO_IL_LOWERING */
   }  /* if */
 #if DO_IL_LOWERING
-  if (options & CE_UNLINK_SOURCE_DESTRUCTIONS) {
-    /* Unlink the source dynamic initialization from its lifetime.  This
-       is requested by the caller when the source expression will not
-       remain in the IL tree. */
-    new_dip->destructible_entity_descr = dip->destructible_entity_descr;
-    dip->destructible_entity_descr = NULL;
-    if (init_expr_lifetime != NULL) {
-      unlink_object_lifetime(init_expr_lifetime);
-    }  /* if */
-    remove_from_destruction_list(dip);
-  }  /* if */
   if (options & CE_TRANSFER_DESTR_ENTITY_DESCR) {
     /* If IL lowering has already attached a destructible entity description to
        the dynamic initialization, it goes with the copy and not the original.

@@ -1,18 +1,5 @@
 Version 4.5
 
-8/24/12  [EDGcpfe/8673,EDGcpfe/9040]
-IL write-read error involving object lifetimes
-
-In certain complicated dynamic initialization cases, in configurations where
-KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED is FALSE, the
-copying of a dynamic initialization (during lowering) had caused an
-IL write-read error.  For example (with --g++):
-
-  int main() {
-    int i = ({ __label__ l1; ({ __label__ l1; l1:; }); l1:; 0; });
-  }
-
-
 8/24/12  [EDGcpfe/12957]
 Remark instead of warning on use of null reference in unevaluated context
 
