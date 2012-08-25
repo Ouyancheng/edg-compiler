@@ -1489,6 +1489,8 @@ its class type.
 a_boolean is_or_was_ptr_to_data_member_type(a_type_ptr type)
 /*
 Return TRUE if type is (or was, before lowering) a pointer to data member.
+The caller must not have skipped any typerefs on the type (as typerefs are used
+to determine whether the lowered type had a pointer-to-date-member).
 */
 {
   a_boolean is_ptr_to_data = FALSE;
@@ -4080,7 +4082,9 @@ Do IL lowering of the indicated list of constants and everything under it.
 a_boolean contains_ptr_to_data_member(a_type_ptr type)
 /*
 Return TRUE if zero-initializing a variable with the indicated type requires
-zero-initializing a pointer to data member.
+zero-initializing a pointer to data member.  The caller must not have
+skipped any typerefs on the type (as typerefs are used to determine whether the
+lowered type had a pointer-to-date-member).
 */
 {
   a_boolean result = FALSE;
