@@ -2415,12 +2415,10 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
   a_type_kind            etype_kind;
   a_boolean              saved_non_top_level_aggregate
                                                  = is->non_top_level_aggregate;
-  a_boolean              saved_is_aggr_element_init = is->is_aggr_element_init;
   struct an_arg_match_summary
                          *saved_arg_match = is->arg_match;
 
   check_assertion(init_con != NULL);
-  is->is_aggr_element_init = TRUE;
   if (is_pack_expansion_component(icp)) {
     /* If this component is a pack expansion, don't attempt to match up types
        since we don't know how many elements it should match. */
@@ -2487,7 +2485,6 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
   }  /* if */
   is->non_top_level_aggregate = saved_non_top_level_aggregate;
   is->arg_match = saved_arg_match;
-  is->is_aggr_element_init = saved_is_aggr_element_init;
 }  /* aggr_init_element */
 
 
