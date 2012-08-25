@@ -5872,11 +5872,22 @@ Any code needed is inserted at *insert_location.
       check_assertion_str(curr_context != context,
                           "add_dyn_init_cleanup: curr_context == context");
       if (curr_context->latest_initialization != NULL) {
-        /* In cases where an aggregate has exactly one entity, the destruction
-           may have been optimized away, in which case there is no need
-           to adjust the cleanup state. */
         adjust_cleanup_state_for_inner_lifetime_temporaries(
                                      curr_context->latest_initialization, dip);
+        /* There's no need to emit code to set the cleanup state here: it's
+           not necessary because the cleanup state will be set in a moment
+           when the destruction of the last temporary begins.  If we were to
+           try to set the cleanup state here, we would be referring to the
+           region table for that last temporary, which was not cloned because
+           it's not needed. */
+      } else {
+        /* If there was nothing but partial aggregate cleanups in the inner
+           lifetime, we do need to set the cleanup state here, because there
+           will not be any destructions of temporaries in the inner
+           lifetime. */
+        insert_code_to_indicate_cleanup_state(context->curr_cleanup_state,
+                                              insert_location,
+                                              /*unreachable=*/FALSE);
       }  /* if */
 #if !GENERATE_EH_TABLES
       /* Insert an leck_initialization_completed node that indicates the
@@ -5887,12 +5898,6 @@ Any code needed is inserted at *insert_location.
         (void)insert_expr_statement(node, insert_location);
       }
 #endif /* !GENERATE_EH_TABLES */
-      /* There's no need to emit code to set the cleanup state here: it's
-         not necessary because the cleanup state will be set in a moment
-         when the destruction of the last temporary begins.  If we were to
-         try to set the cleanup state here, we would be referring to the
-         region table for that last temporary, which was not cloned because
-         it's not needed. */
     } else {
       insert_code_to_indicate_cleanup_state(context->curr_cleanup_state,
                                             insert_location,
@@ -8207,7 +8212,7 @@ do_assignment:;
          a whole-variable initialization, but can be used in a ctor-initializer
          or lambda capture to iterate over an array initialization, etc. */
       if (!C_mode()) {
-        latest_initialization_on_entry = eff_context->latest_initialization;
+        latest_initialization_on_entry = curr_context->latest_initialization;
       }  /* if */
       keep_constant = FALSE;
       if (dip->is_partially_initialized) {
@@ -8334,17 +8339,17 @@ do_assignment:;
       dedp->initialization_done = TRUE;
       /* coverity[uninit_use] */
       if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
-          !C_mode() &&
           latest_initialization_on_entry !=
-                                          eff_context->latest_initialization) {
+                                         curr_context->latest_initialization) {
         /* This is an aggregate for which some partial-aggregate
            initializations were done.  Adjust the cleanup state now that
            the entire aggregate is completed. */
         a_boolean some_cloned;
 
-        adjust_cleanup_state_for_aggregate_init(dip->next_in_destruction_list,
-                                                latest_initialization_on_entry,
-                                                &some_cloned);
+        adjust_cleanup_state_for_aggregate_init(
+                                           curr_context->latest_initialization,
+                                           latest_initialization_on_entry,
+                                           &some_cloned);
       }  /* if */
       if (dip->destruction_is_for_partially_constructed_aggregate &&
           init_expr_lifetime == NULL &&
