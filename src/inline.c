@@ -446,6 +446,7 @@ finish_variable_remapping_for_inlining.
           (!is_class_struct_union_type(param_var->type) ||
            is_ptr_to_member_function_constant_expr(arg))) {
         a_type_ptr arg_type = skip_typerefs(arg->type);
+#if BACK_END_IS_C_GEN_BE
         if (gcc_is_generated_code_target &&
             is_cast_operation_node(arg) &&
             is_pointer_type(arg_type) &&
@@ -462,7 +463,10 @@ finish_variable_remapping_for_inlining.
              an illegal instruction if the function pointer cast is not
              identical to the function type (and the cast function pointer is
              used to make a call). */
-        } else {
+        } else
+#endif /* BACK_END_IS_C_GEN_BE */
+        /* Do not insert code here. */
+        {
           /* The argument is constant-valued and the parameter is unmodified.
              The parameter gets remapped to a constant-valued expression. */
           vrip->kind = vrk_constant_expr;
