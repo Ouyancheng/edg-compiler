@@ -6827,6 +6827,7 @@ to a constructor to be called after the zeroing have been done.
   /* Build the routine entry.  It has two parameters: a pointer to an entity
      of the indicated type and a count of the number of entities to
      initialize. */
+  type = skip_typerefs(type);
   pointer_type = make_pointer_type(type);
   count_type = integer_type(targ_size_t_int_kind);
   rp = make_rout_entry((char *)NULL, (a_storage_class)sc_static,
@@ -6982,13 +6983,13 @@ the entity can still be an array; the array attributes are fetched
 from entity_type itself.  Insert the code for the call at *insert_location.
 */
 {
-  a_type_ptr element_type, orig_element_type = entity_type;
+  a_type_ptr element_type = entity_type;
 
   check_assertion(!entity_node->is_lvalue &&
                   is_pointer_type(entity_node->type));
   if (array_element_count == 0) array_element_count = 1;
   if (is_array_type(entity_type)) {
-    orig_element_type = underlying_array_element_type(entity_type);
+    element_type = underlying_array_element_type(entity_type);
     if (is_incomplete_array_type(entity_type)) {
       /* For variably-sized arrays, make sure we have a run-time count of
          the number of elements in the array. */
@@ -6997,12 +6998,12 @@ from entity_type itself.  Insert the code for the call at *insert_location.
       array_element_count *= num_array_elements(entity_type);
     }  /* if */
   }  /* if */
-  element_type = skip_typerefs(orig_element_type);
+  element_type = skip_typerefs(element_type);
   if (is_immediate_class_type(element_type) &&
       element_type->variant.class_struct_union.is_empty_class) {
     /* Put out no code at all to zero an empty class. */
 #if IA64_ABI
-  } else if (contains_ptr_to_data_member(orig_element_type)) {
+  } else if (contains_ptr_to_data_member(element_type)) {
     /* If the entity type contains pointers to data members they must
        be initialized to -1, not zero, for the IA-64 ABI. */
     a_boolean array_case;
@@ -7037,7 +7038,7 @@ from entity_type itself.  Insert the code for the call at *insert_location.
     entity_node = add_cast_if_necessary(entity_node,
                                         make_pointer_type(element_type));
     if (array_case) entity_node->next = num_elem_node;
-    (void)make_call_node(helper_routine_to_zero_entity(orig_element_type,
+    (void)make_call_node(helper_routine_to_zero_entity(element_type,
                                                        have_complete_object,
                                                        array_case,
                                                        (a_routine_ptr)NULL),
