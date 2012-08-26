@@ -28909,7 +28909,7 @@ later restoration and further processing.
   }  /* if */
   /* Scan the initializer expression and put it into an init-component. */
   icp = alloc_init_component((an_init_component_kind)ick_expression);
-  arg_op = icp->variant.expr;
+  arg_op = icp->variant.expr.arg_op;
   scan_expr(&arg_op->operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   if (wrap_lifetime != NULL) {
     /* Save the lifetime created for this expression for use later
@@ -28917,7 +28917,7 @@ later restoration and further processing.
        the lifetime if it wasn't really used. */
     check_assertion(curr_object_lifetime == wrap_lifetime);
     if (pop_object_lifetime_full(/*unbound_okay=*/TRUE)) {
-      arg_op->lifetime = wrap_lifetime;
+      icp->variant.expr.lifetime = wrap_lifetime;
       detach_from_object_lifetime_tree(wrap_lifetime);
     }  /* if */
     curr_object_lifetime = saved_curr_lifetime;

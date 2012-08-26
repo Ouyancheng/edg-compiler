@@ -20699,8 +20699,8 @@ object lifetime context.
     if (is_expression_component(icp)) {
       if (!C_mode() && curr_expr_is_potentially_evaluated()) {
         /* For an expression with a lifetime, process the lifetime. */
-        an_object_lifetime_ptr wrap_lifetime = icp->variant.expr->lifetime;
-        icp->variant.expr->lifetime = NULL;
+        an_object_lifetime_ptr wrap_lifetime = icp->variant.expr.lifetime;
+        icp->variant.expr.lifetime = NULL;
         check_assertion(curr_object_lifetime != NULL);
         if (wrap_lifetime != NULL) {
           check_assertion(wrap_lifetime->kind ==

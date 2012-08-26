@@ -532,11 +532,6 @@ typedef struct an_arg_operand {
 			   last argument. */
   an_operand	operand;
 			/* The argument value. */
-  an_object_lifetime_ptr
-		lifetime;
-			/* When this entry is in an initializer cache, non-NULL
-			   to preserve a full-expression lifetime until the
-			   point when the expression is rescanned. */
 } an_arg_operand;
 
 

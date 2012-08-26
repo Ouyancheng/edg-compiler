@@ -693,7 +693,6 @@ entries are used to hold arguments of function calls.
   }  /* if */
   aop->next = NULL;
   clear_operand((an_operand_kind)ok_error, &aop->operand);
-  aop->lifetime = NULL;
   return aop;
 }  /* alloc_arg_operand */
 
@@ -761,7 +760,8 @@ variant fields to default values.
   icp->kind = kind;
   switch (icp->kind) {
     case ick_expression:
-      icp->variant.expr = alloc_arg_operand();
+      icp->variant.expr.arg_op = alloc_arg_operand();
+      icp->variant.expr.lifetime = NULL;
       break;
     case ick_braced:
       icp->variant.braced.list = NULL;
@@ -846,10 +846,10 @@ subtree of entries, free those as well.
   }  /* if */
   switch (icp->kind) {
     case ick_expression:
-      check_assertion(icp->variant.expr != NULL &&
-                      icp->variant.expr->next == NULL);
-      free_arg_operand_list(icp->variant.expr);
-      icp->variant.expr = NULL;
+      check_assertion(icp->variant.expr.arg_op != NULL &&
+                      icp->variant.expr.arg_op->next == NULL);
+      free_arg_operand_list(icp->variant.expr.arg_op);
+      icp->variant.expr.arg_op = NULL;
       break;
     case ick_braced:
       free_init_component_list(icp->variant.braced.list);
@@ -909,7 +909,7 @@ Return the position of the given init component.
       result = &icp->variant.braced.start_pos;
       break;
     case ick_expression:
-      result = &icp->variant.expr->operand.position;
+      result = &icp->variant.expr.arg_op->operand.position;
       break;
     case ick_designator:
       result = &icp->variant.designator.position;
@@ -930,8 +930,8 @@ list or an expression, but not a designator.
 {
   check_assertion(!is_designator_component(icp));
   return icp->kind == (an_init_component_kind)ick_braced ?
-                                      &icp->variant.braced.end_pos
-                                    : &icp->variant.expr->operand.end_position;
+                               &icp->variant.braced.end_pos
+                             : &icp->variant.expr.arg_op->operand.end_position;
 }  /* init_component_end_pos */
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1018,7 +1018,7 @@ Display an init component for debugging purposes.
   }  /* if */
   switch (icp->kind) {
     case ick_expression:
-      db_operand(&icp->variant.expr->operand);
+      db_operand(&icp->variant.expr.arg_op->operand);
       break;
     case ick_braced:
       (void)fprintf(f_debug, "(%lu,%lu) {\n",
@@ -1159,7 +1159,6 @@ an initializer cache) for later restoration and further processing.
 */
 {
   an_init_component_ptr icp = alloc_arg_list_elem_for_operand(operand);
-  an_arg_operand_ptr    arg_op = icp->variant.expr;
 
   if (bundle) {
     if (expr_stack->lifetime != NULL) {
@@ -1168,10 +1167,10 @@ an initializer cache) for later restoration and further processing.
          operand has already been scanned, or taken out of a cache and its
          lifetime restored, so we're just saving here, not wrapping. */
       check_assertion(curr_object_lifetime == expr_stack->lifetime);
-      arg_op->lifetime = expr_stack->lifetime;
+      icp->variant.expr.lifetime = expr_stack->lifetime;
       curr_object_lifetime = curr_object_lifetime->parent_lifetime;
       expr_stack->lifetime = NULL;
-      detach_from_object_lifetime_tree(arg_op->lifetime);
+      detach_from_object_lifetime_tree(icp->variant.expr.lifetime);
     }  /* if */
     icp->bundled = TRUE;
   }  /* if */

@@ -156,10 +156,17 @@ typedef struct an_init_component {
 			   the operand pack_expansion_descr field. */
   union {
     /* When kind == ick_expression: */
-    struct an_arg_operand
-		*expr;
+    struct {
+      struct an_arg_operand
+		*arg_op;
 			/* The expression.  The an_arg_operand struct is
 			   opaque outside of the expression routines. */
+      an_object_lifetime_ptr
+		lifetime;
+			/* When this entry is bundled, non-NULL to preserve
+			   an associated lifetime until the point when the
+			   expression is handled. */
+    } expr;
     /* When kind == ick_braced: */
     struct {
       an_init_component_ptr
@@ -222,7 +229,7 @@ Macro to identify designator components.
 /*
 Return the operand address from an expression init component.
 */
-#define operand_of_arg_list_elem(icp) (&(icp)->variant.expr->operand)
+#define operand_of_arg_list_elem(icp) (&(icp)->variant.expr.arg_op->operand)
 
 /*
 Entry used to pass information about the context for a rescan to redo
