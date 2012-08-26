@@ -1,5 +1,27 @@
 Version 4.5
 
+8/26/12  [EDGcpfe/9170]
+C++11 Initializer lists
+
+The front end now implements C++11 initializer lists, as specified in
+N2672, including on default arguments as specified in N3217.
+
+  struct A { A(int, int); };
+  A a{1, 2};  // Calls constructor with arguments (1, 2)
+  int i{3};
+
+Changes have been made to mangle and demangle initializer lists in
+both IA-64 and Cfront ABIs.  The EDG-specific Cfront ABI mangling
+mirrors that of the IA-64 ABI and uses the same character sequences
+(i.e., "il" and "tl") for its encoding.  In the Cfront ABI, the "bi"
+sequence is used to indicate a brace-enclosed initializer on a
+"new" operation.
+
+The decl_inits.c source file has been substantially rewritten to
+handle the new features, but it retains all the old modes and
+compatibility options for initializers.
+
+
 8/24/12  [EDGcpfe/12957]
 Remark instead of warning on use of null reference in unevaluated context
 
