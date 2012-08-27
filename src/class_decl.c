@@ -11341,14 +11341,6 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
       /* Not a constructor, destructor, or assignment operator. */
       err_code = ec_invalid_function_to_be_defaulted;
     }  /* if */
-    if (!microsoft_mode && dps->first_decl &&
-        (rp->source_corresp.access != (an_access_specifier)as_public ||
-         (dps->dso_flags & DSO_EXPLICIT) != 0)) {
-      /* If a member is non-public or explicit, it cannot be defaulted in the
-         class definition.  (Microsoft compilers do not currently implement
-         this rule -- it came late in the standardization process.) */
-      pos_error(ec_nonpublic_or_explicit_member_defaulted_in_class, def_pos);
-    }  /* if */
   }  /* if */
   if (err_code != ec_no_error) {
     pos_error(err_code, diag_pos);

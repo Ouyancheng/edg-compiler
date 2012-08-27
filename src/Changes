@@ -1,5 +1,19 @@
 Version 4.5
 
+8/27/12  [EDGcpfe/11674]
+Defaulted explicit and/or nonpublic members
+
+Previously the front end did not accept "= default" in a class definition for
+explicit and/or nonpublic special member functions (that rule was present in
+earlier drafts of the working paper for C++11, but it was removed just before
+the final standard was agreed on).  For example:
+
+  struct S {
+  protected:
+    S(S const&) = default;  // Previously an error.  Now accepted.
+  };
+
+
 8/26/12  [EDGcpfe/9170]
 C++11 Initializer lists
 

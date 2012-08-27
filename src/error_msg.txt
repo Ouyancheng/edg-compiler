@@ -1867,7 +1867,7 @@ ec_main_wrong_num_params;;"nonstandard number of parameters for \"main\", expect
 ec_main_second_param_wrong_type;;"nonstandard second parameter %t of \"main\", expected \"char *[]\" or \"char **\""
 ec_incl_dir_both_sys_and_nonsys;;"%sq was specified as both a system and non-system include directory -- the non-system entry will be ignored"
 ec_cl_rvalue_ctor_is_copy_ctor_option_only_in_cplusplus;;"option to control move constructors and move assignment operators can be used only when compiling C++"
-ec_nonpublic_or_explicit_member_defaulted_in_class;;"a nonpublic or explicit member function cannot be defaulted in its parent class definition"
+REMOVED;ec_nonpublic_or_explicit_member_defaulted_in_class;;"a nonpublic or explicit member function cannot be defaulted in its parent class definition"
 REMOVED;ec_packed_attribute_on_class_with_non_POD_field;;"\"packed\" attribute ignored on class with non-POD %nd"
 ec_trailing_return_type_requires_auto;;"a trailing return type requires the \"auto\" type specifier"
 ec_trailing_return_type_in_nested_declarator;;"a trailing return type cannot appear in a nested declarator"
