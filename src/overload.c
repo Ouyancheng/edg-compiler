@@ -20636,7 +20636,10 @@ conversion, etc.)
                                         param2_type->variant.integer.int_kind);
       arg1->next = arg2;
       dip->variant.constructor.args = arg1;
-      /* Assuming no destructor for initializer_list. */
+      if (symbol_supplement_for_class(list_type)->destructor != NULL) {
+        /* std::initializer_list is not supposed to have a destructor. */
+        expr_pos_error(ec_std_initializer_list_has_dtor, pos);
+      }  /* if */
       if (p_dip != NULL) *p_dip = dip;
       if (operand != NULL) {
         if (is_new_expr) {
