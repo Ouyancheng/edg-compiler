@@ -10057,9 +10057,6 @@ Do IL lowering of an enk_temp_init expression node.
   an_insert_location insert_location;
   a_boolean          is_constructor_init;
   a_variable_ptr     temp_var;
-#if CHECKING
-  a_boolean          temp_is_reusable = FALSE;
-#endif  /* CHECKING */
 
   dip = expr->variant.init.dynamic_init;
   if (dip->kind == (a_dynamic_init_kind)dik_expression &&
@@ -10106,16 +10103,10 @@ Do IL lowering of an enk_temp_init expression node.
     } else {
       /* Create a temporary variable.  Make it static if necessary. */
       if (!dip->static_temp && !long_lifetime_temps &&
-          !dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
           dip->has_temporary_lifetime) {
         /* Simple case; a temporary that lasts until the end of the full
-           expression will do.  Can't use a reusable temporary for a
-           nonconstant aggregate (because a portion of the constant may
-           be kept for an initializer). */
+           expression will do. */
         temp_var = make_local_temporary(temp_type);
-#if CHECKING
-        temp_is_reusable = TRUE;
-#endif  /* CHECKING */
       } else {
         temp_var = make_temporary_in_scope(temp_type,
                                            (a_scope_ptr)NULL,
@@ -10165,8 +10156,6 @@ Do IL lowering of an enk_temp_init expression node.
                        (a_boolean *)NULL,
                        (a_constant **)NULL);
     if (temp_var != NULL) {
-      check_assertion(!temp_is_reusable ||
-                      temp_var->init_kind == (a_dynamic_init_kind)dik_none);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       /* After lowering, the type will no longer be variably-modified. */
       temp_var->has_variably_modified_type = FALSE;

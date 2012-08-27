@@ -14703,12 +14703,18 @@ at the end of a full expression.
   /* NULL test is needed when this code is used to lower expressions
      in aggregate initializers in Microsoft C mode. */
   if (curr_context != NULL) {
-    a_temporary_list_entry_ptr tlep;
-    for (tlep = curr_context->local_temporaries;
+    a_temporary_list_entry_ptr tlep, *prev = &curr_context->local_temporaries;
+    for (tlep = *prev;
          tlep != NULL;
          tlep = tlep->next) {
-      tlep->in_use = FALSE;
-      check_assertion(tlep->var->init_kind == (a_dynamic_init_kind)dik_none);
+      if (tlep->var->init_kind != (a_dynamic_init_kind)dik_none) {
+        /* Remove a "reusable" temporary that has been assigned an initial
+           value during the lowering process (it's no longer reusable). */
+        *prev = tlep->next;
+      } else {
+        tlep->in_use = FALSE;
+        prev = &(tlep->next);
+      }  /* if */
     }  /* for */
   }  /* if */
 }  /* release_reusable_temporaries */
