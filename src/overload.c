@@ -19925,6 +19925,7 @@ the conversion.
 
 static void value_initialization(a_type_ptr            dest_type,
                                  a_source_position     *pos,
+                                 a_routine_ptr         *ctor_called,
                                  a_boolean             *is_constant,
                                  a_dynamic_init_ptr    *p_dip,
                                  a_constant_ptr        *p_constant,
@@ -19936,11 +19937,14 @@ with an initializer of "{}" or "()".  The result is returned as either
 a constant (*is_constant is set to TRUE, and *p_constant is set to a
 pointer to the unshared allocated constant) or a dynamic init entry
 (*is_constant is set to FALSE, and *p_dip is set to a pointer to the
-allocated dynamic init entry).  Some cases can cause errors, which are
-reported at the source position given by pos.  If error_detected
-is non-NULL, the result *p_dip and *p_constant are not constructed,
-no diagnostics are issued, and *error_detected is returned TRUE if
-there are any errors (that's used for overload resolution).
+allocated dynamic init entry).  If ctor_called is non-NULL and
+a default constructor is called to perform the value initialization,
+a pointer to it is returned in *ctor_called.  Some cases can cause
+errors, which are reported at the source position given by pos.  If
+error_detected is non-NULL, the result *p_dip and *p_constant are not
+constructed, no diagnostics are issued, and *error_detected is
+returned TRUE if there are any errors (that's used for overload
+resolution).
 */
 {
   a_type_ptr         orig_dest_type = dest_type;
@@ -19953,6 +19957,7 @@ there are any errors (that's used for overload resolution).
   a_constant         con;
   a_dynamic_init_ptr dip = NULL;
 
+  if (ctor_called != NULL) *ctor_called = NULL;
   if (is_array_type(dest_type)) {
     /* For an array type, strip off all the array levels and generate
        the initialization for the underlying element type. */
@@ -20025,6 +20030,7 @@ there are any errors (that's used for overload resolution).
       } else if (ctor_routine == NULL) {
         trivial_ctor = TRUE;
       }  /* if */
+      if (!err && ctor_called != NULL) *ctor_called = ctor_routine;
     }  /* if */
     if (!err && generate_il) {
       if (trivial_ctor) {
@@ -21176,26 +21182,30 @@ controls).
       if (arg_match != NULL && !try_user_conversions_in_ovl_res) {
         arg_match_err = TRUE;
       } else {
+        a_routine_ptr ctor_called;
         p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
         value_initialization(dest_type,
                              &icp->variant.braced.start_pos,
+                             &ctor_called,
                              &is_constant, &dip, &constant,
                              p_error_detected);
         if (arg_match != NULL) {
           if (error_detected) {
             arg_match_err = TRUE;
           } else {
-            /* [over.ics.list]p3 says initializing a non-aggregate class
-               from a braced-init-list, calling a constructor, is a
-               user-defined conversion sequence. */
-            arg_match->match_level = aml_user_conversion;
             if (dest_type_is_class &&
                 is_instance_of_std_initializer_list(dest_type,
                                                     &element_type)) {
-              /* Except that an initializer_list initialized from an empty
+              /* A std::initializer_list initialized from an empty
                  list is an exact match. */
               arg_match->match_level = aml_exact;
               arg_match->conversion.std.conv_to_std_initializer_list = TRUE;
+            } else {
+              /* [over.ics.list]p3 says initializing a non-aggregate class
+                 from a braced-init-list, calling a constructor, is a
+                 user-defined conversion sequence. */
+              arg_match->match_level = aml_user_conversion;
+              arg_match->conversion.routine = ctor_called;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -21424,6 +21434,7 @@ controls).
       p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
+                           (a_routine **)NULL,
                            &is_constant, &dip, &constant,
                            p_error_detected);
       if (arg_match != NULL) {
