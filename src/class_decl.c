@@ -16700,8 +16700,9 @@ remarks may be issued in some cases.
                            class_type, type);
       }  /* if */
       gsfd->suppress_dtor = TRUE;
-      /* An inaccessible destructor also prevents the generation of a
-         copy/move constructor. */
+      /* An inaccessible destructor also prevents the generation of any
+         default and copy/move constructors. */
+      gsfd->suppress_default_ctor = TRUE;
       gsfd->suppress_copy_ctor = TRUE;
       gsfd->suppress_move_ctor = TRUE;
     }  /* if */
@@ -17081,15 +17082,16 @@ deleted.
 }  /* check_suppressed_default_ctor */
 
 
-static void add_default_ctor_if_needed(
+static a_boolean check_if_default_ctor_needed(
                                a_class_def_state_ptr               class_state,
                                a_generated_special_function_descr  *gsfd)
 /*
-If appropriate, add an implicitly declared default constructor to the class
-definition described by class_state.  If the default constructor should be
-suppressed, record that fact in *gsfd.
+Return TRUE if a default constructor should be generated for the class
+described by class_state.  If the default constructor should be suppressed,
+record that fact in *gsfd.
 */
 {
+  a_boolean                  result = FALSE;
   a_type_ptr                 class_type = class_state->class_type;
   a_class_symbol_supplement  *cssp = symbol_supplement_for_class(class_type);
 
@@ -17117,7 +17119,7 @@ suppressed, record that fact in *gsfd.
   if (cli_class_type_kind_is(class_type, cctk_value)) {
     /* Value types always have a default constructor. */
     if (!has_simple_default_constructor(class_type)) {
-      generate_default_constructor(class_state, /*is_deleted=*/FALSE);
+      result = TRUE;
     } else {
       /* A default constructor was already declared, but that must have been
          an error (user-declared default constructors are not allowed in value
@@ -17155,7 +17157,7 @@ suppressed, record that fact in *gsfd.
               ->variant.class_struct_union.default_ctor_decl_suppressed = TRUE;
       } else {
         /* A default constructor needs to be generated. */
-        generate_default_constructor(class_state, gsfd->suppress_default_ctor);
+        result = TRUE;
       }  /* if */
     }  /* if */
   } else if (!cssp->has_user_declared_default_constructor) {
@@ -17165,17 +17167,8 @@ suppressed, record that fact in *gsfd.
        be a "trivial class" and therefore it cannot be POD. */ 
     class_state->POD_ruled_out = TRUE;
   }  /* if */
-  if (generate_move_operations && cssp->constructor == NULL &&
-      cssp->trivial_default_constructor != NULL) {
-    /* A trivial constructor was generated but not added to the set of
-       constructors, presumably because no nontrivial constructor is expected.
-       However, if move operations are generated, a deleted copy constructor
-       might be generated later, and it will have to be overloaded with the
-       trivial copy constructor. */
-    cssp->constructor = cssp->trivial_default_constructor;
-  }  /* if */
-}  /* add_default_ctor_if_needed */
-
+  return result;
+}  /* check_if_default_ctor_needed */
 
 static void generate_copy_assignment_operator(
                                            a_class_def_state_ptr  class_state,
@@ -17248,6 +17241,32 @@ described by class_state.
   clear_func_info(&func_info);
   generate_special_function(class_state, &decl_info, &func_info, ptp);
 }  /* generate_move_assignment_operator */
+
+
+static void generate_destructor(a_class_def_state_ptr  class_state,
+                                a_boolean              is_deleted)
+/*
+Add a declaration for a destructor to the class definition described by
+class_state.  If is_deleted is TRUE, make that destructor "deleted".
+*/
+{
+  a_type_ptr          class_type = class_state->class_type;
+  a_source_position   *pos = &class_type->source_corresp.decl_position;
+  a_member_decl_info  decl_info;
+  a_func_info_block   func_info;
+
+  initialize_member_decl_info(&decl_info, pos);
+  decl_info.is_destructor = TRUE;
+  clear_func_info(&func_info);
+  generate_special_function(class_state, &decl_info, &func_info,
+                            (a_param_type_ptr)NULL);
+  if (is_deleted) {
+    a_symbol_ptr  sym = decl_info.decl_state.sym;
+    sym->defined = TRUE;
+    sym->variant.routine.ptr->is_deleted = TRUE;
+    sym->variant.routine.ptr->defined = TRUE;
+  }  /* if */
+}  /* generate_destructor */
 
 
 static void mark_trivial_copy_functions(a_class_def_state_ptr  class_state)
@@ -17847,7 +17866,7 @@ The routine body is not generated until it is known to be needed.
   a_boolean                     user_provided_copy_assignment_op;
   a_boolean                     declare_copy_asgn_op, declare_move_asgn_op;
   a_boolean                     declare_copy_ctor, declare_move_ctor;
-  a_boolean                     declare_dtor;
+  a_boolean                     declare_default_ctor, declare_dtor;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     declare_static_ctor;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -17912,11 +17931,12 @@ The routine body is not generated until it is known to be needed.
       }  /* if */
     }  /* if */
   }  /* if */
-  add_default_ctor_if_needed(class_state, &gsfd);
   const_okay = default_assignment_of_const_object_okay(class_type);
   gsfd.copy_assign_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   default_copy_constructor_check(class_type, &const_okay);
   gsfd.copy_ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
+  /* Check which special members should be generated. */
+  declare_default_ctor = check_if_default_ctor_needed(class_state, &gsfd);
   declare_copy_asgn_op = !user_declared_copy_assignment_op &&
                          !ctsp->is_lambda_closure_class &&
                          (!any_cfront_mode() ||
@@ -17936,6 +17956,7 @@ The routine body is not generated until it is known to be needed.
                       (gsfd.suppress_copy_ctor ||
                        ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
+                       class_state->default_ctor_is_nontrivial ||
                        !cssp->construction_by_bitwise_copy_allowed);
   declare_move_ctor = generate_move_operations &&
                       !cssp->has_copy_constructor &&
@@ -17945,6 +17966,7 @@ The routine body is not generated until it is known to be needed.
                       cssp->destructor == NULL &&
                       (ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
+                       class_state->default_ctor_is_nontrivial ||
                        !cssp->construction_by_bitwise_copy_allowed);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   declare_copy_asgn_op = declare_copy_asgn_op &&
@@ -17979,6 +18001,18 @@ The routine body is not generated until it is known to be needed.
     check_suppressed_special_functions(class_type, &gsfd);
     mark_suppressed_defaulted_members_as_deleted(class_type, &gsfd);
   }  /* if */
+  if (declare_default_ctor) {
+    generate_default_constructor(class_state, gsfd.suppress_default_ctor);
+    if (generate_move_operations && cssp->constructor == NULL &&
+        cssp->trivial_default_constructor != NULL) {
+      /* A trivial constructor was generated but not added to the set of
+         constructors, presumably because no nontrivial constructor is
+         expected.  However, if move operations are generated, a deleted copy
+         constructor might be generated later, and it will have to be
+         overloaded with the trivial copy constructor. */
+      cssp->constructor = cssp->trivial_default_constructor;
+    }  /* if */
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (declare_static_ctor) {
     /* In C++/CLI reference and value classes, generate an implicit static
@@ -18011,17 +18045,13 @@ The routine body is not generated until it is known to be needed.
     }  /* if */
   }  /* if */
   if (declare_dtor) {
-    if (gsfd.suppress_dtor) {
+    if (!generate_move_operations && gsfd.suppress_dtor) {
       /* Mark the class as having a suppressed destructor and do not add
          the declaration. */
       class_type->variant.class_struct_union.dtor_decl_suppressed = TRUE;
     } else {
       /* Add the declaration of the destructor. */
-      initialize_member_decl_info(&decl_info, pos);
-      decl_info.is_destructor = TRUE;
-      clear_func_info(&func_info);
-      generate_special_function(class_state, &decl_info, &func_info,
-                                (a_param_type_ptr)NULL);
+      generate_destructor(class_state, gsfd.suppress_dtor);
     }  /* if */
   }  /* if */
   /* Record whether the destructor is "trivial".  Usually, this means that
