@@ -17860,7 +17860,6 @@ The routine body is not generated until it is known to be needed.
   a_class_symbol_supplement_ptr cssp;
   a_class_type_supplement_ptr   ctsp;
   a_boolean                     const_okay, dummy_flag;
-  a_member_decl_info            decl_info;
   a_source_position             *pos;
   a_boolean                     user_declared_copy_assignment_op;
   a_boolean                     user_provided_copy_assignment_op;
@@ -17870,7 +17869,6 @@ The routine body is not generated until it is known to be needed.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     declare_static_ctor;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_func_info_block             func_info;
   a_generated_special_function_descr
                                 gsfd;
 
@@ -18017,6 +18015,8 @@ The routine body is not generated until it is known to be needed.
   if (declare_static_ctor) {
     /* In C++/CLI reference and value classes, generate an implicit static
        constructor if none was declared explicitly. */
+    a_member_decl_info  decl_info;
+    a_func_info_block   func_info;
     initialize_member_decl_info(&decl_info, pos);
     decl_info.decl_state.storage_class = (a_storage_class)sc_static;
     decl_info.is_static_constructor = TRUE;
