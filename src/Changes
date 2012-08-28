@@ -34,6 +34,8 @@ mode with gnu_version < 40400.  For example:
       f(&d);
     }
   };
+
+
 8/28/12  [EDGcpfe/13155]
 Abort on invalid member using-declaration in class template
 
