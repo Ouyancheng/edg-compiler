@@ -5738,18 +5738,23 @@ variable to a zero value.
 }  /* reset_conditional_flag_var */
 
 
-static void adjust_cleanup_state_for_inner_lifetime_temporaries(
+static a_dynamic_init_ptr adjust_cleanup_state_for_inner_lifetime_temporaries(
                                                    a_dynamic_init_ptr temp_dip,
                                                    a_dynamic_init_ptr dip)
 /*
 dip points to a destruction for an entity that is created while
-destructible temporaries in an inner object lifetime are still in existence.
-temp_dip points to the destruction for one of those temporaries.
-Update the region table information for the temporary and those
-following it in its object lifetime so that the cleanup list includes
-the temporaries and then the outer-lifetime entity.  Note that some
-entries on the list may be ones indicating freeing of storage on
-exceptions, rather than temporaries in the strict sense.
+destructible temporaries in an inner object lifetime are still in
+existence.  temp_dip points to the destruction for one of those
+temporaries, or NULL if we've reached the end of the list.  Update the
+region table information for the temporary and those following it in
+its object lifetime so that the cleanup list includes the temporaries
+and then the outer-lifetime entity.  Note that some entries on the
+list may be ones indicating freeing of storage on exceptions, rather
+than temporaries in the strict sense.  Also, there may be
+partial-aggregate cleanups in the inner lifetime, and those should be
+ignored.  Return a pointer to the first destruction for a "real"
+temporary on the list, or NULL if only partial-aggregate cleanup
+entries were seen.
 */
 #if GENERATE_EH_TABLES
 /*
@@ -5761,59 +5766,69 @@ dip has already been created.
 */
 #endif /* GENERATE_EH_TABLES */
 {
-#if GENERATE_EH_TABLES
-  a_destructible_entity_descr_ptr dedp = temp_dip->destructible_entity_descr;
-  a_dynamic_init_ptr              next_dip = dedp->next_in_region_table;
+  a_dynamic_init_ptr first_real_temp = NULL;
 
-  if (next_dip == NULL) {
-    /* End of the list, beginning of the object lifetime of the temporaries. */
-    curr_context->latest_initialization = NULL;
-    curr_context->curr_cleanup_state = dip;
-  } else {
-    /* Remove any destructions for partial aggregate components in the
-       next_in_region_table list, and recursively process the remaining
-       destructions on the list. */
-    for (; next_dip != NULL &&
-           next_dip->destruction_is_for_partially_constructed_aggregate;
-           next_dip =
-                   next_dip->destructible_entity_descr->next_in_region_table) {
-    }  /* for */
+#if GENERATE_EH_TABLES
+  { a_dynamic_init_ptr              orig_temp_dip = temp_dip;
+    a_destructible_entity_descr_ptr dedp;
+    a_dynamic_init_ptr              next_dip;
+    /* Skip over any partial-aggregate destructions on the list. */
+    while (temp_dip != NULL &&
+           temp_dip->destruction_is_for_partially_constructed_aggregate) {
+      temp_dip = temp_dip->destructible_entity_descr->next_in_region_table;
+    }  /* while */
+    /* If we ran off the list, do nothing and return NULL. */
+    if (temp_dip == NULL) goto end_of_routine;
+    first_real_temp = temp_dip;
+    dedp = temp_dip->destructible_entity_descr;
+    /* Find and process the next real temporary following this one. */
+    next_dip = dedp->next_in_region_table;
+    next_dip = adjust_cleanup_state_for_inner_lifetime_temporaries(next_dip,
+                                                                   dip);
+    /* Link this temp destruction to the next real temp destruction, if any. */
     dedp->next_in_region_table = next_dip;
-    if (next_dip != NULL) {
-      adjust_cleanup_state_for_inner_lifetime_temporaries(next_dip, dip);
-    }  /* if */
-  }  /* if */
-  /* Adjust the pointer to the previous entity, to one after this one on
-     the cleanup list. */
-  dedp->cleanup_state_to_set_when_starting_destruction =
+    /* Adjust the pointer to the previous entity, to one after this one on
+       the cleanup list. */
+    dedp->cleanup_state_to_set_when_starting_destruction =
                                               curr_context->curr_cleanup_state;
-  /* Clone the region table entry for this destruction and add it to
-     the beginning of a region table cleanup sequence that runs through
-     the temporaries and then destroys the outer-lifetime entity.
-     Don't clone the region table entry for the first destruction
-     in the temporary lifetime, because a cleanup state including
-     that destruction will not be needed -- we start with destroying
-     that one, and the cleanup state established right away points to
-     the second destruction on the list, or the outer-lifetime entity's
-     destruction if there is only one temporary destruction on the
-     list. */
-  if (temp_dip != temp_dip->lifetime->destructions) {
-    clone_region_table_entry_list(temp_dip, next_dip);
-  }  /* if */
+    /* Clone the region table entry for this destruction and add it to
+       the beginning of a region table cleanup sequence that runs through
+       the temporaries and then destroys the outer-lifetime entity.
+       Don't clone the region table entry for the first destruction
+       in the temporary lifetime, because a cleanup state including
+       that destruction will not be needed -- we start with destroying
+       that one, and the cleanup state established right away points to
+       the second destruction on the list, or the outer-lifetime entity's
+       destruction if there is only one temporary destruction on the
+       list. */
+    if (orig_temp_dip != temp_dip->lifetime->destructions) {
+      clone_region_table_entry_list(temp_dip, next_dip);
+    }  /* if */
+  }
 #else /* !GENERATE_EH_TABLES */
   /* Find the last destruction entry for a temporary and reset its
-     cleanup_state_to_set_when_starting_destruction to dip. */
+     cleanup_state_to_set_when_starting_destruction to dip.
+     Partial-aggregate cleanups stay on the list, so they are treated like
+     any other entries. */
+  if (temp_dip == NULL) goto end_end_of_routine;
   { a_dynamic_init_ptr last_dip;
     a_destructible_entity_descr_ptr last_dedp;
     for (last_dip = temp_dip;
          last_dip->next_in_destruction_list != NULL;
-         last_dip = last_dip->next_in_destruction_list) {}
+         last_dip = last_dip->next_in_destruction_list) {
+      if (!last_dip->destruction_is_for_partially_constructed_aggregate &&
+          first_real_temp == NULL) {
+        first_real_temp = last_dip;
+      }  /* if */
+    }  /* for */
     last_dedp = last_dip->destructible_entity_descr;
     last_dedp->cleanup_state_to_set_when_starting_destruction = dip;
-  }    
+  }
 #endif /* GENERATE_EH_TABLES */
+end_of_routine:
   curr_context->latest_initialization = temp_dip;
   set_curr_cleanup_state_to_latest_initialization();
+  return first_real_temp;
 }  /* adjust_cleanup_state_for_inner_lifetime_temporaries */
 
 
@@ -5871,9 +5886,8 @@ Any code needed is inserted at *insert_location.
          and the present entity are on the cleanup list. */
       check_assertion_str(curr_context != context,
                           "add_dyn_init_cleanup: curr_context == context");
-      if (curr_context->latest_initialization != NULL) {
-        adjust_cleanup_state_for_inner_lifetime_temporaries(
-                                     curr_context->latest_initialization, dip);
+      if (adjust_cleanup_state_for_inner_lifetime_temporaries(
+                           curr_context->latest_initialization, dip) != NULL) {
         /* There's no need to emit code to set the cleanup state here: it's
            not necessary because the cleanup state will be set in a moment
            when the destruction of the last temporary begins.  If we were to
@@ -5881,10 +5895,10 @@ Any code needed is inserted at *insert_location.
            region table for that last temporary, which was not cloned because
            it's not needed. */
       } else {
-        /* If there was nothing but partial aggregate cleanups in the inner
-           lifetime, we do need to set the cleanup state here, because there
-           will not be any destructions of temporaries in the inner
-           lifetime. */
+        /* If there was nothing in the inner lifetime, or nothing but partial
+           aggregate cleanups, we do need to set the cleanup state here,
+           because there will not be any destructions of temporaries in the
+           inner lifetime. */
         insert_code_to_indicate_cleanup_state(context->curr_cleanup_state,
                                               insert_location,
                                               /*unreachable=*/FALSE);
@@ -8212,7 +8226,7 @@ do_assignment:;
          a whole-variable initialization, but can be used in a ctor-initializer
          or lambda capture to iterate over an array initialization, etc. */
       if (!C_mode()) {
-        latest_initialization_on_entry = curr_context->latest_initialization;
+        latest_initialization_on_entry = eff_context->latest_initialization;
       }  /* if */
       keep_constant = FALSE;
       if (dip->is_partially_initialized) {
@@ -8340,16 +8354,20 @@ do_assignment:;
       /* coverity[uninit_use] */
       if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
           latest_initialization_on_entry !=
-                                         curr_context->latest_initialization) {
+                                          eff_context->latest_initialization) {
         /* This is an aggregate for which some partial-aggregate
            initializations were done.  Adjust the cleanup state now that
-           the entire aggregate is completed. */
+           the entire aggregate is completed.  Note that this cleans up
+           partial-aggregate entries on the same level as the aggregate
+           itself; any partial-aggregate entries within an inner lifetime
+           are handled by adjust_cleanup_state_for_inner_lifetime_temporaries,
+           called from add_dyn_init_cleanup below. */
         a_boolean some_cloned;
-
+        check_assertion(!dip->overlaps_temps_in_inner_lifetime);
         adjust_cleanup_state_for_aggregate_init(
-                                           curr_context->latest_initialization,
-                                           latest_initialization_on_entry,
-                                           &some_cloned);
+                                            eff_context->latest_initialization,
+                                            latest_initialization_on_entry,
+                                            &some_cloned);
       }  /* if */
       if (dip->destruction_is_for_partially_constructed_aggregate &&
           init_expr_lifetime == NULL &&

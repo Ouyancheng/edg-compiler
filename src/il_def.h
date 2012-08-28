@@ -3185,7 +3185,9 @@ typedef struct a_dynamic_init {
 			   be considered to be on the cleanup list until
 			   the entity has actually been initialized.  This flag
 			   is not set for variables with static storage
-			   duration. */
+			   duration.  It is set when there are partial-
+			   aggregate cleanups in an inner lifetime, even if
+			   there are no "real" temporaries. */
 #if DO_IL_LOWERING && MULTIPLE_INIT_ROUTINES
   a_bit_field	included_in_slice:1;
 			/* Used to mark destructions associated with the
