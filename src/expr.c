@@ -2635,6 +2635,11 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
       param_type =
               routine->type->variant.routine.extra_info->param_type_list->type;
       source_type = type_pointed_to(param_type);
+      if (is_expression_component(eff_arg_list) &&
+          is_braced_init_list_operand(operand_of_arg_list_elem(eff_arg_list))){
+        eff_arg_list = operand_of_arg_list_elem(eff_arg_list)
+                                                    ->variant.braced_init_list;
+      }  /* if */
       if (!is_expression_component(eff_arg_list)) {
         check_assertion(is_braced_init_component(eff_arg_list));
         /* The parameter of the copy constructor, of type reference to
