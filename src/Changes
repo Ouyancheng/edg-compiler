@@ -1,5 +1,6 @@
 Version 4.5
 
+<<<<<<< Updated upstream
 8/28/12  [EDGcpfe/13117]
 Gnu compatibility: access to protected base classes
 
@@ -20,6 +21,20 @@ mode with gnu_version < 40400.  For example:
       f(&d);
     }
   };
+=======
+8/28/12  [EDGcpfe/12751, EDGcpfe/13158]
+GNU compatibility: Scoped enumeration types in non-C++11 mode
+
+In GNU C++ mode with gnu_version >= 40400, the front end now accepts (with a
+warning) the declaration of scoped enumeration types and enumeration types
+with an explicit base type when C++11 mode is not enabled.  Use of scoped
+enumerations as name qualifiers remains an error in such modes, however.
+For example:
+
+  enum class E { e };   // Now accepted in some non-C++11 GCC modes.
+  long x = (long)E::e;  // Still an error in all non-C++11 GCC modes.
+  enum F: short { f };  // Also accepted in some non-C++11 GCC modes.
+>>>>>>> Stashed changes
 
 
 8/28/12  [EDGcpfe/13155]
@@ -149,18 +164,6 @@ control the former behavior.  Its default value is that of
 MACRO_INVOCATION_TREE_IN_IL, so that existing configurations will continue
 to have the same effect, but it can be set to TRUE even when
 MACRO_INVOCATION_TREE_IN_IL is FALSE.
-
-
-8/23/12  [EDGcpfe/12751]
-GNU compatibility: Scoped enumeration types in non-C++11 mode
-
-In GNU C++ mode with gnu_version >= 40400, the front end now accepts the
-declaration of scoped enumeration types with a warning if C++11 mode is not
-enabled.  Use of scoped enumerations as name qualifiers remains an error in
-such modes, however.  For example:
-
-  enum class E { e };   // Now accepted in some non-C++11 GCC modes.
-  long x = (long)E::e;  // Still an error in all non-C++11 GCC modes.
 
 
 8/22/12  [EDGcpfe/12860]

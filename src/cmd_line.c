@@ -3792,6 +3792,12 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     /* g++ versions 4.4 and above support inline namespaces in all modes
        (not just C++11 mode). */
     inline_namespaces_enabled = TRUE;
+    if (!cpp11_mode) {
+      /* g++ versions 4.4 and above support explicit enum bases in all modes,
+         but report it as nonstandard in non-C++11 mode. */
+      explicit_enum_base_enabled = TRUE;
+      report_explicit_enum_base_as_nonstandard = TRUE;
+    }  /* if */
   }  /* if */
   if (cpp11_mode &&
       !option_kind_used[(int)optk_gen_move_operations]) {
@@ -9676,6 +9682,7 @@ variables declared in cmd_line.h.
   long_lifetime_temps = FALSE;
   explicit_conversion_functions_enabled = FALSE;
   explicit_enum_base_enabled = FALSE;
+  report_explicit_enum_base_as_nonstandard = FALSE;
   enum_qualifiers_enabled = FALSE;
   opaque_enum_decls_enabled = FALSE;
   lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;

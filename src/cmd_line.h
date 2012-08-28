@@ -1003,6 +1003,12 @@ EXTERN a_boolean
 			   was later adopted in C++11.) */
 
 EXTERN a_boolean
+		report_explicit_enum_base_as_nonstandard;
+			/* TRUE if the use of explicit enum base syntax should
+			   be warned about.  (This is the case in certain
+			   GNU modes.) */
+
+EXTERN a_boolean
 		enum_qualifiers_enabled;
 			/* TRUE if an enumerator constant can be qualified
 			   with an enumerator name.  E.g.:

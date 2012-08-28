@@ -4492,6 +4492,10 @@ and *p_base_type is left unchanged.
 
   if (curr_token == tok_colon && explicit_enum_base_enabled) {
     a_type_ptr  base_type = NULL;
+    if (report_explicit_enum_base_as_nonstandard) {
+      pos_warning(ec_explicit_enum_base_nonstandard_in_current_mode,
+                  &pos_curr_token);
+    }  /* if */
     (void)get_token();
     *pos_type = pos_curr_token;
     add_stop_token(tok_lbrace);
