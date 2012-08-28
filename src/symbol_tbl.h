@@ -4829,15 +4829,15 @@ context by versions of g++ prior to 4.4.
   (this_step->derivation->access == (an_access_specifier)as_protected &&  \
    gpp_mode &&gnu_version < 40400 &&                                      \
    f_is_gnu_accessible_protected_base(this_step, target_base))
+
+extern a_boolean f_is_gnu_accessible_protected_base(
+                                                 a_base_class_ptr this_step,
+                                                 a_base_class_ptr target_base);
 #else /* !GNU_EXTENSIONS_ALLOWED */
 /* Just return FALSE. */
 #define is_gnu_accessible_protected_base(this_step, target_base) \
   /*lint --e(506)*/FALSE
 #endif /* GNU_EXTENSIONS_ALLOWED */
-
-extern a_boolean f_is_gnu_accessible_protected_base(
-                                                 a_base_class_ptr this_step,
-                                                 a_base_class_ptr target_base);
 
 /*
 Return TRUE if the base class indicated by the base class entry bcp
