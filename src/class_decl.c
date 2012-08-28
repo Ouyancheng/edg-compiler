@@ -17143,6 +17143,9 @@ record that fact in *gsfd.
     } else {
       /* A default constructor needs to be generated. */
       check_suppressed_default_ctor(class_type, gsfd);
+      if (generate_move_operations && gsfd->suppress_default_ctor) {
+        class_state->default_ctor_is_nontrivial = TRUE;
+      }  /* if */
       result = TRUE;
     }  /* if */
   } else if (!cssp->has_user_declared_default_constructor) {
