@@ -1747,7 +1747,7 @@ version 4.3, and became array[] of char in 4.3.  It's now back to the
 complete array type.  [Patch sent out 5/17/12 as part of 4.4.1.]
 
 
-5/9/12   [EDGcpfe/12891]
+5/9/12   [EDGcpfe/12580, EDGcpfe/12891]
 Unnamed bit fields of enumeration type
 
 In modes that accept enumeration definitions with explicit underlying types
