@@ -2277,7 +2277,7 @@ all dimensions.
       }  /* if */
     }  /* if */
     if (is_array) {
-      if (ipdp->num_elem_node != NULL) {
+      if (ipdp->array_element_count == 0 && ipdp->num_elem_node != NULL) {
         /* For variably-sized arrays, use the expression that has already
            been created to describe the number of elements in the array. */
         num_elem_node = make_reusable_copy(ipdp->num_elem_node,
@@ -5216,6 +5216,13 @@ expression).
              (which could be zero, in cases like "new A[n] {}"). */
           check_assertion(ipd.num_elem_node != NULL);
           ipd.partial_initialization_starting_element = ipmp->curr_elem;
+          if (is_array_type(array_element_type(aggr_type))) {
+            /* For the multi-dimensional array case, ensure that the
+               starting element takes into account all of the elements
+               that have already been initialized. */
+            ipd.partial_initialization_starting_element *=
+                             num_array_elements(array_element_type(aggr_type));
+          }  /* if */
         } else {
           ipd.array_element_count =
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
