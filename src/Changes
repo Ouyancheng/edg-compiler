@@ -1,5 +1,22 @@
 Version 4.5
 
+8/28/12  [EDGcpfe/13155]
+Abort on invalid member using-declaration in class template
+
+Certain invalid member using-declarations in class templates aborted with an
+internal error in member_using_or_alias_declaration (class_decl.c).
+For example:
+
+  template<class T> struct S {
+    typedef int I;
+    struct N {
+      using typename S<T>::I;  // Error.  Previously triggered an
+    };                         // internal error.
+  };
+
+This is now fixed.
+
+
 8/27/12  [EDGcpfe/11674]
 Defaulted explicit and/or nonpublic members
 

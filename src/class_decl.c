@@ -18813,8 +18813,8 @@ distinguish an alias declaration from a using-declaration.)
            Because of the latter possibility, we must ensure we must consider
            the possibility of sym being a projection symbol. */
         sym = fundamental_symbol_of(sym);
-        check_assertion(is_type_template_param_symbol(sym) ||
-                        is_nonreal_instance_class_symbol(sym));
+        check_assertion_or_expect_error(is_type_template_param_symbol(sym) ||
+                                        is_nonreal_instance_class_symbol(sym));
       }  /* if */
 #endif /* CHECKING */
     }  /* if */
@@ -18874,6 +18874,7 @@ distinguish an alias declaration from a using-declaration.)
       a_type_ptr  parent_class = qualifier_class_type(locator_for_curr_id);
       if ((could_be_dependent_class_type(parent_class) ||
            has_dependent_base_class(class_type)) &&
+          !parent_class->incomplete &&
           !same_entities(class_type, parent_class)) {
         /* The qualifier is a dependent class or the enclosing class has a
            dependent base class.  Either way, we cannot in general determine
