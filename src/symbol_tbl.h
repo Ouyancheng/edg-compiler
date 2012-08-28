@@ -4831,7 +4831,8 @@ context by versions of g++ prior to 4.4.
    f_is_gnu_accessible_protected_base(this_step, target_base))
 #else /* !GNU_EXTENSIONS_ALLOWED */
 /* Just return FALSE. */
-#define is_gnu_accessible_protected_base(this_step, target_base) FALSE
+#define is_gnu_accessible_protected_base(this_step, target_base) \
+  /*lint --e(506)*/FALSE
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern a_boolean f_is_gnu_accessible_protected_base(
