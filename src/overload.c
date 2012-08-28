@@ -21091,10 +21091,17 @@ controls).
       /* A parenthesized initializer list containing a single entity must
          contain an expression, not a braced-init-list.  See [dcl.init]p13. */
       if (!gpp_mode) {
-        expr_pos_diagnostic(strict_ansi_mode ?
+        an_error_severity sev = strict_ansi_mode ?
                                     strict_ansi_discretionary_severity :
-                                    es_warning,
-                            ec_braced_init_in_paren_init, start_position);
+                                    es_warning;
+        if (arg_match != NULL) {
+          if (is_effective_error(ec_braced_init_in_paren_init, sev)) {
+            arg_match_err = TRUE;
+          }  /* if */
+        } else {
+          expr_pos_diagnostic(sev, ec_braced_init_in_paren_init,
+                              start_position);
+        }  /* if */
       }  /* if */
     }  /* if */
     /* The tests that follow are based on the bullet list in [dcl.init.list]

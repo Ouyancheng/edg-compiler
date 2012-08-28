@@ -1860,7 +1860,6 @@ template pack expansions into multiple expressions as necessary.
   an_expr_node_ptr     arg_expr;
   an_arg_list_elem_ptr alep;
   an_arg_list_elem_ptr expr_list = NULL, end_expr_list = NULL;
-  an_operand           *operand;
 
   if (cached_initializer_present()) {
     /* Pick up any cached expressions instead of rescanning them.  It's
@@ -1872,9 +1871,8 @@ template pack expansions into multiple expressions as necessary.
        correspond to cached expressions so we could throw away just
        that number. */
     do {
-      alep = alloc_init_component((an_init_component_kind)ick_expression);
-      operand = operand_of_arg_list_elem(alep);
-      scan_expr(operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+      alep = fetch_init_component_from_initializer_cache(
+                                                expr_stack->initializer_cache);
       if (expr_list == NULL) {
         expr_list = alep;
       } else {
@@ -15044,9 +15042,10 @@ expression, and return the result in *result (or an error indication in
     if (new_type_involves_auto) {
       /* The type is based on "auto".  Deduce the type from the
          initializer expression. */
-      an_operand auto_operand;
-      a_type_ptr deduced_new_type, deduced_auto_type;
-      a_boolean  still_dependent;
+      an_operand           auto_operand;
+      an_arg_list_elem_ptr auto_alep = NULL;
+      a_type_ptr           deduced_new_type, deduced_auto_type;
+      a_boolean            still_dependent;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* gcnew auto was prohibited on the initial scan, so it should not
          get here for a rescan. */
@@ -15055,10 +15054,13 @@ expression, and return the result in *result (or an error indication in
       check_assertion(!has_braced_initializer &&
                       braced_init_list == NULL);
       make_rescan_operand(rcblock->argument_list, rcblock, &auto_operand);
+      if (is_braced_init_list_operand(&auto_operand)) {
+        auto_alep = auto_operand.variant.braced_init_list;
+      }  /* if */
       /* Deduce the type. */
       if (deduce_auto_type(new_type, /*auto_type=*/(a_type_ptr)NULL,
                            &auto_operand,
-                           (an_arg_list_elem_ptr)NULL,
+                           auto_alep,
                            &type_position,
                            &deduced_new_type,
                            &deduced_auto_type,
@@ -15076,10 +15078,17 @@ expression, and return the result in *result (or an error indication in
       }  /* if */
       /* Save the expression in the cache so it will get picked up below,
          avoiding rescanning it again. */
-      add_operand_to_initializer_cache(&auto_operand,
-                                       /*to_front=*/TRUE,
-                                       /*bundle=*/FALSE,
-                                       &dps.prescanned_initializer_cache);
+      if (auto_alep != NULL) {
+        add_init_component_to_initializer_cache(
+                                            auto_alep,
+                                            /*to_front=*/TRUE,
+                                            &dps.prescanned_initializer_cache);
+      } else {
+        add_operand_to_initializer_cache(&auto_operand,
+                                         /*to_front=*/TRUE,
+                                         /*bundle=*/FALSE,
+                                         &dps.prescanned_initializer_cache);
+      }  /* if */
       using_expr_cache = TRUE;
     }  /* if */
   } else {

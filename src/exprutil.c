@@ -4289,8 +4289,7 @@ information on the template parameter substitutions to be done.
   if (is_braced_init_list_operand(&rescanned_operand)) {
     /* The operand returned is for a braced-init-list, so just
        use the entry contained therein.  We can do that because we just
-       created the copy, so we're holding the responsibility for
-       freeing it. */
+       created the copy, so we know it's not shared. */
     alep = rescanned_operand.variant.braced_init_list;
     rescanned_operand.variant.braced_init_list = NULL;
   } else {
