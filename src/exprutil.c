@@ -4352,8 +4352,14 @@ substitutions to be done.
 
   if (is_expression_component(icp)) {
     /* Rescan a single expression. */
-    an_expr_node_ptr expr = make_node_from_operand(
-                                                operand_of_arg_list_elem(icp));
+    an_expr_node_ptr expr;
+    an_operand       *operand = operand_of_arg_list_elem(icp);
+    if (is_indefinite_function_operand(operand)) {
+      conv_indefinite_function_operand_to_unknown_dependent_function(
+                                                    operand,
+                                                    /*force_to_rvalue=*/FALSE);
+    }  /* if */
+    expr = make_node_from_operand(operand);
     copy_icp = rescan_expr_as_arg_list_elem(expr, rcblock);
   } else if (is_braced_init_component(icp)) {
     /* Rescan a brace-enclosed list of init-components. */
