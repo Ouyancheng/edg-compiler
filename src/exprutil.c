@@ -5719,7 +5719,8 @@ appropriately and error_detected can be NULL.
       base_class = (dsp != NULL) ? dsp->base_class : bcp;
       /* Check that the base class is accessible from the current class. */
       if (check_cast_access && dsp != NULL) {
-        if (!is_accessible_imm_base_class(base_class, curr_type)) {
+        if (!is_accessible_imm_base_class(base_class, curr_type) &&
+            !is_gnu_accessible_protected_base(base_class, bcp)) {
           /* The base class is inaccessible.  Keep going, but issue the
              error only once. */
           if (error_detected != NULL) {
@@ -6017,7 +6018,8 @@ source position to be used for errors.  This routine is only used in C++ mode.
       for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
         base_class = dsp->base_class;
         /* Check that the base class is accessible from the current class. */
-        if (!is_accessible_imm_base_class(base_class, curr_type)) {
+        if (!is_accessible_imm_base_class(base_class, curr_type) &&
+            !is_gnu_accessible_protected_base(base_class, bcp)) {
           if (expr_diagnostic_should_be_issued(
                                        es_discretionary_error,
                                        ec_conv_from_inaccessible_base_class)) {

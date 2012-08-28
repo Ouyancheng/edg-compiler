@@ -4817,6 +4817,28 @@ Given a namespace projection symbol, return the fundamental symbol.
   ((sym)->variant.namespace_projection.fundamental_symbol)
 
 /*
+Return TRUE if this_step (a_base_class_ptr) represents a traversal of a
+protected base class in a conversion involving target_base (another
+a_base_class_ptr) that would be considered accessible in the current
+context by versions of g++ prior to 4.4.
+*/
+#if GNU_EXTENSIONS_ALLOWED
+/* Do some easy tests here for efficiency before calling a function to do
+   the heavy lifting. */
+#define is_gnu_accessible_protected_base(this_step, target_base)          \
+  (this_step->derivation->access == (an_access_specifier)as_protected &&  \
+   gpp_mode &&gnu_version < 40400 &&                                      \
+   f_is_gnu_accessible_protected_base(this_step, target_base))
+#else /* !GNU_EXTENSIONS_ALLOWED */
+/* Just return FALSE. */
+#define is_gnu_accessible_protected_base(this_step, target_base) FALSE
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+extern a_boolean f_is_gnu_accessible_protected_base(
+                                                 a_base_class_ptr this_step,
+                                                 a_base_class_ptr target_base);
+
+/*
 Return TRUE if the base class indicated by the base class entry bcp
 is an accessible base class of viewpoint_class.  bcp must be a direct or
 virtual base class of viewpoint_class, but bcp->derived_class might

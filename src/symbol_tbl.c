@@ -11581,7 +11581,8 @@ class.
     /* Non-virtual base class. */
     for (dsp = bcp->derivation->path; dsp != NULL; dsp = dsp->next) {
       base_class = dsp->base_class;
-      if (!is_accessible_imm_base_class(base_class, curr_type)) {
+      if (!is_accessible_imm_base_class(base_class, curr_type) &&
+          !is_gnu_accessible_protected_base(base_class, bcp)) {
         accessible = FALSE;
         break;
       }  /* if */
@@ -11591,6 +11592,58 @@ class.
   return accessible;
 }  /* is_accessible_base_class */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+a_boolean f_is_gnu_accessible_protected_base(a_base_class_ptr this_step,
+                                             a_base_class_ptr target_base)
+/*
+Return TRUE if the class target_base->type is an accessible base of some
+class in the scope stack.  This is used to emulate a bug in pre-4.4
+versions of g++ that considered a protected base to be accessible in a cast
+if the base class named in the conversion is accessible in the current
+context.  For example, given
+
+    struct B { };
+    struct D1: protected B { };
+    struct D2: B { ... };
+
+g++ versions prior to 4.4 considered a cast from D1* to B* to be valid if
+it occurred in the context of D2.
+
+This function is intended to be called only via the macro
+is_gnu_accessible_protected_base.
+*/
+{
+  a_boolean               is_accessible = FALSE;
+  a_scope_stack_entry_ptr ssep;
+  a_scope_depth           scope_depth;
+
+  /* Make sure that the checks in is_gnu_accessible_protected_base have
+     been satisfied. */
+  check_assertion(this_step->derivation->access ==
+                                           (an_access_specifier)as_protected &&
+                  gpp_mode && gnu_version < 40400);
+  /* Scan through all class scopes on the scope stack to see if any of them
+     is accessibly derived from the class represented by target_base. */
+  for (scope_depth = depth_of_innermost_scope_that_affects_access_control;
+       !is_accessible && scope_depth != NO_SCOPE_DEPTH;
+       scope_depth = ssep->next_scope_that_affects_access_control) {
+    ssep = &scope_stack[scope_depth];
+    if (ssep->kind == (a_scope_kind)sck_class_struct_union ||
+        ssep->kind == (a_scope_kind)sck_class_reactivation) {
+      a_base_class_ptr local_base = find_base_class_of(ssep->assoc_type,
+                                                       target_base->type);
+      if (local_base != NULL && is_accessible_base_class(local_base)) {
+        /* The conversion represented by this_step is valid under the old
+           g++ rules. */
+        is_accessible = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return is_accessible;
+}  /* f_is_gnu_accessible_protected_base */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 a_boolean is_accessible_virtual_base_class(a_base_class_ptr bcp,
                                            a_type_ptr       viewpoint_class)

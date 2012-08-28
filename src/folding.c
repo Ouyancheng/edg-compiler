@@ -947,7 +947,8 @@ no error.
       /* Check that the base class is accessible from the current class.
          Accessibility is not checked if the cast is explicit. */
       if (check_cast_access) {
-        if (!is_accessible_imm_base_class(base_class, curr_type)) {
+        if (!is_accessible_imm_base_class(base_class, curr_type) &&
+            !is_gnu_accessible_protected_base(base_class, bcp)) {
           /* The base class is inaccessible. */
           if (error_detected != NULL) {
             if (is_effective_error(ec_inaccessible_base_class,
@@ -1467,7 +1468,8 @@ the diagnostic, or set it to ec_no_error if there was no error.
       for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
         /* Check that the base class is accessible from the current class. */
         base_class = dsp->base_class;
-        if (!is_accessible_imm_base_class(base_class, curr_type)) {
+        if (!is_accessible_imm_base_class(base_class, curr_type) &&
+            !is_gnu_accessible_protected_base(base_class, bcp)) {
           /* The base class is inaccessible. */
           if (error_detected != NULL) {
             if (is_effective_error(ec_conv_from_inaccessible_base_class,

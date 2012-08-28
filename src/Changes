@@ -1,5 +1,27 @@
 Version 4.5
 
+8/28/12  [EDGcpfe/13117]
+Gnu compatibility: access to protected base classes
+
+In a pointer or pointer to member conversion involving a derived class and
+a protected base class, g++ versions prior to 4.4 considered casting across
+protected inheritance to be permissible if the conversion occurs in a
+context in which the base class is an accessible base, even if the
+conversion is occurring in the context of a different derived class from
+the one in the conversion.  The front end now emulates this behavior in g++
+mode with gnu_version < 40400.  For example:
+
+  struct B { };
+  struct D1: protected B { };
+  void f(B*);
+  struct D2: B {
+    D1 d;
+    D2() {
+      f(&d);
+    }
+  };
+
+
 8/28/12  [EDGcpfe/13155]
 Abort on invalid member using-declaration in class template
 
