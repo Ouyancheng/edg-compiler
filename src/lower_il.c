@@ -748,15 +748,17 @@ and return that.
           cleanup_state = cleanup_state->next_in_destruction_list;
         }  /* while */
       }  /* if */
-      if (cleanup_state != NULL &&
-          cleanup_state->overlaps_temps_in_inner_lifetime &&
-          cleanup_state->destructible_entity_descr != NULL &&
-          !cleanup_state->destructible_entity_descr->initialization_done) {
+      while (cleanup_state != NULL &&
+             cleanup_state->overlaps_temps_in_inner_lifetime &&
+             cleanup_state->destructible_entity_descr != NULL &&
+             !cleanup_state->destructible_entity_descr->initialization_done) {
         /* The entity in the parent list is considered to be on the cleanup
            list only once it has been initialized, and it hasn't been
-           initialized yet. */
+           initialized yet.  There can be multiple initializations that
+           overlap with the same inner lifetime with the arrays underlying
+           std::initializer_list objects. */
         cleanup_state = cleanup_state->next_in_destruction_list;
-      }  /* if */
+      }  /* while */
       if (cleanup_state != NULL) break;
     }  /* for */
   }  /* if */
