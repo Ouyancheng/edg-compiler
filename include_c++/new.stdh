@@ -43,6 +43,7 @@ namespace std {
   class bad_array_new_length : public bad_alloc {
   public:
     bad_array_new_length() throw();
+    virtual ~bad_array_new_length() throw();
   };
 
 #endif /* ifndef __NO_EDG_EXCEPTION_CLASSES */

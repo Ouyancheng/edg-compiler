@@ -93,6 +93,14 @@ Constructor for bad_array_new_length.
 }  /* bad_array_new_length::bad_array_new_length */
 
 
+bad_array_new_length::~bad_array_new_length() THROW_NOTHING()
+/*
+Destructor for bad_array_new_length.
+*/
+{
+}  /* bad_array_new_length::~bad_array_new_length */
+
+
 #endif /* EXCEPTION_HANDLING */
 
 
