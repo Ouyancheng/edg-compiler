@@ -17002,10 +17002,10 @@ static void check_suppressed_default_ctor(
 Check whether the generated default constructor for class_type should be
 suppressed.  In Microsoft mode, this means that it shouldn't be declared at
 all.  In C++11 mode, it means that the generated default constructor should be
-deleted (this C++11-mode behavior is tied to generate_move_operations).
+deleted.
 */
 {
-  if (generate_move_operations || microsoft_mode) {
+  if (cpp11_mode || microsoft_mode) {
     a_symbol_ptr      sym;
     a_base_class_ptr  bcp;
     a_class_symbol_supplement_ptr
@@ -17096,7 +17096,7 @@ record that fact in *gsfd.
     /* A defaulted constructor may implicitly be deleted, which also means it
        isn't trivial. */
     check_suppressed_default_ctor(class_type, gsfd);
-    if (generate_move_operations && gsfd->suppress_default_ctor) {
+    if (cpp11_mode && gsfd->suppress_default_ctor) {
       default_ctor->variant.routine.ptr->is_deleted = TRUE;
       class_state->default_ctor_is_nontrivial = TRUE;
     }  /* if */
@@ -17143,7 +17143,7 @@ record that fact in *gsfd.
     } else {
       /* A default constructor needs to be generated. */
       check_suppressed_default_ctor(class_type, gsfd);
-      if (generate_move_operations && gsfd->suppress_default_ctor) {
+      if (cpp11_mode && gsfd->suppress_default_ctor) {
         class_state->default_ctor_is_nontrivial = TRUE;
       }  /* if */
       result = TRUE;
@@ -17988,7 +17988,7 @@ The routine body is not generated until it is known to be needed.
     mark_suppressed_defaulted_members_as_deleted(class_type, &gsfd);
   }  /* if */
   if (declare_default_ctor) {
-    if (!generate_move_operations && gsfd.suppress_default_ctor) {
+    if (!cpp11_mode && gsfd.suppress_default_ctor) {
       /* Mark this class as having a suppressed default constructor and do not
          add its declaration.  (This only happens in Microsoft mode.) */
       check_assertion(microsoft_mode);
