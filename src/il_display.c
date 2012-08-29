@@ -1539,6 +1539,7 @@ Display the indicated generic constraint.
     case gck_ref_class:        kind_str = "ref class";            break;
     case gck_value_class:      kind_str = "value class";          break;
     case gck_gcnew:            kind_str = "gcnew";                break;
+    case gck_fail:             kind_str = "fail";                 break;
     default:                   kind_str = "**BAD CONSTRAINT KIND**";
   }  /* switch */
   disp_name("kind");

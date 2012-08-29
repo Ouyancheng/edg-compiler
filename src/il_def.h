@@ -15777,7 +15777,10 @@ enum a_generic_constraint_kind_tag {
   gck_ref_class,	/* Used for ref class and ref struct constraints. */
   gck_value_class,	/* Used for value class and value struct
 			   constraints. */
-  gck_gcnew		/* Used for gcnew constraints. */
+  gck_gcnew,		/* Used for gcnew constraints. */
+  gck_fail		/* A constraint that is never met.  This is used
+			   to handle constraints that use unresolved
+			   types. */
 };
 
 /* Define as "a_byte" to explicitly control storage size. */

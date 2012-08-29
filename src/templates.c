@@ -22426,6 +22426,7 @@ Display a generic constraint kind of kind, for debugging purposes.
     case gck_ref_class: str = "ref_class"; break;
     case gck_value_class: str = "value_class"; break;
     case gck_gcnew: str = "gcnew"; break;
+    case gck_fail: str = "fail"; break;
     default: str = "<invalid kind>"; break;
   }  /* switch */
   fprintf(f_debug, "%s", str);
@@ -22747,9 +22748,8 @@ of the list.
            assembly (this is only possible in code generated from metadata).
            This constraint can never be satisfied. */
         type = scan_unresolved_metadata_type();
-        /* FIXME: Create a constraint that cannot be satisfied.  For now, we
-           just ignore this constraint. */
-        kind = (a_generic_constraint_kind)gck_none;
+        /* Create a constraint that cannot be satisfied. */
+        kind = (a_generic_constraint_kind)gck_fail;
         break;
       case tok_ref_class:
       case tok_ref_struct:
@@ -28873,6 +28873,11 @@ substitution.
             }  /* if */
           }  /* if */
         }  /* if */
+        break;
+      case gck_fail:
+        /* A constraint that is never met.  This is used for constraints
+           that make use of unresolved types. */
+        result = FALSE;
         break;
       default:
         unexpected_condition();
