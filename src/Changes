@@ -50,7 +50,8 @@ For example:
     };                         // internal error.
   };
 
-This is now fixed.
+This is now fixed.  (Note that while such cases are normally invalid they are
+usually accepted in GNU and Microsoft modes.)
 
 
 8/27/12  [EDGcpfe/11674]
