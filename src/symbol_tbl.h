@@ -4843,17 +4843,21 @@ extern a_boolean f_is_gnu_accessible_protected_base(
 Return TRUE if the base class indicated by the base class entry bcp
 is an accessible base class of viewpoint_class.  bcp must be a direct or
 virtual base class of viewpoint_class, but bcp->derived_class might
-be something other than viewpoint_class.  A base class is
-accessible if its public members are accessible, which means
+be something other than viewpoint_class.  bcp represents a step in the
+derivation; target_base is the ultimate base class in the conversion.  A
+base class is accessible if its public members are accessible, which means
   (a) if the derivation is public, the base class is accessible;
   (b) if the derivation is private, the base class is accessible if we
       have member access to the derived class;
   (c) if the derivation is protected, the base class is accessible if we
       have member access to the derived class or to one of its derived
       classes.
-is_accessible_imm_base_class can be used for direct or virtual base classes;
-If the derivation step is a non-simple virtual step, it calls
-is_accessible_virtual_base_class.
+In addition, when emulating g++ versions prior to 4.4, a protected step in
+the derivation that is not otherwise acceptable is permitted if targ_base
+is accessible in the current context (this check is implemented by
+is_gnu_accessible_protected_base above).  is_accessible_imm_base_class can
+be used for direct or virtual base classes; if the derivation step is a
+non-simple virtual step, it calls is_accessible_virtual_base_class.
 is_accessible_direct_base_class_derivation can be used for specific
 derivations of direct or simple virtual base classes.
 The function is_accessible_base_class should be used when it is
@@ -4881,11 +4885,12 @@ not known that the base class is an immediate base class.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_virtual_but_not_simple_direct_base_class(bcp)              \
   ((bcp)->is_virtual && (!(bcp)->direct || (bcp)->derivation->next != NULL))
-#define is_accessible_imm_base_class(bcp, viewpoint_class)            \
-  (is_virtual_but_not_simple_direct_base_class(bcp) ?                 \
-    is_accessible_virtual_base_class(bcp, viewpoint_class) :          \
-    is_accessible_direct_base_class_derivation(bcp, bcp->derivation,  \
-                                               viewpoint_class))
+#define is_accessible_imm_base_class(bcp, viewpoint_class, target_base) \
+  ((is_virtual_but_not_simple_direct_base_class(bcp) ?                  \
+    is_accessible_virtual_base_class(bcp, viewpoint_class) :            \
+    is_accessible_direct_base_class_derivation(bcp, bcp->derivation,    \
+                                               viewpoint_class)) ||     \
+   is_gnu_accessible_protected_base(bcp, target_base))
 
 extern a_boolean is_accessible_base_class(a_base_class_ptr bcp);
 

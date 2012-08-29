@@ -11581,8 +11581,7 @@ class.
     /* Non-virtual base class. */
     for (dsp = bcp->derivation->path; dsp != NULL; dsp = dsp->next) {
       base_class = dsp->base_class;
-      if (!is_accessible_imm_base_class(base_class, curr_type) &&
-          !is_gnu_accessible_protected_base(base_class, bcp)) {
+      if (!is_accessible_imm_base_class(base_class, curr_type, bcp)) {
         accessible = FALSE;
         break;
       }  /* if */
