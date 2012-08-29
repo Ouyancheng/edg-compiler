@@ -8967,7 +8967,7 @@ Generate code for a new or delete operation.
          (so the type correspondence between parameters and arguments is
          maintained). */
       an_expr_node dummy_arg;
-      dummy_arg.kind = enk_error;
+      dummy_arg.kind = (an_expr_node_kind)enk_error;
       dummy_arg.next = ndsp->arg;
       gen_argument_list(&dummy_arg, (routine == NULL) ? NULL : routine->type,
                         /*skip_num=*/1);
