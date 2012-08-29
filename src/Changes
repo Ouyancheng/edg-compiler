@@ -31,7 +31,7 @@ mode with gnu_version < 40400.  For example:
   struct D2: B {
     D1 d;
     D2() {
-      f(&d);
+      f(&d);    // Now accepted with gnu_version < 40400
     }
   };
 
