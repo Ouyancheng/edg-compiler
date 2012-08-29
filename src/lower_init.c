@@ -8753,8 +8753,8 @@ the necessary code.
     /* Add "|| num_elements < num_initializers" to the test above. */
     temp_node = var_rvalue_expr(temp);
     temp_node->next = node_for_host_large_integer(
-                         (a_host_large_integer)dip->variant.constant->type->
-                                      variant.array.variant.number_of_elements,
+                         (a_host_large_integer)
+                               num_array_elements(dip->variant.constant->type),
                          targ_size_t_int_kind);
     lt_node = make_operator_node((an_expr_operator_kind)eok_lt,
                                  integer_type((an_integer_kind)ik_int),
