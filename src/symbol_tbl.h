@@ -4825,9 +4825,9 @@ context by versions of g++ prior to 4.4.
 #if GNU_EXTENSIONS_ALLOWED
 /* Do some easy tests here for efficiency before calling a function to do
    the heavy lifting. */
-#define is_gnu_accessible_protected_base(this_step, target_base)          \
-  (this_step->derivation->access == (an_access_specifier)as_protected &&  \
-   gpp_mode && gnu_version < 40400 &&                                     \
+#define is_gnu_accessible_protected_base(this_step, target_base)           \
+  ((this_step)->derivation->access == (an_access_specifier)as_protected && \
+   gpp_mode && gnu_version < 40400 &&                                      \
    f_is_gnu_accessible_protected_base(this_step, target_base))
 
 extern a_boolean f_is_gnu_accessible_protected_base(
