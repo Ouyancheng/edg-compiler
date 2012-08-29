@@ -6249,7 +6249,6 @@ Apply the Microsoft __declspec(jitintrinsic) attribute to the given entity
     pos_st_error(ec_cppcli_attribute_only, &ap->position, ap->name);
     make_attr_unrecognized(ap);
   }  /* if */
-  /* FIXME: Apply the attribute or issue diagnostics if appropriate. */
   return entity;
 }  /* apply_jitintrinsic_attr */
 
@@ -6279,7 +6278,6 @@ Apply the Microsoft __declspec(non_user_code) attribute to the given entity
 (and return that entity).
 */
 {
-  /* FIXME: Apply the attribute or issue diagnostics if appropriate. */
   return entity;
 }  /* apply_non_user_code_attr */
 
@@ -6314,7 +6312,6 @@ Apply the Microsoft __declspec(process) attribute to the given entity
     pos_st_error(ec_cppcli_attribute_only, &ap->position, ap->name);
     make_attr_unrecognized(ap);
   }  /* if */
-  /* FIXME: Apply the attribute or issue diagnostics if appropriate. */
   return entity;
 }  /* apply_process_attr */
 

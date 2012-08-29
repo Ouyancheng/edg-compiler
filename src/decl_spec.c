@@ -2262,8 +2262,6 @@ it returns FALSE.
 
 /*
 Pointer to a hash table recording unresolved types.
-FIXME: We probably need a decl_spec_trans_unit_init to handle this table in
-multi-TU compilations.
 */
 static a_hash_table_ptr
 		unresolved_type_map;
