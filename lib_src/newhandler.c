@@ -32,6 +32,19 @@ and returns a NULL pointer to the caller.
 #endif /* EXCEPTION_HANDLING */
 }  /* __default_new_handler */
 
+#if ABI_COMPATIBILITY_VERSION >= 405 && EXCEPTION_HANDLING
+
+EXTERN_C void __throw_bad_array_new_length(void)
+/*
+This routine is called by lowered code or the run-time library if it has been
+determined that the overall size of an array new operation is invalid for
+some reason (i.e., overflow, less than zero, too small for initializer list).
+*/
+{
+  throw STD_NAMESPACE::bad_array_new_length();
+}  /* __throw_bad_array_new_length */
+
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 && EXCEPTION_HANDLING */
 
 /******************************************************************************
 *                                                             \  ___  /       *

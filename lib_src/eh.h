@@ -435,6 +435,10 @@ EXTERN_C a_boolean __can_throw_type(a_type_info_impl_ptr	type,
 
 EXTERN_C an_eh_stack_entry_ptr __get_curr_eh_stack_entry(void);
 
+#if ABI_COMPATIBILITY_VERSION >= 405
+EXTERN_C void __throw_bad_array_new_length(void);
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 */
+
 #endif /* EXCEPTION_HANDLING */
 
 #endif /* ifndef _EH_H */

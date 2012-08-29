@@ -3651,6 +3651,8 @@ Display the indicated new/delete supplement to an expression node.
   disp_ptr("freeing_of_storage_on_exception",
            (char *)ndsp->freeing_of_storage_on_exception,
            iek_dynamic_init);
+  disp_ptr("number_of_elements", (char *)ndsp->number_of_elements,
+           iek_expr_node);
 }  /* disp_new_delete_supplement */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

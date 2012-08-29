@@ -8679,123 +8679,244 @@ virtual table table pointer that should be passed to the destructor
 }  /* lower_destructor_dynamic_init */
 
 
-static an_expr_node_ptr make_number_of_elements_expr_for_array_new(
-                              a_new_delete_supplement_ptr ndsp,
-                              a_type_ptr                  array_type,
-                              a_type_ptr                  elem_type,
-                              a_boolean                   return_reusable_copy)
+#if ABI_COMPATIBILITY_VERSION >= 405
+
+static a_routine_ptr
+                throw_bad_array_new_length_routine;
+                        /* Pointer to __throw_bad_array_new_length runtime
+                           routine. */
+
+
+static void insert_runtime_array_length_check(
+                                        a_dynamic_init_ptr     dip,
+                                        a_type_ptr             elem_type,
+                                        an_expr_node_ptr       *num_elem_node,
+                                        an_insert_location_ptr insert_location)
 /*
-Make an expression whose value is the number of elements in an
-array, for use in an array "new" operation.  ndsp points to the
-new/delete supplement that gives information about the "new".
-ndsp->arg, if relevant, must be lowered already.  array_type
-gives the array type.  elem_type gives the ultimate element type
-of the array.  If return_reusable_copy is TRUE, the caller needs
-a reusable copy; otherwise, in some cases, the size node for
-the "new" operation is used instead.
+Insert code to validate the value of the number of elements being allocated
+by an array new operation.  This is only done when the number of elements
+being allocated is not known at compilation time.  If the number of elements
+is too large, or too small (less than zero for signed types or less than
+the number of initializers provided), then std::bad_array_new_length is
+thrown.  dip describes any dynamic initialization being performed for this
+allocation (and may be NULL).  elem_type gives the underlying element type
+for the array.  *num_elem_node is an expression for the total number of
+elements being allocated; it is replaced with an expression for a temporary
+that gives the same value.  insert_location gives the position to insert
+the necessary code.
 */
 {
-  an_expr_node_ptr num_elem_node;
+  an_insert_location  then_insert_location;
+  an_expr_node_ptr    lt_node, test_node, call_node, temp_node;
+  a_constant          zero_constant, elem_size_constant, max_elements_constant;
+  a_boolean           err;
+  a_variable_ptr      temp;
+  a_type_ptr          num_elements_type = (*num_elem_node)->type;
 
-  array_type = skip_typerefs(array_type);
-  if (array_type->size != 0) {
-    /* The easy and usual case -- the array has a constant number of
-       elements.  Do a division to get the right answer for the
-       multi-dimensional array case. */
-    a_constant num_elem_constant;
-    set_unsigned_integer_constant(&num_elem_constant,
-                     (a_host_large_unsigned)array_type->size / elem_type->size,
-                     targ_size_t_int_kind);
-    num_elem_node = alloc_node_for_constant(&num_elem_constant);
-  } else {
-    an_expr_node_ptr size_node;
-    a_targ_size_t    elem_size;
-    an_expr_node_ptr constant_node, nonconstant_node;
-    a_constant       size_constant;
-    a_targ_size_t    con_for_size;
-    a_boolean        ovflo;
+  check_assertion(exceptions_enabled);
+  /* Create a temporary for the number of elements in the array (because
+     that value will typically be used multiple times in this routine). */
+  temp = make_lowered_temporary(num_elements_type);
+  temp_node = make_assignment_expr(var_lvalue_expr(temp),
+                                   (an_expr_operator_kind)eok_assign,
+                                   *num_elem_node);
+  (void)insert_expr_statement(temp_node, insert_location);
+  *num_elem_node = var_rvalue_expr(temp);
+  /* Compute the maximum number of elements that an array of the specified
+     element type can have (i.e., targ_size_t_max/sizeof(array element)). */
+  check_assertion(elem_type->size != 0);
+  set_unsigned_integer_constant(&elem_size_constant,
+                                (a_host_large_integer)elem_type->size,
+                                targ_size_t_int_kind);
+  set_unsigned_integer_constant(&max_elements_constant,
+                                (a_host_large_integer)targ_size_t_max,
+                                targ_size_t_int_kind);
+  divide_integer_values(&max_elements_constant.variant.integer_value,
+                        &elem_size_constant.variant.integer_value,
+                        /*is_signed=*/FALSE, &err);
+  check_assertion(!err);
+  /* Make "num_elements > max_elements". */
+  temp_node = var_rvalue_expr(temp);
+  temp_node->next = alloc_node_for_constant(&max_elements_constant);
+  test_node = make_operator_node((an_expr_operator_kind)eok_gt,
+                               integer_type((an_integer_kind)ik_int),
+                               temp_node);
+  if (dip != NULL && dip->is_braced_initializer) {
+    /* This initialization has a braced initializer.  Make sure that the
+       number of elements that have been allocated is at least as large
+       as the number of initializers. */
+    check_assertion(dip->is_partially_initialized &&
+                    (dip->kind == (a_dynamic_init_kind)dik_constant ||
+                     dip->kind == (a_dynamic_init_kind)
+                                                  dik_nonconstant_aggregate) &&
+                    is_array_type(dip->variant.constant->type));
+    /* Add "|| num_elements < num_initializers" to the test above. */
+    temp_node = var_rvalue_expr(temp);
+    temp_node->next = node_for_host_large_integer(
+                         (a_host_large_integer)dip->variant.constant->type->
+                                      variant.array.variant.number_of_elements,
+                         targ_size_t_int_kind);
+    lt_node = make_operator_node((an_expr_operator_kind)eok_lt,
+                                 integer_type((an_integer_kind)ik_int),
+                                 temp_node);
+    test_node->next = lt_node;
+    test_node = make_operator_node((an_expr_operator_kind)eok_lor,
+                                   integer_type((an_integer_kind)ik_int),
+                                   test_node);
+  } else if (is_signed_integral_type(num_elements_type)) {
+    /* Add "|| num_elements < 0" to the test. */
+    temp_node = var_rvalue_expr(temp);
+    make_zero_of_proper_type(num_elements_type, &zero_constant);
+    temp_node->next = alloc_node_for_constant(&zero_constant);
+    lt_node = make_operator_node((an_expr_operator_kind)eok_lt,
+                                 integer_type((an_integer_kind)ik_int),
+                                 temp_node);
+    test_node->next = lt_node;
+    test_node = make_operator_node((an_expr_operator_kind)eok_lor,
+                                   integer_type((an_integer_kind)ik_int),
+                                   test_node);
+  }  /* if */
+  /* If the tests fails, invoke __throw_bad_array_new_length to
+     throw std::bad_array_new_length. */
+  insert_if_statement(test_node,
+                      /*is_initialization_guard=*/FALSE,
+                      insert_location,
+                      (a_statement_ptr *)NULL,
+                      &then_insert_location,
+                      (an_insert_location *)NULL);
+  call_node = make_runtime_rout_call("__throw_bad_array_new_length",
+                                     &throw_bad_array_new_length_routine,
+                                     void_star_type(),
+                                     (an_expr_node_ptr)NULL);
+  insert_expr(call_node, &then_insert_location);
+}  /* insert_runtime_array_length_check */
 
-    /* Nonconstant number of elements in the array.  The number of elements
-       must be extracted from the size expression.  If this is a placement
-       new, the size expression is used in the "new" call, and therefore
-       a reusable copy must be made of whatever part is reused here. */
-    /* Note that the size node is already lowered. */
-    size_node = ndsp->arg;
-    elem_type = skip_typerefs(elem_type);
-    /* Get the size of each element, in bytes. */
-    elem_size = elem_type->size;
-    if (elem_size == 1) {
-      /* The element size is 1, so the number of elements is equal to the
-         total size. */
-      if (return_reusable_copy) {
-        /* size_node must be preserved, so make a copy of it. */
-        num_elem_node = make_reusable_copy(size_node,
-                                           /*vars_can_change=*/TRUE);
-      } else {
-        num_elem_node = size_node;
-      }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 */
+
+static an_expr_node_ptr size_arg_for_new(
+                                   a_new_delete_supplement_ptr ndsp,
+                                   an_expr_node_ptr            *num_elem_node,
+                                   an_insert_location_ptr      insert_location)
+/*
+Returns the size argument for a new or array new operation.  The new/delete
+supplement (ndsp) contains a list of arguments for the operation, but the first
+argument -- the total number of bytes to allocate -- is not provided by the
+front end.  This routine creates that node.  Additionally, when num_elem_node
+is non-NULL, an expression node (with the proper type for passing as an
+argument to run-time routines) representing the number of elements in the array
+is returned (further reusable copies of this node may be made).
+insert_location points to the place to insert code that is generated to
+initialize required temporary variables and must occur before any of the
+temporary values are used (i.e., before any run-time library calls).  Note that
+the caller often discards the first argument that is created herein, so
+make_reusable_copy can't be used (instead, a temporary is explicitly created
+and its initialization put in insert_location).
+*/
+{
+  an_expr_node_ptr      number_of_elements, number_of_bytes, temp_node;
+  a_variable_ptr        temp;
+  a_type_ptr            elem_type, underlying_elem_type;
+  a_constant            constant;
+
+  number_of_elements = ndsp->number_of_elements;
+  if (number_of_elements != NULL) {
+    /* An array new where the number of elements is specified at run time. */
+    check_assertion(is_incomplete_array_type(ndsp->type) &&
+                    !number_of_elements->is_lvalue);
+    elem_type = array_element_type(ndsp->type);
+    underlying_elem_type =
+                          new_delete_base_type_from_operation_type(ndsp->type);
+    lower_expr(number_of_elements);
+    if (is_array_type(elem_type)) {
+      /* For a multi-dimensional array, the total number of elements is
+         determined by multiplying by the number of elements of the
+         underlying array (which may itself be multi-dimensional). */
+      temp_node = node_for_host_large_integer(
+                           (a_host_large_integer)num_array_elements(elem_type),
+                           targ_ptrdiff_t_int_kind);
+      number_of_elements->next = temp_node;
+      number_of_elements = make_operator_node(
+                                           (an_expr_operator_kind)eok_multiply,
+                                           number_of_elements->type,
+                                           number_of_elements);
+    }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 405
+    if (exceptions_enabled) {
+      /* Insert code to check, at run-time, that the number of elements
+         has a valid value; throw std::bad_array_new_length otherwise. */
+      insert_runtime_array_length_check(ndsp->dynamic_init,
+                                        underlying_elem_type,
+                                        &number_of_elements,
+                                        insert_location);
+    }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 */
+    /* Add a cast to size_t. */
+    number_of_elements = add_cast_if_necessary(number_of_elements,
+                                               integer_type(
+                                                        targ_size_t_int_kind));
+    if (num_elem_node != NULL) {
+      /* If the caller requests, create a temporary that captures the
+         number of elements in a suitably typed reusable node. */
+      temp = make_lowered_temporary(number_of_elements->type);
+      temp_node = make_assignment_expr(var_lvalue_expr(temp),
+                                       (an_expr_operator_kind)eok_assign,
+                                       number_of_elements);
+      (void)insert_expr_statement(temp_node, insert_location);
+      temp_node = var_rvalue_expr(temp);
+      number_of_elements = var_rvalue_expr(temp);
+      temp_node = add_cast_if_necessary(temp_node,
+                                        integer_type(
+#if IA64_ABI
+                                          targ_size_t_int_kind
+#else /* !IA64_ABI */
+                                          targ_runtime_elem_count_int_kind
+#endif /* IA64_ABI */
+                                                                          ));
+      *num_elem_node = temp_node;
+    }  /* if */
+    /* Multiply the number of elements by the size of an underlying element to
+       get the number of bytes. */
+    if (underlying_elem_type->size == 1) {
+      /* If the underlying element size is 1, skip the multiplication. */
+      number_of_bytes = number_of_elements;
     } else {
-      /* A division by the element size is required.  The size expression
-         should look like "expr*n" where "n" is the element size,
-         i.e., a multiplication added while scanning the "new" to convert
-         the number of elements to the total size.  The usual strategy
-         is to remove the "*n".  Note however that for a multi-dimensional
-         array case "n" is the product of the element size and the dimension
-         bounds after the first; for that case we create a new constant
-         that is "n" divided by the element size. */
-      /* Drop any cast on the top of the expression, such as one added by
-         lower_arg_expr_list to promote the expression for calling an old-style
-         function. */
-      while (is_operation_node(size_node) &&
-             size_node->variant.operation.kind ==
-                                             (an_expr_operator_kind)eok_cast) {
-        size_node = size_node->variant.operation.operands;
-      }  /* if */
-      check_assertion(is_operation_node(size_node) &&
-                      size_node->variant.operation.kind ==
-                                         (an_expr_operator_kind)eok_multiply);
-      nonconstant_node = size_node->variant.operation.operands;
-      constant_node = nonconstant_node->next;
-      check_assertion(is_constant_node(constant_node));
-      if (return_reusable_copy) {
-        /* We need to preserve size_node, and therefore we need a copy of the
-           nonconstant node. */
-        nonconstant_node = make_reusable_copy(nonconstant_node,
-                                              /*vars_can_change=*/TRUE);
-      } else {
-        /* We can use the expression directly.  Break the connection
-           between the first operand and second operand of the "*"
-           operation. */
-        nonconstant_node->next = NULL;
-      }  /* if */
-      /* Divide the constant by the element size. */
-      size_constant = *constant_node->variant.constant;
-      check_assertion(size_constant.kind == (a_constant_repr_kind)ck_integer);
-      con_for_size = unsigned_value_of_integer_constant(&size_constant,
-                                                        &ovflo);
-      check_assertion(!ovflo);
-      /* Note that we know the type is not incomplete, so the element size
-         is not zero. */
-      con_for_size /= elem_size;
-      if (con_for_size == 1) {
-        /* No multiplication is needed. */
-        num_elem_node = nonconstant_node;
-      } else {
-        /* The multiplication is still needed.  This must be a multi-
-           dimensional array case. */
-        set_unsigned_integer_value(&size_constant.variant.integer_value,
-                                   con_for_size);
-        constant_node = alloc_node_for_constant(&size_constant);
-        nonconstant_node->next = constant_node;
-        num_elem_node = make_operator_node(
-                                          (an_expr_operator_kind)eok_multiply,
-                                          nonconstant_node->type,
-                                          nonconstant_node);
-      }  /* if */
+      check_assertion(underlying_elem_type->size != 0);
+      temp_node = node_for_host_large_integer(
+                              (a_host_large_integer)underlying_elem_type->size,
+                              targ_size_t_int_kind);
+      number_of_elements->next = temp_node;
+      number_of_bytes = make_operator_node((an_expr_operator_kind)eok_multiply,
+                                           temp_node->type,
+                                           number_of_elements);
+    }  /* if */
+  } else {
+    /* Non-array case, or array with constant size; size is known.  Note
+       that in some cases (e.g., some Microsoft modes), an incomplete
+       type can get here (resulting in a size of zero). */
+    set_unsigned_integer_constant_with_overflow_check(&constant,
+                                                      ndsp->type->size,
+                                                      targ_size_t_int_kind,
+                                                      (a_type_ptr)NULL);
+    number_of_bytes = alloc_node_for_constant(&constant);
+    if (num_elem_node != NULL && is_array_type(ndsp->type)) {
+      /* An array new where the number of elements is specified at compile
+         time.  Note that the total number of elements (all dimensions
+         for multi-dimensional arrays) is returned. */
+      set_unsigned_integer_constant_with_overflow_check(
+                                              &constant,
+                                              num_array_elements(ndsp->type),
+#if IA64_ABI
+                                              targ_size_t_int_kind,
+#else /* !IA64_ABI */
+                                              targ_runtime_elem_count_int_kind,
+#endif /* IA64_ABI */
+                                              (a_type_ptr)NULL);
+      number_of_elements = alloc_node_for_constant(&constant);
+      *num_elem_node = number_of_elements;
     }  /* if */
   }  /* if */
-  return num_elem_node;
-}  /* make_number_of_elements_expr_for_array_new */
+  return number_of_bytes;
+}  /* size_arg_for_new */
 
 
 static a_dynamic_init_ptr elem_dynamic_init(a_dynamic_init_ptr dip)
@@ -8923,8 +9044,8 @@ arrays with class elements.
   a_variable_ptr              temp_var, new_temp_var;
   an_expr_node_ptr            size_node;
   a_routine_ptr               ctor_routine, dtor_routine, delete_routine;
-  an_insert_location          insert_location;
-  an_expr_node_ptr            delete_args = NULL;
+  an_insert_location          insert_location, pre_call_insert_location;
+  an_expr_node_ptr            args, delete_args = NULL;
   a_boolean                   zero_storage = FALSE;
   a_boolean                   needs_dynamic_initialization = FALSE;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
@@ -8936,9 +9057,16 @@ arrays with class elements.
   elem_type = new_delete_base_type_from_operation_type(ndsp->type);
   ptr_elem_type = make_pointer_type(elem_type);
   set_expr_creation_insert_location(&insert_location);
+  set_expr_creation_insert_location(&pre_call_insert_location);
 #if !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
  #error -- NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE wrong
 #endif /* !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+  /* For new operations, the front end doesn't specify the first
+     "argument" to the operation -- build that now and also get an
+     expression for the number of elements in the array (which we'll need
+     to pass to a run-time routine). */
+  args = size_arg_for_new(ndsp, &num_elem_node, &pre_call_insert_location);
+  args->next = ndsp->arg;
   /* Build the node for the address of the array (entity_node). */
   if (!ndsp->placement_new) {
     /* This is a normal (not placement) new, the usual case.  The __vec_new
@@ -8947,18 +9075,9 @@ arrays with class elements.
        requires a non-default "operator new[]" i.e., a class-specific one.
        __array_new will be called, and is given a pointer to the allocation
        routine to use. */
+    /* There should be no arguments in this case. */
+    check_assertion(ndsp->arg == NULL);
     entity_node = NULL;  /* Allocate in __vec_new. */
-    /* Lower "arg" even though it is usually ignored.  It is used when the
-       array size is nonconstant.  Note that it is not necessary to lower
-       this as an argument list because it will not be used directly as
-       such (pieces might be put into an argument list). */
-    lower_expr_list(ndsp->arg, 0, 0);
-    /* Make an expression for the number of elements in the array. */
-    num_elem_node = make_number_of_elements_expr_for_array_new(
-                                                          ndsp,
-                                                          array_type,
-                                                          elem_type,
-                                                          ndsp->placement_new);
   } else {
     /* This is a placement new, so the allocation must be done before
        calling the __vec_new routine.  This happens for something like
@@ -8967,10 +9086,11 @@ arrays with class elements.
        the temporary, as in
          (temp = (type *)new-call(...)) ? (type *)__vec_new(temp, ...) : NULL
     */
-    /* Prepare the argument list for the "new" call. */
+    /* Prepare the argument list for the "new" call.  Note that the first
+       argument was created during lowering (but is lowered anyway). */
     check_assertion_str(new_routine != NULL,
                        "lower_array_new: placement new with null new_routine");
-    lower_arg_expr_list(ndsp->arg, new_routine->type, new_routine,
+    lower_arg_expr_list(args, new_routine->type, new_routine,
                         (a_param_type_ptr)NULL, /*maintain_sequencing=*/FALSE,
                         (an_insert_location *)NULL);
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
@@ -8982,21 +9102,10 @@ arrays with class elements.
          also means temporaries used to pass class objects via copy
          constructor are shared. */
       /* Note that the copy skips the first argument (the size). */
-      delete_args = copy_arg_list_for_placement_delete(ndsp->arg->next);
+      delete_args = copy_arg_list_for_placement_delete(args->next);
     }  /* if */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
-    /* Make an expression for the number of elements in the array.
-       Note that this must be done before the "new" call is generated,
-       because it can add an assignment to the size expression to set a
-       temporary to be used later, and we want to know that before we try
-       to inline the "new" call (without the assignment in place, the size
-       expression could be eliminated altogether). */
-    num_elem_node = make_number_of_elements_expr_for_array_new(
-                                                          ndsp,
-                                                          array_type,
-                                                          elem_type,
-                                                          ndsp->placement_new);
-    size_node = ndsp->arg;
+    size_node = args;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Add the size of the runtime prefix used to keep track of the array
        size to the argument for the operator new[] call. */
@@ -9243,6 +9352,12 @@ arrays with class elements.
     vec_new_node = make_operator_node((an_expr_operator_kind)eok_question,
                                       vec_new_node->type, test_node);
   }  /* if */
+  /* Make sure that code created to set/check the number of elements
+     occurs early in the initialization. */
+  if (pre_call_insert_location.variant.expr != NULL) {
+    vec_new_node = make_comma_node(pre_call_insert_location.variant.expr,
+                                   vec_new_node);
+  }  /* if */
   /* Overwrite expr with a cast of the result of __vec_new (of type void *)
      to the right pointer type. */
   change_to_cast(expr, vec_new_node, expr->type);
@@ -9364,7 +9479,7 @@ location after the initialization related to the "new" has been done,
 so do the second part of the processing begun by
 set_up_freeing_of_storage_on_exception.  ipdp describes the location of the
 allocated storage.  delete_args points to the list of arguments for a placement
-delete call, if one if needed.  If new_routine is non-NULL, it is the placement
+delete call, if one is needed.  If new_routine is non-NULL, it is the placement
 new routine that is being called to allocate the memory.  *init_insert_location
 is an expression insert location into which the initialization (but not
 allocation) for the entity has been inserted (there may be no initialization
@@ -9536,10 +9651,11 @@ The subtree of the node has not yet been lowered.
   a_dynamic_init_ptr          dip = ndsp->dynamic_init;
   a_type_ptr                  base_type, ptr_new_type;
   a_variable_ptr              temp_var;
-  an_expr_node_ptr            assign_node, test_node;
+  an_expr_node_ptr            assign_node, test_node, args;
+  an_expr_node_ptr            num_elem_node = NULL, *eff_num_elem_node = NULL;
   an_expr_node_ptr            init_node, call_node, null_node, delete_args;
   a_constant                  null_constant;
-  an_insert_location          insert_location;
+  an_insert_location          insert_location, pre_call_insert_location;
 
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
   /* Treat an operator new with default arguments as a placement new.
@@ -9609,6 +9725,17 @@ The subtree of the node has not yet been lowered.
     lower_arg_expr_list(ndsp->arg, ndsp->routine->type, ndsp->routine,
                         (a_param_type_ptr)NULL, /*maintain_sequencing=*/FALSE,
                         (an_insert_location *)NULL);
+    set_expr_creation_insert_location(&pre_call_insert_location);
+    if (dip != NULL && is_incomplete_array_type(ndsp->type)) {
+      /* For initializations of variably-sized arrays, create a temporary
+         that contains the number of elements in the array. */
+      eff_num_elem_node = &num_elem_node;
+    }  /* if */
+    /* The first argument (number of bytes to allocate) needs to be
+       computed. */
+    args = size_arg_for_new(ndsp, eff_num_elem_node,
+                            &pre_call_insert_location);
+    args->next = ndsp->arg;
     delete_args = NULL;
     if (ndsp->placement_new && dip != NULL &&
         ndsp->freeing_of_storage_on_exception != NULL) {
@@ -9622,10 +9749,10 @@ The subtree of the node has not yet been lowered.
       /* This case is also used for an operator new call with default
          arguments (it is treated like a placement new).  See
          initial_processing_on_destructible_initialization. */
-      delete_args = copy_arg_list_for_placement_delete(ndsp->arg->next);
+      delete_args = copy_arg_list_for_placement_delete(args->next);
     }  /* if */
     /* Create a call of the "new" routine. */
-    call_node = make_call_node(ndsp->routine, ndsp->arg,
+    call_node = make_call_node(ndsp->routine, args,
                                (an_insert_location *)NULL);
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
     if (dip != NULL &&
@@ -9669,7 +9796,7 @@ The subtree of the node has not yet been lowered.
         /* lower_dynamic_init can't handle a variable-length array, so
            do that specially. */
         an_expr_node_ptr entity_size_node =
-                                  make_reusable_copy(ndsp->arg,
+                                  make_reusable_copy(args,
                                                      /*vars_can_change=*/TRUE);
         insert_runtime_zeroing_call(var_rvalue_expr(temp_var),
                                     entity_size_node,
@@ -9682,13 +9809,10 @@ The subtree of the node has not yet been lowered.
         set_var_indirect_init_pos_descr(temp_var, &ipd);
         ipd.base_type = ndsp->type;
         if (is_incomplete_array_type(ndsp->type)) {
-          /* For a variably-sized array, create a run-time expression for the
+          /* For a variably-sized array, use the run-time expression for the
              number of elements in the array. */
-          ipd.num_elem_node = make_number_of_elements_expr_for_array_new(
-                         ndsp,
-                         skip_typerefs(ndsp->type),
-                         new_delete_base_type_from_operation_type(ndsp->type),
-                         /*return_reusable_copy=*/TRUE);
+          check_assertion(num_elem_node != NULL);
+          ipd.num_elem_node = num_elem_node;
         }  /* if */
         /* If exceptions are enabled, and if necessary, set up to free the
            storage allocated if an exception is thrown before the storage
@@ -9742,6 +9866,12 @@ The subtree of the node has not yet been lowered.
       init_node->next = null_node;
       call_node = make_operator_node((an_expr_operator_kind)eok_question,
                                      ptr_new_type, test_node);
+    }  /* if */
+    if (pre_call_insert_location.variant.expr != NULL) {
+      /* If there was any code generated to initialize the number of
+         elements, insert it before any use. */
+      call_node = make_comma_node(pre_call_insert_location.variant.expr,
+                                  call_node);
     }  /* if */
     /* Turn the original enk_new_delete node into a cast to the right
        pointer type. */
@@ -15487,7 +15617,10 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(cctor_ptr_type),
       pch_saved_var_array_elem(new_routine_ptr_type),
       pch_saved_var_array_elem(delete_routine_ptr_type),
-      pch_saved_var_array_terminating_elem()
+      pch_saved_var_array_terminating_elem(),
+#if ABI_COMPATIBILITY_VERSION >= 405
+      pch_saved_var_array_elem(throw_bad_array_new_length_routine)
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 */
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
@@ -15545,6 +15678,9 @@ Do one-time initialization of static variables declared in lower_init.c.
   register_trans_unit_variable(cctor_ptr_type);
   register_trans_unit_variable(new_routine_ptr_type);
   register_trans_unit_variable(delete_routine_ptr_type);
+#if ABI_COMPATIBILITY_VERSION >= 405
+  register_trans_unit_variable(throw_bad_array_new_length_routine);
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 */
 }  /* init_lower_one_time_init */
 
 
@@ -15605,6 +15741,9 @@ for each translation unit.
   dtor_ptr_type = NULL;
   cctor_ptr_type = NULL;
   new_routine_ptr_type = NULL;
+#if ABI_COMPATIBILITY_VERSION >= 405
+  throw_bad_array_new_length_routine = NULL;
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 */
   delete_routine_ptr_type = NULL;
 }  /* init_lower_trans_unit_init */
 

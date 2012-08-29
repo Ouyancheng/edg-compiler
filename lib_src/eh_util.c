@@ -197,7 +197,6 @@ that terminate does not return.
   abort();
 }  /* __call_terminate */
 
-
 #endif /* EXCEPTION_HANDLING */
 
 /******************************************************************************

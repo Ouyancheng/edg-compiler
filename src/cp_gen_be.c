@@ -8938,53 +8938,6 @@ over, but nothing is put out for them).
 }  /* gen_argument_list */
 
 
-static a_boolean num_elems_can_be_found_in_size_expr(
-                                              an_expr_node_ptr size_expr,
-                                              a_targ_size_t    elem_size,
-                                              an_expr_node_ptr *num_elems_expr)
-/*
-size_expr is an expression that gives the size in bytes of an array for a
-"new" operation.  elem_size gives the size in bytes of an element of the
-array.  See if part or all of the size_expr expression represents the
-number of elements (which is array-size divided by elem-size).  If so,
-set *num_elems_expr to point to that expression, and return TRUE; if not,
-return FALSE.
-*/
-{
-  a_boolean found = FALSE;
-
-  *num_elems_expr = NULL;
-  if (elem_size == 1) {
-    /* The element size is 1, so the original expression will do. */
-    found = TRUE;
-    *num_elems_expr = size_expr;
-  } else {
-    /* Look for the pattern "expr * elem-size" as the top operation of
-       the expression.  If it's there, the left-hand expression is the
-       number of elements.  (Why wouldn't it be there?  Well, one case
-       where it isn't is a multi-dimensional array.) */
-    if (is_operation_node(size_expr) &&
-        size_expr->variant.operation.kind ==
-                                        (an_expr_operator_kind)eok_multiply) {
-      an_expr_node_ptr operand_1 = size_expr->variant.operation.operands;
-      an_expr_node_ptr operand_2 = operand_1->next;
-      if (is_constant_node(operand_2)) {
-        a_constant_ptr con = operand_2->variant.constant;
-        if (con->kind == (a_constant_repr_kind)ck_integer &&
-            cmpulit_integer_constant(con,
-                                     (a_host_large_unsigned)elem_size) == 0) {
-          /* Yes, the expression is "operand_1 * elem-size", so operand_1
-             is the number-of-elements expression. */
-          found = TRUE;
-          *num_elems_expr = operand_1;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return found;
-}  /* num_elems_can_be_found_in_size_expr */
-
-
 static void gen_new_delete(an_expr_node_ptr expr)
 /*
 Generate code for a new or delete operation.
@@ -8993,7 +8946,6 @@ Generate code for a new or delete operation.
   a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
   a_type_ptr                  type = ndsp->type, unqual_type;
   a_routine_ptr               routine = ndsp->routine;
-  an_expr_node_ptr            arg = ndsp->arg;
   a_boolean                   need_type_parens;
 
   unqual_type = skip_typerefs(type);
@@ -9003,12 +8955,21 @@ Generate code for a new or delete operation.
   }  /* if */
   if (ndsp->is_new) {
     /* New.  The general form is
-         :: new (arg2, arg3, ...) type(initializer)
+         :: new (arg, arg, ...) type(initializer)
        Everything except "new" and the type is optional. */
     write_tok_str("new ");
     if (ndsp->placement_new) {
-      /* A "placement" new.  Put out arguments 2-n inside parentheses. */
-      gen_argument_list(arg, (routine == NULL) ? NULL : routine->type,
+      /* A "placement" new.  In the source form the first argument (the
+         size) is implied and the IL reflects this (providing only the
+         second and subsequent arguments).  Create a dummy expression to be
+         the "first" argument of the argument list, corresponding to the size,
+         and then skip it and the corresponding parameter in gen_argument_list
+         (so the type correspondence between parameters and arguments is
+         maintained). */
+      an_expr_node dummy_arg;
+      dummy_arg.kind = enk_error;
+      dummy_arg.next = ndsp->arg;
+      gen_argument_list(&dummy_arg, (routine == NULL) ? NULL : routine->type,
                         /*skip_num=*/1);
       write_space();
     }  /* if */
@@ -9058,34 +9019,20 @@ Generate code for a new or delete operation.
         rtsp->exception_specification = saved_exception_specification;
       }  /* if */
     } else {
-      /* Harder case: a variable-length array.  The first argument expression
-         gives the size of the array, which is the number of elements times
-         the size of each element.  Put out the first part of the type, the
-         open bracket, the expression, and the close bracket. */
-      a_type_ptr       elem_type;
-      a_targ_size_t    elem_size;
-      an_expr_node_ptr num_elems_expr;
+      /* Variable-length array.  The expression for the number of elements
+         is found in the new-delete supplement.  Put out the first part of
+         the type, the open bracket, the expression, and the close
+         bracket. */
+      a_type_ptr elem_type;
       check_assertion_str(unqual_type->kind == (a_type_kind)tk_array,
                           "gen_new_delete: zero-sized type not array");
       elem_type = unqual_type->variant.array.element_type;
-      elem_size = skip_typerefs(elem_type)->size;
       form_type_first_part_simple(elem_type,
                                   /*under_lhs_declarator=*/FALSE,
                                   /*need_trailing_space=*/TRUE,
                                   &octl);
       write_tok_ch('[');
-      if (num_elems_can_be_found_in_size_expr(arg, elem_size,
-                                              &num_elems_expr)) {
-        /* Optimization -- the number of elements was found in the
-           size expression, so just print that. */
-        gen_expression(num_elems_expr);
-      } else {
-        /* Not the optimizable case. */
-        /* Write the size expression divided by the size of each element. */
-        gen_expr_with_parens(arg);
-        write_tok_ch('/');
-        write_unsigned_num(elem_size);
-      }  /* if */
+      gen_expression(ndsp->number_of_elements);
       write_tok_ch(']');
       form_type_second_part_simple(elem_type, /*under_lhs_declarator=*/FALSE,
                                    &octl);
@@ -9106,7 +9053,7 @@ Generate code for a new or delete operation.
        Everything except "delete" and the expression is optional. */
     write_tok_str("delete ");
     if (ndsp->array_delete) write_tok_str("[] ");
-    gen_expr_with_parens(arg);
+    gen_expr_with_parens(ndsp->arg);
   }  /* if */
 }  /* gen_new_delete */
 

@@ -6049,7 +6049,10 @@ are done.
                 compare_expression_lists(ndsp1->arg, ndsp2->arg, options) &&
                 compare_dynamic_inits(ndsp1->dynamic_init,
                                       ndsp2->dynamic_init,
-                                      options));
+                                      options) &&
+                compare_expressions(ndsp1->number_of_elements,
+                                    ndsp2->number_of_elements,
+                                    options));
         }
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -16443,6 +16446,11 @@ be called to start a copy.
         copy_ndsp->freeing_of_storage_on_exception =
                      i_copy_dynamic_init(ndsp->freeing_of_storage_on_exception,
                                          options, cblock);
+      }  /* if */
+      if (ndsp->number_of_elements != NULL) {
+        copy_ndsp->number_of_elements =
+                                     i_copy_expr_tree(ndsp->number_of_elements,
+                                                       options, cblock);
       }  /* if */
       break;
     case enk_lambda:

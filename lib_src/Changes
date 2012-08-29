@@ -1,5 +1,14 @@
 Version 4.5
 
+8/29/12 [EDGcpfe/9247,EDGcpfe/9975]
+C++11: changes for std::bad_array_new_length
+
+A change has been made to implement the std::bad_array_new_length class
+that is thrown (when ABI_COMPATIBILITY_VERSION >= 405) to indicate that
+the number of elements in an array new operation is too small (less than
+zero or the number of iniitalizers) or too large.
+
+
 -------------------------------------------------------------------------------
 Version 4.4, December 21, 2011
 
