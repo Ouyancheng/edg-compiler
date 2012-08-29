@@ -10131,9 +10131,9 @@ Do IL lowering of an enk_temp_init expression node.
     } else {
       /* Create a temporary variable.  Make it static if necessary. */
       if (!dip->static_temp && !long_lifetime_temps &&
-          dip->kind != (a_dynamic_init_kind)dik_nonconstant_aggregate &&
-          dip->kind != (a_dynamic_init_kind)dik_zero &&
-          dip->kind != (a_dynamic_init_kind)dik_constant &&
+          !(dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
+          !(dip->kind == (a_dynamic_init_kind)dik_zero) &&
+          !(dip->kind == (a_dynamic_init_kind)dik_constant) &&
           !(dip->kind == (a_dynamic_init_kind)dik_constructor &&
             need_zeroing_for_value_initialization(dip)) &&
           dip->has_temporary_lifetime) {
