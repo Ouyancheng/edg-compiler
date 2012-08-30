@@ -2419,6 +2419,7 @@ ec_value_init_of_function;;"a function type cannot be value-initialized"
 ec_list_init_of_incomplete;;"list-initialization of an object type %t is not allowed because the type is incomplete"
 ec_std_initializer_list_has_dtor;;"std::initializer_list has a destructor, and is not supposed to -- library is misconfigured"
 ec_explicit_enum_base_nonstandard_in_current_mode;;"explicit enum base types are a C++11 feature"
+ec_unconvertible_con_expr;;"expression is required to be convertible to type %t2, but its type is %t1"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

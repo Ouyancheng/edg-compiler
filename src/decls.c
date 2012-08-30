@@ -12435,8 +12435,9 @@ is "false".  If leave_semicolon is TRUE, do not consume the final token.
   add_stop_token(tok_rparen);
   add_stop_token(tok_comma);
   (void)required_token(tok_lparen, ec_exp_lparen);
-  /* Scan the first argument, which must be an integral constant expression. */
-  scan_integral_constant_expression(&assert_con);
+  /* Scan the first argument, which must be a constant expression convertible
+     to bool. */
+  scan_converted_constant_expression(bool_type(), &assert_con);
   /* Scan the second argument, which must be a string literal. */
   remove_stop_token(tok_comma);
   (void)required_token(tok_comma, ec_exp_comma);

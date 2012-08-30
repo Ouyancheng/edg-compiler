@@ -28894,6 +28894,52 @@ the expression is also allowed to have that type.
 }  /* scan_typed_expression */
 
 
+void scan_converted_constant_expression(a_type_ptr required_type,
+                                        a_constant *constant)
+/*
+Scan a "converted constant expression" (C++11 standard, [expr.const]p3),
+which is a constant expression converted to required_type.
+An error is issued if the constant is not convertible to that type.
+Return the constant in *constant (which may be an error constant
+if there was an error, or may be a template-dependent constant in
+a template prototype instantiation).
+*/
+{
+  an_operand          result;
+  an_expr_stack_entry *saved_expr_stack;
+  an_expr_stack_entry expr_stack_entry;
+
+  db_enter(3, "scan_converted_constant_expression");
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_init_constant,
+                  &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
+  /* Scan the constant expression. */
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  /* Convert to the required type. */
+  prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
+                           (a_conv_descr_ptr)NULL,
+                           /*is_copy_initialization=*/TRUE,
+                           CCO_DEFAULT,
+                           ec_unconvertible_con_expr);
+  extract_constant_from_operand(&result, constant);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+#if DEBUG
+  if (debug_level >= 3) {
+    db_constant(constant);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+}  /* scan_converted_constant_expression */
+
+
 static an_init_component_ptr scan_expr_as_init_component(a_boolean bundle)
 /*
 Scan an expression, from source and not from a cache, and return an
