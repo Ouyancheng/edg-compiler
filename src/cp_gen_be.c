@@ -14011,7 +14011,9 @@ when possible.
       /* The source was a braced-init cast, so use the functional-notation
          form.  If there are extra cv-qualifiers on the entity type they
          must have been added by the context. */
-      init_entity_type = make_unqualified_type(init_entity_type);
+      if (!has_name_before_mangling(init_entity_type)) {
+        init_entity_type = skip_typerefs_not_typedefs(init_entity_type);
+      }  /* if */
       use_func_notation_cast = TRUE;
     } else if (assoc_expr != NULL && assoc_expr->is_static_cast) {
       /* The source was a static_cast.  That's handled as a variant of the
@@ -14061,6 +14063,11 @@ when possible.
         /* The cast has zero arguments, or more than one argument, so
            we have to use a functional-notation cast. */
         use_func_notation_cast = TRUE;
+        /*  If there are extra cv-qualifiers on the entity type they
+            must have been added by the context. */
+        if (!has_name_before_mangling(init_entity_type)) {
+          init_entity_type = skip_typerefs_not_typedefs(init_entity_type);
+        }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (!use_func_notation_cast &&
@@ -14080,9 +14087,9 @@ when possible.
       /* We decided we wanted to use a functional-notation cast, but the
          type is unnamed, so there's no way to write that.  This comes up
          with generated types in SSI versions.  Use an old-style cast and
-         some tricks; see below.  Note that for braced-init casts we
-         dropped cv-qualifiers above.  We might still get here, but not
-         just for cv-qualifiers. */
+         some tricks; see below.  Note that for some cases (e.g.,
+         braced-init casts) we dropped cv-qualifiers above.  We might still
+         get here, but not just for cv-qualifiers. */
       use_func_notation_cast = FALSE;
       unnamed_type_case = TRUE;
     }  /* if */
@@ -14169,18 +14176,7 @@ output_functional_notation_cast_arguments:
       braced_init = FALSE;
       write_tok_ch('(');
       closing_parens_needed++;
-      if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-        /* If the cast is, in fact, a constructor call, we should use
-           the unqualified class name and rely on implicit conversion to
-           the entity type.  This avoids problems in cases like
-               volatile X x = X(0);
-           where the copy constructor won't accept a volatile-qualified
-           argument if we generate it as
-               volatile X x = (volatile X)0; */
-        gen_cast(make_unqualified_type(init_entity_type));
-      } else {
-        gen_cast(init_entity_type);
-      }  /* if */
+      gen_cast(init_entity_type);
       if (unnamed_type_case) {
         /* A cast to an unnamed type, with zero arguments or more than
            one argument.  (This case arises in template instances that
