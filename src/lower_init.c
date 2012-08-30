@@ -8894,9 +8894,9 @@ and its initialization put in insert_location).
        that in some cases (e.g., some Microsoft modes), an incomplete
        type can get here (resulting in a size of zero). */
     set_unsigned_integer_constant_with_overflow_check(&constant,
-                                                      ndsp->type->size,
-                                                      targ_size_t_int_kind,
-                                                      (a_type_ptr)NULL);
+                                               skip_typerefs(ndsp->type)->size,
+                                               targ_size_t_int_kind,
+                                               (a_type_ptr)NULL);
     number_of_bytes = alloc_node_for_constant(&constant);
     if (num_elem_node != NULL && is_array_type(ndsp->type)) {
       /* An array new where the number of elements is specified at compile
