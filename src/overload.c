@@ -21637,9 +21637,9 @@ controls).
           dip->variant.expression = expr;
         }  /* if */
       }  /* if */
-      dip->is_braced_initializer = braced_init;
-      /* Note that we don't clear the is_explicit_cast flag here if it's
-         set already and is_cast is FALSE. */
+      /* Note that we only set flags to TRUE here; we don't clear them if they
+         are already set. */
+      if (braced_init) dip->is_braced_initializer = TRUE;
       if (is_cast) dip->is_explicit_cast = TRUE;
       is->init_dip = dip;
       if (fill_in_dtor && dest_type_is_class) {
