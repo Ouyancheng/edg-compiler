@@ -12066,6 +12066,10 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (rtsp->exception_specification != NULL &&
+          is_nothrow_type(underlying_rout_type)) {
+        rp->never_throws = TRUE;
+      }  /* if */
     } else {
       return_type = error_type();
     }  /* if */

@@ -4248,17 +4248,19 @@ static void disp_exception_specification(an_exception_specification_ptr ptr)
 Display the indicated exception-specification entry.
 */
 {
-  disp_ptr("exception_specification_type_list",
-           (char *)ptr->exception_specification_type_list,
-           iek_exception_specification_type);
+  if (ptr->is_noexcept) disp_boolean("is_noexcept", TRUE);
+  if (ptr->throw_any) disp_boolean("throw_any", TRUE);
+  if (ptr->is_noexcept) {
+    disp_ptr("noexcept_arg", (char *)ptr->variant.noexcept_arg,
+             iek_constant);
+  } else {
+    disp_ptr("exception_specification_type_list",
+             (char *)ptr->variant.exception_specification_type_list,
+             iek_exception_specification_type);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("source_range", &ptr->source_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ptr->throw_any) {
-    disp_boolean("throw_any", TRUE);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* disp_exception_specification */
 
 

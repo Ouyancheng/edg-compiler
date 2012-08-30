@@ -458,6 +458,11 @@ EXTERN a_boolean
 			   default value.  In cfront mode it is always FALSE.
 			   It has no meaning in C mode. */
 
+EXTERN a_boolean
+		noexcept_enabled;
+			/* TRUE if C++11-style noexcept specifications and the
+			   noexcept operator are accepted. */
+
 
 EXTERN a_boolean
 		rtti_enabled;

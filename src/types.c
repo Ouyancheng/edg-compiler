@@ -6728,8 +6728,8 @@ handler-parameter is of type "other_type".
 a_boolean is_nothrow_type(a_type_ptr  type)
 /*
 The given type is a routine type.  Return TRUE if it has an associated
-"throw()" specification or if exceptions are disabled (in which case
-the function is not expected to throw an exception either).
+"throw()" or "noexcept" specification or if exceptions are disabled (in which
+case the function is not expected to throw an exception either).
 */
 {
   a_boolean  result;
@@ -6737,7 +6737,13 @@ the function is not expected to throw an exception either).
   if (exceptions_enabled) {
     an_exception_specification_ptr  esp = type->variant.routine.extra_info
                                               ->exception_specification;
-    result = esp != NULL && esp->exception_specification_type_list == NULL;
+    if (esp == NULL || esp->throw_any) {
+      result = FALSE;
+    } else if (esp->is_noexcept) {
+      result = TRUE;
+    } else {
+      result = esp->variant.exception_specification_type_list == NULL;
+    }  /* if */
   } else {
     result = TRUE;
   }  /* if */
@@ -6788,22 +6794,24 @@ catch a B.
 {
   a_boolean  is_less_restrictive = FALSE;
 
-  if (esp2 == NULL
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      || esp2->throw_any
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                        ) {
+  if (esp2 == NULL || esp2->throw_any) {
     /* The function associated with type2 can throw any exception; type1
        cannot be less restrictive than that. */
     /* is_less_restrictive = FALSE; */
-  } else if (esp1 == NULL
-#if MICROSOFT_EXTENSIONS_ALLOWED
-             || esp1->throw_any
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                               ) {
-    /* Type1's function can can throw any exception, and type2's function
-       has at least some restriction, so the former is less restrictive. */
+  } else if (esp1 == NULL || esp1->throw_any) {
+    /* type1's function can throw any exception, and type2's function has at
+       least some restriction, so the former is less restrictive. */
     is_less_restrictive = TRUE;
+  } else if (esp1->is_noexcept) {
+    /* We already covered the "throw any" cases, so this must be a "never
+       throws" case, which cannot be less restrictive than anything. */
+    /* is_less_restrictive = FALSE; */
+  } else if (esp2->is_noexcept) {
+    /* We already covered the "throw any" cases, so this must be a "never
+       throws" case.  esp1 is already known not to be a "noexcept" form, and
+       therefore will be less restrictive, unless it represents "throw()". */
+    is_less_restrictive =
+                      esp1->variant.exception_specification_type_list != NULL;
   } else {
     /* If any type on the exception specification list of type1's function
        does not match a type on the list of type2, the former is less
@@ -6816,14 +6824,14 @@ catch a B.
        is the inner loop that doesn't run. */
     /* The outer loop traverses the types specified for type1. */
     an_exception_specification_type_ptr  estp1, estp2;
-    estp1 = esp1->exception_specification_type_list;
+    estp1 = esp1->variant.exception_specification_type_list;
     for (; estp1 != NULL; estp1 = estp1->next) {
       /* Ignore entries marked "redundant" -- the type has already been
          seen on the list. */
       if (estp1->redundant) continue;
       /* The inner loop traverses the types specified for type2, looking
          for an entry that matches the current entry from type1's list. */
-      estp2 = esp2->exception_specification_type_list;
+      estp2 = esp2->variant.exception_specification_type_list;
       for (; estp2 != NULL; estp2 = estp2->next) {
         /* Ignore entries marked "redundant" -- the type has already been
            seen on the list. */
@@ -11488,10 +11496,11 @@ its parameters?).
             }  /* if */
           }  /* if */
           if ((flags & TTT_EXCEPTION_SPECS) &&
-              rtsp->exception_specification != NULL) {
+              rtsp->exception_specification != NULL &&
+              !rtsp->exception_specification->is_noexcept) {
             an_exception_specification_type_ptr  estp;
             for (estp = rtsp->exception_specification->
-                                 exception_specification_type_list;
+                                 variant.exception_specification_type_list;
                  estp != NULL;
                  estp = estp->next) {
               tp = estp->type;

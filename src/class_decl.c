@@ -10287,9 +10287,9 @@ TRUE.
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
   /* Fetch the exception specification associated with the member function
      indicated by sym. */
-  old_esp = sym->variant.routine.ptr->type->
-                  variant.routine.extra_info->exception_specification;
-  if (old_esp == NULL) {
+  old_esp = sym->variant.routine.ptr
+               ->type->variant.routine.extra_info->exception_specification;
+  if (old_esp == NULL || old_esp->throw_any) {
     /* The function can throw any exception. */
     throw_any = TRUE;
   } else {
@@ -10306,35 +10306,37 @@ TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       rtsp->exception_specification = new_esp;
     }  /* if */
-    /* Now traverse the types specified for the exception specification of the
-       function indicated by sym.  Make a copy of any that does not already
-       appear on the func_info list. */
-    old_estp = old_esp->exception_specification_type_list;
-    for (; old_estp != NULL; old_estp = old_estp->next) {
-      if (old_estp->redundant) {
-        /* Skip it. */
-      } else {
-        /* See if it's already on the list. */
-        estp = new_esp->exception_specification_type_list;
-        for (; estp != NULL; estp = estp->next) {
-          if (identical_types(estp->type, old_estp->type)) {
-            /* It's already on the list. */
-            break;
-          }  /* if */
-        }  /* for */
-        if (estp != NULL) {
+    if (!old_esp->is_noexcept) {
+      /* Now traverse the types specified for the exception specification of
+         the function indicated by sym.  Make a copy of any that does not
+         already appear on the func_info list. */
+      old_estp = old_esp->variant.exception_specification_type_list;
+      for (; old_estp != NULL; old_estp = old_estp->next) {
+        if (old_estp->redundant) {
           /* Skip it. */
         } else {
-          /* It hasn't been added to the list yet.  Allocate a new
-             exception-specification type entry and add it to the list.  The
-             order is unimportant, so it can be placed on the front. */
-          estp = alloc_exception_specification_type();
-          estp->type = old_estp->type;
-          estp->next = new_esp->exception_specification_type_list;
-          new_esp->exception_specification_type_list = estp;
+          /* See if it's already on the list. */
+          estp = new_esp->variant.exception_specification_type_list;
+          for (; estp != NULL; estp = estp->next) {
+            if (identical_types(estp->type, old_estp->type)) {
+              /* It's already on the list. */
+              break;
+            }  /* if */
+          }  /* for */
+          if (estp != NULL) {
+            /* Skip it. */
+          } else {
+            /* It hasn't been added to the list yet.  Allocate a new
+               exception-specification type entry and add it to the list.  The
+               order is unimportant, so it can be placed on the front. */
+            estp = alloc_exception_specification_type();
+            estp->type = old_estp->type;
+            estp->next = new_esp->variant.exception_specification_type_list;
+            new_esp->variant.exception_specification_type_list = estp;
+          }  /* if */
         }  /* if */
-      }  /* if */
-    }  /* for */
+      }  /* for */
+    }  /* if */
   }  /* if */
   return throw_any;
 }  /* merge_exception_specifications */
@@ -10353,22 +10355,21 @@ member) is able to throw.  This routine is only called in C++ mode and only
 when exception support is enabled.
 */
 {
-  a_special_function_kind  sfkind;
-  a_type_ptr               rout_type, class_type;
+  a_special_function_kind  sfkind = rp->special_kind;
+  a_type_ptr               rout_type = rp->type,
+                           class_type = parent_class_of(rp);
+  a_routine_type_supplement_ptr
+                           rtsp = rout_type->variant.routine.extra_info;
   a_base_class_ptr         bcp;
   a_field_ptr              fp;
   a_type_ptr               tp;
   a_symbol_ptr             sym;
   a_boolean                throw_any = FALSE;
   a_boolean                ambiguous;
-  a_param_type_ptr         first_param;
+  a_param_type_ptr         first_param = rtsp->param_type_list;
   a_source_position        *pos = &rp->source_corresp.decl_position;
 
   check_assertion(C_dialect == C_dialect_cplusplus && exceptions_enabled);
-  sfkind = rp->special_kind;
-  class_type = parent_class_of(rp);
-  rout_type = rp->type;
-  first_param = rout_type->variant.routine.extra_info->param_type_list;
   /* Go through the base classes looking for matching special functions, and
      merge the exception specifications. */
   bcp = base_classes_of(class_type);
@@ -10417,9 +10418,19 @@ when exception support is enabled.
       if (throw_any) break;
     }  /* for */
   }  /* if */
-  if (throw_any) {
-    /* Clear the exception_specification pointer, in case it had been set. */
-    rout_type->variant.routine.extra_info->exception_specification = NULL;
+  if (rtsp->exception_specification != NULL) {
+    check_assertion(!rtsp->exception_specification->is_noexcept);
+    if (throw_any) {
+      /* Clear the exception_specification pointer. */
+      rtsp->exception_specification = NULL;
+    } else if (noexcept_enabled &&
+               rtsp->exception_specification
+                   ->variant.exception_specification_type_list == NULL) {
+      /* The generated specification is "throw()".  Use "noexcept" instead
+         since it is potentially slightly more efficient. */
+      rtsp->exception_specification->is_noexcept = TRUE;
+      rtsp->exception_specification->variant.noexcept_arg = NULL;
+    }  /* if */
   }  /* if */
 }  /* form_exception_specification_for_generated_function */
 
@@ -12805,15 +12816,21 @@ implicitly declared member functions.
                                                     return_type_of(rtn->type));
       }  /* if */
     }  /* if */
-    if (exceptions_enabled && compiler_generated &&
+    if (exceptions_enabled) {
+      if (compiler_generated &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        !is_immediate_managed_class_type(class_type) &&
+          !is_immediate_managed_class_type(class_type) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        !class_type->variant.class_struct_union.is_nonreal_class) {
-      /* A compiler generated constructor, destructor, or assignment
-         operator is assumed to throw any exception that can be thrown by
-         any base-class function it will call. */
-      form_exception_specification_for_generated_function(rtn);
+          !class_type->variant.class_struct_union.is_nonreal_class) {
+        /* A compiler generated constructor, destructor, or assignment
+           operator is assumed to throw any exception that can be thrown by
+           any base-class function it will call. */
+        form_exception_specification_for_generated_function(rtn);
+      }  /* if */
+      if (rtsp->exception_specification != NULL &&
+          is_nothrow_type(skip_typerefs(member_type))) {
+        rtn->never_throws = TRUE;
+      }  /* if */
     }  /* if */
     if (!sym->is_error) {
       /* If "virtual" was specified in the declaration, mark the routine as

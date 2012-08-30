@@ -4325,7 +4325,7 @@ throw specification indicates that no types may be thrown.
   a_constant_ptr                       first_con, last_con;
   unsigned long                        num_elems = 0;
 
-  espt = throw_spec->exception_specification_type_list;
+  espt = throw_spec->variant.exception_specification_type_list;
   /* If the routine can throw nothing, return NULL. */
   if (espt == NULL) {
     var = NULL;

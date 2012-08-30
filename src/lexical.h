@@ -592,9 +592,10 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #if INT128_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_int128 */
 #endif /* INT128_EXTENSIONS_ALLOWED */
+   (an_opname_kind)onk_none,          /* tok_override */
    (an_opname_kind)onk_none,          /* tok_final */
    (an_opname_kind)onk_none,          /* tok_is_final */
-   (an_opname_kind)onk_none,          /* tok_override */
+   (an_opname_kind)onk_none,          /* tok_noexcept */
    (an_opname_kind)onk_last           /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */

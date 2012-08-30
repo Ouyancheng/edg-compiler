@@ -1554,15 +1554,22 @@ The routine returns difference_seen.
 {
   an_exception_specification_type_ptr  etype_1, etype_2;
 
-  etype_1 = spec_1->exception_specification_type_list;
+  if (spec_1->is_noexcept) {
+    etype_1 = NULL;
+  } else {
+    etype_1 = spec_1->variant.exception_specification_type_list;
+  }  /* if */
   for (; etype_1 != NULL; etype_1 = etype_1->next) {
     if (etype_1->redundant) {
       /* Don't bother looking for a match on redundant types.  It will already
          have been done. */
     } else {
       a_boolean  match = FALSE;
-
-      etype_2 = spec_2->exception_specification_type_list;
+      if (spec_2->is_noexcept) {
+        etype_2 = NULL;
+      } else {
+        etype_2 = spec_2->variant.exception_specification_type_list;
+      }  /* if */
       for (; etype_2 != NULL; etype_2 = etype_2->next) {
         if (!etype_2->redundant && etype_2->type != NULL &&
             identical_types(etype_1->type, etype_2->type)) {
@@ -1617,7 +1624,7 @@ consistent with that of the previous declaration.
 */
 {
   a_boolean                       any_difference_seen;
-  an_exception_specification_ptr  new_tsp, old_tsp;
+  an_exception_specification_ptr  new_esp, old_esp;
   an_error_code                   error_code;
   a_routine_ptr                   rp = NULL;
   a_type_ptr                      prev_type;
@@ -1687,9 +1694,9 @@ consistent with that of the previous declaration.
          the original specification is retained. */
       severity = es_warning;
     }  /* if */
-    old_tsp = skip_typerefs(prev_type)->
+    old_esp = skip_typerefs(prev_type)->
                          variant.routine.extra_info->exception_specification;
-    new_tsp = skip_typerefs(new_rout_type)->
+    new_esp = skip_typerefs(new_rout_type)->
                     variant.routine.extra_info->exception_specification;
     /* Set error_code for issuing diagnostics. */
     if (is_redecl) {
@@ -1717,18 +1724,16 @@ consistent with that of the previous declaration.
       /* Ignore any differences between exception specifications on a
          compiler generated routine (e.g., predeclared operator new or delete)
          and the current declaration. */
-    } else if (old_tsp == NULL) {
-      /* Previous specification asserted that any exception may be thrown.
-         It is compatible only with an identical specification on the current
-         declaration. */
-      if (new_tsp != NULL) {
-        /* Previously the exception specification was absent; now one is
-           provided.  Issue an error (except if the incompatibility is with
-           a declaration from a system header in GNU C++ modes). */
+    } else if (old_esp == NULL || old_esp->throw_any) {
+      /* Previous specification asserted that any exception may be thrown. */
+      if (new_esp != NULL && !new_esp->throw_any) {
+        /* The new declaration restricts the permitted exceptions.  Issue an
+           error (except if the incompatibility is with a declaration from a
+           system header in GNU C++ modes). */
         pos_stsy_diagnostic(pos_adjusted_severity(severity, prev_decl),
                             error_code, throw_pos, "", prev_decl);
       }  /* if */
-    } else if (new_tsp == NULL) {
+    } else if (new_esp == NULL || new_esp->throw_any) {
       /* Issue a diagnostic on the omission of a throw specification on the
          current declaration (it must have been present on the previous
          one). */
@@ -1750,27 +1755,30 @@ consistent with that of the previous declaration.
                           ec_omitted_exception_specification :
                           ec_omitted_exception_specification_on_specialization,
                         throw_pos, prev_decl);
-    } else if (old_tsp->exception_specification_type_list == NULL) {
+    } else if (old_esp->is_noexcept ||
+               old_esp->variant.exception_specification_type_list == NULL) {
       /* Previous specification asserted that no exceptions will be thrown.
-         It is compatible only with an identical specification on the current
-         declaration. */
-      if (new_tsp->exception_specification_type_list != NULL) {
+         It is compatible only with another nonthrowing specification on the
+         current declaration. */
+      if (!new_esp->is_noexcept &&
+          new_esp->variant.exception_specification_type_list != NULL) {
         pos_stsy_start_error(error_code, throw_pos, ":", prev_decl);
         add_diag_info(ec_previous_exception_specification_was_empty);
         end_error();
       }  /* if */
     } else {
-      /* Previous specification was a list of the types that will be thrown.
-         Check for a mismatch between the previous list and the current one. */
+      /* Both specifications list the types that will be thrown or the new one
+         is noexcept and the previous one lists some types.  Describe the
+         mismatch between the two specifications, if any. */
       any_difference_seen = FALSE;
       /* Check extraneous types: */
       any_difference_seen = compare_exception_specification_type_list(
-                              new_tsp, old_tsp, throw_pos,
+                              new_esp, old_esp, throw_pos,
                               ec_omitted_in_previous_exception_specification,
                               error_code, prev_decl, any_difference_seen);
       /* Check missing types: */
       any_difference_seen = compare_exception_specification_type_list(
-                              old_tsp, new_tsp, throw_pos,
+                              old_esp, new_esp, throw_pos,
                               ec_included_in_previous_exception_specification,
                               error_code, prev_decl, any_difference_seen);
       if (any_difference_seen) end_error();
@@ -7177,6 +7185,8 @@ for use in generating cross-reference output describing this declaration.
   a_boolean                notify_correspondence_processing = FALSE;
   a_boolean                microsoft_specialization_redef = FALSE;
   a_type_ptr               type_ptr = dps->type, rtp = skip_typerefs(type_ptr);
+  a_routine_type_supplement_ptr
+                           rtsp = rtp->variant.routine.extra_info;
   a_storage_class          storage_class = dps->storage_class;
 #if GNU_EXTENSIONS_ALLOWED
   a_type_ptr               orig_type = type_ptr;
@@ -7230,8 +7240,7 @@ for use in generating cross-reference output describing this declaration.
     /* Verify that we are not declaring a const or volatile function through
        a typedef (other cases are caught while parsing). */
     if (type_is_typedef(type_ptr) &&
-        (rtp->variant.routine.extra_info->qualifiers != TQ_NONE ||
-         rtp->variant.routine.extra_info->this_qualifiers != TQ_NONE)) {
+        (rtsp->qualifiers != TQ_NONE || rtsp->this_qualifiers != TQ_NONE)) {
       pos_error(ec_bad_qualified_function_type, &locator->source_position);
       /* Strip any qualifiers from the routine type to avoid problems
          later on. */
@@ -7639,8 +7648,7 @@ for use in generating cross-reference output describing this declaration.
                routine takes at least one parameter. */
             routine_ptr->type->variant.routine.extra_info
                        ->exception_specification =
-                                               rtp->variant.routine.extra_info
-                                                  ->exception_specification;
+                                              rtsp->exception_specification;
             /* The new declaration's position is treated as the primary
                position (and may no longer be in a system header). */
             routine_ptr->source_corresp.decl_position = sym->decl_position =
@@ -7658,7 +7666,6 @@ for use in generating cross-reference output describing this declaration.
   } else {
     /* Not a redeclaration. */
     a_symbol_ptr  symbol_for_overloading = NULL;
-
     if (C_dialect == C_dialect_cplusplus) {
       /* Be sure the default arguments, if any, are at the end of the
          parameters list. */
@@ -8042,7 +8049,7 @@ skip_overloading:;
     *old_type = routine_ptr->type;
     reconcile_routine_types(routine_ptr, type_ptr, /*preserve_rout_type=*/TRUE,
                             /*preserve_type_ptr=*/FALSE, dps);
-    /* Do compatibility checking for the throw specification. */
+    /* Do compatibility checking for the exception specification. */
     check_exception_specification(type_ptr, linked_symbol,
                                   &func_info->throw_position,
                                   /*is_redecl=*/TRUE);
@@ -8205,6 +8212,9 @@ skip_overloading:;
       }  /* if */
     }  /* if */
   }  /* if */
+  if (rtsp->exception_specification != NULL && is_nothrow_type(rtp)) {
+    routine_ptr->never_throws = TRUE;
+  }  /* if */      
   if (func_info->is_inline) set_inline_flag(routine_ptr, TRUE);
   if (use_std_c99_inlining && !idlb.is_block_extern_decl) {
     /* In C99 mode the definition_for_inlining_only flag is set only if that is

@@ -5585,20 +5585,31 @@ that a function might throw.
 {
   an_exception_specification_type_ptr estp;
 
-  write_tok_str(" throw(");
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (esp->throw_any) {
-    write_tok_str("...");
+  if (esp->is_noexcept) {
+    if (esp->variant.noexcept_arg == NULL) {
+      write_tok_str(" noexcept");
+    } else {
+      write_tok_str(" noexcept(");
+      gen_constant(esp->variant.noexcept_arg, /*need_parens=*/FALSE);
+      write_tok_ch(')');
+    }  /* if */
+  } else if (esp->throw_any) {
+    /* A Microsoft "throw(...)" exception. */
+    check_assertion(microsoft_mode);
+    if (microsoft_dialect_is_generated_code_target) {
+      write_tok_str(" throw(...)");
+    }  /* if */
+  } else {
+    write_tok_str(" throw(");
+    for (estp = esp->variant.exception_specification_type_list;
+         estp != NULL;
+         estp = estp->next) {
+      gen_type(estp->type);
+      if (estp->is_pack_expansion) write_tok_str("...");
+      if (estp->next != NULL) write_tok_str(", ");
+    }  /* for */
+    write_tok_ch(')');
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  for (estp = esp->exception_specification_type_list;
-       estp != NULL;
-       estp = estp->next) {
-    gen_type(estp->type);
-    if (estp->is_pack_expansion) write_tok_str("...");
-    if (estp->next != NULL) write_tok_str(", ");
-  }  /* for */
-  write_tok_ch(')');
 }  /* gen_exception_specification */
 
 

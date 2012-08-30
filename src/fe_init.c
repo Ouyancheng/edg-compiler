@@ -1019,6 +1019,9 @@ Install the keywords in the symbol table.
     if (nullptr_enabled) {
       enter_keyword((a_token_kind)tok_nullptr, "nullptr");
     }  /* if */
+    if (noexcept_enabled) {
+      enter_keyword((a_token_kind)tok_noexcept, "noexcept");
+    }  /* if */
   }  /* if */
   if (microsoft_mode && microsoft_version >= 1300) {
     /* The __wchar_t keyword is entered even when wchar_t_is_keyword is FALSE.

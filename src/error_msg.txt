@@ -587,7 +587,7 @@ ec_previous_exception_specification_was_empty;INTERNAL;"previously specified: no
 ec_omitted_in_previous_exception_specification;INTERNAL;"previously omitted: %t"
 ec_included_in_previous_exception_specification;INTERNAL;"previously specified but omitted here: %t"
 ec_no_exception_support;;"support for exception handling is disabled"
-ec_omitted_exception_specification;;"omission of exception specification is incompatible with previous %nd"
+ec_omitted_exception_specification;;"allowing all exceptions is incompatible with previous %nd"
 ec_cannot_create_instantiation_request_file;;"could not create instantiation request file %sq"
 ec_non_arith_operation_in_templ_arg;;"non-arithmetic operation not allowed in nontype template argument"
 ec_local_type_in_nonlocal_var;;"use of a local type to declare a nonlocal variable"
@@ -852,7 +852,7 @@ ec_nonstd_default_arg_on_function_template_redecl;;"specifying a default argumen
 ec_default_arg_on_function_template_not_allowed;;"specifying a default argument when redeclaring an already referenced function template is not allowed"
 ec_pm_derived_class_from_virtual_base;;"cannot convert pointer to member of base class %t2 to pointer to member of derived class %t1 -- base class is virtual"
 ec_bad_exception_specification_for_specialization;;"exception specification is incompatible with that of %nd%s\=':'"
-ec_omitted_exception_specification_on_specialization;;"omission of exception specification is incompatible with %nd"
+ec_omitted_exception_specification_on_specialization;;"allowing all exceptions is incompatible with %nd"
 ec_unexpected_end_of_default_arg;;"unexpected end of default argument expression"
 ec_default_init_of_reference;;"default-initialization of reference is not allowed"
 ec_uninitialized_field_with_const_member;;"uninitialized %n has a const member"
@@ -2420,6 +2420,7 @@ ec_list_init_of_incomplete;;"list-initialization of an object type %t is not all
 ec_std_initializer_list_has_dtor;;"std::initializer_list has a destructor, and is not supposed to -- library is misconfigured"
 ec_explicit_enum_base_nonstandard_in_current_mode;;"explicit enum base types are a C++11 feature"
 ec_unconvertible_con_expr;;"expression is required to be convertible to type %t2, but its type is %t1"
+ec_previous_exception_specification_was_nonempty;INTERNAL;"previously specified: some exceptions may be thrown"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

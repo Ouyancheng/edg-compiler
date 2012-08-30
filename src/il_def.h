@@ -1217,6 +1217,7 @@ typedef enum /*a_token_kind*/ {
   tok_override,
   tok_final,
   tok_is_final,
+  tok_noexcept,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1357,6 +1358,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__int128",
 #endif /* INT128_EXTENSIONS_ALLOWED */
    "override", "final", "__is_final",
+   "noexcept",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -5465,7 +5467,20 @@ typedef struct an_exception_specification_type {
    specification on a function declaration. */
 typedef struct an_exception_specification *an_exception_specification_ptr;
 typedef struct an_exception_specification {
-  an_exception_specification_type_ptr
+  a_bit_field
+		is_noexcept:1;
+			/* TRUE if the exception specification is a C++11-
+			   style noexcept form. */
+  a_bit_field
+		throw_any:1;
+			/* TRUE if "noexcept(<false-constant>)" or the
+			   Microsoft extension "throw (...)" was encountered.
+			   Also TRUE if a noexcept-specifier has a template-
+			   dependent argument.  It indicates that any exception
+			   may be thrown. */
+  union {
+    /* When is_noexcept is FALSE. */
+    an_exception_specification_type_ptr
 		exception_specification_type_list;
 			/* Pointer to the linked list of exception
 			   specification type entries giving the types of
@@ -5473,23 +5488,23 @@ typedef struct an_exception_specification {
 			     void f() throw (int,char);
                            or NULL if no exceptions will be thrown, e.g.,
 			     void f() throw ();              */
+    /* When is_noexcept is TRUE. */
+    a_constant_ptr
+		noexcept_arg;
+			/* Representation of the constant-expression specified
+			   as an argument for the "noexcept" specification, or
+			   NULL if no argument was specified. */
+  } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
 		source_range;
 			/* Source range of the declaration of this exception
-			   specification -- from the source position of
-			   "throw" to that of the closing parenthesis.  If
-			   the specification is for a routine synthesized by
+			   specification -- from the source position of "throw"
+			   or "noexcept" to that of the closing parenthesis.
+			   If the specification is for a routine synthesized by
 			   the front end, the start and ending positions are
 			   both equal to that of the synthesized routine. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_bit_field
-		throw_any:1;
-			/* TRUE if the exception specification extension
-			   throw (...) was encountered.  It indicates that
-			   any exception may be thrown. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } an_exception_specification;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
@@ -12496,9 +12511,10 @@ typedef struct a_routine {
 			   function of a class template. */
   a_bit_field	never_throws:1;
 			/* TRUE for routines declared with the attribute
-			   "nothrow"; this is an assertion by the programmer
-			   that the routine will not throw an exception (the
-			   front end does not check that assertion). */
+			   "nothrow" or the C++11-style "noexcept" construct;
+			   this is an assertion by the programmer that the
+			   routine will not throw an exception (the front end
+			   does not check that assertion). */
   a_bit_field
 		is_in_class_specialization:1;
 			/* TRUE if this is a specialized template instance

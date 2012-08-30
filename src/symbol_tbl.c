@@ -1005,12 +1005,14 @@ do_variable:
 
           esp = (skip_typerefs(type))->variant.routine.extra_info->
                                                       exception_specification;
-          if (esp == NULL) {
+          if (esp == NULL || esp->throw_any) {
             if (exceptions_enabled) put_string("throws any");
-          } else if (esp->exception_specification_type_list == NULL) {
+          } else if (esp->is_noexcept) {
+            put_string("noexcept");
+          } else if (esp->variant.exception_specification_type_list == NULL) {
             put_string("throws none");
           } else {
-            estp = esp->exception_specification_type_list;
+            estp = esp->variant.exception_specification_type_list;
             (void)sprintf(buffer, "throws (");
             str_type(&buffer[strlen(buffer)], estp->type);
             for (estp = estp->next; estp != NULL; estp = estp->next) {

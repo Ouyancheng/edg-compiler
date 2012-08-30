@@ -2700,6 +2700,7 @@ handling).
     friend_class_injection_enabled = FALSE;
     friend_function_injection_enabled = FALSE;
   }  /* if */
+  noexcept_enabled = exceptions_enabled;
 }  /* check_and_set_cpp11_mode_options */
 
 
@@ -9556,6 +9557,7 @@ variables declared in cmd_line.h.
   suppress_used_before_set_warnings = FALSE;
   addr_of_bit_field_allowed = ADDR_OF_BIT_FIELD_ALLOWED;
   exceptions_enabled = DEFAULT_EXCEPTIONS_ENABLED;
+  noexcept_enabled = FALSE;
   rtti_enabled = 
 #if RTTI_ENABLING_POSSIBLE
                  DEFAULT_RTTI_ENABLED;

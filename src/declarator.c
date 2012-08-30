@@ -26,6 +26,7 @@ declarator.c -- Scanning of declarators.
 
 /* Additional header files. */
 #include "disambig.h"
+#include "folding.h"
 #include "statements.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
@@ -1279,6 +1280,34 @@ given position.
 }  /* scan_eh_spec_type */
 
 
+static void scan_noexcept_arg(an_exception_specification_ptr  esp)
+/*
+The noexcept token of a noexcept-specification has just been scanned.  Scan a
+noexcept argument if any, and update *esp as appropriate.
+*/
+{
+  a_memory_region_number  region_to_switch_back_to;
+  a_source_position       constant_pos;
+  a_constant              noexcept_con;
+
+  constant_pos = pos_curr_token;
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  /* Scan the argument for the noexcept-specifier, which must be a
+     constant-expression convertible to bool. */
+  scan_converted_constant_expression(bool_type(), &noexcept_con);
+  if (esp != NULL) {
+    if (noexcept_con.kind == (a_constant_repr_kind)ck_template_param ||
+        noexcept_con.kind == (a_constant_repr_kind)ck_error ||
+        is_false_constant(&noexcept_con)) {
+      esp->throw_any = TRUE;
+    }  /* if */
+    esp->variant.noexcept_arg = alloc_unshared_constant(&noexcept_con);
+    esp->variant.noexcept_arg->source_corresp.decl_position = constant_pos;
+  }  /* if */
+  switch_back_to_original_region(region_to_switch_back_to);
+}  /* scan_noexcept_arg */
+
+
 static an_exception_specification_ptr scan_exception_specification(
                                   a_func_info_block  *func_info,
                                   a_boolean          exception_spec_allowed,
@@ -1306,16 +1335,18 @@ specification is handled later (see check_exception_specification).
   an_exception_specification_type_ptr  estp, other_estp, end_of_list = NULL;
   a_source_position                    type_pos;
   a_boolean                            ignoring_exception_spec = FALSE;
+  a_boolean                            is_noexcept;
 
   db_enter(4, "scan_exception_specification");
-  if (exceptions_enabled || curr_token == tok_throw) {
+  is_noexcept = exceptions_enabled && curr_token == tok_noexcept;
+  if (exceptions_enabled || curr_token == tok_throw || is_noexcept) {
     /* Update the source position for the "throw".  Even if there is no
        "throw" this is where it would appear in the source.  If exception
        support is not enabled but a "throw" appears, we may want to issue
        a diagnostic, so save the source position for that case, too. */
     func_info->throw_position = pos_curr_token;
   }  /* if */
-  if (curr_token != tok_throw) {
+  if (curr_token != tok_throw && !is_noexcept) {
     /* No explicit throw specification, meaning anything may be thrown. */
     goto done;
   }  /* if */
@@ -1333,6 +1364,7 @@ specification is handled later (see check_exception_specification).
                                           &pos_curr_token,
                                           ec_exceptions_in_embedded_cplusplus);
     esp = alloc_exception_specification();
+    esp->is_noexcept = is_noexcept;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     esp->source_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1346,7 +1378,19 @@ specification is handled later (see check_exception_specification).
     /* Issue a remark: Exception specifications are parsed and discarded. */
     pos_remark(ec_exception_specification_ignored, &pos_curr_token);
   }  /* if */
-  /* Bypass "throw". */
+  if (is_noexcept && next_token() != tok_lparen) {
+    /* "noexcept" without arguments. */
+    if (esp != NULL) {
+      esp->variant.noexcept_arg = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      esp->source_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    }  /* if */
+    /* Scan past the "noexcept" token. */
+    (void)get_token();
+    goto done;
+  }  /* if */
+  /* Bypass "throw" or "noexcept". */
   (void)get_token();
   /* Start a new stop token state. */
   push_stop_token_stack();
@@ -1356,7 +1400,10 @@ specification is handled later (see check_exception_specification).
   /* Next token should be a left paren. */
   if (curr_token == tok_lparen) {
     (void)get_token();
-    if (curr_token == tok_rparen) {
+    if (is_noexcept) {
+      scan_noexcept_arg(esp);
+      goto finish_list;
+    } else if (curr_token == tok_rparen) {
       /* Case is "throw ()" -- which means "no exception will be thrown by
          this routine." */
       goto finish_list;
@@ -1407,12 +1454,12 @@ specification is handled later (see check_exception_specification).
       if (esp != NULL) {
         /* Add estp to the list. */
         if (end_of_list == NULL) {
-          esp->exception_specification_type_list = estp;
+          esp->variant.exception_specification_type_list = estp;
         } else {
           if (!is_error_type(estp->type)) {
             /* Examine other entries already on the list to see if the current
                one is redundant. */
-            other_estp = esp->exception_specification_type_list;
+            other_estp = esp->variant.exception_specification_type_list;
             for (; other_estp != NULL; other_estp = other_estp->next) {
               if (!other_estp->redundant &&
                   identical_types(estp->type, other_estp->type)) {
@@ -1456,7 +1503,7 @@ specification is handled later (see check_exception_specification).
   if (microsoft_mode && microsoft_version >= 1300 && esp != NULL) {
     /* Some versions of Microsoft C++ treat any non-empty exception
        specification as "throw (...)". */
-    esp->exception_specification_type_list = NULL;
+    esp->variant.exception_specification_type_list = NULL;
     esp->throw_any = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1987,7 +2034,8 @@ this is a helper function.
     esp = NULL;
   } else if ((microsoft_bugs && microsoft_version <= 1200) ||
              (microsoft_mode && microsoft_version >= 1300 && esp != NULL &&
-              !((esp->exception_specification_type_list == NULL &&
+              !esp->is_noexcept &&
+              !((esp->variant.exception_specification_type_list == NULL &&
                  !esp->throw_any) ||
                 (rtsp->routine_name_linkage ==
                                          (a_name_linkage_kind)nlk_external &&

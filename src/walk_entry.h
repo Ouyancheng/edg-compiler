@@ -1190,9 +1190,13 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         an_exception_specification_ptr ptr =
                              (an_exception_specification_ptr)entry_ptr;
-        walk_list(ptr->exception_specification_type_list,
-                  an_exception_specification_type_ptr,
-                  iek_exception_specification_type);
+        if (ptr->is_noexcept) {
+          walk_ptr(ptr->variant.noexcept_arg, a_constant_ptr, iek_constant);
+        } else {
+          walk_list(ptr->variant.exception_specification_type_list,
+                    an_exception_specification_type_ptr,
+                    iek_exception_specification_type);
+        }  /* if */
       }
       break;
     case iek_exception_specification_type:
