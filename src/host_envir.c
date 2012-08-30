@@ -5027,6 +5027,19 @@ final search path will include, in this order:
   add_to_front_of_include_search_path(current_directory_name,
                                       &assembly_search_path,
                                       &end_assembly_search_path);
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES
+  /* Make it easy to find portable assemblies on non-Windows systems. */
+  { char *pa_path = getenv("EDG_CPPCLI_PORTABLE_ASSEMBLY_PATH");
+    if (pa_path != NULL) {
+      add_to_specified_include_search_path(pa_path, FALSE,
+                             &assembly_search_path, &end_assembly_search_path);
+    }  /* if */
+  }
+#ifdef CPPCLI_PORTABLE_ASSEMBLY_PATH
+  add_to_specified_include_search_path(CPPCLI_PORTABLE_ASSEMBLY_PATH, FALSE,
+                             &assembly_search_path, &end_assembly_search_path);
+#endif /* ifdef CPPCLI_PORTABLE_ASSEMBLY_PATH */
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
   /* LIBPATH is searched last.  Append it now because we have already added
      everything else to the assembly search path. */
   libpath = getenv("LIBPATH");
@@ -5053,19 +5066,6 @@ final search path will include, in this order:
       current_path = semicolon + 1;
     }  /* for */
   }  /* if */
-#if READ_CPPCLI_PORTABLE_ASSEMBLIES
-  /* Make it easy to find portable assemblies on non-Windows systems. */
-  { char *pa_path = getenv("EDG_CPPCLI_PORTABLE_ASSEMBLY_PATH");
-    if (pa_path != NULL) {
-      add_to_specified_include_search_path(pa_path, FALSE,
-                             &assembly_search_path, &end_assembly_search_path);
-    }  /* if */
-  }
-#ifdef CPPCLI_PORTABLE_ASSEMBLY_PATH
-  add_to_specified_include_search_path(CPPCLI_PORTABLE_ASSEMBLY_PATH, FALSE,
-                             &assembly_search_path, &end_assembly_search_path);
-#endif /* ifdef CPPCLI_PORTABLE_ASSEMBLY_PATH */
-#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
 }  /* init_assembly_search_path */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
