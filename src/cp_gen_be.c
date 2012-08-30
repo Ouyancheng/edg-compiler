@@ -9032,7 +9032,12 @@ Generate code for a new or delete operation.
                                   /*need_trailing_space=*/TRUE,
                                   &octl);
       write_tok_ch('[');
-      gen_expression(ndsp->number_of_elements);
+      if (ndsp->number_of_elements != NULL) {
+        /* The bound expression can be omitted in Microsoft modes
+           (interpreted as a zero-element array).  If present, put it out
+           here. */
+        gen_expression(ndsp->number_of_elements);
+      }  /* if */
       write_tok_ch(']');
       form_type_second_part_simple(elem_type, /*under_lhs_declarator=*/FALSE,
                                    &octl);
