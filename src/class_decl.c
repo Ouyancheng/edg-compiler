@@ -12818,10 +12818,14 @@ implicitly declared member functions.
     }  /* if */
     if (exceptions_enabled) {
       if (compiler_generated &&
+          !class_type->variant.class_struct_union.is_nonreal_class &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
           !is_immediate_managed_class_type(class_type) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          !class_type->variant.class_struct_union.is_nonreal_class) {
+          (special_kind_is(rtn, sfk_constructor) ||
+           special_kind_is(rtn, sfk_destructor) ||
+           (special_kind_is(rtn, sfk_operator) &&
+            rtn->variant.opname_kind == (an_opname_kind)onk_assign))) {
         /* A compiler generated constructor, destructor, or assignment
            operator is assumed to throw any exception that can be thrown by
            any base-class function it will call. */
