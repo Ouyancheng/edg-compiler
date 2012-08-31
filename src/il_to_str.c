@@ -5896,10 +5896,10 @@ Do the output in the way described by octl.
     if (rout->gnu_c89_inline && gnu_target_version_number >= 40200) {
       form_simple_attribute("__gnu_inline__", &need_leading_space, octl);
     }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
     if (rout->never_throws && gnu_target_version_number >= 30300) {
       form_simple_attribute("__nothrow__", &need_leading_space, octl);
     }  /* if */
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
     if (rout->type->kind == (a_type_kind)tk_routine) {
       /* If this routine is declared using ordinary function declarator
          syntax (i.e., not using a typedef), generate the associated
