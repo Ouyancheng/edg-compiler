@@ -5891,16 +5891,32 @@ Any code needed is inserted at *insert_location.
          with the lifetime of some temporaries in the inner lifetime.
          Adjust the cleanup information for those so that both the temporaries
          and the present entity are on the cleanup list. */
+      a_dynamic_init_ptr temp_dip;
       check_assertion_str(curr_context != context,
                           "add_dyn_init_cleanup: curr_context == context");
-      if (adjust_cleanup_state_for_inner_lifetime_temporaries(
-                           curr_context->latest_initialization, dip) != NULL) {
-        /* There's no need to emit code to set the cleanup state here: it's
-           not necessary because the cleanup state will be set in a moment
-           when the destruction of the last temporary begins.  If we were to
-           try to set the cleanup state here, we would be referring to the
-           region table for that last temporary, which was not cloned because
-           it's not needed. */
+      temp_dip = adjust_cleanup_state_for_inner_lifetime_temporaries(
+                                           curr_context->latest_initialization,
+                                           dip);
+      if (temp_dip != NULL) {
+        if (temp_dip->lifetime->destructions == temp_dip) {
+          /* There's no need to emit code to set the cleanup state here: it's
+             not necessary because the cleanup state will be set in a moment
+             when the destruction of the last temporary begins.  If we were to
+             try to set the cleanup state here, we would be referring to the
+             region table for that last temporary, which was not cloned because
+             it's not needed. */
+        } else {
+          /* We have something like multiple outer-lifetime initializations
+             that overlap with the same set of inner-lifetime temporaries,
+             so we will not be immediately destroying the temporaries and
+             we need to set the cleanup state to the last-constructed of the
+             temporaries. */
+          check_assertion(curr_context->curr_cleanup_state == temp_dip);
+          insert_code_to_indicate_cleanup_state(
+                                              curr_context->curr_cleanup_state,
+                                              insert_location,
+                                              /*unreachable=*/FALSE);
+        }  /* if */
       } else {
         /* If there was nothing in the inner lifetime, or nothing but partial
            aggregate cleanups, we do need to set the cleanup state here,
