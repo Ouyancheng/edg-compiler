@@ -106,7 +106,7 @@ static void turn_off_freeing_of_storage_on_exception(
                              an_init_pos_descr_ptr       ipdp,
                              an_expr_node_ptr            delete_args,
                              a_routine_ptr               new_routine,
-                             an_insert_location          *init_insert_location,
+                             an_expr_node_ptr            init_expr,
                              an_insert_location          *insert_location);
 
 
@@ -9213,7 +9213,7 @@ arrays with class elements.
        exception. */
     turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
                                              new_routine,
-                                             &init_insert_location,
+                                             init_insert_location.variant.expr,
                                              &insert_location);
     /* Insert the value of the temporary as the final value of the
        expression. */
@@ -9347,7 +9347,7 @@ static void turn_off_freeing_of_storage_on_exception(
                              an_init_pos_descr_ptr       ipdp,
                              an_expr_node_ptr            delete_args,
                              a_routine_ptr               new_routine,
-                             an_insert_location          *init_insert_location,
+                             an_expr_node_ptr            init_expr,
                              an_insert_location          *insert_location)
 /*
 ndsp points to the new/delete supplement for a "new".  We're now at a
@@ -9356,25 +9356,32 @@ so do the second part of the processing begun by
 set_up_freeing_of_storage_on_exception.  ipdp describes the location of the
 allocated storage.  delete_args points to the list of arguments for a placement
 delete call, if one is needed.  If new_routine is non-NULL, it is the placement
-new routine that is being called to allocate the memory.  *init_insert_location
-is an expression insert location into which the initialization (but not
-allocation) for the entity has been inserted (there may be no initialization
-code in some cases).  *insert_location fills two roles: on entry it is an
-expression insert location that encompasses the allocation of the entity; on
-exit it also contains the initialization (in *init_insert_location) as well as
-any additional code needed to process the deletion.
+new routine that is being called to allocate the memory.
+
+In the case of an initialized array (e.g., "new A[4] {1, 2}"), the caller
+has generated two logical pieces of code: a run-time call to allocate the
+array, and some executable code to initialize the array.  If an exception is
+thrown during the allocation, the run-time library will handle the
+exception (and this routine doesn't need to), but an exception thrown during
+the initialization must be handled here.  That's not the case for the
+placement new case (where the run-time routine doesn't do any exception
+handling and this routine must generate proper cleanup for the allocation
+phase as well).  init_expr represents the initialization code, if any, that the
+caller has generated to initialize the entity.  *insert_location fills two
+roles: on entry it is an expression insert location (created by
+set_expr_creation_insert_location) that contains only the allocation of the
+entity; on exit it will be updated to add the initialization (i.e., init_expr)
+as well as any additional code needed to process the deletion.
 */
 {
-  an_expr_node_ptr   delete_call, alloc_expr, init_expr, try_expr;
+  an_expr_node_ptr   delete_call, alloc_expr, try_expr;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
   an_expr_node_ptr   prefix_size_node = NULL;
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   a_dynamic_init_ptr dyn_init_to_free_storage =
                                          ndsp->freeing_of_storage_on_exception;
 
-  check_assertion(is_expr_insert_location(init_insert_location) &&
-                  is_expr_insert_location(insert_location));
-  init_expr = init_insert_location->variant.expr;
+  check_assertion(is_expr_insert_location(insert_location));
   if (dyn_init_to_free_storage != NULL) {
     alloc_expr = insert_location->variant.expr;
     if (ndsp->placement_new || dyn_init_to_free_storage->is_array_freeing) {
@@ -9706,9 +9713,9 @@ The subtree of the node has not yet been lowered.
         /* Now that the entity is initialized, turn off the freeing on
            exception. */
         turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
-                                                 (a_routine_ptr)NULL,
-                                                 &init_insert_location,
-                                                 &insert_location);
+                                             (a_routine_ptr)NULL,
+                                             init_insert_location.variant.expr,
+                                             &insert_location);
       }  /* if */
       {
 #if CTORS_RETURN_THIS
