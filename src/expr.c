@@ -15865,14 +15865,7 @@ expression, and return the result in *result (or an error indication in
       dip = init_state.init_dip;
       check_assertion(dip != NULL);
     }  /* if */
-    if (expr_stack->possible_rescan_context && dip != NULL) {
-      /* In a potential rescan context, save the init-component form of the
-         braced-init-list in rescan information attached to the dynamic init.
-         Otherwise, free it. */
-      save_rescan_info_for_braced_init_list(dip, alep);
-    } else {
-      free_init_component_list(alep);
-    }  /* if */
+    free_init_component_list(alep);
   } else {
     /* A parenthesized new-initializer is present. */
     /* No need to add tok_rparen to the stop tokens set: it's done by
@@ -20212,7 +20205,6 @@ previously-scanned braced initializer.
   an_init_component_ptr icp;
   a_conv_context_set    conv_context = CCO_CAST;
   a_boolean             error_on_narrowing = strict_ansi_mode;
-  a_boolean             need_to_free_icp = FALSE;
 
   check_assertion(list_init_enabled);
   if (source_form == csf_functional) conv_context |= CCO_FUNC_NOTATION_CAST;
@@ -20220,7 +20212,6 @@ previously-scanned braced initializer.
     icp = rescan_icp;
   } else {
     icp = scan_braced_init_list_internal(/*bundle=*/FALSE);
-    need_to_free_icp = TRUE;
   }  /* if */
   check_assertion(result != NULL);  /* For lint. */
   prep_list_initializer(icp, type_cast_to,
@@ -20236,19 +20227,7 @@ previously-scanned braced initializer.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = *init_component_end_pos(icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (expr_stack->possible_rescan_context) {
-    /* In a potential rescan context, save the init-component form of the
-       braced-init-list in rescan information attached to the dynamic init.
-       Otherwise, free it. */
-    an_expr_node_ptr   temp_init_node;
-    if (operand_is_temp_init_full(result, &temp_init_node)) {
-      a_dynamic_init_ptr dip_for_rescan =
-                                     temp_init_node->variant.init.dynamic_init;
-      save_rescan_info_for_braced_init_list(dip_for_rescan, icp);
-      need_to_free_icp = FALSE;
-    }  /* if */
-  }  /* if */
-  if (need_to_free_icp) free_init_component_list(icp);
+  if (rescan_icp == NULL) free_init_component_list(icp);
 }  /* scan_braced_init_list_cast */
 
 

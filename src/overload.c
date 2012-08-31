@@ -20907,6 +20907,7 @@ controls).
   an_arg_match_summary internal_arg_match;
   a_boolean            aggregate_case = FALSE;
   a_boolean            error_on_narrowing;
+  a_boolean            list_handled_at_this_level = FALSE;
   a_source_position    *start_position = init_component_pos(icp);
 
   /* The basic modes are:
@@ -21116,6 +21117,7 @@ controls).
     /* The entity is initialized by a brace-enclosed list. */
     a_type_ptr            element_type;
     an_init_component_ptr list = icp->variant.braced.list;
+    list_handled_at_this_level = TRUE;
     if (icp->braced_init_in_parentheses && !dest_type_is_class &&
         !could_be_dependent_class_type(dest_type)) {
       /* A parenthesized initializer list containing a single entity must
@@ -21385,6 +21387,7 @@ controls).
           list = new_list;
         }  /* while */
       }  /* if */
+      list_handled_at_this_level = FALSE;
       prep_list_initializer(list, dest_type, is_direct_init,
                             check_narrowing,
                             warning_on_narrowing,
@@ -21419,6 +21422,7 @@ controls).
       /* The cost of a reference initialization in overload resolution is the
          cost of the underlying initialization of the temporary, so pass
          arg_match down to the next level.  See below for class cases. */
+      list_handled_at_this_level = FALSE;
       prep_list_initializer(icp, underlying_type,
                             /*is_direct_init=*/FALSE,
                             /*check_narrowing=*/TRUE,
@@ -21500,6 +21504,7 @@ controls).
         arg_list_will_not_be_used_because_of_error(list->next);
         free_init_component_list(list->next);
         list->next = NULL;
+        list_handled_at_this_level = FALSE;
         prep_list_initializer(icp,
                               dest_type,
                               is_direct_init,
@@ -21580,9 +21585,9 @@ controls).
           }  /* if */
         }  /* if */
         if (operand_is_temp_init_full(&operand, &temp_init_node)) {
-          a_dynamic_init_ptr tdip = temp_init_node->variant.init.dynamic_init;
-          if (is_cast) tdip->is_explicit_cast = TRUE;
-          tdip->is_braced_initializer = TRUE;
+          dip = temp_init_node->variant.init.dynamic_init;
+          if (is_cast) dip->is_explicit_cast = TRUE;
+          dip->is_braced_initializer = TRUE;
         }  /* if */
       }  /* if */
       copy_operand(&operand, result);
@@ -21680,6 +21685,15 @@ controls).
                                                  /*honor_virtual=*/FALSE);
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (expr_stack->possible_rescan_context &&
+      (is_cast || (conv_context & CCO_NEW_INITIALIZER)) &&
+      dip != NULL &&
+      list_handled_at_this_level) {
+    /* For cast and new-initializer cases, save the original braced-init-list
+       as rescan info on the dynamic init.  Compound literal cases are handled
+       separately in scan_compound_literal. */
+    save_rescan_info_for_braced_init_list(dip, icp);
   }  /* if */
   if (arg_match != NULL) {
     /* Just evaluating for overload resolution.  arg_match is set already, but
