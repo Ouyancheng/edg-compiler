@@ -5910,17 +5910,11 @@ is TRUE.
           /* Indicate that this is a global new/delete. */
           add_to_mangled_name('g', mctl);
         }  /* if */
-#endif /* !IA64_ABI */
-        if (expr->variant.new_delete->is_new) {
-          /* Skip the first argument to the new operator (the size of the
-             type). */
-          check_assertion(args != NULL);
-          args = args->next;
-        }  /* if */
-#if !IA64_ABI
         store_digits_and_underscore(number_of_operands_in_list(args), 
                                     /*old_form=*/FALSE, mctl);
 #endif /* !IA64_ABI */
+        /* Note that the first argument of a "new" operator (the size argument)
+           is not mangled. */
         if (args != NULL) {
           mangled_expression_list(args, in_dependent_expr, mctl);
         }  /* if */

@@ -2940,6 +2940,7 @@ fields to default values.
       ndsp->arg                             = NULL;
       ndsp->dynamic_init                    = NULL;
       ndsp->freeing_of_storage_on_exception = NULL;
+      ndsp->number_of_elements              = NULL;
       break;
     case enk_lambda:
       node->variant.lambda.ptr            = NULL;

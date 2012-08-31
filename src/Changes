@@ -1,5 +1,19 @@
 Version 4.5
 
+8/31/12  [EDGcpfe/13167]
+Change IL of "new" operations to be more like source form (IL CHANGE)
+
+Previously the a_new_delete_supplement::arg field had specified the entire
+argument list to be passed to a "new" or "new[]" operation, including the first
+argument which contained the size (in bytes) to be allocated.  Now, that first
+argument is omitted and must be provided by a back end (if needed).
+Additionally, a new field, a_new_delete_supplement::number_of_elements, is
+provided that contains (when non-NULL), an expression that represents the
+number of elements in the array.  Previously, back ends that had needed this
+information (e.g., to pass to a library routine) needed to extract it from the
+expression in the first argument.
+
+
 8/28/12  [EDGcpfe/12751, EDGcpfe/13158]
 GNU compatibility: Scoped enumeration types in non-C++11 mode
 
