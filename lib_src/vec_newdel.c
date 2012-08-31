@@ -478,11 +478,6 @@ use.
 #endif /* EXCEPTION_HANDLING */
   if (array_ptr == NULL || prefix_size != 0) {
     a_boolean	err;
-#if EXCEPTION_HANDLING && ABI_COMPATIBILITY_VERSION >= 405
-    /* A run-time check is inserted during lowering to ensure that the
-       multiplication below doesn't overflow.  If the number of elements
-       is too small or too large std::bad_array_new_length is thrown. */
-#endif /* EXCEPTION_HANDLING && ABI_COMPATIBILITY_VERSION >= 405 */
     array_size = number_of_elements * element_size;
     /* Always allocate at least a byte of storage for the array to guarantee
        that the pointer returned to the caller (which points after the prefix)

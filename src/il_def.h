@@ -13988,11 +13988,7 @@ typedef struct a_new_delete_supplement {
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR */
   an_expr_node_ptr
 		arg;	/* For new, the argument list for the "new" call,
-			   without the first (size_t) argument.  arg is
-			   set even when routine == NULL.  A back end must
-			   provide the first argument (number of bytes to
-			   allocate), which, in the array case, may depend
-			   on number_of_elements (see below).  For delete,
+			   provided even when routine == NULL.  For delete,
 			   the pointer to the object to be deleted. */
   a_dynamic_init_ptr
 		dynamic_init;
@@ -14007,12 +14003,6 @@ typedef struct a_new_delete_supplement {
 			   the storage if an exception is thrown before the
 			   storage is initialized.  NULL if no deletion is
 			   needed. */
-  an_expr_node_ptr
-		number_of_elements;
-			/* When is_new is TRUE and type specifies an array
-			   type, number_of_elements is NULL if the array size
-			   is known at compile time; otherwise it contains an
-			   expression for the run-time number of elements. */
 } a_new_delete_supplement;
 
 

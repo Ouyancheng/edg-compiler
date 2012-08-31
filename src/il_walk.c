@@ -3132,10 +3132,6 @@ as specified in the control block.
           traverse_dynamic_init(ndsp->freeing_of_storage_on_exception, tblock);
           if (tblock->terminate) goto end_of_routine;
         }  /* if */
-        if (ndsp->number_of_elements != NULL) {
-          traverse_expr(ndsp->number_of_elements, tblock);
-          if (tblock->terminate) goto end_of_routine;
-        }  /* if */
       }
       break;
     case enk_lambda:

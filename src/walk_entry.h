@@ -3096,7 +3096,6 @@ after_entry_from_class:
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
         walk_ptr(ptr->freeing_of_storage_on_exception, a_dynamic_init_ptr,
                  iek_dynamic_init);
-        walk_ptr(ptr->number_of_elements, an_expr_node_ptr, iek_expr_node);
       }
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED

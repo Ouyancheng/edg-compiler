@@ -14873,7 +14873,8 @@ expression, and return the result in *result (or an error indication in
     new_position = start_position;
     if (placement_new) {
       /* Pick up the placement new argument list. */
-      rcblock->argument_list = rescan_ndsp->arg;
+      check_assertion(rescan_ndsp->arg != NULL);
+      rcblock->argument_list = rescan_ndsp->arg->next;
       scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
                           /*already_after_left_paren=*/TRUE,
                           &dummy, /*return_raw_arguments=*/TRUE,
@@ -15377,20 +15378,13 @@ expression, and return the result in *result (or an error indication in
       /* The type is a variable-dimension array, as in
            new char[i+1]
          The amount to allocate is the size of the array element times
-         the expression giving the number of elements.  We're going to
-         build an expression for that, and use it as the first argument
-         to operator new.  That may be overkill, since probably anything
-         with the right type would work (it's just for overload resolution),
-         but maybe it will matter with constexpr operator new routines. */
-      an_expr_node_ptr array_size_expr =
-                            copy_expr_tree(new_array_dimension,
-                                           CE_COPY_NOT_EVALUATED);
+         the expression giving the number of elements. */
       /* Note that the original first-level element type was retained in
          element_type (that matters for multi-dimension arrays). */
       element_type = skip_typerefs(element_type);
       /* Cast the dimension expression to size_t (it's already an integral
          type). */
-      cast_node(&array_size_expr, integer_type(targ_size_t_int_kind),
+      cast_node(&new_array_dimension, integer_type(targ_size_t_int_kind),
                 /*check_cast_access=*/FALSE, /*check_ambiguity=*/FALSE,
                 /*is_implicit_cast=*/TRUE,
                 /*is_reinterpret_cast=*/FALSE, /*reinterpret_semantics=*/FALSE,
@@ -15398,15 +15392,15 @@ expression, and return the result in *result (or an error indication in
                 &type_position);
       if (element_type->size == 1) {
         /* If the element size is 1, skip the multiplication. */
-        sizeof_node = array_size_expr;
+        sizeof_node = new_array_dimension;
       } else {
         /* Multiply the number of elements by the size of each element. */
         sizeof_node = node_for_host_large_integer(
                (a_host_large_integer)element_type->size, targ_size_t_int_kind);
-        array_size_expr->next = sizeof_node;
+        new_array_dimension->next = sizeof_node;
         sizeof_node = make_operator_node((an_expr_operator_kind)eok_multiply,
                                          sizeof_node->type,
-                                         array_size_expr);
+                                         new_array_dimension);
         sizeof_node->variant.operation.compiler_generated = TRUE;
       }  /* if */
       make_expression_operand(sizeof_node, &sizeof_operand);
@@ -15692,10 +15686,6 @@ expression, and return the result in *result (or an error indication in
     arg_list = NULL;
     /* Avoid freeing the arg match list twice. */
     arg_match_list = NULL;
-    /* Remove the size argument from the argument list, since it is
-       implied in the IL. */
-    check_assertion(arg_expr_list != NULL);
-    arg_expr_list = arg_expr_list->next;
   }  /* if */
   if (is_template_dependent_context() &&
       is_template_dependent_type(new_type)) {
@@ -16302,9 +16292,12 @@ handle_empty_parens_new_initializer:
     ndsp->new_initializer_is_brace_enclosed = has_braced_initializer;
     ndsp->type_contains_auto_specifier = new_type_involves_auto;
     ndsp->type = new_type;
+    /* Put the routine and argument list into the supplement.  Note that
+       the argument list is present even when the routine is NULL -- that's
+       necessary so that the array size is available when the number of
+       elements is nonconstant. */
     ndsp->routine = new_routine;
     ndsp->arg = arg_expr_list;
-    ndsp->number_of_elements = new_array_dimension;
     if (needs_initialization) {
       /* The allocated space must be initialized.  A dynamic init entry is
          used. */
