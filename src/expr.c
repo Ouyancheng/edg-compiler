@@ -17642,7 +17642,7 @@ called only in C++ mode.
                                        type_cast_to,
                                        determined_conversion,
                                        /*leave_as_object=*/TRUE,
-                                       conv_context_temp,
+                                       conv_context,
                                        ec_bad_cast /* arbitrary */);
             /* Class rvalues get placed in a temporary, which is then treated
                as an lvalue, so we don't expect any rvalues here. */

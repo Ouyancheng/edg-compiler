@@ -240,6 +240,12 @@ typedef int a_conv_context_set;
 			/* The result of the conversion is the initializer
 			   in a "new".  Currently set only for a braced
 			   initializer. */
+#define CCO_LEAVE_AS_OBJECT ((a_conv_context_set)0x8000)
+			/* Used with a reference initialization in
+			   prep_list_initializer to request that the result
+			   be left as an object (see parameter on
+			   prep_reference_initializer_operand).  Implied
+			   by CCO_CAST. */
 
 /*
 Data structure used by set_up_overload_set_traversal et al. to control the

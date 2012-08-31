@@ -19392,6 +19392,27 @@ the conversion.
        be directly bound. */
     direct_binding_conversion_possible = TRUE;
     if (conversion->unknown_dependent_conversion) template_case = TRUE;
+  } else if (is_braced_init_list_operand(source_operand)) {
+    /* Process a braced-init-list using the list-initialization rules. */
+    a_conv_context_set rconv_context = conv_context;
+    if (leave_as_object) {
+      /* Note that prep_reference_initializer_operand returns an lvalue
+         temporary when a temporary must be created in the normal code
+         below, so do that also here. */
+      rconv_context |= (CCO_LEAVE_AS_OBJECT |
+                        CCO_MAKE_LVALUE_TEMP_FOR_LIST_INIT);
+    }  /* if */
+    prep_list_initializer(source_operand->variant.braced_init_list,
+                          dest_type,
+                          /*is_direct_init=*/FALSE,
+                          /*check_narrowing=*/FALSE,
+                          /*warning_on_narrowing=*/FALSE,
+                          rconv_context,
+                          /*fill_in_dtor=*/TRUE,  /* unused */
+                          /*force_temp=*/TRUE,
+                          source_operand, (an_init_state *)NULL,
+                          (an_arg_match_summary *)NULL);
+    goto end_of_routine;
   } else if (is_template_dependent_context() &&
              (is_template_dependent_type(dest_type) ||
               is_template_dependent_type(orig_source_type))) {
@@ -19819,6 +19840,12 @@ the conversion.
       /* Allocate a temporary and copy the operand into it, converting
          if necessary.  source_operand is set to the address of the
          temporary. */
+      /* Note that the temporary created is an lvalue even though
+         perhaps an rvalue would make more sense when binding an rvalue
+         reference.  That's for historical reasons dating back to before
+         there were rvalue references.  If this is changed, note that the
+         code above for the list-initialization code must change as
+         well. */
       convert_operand_into_temp(source_operand, base_dest_type, dest_type,
                                 conversion, incompatible_err, &err);
       if (err) {
@@ -19918,6 +19945,7 @@ the conversion.
       take_reference_to_operand(source_operand, is_rvalue_ref);
     }  /* if */
   }  /* if */
+end_of_routine:
   /* Restore the original source position, etc. */
   restore_operand_details(source_operand, &orig_operand);
 }  /* prep_reference_initializer_operand */
@@ -20857,6 +20885,8 @@ controls).
   a_boolean            is_constant;
   a_boolean            braced_init;
   a_boolean            is_cast = (conv_context & CCO_CAST) != 0;
+  a_boolean            leave_as_object = is_cast ||
+                                         (conv_context & CCO_LEAVE_AS_OBJECT);
   a_boolean            try_user_conversions_in_ovl_res =
                                  !(conv_context &
                                      CCO_SUPPRESS_USER_CONVERSIONS_IN_OVL_RES);
@@ -21051,7 +21081,7 @@ controls).
         /* Reference types. */
         prep_reference_initializer_operand(&operand, dest_type,
                                          /*conversion=*/(a_conv_descr_ptr)NULL,
-                                           /*leave_as_object=*/is_cast,
+                                           leave_as_object,
                                            conv_context,
                                            ec_bad_initializer_type);
       } else {
@@ -21433,7 +21463,7 @@ controls).
         }  /* if */
         prep_reference_initializer_operand(&operand, dest_type,
                                            (a_conv_descr *)NULL,
-                                           /*leave_as_object=*/is_cast,
+                                           leave_as_object,
                                            conv_context,
                                            ec_bad_initializer_type);
       }  /* if */
