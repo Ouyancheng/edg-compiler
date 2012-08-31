@@ -30039,22 +30039,26 @@ Set the initializer for the variable vp from the operand "operand".
 */
 {
   a_dynamic_init_ptr dip;
+  an_operand         local_operand;
 
+  /* Copy the operand so if its type changes the caller will not be
+     affected. */
+  copy_operand(operand, &local_operand);
   if (is_class_struct_union_type(vp->type)) {
     /* See if we can elide the copy for class-typed variables. */
-    prep_elision_initializer_operand(operand, vp->type,
+    prep_elision_initializer_operand(&local_operand, vp->type,
                                      /*fill_in_dtor=*/TRUE,
                                      CCO_INITIALIZING_VARIABLE,
                                      ec_bad_initializer_type, &dip);
   } else {
-    prep_initializer_operand(operand, vp->type,
+    prep_initializer_operand(&local_operand, vp->type,
                              /*is_transparent=*/(a_boolean *)NULL,
                              /*conversion=*/(a_conv_descr_ptr)NULL,
                              /*is_copy_initialization=*/TRUE,
                              CCO_INITIALIZING_VARIABLE,
                              ec_bad_initializer_type);
     dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-    dip->variant.expression = make_node_from_operand(operand);
+    dip->variant.expression = make_node_from_operand(&local_operand);
   }  /* if */
   wrap_up_dynamic_init_full_expression(dip);
   if (dip != NULL) {
