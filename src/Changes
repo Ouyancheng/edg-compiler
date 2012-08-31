@@ -1,40 +1,5 @@
 Version 4.5
 
-8/29/12 [EDGcpfe/9247,EDGcpfe/9975]
-C++11: run-time checking of array new size (IL CHANGE)
-
-A change has been made in lowering to add a run-time check to ensure that the
-array size is not too small (less than zero or less than the number of
-initializers) or too large (causing an overflow during the multiplication
-operation).  If the new test fails, the new library routine
-__throw_bad_array_new_length is called to throw std::bad_array_new_length.
-This new code is added when exceptions are enabled and when
-ABI_COMPATIBILITY_VERSION >= 405.
-
-This necessitated the following IL CHANGE (in all cases): previously
-the a_new_delete_supplement::arg field had specified the entire argument
-list to be passed to a "new" or "new[]" operation, including the first
-argument which contained the size (in bytes) to be allocated.  Now, that
-first argument is omitted and must be provided by a back end (if needed).
-Additionally, a new field, a_new_delete_supplement::number_of_elements, is
-provided that contains (when non-NULL), an expression that represents the
-number of elements in the array.  Previously, back ends that had needed
-this information (e.g., to pass to a library routine) needed to extract it
-from the expression in the first argument.
-
-  #include <new>
-  int main() {
-    int ret = 1;
-    int n = 3;
-    try {
-      auto a = new int[n] {1,2,3,4};  // array too small for initializer list
-    } catch (std::bad_array_new_length) {
-      ret = 0;
-    }
-    return ret;
-  }
-
-
 8/28/12  [EDGcpfe/12751, EDGcpfe/13158]
 GNU compatibility: Scoped enumeration types in non-C++11 mode
 
