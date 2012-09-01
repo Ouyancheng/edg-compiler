@@ -1574,7 +1574,9 @@ extern void promote_operand(an_operand *operand);
 extern void arg_default_promote_operand(an_operand *argument_operand,
                                         a_boolean  is_ellipsis);
 
+#if !STANDALONE_UTILITY_PROGRAM
 extern void expr_clear_init_state(an_init_state *init_state);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern void set_lvalue_operand_state(an_operand *operand);
 
