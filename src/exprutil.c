@@ -3179,9 +3179,10 @@ dynamic init, which is given by icp.
      the prototype instantiation; they may thereafter be the basis of a
      rescan multiple times, but they will never be "used" again. */
   make_braced_init_list_operand(icp, &operand);
-  /* dip->rescan_info can be non-NULL here if copy elision has been done.
-     We still want to overwrite the old information with the new. */
-  eriep = save_operand_info_in_rescan_info_entry(&operand, dip->rescan_info);
+  check_assertion(dip->rescan_info == NULL);
+  eriep = save_operand_info_in_rescan_info_entry(
+                                            &operand,
+                                            (an_expr_rescan_info_entry *)NULL);
   dip->rescan_info = eriep;
 }  /* save_rescan_info_for_braced_init_list */
 
@@ -3321,7 +3322,7 @@ type within the cast; and cast_type is the type cast to.
         a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
         if (dip->rescan_info == NULL) {
           dip->rescan_info = expr->rescan_info;
-        } else {
+        } else if (dip->rescan_info != expr->rescan_info) {
           /* If the dynamic init already has rescan info, as it does when
              it records a braced-init-list, keep the saved_operand but
              copy the rest of the fields, so the type and positions are
