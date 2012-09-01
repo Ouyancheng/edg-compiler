@@ -6865,7 +6865,11 @@ to a constructor to be called after the zeroing have been done.
   /* Build the routine entry.  It has two parameters: a pointer to an entity
      of the indicated type and a count of the number of entities to
      initialize. */
-  pointer_type = make_pointer_type(type);
+  /* Skip any cv-qualifiers on the type for the purposes of the parameter
+     to the routine, but leave the typerefs (especially the underlying
+     typeref that indicates the type was a lowered pointer-to-data member)
+     when making the temporary below. */
+  pointer_type = make_pointer_type(skip_typerefs(type));
   count_type = integer_type(targ_size_t_int_kind);
   rp = make_rout_entry((char *)NULL, (a_storage_class)sc_static,
                        void_type(), pointer_type);
