@@ -3293,7 +3293,13 @@ region description entry).
        count.  -1 indicates that the runtime should look up the number of
        elements in the array.  Note that the position given is the position
        of the first element, not of the whole array. */
-    elem_type = entity_type;
+    if (is_array_type(entity_type)) {
+      /* For a multi-dimensional array, make sure we get the size of
+         the underlying element type. */
+      elem_type = underlying_array_element_type(entity_type);
+    } else {
+      elem_type = entity_type;
+    }  /* if */
     elem_count = ipdp->array_element_count;
   } else if (is_array_type(entity_type)) {
     /* The entity is a whole array. */
