@@ -19,6 +19,7 @@ expr_hdrs.h -- Inclusion of header files used by files involved in expression
 #define EXPR_HDRS_H 1
 
 #include "class_decl.h"
+#include "decl_inits.h"
 #include "decls.h"
 #include "expr.h"
 #include "exprutil.h"
