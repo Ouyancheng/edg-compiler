@@ -5286,6 +5286,19 @@ error operand.  The two types are cited in the error message.
 }  /* type2_error_in_operand */
 
 
+void expr_clear_init_state(an_init_state *init_state)
+/*
+Version of clear_init_state to be used within the expression routines.
+Fills in some things from expression context.
+*/
+{
+  clear_init_state(init_state);
+  if (curr_expr_kind_is_const()) {
+    init_state->initializer_must_be_constant = TRUE;
+  }  /* if */
+}  /* expr_clear_init_state */
+
+
 void set_lvalue_operand_state(an_operand *operand)
 /*
 Set the state of the indicated operand to indicate that it is an lvalue.

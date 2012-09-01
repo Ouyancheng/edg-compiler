@@ -20531,7 +20531,7 @@ conversion, etc.)
          thrown when part of the aggregate is constructed. */
       will_need_partial_aggregate_destructor = TRUE;
     }  /* if */
-    clear_init_state(&init_state);
+    expr_clear_init_state(&init_state);
     /* Convert the list element to the element type. */
     if (arg_match != NULL) {
       /* In overload resolution narrowing conversions are not disallowed (see
@@ -21167,7 +21167,7 @@ controls).
         an_init_state            init_state;
         an_init_state            *eff_is = is;
         if (eff_is == NULL) {
-          clear_init_state(&init_state);
+          expr_clear_init_state(&init_state);
           eff_is = &init_state;
           if (!issue_errors) eff_is->no_diagnostics = TRUE;
           if (!generate_il) eff_is->check_validity_only = TRUE;

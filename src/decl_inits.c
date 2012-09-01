@@ -958,7 +958,7 @@ given position, unless is->no_diagnostics is TRUE.
       is->partial_initializer = TRUE;
     }  /* if */
   }  /* if */
-  if (exceptions_enabled) {
+  if (exceptions_enabled && !is->initializer_must_be_constant) {
     a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
     if (has_nontrivial_destructor(cssp)) {
       /* If appropriate, add a destructor pointer to the dynamic init entry.

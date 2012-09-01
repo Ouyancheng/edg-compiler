@@ -2720,7 +2720,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         /* For a braced-init-list argument, convert the list to the
            underlying type of the first parameter. */
         an_init_state init_state;
-        clear_init_state(&init_state);
+        expr_clear_init_state(&init_state);
         init_state.force_dynamic_init = TRUE;
         prep_list_initializer(eff_arg_list,
                               source_type,
@@ -15848,7 +15848,7 @@ expression, and return the result in *result (or an error indication in
       /* Scan from source. */
       alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
     }  /* if */
-    clear_init_state(&init_state);
+    expr_clear_init_state(&init_state);
     init_state.variable_size_array = variable_size_array;
     init_state.initializer_can_dimension_array = TRUE;
     init_state.force_dynamic_init = TRUE;
@@ -32718,7 +32718,7 @@ required_type will be void if the expression should have void type
       make_error_operand(&result);
       goto handle_implicit_lambda_return_type;
     }  /* if */
-    clear_init_state(&init_state);
+    expr_clear_init_state(&init_state);
     /* init_state.elements_are_full_expressions is not set to TRUE because
        the expression stack has already been pushed for the full expression,
        and we'll handle the full-expression wrapup at this level. */
