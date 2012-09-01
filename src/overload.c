@@ -18059,6 +18059,7 @@ static void determine_dynamic_init_for_class_init(
                                    a_conv_descr       *conversion,
                                    a_conv_descr       *ctor_arg_conversion,
                                    a_boolean          fill_in_dtor,
+                                   a_boolean          *elision_done,
                                    a_dynamic_init_ptr *p_dip,
                                    an_expr_node_ptr   *p_temp_init_node)
 /*
@@ -18085,7 +18086,8 @@ result directly in the entity to be initialized.  If that can be
 done, we have in effect optimized out a call of a copy constructor
 (i.e., we have elided it).  The language requires that we still check
 to see that the copy constructor we would have used exists and is
-callable.
+callable.  If elision_done is non-NULL, *elision_done is set to
+indicate whether or not elision was done.
 
 This routine is used in both C and C++ mode, although the fancier cases
 happen only in C++ mode.
@@ -18094,7 +18096,7 @@ happen only in C++ mode.
   a_dynamic_init_ptr dip = NULL;
   a_routine_ptr      conversion_routine;
   an_expr_node_ptr   arg_expr_list, temp_init_node;
-  a_boolean          class_bitwise_copy, elision_done = FALSE;
+  a_boolean          class_bitwise_copy, elision_applies = FALSE;
   a_routine_ptr      elided_cctor = NULL;
   a_type_ptr         class_type = skip_typerefs(dest_type);
   a_type_ptr         elision_source_type;
@@ -18125,7 +18127,7 @@ happen only in C++ mode.
                                               &temp_init_node,
                                               &dip)) {
         /* Eliminate the temporary and the bitwise copy. */
-        elision_done = TRUE;
+        elision_applies = TRUE;
         elision_source_type = source_operand->type;
         class_bitwise_copy = FALSE;
       }  /* if */
@@ -18168,7 +18170,7 @@ happen only in C++ mode.
                                                 !fill_in_dtor,
                                                 &temp_init_node,
                                                 &dip)) {
-          elision_done = TRUE;
+          elision_applies = TRUE;
           elision_source_type = source_operand->type;
           elided_cctor = conversion_routine;
         }  /* if */
@@ -18179,7 +18181,7 @@ happen only in C++ mode.
            there's no elision.  This comes up in the auto_ptr trick of
            copying an rvalue of a class type to the same type by use of
            a helper class. */
-        elision_done = !conversion->copy_initialization_done_as_direct;
+        elision_applies = !conversion->copy_initialization_done_as_direct;
         elision_source_type = class_type;
       }  /* if */
     } else {
@@ -18206,7 +18208,7 @@ happen only in C++ mode.
                                               !fill_in_dtor,
                                               &temp_init_node,
                                               &dip)) {
-        elision_done = TRUE;
+        elision_applies = TRUE;
         elision_source_type = source_operand->type;
       } else {
         if (is_error_operand(source_operand)) {
@@ -18224,7 +18226,7 @@ happen only in C++ mode.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (elision_done) {
+  if (elision_applies) {
     /* Copy constructor elision is being done.  Check access to the elided
        copy constructor. */
     handle_elided_copy_constructor(elision_source_type,
@@ -18294,7 +18296,7 @@ happen only in C++ mode.
   }  /* if */
   if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_constructor) {
     /* Indicate whether this is an unelided copy constructor call. */
-    if (!elision_done) {
+    if (!elision_applies) {
       dip->variant.constructor.is_implicit_copy_for_copy_initialization = TRUE;
     }  /* if */
   }  /* if */
@@ -18323,6 +18325,7 @@ happen only in C++ mode.
     }  /* if */
     *p_temp_init_node = temp_init_node;
   }  /* if */
+  if (elision_done != NULL) *elision_done = elision_applies;
   *p_dip = dip;
 }  /* determine_dynamic_init_for_class_init */
 
@@ -18429,9 +18432,10 @@ void prep_elision_initializer_operand(
                                   a_boolean          fill_in_dtor,
                                   a_conv_context_set conv_context,
                                   an_error_code      err_code,
+                                  a_boolean          *elision_done,
                                   a_dynamic_init_ptr *dip)
 /*
-An entity of (class) type dest_type is being initialized from
+An entity of (class) type dest_type is being copy-initialized from
 source_operand.  Convert it if necessary (issuing an error if the
 conversion cannot be done), and build a dynamic initialization entry
 to describe the initialization.  The dynamic initialization entry will
@@ -18440,8 +18444,9 @@ Return a pointer to the dynamic initialization entry in *dip (or NULL
 for an error).  err_code is the error code to be used in case of
 error.  conv_context describes the context of the conversion.  This
 routine is used in both C and C++ mode, but it exists to do copy
-constructor elision in C++ mode.  This is an initialization with the
-"=" semantics (copy-initialization).
+constructor elision in C++ mode.  If elision_done is non-NULL,
+*elision_done will be set to indicate whether or not copy elision
+was done.
 */
 {
   a_conv_descr   conversion, ctor_arg_conversion;
@@ -18451,6 +18456,7 @@ constructor elision in C++ mode.  This is an initialization with the
   a_variable_ptr var;
 
   orig_operand = *source_operand;
+  if (elision_done != NULL) *elision_done = FALSE;
   *dip = NULL;
   /* Microsoft VC++ treats copy-initialization as direct-initialization
      in some cases.  All the cases that come through here are treated
@@ -18542,7 +18548,7 @@ conversion_determined:
        list to return to the caller. */
     determine_dynamic_init_for_class_init(source_operand, dest_type,
                                           &conversion, &ctor_arg_conversion,
-                                          fill_in_dtor,
+                                          fill_in_dtor, elision_done,
                                           dip, (an_expr_node_ptr *)NULL);
     if ((*dip) != NULL &&
         (*dip)->is_creation_of_initializer_list_object &&
@@ -20907,7 +20913,8 @@ controls).
   an_arg_match_summary internal_arg_match;
   a_boolean            aggregate_case = FALSE;
   a_boolean            error_on_narrowing;
-  a_boolean            list_handled_at_this_level = FALSE;
+  a_boolean            init_handled_at_this_level = TRUE;
+  a_boolean            elision_done;
   a_source_position    *start_position = init_component_pos(icp);
 
   /* The basic modes are:
@@ -21072,7 +21079,9 @@ controls).
         prep_elision_initializer_operand(&operand, dest_type,
                                          fill_in_dtor,
                                          conv_context,
-                                         ec_bad_initializer_type, &dip);
+                                         ec_bad_initializer_type,
+                                         &elision_done, &dip);
+        if (elision_done) init_handled_at_this_level = FALSE;
         if (dip == NULL) {
           /* There was an error. */
           conv_to_error_operand(&operand);
@@ -21117,7 +21126,6 @@ controls).
     /* The entity is initialized by a brace-enclosed list. */
     a_type_ptr            element_type;
     an_init_component_ptr list = icp->variant.braced.list;
-    list_handled_at_this_level = TRUE;
     if (icp->braced_init_in_parentheses && !dest_type_is_class &&
         !could_be_dependent_class_type(dest_type)) {
       /* A parenthesized initializer list containing a single entity must
@@ -21330,6 +21338,7 @@ controls).
                             list,
                             icp,
                             /*trivial_ctor=*/(a_boolean *)NULL,
+                            &elision_done,
                             /*unboxing_conv=*/(a_boolean *)NULL,
                             /*string_ctor_skip=*/(a_boolean *)NULL,
                             /*simple_result=*/(an_operand *)NULL,
@@ -21337,6 +21346,7 @@ controls).
                             (an_expr_node_ptr *)NULL,
                             (a_source_position *)NULL);
         force_narrowing_check_on_arg_list_members(list, /*value=*/FALSE);
+        if (elision_done) init_handled_at_this_level = FALSE;
         if (dip == NULL) {
           /* There was an error. */
           make_error_operand(&operand);
@@ -21387,7 +21397,7 @@ controls).
           list = new_list;
         }  /* while */
       }  /* if */
-      list_handled_at_this_level = FALSE;
+      init_handled_at_this_level = FALSE;
       prep_list_initializer(list, dest_type, is_direct_init,
                             check_narrowing,
                             warning_on_narrowing,
@@ -21422,7 +21432,7 @@ controls).
       /* The cost of a reference initialization in overload resolution is the
          cost of the underlying initialization of the temporary, so pass
          arg_match down to the next level.  See below for class cases. */
-      list_handled_at_this_level = FALSE;
+      init_handled_at_this_level = FALSE;
       prep_list_initializer(icp, underlying_type,
                             /*is_direct_init=*/FALSE,
                             /*check_narrowing=*/TRUE,
@@ -21504,7 +21514,7 @@ controls).
         arg_list_will_not_be_used_because_of_error(list->next);
         free_init_component_list(list->next);
         list->next = NULL;
-        list_handled_at_this_level = FALSE;
+        init_handled_at_this_level = FALSE;
         prep_list_initializer(icp,
                               dest_type,
                               is_direct_init,
@@ -21558,7 +21568,6 @@ controls).
     if (dip != NULL) {
       /* We have a dynamic init entry.  Make an operand for it. */
       an_expr_node_ptr expr;
-      dip->is_braced_initializer = braced_init;
       if (dest_type_is_class && fill_in_dtor) {
         add_dtor_to_dynamic_init(dip, dest_type, dest_type, start_position);
       }  /* if */
@@ -21586,8 +21595,6 @@ controls).
         }  /* if */
         if (operand_is_temp_init_full(&operand, &temp_init_node)) {
           dip = temp_init_node->variant.init.dynamic_init;
-          if (is_cast) dip->is_explicit_cast = TRUE;
-          dip->is_braced_initializer = TRUE;
         }  /* if */
       }  /* if */
       copy_operand(&operand, result);
@@ -21672,10 +21679,6 @@ controls).
           dip->variant.expression = expr;
         }  /* if */
       }  /* if */
-      /* Note that we only set flags to TRUE here; we don't clear them if they
-         are already set. */
-      if (braced_init) dip->is_braced_initializer = TRUE;
-      if (is_cast) dip->is_explicit_cast = TRUE;
       is->init_dip = dip;
       if (fill_in_dtor && dest_type_is_class) {
         /* Fill in the destructor if one is needed. */
@@ -21686,14 +21689,25 @@ controls).
       }  /* if */
     }  /* if */
   }  /* if */
-  if (expr_stack->possible_rescan_context &&
-      (is_cast || (conv_context & CCO_NEW_INITIALIZER)) &&
-      dip != NULL &&
-      list_handled_at_this_level) {
-    /* For cast and new-initializer cases, save the original braced-init-list
-       as rescan info on the dynamic init.  Compound literal cases are handled
-       separately in scan_compound_literal. */
-    save_rescan_info_for_braced_init_list(dip, icp);
+  if (init_handled_at_this_level && dip != NULL) {
+    /* The initialization has a primary dynamic init entry, and the
+       initialization was handled at this level, and not already done down
+       one level (or eliminated, in the case of copy elision).  Therefore
+       the dynamic init entry represents the initialization.  Record
+       attributes of the initialization in the entry. */
+    dip->is_explicit_cast = is_cast;
+    dip->is_braced_initializer = braced_init;
+    if (braced_init) {
+      if (expr_stack->possible_rescan_context &&
+          (is_cast || (conv_context & CCO_NEW_INITIALIZER))) {
+        /* For cast and new-initializer cases, save the original
+           braced-init-list as rescan info on the dynamic init.  Compound
+           literal cases are handled separately in scan_compound_literal
+           (because of the complex way that runs back and forth between
+           the expression and initializer processing code). */
+        save_rescan_info_for_braced_init_list(dip, icp);
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (arg_match != NULL) {
     /* Just evaluating for overload resolution.  arg_match is set already, but
@@ -21835,6 +21849,7 @@ found to be acceptable, and *conversion describes it.
       determine_dynamic_init_for_class_init(source_operand, param_type,
                                             conversion, (a_conv_descr *)NULL,
                                             /*fill_in_dtor=*/TRUE,
+                                            /*elision_done=*/(a_boolean *)NULL,
                                             &dip, &temp_init_node);
       make_lvalue_expression_operand(temp_init_node, source_operand);
     }  /* if */

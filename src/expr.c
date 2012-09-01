@@ -2367,6 +2367,7 @@ void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          an_arg_list_elem_ptr     supplied_arg_list,
                          an_arg_list_elem_ptr     init_list_ctor_arg_list,
                          a_boolean                *trivial_ctor,
+                         a_boolean                *elision_done,
                          a_boolean                *unboxing_conv,
                          a_boolean                *string_ctor_skip,
                          an_operand               *simple_result,
@@ -2400,17 +2401,19 @@ destructor to be called (either because the class doesn't have one or
 because fill_in_dtor is FALSE), return *trivial_ctor set to TRUE,
 don't construct a dynamic initialization entry, and return *p_dip set
 to NULL.  Otherwise, return *trivial_ctor set to FALSE if trivial_ctor
-is non-NULL.  If unboxing_conv is non-NULL, and there is a single
-argument and its conversion to the class type is a C++/CLI unboxing
-conversion, return *unboxing_conv set to TRUE, return the argument in
-*simple_result, don't construct a dynamic initialization entry, and
-return *p_dip set to NULL.  If string_ctor_skip is non-NULL, and there
-is a single argument of C++/CLI type System::String, return
-*string_ctor_skip set to TRUE, return the argument in *simple_result,
-don't construct a dynamic initialization entry, and return *p_dip set
-to NULL.  If closing_paren_position is non-NULL,
-*closing_paren_position is set to the source position of the closing
-parenthesis (but it's not set on a rescan).
+is non-NULL.  If elision_done is non-NULL, set *elision_done to
+indicate whether or not copy elision was done.  If unboxing_conv is
+non-NULL, and there is a single argument and its conversion to the
+class type is a C++/CLI unboxing conversion, return *unboxing_conv set
+to TRUE, return the argument in *simple_result, don't construct a
+dynamic initialization entry, and return *p_dip set to NULL.  If
+string_ctor_skip is non-NULL, and there is a single argument of
+C++/CLI type System::String, return *string_ctor_skip set to TRUE,
+return the argument in *simple_result, don't construct a dynamic
+initialization entry, and return *p_dip set to NULL.  If
+closing_paren_position is non-NULL, *closing_paren_position is set to
+the source position of the closing parenthesis (but it's not set on a
+rescan).
 
 This routine may be called only in C++ mode.  It's used for parenthesis-
 enclosed initializers for classes that have constructors, as in
@@ -2466,6 +2469,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                    init_list_ctor_arg_list->variant.braced.list ==
                                                            supplied_arg_list));
   if (trivial_ctor != NULL) *trivial_ctor = FALSE;
+  if (elision_done != NULL) *elision_done = FALSE;
   if (unboxing_conv != NULL) *unboxing_conv = FALSE;
   if (string_ctor_skip != NULL) *string_ctor_skip = FALSE;
   class_type = sym_parent_class(constructor_sym);
@@ -2707,6 +2711,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
          merely to make the argument match the copy constructor's parameter
          type (e.g., addition of "const" for a reference-to-const parameter
          type). */
+      if (elision_done != NULL) *elision_done = TRUE;
       if (is_trivial_construction) {
         /* Call of a trivial default constructor.  No argument list, and the
            reference to the constructor has already been recorded. */
@@ -15964,6 +15969,7 @@ expression, and return the result in *result (or an error indication in
                           (an_arg_list_elem *)NULL,
                           (an_arg_list_elem *)NULL,
                           &trivial_ctor,
+                          /*elision_done=*/(a_boolean *)NULL,
                           /*unboxing_conv=*/(a_boolean *)NULL,
                           string_ctor_skip,
                           simple_result,
@@ -20401,6 +20407,7 @@ freed by this routine.
                         arg_list_supplied, supplied_arg_list,
                         (an_arg_list_elem *)NULL,
                         /*trivial_ctor=*/(a_boolean *)NULL,
+                        /*elision_done=*/(a_boolean *)NULL,
                         &unboxing_conv,
                         /*string_ctor_skip=*/(a_boolean *)NULL,
                         /*simple_result=*/result,
@@ -24551,7 +24558,9 @@ in *rcblock).
         prep_elision_initializer_operand(&operand, throw_type,
                                          /*fill_in_dtor=*/FALSE,
                                          CCO_MOVE_OPTIMIZATION_ALLOWED,
-                                         ec_bad_initializer_type, &dip);
+                                         ec_bad_initializer_type,
+                                         /*elision_done=*/(a_boolean *)NULL,
+                                         &dip);
         if (dip == NULL) err = TRUE;
         /* Determine the destructor to be called.  This is done as
            a separate step because we don't want it indicated in the
@@ -30028,7 +30037,9 @@ Set the initializer for the variable vp from the operand "operand".
     prep_elision_initializer_operand(&local_operand, vp->type,
                                      /*fill_in_dtor=*/TRUE,
                                      CCO_INITIALIZING_VARIABLE,
-                                     ec_bad_initializer_type, &dip);
+                                     ec_bad_initializer_type,
+                                     /*elision_done=*/(a_boolean *)NULL,
+                                     &dip);
   } else {
     prep_initializer_operand(&local_operand, vp->type,
                              /*is_transparent=*/(a_boolean *)NULL,
@@ -32751,7 +32762,9 @@ handle_implicit_lambda_return_type:
     /* Build a dynamic initialization entry for the return statement. */
     prep_elision_initializer_operand(&result, required_type,
                                      /*fill_in_dtor=*/FALSE,
-                                     conv_context, err_code, dip);
+                                     conv_context, err_code,
+                                     /*elision_done=*/(a_boolean *)NULL,
+                                     dip);
     wrap_up_dynamic_init_full_expression(*dip);
     /* Fix up destructor references in the overall expression. */
     fix_up_dynamic_init_dtors();
@@ -34847,7 +34860,9 @@ As indicated, this is initialization with the "=" semantics
   prep_elision_initializer_operand(&result, dps->type,
                                    /*fill_in_dtor=*/TRUE,
                                    conv_context,
-                                   ec_bad_initializer_type, dip);
+                                   ec_bad_initializer_type,
+                                   /*elision_done=*/(a_boolean *)NULL,
+                                   dip);
   wrap_up_dynamic_init_full_expression(*dip);
   /* *dip == NULL means there was an error. */
   if (*dip == NULL) okay = FALSE;
@@ -34983,6 +34998,7 @@ overall errors.
                       (an_arg_list_elem *)NULL,
                       (an_arg_list_elem *)NULL,
                       /*trivial_ctor=*/(a_boolean *)NULL,
+                      /*elision_done=*/(a_boolean *)NULL,
                       /*unboxing_conv=*/(a_boolean *)NULL,
                       /*string_ctor_skip=*/(a_boolean *)NULL,
                       /*simple_result=*/(an_operand *)NULL,

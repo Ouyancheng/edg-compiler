@@ -1004,6 +1004,7 @@ extern void prep_elision_initializer_operand(
                                   a_boolean          fill_in_dtor,
                                   a_conv_context_set conv_context,
                                   an_error_code      err_code,
+                                  a_boolean          *elision_done,
                                   a_dynamic_init_ptr *dip);
 
 extern a_boolean conversion_for_direct_reference_binding_possible(
