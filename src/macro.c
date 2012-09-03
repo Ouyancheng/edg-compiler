@@ -5820,8 +5820,9 @@ macro described by macro_sym, i.e., "#define <name> <replacement>".
           put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
           break;
         case rt_paste:
-          /* ## placeholder */
-          put_str_to_temp_text_buffer("##");
+          /* ## placeholder.  Add spaces to preserve the correct
+             tokenization for a definition like "# ## #". */
+          put_str_to_temp_text_buffer(" ## ");
           break;
         case rt_stringized_raw_argument:
         case rt_charized_raw_argument:
