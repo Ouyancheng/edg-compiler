@@ -13103,6 +13103,9 @@ tk_unknown is returned.
       result = (a_type_kind)tk_integer;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case eok_noexcept:
+      result = (a_type_kind)tk_integer;
+      break;
     case eok_parens:
     case eok_negate:
     case eok_unary_plus:
@@ -18261,6 +18264,11 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
       tblock->suppress_warning = TRUE;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case eok_noexcept:
+      /* noexcept doesn't have a side effect and doesn't evaluate its
+         operand. */
+      tblock->suppress_subtree_walk = TRUE;
+      break;
     case eok_lvalue_cast:
     case eok_ref_cast:
     case eok_lvalue_adjust:
@@ -23367,6 +23375,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* eok_assume: */			LVRV_OPND1_IS_RVALUE,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* eok_noexcept: */			LVRV_NO_REQUIREMENTS,
   /* eok_parens: */			LVRV_NO_REQUIREMENTS,
   /* eok_negate: */			LVRV_OPND1_IS_RVALUE,
   /* eok_unary_plus: */			LVRV_OPND1_IS_RVALUE,

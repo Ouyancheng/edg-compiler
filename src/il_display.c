@@ -3535,6 +3535,7 @@ Display the name of an expression operator.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_assume:            s = "eok_assume";                 break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case eok_noexcept:          s = "eok_noexcept";               break;
     case eok_parens:            s = "eok_parens";                 break;
     case eok_negate:            s = "eok_negate";                 break;
     case eok_unary_plus:        s = "eok_unary_plus";             break;

@@ -12550,6 +12550,121 @@ Function names may be omitted.
 }  /* scan_fixed_point_type_generic_operator */
 
 #endif /* FIXED_POINT_ALLOWED */
+
+static void scan_noexcept_operator(a_rescan_control_block *rcblock,
+                                   an_operand             *result)
+/*
+Scan the C++11 noexcept operator:
+
+  noexcept (expression)
+
+The operand expression is unevaluated but it's examined to see whether
+it could throw an exception.  The result of the operator is a constant
+bool value of true if the expression cannot throw, and false if it
+might, and is returned in *result.  See [expr.unary.noexcept] in the
+C++11 standard.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned noexcept expression, and return the result in
+*result (or an error indication in *rcblock).
+*/
+{
+  a_source_position   start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position   end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  an_expr_node_ptr    expr, operand_expr;
+  an_expr_stack_entry expr_stack_entry;
+  an_operand          operand;
+  int                 noexcept_value;
+  a_constant          result_constant;
+  a_boolean           dependent_case;
+
+  db_enter(4, "scan_noexcept_operator");
+  check_assertion(noexcept_enabled);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    an_expr_rescan_info_entry_ptr eriep;
+    check_assertion(rcblock->operator_token == tok_noexcept);
+    expr = rcblock->expr;
+    check_assertion(is_operation_node(expr) &&
+                    node_operator_is(expr, eok_noexcept));
+    eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+    start_position = eriep->saved_operand.position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* The operand is picked up later after the expression stack has been
+       pushed. */
+  } else {
+    /* Normal, non-rescan, processing. */
+    /* Save the position of the noexcept keyword. */
+    check_assertion(curr_token == tok_noexcept);
+    start_position = pos_curr_token;
+    (void)get_token();
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_matching_stop_token(tok_rparen);
+  }  /* if */
+  push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+                               &expr_stack_entry,
+                               /*force_object_lifetime=*/FALSE,
+                               /*suppress_object_lifetime=*/FALSE,
+                               rcblock);
+  expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+  if (rcblock != NULL) {
+    /* Substitute template parameters and redo semantic analysis on the
+       previously-scanned expression. */
+    make_rescan_operand(expr->variant.operation.operands, rcblock, &operand);
+  } else {
+    /* Scan the expression. */
+    scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+  }  /* if */
+  operand_expr = make_node_from_operand(&operand);
+  operand_expr = wrap_up_full_expression(operand_expr);
+  dependent_case = (is_template_dependent_context() &&
+                    expr_is_instantiation_dependent(operand_expr));
+  if (dependent_case ||
+      curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+    expr = make_operator_node((an_expr_operator_kind)eok_noexcept,
+                              bool_type(),
+                              operand_expr);
+  }  /* if */
+  if (dependent_case) {
+    /* The result value is dependent, or at least it needs to be reanalyzed
+       on a rescan.  The result is a template-dependent constant. */
+    make_template_param_expr_constant(expr, &result_constant);
+  } else {
+    /* Not a dependent case. */
+    /* See if the expression contains something that might throw. */
+    noexcept_value = !expr_might_throw(operand_expr);
+    /* The result is a bool constant false or true. */
+    set_integer_constant(&result_constant,
+                         (a_host_large_integer)noexcept_value,
+                         bool_type()->variant.integer.int_kind);
+    result_constant.type = bool_type();
+    if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+      result_constant.expr = expr;
+    }  /* if */
+  }  /* if */
+  make_constant_operand(&result_constant, result);
+  if (rcblock == NULL) {
+    /* Check for and pass over the right parenthesis. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = end_pos_curr_token;
+    curr_construct_end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_matching_stop_token(tok_rparen);
+  }  /* if */
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
+  record_operator_position_in_rescan_info(result, &start_position,
+                                          (a_token_sequence_number)0,
+                                          (a_source_position *)NULL);
+  pop_expr_stack();
+  db_exit();
+}  /* scan_noexcept_operator */
+
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void scan_assume_operator(an_operand *result)
@@ -14290,21 +14405,21 @@ array "new".  Develop a dynamic initialization entry that describes
 the deallocation and return a pointer to it.
 */
 {
-  a_dynamic_init_ptr dyn_init_to_free_storage = NULL;
+  a_dynamic_init_ptr dyn_init_to_free_storage;
 
+  /* The deletion is recorded in a dynamic initialization entry.
+     The delete routine is used as the "destructor". */
+  dyn_init_to_free_storage =
+                        alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
+  dyn_init_to_free_storage->destructor = delete_routine;
+  dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
+  dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
+  dyn_init_to_free_storage->is_array_freeing = array_new;
   if (curr_expr_is_potentially_evaluated()) {
     /* Mark the routine IL entry referenced. */
     mark_routine_referenced(delete_routine);
     /* Mark the routine as called. */
     delete_routine->called = TRUE;
-    /* The deletion is recorded in a dynamic initialization entry.
-       The delete routine is used as the "destructor". */
-    dyn_init_to_free_storage =
-                        alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
-    dyn_init_to_free_storage->destructor = delete_routine;
-    dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
-    dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
-    dyn_init_to_free_storage->is_array_freeing = array_new;
     record_end_of_lifetime_destruction(dyn_init_to_free_storage,
                                        /*static_lifetime=*/FALSE,
                                        /*block_lifetime=*/FALSE);
@@ -27359,11 +27474,13 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
       dip->variant.expression = make_node_from_operand(&operand);
     }  /* if */
-    if (dtor_routine != NULL && curr_expr_is_potentially_evaluated()) {
+    if (dtor_routine != NULL) {
       /* Indicate a destructor to be called for cleanup if an exception is
          thrown part-way through the captures. */
       dip->destructor = dtor_routine;
-      record_partial_aggregate_cleanup_destruction(dip);
+      if (curr_expr_is_potentially_evaluated()) {
+        record_partial_aggregate_cleanup_destruction(dip);
+      }  /* if */
     }  /* if */
     if (array_case) {
       /* To repeat the initialization for each element of an array,
@@ -28048,6 +28165,11 @@ handle_identifier:
       scan_fixed_point_type_generic_operator(&local_result);
       break;
 #endif /* FIXED_POINT_ALLOWED */
+
+    case tok_noexcept:
+      /* C++11 noexcept operator. */
+      scan_noexcept_operator((a_rescan_control_block *)NULL, &local_result);
+      break;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_assume:
@@ -33730,6 +33852,10 @@ set accordingly.
         operator_token = tok_not;
         *unary = TRUE;
         break;
+      case eok_noexcept:
+        operator_token = tok_noexcept;
+        *unary = TRUE;
+        break;
       case eok_cast:
       case eok_lvalue_cast:
       case eok_ref_cast:
@@ -34178,6 +34304,10 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_builtin_offsetof:
         /* __builtin_offsetof construct. */
         scan_offsetof(rcblock, result);
+        break;
+      case tok_noexcept:
+        /* C++11 noexcept operator. */
+        scan_noexcept_operator(rcblock, result);
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_uuidof:

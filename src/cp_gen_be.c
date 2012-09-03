@@ -611,6 +611,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   PREC_POSTFIX,		/* eok_assume */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  PREC_PREFIX,		/* eok_noexcept */
   PREC_PRIMARY,		/* eok_parens */
   PREC_PREFIX,		/* eok_negate */
   PREC_PREFIX,		/* eok_unary_plus */
@@ -11118,6 +11119,11 @@ gen_expr that might end up generating this expr as a temporary.
           write_tok_str(")");
           goto done_with_operation;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        case eok_noexcept:
+          write_tok_str("noexcept(");
+          gen_expression(operand_1);
+          write_tok_str(")");
+          goto done_with_operation;
         case eok_parens:
           write_tok_ch('(');
           gen_expr(operand_1, /*need_parens=*/FALSE,

@@ -1,5 +1,20 @@
 Version 4.5
 
+9/3/12   [EDGcpfe/10617]
+noexcept specifier and operator
+
+The front end now implements the C++11 noexcept specifier and operator,
+as described in N3050.
+
+  void f(int) noexcept;  // Never throws
+  const int version = 5;
+  void f(float) noexcept(version >= 5);  // Doesn't throw if expression true
+  int main() {
+    int arr[noexcept(f(1.0f))];  // noexcept operator is true if expression
+                                 // cannot throw, so true in this case
+  }
+
+
 8/31/12  [EDGcpfe/13167]
 Change IL of "new" operations to be more like source form (IL CHANGE)
 

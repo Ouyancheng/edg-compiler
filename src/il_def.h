@@ -13511,6 +13511,12 @@ enum an_expr_operator_kind_tag {
 			   operand is not evaluated in the traditional
 			   sense of the word. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  eok_noexcept,		/* C++11 noexcept operator.  The operand is not
+			   evaluated; the result is a constant that indicates
+			   whether the expression can throw an exception
+			   (false) or not (true).  Only used as a backing
+			   expression or in a template-dependent constant.
+			   The operand can be an lvalue or an rvalue. */
   eok_parens,		/* Parentheses.  See PARENS_IN_IL. */
   eok_negate,           /* Arithmetic negation. */
   eok_unary_plus,	/* Unary "+" (arithmetic or pointer). */
@@ -17404,6 +17410,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__assume",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+   "noexcept",
    "()",
    "-", "+", "~", "!",
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
