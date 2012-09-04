@@ -5478,6 +5478,10 @@ typedef struct an_exception_specification {
 			   Also TRUE if a noexcept-specifier has a template-
 			   dependent argument.  It indicates that any exception
 			   may be thrown. */
+  a_bit_field
+		compiler_generated:1;
+			/* TRUE for exception specifications that did not
+			   appear in the source code. */
   union {
     /* When is_noexcept is FALSE. */
     an_exception_specification_type_ptr

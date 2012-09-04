@@ -291,6 +291,7 @@ typedef enum /*an_option_kind*/ {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_cpp03_mode,
   optk_func_prototype_tags,
+  optk_implicit_noexcept,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -462,6 +463,13 @@ EXTERN a_boolean
 		noexcept_enabled;
 			/* TRUE if C++11-style noexcept specifications and the
 			   noexcept operator are accepted. */
+
+EXTERN a_boolean
+		implicit_noexcept_enabled;
+			/* TRUE if destructors and deallocation functions
+			   (i.e., operator delete and operator delete[]) have
+			   implicit noexcept specifications if no explicit
+			   exception specification is provided. */
 
 
 EXTERN a_boolean

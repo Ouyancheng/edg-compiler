@@ -1344,6 +1344,12 @@ Initialize the option information table.
   add_option_description(optk_func_prototype_tags, "no_func_prototype_tags",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_implicit_noexcept, "implicit_noexcept", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_implicit_noexcept, "no_implicit_noexcept",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2700,7 +2706,10 @@ handling).
     friend_class_injection_enabled = FALSE;
     friend_function_injection_enabled = FALSE;
   }  /* if */
-  noexcept_enabled = exceptions_enabled;
+  noexcept_enabled = value && exceptions_enabled;
+  if (!option_kind_used[(int)optk_implicit_noexcept]) {
+    implicit_noexcept_enabled = noexcept_enabled && strict_ansi_mode;
+  }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 
 
@@ -3804,6 +3813,11 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
       !option_kind_used[(int)optk_gen_move_operations]) {
     generate_move_operations = gnu_version >= 40600 &&
                                !rvalue_ctor_is_copy_ctor;
+  }  /* if */
+  if (!option_kind_used[(int)optk_implicit_noexcept]) {
+    /* GCC (4.6 and later) supports noexcept in C++11 mode, but does not mark
+       destructors and deallocation functions as noexcept by default. */
+    implicit_noexcept_enabled = FALSE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
@@ -8800,6 +8814,9 @@ enable_microsoft_mode:
       case optk_func_prototype_tags:
         func_prototype_tags_enabled = opt_value;
         break;
+      case optk_implicit_noexcept:
+        implicit_noexcept_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -9558,6 +9575,7 @@ variables declared in cmd_line.h.
   addr_of_bit_field_allowed = ADDR_OF_BIT_FIELD_ALLOWED;
   exceptions_enabled = DEFAULT_EXCEPTIONS_ENABLED;
   noexcept_enabled = FALSE;
+  implicit_noexcept_enabled = FALSE;
   rtti_enabled = 
 #if RTTI_ENABLING_POSSIBLE
                  DEFAULT_RTTI_ENABLED;

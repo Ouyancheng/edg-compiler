@@ -10370,6 +10370,7 @@ when exception support is enabled.
   a_source_position        *pos = &rp->source_corresp.decl_position;
 
   check_assertion(C_dialect == C_dialect_cplusplus && exceptions_enabled);
+  check_assertion(rtsp->exception_specification == NULL);
   /* Go through the base classes looking for matching special functions, and
      merge the exception specifications. */
   bcp = base_classes_of(class_type);
@@ -10418,8 +10419,13 @@ when exception support is enabled.
       if (throw_any) break;
     }  /* for */
   }  /* if */
+  if (!throw_any && rtsp->exception_specification == NULL) {
+    rtsp->exception_specification = alloc_exception_specification();
+    rtsp->exception_specification->compiler_generated = TRUE;
+  }  /* if */
   if (rtsp->exception_specification != NULL) {
     check_assertion(!rtsp->exception_specification->is_noexcept);
+    rtsp->exception_specification->compiler_generated = TRUE;
     if (throw_any) {
       /* Clear the exception_specification pointer. */
       rtsp->exception_specification = NULL;
@@ -12261,13 +12267,27 @@ implicitly declared member functions.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (decl_state->storage_class == (a_storage_class)sc_static) {
     /* A static member function. */
-    /* Check if we are attempting to declare a static member function through a
-       qualified function type typedef. E.g.,
-         typedef void f() const; struct S { static F f(); }           */
-    if (member_type->kind == (a_type_kind)tk_typeref &&
-        typeref_is_typedef(member_type) &&
-        (rtsp->qualifiers | rtsp->this_qualifiers) != TQ_NONE) {
-      pos_error(ec_bad_qualified_function_type, &locator->source_position);
+    /* If this is a function declared through a typedef, we must use a copy of
+       the underlying type if that type will be modified. */
+    if (type_is_typedef(member_type) &&
+        (rtsp->qualifiers != TQ_NONE || rtsp->this_qualifiers != TQ_NONE ||
+         (locator->is_operator_name && rtsp->exception_specification == NULL &&
+          is_delete_operator(locator->variant.opname)))) {
+      a_type_ptr  rtp = skip_typerefs(member_type);
+      member_type = alloc_type((a_type_kind)tk_routine);
+      copy_type(rtp, member_type);
+      rtsp = member_type->variant.routine.extra_info;
+      /* Check if we are attempting to declare a static member function through
+         a qualified function type typedef. E.g.,
+           typedef void F() const; struct S { static F f; };
+      */
+      if (rtsp->qualifiers != TQ_NONE || rtsp->this_qualifiers != TQ_NONE) {
+        pos_error(ec_bad_qualified_function_type, &locator->source_position);
+        /* Strip any qualifiers from the routine type to avoid problems later
+           on. */
+        rtsp->qualifiers = TQ_NONE;
+        rtsp->this_qualifiers = TQ_NONE;
+      }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
@@ -12817,19 +12837,30 @@ implicitly declared member functions.
       }  /* if */
     }  /* if */
     if (exceptions_enabled) {
-      if (compiler_generated &&
+      if (!is_immediate_managed_class_type(class_type) &&
           !class_type->variant.class_struct_union.is_nonreal_class &&
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          !is_immediate_managed_class_type(class_type) &&
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          (special_kind_is(rtn, sfk_constructor) ||
-           special_kind_is(rtn, sfk_destructor) ||
-           (special_kind_is(rtn, sfk_operator) &&
-            rtn->variant.opname_kind == (an_opname_kind)onk_assign))) {
-        /* A compiler generated constructor, destructor, or assignment
-           operator is assumed to throw any exception that can be thrown by
-           any base-class function it will call. */
-        form_exception_specification_for_generated_function(rtn);
+          rtsp->exception_specification == NULL) {
+        if ((compiler_generated &&
+             (special_kind_is(rtn, sfk_constructor) ||
+              (special_kind_is(rtn, sfk_operator) &&
+               rtn->variant.opname_kind == (an_opname_kind)onk_assign))) || 
+            (special_kind_is(rtn, sfk_destructor) &&
+             (noexcept_enabled || compiler_generated))) {
+          /* A destructor without an explicit exception specification, or a
+             compiler-generated constructor or assignment operator is assumed
+             to throw any exception that can be thrown by any subobject
+             function the generated will call (or "would call" in the case of
+             a non-defaulted destructor declaration). */
+          form_exception_specification_for_generated_function(rtn);
+        } else if (noexcept_enabled && special_kind_is(rtn, sfk_operator) &&
+                   is_delete_operator(rtn->variant.opname_kind)) {
+          /* A delete operator without an explicit exception specification is
+             treated as if declared "noexcept". */
+          rtsp->exception_specification = alloc_exception_specification();
+          rtsp->exception_specification->is_noexcept = TRUE;
+          rtsp->exception_specification->compiler_generated = TRUE;
+          rtsp->exception_specification->variant.noexcept_arg = NULL;
+        }  /* if */
       }  /* if */
       if (rtsp->exception_specification != NULL &&
           is_nothrow_type(skip_typerefs(member_type))) {

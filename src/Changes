@@ -14,7 +14,7 @@ operator.  For example:
   #define hash_hash # ## #  // Previously recorded as ####
 
 
-9/3/12   [EDGcpfe/10617]
+9/3/12   [EDGcpfe/10617,EDGcpfe/11496,EDGcpfe/12018]
 noexcept specifier and operator
 
 The front end now implements the C++11 noexcept specifier and operator,
@@ -27,6 +27,14 @@ as described in N3050.
     int arr[noexcept(f(1.0f))];  // noexcept operator is true if expression
                                  // cannot throw, so true in this case
   }
+
+C++11 also specifies that destructors declared without an explicit exception
+specification have an implicit exception specification equivalent to the one
+of the generated destructor if no destructor had been declared (as described
+in N3204), and that deallocation functions (i.e., operator delete and
+operator delete[]) have a "noexcept" specification (see N4305).  This
+behavior is now implemented in strict C++11 mode or when the new command-line
+option --implicit_noexcept is specified.
 
 
 8/31/12  [EDGcpfe/13167]

@@ -1440,10 +1440,12 @@ member declaration (allowed in some Microsoft modes only).
 */
 {
   a_type_ptr           type_ptr = dps->type;
-  a_symbol_ptr         sym;
-  a_type_ptr           class_type;
+  a_type_ptr           rout_type = skip_typerefs(type_ptr);
+  a_routine_type_supplement_ptr
+                       rtsp = rout_type->variant.routine.extra_info;
+  a_symbol_ptr         sym = locator->specific_symbol;
+  a_type_ptr           class_type = sym_parent_class(sym);
   a_routine_ptr        rp;
-  a_type_ptr           rout_type;
   a_scope_stack_entry  *ssep = &scope_stack[depth_scope_stack];
   a_boolean            microsoft_out_of_class_redecl = microsoft_mode &&
                                                   locator->is_class_member &&
@@ -1451,9 +1453,6 @@ member declaration (allowed in some Microsoft modes only).
   a_source_position    orig_pos, saved_pos;
 
   db_enter(3, "define_member_function");
-  class_type = sym_parent_class(locator->specific_symbol);
-  rout_type = skip_typerefs(type_ptr);
-  sym = locator->specific_symbol;
   if (!is_member_function_symbol(sym)) {
     /* A nonfunction class member.  This is an error, so set sym to NULL to
        force the creation of a fake member function symbol. */
@@ -1483,8 +1482,6 @@ member declaration (allowed in some Microsoft modes only).
       /* In cfront it's okay to put a function qualifier on a member function
          definition.  If it's inappropriate, it's just ignored.  Do the same
          in cfront mode -- but issue a diagnostic. */
-      a_routine_type_supplement_ptr  rtsp =
-                                       type_ptr->variant.routine.extra_info;
       if (rtsp->this_class != NULL) {
         rtsp->this_class = NULL;
         sym = member_function_redecl_sym(
@@ -1562,18 +1559,18 @@ member declaration (allowed in some Microsoft modes only).
       /* Type was okay, but this member function has a body. */
       pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
       other_rp = sym->variant.routine.ptr;
-      rout_type->variant.routine.extra_info->this_class =
+      rtsp->this_class =
                        other_rp->type->variant.routine.extra_info->this_class;
-      rout_type->variant.routine.extra_info->qualifiers =
+      rtsp->qualifiers =
                        other_rp->type->variant.routine.extra_info->qualifiers;
-      rout_type->variant.routine.extra_info->this_qualifiers =
+      rtsp->this_qualifiers =
                   other_rp->type->variant.routine.extra_info->this_qualifiers;
     } else {
       /* In the error case assume the member function is nonstatic and give
          it an implicit this parameter type.  This will prevent an error from
          being issued on a direct reference to a nonstatic data member in the
          function body. */
-      rout_type->variant.routine.extra_info->this_class = class_type;
+      rtsp->this_class = class_type;
     }  /* if */
     /* An error has been detected.  Make a "fake" symbol and routine entry so
        that the routine definition can proceed. */
@@ -1603,12 +1600,10 @@ member declaration (allowed in some Microsoft modes only).
     dps->prev_type = *old_type = routine_symbol_type(sym);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
-      if (rout_type->variant.routine.extra_info->calling_convention != 
-                                           (a_calling_convention)cc_default) {
+      if (rtsp->calling_convention != (a_calling_convention)cc_default) {
         /* A calling convention was specified on the out-of-class
            definition. */
-        if (rout_type->variant.routine.extra_info->calling_convention ==
-                                          (a_calling_convention)cc_thiscall &&
+        if (rtsp->calling_convention == (a_calling_convention)cc_thiscall &&
             !routine_type_is_nonstatic_member_function(*old_type)) {
           /* The "__thiscall" calling convention can only be applied to
              nonstatic member functions. */
@@ -1635,11 +1630,23 @@ member declaration (allowed in some Microsoft modes only).
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* The types may be compatible but not identical.  Create (in type_ptr)
+    /* The types may be compatible but not identical.  Create (in rout_type)
        a composite type.  First copy the implicit this param type pointer
-       into type_ptr:  it is always wrong for nonstatic member functions.
+       into rout_type:  it is always wrong for nonstatic member functions.
        Also be sure the routine name linkage for the type is right. */
     adjust_member_routine_type(rout_type, *old_type);
+    if (noexcept_enabled && rtsp->exception_specification == NULL) {
+      /* For a destructor or an "operator delete" an exception specification
+         may be generated.  Use the specification used in the in-class
+         declaration. */
+      if (special_kind_is(rp, sfk_destructor) ||
+           (special_kind_is(rp, sfk_operator) &&
+            is_delete_operator(rp->variant.opname_kind))) {
+        rtsp->exception_specification =
+                          skip_typerefs(*old_type)->variant.routine.extra_info
+                                                  ->exception_specification;
+      }  /* if */
+    }  /* if */
     /* Do compatibility checking on the throw specification. */
     check_exception_specification(rout_type, sym, &func_info->throw_position,
                                   /*is_redecl=*/TRUE);

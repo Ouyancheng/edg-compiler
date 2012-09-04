@@ -7237,18 +7237,34 @@ for use in generating cross-reference output describing this declaration.
                           "decl_routine: bad storage class for inline");
     }  /* if */
 #endif /* CHECKING */
-    /* Verify that we are not declaring a const or volatile function through
-       a typedef (other cases are caught while parsing). */
+    /* If this is a function declared through a typedef, we must use a copy of
+       the underlying type if that type will be modified. */
     if (type_is_typedef(type_ptr) &&
-        (rtsp->qualifiers != TQ_NONE || rtsp->this_qualifiers != TQ_NONE)) {
-      pos_error(ec_bad_qualified_function_type, &locator->source_position);
-      /* Strip any qualifiers from the routine type to avoid problems
-         later on. */
-      type_ptr = alloc_type((a_type_kind)tk_routine);
+        (rtsp->qualifiers != TQ_NONE || rtsp->this_qualifiers != TQ_NONE ||
+         (locator->is_operator_name && rtsp->exception_specification == NULL &&
+          is_delete_operator(locator->variant.opname)))) {
+      dps->type = type_ptr = alloc_type((a_type_kind)tk_routine);
       copy_type(rtp, type_ptr);
-      type_ptr->variant.routine.extra_info->qualifiers = TQ_NONE;
-      type_ptr->variant.routine.extra_info->this_qualifiers = TQ_NONE;
       rtp = type_ptr;
+      rtsp = rtp->variant.routine.extra_info;
+      if (rtsp->qualifiers != TQ_NONE || rtsp->this_qualifiers != TQ_NONE) {
+        /* Verify that we are not declaring a const or volatile function
+           through a typedef (other cases are caught while parsing). */
+        pos_error(ec_bad_qualified_function_type, &locator->source_position);
+        /* Strip any qualifiers from the routine type to avoid problems later
+           on. */
+        rtsp->qualifiers = TQ_NONE;
+        rtsp->this_qualifiers = TQ_NONE;
+      }  /* if */
+      if (locator->is_operator_name && rtsp->exception_specification == NULL &&
+          is_delete_operator(locator->variant.opname)) {
+        /* A delete operator without an explicit exception specification is
+           treated as if declared "noexcept". */
+        rtsp->exception_specification = alloc_exception_specification();
+        rtsp->exception_specification->is_noexcept = TRUE;
+        rtsp->exception_specification->compiler_generated = TRUE;
+        rtsp->exception_specification->variant.noexcept_arg = NULL;
+      }  /* if */
     }  /* if */
     /* If this is an overloaded operator, check for errors in the
        argument list. */

@@ -657,6 +657,7 @@ check_abbreviation()
 --ignore_std
 --implicit_extern_c_type_conversion
 --implicit_include
+--implicit_noexcept
 --implicit_typename
 --include_directory
 --incl_suffixes
@@ -738,6 +739,7 @@ check_abbreviation()
 --no_il_lowering
 --no_implicit_extern_c_type_conversion
 --no_implicit_include
+--no_implicit_noexcept
 --no_implicit_typename
 --no_inlining
 --no_lambdas
@@ -1432,6 +1434,8 @@ process_option()
          --no_variadic_templates | \
          --func_prototype_tags | \
          --no_func_prototype_tags | \
+         --implicit_noexcept | \
+         --no_implicit_noexcept | \
          --using_framework_directory | \
          --no_using_framework_directory | \
          --force_vtbl)

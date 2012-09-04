@@ -5586,7 +5586,9 @@ that a function might throw.
 {
   an_exception_specification_type_ptr estp;
 
-  if (esp->is_noexcept) {
+  if (esp->compiler_generated) {
+    /* Don't render compiler-generated exception specifications. */
+  } else if (esp->is_noexcept) {
     if (esp->variant.noexcept_arg == NULL) {
       write_tok_str(" noexcept");
     } else {
