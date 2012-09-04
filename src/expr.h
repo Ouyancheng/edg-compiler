@@ -147,6 +147,11 @@ typedef struct an_init_component {
   a_bit_field	permanently_allocated:1;
 			/* TRUE if this entry is permanently allocated and
 			   an attempt to free it should be ignored. */
+#if CHECKING
+  a_bit_field	on_free_list:1;
+			/* TRUE if this entry has been freed and is on the
+			   available list. */
+#endif /* CHECKING */
   a_pack_expansion_descr_ptr
 		pack_expansion_descr;
 			/* If non-NULL, this entity is a pack expansion

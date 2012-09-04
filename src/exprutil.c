@@ -809,6 +809,9 @@ kind to "kind" and its fields to default values, and return a pointer to it.
   icp->check_narrowing = FALSE;
   icp->braced_init_in_parentheses = FALSE;
   icp->permanently_allocated = FALSE;
+#if CHECKING
+  icp->on_free_list = FALSE;
+#endif /* CHECKING */
   icp->pack_expansion_descr = NULL;
   set_init_component_kind(icp, kind);
   return icp;
@@ -844,6 +847,11 @@ subtree of entries, free those as well.
     /* Don't free a permanently-allocated entry. */
     goto end_of_routine;
   }  /* if */
+#if CHECKING
+  check_assertion_str(!icp->on_free_list,
+                      "free_init_component: entry freed twice");
+  icp->on_free_list = TRUE;
+#endif /* CHECKING */
   switch (icp->kind) {
     case ick_expression:
       check_assertion(icp->variant.expr.arg_op != NULL &&
@@ -861,19 +869,6 @@ subtree of entries, free those as well.
     default:
       unexpected_condition_str("free_init_component: bad entry kind");
   }  /* switch */
-#if CHECKING && DEBUG
-  /* Make the sure the entry was not previously freed. */
-  if (db_active || EXPENSIVE_CHECKING) {  /*lint !e506*/
-    an_init_component_ptr ticp;
-    for (ticp = avail_init_components;
-         ticp != NULL;
-         ticp = ticp->next) {
-      if (ticp == icp) {
-        internal_error("free_init_component: entry freed twice");
-      }  /* if */
-    }  /* for */
-  }  /* if */
-#endif /* CHECKING && DEBUG */
   icp->next = avail_init_components;
   avail_init_components = icp;
 #if DEBUG
