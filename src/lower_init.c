@@ -9454,16 +9454,17 @@ as well as any additional code needed to process the deletion.
           try_expr = make_comma_node_if_necessary(alloc_expr, init_expr);
           try_expr = make_internal_try_expr(try_expr, delete_call);
         } else {
-          /* Freeing an array.  This case comes up when a braced-initializer
-             is used to initialize an array (e.g., "new A[4] {1, 2}").  In
-             such cases, the allocation and initialization phases are
-             handled separately.  The allocation portion is handled by the
-             runtime library and any exception that occurs during that
-             period is handled by the runtime library.  The initialization
-             portion must be covered by the internal "try/catch" mechanism
-             here (but not the allocation portion -- otherwise there would
-             be multiple deletes in some cases). */
-          check_assertion(dyn_init_to_free_storage->is_array_freeing);
+          /* Freeing an initialized array.  This case comes up when a
+             braced-initializer is used to initialize an array (e.g.,
+             "new A[4] {1, 2}").  In such cases, the allocation and
+             initialization phases are handled separately.  The allocation
+             portion is handled by the runtime library and any exception that
+             occurs during that period is handled by the runtime library.  The
+             initialization portion must be covered by the internal "try/catch"
+             mechanism here (but not the allocation portion -- otherwise there
+             would be multiple deletes in some cases). */
+          check_assertion(dyn_init_to_free_storage->is_array_freeing &&
+                          ndsp->new_initializer_is_brace_enclosed);
           if (init_expr == NULL) {
             try_expr = init_expr;
           } else {
