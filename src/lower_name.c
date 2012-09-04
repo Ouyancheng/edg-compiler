@@ -150,6 +150,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_DOT_STAR "ds"
 #define MANGLING_STRING_FOR_OPERATOR_DOT "dt"
 #define MANGLING_STRING_FOR_AUTO "Da"
+#define MANGLING_STRING_FOR_OPERATOR_NOEXCEPT "nx"
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_REAL_PART "v18__real__"
 #define MANGLING_STRING_FOR_OPERATOR_IMAG_PART "v18__imag__"
@@ -286,6 +287,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_OPERATOR_DOT_STAR "ds"
 #define MANGLING_STRING_FOR_OPERATOR_DOT "dt"
 #define MANGLING_STRING_FOR_AUTO "u"
+#define MANGLING_STRING_FOR_OPERATOR_NOEXCEPT "nx"
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_REAL_PART "rl"
 #define MANGLING_STRING_FOR_OPERATOR_IMAG_PART "im"
@@ -9781,6 +9783,9 @@ returned string to an appropriate buffer before this routine is invoked again.
 #endif /* IA64_ABI */
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case eok_noexcept:
+      name = MANGLING_STRING_FOR_OPERATOR_NOEXCEPT;
+      break;
     case eok_lvalue:                     /* Handled higher up */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_assume:                     /* Handled higher up */

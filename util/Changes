@@ -1,5 +1,13 @@
 Version 4.5
 
+9/4/12   [EDGcpfe/10617]
+Add demangling for C++11 noexcept operator
+
+Changes have been made to demangle the C++11 noexcept operator in both
+IA-64 and Cfront ABIs.  The mangling string "nx" is used in both ABIs to
+indicate a noexcept operator.
+
+
 6/26/12  [EDGcpfe/9170]
 Add demangling for C++11 brace-enclosed initializer lists
 

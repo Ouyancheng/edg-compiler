@@ -1368,7 +1368,8 @@ position following what was demangled.
       write_id_ch('(', dctl);
       close_str = ")";
     } else if (strcmp(operator_str, "__real(") == 0 ||
-               strcmp(operator_str, "__imag(") == 0) {
+               strcmp(operator_str, "__imag(") == 0 ||
+               strcmp(operator_str, "noexcept(") == 0) {
       /* These need a closing paren after their operand. */
       close_str = ")";
     } else if (strcmp(operator_str, "()") == 0) {
@@ -1918,6 +1919,8 @@ If the first few characters are not an operator encoding, return NULL.
     s = "{";
     *takes_type = TRUE;
     *is_initializer_list = TRUE;
+  } else if (start_of_id_is("nx", ptr, dctl)) {
+    s = "noexcept(";
   } else {
     s = NULL;
   }  /* if */
@@ -5313,6 +5316,10 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           *num_operands = 1;
         } else if (ch2 == 'w') {
           str = "new ";
+        } else if (ch2 == 'x') {
+          str = "noexcept(";
+          *close_str = ")";
+          *num_operands = 1;
         }  /* if */
         break;
       case 'o':
