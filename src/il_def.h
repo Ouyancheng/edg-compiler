@@ -3264,8 +3264,8 @@ typedef struct a_dynamic_init {
 #endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
   a_bit_field	is_creation_of_initializer_list_object:1;
-			/* TRUE if this is an enk_temp_init node that calls
-			   a constructor of std::initializer_list<X> to create
+			/* TRUE if this is a dynamic init that calls a
+			   constructor of std::initializer_list<X> to create
 			   an initializer list object from an array of
 			   values of type X, provided in a temporary passed
 			   as the first argument of the constructor call. */
