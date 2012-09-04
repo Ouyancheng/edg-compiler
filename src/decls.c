@@ -7256,7 +7256,8 @@ for use in generating cross-reference output describing this declaration.
         rtsp->qualifiers = TQ_NONE;
         rtsp->this_qualifiers = TQ_NONE;
       }  /* if */
-      if (locator->is_operator_name && rtsp->exception_specification == NULL &&
+      if (implicit_noexcept_enabled && locator->is_operator_name &&
+          rtsp->exception_specification == NULL &&
           is_delete_operator(locator->variant.opname)) {
         /* A delete operator without an explicit exception specification is
            treated as if declared "noexcept". */

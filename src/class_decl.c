@@ -12845,14 +12845,15 @@ implicitly declared member functions.
               (special_kind_is(rtn, sfk_operator) &&
                rtn->variant.opname_kind == (an_opname_kind)onk_assign))) || 
             (special_kind_is(rtn, sfk_destructor) &&
-             (noexcept_enabled || compiler_generated))) {
+             (implicit_noexcept_enabled || compiler_generated))) {
           /* A destructor without an explicit exception specification, or a
              compiler-generated constructor or assignment operator is assumed
              to throw any exception that can be thrown by any subobject
              function the generated will call (or "would call" in the case of
              a non-defaulted destructor declaration). */
           form_exception_specification_for_generated_function(rtn);
-        } else if (noexcept_enabled && special_kind_is(rtn, sfk_operator) &&
+        } else if (implicit_noexcept_enabled &&
+                   special_kind_is(rtn, sfk_operator) &&
                    is_delete_operator(rtn->variant.opname_kind)) {
           /* A delete operator without an explicit exception specification is
              treated as if declared "noexcept". */
