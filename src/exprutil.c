@@ -730,19 +730,6 @@ Free the list of argument operands pointed to by aop.
     aop_next = aop->next;
     /* Free any dynamically-allocated attachments to the operand. */
     free_attachments_to_operand(&aop->operand);
-#if CHECKING && DEBUG
-    /* Make the sure the entry was not previously freed. */
-    if (db_active || EXPENSIVE_CHECKING) { /*lint !e506*/
-      an_arg_operand_ptr taop;
-      for (taop = avail_arg_operands;
-           taop != NULL;
-           taop = taop->next) {
-        if (taop == aop) {
-          internal_error("free_arg_operand_list: entry freed twice");
-        }  /* if */
-      }  /* for */
-    }  /* if */
-#endif /* CHECKING && DEBUG */
     /* Add the entry to the available list. */
     aop->next = avail_arg_operands;
     avail_arg_operands = aop;
