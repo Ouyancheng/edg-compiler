@@ -1,5 +1,16 @@
 Version 4.5
 
+9/4/12   [EDGcpfe/13149]
+GNU C++ compatibility: failure to match nondependent vector types
+
+In g++ mode, a declaration that used a nondependent GNU vector type failed
+to match a template that used the same vector type.  Now fixed.
+
+  typedef float __m128 __attribute__ ((__vector_size__ (16)));
+  template <typename T> T f(float);
+  template<> __m128 f<__m128>(float);
+
+
 9/3/12   [EDGcpfe/9134]
 C++-generating back end: macro definition containing ##
 

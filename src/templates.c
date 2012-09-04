@@ -8830,7 +8830,10 @@ points to the template parameter list.
         case tk_vector:
           /* Vector types are in principle similar to array types.  However,
              current GNU versions (4.4.x and earlier) do not appear to support
-             deduction of vector types. */
+             deduction of dependent vector types. */
+          match = !vector_type_is_template_dependent(type) &&
+                  !vector_type_is_template_dependent(templ_type) &&
+                  identical_types(templ_type, type);
           break;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
         default:
