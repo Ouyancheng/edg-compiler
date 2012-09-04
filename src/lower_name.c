@@ -4242,7 +4242,14 @@ explicitly dealt with later in expression mangling.
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
-      if (!dip->is_explicit_cast && !dip->is_compound_literal) {
+      if (dip->is_creation_of_initializer_list_object) {
+        dip = effective_dynamic_init_for_initializer_list_object(dip,
+                                                              (a_type **)NULL);
+        check_assertion(dip != NULL);
+      }  /* if */
+      if (!dip->is_explicit_cast &&
+          !dip->is_compound_literal &&
+          !dip->is_braced_initializer) {
         /* Remove implicit operations. */
         expr = arg_list_from_dyn_init(dip);
       }  /* if */
@@ -5518,6 +5525,11 @@ in the Cfront ABI a "bi" flag is used instead).
 
   if (dip != NULL) {
     /* We need to include an initializer expression list. */
+    if (dip->is_creation_of_initializer_list_object) {
+      dip = effective_dynamic_init_for_initializer_list_object(dip,
+                                                              (a_type **)NULL);
+      check_assertion(dip != NULL);
+    }  /* if */
 #if IA64_ABI
     if (dip->is_braced_initializer) {
       /* Use braced-enclosed initializer list mangling. */
@@ -6038,7 +6050,9 @@ is TRUE.
       {
         a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
         check_assertion(dip != NULL &&
-                        (dip->is_explicit_cast || dip->is_compound_literal));
+                        (dip->is_explicit_cast ||
+                         dip->is_braced_initializer ||
+                         dip->is_compound_literal));
         mangled_dynamic_init(dip, expr->type, expr->is_static_cast, mctl);
       }
       break;
