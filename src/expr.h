@@ -530,6 +530,10 @@ void convert_initializer(an_init_component_ptr icp,
                          a_boolean             is_var_init,
                          a_boolean             fill_in_dtor,
                          an_init_state         *is);
+
+typedef struct an_arg_match_summary an_arg_match_summary_dummy_typedef;
+extern void record_aggr_init_match(struct an_arg_match_summary *arg_match);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void aggr_init_cli_array_with_alloc(an_init_component_ptr  icp,
                                            a_type_ptr             hatype,

@@ -1240,7 +1240,7 @@ from previous arguments; in the standard case, it is always NULL.
 }  /* indefinite_function_can_be_template_arg */
 
 
-static void clear_arg_match_summary(an_arg_match_summary_ptr amsp)
+void clear_arg_match_summary(an_arg_match_summary_ptr amsp)
 /*
 Clear the fields of the indicated argument match summary entry to default
 values.

@@ -29820,6 +29820,21 @@ dynamic init entry if one is created to represent this initializer
   }  /* if */
 }  /* convert_initializer */
 
+
+void record_aggr_init_match(an_arg_match_summary_ptr arg_match)
+/*
+Update arg_match, which is a record of the worst conversion found in an
+aggregate initialization, to reflect that a user conversion match has been
+found.
+*/
+{
+  an_arg_match_summary new_arg_match;
+
+  clear_arg_match_summary(&new_arg_match);
+  new_arg_match.match_level = (an_arg_match_level)aml_user_conversion;
+  keep_worst_match(&new_arg_match, arg_match);
+}  /* record_aggr_init_match */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void aggr_init_cli_array_with_alloc(an_init_component_ptr  icp,

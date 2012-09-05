@@ -1486,6 +1486,10 @@ initialization).  *is describes the initialization as a whole.
         break;
       } else if (no_bound || idx < ecount) {
         a_constant_ptr  elem_con;
+        if (!is->non_top_level_aggregate && is_braced_init_component(icp) &&
+            is->arg_match != NULL) {
+          record_aggr_init_match(is->arg_match);
+        }  /* if */
         aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
         if (!is->check_validity_only) {
           append_constant_in_aggr(elem_con, *init_con);
@@ -2621,6 +2625,7 @@ the type pointed to is opaque to declaration processing.
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
       aggr_init_vector(&icp, dtype, is, &is->init_con);
+      if (arg_match != NULL) record_aggr_init_match(arg_match);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_class:
@@ -2631,6 +2636,7 @@ the type pointed to is opaque to declaration processing.
         dtor_rp = get_init_destructor(dtype, is, diag_pos);
       }  /* if */
       aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
+      if (arg_match != NULL) record_aggr_init_match(arg_match);
       break;
     default:
       unexpected_condition();

@@ -698,6 +698,8 @@ extern a_boolean hide_by_sig_lookup_applies(a_symbol_ptr sym);
 
 extern void display_object_type(a_type_ptr object_type);
 
+extern void clear_arg_match_summary(an_arg_match_summary_ptr amsp);
+
 extern void free_arg_match_summary_list(an_arg_match_summary_ptr amsp);
 
 extern a_type_ptr operand_complete_object_type(an_operand *operand,
