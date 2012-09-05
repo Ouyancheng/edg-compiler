@@ -312,7 +312,8 @@ enum an_eh_stack_entry_kind_tag {
   ehsek_throw_spec,
   ehsek_throw_processing_marker,
   ehsek_vec_new_or_delete,
-  ehsek_try_block	/* Used for try blocks in versions after 3.10. */
+  ehsek_try_block,	/* Used for try blocks in versions after 3.10. */
+  ehsek_noexcept
 };
 
 typedef a_byte an_eh_stack_entry_kind;
@@ -384,6 +385,7 @@ typedef struct an_eh_stack_entry {
 			/* Pointer to a structure used to handle exceptions
 			   that occur while processing an array new or delete
 			   operation. */
+    /* When kind == ehsek_noexcept there is no variant. */
   } variant;
 } an_eh_stack_entry;
 

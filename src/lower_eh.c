@@ -4331,6 +4331,7 @@ throw specification indicates that no types may be thrown.
   a_constant_ptr                       first_con, last_con;
   unsigned long                        num_elems = 0;
 
+  check_assertion(!throw_spec->is_noexcept);
   espt = throw_spec->variant.exception_specification_type_list;
   /* If the routine can throw nothing, return NULL. */
   if (espt == NULL) {
@@ -4458,11 +4459,12 @@ typedef enum {
   ehsek_vec_new_or_delete,		/* Used by runtime. */
   /*lint -esym(749,ehsek_vec_new_or_delete)*/
 #if ABI_COMPATIBILITY_VERSION <= 310
-  ehsek_try_block = ehsek_old_try_block
+  ehsek_try_block = ehsek_old_try_block,
 #else /* ABI_COMPATIBILITY_VERSION > 310 */
-  ehsek_try_block
+  ehsek_try_block,
   /*lint -esym(749,ehsek_old_try_block)*/
 #endif /* ABI_COMPATIBILITY_VERSION <= 310 */
+  ehsek_noexcept
 } an_eh_stack_entry_kind;
 
 
@@ -4743,6 +4745,7 @@ statement if necessary.
   an_expr_node_ptr          func_frame_function_array_table;
   an_expr_node_ptr          func_frame_function_saved_region_number;
   a_boolean                 need_throw_epilogue = FALSE;
+  an_eh_stack_entry_kind    eh_stack_kind;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
   saved_code_pos = code_pos_for_lowering;
@@ -4760,36 +4763,63 @@ statement if necessary.
   routine_type = skip_typerefs(routine_type);
   /* See if the routine has a throw specification. */
   tsp = routine_type->variant.routine.extra_info->exception_specification;
-  if (tsp != NULL) {
-    /* The routine has a throw specification.  (A null pointer means
-       the function can throw anything.) */
-    /* Generate code to push an entry on the EH stack. */
-    push_eh_stack_frame(ehsek_throw_spec, &throw_frame, &insert_location);
-    need_throw_epilogue = TRUE;
-    /* Build an array of the throw types. */
-    spec_array_var = exception_type_spec_array_from_throw_spec(tsp);
-    /* Generate code to set the throw_spec field of the stack entry to
-       point to the array (or NULL if no types can be thrown). */
-    spec_array_ptr = make_pointer_type(make_exception_type_spec_type());
-    if (spec_array_var == NULL) {
-      /* No types can be thrown, so use a NULL pointer. */
-      a_constant null_constant;
-      make_zero_of_proper_type(spec_array_ptr, &null_constant);
-      spec_array_node = alloc_node_for_constant(&null_constant);
-    } else {
-      /* Use the address of the first element of the array. */
-      spec_array_node = array_first_element_addr_expr(spec_array_var);
-    }  /* if */
-    /* Make an expression for throw_frame.variant.throw_spec */
-    throw_frame_throw_spec = 
+  if (tsp != NULL && !tsp->throw_any) {
+    /* The routine has an exception specification that the runtime library
+       needs to know about.  (A null pointer means the function can throw
+       anything.)  The noexcept(false) case is treated similarly (as is
+       the Microsoft-specific throw(...)). */
+#if ABI_COMPATIBILITY_VERSION >= 405
+    if (tsp->is_noexcept) {
+      /* The exception specification specifies either "noexcept" or
+         "noexcept(expr)" where expr evaluates to true.  Push an entry
+         on the EH stack (there is no data to pass, just the presence of
+         the stack frame is enough). */
+      eh_stack_kind = ehsek_noexcept;
+      push_eh_stack_frame(eh_stack_kind, &throw_frame, &insert_location);
+    } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 */
+    /* Do not insert code here. */
+    {
+      /* Generate code to push an entry on the EH stack. */
+      eh_stack_kind = ehsek_throw_spec;
+      push_eh_stack_frame(eh_stack_kind, &throw_frame, &insert_location);
+#if ABI_COMPATIBILITY_VERSION < 405
+      if (tsp->is_noexcept) {
+        /* For older runtime libraries that don't recognize the ehsek_noexcept
+           EH stack entry, approximate it by using a ehsek_throw_spec
+           EH stack entry with no types (i.e., like a throw()). */
+        spec_array_var = NULL;
+      } else
+#endif /* ABI_COMPATIBILITY_VERSION < 405 */
+      /* Do not insert code here. */
+      {
+        /* Build an array of the throw types. */
+        spec_array_var = exception_type_spec_array_from_throw_spec(tsp);
+      }  /* if */
+      /* Generate code to set the throw_spec field of the stack entry to
+         point to the array (or NULL if no types can be thrown). */
+      spec_array_ptr = make_pointer_type(make_exception_type_spec_type());
+      if (spec_array_var == NULL) {
+        /* No types can be thrown, so use a NULL pointer. */
+        a_constant null_constant;
+        make_zero_of_proper_type(spec_array_ptr, &null_constant);
+        spec_array_node = alloc_node_for_constant(&null_constant);
+      } else {
+        /* Use the address of the first element of the array. */
+        spec_array_node = array_first_element_addr_expr(spec_array_var);
+      }  /* if */
+      /* Make an expression for throw_frame.variant.throw_spec */
+      throw_frame_throw_spec = 
                     field_lvalue_selection_expr(
                       field_lvalue_selection_expr(var_lvalue_expr(throw_frame),
                                                   ehse_variant_field),
                       ehse_throw_spec_field);
-    /* Assign the array address to throw_frame.variant.throw_spec */
-    (void)insert_assignment_statement(throw_frame_throw_spec,
-                                      (an_expr_operator_kind)eok_assign,
-                                      spec_array_node, &insert_location);
+      /* Assign the array address to throw_frame.variant.throw_spec */
+      (void)insert_assignment_statement(throw_frame_throw_spec,
+                                        (an_expr_operator_kind)eok_assign,
+                                        spec_array_node, &insert_location);
+    }  /* if */
+    need_throw_epilogue = TRUE;
   }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   if (has_destructions(scope->lifetime) || routine->contains_try_block) {
@@ -4935,9 +4965,9 @@ statement if necessary.
       }  /* if */
 #if DO_FULL_PORTABLE_EH_LOWERING
       if (need_throw_epilogue) {
-        /* Insert code to pop the prologue pushed for the throw
+        /* Insert code to pop the prologue pushed for the throw or noexcept
            specification. */
-        pop_eh_stack_frame(ehsek_throw_spec, throw_frame, &insert_location);
+        pop_eh_stack_frame(eh_stack_kind, throw_frame, &insert_location);
       }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
     }  /* for */

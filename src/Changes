@@ -67,6 +67,15 @@ option --implicit_noexcept is specified.
 A new mangling, "nx" is introduced to mangle the noexcept operator in Cfront
 ABI configurations (the standard "nx" mangling is used in the IA-64 ABI).
 
+For configurations where DO_FULL_PORTABLE_EH_LOWERING is TRUE, a new
+exception handling stack entry, ehsek_noexcept, has been added to indicate
+to the runtime library that a function has a noexcept specification that
+doesn't allow an exception to be thrown (resulting in a call to
+std::terminate if violated at run-time).  For backward compatibility,
+when ABI_COMPATIBILITY_VERSION < 405, the existing ehsek_throw_spec
+stack frame is used (i.e., as though throw() were specified -- though this
+results in a call to std::unexpected rather than std::terminate).
+
 
 8/31/12  [EDGcpfe/13167]
 Change IL of "new" operations to be more like source form (IL CHANGE)

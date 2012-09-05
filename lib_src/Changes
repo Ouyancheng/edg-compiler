@@ -1,5 +1,16 @@
 Version 4.5
 
+9/5/12   [EDGcpfe/10617,EDGcpfe/11496,EDGcpfe/12018]
+C++11: Add support for noexcept specifications
+
+The runtime library has been modified to support the new exception handling
+stack frame, ehsek_noexcept, which is pushed by the front end for functions
+whose noexcept specification indicates that the function does not allow
+exceptions to be thrown.  When a function violates the noexcept specification,
+the exception stack is unwound (if UNWIND_STACK_BEFORE_CALLING_TERMINATE is
+TRUE) and the std::terminate function is called.
+
+
 -------------------------------------------------------------------------------
 Version 4.4, December 21, 2011
 

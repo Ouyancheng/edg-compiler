@@ -580,6 +580,7 @@ Return the name of the specified EH stack entry kind value.
     case ehsek_throw_processing_marker: name = "throw marker";      break;
     case ehsek_vec_new_or_delete:       name = "vec new or delete"; break;
     case ehsek_try_block:               name = "try block";         break;
+    case ehsek_noexcept:                name = "noexcept";          break;
     default:                            name = "<BAD KIND>";        break;
   }  /* switch */
   return name;
@@ -1321,7 +1322,7 @@ a try block with a catch that matches the type of the object thrown.
         }  /* if */
       }  /* if */
     } else if (destination_ehsep != NULL) {
-      /* Once a matching try block has been found, disregard an subsequent
+      /* Once a matching try block has been found, disregard any subsequent
          throw specification entries or throw processing markers that might
          be found.   The only other entries that are considered are
          non-internal try blocks to see if a matching handler can be found. */
@@ -1347,6 +1348,14 @@ a try block with a catch that matches the type of the object thrown.
         destination_ehsep = ehsep;
         break;
       }  /* if */
+    } else if (kind == (an_eh_stack_entry_kind)ehsek_noexcept) {
+      /* Check for violations of noexcept specifications.  If a noexcept
+         specification is violated we cleanup until we reach the violated
+         noexcept specification and then call terminate.  The mere presence
+         of a noexcept stack entry indicates that the function does not
+         allow exceptions to be thrown. */
+      destination_ehsep = ehsep;
+      break;
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_processing_marker) {
       /* This entry is put on the stack before object cleanup begins.  If
          we find this marker it means that a destructor threw an
@@ -1420,6 +1429,10 @@ a try block with a catch that matches the type of the object thrown.
       /* Do nothing. */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_processing_marker) {
       /* Do nothing. */
+    } else if (kind == (an_eh_stack_entry_kind)ehsek_noexcept) {
+      /* This should not occur (an ehsek_noexcept stack frame can only
+         be the final destination EH stack frame). */
+      unexpected_condition();
     } else {
       unexpected_condition();
     }  /* if */
@@ -1552,6 +1565,14 @@ a try block with a catch that matches the type of the object thrown.
    __curr_eh_stack_entry = __curr_eh_stack_entry->next;
 #endif /* ABI_CHANGES_FOR_RTTI */
     __call_unexpected();
+  } else if (destination_ehsep->kind ==
+                                      (an_eh_stack_entry_kind)ehsek_noexcept) {
+    /* A destination stack entry indicates that a noexcept specification was
+       violated.  Call terminate.  The EH stack should point to the
+       entry for the exception specification that was violated.  Remove
+       the throw processing marker from the stack. */
+    __curr_eh_stack_entry = __curr_eh_stack_entry->next;
+    __call_terminate();
   }  /* if */
   return 0;
 }  /* __throw */
