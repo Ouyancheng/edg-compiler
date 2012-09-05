@@ -1330,7 +1330,7 @@ a try block with a catch that matches the type of the object thrown.
       continue;
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
       /* Check for violations of throw specifications.  If a throw
-         specification is violated we cleanup until we reach the
+         specification is violated we clean up until we reach the
          violated throw specification and then call unexpected.
          If result is zero, no match was found.  If there is an empty
          specification then, by definition, no match is found. */
@@ -1350,7 +1350,7 @@ a try block with a catch that matches the type of the object thrown.
       }  /* if */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_noexcept) {
       /* Check for violations of noexcept specifications.  If a noexcept
-         specification is violated we cleanup until we reach the violated
+         specification is violated we clean up until we reach the violated
          noexcept specification and then call terminate.  The mere presence
          of a noexcept stack entry indicates that the function does not
          allow exceptions to be thrown. */
