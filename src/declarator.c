@@ -3606,30 +3606,13 @@ constant.
          region, because they will be pointed to by the array type, which
          is in the file scope memory region. */
       switch_to_file_scope_region(&region_to_switch_back_to);
-      if (is_constant_bound) {
-        /* Save the constant for the bound.  If it has an attached expression
-           it may need to be referred to indirectly if the expression is
-           allocated in function scope memory. */
-        il_constant = alloc_shareable_constant(&constant);
-        /* Preserve the bound expression, which will not have been copied
-           if it refers to local variables, and ensure that it can be
-           referenced from the file-scope type entry.  Note that
-           il_constant will be unshared in this case because of the
-           non-NULL backing expression in the source constant, even though
-           the backing expression was cleared in il_constant. */
-        il_constant->expr = constant.expr;
-        make_bound_expr_referenceable_from_file_scope(&il_constant->expr,
-                                                      *new_type_ptr,
-                                                      /*dep=*/FALSE);
-        (*new_type_ptr)->variant.array.bound_constant = il_constant;
-      }  /* if */
       if (template_dependent_bound) {
         /* Template-dependent bound (constant but not a known value). */
         a_template_param_constant_kind tkind;
-        if (il_constant == NULL) {
-          il_constant = alloc_shareable_constant(&constant);
-        }  /* if */
-        check_assertion(il_constant->kind ==
+        il_constant = alloc_unshared_constant_full(&constant,
+                                                   /*source_in_il=*/FALSE,
+                                                   /*suppress_copy=*/TRUE);
+        check_assertion(constant.kind ==
                                     (a_constant_repr_kind)ck_template_param);
         tkind = il_constant->variant.template_param.kind;
         if (tkind == (a_template_param_constant_kind)tpck_expression) {
@@ -3656,7 +3639,24 @@ constant.
                                                                    il_constant;
         (*new_type_ptr)->variant.array.is_template_dependent_size_array = TRUE;
       } else {
-        /* Normal constant bound. */
+        /* Normal constant bound or []. */
+        if (is_constant_bound) {
+          /* Save the constant for the bound.  If it has an attached expression
+             it may need to be referred to indirectly if the expression is
+             allocated in function scope memory. */
+          il_constant = alloc_shareable_constant(&constant);
+          /* Preserve the bound expression, which will not have been copied
+             if it refers to local variables, and ensure that it can be
+             referenced from the file-scope type entry.  Note that
+             il_constant will be unshared in this case because of the
+             non-NULL backing expression in the source constant, even though
+             the backing expression was cleared in il_constant. */
+          il_constant->expr = constant.expr;
+          make_bound_expr_referenceable_from_file_scope(&il_constant->expr,
+                                                        *new_type_ptr,
+                                                        /*dep=*/FALSE);
+          (*new_type_ptr)->variant.array.bound_constant = il_constant;
+        }  /* if */
         (*new_type_ptr)->variant.array.variant.number_of_elements =
                                                               num_of_elements;
         if (((gnu_mode && is_constant_bound) ||

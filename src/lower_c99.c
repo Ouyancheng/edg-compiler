@@ -3556,7 +3556,8 @@ constructs.
         a_memory_region_number region_to_switch_back_to;
         switch_to_file_scope_region(&region_to_switch_back_to);
         constant = alloc_unshared_constant_full(constant,
-                                                /*source_in_il=*/TRUE);
+                                                /*source_in_il=*/TRUE,
+                                                /*suppress_copy=*/FALSE);
         switch_back_to_original_region(region_to_switch_back_to);
       }  /* if */
       tmp->initializer.constant = constant;

@@ -1212,7 +1212,8 @@ extern void combine_initializer_constants(a_constant_ptr first,
 extern a_constant_ptr alloc_unshared_constant(a_constant *cp);
 
 extern a_constant_ptr alloc_unshared_constant_full(a_constant *cp,
-                                                   a_boolean  source_in_il);
+                                                   a_boolean  source_in_il,
+                                                   a_boolean  suppress_copy);
 
 /*
 Options for copy_expr_tree et al.

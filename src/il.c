@@ -5164,7 +5164,8 @@ side-effects.  The constants passed as parameters should be unshared.
 
 
 a_constant_ptr alloc_unshared_constant_full(a_constant *cp,
-                                            a_boolean  source_in_il)
+                                            a_boolean  source_in_il,
+                                            a_boolean  suppress_copy)
 /*
 Allocate a constant in the current IL memory region, copy the value of *cp
 into it, and return a pointer to the allocated constant.  This routine
@@ -5176,12 +5177,15 @@ entry, do a shallow copy into it, and use any subtree without copying
 (either it's unshared already, or it can be pointed to by multiple
 constants).  source_in_il is TRUE in cases where the given constant is
 an allocated IL entry, in which case the il_lowering_flag value of the
-source constant is copied to the returned constant.
+source constant is copied to the returned constant.  When suppress_copy
+is TRUE, force the shallow copy even if memory region issues seem to
+suggest a deep copy is needed.
 */
 {
   a_constant_ptr ucp;
 
-  if (curr_il_region_number == file_scope_region_number &&
+  if (!suppress_copy &&
+      curr_il_region_number == file_scope_region_number &&
       has_non_file_scope_ref(cp)) {
     ucp = copy_constant_full(cp, (a_constant *)NULL,
                              source_in_il? CE_NO_OPTIONS :
@@ -5221,7 +5225,8 @@ where the source constant is an allocated IL entry, see
 alloc_unshared_constant_full.
 */
 {
-  return alloc_unshared_constant_full(cp, /*source_in_il=*/FALSE);
+  return alloc_unshared_constant_full(cp, /*source_in_il=*/FALSE,
+                                      /*suppress_copy=*/FALSE);
 }  /* alloc_unshared_constant */
 
 
@@ -5411,8 +5416,8 @@ copy_constant_full should be called to start a copy.
        scope memory region.  (The expression tree can't even be copied,
        because it may refer to local variables.) */
     new_constant->expr = NULL;
-  } else if (in_file_scope(old_constant) &&
-             !in_file_scope(new_constant) &&
+  } else if (old_constant_in_il && in_file_scope(old_constant) &&
+             new_constant_in_il && !in_file_scope(new_constant) &&
              old_constant->expr != NULL) {
     /* If we're copying the constant from the file scope memory region to the
        function scope memory region, remove the backing expression to
