@@ -3120,6 +3120,13 @@ as specified in the control block.
           tblock->process_type(ndsp->type, tblock);
           if (tblock->terminate) goto end_of_routine;
         }  /* if */
+        /* Traverse the number_of_elements node before arg below because
+           that's how it appears in a left-to-right traversal of the
+           arguments. */
+        if (ndsp->number_of_elements != NULL) {
+          traverse_expr(ndsp->number_of_elements, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
         if (ndsp->arg != NULL) {
           traverse_expr_list(ndsp->arg, tblock);
           if (tblock->terminate) goto end_of_routine;
@@ -3127,13 +3134,9 @@ as specified in the control block.
         if (ndsp->dynamic_init != NULL) {
           traverse_dynamic_init(ndsp->dynamic_init, tblock);
           if (tblock->terminate) goto end_of_routine;
-         }  /* if */
+        }  /* if */
         if (ndsp->freeing_of_storage_on_exception != NULL) {
           traverse_dynamic_init(ndsp->freeing_of_storage_on_exception, tblock);
-          if (tblock->terminate) goto end_of_routine;
-        }  /* if */
-        if (ndsp->number_of_elements != NULL) {
-          traverse_expr(ndsp->number_of_elements, tblock);
           if (tblock->terminate) goto end_of_routine;
         }  /* if */
       }

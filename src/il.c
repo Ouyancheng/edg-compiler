@@ -16438,6 +16438,15 @@ be called to start a copy.
       /* Note that the new/delete supplement was copied by copy_node. */
       ndsp = expr->variant.new_delete;
       copy_ndsp = expr_copy->variant.new_delete;
+      /* Copy the number_of_elements node before arg below because
+         that's how it would appear in a left-to-right traversal
+         (since number_of_elements might have a destructible entity
+         and is evaluated before arg). */
+      if (ndsp->number_of_elements != NULL) {
+        copy_ndsp->number_of_elements =
+                                     i_copy_expr_tree(ndsp->number_of_elements,
+                                                       options, cblock);
+      }  /* if */
       if (ndsp->arg != NULL) {
         copy_ndsp->arg = i_copy_list_of_expr_trees(ndsp->arg, options, cblock);
       }  /* if */
@@ -16449,11 +16458,6 @@ be called to start a copy.
       if (ndsp->dynamic_init != NULL) {
         copy_ndsp->dynamic_init = i_copy_dynamic_init(ndsp->dynamic_init,
                                                       options, cblock);
-      }  /* if */
-      if (ndsp->number_of_elements != NULL) {
-        copy_ndsp->number_of_elements =
-                                     i_copy_expr_tree(ndsp->number_of_elements,
-                                                       options, cblock);
       }  /* if */
       break;
     case enk_lambda:
