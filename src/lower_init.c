@@ -1975,7 +1975,7 @@ destructor for a complete object (that must be TRUE for the IA-64 ABI).
 }  /* make_dtor_implied_arg_list */
 
 
-static a_boolean need_zeroing_for_value_initialization(a_dynamic_init_ptr dip)
+a_boolean need_zeroing_for_value_initialization(a_dynamic_init_ptr dip)
 /*
 Return TRUE if the dik_constructor initialization in the indicated
 dynamic initialization is value-initialization that requires zeroing
@@ -10116,9 +10116,6 @@ Do IL lowering of an enk_temp_init expression node.
   an_insert_location insert_location;
   a_boolean          is_constructor_init;
   a_variable_ptr     temp_var;
-#if CHECKING
-  a_boolean          temp_is_reusable = FALSE;
-#endif /* CHECKING */
 
   dip = expr->variant.init.dynamic_init;
   if (dip->kind == (a_dynamic_init_kind)dik_expression &&
@@ -10163,27 +10160,9 @@ Do IL lowering of an enk_temp_init expression node.
       check_assertion(temp_var != NULL ||
                       dip->master_entry->init_destination != NULL);
     } else {
-      /* Create a temporary variable.  Make it static if necessary. */
-      if (!dip->static_temp && !long_lifetime_temps &&
-          !(dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
-          !(dip->kind == (a_dynamic_init_kind)dik_zero) &&
-          !(dip->kind == (a_dynamic_init_kind)dik_constant) &&
-          !(dip->kind == (a_dynamic_init_kind)dik_constructor &&
-            need_zeroing_for_value_initialization(dip)) &&
-          dip->has_temporary_lifetime) {
-        /* Simple case; a temporary that lasts until the end of the full
-           expression will do.  Can't use a reusable temporary if
-           the temporary may end up with an initializer. */
-        temp_var = make_local_temporary(temp_type);
-#if CHECKING
-        temp_is_reusable = TRUE;
-#endif /* CHECKING */
-      } else {
-        temp_var = make_temporary_in_scope(temp_type,
-                                           (a_scope_ptr)NULL,
-                                           (a_boolean)dip->static_temp,
-                                           /*promote_if_necessary=*/TRUE);
-      }  /* if */
+      /* Create a suitable temporary variable for the dynamic
+         initialization. */
+      temp_var = make_temporary_for_dynamic_init(temp_type, dip);
     }  /* if */
     if (temp_var == NULL) {
       /* Initializing something more complex than a variable. */
@@ -10227,8 +10206,6 @@ Do IL lowering of an enk_temp_init expression node.
                        (a_boolean *)NULL,
                        (a_constant **)NULL);
     if (temp_var != NULL) {
-      check_assertion(!temp_is_reusable ||
-                      temp_var->init_kind == (a_dynamic_init_kind)dik_none);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       /* After lowering, the type will no longer be variably-modified. */
       temp_var->has_variably_modified_type = FALSE;

@@ -197,6 +197,8 @@ extern void make_dtor_implied_arg_list(a_routine_ptr    dtor_routine,
                                        an_expr_node_ptr *implied_arg_list,
                                        an_expr_node_ptr *end_implied_arg_list);
 
+extern a_boolean need_zeroing_for_value_initialization(a_dynamic_init_ptr dip);
+
 extern void gen_one_destruction(a_dynamic_init_ptr     dip,
                                 an_insert_location_ptr insert_location);
 

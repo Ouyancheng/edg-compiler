@@ -1815,6 +1815,39 @@ full expression, and can be reused after that.
   }  /* if */
   return temp_var;
 }  /* make_local_temporary */
+
+
+a_variable_ptr make_temporary_for_dynamic_init(a_type_ptr         temp_type,
+                                               a_dynamic_init_ptr dip)
+/*
+Create a temporary variable of type temp_type that will be initialized by
+the dynamic initialization in dip.  If possible a reusable temporary will
+be allocated, but in cases where the initialization may result in a
+constant portion, a non-reusable temporary will be returned.
+*/
+{
+  a_variable_ptr  temp_var;
+
+  check_assertion(dip != NULL);
+  if (!dip->static_temp && !long_lifetime_temps &&
+      !(dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
+      !(dip->kind == (a_dynamic_init_kind)dik_zero) &&
+      !(dip->kind == (a_dynamic_init_kind)dik_constant) &&
+      !(dip->kind == (a_dynamic_init_kind)dik_constructor &&
+        need_zeroing_for_value_initialization(dip)) &&
+      dip->has_temporary_lifetime) {
+    /* Simple case; a temporary that lasts until the end of the full
+       expression will do.  Can't use a reusable temporary if
+       the temporary may end up with an initializer. */
+    temp_var = make_local_temporary(temp_type);
+  } else {
+    temp_var = make_temporary_in_scope(temp_type,
+                                       (a_scope_ptr)NULL,
+                                       (a_boolean)dip->static_temp,
+                                       /*promote_if_necessary=*/TRUE);
+  }  /* if */
+  return temp_var;
+}  /* make_temporary_for_dynamic_init */
   
 
 a_variable_ptr make_unnamed_local_static_variable(a_type_ptr type,
@@ -16516,7 +16549,8 @@ Lower an stmk_return statement.
         /* This must be a C++11 list-initializer case, e.g., "return{x};".
            Initialize a temporary using the dynamic init entry, and return
            the value of the temporary. */
-        temp_var = make_local_temporary(skip_typerefs(return_type));
+        temp_var = make_temporary_for_dynamic_init(skip_typerefs(return_type),
+                                                   dip);
         set_var_init_pos_descr(temp_var, &ipd);
         check_assertion(dip->variable == NULL);
         dip->variable = temp_var;
