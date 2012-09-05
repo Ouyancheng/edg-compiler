@@ -780,7 +780,8 @@ remove_any_extraneous_braces:
                            dip->variant.constant->uses_designated_initializers;
     }  /* if */
     is->has_dynamic_init_component = TRUE;
-    if (exceptions_enabled && dip->destructor != NULL) {
+    if (exceptions_enabled && dip->destructor != NULL &&
+        elem_is.potentially_evaluated) {
       record_partial_aggregate_cleanup_destruction(dip);
     }  /* if */
   }  /* if */
@@ -966,7 +967,11 @@ given position, unless is->no_diagnostics is TRUE.
          constructor before the entire array has been initialized. */
       dtor_rp = get_init_destructor(tp, is, diag_pos);
       if (!is->check_validity_only) {
-        add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+        if (is->potentially_evaluated) {
+          add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+        } else {
+          dip->destructor = dtor_rp;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

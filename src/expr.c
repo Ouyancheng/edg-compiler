@@ -209,6 +209,8 @@ constant and expr_kind is not already a constant expression kind.
     if ((int)expr_kind > (int)ek_init_constant) {
       expr_kind = (an_expression_kind)ek_init_constant;
     }  /* if */
+  } else if (is != NULL && !is->potentially_evaluated) {
+    expr_kind = (an_expression_kind)ek_sizeof;
   }  /* if */
   push_expr_stack(expr_kind, expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,

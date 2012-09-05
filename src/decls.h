@@ -430,6 +430,9 @@ typedef struct an_init_state {
 			/* TRUE if in this context, an initializer for a top-
 			   level array can determine the dimension of that
 			   array (e.g., as in "T x[] = { y, z };"). */
+  a_bit_field	potentially_evaluated:1;
+			/* TRUE if the initializer is potentially evaluated.
+			   So, e.g., FALSE in the operand of a sizeof. */
 } an_init_state;
 
 

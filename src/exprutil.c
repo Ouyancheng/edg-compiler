@@ -5280,6 +5280,7 @@ Fills in some things from expression context.
   if (curr_expr_kind_is_const()) {
     init_state->initializer_must_be_constant = TRUE;
   }  /* if */
+  init_state->potentially_evaluated = curr_expr_is_potentially_evaluated();
 }  /* expr_clear_init_state */
 
 
