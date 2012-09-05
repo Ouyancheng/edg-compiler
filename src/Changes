@@ -1,5 +1,22 @@
 Version 4.5
 
+9/5/12   [EDGcpfe/13171]
+C-generating back end, GNU compatibility: passing NULL to va_list parameter
+
+The C-generating back end generally adds a cast to the parameter type when
+passing NULL (a literal 0) in a function call.  This resulted in incorrect
+code in a call that passes NULL to a parameter of type va_list when using
+gcc on a platform on which __builtin_va_list is an array type.  The
+C-generating back end has now been changed to omit the cast in such calls.
+For example:
+
+  #include <stdarg.h>
+  void f(int, va_list);
+  void g() {
+    f(1, 0);  /* Previously generated as f(1, (va_list)0); */
+  }
+
+
 9/4/12   [EDGcpfe/13149]
 GNU C++ compatibility: failure to match nondependent vector types
 

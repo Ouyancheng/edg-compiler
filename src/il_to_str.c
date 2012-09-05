@@ -4673,30 +4673,46 @@ precedence confusion.  Do the output in the way described by octl.
             (octl->debug_output && !is_nullptr_type(con_type)) ||
 #endif /* DEBUG */
             octl->c_generating_back_end) {
-          /* Give full information about implicit casts when generating
-             debug output and in the C generating back end (for the latter,
-             because casts added by IL lowering are "implicit" but they
-             need to be put out). */
-          need_cast = TRUE;
-          if (octl->gen_compilable_code && C_mode() &&
-              is_directly_variably_modified_type(orig_type)) {
-            /* Casts to directly variably-modified types must be suppressed.
-               That's possible because they are folded into the constant only
-               if they are implicit.  However, we must still deal with the
-               fact that the constant may have been explicitly cast to some
-               other pointer type before it was cast to the variably-modified
-               type. */
-            check_assertion(is_pointer_type(orig_type));
-            need_cast = FALSE;
-            /* For null pointer constants, the extra cast to "void *" is
-               not necessary. */
-            if (constant->kind != (a_constant_repr_kind)ck_integer ||
-                cmplit_integer_constant(constant,
-                                        (a_host_large_integer)0) != 0) {
-              output_optional_open_paren(&need_parens, &need_cast_close_paren,
-                                         octl);
-              octl->output_str("(void *)", octl);
-              cast_already_put_out = TRUE;
+#if GCC_BUILTIN_VARARGS
+          a_type_ptr tp;
+          a_boolean  builtin_va_list = FALSE;
+          for (tp = orig_type;
+               !builtin_va_list && orig_type->kind == (a_type_kind)tk_typeref;
+               tp = tp->variant.typeref.type) {
+            builtin_va_list = tp->is_builtin_va_list;
+          }  /* for */
+          if (builtin_va_list) {
+            /* We must avoid casting to __builtin_va_list because it might
+               be an array type on some systems. */
+          } else
+#endif /* GCC_BUILTIN_VARARGS */
+          /* Do not insert code here. */
+          {
+            /* Give full information about implicit casts when generating
+               debug output and in the C generating back end (for the
+               latter, because casts added by IL lowering are "implicit"
+               but they need to be put out). */
+            need_cast = TRUE;
+            if (octl->gen_compilable_code && C_mode() &&
+                is_directly_variably_modified_type(orig_type)) {
+              /* Casts to directly variably-modified types must be
+                 suppressed.  That's possible because they are folded into
+                 the constant only if they are implicit.  However, we must
+                 still deal with the fact that the constant may have been
+                 explicitly cast to some other pointer type before it was
+                 cast to the variably-modified type. */
+              check_assertion(is_pointer_type(orig_type));
+              need_cast = FALSE;
+              /* For null pointer constants, the extra cast to "void *" is
+                 not necessary. */
+              if (constant->kind != (a_constant_repr_kind)ck_integer ||
+                  cmplit_integer_constant(constant,
+                                          (a_host_large_integer)0) != 0) {
+                output_optional_open_paren(&need_parens,
+                                           &need_cast_close_paren, octl);
+                octl->output_str("(void *)", octl);
+                cast_already_put_out = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
         } else if (is_pointer_type(con_type) &&
