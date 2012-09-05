@@ -21695,7 +21695,10 @@ controls).
        one level (or eliminated, in the case of copy elision).  Therefore
        the dynamic init entry represents the initialization.  Record
        attributes of the initialization in the entry. */
-    dip->is_explicit_cast = is_cast;
+    /* Note that we don't clear the is_explicit_cast flag if it's
+       already set.  An explicitly-cast operand implicitly converted to
+       the same type is still marked as an explicit cast. */
+    if (is_cast) dip->is_explicit_cast = TRUE;
     dip->is_braced_initializer = braced_init;
     if (braced_init) {
       if (expr_stack->possible_rescan_context &&
