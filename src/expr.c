@@ -12577,6 +12577,8 @@ previously-scanned noexcept expression, and return the result in
   int                 noexcept_value;
   a_constant          result_constant;
   a_boolean           dependent_case;
+  a_memory_region_number
+                      region_to_switch_back_to;
 
   db_enter(4, "scan_noexcept_operator");
   check_assertion(noexcept_enabled);
@@ -12604,6 +12606,11 @@ previously-scanned noexcept expression, and return the result in
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_matching_stop_token(tok_rparen);
   }  /* if */
+  /* If we're in the file-scope memory region instead of a function-scope
+     memory region because we're scanning something like an array bound,
+     switch back.  Any expression nodes allocated must be in the function-scope
+     memory region. */
+  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
@@ -12661,6 +12668,7 @@ previously-scanned noexcept expression, and return the result in
                                           (a_token_sequence_number)0,
                                           (a_source_position *)NULL);
   pop_expr_stack();
+  switch_back_to_original_region(region_to_switch_back_to);
   db_exit();
 }  /* scan_noexcept_operator */
 
