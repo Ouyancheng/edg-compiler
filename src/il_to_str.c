@@ -4677,7 +4677,8 @@ precedence confusion.  Do the output in the way described by octl.
           a_type_ptr tp;
           a_boolean  builtin_va_list = FALSE;
           for (tp = orig_type;
-               !builtin_va_list && orig_type->kind == (a_type_kind)tk_typeref;
+               !builtin_va_list && tp != NULL &&
+                                           tp->kind == (a_type_kind)tk_typeref;
                tp = tp->variant.typeref.type) {
             builtin_va_list = tp->is_builtin_va_list;
           }  /* for */
