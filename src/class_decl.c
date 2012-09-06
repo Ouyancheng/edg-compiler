@@ -26957,6 +26957,7 @@ One-time initialization for class_decl.c static variables.
       pch_saved_var_array_elem(num_initializer_fixups_allocated),
       pch_saved_var_array_elem(num_quasi_override_descrs_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      pch_saved_var_array_elem(num_override_exception_check_entries),
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -27016,6 +27017,7 @@ Initializations for class declaration processing.
   num_initializer_fixups_allocated = 0;
   num_quasi_override_descrs_allocated = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  num_override_exception_check_entries = 0;
 #endif /* DEBUG */
   return;
 }  /* class_decl_init */
