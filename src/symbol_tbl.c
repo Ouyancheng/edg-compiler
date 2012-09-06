@@ -14743,6 +14743,7 @@ for space tracking purposes.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   grand_total = db_show_initializer_fixups_used(grand_total);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  grand_total = db_show_override_exception_check_entries_used(grand_total);
 #if IA64_ABI
   grand_total = db_show_covariant_overrides_used(grand_total);
 #endif /* IA64_ABI */
