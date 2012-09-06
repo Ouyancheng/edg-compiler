@@ -1735,18 +1735,19 @@ qualifies as, for example, an integral constant expression.
 
 static a_boolean examine_expr_list_for_unordered_temp_inits(
                      an_expr_node_ptr                    expr_list,
-                     a_boolean                           seq_point_after_first,
+                     a_boolean                           sequenced,
                      an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Examine the list of expressions headed by expr_list, and their subtrees,
-looking for unordered enk_temp_init initializations.  If any are found,
-mark their dynamic initialization entries as unordered.
-If tblock->set_unordered_on_dynamic_inits is TRUE, mark all
-enk_temp_init dynamic initializations as unordered (because of
-something detected higher up in the expression tree).
-If seq_point_after_first is TRUE, there is a sequence point after the
-first expression on the list.  Return TRUE if there are any temp inits
-(unordered or not) in the expression list.
+Examine the list of expressions headed by expr_list, and their
+subtrees, looking for unordered enk_temp_init initializations.  If any
+are found, mark their dynamic initialization entries as unordered.  If
+tblock->set_unordered_on_dynamic_inits is TRUE, mark all enk_temp_init
+dynamic initializations as unordered (because of something detected
+higher up in the expression tree).  If sequenced is TRUE, the
+expressions on the list are sequenced left-to-right (e.g., because
+there is a sequence point after the first expression on the list).
+Return TRUE if there are any temp inits (unordered or not) in the
+expression list.
 */
 {
   a_boolean        saved_result = tblock->result;
@@ -1771,14 +1772,7 @@ first expression on the list.  Return TRUE if there are any temp inits
       /* If there was a previous operand with a temp init, there's an
          ordering problem. */
       if (first_expr_with_temp_init != NULL) {
-        if (seq_point_after_first) {
-          /* Operators with a sequence point after the first never have
-             unordered operands.  The two-operand cases like a && b
-             obviously have no ordering issues, and in a ? b : c
-             b and c are not considered unordered with respect to
-             one another because only one of the two expressions will
-             be evaluated. */
-        } else {
+        if (!sequenced) {
           /* There was a previous expression with a temp init, and the
              current expression has one as well, so there is an ordering
              issue.  Go through the expressions up to this point and
@@ -1901,13 +1895,15 @@ initialization entry as part of looking for unordered temp inits.
   if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
     /* Handle the constructor case here, because the expressions in
        the argument list might be unordered. */
+    a_boolean sequenced = dip->variant.constructor.has_sequenced_arguments;
     (void)examine_expr_list_for_unordered_temp_inits(
                                                dip->variant.constructor.args,
-                                               /*seq_point_after_first=*/FALSE,
+                                               sequenced,
                                                tblock);
     tblock->suppress_subtree_walk = TRUE;
   }  /* if */
-  if (dip->lifetime != NULL) {
+  if (dip->lifetime != NULL &&
+      !dip->destruction_is_for_partially_constructed_aggregate) {
     /* Tell the caller the tree contains a temp init. */
     tblock->result = TRUE;
     if (tblock->set_unordered_on_dynamic_inits) {
@@ -1929,7 +1925,7 @@ as part of looking for unordered temp inits.
 {
   a_boolean             any_temp_inits, any_temp_inits_part_2;
   a_boolean             saved_set_unordered_on_dynamic_inits, saved_result;
-  a_boolean             seq_point_after_first;
+  a_boolean             sequenced;
   an_expr_operator_kind op;
   a_dynamic_init_ptr    dyn_init_to_free_storage;
 
@@ -1937,18 +1933,23 @@ as part of looking for unordered temp inits.
     case enk_operation:
       /* The operands of an operation can be unordered, so handle them
          specially. */
-      seq_point_after_first = FALSE;
+      sequenced = FALSE;
       op = expr->variant.operation.kind;
       if (op == (an_expr_operator_kind)eok_land ||
           op == (an_expr_operator_kind)eok_lor ||
           op == (an_expr_operator_kind)eok_comma ||
           op == (an_expr_operator_kind)eok_question) {
-        /* Operators with a sequence point after the first operand. */
-        seq_point_after_first = TRUE;
+        /* Operators with a sequence point after the first never have
+           unordered operands.  The two-operand cases like a && b
+           obviously have no ordering issues, and in a ? b : c
+           b and c are not considered unordered with respect to
+           one another because only one of the two expressions will
+           be evaluated. */
+        sequenced = TRUE;
       }  /* if */
       (void)examine_expr_list_for_unordered_temp_inits(
                                         expr->variant.operation.operands,
-                                        seq_point_after_first,
+                                        sequenced,
                                         tblock);
       tblock->suppress_subtree_walk = TRUE;
       break;
@@ -1959,7 +1960,7 @@ as part of looking for unordered temp inits.
          operator new or delete function. */
       any_temp_inits = examine_expr_list_for_unordered_temp_inits(
                                         expr->variant.new_delete->arg,
-                                        /*seq_point_after_first=*/FALSE,
+                                        /*sequenced=*/FALSE,
                                         tblock);
       /* The strange dynamic initialization entry that describes the freeing
          of uninitialized storage on an exception is guaranteed to happen
@@ -2000,7 +2001,7 @@ as part of looking for unordered temp inits.
         tblock->set_unordered_on_dynamic_inits = TRUE;
         (void)examine_expr_list_for_unordered_temp_inits(
                                         expr->variant.new_delete->arg,
-                                        /*seq_point_after_first=*/FALSE,
+                                        /*sequenced=*/FALSE,
                                         tblock);
         tblock->relink_dynamic_inits = saved_relink_dynamic_inits;
         /* Also mark the dynamic initialization entry that frees storage as
