@@ -3608,38 +3608,42 @@ constant.
       switch_to_file_scope_region(&region_to_switch_back_to);
       if (template_dependent_bound) {
         /* Template-dependent bound (constant but not a known value). */
-        a_template_param_constant_kind tkind;
-        il_constant = alloc_unshared_constant_full(&constant,
-                                                   /*source_in_il=*/FALSE,
-                                                   /*suppress_copy=*/TRUE);
         check_assertion(constant.kind ==
                                     (a_constant_repr_kind)ck_template_param);
-        tkind = il_constant->variant.template_param.kind;
-        if (tkind == (a_template_param_constant_kind)tpck_expression) {
-          make_bound_expr_referenceable_from_file_scope(
+        if (constant_is_shareable(&constant)) {
+          il_constant = alloc_shareable_constant(&constant);
+        } else {
+          a_template_param_constant_kind tkind;
+          il_constant = alloc_unshared_constant_full(&constant,
+                                                     /*source_in_il=*/FALSE,
+                                                     /*suppress_copy=*/TRUE);
+          tkind = il_constant->variant.template_param.kind;
+          if (tkind == (a_template_param_constant_kind)tpck_expression) {
+            make_bound_expr_referenceable_from_file_scope(
                              &il_constant->variant.template_param.variant.expr,
                              *new_type_ptr,
                              /*dep=*/TRUE);
-        } else if (tkind == (a_template_param_constant_kind)tpck_cast ||
-                   tkind == (a_template_param_constant_kind)tpck_address) {
-          make_bound_expr_referenceable_from_file_scope(
+          } else if (tkind == (a_template_param_constant_kind)tpck_cast ||
+                     tkind == (a_template_param_constant_kind)tpck_address) {
+            make_bound_expr_referenceable_from_file_scope(
                    &il_constant->variant.template_param.variant.constant->expr,
                    *new_type_ptr,
                    /*dep=*/TRUE);
-        } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
-                   tkind == (a_template_param_constant_kind)tpck_alignof ||
-                   tkind == (a_template_param_constant_kind)tpck_uuidof ||
-                   tkind == (a_template_param_constant_kind)tpck_typeid) {
-          make_bound_expr_referenceable_from_file_scope(
+          } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
+                     tkind == (a_template_param_constant_kind)tpck_alignof ||
+                     tkind == (a_template_param_constant_kind)tpck_uuidof ||
+                     tkind == (a_template_param_constant_kind)tpck_typeid) {
+            make_bound_expr_referenceable_from_file_scope(
                 &il_constant->variant.template_param.variant.templ_sizeof.expr,
                 *new_type_ptr,
                 /*dep=*/TRUE);
+          }  /* if */
         }  /* if */
         (*new_type_ptr)->variant.array.variant.element_count_constant =
                                                                    il_constant;
         (*new_type_ptr)->variant.array.is_template_dependent_size_array = TRUE;
       } else {
-        /* Normal constant bound or []. */
+        /* Non-dependent constant bound or []. */
         if (is_constant_bound) {
           /* Save the constant for the bound.  If it has an attached expression
              it may need to be referred to indirectly if the expression is
