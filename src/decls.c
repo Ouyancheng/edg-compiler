@@ -7185,11 +7185,12 @@ for use in generating cross-reference output describing this declaration.
   a_boolean                definition_for_inlining_only = FALSE;
   a_boolean                notify_correspondence_processing = FALSE;
   a_boolean                microsoft_specialization_redef = FALSE;
-  a_type_ptr               orig_type = dps->type, type_ptr, rtp;
+  a_type_ptr               type_ptr, rtp;
   a_routine_type_supplement_ptr
                            rtsp;
   a_storage_class          storage_class = dps->storage_class;
 #if GNU_EXTENSIONS_ALLOWED
+  a_type_ptr               orig_type = dps->type;
   a_boolean                use_gnu_c89_inlining = gnu_c89_inlining;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean                use_std_c99_inlining = std_c99_inlining;
