@@ -714,6 +714,28 @@ Place a partial-override entry on the available list, so it can be reused.
   avail_override_registry_entries = orep;
 }  /* free_override_registry_entry */
 
+/*
+Data structure to record an override pair whose exception specification
+relationship must be checked after the complete class definition has been
+seen.
+*/
+typedef struct an_override_exception_check_entry
+                                *an_override_exception_check_entry_ptr;
+typedef struct an_override_exception_check_entry {
+  an_override_exception_check_entry_ptr
+		next;
+			/* Pointer to the next entry for this class (or NULL
+			   if none). */
+  a_symbol_ptr	overridden_sym, overriding_sym;
+			/* Representation of the base class member and the
+			   derived class member that overrides it,
+			   respectively. */
+  a_source_position
+		diag_pos;
+			/* The position at which to issue a diagnostic in case
+			   of an exception specification mismatch. */
+} an_override_exception_check_entry;
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 /*
@@ -978,6 +1000,13 @@ typedef struct a_class_def_state {
 			/* If the current class is a instance of a class
 			   template, a pointer to the symbol for the
 			   prototype instantiation of that template. */
+  an_override_exception_check_entry_ptr
+		override_exception_check_entries;
+			/* A list of entries describing override pairs whose
+			   exception specification relationship should be
+			   checked only after the complete class has been seen
+			   (and any implicit exception specifications have
+			   been established). */
 #if IA64_ABI
   a_covariant_override_ptr
 		covariant_overrides, last_covariant_override;
@@ -1043,6 +1072,7 @@ class being defined.
   cdsp->override_registry = NULL;
   cdsp->end_of_field_list = NULL;
   cdsp->corresp_prototype_tag_sym = NULL;
+  cdsp->override_exception_check_entries = NULL;
 #if IA64_ABI
   cdsp->covariant_overrides = NULL;
   cdsp->last_covariant_override = NULL;
@@ -1067,6 +1097,62 @@ static void complete_class_definition(a_type_ptr         class_type,
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define treat_declaration_as_okay_in_property_or_event(cdsp)  /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/* Available list of override exception check entries. */
+static an_override_exception_check_entry_ptr
+		avail_override_exception_check_entries;
+
+#if DEBUG
+
+/*
+Counter to track total use of memory.
+*/
+static unsigned long
+		num_override_exception_check_entries;
+
+unsigned long db_show_override_exception_check_entries_used(
+                                                    unsigned long grand_total)
+{
+  unsigned long  num, size, total;
+
+  db_space_used_lost("override exception check entries",
+                     avail_override_exception_check_entries,
+                     num_override_exception_check_entries,
+                     an_override_exception_check_entry);
+  return grand_total;
+}  /* db_show_override_exception_check_entries_used */
+
+#endif /* DEBUG */
+
+static void record_override_exception_check(
+                                         a_class_def_state_ptr  cdsp,
+                                         a_symbol_ptr           overriding_sym,
+                                         a_symbol_ptr           overridden_sym,
+                                         a_source_position      *diag_pos)
+/*
+Allocate a override exception check entry and add it to the list pointed to by
+cdsp.  Initialize the record with the given information.
+*/
+{
+  an_override_exception_check_entry_ptr  oecp;
+
+  if (avail_override_exception_check_entries != NULL) {
+    oecp = avail_override_exception_check_entries;
+    avail_override_exception_check_entries =
+                                 avail_override_exception_check_entries->next;
+  } else {
+    oecp = (an_override_exception_check_entry_ptr)
+                          alloc_fe(sizeof(an_override_exception_check_entry));
+#if DEBUG
+    ++num_override_exception_check_entries;
+#endif /* DEBUG */
+  }  /* if */
+  oecp->next = cdsp->override_exception_check_entries;
+  cdsp->override_exception_check_entries = oecp;
+  oecp->overridden_sym = overridden_sym;
+  oecp->overriding_sym = overriding_sym;
+  oecp->diag_pos = *diag_pos;
+}  /* record_override_exception_check */
 
 #if IA64_ABI
 
@@ -4820,10 +4906,44 @@ restrictive.  Issue an appropriate diagnostic at the given position.
 }  /* report_override_exception_spec_mismatch */
 
 
-static void check_deleted_function_overrides(
-                                               a_symbol_ptr       overrider,
-                                               a_symbol_ptr       overridden,
-                                               a_source_position  *source_pos)
+static void process_override_exception_check_entries(
+                                                  a_class_def_state_ptr  cdsp)
+/*
+If the given class definition state includes a list of override exception
+check entries, perform the described check and free the list.
+*/
+{
+  an_override_exception_check_entry_ptr  oecp;
+
+  oecp = cdsp->override_exception_check_entries;
+  if (oecp != NULL) {
+    for (;; oecp = oecp->next) {
+      a_routine_ptr  brp = oecp->overridden_sym->variant.routine.ptr;
+      a_routine_ptr  drp = oecp->overriding_sym->variant.routine.ptr;
+      if (type_has_less_restrictive_exception_spec(drp->type, brp->type)) {
+        /* The exception specification for the overriding virtual function is
+           less restrictive that that of the overridden function. */
+        report_override_exception_spec_mismatch(oecp->overriding_sym,
+                                                oecp->overridden_sym,
+                                                &oecp->diag_pos);
+      }  /* if */
+      if (oecp->next == NULL) {
+        /* We just processed the last entry: Move the whole list to the
+           available entries list and terminate the loop. */
+        oecp->next = avail_override_exception_check_entries;
+        avail_override_exception_check_entries = 
+                                       cdsp->override_exception_check_entries;
+        cdsp->override_exception_check_entries = NULL;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* process_override_exception_check_entries */
+
+
+static void check_deleted_function_overrides(a_symbol_ptr       overrider,
+                                             a_symbol_ptr       overridden,
+                                             a_source_position  *source_pos)
 /*
 The member function represented by overrider overrides the virtual member
 represented by overridden. Check that if one function is a deleted member, the
@@ -5039,17 +5159,18 @@ return_types_are_override_compatible.
      symbol's "decl_position" for diagnostics. */
   if (rout->compiler_generated) source_pos = &overrider_sym->decl_position;
   rout->is_virtual = TRUE;
-  /* The exception specification relationship between the overriding and
+  /* Check the exception specification relationship between the overriding and
      overridden members. */
-  if (rout->compiler_generated || rout->is_defaulted ||
-      (implicit_noexcept_enabled && special_kind_is(rout, sfk_destructor) &&
+  if ((rout->is_defaulted ||
+       (implicit_noexcept_enabled && special_kind_is(rout, sfk_destructor))) &&
        rout->type->kind == (a_type_kind)tk_routine &&
        rout->type
-          ->variant.routine.extra_info->exception_specification == NULL)) {
-    /* If the exception specification is generated, it will be fine "by
-       construction" (see form_exception_specification_for_generated_function).
-       In fact, we cannot check it at this time, because the implicit exception
-       specification may not yet have been generated. */
+           ->variant.routine.extra_info->exception_specification == NULL) {
+    /* For destructors and defaulted members, the exception specification may
+       not be known until the complete class has been seen.  Delay the check
+       until then. */
+    record_override_exception_check(class_state, overrider_sym, overridden_sym,
+                                    source_pos);
   } else if (type_has_less_restrictive_exception_spec(rout->type, rp->type)) {
     /* The exception specification for the overriding virtual
        function is less restrictive that that of the overridden
@@ -24454,6 +24575,10 @@ bits of information that were acquired while parsing.
     /* Add final checks for the "has_nothrow_copy" and "has_nothing_assign"
        flags. */
     wrapup_nothrow_assign_and_copy_flags(class_type);
+    /* Check the exception specification relationship for override pairs where
+       the overrider's exception specification was not known at the point of
+       declaration. */
+    process_override_exception_check_entries(class_state);
   }  /* if */
   error_position = saved_error_position;
 }  /* complete_class_definition */
