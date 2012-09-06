@@ -1997,7 +1997,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
   a_upc_block_size
               upc_block_size = UPC_BLOCK_SIZE_NONE;
   a_type_ptr  orig_type = type;
-  a_boolean   render_attributes = FALSE;
+  a_type_ptr  attrib_stop_type = type;
 
   if (type == NULL) {
     /* NULL type pointer. */
@@ -2052,8 +2052,10 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
       if (type->variant.typeref.for_type_attributes) {
-        /* The underlying type was modified with an attribute. */
-        render_attributes = TRUE;
+        /* The underlying type was modified with an attribute.  Record
+           the target of the typeref as the end of the typeref chain for
+           output_type_attributes. */
+        attrib_stop_type = type->variant.typeref.type;
       }  /* if */
     }  /* if */
     type = type->variant.typeref.type;
@@ -2134,7 +2136,9 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       form_type_qualifier(qualifiers, upc_block_size, need_trailing_space,
                           octl);
     }  /* if */
-    if (render_attributes) output_type_attributes(orig_type, type, octl);
+    if (attrib_stop_type != orig_type) {
+      output_type_attributes(orig_type, attrib_stop_type, octl);
+    }  /* if */
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
     form_type_first_part(type->variant.ptr_to_member.type,
@@ -2175,7 +2179,9 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       form_type_qualifier(qualifiers, upc_block_size, need_trailing_space,
                           octl);
     }  /* if */
-    if (render_attributes) output_type_attributes(orig_type, type, octl);
+    if (attrib_stop_type != orig_type) {
+      output_type_attributes(orig_type, attrib_stop_type, octl);
+    }  /* if */
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     a_boolean                  is_lambda = is_lambda_body_routine_type(type);
@@ -2247,7 +2253,9 @@ handle_specifiers_type:
                             /*need_trailing_space=*/TRUE, octl);
       }  /* if */
       form_type_specifier(type, octl);
-      if (render_attributes) output_type_attributes(orig_type, type, octl);
+      if (attrib_stop_type != orig_type) {
+        output_type_attributes(orig_type, attrib_stop_type, octl);
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (type->has_microsoft_w64_specifier &&
           !(octl->gen_compilable_code && octl->c_generating_back_end)) {
@@ -2527,7 +2535,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
   a_type_qualifier_set
               qualifiers = TQ_NONE;
   a_type_ptr  orig_type = type;
-  a_boolean   render_attributes = FALSE;
+  a_type_ptr  attrib_stop_type = type;
 
   if (type == NULL) {
     /* NULL type pointer.  Handled in form_type_first_part. */
@@ -2569,8 +2577,10 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
         suppress_const = FALSE;
       }  /* if */
       if (type->variant.typeref.for_type_attributes) {
-        /* The underlying type was modified with an attribute. */
-        render_attributes = TRUE;
+        /* The underlying type was modified with an attribute.  Record
+           the target of the typeref as the end of the typeref chain for
+           output_type_attributes. */
+        attrib_stop_type = type->variant.typeref.type;
       }  /* if */
     }  /* if */
     type = type->variant.typeref.type;
@@ -2607,7 +2617,9 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str(")", octl);
     form_function_declarator(type, octl);
-    if (render_attributes) output_type_attributes(orig_type, type, octl);
+    if (attrib_stop_type != orig_type) {
+      output_type_attributes(orig_type, attrib_stop_type, octl);
+    }  /* if */
     if ((type->variant.routine.extra_info->trailing_return_type ||
          is_lambda_body_routine_type(type)) &&
         !octl->c_generating_back_end) {
@@ -2631,7 +2643,9 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
          declarator parentheses are needed. */
       if (under_lhs_declarator) octl->output_str(")", octl);
       form_array_declarator(type, octl);
-      if (render_attributes) output_type_attributes(orig_type, type, octl);
+      if (attrib_stop_type != orig_type) {
+        output_type_attributes(orig_type, attrib_stop_type, octl);
+      }  /* if */
       if (suppress_const) options |= FTO_SUPPRESS_CONST;
       form_type_second_part(type->variant.array.element_type,
                             /*under_lhs_declarator=*/FALSE,
