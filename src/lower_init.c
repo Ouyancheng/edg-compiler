@@ -10620,13 +10620,32 @@ Generate code for a stmk_init (dynamic initialization) statement.
 }  /* lower_stmk_init */
 
 
+static void insert_temp_init_statements_at_location(
+                                           an_insert_location *insert_location)
+/*
+If there are any pending stmk_init statements (as the result of lowering an
+enk_temp_init node), insert them at the specified location.  (This happens when
+lowering compound literals or non-constant aggregates.)
+*/
+{
+  check_assertion(!is_expr_insert_location_kind(insert_location->kind));
+  while (temp_init_statements != NULL) {
+    a_statement_ptr stmt = temp_init_statements;
+    temp_init_statements = stmt->next;
+    stmt->next = NULL;
+    insert_statement(stmt, insert_location);
+  }  /* while */
+}  /* insert_temp_init_statements_at_location */
+
+
 void insert_temp_init_statements(a_statement_ptr  statement)
 /*
-If there are any pending statements (as the result of lowering an enk_temp_init
-node), insert them before the given statement.  (This happens when lowering
-compound literals or non-constant aggregates.)  If there are pending
-statements, the statement is turned into a block (if it is not one already).
-Caller must be aware that the statement kind may change (into an stmk_block).
+If there are any pending stmk_init statements (as the result of lowering an
+enk_temp_init node), insert them before the given statement.  (This happens
+when lowering compound literals or non-constant aggregates.)  If there are
+pending statements, the statement is turned into a block (if it is not one
+already).  Caller must be aware that the statement kind may change (into an
+stmk_block).
 */
 {
   if (temp_init_statements != NULL) {
@@ -10637,12 +10656,7 @@ Caller must be aware that the statement kind may change (into an stmk_block).
       change_statement_into_block(statement, &orig_stmt);
     }  /* if */
     set_block_start_insert_location(statement, &insert_location);
-    while (temp_init_statements != NULL) {
-      a_statement_ptr stmt = temp_init_statements;
-      temp_init_statements = stmt->next;
-      stmt->next = NULL;
-      insert_statement(stmt, &insert_location);
-    }  /* while */
+    insert_temp_init_statements_at_location(&insert_location);
   }  /* if */
 }  /* insert_temp_init_statements */
 
@@ -12555,13 +12569,12 @@ and NULL otherwise.  The statement(s) created are inserted at
   an_init_pos_descr      ipd;
   an_init_pos_modifier   ipm;
   an_implied_copy_source source_desc;
+  an_insert_location     temp_init_insert_location;
 
   dip = ctor_init->initializer;
   /* Develop a position description for the entity to initialize. */
   develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
   if (base_of_complete_object) ipd.base_of_complete_object = TRUE;
-  /* Shouldn't be any pending compound literal initialization statements. */
-  check_assertion(temp_init_statements == NULL);
   /* Set the source of the implied copy. */
   clear_implied_copy_source(&source_desc);
   source_desc.ctor_init = ctor_init;
@@ -12570,17 +12583,17 @@ and NULL otherwise.  The statement(s) created are inserted at
        lower it. */
     lower_expr(ctor_init->source_expr);
   }  /* if */
+  /* Capture the location to insert any enk_temp_init stmk_init statements. */
+  check_assertion(temp_init_statements == NULL);
+  temp_init_insert_location = *insert_location;
   /* Generate the code to do the initialization. */
   lower_dynamic_init(dip, &ipd,
                      &source_desc, construction_vtbls_var,
                      LDIO_FULL_EXPR, /*others_follow_in_aggr=*/FALSE,
                      insert_location, (a_boolean *)NULL,
                      (a_constant **)NULL);
-  /* Insert compound literal initialization statements, if any. */
-  if (temp_init_statements != NULL) {
-    check_assertion(insert_location->kind == ilk_after_statement);
-    insert_temp_init_statements(insert_location->variant.stmt);
-  }  /* if */
+  /* Insert temporary initialization stmk_init statements, if any. */
+  insert_temp_init_statements_at_location(&temp_init_insert_location);
 }  /* lower_ctor_init */
 
 
@@ -14656,6 +14669,7 @@ to cause the back end to invoke the routine at initialization.
     /* Generate the initializations. */
     for (; dip != NULL; dip = dip_next) {
       an_insert_location_ptr eff_insert_location = &insert_location;
+      an_insert_location     temp_init_insert_location;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
       an_insert_location     insert_location2;
       a_variable_ptr         guard_var = NULL;
@@ -14683,9 +14697,9 @@ to cause the back end to invoke the routine at initialization.
 #if LOWER_DESIGNATED_INITIALIZERS
       lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
-      /* Shouldn't be any pending compound literal initialization
-         statements. */
+      /* Capture the current insert location. */
       check_assertion(temp_init_statements == NULL);
+      temp_init_insert_location = *eff_insert_location;
       lower_dynamic_init(dip, &ipd,
                          (an_implied_copy_source *)NULL,
                          (a_variable_ptr)NULL,
@@ -14693,11 +14707,8 @@ to cause the back end to invoke the routine at initialization.
                          /*others_follow_in_aggr=*/FALSE,
                          eff_insert_location, (a_boolean *)NULL,
                          (a_constant **)NULL);
-      /* Insert compound literal initialization statements, if any. */
-      if (temp_init_statements != NULL) {
-        check_assertion(eff_insert_location->kind == ilk_after_statement);
-        insert_temp_init_statements(eff_insert_location->variant.stmt);
-      }  /* if */
+      /* Insert enk_temp_init stmk_init statements, if any were generated. */
+      insert_temp_init_statements_at_location(&temp_init_insert_location);
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE && \
     IA64_ABI &&                                    \
     !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE

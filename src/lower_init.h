@@ -60,8 +60,10 @@ EXTERN a_boolean
 EXTERN a_statement_ptr
 		temp_init_statements;
 			/* A list of statements that initialize temporaries for
-			   lowered compound literals.  These statements are
-			   inserted by calling insert_temp_init_statements. */
+			   lowered compound literals or non-constant
+			   aggregates.  These stmk_init statements are
+			   inserted before the statement/dynamic
+			   initialization that created them. */
 
 extern void do_ptr_to_data_member_arg_promotion_on_node(an_expr_node_ptr expr);
 
