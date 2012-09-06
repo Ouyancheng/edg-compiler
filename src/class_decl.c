@@ -12523,28 +12523,6 @@ implicitly declared member functions.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_static_member) {
     /* A static member function. */
-    /* If this is a function declared through a typedef, we must use a copy of
-       the underlying type if that type will be modified. */
-    if (type_is_typedef(member_type) &&
-        (rtsp->qualifiers != TQ_NONE || rtsp->this_qualifiers != TQ_NONE ||
-         (locator->is_operator_name && rtsp->exception_specification == NULL &&
-          is_delete_operator(locator->variant.opname)))) {
-      a_type_ptr  rtp = skip_typerefs(member_type);
-      member_type = alloc_type((a_type_kind)tk_routine);
-      copy_type(rtp, member_type);
-      rtsp = member_type->variant.routine.extra_info;
-      /* Check if we are attempting to declare a static member function through
-         a qualified function type typedef. E.g.,
-           typedef void F() const; struct S { static F f; };
-      */
-      if (rtsp->qualifiers != TQ_NONE || rtsp->this_qualifiers != TQ_NONE) {
-        pos_error(ec_bad_qualified_function_type, &locator->source_position);
-        /* Strip any qualifiers from the routine type to avoid problems later
-           on. */
-        rtsp->qualifiers = TQ_NONE;
-        rtsp->this_qualifiers = TQ_NONE;
-      }  /* if */
-    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       if (class_type->variant.class_struct_union.is_interface) {
