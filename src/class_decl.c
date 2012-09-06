@@ -5039,7 +5039,18 @@ return_types_are_override_compatible.
      symbol's "decl_position" for diagnostics. */
   if (rout->compiler_generated) source_pos = &overrider_sym->decl_position;
   rout->is_virtual = TRUE;
-  if (type_has_less_restrictive_exception_spec(rout->type, rp->type)) {
+  /* The exception specification relationship between the overriding and
+     overridden members. */
+  if (rout->compiler_generated || rout->is_defaulted ||
+      (implicit_noexcept_enabled && special_kind_is(rout, sfk_destructor) &&
+       rout->type->kind == (a_type_kind)tk_routine &&
+       rout->type
+          ->variant.routine.extra_info->exception_specification == NULL)) {
+    /* If the exception specification is generated, it will be fine "by
+       construction" (see form_exception_specification_for_generated_function).
+       In fact, we cannot check it at this time, because the implicit exception
+       specification may not yet have been generated. */
+  } else if (type_has_less_restrictive_exception_spec(rout->type, rp->type)) {
     /* The exception specification for the overriding virtual
        function is less restrictive that that of the overridden
        function. */
@@ -9068,6 +9079,54 @@ twice; once to search for templates and again to search for nontemplates.
 }  /* member_function_redecl_sym */
 
 
+void update_dtor_type_exception_specification_if_needed(a_routine_ptr  rp,
+                                                        a_type_ptr     *p_tp)
+/*
+rp represents a destructor and *p_tp a type with which that destructor was
+declared.  If needed, record in *p_tp the exception specification that would
+be generated for a synthesized destructor if rp had not been declared
+explicitly.  p_tp may equal &rp->type.
+*/
+{
+  /* Implicit destructor exception specifications are generated only if
+     implicit_noexcept_enabled is TRUE, and only for declarations that don't
+     include an explicit exception specification. */
+  if (implicit_noexcept_enabled) {
+    a_type_ptr  tp = *p_tp, old_tp;
+    if (tp->kind == (a_type_kind)tk_routine) {
+      a_routine_type_supplement_ptr  rtsp = tp->variant.routine.extra_info,
+                                     old_rtsp;
+      if (rtsp->exception_specification == NULL) {
+        /* Generate the exception specification by calling the function
+           form_exception_specification_for_generated_function while any prior
+           exception specification is moved aside. */
+        old_tp = rp->type;
+        if (old_tp->kind == (a_type_kind)tk_routine) {
+          an_exception_specification_ptr  saved_esp;
+          old_rtsp = old_tp->variant.routine.extra_info;
+          saved_esp = old_rtsp->exception_specification;
+          old_rtsp->exception_specification = NULL;
+          form_exception_specification_for_generated_function(rp);
+          if (p_tp == &rp->type) {
+            /* We're done: The exception specification was generated in
+               rp->type. */
+          } else {
+            /* Move the generated exception specification to *p_tp and restore
+               the prior specification that was temporarily moved aside. */
+            rtsp->exception_specification = old_rtsp->exception_specification;
+            old_rtsp->exception_specification = saved_esp;
+          }  /* if */
+        } else {
+          expect_error();
+        }  /* if */
+      }  /* if */
+    } else {
+      expect_error();
+    }  /* if */
+  }  /* if */
+}  /* update_dtor_type_exception_specification_if_needed */
+
+
 void update_friend_function_info(a_routine_ptr rout_ptr,
                                  a_type_ptr    class_type)
 /*
@@ -9566,21 +9625,25 @@ possibility.
                        &locator->source_position, sym);
           set_to_error_locator(*locator);
         } else {
+          a_routine_ptr  rp = sym->variant.routine.ptr;
           if (func_info->is_definition) {
-            /* WP 11.4 para 5 prohibits defining a member function in a
-               friend declaration. */
+            /* Member functions cannot be defined as part of a friend
+               declaration. */
             pos_sy_error(ec_bad_scope_for_definition,
                          &locator->source_position, sym);
           }  /* if */
           record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                     declarator_ssep);
           /* Do exception specification compatibility checking. */
+          if (special_kind_is(rp, sfk_destructor)) {
+            update_dtor_type_exception_specification_if_needed(
+                                                          rp, &function_type);
+          }  /* if */
           check_exception_specification(function_type, sym,
                                         &func_info->throw_position,
                                         /*is_redecl=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!func_info->is_definition) {
-            a_routine_ptr         rp = sym->variant.routine.ptr;
             a_name_reference_ptr  name_ref = NULL;
             if (record_name_references_in_context()) {
               name_ref = qualifiable_name_reference(locator,
@@ -12195,6 +12258,66 @@ the class.
 }  /* set_initializer_list_ctor_flags */
 
 
+void add_noexcept_specification(a_routine_type_supplement_ptr  rtsp)
+/*
+Add a "noexcept" specification to the given routine type supplement (which
+should not have an associated exception specification yet).
+*/
+{
+  an_exception_specification_ptr  esp = alloc_exception_specification();
+
+  check_assertion(rtsp->exception_specification == NULL);
+
+  esp->is_noexcept = TRUE;
+  esp->compiler_generated = TRUE;
+  esp->variant.noexcept_arg = NULL;
+  rtsp->exception_specification = esp;
+}  /* add_noexcept_specification */
+
+
+void remove_routine_typedef_if_needed(a_symbol_locator    *loc,
+                                      a_decl_parse_state  *dps,
+                                      a_boolean           no_cv_quals)
+/*
+loc and dps describe a function or member function declaration.  If dps->type
+is a typedef, replace it by a copy of the underlying routine type if that type
+may require modification.  If no_cv_quals_okay is TRUE, diagnose and discard
+type qualifiers on the routine if the type appears under a typedef.
+For example:
+    typedef void F() const; struct S { static F f; };
+no_cv_quals is passed TRUE for static member function declarations, which
+ensures this routine will issue an error on this example.
+*/
+{
+  if (type_is_typedef(dps->type)) {
+    a_type_ptr                     rtp = skip_typerefs(dps->type);
+    a_routine_type_supplement_ptr  rtsp = rtp->variant.routine.extra_info;
+    /* Drop the typedef for destructors and deallocation functions with no
+       exception specification (since one may be added implicitly later on).
+       Also drop the typedef for cv-qualified member function types if
+       no_cv_quals is TRUE (and drop the qualification in the copy of the
+       routine type). */
+    if ((no_cv_quals &&
+         (rtsp->qualifiers != TQ_NONE || rtsp->this_qualifiers != TQ_NONE)) ||
+        (rtsp->exception_specification == NULL &&
+         ((loc->is_operator_name && is_delete_operator(loc->variant.opname)) ||
+          loc->is_destructor_name))) {
+      dps->type = alloc_type((a_type_kind)tk_routine);
+      copy_type(rtp, dps->type);
+      rtsp = dps->type->variant.routine.extra_info;
+      if (no_cv_quals &&
+          (rtsp->qualifiers != TQ_NONE || rtsp->this_qualifiers != TQ_NONE)) {
+        pos_error(ec_bad_qualified_function_type, &loc->source_position);
+        /* Strip any qualifiers from the routine type to avoid problems later
+           on. */
+        rtsp->qualifiers = TQ_NONE;
+        rtsp->this_qualifiers = TQ_NONE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* remove_routine_typedef_if_needed */
+
+
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_func_info_block_ptr   func_info,
                                  a_class_def_state_ptr   class_state,
@@ -12230,14 +12353,17 @@ implicitly declared member functions.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_property_or_event_descr_ptr pdp = class_state->property_or_event_descr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean                     is_static_member;
 
   db_enter(3, "decl_member_function");
+  is_static_member = decl_state->storage_class == (a_storage_class)sc_static;
+  remove_routine_typedef_if_needed(locator, decl_state, is_static_member);
   decl_state->is_definition = func_info->is_definition;
   rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled) {
     if (decl_info->is_static_constructor) {
-      check_assertion(decl_state->storage_class == (a_storage_class)sc_static);
+      check_assertion(is_static_member);
     } else if (decl_info->is_finalizer) {
       /* Finalizers can only appear in ref class types. */
       if (!cli_class_type_kind_is(class_type, cctk_ref)) {
@@ -12249,12 +12375,14 @@ implicitly declared member functions.
         /* The member function declaration appears as part of a static
            property or event declaration. */
         decl_state->storage_class = (a_storage_class)sc_static;
-      } else if (decl_state->storage_class == (a_storage_class)sc_static) {
+        is_static_member = TRUE;
+      } else if (is_static_member) {
         /* A static accessor declaration in a non-static property or event
            definition: Issue an error. */
         pos_error(ec_static_accessor_in_nonstatic_property_or_event,
                   &decl_state->storage_class_pos);
         decl_state->storage_class = (a_storage_class)sc_unspecified;
+        is_static_member = FALSE;
       }  /* if */
     }  /* if */
     if (!compiler_generated) {
@@ -12272,7 +12400,7 @@ implicitly declared member functions.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (decl_state->storage_class == (a_storage_class)sc_static) {
+  if (is_static_member) {
     /* A static member function. */
     /* If this is a function declared through a typedef, we must use a copy of
        the underlying type if that type will be modified. */
@@ -12810,8 +12938,7 @@ implicitly declared member functions.
       /* User-defined conversion function. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_param_type_ptr  ptp = rtsp->param_type_list;
-      if (decl_state->storage_class == (a_storage_class)sc_static &&
-          ptp != NULL &&
+      if (is_static_member && ptp != NULL &&
           !valid_static_conversion_class_type(ptp->type, class_type)) {
         /* A static conversion function for a conversion to the enclosing
            class type (instead of from the enclosing class type). */
@@ -12847,27 +12974,21 @@ implicitly declared member functions.
       if (!is_immediate_managed_class_type(class_type) &&
           !class_type->variant.class_struct_union.is_nonreal_class &&
           rtsp->exception_specification == NULL) {
-        if ((compiler_generated &&
-             (special_kind_is(rtn, sfk_constructor) ||
-              (special_kind_is(rtn, sfk_operator) &&
-               rtn->variant.opname_kind == (an_opname_kind)onk_assign))) || 
-            (special_kind_is(rtn, sfk_destructor) &&
-             (implicit_noexcept_enabled || compiler_generated))) {
-          /* A destructor without an explicit exception specification, or a
-             compiler-generated constructor or assignment operator is assumed
-             to throw any exception that can be thrown by any subobject
-             function the generated will call (or "would call" in the case of
-             a non-defaulted destructor declaration). */
+        if (compiler_generated &&
+            (special_kind_is(rtn, sfk_constructor) ||
+             special_kind_is(rtn, sfk_destructor) ||
+             (special_kind_is(rtn, sfk_operator) &&
+              rtn->variant.opname_kind == (an_opname_kind)onk_assign))) {
+          /* A compiler-generated constructor, destructor, or assignment
+             operator is assumed to throw any exception that can be thrown by
+             any subobject function the generated function will call. */
           form_exception_specification_for_generated_function(rtn);
         } else if (implicit_noexcept_enabled &&
                    special_kind_is(rtn, sfk_operator) &&
                    is_delete_operator(rtn->variant.opname_kind)) {
           /* A delete operator without an explicit exception specification is
              treated as if declared "noexcept". */
-          rtsp->exception_specification = alloc_exception_specification();
-          rtsp->exception_specification->is_noexcept = TRUE;
-          rtsp->exception_specification->compiler_generated = TRUE;
-          rtsp->exception_specification->variant.noexcept_arg = NULL;
+          add_noexcept_specification(rtsp);
         }  /* if */
       }  /* if */
       if (rtsp->exception_specification != NULL &&
@@ -12884,7 +13005,7 @@ implicitly declared member functions.
                                !decl_info->invalid_virtual_specifier);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode) {
-        if (decl_state->storage_class == (a_storage_class)sc_static) {
+        if (is_static_member) {
           /* An interface member explicitly declared static. */
           is_virtual = FALSE;
         } else if (check_virtual_interface_member(class_state, rtn, locator)) {
@@ -18110,6 +18231,9 @@ The routine body is not generated until it is known to be needed.
       /* Add the declaration of the destructor. */
       generate_destructor(class_state, gsfd.suppress_dtor);
     }  /* if */
+  } else if (cssp->destructor != NULL) {
+    a_routine_ptr  rp = cssp->destructor->variant.routine.ptr;
+    update_dtor_type_exception_specification_if_needed(rp, &rp->type);
   }  /* if */
   /* Record whether the destructor is "trivial".  Usually, this means that
      cssp->destructor is NULL, but it could also be a defaulted destructor

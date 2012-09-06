@@ -82,6 +82,12 @@ extern void merge_dll_flags_from_parent_class(a_type_ptr          class_type,
 extern void form_exception_specification_for_generated_function(
                                                            a_routine_ptr  rp);
 
+extern void remove_routine_typedef_if_needed(a_symbol_locator    *loc,
+                                             a_decl_parse_state  *dps,
+                                             a_boolean           no_cv_quals);
+
+extern void add_noexcept_specification(a_routine_type_supplement_ptr  rtsp);
+
 extern void check_for_conflicts_with_using_decls(
                                              a_symbol_ptr       overload_sym,
                                              a_source_position  *pos);
@@ -221,6 +227,10 @@ extern a_symbol_ptr member_function_redecl_sym(
                                        a_type_ptr            type,
                                        a_template_param_ptr  templ_param_list,
                                        a_symbol_ptr          *other_match);
+
+extern void update_dtor_type_exception_specification_if_needed(
+                                                        a_routine_ptr  rp,
+                                                        a_type_ptr     *p_tp);
 
 extern a_base_class_ptr find_disambiguator(a_base_class_ptr  bcp1,
                                            a_base_class_ptr  bcp2);

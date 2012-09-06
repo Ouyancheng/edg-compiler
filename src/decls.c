@@ -7185,12 +7185,11 @@ for use in generating cross-reference output describing this declaration.
   a_boolean                definition_for_inlining_only = FALSE;
   a_boolean                notify_correspondence_processing = FALSE;
   a_boolean                microsoft_specialization_redef = FALSE;
-  a_type_ptr               type_ptr = dps->type, rtp = skip_typerefs(type_ptr);
+  a_type_ptr               orig_type = dps->type, type_ptr, rtp;
   a_routine_type_supplement_ptr
-                           rtsp = rtp->variant.routine.extra_info;
+                           rtsp;
   a_storage_class          storage_class = dps->storage_class;
 #if GNU_EXTENSIONS_ALLOWED
-  a_type_ptr               orig_type = type_ptr;
   a_boolean                use_gnu_c89_inlining = gnu_c89_inlining;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean                use_std_c99_inlining = std_c99_inlining;
@@ -7216,6 +7215,12 @@ for use in generating cross-reference output describing this declaration.
     check_assertion_str(srk_flags & SRK_DEFINITION,
                         "decl_routine: missing SRK_DEFINITION");
   }  /* if */
+  /* If this is a function declared through a typedef, we must use a copy of
+     the underlying type if that type will be modified. */
+  remove_routine_typedef_if_needed(locator, dps, /*no_cv_quals=*/TRUE);
+  type_ptr = dps->type;
+  rtp = skip_typerefs(type_ptr);
+  rtsp = rtp->variant.routine.extra_info;
   if (!C_mode()) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* When the declared_type was created (in declarator), the default args
@@ -7238,35 +7243,12 @@ for use in generating cross-reference output describing this declaration.
                           "decl_routine: bad storage class for inline");
     }  /* if */
 #endif /* CHECKING */
-    /* If this is a function declared through a typedef, we must use a copy of
-       the underlying type if that type will be modified. */
-    if (type_is_typedef(type_ptr) &&
-        (rtsp->qualifiers != TQ_NONE || rtsp->this_qualifiers != TQ_NONE ||
-         (locator->is_operator_name && rtsp->exception_specification == NULL &&
-          is_delete_operator(locator->variant.opname)))) {
-      dps->type = type_ptr = alloc_type((a_type_kind)tk_routine);
-      copy_type(rtp, type_ptr);
-      rtp = type_ptr;
-      rtsp = rtp->variant.routine.extra_info;
-      if (rtsp->qualifiers != TQ_NONE || rtsp->this_qualifiers != TQ_NONE) {
-        /* Verify that we are not declaring a const or volatile function
-           through a typedef (other cases are caught while parsing). */
-        pos_error(ec_bad_qualified_function_type, &locator->source_position);
-        /* Strip any qualifiers from the routine type to avoid problems later
-           on. */
-        rtsp->qualifiers = TQ_NONE;
-        rtsp->this_qualifiers = TQ_NONE;
-      }  /* if */
-      if (implicit_noexcept_enabled && locator->is_operator_name &&
-          rtsp->exception_specification == NULL &&
-          is_delete_operator(locator->variant.opname)) {
-        /* A delete operator without an explicit exception specification is
-           treated as if declared "noexcept". */
-        rtsp->exception_specification = alloc_exception_specification();
-        rtsp->exception_specification->is_noexcept = TRUE;
-        rtsp->exception_specification->compiler_generated = TRUE;
-        rtsp->exception_specification->variant.noexcept_arg = NULL;
-      }  /* if */
+    if (implicit_noexcept_enabled && locator->is_operator_name &&
+        rtsp->exception_specification == NULL &&
+        is_delete_operator(locator->variant.opname)) {
+      /* A delete operator without an explicit exception specification is
+         treated as if declared "noexcept". */
+      add_noexcept_specification(rtsp);
     }  /* if */
     /* If this is an overloaded operator, check for errors in the
        argument list. */
@@ -8760,6 +8742,12 @@ definition of a member function of a class template.
         /* Be sure the current throw specification is consistent with the one
            on the previous declaration.  This must be done prior to reconciling
            the type with that of a previous declaration. */
+        if (func_info->is_defaulted && locator->is_destructor_name) {
+          /* For defaulted destructors, an exception specification may need to
+             be generated. */
+          update_dtor_type_exception_specification_if_needed(
+                                   tssp->variant.function.routine, &type_ptr);
+        }  /* if */
         check_exception_specification(type_ptr, sym,
                                       &func_info->throw_position,
                                       /*is_redecl=*/TRUE);
