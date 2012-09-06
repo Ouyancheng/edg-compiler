@@ -19676,7 +19676,7 @@ In C++/CLI mode we also check for the extended forms of access specifiers:
         /* Reflect the current assembly-level access in the scope stack. */
         scope_stack_top().current_assembly_access = state->assembly_access;
       }  /* if */
-      if (curr_token == tok_protected || curr_token == tok_private ||
+      if (state->access != (an_access_specifier)as_public ||
           (cppcli_enabled &&
            state->assembly_access != (an_access_specifier)as_public)) {
         /* "protected" and "private" cannot appear in __interface classes nor
