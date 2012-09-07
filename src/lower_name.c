@@ -5499,8 +5499,7 @@ the dynamic initialization is the result of a static_cast.
       case dik_constructor:
         args = arg_list_from_dyn_init(dip);
         if (args != NULL) {
-          mangled_encoding_for_expression(args, /*in_dependent_expr=*/TRUE,
-                                          mctl);
+          mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
         }  /* if */
         break;
       case dik_zero:
