@@ -2728,7 +2728,12 @@ empty statement block.
     }  /* if */
     rtsp = skip_typerefs(rout_ptr->type)->variant.routine.extra_info;
     rtsp->assoc_routine = rout_ptr;
-    if (rout_ptr->is_defaulted) {
+    if (rout_ptr->is_defaulted && !rout_ptr->defined_outside_of_parent) {
+      /* If a special member is defaulted inside the parent class, it
+         implicitly gets the exception specification that the corresponding
+         implicitly generated member would have had.  If an explicit exception
+         specification is provided, it must be equivalent to the implicitly
+         generated one. */
       /* Save any declared exception specification for later comparison to the
          generated specification. */
       declared_exception_spec = rtsp->exception_specification;
