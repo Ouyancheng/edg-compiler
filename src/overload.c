@@ -20477,7 +20477,14 @@ conversion, etc.)
   check_assertion(is_braced_init_component(list_icp));
   if (p_dip != NULL) *p_dip = NULL;
   if (arg_match != NULL) clear_arg_match_summary(arg_match);
-  if (is_class_struct_union_type(element_type)) {
+  if (curr_expr_kind_is_const()) {
+    /* Not allowed in a constant expression. */
+    if (arg_match != NULL) {
+      arg_match_err = TRUE;
+    } else {
+      expr_pos_error(ec_expr_not_constant, pos);
+    }  /* if */
+  } else if (is_class_struct_union_type(element_type)) {
     a_boolean local_error_detected;
     a_boolean *p_error_detected = NULL;
     if (arg_match != NULL) p_error_detected = &local_error_detected;
@@ -20489,10 +20496,11 @@ conversion, etc.)
     if (arg_match != NULL) {
       if (local_error_detected) arg_match_err = TRUE;
     }  /* if */
-  } else if (!is_complete_object_type(element_type)) {
+  }  /* if */
+  if (!is_complete_object_type(element_type)) {
     /* Something like initializer_list<void>.  There was presumably a
        previous error. */
-    if (expr_error_should_be_issued()) expect_error();
+    if (arg_match == NULL && expr_error_should_be_issued()) expect_error();
     element_type = error_type();
   }  /* if */
   /* The array element type is const-qualified (core issue 1418). */
@@ -20631,22 +20639,15 @@ conversion, etc.)
                                (a_dynamic_init_kind)dik_constant);
     dip->variant.constant = aggr_constant;
     dip->is_braced_initializer = TRUE;
-    if (is_new_expr) {
-      /* For a "new", the array temp gets heap lifetime, so do not enter
-         the destructor or lifetime.  We can't really allocate a temporary
-         on the heap, so we just give it static lifetime so the storage
-         stays around forever.  The standard doesn't mandate this, but
-         not doing it seems gratuitous. */
-      dip->static_temp = TRUE;
-      expr = alloc_temp_init_node_simple(array_type, dip, /*is_lvalue=*/TRUE);
-    } else {
-      /* Normal, non-"new", case. */
-      dip->destructor = dtor;
-      expr = alloc_temp_init_node(array_type, dip,
-                                  /*is_lvalue=*/TRUE,
-                                  /*is_explicit_cast=*/FALSE);
-      if (initializing_var) {
-        extend_temporary_lifetime(dip, static_lifetime);
+    dip->destructor = dtor;
+    expr = alloc_temp_init_node(array_type, dip,
+                                /*is_lvalue=*/TRUE,
+                                /*is_explicit_cast=*/FALSE);
+    if (initializing_var) {
+      extend_temporary_lifetime(dip, static_lifetime);
+    } else if (is_new_expr) {
+      if (arg_match == NULL) {
+        expr_pos_warning(ec_new_of_initializer_list, pos);
       }  /* if */
     }  /* if */
     /* Add the decay from array to pointer. */
@@ -20684,21 +20685,11 @@ conversion, etc.)
       }  /* if */
       if (p_dip != NULL) *p_dip = dip;
       if (operand != NULL) {
-        if (is_new_expr) {
-          /* For a "new", the object gets heap lifetime.  Since we can't
-             allocate a temporary on the heap, give it static lifetime so
-             the storage stays around forever.  The standard doesn't mandate
-             this, but not doing it seems gratuitous. */
-          dip->static_temp = TRUE;
-          expr = alloc_temp_init_node_simple(list_type, dip,
-                                             /*is_lvalue=*/FALSE);
-        } else {
-          expr = alloc_temp_init_node(list_type, dip,
-                                      /*is_lvalue=*/FALSE,
-                                      /*is_explicit_cast=*/FALSE);
-          if (initializing_var) {
-            extend_temporary_lifetime(dip, static_lifetime);
-          }  /* if */
+        expr = alloc_temp_init_node(list_type, dip,
+                                    /*is_lvalue=*/FALSE,
+                                    /*is_explicit_cast=*/FALSE);
+        if (initializing_var) {
+          extend_temporary_lifetime(dip, static_lifetime);
         }  /* if */
         make_expression_operand(expr, operand);
       }  /* if */
