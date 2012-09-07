@@ -5503,6 +5503,8 @@ the dynamic initialization is the result of a static_cast.
                                           mctl);
         }  /* if */
         break;
+      case dik_zero:
+        break;
       default:
         unexpected_condition();
     }  /* switch */
