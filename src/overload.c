@@ -21031,6 +21031,7 @@ controls).
     }  /* if */
   } else if (is_expression_component(icp)) {
     /* The object is initialized by an expression. */
+    init_handled_at_this_level = FALSE;
     if (arg_match != NULL) {
       /* We allow this for generality, but usually this routine will
          not be called for a parameter initialization with an expression;
@@ -21081,7 +21082,6 @@ controls).
                                          conv_context,
                                          ec_bad_initializer_type,
                                          &elision_done, &dip);
-        if (elision_done) init_handled_at_this_level = FALSE;
         if (dip == NULL) {
           /* There was an error. */
           conv_to_error_operand(&operand);
@@ -21585,8 +21585,9 @@ controls).
         if (!operand_is_temp_init_full(&operand, &temp_init_node) ||
             /* If the temp is present but it is already representing something
                special, make another temporary. */
-            !is_generated_dynamic_init(
-                                 temp_init_node->variant.init.dynamic_init)) {
+            !(init_handled_at_this_level &&
+              is_generated_dynamic_init(
+                                 temp_init_node->variant.init.dynamic_init))) {
           if (!is_error_operand(&operand)) {
             /* Make a temporary.  Normally, it's an rvalue, but make an
                lvalue if the caller has requested it. */
