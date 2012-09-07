@@ -20599,7 +20599,7 @@ conversion, etc.)
         if (will_need_partial_aggregate_destructor) {
           /* Add the destructor for partial-aggregate exception cleanup. */
           dip->destructor = dtor;
-          if (curr_expr_is_evaluated()) {
+          if (curr_expr_is_evaluated() && !curr_expr_kind_is_const()) {
             record_partial_aggregate_cleanup_destruction(dip);
           }  /* if */
         }  /* if */
