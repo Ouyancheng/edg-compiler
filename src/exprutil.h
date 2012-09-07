@@ -1735,11 +1735,6 @@ extern void set_temp_dynamic_init_lifetime(a_dynamic_init_ptr dip);
 extern void set_temp_init_dynamic_init_lifetime(
                                               an_expr_node_ptr temp_init_node);
 
-extern
-an_expr_node_ptr alloc_temp_init_node_simple(a_type_ptr         temp_type,
-                                             a_dynamic_init_ptr dip,
-                                             a_boolean          is_lvalue);
-
 extern an_expr_node_ptr alloc_temp_init_node(
                                       a_type_ptr         temp_type,
                                       a_dynamic_init_ptr dip,
