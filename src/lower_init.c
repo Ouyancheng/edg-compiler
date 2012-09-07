@@ -10628,7 +10628,6 @@ enk_temp_init node), insert them at the specified location.  (This happens when
 lowering compound literals or non-constant aggregates.)
 */
 {
-  check_assertion(!is_expr_insert_location_kind(insert_location->kind));
   while (temp_init_statements != NULL) {
     a_statement_ptr stmt = temp_init_statements;
     temp_init_statements = stmt->next;
