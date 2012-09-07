@@ -5405,6 +5405,9 @@ NULL (and in some cases both will be NULL).
       /* Mangle a list of expressions. */
       *expr_list = arg_list_from_dyn_init(dip);
       break;
+    case dik_zero:
+      /* Neither a constant nor an expression. */
+      break;
     default:
       unexpected_condition();
   }  /* switch */
