@@ -20477,6 +20477,7 @@ conversion, etc.)
   check_assertion(is_braced_init_component(list_icp));
   if (p_dip != NULL) *p_dip = NULL;
   if (arg_match != NULL) clear_arg_match_summary(arg_match);
+  complete_type_is_needed(element_type);
   if (curr_expr_kind_is_const()) {
     /* Not allowed in a constant expression. */
     if (arg_match != NULL) {
@@ -20496,11 +20497,14 @@ conversion, etc.)
     if (arg_match != NULL) {
       if (local_error_detected) arg_match_err = TRUE;
     }  /* if */
-  }  /* if */
-  if (!is_complete_object_type(element_type)) {
+  } else if (!is_complete_object_type(element_type)) {
     /* Something like initializer_list<void>.  There was presumably a
        previous error. */
-    if (arg_match == NULL && expr_error_should_be_issued()) expect_error();
+    if (arg_match != NULL) {
+      arg_match_err = TRUE;
+    } else if (expr_error_should_be_issued()) {
+      expect_error();
+    }  /* if */
     element_type = error_type();
   }  /* if */
   /* The array element type is const-qualified (core issue 1418). */
