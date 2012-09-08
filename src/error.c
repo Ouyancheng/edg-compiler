@@ -2696,13 +2696,16 @@ number is added into the output.
   *unicode_source_kind = usk_none;
   *in_curr_src_line = FALSE;
   /* Determine the source position (file, line number). */
+#if !STANDALONE_UTILITY_PROGRAM
   if (processing_predefined_macro) {
     /* The error concerns a line in the predefined macro file. */
     error_text_string = error_text(ec_predef_macro_file);
     *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
                                            error_text_string);
     *line_len += add_string_to_text_buffer(write_diagnostic_buffer, ": ");
-  } else if (error_pos->seq == 0) {
+  } else
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+  if (error_pos->seq == 0) {
     /* Error position is in the command line or in initialization. */
     /* No position indication is written. */
     capitalize_severity = TRUE;

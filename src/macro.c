@@ -8098,8 +8098,8 @@ that occurred.
                 ptr, mdp->object_like ? "TRUE" : "FALSE",
                 cannot_redefine ? "TRUE" : "FALSE");
       }  /* if */
-    }  /* if */
 #endif /* DEBUG */
+    }  /* if */
   }  /* if */
 exit:
   result = TRUE;
