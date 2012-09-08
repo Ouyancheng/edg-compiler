@@ -5912,7 +5912,9 @@ IL entry.
   mp->source_corresp.decl_position = *macro_pos;
   set_source_corresp(&mp->source_corresp, macro_sym);
   mdp->macro = mp;
-  mp->is_command_line_definition = (curr_command_line_macro_def != NULL);
+  mp->is_command_line_definition =
+                                  (curr_cmd_line_or_predef_macro_def != NULL &&
+                                   !processing_predefined_macro);
   mp->is_predefined = mdp->is_predefined;
   mp->object_like = mdp->object_like;
   /* Add the macro to the IL list. */
@@ -6020,7 +6022,7 @@ that repl_text_length does not include the rt_null terminator.
 }  /* equiv_replacement_text */
 
 
-void proc_define(void)
+a_symbol_ptr proc_define(void)
 /*
 Scan and process a #define directive.
 */
@@ -6028,7 +6030,7 @@ Scan and process a #define directive.
   sizeof_t	  repl_text_len;
   char		  *repl_text;
   a_macro_def_ptr mdp;
-  a_symbol_ptr	  assoc_symbol;
+  a_symbol_ptr	  assoc_symbol = NULL;
   a_boolean       any_white_space_skipped;
   sizeof_t	  param_num;
   sizeof_t	  save_param_num;
@@ -6119,7 +6121,8 @@ Scan and process a #define directive.
       copy_source_position(pos_curr_token,
                            locator_for_curr_id.source_position);
       /* The macro symbol is entered in file scope, unless it is a macro
-         resulting from a "-D" command-line option. */
+         resulting from a "-D" command-line option or from the predefined
+         macro file. */
       if (depth_scope_stack == NO_SCOPE_DEPTH) {
         scope_depth = NO_SCOPE_DEPTH;
       } else {
@@ -6242,23 +6245,25 @@ Scan and process a #define directive.
     /* If we're scanning a command-line macro definition option, then the
        next character should be a "=" (or, in GNU mode, possibly a " ").
        Skip it. */
-    if (curr_command_line_macro_def != NULL) {
+    if (curr_cmd_line_or_predef_macro_def != NULL &&
+        !processing_predefined_macro) {
       if (*curr_char_loc != '=' &&
           !(gnu_mode && *curr_char_loc == ' ')) {
         if (gnu_mode) {
           /* The GNU preprocessor accepts command-line definitions of the
              form -DX3.9 with only a warning, treating the macro name as
-             "X3".  We must set curr_command_line_macro_def to NULL before
-             issuing the diagnostic to avoid treating this warning as a
-             catastrophic command-line error. */
-          char *saved_command_line_macro_def = curr_command_line_macro_def;
-          curr_command_line_macro_def = NULL;
+             "X3".  We must set curr_cmd_line_or_predef_macro_def to NULL
+             before issuing the diagnostic to avoid treating this warning
+             as a catastrophic command-line error. */
+          char *saved_command_line_macro_def =
+                                             curr_cmd_line_or_predef_macro_def;
+          curr_cmd_line_or_predef_macro_def = NULL;
           str_warning(ec_equals_assumed_in_cmd_line_macro_def,
                       locator_for_curr_id.symbol_header->identifier);
-          curr_command_line_macro_def = saved_command_line_macro_def;
+          curr_cmd_line_or_predef_macro_def = saved_command_line_macro_def;
         } else {
           str_command_line_error(ec_bad_cmd_line_macro,
-                                 curr_command_line_macro_def);
+                                 curr_cmd_line_or_predef_macro_def);
         }  /* if */
       } else {
         ++curr_char_loc;
@@ -6293,8 +6298,8 @@ Scan and process a #define directive.
     /* Get first token of the replacement text. */
     (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                           &any_white_space_skipped);
-    if (curr_command_line_macro_def == NULL && curr_token != tok_newline &&
-        object_like && !any_white_space_skipped) {
+    if (curr_cmd_line_or_predef_macro_def == NULL &&
+        curr_token != tok_newline && object_like && !any_white_space_skipped) {
       /* In C99 and C++11, an object-like macro definition must have white
          space between the macro name and the replacement list: issue an
          error in strict mode and a warning in all other modes. */
@@ -6311,7 +6316,7 @@ Scan and process a #define directive.
     /* Initialize the token position tracker (but not if this is a
        command-line definition, which will be completely handled at the end of
        processing, or a disallowed redefinition, which will be ignored). */
-    if (curr_command_line_macro_def == NULL &&
+    if (curr_cmd_line_or_predef_macro_def == NULL &&
         assoc_symbol != NULL) {
       init_text_map_position_tracker(&tracker, &macro_text_map,
                                      NO_PARENT_MACRO_INVOCATION);
@@ -6488,7 +6493,7 @@ Scan and process a #define directive.
           /* Any other tokens -- not special, just put into macro buffer
              as raw text. */
 #if FULLY_RESOLVED_MACRO_POSITIONS
-          if (curr_command_line_macro_def == NULL &&
+          if (curr_cmd_line_or_predef_macro_def == NULL &&
               assoc_symbol != NULL) {
             /* This token is from the source file, so we need to register its
                position in the macro text map.  (Command-line definitions are
@@ -6545,9 +6550,9 @@ Scan and process a #define directive.
       a_boolean         discard_new_definition;
       an_error_severity severity;
       an_error_code     code;
-      char              *saved_command_line_macro_def =
-                                                   curr_command_line_macro_def;
-      if (curr_command_line_macro_def == NULL ||
+      char              *saved_macro_def = curr_cmd_line_or_predef_macro_def;
+      if (curr_cmd_line_or_predef_macro_def == NULL ||
+          processing_predefined_macro ||
           assoc_symbol->variant.macro_def->cannot_be_redefined) {
         /* If the redefinition is from the program text or if it is for a
            predefined symbol, check to see if the new definition is benign,
@@ -6581,11 +6586,12 @@ Scan and process a #define directive.
         /* Redefinitions of non-predefined macros on the command line are
            always honored (without checking that they are identical), but
            all other benign redefinitions are discarded. */
-        discard_new_definition = (curr_command_line_macro_def == NULL ||
+        discard_new_definition = (curr_cmd_line_or_predef_macro_def == NULL ||
+                                  processing_predefined_macro ||
                                   assoc_symbol->variant.macro_def->
                                                           cannot_be_redefined);
         if (assoc_symbol->variant.macro_def->cannot_be_redefined &&
-            curr_command_line_macro_def == NULL) {
+            curr_cmd_line_or_predef_macro_def == NULL) {
           /* Even benign redefinitions of predefined symbols from the
              program text are diagnosed. */
           severity = microsoft_mode ? es_warning : es_discretionary_error;
@@ -6598,9 +6604,15 @@ Scan and process a #define directive.
       } else {
         /* This is a non-benign redefinition.  The diagnostic issued and
            whether the redefinition is honored or discarded depend on the
-           emulation, whether the redefinition is from program text or the
-           command line, and whether the symbol was predefined. */
-        if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
+           emulation, whether the redefinition is from program text, the
+           command line, or the predefined macros file, and whether the
+           symbol was predefined. */
+        if (processing_predefined_macro) {
+          /* A predefined macro that changes the definition of an existing
+             macro is always catastrophic. */
+          str_catastrophe(ec_bad_predef_macro_redef,
+                          assoc_symbol->header->identifier);
+        } else if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
           /* A redefinition of a predefined symbol. */
           if (microsoft_mode) {
             discard_new_definition = TRUE;
@@ -6614,7 +6626,7 @@ Scan and process a #define directive.
             discard_new_definition = TRUE;
             severity = es_discretionary_error;
             code = ec_cannot_redef_predef_macro;
-          } else if (curr_command_line_macro_def == NULL) {
+          } else if (curr_cmd_line_or_predef_macro_def == NULL) {
             /* From program text. */
             discard_new_definition = TRUE;
             severity = es_discretionary_error;
@@ -6629,7 +6641,8 @@ Scan and process a #define directive.
           /* A non-predefined symbol. */
           discard_new_definition = FALSE;
           code = ec_bad_macro_redef;
-          if (curr_command_line_macro_def != NULL) {
+          if (curr_cmd_line_or_predef_macro_def != NULL &&
+              !processing_predefined_macro) {
             /* An invalid command-line redefinition is always an error. */
             severity = es_error;
           } else if (strict_ansi_mode) {
@@ -6643,14 +6656,14 @@ Scan and process a #define directive.
         if ((int)severity < (int)es_error) {
           /* Ensure that warnings are printed and discretionary errors do
              not become catastrophic: */
-          curr_command_line_macro_def = NULL;
+          curr_cmd_line_or_predef_macro_def = NULL;
         }  /* if */
         pos_sy_diagnostic(severity, code, &start_pos, assoc_symbol);
-        curr_command_line_macro_def = saved_command_line_macro_def;
+        curr_cmd_line_or_predef_macro_def = saved_macro_def;
       }  /* if */
       if (discard_new_definition) {
 #if FULLY_RESOLVED_MACRO_POSITIONS
-        if (curr_command_line_macro_def == NULL &&
+        if (curr_cmd_line_or_predef_macro_def == NULL &&
             assoc_symbol != NULL) {
           /* Terminate the tracker (and just abandon the text map entries
              added to macro_text_map: they'll be discarded the next time
@@ -6683,8 +6696,9 @@ Scan and process a #define directive.
       mdp->param_list     = param_list;
       mdp->repl_text      = repl_text;
       mdp->variadic       = variadic;
+      mdp->is_predefined  = processing_predefined_macro;
 #if FULLY_RESOLVED_MACRO_POSITIONS
-      if (curr_command_line_macro_def == NULL) {
+      if (curr_cmd_line_or_predef_macro_def == NULL) {
         /* The definition is in the program text, so the text map has been
            built via add_token_to_macro_text_map.  We need to terminate that
            map and then copy it to the one in the macro definition. */
@@ -6735,6 +6749,7 @@ def_done:;
   release_macro_buffer_region();
   registered_pointers = save_registered_pointers;
   db_exit();
+  return assoc_symbol;
 }  /* proc_define */
 
 
@@ -7691,15 +7706,15 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
         /* Should not reach here. */
       }  /* if */
       /* Turn "-D" options into equivalent define directives so that we can
-         leave the processing to proc_define.  Allocate an extra 2 bytes for
-         "-D" options that do not contain an equal; they'll be processed as
-             define id 1
-         (i.e., a "=1" is appended, and the "=" will be skipped).  During this
-         processing, ensure that diagnostics are correctly attributed by
-         setting the global variable curr_command_line_macro_def.  This is
-         also used by proc_define to decide that the "=" introducing the
-         macro definition should be skipped. */
-      curr_command_line_macro_def = du_str;
+         leave the processing to proc_define.  Allocate an extra 2 bytes
+         for "-D" options that do not contain an equal; they'll be
+         processed as define id 1 (i.e., a "=1" is appended, and the "="
+         will be skipped).  During this processing, ensure that diagnostics
+         are correctly attributed by setting the global variable
+         curr_cmd_line_or_predef_macro_def.  This is also used by
+         proc_define to decide that the "=" introducing the macro
+         definition should be skipped. */
+      curr_cmd_line_or_predef_macro_def = du_str;
       du_len = strlen(du_str);
       /* Ensure the buffer holding the logical source line is large enough to
          hold the synthetic line we are going to create. */
@@ -7726,10 +7741,10 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
       curr_source_line[du_len+3] = LE_END_OF_LINE;
       curr_char_loc = curr_source_line;
       logical_char_info_entries_used = 0;
-      proc_define();
-      /* Reset curr_command_line_macro_def so that diagnostics are no longer
-         attributed to the command-line option we just processed. */
-      curr_command_line_macro_def = NULL;
+      (void)proc_define();
+      /* Reset curr_cmd_line_or_predef_macro_def so that diagnostics are no
+         longer attributed to the command-line option we just processed. */
+      curr_cmd_line_or_predef_macro_def = NULL;
     }  /* if */
   }  /* for */
   in_preprocessing_directive = FALSE;
@@ -7971,8 +7986,8 @@ that occurred.
   char		*end_pos;
   a_boolean	cannot_redefine;
   a_boolean	mode_value = FALSE;
-  char		*macro_value;
-  char		*macro_name;
+  sizeof_t      def_len;
+  a_symbol_ptr  macro_sym;
 
 #if DEBUG
   if (db_flag_is_set("predef_macro_entry")) {
@@ -8045,29 +8060,44 @@ that occurred.
     *error_code = ec_missing_macro_name;
     goto error_exit;
   }  /* if */
-  macro_name = ptr;
-  /* Find the end of the name. */
-  for (end_pos = ptr;
-       *end_pos != ' ' && *end_pos != '\t' && *end_pos != '\0'; end_pos++) {}
-  ptr = end_pos;
-  /* Skip any whitespace to find the macro value.  Note that this is done
-     before terminating the name string so we can catch the case of a macro
-     with no value, i.e., where the name-ending delimiter is already a
-     null. */
-  skip_blanks();
-  /* Replace the name-ending delimiter with a null. */
-  *end_pos = '\0';
-  macro_value = ptr;
   if (mode_value) {
-    /* The macro should be defined based on the mode parameters. */
-    (void)enter_predef_macro(macro_value, macro_name, cannot_redefine,
-                             /*ref_suppresses_pch_file=*/FALSE);
+    /* The macro should be defined based on the mode parameters.  Set up to
+       process the macro definition as if it were a #define in a source
+       file. */
+    curr_cmd_line_or_predef_macro_def = ptr;
+    def_len = strlen(ptr);
+    ensure_min_curr_source_line_length(def_len + 2 * LE_ESCAPE_LEN);
+    strcpy(curr_source_line, ptr);
+    curr_source_line[def_len] = LE_ESCAPE;
+    curr_source_line[def_len + 1] = LE_NEWLINE;
+    curr_source_line[def_len + 2] = LE_ESCAPE;
+    curr_source_line[def_len + 3] = LE_END_OF_LINE;
+    curr_char_loc = curr_source_line;
+    logical_char_info_entries_used = 0;
+    /* Process the definition and get the symbol pointer for the new
+       macro. */
+    macro_sym = proc_define();
+    /* Reset the definition pointer to indicate that we have finished with
+       this predefined macro. */
+    curr_cmd_line_or_predef_macro_def = NULL;
+    if (macro_sym != NULL) {
+      /* The macro was successfully defined. */
+      a_macro_def_ptr mdp = macro_sym->variant.macro_def;
+      mdp->cannot_be_redefined = cannot_redefine;
 #if DEBUG
-    if (db_flag_is_set("predef_macro_entry")) {
-      fprintf(f_debug,
-              "  macro_name=%s, value=%s, mode_value=%s, cannot redefine=%s\n",
-              macro_name, macro_value, mode_value ? "TRUE" : "FALSE",
-              cannot_redefine ? "TRUE" : "FALSE");
+      if (db_flag_is_set("predef_macro_entry")) {
+        char* name = ptr;
+        char saved_ch;
+        for ( ; *ptr != ' ' && *ptr != '\t' && *ptr != '\0'; ++ptr) {}
+        saved_ch = *ptr;
+        *ptr = '\0';
+        fprintf(f_debug, "  name&parms=%s, ", name);
+        *ptr = saved_ch;
+        skip_blanks();
+        fprintf(f_debug, "defn=%s, obj-like=%s, cannot redefine=%s\n",
+                ptr, mdp->object_like ? "TRUE" : "FALSE",
+                cannot_redefine ? "TRUE" : "FALSE");
+      }  /* if */
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
@@ -8121,7 +8151,20 @@ file name.
   char		*line;
   unsigned long	line_number = 0;
   an_error_code	error_code;
+  a_boolean     save_expand_macros = expand_macros;
+  a_boolean     save_fetch_pp_tokens = fetch_pp_tokens;
 
+  /* Set a current position indicating that we are looking at the
+     predefined macro file. */
+  set_position_to(pos_curr_token, 0, SP_COL_PREDEFINED_MACRO);
+  set_err_pos_to_curr_token();
+  /* Don't expand macros while preprocessing. */
+  expand_macros = FALSE;
+  in_preprocessing_directive = TRUE;
+  fetch_pp_tokens = TRUE;
+  processing_predefined_macro = TRUE;
+  /* Open the predefined macro file and process its contents one line at
+     a time. */
   f_predef_macros = open_predefined_macro_file();
   while ((line = read_line_from_file(f_predef_macros)) != NULL) {
     line_number++;
@@ -8134,6 +8177,12 @@ file name.
   }  /* while */
   (void)fclose(f_predef_macros);
   f_predef_macros = NULL;
+  processing_predefined_macro = FALSE;
+  fetch_pp_tokens = save_fetch_pp_tokens;
+  in_preprocessing_directive = FALSE;
+  expand_macros = save_expand_macros;
+  set_position_to(pos_curr_token, 0, SP_COL_UNKNOWN);
+  set_err_pos_to_curr_token();
 }  /* process_predefined_macro_file */
 
 

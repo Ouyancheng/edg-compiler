@@ -3841,7 +3841,7 @@ execute the preprocessor directive.
         proc_include(/*is_include_next=*/FALSE, &was_simulated_stdarg_include);
         break;
       case ppd_define:
-        proc_define();
+        (void)proc_define();
         break;
       case ppd_undef:
         proc_undef();

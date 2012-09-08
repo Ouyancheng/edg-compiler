@@ -124,7 +124,7 @@ extern a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
 extern a_token_kind make_pp_int_constant(long value);
 
 /* Process a #define directive. */
-extern void proc_define(void);
+extern a_symbol_ptr proc_define(void);
 
 /* Process an #assert directive. */
 extern void proc_assert(void);

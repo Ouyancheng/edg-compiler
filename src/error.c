@@ -2618,7 +2618,7 @@ the column number is added into the output.
   a_text_buffer_ptr buffer = write_diagnostic_buffer;
 
   /* Print the file and line number, with a column number if it is not
-     SP_COL_UNKINOWN. */
+     SP_COL_UNKNOWN. */
   /* If the line is from stdin, do not display the file name. */
   if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
     (void)sprintf(number_buffer, "%lu", line_number);
@@ -2696,7 +2696,13 @@ number is added into the output.
   *unicode_source_kind = usk_none;
   *in_curr_src_line = FALSE;
   /* Determine the source position (file, line number). */
-  if (error_pos->seq == 0) {
+  if (processing_predefined_macro) {
+    /* The error concerns a line in the predefined macro file. */
+    error_text_string = error_text(ec_predef_macro_file);
+    *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
+                                           error_text_string);
+    *line_len += add_string_to_text_buffer(write_diagnostic_buffer, ": ");
+  } else if (error_pos->seq == 0) {
     /* Error position is in the command line or in initialization. */
     /* No position indication is written. */
     capitalize_severity = TRUE;
@@ -3539,9 +3545,9 @@ current source position and severity or restore the previously saved settings.
       if (seq_is_in_system_header((*error_pos)->seq)) {
         error_threshold_to_use = es_error;
 #if !STANDALONE_UTILITY_PROGRAM
-      } else if (curr_command_line_macro_def != NULL) {
-        /* We are processing a command-line macro definition.  Warnings
-           detected during this process are ignored. */
+      } else if (curr_cmd_line_or_predef_macro_def != NULL) {
+        /* We are processing a command-line or predefined macro definition.
+           Warnings detected during this process are ignored. */
         error_threshold_to_use = es_discretionary_error;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
       }  /* if */
@@ -4316,12 +4322,13 @@ and doing any required expansions, the diagnostic is written.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   if (diag_should_be_issued) {
 #if !STANDALONE_UTILITY_PROGRAM
-    if (curr_command_line_macro_def != NULL) {
+    if (curr_cmd_line_or_predef_macro_def != NULL &&
+        !processing_predefined_macro) {
       /* An error occurred while scanning a command-line macro definition.
          Ignore the original error and issue a general error indicating
          that the macro definition is invalid. */
       str_command_line_error(ec_bad_cmd_line_macro,
-                             curr_command_line_macro_def);
+                             curr_cmd_line_or_predef_macro_def);
     }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     if (severity == es_catastrophe &&

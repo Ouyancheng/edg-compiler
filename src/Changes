@@ -1,5 +1,31 @@
 Version 4.5
 
+9/7/12   [EDGcpfe/12912,EDGcpfe/10729,EDGcpfe/7902,EDGcpfe/7256,EDGcpfe/6547]
+Function-style macros in predefined macros file
+
+Recent versions of gcc, as well as older versions on some platforms,
+predefine some function-style macros (macros with parameters) in addition
+to many object-style macros.  Although the make_predef_macro_table script
+correctly included the function-style macro definitions in its output, the
+front end's processing of the predefined macro file quietly failed to
+create the corresponding macros at compile time.  This has now been
+addressed, and function-style macro definitions in the predefined macro
+file are now fully supported.  For example, given a predefined macro file
+containing the line
+
+  gnu no __INT64_C(c) c ## LL
+
+the line
+
+  long long x = __INT64_C(10);
+
+is equivalent to
+
+  long long x = 10LL;
+
+in --gcc mode with no other #includes or #defines required.
+
+
 9/6/12   [EDGcpfe/13165]
 Incorrect lowering of compound literals or initializer-list constants
 

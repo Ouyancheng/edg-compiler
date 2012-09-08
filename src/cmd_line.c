@@ -9827,7 +9827,8 @@ variables declared in cmd_line.h.
                                                          );
 #endif /* NEED_NAME_MANGLING */
   include_file_suffixes = DEFAULT_INCLUDE_FILE_SUFFIX_LIST;
-  curr_command_line_macro_def = NULL;
+  curr_cmd_line_or_predef_macro_def = NULL;
+  processing_predefined_macro = FALSE;
   ignore_std_namespace = FALSE;
   end_of_line_comments_allowed = FALSE;
   flexible_array_members_allowed = FALSE;

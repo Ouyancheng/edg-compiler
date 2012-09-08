@@ -7744,14 +7744,14 @@ normal_comment:
                                       /*for_comment=*/delete_only_for_comment);
             }  /* if */
             /* Read a new line.  Note the parameter asking that the input
-               stack not be popped, since we need to know about ends of files
-               (it is an error for a comment to be unclosed at the end of the
-               file in which it was opened).  If we are processing command-
-               line macros, we shouldn't attempt to read another line.  Do
-               not warn about a backslash followed by whitespace on the
-               line we are leaving. */
+               stack not be popped, since we need to know about ends of
+               files (it is an error for a comment to be unclosed at the
+               end of the file in which it was opened).  If we are
+               processing command-line or predefined macros, we shouldn't
+               attempt to read another line.  Do not warn about a backslash
+               followed by whitespace on the line we are leaving. */
             pending_nonsplice_backslash = FALSE;
-            if (curr_command_line_macro_def != NULL ||
+            if (curr_cmd_line_or_predef_macro_def != NULL ||
                 read_logical_source_line(/*do_pop_on_end_of_file=*/FALSE,
                                          /*extend_current_line=*/FALSE)) {
               /* End of file encountered, unclosed comment. */
@@ -9075,7 +9075,7 @@ The token can be a normal or wide string literal.
       /* GNU C and C++ versions prior to 3.3 permit a string literal to extend
          over multiple lines. */
       && (!(gnu_mode && gnu_version < 30300) ||
-          curr_command_line_macro_def != NULL ||
+          curr_cmd_line_or_predef_macro_def != NULL ||
           !scan_multiline_string(&num_chars, character_kind))
 #endif  /* GNU_EXTENSIONS_ALLOWED */
                                                       ) {

@@ -1588,11 +1588,20 @@ EXTERN char
 			   the "." delimiter). */
 
 EXTERN char
-		*curr_command_line_macro_def;
+		*curr_cmd_line_or_predef_macro_def;
 			/* Non-NULL if and only if we are processing a
 			   command-line macro definition option of the form
-			   -D<def>.  In that case it points to the null-
-			   terminated byte string <def>. */
+			   -D<def> or a macro definition from the
+			   predefined macros file.  In those case it points
+			   to the null-terminated byte string <def> or the
+			   portion of the line from the predefined macro
+			   file beginning with the macro name. */
+
+EXTERN a_boolean
+		processing_predefined_macro;
+			/* TRUE if curr_cmd_line_or_predef_macro points to
+			   a line from the predefined macro file, FALSE
+			   otherwise. */
 
 EXTERN a_boolean
 		ignore_std_namespace;
