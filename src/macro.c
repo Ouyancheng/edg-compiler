@@ -6008,16 +6008,52 @@ static a_boolean equiv_replacement_text(char		*repl_text,
 					a_macro_def_ptr	mdp)
 /*
 Return TRUE if the replacement text specified by repl_text, with a length
-of repl_text_length, is the same as that of the macro definition mdp.  Note
-that repl_text_length does not include the rt_null terminator.
+of repl_text_length, is the same as that of the macro definition mdp,
+ignoring extra LE_END_OF_TOKEN escapes appearing in repl_text.  Note that
+repl_text_length does not include the rt_null terminator.
 */
 {
-  a_boolean	result;
+  a_boolean	result = FALSE;
 
   check_assertion(repl_text != NULL);
-  result = mdp->repl_text != NULL &&
-           smemcmp(mdp->repl_text, repl_text, repl_text_length) == 0 &&
-           mdp->repl_text[repl_text_length] == (char)rt_null;
+  if (mdp->repl_text != NULL) {
+    /* Step through the two replacement text strings, skipping over
+       LE_END_OF_TOKEN escapes that appear in repl_text but not in the
+       original replacement text, and ignoring the respective lengths of
+       rt_text sections (which can be different because of the presence of
+       LE_END_OF_TOKEN escapes).  (This difference can occur because of
+       predefined macros inserted programmatically, which typically will
+       not have LE_END_OF_TOKEN escapes, and those coming from the
+       predefined macro file, which are handled via proc_define and thus
+       might have them.) */
+    sizeof_t  orig_idx;
+    sizeof_t  new_idx;
+    a_boolean mismatch_seen = FALSE;
+    for (orig_idx = 0, new_idx = 0;
+         !mismatch_seen && new_idx < repl_text_length;
+         ++orig_idx, ++new_idx) {
+      if (repl_text[new_idx] != mdp->repl_text[orig_idx]) {
+        if (repl_text[new_idx] == LE_ESCAPE &&
+            repl_text[new_idx + 1] == LE_END_OF_TOKEN) {
+          /* An LE_END_OF_TOKEN escape in repl_text.  Skip over it and
+             check that the following character matches. */
+          new_idx += LE_ESCAPE_LEN;
+          mismatch_seen = (repl_text[new_idx] != mdp->repl_text[orig_idx]);
+        } else {
+          mismatch_seen = TRUE;
+        }  /* if */
+      } else if (repl_text[new_idx] == (char)rt_text) {
+        /* Don't check the length of rt_text sections, which can be
+           different because of extra LE_END_OF_TOKEN escapes.  A real
+           mismatch causing a length difference will be caught while
+           comparing the text itself. */
+        new_idx += 3;
+        orig_idx += 3;
+      }  /* if */
+    }  /* for */
+    result = (!mismatch_seen &&
+              mdp->repl_text[orig_idx] == (char)rt_null);
+  }  /* if */
   return result;
 }  /* equiv_replacement_text */
 
@@ -6610,6 +6646,11 @@ Scan and process a #define directive.
         if (processing_predefined_macro) {
           /* A predefined macro that changes the definition of an existing
              macro is always catastrophic. */
+#if DEBUG
+          make_definition_string(assoc_symbol);
+          fprintf(f_debug, "Previous definition was:\n  %s\n",
+                  temp_text_buffer);
+#endif /* DEBUG */
           str_catastrophe(ec_bad_predef_macro_redef,
                           assoc_symbol->header->identifier);
         } else if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
