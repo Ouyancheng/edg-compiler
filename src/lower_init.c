@@ -5817,7 +5817,7 @@ dip has already been created.
      cleanup_state_to_set_when_starting_destruction to dip.
      Partial-aggregate cleanups stay on the list, so they are treated like
      any other entries. */
-  if (temp_dip == NULL) goto end_end_of_routine;
+  if (temp_dip == NULL) goto end_of_routine;
   { a_dynamic_init_ptr last_dip;
     a_destructible_entity_descr_ptr last_dedp;
     for (last_dip = temp_dip;

@@ -3721,7 +3721,7 @@ file and line number.  Return the short and long forms of the file name
 in *file_name and *full_name, and the line number in *line_number.
 If the sequence number indicates the end-of-source line, the file names
 will be set to the primary source file, the line number to the last
-line in that file, and *at_end_end_of_source will be set TRUE (it is
+line in that file, and *at_end_of_source will be set TRUE (it is
 set to FALSE in all other cases).  If the sequence number indicates an
 unknown position, the file names will be set to zero-length strings, and 
 the line number to 0.
