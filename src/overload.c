@@ -21692,16 +21692,10 @@ controls).
        the same type is still marked as an explicit cast. */
     if (is_cast) dip->is_explicit_cast = TRUE;
     dip->is_braced_initializer = braced_init;
-    if (braced_init) {
-      if (expr_stack->possible_rescan_context &&
-          (is_cast || (conv_context & CCO_NEW_INITIALIZER))) {
-        /* For cast and new-initializer cases, save the original
-           braced-init-list as rescan info on the dynamic init.  Compound
-           literal cases are handled separately in scan_compound_literal
-           (because of the complex way that runs back and forth between
-           the expression and initializer processing code). */
-        save_rescan_info_for_braced_init_list(dip, icp);
-      }  /* if */
+    if (braced_init && expr_stack->possible_rescan_context) {
+      /* For brace-initialized cases, save the original braced-init-list as
+         rescan info on the dynamic init. */
+      save_rescan_info_for_braced_init_list(dip, icp);
     }  /* if */
   }  /* if */
   if (arg_match != NULL) {
