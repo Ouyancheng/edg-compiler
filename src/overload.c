@@ -20650,7 +20650,7 @@ conversion, etc.)
     if (initializing_var) {
       extend_temporary_lifetime(dip, static_lifetime);
     } else if (is_new_expr) {
-      if (arg_match == NULL) {
+      if (arg_match == NULL && curr_expr_is_evaluated()) {
         expr_pos_warning(ec_new_of_initializer_list, pos);
       }  /* if */
     }  /* if */
