@@ -30304,7 +30304,7 @@ variable.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void generate_enhanced_for_ne_and_incr_expressions(
+static a_boolean generate_enhanced_for_ne_and_incr_expressions(
                                        a_variable_ptr          begin_var,
                                        a_variable_ptr          end_var,
                                        a_boolean               is_for_each,
@@ -30316,6 +30316,7 @@ static void generate_enhanced_for_ne_and_incr_expressions(
 Generate the "!=" and "++" expressions necessary for an "enhanced-for" (either
 a range-based-for or a for-each) statement.  Only for-each statements whose
 kind is sfepk_stl_pattern or sfepk_array_pattern are considered here.
+Return TRUE if everything goes okay, FALSE for an error.
 
 The IL generated for the loop portion of the two enhanced-for statements is
 very similar:
@@ -30414,6 +30415,7 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
   }  /* if */
   /* Done with the "i != cend" or "__begin != __end" expression. */
   pop_expr_stack();
+  if (!passed) goto end_of_routine;
   /* Make the "++i" or "++__begin" expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -30460,6 +30462,8 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
   }  /* if */
   /* Done with the "++i" or "++__begin" expression. */
   pop_expr_stack();
+end_of_routine:
+  return passed;
 }  /* generate_enhanced_for_ne_and_incr_expressions */
 
 
@@ -30481,18 +30485,20 @@ FALSE otherwise.
 */
 {
   an_operand          operand1, operand;
-  a_boolean           processed, passed = TRUE;
+  a_boolean           processed, passed;
   an_expr_stack_entry expr_stack_entry;
 
   check_assertion(rbflp->begin_end_scope == scope_stack_top().il_scope);
   /* Generate the "__begin != __end" and "++__begin" expressions. */
-  generate_enhanced_for_ne_and_incr_expressions(rbflp->begin,
+  passed = generate_enhanced_for_ne_and_incr_expressions(
+                                                rbflp->begin,
                                                 rbflp->end,
                                                 /*is_for_each=*/FALSE,
                                                 expr_position,
                                                 tok_seq_number,
                                                 &rbflp->ne_call_expr,
                                                 &rbflp->incr_call_expr);
+  if (!passed) goto end_of_routine;
   /* Re-push the iterator scope because the initialization of the iterator
      variable has to be handled in that scope. */
   push_block_reactivation_scope(rbflp->iterator_scope, pointers_block);
@@ -30549,6 +30555,7 @@ FALSE otherwise.
   pop_expr_stack();
   /* Pop the iterator scope off the scope stack. */
   pop_block_scope(/*is_final_pop=*/FALSE);
+end_of_routine:
   return passed;
 }  /* fill_in_range_based_for_loop_constructs */
 
@@ -30582,7 +30589,7 @@ previously created, needed to reactivate that scope.
                   felp->kind == (a_for_each_pattern_kind)sfepk_array_pattern);
   check_assertion(felp->for_each_scope == scope_stack_top().il_scope);
   /* Generate "i != cend" and "++i" expressions. */
-  generate_enhanced_for_ne_and_incr_expressions(
+  passed = generate_enhanced_for_ne_and_incr_expressions(
                               felp->temporary_variable,
                               felp->variant.stl_array_pattern.end_variable,
                               /*is_for_each=*/TRUE,
@@ -30590,6 +30597,7 @@ previously created, needed to reactivate that scope.
                               tok_seq_number,
                               &felp->variant.stl_array_pattern.ne_call_expr,
                               &felp->variant.stl_array_pattern.incr_call_expr);
+  if (!passed) goto end_of_routine;
   /* Re-push the iterator scope because the initialization of the iterator
      variable has to be handled in that scope. */
   push_block_reactivation_scope(felp->iterator_scope, pointers_block);
@@ -30659,6 +30667,7 @@ previously created, needed to reactivate that scope.
   pop_expr_stack();
   /* Pop the iterator scope off the scope stack. */
   pop_block_scope(/*is_final_pop=*/FALSE);
+end_of_routine:;
 }  /* fill_in_for_each_loop_constructs */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
