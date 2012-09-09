@@ -1592,10 +1592,10 @@ EXTERN char
 			/* Non-NULL if and only if we are processing a
 			   command-line macro definition option of the form
 			   -D<def> or a macro definition from the
-			   predefined macros file.  In those case it points
-			   to the null-terminated byte string <def> or the
-			   portion of the line from the predefined macro
-			   file beginning with the macro name. */
+			   predefined macros file.  In those cases it
+			   points to the null-terminated byte string <def>
+			   or the portion of the line from the predefined
+			   macro file beginning with the macro name. */
 
 EXTERN a_boolean
 		processing_predefined_macro;
