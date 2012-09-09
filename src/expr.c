@@ -3051,10 +3051,7 @@ been scanned: builtin_func represents the reference to the builtin function
        If the named parameter is a reference, we do not accept the code in
        most modes (the standard makes it undefined behavior), but we do accept
        it when emulating recent GNU C++ compilers. */
-    if (is_expression_operand(&operand) &&
-        (is_an_lvalue(&operand) ||
-         /* g++ allows "this", which is an rvalue. */
-         (gpp_mode && is_variable_node(operand.variant.expression)))) {
+    if (is_expression_operand(&operand)) {
       a_boolean okay = FALSE;
       node2 = operand.variant.expression;
       if (gpp_mode && gnu_version >= 30200) {
@@ -3063,7 +3060,19 @@ been scanned: builtin_func represents the reference to the builtin function
         node2 = strip_ref_indirect(node2, /*parens_also=*/TRUE);
       }  /* if */
       node2 = skip_parens(node2);
-      if (is_variable_node(node2)) {
+      if (gpp_mode &&
+          is_operation_node(node2) &&
+          node_operator_is(node2, eok_cast) &&
+          interchangeable_types(node2->type,
+                                node2->variant.operation.operands->type)) {
+        /* g++ allows a mostly-harmless cast.  (Actually, g++ seems to allow
+           pretty much anything, but we're trying to limit our acceptance to
+           sort-of-okay cases.) */
+        node2 = node2->variant.operation.operands;
+        node2 = skip_parens(node2);
+      }  /* if */
+      if (is_variable_node(node2) &&
+          (node2->is_lvalue || gpp_mode)) {
         if (last_param_var != NULL &&
             node2->variant.variable == last_param_var) {
           /* Correct use of the final parameter. */
