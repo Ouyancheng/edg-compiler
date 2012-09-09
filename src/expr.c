@@ -24405,6 +24405,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_va_arg:
     case tok_va_end:
     case tok_va_copy:
+    case tok_noexcept:
 #if GNU_EXTENSIONS_ALLOWED
     case tok_builtin_offsetof:
     case tok_builtin_types_compatible:
