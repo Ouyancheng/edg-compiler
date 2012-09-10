@@ -1187,6 +1187,12 @@ of lambda expressions.
              param_id->is_parameter_pack) {
         param_id = param_id->next;
       }  /* while */
+      if (param_id == NULL) {
+        /* This can happen with severe errors (particularly with variadic
+           template instantiations). */
+        expect_error();
+        break;
+      }  /* if */
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -1208,10 +1214,10 @@ of lambda expressions.
     }  /* for */
     if ((param_id == NULL) != (ptp == NULL) &&
         param_id != NULL && !param_id->is_parameter_pack) {
-        /* Something went wrong while parsing the template, which caused us to
-           miscount the number of parameters. */
-        check_assertion(total_errors != 0);
-      }  /* if */
+      /* Something went wrong while parsing the template, which caused us to
+         miscount the number of parameters. */
+      check_assertion(total_errors != 0);
+    }  /* if */
     if (vla_enabled && C_mode()) {
       /* Some additional transformations and checks may be needed for
          parameters with variably-modified types.  (In C++ mode, such
