@@ -2805,8 +2805,9 @@ TRUE if this is the function declarator in a friend function declaration.
             }  /* if */
           }  /* if */
           if (curr_token == tok_comma || curr_token == tok_rparen ||
-              curr_token == tok_semicolon || curr_token == tok_rbrace || 
-              curr_token == tok_lbrace) {
+              curr_token == tok_semicolon || 
+              (!list_init_enabled &&
+               (curr_token == tok_rbrace || curr_token == tok_lbrace))) {
             /* There was an "=" sign, but the following token is not one
                that can begin a default argument. */
             invalid_default_arg = TRUE;
