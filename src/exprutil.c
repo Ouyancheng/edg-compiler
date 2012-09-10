@@ -11479,7 +11479,8 @@ the expression.
   }  /* if */
   if (is_an_lvalue(operand) || is_a_function_designator(operand)) {
     check_assertion(!rvalue_expected);
-  } else if (is_an_rvalue(operand)) {
+  } else if (is_an_rvalue(operand) ||
+             is_braced_init_list_operand(operand)) {
     if (lvalue_expected) {
       /* The operand is an rvalue, and the operation expects an lvalue.
          Add an eok_lvalue node. */
