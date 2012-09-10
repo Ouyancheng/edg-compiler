@@ -4247,9 +4247,7 @@ explicitly dealt with later in expression mangling.
                                                               (a_type **)NULL);
         check_assertion(dip != NULL);
       }  /* if */
-      if (!dip->is_explicit_cast &&
-          !dip->is_compound_literal &&
-          !dip->is_braced_initializer) {
+      if (is_generated_dynamic_init(dip)) {
         /* Remove implicit operations. */
         expr = arg_list_from_dyn_init(dip);
       }  /* if */
@@ -5497,10 +5495,7 @@ the dynamic initialization is the result of a static_cast.
     switch (dip->kind) {
       case dik_expression:
       case dik_constructor:
-        args = arg_list_from_dyn_init(dip);
-        if (args != NULL) {
-          mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
-        }  /* if */
+        mangled_list(arg_list_from_dyn_init(dip), (a_constant*)NULL, mctl);
         break;
       case dik_zero:
         break;
@@ -6057,9 +6052,7 @@ is TRUE.
       {
         a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
         check_assertion(dip != NULL &&
-                        (dip->is_explicit_cast ||
-                         dip->is_braced_initializer ||
-                         dip->is_compound_literal));
+                        !is_generated_dynamic_init(dip));
         mangled_dynamic_init(dip, expr->type, expr->is_static_cast, mctl);
       }
       break;
