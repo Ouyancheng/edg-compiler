@@ -12613,9 +12613,6 @@ previously-scanned noexcept expression, and return the result in
     check_assertion(curr_token == tok_noexcept);
     start_position = pos_curr_token;
     (void)get_token();
-    /* Check for and pass over the left parenthesis. */
-    (void)required_token(tok_lparen, ec_exp_lparen);
-    add_matching_stop_token(tok_rparen);
   }  /* if */
   /* If we're in the file-scope memory region instead of a function-scope
      memory region because we're scanning something like an array bound,
@@ -12633,6 +12630,9 @@ previously-scanned noexcept expression, and return the result in
        previously-scanned expression. */
     make_rescan_operand(expr->variant.operation.operands, rcblock, &operand);
   } else {
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_matching_stop_token(tok_rparen);
     /* Scan the expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
   }  /* if */
