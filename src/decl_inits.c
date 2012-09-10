@@ -754,7 +754,9 @@ remove_any_extraneous_braces:
   elem_is.direct_init = FALSE;
   convert_initializer(icp, dest_type, /*is_var_init=*/FALSE,
                       /*fill_in_dtor=*/exceptions_enabled, &elem_is);
-  is->init_error = elem_is.init_error || is_error_component(icp);
+  if (elem_is.init_error || is_error_component(icp)) {
+    is->init_error = TRUE;
+  }  /* if */
   if (is->check_validity_only) {
     /* No return value. */
     *init_con = NULL;
