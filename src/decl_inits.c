@@ -1513,9 +1513,10 @@ initialization).  *is describes the initialization as a whole.
         break;
       }  /* if */
     }  /* while */
-    if ((!no_bound && icount < ecount) ||
-        (is->variable_size_array && !is->non_top_level_aggregate &&
-         !is_template_dependent_type(etype))) {
+    if (!is->init_error &&
+        ((!no_bound && icount < ecount) ||
+         (is->variable_size_array && !is->non_top_level_aggregate &&
+          !is_template_dependent_type(etype)))) {
       /* Not all array elements are explicitly initialized: Append an entry
          to initialize the remaining elements.  As special case occurs for
          expressions like "new T[x]{...}" where the number of uninitialized
