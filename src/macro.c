@@ -6032,8 +6032,9 @@ repl_text_length does not include the rt_null terminator.
     for (orig_idx = 0, new_idx = 0;
          !mismatch_seen && new_idx < repl_text_length;
          ++orig_idx, ++new_idx) {
-      if (repl_text[new_idx] != mdp->repl_text[orig_idx]) {
-        if (repl_text[new_idx] == LE_ESCAPE &&
+      char ch = repl_text[new_idx];
+      if (ch != mdp->repl_text[orig_idx]) {
+        if (ch == LE_ESCAPE &&
             repl_text[new_idx + 1] == LE_END_OF_TOKEN) {
           /* An LE_END_OF_TOKEN escape in repl_text.  Skip over it and
              check that the following character matches. */
@@ -6042,13 +6043,30 @@ repl_text_length does not include the rt_null terminator.
         } else {
           mismatch_seen = TRUE;
         }  /* if */
-      } else if (repl_text[new_idx] == (char)rt_text) {
+      } else if (ch == (char)rt_text) {
         /* Don't check the length of rt_text sections, which can be
            different because of extra LE_END_OF_TOKEN escapes.  A real
            mismatch causing a length difference will be caught while
            comparing the text itself. */
         new_idx += 3;
         orig_idx += 3;
+      } else if (ch == (char)rt_raw_argument ||
+                 ch == (char)rt_stringized_raw_argument ||
+                 ch == (char)rt_charized_raw_argument ||
+                 ch == (char)rt_argument) {
+        /* Check to ensure the argument number matches, then skip over
+           it. */
+        mismatch_seen =
+                    !(repl_text[new_idx + 1] == mdp->repl_text[orig_idx + 1] &&
+                      repl_text[new_idx + 2] == mdp->repl_text[orig_idx + 2] &&
+                      repl_text[new_idx + 3] == mdp->repl_text[orig_idx + 3]);
+        new_idx += 3;
+        orig_idx += 3;
+      } else if (ch == LE_ESCAPE) {
+        /* Check to make sure it's the same escape, then skip over it. */
+        mismatch_seen = repl_text[new_idx + 1] != mdp->repl_text[orig_idx + 1];
+        ++new_idx;
+        ++orig_idx;
       }  /* if */
     }  /* for */
     result = (!mismatch_seen &&
