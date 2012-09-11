@@ -211,7 +211,7 @@ This is now fixed.  (Note that while such cases are normally invalid they are
 usually accepted in GNU and Microsoft modes.)
 
 
-8/27/12  [EDGcpfe/11674]
+8/27/12  [EDGcpfe/11674,EDGcpfe/11675]
 Defaulted explicit and/or nonpublic members
 
 Previously the front end did not accept "= default" in a class definition for
