@@ -5495,7 +5495,10 @@ the dynamic initialization is the result of a static_cast.
     switch (dip->kind) {
       case dik_expression:
       case dik_constructor:
-        mangled_list(arg_list_from_dyn_init(dip), (a_constant*)NULL, mctl);
+        args = arg_list_from_dyn_init(dip);
+        if (args != NULL) {
+          mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
+        }  /* if */
         break;
       case dik_zero:
         break;
