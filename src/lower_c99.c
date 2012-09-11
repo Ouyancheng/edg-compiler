@@ -3652,7 +3652,7 @@ in C99 mode to represent a compound literal.
                               alloc_statement((a_statement_kind)stmk_vla_decl);
     stmk_vla_decl_stmt->variant.vla.is_typedef_decl = FALSE;
     stmk_vla_decl_stmt->variant.vla.variant.variable = var;
-    add_to_end_of_temp_init_statements_list(stmk_vla_decl_stmt);
+    add_to_end_of_pending_stmk_init_statements_list(stmk_vla_decl_stmt);
   }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   if (var->init_kind == (an_init_kind)initk_zero &&
@@ -4075,7 +4075,8 @@ Do C99 lowering on the indicated statement.
 #endif /* DEBUG */
 
   if (statement != NULL) {
-    a_statement_ptr   saved_temp_init_statements = temp_init_statements;
+    a_statement_ptr   saved_pending_stmk_init_statements =
+                                                  pending_stmk_init_statements;
     a_source_position saved_error_position, saved_code_pos;
 
 #if DEBUG
@@ -4085,7 +4086,7 @@ Do C99 lowering on the indicated statement.
       db_statement(statement);
     }  /* if */
 #endif /* DEBUG */
-    temp_init_statements = NULL;
+    pending_stmk_init_statements = NULL;
     /* Track the source position. */
     saved_code_pos = code_pos_for_lowering;
     set_position_from_stmt_source_position(code_pos_for_lowering,
@@ -4206,8 +4207,8 @@ Do C99 lowering on the indicated statement.
       default:
         unexpected_condition_str("lower_c99_statement: bad statement kind");
     }  /* switch */
-    insert_temp_init_statements(statement);
-    temp_init_statements = saved_temp_init_statements;
+    insert_pending_stmk_init_statements(statement);
+    pending_stmk_init_statements = saved_pending_stmk_init_statements;
     error_position = saved_error_position;
     code_pos_for_lowering = saved_code_pos;
 #if DEBUG
@@ -4425,7 +4426,7 @@ Do C99 lowering for all entities in and under the given scope.
   if (scope->kind == (a_scope_kind)sck_function) {
     /* Lower the function block statement. */
     lower_c99_statement(scope->assoc_block);
-    insert_temp_init_statements(scope->assoc_block);
+    insert_pending_stmk_init_statements(scope->assoc_block);
 #if MINIMAL_INLINING
     if (inlining_enabled && scope->variant.routine.ptr->is_inline) {
       /* For an inline routine, set the inlinable flag now that the body has
@@ -4810,7 +4811,7 @@ Do one-time initialization of variables related to C99 IL lowering.
   register_trans_unit_variable(vla_dealloc_routine);
   register_trans_unit_variable(vla_alloc_routine);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-  register_trans_unit_variable(temp_init_statements);
+  register_trans_unit_variable(pending_stmk_init_statements);
 #if MINIMAL_INLINING
   /* Do inline.c initialization. */
   if (inlining_enabled) inline_one_time_init();
@@ -4890,7 +4891,7 @@ for each translation unit.
   vla_dealloc_routine = NULL;
   vla_alloc_routine = NULL;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-  temp_init_statements = NULL;
+  pending_stmk_init_statements = NULL;
 #if MINIMAL_INLINING
   /* Do inline.c initialization. */
   if (inlining_enabled) inline_init();

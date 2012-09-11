@@ -389,6 +389,12 @@ typedef enum an_insert_location_kind {
   (kind) == ilk_expr_creation)
 #define is_expr_insert_location(insert_location)                      \
   is_expr_insert_location_kind((insert_location)->kind)
+/* Macros for testing whether an insert location refers to an "empty"
+   statement insert location. */
+#define is_empty_statement_insert_location_kind(kind)                 \
+ ((kind) == ilk_block_start || (kind) == ilk_statement_creation)
+#define is_empty_statement_insert_location(insert_location)           \
+  is_empty_statement_insert_location_kind((insert_location)->kind)
 
 typedef struct an_insert_location *an_insert_location_ptr;
 typedef struct an_insert_location {
@@ -396,14 +402,26 @@ typedef struct an_insert_location {
 		kind;	/* Kind of insert location: after expression,
 			   after statements, etc. */
   union {
-    /* When kind == ilk_after_statement or kind == ilk_block_start: */
-    a_statement_ptr
+    /* When kind == ilk_after_statement
+       or   kind == ilk_block_start
+       or   kind == ilk_statement_creation: */
+    struct {
+      a_statement_ptr
 		stmt;	/* The statement to insert after, or the block to
 			   insert at the start of.  In the ilk_after_statement
 			   case, the statement must be part of a statement
 			   sequence, not, for example, the dependent statement
 			   of an "if". */
-    /* When kind == ilk_before_expr or kind == ilk_after_expr: */
+      a_statement_ptr
+		marker;	/* Points to a "marked" statement within the
+			   insert location if non-NULL. */
+      a_byte_boolean
+		is_marked;
+			/* TRUE if this insert location has been "marked". */
+    } statement;
+    /* When kind == ilk_before_expr
+       or   kind == ilk_after_expr
+       or   kind == ilk_expr_creation: */
     an_expr_node_ptr
 		expr;	/* The expression to insert before or after. */
   } variant;
@@ -796,8 +814,7 @@ extern a_boolean contains_ptr_to_data_member(a_type_ptr type);
 
 extern void lower_initializer(a_variable_ptr     variable,
                               an_init_kind       *init_kind,
-                              an_initializer_ptr initializer,
-                              an_insert_location *insert_location);
+                              an_initializer_ptr initializer);
 #endif /* IA64_ABI */
 
 extern a_type_ptr get_underlying_type(a_type_ptr type);
@@ -904,6 +921,8 @@ is necessary.
 extern void insert_statement_full(a_statement_ptr        statement,
                                   an_insert_location_ptr insert_location,
                                   a_boolean              perform_post_pass);
+
+extern void set_insert_location_mark(an_insert_location_ptr insert_location);
 
 extern a_statement_ptr insert_expr_statement(
                                        an_expr_node_ptr       node,

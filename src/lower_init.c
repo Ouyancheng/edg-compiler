@@ -108,6 +108,8 @@ static void turn_off_freeing_of_storage_on_exception(
                              a_routine_ptr               new_routine,
                              an_expr_node_ptr            init_expr,
                              an_insert_location          *insert_location);
+static void insert_pending_stmk_init_statements_at_mark(
+                                          an_insert_location *insert_location);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -3295,6 +3297,8 @@ typedef struct a_generated_routine_context {
 		promoted_local_static_variable_inits;
   an_eh_lowering_context
 		ehcontext;
+  a_statement_ptr
+                pending_stmk_init_statements;
 } a_generated_routine_context;
 
 
@@ -3326,6 +3330,8 @@ grcontext is a local variable used to save state for later restoration.
   grcontext->promoted_local_static_variable_inits = 
                                           promoted_local_static_variable_inits;
   promoted_local_static_variable_inits = NULL;
+  grcontext->pending_stmk_init_statements = pending_stmk_init_statements;
+  pending_stmk_init_statements = NULL;
   save_eh_lowering_context(&grcontext->ehcontext);
   add_object_lifetime_to_function_scope(scope);
   push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
@@ -3400,6 +3406,8 @@ Pop function corresponding to push_generated_routine_context.
   return_memo_list = grcontext->return_memo_list;
   processing_file_scope_init_routine =
                                  grcontext->processing_file_scope_init_routine;
+  check_assertion(pending_stmk_init_statements == NULL);
+  pending_stmk_init_statements = grcontext->pending_stmk_init_statements;
   innermost_function_scope = grcontext->innermost_function_scope;
   depth_innermost_function_scope = grcontext->depth_innermost_function_scope;
   check_for_done_with_memory_region(region_number);
@@ -6893,8 +6901,11 @@ to a constructor to be called after the zeroing have been done.
                                       scope, /*force_static=*/FALSE,
                                       /*promote_if_necessary=*/FALSE);
   model_var->init_kind = (an_init_kind)initk_zero;
-  lower_initializer(model_var, &model_var->init_kind, &model_var->initializer,
-                    &insert_location);
+  /* Mark the location where any generated stmk_init statements should go. */
+  set_insert_location_mark(&insert_location);
+  lower_initializer(model_var, &model_var->init_kind, &model_var->initializer);
+  /* Insert any generated stmk_inits at the previously marked location. */
+  insert_pending_stmk_init_statements_at_mark(&insert_location);
   if (need_array_count) {
     an_expr_node_ptr  expr;
     /* Build a loop to zero-initialize the entities. */
@@ -8519,7 +8530,7 @@ do_assignment:;
         /* Check for the need to generate code to zero pointers to data
            members. */
         lower_initializer(variable, &variable->init_kind,
-                          &variable->initializer, eff_insert_location);
+                          &variable->initializer);
 #endif /* IA64_ABI */
       } else {
         variable->init_kind = (an_init_kind)initk_none;
@@ -10217,7 +10228,7 @@ Do IL lowering of an enk_temp_init expression node.
                               alloc_statement((a_statement_kind)stmk_vla_decl);
         stmk_vla_decl_stmt->variant.vla.is_typedef_decl = FALSE;
         stmk_vla_decl_stmt->variant.vla.variant.variable = temp_var;
-        add_to_end_of_temp_init_statements_list(stmk_vla_decl_stmt);
+        add_to_end_of_pending_stmk_init_statements_list(stmk_vla_decl_stmt);
       }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       if (temp_var->init_kind == (an_init_kind)initk_zero) {
@@ -10231,7 +10242,7 @@ Do IL lowering of an enk_temp_init expression node.
           /* static temporary.  Check for the need to change the initial
              value to set pointers to data members to -1. */
           lower_initializer(temp_var, &temp_var->init_kind,
-                            &temp_var->initializer, &insert_location);
+                            &temp_var->initializer);
 #endif /* IA64_ABI */
         }  /* if */
       }  /* if */
@@ -10620,34 +10631,33 @@ Generate code for a stmk_init (dynamic initialization) statement.
 }  /* lower_stmk_init */
 
 
-static void insert_temp_init_statements_at_location(
+static void insert_pending_stmk_init_at_location(
                                            an_insert_location *insert_location)
 /*
-If there are any pending stmk_init statements (as the result of lowering an
-enk_temp_init node), insert them at the specified location.  (This happens when
-lowering compound literals or non-constant aggregates.)
+Insert any pending stmk_init statements at the specified insert_location
+(updating it as necessary).
 */
 {
-  while (temp_init_statements != NULL) {
-    a_statement_ptr stmt = temp_init_statements;
-    temp_init_statements = stmt->next;
+  while (pending_stmk_init_statements != NULL) {
+    a_statement_ptr stmt = pending_stmk_init_statements;
+    pending_stmk_init_statements = stmt->next;
     stmt->next = NULL;
     insert_statement(stmt, insert_location);
   }  /* while */
-}  /* insert_temp_init_statements_at_location */
+}  /* insert_pending_stmk_init_at_location */
 
 
-void insert_temp_init_statements(a_statement_ptr  statement)
+void insert_pending_stmk_init_statements(a_statement_ptr  statement)
 /*
-If there are any pending stmk_init statements (as the result of lowering an
-enk_temp_init node), insert them before the given statement.  (This happens
-when lowering compound literals or non-constant aggregates.)  If there are
-pending statements, the statement is turned into a block (if it is not one
-already).  Caller must be aware that the statement kind may change (into an
-stmk_block).
+If there are any pending stmk_init statements (e.g., as the result of lowering
+an enk_temp_init node), insert them before the given statement.  This happens
+when lowering compound literals, non-constant aggregates, ptr-to-data-member
+constants (in the IA-64 ABI) and some VLA s.  If there are pending statements,
+the statement is turned into a block (if it is not one already).  Caller must
+be aware that the statement kind may change (into an stmk_block).
 */
 {
-  if (temp_init_statements != NULL) {
+  if (pending_stmk_init_statements != NULL) {
     /* Insert statements before the given statement. */
     an_insert_location insert_location;
     if (statement->kind != (a_statement_kind)stmk_block) {
@@ -10655,9 +10665,37 @@ stmk_block).
       change_statement_into_block(statement, &orig_stmt);
     }  /* if */
     set_block_start_insert_location(statement, &insert_location);
-    insert_temp_init_statements_at_location(&insert_location);
+    insert_pending_stmk_init_at_location(&insert_location);
   }  /* if */
-}  /* insert_temp_init_statements */
+}  /* insert_pending_stmk_init_statements */
+
+
+static void insert_pending_stmk_init_statements_at_mark(
+                                           an_insert_location *insert_location)
+/*
+Insert any pending stmk_init statements at the location that has been
+previously marked in *insert_location.  *insert_location is only updated
+if the statements being added occur at the "end" of the insert_location.
+*/
+{
+  check_assertion(!is_expr_insert_location(insert_location) &&
+                  insert_location->variant.statement.is_marked);
+  if (pending_stmk_init_statements != NULL) {
+    if (insert_location->variant.statement.marker == NULL) {
+      /* If the marker is NULL, then we're being asked to insert at
+         the beginning of a block or statement creation location, so simply
+         insert the stmk_inits at the beginning (which updates the
+         here-to-fore empty insert_location). */
+      check_assertion(is_empty_statement_insert_location(insert_location));
+      insert_pending_stmk_init_at_location(insert_location);
+    } else {
+      /* Insert before the marked statement (but don't update the
+         insert_location). */
+      insert_pending_stmk_init_statements(
+                                    insert_location->variant.statement.marker);
+    }  /* if */
+  }  /* if */
+}  /* insert_pending_stmk_init_statements_at_mark */
 
 
 static void add_stmk_init_for_temp_init(a_variable_ptr      var,
@@ -10666,7 +10704,7 @@ static void add_stmk_init_for_temp_init(a_variable_ptr      var,
 var represents a temporary variable created to hold the value of a compound
 literal or array, while dip describes the required dynamic initialization.
 Create the stmk_init statement required for this initialization, and add it to
-the temp_init_statements list.
+the pending_stmk_init_statements list.
 */
 {
   a_statement_ptr  stmk_init_stmt =
@@ -10675,7 +10713,7 @@ the temp_init_statements list.
   stmk_init_stmt->variant.dynamic_init = dip;
   /* Put the statement on a list to be inserted when we get back to
      statement level. */
-  add_to_end_of_temp_init_statements_list(stmk_init_stmt);
+  add_to_end_of_pending_stmk_init_statements_list(stmk_init_stmt);
   /* Reflect the initialization method in the variable entry. */
   var->init_kind = (an_init_kind)initk_dynamic;
   var->initializer.dynamic = dip;
@@ -10688,9 +10726,10 @@ the temp_init_statements list.
 }  /* add_stmk_init_for_temp_init */
 
 
-void add_to_end_of_temp_init_statements_list(a_statement_ptr stmt)
+void add_to_end_of_pending_stmk_init_statements_list(a_statement_ptr stmt)
 /*
-Add the indicated statement to the end of the temp_init_statements list.
+Add the indicated statement to the end of the pending_stmk_init_statements
+list.
 */
 {
   check_assertion(seq_number_from_stmt_source_position(stmt->position) == 0);
@@ -10699,15 +10738,15 @@ Add the indicated statement to the end of the temp_init_statements list.
      previous statement).  Applies to both compound literals and VLAs (when
      they're not being lowered). */
   set_stmt_pos_to_code_pos_for_lowering(stmt);
-  if (temp_init_statements == NULL) {
-    temp_init_statements = stmt;
+  if (pending_stmk_init_statements == NULL) {
+    pending_stmk_init_statements = stmt;
   } else {
-    a_statement_ptr end_of_list = temp_init_statements;
+    a_statement_ptr end_of_list = pending_stmk_init_statements;
     while (end_of_list->next != NULL) end_of_list = end_of_list->next;
     end_of_list->next = stmt;
   }  /* if */
   stmt->next = NULL;
-}  /* add_to_end_of_temp_init_statements_list */
+}  /* add_to_end_of_pending_stmk_init_statements_list */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
@@ -12568,7 +12607,6 @@ and NULL otherwise.  The statement(s) created are inserted at
   an_init_pos_descr      ipd;
   an_init_pos_modifier   ipm;
   an_implied_copy_source source_desc;
-  an_insert_location     temp_init_insert_location;
 
   dip = ctor_init->initializer;
   /* Develop a position description for the entity to initialize. */
@@ -12582,17 +12620,17 @@ and NULL otherwise.  The statement(s) created are inserted at
        lower it. */
     lower_expr(ctor_init->source_expr);
   }  /* if */
-  /* Capture the location to insert any enk_temp_init stmk_init statements. */
-  check_assertion(temp_init_statements == NULL);
-  temp_init_insert_location = *insert_location;
+  check_assertion(pending_stmk_init_statements == NULL);
+  /* Mark the location where any generated stmk_init statements should go. */
+  set_insert_location_mark(insert_location);
   /* Generate the code to do the initialization. */
   lower_dynamic_init(dip, &ipd,
                      &source_desc, construction_vtbls_var,
                      LDIO_FULL_EXPR, /*others_follow_in_aggr=*/FALSE,
                      insert_location, (a_boolean *)NULL,
                      (a_constant **)NULL);
-  /* Insert temporary initialization stmk_init statements, if any. */
-  insert_temp_init_statements_at_location(&temp_init_insert_location);
+  /* Insert any generated stmk_inits at the previously marked location. */
+  insert_pending_stmk_init_statements_at_mark(insert_location);
 }  /* lower_ctor_init */
 
 
@@ -13893,10 +13931,11 @@ precondition (insert after return) does not match the postcondition
 
   *label_added = FALSE;
   if (insert_location->kind == ilk_after_statement &&
-      insert_location->variant.stmt->kind == (a_statement_kind)stmk_block) {
+      insert_location->variant.statement.stmt->kind ==
+                                                (a_statement_kind)stmk_block) {
     /* We are adding after a block.  See whether the last statement of the
        block is a return.  If so, move it out of the block. */
-    a_statement_ptr block_stmt = insert_location->variant.stmt;
+    a_statement_ptr block_stmt = insert_location->variant.statement.stmt;
     if (move_final_return_out_of_block(block_stmt, block_stmt)) {
       /* A return was moved out of the block.  Set the insert location
          to the return.  This allows further optimization below. */
@@ -13904,10 +13943,11 @@ precondition (insert after return) does not match the postcondition
     }  /* if */
   }  /* if */
   if (insert_location->kind == ilk_after_statement &&
-      insert_location->variant.stmt->kind == (a_statement_kind)stmk_return) {
+      insert_location->variant.statement.stmt->kind ==
+                                               (a_statement_kind)stmk_return) {
     /* We're inserting after a top-level return.  We can insert in
        front of it and avoid adding another return. */
-    top_level_return = insert_location->variant.stmt;
+    top_level_return = insert_location->variant.statement.stmt;
     /* Find the previous statement, which is needed for the insert
        location. */
     for (prev_stmt = NULL, stmt = insert_block->variant.block.statements;
@@ -14436,8 +14476,8 @@ destructor scope, and also lower the user code.
     /* Mark the "if" statement and the "delete" call. */
     check_assertion(insert_location.kind == ilk_after_statement &&
                     insert_location3.kind == ilk_after_statement);
-    insert_location.variant.stmt->is_lowering_boilerplate = TRUE;
-    insert_location3.variant.stmt->is_lowering_boilerplate = TRUE;
+    insert_location.variant.statement.stmt->is_lowering_boilerplate = TRUE;
+    insert_location3.variant.statement.stmt->is_lowering_boilerplate = TRUE;
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   }  /* if */
   /* Add "if (this != NULL)" around the whole routine. */
@@ -14668,7 +14708,6 @@ to cause the back end to invoke the routine at initialization.
     /* Generate the initializations. */
     for (; dip != NULL; dip = dip_next) {
       an_insert_location_ptr eff_insert_location = &insert_location;
-      an_insert_location     temp_init_insert_location;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
       an_insert_location     insert_location2;
       a_variable_ptr         guard_var = NULL;
@@ -14696,9 +14735,10 @@ to cause the back end to invoke the routine at initialization.
 #if LOWER_DESIGNATED_INITIALIZERS
       lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
-      /* Capture the current insert location. */
-      check_assertion(temp_init_statements == NULL);
-      temp_init_insert_location = *eff_insert_location;
+      check_assertion(pending_stmk_init_statements == NULL);
+      /* Mark the location where any generated stmk_init statements should
+         go. */
+      set_insert_location_mark(eff_insert_location);
       lower_dynamic_init(dip, &ipd,
                          (an_implied_copy_source *)NULL,
                          (a_variable_ptr)NULL,
@@ -14706,8 +14746,8 @@ to cause the back end to invoke the routine at initialization.
                          /*others_follow_in_aggr=*/FALSE,
                          eff_insert_location, (a_boolean *)NULL,
                          (a_constant **)NULL);
-      /* Insert enk_temp_init stmk_init statements, if any were generated. */
-      insert_temp_init_statements_at_location(&temp_init_insert_location);
+      /* Insert any generated stmk_inits at the previously marked location. */
+      insert_pending_stmk_init_statements_at_mark(eff_insert_location);
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE && \
     IA64_ABI &&                                    \
     !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE

@@ -58,12 +58,14 @@ EXTERN a_boolean
 			   routine. */
 
 EXTERN a_statement_ptr
-		temp_init_statements;
-			/* A list of statements that initialize temporaries for
-			   lowered compound literals or non-constant
-			   aggregates.  These stmk_init statements are
-			   inserted before the statement/dynamic
-			   initialization that created them. */
+		pending_stmk_init_statements;
+			/* A list of stmk_init statements that are generated
+			   during lowering of various expressions (e.g.,
+			   compound literals).  These statements are inserted
+			   by calling insert_pending_stmk_init_statements
+			   (before the statement whose lowering has generated
+			   them) when control returns to the statement
+			   level. */
 
 extern void do_ptr_to_data_member_arg_promotion_on_node(an_expr_node_ptr expr);
 
@@ -249,9 +251,10 @@ extern void lower_destructor_code(a_scope_ptr scope);
 
 extern void lower_stmk_init(a_statement_ptr statement);
 
-extern void insert_temp_init_statements(a_statement_ptr  statement);
+extern void insert_pending_stmk_init_statements(a_statement_ptr  statement);
 
-extern void add_to_end_of_temp_init_statements_list(a_statement_ptr  stmt);
+extern void add_to_end_of_pending_stmk_init_statements_list(
+                                                        a_statement_ptr  stmt);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE

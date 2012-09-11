@@ -52,6 +52,19 @@ param NULL and want to return TRUE").  For example (with --g++):
     return y != 84;   // Now returns zero.
   }
 
+A change was also made to the handling of stmk_init statements created
+during the lowering of NULL pointer-to-data-member constants in IA-64
+ABI configurations.  For example:
+
+  struct A {};
+  typedef int A::*pd;
+  struct B {
+    pd a;
+  };
+  void g() {
+    B({}); 
+  }
+
 
 9/5/12   [EDGcpfe/13171]
 C-generating back end, GNU compatibility: passing NULL to va_list parameter

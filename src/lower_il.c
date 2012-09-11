@@ -525,7 +525,9 @@ the associated variant fields to default values.
     case ilk_after_statement:
     case ilk_block_start:
     case ilk_statement_creation:
-      insert_location->variant.stmt = NULL;
+      insert_location->variant.statement.stmt = NULL;
+      insert_location->variant.statement.marker = NULL;
+      insert_location->variant.statement.is_marked = FALSE;
       break;
     case ilk_before_expr:
     case ilk_after_expr:
@@ -549,7 +551,7 @@ statement rather than a sequence (e.g., the dependent statement of an "if").
 {
   check_assertion_str(stmt != NULL, "set_insert_location: NULL stmt");
   clear_insert_location(insert_location, ilk_after_statement);
-  insert_location->variant.stmt = stmt;
+  insert_location->variant.statement.stmt = stmt;
 }  /* set_insert_location */
 
 
@@ -565,7 +567,7 @@ the block stmt.
   check_assertion_str(stmt->kind == (a_statement_kind)stmk_block,
                       "set_block_start_insert_location: stmt not block");
   clear_insert_location(insert_location, ilk_block_start);
-  insert_location->variant.stmt = stmt;
+  insert_location->variant.statement.stmt = stmt;
 }  /* set_block_start_insert_location */
 
 
@@ -3598,16 +3600,23 @@ avoided if not necessary.
     insert_expr(statement->expr, insert_location);
   } else {
     /* Insert in a statement sequence. */
+    if (is_empty_statement_insert_location_kind(kind) &&
+        insert_location->variant.statement.is_marked) {
+      /* This "empty" insert location has been "marked"; record the first
+         statement to be inserted. */
+      check_assertion(insert_location->variant.statement.marker == NULL);
+      insert_location->variant.statement.marker = statement;
+    }  /* if */
     if (kind == ilk_statement_creation) {
       /* Create new statement. */
-      insert_location->variant.stmt = statement;
       insert_location->kind = ilk_after_statement;
     } else {
-      insert_stmt = insert_location->variant.stmt;
+      insert_stmt = insert_location->variant.statement.stmt;
       if (kind == ilk_block_start) {
         /* Insert at the start of a block. */
         statement->next = insert_stmt->variant.block.statements;
         insert_stmt->variant.block.statements = statement;
+        insert_location->kind = ilk_after_statement;
       } else {
         check_assertion_str(kind == ilk_after_statement,
                             "insert_statement_full: bad insert location kind");
@@ -3616,8 +3625,9 @@ avoided if not necessary.
         insert_stmt->next = statement;
       }  /* if */
     }  /* if */
-    /* Set *insert_location for the next insertion. */
-    set_insert_location(statement, insert_location);
+    /* Set *insert_location for the next insertion (kind is always
+       ilk_after_statement at this point). */
+    insert_location->variant.statement.stmt = statement;
     if (statement->kind != (a_statement_kind)stmk_init) {
       /* Set follows_an_exec_statement on any stmk_inits following this
          insertion. */
@@ -3625,6 +3635,27 @@ avoided if not necessary.
     }  /* if */
   }  /* if */
 }  /* insert_statement_full */
+
+
+void set_insert_location_mark(an_insert_location_ptr insert_location)
+/*
+Record the current statement insert location with a marker for future
+reference.  If the specified insert_location is "empty" (i.e.,
+ilk_statement_creation or ilk_block_start), record the fact that a marker was
+requested and use it to mark the first statement to be added (at a later
+time).
+*/
+{
+  if (insert_location->kind == ilk_after_statement) {
+    insert_location->variant.statement.is_marked = TRUE;
+    insert_location->variant.statement.marker =
+                                       insert_location->variant.statement.stmt;
+  } else if (is_empty_statement_insert_location(insert_location)) {
+    insert_location->variant.statement.is_marked = TRUE;
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* set_insert_location_mark */
 
 
 a_statement_ptr insert_expr_statement(an_expr_node_ptr       node,
@@ -8952,12 +8983,10 @@ Do IL lowering of the indicated list of variables and everything under it.
 LOWER_INITIALIZER_LINKAGE void lower_initializer(
                                            a_variable_ptr     variable,
                                            an_init_kind       *init_kind,
-                                           an_initializer_ptr initializer,
-                                           an_insert_location *insert_location)
+                                           an_initializer_ptr initializer)
 /*
 Lower an initializer, which might be in a variable or a
-local-variable-static-init entry.  insert_location, if non-NULL, gives
-a location at which code can be inserted.
+local-variable-static-init entry.
 */
 {
   switch (*init_kind) {
@@ -8989,10 +9018,9 @@ a location at which code can be inserted.
                          alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
           dip->variant.constant = cp;
           dip->variable = variable;
-          check_assertion(insert_location != NULL);
           stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
           stmk_init_stmt->variant.dynamic_init = dip;
-          insert_statement(stmk_init_stmt, insert_location);
+          add_to_end_of_pending_stmk_init_statements_list(stmk_init_stmt);
         }  /* if */
       }  /* if */
       break;
@@ -9111,8 +9139,7 @@ Do IL lowering of the indicated variable and everything under it.
     }  /* if */
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
     /* Lower the initializer if any. */
-    lower_initializer(variable, &variable->init_kind, &variable->initializer,
-                      (an_insert_location *)NULL);
+    lower_initializer(variable, &variable->init_kind, &variable->initializer);
   }  /* if */
 }  /* lower_variable */
 
@@ -9128,8 +9155,7 @@ memory region).
 */
 {
   for (; lsvip != NULL; lsvip = lsvip->next) {
-    lower_initializer(lsvip->variable, &lsvip->init_kind, &lsvip->initializer,
-                      (an_insert_location *)NULL);
+    lower_initializer(lsvip->variable, &lsvip->init_kind, &lsvip->initializer);
   }  /* for */
 }  /* lower_local_static_variable_init_list */
 
@@ -16844,8 +16870,7 @@ statements don't contain an enk_condition).
     if (scope->lifetime != NULL) {
       begin_object_lifetime(scope->lifetime, &insert_location);
     }  /* if */
-    /* Shouldn't be any pending temporary initialization statements. */
-    check_assertion(temp_init_statements == NULL);
+    check_assertion(pending_stmk_init_statements == NULL);
     /* Generate code for the initialization, and insert it at the beginning
        of the new block. */
     set_var_init_pos_descr(csp->dynamic_init->variable, &ipd);
@@ -16856,14 +16881,14 @@ statements don't contain an enk_condition).
                        /*others_follow_in_aggr=*/FALSE,
                        &insert_location, (a_boolean *)NULL,
                        (a_constant **)NULL);
-    if (temp_init_statements != NULL) {
+    if (pending_stmk_init_statements != NULL) {
       /* Lowering of the dynamic init may have created some statements to
          initialize temporaries (in the case where the value is a simple
          constant, e.g., "if (char* const& s = "zzz");"). These statements
          need to be inserted within block_stmt (where the temporary is
          defined), but before they are used (by code that was inserted by
          lower_dynamic_init above). */
-      insert_temp_init_statements(block_stmt);
+      insert_pending_stmk_init_statements(block_stmt);
     }  /* if */
     /* Lower the value expression. */
     value_expr = csp->expr;
@@ -17410,8 +17435,9 @@ Do IL lowering of the indicated statement and everything under it.
 #endif /* DEBUG */
 
   if (statement != NULL) {
-    a_statement_ptr saved_temp_init_statements = temp_init_statements;
-    temp_init_statements = NULL;
+    a_statement_ptr saved_pending_stmk_init_statements =
+                                                  pending_stmk_init_statements;
+    pending_stmk_init_statements = NULL;
 #if DEBUG
     if (db_flag_is_set("lower_statement")) {
       checksum = compute_checksum_for_statement(statement);
@@ -17548,8 +17574,8 @@ Do IL lowering of the indicated statement and everything under it.
       default:
         unexpected_condition_str("lower_statement: bad kind");
     }  /* switch */
-    insert_temp_init_statements(statement);
-    temp_init_statements = saved_temp_init_statements;
+    insert_pending_stmk_init_statements(statement);
+    pending_stmk_init_statements = saved_pending_stmk_init_statements;
     error_position = saved_error_position;
     code_pos_for_lowering = saved_code_pos;
 #if DEBUG
@@ -19600,8 +19626,8 @@ Do IL lowering of the indicated scope and everything under it.
   }  /* if */
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   innermost_function_scope = saved_innermost_function_scope;
-  /* Make sure no compound literal initialization statements remain. */
-  check_assertion(temp_init_statements == NULL);
+  /* Make sure no pending stmk_init statements remain. */
+  check_assertion(pending_stmk_init_statements == NULL);
   db_exit();
 }  /* lower_scope */
 
@@ -20065,8 +20091,8 @@ C++ to C, so that a C back end can handle it without change.
     lower_c99_il_memory_region(region_number);
 #endif /* DO_C99_IL_LOWERING */
   }  /* if */
-  /* Make sure no compound literal initialization statements remain. */
-  check_assertion(temp_init_statements == NULL);
+  /* Make sure no pending stmk_init statements remain. */
+  check_assertion(pending_stmk_init_statements == NULL);
   db_exit();
 }  /* lower_il_memory_region */
 

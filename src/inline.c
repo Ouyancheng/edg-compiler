@@ -1375,7 +1375,7 @@ This is useful in cases where iterative inlining can create huge routines.
                                     &sub_insert_location, statement_count,
                                     is_too_large, inlinable, failed);
             if (!*failed) {
-              then_stmt = sub_insert_location.variant.stmt;
+              then_stmt = sub_insert_location.variant.statement.stmt;
             }  /* if */
           }  /* if */
           if (!result_is_then) {
@@ -1387,7 +1387,7 @@ This is useful in cases where iterative inlining can create huge routines.
                                      &sub_insert_location, statement_count,
                                      is_too_large, inlinable, failed);
               if (!*failed) {
-                else_stmt = sub_insert_location.variant.stmt;
+                else_stmt = sub_insert_location.variant.statement.stmt;
               }  /* if */
             } else {
               else_stmt = NULL;
@@ -1514,7 +1514,7 @@ This is useful in cases where iterative inlining can create huge routines.
                                 &sub_insert_location, statement_count,
                                 is_too_large, inlinable, failed);
         if (*failed) break;
-        stmt = sub_insert_location.variant.stmt;
+        stmt = sub_insert_location.variant.statement.stmt;
         /* Copy the "while" statement. */
         new_statement = copy_inlined_statement(statement, insert_location);
         new_statement->expr = stmt_expr;
@@ -1534,14 +1534,14 @@ This is useful in cases where iterative inlining can create huge routines.
                                   &sub_insert_location, statement_count,
                                   is_too_large, inlinable, failed);
           if (*failed) break;
-          init_stmt = sub_insert_location.variant.stmt;
+          init_stmt = sub_insert_location.variant.statement.stmt;
           /* Copy the dependent statement. */
           set_statement_creation_insert_location(&sub_insert_location);
           expand_statement_inline(statement->variant.for_loop.statement,
                                   &sub_insert_location, statement_count,
                                   is_too_large, inlinable, failed);
           if (*failed) break;
-          stmt = sub_insert_location.variant.stmt;
+          stmt = sub_insert_location.variant.statement.stmt;
           /* Copy the increment expression. */
           increment_expr = statement->variant.for_loop.extra_info->increment;
           if (increment_expr != NULL) {

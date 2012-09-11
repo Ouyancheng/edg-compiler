@@ -5395,7 +5395,7 @@ be passed down.
                                              dtor_info);
     /* Effectively eliminate the return at the end of the try block and fall
        through to beyond the try block. */
-    insert_stmt = epilogue_insert_location.variant.stmt;
+    insert_stmt = epilogue_insert_location.variant.statement.stmt;
     if (epilogue_insert_location.kind == ilk_after_statement) {
       return_stmt = insert_stmt->next;
     } else {
