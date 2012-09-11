@@ -10678,9 +10678,9 @@ previously marked in *insert_location.  *insert_location is only updated
 if the statements being added occur at the "end" of the insert_location.
 */
 {
-  check_assertion(!is_expr_insert_location(insert_location) &&
-                  insert_location->variant.statement.is_marked);
   if (pending_stmk_init_statements != NULL) {
+    check_assertion(!is_expr_insert_location(insert_location) &&
+                    insert_location->variant.statement.is_marked);
     if (insert_location->variant.statement.marker == NULL) {
       /* If the marker is NULL, then we're being asked to insert at
          the beginning of a block or statement creation location, so simply

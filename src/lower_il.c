@@ -3653,7 +3653,9 @@ time).
   } else if (is_empty_statement_insert_location(insert_location)) {
     insert_location->variant.statement.is_marked = TRUE;
   } else {
-    unexpected_condition();
+    /* Generally this is an indication of something being amiss, but
+       silently allow it and diagnose the problem if/when the marked statement
+       is attempted to be used. */
   }  /* if */
 }  /* set_insert_location_mark */
 
