@@ -3131,12 +3131,14 @@ as specified in the control block.
           traverse_expr_list(ndsp->arg, tblock);
           if (tblock->terminate) goto end_of_routine;
         }  /* if */
-        if (ndsp->dynamic_init != NULL) {
-          traverse_dynamic_init(ndsp->dynamic_init, tblock);
-          if (tblock->terminate) goto end_of_routine;
-        }  /* if */
+        /* Likewise, setting up the freeing of storage on exception happens
+           after the arguments are evaluated and before initialization. */
         if (ndsp->freeing_of_storage_on_exception != NULL) {
           traverse_dynamic_init(ndsp->freeing_of_storage_on_exception, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+        if (ndsp->dynamic_init != NULL) {
+          traverse_dynamic_init(ndsp->dynamic_init, tblock);
           if (tblock->terminate) goto end_of_routine;
         }  /* if */
       }

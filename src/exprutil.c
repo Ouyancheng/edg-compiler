@@ -1923,11 +1923,8 @@ Called from the expression traversal routines to process an expression
 as part of looking for unordered temp inits.
 */
 {
-  a_boolean             any_temp_inits, any_temp_inits_part_2;
-  a_boolean             saved_set_unordered_on_dynamic_inits, saved_result;
   a_boolean             sequenced;
   an_expr_operator_kind op;
-  a_dynamic_init_ptr    dyn_init_to_free_storage;
 
   switch (expr->kind) {
     case enk_operation:
@@ -1954,73 +1951,18 @@ as part of looking for unordered temp inits.
       tblock->suppress_subtree_walk = TRUE;
       break;
     case enk_new_delete:
-      saved_set_unordered_on_dynamic_inits =
-                                        tblock->set_unordered_on_dynamic_inits;
-      /* See if there are temp inits in the argument list for the
-         operator new or delete function.  For an array with a variable
-         number of elements, the evaluation of the number of elements
-         is part of an implied first argument. */
-      any_temp_inits =
-                    (expr->variant.new_delete->number_of_elements != NULL &&
-                     examine_expr_list_for_unordered_temp_inits(
-                                  expr->variant.new_delete->number_of_elements,
-                                  /*sequenced=*/FALSE,
-                                  tblock));
-      any_temp_inits |= examine_expr_list_for_unordered_temp_inits(
-                                        expr->variant.new_delete->arg,
-                                        /*sequenced=*/FALSE,
-                                        tblock);
-      /* The strange dynamic initialization entry that describes the freeing
-         of uninitialized storage on an exception is guaranteed to happen
-         after the "new" arguments are evaluated (you can't free storage
-         until after you've allocated it), so bundle it into the
-         setting of any_temp_inits. */
-      dyn_init_to_free_storage =
-                     expr->variant.new_delete->freeing_of_storage_on_exception;
-      if (dyn_init_to_free_storage != NULL) {
-        any_temp_inits = TRUE;
-        if (tblock->set_unordered_on_dynamic_inits) {
-          dyn_init_to_free_storage->unordered = TRUE;
-        }  /* if */
-        /* Remember the last dynamic initialization processed. */
-        update_last_processed_dynamic_init(dyn_init_to_free_storage, tblock);
-      }  /* if */
-      /* The "new" arguments and the initialization are unordered with
-         respect to one another (because the allocation might be done inside
-         a constructor).  If there were temp inits in the "new" arguments,
-         we mark the temp inits in the initialization as we check them here. */
-      saved_result = tblock->result;
-      tblock->result = FALSE;
-      tblock->set_unordered_on_dynamic_inits |= any_temp_inits;
-      if (expr->variant.new_delete->dynamic_init != NULL) {
-        traverse_dynamic_init(expr->variant.new_delete->dynamic_init,
-                              tblock);
-      }  /* if */
-      any_temp_inits_part_2 = tblock->result;
-      tblock->result |= saved_result;
-      if (any_temp_inits && any_temp_inits_part_2 &&
-          !saved_set_unordered_on_dynamic_inits) {
-        /* The "new" arguments and the initialization each contain at
-           least one temp init, so those are unordered with respect to
-           one another.  Go back and mark the temp inits in the
-           "new" arguments. */
-        a_boolean saved_relink_dynamic_inits = tblock->relink_dynamic_inits;
-        tblock->relink_dynamic_inits = FALSE;
-        tblock->set_unordered_on_dynamic_inits = TRUE;
-        (void)examine_expr_list_for_unordered_temp_inits(
-                                        expr->variant.new_delete->arg,
-                                        /*sequenced=*/FALSE,
-                                        tblock);
-        tblock->relink_dynamic_inits = saved_relink_dynamic_inits;
-        /* Also mark the dynamic initialization entry that frees storage as
-           unordered. */
-        if (dyn_init_to_free_storage != NULL) {
-          dyn_init_to_free_storage->unordered = TRUE;
-        }  /* if */
-      }  /* if */
-      tblock->set_unordered_on_dynamic_inits =
-                                          saved_set_unordered_on_dynamic_inits;
-      tblock->suppress_subtree_walk = TRUE;
+      /* There are no ordering issues for new and delete, though perhaps that
+         requires some explanation.  For delete, there's just the one operand,
+         so there's no ordering issue.  For new, generally the sequence is
+         (1) call of operator new to allocate, (2) set up freeing on exception,
+         (3) do initialization.  That's all done in order (you can't free
+         something until you've allocated it, and you can't initialize it
+         until you've allocated it and set up the freeing on exception during
+         the initialization).  In the case where the allocation is folded
+         into a constructor call or a runtime call (e.g., array new), there
+         will be no arguments for "new" and no freeing-on-destruction entry,
+         so the initialization is the only thing left and therefore it has
+         no ordering issues. */
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
