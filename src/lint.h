@@ -543,8 +543,8 @@ extern int fileno(FILE *);
 #endif /* !(FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && ...) */
 #if DO_IL_LOWERING
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-/*lint -esym(759,add_to_end_of_temp_init_statements_list)*/
-/*lint -esym(765,add_to_end_of_temp_init_statements_list)*/
+/*lint -esym(759,add_to_end_of_pending_stmk_init_statements_list)*/
+/*lint -esym(765,add_to_end_of_pending_stmk_init_statements_list)*/
 /*lint -esym(759,assign_expr_to_temp)*/
 /*lint -esym(765,assign_expr_to_temp)*/
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
