@@ -1256,7 +1256,7 @@ class specified, remove it.
 
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
-a_scope_depth active_scope_depth_of_namespace(a_namespace_ptr  nsp)
+static a_scope_depth active_scope_depth_of_namespace(a_namespace_ptr  nsp)
 /*
 If the namespace scope indicated by nsp is no longer on the scope stack,
 return the current innermost active namespace scope.  If the scope is on
