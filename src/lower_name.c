@@ -5269,6 +5269,29 @@ this expression is part of a template-dependent expression.
 }  /* mangled_call_operation */
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+#if !IA64_ABI
+
+static a_boolean dip_has_args_that_need_mangling(a_dynamic_init_ptr  dip)
+/*
+Returns TRUE if the dik_constructor dynamic initialization has at least
+one non-default argument (FALSE otherwise).
+*/
+{
+  an_expr_node_ptr args;
+  a_boolean        result = FALSE;
+
+  check_assertion (dip != NULL &&
+                   dip->kind == (a_dynamic_init_kind)dik_constructor);
+  for (args = arg_list_from_dyn_init(dip); args != NULL; args = args->next) {
+    if (!args->generated_default_arg) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* dip_has_args_that_need_mangling */
+
+#endif /* !IA64_ABI */
 
 static void mangled_list(an_expr_node_ptr         expr_list,
                          a_constant_ptr           con,
@@ -5300,7 +5323,18 @@ mangling for the constant, is provided; otherwise, the list of expressions
         /* Repeated constants and designators are ignored during mangling. */
         if (cp->kind != (a_constant_repr_kind)ck_init_repeat &&
             cp->kind != (a_constant_repr_kind)ck_designator) {
-          count++;
+          if (cp->kind == (a_constant_repr_kind)ck_dynamic_init &&
+              cp->variant.dynamic_init != NULL &&
+              cp->variant.dynamic_init->kind ==
+                                        (a_dynamic_init_kind)dik_constructor &&
+              !dip_has_args_that_need_mangling(cp->variant.dynamic_init)) {
+            /* A case like "new A[1]{}" where a constructor call (with no
+               arguments -- or at least no non-default arguments).  When
+               mangled later, this constant produces no mangled output, so
+               don't include it in the constant count for this aggregate. */
+          } else {
+            count++;
+          }  /* if */
         }  /* if */
       }  /* for */
     } else {
@@ -5491,9 +5525,14 @@ the dynamic initialization is the result of a static_cast.
     add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
   } else {
-    /* Likely a ck_dynamic_init from an aggregate in a compound literal. */
+    /* Likely a ck_dynamic_init from an aggregate in a compound literal,
+       or an argument to throw; in both cases (in the Cfront ABI) the
+       operand count (if any) has already been emitted. */
     switch (dip->kind) {
       case dik_expression:
+        mangled_encoding_for_expression(arg_list_from_dyn_init(dip),
+                                        /*in_dependent_expr=*/TRUE, mctl);
+        break;
       case dik_constructor:
         args = arg_list_from_dyn_init(dip);
         if (args != NULL) {
