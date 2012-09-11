@@ -1957,8 +1957,16 @@ as part of looking for unordered temp inits.
       saved_set_unordered_on_dynamic_inits =
                                         tblock->set_unordered_on_dynamic_inits;
       /* See if there are temp inits in the argument list for the
-         operator new or delete function. */
-      any_temp_inits = examine_expr_list_for_unordered_temp_inits(
+         operator new or delete function.  For an array with a variable
+         number of elements, the evaluation of the number of elements
+         is part of an implied first argument. */
+      any_temp_inits =
+                    (expr->variant.new_delete->number_of_elements != NULL &&
+                     examine_expr_list_for_unordered_temp_inits(
+                                  expr->variant.new_delete->number_of_elements,
+                                  /*sequenced=*/FALSE,
+                                  tblock));
+      any_temp_inits |= examine_expr_list_for_unordered_temp_inits(
                                         expr->variant.new_delete->arg,
                                         /*sequenced=*/FALSE,
                                         tblock);
