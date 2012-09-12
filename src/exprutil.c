@@ -1902,8 +1902,7 @@ initialization entry as part of looking for unordered temp inits.
                                                tblock);
     tblock->suppress_subtree_walk = TRUE;
   }  /* if */
-  if (dip->lifetime != NULL &&
-      !dip->destruction_is_for_partially_constructed_aggregate) {
+  if (dip->lifetime != NULL) {
     /* Tell the caller the tree contains a temp init. */
     tblock->result = TRUE;
     if (tblock->set_unordered_on_dynamic_inits) {

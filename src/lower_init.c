@@ -6667,9 +6667,10 @@ is first on the destruction list.
 
 
 static void adjust_cleanup_state_for_aggregate_init(
-                                             a_dynamic_init_ptr dip,
-                                             a_dynamic_init_ptr preceding_init,
-                                             a_boolean          *some_cloned)
+                                           a_dynamic_init_ptr dip,
+                                           a_dynamic_init_ptr preceding_init,
+                                           an_insert_location *insert_location,
+                                           a_boolean          *some_cloned)
 /*
 An aggregate initialization has just been completed.  dip is a destruction
 preceding that aggregate initialization (usually, one indicating a
@@ -6680,6 +6681,7 @@ no preceding initialization in the current lifetime.)  Adjust the cleanup
 state to the latest initialization that is not a partial aggregate
 initialization.  When generating EH tables, some region table entries
 may have to be cloned.  If any are, *some_cloned is returned TRUE.
+insert_location is an insert location for any code that has to be generated.
 */
 {
   check_assertion_str(dip != NULL,
@@ -6692,11 +6694,16 @@ may have to be cloned.  If any are, *some_cloned is returned TRUE.
     /* Do a recursive call to process the rest of the list. */
     adjust_cleanup_state_for_aggregate_init(dip->next_in_destruction_list,
                                             preceding_init,
+                                            insert_location,
                                             some_cloned);
   }  /* if */
   if (!dip->destruction_is_for_partially_constructed_aggregate) {
 #if GENERATE_EH_TABLES
-    if (exceptions_enabled) {
+    /* When the entries are marked as unordered, we do not do any cloning,
+       because the entries are all linked together weirdly in one large
+       clump.  Just clear the flags on the partial-aggregate entries (see
+       below). */
+    if (exceptions_enabled && !dip->unordered) {
       /* This entry is being kept, as it is for a non-aggregate initialization.
          If there are any partial aggregate initializations between this
          entry and the destruction beyond the overall aggregate initialization,
@@ -6726,6 +6733,15 @@ may have to be cloned.  If any are, *some_cloned is returned TRUE.
     /* Remember the latest initialization that is not a partial aggregate
        initialization. */
     curr_context->latest_initialization = dip;
+#if GENERATE_EH_TABLES
+  } else {
+    /* Partial-aggregate cleanup entry.  If unordered, reset the flag. */
+    if (exceptions_enabled && dip->unordered) {
+      a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+      reset_conditional_flag_var(dedp->conditional_flag_var,
+                                 insert_location);
+    }  /* if */
+#endif /* GENERATE_EH_TABLES */
   }  /* if */
   set_curr_cleanup_state_to_latest_initialization();
 }  /* adjust_cleanup_state_for_aggregate_init */
@@ -8405,6 +8421,7 @@ do_assignment:;
         adjust_cleanup_state_for_aggregate_init(
                                             eff_context->latest_initialization,
                                             latest_initialization_on_entry,
+                                            eff_insert_location,
                                             &some_cloned);
       }  /* if */
       if (dip->destruction_is_for_partially_constructed_aggregate &&
