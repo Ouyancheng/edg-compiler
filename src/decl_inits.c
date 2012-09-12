@@ -3007,8 +3007,7 @@ is part of.  diag_pos is the position to be used by default for diagnostics
 
 static void expr_direct_init_object(a_decl_parse_state  *dps,
                                     an_id_linkage_kind  linkage,
-                                    a_source_position   *diag_pos,
-                                    a_boolean           *expr_not_present)
+                                    a_source_position   *diag_pos)
 /*
 Scan and process the expression in a parenthesized variable or member
 initializer (both are "direct" initializers) where the initialization is not
@@ -3018,52 +3017,55 @@ associated with the initialization (a synthetic state in the case of member
 initialization) and idl_linkage describes the linkage of the variable being
 initialized (or idl_none for member initializers).  diag_pos is the position
 to use for diagnostics when no more specific position is available.
-If expr_not_present is non-NULL, a missing expression is permissible as the
-consequence of an empty pack expansion.  In such empty pack expansion cases
-*expr_not_present is set to TRUE and the routine has no further effect;
-otherwise, *expr_not_present is FALSE.
 */
 {
   an_init_component_ptr  expr_icp;
   an_init_state          *is = &dps->init_state;
-  a_boolean              is_var_init;
-  a_boolean              saved_force_dynamic_init = is->force_dynamic_init;
+  a_boolean              is_var_init, is_pack_expansion;
 
   is_var_init = dps->sym != NULL && var_for_symbol(dps->sym) != NULL;
   is->direct_init = TRUE;
-  /* If this is not a variable initialization, then an empty pack expansion
-     is allowed. */
-  expr_icp = scan_full_initializer_expr_as_component(dps,
-                                                     /*parenthesized=*/TRUE,
-                                                     expr_not_present != NULL);
-  if (expr_not_present != NULL) {
-    if (expr_icp == NULL) {
-      *expr_not_present = TRUE;
-      goto done;
-    } else {
-      *expr_not_present = FALSE;
-    }  /* if */
-  }  /* if */
-  check_assertion(expr_icp != NULL && expr_icp->next == NULL);
-  if (is_error_component(expr_icp)) {
-    /* An error occurred earlier.  Continue with an error constant. */
-    is->init_con = alloc_error_constant();
-    is->init_error = TRUE;
-    if (is_incomplete_array_type(dps->type)) dps->type = error_type();
-  } else if ((is_string_type(dps->type) ||
-              (is_array_type(dps->type) &&
-               is_template_param_type(array_element_type(dps->type)))) &&
-             try_string_literal_init(expr_icp, &dps->type, is,
-                                     &is->init_con)) {
-    /* String initialization. */
+  /* Scan the expression if any. */
+  if (curr_token == tok_rparen &&
+      !anything_cached(&dps->prescanned_initializer_cache)) {
+    /* Something like:
+         X<T...> x(p...);
+       where an empty parameter pack expansion during look-ahead turns "p..."
+       into "nothing". */
+    check_assertion(is_variadic_template_context() &&
+                    !is_template_dependent_context());
+    expr_icp = NULL;
   } else {
-    /* Ordinary initialization. */
-    is->elements_are_full_expressions = TRUE;
-    convert_initializer(expr_icp, dps->type, is_var_init,
-                        /*fill_in_dtor=*/TRUE, is);
+    expr_icp = scan_full_initializer_expr_as_component(
+                 dps, /*parenthesized=*/TRUE, /*allow_empty_expansion=*/TRUE);
   }  /* if */
-  free_init_component_list(expr_icp);
-  is->force_dynamic_init = saved_force_dynamic_init;
+  if (expr_icp == NULL) {
+    is_pack_expansion = TRUE;
+    value_init_variable_or_member(dps->type, is, diag_pos);
+  } else {
+    a_boolean  saved_force_dynamic_init = is->force_dynamic_init;
+    check_assertion(expr_icp->next == NULL);
+    is_pack_expansion = expr_icp->pack_expansion_descr != NULL;
+    if (is_error_component(expr_icp)) {
+      /* An error occurred earlier.  Continue with an error constant. */
+      is->init_con = alloc_error_constant();
+      is->init_error = TRUE;
+      if (is_incomplete_array_type(dps->type)) dps->type = error_type();
+    } else if ((is_string_type(dps->type) ||
+                (is_array_type(dps->type) &&
+                 is_template_param_type(array_element_type(dps->type)))) &&
+               try_string_literal_init(expr_icp, &dps->type, is,
+                                       &is->init_con)) {
+      /* String initialization. */
+    } else {
+      /* Ordinary initialization. */
+      is->elements_are_full_expressions = TRUE;
+      convert_initializer(expr_icp, dps->type, is_var_init,
+                          /*fill_in_dtor=*/TRUE, is);
+    }  /* if */
+    free_init_component_list(expr_icp);
+    is->force_dynamic_init = saved_force_dynamic_init;
+  }  /* if */
   if ((is_aggregate_type(dps->type) && !is->init_error) ||
       (is->force_dynamic_init && is->init_dip == NULL)) {
     /* The routines for aggregate initialization produce a constant entry, but
@@ -3073,7 +3075,7 @@ otherwise, *expr_not_present is FALSE.
        force_dynamic_init state flag. */
     prep_initializer_result(is, /*dtor_rp=*/(a_routine_ptr)NULL);
   }  /* if */
-  if (expr_icp->pack_expansion_descr != NULL) {
+  if (is_pack_expansion) {
     /* The given component is a pack expansion: Record that in the IL
        produced by the conversion. */
     if (is->init_con != NULL) {
@@ -3098,7 +3100,6 @@ otherwise, *expr_not_present is FALSE.
       dps->type = vp->type;
     }  /* if */
   }  /* if */
-done:;
 }  /* expr_direct_init_object */
 
 
@@ -3621,7 +3622,7 @@ returned set to TRUE.
          a dynamic init entry representing an expression. */
       nonconstant_allowed = (!C_mode() || !static_lifetime);
       dps->init_state.initializer_must_be_constant = !nonconstant_allowed;
-      expr_direct_init_object(dps, linkage, source_pos, (a_boolean*)NULL);
+      expr_direct_init_object(dps, linkage, source_pos);
       init_err = dps->init_state.init_error;
       init_con = dps->init_state.init_con;
       init_dip = dps->init_state.init_dip;
@@ -4844,7 +4845,6 @@ cases, array_type is NULL).
     /* A field whose initialization does not involve a constructor. */
     if (curr_token == tok_rparen) {
       /* An empty initializer, "()", indicating value initialization. */
-empty_parens_mem_initializer:
       if (is_any_reference_type(init_type)) {
         /* Error.  A reference type may not be default-initialized. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4892,20 +4892,12 @@ empty_parens_mem_initializer:
            constructor. */
         dip = scan_array_mem_initializer(cip);
       } else {
-        a_boolean           expr_not_present;
         a_decl_parse_state  dps;
         init_decl_parse_state(&dps);
         dps.type = init_type;
         dps.init_state.force_dynamic_init = TRUE;
         expr_direct_init_object(&dps, (an_id_linkage_kind)idl_none,
-                                &lparen_pos, &expr_not_present);
-        if (expr_not_present) {
-          /* There was an expression, but it's a pack expansion that expanded
-             to zero expressions, so go handle the mem-initializer as if it
-             was "()". */
-          remove_stop_token(tok_rparen);
-          goto empty_parens_mem_initializer;
-        }  /* if */
+                                &lparen_pos);
         dip = dps.init_state.init_dip;
         check_assertion(dip != NULL);
         /* If the initializer produced an object lifetime for the full

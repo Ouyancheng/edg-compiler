@@ -35115,6 +35115,33 @@ Currently, this can only happen in GNU C mode with compound literals.
 }  /* whole_array_init_possible */
 
 
+void value_init_variable_or_member(a_type_ptr         type,
+                                   an_init_state      *is,
+                                   a_source_position  *diag_pos)
+/*
+Produce in *is a constant or a dynamic init entry for the value initialization
+of a member or variable of the given type.  Issue any errors at the given
+position.
+*/
+{
+  a_boolean            is_constant;
+  an_expr_stack_entry  *saved_expr_stack;
+  an_expr_stack_entry  expr_stack_entry;
+
+  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                  (an_expression_kind)ek_normal,
+                                  /*is_full_expr=*/TRUE,
+                                  (a_decl_parse_state*)NULL, is);
+  value_initialization(type, diag_pos, (a_routine**)NULL, &is_constant,
+                       &is->init_dip, &is->init_con, (a_boolean*)NULL);
+  if (is->init_dip != NULL) {
+    wrap_up_dynamic_init_full_expression(is->init_dip);
+  }  /* if */
+  pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
+                                 (a_decl_parse_state*)NULL, is);
+}  /* value_init_variable_or_member */
+
+
 void scan_class_parenthesized_initializer(
                                    a_type_ptr         class_type,
                                    a_type_ptr         object_class_type,

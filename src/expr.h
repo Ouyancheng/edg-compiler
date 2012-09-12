@@ -490,6 +490,10 @@ a_boolean is_overloadable_type_operand_full(an_operand_ptr operand,
                                             a_boolean      first_operand,
                                             a_boolean      CFOO_guard);
 
+extern void value_init_variable_or_member(a_type_ptr         type,
+                                          an_init_state      *is,
+                                          a_source_position  *diag_pos);
+
 extern void scan_class_parenthesized_initializer(
                                    a_type_ptr         class_type,
                                    a_type_ptr         object_class_type,

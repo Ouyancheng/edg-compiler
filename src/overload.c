@@ -19957,13 +19957,13 @@ end_of_routine:
 }  /* prep_reference_initializer_operand */
 
 
-static void value_initialization(a_type_ptr            dest_type,
-                                 a_source_position     *pos,
-                                 a_routine_ptr         *ctor_called,
-                                 a_boolean             *is_constant,
-                                 a_dynamic_init_ptr    *p_dip,
-                                 a_constant_ptr        *p_constant,
-                                 a_boolean             *error_detected)
+void value_initialization(a_type_ptr            dest_type,
+                          a_source_position     *pos,
+                          a_routine_ptr         *ctor_called,
+                          a_boolean             *is_constant,
+                          a_dynamic_init_ptr    *p_dip,
+                          a_constant_ptr        *p_constant,
+                          a_boolean             *error_detected)
 /*
 Create IL to perform a value-initialization (C++ standard [dcl.init])
 of an entity of type dest_type.  Value-initialization comes up
