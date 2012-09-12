@@ -3649,12 +3649,10 @@ mark the first statement to be added (at a later time).
 */
 {
   if (insert_location->kind == ilk_after_statement) {
-    check_assertion(!insert_location->variant.statement.is_marked);
     insert_location->variant.statement.is_marked = TRUE;
     insert_location->variant.statement.marker =
                                        insert_location->variant.statement.stmt;
   } else if (is_empty_statement_insert_location(insert_location)) {
-    check_assertion(!insert_location->variant.statement.is_marked);
     insert_location->variant.statement.is_marked = TRUE;
   } else {
     /* Generally this is an indication of something being amiss, but
