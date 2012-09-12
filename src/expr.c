@@ -2445,7 +2445,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   a_boolean           is_bitwise_copy = FALSE;
   a_boolean           is_temp_after_conv = FALSE;
   a_boolean           optimized = FALSE;
-  a_boolean           value_initialization = FALSE;
+  a_boolean           value_init = FALSE;
   a_routine_ptr       routine = NULL;
   a_type_ptr          routine_type = NULL, class_type;
   a_class_symbol_supplement_ptr
@@ -2532,7 +2532,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
     /* Empty parentheses ("()") indicate value-initialization.  That also
        includes a case like (x...) where a pack expansion expands to zero
        expressions. */
-    value_initialization = TRUE;
+    value_init = TRUE;
   }  /* if */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2811,7 +2811,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
       } else if (is_trivial_construction) {
         /* Trivial construction, which does nothing (or zeroing, for
            value initialization). */
-        if (value_initialization) {
+        if (value_init) {
           dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
         } else if (trivial_ctor != NULL &&
                    !(fill_in_dtor && has_nontrivial_destructor(cssp))) {
@@ -2829,7 +2829,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                                            arg_expr_list,
                                            /*add_default_args=*/FALSE,
                                            /*implied_source=*/FALSE);
-        dip->variant.constructor.value_initialization = value_initialization;
+        dip->variant.constructor.value_initialization = value_init;
         if (init_list_ctor_arg_list != NULL) {
           /* A constructor call whose arguments come from a braced-init-list
              must have its arguments evaluated in order. */
