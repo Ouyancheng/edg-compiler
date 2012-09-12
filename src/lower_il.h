@@ -924,6 +924,8 @@ extern void insert_statement_full(a_statement_ptr        statement,
 
 extern void set_insert_location_mark(an_insert_location_ptr insert_location);
 
+extern void reset_insert_location_mark(an_insert_location_ptr insert_location);
+
 extern a_statement_ptr insert_expr_statement(
                                        an_expr_node_ptr       node,
                                        an_insert_location_ptr insert_location);

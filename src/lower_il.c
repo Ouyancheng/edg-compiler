@@ -3649,17 +3649,29 @@ mark the first statement to be added (at a later time).
 */
 {
   if (insert_location->kind == ilk_after_statement) {
+    check_assertion(!insert_location->variant.statement.is_marked);
     insert_location->variant.statement.is_marked = TRUE;
     insert_location->variant.statement.marker =
                                        insert_location->variant.statement.stmt;
   } else if (is_empty_statement_insert_location(insert_location)) {
+    check_assertion(!insert_location->variant.statement.is_marked);
     insert_location->variant.statement.is_marked = TRUE;
   } else {
-    /* Generally this is an indication of something being amiss, but
-       silently allow it and diagnose the problem if/when the marked statement
-       is attempted to be used. */
+    unexpected_condition();
   }  /* if */
 }  /* set_insert_location_mark */
+
+
+void reset_insert_location_mark(an_insert_location_ptr insert_location)
+/*
+Reset the marker associated with insert_location.
+*/
+{
+  check_assertion(!is_expr_insert_location(insert_location) &&
+                  insert_location->variant.statement.is_marked);
+  insert_location->variant.statement.is_marked = FALSE;
+  insert_location->variant.statement.marker = NULL;
+}  /* reset_insert_location_mark */
 
 
 a_statement_ptr insert_expr_statement(an_expr_node_ptr       node,

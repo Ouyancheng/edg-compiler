@@ -10676,11 +10676,12 @@ static void insert_pending_stmk_init_statements_at_mark(
 Insert any pending stmk_init statements at the location that has been
 previously marked in *insert_location.  *insert_location is only updated
 if the statements being added occur at the "end" of the insert_location.
+Also resets the insert location mark.
 */
 {
+  check_assertion(!is_expr_insert_location(insert_location) &&
+                  insert_location->variant.statement.is_marked);
   if (pending_stmk_init_statements != NULL) {
-    check_assertion(!is_expr_insert_location(insert_location) &&
-                    insert_location->variant.statement.is_marked);
     if (insert_location->variant.statement.marker == NULL) {
       /* If the marker is NULL, then we're being asked to insert at
          the beginning of a block or statement creation location, so simply
@@ -10695,6 +10696,7 @@ if the statements being added occur at the "end" of the insert_location.
                                     insert_location->variant.statement.marker);
     }  /* if */
   }  /* if */
+  reset_insert_location_mark(insert_location);
 }  /* insert_pending_stmk_init_statements_at_mark */
 
 
@@ -12621,16 +12623,28 @@ and NULL otherwise.  The statement(s) created are inserted at
     lower_expr(ctor_init->source_expr);
   }  /* if */
   check_assertion(pending_stmk_init_statements == NULL);
-  /* Mark the location where any generated stmk_init statements should go. */
-  set_insert_location_mark(insert_location);
+  if (is_expr_insert_location(insert_location)) {
+    /* An expression insert location is unusual here, but occurs in
+       configurations where assignment to "this" is allowed.  In that case,
+       no pending stmk_init statements should be generated during the
+       lowering of such an assignment (but it's checked after the lowering). */
+  } else {
+    /* Mark the location where any generated stmk_init statements should go. */
+    set_insert_location_mark(insert_location);
+  }  /* if */
   /* Generate the code to do the initialization. */
   lower_dynamic_init(dip, &ipd,
                      &source_desc, construction_vtbls_var,
                      LDIO_FULL_EXPR, /*others_follow_in_aggr=*/FALSE,
                      insert_location, (a_boolean *)NULL,
                      (a_constant **)NULL);
-  /* Insert any generated stmk_inits at the previously marked location. */
-  insert_pending_stmk_init_statements_at_mark(insert_location);
+  if (is_expr_insert_location(insert_location)) {
+    /* Make sure no pending stmk_inits were generated. */
+    check_assertion(pending_stmk_init_statements == NULL);
+  } else {
+    /* Insert any generated stmk_inits at the previously marked location. */
+    insert_pending_stmk_init_statements_at_mark(insert_location);
+  }  /* if */
 }  /* lower_ctor_init */
 
 
