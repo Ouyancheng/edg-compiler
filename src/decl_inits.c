@@ -1493,8 +1493,16 @@ initialization).  *is describes the initialization as a whole.
         break;
       } else if (no_bound || idx < ecount) {
         a_constant_ptr  elem_con;
-        if (!is->non_top_level_aggregate && is_braced_init_component(icp) &&
-            is->arg_match != NULL) {
+        if (!is->non_top_level_aggregate &&
+            is->arg_match != NULL &&
+            ((is_aggregate_type(etype) && is_braced_init_component(icp)) ||
+             is_error_type(etype))) {
+          /* We're evaluating a match for overload resolution (is->arg_match is
+             non-NULL) and this is the top-level braced initializer for an
+             array.  If the initialization for this element looks like an
+             aggregate initialization, record it like a "user-defined
+             conversion match".  Also do this for elements of error types since
+             the match level might not be set elsewhere in such cases. */
           record_aggr_init_match(is->arg_match);
         }  /* if */
         aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
