@@ -21545,6 +21545,31 @@ controls).
      If constant != NULL, the result is that constant.
      Otherwise, the result is in "operand".  If the required result is
      in a different format, convert to that. */
+  if (curr_expr_kind_is_const() && generate_il) {
+    /* The result is required to be constant.  Check that it is. */
+    if (dip != NULL) {
+      if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+        constant = dip->variant.constant;
+      } else {
+        expr_pos_error(ec_expr_not_constant, start_position);
+        constant = alloc_error_constant();
+      }  /* if */
+      dip = NULL;
+    } else if (constant != NULL) {
+      /* Already constant. */
+    } else {
+      a_constant con;
+      force_operand_to_constant_if_possible(&operand);
+      extract_constant_from_operand(&operand, &con);
+      constant = alloc_unshared_constant(&con);
+    }  /* if */
+    /* Disallow certain constants that don't actually have a constant
+       value, e.g., UPC THREADS. */
+    if (error_on_nonconstant_constant(constant, start_position)) {
+      constant = alloc_error_constant();
+    }  /* if */
+    force_temp = FALSE;
+  }  /* if */
   if (!generate_il) {
     /* Generate no IL if we're only checking validity. */
   } else if (result != NULL) {
@@ -21599,15 +21624,6 @@ controls).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     result->end_position = *init_component_end_pos(icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (curr_expr_kind_is_const()) {
-      /* The result is required to be constant.  Check that it is. */
-      force_operand_to_constant_if_possible(result);
-      if (!is_constant_operand(result)) {
-        if (!is_error_operand(result)) {
-          error_in_operand(ec_expr_not_constant, result);
-        }  /* if */
-      }  /* if */
-    }  /* if */
   } else {
     /* The caller wants the result as a constant or a dynamic init,
        returned via either is->init_con or is->init_dip. */
@@ -21616,31 +21632,6 @@ controls).
     is->init_con = NULL;
     is->init_dip = NULL;
     constant_ok = !is->force_dynamic_init;
-    if (curr_expr_kind_is_const()) {
-      /* The result is required to be constant.  Check that it is. */
-      /* Note that constant_ok FALSE here is allowed.  We'll return
-         a dynamic init to the caller, who will presumably issue an error. */
-      if (dip != NULL) {
-        if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-          constant = dip->variant.constant;
-        } else {
-          expr_pos_error(ec_expr_not_constant, start_position);
-          constant = alloc_error_constant();
-        }  /* if */
-        dip = NULL;
-      } else if (constant != NULL) {
-        /* Already constant. */
-      } else {
-        a_constant con;
-        extract_constant_from_operand(&operand, &con);
-        constant = alloc_unshared_constant(&con);
-      }  /* if */
-      /* Disallow certain constants that don't actually have a constant
-         value, e.g., UPC THREADS. */
-      if (error_on_nonconstant_constant(constant, start_position)) {
-        constant = alloc_error_constant();
-      }  /* if */
-    }  /* if */
     /* Get the result in the right form if it's not already. */
     if (constant != NULL && constant_ok) {
       /* We already have an allocated constant. */
