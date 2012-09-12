@@ -6703,7 +6703,11 @@ insert_location is an insert location for any code that has to be generated.
        because the entries are all linked together weirdly in one large
        clump.  Just clear the flags on the partial-aggregate entries (see
        below). */
-    if (exceptions_enabled && !dip->unordered) {
+    if (exceptions_enabled
+#if DO_UNORDERED_EH_PROCESSING
+        && !dip->unordered
+#endif /* DO_UNORDERED_EH_PROCESSING */
+       ) {
       /* This entry is being kept, as it is for a non-aggregate initialization.
          If there are any partial aggregate initializations between this
          entry and the destruction beyond the overall aggregate initialization,
@@ -6733,7 +6737,7 @@ insert_location is an insert location for any code that has to be generated.
     /* Remember the latest initialization that is not a partial aggregate
        initialization. */
     curr_context->latest_initialization = dip;
-#if GENERATE_EH_TABLES
+#if GENERATE_EH_TABLES && DO_UNORDERED_EH_PROCESSING
   } else {
     /* Partial-aggregate cleanup entry.  If unordered, reset the flag. */
     if (exceptions_enabled && dip->unordered) {
@@ -6741,7 +6745,7 @@ insert_location is an insert location for any code that has to be generated.
       reset_conditional_flag_var(dedp->conditional_flag_var,
                                  insert_location);
     }  /* if */
-#endif /* GENERATE_EH_TABLES */
+#endif /* GENERATE_EH_TABLES && DO_UNORDERED_EH_PROCESSING */
   }  /* if */
   set_curr_cleanup_state_to_latest_initialization();
 }  /* adjust_cleanup_state_for_aggregate_init */
