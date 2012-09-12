@@ -20479,7 +20479,8 @@ conversion, etc.)
   if (arg_match != NULL) clear_arg_match_summary(arg_match);
   complete_type_is_needed(element_type);
   if (curr_expr_kind_is_const()) {
-    /* Not allowed in a constant expression. */
+    /* Not allowed in a constant expression.  Note that taking this branch
+       precludes setting dtor to non-NULL below, appropriately. */
     if (arg_match != NULL) {
       arg_match_err = TRUE;
     } else {
@@ -20497,9 +20498,9 @@ conversion, etc.)
     if (arg_match != NULL) {
       if (local_error_detected) arg_match_err = TRUE;
     }  /* if */
-  } else if (!is_complete_object_type(element_type)) {
-    /* Something like initializer_list<void>.  There was presumably a
-       previous error. */
+  }  /* if */
+  if (!is_complete_object_type(element_type)) {
+    /* Something like initializer_list<void>. */
     if (arg_match != NULL) {
       arg_match_err = TRUE;
     } else if (expr_error_should_be_issued()) {
