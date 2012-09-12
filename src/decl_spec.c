@@ -5114,7 +5114,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         }  /* if */
         if ((old_base_type != NULL || new_base_type != NULL) &&
             (old_base_type == NULL || new_base_type == NULL ||
-             !identical_types(old_base_type, new_base_type))) {
+             !identical_types_ignoring_qualifiers(old_base_type,
+                                                  new_base_type))) {
           pos_sy_error(ec_incompatible_enum_base_types,
                        &locator.source_position, tag_sym);
           /* Continue as if no explicit base was specified for better error
