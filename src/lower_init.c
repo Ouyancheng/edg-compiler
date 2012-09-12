@@ -3298,7 +3298,7 @@ typedef struct a_generated_routine_context {
   an_eh_lowering_context
 		ehcontext;
   a_statement_ptr
-                pending_stmk_init_statements;
+		pending_stmk_init_statements;
 } a_generated_routine_context;
 
 
@@ -10685,7 +10685,7 @@ if the statements being added occur at the "end" of the insert_location.
       /* If the marker is NULL, then we're being asked to insert at
          the beginning of a block or statement creation location, so simply
          insert the stmk_inits at the beginning (which updates the
-         here-to-fore empty insert_location). */
+         heretofore empty insert_location). */
       check_assertion(is_empty_statement_insert_location(insert_location));
       insert_pending_stmk_init_at_location(insert_location);
     } else {
