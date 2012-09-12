@@ -4694,7 +4694,7 @@ the point of call.  conv_context describes the context of the conversion.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (explicit_conversion_functions_enabled &&
         (conv_context & CCO_DIRECT_INITIALIZATION) &&
-        arg_list != NULL && /* at least one arg, test for speed */
+        arg_list != NULL && arg_list->next == NULL && /* Exactly one arg */
         routine->special_kind == (a_special_function_kind)sfk_constructor &&
         is_copy_constructor(routine, (a_type_ptr)NULL,
                             (a_type_qualifier_set *)NULL,
