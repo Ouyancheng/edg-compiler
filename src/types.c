@@ -1813,7 +1813,6 @@ Return TRUE if the given type is a union type.
 }  /* is_union_type */
 
 #if GNU_EXTENSIONS_ALLOWED
-#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_transparent_union_type(a_type_ptr  tp)
 /*
@@ -1824,6 +1823,7 @@ Return TRUE if the given type is a GNU C transparent union.
   return is_union(tp) && tp->variant.class_struct_union.is_transparent;
 }  /*is_transparent_union_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 static a_boolean transparent_union_has_field_type(a_type_ptr  union_type,
                                                   a_type_ptr  field_type)

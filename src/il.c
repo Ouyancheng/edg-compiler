@@ -13260,6 +13260,7 @@ tk_unknown is returned.
   return result;
 }  /* operation_type_kind */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_dynamic_init_ptr effective_dynamic_init_for_initializer_list_object(
                                           a_dynamic_init_ptr dip,
@@ -13293,6 +13294,7 @@ init_entity_type can be NULL if the caller does not need that information.
   return dip;
 }  /* effective_dynamic_init_for_initializer_list_object */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 /*
 The routines lists in file and namespace scopes is normally constructed by
