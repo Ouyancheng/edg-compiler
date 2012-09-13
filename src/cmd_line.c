@@ -2706,9 +2706,10 @@ handling).
     friend_class_injection_enabled = FALSE;
     friend_function_injection_enabled = FALSE;
   }  /* if */
-  noexcept_enabled = value && exceptions_enabled;
+  noexcept_enabled = value;
   if (!option_kind_used[(int)optk_implicit_noexcept]) {
-    implicit_noexcept_enabled = noexcept_enabled && strict_ansi_mode;
+    implicit_noexcept_enabled = noexcept_enabled && strict_ansi_mode &&
+                                exceptions_enabled;
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 

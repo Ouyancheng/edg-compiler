@@ -1338,7 +1338,7 @@ specification is handled later (see check_exception_specification).
   a_boolean                            is_noexcept;
 
   db_enter(4, "scan_exception_specification");
-  is_noexcept = exceptions_enabled && curr_token == tok_noexcept;
+  is_noexcept = curr_token == tok_noexcept;
   if (exceptions_enabled || curr_token == tok_throw || is_noexcept) {
     /* Update the source position for the "throw".  Even if there is no
        "throw" this is where it would appear in the source.  If exception
@@ -1351,7 +1351,7 @@ specification is handled later (see check_exception_specification).
     goto done;
   }  /* if */
   if (!exceptions_enabled || !exception_spec_allowed ||
-      (microsoft_bugs && microsoft_version <= 1200)) {
+      (microsoft_bugs && microsoft_version <= 1200 && !is_noexcept)) {
     /* If exception-handling support is not enabled, or if this is a context
        in which an exception specification is not allowed, or if (in some
        Microsoft-compatibility modes) exception specifications are recognized

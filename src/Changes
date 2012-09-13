@@ -122,6 +122,11 @@ as described in N3050.
                                  // cannot throw, so true in this case
   }
 
+As with the traditional "dynamic" exception specifications, the front end
+also accepts noexcept-specifiers on function declarations when exception
+handling is disabled.  This simplifies writing header files that are accepted
+whether exception handling is enabled or not.
+
 C++11 also specifies that destructors declared without an explicit exception
 specification have an implicit exception specification equivalent to the one
 of the generated destructor if no destructor had been declared (as described
