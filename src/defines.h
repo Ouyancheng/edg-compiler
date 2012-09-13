@@ -1023,9 +1023,10 @@ Allow C++/CLI to be enabled if Microsoft extensions are allowed.
 #endif /* !defined(DEMO_VERSION) || !DEMO_VERSION */
 #endif /* !defined(CP_GEN_BE_VERSION) || !CP_GEN_BE_VERSION */
 #endif /* CPPCLI_ENABLING_POSSIBLE */
-#if !defined(READ_CPPCLI_PORTABLE_ASSEMBLIES) && !defined(_WIN32)
+#if !defined(READ_CPPCLI_PORTABLE_ASSEMBLIES) && !defined(_WIN32) && \
+    CPPCLI_ENABLING_POSSIBLE
 #define READ_CPPCLI_PORTABLE_ASSEMBLIES 1
-#endif /* !defined(READ_CPPCLI_PORTABLE_ASSEMBLIES) && !defined(_WIN32) */
+#endif /* !defined(READ_CPPCLI_PORTABLE_ASSEMBLIES) && !defined(_WIN32) ... */
 #endif /* defined(MICROSOFT_EXTENSIONS_ALLOWED) &&
           MICROSOFT_EXTENSIONS_ALLOWED */
 #if defined(READ_CPPCLI_PORTABLE_ASSEMBLIES) && \
