@@ -3948,9 +3948,7 @@ do_unknown_function:
       /* FALLTHROUGH */
 #endif /* FIXED_POINT_ALLOWED */
     default:
-#if CHECKING
-      internal_error("literal_representation: bad constant kind");
-#endif /* CHECKING */
+      unexpected_condition_str("literal_representation: bad constant kind");
   }  /* switch */
 #if IA64_ABI
 end_of_routine:;
