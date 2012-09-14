@@ -4281,7 +4281,9 @@ suppressed.
 #if GNU_VECTOR_TYPES_ALLOWED
                && !is_vector_type(literal_type)
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-               );
+               ) ||
+               (literal_con != NULL &&
+                literal_con->kind == (a_constant_repr_kind)ck_string);
   if (is_scalar) {
     /* Scalar initialization.  Put an extra set of braces around the
        initializer. */
