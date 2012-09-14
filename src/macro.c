@@ -3633,8 +3633,8 @@ hence its name should not be changed.
         case rt_argument:
           sect_len = map->expanded_len;
           break;
-#if CHECKING
         default:
+#if CHECKING
           internal_error(
                      "length_of_replacement_text: expansion section unknown");
 #endif /* CHECKING */
@@ -5304,8 +5304,8 @@ end_arg_expansion:;
                                          NO_PARENT_MACRO_INVOCATION);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             break;
-#if CHECKING
           default:
+#if CHECKING
             internal_error("macro_invocation: expansion section unknown");
 #endif /* CHECKING */
         }  /* switch */
@@ -5992,8 +5992,8 @@ beginning of the encoding of the replacement list.
           fprintf(f_debug, "  magic arg marker\n");
           check_assertion(rts_number == 0);
           break;
-#if CHECKING
         default:
+#if CHECKING
           internal_error("db_dump_macro_def: bad section kind in macro def");
 #endif /* CHECKING */
       }  /* switch */

@@ -1534,7 +1534,7 @@ smaller) than the number of characters needed to represent the string.
   }  /* switch */
 #if CHECKING
   /* Check that the length calculation was correct. */
-  check_assertion_str(pstr - str_start == constant_size,
+  check_assertion_str((sizeof_t)(pstr - str_start) == constant_size,
                       "conv_string_literal: length miscalculated");
 #endif /* CHECKING */
   /* Make the constant entry for the string. */
