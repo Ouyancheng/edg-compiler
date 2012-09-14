@@ -3634,12 +3634,8 @@ hence its name should not be changed.
           sect_len = map->expanded_len;
           break;
         default:
-#if CHECKING
-          internal_error(
-                     "length_of_replacement_text: expansion section unknown");
-#else /* !CHECKING */
-          ;
-#endif /* CHECKING */
+          unexpected_condition_str2("length_of_replacement_text:",
+                                    "expansion section unknown");
       }  /* switch */
     }  /* if */
     /* When extended variadic macros are enabled, a "##" followed by an
@@ -5307,11 +5303,8 @@ end_arg_expansion:;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             break;
           default:
-#if CHECKING
-            internal_error("macro_invocation: expansion section unknown");
-#else /* !CHECKING */
-            ;
-#endif /* CHECKING */
+            unexpected_condition_str2("macro_invocation:",
+                                      "expansion section unknown");
         }  /* switch */
       }  /* if */
       /* When extended variadic macros are enabled, a "##" followed by an
@@ -5997,11 +5990,8 @@ beginning of the encoding of the replacement list.
           check_assertion(rts_number == 0);
           break;
         default:
-#if CHECKING
-          internal_error("db_dump_macro_def: bad section kind in macro def");
-#else /* !CHECKING */
-          ;
-#endif /* CHECKING */
+          unexpected_condition_str2("db_dump_macro_def:",
+                                    "bad section kind in macro def");
       }  /* switch */
     }  /* for */
     fprintf(f_debug, "  end\n");
