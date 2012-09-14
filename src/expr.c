@@ -20018,12 +20018,15 @@ indication in *rcblock).  rescan_icp is not freed.
     literal_con = dip->variant.constant;
     if (is_error_type(literal_con->type)) {
       make_error_operand(result);
-    } else if (gnu_mode && !(local_options & EOPT_OPERAND_OF_ADDRESS_OF) &&
-               literal_con->kind != (a_constant_repr_kind)ck_string) {
+    } else if (gnu_mode && !(local_options & EOPT_OPERAND_OF_ADDRESS_OF)) {
       /* In GNU mode, the compound literal is treated as a constant-
          expression.  In some cases, the constant may later be used to
          initialize a variable (if an lvalue is needed after all). */
       make_constant_operand(literal_con, result);
+      /* Force string constants to be rvalues; that's used as an indication
+         of a string that was a compound literal.  See
+         do_array_to_pointer_conversion. */
+      result->state = (an_operand_state)os_rvalue;
     } else {
       make_lvalue_operand_from_compound_constant(literal_con, result);
     }  /* if */
