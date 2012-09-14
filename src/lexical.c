@@ -1676,10 +1676,9 @@ not NULL, any fetched tokens will be added to cache.
     case tok_lparen:    closing_token = tok_rparen;   break;
     case tok_lbracket:  closing_token = tok_rbracket; break;
     case tok_lbrace:    closing_token = tok_rbrace;   break;
-#if CHECKING
     default:
-      internal_error("cache_token_stream_until_matching_token: bad token");
-#endif /* CHECKING */
+      unexpected_condition_str2("cache_token_stream_until_matching_token:",
+                                "bad token");
   }  /* switch */
   /* Cache the current token, and advance to its successor. */
   if (add_tokens_to_cache) cache_curr_token(cache);
@@ -2454,10 +2453,8 @@ original source line because of trigraphs and line splices.
     case olm_null:
       /* No variant fields. */
       break;
-#if CHECKING
     default:
-      internal_error("add_orig_line_modif: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("add_orig_line_modif: bad kind");
   }  /* switch */
   /* Add the entry to the end of the list. */
   if (orig_line_modif_list == NULL) {
@@ -3835,11 +3832,9 @@ partially_process_line_splice:
           putc(' ', f_raw_listing);
           loc_in_line = olmp->line_loc + LE_ESCAPE_LEN;
           break;
-#if CHECKING
         default:
-          internal_error(
-       "gen_raw_listing_output_for_curr_line: bad orig_modif_list entry kind");
-#endif /* CHECKING */
+          unexpected_condition_str2("gen_raw_listing_output_for_curr_line:",
+                                    "bad orig_modif_list entry kind");
       }  /* switch */
     }  /* for */
     /* Write out the last piece of unaffected text, including the newline.
@@ -6603,11 +6598,9 @@ simple_return:
             case olm_null:
               fprintf(f_debug, "null\n");
               break;
-#if CHECKING
             default:
-              internal_error(
-               "read_logical_source_line: bad orig_modif_list entry kind (2)");
-#endif /* CHECKING */
+              unexpected_condition_str2("read_logical_source_line:",
+                                        "bad orig_modif_list entry kind (2)");
           }  /* switch */
         }  /* for */
       }  /* if */
@@ -8188,9 +8181,7 @@ fixed_point_suffix:
       case k_fixed_point: ks = "fixed-point"; break;
 #endif /* FIXED_POINT_ALLOWED */
       case k_float:       ks = "float";       break;
-#if CHECKING
-      default:          ks = "<bad kind>";
-#endif /* CHECKING */
+      default:            ks = "<bad kind>";
     }  /* switch */
     fprintf(f_debug, "Numeric token = \"%.*s\", kind = %s\n",
                      (int)(end_of_curr_token - start_of_curr_token + 1),
@@ -8302,10 +8293,8 @@ fixed_point_suffix:
         conv_float_literal(is_hex_fp_value, &err_code, &err_pos);
         ctoken = tok_float_constant;
         break;
-#if CHECKING
       default:
-        internal_error("scan_number: bad kind");
-#endif /* CHECKING */
+        unexpected_condition_str("scan_number: bad kind");
     }  /* switch */
     /* Check for errors detected. */
     if (err_code != ec_no_error) {
@@ -12234,10 +12223,9 @@ skipping too far in error cases.
       break;
     case tok_lbrace:    closing_token = tok_rbrace; max_lines = 20; break;
     case tok_lt:        closing_token = tok_gt;       break;
-#if CHECKING
     default:
-      internal_error("flush_until_matching_token: bad opening token");
-#endif /* CHECKING */
+      unexpected_condition_str2("flush_until_matching_token:",
+                                "bad opening token");
   }  /* switch */
   (void)get_token();
 
