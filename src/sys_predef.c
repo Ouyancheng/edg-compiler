@@ -2318,9 +2318,13 @@ global array named_address_spaces (see targ_def.h).
   a_named_address_space_descr  *nas = &named_address_spaces[1];
 
   for (;nas->name != NULL; ++nas) {
+#if CHECKING
     a_symbol_ptr  sym = enter_named_address_space(nas->name);
     check_assertion(sym->variant.named_address_space.id == 
                                                 (nas - named_address_spaces));
+#else /* !CHECKING */
+    (void)enter_named_address_space(nas->name);
+#endif /* CHECKING */
   }  /* while */
 }  /* enter_predefined_named_address_spaces */
 
@@ -2339,9 +2343,13 @@ global array named_register_storage_classes (see targ_def.h).
                                           &named_register_storage_classes[1];
 
   for (;nr->name != NULL; ++nr) {
+#if CHECKING
     a_symbol_ptr  sym = enter_named_register(nr->name);
     check_assertion(sym->variant.named_register.id ==
                                        (nr - named_register_storage_classes));
+#else /* !CHECKING */
+    (void)enter_named_register(nr->name);
+#endif /* CHECKING */
   }  /* while */
 }  /* enter_predefined_named_registers */
 

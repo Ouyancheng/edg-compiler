@@ -10713,7 +10713,7 @@ Other attributes are invalid and are diagnosed.
   an_attribute_ptr  gnu_list, ap;
 
   gnu_list = extract_gnu_attributes(&dps->id_attributes);
-  *last_attribute_link(&gnu_list) =
+  *f_last_attribute_link(&gnu_list) =
                               extract_gnu_attributes(&dps->prefix_attributes);
   if (gnu_list != NULL) {
     for (ap = gnu_list; ap != NULL; ap = ap->next) ap->assoc_info = (void*)dps;
@@ -13169,7 +13169,7 @@ A using-directive entry is created and activated for the current scope.
     }  /* if */
     (void)get_token();
     if (curr_token == tok_attribute) {
-      *last_attribute_link(&attributes) =
+      *f_last_attribute_link(&attributes) =
                                         scan_gnu_attribute_groups(al_postfix);
     }  /* if */
     if (err) {

@@ -6330,7 +6330,7 @@ it is followed by a colon.)
   (void)get_token();
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_attributes_enabled && curr_token == tok_attribute) {
-    *last_attribute_link(&attributes) = scan_gnu_attribute_groups(al_label);
+    *f_last_attribute_link(&attributes) = scan_gnu_attribute_groups(al_label);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (attributes != NULL) {

@@ -20268,10 +20268,8 @@ determine which address to return.
       lifetime_addr =
                      &((a_local_static_variable_init_ptr)entity_ptr)->lifetime;
       break;
-#if CHECKING
     default:
-      internal_error("addr_of_lifetime_ptr: bad il entry kind");
-#endif /* CHECKING */
+      unexpected_condition_str("addr_of_lifetime_ptr: bad il entry kind");
   }  /* switch */
   return lifetime_addr;
 }  /* addr_of_lifetime_ptr */

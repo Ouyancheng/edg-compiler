@@ -556,7 +556,9 @@ of class_type.  err_pos is a pointer to a source position used for diagnostics.
     /* Record any C++-only declaration modifiers in the class type supplement.
        (See also scan_extended_decl_modifiers and scan_declspec_attributes
        which reject C++-only modifiers in C mode.) */
+#if DECL_MODIFIERS_IN_USE
     a_decl_modifier  flags = extended_decl_info->decl_modifiers.flags;
+#endif /* DECL_MODIFIERS_IN_USE */
 #if NEAR_AND_FAR_ALLOWED
     ctsp->qualifiers = extended_decl_info->qualifiers;
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -7942,10 +7944,8 @@ also been consumed.
                              is_named_register ? (a_storage_class)sc_extern
                                                : (a_storage_class)sc_register;
         break;
-#if CHECKING
       default:
-        internal_error("decl_specifiers: bad storage class");
-#endif /* CHECKING */
+        unexpected_condition_str("decl_specifiers: bad storage class");
     }  /* switch */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -8920,10 +8920,8 @@ storage_class_specifier:
             case tok_fract:    basic_type = bt_fract;   break;
             case tok_accum:    basic_type = bt_accum;   break;
 #endif /* FIXED_POINT_ALLOWED */
-#if CHECKING
             default:
-              internal_error("decl_specifiers: bad type specifier");
-#endif /* CHECKING */
+              unexpected_condition_str("decl_specifiers: bad type specifier");
           }  /* switch */
           if (curr_token == tok_void && !any_decl_specifiers_seen) {
             decl_specifiers_seen = DS_VOID;

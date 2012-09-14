@@ -253,7 +253,7 @@ far (this routine is sometimes called when that list is still incomplete).
   while (operands != NULL) {
     if (operands->name != NULL &&
         strncmp(operands->name, start, *pc-start) == 0 &&
-        strlen(operands->name) == *pc-start) {
+        (sizeof_t)strlen(operands->name) == (sizeof_t)(*pc-start)) {
       result = n;
       break;
     }  /* if */

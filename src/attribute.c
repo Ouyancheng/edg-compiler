@@ -3365,7 +3365,7 @@ Currently, this is just the concatenation of copies of those lists.
   } else {
     result = copy_of_attributes_list(ap1);
     if (ap2 != NULL) {
-      *last_attribute_link(&result) = copy_of_attributes_list(ap2);
+      *f_last_attribute_link(&result) = copy_of_attributes_list(ap2);
     }  /* if */
   }  /* if */
   return result;
@@ -4507,10 +4507,9 @@ it and return the entity.
 */
 {
   a_routine_ptr         rp = (a_routine_ptr)entity;
-  an_attribute_arg_ptr  aap = ap->arguments;
 
   check_assertion(entity_kind == iek_routine &&
-                  (aap == NULL || aap->next == NULL));
+                  (ap->arguments == NULL || ap->arguments->next == NULL));
   if (!is_error_type(rp->type) &&
       routine_type_is_nonstatic_member_function(rp->type)) {
     pos_st_warning(ec_attribute_ignored_on_nonstatic_member_function,
@@ -4539,10 +4538,9 @@ it and return the entity.
 */
 {
   a_routine_ptr         rp = (a_routine_ptr)entity;
-  an_attribute_arg_ptr  aap = ap->arguments;
 
   check_assertion(entity_kind == iek_routine &&
-                  (aap == NULL || aap->next == NULL));
+                  (ap->arguments == NULL || ap->arguments->next == NULL));
   if (!is_error_type(rp->type) &&
       routine_type_is_nonstatic_member_function(rp->type)) {
     pos_st_warning(ec_attribute_ignored_on_nonstatic_member_function,
@@ -4797,12 +4795,11 @@ variable) and return entity.
 */
 {
   a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
-  an_attribute_arg_ptr  aap = ap->arguments;
   a_variable_ptr        vp = (a_variable_ptr)entity;
   a_type_ptr            tp;
 
   check_assertion(entity_kind == iek_variable &&
-                  (aap == NULL || aap->next == NULL));
+                  (ap->arguments == NULL || ap->arguments->next == NULL));
   tp = skip_typerefs(vp->type);
   /* Only accept the init_priority attributes on class type variables and on
      arrays of class type objects, and only on entities that are initialized
