@@ -9312,9 +9312,11 @@ for the routine.  If rout is non-NULL, its routine name and init_priority are
 used, otherwise the name and init_priority argument values are used.
 */
 {
-  if (rout != NULL) name = rout->source_corresp.name;
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  if (rout != NULL) init_priority = rout->init_priority;
+  if (rout != NULL) {
+    name = rout->source_corresp.name;
+    init_priority = rout->init_priority;
+  }  /* if */
   if (init_priority != 0) {
     /* For an initialization routine that contains initializations of
        variables with init_priority N, put out a variable in a
