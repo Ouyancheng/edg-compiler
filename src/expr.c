@@ -24160,11 +24160,9 @@ is expected to be NULL in that case.
           (void)check_integral_or_enum_operand(operand_1);
           (void)check_integral_or_enum_operand(&operand_2);
           break;
-#if CHECKING
         default:
-          internal_error(
+          unexpected_condition_str(
                  "scan_compound_assignment_operator: bad assignment operator");
-#endif /* CHECKING */
       }  /* switch */
 
       if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
@@ -28673,10 +28671,8 @@ bad_start_of_primary:
         scan_comma_operator(&operand, (a_rescan_control_block *)NULL,
                             &local_result);
         break;
-#if CHECKING
       default:
-        internal_error("scan_expr_full: bad operator token in loop");
-#endif /* CHECKING */
+        unexpected_condition_str("scan_expr_full: bad operator token in loop");
     }  /* switch */
   }  /* for */
 

@@ -10831,10 +10831,8 @@ type is an error type, return eok_error.
     case tok_or_assign:
       op = (an_expr_operator_kind)eok_or_assign;
       break;
-#if CHECKING
     default:
-      internal_error("which_binary_operator: bad int operator");
-#endif /* CHECKING */
+      unexpected_condition_str("which_binary_operator: bad int operator");
   }  /* switch */
   if (type_kind == (a_type_kind)tk_error) {
     op = (an_expr_operator_kind)eok_error;
