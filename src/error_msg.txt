@@ -2422,6 +2422,7 @@ ec_explicit_enum_base_nonstandard_in_current_mode;;"explicit enum base types are
 ec_unconvertible_con_expr;;"expression is required to be convertible to type %t2, but its type is %t1"
 ec_new_of_initializer_list;;"a \"new\" of an std::initializer_list object is unlikely to work as expected because the underlying array will be destroyed at the end of the full expression"
 ec_predef_macro_file;INTERNAL;"In predefined macro file"
+ec_noexcept_not_on_function_declaration;;"\"noexcept\" is ignored on a function type that is not the type of a function declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

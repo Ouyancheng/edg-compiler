@@ -1378,17 +1378,30 @@ specification is handled later (see check_exception_specification).
     /* Issue a remark: Exception specifications are parsed and discarded. */
     pos_remark(ec_exception_specification_ignored, &pos_curr_token);
   }  /* if */
-  if (is_noexcept && next_token() != tok_lparen) {
-    /* "noexcept" without arguments. */
-    if (esp != NULL) {
-      esp->variant.noexcept_arg = NULL;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      esp->source_range.end = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (is_noexcept) {
+    if (!is_top_level_declarator) {
+      /* noexcept is currently ignored when it is not used for a function
+         declaration.  For example:
+            void (*p() noexcept)() noexcept;
+         The inner noexcept applies to the declarator for function p and is
+         therefore recorded.  However, the second noexcept-specifier applies
+         to the pointer-to-function return type and will be ignored.
+         Issue a warning here (while "noexcept" is the current token), and
+         clear esp below. */
+      pos_warning(ec_noexcept_not_on_function_declaration, &pos_curr_token);
     }  /* if */
-    /* Scan past the "noexcept" token. */
-    (void)get_token();
-    goto done;
+    if (next_token() != tok_lparen) {
+      /* "noexcept" without arguments. */
+      if (esp != NULL) {
+        esp->variant.noexcept_arg = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        esp->source_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      }  /* if */
+      /* Scan past the "noexcept" token. */
+      (void)get_token();
+      goto done;
+    }  /* if */
   }  /* if */
   /* Bypass "throw" or "noexcept". */
   (void)get_token();
@@ -1521,6 +1534,11 @@ finish_list:;
   /* Restore the stop token state. */
   pop_stop_token_stack();
 done:;
+  if (is_noexcept && !is_top_level_declarator) {
+    /* Ignore "noexcept" on function types that do not correspond to function
+       declarations (a warning was issued above). */
+    esp = NULL;
+  }  /* if */
   db_exit();
   return esp;
 }  /* scan_exception_specification */
