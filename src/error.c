@@ -1437,16 +1437,15 @@ symbol_name:
                               (a_boolean*)NULL);
       }  /* if */
       break;
-#if CHECKING
     case sk_projection:
     case sk_namespace_projection:
       /* Cannot have a projection of a projection symbol.  This is an
          error. */
-      internal_error("form_symbol_summary: projection of projection kind");
+      unexpected_condition_str2("form_symbol_summary:",
+                                "projection of projection kind");
       break;
     default:
-      internal_error("form_symbol_summary: unsupported symbol kind");
-#endif /* CHECKING */
+      unexpected_condition_str("form_symbol_summary: unsupported symbol kind");
   }  /* switch */
   /* Add the closing double quote mark. */
   add_string_to_segment("\"", seg_ptr);
@@ -1681,11 +1680,9 @@ check_for_seq_number:
         case '%':
           /* The string "%%" is used to insert a single "%" in the output. */
           goto text_segment;
-#if CHECKING
         default:
-          internal_error(
-         "construct_message_segments: unknown message substitution parameter");
-#endif /* CHECKING */
+          unexpected_condition_str2("construct_message_segments:",
+                                    "unknown message substitution parameter");
       }  /* switch */
     } else {
 text_segment:
@@ -2301,11 +2298,9 @@ later output as appropriate.
             put_char(' ');
             loc_in_line += LE_ESCAPE_LEN;
             break;
-#if CHECKING
           default:
-            internal_error(
-                          "write_orig_source_line: bad orig_modif_list entry");
-#endif /* CHECKING */
+            unexpected_condition_str2("write_orig_source_line:",
+                                      "bad orig_modif_list entry");
         }  /* switch */
       }  /* for */
 end_of_loop:
@@ -2796,11 +2791,10 @@ number is added into the output.
                                           : ec_internal_error;
       total_catastrophes++;
       break;
-#if CHECKING
     case es_none:
     default:
-      internal_error("write_position_and_severity: bad severity");
-#endif /* CHECKING */
+      severity_code = ec_error;
+      unexpected_condition_str("write_position_and_severity: bad severity");
   }  /* switch */
   if (severity_code != ec_no_error) {
     error_text_string = error_text(severity_code);
@@ -2867,11 +2861,10 @@ in lower case.
     case es_internal_error:
       severity_char = 'C';
       break;
-#if CHECKING
     case es_none:
     default:
-      internal_error("write_diag_to_raw_listing: bad severity");
-#endif /* CHECKING */
+      severity_char = '?';
+      unexpected_condition_str("write_diag_to_raw_listing: bad severity");
   }  /* switch */
   if (diag_kind == dck_list || diag_kind == dck_context_primary) {
      severity_char = tolower(severity_char);
