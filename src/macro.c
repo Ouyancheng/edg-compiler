@@ -3637,6 +3637,8 @@ hence its name should not be changed.
 #if CHECKING
           internal_error(
                      "length_of_replacement_text: expansion section unknown");
+#else /* !CHECKING */
+          ;
 #endif /* CHECKING */
       }  /* switch */
     }  /* if */
@@ -5307,6 +5309,8 @@ end_arg_expansion:;
           default:
 #if CHECKING
             internal_error("macro_invocation: expansion section unknown");
+#else /* !CHECKING */
+            ;
 #endif /* CHECKING */
         }  /* switch */
       }  /* if */
@@ -5995,6 +5999,8 @@ beginning of the encoding of the replacement list.
         default:
 #if CHECKING
           internal_error("db_dump_macro_def: bad section kind in macro def");
+#else /* !CHECKING */
+          ;
 #endif /* CHECKING */
       }  /* switch */
     }  /* for */
