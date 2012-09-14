@@ -6581,9 +6581,9 @@ Scan and process a #define directive.
         }  /* if */
       }  /* if */
     }  /* while */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
+#if RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
     end_of_replacement = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Store final terminator.  We've ensured that there is room for this. */
     *next_avail_in_macro_buffer = (char)rt_null;
     /* Not inside a cpp string.  Could still be set if there is an 
