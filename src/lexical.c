@@ -14183,8 +14183,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_symbol_locator		  orig_locator;
   a_boolean			  error_locator_created = FALSE;
   a_boolean			  is_constructor_reference = FALSE;
-  a_type_ptr			  orig_ctor_type;
-  a_symbol_ptr			  orig_ctor_symbol;
+  a_type_ptr			  orig_ctor_type = NULL;
+  a_symbol_ptr			  orig_ctor_symbol = NULL;
   a_boolean                       is_expr_context =
                                          (options & GID_IS_EXPR_CONTEXT) != 0;
   a_boolean                       sun_gpp_undefined_template = FALSE;
