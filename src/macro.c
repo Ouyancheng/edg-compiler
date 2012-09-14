@@ -6110,12 +6110,12 @@ Scan and process a #define directive.
   sizeof_t        next_targ_offset;
   sizeof_t        first_text_map_entry = macro_text_map.num_entries;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
+#if RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
                   start_of_replacement;
   a_source_position
                   end_of_replacement;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -6372,9 +6372,9 @@ Scan and process a #define directive.
                                      NO_PARENT_MACRO_INVOCATION);
     }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
+#if RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
     start_of_replacement = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
     while (curr_token != tok_newline) {
       if (curr_token == tok_paste) {
         /* "##".  Can be preceded and/or followed by a parameter, but
