@@ -3316,7 +3316,6 @@ copied and substituted.
     (*dip)->is_compound_literal = TRUE;
     if ((*dip)->kind == (a_dynamic_init_kind)dik_constant ||
         (*dip)->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-      (*dip)->variant.constant->explicit_cast_applied = TRUE;
       if (!is_incomplete_array_type(dps.type)) {
         (*dip)->variant.constant->type = dps.type;
       }  /* if */
