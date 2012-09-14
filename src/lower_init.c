@@ -1826,7 +1826,7 @@ array initialization is currently handled here).  Insert the statement at
       an_init_pos_modifier *ipmp = dest->modifiers;
       check_assertion(is_array_type(source_node->type) &&
                       num_array_elements(source_node->type) ==
-                                                    dest->array_element_count);
+                                     (a_targ_size_t)dest->array_element_count);
       /* In preparation for an array element copy, an array modifier has
          already been added to the destination; remove it now so that the
          assignment generated below is an array-to-array assignment. */
@@ -11790,6 +11790,7 @@ have already had their designated initializers lowered.
           member_type = skip_typerefs(member_type);   
         }  /* if */
       }  /* if */
+#if CHECKING
       { a_type_ptr con_type = skip_typerefs(temp_con->type);
         check_assertion_str(
                    identical_types(con_type, member_type) ||
@@ -11811,6 +11812,7 @@ have already had their designated initializers lowered.
                       is_incomplete_array_type(member_type))),
                    "lower_aggregate_designated_initializers: type mismatch");
       }
+#endif /* CHECKING */
       last_con = con_pos.ptr;
       advance_init_con_pos(&con_pos);
       if (con_pos.ptr != NULL) {
@@ -13879,7 +13881,9 @@ and insert_dtor_member_and_base_destructions; dtor_info is NULL
 for a constructor.
 */
 {
+#if ASSIGNMENT_TO_THIS_ALLOWED || CHECKING
   a_routine_ptr      routine = current_routine_entry();
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED || CHECKING */
   an_insert_location insert_location;
 
   set_block_start_insert_location(statement, &insert_location);
