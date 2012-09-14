@@ -3900,12 +3900,6 @@ do_unknown_function:
                             "literal_representation: bad template param kind");
       }  /* switch */
       break;
-#if CHECKING
-#if FIXED_POINT_ALLOWED
-    case ck_fixed_point:
-      /* C++ modes do not currently allowed fixed-point types, and therefore
-         no mangling should be needed for them. */
-#endif /* FIXED_POINT_ALLOWED */
     case ck_string:
       /* Strings can appear in expressions (e.g., in decltype). */
 #if IA64_ABI
@@ -3947,7 +3941,14 @@ do_unknown_function:
       /* These may show up when mangling constants in compound literals;
          just ignore them. */
       break;
+#if FIXED_POINT_ALLOWED
+    case ck_fixed_point:
+      /* C++ modes do not currently allowed fixed-point types, and therefore
+         no mangling should be needed for them. */
+      /* FALLTHROUGH */
+#endif /* FIXED_POINT_ALLOWED */
     default:
+#if CHECKING
       internal_error("literal_representation: bad constant kind");
 #endif /* CHECKING */
   }  /* switch */

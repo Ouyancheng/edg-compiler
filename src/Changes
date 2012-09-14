@@ -1,5 +1,13 @@
 Version 4.5
 
+9/14/12  [EDGcpfe/13193]
+Incorrect mangling in cases where CHECKING is FALSE
+
+A programming error (in literal_representation) had resulted in no mangling for
+certain types of constants in configurations where CHECKING is FALSE.  The
+error was introduced in 4.2 and is now fixed.
+
+
 9/7/12   [EDGcpfe/12912,EDGcpfe/10729,EDGcpfe/7902,EDGcpfe/7256,EDGcpfe/6547]
 Function-style macros in predefined macros file
 
