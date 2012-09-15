@@ -4259,7 +4259,7 @@ case, transparent_union will be TRUE, and the cast and braces must be
 suppressed.
 */
 {
-  a_boolean is_scalar;
+  a_boolean is_aggregate;
 
   check_assertion(dip == NULL || dip->is_compound_literal ||
                   transparent_case);
@@ -4276,15 +4276,9 @@ suppressed.
     write_tok_ch('(');
     gen_cast(literal_type);
   }  /* if */
-  is_scalar = (!is_aggregate_or_union_type(literal_type) &&
-               !is_template_param_type(literal_type)
-#if GNU_VECTOR_TYPES_ALLOWED
-               && !is_vector_type(literal_type)
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-               ) ||
-               (literal_con != NULL &&
-                literal_con->kind == (a_constant_repr_kind)ck_string);
-  if (is_scalar) {
+  is_aggregate = (literal_con != NULL &&
+                  literal_con->kind == (a_constant_repr_kind)ck_aggregate);
+  if (!is_aggregate) {
     /* Scalar initialization.  Put an extra set of braces around the
        initializer. */
     write_tok_ch('{');
@@ -4294,13 +4288,12 @@ suppressed.
                              /*suppress_braces=*/FALSE);
   } else {
     a_boolean parens_needed;
-    check_assertion(is_scalar &&
-                    dip->kind == (a_dynamic_init_kind)dik_expression);
+    check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
     parens_needed = expr_has_comma_operation(dip->variant.expression);
     gen_expr(dip->variant.expression, parens_needed,
              /*obj_expr_of_mfunc_operator=*/FALSE);
   }  /* if */
-  if (is_scalar) write_tok_ch('}');
+  if (!is_aggregate) write_tok_ch('}');
   if (!transparent_case) {
     write_tok_ch(')');
   }  /* if */
@@ -14263,6 +14256,10 @@ output_functional_notation_cast_arguments:
      not get here at all).  For a non-cast, the code below is putting out
      a freestanding expression. */
   switch (dip->kind) {
+    case dik_zero:
+      check_assertion(!dip->is_explicit_cast && dip->is_braced_initializer);
+      write_tok_str("{}");
+      break;
     case dik_constant:
       /* Constant (simple or aggregate). */
       con = dip->variant.constant;
@@ -14338,7 +14335,6 @@ output_functional_notation_cast_arguments:
       }
       break;
     case dik_none:
-    case dik_zero:
     default:
       unexpected_condition_str("gen_dynamic_init: bad kind");
   }  /* switch */
