@@ -1,5 +1,22 @@
 Version 4.5
 
+9/15/12  [EDGcpfe/13173]
+Spurious error on empty pack expansion passed to template template parameter
+
+A spurious "too many arguments" error was issued if any empty pack expansion
+was passed as an argument to a template template parameter when the
+actual template template argument did not allow a parameter in that
+position.  Now fixed.  The example below should be allowed because the
+instantiation of B passes only one template argument to A (via the template
+template parameter T).
+
+  template <class T> struct A { };
+  template  <template <class, class...> class T, class... Args> struct B {
+    typedef T<int, Args...> type;
+  };
+  B<A> N;
+
+
 9/14/12  [EDGcpfe/13193]
 Incorrect mangling in cases where CHECKING is FALSE
 

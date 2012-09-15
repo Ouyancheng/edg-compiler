@@ -13590,6 +13590,7 @@ all arguments were explicit.
   a_boolean			   any_default_args = FALSE;
   a_boolean                        saved_in_template_arg_list =
                                        scope_stack_top().in_template_arg_list;
+  a_boolean                        too_many_args = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_source_position                arg1_pos, arg2_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13658,10 +13659,24 @@ all arguments were explicit.
     a_source_position			arg_pos;
     a_pack_expansion_stack_entry_ptr	pesep;
     a_boolean				any_args;
+    if (is_template_dependent_context() &&
+        (param_ptr == NULL || orig_param_ptr == NULL)) {
+      /* In a template dependent context, if there are more arguments than
+         parameters, don't start another pack expansion. */
+      too_many_args = TRUE;
+      break;
+    }  /* if */
     any_args = begin_potential_pack_expansion_context_full(
                                     &pesep, (a_pack_expansion_descr_ptr*)NULL,
                                     /*is_lookahead=*/FALSE,
                                     /*ignore_suppression=*/TRUE);
+    /* If we have run out of parameters but there are more arguments, exit
+       the loop.  This test is done here so that a construct like
+       "A<X, args...>" will be accepted when args is an empty pack. */
+    if ((param_ptr == NULL || orig_param_ptr == NULL) && any_args) {
+      too_many_args = TRUE;
+      break;
+    }  /* if */
     while (any_args) {
       if (!in_pack && param_ptr != NULL && param_ptr->is_pack) {
         /* Create a start of parameter pack placeholder. */
@@ -13800,9 +13815,7 @@ all arguments were explicit.
       if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
       any_args = advance_to_next_pack_element(pesep);
     }  /* while */
-  } while (param_ptr != NULL && orig_param_ptr != NULL &&
-           loop_token(tok_comma));
-
+  } while (loop_token(tok_comma));
   /* If we were processing arguments associated with a parameter pack,
      advance past the parameter pack now that we have reached the end
      of the explicitly supplied arguments. */
@@ -13914,7 +13927,7 @@ all arguments were explicit.
       *any_errors = TRUE;
     }  /* if */
   }  /* for */
-  if (curr_token == tok_comma) {
+  if (too_many_args) {
     /* All of the formal parameters have been accounted for and there are
        more actuals -- too many arguments were supplied. */
     pos_sy_error(ec_too_many_template_args, &pos_curr_token, template_sym);
