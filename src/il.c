@@ -24175,7 +24175,8 @@ IL lowering.
                                                is_immediate_enum_type(type)));
       }  /* if */
     }  /* for */
-    check_assertion(next_type_reordering_slot - type_reordering == n_types);
+    check_assertion(
+      (unsigned long)(next_type_reordering_slot - type_reordering) == n_types);
     /* Now apply the reordering. */
     il_header.primary_scope->types = type_reordering[0];
     for (k = 1; k<n_types; ++k) {

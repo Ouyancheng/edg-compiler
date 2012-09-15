@@ -6730,10 +6730,9 @@ _Sat was specified.
           }  /* if */
           break;
 #endif /* INT128_EXTENSIONS_ALLOWED */
-#if CHECKING
         default:
-          internal_error("combine_type_specifiers: bad size for int");
-#endif /* CHECKING */
+          unexpected_condition_str(
+                                 "combine_type_specifiers: bad size for int");
       }  /* switch */
         /* In Microsoft Visual C++ 6.0 __intN is a distinct type (not just a
            synonym for another integral type). */
