@@ -20551,6 +20551,7 @@ alias
   a_token_cache_ptr			p_token_cache = NULL;
   a_token_cache				token_cache;
   an_attribute_ptr			attributes;
+  an_attribute_ptr			*p_attributes = &attributes;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean				saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -20632,8 +20633,10 @@ alias
              __declspec(__edg_interior_ptr_alias) T;
        Note that we cannot use a __declspec attribute before the "=" token
        because that is an al_declarator_id location (which doesn't permit the
-       __declspec attribute variants). */
-    *last_attribute_link(&attributes) = scan_attributes(al_prefix);
+       __declspec attribute variants).  p_attributes is used to suppress
+       build warnings caused by passing a known non-NULL value to
+       last_attribute_link. */
+    *last_attribute_link(p_attributes) = scan_attributes(al_prefix);
   }  /* if */
   /* Enter the symbol at the scope indicated by effective_decl_level. */
   ssep = &scope_stack[decl_state->effective_decl_level];
