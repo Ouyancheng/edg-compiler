@@ -4073,8 +4073,8 @@ Return TRUE if constant is a pointer-to-member constant that has been
 or will be changed into a ck_aggregate for a struct during lowering
 (that's done for pointers to member functions).  If so, create a
 temporary variable and initialize it with the ck_aggregate constant.
-If const_okay is TRUE, make the variable const.  Return a pointer to
-the variable in *temp_var.  The variable is saved and reused.  This
+If const_okay is TRUE, make the variable const, if possible.  Return a pointer
+to the variable in *temp_var.  The variable is saved and reused.  This
 trick is necessary for cases where such a pointer to member constant
 is referenced from executable code, because a ck_aggregate can only
 be referenced in an initialization.  The caller will rewrite the
@@ -4110,6 +4110,13 @@ constant is being assigned, e.g.,
     } else {
       a_type_ptr var_type = constant->type;
       /* The variable must be allocated. */
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (const_okay && is_vector_type(var_type) &&
+          gcc_is_generated_code_target) {
+        /* gcc doesn't permit initialization of static const vector types. */
+        const_okay = FALSE;
+      }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       if (const_okay) var_type = make_qualified_type(var_type, TQ_CONST);
       if (in_file_scope((char *)constant)) {
         /* The constant is in the file scope, so use a file-scope variable.
