@@ -6703,7 +6703,7 @@ entry_for_possible_trigraph:
                    (find_offset_for_source_line_mbc_including(loc_in_line-1,
                                                               &mbc_offset),
                    mbc_offset ==
-                                (unsigned long)loc_in_line-1-curr_source_line))
+                              (unsigned long)(loc_in_line-1-curr_source_line)))
 #endif /* QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
                                                 ) {
