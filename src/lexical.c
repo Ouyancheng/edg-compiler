@@ -13927,7 +13927,7 @@ all arguments were explicit.
       *any_errors = TRUE;
     }  /* if */
   }  /* for */
-  if (too_many_args) {
+  if (too_many_args && curr_token != tok_gt) {
     /* All of the formal parameters have been accounted for and there are
        more actuals -- too many arguments were supplied. */
     pos_sy_error(ec_too_many_template_args, &pos_curr_token, template_sym);
