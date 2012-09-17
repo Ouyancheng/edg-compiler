@@ -9929,7 +9929,7 @@ is found, NULL is returned.
           if (vpip != NULL &&
               vpip->orig_param_type->param_num ==
                                  (uint32_t)expr->variant.param_ref.param_num &&
-              vpip->level == expr->variant.param_ref.levels_up) {
+              (unsigned int)vpip->level == expr->variant.param_ref.levels_up) {
             result_type = arg_prp->curr_argument.param_type->type;
             break;
           }  /* if */

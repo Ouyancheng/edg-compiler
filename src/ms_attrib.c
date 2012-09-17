@@ -2117,12 +2117,15 @@ in the param_type entry).
   }  /* if */
   /* Check whether the attributes have the appropriate target. */
   for (msap = *attributes; msap != NULL; msap = next_msap) {
-    /*lint --e{550} is_error not referenced in some configurations. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     a_boolean	is_error = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     next_msap = msap->next;
     if ((msap->kind_descr->target & target) == 0 &&
         msap->kind_descr->target != MSAT_ANY) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
        is_error = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
        if (msap->kind_descr->target == MSAT_STANDALONE) {
          pos_st_error(ec_invalid_use_of_standalone_ms_attr, &msap->position,
                       msap->name);
@@ -2191,11 +2194,15 @@ attributes are added to the appropriate IL list.
   an_ms_attribute_ptr	next_msap;
 
   for (msap = *attributes; msap != NULL; msap = next_msap) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     a_boolean	is_error = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     next_msap = msap->next;
     if ((msap->kind_descr->target & MSAT_STANDALONE) == 0 &&
         (msap->kind_descr->target & MSAT_ANY) == 0) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
        is_error = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
        pos_st_error(ec_invalid_use_of_ms_attr, &msap->position, msap->name);
     } else {
       /* Add the attribute to the IL. */

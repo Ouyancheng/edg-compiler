@@ -10817,7 +10817,6 @@ instantiated.
   a_routine_ptr				templ_rout;
   a_routine_ptr				rout_ptr;
   a_type_ptr				templ_rout_type;
-  a_type_ptr				rout_type;
   a_template_instance_ptr		tip;
   a_symbol_ptr				template_sym;
   a_template_symbol_supplement_ptr	tssp;
@@ -10825,7 +10824,6 @@ instantiated.
   check_assertion(rout_sym->kind == (a_symbol_kind)sk_routine ||
                   rout_sym->kind == (a_symbol_kind)sk_member_function);
   rout_ptr = rout_sym->variant.routine.ptr;
-  rout_type = skip_typerefs(rout_ptr->type);
   if (param->default_being_instantiated) {
     /* This default argument (for this instance) is already being instantiated.
        Don't attempt another instantiation. */
@@ -10915,7 +10913,9 @@ instantiated.
     if (tip->declared_type_for_default_arg_fixup != NULL) {
       a_param_type_ptr  ptp;
       int               arg_num, i;
+      a_type_ptr        rout_type;
       /* Determine the argument number that "param" represents. */
+      rout_type = skip_typerefs(rout_ptr->type);
       ptp = rout_type->variant.routine.extra_info->param_type_list;
       for (arg_num = 1; ptp != NULL; ptp = ptp->next, arg_num++) {
         if (ptp == param) break;
@@ -21452,8 +21452,8 @@ issued.
                                           ? parent_class_of(parent_tp) : NULL;
     }  /* while */
   }  /* if */
-  if (depth != (decl_state->number_of_template_param_clauses +
-                decl_state->friend_depth) &&
+  if ((unsigned long)depth != (decl_state->number_of_template_param_clauses +
+                               decl_state->friend_depth) &&
       !decl_state->decl_scope_err) {
     /* The depths do not match, issue a diagnostic.  Don't set decl_scope_err
        because the message can be issued as a warning in g++ mode or the

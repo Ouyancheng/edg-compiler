@@ -266,8 +266,7 @@ the general identifier option.
 #define get_token_and_coalesce_if_identifier(flags)			\
   f_get_token_and_coalesce_if_identifier((flags), GID_NO_OPTIONS)
 
-#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED || \
-    GNU_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
 
 static void prescan_until_closing_paren(a_disambig_flag_set   flags)
 /*
@@ -295,8 +294,7 @@ scanned).
   }  /* for */
 }  /* prescan_until_closing_paren */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED ||
-          GNU_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED GNU_EXTENSIONS_ALLOWED */
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED

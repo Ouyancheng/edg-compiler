@@ -6702,7 +6702,8 @@ entry_for_possible_trigraph:
 #endif /* UNICODE_SOURCE_SUPPORTED */
                    (find_offset_for_source_line_mbc_including(loc_in_line-1,
                                                               &mbc_offset),
-                   mbc_offset == loc_in_line-1-curr_source_line))
+                   mbc_offset ==
+                                (unsigned long)loc_in_line-1-curr_source_line))
 #endif /* QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
                                                 ) {
@@ -12953,8 +12954,8 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
             (!is_template_dependent_type(qualifier_type) &&
              (!is_class_struct_union_type(qualifier_type) ||
               find_base_class_of(field_sel_type, qualifier_type) == NULL))) {
-          pos_ty2_error(is_finalizer ? ec_finalizer_qualifier_type_mismatch
-                                     : ec_destructor_qualifier_type_mismatch,
+          pos_ty2_error(!is_destructor ? ec_finalizer_qualifier_type_mismatch
+                                       : ec_destructor_qualifier_type_mismatch,
                         &locator_for_curr_id.source_position,
                         qualifier_type,
                         field_sel_type);
