@@ -8,7 +8,7 @@
 *                                                                             *
 ******************************************************************************/
 /*
-/*temp*/
+
 lexical.c -- Source input and lexical scanning routines.
 
 These routines and data structures handle reading of source lines
