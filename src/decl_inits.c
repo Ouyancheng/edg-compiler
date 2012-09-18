@@ -4744,6 +4744,45 @@ scan_paren:
 }  /* scan_mem_initializer_id */
 
 
+static void braced_mem_initializer(a_type_ptr              dtype,
+                                   a_constructor_init_ptr  cip)
+/*
+Scan a braced mem-initializer for a member of the given type, and record the
+initializer in *cip if cip is non-NULL.
+*/
+{
+  an_init_state      is;
+  a_source_position  lbrace_pos;
+
+  lbrace_pos = pos_curr_token;
+  clear_init_state(&is);
+  is.direct_init = TRUE;
+  is.force_dynamic_init = TRUE;
+  is.elements_are_full_expressions = TRUE;
+  if (strict_ansi_mode) {
+    is.error_on_narrowing = TRUE;
+  } else {
+    is.warning_on_narrowing = TRUE;
+  }  /* if */
+  /* Scan the initializer. */
+  braced_initializer(dtype, (an_init_component*)NULL, &is,
+                     (a_decl_parse_state*)NULL, (an_init_component**)NULL,
+                     &lbrace_pos);
+  if (cip != NULL) {
+    /* A dynamic init entry has been produced: Record it in the
+       constructor init entry. */
+    check_assertion(is.init_dip != NULL);
+    cip->initializer = is.init_dip;
+    cip->initializer->is_constructor_init = TRUE;
+    cip->is_braced = TRUE;
+    /* If the initializer produced an object lifetime for the full expression,
+       remove it temporarily from the object lifetime tree and restore it in
+       the correct position later. */
+    detach_object_lifetime_for_dynamic_init(cip->initializer);
+  }  /* if */
+}  /* braced_mem_initializer */
+
+
 static void scan_parenthesized_mem_init_args(
                                            a_constructor_init_ptr  cip,
                                            a_type_ptr              class_type,
@@ -4890,7 +4929,16 @@ cases, array_type is NULL).
     } else {
       /* Not default-initialization. */
       add_stop_token(tok_rparen);
-      if (array_type != NULL && !is_string_type(array_type)) {
+      if (list_init_enabled && !strict_ansi_mode && array_type != NULL &&
+          curr_token == tok_lbrace) {
+        /* Something like "S(): array({ 1, 2 }) {}".  A list initializer in a
+           parenthesized initializer for an array member is not actually valid
+           per the C++11 standard, but GCC accepts it, and, since it's not that
+           far-fetched, we accept it also in other nonstrict modes. */
+        pos_warning(ec_braced_init_in_paren_init, &pos_curr_token);
+        braced_mem_initializer(array_type, cip);
+        dip = cip->initializer;
+      } else if (array_type != NULL && !is_string_type(array_type)) {
         /* Arrays can only be default- or value-initialized -- i.e., the
            expression-list must be omitted.  The exception is a character
            array, which can be initialized with a string literal.  GNU C++ is
@@ -5023,34 +5071,7 @@ entries are replaced as needed for each mem-initializer that is encountered.
     } else if (list_init_enabled && curr_token == tok_lbrace) {
       /* A braced (i.e., C++11-style) mem-initializer argument. */
       a_type_ptr         dtype = (array_type != NULL) ? array_type : init_type;
-      an_init_state      is;
-      a_source_position  lbrace_pos;
-      lbrace_pos = pos_curr_token;
-      clear_init_state(&is);
-      is.direct_init = TRUE;
-      is.force_dynamic_init = TRUE;
-      is.elements_are_full_expressions = TRUE;
-      if (strict_ansi_mode) {
-        is.error_on_narrowing = TRUE;
-      } else {
-        is.warning_on_narrowing = TRUE;
-      }  /* if */
-      /* Scan the initializer. */
-      braced_initializer(dtype, (an_init_component *)NULL,
-                         &is, (a_decl_parse_state*)NULL,
-                         (an_init_component **)NULL, &lbrace_pos);
-      if (new_cip != NULL) {
-        /* A dynamic init entry has been produced: Record it in the
-           constructor init entry. */
-        check_assertion(is.init_dip != NULL);
-        new_cip->initializer = is.init_dip;
-        new_cip->initializer->is_constructor_init = TRUE;
-        new_cip->is_braced = TRUE;
-        /* If the initializer produced an object lifetime for the full
-           expression, remove it temporarily from the object lifetime tree and
-           restore it in the correct position later. */
-        detach_object_lifetime_for_dynamic_init(new_cip->initializer);
-      }  /* if */
+      braced_mem_initializer(dtype, new_cip);
     } else {
       /* A syntax error was already issued. */
       expect_error();
