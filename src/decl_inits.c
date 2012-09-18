@@ -4929,12 +4929,11 @@ cases, array_type is NULL).
     } else {
       /* Not default-initialization. */
       add_stop_token(tok_rparen);
-      if (list_init_enabled && !strict_ansi_mode && array_type != NULL &&
+      if (list_init_enabled && gpp_mode && array_type != NULL &&
           curr_token == tok_lbrace) {
         /* Something like "S(): array({ 1, 2 }) {}".  A list initializer in a
            parenthesized initializer for an array member is not actually valid
-           per the C++11 standard, but GCC accepts it, and, since it's not that
-           far-fetched, we accept it also in other nonstrict modes. */
+           per the C++11 standard, but GCC accepts it. */
         pos_warning(ec_braced_init_in_paren_init, &pos_curr_token);
         braced_mem_initializer(array_type, cip);
         dip = cip->initializer;
