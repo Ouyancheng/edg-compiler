@@ -21154,6 +21154,29 @@ controls).
         }  /* if */
         make_error_operand(&operand);
       }  /* if */
+    } else if (dest_type_is_class &&
+               list != NULL && list->next == NULL &&
+               is_expression_component(list) &&
+               are_reference_related(dest_type,
+                                     operand_of_arg_list_elem(list)->type)) {
+      /* Core issue 1467.  "If T is a class type and the initializer list
+         has a single element of type cv T or a class type derived from T,
+         the object is initialized from that element." */
+      init_handled_at_this_level = FALSE;
+      prep_list_initializer(list, dest_type, is_direct_init,
+                            check_narrowing,
+                            warning_on_narrowing,
+                            conv_context, fill_in_dtor, force_temp,
+                            ((result != NULL) ? &operand : (an_operand *)NULL),
+                            is,
+                            arg_match);
+      if (result == NULL && generate_il) {
+        check_assertion(is != NULL);
+        constant = is->init_con;
+        dip = is->init_dip;
+      }  /* if */
+      fill_in_dtor = FALSE;
+      force_temp = FALSE;
     } else if (aggregate_case) {
       /* Aggregate cases go back to the initialization code in decl_inits.c. */
       if (arg_match != NULL && !try_user_conversions_in_ovl_res) {
