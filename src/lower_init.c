@@ -1433,7 +1433,22 @@ NULL pointer-to-data member in the IA-64 ABI.
 {
   make_zero_of_proper_type(desired_type, zero_constant);
   if (is_or_was_ptr_to_data_member_type(desired_type)) {
-    lower_ptr_to_member_constant(zero_constant);
+    if (zero_constant->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+      /* An un-lowered pointer-to-data-member type; generate a lowered
+         constant of the appropriate type. */
+      lower_ptr_to_member_constant(zero_constant);
+    } else {
+      /* Type has already been lowered; select the appropriate constant
+         value to represent a NULL pointer-to-data-member. */
+      check_assertion(zero_constant->kind == (a_constant_repr_kind)ck_integer);
+      set_integer_constant(zero_constant,
+#if IA64_ABI
+                           (a_host_large_integer)-1,
+#else /* !IA64_ABI */
+                           (a_host_large_integer)0,
+#endif /* IA64_ABI */
+                           (an_integer_kind)ik_int);
+    }  /* if */
   }  /* if */
 }  /* make_lowered_zero_of_proper_type */
 
