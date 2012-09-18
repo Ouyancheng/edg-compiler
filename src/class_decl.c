@@ -16828,12 +16828,9 @@ remarks may be issued in some cases.
                        cssp->construction_by_bitwise_copy_allowed &&
                        cssp->has_trivial_destructor;
   /* Check the copy assignment operator. */
-  if (gsfd->suppress_copy_assign ||
-      (microsoft_mode && microsoft_version >= 1400 &&
-       !generate_move_operations)) {
+  if (gsfd->suppress_copy_assign) {
     /* If we already know the copy assignment operator should be suppressed,
-       no further checking is needed for this case.  Also, Microsoft's
-       compiler does not do this starting at version 8. */
+       no further checking is needed for this case. */
   } else if (type
                ->variant.class_struct_union.copy_assignment_decl_suppressed) {
     /* A base or member with a suppressed copy assignment operator suppresses
@@ -16844,6 +16841,11 @@ remarks may be issued in some cases.
                          &class_type->source_corresp.decl_position,
                          class_type, type);
     }  /* if */
+  } else if (microsoft_mode && microsoft_version >= 1400 &&
+             !generate_move_operations) {
+    /* Starting with version 8, Microsoft's compiler no longer appears to
+       inhibit copy assignment generation due to the copy assignment being
+       inaccessible or ambiguous for subobjects. */
   } else {
     rout_sym = find_copy_assignment_operator(
                                       type, gsfd->copy_assign_qualifiers,
@@ -16889,12 +16891,9 @@ remarks may be issued in some cases.
     }  /* if */
   }  /* if */
   /* Check the copy constructor. */
-  if (gsfd->suppress_copy_ctor ||
-      (microsoft_mode && microsoft_version >= 1400 &&
-       !generate_move_operations)) {
+  if (gsfd->suppress_copy_ctor) {
     /* If we already know the copy constructor should be suppressed, no further
-       checking is needed for this case.  Also, Microsoft's compiler does not
-       do this starting at version 8. */
+       checking is needed for this case.  */
   } else if (type->variant.class_struct_union.copy_ctor_decl_suppressed) {
     /* A base or member with a suppressed copy constructor suppresses this
        one, too. */
@@ -16904,6 +16903,11 @@ remarks may be issued in some cases.
                          &class_type->source_corresp.decl_position,
                          class_type, type);
     }  /* if */
+  } else if (microsoft_mode && microsoft_version >= 1400 &&
+             !generate_move_operations) {
+    /* Starting with version 8, Microsoft's compiler no longer appears to
+       inhibit copy constructor generation due to the copy constructor being
+       inaccessible or ambiguous for subobjects. */
   } else {
     rout_sym = find_copy_constructor(type, gsfd->copy_ctor_qualifiers,
                                      /*source_is_rvalue=*/FALSE,
