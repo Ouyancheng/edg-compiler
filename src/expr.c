@@ -23793,9 +23793,11 @@ number.
 }  /* process_simple_assignment */
 
 
-static void scan_simple_assignment_operator(an_operand             *operand_1,
-                                            a_rescan_control_block *rcblock,
-                                            an_operand             *result)
+static void scan_simple_assignment_operator(
+                              an_operand             *operand_1,
+                              a_rescan_control_block *rcblock,
+                              a_boolean              *op2_was_braced_init_list,
+                              an_operand             *result)
 /*
 Scan the simple assignment operator ("=").  *operand_1 is the left
 operand.  The current token is the operator.  Scan the second operand,
@@ -23803,7 +23805,8 @@ combine the two operands into an expression, and return an operand for
 that in *result.  If rcblock is non-NULL, redo semantic analysis on a
 previously-scanned expression, and return the result in *result (or an
 error indication in *rcblock).  operand_1 is expected to be NULL in
-that case.
+that case.  If the second operand of the assignment was a braced-init-list
+(allowed in C++11 mode), *op2_was_braced_init_list is returned TRUE.
 */
 {
   an_operand        local_operand_1, operand_2;
@@ -23814,6 +23817,7 @@ that case.
 
   db_enter(4, "scan_simple_assignment_operator");
 
+  *op2_was_braced_init_list = FALSE;
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     check_assertion(rcblock->operator_token == tok_assign);
@@ -23841,6 +23845,7 @@ that case.
       /* In C++11, the expression on the right is allowed to be a
          brace-enclosed list. */
       scan_braced_init_list_as_operand(&operand_2);
+      *op2_was_braced_init_list = TRUE;
     } else {
       /* Normal case, an expression. */
       scan_expr(&operand_2, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
@@ -23868,9 +23873,10 @@ that case.
 
 
 static void scan_compound_assignment_operator(
-                                             an_operand             *operand_1,
-                                             a_rescan_control_block *rcblock,
-                                             an_operand             *result)
+                              an_operand             *operand_1,
+                              a_rescan_control_block *rcblock,
+                              a_boolean              *op2_was_braced_init_list,
+                              an_operand             *result)
 /*
 Scan the compound assignment operators (*= /= %= += -= <<= >>= &= ^= |=).
 *operand_1 is the left operand.  The current token is the operator.
@@ -23878,7 +23884,9 @@ Scan the second operand, combine the two operands into an expression,
 and return an operand for that in *result.  If rcblock is non-NULL,
 redo semantic analysis on a previously-scanned expression, and return
 the result in *result (or an error indication in *rcblock).  operand_1
-is expected to be NULL in that case.
+is expected to be NULL in that case.  If the second operand of the
+assignment was a braced-init-list (allowed in C++11 mode),
+*op2_was_braced_init_list is returned TRUE.
 */
 {
   a_token_kind          save_token, operator_token;
@@ -23901,6 +23909,7 @@ is expected to be NULL in that case.
 
   db_enter(4, "scan_compound_assignment_operator");
 
+  *op2_was_braced_init_list = FALSE;
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     operator_token = rcblock->operator_token;
@@ -23984,6 +23993,7 @@ is expected to be NULL in that case.
       /* In C++11, the expression on the right is allowed to be a
          brace-enclosed list. */
       scan_braced_init_list_as_operand(&operand_2);
+      *op2_was_braced_init_list = TRUE;
     } else {
       /* Normal case, an expression. */
       scan_expr(&operand_2, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
@@ -28474,6 +28484,7 @@ bad_start_of_primary:
      The loop will then end and this invocation of scan_expr_full will
      return to its caller (also scan_expr_full). */
   for (;;) {
+    a_boolean op2_was_braced_init_list;
     if (C_dialect == C_dialect_pcc) {
       /* In pcc mode, check for nonstandard assignment operators like "+ =". */
       check_for_pcc_compound_assignment_operators();
@@ -28651,7 +28662,13 @@ bad_start_of_primary:
       case tok_assign:
         scan_simple_assignment_operator(&operand,
                                         (a_rescan_control_block *)NULL,
+                                        &op2_was_braced_init_list,
                                         &local_result);
+        /* Another "=" after a braced-init-list is invalid. */
+        if (op2_was_braced_init_list &&
+            !token_ends_expr(curr_token, PREC_ASSIGNMENT, local_options)) {
+          goto end_expr;
+        }  /* if */
         break;
       case tok_times_assign:
       case tok_divide_assign:
@@ -28665,7 +28682,13 @@ bad_start_of_primary:
       case tok_or_assign:
         scan_compound_assignment_operator(&operand,
                                           (a_rescan_control_block *)NULL,
-                                           &local_result);
+                                          &op2_was_braced_init_list,
+                                          &local_result);
+        /* Another "=" after a braced-init-list is invalid. */
+        if (op2_was_braced_init_list &&
+            !token_ends_expr(curr_token, PREC_ASSIGNMENT, local_options)) {
+          goto end_expr;
+        }  /* if */
         break;
       case tok_comma:
         scan_comma_operator(&operand, (a_rescan_control_block *)NULL,
@@ -28675,6 +28698,7 @@ bad_start_of_primary:
         unexpected_condition_str("scan_expr_full: bad operator token in loop");
     }  /* switch */
   }  /* for */
+end_expr:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (has_discarded_typename) {
@@ -34446,6 +34470,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
     }  /* switch */
   } else {
     /* Operators other than unary operators, i.e., typically two-operand. */
+    a_boolean op2_was_braced_init_list;
     /* The switch statement here should look a lot like the one in the loop in
        scan_expr_full. */
     switch (operator_token) {
@@ -34522,7 +34547,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_conditional_operator((an_operand *)NULL, rcblock, result);
         break;
       case tok_assign:
-        scan_simple_assignment_operator((an_operand *)NULL, rcblock, result);
+        scan_simple_assignment_operator((an_operand *)NULL, rcblock,
+                                        &op2_was_braced_init_list,
+                                        result);
         break;
       case tok_plus_assign:
       case tok_minus_assign:
@@ -34535,6 +34562,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_excl_or_assign:
       case tok_or_assign:
         scan_compound_assignment_operator((an_operand *)NULL, rcblock,
+                                          &op2_was_braced_init_list,
                                           result);
         break;
       default:
