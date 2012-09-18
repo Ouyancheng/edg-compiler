@@ -21122,6 +21122,13 @@ controls).
     /* The entity is initialized by a brace-enclosed list. */
     a_type_ptr            element_type;
     an_init_component_ptr list = icp->variant.braced.list;
+    a_type_ptr            singleton_expr_type = NULL;
+    if (list != NULL && list->next == NULL &&
+        is_expression_component(list)) {
+      /* The list has a single expression member.  Remember its type for easy
+         testing below. */
+      singleton_expr_type = operand_of_arg_list_elem(list)->type;
+    }  /* if */
     if (icp->braced_init_in_parentheses && !dest_type_is_class &&
         !could_be_dependent_class_type(dest_type)) {
       /* A parenthesized initializer list containing a single entity must
@@ -21154,11 +21161,13 @@ controls).
         }  /* if */
         make_error_operand(&operand);
       }  /* if */
-    } else if (dest_type_is_class &&
-               list != NULL && list->next == NULL &&
-               is_expression_component(list) &&
-               are_reference_related(dest_type,
-                                     operand_of_arg_list_elem(list)->type)) {
+    } else if (singleton_expr_type != NULL &&
+               ((dest_type_is_class &&
+                 (are_reference_related(dest_type, singleton_expr_type) ||
+                  could_be_dependent_class_type(singleton_expr_type))) ||
+                (could_be_dependent_class_type(dest_type) &&
+                 (is_class_struct_union_type(singleton_expr_type) ||
+                  could_be_dependent_class_type(singleton_expr_type))))) {
       /* Core issue 1467.  "If T is a class type and the initializer list
          has a single element of type cv T or a class type derived from T,
          the object is initialized from that element." */
@@ -21389,9 +21398,9 @@ controls).
       fill_in_dtor = FALSE;
     } else if (list != NULL && list->next == NULL &&
                (!is_any_reference_type(dest_type) ||
-                (is_expression_component(list) &&
+                (singleton_expr_type != NULL &&
                  are_reference_related(type_pointed_to(dest_type),
-                                       operand_of_arg_list_elem(list)->type))
+                                       singleton_expr_type))
                )) {
       /* A list containing just one member.  Drop the {} and do a recursive
          call.  Reference cases also go here if the underlying type is
