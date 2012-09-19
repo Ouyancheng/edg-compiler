@@ -721,9 +721,15 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
 
   check_assertion(!is_pack_expansion || kind == iek_type);
 #if EXPENSIVE_CHECKING && ABI_COMPATIBILITY_VERSION >= 405
-  check_assertion_str(!substitution_available(entity, kind, is_pack_expansion,
-                                              mctl),
-                      "alloc_substitution: missed mangling substitution");
+  if (!emulate_gnu_abi_bugs) {
+    /* Verify that there is no available substitution (the caller should
+       already have checked this).  Skip the check when emulating GNU ABI bugs
+       because in some cases the substitutions are intentionally
+       non-standard. */
+    check_assertion_str(!substitution_available(entity, kind,
+                                                is_pack_expansion, mctl),
+                        "alloc_substitution: missed mangling substitution");
+  }  /* if */
 #endif /* EXPENSIVE_CHECKING && ABI_COMPATIBILITY_VERSION >= 405 */
   if (mctl->suppress_substitutions == 0) {
     /* If the entity is a proxy class for a template parameter, use the
@@ -8780,6 +8786,14 @@ top_of_loop:
               break;
             }  /* if */
             type = decltype_expr->type;
+#if ABI_COMPATIBILITY_VERSION >= 405
+            /* If the type has appeared previously, use a substitution. */
+            if (add_substitution_if_available((char *)type, iek_type,
+                                              /*is_pack_expansion=*/FALSE,
+                                              mctl)) {
+              goto end_of_routine;
+            }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 */
             if (type->kind == (a_type_kind)tk_typeref) {
               /* The type is a typeref of sorts; jump to the top of this
                  loop to process it. */
