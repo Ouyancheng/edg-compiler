@@ -21398,7 +21398,6 @@ controls).
       }  /* if */
       fill_in_dtor = FALSE;
     } else if (list != NULL && list->next == NULL &&
-               list->pack_expansion_descr == NULL &&
                (!is_any_reference_type(dest_type) ||
                 (singleton_expr_type != NULL &&
                  are_reference_related(type_pointed_to(dest_type),
