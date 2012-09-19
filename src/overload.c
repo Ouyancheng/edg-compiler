@@ -21124,6 +21124,7 @@ controls).
     an_init_component_ptr list = icp->variant.braced.list;
     a_type_ptr            singleton_expr_type = NULL;
     if (list != NULL && list->next == NULL &&
+        list->pack_expansion_descr == NULL &&
         is_expression_component(list)) {
       /* The list has a single expression member.  Remember its type for easy
          testing below. */
@@ -21397,6 +21398,7 @@ controls).
       }  /* if */
       fill_in_dtor = FALSE;
     } else if (list != NULL && list->next == NULL &&
+               list->pack_expansion_descr == NULL &&
                (!is_any_reference_type(dest_type) ||
                 (singleton_expr_type != NULL &&
                  are_reference_related(type_pointed_to(dest_type),
@@ -21421,7 +21423,8 @@ controls).
           /* Drop the extra braces as long as they contain a single
              element. */
           an_init_component_ptr new_list = list->variant.braced.list;
-          if (new_list == NULL || new_list->next != NULL) break;
+          if (new_list == NULL || new_list->next != NULL ||
+              new_list->pack_expansion_descr != NULL) break;
           list = new_list;
         }  /* while */
       }  /* if */
