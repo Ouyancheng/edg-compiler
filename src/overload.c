@@ -21163,12 +21163,8 @@ controls).
         make_error_operand(&operand);
       }  /* if */
     } else if (singleton_expr_type != NULL &&
-               ((dest_type_is_class &&
-                 (are_reference_related(dest_type, singleton_expr_type) ||
-                  could_be_dependent_class_type(singleton_expr_type))) ||
-                (could_be_dependent_class_type(dest_type) &&
-                 (is_class_struct_union_type(singleton_expr_type) ||
-                  could_be_dependent_class_type(singleton_expr_type))))) {
+               dest_type_is_class &&
+               are_reference_related(dest_type, singleton_expr_type)) {
       /* Core issue 1467.  "If T is a class type and the initializer list
          has a single element of type cv T or a class type derived from T,
          the object is initialized from that element." */
@@ -21187,7 +21183,12 @@ controls).
       }  /* if */
       fill_in_dtor = FALSE;
       force_temp = FALSE;
-    } else if (aggregate_case) {
+    } else if (aggregate_case &&
+               /* Don't handle dependent cases that might resolve to copies
+                  as aggregate initializations. */
+               !(singleton_expr_type != NULL &&
+                 dest_type_is_class &&
+                 could_be_dependent_class_type(singleton_expr_type))) {
       /* Aggregate cases go back to the initialization code in decl_inits.c. */
       if (arg_match != NULL && !try_user_conversions_in_ovl_res) {
         arg_match_err = TRUE;
