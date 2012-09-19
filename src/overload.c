@@ -21027,7 +21027,6 @@ controls).
     }  /* if */
   } else if (is_expression_component(icp)) {
     /* The object is initialized by an expression. */
-    init_handled_at_this_level = FALSE;
     if (arg_match != NULL) {
       /* We allow this for generality, but usually this routine will
          not be called for a parameter initialization with an expression;
@@ -21169,7 +21168,7 @@ controls).
          has a single element of type cv T or a class type derived from T,
          the object is initialized from that element." */
       init_handled_at_this_level = FALSE;
-      prep_list_initializer(list, dest_type, /*is_direct_init=*/FALSE,
+      prep_list_initializer(list, dest_type, is_direct_init,
                             check_narrowing,
                             warning_on_narrowing,
                             conv_context, fill_in_dtor, force_temp,
@@ -21642,8 +21641,8 @@ controls).
         if (!operand_is_temp_init_full(&operand, &temp_init_node) ||
             /* If the temp is present but it is already representing something
                special, make another temporary. */
-            !(init_handled_at_this_level &&
-              is_generated_dynamic_init(
+            (!init_handled_at_this_level &&
+             !is_generated_dynamic_init(
                                  temp_init_node->variant.init.dynamic_init))) {
           if (!is_error_operand(&operand)) {
             /* Make a temporary.  Normally, it's an rvalue, but make an
