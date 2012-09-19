@@ -21169,7 +21169,7 @@ controls).
          has a single element of type cv T or a class type derived from T,
          the object is initialized from that element." */
       init_handled_at_this_level = FALSE;
-      prep_list_initializer(list, dest_type, is_direct_init,
+      prep_list_initializer(list, dest_type, /*is_direct_init=*/FALSE,
                             check_narrowing,
                             warning_on_narrowing,
                             conv_context, fill_in_dtor, force_temp,
