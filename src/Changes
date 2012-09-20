@@ -1,5 +1,24 @@
 Version 4.5
 
+9/20/12  [EDGcpfe/13197]
+Deduction failure with nondeduced parameter pack
+
+Formerly, the front end assumed that deduction could not succeed when
+a nondeduced parameter is also a parameter pack.  However, it turns out
+there are cases like the one below where that makes sense.  Therefore,
+now fixed.
+
+  template<typename T> struct A {
+    typedef T type;
+  };
+  void foo(int x);
+  template <typename ...Args>
+  void f(void (*pf)(Args...), typename A<Args>::type... args);
+  int main() {
+     f(&foo, 99);
+  }
+
+
 9/20/12  [EDGcpfe/13206]
 Underlying type of _Bool
 

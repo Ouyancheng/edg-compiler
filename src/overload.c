@@ -3940,13 +3940,12 @@ succeeds, FALSE if it fails.
   if (p_arg != NULL) arg = *p_arg;
   if (ptp != NULL && !ptp->type_involves_deduced_template_param) {
     /* For a nondeduced parameter, we advance over the argument, do no
-       deduction, and return TRUE.  However, if the nondeduced parameter is
-       a parameter pack, we fail because there will be no way of ever
-       getting a type for the parameter pack. */
+       deduction, and return TRUE.  If the nondeduced parameter is
+       a parameter pack, we take all the remaining arguments. */
+    deduction_okay = TRUE;
     if (ptp->is_parameter_pack) {
-      deduction_okay = FALSE;
+      arg = NULL;
     } else {
-      deduction_okay = TRUE;
       if (arg != NULL) arg = arg->next;
     }  /* if */
     goto end_of_routine;
