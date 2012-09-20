@@ -3582,7 +3582,7 @@ not be considered further.
     /* Some type qualifiers are being added -- case (b). */
     /* All the qualifiers on the parameter type are case (b) and can be
        removed from further consideration. */
-    *param_type = skip_typerefs(*param_type);
+    *param_type = make_unqualified_type(*param_type);
   }  /* if */
 }  /* check_template_arg_type_qualifiers */
 
