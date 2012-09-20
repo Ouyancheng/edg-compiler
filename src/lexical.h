@@ -2621,9 +2621,9 @@ extern void check_for_unclosed_if_exists_blocks(void);
 extern void init_whitespace_keywords(void);
 
 extern char *generate_top_level_metadata_code(an_assembly_index index);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_token_cache_ptr alloc_token_cache(void);
 extern void free_token_cache(a_token_cache_ptr tcp);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_hash_value hash_include_file_history(a_void_ptr	key);
 extern a_boolean compare_include_file_history(a_void_ptr	entry,
