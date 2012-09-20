@@ -18853,7 +18853,8 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
     case enk_operation:
       if (is_call_node(node)) {
         /* For a call, see if the called routine might throw. */
-        a_routine_ptr rout = routine_from_function_expr(node);
+        a_routine_ptr rout = routine_from_function_expr(
+                                            node->variant.operation.operands);
         if (rout != NULL) {
           if (!is_non_throwing_routine(rout)) might_throw = TRUE;
         } else {

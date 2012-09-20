@@ -676,6 +676,8 @@ extern a_boolean equiv_templates_given_supplement(
 			a_template_symbol_supplement_ptr	tssp2,
 			an_equiv_templates_options_set		options);
 
+extern void instantiate_exception_spec_if_needed(a_symbol_ptr  sym);
+
 extern void prescan_function_template_default_arg_expr(
 					a_param_type_ptr  ptp,
 					unsigned long	  param_number);

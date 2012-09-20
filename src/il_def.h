@@ -5482,8 +5482,21 @@ typedef struct an_exception_specification {
 		compiler_generated:1;
 			/* TRUE for exception specifications that did not
 			   appear in the source code. */
+  a_bit_field
+		arg_cached:1;
+			/* TRUE while the parenthesized argument tokens of the
+			   expected specification are cached for later
+			   rescanning.  This is a temporary state during front
+			   end processing. */
   union {
-    /* When is_noexcept is FALSE. */
+    /* When arg_cached is TRUE. */
+    struct a_token_cache
+    		*token_cache;
+			/* Opaque pointer to a token cache containing the
+			   argument tokens of the exception specifier (for
+			   later rescanning).  This is for front-end use
+			   only. */
+    /* When is_noexcept is FALSE (and arg_cached is FALSE). */
     an_exception_specification_type_ptr
 		exception_specification_type_list;
 			/* Pointer to the linked list of exception
@@ -5492,7 +5505,7 @@ typedef struct an_exception_specification {
 			     void f() throw (int,char);
                            or NULL if no exceptions will be thrown, e.g.,
 			     void f() throw ();              */
-    /* When is_noexcept is TRUE. */
+    /* When is_noexcept is TRUE (and arg_cached is FALSE). */
     a_constant_ptr
 		noexcept_arg;
 			/* Representation of the constant-expression specified

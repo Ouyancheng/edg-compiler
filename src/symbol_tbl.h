@@ -2144,6 +2144,10 @@ typedef struct a_template_cache_segment {
 		default_arg_missing;
 			/* TRUE if the default argument expression is empty.
 			   (e.g., "void f(int=)"). */
+  a_byte_boolean
+		is_exception_specification_arg;
+			/* TRUE if this entry represents the argument (or
+			   arguments) of an exception specification. */
 } a_template_cache_segment;
 
 
@@ -2532,7 +2536,7 @@ typedef struct a_template_symbol_supplement {
 			   instantiations of class or alias template.
 			   NULL if so instances have been created. */
     } class_template;
-    /* When symbol kind = sk_function_template: */
+    /* When symbol kind = sk_function_template or sk_member_function: */
     struct {
       a_template_instance_ptr
                 instantiations;
@@ -2566,6 +2570,10 @@ typedef struct a_template_symbol_supplement {
 			   closing ">" of the template parameter list) and
 			   ends with the last token of the function
 			   declarator. */
+      a_template_cache
+		exception_spec_arg_cache;
+			/* Cache for the exception specification argument, to
+			   be instantiated when needed. */
       a_substituted_type_list_entry_ptr
 		substituted_types;
 			/* A list of template argument lists and the type

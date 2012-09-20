@@ -6730,19 +6730,26 @@ a_boolean is_nothrow_type(a_type_ptr  type)
 The given type is a routine type.  Return TRUE if it has an associated
 "throw()" or "noexcept" specification or if exceptions are disabled (in which
 case the function is not expected to throw an exception either).
+The caller is responsible for ensuring that the type has no cached exception
+specification.
 */
 {
   a_boolean  result;
 
   if (exceptions_enabled) {
-    an_exception_specification_ptr  esp = type->variant.routine.extra_info
-                                              ->exception_specification;
-    if (esp == NULL || esp->throw_any) {
+    a_routine_type_supplement_ptr   rtsp = type->variant.routine.extra_info;
+    an_exception_specification_ptr  esp = rtsp->exception_specification;
+    if (esp == NULL) {
       result = FALSE;
-    } else if (esp->is_noexcept) {
-      result = TRUE;
     } else {
-      result = esp->variant.exception_specification_type_list == NULL;
+      check_assertion(!esp->arg_cached);
+      if (esp->throw_any) {
+        result = FALSE;
+      } else if (esp->is_noexcept) {
+        result = TRUE;
+      } else {
+        result = esp->variant.exception_specification_type_list == NULL;
+      }  /* if */
     }  /* if */
   } else {
     result = TRUE;
@@ -6760,8 +6767,14 @@ of the C++11 standard.
 {
   a_boolean result = (rp->is_trivial_default_constructor ||
                       rp->is_trivial_copy_function ||
-                      rp->never_throws ||
-                      is_nothrow_type(f_skip_typerefs(rp->type)));
+                      rp->never_throws);
+
+  if (!result) {
+    if (rp->type->kind == (a_type_kind)tk_routine) {
+      instantiate_exception_spec_if_needed(symbol_for(rp));
+    }  /* if */
+    result = is_nothrow_type(f_skip_typerefs(rp->type));
+  }  /* if */
   return result;
 }  /* is_non_throwing_routine */
 

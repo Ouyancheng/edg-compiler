@@ -896,6 +896,8 @@ of lambda expressions.
   if (rout_ptr->storage_class == (a_storage_class)sc_extern) {
     rout_ptr->storage_class = (a_storage_class)sc_unspecified;
   }  /* if */
+  /* Instantiate any delayed exception specification arguments. */
+  instantiate_exception_spec_if_needed(symbol_for(rout_ptr));
   rout_type = skip_typerefs(rout_ptr->type);
   /* Issue an error if this is an invalid return type. */
   (void)check_function_return_type(rout_type,

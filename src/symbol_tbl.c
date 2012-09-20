@@ -2917,6 +2917,7 @@ to the symbol supplement associated with sym.
   tcsp->is_friend = FALSE;
   tcsp->is_default_arg = FALSE;
   tcsp->default_arg_missing = FALSE;
+  tcsp->is_exception_specification_arg = FALSE;
   /* Add the new entry to the list of template cache segments associated
      with the current instantiation.  If there is no current instantiation,
      use the current template declaration scope. */
@@ -3410,6 +3411,8 @@ and return a pointer to it.
       clear_func_info(&tssp->variant.function.func_info);
       tssp->variant.function.def_arg_expr_list = NULL;
       clear_template_cache(&tssp->variant.function.decl_cache,
+                          /*reusable=*/TRUE);
+      clear_template_cache(&tssp->variant.function.exception_spec_arg_cache,
                           /*reusable=*/TRUE);
       tssp->variant.function.substituted_types = NULL;
       tssp->variant.function.unused_instantiations = 0;

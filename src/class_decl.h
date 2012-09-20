@@ -79,6 +79,8 @@ extern void merge_dll_flags_from_parent_class(a_type_ptr          class_type,
                                               a_decl_parse_state  *dps);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern void instantiate_exception_spec_if_needed(a_symbol_ptr  sym);
+
 extern void form_exception_specification_for_generated_function(
                                                            a_routine_ptr  rp);
 

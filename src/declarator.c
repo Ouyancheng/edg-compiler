@@ -1280,31 +1280,65 @@ given position.
 }  /* scan_eh_spec_type */
 
 
-static void scan_noexcept_arg(an_exception_specification_ptr  esp)
+void scan_noexcept_arg(an_exception_specification  *esp,
+                       a_boolean                   cache_in_template)
 /*
 The noexcept token of a noexcept-specification has just been scanned.  Scan a
-noexcept argument if any, and update *esp as appropriate.
+noexcept argument if any, and update *esp as appropriate.  If cache_in_template
+is TRUE, cache the argument tokens if this is a template-dependent context.
 */
 {
-  a_memory_region_number  region_to_switch_back_to;
-  a_source_position       constant_pos;
-  a_constant              noexcept_con;
 
-  constant_pos = pos_curr_token;
-  switch_to_file_scope_region(&region_to_switch_back_to);
-  /* Scan the argument for the noexcept-specifier, which must be a
-     constant-expression convertible to bool. */
-  scan_converted_constant_expression(bool_type(), &noexcept_con);
-  if (esp != NULL) {
-    if (noexcept_con.kind == (a_constant_repr_kind)ck_template_param ||
-        noexcept_con.kind == (a_constant_repr_kind)ck_error ||
-        is_false_constant(&noexcept_con)) {
-      esp->throw_any = TRUE;
+  if (cache_in_template &&
+      (is_template_dependent_context() ||
+       is_nonspecialized_instantiation_context())) {
+    /* For top-level declarators in template-dependent contexts, just cache
+       the specifier argument for now.  Also create a corresponding template
+       cache segment to extract the tokens later on. */
+    a_token_set_array             stop_tokens;
+    a_token_sequence_number       first_tsn, last_tsn;
+    a_template_cache_segment_ptr  tcsp;
+    first_tsn = curr_token_sequence_number;
+    clear_token_set_array(stop_tokens);
+    incr_token_set_array_element(stop_tokens, tok_rparen);
+    incr_token_set_array_element(stop_tokens, tok_semicolon);
+    esp->arg_cached = TRUE;
+    esp->variant.token_cache = alloc_token_cache();
+    clear_token_cache(esp->variant.token_cache, /*reusable=*/TRUE);
+    cache_token_stream_coalesce_identifiers(esp->variant.token_cache,
+                                            stop_tokens);
+    if (is_template_dependent_context()) {
+      last_tsn = curr_token_sequence_number - 1;
+      tcsp = alloc_template_cache_segment(
+                   (a_symbol_ptr)NULL, (a_template_symbol_supplement_ptr)NULL);
+      tcsp->is_exception_specification_arg = TRUE;
+      tcsp->first_token_number = first_tsn;
+      /* When there is no argument, the computed last token number could be
+         less that the first.  In that case, use the first token number as the
+         last. */
+      tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
     }  /* if */
-    esp->variant.noexcept_arg = alloc_unshared_constant(&noexcept_con);
-    esp->variant.noexcept_arg->source_corresp.decl_position = constant_pos;
+    terminate_token_cache(esp->variant.token_cache);
+  } else {
+    a_memory_region_number  region_to_switch_back_to;
+    a_source_position       constant_pos;
+    a_constant              noexcept_con;
+    constant_pos = pos_curr_token;
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    /* Scan the argument for the noexcept-specifier, which must be a
+       constant-expression convertible to bool. */
+    scan_converted_constant_expression(bool_type(), &noexcept_con);
+    if (esp != NULL) {
+      if (noexcept_con.kind == (a_constant_repr_kind)ck_template_param ||
+          noexcept_con.kind == (a_constant_repr_kind)ck_error ||
+          is_false_constant(&noexcept_con)) {
+        esp->throw_any = TRUE;
+      }  /* if */
+      esp->variant.noexcept_arg = alloc_unshared_constant(&noexcept_con);
+      esp->variant.noexcept_arg->source_corresp.decl_position = constant_pos;
+    }  /* if */
+    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
-  switch_back_to_original_region(region_to_switch_back_to);
 }  /* scan_noexcept_arg */
 
 
@@ -1313,22 +1347,34 @@ static an_exception_specification_ptr scan_exception_specification(
                                   a_boolean          exception_spec_allowed,
                                   a_boolean          is_top_level_declarator)
 /*
-Scan a throw specification, which may be empty or take either of two forms:
+Scan an exception specification, which may be empty or take one of the
+following forms:
 
-  throw ( type-name [, type-name]... )
+  noexcept
+  noexcept( <expression> )
   throw ()
+  throw ( <type-name> [, <type-name> ]... )
+  throw (...)
 
-A throw specification with a list of names means "these types will be
-thrown".  A throw specification with an empty list ("throw ()") means "no
-exception will be thrown".  An empty throw specification means "any
-exception may be thrown".
+(The last variant, "throw (...)", is a Microsoft feature used to indicate
+explicitly that a function can throw any exception.  This is necessary for
+Microsoft compilers because they assume by default that extern "C" functions
+do not throw exceptions.)
 
-Return a (possibly NULL) pointer to the appropriate kind of throw
-specification entry.
+Return a (possibly NULL) pointer to the appropriate kind of exception
+specification entry and update *func_info (describing the current function
+declarator) as needed.
 
 Diagnostics are issued on redundant types on a list, but if this is a
 redeclaration of a routine, reconciliation with the previous throw
 specification is handled later (see check_exception_specification).
+
+exception_spec_allowed is FALSE if this routine is called for a function
+declarator that doesn't permit exception specifications (e.g., the function
+declarator in a pointer-to-pointer-to-function declaration).
+is_top_level_declarator is TRUE if this is function is called for a function
+declarator that is the top-level declarator of a declaration (i.e., it
+actually declares a function, member function, or function template).
 */
 {
   an_exception_specification_ptr       esp = NULL;
@@ -1414,7 +1460,7 @@ specification is handled later (see check_exception_specification).
   if (curr_token == tok_lparen) {
     (void)get_token();
     if (is_noexcept) {
-      scan_noexcept_arg(esp);
+      scan_noexcept_arg(esp, /*cache_in_template=*/is_top_level_declarator);
       goto finish_list;
     } else if (curr_token == tok_rparen) {
       /* Case is "throw ()" -- which means "no exception will be thrown by
@@ -2840,9 +2886,8 @@ TRUE if this is the function declarator in a friend function declaration.
                a function template declaration.  The defaults arguments
                for member function are cached at this point and only
                scanned once the entire class has been defined.
-               This is because forward references may legally appear
-               in the default argument expression (C++ draft standard,
-               section 8.2.6, para 3).  Function template whose arguments
+               This is because forward references may legally appear in the
+               default argument expression.  Function templates whose arguments
                involve template parameters are cached here and scanned
                when an instance of the function template is created. */
             if (invalid_default_arg && is_member_or_friend_function &&

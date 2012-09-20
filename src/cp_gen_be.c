@@ -5581,6 +5581,7 @@ that a function might throw.
 {
   an_exception_specification_type_ptr estp;
 
+  check_assertion(!esp->arg_cached);
   if (esp->compiler_generated) {
     /* Don't render compiler-generated exception specifications. */
   } else if (esp->is_noexcept) {

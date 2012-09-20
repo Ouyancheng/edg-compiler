@@ -4112,6 +4112,9 @@ and a list of the unprocessed entries is returned to the caller.
            with a "removed default argument" token. */
         remove_default_arg(tcsp);
       }  /* if */
+    } else if (tcsp->is_exception_specification_arg) {
+      /* FIXME Remove exception specification argument(s), and replace it (or
+         them) by a placeholder token. */
     } else {
 #if DEBUG
       a_boolean	removed = FALSE;
@@ -10792,14 +10795,103 @@ Do some simple consistency checking on a function template argument list.
                          "check_template_arg_list:",
                          "missing type, constant, or template  pointer");
     if (tpp == NULL) {
-      internal_error("check_template_arg_list: too many template args");
+      internal_error(
+                  "check_function_template_arg_list: too many template args");
     }  /* if */
   }  /* for */
   if (tpp != NULL && !tpp->is_pack) {
-    internal_error("check_template_arg_list: too few template args");
+    internal_error("check_function_template_arg_list: too few template args");
   }  /* if */
-}  /* check_template_arg_list */
+}  /* check_function_template_arg_list */
 #endif /* CHECKING */
+
+
+void instantiate_exception_spec_if_needed(a_symbol_ptr  sym)
+/*
+If the given symbol (a function template instance or a member of a template
+class) has an associated exception specification that is still in "cached"
+state, rescan the cached exception specification and update its representation
+accordingly.
+*/
+{
+  a_routine_ptr                     rp;
+  a_template_instance_ptr           tip;
+  a_template_symbol_supplement_ptr  tssp;
+  an_exception_specification_ptr    esp = NULL;
+  a_symbol_ptr                      template_sym;
+  
+  check_assertion(is_simple_function_symbol(sym));
+  rp = sym->variant.routine.ptr;
+  tip = sym->variant.routine.instance_ptr;
+  /* Check if rp is a template function declared with a function declarator. */
+  if (rp->type->kind == (a_type_kind)tk_routine && tip != NULL) {
+    esp = rp->type->variant.routine.extra_info->exception_specification;
+    template_sym = tip->template_sym;
+    tssp = tip->template_info;
+    if (tssp == NULL) {
+      tssp = template_supplement_for_symbol(template_sym);
+    }  /* if */
+    check_assertion(tssp != NULL);
+  }  /* if */
+  if (esp != NULL && esp->arg_cached) {
+    /* The template function has an exception specification that is still in
+       a "cached" state. */
+    a_template_cache_ptr      es_cache;
+    a_push_scope_options_set  ps_options = PS_NO_OPTIONS;
+    a_decl_parse_state        dps;
+    esp->arg_cached = FALSE;
+    esp->variant.token_cache = NULL;
+    es_cache = &tssp->variant.function.exception_spec_arg_cache;
+    /* Push a new context to instantiate the exception specification. */
+    if (rp->is_prototype_instantiation) {
+      ps_options |= PS_PROTOTYPE_INSTANTIATION;
+    }  /* if */
+    (void)push_template_instantiation_scope(es_cache->decl_info,
+                                            (a_type_ptr)NULL, rp, sym,
+                                            template_sym,
+                                            rp->template_arg_list,
+                                            /*push_lex_state=*/TRUE,
+				            ps_options);
+    /* Recreate a function prototype scope equivalent to the original. */
+    (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
+                     rp->type, (a_routine_ptr)NULL);
+    init_decl_parse_state(&dps);
+    dps.sym = sym;
+    dps.type = rp->type;
+    if (sym->is_class_member) {
+      dps.is_inclass_member_function_decl = TRUE;
+    }  /* if */
+    scope_stack_top().outside_parameter_list = TRUE;
+    scope_stack_top().decl_parse_state = &dps;
+    if (tip->prototype_scope_symbols != NULL) {
+      reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
+    }  /* if */
+    /* Rescan the exception specification argument from the cache. */
+    rescan_reusable_cache(&es_cache->tokens);
+    begin_deferral_of_access_checks();
+    if (esp->is_noexcept) {
+      scan_noexcept_arg(esp, /*cache_in_template=*/FALSE);
+    } else {
+      /* Delayed instantiation of dynamic exception specifications are not
+         yet implemented.  (So we should never get here.) */
+      unexpected_condition();
+    }  /* if */
+    perform_deferred_access_checks_for_function(rp);
+    end_deferral_of_access_checks();
+    if (curr_token != tok_end_of_source) {
+      /* Tokens remain in the cache.  This should have triggered an error. */
+      expect_error();
+      /* Flush to the end of the cache. */
+      while (curr_token != tok_end_of_source) (void)get_token();
+    }  /* if */
+    /* Skip past the tok_end_of_source. */
+    (void)get_token();
+    /* Pop the reactivated function prototype scope off the stack. */
+    pop_scope();
+    /* Pop the template instantiation scope. */
+    pop_template_instantiation_scope();
+  }  /* if */
+}  /* instantiate_exception_spec_if_needed */
 
 
 void instantiate_default_argument(a_symbol_ptr		rout_sym,
@@ -12070,6 +12162,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (rtsp->exception_specification != NULL &&
+          !rtsp->exception_specification->arg_cached &&
           is_nothrow_type(underlying_rout_type)) {
         rp->never_throws = TRUE;
       }  /* if */
@@ -19775,6 +19868,21 @@ caller.
     tssp = template_supplement_for_symbol(sym);
     check_assertion(tssp != NULL);
     rout_ptr = tssp->variant.function.routine;
+    if (rout_ptr->type->kind == (a_type_kind)tk_routine) {
+      a_routine_type_supplement_ptr
+                            rtsp = rout_ptr->type->variant.routine.extra_info;
+      if (rtsp->exception_specification != NULL &&
+          rtsp->exception_specification->arg_cached) {
+        /* The function template has an exception specification whose argument
+           is cached.  Record the associated template cache and perform a
+           prototype instantiation. */
+        set_template_cache_info(
+                        &tssp->variant.function.exception_spec_arg_cache,
+                        rtsp->exception_specification->variant.token_cache,
+                        decl_state->decl_info);
+        instantiate_exception_spec_if_needed(symbol_for(rout_ptr));
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template) {
     if (sym->is_class_member && !decl_state->is_template_friend) {
@@ -22080,6 +22188,7 @@ that follows.
           /* Issue an error if the exception specification on the instance does
              not match that of the template.  (GNU C++ compilers do not perform
              this check. */
+          instantiate_exception_spec_if_needed(sym);
           check_exception_specification(
                dps->type, sym, &func_info.throw_position, /*is_redecl=*/FALSE);
         }  /* if */
@@ -28014,6 +28123,7 @@ instantiation.
            routine. */
         if (state.type->variant.routine.extra_info->exception_specification !=
                                                                        NULL) {
+          instantiate_exception_spec_if_needed(new_sym);
           check_exception_specification(state.type, new_sym,
                                         &func_info.throw_position,
                                         /*is_redecl=*/TRUE);

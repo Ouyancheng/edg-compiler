@@ -1007,6 +1007,12 @@ typedef struct a_class_def_state {
 			   checked only after the complete class has been seen
 			   (and any implicit exception specifications have
 			   been established). */
+  a_symbol_list_entry_ptr
+		members_requiring_exception_spec_instantiation;
+			/* A list of symbol list entries pointing to members
+			   of this class that have an exception specification
+			   that was cached for instantiation when the class
+			   definition is complete. */
 #if IA64_ABI
   a_covariant_override_ptr
 		covariant_overrides, last_covariant_override;
@@ -1073,6 +1079,7 @@ class being defined.
   cdsp->end_of_field_list = NULL;
   cdsp->corresp_prototype_tag_sym = NULL;
   cdsp->override_exception_check_entries = NULL;
+  cdsp->members_requiring_exception_spec_instantiation = NULL;
 #if IA64_ABI
   cdsp->covariant_overrides = NULL;
   cdsp->last_covariant_override = NULL;
@@ -12966,12 +12973,29 @@ implicitly declared member functions.
     } else {
       a_template_instance_ptr           tip;
       a_template_symbol_supplement_ptr  tssp;
-
       sym->variant.routine.instance_ptr = tip = alloc_template_instance();
       tip->instance_sym = tip->template_sym = sym;
       tip->template_info = tssp = alloc_template_symbol_supplement(sym->kind);
       tssp->variant.function.routine = rtn;
       tssp->variant.function.func_info = *func_info;
+      if (member_type->kind == (a_type_kind)tk_routine &&
+          rtsp->exception_specification != NULL &&
+          rtsp->exception_specification->arg_cached) {
+        /* The member function was declared with an exception specification
+           whose arguments were cached for later instantiation.  Record the
+           template cache information, as well as an entry to perform a
+           prototype instantiation when the complete definition of the
+           enclosing class has been seen. */
+        a_symbol_list_entry_ptr  slep = alloc_symbol_list_entry();
+        set_template_cache_info(
+                        &tssp->variant.function.exception_spec_arg_cache,
+                        rtsp->exception_specification->variant.token_cache,
+                        get_specified_template_decl_info(/*innermost=*/TRUE));
+        slep->symbol = sym;
+        slep->next =
+                  class_state->members_requiring_exception_spec_instantiation;
+        class_state->members_requiring_exception_spec_instantiation = slep;
+      }  /* if */
       tssp->is_variadic = scope_stack_top().in_variadic_template;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       tssp->is_generic =
@@ -13091,6 +13115,7 @@ implicitly declared member functions.
         }  /* if */
       }  /* if */
       if (rtsp->exception_specification != NULL &&
+          !rtsp->exception_specification->arg_cached &&
           is_nothrow_type(skip_typerefs(member_type))) {
         rtn->never_throws = TRUE;
       }  /* if */
@@ -24361,6 +24386,25 @@ created.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void instantiate_delayed_exception_spec_args_if_needed(
+                                              a_class_def_state  *class_state)
+/*
+In a prototype instantiation, the arguments of exception specifications are
+cached for later "prototype instantiation".  Perform these instantiations now
+(when the class has been complete), as appropriate.
+*/
+{
+  a_symbol_list_entry_ptr  slep;
+
+  slep = class_state->members_requiring_exception_spec_instantiation;
+  for (; slep != NULL; slep = slep->next) {
+    instantiate_exception_spec_if_needed(slep->symbol);
+  }  /* for */
+  free_list_of_symbol_list_entries(
+                 class_state->members_requiring_exception_spec_instantiation);
+}  /* instantiate_delayed_exception_spec_args_if_needed */
+
+
 static void complete_class_definition(a_type_ptr         class_type,
                                       a_scope_depth      effective_decl_level,
                                       a_class_def_state  *class_state)
@@ -24498,6 +24542,7 @@ bits of information that were acquired while parsing.
          rescanning inline function definitions. */
       project_base_class_conversion_functions(class_type);
     }  /* if */
+    instantiate_delayed_exception_spec_args_if_needed(class_state);
     /* Report errors in virtual function declarations that result from
        the failure to redeclare a virtual function originally declared in
        a virtual base class. */

@@ -2373,6 +2373,7 @@ region.
   esp->is_noexcept = FALSE;
   esp->throw_any = FALSE;
   esp->compiler_generated = FALSE;
+  esp->arg_cached = FALSE;
   esp->variant.exception_specification_type_list = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   esp->source_range = null_source_range;
