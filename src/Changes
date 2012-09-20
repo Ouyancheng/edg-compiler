@@ -1,5 +1,17 @@
 Version 4.5
 
+9/20/12  [EDGcpfe/13206]
+Underlying type of _Bool
+
+Previously, the underlying type of the C99 type _Bool was configured through
+the macro TARG_BOOL_INT_KIND, which is also the macro used for the C++ type
+bool.  The default configuration for that macro selects "char" for the
+underlying type, but the C standard requires an unsigned type and that is not
+always the case for type char.  Now, a separate macro TARG_C_BOOL_INT_KIND
+selects the underlying integer kind of the boolean type in C mode.
+TARG_C_BOOL_INT_KIND is configured for type "unsigned char" by default.
+
+
 9/20/12  [EDGcpfe/13196]
 Deduction failure with cv-qualified multi-dimensional array
 

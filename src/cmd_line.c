@@ -2425,6 +2425,7 @@ process.
        scopes.  Microsoft C mode will override this. */
     func_prototype_tags_enabled = TRUE;
   }  /* if */
+  targ_bool_int_kind = TARG_C_BOOL_INT_KIND;
 }  /* set_c_mode_flags */
 
 

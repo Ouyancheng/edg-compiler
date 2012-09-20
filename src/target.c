@@ -380,6 +380,8 @@ This is done before command line processing.
   targ_wint_t_int_kind = TARG_WINT_T_INT_KIND;
   targ_char16_t_int_kind = TARG_CHAR16_T_INT_KIND;
   targ_char32_t_int_kind = TARG_CHAR32_T_INT_KIND;
+  /* targ_bool_int_kind will be reset to TARG_C_BOOL_INT_KIND during
+     command-line processing if a C mode is selected. */
   targ_bool_int_kind = TARG_BOOL_INT_KIND;
   targ_sizeof_short = TARG_SIZEOF_SHORT;
   targ_alignof_short = TARG_ALIGNOF_SHORT;

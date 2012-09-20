@@ -1721,6 +1721,16 @@ Integral kind to be used for the bool type in C++.
 #endif /* !defined(TARG_BOOL_INT_KIND) */
 
 /*
+Integral kind to be used for the _Bool type in C (the C99 and C11 standard
+require this to be an unsigned type).
+*/
+#ifndef TARG_C_BOOL_INT_KIND
+#define TARG_C_BOOL_INT_KIND ((an_integer_kind)ik_unsigned_char)
+			/* Default value, used to initialize global variable
+			   targ_bool_int_kind. */
+#endif /* !defined(TARG_BOOL_INT_KIND) */
+
+/*
 Pointer types:
 */
 #if NEAR_AND_FAR_ALLOWED
