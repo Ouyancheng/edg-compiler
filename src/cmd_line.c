@@ -6730,6 +6730,11 @@ file.
 #else /* !defined(TARG_BOOL_INT_KIND) */
   comment_undefined_macro_name(TARG_BOOL_INT_KIND);
 #endif /* defined(TARG_BOOL_INT_KIND) */
+#if defined(TARG_C_BOOL_INT_KIND)
+  define_string_valued_macro(TARG_C_BOOL_INT_KIND);
+#else /* !defined(TARG_C_BOOL_INT_KIND) */
+  comment_undefined_macro_name(TARG_C_BOOL_INT_KIND);
+#endif /* defined(TARG_C_BOOL_INT_KIND) */
 #if defined(TARG_CARR_RETURN_CHAR)
   define_string_valued_macro(TARG_CARR_RETURN_CHAR);
 #else /* !defined(TARG_CARR_RETURN_CHAR) */
