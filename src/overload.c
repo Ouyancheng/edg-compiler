@@ -20547,6 +20547,7 @@ conversion, etc.)
     if (exceptions_enabled && dtor != NULL) {
       /* This element will need a destructor in case an exception is
          thrown when part of the aggregate is constructed. */
+      check_assertion(!curr_expr_kind_is_const());
       will_need_partial_aggregate_destructor = TRUE;
     }  /* if */
     expr_clear_init_state(&init_state);
@@ -20617,9 +20618,9 @@ conversion, etc.)
         if (will_need_partial_aggregate_destructor) {
           /* Add the destructor for partial-aggregate exception cleanup. */
           dip->destructor = dtor;
-          if (curr_expr_is_evaluated() && !curr_expr_kind_is_const()) {
-            record_partial_aggregate_cleanup_destruction(dip);
-          }  /* if */
+          record_partial_aggregate_cleanup_destruction(
+                                                     dip,
+                                                     curr_expr_is_evaluated());
         }  /* if */
       }  /* if */
       /* Add con to the aggregate constant list. */

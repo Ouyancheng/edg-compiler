@@ -111,7 +111,7 @@ Clear the fields of *is.
   is->elements_are_full_expressions = FALSE;
   is->variable_size_array = FALSE;
   is->initializer_can_dimension_array = FALSE;
-  is->potentially_evaluated = TRUE;
+  is->evaluated = TRUE;
 }  /* clear_init_state_fields */
 
 

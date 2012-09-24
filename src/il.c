@@ -19844,29 +19844,33 @@ treated as a form of destruction.
 }  /* record_end_of_lifetime_destruction */
 
 
-void record_partial_aggregate_cleanup_destruction(a_dynamic_init_ptr dip)
+void record_partial_aggregate_cleanup_destruction(a_dynamic_init_ptr dip,
+                                                  a_boolean          evaluated)
 /*
 dip is the initialization of a member of an aggregate.  If dip indicates
 a destructor, record a special partial-aggregate exception-cleanup destruction
-for the dynamic initialization.
+for the dynamic initialization.  "evaluated" is TRUE if the expression is
+evaluated (e.g., it's FALSE for the operand of a sizeof and also FALSE
+for a dead part of a short-circuiting operation).
 */
 {
-  if (exceptions_enabled) {
-    if (dip->is_creation_of_initializer_list_object) {
-      /* The lifetime of the array underlying an std::initializer_list object
-         matches the lifetime of the object.  See core issue 1290.  Add
-         an aggregate cleanup for the array also, and add it first so
-         if both have destructors (not currently possible, because
-         std::initializer_list has no destructor) the array will be
-         destroyed last. */
-      a_dynamic_init_ptr dipa =
+  check_assertion(exceptions_enabled);
+  if (dip->is_creation_of_initializer_list_object) {
+    /* The lifetime of the array underlying an std::initializer_list object
+       matches the lifetime of the object.  See core issue 1290.  Add
+       an aggregate cleanup for the array also, and add it first so
+       if both have destructors (not currently possible, because
+       std::initializer_list has no destructor) the array will be
+       destroyed last. */
+    a_dynamic_init_ptr dipa =
          effective_dynamic_init_for_initializer_list_object(dip,
                                                             (a_type **)NULL);
-      check_assertion(dipa->lifetime == NULL);
-      record_partial_aggregate_cleanup_destruction(dipa);
-    }  /* if */
-    if (dip->destructor != NULL) {
-      dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+    check_assertion(dipa->lifetime == NULL);
+    record_partial_aggregate_cleanup_destruction(dipa, evaluated);
+  }  /* if */
+  if (dip->destructor != NULL) {
+    dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+    if (evaluated) {
       /* Note -- static_lifetime is FALSE because (for function-local
          static variables) even though the underlying entity has static
          lifetime, the lifetime of the destruction is as though it were

@@ -278,23 +278,6 @@ for the (copy) constructor call will be implicit.
 }  /* alloc_ctor_dynamic_init */
 
 
-static void add_dtor_for_partially_constructed_aggregate(
-                                                 a_routine_ptr       dtor_rp,
-                                                 a_dynamic_init_ptr  dip)
-/*
-This routine should really be called, "add destructor to dynamic init for
-member of partially constructed aggregate".  dtor_rp is the destructor
-routine.  dip is a dynamic-init entry created for the initialization of a
-field or array element.
-*/
-{
-  if (dip->destructor == NULL && dtor_rp != NULL && exceptions_enabled) {
-    dip->destructor = dtor_rp;
-    record_partial_aggregate_cleanup_destruction(dip);
-  }  /* if */
-}  /* add_dtor_for_partially_constructed_aggregate */
-
-
 static void gen_dynamic_initialization(
                                   a_variable_ptr        vp,
                                   a_dynamic_init_ptr    dip,
@@ -785,9 +768,9 @@ remove_any_extraneous_braces:
                            dip->variant.constant->uses_designated_initializers;
     }  /* if */
     is->has_dynamic_init_component = TRUE;
-    if (exceptions_enabled && dip->destructor != NULL &&
-        elem_is.potentially_evaluated) {
-      record_partial_aggregate_cleanup_destruction(dip);
+    if (exceptions_enabled && dip->destructor != NULL) {
+      record_partial_aggregate_cleanup_destruction(dip,
+                                                   elem_is.evaluated);
     }  /* if */
   }  /* if */
   if (braced) {
@@ -982,12 +965,9 @@ given position, unless is->no_diagnostics is TRUE.
          This is for the case in which an exception is thrown by the
          constructor before the entire array has been initialized. */
       dtor_rp = get_init_destructor(tp, is, diag_pos);
-      if (!is->check_validity_only) {
-        if (is->potentially_evaluated) {
-          add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
-        } else {
-          dip->destructor = dtor_rp;
-        }  /* if */
+      if (dtor_rp != NULL && !is->check_validity_only) {
+        dip->destructor = dtor_rp;
+        record_partial_aggregate_cleanup_destruction(dip, is->evaluated);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4160,8 +4140,9 @@ FALSE is returned) for non-class objects.
               /* Set up the representation to deal with the possibility of
                  an exception being thrown before the entire construction of
                  the array is complete. */
-              add_dtor_for_partially_constructed_aggregate(dtor,
-                                                           orig_init_dip);
+              orig_init_dip->destructor = dtor;
+              record_partial_aggregate_cleanup_destruction(orig_init_dip,
+                                                           /*evaluated=*/TRUE);
             }  /* if */
           }  /* if */
         } else if (is_nonreal_class) {

@@ -209,7 +209,7 @@ constant and expr_kind is not already a constant expression kind.
     if ((int)expr_kind > (int)ek_init_constant) {
       expr_kind = (an_expression_kind)ek_init_constant;
     }  /* if */
-  } else if (is != NULL && !is->potentially_evaluated) {
+  } else if (is != NULL && !is->evaluated) {
     expr_kind = (an_expression_kind)ek_sizeof;
   }  /* if */
   push_expr_stack(expr_kind, expr_stack_entry,
@@ -27509,9 +27509,8 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       /* Indicate a destructor to be called for cleanup if an exception is
          thrown part-way through the captures. */
       dip->destructor = dtor_routine;
-      if (curr_expr_is_potentially_evaluated()) {
-        record_partial_aggregate_cleanup_destruction(dip);
-      }  /* if */
+      record_partial_aggregate_cleanup_destruction(dip,
+                                                   curr_expr_is_evaluated());
     }  /* if */
     if (array_case) {
       /* To repeat the initialization for each element of an array,

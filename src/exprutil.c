@@ -2427,9 +2427,8 @@ the entire array.
      initialization (or destruction, for a delete) of the array. */
   if (exceptions_enabled && dtor_routine != NULL) {
     element_dip->destructor = dtor_routine;
-    if (curr_expr_is_potentially_evaluated()) {
-      record_partial_aggregate_cleanup_destruction(element_dip);
-    }  /* if */
+    record_partial_aggregate_cleanup_destruction(element_dip,
+                                                 curr_expr_is_evaluated());
   }  /* if */
   /* The IL structure is
        new dynamic init (dik_nonconstant_aggregate) ->
@@ -5230,7 +5229,7 @@ Fills in some things from expression context.
   if (curr_expr_kind_is_const()) {
     init_state->initializer_must_be_constant = TRUE;
   }  /* if */
-  init_state->potentially_evaluated = curr_expr_is_potentially_evaluated();
+  init_state->evaluated = curr_expr_is_evaluated();
 }  /* expr_clear_init_state */
 
 
