@@ -8213,7 +8213,9 @@ skip_overloading:;
       }  /* if */
     }  /* if */
   }  /* if */
-  if (rtsp->exception_specification != NULL && is_nothrow_type(rtp)) {
+  if (rtsp->exception_specification != NULL &&
+      !rtsp->exception_specification->arg_cached &&
+      is_nothrow_type(rtp)) {
     routine_ptr->never_throws = TRUE;
   }  /* if */      
   if (func_info->is_inline) set_inline_flag(routine_ptr, TRUE);
