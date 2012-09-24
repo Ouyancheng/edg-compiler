@@ -10941,6 +10941,11 @@ types, i.e., also for nonreal classes.
              type_ptr->variant.typeref.is_dependent_type_operator) {
     /* A dependent decltype or typeof. */
     *force_end_of_traversal = found = TRUE;
+  } else if (find_all_dependent_types &&
+             type_ptr->kind == (a_type_kind)tk_array &&
+             type_ptr->variant.array.is_template_dependent_size_array) {
+    /* A dependent array. */
+    *force_end_of_traversal = found = TRUE;
   } else {
     if (specific_template_param_type == NULL) {
       /* We are not looking for a specific template param type, so any
