@@ -10971,7 +10971,10 @@ a context where deferral of errors applies.
   a_boolean			in_template_arg_list;
 
   in_template_arg_list = scope_stack_top().in_template_arg_list;
-  if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
+  /* If we've been asked for an error_detected result, do not defer access
+     checks: we need an answer right now. */
+  if (error_detected == NULL &&
+      curr_deferred_access_scope != NO_SCOPE_DEPTH) {
     ssep = &scope_stack[curr_deferred_access_scope];
     defer_access_checks = ssep->defer_access_checks;
   }  /* if */
