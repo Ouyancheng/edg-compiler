@@ -8743,9 +8743,9 @@ definition of a member function of a class template.
         /* Be sure the current throw specification is consistent with the one
            on the previous declaration.  This must be done prior to reconciling
            the type with that of a previous declaration. */
-        if (func_info->is_defaulted && locator->is_destructor_name) {
-          /* For defaulted destructors, an exception specification may need to
-             be generated. */
+        if (locator->is_destructor_name) {
+          /* For destructors, an exception specification may need to be
+             generated. */
           update_dtor_type_exception_specification_if_needed(
                                    tssp->variant.function.routine, &type_ptr);
         }  /* if */
