@@ -570,9 +570,12 @@ diagnostics are not issued, errors are reflected in is->init_error.
   a_boolean      err = FALSE, *p_err = NULL;
 
   if (is->no_diagnostics) p_err = &err;
+  /* No access checking is done during tentative matching for overload
+     resolution (indicated by is->check_validity_only). */
   dtor_rp = select_destructor_full(tp, tp, diag_pos, /*honor_virtual=*/FALSE,
                                    /*evaluated=*/TRUE, /*instantiate=*/TRUE,
-                                   /*check_access=*/TRUE, p_err);
+                                   /*check_access=*/!is->check_validity_only,
+                                   p_err);
   if (err) is->init_error = TRUE;
   return dtor_rp;
 }  /* get_init_destructor */
@@ -941,12 +944,23 @@ given position, unless is->no_diagnostics is TRUE.
   a_constant_ptr      result;
   a_dynamic_init_ptr  dip;
   a_routine_ptr       ctor_rp, dtor_rp;
+  a_boolean           err = FALSE, *p_err = NULL;
+
 
   /* Get the default constructor. */
-  ctor_rp = select_default_constructor(tp, diag_pos, tp, (a_boolean *)NULL);
-  if (ctor_rp == NULL) {
+  if (is->no_diagnostics) p_err = &err;
+  /* No access checking is done during tentative matching for overload
+     resolution (indicated by is->check_validity_only). */
+  ctor_rp = select_default_constructor_full(
+                                    tp, diag_pos, tp, /*evaluated=*/TRUE,
+                                    /*check_access=*/!is->check_validity_only,
+                                    p_err, (a_boolean *)NULL);
+  if (err) is->init_error = TRUE;
+  if (ctor_rp == NULL || is->init_error) {
     /* Trivial default constructor or error. */
-    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+    if (!is->check_validity_only) {
+      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+    }  /* if */
   } else  {
     if (!is->check_validity_only) {
       /* For a non-trivial constructor, create a dik_constructor dynamic init
