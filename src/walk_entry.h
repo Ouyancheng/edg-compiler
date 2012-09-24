@@ -1190,7 +1190,9 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         an_exception_specification_ptr ptr =
                              (an_exception_specification_ptr)entry_ptr;
-        if (ptr->is_noexcept) {
+        if (ptr->arg_cached) {
+          /* Don't walk the cached argument. */
+        } else if (ptr->is_noexcept) {
           walk_ptr(ptr->variant.noexcept_arg, a_constant_ptr, iek_constant);
         } else {
           walk_list(ptr->variant.exception_specification_type_list,
