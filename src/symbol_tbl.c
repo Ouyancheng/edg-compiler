@@ -10971,10 +10971,7 @@ a context where deferral of errors applies.
   a_boolean			in_template_arg_list;
 
   in_template_arg_list = scope_stack_top().in_template_arg_list;
-  /* If we've been asked for an error_detected result, do not defer access
-     checks: we need an answer right now. */
-  if (error_detected == NULL &&
-      curr_deferred_access_scope != NO_SCOPE_DEPTH) {
+  if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
     ssep = &scope_stack[curr_deferred_access_scope];
     defer_access_checks = ssep->defer_access_checks;
   }  /* if */
@@ -10991,7 +10988,13 @@ a context where deferral of errors applies.
     /* Access checks are deferred, so put an entry on a list for later
        checking. */
     an_access_error_descr_ptr	aedp;
-    check_assertion(error_detected == NULL);
+    /* If things go right, we should not be asking for an error return in
+       contexts where deferral is active.  In overload resolution contexts
+       we should not be checking access, and in SFINAE contexts we should
+       already know the access context (because we're rescanning) and
+       therefore deferral should not be active. */
+    check_assertion_str(error_detected == NULL,
+ "access check result needed immediately but access check deferral in effect");
     /* Look for an existing entry for this check.  Only create a new entry
        if none is found. */
     for (aedp = ssep->deferred_access_checks; aedp != NULL;
