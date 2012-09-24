@@ -15059,8 +15059,7 @@ expression, and return the result in *result (or an error indication in
         /* Do not insert code here. */
         {
           init_dip = rescan_ndsp->dynamic_init;
-          check_assertion(init_dip != NULL &&
-                          !init_dip->is_explicit_cast);
+          check_assertion(init_dip != NULL);
           arg_expr_list = arg_list_from_dyn_init(init_dip);
         }  /* if */
         rcblock->argument_list = arg_expr_list;
