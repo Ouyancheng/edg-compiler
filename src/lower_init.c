@@ -6718,7 +6718,9 @@ insert_location is an insert location for any code that has to be generated.
                                             some_ordered);
   }  /* if */
 #if GENERATE_EH_TABLES && DO_UNORDERED_EH_PROCESSING
-  if (!dip->unordered) *some_ordered = TRUE;
+  if (!dip->unordered || dip->next_in_destruction_list == NULL) {
+    *some_ordered = TRUE;
+  }  /* if */
 #endif /* GENERATE_EH_TABLES && DO_UNORDERED_EH_PROCESSING */
   if (!dip->destruction_is_for_partially_constructed_aggregate) {
 #if GENERATE_EH_TABLES
