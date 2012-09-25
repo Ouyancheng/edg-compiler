@@ -6685,7 +6685,8 @@ static void adjust_cleanup_state_for_aggregate_init(
                                            a_dynamic_init_ptr dip,
                                            a_dynamic_init_ptr preceding_init,
                                            an_insert_location *insert_location,
-                                           a_boolean          *some_cloned)
+                                           a_boolean          *some_cloned,
+                                           a_boolean          *some_ordered)
 /*
 An aggregate initialization has just been completed.  dip is a destruction
 preceding that aggregate initialization (usually, one indicating a
@@ -6696,12 +6697,15 @@ no preceding initialization in the current lifetime.)  Adjust the cleanup
 state to the latest initialization that is not a partial aggregate
 initialization.  When generating EH tables, some region table entries
 may have to be cloned.  If any are, *some_cloned is returned TRUE.
+If any entries are found that are NOT unordered, *some_ordered is set
+to TRUE; this controls cloning as recursive calls are unwound.
 insert_location is an insert location for any code that has to be generated.
 */
 {
   check_assertion_str(dip != NULL,
                       "adjust_cleanup_state_for_aggregate_init: NULL dip");
   *some_cloned = FALSE;
+  *some_ordered = FALSE;
   if (dip->next_in_destruction_list == preceding_init) {
     /* End of the list. */
     curr_context->latest_initialization = preceding_init;
@@ -6710,8 +6714,12 @@ insert_location is an insert location for any code that has to be generated.
     adjust_cleanup_state_for_aggregate_init(dip->next_in_destruction_list,
                                             preceding_init,
                                             insert_location,
-                                            some_cloned);
+                                            some_cloned,
+                                            some_ordered);
   }  /* if */
+#if GENERATE_EH_TABLES && DO_UNORDERED_EH_PROCESSING
+  if (!dip->unordered) *some_ordered = TRUE;
+#endif /* GENERATE_EH_TABLES && DO_UNORDERED_EH_PROCESSING */
   if (!dip->destruction_is_for_partially_constructed_aggregate) {
 #if GENERATE_EH_TABLES
     /* When the entries are marked as unordered, we do not do any cloning,
@@ -6720,7 +6728,7 @@ insert_location is an insert location for any code that has to be generated.
        below). */
     if (exceptions_enabled
 #if DO_UNORDERED_EH_PROCESSING
-        && !dip->unordered
+        && *some_ordered
 #endif /* DO_UNORDERED_EH_PROCESSING */
        ) {
       /* This entry is being kept, as it is for a non-aggregate initialization.
@@ -6755,7 +6763,7 @@ insert_location is an insert location for any code that has to be generated.
 #if GENERATE_EH_TABLES && DO_UNORDERED_EH_PROCESSING
   } else {
     /* Partial-aggregate cleanup entry.  If unordered, reset the flag. */
-    if (exceptions_enabled && dip->unordered) {
+    if (exceptions_enabled && dip->unordered && !*some_ordered) {
       a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
       reset_conditional_flag_var(dedp->conditional_flag_var,
                                  insert_location);
@@ -8435,13 +8443,14 @@ do_assignment:;
            itself; any partial-aggregate entries within an inner lifetime
            are handled by adjust_cleanup_state_for_inner_lifetime_temporaries,
            called from add_dyn_init_cleanup below. */
-        a_boolean some_cloned;
+        a_boolean some_cloned, some_ordered;
         check_assertion(!dip->overlaps_temps_in_inner_lifetime);
         adjust_cleanup_state_for_aggregate_init(
                                             eff_context->latest_initialization,
                                             latest_initialization_on_entry,
                                             eff_insert_location,
-                                            &some_cloned);
+                                            &some_cloned,
+                                            &some_ordered);
       }  /* if */
       if (dip->destruction_is_for_partially_constructed_aggregate &&
           init_expr_lifetime == NULL &&
