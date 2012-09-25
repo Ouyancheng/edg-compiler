@@ -1,5 +1,24 @@
 Version 4.5
 
+9/25/12  [EDGcpfe/13208]
+Microsoft compatibility: Failing static_assert in nonreal instantiation
+
+In Microsoft mode, the front sometimes "instantiates" templates with template
+arguments that are still dependent on template parameters (this is called a
+"nonreal instantiation").  During that process, the value of a static_assert
+condition may be known, and the front end previously triggered an error if
+that value was false.  This was unlike the Microsoft compiler: The front end
+therefore no longer checks the value of a static_assert during such nonreal
+instantiations.  For example:
+
+  template<bool C, typename T> struct B {
+    static_assert(C, "Failed");
+  };
+  template<typename T> struct D: B<false, T> {};
+      // Previously triggered a failed static_assert during the nonreal
+      // instantiation of B<false, T> in Microsoft mode.  Now accepted.
+
+
 9/20/12  [EDGcpfe/13197]
 Deduction failure with nondeduced parameter pack
 

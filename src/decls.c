@@ -12465,12 +12465,16 @@ is "false".  If leave_semicolon is TRUE, do not consume the final token.
   } else {
     /* We've seen enough of the construct to evaluate it (if it is
        nondependent), and (in some configurations) record it. */
+    /* In Microsoft mode, we do not check the assertion in "nonreal
+       instantiations". */
     if (is_error_constant(&assert_con) ||
         is_error_constant(&const_for_curr_token)) {
       /* An error should already have been issued. */
       expect_error();
     } else if (assert_con.kind != (a_constant_repr_kind)ck_template_param &&
-               is_false_constant(&assert_con)) {
+               is_false_constant(&assert_con) &&
+               !(microsoft_mode &&
+                 scope_stack_top().in_nonreal_instantiation)) {
       /* The assertion failed: Issue an error. */
       make_static_assert_string_for_output();
       pos_st_error(ec_static_assert, &pos, temp_text_buffer);
