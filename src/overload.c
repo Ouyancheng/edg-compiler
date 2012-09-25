@@ -3976,12 +3976,16 @@ succeeds, FALSE if it fails.
            parameter is an instance of std::initializer<T>, in which case
            deduction for T is done against the members of the initializer
            list. */
+        a_type_ptr eff_param_type = param_type;
         a_type_ptr elem_type;
-        if (!is_instance_of_std_initializer_list(param_type,
+        if (is_any_reference_type(param_type)) {
+          eff_param_type = type_pointed_to(param_type);
+        }  /* if */
+        if (!is_instance_of_std_initializer_list(eff_param_type,
                                                  &elem_type)) {
           /* Not std::initializer_list<T>, so consider a nondeduced context. */
         } else {
-          /* std::initializert_list<T>, deduce with T as a parameter type
+          /* std::initializer_list<T>, deduce with T as a parameter type
              against each expression in the list. */
           deduction_okay = deduce_from_braced_init_list(arg,
                                                         elem_type,
