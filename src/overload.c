@@ -21725,9 +21725,10 @@ controls).
        attributes of the initialization in the entry. */
     /* Note that we don't clear the is_explicit_cast flag if it's
        already set.  An explicitly-cast operand implicitly converted to
-       the same type is still marked as an explicit cast. */
+       the same type is still marked as an explicit cast.  Likewise for
+       the is_braced_initializer flag. */
     if (is_cast) dip->is_explicit_cast = TRUE;
-    dip->is_braced_initializer = braced_init;
+    if (braced_init) dip->is_braced_initializer = TRUE;
     if (braced_init && expr_stack->possible_rescan_context) {
       /* For brace-initialized cases, save the original braced-init-list as
          rescan info on the dynamic init. */
