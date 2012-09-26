@@ -889,7 +889,8 @@ typedef enum /*a_token_kind*/ {
   tok_digit_sequence,
   tok_cpp_quote,
   tok_ptr_to_member 	    /* C++ only */,
-  tok_removed_default_arg   /* Placeholder for a removed default argument. */,
+  tok_removed_expr	    /* Placeholder for a removed default argument
+                               or exception specification. */,
   tok_removed_template_body /* Placeholder for a removed template body. */,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_cli_typeid,           /* Represents C++/CLI X::typeid construct. */  
@@ -1239,7 +1240,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 = {"error", "identifier", "float constant", "fixed-point constant",
    "int constant", "char constant", "string literal", "end of source",
    "newline", "header name", "pp number", "digit sequence", "cpp quote",
-   "ptr to member", "removed default arg", "removed template body",
+   "ptr to member", "removed expr", "removed template body",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "cli typeid",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -13413,6 +13413,10 @@ decl_member_function, which handles in-class member function declarations.)
  #if MICROSOFT_EXTENSIONS_ALLOWED
   rtn->source_corresp.assembly_access = class_state->assembly_access;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Save the prototype scope symbols.  These are needed for the instantiation
+     of exception specifications. */
+  prototype_sym->variant.routine.instance_ptr->prototype_scope_symbols =
+                                            func_info->prototype_scope_symbols;
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
@@ -23057,6 +23061,9 @@ passed via template_decl.
             find_member_function_template(rout_sym, prototype_sym);
             tip = rout_sym->variant.routine.instance_ptr;
             if (tip != NULL) {
+              /* Save the prototype scope symbols.  These are needed for the
+                 instantiation of exception specifications. */
+              tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
               /* Set the declared_type in the instance entry.  Try to use
                  the declared_type already entered in the func_info block.
@@ -24394,12 +24401,15 @@ cached for later "prototype instantiation".  Perform these instantiations now
 (when the class has been complete), as appropriate.
 */
 {
-  a_symbol_list_entry_ptr  slep;
-
-  slep = class_state->members_requiring_exception_spec_instantiation;
-  for (; slep != NULL; slep = slep->next) {
-    instantiate_exception_spec_if_needed(slep->symbol);
-  }  /* for */
+  if (!defer_function_prototype_instantiations) {
+    a_symbol_list_entry_ptr  slep;
+    slep = class_state->members_requiring_exception_spec_instantiation;
+    for (; slep != NULL; slep = slep->next) {
+      if (prototype_instantiation_should_be_done_for_function(slep->symbol)) {
+        instantiate_exception_spec_if_needed(slep->symbol);
+      }  /* if */
+    }  /* for */
+  }  /* if */
   free_list_of_symbol_list_entries(
                  class_state->members_requiring_exception_spec_instantiation);
 }  /* instantiate_delayed_exception_spec_args_if_needed */

@@ -18749,10 +18749,11 @@ and < end_tsn are included in the string.
     /* Stop if we've reached the specified ending token sequence number. */
     if (end_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
         ctp->token_sequence_number >= end_tsn) break;
-    if (ctp->token == (a_small_token_kind)tok_removed_default_arg) {
+    if (ctp->token == (a_small_token_kind)tok_removed_expr) {
       /* A special token that indicates the location of a removed
-         default argument.  The actual default argument tokens should
-         still be used for purposes of generating the template string. */
+         default argument or exception specification.  The actual default
+         argument tokens should still be used for purposes of generating
+         the template string. */
       ctp = ctp->variant.extracted_template.next_in_token_string;
     }  /* if */
     teik_kind = ctp->extra_info_kind;
@@ -18883,7 +18884,7 @@ the source form (e.g., digraphs are returned as ordinary tokens).
     /* For identifiers reuse the string already stored in IL memory. */
     result = locator_for_curr_id.symbol_header->identifier;
   } else if (curr_token == tok_error ||
-             curr_token == tok_removed_default_arg ||
+             curr_token == tok_removed_expr ||
              curr_token == tok_removed_template_body) {
     /* These tokens do not have a text representation.  We only get here with
        input that contains severe syntax errors. */

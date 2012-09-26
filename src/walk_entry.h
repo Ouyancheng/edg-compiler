@@ -1191,7 +1191,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         an_exception_specification_ptr ptr =
                              (an_exception_specification_ptr)entry_ptr;
         if (ptr->arg_cached) {
-          /* Don't walk the cached argument. */
+          /* The exception specification was never required to be
+             evaluated.  The token cache pointer is for front end use
+             only. */
+          conditionally_clear_fe_pointer(ptr->variant.token_cache);
         } else if (ptr->is_noexcept) {
           walk_ptr(ptr->variant.noexcept_arg, a_constant_ptr, iek_constant);
         } else {

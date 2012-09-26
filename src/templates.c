@@ -4022,10 +4022,11 @@ repl_token_kind, add repl_token_kind to the cache.
 }  /* remove_body_from_cache */
 
 
-static void remove_default_arg(a_template_cache_segment_ptr tcsp)
+static void remove_default_arg_or_exception_spec(
+					a_template_cache_segment_ptr tcsp)
 /*
-Remove a default argument from a token cache.  Replace it with a
-special "removed default argument" token.  Then tokens are removed
+Remove a default argument or exception specification from a token cache.
+Replace it with a special placeholder token.  Then tokens are removed
 from the list linked by the "next" pointer in the token cache, but
 are still pointed to by the "next_in_token_string" link so that they
 can still be put in the token string that is generated.
@@ -4040,10 +4041,10 @@ can still be put in the token string that is generated.
      token.  The default argument will be replaced with this token.
      Give it the same token sequence number as the first token of the
      default argument. */
-  replacement_token = build_cached_token(tok_removed_default_arg,
+  replacement_token = build_cached_token(tok_removed_expr,
                                          tcsp->first_token_number,
                                          &first_token->source_position);
-  if (tcsp->default_arg_missing) {
+  if (tcsp->default_arg_or_exception_spec_missing) {
     /* The default argument was empty.  Insert the replacement token. */
     replacement_token->next = before_first_token->next;
     before_first_token->next = replacement_token;
@@ -4064,7 +4065,7 @@ can still be put in the token string that is generated.
   replacement_token->variant.extracted_template.semicolon_inserted = FALSE;
   replacement_token->variant.extracted_template.next_in_token_string =
                                                                    first_token;
-}  /* remove_default_arg */
+}  /* remove_default_arg_or_exception_spec */
 
 
 static a_template_cache_segment_ptr extract_member_bodies(
@@ -4110,11 +4111,12 @@ and a list of the unprocessed entries is returned to the caller.
       } else {
         /* A default argument.  Remove the default argument and replace it
            with a "removed default argument" token. */
-        remove_default_arg(tcsp);
+        remove_default_arg_or_exception_spec(tcsp);
       }  /* if */
     } else if (tcsp->is_exception_specification_arg) {
-      /* FIXME Remove exception specification argument(s), and replace it (or
+      /* Remove exception specification argument(s), and replace it (or
          them) by a placeholder token. */
+      remove_default_arg_or_exception_spec(tcsp);
     } else {
 #if DEBUG
       a_boolean	removed = FALSE;
@@ -4373,6 +4375,11 @@ user later during real instantiations.
   check_assertion(rout_sym != NULL);
   /* Indicate that the prototype instantiation of this function has started. */
   tssp->variant.function.has_prototype_instantiation = TRUE;
+  /* Do the prototype instantiation of the exception specification if it
+     has not already been done. */
+  if (!tssp->variant.function.exception_spec_prototype_instantiation_done) {
+    instantiate_exception_spec_if_needed(rout_sym);
+  }  /* if */
   /* Set the referencing namespace for the prototype instantiation. */
   tip = rout_sym->variant.routine.instance_ptr;
   check_assertion(tip != NULL);
@@ -10819,6 +10826,7 @@ accordingly.
   a_template_symbol_supplement_ptr  tssp;
   an_exception_specification_ptr    esp = NULL;
   a_symbol_ptr                      template_sym;
+  a_boolean	                    prototype_instantiation_done;
   
   check_assertion(is_simple_function_symbol(sym));
   rp = sym->variant.routine.ptr;
@@ -10827,11 +10835,26 @@ accordingly.
   if (rp->type->kind == (a_type_kind)tk_routine && tip != NULL) {
     esp = rp->type->variant.routine.extra_info->exception_specification;
     template_sym = tip->template_sym;
-    tssp = tip->template_info;
-    if (tssp == NULL) {
-      tssp = template_supplement_for_symbol(template_sym);
+    if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+      template_sym = prototype_template_of(template_sym);
     }  /* if */
+    tssp = template_supplement_for_symbol(template_sym);
     check_assertion(tssp != NULL);
+    prototype_instantiation_done =
+            tssp->variant.function.exception_spec_prototype_instantiation_done;
+    if (nonclass_prototype_instantiations &&
+        !tssp->variant.function.exception_spec_prototype_instantiation_done) {
+      a_routine_ptr	proto_rout = tssp->variant.function.routine;
+      a_symbol_ptr	proto_sym = symbol_for(proto_rout);
+      /* If the prototype instantiation of this exception specification has
+         not been done, do it now.  If sym and proto_sym are the same,
+         this call was done to do the prototype instantiation, which will
+         be done below. */
+      if (sym != proto_sym) {
+        instantiate_exception_spec_if_needed(proto_sym);
+      }  /* if */
+    }  /* if */
+    tssp->variant.function.exception_spec_prototype_instantiation_done = TRUE;
   }  /* if */
   if (esp != NULL && esp->arg_cached) {
     /* The template function has an exception specification that is still in
@@ -10979,10 +11002,11 @@ instantiated.
     /* The function prototype scope should be reactivated and its symbols
        reentered because parameter names hide names from enclosing scopes
        and, moreover, may not be used in default argument expressions
-       (3.4.1p11). */
+       (3.4.1p11).  The Microsoft compiler finds names from the enclosing
+       scope. */
     (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                      rout_ptr->type, (a_routine_ptr)NULL);
-    if (tip->prototype_scope_symbols != NULL) {
+    if (!microsoft_mode && tip->prototype_scope_symbols != NULL) {
       reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
     }  /* if */
     begin_deferral_of_access_checks();
@@ -17246,7 +17270,7 @@ parameter in the parameter list.
 {
   a_def_arg_expr_fixup_ptr	*list;
 
-  if (curr_token == tok_removed_default_arg) {
+  if (curr_token == tok_removed_expr) {
     /* If we are scanning a removed default argument, just bypass the token. */
     (void)get_token();
     /* Note that we leave orig_param_type_for_unevaluated_default_arg_expr
@@ -19865,9 +19889,17 @@ caller.
      to suppress subsequent errors. */
   if (err) decl_state->decl_scope_err = TRUE;
   if (sym != NULL) {
+    a_symbol_ptr		rout_sym;
+    a_template_instance_ptr	tip;
     tssp = template_supplement_for_symbol(sym);
     check_assertion(tssp != NULL);
     rout_ptr = tssp->variant.function.routine;
+    rout_sym = symbol_for(rout_ptr);
+    check_assertion(rout_sym != NULL);
+    tip = template_instance_for_symbol(rout_sym);
+    if (tip->prototype_scope_symbols == NULL) {
+      tip->prototype_scope_symbols = decl_state->prototype_scope_symbols;
+    }  /* if */
     if (rout_ptr->type->kind == (a_type_kind)tk_routine) {
       a_routine_type_supplement_ptr
                             rtsp = rout_ptr->type->variant.routine.extra_info;

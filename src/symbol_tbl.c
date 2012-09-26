@@ -2916,7 +2916,7 @@ to the symbol supplement associated with sym.
   tcsp->last_token = NULL;
   tcsp->is_friend = FALSE;
   tcsp->is_default_arg = FALSE;
-  tcsp->default_arg_missing = FALSE;
+  tcsp->default_arg_or_exception_spec_missing = FALSE;
   tcsp->is_exception_specification_arg = FALSE;
   /* Add the new entry to the list of template cache segments associated
      with the current instantiation.  If there is no current instantiation,
@@ -3421,6 +3421,8 @@ and return a pointer to it.
       tssp->variant.function.prototype_friend_symbol = NULL;
       tssp->variant.function.template_param_not_in_function_type = FALSE;
       tssp->variant.function.has_prototype_instantiation = FALSE;
+      tssp->
+          variant.function.exception_spec_prototype_instantiation_done = FALSE;
 #if CENTERLINE_CHECKING 
       tssp->variant.function.avoid_codecenter_warnings = FALSE;
 #endif /* CENTERLINE_CHECKING */

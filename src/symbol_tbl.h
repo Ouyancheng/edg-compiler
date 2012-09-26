@@ -2141,9 +2141,10 @@ typedef struct a_template_cache_segment {
 			/* TRUE if this entry represents a default argument
 			   expression. */
   a_byte_boolean
-		default_arg_missing;
-			/* TRUE if the default argument expression is empty.
-			   (e.g., "void f(int=)"). */
+		default_arg_or_exception_spec_missing;
+			/* TRUE if the default argument or exception
+			   specification expression is empty.  (e.g.,
+			   "void f(int=)"). */
   a_byte_boolean
 		is_exception_specification_arg;
 			/* TRUE if this entry represents the argument (or
@@ -2630,6 +2631,14 @@ typedef struct a_template_symbol_supplement {
 			   performed on this function.  This flag is set
 			   at the beginning of the prototype instantiation
 			   processing. */
+      a_bit_field
+		exception_spec_prototype_instantiation_done:1;
+			/* TRUE if the prototype instantiation of the
+			   exception specification (if any) has had its
+			   prototype instantiation done.  Also TRUE if the
+			   the routine has no exception specification, once
+			   the check to see if a prototype instantiation is
+			   needed or not. */
       bitfield_to_avoid_codecenter_warnings()
     } function;
     /* When symbol kind = sk_static_data_member: */

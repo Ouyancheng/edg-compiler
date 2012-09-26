@@ -1288,10 +1288,14 @@ noexcept argument if any, and update *esp as appropriate.  If cache_in_template
 is TRUE, cache the argument tokens if this is a template-dependent context.
 */
 {
-
-  if (cache_in_template &&
-      (is_template_dependent_context() ||
-       is_nonspecialized_instantiation_context())) {
+  if (curr_token == tok_removed_expr) {
+    /* An exception specification in a template context that has been
+       removed and replaced with a placeholder.  Just ignore the
+       placeholder. */
+    (void)get_token();
+  } else if (cache_in_template &&
+             (is_template_dependent_context() ||
+              is_nonspecialized_instantiation_context())) {
     /* For top-level declarators in template-dependent contexts, just cache
        the specifier argument for now.  Also create a corresponding template
        cache segment to extract the tokens later on. */
@@ -1305,8 +1309,7 @@ is TRUE, cache the argument tokens if this is a template-dependent context.
     esp->arg_cached = TRUE;
     esp->variant.token_cache = alloc_token_cache();
     clear_token_cache(esp->variant.token_cache, /*reusable=*/TRUE);
-    cache_token_stream_coalesce_identifiers(esp->variant.token_cache,
-                                            stop_tokens);
+    cache_token_stream(esp->variant.token_cache, stop_tokens);
     if (is_template_dependent_context()) {
       last_tsn = curr_token_sequence_number - 1;
       tcsp = alloc_template_cache_segment(
@@ -1317,6 +1320,9 @@ is TRUE, cache the argument tokens if this is a template-dependent context.
          less that the first.  In that case, use the first token number as the
          last. */
       tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
+      /* Check for the case where the cache is empty. */
+      tcsp->default_arg_or_exception_spec_missing =
+                                 esp->variant.token_cache->first_token == NULL;
     }  /* if */
     terminate_token_cache(esp->variant.token_cache);
   } else {
