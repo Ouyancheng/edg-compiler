@@ -1122,7 +1122,7 @@ unsigned long db_show_override_exception_check_entries_used(
 {
   unsigned long  num, size, total;
 
-  db_space_used_lost("override exception check entries",
+  db_space_used_lost("override exc chk entries",
                      avail_override_exception_check_entries,
                      num_override_exception_check_entries,
                      an_override_exception_check_entry);
