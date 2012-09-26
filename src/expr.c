@@ -1286,6 +1286,7 @@ constructs, in which case offsetof_case is TRUE.
     /* There should be at least one subscript expression. */
     check_assertion(!subscript_is_expr_list || operand_2_list != NULL);
     if (subscript_is_expr_list) {
+      mark_init_component_list_as_permanently_allocated(operand_2_list);
       if (last_subscript == NULL) {
         operand_1->variant.property_ref.subscripts = operand_2_list;
       } else {
@@ -1294,6 +1295,7 @@ constructs, in which case offsetof_case is TRUE.
       operand_2_list = NULL;
     } else {
       an_arg_list_elem_ptr subsc = alloc_arg_list_elem_for_operand(&operand_2);
+      mark_init_component_list_as_permanently_allocated(subsc);
       if (last_subscript == NULL) {
         operand_1->variant.property_ref.subscripts = subsc;
       } else {

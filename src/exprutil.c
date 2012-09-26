@@ -64,6 +64,9 @@ static a_boolean is_unmodifiable_initonly_field_operand(
                                        an_operand *operand,
                                        a_boolean  *p_is_static_initonly_field);
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+static void mark_init_component_as_permanently_allocated(
+                                                       an_init_component *icp);
+
 
 /*
 Information on references to symbols, held until the kind of reference to
@@ -697,25 +700,17 @@ entries are used to hold arguments of function calls.
 }  /* alloc_arg_operand */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- operand is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+/*ARGSUSED*/  /* <-- operand is not used. */
 void free_attachments_to_operand(an_operand *operand)
 /*
 Free any dynamically-allocated attachments to the indicated operand.
 The operand will not be used further.
 */
 {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_property_ref_operand(operand)) {
-    /* An ok_property_ref operand has some an_arg_list_elem entries
-       attached. */
-    free_arg_list(operand->variant.property_ref.subscripts);
-    operand->variant.property_ref.subscripts = NULL;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* This is a hook for future expansion. */
   /* The init-components attached to an ok_braced_init_list entry are
-     permanently allocated to avoid memory management issues. */
+     permanently allocated to avoid memory management issues.  Likewise
+     the subscripts attached to an ok_property_ref. */
 }  /* free_attachments_to_operand */
 
 
@@ -2879,6 +2874,7 @@ lowering (as lvalueness is known at that time).
                         vars_can_change, &local_temp_init_used,
                         /*treat_as_potential_rvalue=*/TRUE);
           if (local_temp_init_used) *temp_init_used = TRUE;
+          mark_init_component_as_permanently_allocated(alep_clone);
           if (last_clone_alep == NULL) {
             operand_clone->variant.property_ref.subscripts = alep_clone;
           } else {
@@ -11654,10 +11650,7 @@ instantiation for which we do not know the actual function to be called.
 }  /* prep_generic_argument_list */
 
 
-static void mark_init_component_as_permanently_allocated(
-                                                       an_init_component *icp);
-
-static void mark_init_component_list_as_permanently_allocated(
+void mark_init_component_list_as_permanently_allocated(
                                                    an_init_component *list_icp)
 /*
 Mark the entries on the indicated init-component list, and their subtrees,
@@ -17524,9 +17517,6 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
     }  /* if */
     /* The argument list is the subscript expression list, if any. */
     arg_list = operand->variant.property_ref.subscripts;
-    /* The subscript arguments will be freed below, so detach them from
-       the operand. */
-    operand->variant.property_ref.subscripts = NULL;
     if (put_operand != NULL) {
       /* The last argument for a "put" is the value to be put. */
       an_arg_list_elem_ptr put_arg =
@@ -17644,6 +17634,10 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
       operand->end_position = operand_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
+    /* We call free_arg_list on arg_list even though the subscripts
+       attached to the operand are permanently allocated because we need
+       to free the "put" operand at the end.  The free is ignored for
+       entries marked as permanently allocated. */
     free_arg_list(arg_list);
   }  /* if */
   if (curr_expr_kind_is_const() && !is_error_operand(operand)) {

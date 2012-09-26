@@ -2282,6 +2282,9 @@ extern void prep_generic_argument(an_arg_list_elem_ptr arg);
 
 extern void prep_generic_argument_list(an_arg_list_elem_ptr arg_list);
 
+extern void mark_init_component_list_as_permanently_allocated(
+                                                  an_init_component *list_icp);
+
 extern void make_braced_init_list_operand(an_arg_list_elem_ptr alep,
                                           an_operand           *result);
 
