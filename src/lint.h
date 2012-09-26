@@ -614,6 +614,8 @@ extern int fileno(FILE *);
 /*lint -esym(765,curr_token_is_identifier_string)*/
 /*lint -esym(759,is_assignment_operator_for_copy)*/
 /*lint -esym(765,is_assignment_operator_for_copy)*/
+/*lint -esym(759,mark_init_component_list_as_permanently_allocated)*/
+/*lint -esym(765,mark_init_component_list_as_permanently_allocated)*/
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #if !(GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX)
 /*lint -esym(759, lower_c99_constant_expr)*/
