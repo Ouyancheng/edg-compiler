@@ -10857,7 +10857,7 @@ accordingly.
     /* The template function has an exception specification that is still in
        a "cached" state. */
     a_template_cache_ptr      es_cache;
-    a_push_scope_options_set  ps_options = PS_NO_OPTIONS;
+    a_push_scope_options_set  ps_options = PS_EXCEPTION_SPEC;
     a_decl_parse_state        dps;
     esp->arg_cached = FALSE;
     esp->variant.token_cache = NULL;

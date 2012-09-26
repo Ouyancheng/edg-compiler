@@ -2936,6 +2936,7 @@ the scope being pushed.
       ssep->in_nonreal_instantiation =
                                    (options & PS_NONREAL_INSTANTIATION) != 0;
       ssep->in_generic_definition = (options & PS_GENERIC_DEFINITION) != 0;
+      ssep->exception_specification = (options & PS_EXCEPTION_SPEC) != 0;
       if (template_sym != NULL && !ssep->is_rescan) {
         /* Determine whether this is an instantiation of a variadic
            template. */
@@ -2976,6 +2977,7 @@ the scope being pushed.
         ssep->in_nonreal_instantiation = FALSE;
         ssep->in_variadic_template = FALSE;
         ssep->in_generic_definition = FALSE;
+        ssep->exception_specification = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         ssep->instantiation_from_metadata = FALSE;
         ssep->in_generic_instantiation = FALSE;
@@ -2987,6 +2989,8 @@ the scope being pushed.
                                           (ssep-1)->in_nonreal_instantiation;
         ssep->in_generic_definition =
                                           (ssep-1)->in_generic_definition;
+        ssep->exception_specification =
+                                          (ssep-1)->exception_specification;
         ssep->in_variadic_template =
                                           (ssep-1)->in_variadic_template;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4003,6 +4007,7 @@ are non-NULL when they should be used for the outermost instantiation scope.
                                             is_ms_instantiated_nonreal_class) {
       ps_options |= PS_NONREAL_INSTANTIATION;
     }  /* if */
+    if ((options & PS_EXCEPTION_SPEC) != 0) ps_options |= PS_EXCEPTION_SPEC;
     template_arg_list = templ_arg_list_for_class(class_type);
     (void)push_scope_full((a_scope_kind)sck_template_instantiation,
                           decl_info->declaration_scope, assoc_type,

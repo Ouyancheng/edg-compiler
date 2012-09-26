@@ -1919,6 +1919,10 @@ typedef struct a_lookup_state {
 			/* TRUE if look_for_projected_symbol is TRUE and
 			   the resulting projection symbol (if any) should be
 			   added to the active list. */
+  a_boolean	exception_spec;
+			/* TRUE if the lookup is taking place in the context
+			   of the instantiation of an exception
+			   specification. */
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   a_boolean	projection_symbol_found;
 			/* TRUE if a projection symbol was found, but did
@@ -2003,6 +2007,7 @@ value.
   cleared_lookup_state.look_in_interfaces            = FALSE;
   cleared_lookup_state.force_lookup_in_dependent_bases = FALSE;
   cleared_lookup_state.add_to_active_list            = FALSE;
+  cleared_lookup_state.exception_spec                = FALSE;
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   cleared_lookup_state.projection_symbol_found       = FALSE;
   cleared_lookup_state.last_scope_used               = NO_SCOPE_DEPTH;
@@ -3032,12 +3037,14 @@ that do normal id lookup processing.
     lookup_state->look_for_projected_symbol = FALSE;
     /* Lookups outside of a template instantiations scope check the declaration
        sequence number of the symbol found.  This check should be suppressed
-       for class scopes. */
+       for class scopes.  In g++ mode, only member functions declared before
+       a given member function are visible in its exception specification. */
     lookup_state->check_decl_seq = !lookup_state->is_linkage_lookup &&
-                         !lookup_state->is_friend_lookup &&
-                         !lookup_state->suppress_decl_seq_check &&
-                         ssep->kind != (a_scope_kind)sck_class_reactivation &&
-                         ssep->kind != (a_scope_kind)sck_class_struct_union;
+                       !lookup_state->is_friend_lookup &&
+                       !lookup_state->suppress_decl_seq_check &&
+                       ((gpp_mode && lookup_state->exception_spec) ||
+                        (ssep->kind != (a_scope_kind)sck_class_reactivation &&
+                         ssep->kind != (a_scope_kind)sck_class_struct_union));;
     if (kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_namespace_reactivation) {
       /* If a namespace extension or reactivation scope is pushed while the
@@ -3541,6 +3548,9 @@ C and C++.
                                 (options & IDL_SKIP_TEMPLATE_DECL_SCOPES) != 0;
     lookup_state.skip_curr_scope = (options & IDL_SKIP_CURR_SCOPE) != 0;
     lookup_state.skip_class_scopes = (options & IDL_SKIP_CLASS_SCOPES) != 0;
+    if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+      lookup_state.exception_spec = scope_stack_top().exception_specification;
+    }  /* if */
     /* If any instantiation scopes are active we will need to check for
        the presence of nonreal base classes.  This is done to "pretend"
        that certain names were found in a nonreal base class.  Don't
@@ -3553,6 +3563,9 @@ C and C++.
                          is_template_dependent_context();
     if (C_mode() && lookup_state.must_be_tag) {
       lookup_state.required_name_space_kind = nsk_tag;
+    }  /* if */
+    if (gpp_mode && lookup_state.exception_spec) {
+      lookup_state.decl_seq = get_effective_decl_seq();
     }  /* if */
     lookup_state.options = options;
     /* We must search for the symbol. */

@@ -92,6 +92,9 @@ typedef int a_push_scope_options_set;
 			/* TRUE when rescanning a function template declaration
 			   from tokens to create the partial instantiation of
 			   the function. */
+#define PS_EXCEPTION_SPEC		0x20000
+			/* TRUE when instantiating an exception
+			   specification. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
 			   a function. */
@@ -669,6 +672,9 @@ typedef struct a_scope_stack_entry {
 			   what is being instantiated is the definition of a
 			   C++/CLI generic.  Also TRUE for scopes nested within
 			   a generic definition. */
+  a_bit_field	exception_specification:1;
+			/* TRUE if this is a scope within the instantiation
+			   of an exception specification. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	instantiation_from_metadata:1;
 			/* TRUE for instantiation scopes for C++/CLI generic
