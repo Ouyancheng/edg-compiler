@@ -3821,6 +3821,12 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
        destructors and deallocation functions as noexcept by default. */
     implicit_noexcept_enabled = FALSE;
   }  /* if */
+  if (gnu_version >= 40400 &&
+      !option_kind_used[(int)optk_variadic_templates]) {
+    /* GCC 4.4 and later accept variadic templates even in non-C++0x mode
+       (with a warning, which we don't issue). */
+    variadic_templates_enabled = TRUE;
+  }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
 

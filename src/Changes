@@ -1,5 +1,12 @@
 Version 4.5
 
+9/26/12  [EDGcpfe/11790, EDGcpfe/11791, EDGcpfe/12798]
+Variadic templates allowed in g++ mode without --c++11
+
+Variadic templates are now permitted in g++ mode with gnu_version >=
+40400 even if --c++11 is not specified.
+
+
 9/25/12  [EDGcpfe/13208]
 Microsoft compatibility: Failing static_assert in nonreal instantiation
 
