@@ -10826,7 +10826,6 @@ accordingly.
   a_template_symbol_supplement_ptr  tssp;
   an_exception_specification_ptr    esp = NULL;
   a_symbol_ptr                      template_sym;
-  a_boolean	                    prototype_instantiation_done;
   
   check_assertion(is_simple_function_symbol(sym));
   rp = sym->variant.routine.ptr;
@@ -10840,8 +10839,6 @@ accordingly.
     }  /* if */
     tssp = template_supplement_for_symbol(template_sym);
     check_assertion(tssp != NULL);
-    prototype_instantiation_done =
-            tssp->variant.function.exception_spec_prototype_instantiation_done;
     if (nonclass_prototype_instantiations &&
         !tssp->variant.function.exception_spec_prototype_instantiation_done) {
       a_routine_ptr	proto_rout = tssp->variant.function.routine;

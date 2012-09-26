@@ -23061,9 +23061,6 @@ passed via template_decl.
             find_member_function_template(rout_sym, prototype_sym);
             tip = rout_sym->variant.routine.instance_ptr;
             if (tip != NULL) {
-              /* Save the prototype scope symbols.  These are needed for the
-                 instantiation of exception specifications. */
-              tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
               /* Set the declared_type in the instance entry.  Try to use
                  the declared_type already entered in the func_info block.
@@ -23084,6 +23081,9 @@ passed via template_decl.
               /* Do no let the param_id_list be deallocated later on: */
               preserve_param_id_list = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+              /* Save the prototype scope symbols.  These are needed for the
+                 instantiation of exception specifications. */
+              tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
               if (tip->template_sym != NULL &&
                   symbol_is(tip->template_sym, sk_member_function) &&
                   symbol_is(rout_sym, sk_member_function)) {
