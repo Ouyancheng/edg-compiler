@@ -4246,7 +4246,7 @@ bool fixup_destructor_or_finalizer_name(const wstring &type_name,
 /*
 Returns TRUE if 'method_name' is a destructor or finalizer for the type named
 type_name and adjusts 'method_name' accordingly if the type name is an invalid
-C++ identifer.
+C++ identifier.
 */
 {
   bool is_destructor_or_finalizer = false;
@@ -6412,7 +6412,7 @@ Return TRUE if the method parameter is a parameter array.
 a_generic_instance_scope_ptr a_signature_decoder::decode_generic_arguments()
 /*
 Decode the generic arguments associated with a type.  Note, it is the caller's
-responsiblity to ensure that there is at least one generic argument.
+responsibility to ensure that there is at least one generic argument.
 */
 {
   a_generic_argument_list generic_arguments;
@@ -7661,7 +7661,7 @@ a_const_class_type_wrapper_ptr an_import_scope::type_from_typeref(
               check_assertion(!IsNilToken(resolved_token) &&
                               TypeFromToken(resolved_token) == mdtTypeDef);
             } else {
-              /* The module containg the type was not found. */
+              /* The module containing the type was not found. */
               unexpected_condition();
             }  /* if */
             break;
@@ -8341,7 +8341,7 @@ void import_class_definition(an_assembly_scope_index assembly_scope_index,
                              size_t                  *buffer_size)
 /*
 Import the definition of the type specified by typedef_token.  The generated
-code only contains the body of the class definiton, including the base classes
+code only contains the body of the class definition, including the base classes
 list.  The namespace scopes and class head are omitted.
 */
 {
