@@ -5853,12 +5853,12 @@ curr_routine points to the routine entry; otherwise, it is NULL.
     case sk_union_tag:
       /* Class members require special end-of-scope processing.  This is
          only done for classes at namespace scope. */
-     if (scope_kind == (a_scope_kind)sck_namespace ||
-         scope_kind == (a_scope_kind)sck_file) {
-        end_of_scope_symbol_check_for_class(sym, scope_kind);
-     }  /* if */
+      if (scope_kind == (a_scope_kind)sck_namespace ||
+          scope_kind == (a_scope_kind)sck_file) {
+         end_of_scope_symbol_check_for_class(sym, scope_kind);
+      }  /* if */
 #if CHECKING
-     scp = &type_symbol_type(sym)->source_corresp;
+      scp = &type_symbol_type(sym)->source_corresp;
 #endif /* CHECKING */
       break;
     case sk_class_template:
