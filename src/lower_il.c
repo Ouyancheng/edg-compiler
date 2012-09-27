@@ -4110,13 +4110,13 @@ constant is being assigned, e.g.,
     } else {
       a_type_ptr var_type = constant->type;
       /* The variable must be allocated. */
-#if GNU_VECTOR_TYPES_ALLOWED
+#if GNU_VECTOR_TYPES_ALLOWED && BACK_END_IS_C_GEN_BE
       if (const_okay && is_vector_type(var_type) &&
           gcc_is_generated_code_target) {
         /* gcc doesn't permit initialization of static const vector types. */
         const_okay = FALSE;
       }  /* if */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#endif /* GNU_VECTOR_TYPES_ALLOWED && BACK_END_IS_C_GEN_BE */
       if (const_okay) var_type = make_qualified_type(var_type, TQ_CONST);
       if (in_file_scope((char *)constant)) {
         /* The constant is in the file scope, so use a file-scope variable.
