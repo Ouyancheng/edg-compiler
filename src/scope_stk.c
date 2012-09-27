@@ -2703,6 +2703,7 @@ the scope being pushed.
   ssep->depth_innermost_function_scope = depth_innermost_function_scope;
   ssep->template_decl_info       = template_decl_info;
   ssep->last_label_decl_seq      = 0;
+  ssep->exception_spec_decl_seq  = NO_DECL_SEQUENCE_NUMBER;
   ssep->pending_pragmas          = NULL;
   ssep->curr_construct_pragmas	 = NULL;
   ssep->next_scope_that_affects_access_control =

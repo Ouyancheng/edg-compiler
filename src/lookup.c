@@ -3565,7 +3565,10 @@ C and C++.
       lookup_state.required_name_space_kind = nsk_tag;
     }  /* if */
     if (gpp_mode && lookup_state.exception_spec) {
-      lookup_state.decl_seq = get_effective_decl_seq();
+      /* exception_spec_decl_seq is used in g++ mode to limit visibility
+         of names used in exception specification to those previously
+         declared in a class. */
+      lookup_state.decl_seq = scope_stack_top().exception_spec_decl_seq;
     }  /* if */
     lookup_state.options = options;
     /* We must search for the symbol. */

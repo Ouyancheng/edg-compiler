@@ -10875,6 +10875,10 @@ accordingly.
     /* Recreate a function prototype scope equivalent to the original. */
     (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                      rp->type, (a_routine_ptr)NULL);
+    /* exception_spec_decl_seq is used in g++ mode to limit visibility
+       of names used in exception specification to those previously
+       declared in a class. */
+    scope_stack_top().exception_spec_decl_seq = sym->decl_seq - 1;
     init_decl_parse_state(&dps);
     dps.sym = sym;
     dps.type = rp->type;

@@ -1291,8 +1291,10 @@ is TRUE, cache the argument tokens if this is a template-dependent context.
   if (curr_token == tok_removed_expr) {
     /* An exception specification in a template context that has been
        removed and replaced with a placeholder.  Just ignore the
-       placeholder. */
+       placeholder.  Set the arg_cached field to indicate that the
+       exception specification needs to be instantiated. */
     (void)get_token();
+    esp->arg_cached = TRUE;
   } else if (cache_in_template &&
              (is_template_dependent_context() ||
               is_nonspecialized_instantiation_context())) {

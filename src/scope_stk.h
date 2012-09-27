@@ -1135,6 +1135,12 @@ a_type_list_entry_ptr
 			   current scope; 0 if this is not a function scope
 			   or if there are no label definitions.  The value
 			   is updated each time a label definition is seen. */
+  a_decl_sequence_number
+		exception_spec_decl_seq;
+			/* When the PS_EXCEPTION_SPEC option is used, this
+			   is the declarations sequence number to be used
+			   in g++ mode during the lookup of names in an
+			   exception specification. */
   a_pending_pragma_ptr
 		pending_pragmas;
 			/* A list of pragmas that have been cached by
