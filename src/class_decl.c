@@ -24400,7 +24400,7 @@ static void instantiate_delayed_exception_spec_args_if_needed(
 /*
 In a prototype instantiation, the arguments of exception specifications are
 cached for later "prototype instantiation".  Perform these instantiations now
-(when the class has been complete), as appropriate.
+(when the class has been completed), as appropriate.
 */
 {
   if (!defer_function_prototype_instantiations) {
