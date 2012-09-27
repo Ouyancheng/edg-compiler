@@ -1,5 +1,25 @@
 Version 4.5
 
+9/27/12  [EDGcpfe/13211]
+Microsoft compatibility: defined() operator in macro expansion
+
+The Microsoft preprocessor has a bug that has the effect of making the
+value of the defined() operator unconditionally false when it appears in a
+macro expansion, regardless of whether its operand has been defined or not.
+Because there are system headers that depend on this behavior, the front
+end now emulates it (with a warning) when microsoft_bugs is TRUE.  For
+example, the following snippet of code now causes the variable
+"not_defined" to be declared when microsoft_bugs is TRUE:
+
+  #define M 1
+  #define M_IS_DEFINED defined(M)
+  #if M_IS_DEFINED
+  int is_defined;
+  #else
+  int not_defined;
+  #endif
+
+
 9/26/12  [EDGcpfe/11790, EDGcpfe/11791, EDGcpfe/12798]
 Variadic templates allowed in g++ mode without --c++11
 

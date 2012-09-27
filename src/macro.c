@@ -2319,6 +2319,8 @@ beyond the operator has not yet been fetched.
   a_token_kind	ctoken;
   a_boolean     save_expand_macros = expand_macros;
   a_boolean     paren_or_id_found;
+  a_boolean     in_macro_expansion =
+                                 !within_curr_source_line(start_of_curr_token);
 
   db_enter(4, "scan_defined_operator");
   copy_source_position(pos_curr_token, start_position);
@@ -2401,6 +2403,13 @@ beyond the operator has not yet been fetched.
         if (assoc_symbol != NULL) {
           mark_referenced(assoc_symbol, &locator_for_curr_id.source_position);
         }  /* if */
+        if (microsoft_bugs && in_macro_expansion) {
+          /* The Microsoft preprocessor has a bug that results in "defined"
+             unconditionally having the value 0 if it appears in a macro
+             expansion, and some system headers depend on this behavior. */
+          pos_warning(ec_defined_always_false, &start_position);
+          assoc_symbol = NULL;
+        }
       }  /* if */
       ctoken = make_pp_int_constant((long)(assoc_symbol != NULL));
       /* Set the token position to the start of the keyword "defined". */
