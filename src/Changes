@@ -249,7 +249,12 @@ behavior is now implemented in strict C++11 mode or when the new command-line
 option --implicit_noexcept is specified.
 
 Our implementation implements the current direction of core issue 1330,
-which specifies that exception specifications 
+which specifies that noexcept specifications are only instantiated
+when needed.  Prototype instantiations of noexcept specifications of
+templates are performed in modes in which nonclass prototype instantiations
+are done.  In g++ mode, the prototype instantiation of a noexcept
+specification is deferred if function prototype instantiations are being
+deferred.
 
 A new mangling, "nx" is introduced to mangle the noexcept operator in Cfront
 ABI configurations (the standard "nx" mangling is used in the IA-64 ABI).
