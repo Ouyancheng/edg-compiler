@@ -248,6 +248,9 @@ operator delete[]) have a "noexcept" specification (see N4305).  This
 behavior is now implemented in strict C++11 mode or when the new command-line
 option --implicit_noexcept is specified.
 
+Our implementation implements the current direction of core issue 1330,
+which specifies that exception specifications 
+
 A new mangling, "nx" is introduced to mangle the noexcept operator in Cfront
 ABI configurations (the standard "nx" mangling is used in the IA-64 ABI).
 

@@ -12989,15 +12989,6 @@ implicitly declared member functions.
         a_symbol_list_entry_ptr		slep = alloc_symbol_list_entry();
         a_template_decl_info_ptr	tdip;
         tdip = get_specified_template_decl_info(/*innermost=*/TRUE);
-        if (gpp_mode) {
-          /* In g++ mode, class members declared before an given member
-             function are not visible in its exception specification. */
-          a_template_decl_info_ptr	new_tdip;
-          new_tdip = alloc_template_decl_info();
-          *new_tdip = *tdip;
-          tdip = new_tdip;
-          tdip->decl_seq = decl_seq_counter-1;
-        }  /* if */
         set_template_cache_info(
                         &tssp->variant.function.exception_spec_arg_cache,
                         rtsp->exception_specification->variant.token_cache,
