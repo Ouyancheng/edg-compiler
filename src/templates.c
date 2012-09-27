@@ -19901,21 +19901,6 @@ caller.
     if (tip->prototype_scope_symbols == NULL) {
       tip->prototype_scope_symbols = decl_state->prototype_scope_symbols;
     }  /* if */
-    if (rout_ptr->type->kind == (a_type_kind)tk_routine) {
-      a_routine_type_supplement_ptr
-                            rtsp = rout_ptr->type->variant.routine.extra_info;
-      if (rtsp->exception_specification != NULL &&
-          rtsp->exception_specification->arg_cached) {
-        /* The function template has an exception specification whose argument
-           is cached.  Record the associated template cache and perform a
-           prototype instantiation. */
-        set_template_cache_info(
-                        &tssp->variant.function.exception_spec_arg_cache,
-                        rtsp->exception_specification->variant.token_cache,
-                        decl_state->decl_info);
-        instantiate_exception_spec_if_needed(symbol_for(rout_ptr));
-      }  /* if */
-    }  /* if */
   }  /* if */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template) {
     if (sym->is_class_member && !decl_state->is_template_friend) {
@@ -19952,6 +19937,21 @@ caller.
     tssp->is_variadic = decl_state->is_variadic;
     /* Update the exported flag, if necessary. */
     update_export_flag_for_function(decl_state, rout_ptr, sym, tssp);
+    if (rout_ptr->type->kind == (a_type_kind)tk_routine) {
+      a_routine_type_supplement_ptr
+                            rtsp = rout_ptr->type->variant.routine.extra_info;
+      if (rtsp->exception_specification != NULL &&
+          rtsp->exception_specification->arg_cached) {
+        /* The function template has an exception specification whose argument
+           is cached.  Record the associated template cache and perform a
+           prototype instantiation. */
+        set_template_cache_info(
+                        &tssp->variant.function.exception_spec_arg_cache,
+                        rtsp->exception_specification->variant.token_cache,
+                        decl_state->decl_info);
+        instantiate_exception_spec_if_needed(symbol_for(rout_ptr));
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* Make sure that the template parameter list is compatible with
      any previous declaration (i.e., the declaration of the class
