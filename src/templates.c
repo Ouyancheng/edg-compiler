@@ -19940,11 +19940,13 @@ caller.
     if (rout_ptr->type->kind == (a_type_kind)tk_routine) {
       a_routine_type_supplement_ptr
                             rtsp = rout_ptr->type->variant.routine.extra_info;
-      if (rtsp->exception_specification != NULL &&
+      if (tssp->variant.function.exception_spec_arg_cache.decl_info == NULL &&
+          rtsp->exception_specification != NULL &&
           rtsp->exception_specification->arg_cached) {
         /* The function template has an exception specification whose argument
            is cached.  Record the associated template cache and perform a
-           prototype instantiation. */
+           prototype instantiation.  Only set this on the initial
+           declaration. */
         set_template_cache_info(
                         &tssp->variant.function.exception_spec_arg_cache,
                         rtsp->exception_specification->variant.token_cache,
