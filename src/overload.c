@@ -21243,7 +21243,12 @@ controls).
           }  /* if */
         }  /* if */
       }  /* if */
-    } else if (could_be_dependent_class_type(dest_type)) {
+    } else if (could_be_dependent_class_type(dest_type) &&
+               /* For conversion to a template parameter type, with zero
+                  or one arguments, fall through to the other cases below,
+                  e.g., value initialization for {}. */
+               !((list == NULL || singleton_expr_type != NULL) &&
+                 is_template_param_type(dest_type))) {
       /* Dependent case.  Pretend this is a constructor invocation. */
       if (arg_match != NULL) {
         if (!try_user_conversions_in_ovl_res) {
