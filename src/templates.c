@@ -10799,7 +10799,7 @@ Do some simple consistency checking on a function template argument list.
                           tap->variant.constant != NULL) ||
                          (is_template_templ_arg(tap) &&
                           tap->variant.templ.ptr != NULL),
-                         "check_template_arg_list:",
+                         "check_function_template_arg_list:",
                          "missing type, constant, or template  pointer");
     if (tpp == NULL) {
       internal_error(
@@ -10896,7 +10896,7 @@ accordingly.
     if (esp->is_noexcept) {
       scan_noexcept_arg(esp, /*cache_in_template=*/FALSE);
     } else {
-      /* Delayed instantiation of dynamic exception specifications are not
+      /* Delayed instantiation of dynamic exception specifications is not
          yet implemented.  (So we should never get here.) */
       unexpected_condition();
     }  /* if */

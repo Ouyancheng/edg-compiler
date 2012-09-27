@@ -1138,7 +1138,7 @@ a_type_list_entry_ptr
   a_decl_sequence_number
 		exception_spec_decl_seq;
 			/* When the PS_EXCEPTION_SPEC option is used, this
-			   is the declarations sequence number to be used
+			   is the declaration sequence number to be used
 			   in g++ mode during the lookup of names in an
 			   exception specification. */
   a_pending_pragma_ptr

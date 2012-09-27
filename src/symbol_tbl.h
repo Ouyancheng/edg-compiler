@@ -2638,7 +2638,7 @@ typedef struct a_template_symbol_supplement {
 			   prototype instantiation done.  Also TRUE if the
 			   the routine has no exception specification, once
 			   the check to see if a prototype instantiation is
-			   needed or not. */
+			   needed or not has been done. */
       bitfield_to_avoid_codecenter_warnings()
     } function;
     /* When symbol kind = sk_static_data_member: */
