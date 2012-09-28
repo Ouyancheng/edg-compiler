@@ -3536,7 +3536,12 @@ private:
 class an_accessibility
 {
 public:
-  an_accessibility() : access_(access_none), import_as_friend_(false) {}
+  an_accessibility()
+    : access_(access_none)
+    , enclosing_type_is_accessible_(false)
+  {
+  }  /* Constructor. */
+
   an_accessibility(an_import_scope         &import_scope,
                    mdToken                 token,
                    DWORD                   attributes,
@@ -3599,11 +3604,11 @@ public:
 
   bool is_accessible() const
   {
-    return access_ >= access_family ||
-           access_ == access_imported_private ||
-           access_ == access_imported_family_and_assembly ||
-           access_ == access_imported_assembly ||
-           (import_as_friend_ && access_ >= access_private_as_friend);
+    return enclosing_type_is_accessible_ &&
+           access_ != access_none &&
+           access_ != access_private &&
+           access_ != access_family_and_assembly &&
+           access_ != access_assembly;
   }  /* is_accessible */
 
   bool operator==(const an_accessibility &access) const
@@ -3634,6 +3639,8 @@ public:
   }
 
 private:
+  bool enclosing_type_is_accessible_;
+
   enum access_kind {
                                        /* within assembly  outside assembly */
     access_none,                       /* none             none             */
@@ -3658,9 +3665,12 @@ private:
     access_public                      /* public           public           */
   } access_;
 
-  an_accessibility(access_kind access) : access_(access) {}
-
-  bool import_as_friend_;
+  an_accessibility(access_kind access,
+                   bool        enclosing_type_is_accessible = true)
+    : access_(access)
+    , enclosing_type_is_accessible_(true)
+  {
+  }  /* Constructor. */
 };  /* an_accessibility */
 
 
@@ -4069,17 +4079,17 @@ an_accessibility::an_accessibility(an_import_scope         &import_scope,
                                    DWORD                   attributes,
                                    const a_type_definition *enclosing_type)
 {
-  const an_assembly &containing_assembly = import_scope.containing_assembly();
+  auto& containing_assembly = import_scope.containing_assembly();
   auto              import_flags = containing_assembly.import_flags();
   bool              import_inaccessible = false;
+  bool  import_as_friend = (import_flags & cpp_cli_as_friend_assembly) != 0;
 
-  import_as_friend_ = (import_flags & cpp_cli_as_friend_assembly) != 0;
   check_assertion(!IsNilToken(token));
   switch (TypeFromToken(token)) {
     case mdtTypeDef:
       switch (attributes & tdVisibilityMask) {
         case tdNotPublic:
-          access_ = import_as_friend_ ? access_private_as_friend
+          access_ = import_as_friend ? access_private_as_friend
                                       : access_private;
           break;
         case tdPublic:
@@ -4095,15 +4105,15 @@ an_accessibility::an_accessibility(an_import_scope         &import_scope,
           access_ = access_family;
           break;
         case tdNestedAssembly:
-          access_ = import_as_friend_ ? access_assembly_as_friend
+          access_ = import_as_friend ? access_assembly_as_friend
                                       : access_assembly;
           break;
         case tdNestedFamANDAssem:
-          access_ = import_as_friend_ ? access_family_and_assembly_as_friend
+          access_ = import_as_friend ? access_family_and_assembly_as_friend
                                       : access_family_and_assembly;
           break;
         case tdNestedFamORAssem:
-          access_ = import_as_friend_ ? access_family_or_assembly_as_friend
+          access_ = import_as_friend ? access_family_or_assembly_as_friend
                                       : access_family_or_assembly;
           break;
         default:
@@ -4120,18 +4130,18 @@ an_accessibility::an_accessibility(an_import_scope         &import_scope,
           access_ = access_private;
           break;
         case fdFamANDAssem:
-          access_ = import_as_friend_ ? access_family_and_assembly_as_friend
+          access_ = import_as_friend ? access_family_and_assembly_as_friend
                                       : access_family_and_assembly;
           break;
         case fdAssembly:
-          access_ = import_as_friend_ ? access_assembly_as_friend
+          access_ = import_as_friend ? access_assembly_as_friend
                                       : access_assembly;
           break;
         case fdFamily:
           access_ = access_family;
           break;
         case fdFamORAssem:
-          access_ = import_as_friend_ ? access_family_or_assembly_as_friend
+          access_ = import_as_friend ? access_family_or_assembly_as_friend
                                       : access_family_or_assembly;
           break;
         case fdPublic:
@@ -4151,18 +4161,18 @@ an_accessibility::an_accessibility(an_import_scope         &import_scope,
           access_ = access_private;
           break;
         case mdFamANDAssem:
-          access_ = import_as_friend_ ? access_family_and_assembly_as_friend
+          access_ = import_as_friend ? access_family_and_assembly_as_friend
                                       : access_family_and_assembly;
           break;
         case mdAssem:
-          access_ = import_as_friend_ ? access_assembly_as_friend
+          access_ = import_as_friend ? access_assembly_as_friend
                                       : access_assembly;
           break;
         case mdFamily:
           access_ = access_family;
           break;
         case mdFamORAssem:
-          access_ = import_as_friend_ ? access_family_or_assembly_as_friend
+          access_ = import_as_friend ? access_family_or_assembly_as_friend
                                       : access_family_or_assembly;
           break;
         case mdPublic:
@@ -4207,9 +4217,8 @@ an_accessibility::an_accessibility(an_import_scope         &import_scope,
         break;
     }  /* switch */
   }  /* if */
-  if (enclosing_type != nullptr) {
-    *this = narrower_accessibility(*this, enclosing_type->accessibility());
-  }  /* if */
+  enclosing_type_is_accessible_ = enclosing_type == nullptr ||
+                              enclosing_type->accessibility().is_accessible();
 }  /* an_accessibility constructor. */
 
 
