@@ -1725,16 +1725,20 @@ consistent with that of the previous declaration.
       /* Ignore any differences between exception specifications on a
          compiler generated routine (e.g., predeclared operator new or delete)
          and the current declaration. */
-    } else if (old_esp == NULL || old_esp->throw_any) {
-      /* Previous specification asserted that any exception may be thrown. */
-      if (new_esp != NULL && !new_esp->throw_any) {
+    } else if (old_esp == NULL ||
+               (old_esp->throw_any && !old_esp->is_noexcept)) {
+      /* Previous specification asserted that any exception may be thrown
+         (either no specification at all, or "throw (...)"). */
+      if (new_esp != NULL &&
+          !(new_esp->throw_any && !new_esp->is_noexcept)) {
         /* The new declaration restricts the permitted exceptions.  Issue an
            error (except if the incompatibility is with a declaration from a
            system header in GNU C++ modes). */
         pos_stsy_diagnostic(pos_adjusted_severity(severity, prev_decl),
                             error_code, throw_pos, "", prev_decl);
       }  /* if */
-    } else if (new_esp == NULL || new_esp->throw_any) {
+    } else if (new_esp == NULL ||
+               (new_esp->throw_any && !new_esp->is_noexcept)) {
       /* Issue a diagnostic on the omission of a throw specification on the
          current declaration (it must have been present on the previous
          one). */
