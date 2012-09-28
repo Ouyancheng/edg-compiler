@@ -19512,8 +19512,11 @@ the conversion.
     conv_to_error_operand(source_operand);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled &&
+             !(conv_context & CCO_BITWISE_ASSIGNMENT_PARAM) &&
              is_any_initonly_field_operand(source_operand)) {
-    /* C++/CLI does not allow binding a reference to an initonly field. */
+    /* C++/CLI does not allow binding a reference to an initonly field.  The
+       invented parameter of a bitwise assignment operator doesn't really have
+       this problem. */
     error_in_operand(ec_ref_bound_to_initonly_field, source_operand);
   } else if (cppcli_enabled &&
              !(conv_context & CCO_BITWISE_ASSIGNMENT_PARAM) &&

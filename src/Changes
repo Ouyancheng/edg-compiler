@@ -1,5 +1,20 @@
 Version 4.5
 
+9/28/12  [EDGcpfe/13221]
+C++/CLI: spurious error on assignment from value class initonly field
+
+The front end issued a spurious error on an assignment whose source is
+an initonly field having a value class type.  Now fixed.
+
+  value struct S {
+    static initonly S s = S();
+  };
+  int main() {
+    S s;
+    s = S::s;  // Formerly got an error
+  }
+
+
 9/27/12  [EDGcpfe/13215]
 Defaulted member functions in Microsoft C++11 mode
 
