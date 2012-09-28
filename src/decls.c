@@ -14466,21 +14466,39 @@ proceed after the call.
 
   /* Check for "= default" or "= delete". */
   if (curr_token == tok_assign) {
-    a_token_kind       next_tok = next_token();
-    if (deleted_functions_enabled && next_tok == tok_delete) {
+    a_boolean      skip_two_tokens = FALSE;
+    a_token_cache  cache;
+    /* We don't use "next_token()" to look ahead one token here because in
+       Microsoft mode we may have to examine the token more closely to see if
+       it is a context-sensitive "default" keyword. */
+    if (deleted_functions_enabled || defaulted_special_members_enabled) {
+      clear_token_cache(&cache, /*reusable=*/FALSE);
+      cache_curr_token(&cache);
+      (void)get_token();
+    }  /* if */
+    if (deleted_functions_enabled && curr_token == tok_delete) {
       func_info->is_deleted = TRUE;
-    } else if (defaulted_special_members_enabled && next_tok == tok_default) {
+    } else if (defaulted_special_members_enabled &&
+               (curr_token == tok_default ||
+                (microsoft_mode && microsoft_version >= 1400 &&
+                 check_context_sensitive_keyword(tok_default, "default")))) {
       if (locator->is_class_member) {
         func_info->is_defaulted = TRUE;
       } else {
         /* "= default" on a nonmember function: Issue an error and ignore the
            tokens. */
         error(ec_invalid_function_to_be_defaulted);
-        (void)get_token();
-        (void)get_token();
+        skip_two_tokens = TRUE;
       }  /* if */
     } else {
       has_initializer = TRUE;
+    }  /* if */
+    if (deleted_functions_enabled || defaulted_special_members_enabled) {
+      rescan_cached_tokens(&cache);
+      if (skip_two_tokens) {
+        (void)get_token();
+        (void)get_token();
+      }  /* if */
     }  /* if */
   } else {
     has_initializer = (state->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;

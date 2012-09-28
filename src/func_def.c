@@ -1931,7 +1931,9 @@ in-class definitions of member functions.
   (void)get_token();
   check_defaulted_or_deleted_function(dps, func_info, &pos_curr_token);
   force_definition_of_compiler_generated_routine(routine_ptr);
-  check_assertion(curr_token == tok_delete || curr_token == tok_default);
+  check_assertion(curr_token == tok_delete || curr_token == tok_default ||
+                  (microsoft_mode && microsoft_version >= 1400 &&
+                   check_context_sensitive_keyword(tok_default, "default")));
   (void)get_token();
 }  /* scan_defaulted_or_deleted_definition */
 

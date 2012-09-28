@@ -6576,7 +6576,7 @@ default_label_case:
             check_context_sensitive_keyword(tok_default, "default")) {
           goto default_label_case;
         } else
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         {
           label_definition();

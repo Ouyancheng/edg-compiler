@@ -20356,7 +20356,11 @@ current declarator was preceded by another one sharing the same specifiers
       func_info->is_deleted = TRUE;
       func_info->is_definition = TRUE;
     } else if (defaulted_special_members_enabled &&
-               curr_token == tok_default) {
+               (curr_token == tok_default ||
+                (microsoft_mode && microsoft_version >= 1400 &&
+                 check_context_sensitive_keyword(tok_default, "default")))) {
+      /* Note that "default" is a context-sensitive keyword in some Microsoft
+         modes. */
       func_info->is_defaulted = TRUE;
       func_info->is_definition = TRUE;
     } else if (curr_token == tok_int_constant) {

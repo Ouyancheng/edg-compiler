@@ -20144,16 +20144,27 @@ function declaration.
       (curr_token == tok_colon &&
        (decl_state->decl_parse.do_flags & DO_IS_CONSTRUCTOR) != 0)) {
     func_info->is_definition = TRUE;
-  } else if (curr_token == tok_assign) {
-    a_token_kind  next_tok = next_token();
-    if (deleted_functions_enabled && next_tok == tok_delete) {
+  } else if (curr_token == tok_assign && (deleted_functions_enabled ||
+                                          defaulted_special_members_enabled)) {
+    /* Check for "= delete" or "= default".  Note that "default" is a
+       context-sensitive keyword in some Microsoft modes. */
+    a_token_cache  cache;
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    /* Look past the "=". */
+    cache_curr_token(&cache);
+    (void)get_token();
+    if (deleted_functions_enabled && curr_token == tok_delete) {
       func_info->is_deleted = TRUE;
       func_info->is_definition = TRUE;
       func_info->is_inline = TRUE;
-    } else if (defaulted_special_members_enabled && next_tok == tok_default) {
+    } else if (defaulted_special_members_enabled &&
+               (curr_token == tok_default ||
+                (microsoft_mode && microsoft_version >= 1400 &&
+                 check_context_sensitive_keyword(tok_default, "default")))) {
       func_info->is_defaulted = TRUE;
       func_info->is_definition = TRUE;
     }  /* if */
+    rescan_cached_tokens(&cache);
   }  /* if */
   dps->is_definition = func_info->is_definition;
   /* Set a flag in each param type entry whose associated type is or
@@ -21992,15 +22003,24 @@ that follows.
         scp = &rp->source_corresp;
         already_specialized = rp->is_specialized;
         is_constructor = is_constructor_symbol(sym);
-        /* Check for "= default" or "= delete". */
+        /* Check for "= delete" or "= default".  Note that "default" is a
+           context-sensitive keyword in some Microsoft modes. */
         if (curr_token == tok_assign) {
-          a_token_kind  next_tok = next_token();
-          if (deleted_functions_enabled && next_tok == tok_delete) {
+          a_token_cache  cache;
+          clear_token_cache(&cache, /*reusable=*/FALSE);
+          /* Look past the "=". */
+          cache_curr_token(&cache);
+          (void)get_token();
+          if (deleted_functions_enabled && curr_token == tok_delete) {
             func_info.is_deleted = TRUE;
           } else if (defaulted_special_members_enabled &&
-                     next_tok == tok_default) {
+                     (curr_token == tok_default ||
+                      (microsoft_mode && microsoft_version >= 1400 &&
+                       check_context_sensitive_keyword(tok_default,
+                                                       "default")))) {
             func_info.is_defaulted = TRUE;
           }  /* if */
+          rescan_cached_tokens(&cache);
         }  /* if */
         dps->is_definition = (curr_token == tok_lbrace ||
                          curr_token == tok_try ||

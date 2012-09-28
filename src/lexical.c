@@ -18185,10 +18185,25 @@ not be returned.
        assure that we don't scan past the end of the cache in the actual
        scan. */
     terminate_token_cache(p_token_cache);
-  } else if (curr_token == tok_assign) {
-    a_token_kind  next_tok = next_token();
-    if ((deleted_functions_enabled && next_tok == tok_delete) || 
-        (defaulted_special_members_enabled && next_tok == tok_default)) {
+  } else if (curr_token == tok_assign && (deleted_functions_enabled ||
+                                          defaulted_special_members_enabled)) {
+    /* Check for "= delete" or "= default".  Note that "default" is a
+       context-sensitive keyword in some Microsoft modes. */
+    a_token_cache  cache;
+    a_boolean      deleted_or_defaulted_body = FALSE;
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    /* Look past the "=". */
+    cache_curr_token(&cache);
+    (void)get_token();
+    if ((deleted_functions_enabled && curr_token == tok_delete) || 
+        (defaulted_special_members_enabled &&
+         (curr_token == tok_default ||
+          (microsoft_mode && microsoft_version >= 1400 &&
+           check_context_sensitive_keyword(tok_default, "default"))))) {
+      deleted_or_defaulted_body = TRUE;
+    }  /* if */
+    rescan_cached_tokens(&cache);
+    if (deleted_or_defaulted_body) {
       /* Cache "= delete" or "= default" (leave the semicolon for the
          caller). */
       if (start_pos != NULL) *start_pos = pos_curr_token;
