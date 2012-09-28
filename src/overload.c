@@ -19980,14 +19980,15 @@ with an initializer of "{}" or "()".  The result is returned as either
 a constant (*is_constant is set to TRUE, and *p_constant is set to a
 pointer to the unshared allocated constant) or a dynamic init entry
 (*is_constant is set to FALSE, and *p_dip is set to a pointer to the
-allocated dynamic init entry).  If ctor_called is non-NULL and
-a default constructor is called to perform the value initialization,
-a pointer to it is returned in *ctor_called.  Some cases can cause
-errors, which are reported at the source position given by pos.  If
-error_detected is non-NULL, the result *p_dip and *p_constant are not
-constructed, no diagnostics are issued, and *error_detected is
-returned TRUE if there are any errors (that's used for overload
-resolution).
+allocated dynamic init entry).  The dynamic init, if any, is not
+marked as a cast; the caller must do that if that's necessary.
+If ctor_called is non-NULL and a default constructor is called to
+perform the value initialization, a pointer to it is returned in
+*ctor_called.  Some cases can cause errors, which are reported at the
+source position given by pos.  If error_detected is non-NULL, the
+result *p_dip and *p_constant are not constructed, no diagnostics are
+issued, and *error_detected is returned TRUE if there are any errors
+(that's used for overload resolution).
 */
 {
   a_type_ptr         orig_dest_type = dest_type;
@@ -20032,9 +20033,14 @@ resolution).
     /* A template parameter type.  Could be a non-class type, so create
        a constant result. */
     if (generate_il) {
-      expr = alloc_empty_parens_func_cast(dest_type,
-                                          (a_dynamic_init_kind)dik_zero,
-                                          pos);
+      a_dynamic_init_ptr local_dip;
+      expr = create_expr_temporary(dest_type,
+                                   /*is_lvalue=*/FALSE,
+                                   /*is_explicit_cast=*/FALSE,
+                                   /*suppress_abstract_test=*/TRUE,
+                                   (a_dynamic_init_kind)dik_zero,
+                                   pos,
+                                   &local_dip);
       make_template_param_expr_constant(expr, &con);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -20922,6 +20928,7 @@ controls).
   a_boolean            init_handled_at_this_level = TRUE;
   a_boolean            elision_done;
   a_source_position    *start_position = init_component_pos(icp);
+  a_dynamic_init_ptr   dependent_constant_dip = NULL;
 
   /* The basic modes are:
                       issue_errors   generate_il
@@ -21243,12 +21250,7 @@ controls).
           }  /* if */
         }  /* if */
       }  /* if */
-    } else if (could_be_dependent_class_type(dest_type) &&
-               /* For conversion to a template parameter type, with zero
-                  or one arguments, fall through to the other cases below,
-                  e.g., value initialization for {}. */
-               !((list == NULL || singleton_expr_type != NULL) &&
-                 is_template_param_type(dest_type))) {
+    } else if (could_be_dependent_class_type(dest_type)) {
       /* Dependent case.  Pretend this is a constructor invocation. */
       if (arg_match != NULL) {
         if (!try_user_conversions_in_ovl_res) {
@@ -21264,6 +21266,25 @@ controls).
                                                /*arg_list_supplied=*/TRUE,
                                                list,
                                                (an_operand *)NULL, &dip);
+        if (is_template_param_type(dest_type) &&
+            dip->kind == (a_dynamic_init_kind)dik_constructor) {
+          an_expr_node_ptr args = dip->variant.constructor.args;
+          if (args == NULL ||
+              (args->next == NULL && is_constant_node(args))) {
+            /* Create a ck_template_param constant for something that could be
+               constant, e.g., T{} with T a template parameter.  Remember
+               the dynamic init so it can be marked later or gotten back
+               if we need the result in dynamic init form. */
+            an_expr_node_ptr expr;
+            a_constant       con;
+            dependent_constant_dip = dip;
+            expr = alloc_temp_init_node(dest_type, dip, make_lvalue_temp,
+                                        /*is_explicit_cast=*/is_cast);
+            make_template_param_expr_constant(expr, &con);
+            constant = alloc_unshared_constant(&con);
+            dip = NULL;
+          }  /* if */
+        }  /* if */
       }  /* if */
     } else if (list == NULL &&
                dest_type_is_class &&
@@ -21630,9 +21651,16 @@ controls).
       /* We've been asked to force a temporary, so force a constant case
          to use a dynamic init.  Also force use of a dynamic init for an
          aggregate constant. */
-      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
-      dip->variant.constant = constant;
-      dip->is_partially_initialized = partial_initializer;
+      if (dependent_constant_dip != NULL) {
+        /* There's already a dynamic init we can use under a template
+           parameter constant. */
+        dip = dependent_constant_dip;
+      } else {
+        /* Create a dynamic init. */
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
+        dip->variant.constant = constant;
+        dip->is_partially_initialized = partial_initializer;
+      }  /* if */
       constant = NULL;
     }  /* if */
     if (dip != NULL) {
@@ -21704,6 +21732,10 @@ controls).
                                                 &dip)) {
           /* We already have a dynamic init in the operand that we can just
              use. */
+        } else if (dependent_constant_dip != NULL) {
+          /* We already have a dynamic init under a ck_template_param
+             constant. */
+          dip = dependent_constant_dip;
         } else {
           /* Make a dynamic init for the expression. */
           an_expr_node_ptr expr;
@@ -21725,6 +21757,11 @@ controls).
                                                  /*honor_virtual=*/FALSE);
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (dip == NULL && dependent_constant_dip != NULL) {
+    /* Set up the underlying dynamic init from a ck_template_param
+       constant for marking below. */
+    dip = dependent_constant_dip;
   }  /* if */
   if (init_handled_at_this_level && dip != NULL) {
     /* The initialization has a primary dynamic init entry, and the
