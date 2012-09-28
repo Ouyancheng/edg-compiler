@@ -2117,7 +2117,8 @@ exit:
         reusable_cache_stack->token_cache == cache1) {
       reusable_cache_stack->token_cache = cache2;
     } else {
-      expect_error();
+      /* In some cases things like disambiguation can cause us to end up
+         scanning the tokens from a non-reusable cache. */
     }  /* if */
   }  /* if */
   return;
@@ -13922,6 +13923,7 @@ all arguments were explicit.
         any_default_args = TRUE;
       }  /* if */
       *any_errors = TRUE;
+      break;
     }  /* if */
   }  /* for */
   if (too_many_args && curr_token != tok_gt) {
