@@ -1496,6 +1496,9 @@ typedef struct a_func_info_block {
 			/* TRUE if the function was declared with the 
 			   "override" modifier (a context-sensitive
 			   keyword). */
+  a_bit_field	keep_param_id_list:1;
+			/* TRUE if the param_id_list should not be freed
+			   when the func_info_block is no longer needed. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	abstract:1;
 			/* TRUE if the function was declared with the C++/CLI
@@ -4979,7 +4982,8 @@ contexts because those param_ids might be referenced by pack expansion
 descriptions.
 */
 #define done_with_func_info(func_info)					\
-  if (!is_variadic_definition_context()) {				\
+  if (!is_variadic_definition_context() &&				\
+      !(func_info).keep_param_id_list) {				\
     free_param_id_list(&((func_info).param_id_list));			\
   }  /* if */
 

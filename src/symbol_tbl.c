@@ -13316,6 +13316,7 @@ Clear the fields of a function information block to default values.
   func_info->any_default_args            = FALSE;
   func_info->final                       = FALSE;
   func_info->override                    = FALSE;
+  func_info->keep_param_id_list          = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   func_info->abstract                    = FALSE;
   func_info->sealed                      = FALSE;

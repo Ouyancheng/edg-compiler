@@ -90,12 +90,6 @@ typedef struct a_routine_fixup {
 			   needs to be added to the source sequence list
 			   during fixup. */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-  a_byte_boolean
-		preserve_param_id_list;
-			/* TRUE if the param_id_list in the func_info field
-			   should not be deallocated with this fixup
-			   (presumably because it is also pointed to by
-			   another structure). */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_byte_boolean
 		is_template;
@@ -230,7 +224,6 @@ initialize it.
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   rfp->is_partial_instantiation = FALSE;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-  rfp->preserve_param_id_list = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   rfp->is_template = FALSE;
   rfp->is_definition = FALSE;
@@ -256,13 +249,6 @@ associated with it, to their respective available-lists.
     free_def_arg_expr_fixup(rfp->def_arg_expr_fixup_list);
   }  /* if */
   rfp->def_arg_expr_fixup_list = NULL;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (rfp->preserve_param_id_list) {
-    /* Clear the param_id_list field of rfp->func_info so that the list won't
-       be deallocated by done_with_func_info. */
-    rfp->func_info.param_id_list = NULL;
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   done_with_func_info(rfp->func_info);
   rfp->next = avail_routine_fixup;
   avail_routine_fixup = rfp;
@@ -13007,6 +12993,7 @@ implicitly declared member functions.
       rtn->is_prototype_instantiation = !tssp->is_generic;
       rtn->is_template_function = TRUE;
       tip->prototype_scope_symbols = func_info->prototype_scope_symbols;
+      func_info->keep_param_id_list = TRUE;
       if (!decl_info->is_trivial_default_constructor) {
       /* Although it is not a template, it is an instantiatable function
          and hence we create a placeholder a_template entry for it.  (Trivial
@@ -13419,6 +13406,7 @@ decl_member_function, which handles in-class member function declarations.)
      of exception specifications. */
   prototype_sym->variant.routine.instance_ptr->prototype_scope_symbols =
                                             func_info->prototype_scope_symbols;
+  func_info->keep_param_id_list = TRUE;
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
@@ -22990,10 +22978,9 @@ passed via template_decl.
         /* Also save the parameter-id list to later reconstruct the declared
            types of parameters for the associated parameter variables. */
         instance->param_id_list = func_info.param_id_list;
-        /* Clear the func_info field to prevent deallocation: */
-        func_info.param_id_list = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         instance->prototype_scope_symbols = func_info.prototype_scope_symbols;
+        func_info.keep_param_id_list = TRUE;
         goto next_declaration;
       } else if (is_member_template) {
         /* An "= 0" is not valid for a member template, but in some modes
@@ -23085,12 +23072,11 @@ passed via template_decl.
               /* Save the param_id_list so we can accurately represent the
                  actual declared type of the parameters later on. */
               tip->param_id_list = func_info.param_id_list;
-              /* Do no let the param_id_list be deallocated later on: */
-              preserve_param_id_list = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
               /* Save the prototype scope symbols.  These are needed for the
                  instantiation of exception specifications. */
               tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
+              func_info.keep_param_id_list = TRUE;
               if (tip->template_sym != NULL &&
                   symbol_is(tip->template_sym, sk_member_function) &&
                   symbol_is(rout_sym, sk_member_function)) {
@@ -23143,12 +23129,9 @@ passed via template_decl.
         curr_routine_fixup->symbol = rout_sym;
         curr_routine_fixup->func_info = func_info;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        curr_routine_fixup->preserve_param_id_list = preserve_param_id_list;
+        func_info.keep_param_id_list = preserve_param_id_list;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       } else {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        if (preserve_param_id_list) { func_info.param_id_list = NULL; }
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         done_with_func_info(func_info);
       }  /* if */
       if (curr_token == tok_assign) {
