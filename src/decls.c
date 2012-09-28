@@ -14441,6 +14441,56 @@ the encountered token and do not attempt to fully parse an initializer.
 }  /* diagnose_initializer_on_function */
 
 
+a_boolean deleted_or_defaulted_def_next(a_boolean  *defaulted)
+/*
+Return TRUE if the next two tokens correspond to an "= delete" or "= default"
+function definition (if the associated language feature is enabled).  Set
+*defaulted to TRUE in the "= default" case, and to FALSE otherwise.  This
+routine also works in Microsoft modes that do not have a keyword "default".
+*/
+{
+  a_boolean  result = FALSE;
+
+  *defaulted = FALSE;
+  if (curr_token == tok_assign &&
+      (deleted_functions_enabled || defaulted_special_members_enabled)) {
+    /* "=" in a mode when "= delete" and/or "= default" is permitted: Examine
+       the next token. */
+    if (microsoft_mode && microsoft_version >= 1400 &&
+        defaulted_special_members_enabled) {
+      /* "default" is not a keyword: Use an explicit token cache to examine
+         the spelling of the second token if necessary. */
+      a_token_cache  cache;
+      clear_token_cache(&cache, /*reusable=*/FALSE);
+      cache_curr_token(&cache);
+      (void)get_token();
+      if (deleted_functions_enabled && curr_token == tok_delete) {
+        result = TRUE;
+      } else if (defaulted_special_members_enabled &&
+                 (curr_token == tok_default ||
+                  (curr_token == tok_identifier &&
+                   check_context_sensitive_keyword(tok_default, "default")))) {
+        result = TRUE;
+        *defaulted = TRUE;
+      }  /* if */
+      rescan_cached_tokens(&cache);
+    } else {
+      /* Both "delete" and "default" are keywords: Just call next_token() to
+         examine the token that follows the "=". */
+      a_token_kind  next_tok = next_token();
+      if (deleted_functions_enabled && next_tok == tok_delete) {
+        result = TRUE;
+      } else if (defaulted_special_members_enabled &&
+                 next_tok == tok_default) {
+        result = TRUE;
+        *defaulted = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* deleted_or_defaulted_def_next */
+
+
 static an_end_of_decl_action function_declaration(
                                           a_decl_parse_state  *state,
                                           a_func_info_block   *func_info,
@@ -14470,39 +14520,25 @@ proceed after the call.
 
   /* Check for "= default" or "= delete". */
   if (curr_token == tok_assign) {
-    a_boolean      skip_two_tokens = FALSE;
-    a_token_cache  cache;
-    /* We don't use "next_token()" to look ahead one token here because in
-       Microsoft mode we may have to examine the token more closely to see if
-       it is a context-sensitive "default" keyword. */
-    if (deleted_functions_enabled || defaulted_special_members_enabled) {
-      clear_token_cache(&cache, /*reusable=*/FALSE);
-      cache_curr_token(&cache);
-      (void)get_token();
-    }  /* if */
-    if (deleted_functions_enabled && curr_token == tok_delete) {
-      func_info->is_deleted = TRUE;
-    } else if (defaulted_special_members_enabled &&
-               (curr_token == tok_default ||
-                (microsoft_mode && microsoft_version >= 1400 &&
-                 check_context_sensitive_keyword(tok_default, "default")))) {
-      if (locator->is_class_member) {
-        func_info->is_defaulted = TRUE;
+    a_boolean  defaulted;
+    if (deleted_or_defaulted_def_next(&defaulted)) {
+      /* "= delete" or "= default". */
+      if (defaulted) {
+        /* The current token is "default" (keyword or identifier). */
+        if (locator->is_class_member) {
+          func_info->is_defaulted = TRUE;
+        } else {
+          /* "= default" on a nonmember function: Issue an error (and ignore
+             the tokens). */
+          (void)get_token();
+          pos_error(ec_invalid_function_to_be_defaulted, &pos_curr_token);
+          (void)get_token();
+        }  /* if */
       } else {
-        /* "= default" on a nonmember function: Issue an error and ignore the
-           tokens. */
-        error(ec_invalid_function_to_be_defaulted);
-        skip_two_tokens = TRUE;
+        func_info->is_deleted = TRUE;
       }  /* if */
     } else {
       has_initializer = TRUE;
-    }  /* if */
-    if (deleted_functions_enabled || defaulted_special_members_enabled) {
-      rescan_cached_tokens(&cache);
-      if (skip_two_tokens) {
-        (void)get_token();
-        (void)get_token();
-      }  /* if */
     }  /* if */
   } else {
     has_initializer = (state->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;

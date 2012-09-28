@@ -18113,6 +18113,7 @@ not be returned.
   a_boolean	     try_found = FALSE;
   a_boolean	     save_caching_tokens = caching_tokens;
   a_boolean          compound_stmt_cached = FALSE;
+  a_boolean          defaulted;
 
   db_enter(3, "cache_function_body");
   /* Set a flag that indicates that the tokens being scanned are to be
@@ -18187,40 +18188,21 @@ not be returned.
        assure that we don't scan past the end of the cache in the actual
        scan. */
     terminate_token_cache(p_token_cache);
-  } else if (curr_token == tok_assign && (deleted_functions_enabled ||
-                                          defaulted_special_members_enabled)) {
-    /* Check for "= delete" or "= default".  Note that "default" is a
-       context-sensitive keyword in some Microsoft modes. */
-    a_token_cache  cache;
-    a_boolean      deleted_or_defaulted_body = FALSE;
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    /* Look past the "=". */
-    cache_curr_token(&cache);
+  } else if (curr_token == tok_assign &&
+             deleted_or_defaulted_def_next(&defaulted)) {
+    /* Cache "= delete" or "= default" (leave the semicolon for the caller). */
+    if (start_pos != NULL) *start_pos = pos_curr_token;
+    cache_curr_token(p_token_cache);
     (void)get_token();
-    if ((deleted_functions_enabled && curr_token == tok_delete) || 
-        (defaulted_special_members_enabled &&
-         (curr_token == tok_default ||
-          (microsoft_mode && microsoft_version >= 1400 &&
-           check_context_sensitive_keyword(tok_default, "default"))))) {
-      deleted_or_defaulted_body = TRUE;
-    }  /* if */
-    rescan_cached_tokens(&cache);
-    if (deleted_or_defaulted_body) {
-      /* Cache "= delete" or "= default" (leave the semicolon for the
-         caller). */
-      if (start_pos != NULL) *start_pos = pos_curr_token;
-      cache_curr_token(p_token_cache);
-      (void)get_token();
-      cache_curr_token(p_token_cache);
-      (void)get_token();
-      if (curr_token == tok_semicolon) {
+    cache_curr_token(p_token_cache);
+    (void)get_token();
+    if (curr_token == tok_semicolon) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        if (end_pos != NULL) *end_pos = end_pos_curr_token;
+      if (end_pos != NULL) *end_pos = end_pos_curr_token;
 #endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
-        result = TRUE;
-      } else if (missing_end != NULL) {
-        *missing_end = TRUE;
-      }  /* if */
+      result = TRUE;
+    } else if (missing_end != NULL) {
+      *missing_end = TRUE;
     }  /* if */
   }  /* if */
   /* Clear the flag that indicates that the tokens being scanned are to be

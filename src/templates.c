@@ -20137,6 +20137,7 @@ function declaration.
 {
   a_decl_parse_state  *dps = &decl_state->decl_parse;
   a_symbol_ptr        sym = NULL;
+  a_boolean           defaulted;
 
   db_enter(4, "function_template_declaration");  
   /* Set some flags in func_info as appropriate. */
@@ -20144,27 +20145,16 @@ function declaration.
       (curr_token == tok_colon &&
        (decl_state->decl_parse.do_flags & DO_IS_CONSTRUCTOR) != 0)) {
     func_info->is_definition = TRUE;
-  } else if (curr_token == tok_assign && (deleted_functions_enabled ||
-                                          defaulted_special_members_enabled)) {
-    /* Check for "= delete" or "= default".  Note that "default" is a
-       context-sensitive keyword in some Microsoft modes. */
-    a_token_cache  cache;
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    /* Look past the "=". */
-    cache_curr_token(&cache);
-    (void)get_token();
-    if (deleted_functions_enabled && curr_token == tok_delete) {
-      func_info->is_deleted = TRUE;
-      func_info->is_definition = TRUE;
-      func_info->is_inline = TRUE;
-    } else if (defaulted_special_members_enabled &&
-               (curr_token == tok_default ||
-                (microsoft_mode && microsoft_version >= 1400 &&
-                 check_context_sensitive_keyword(tok_default, "default")))) {
+  } else if (curr_token == tok_assign &&
+             deleted_or_defaulted_def_next(&defaulted)) {
+    /* "= delete" or "= default". */
+    func_info->is_definition = TRUE;
+    if (defaulted) {
       func_info->is_defaulted = TRUE;
-      func_info->is_definition = TRUE;
+    } else {
+      func_info->is_deleted = TRUE;
+      func_info->is_inline = TRUE;
     }  /* if */
-    rescan_cached_tokens(&cache);
   }  /* if */
   dps->is_definition = func_info->is_definition;
   /* Set a flag in each param type entry whose associated type is or
@@ -21997,6 +21987,7 @@ that follows.
         dps->is_definition = (microsoft_bugs || curr_token == tok_assign ||
                               has_parenthesized_initializer);
       } else {
+        a_boolean  defaulted;
         check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
                         sym->kind == (a_symbol_kind)sk_member_function);
         rp = sym->variant.routine.ptr;
@@ -22005,22 +21996,13 @@ that follows.
         is_constructor = is_constructor_symbol(sym);
         /* Check for "= delete" or "= default".  Note that "default" is a
            context-sensitive keyword in some Microsoft modes. */
-        if (curr_token == tok_assign) {
-          a_token_cache  cache;
-          clear_token_cache(&cache, /*reusable=*/FALSE);
-          /* Look past the "=". */
-          cache_curr_token(&cache);
-          (void)get_token();
-          if (deleted_functions_enabled && curr_token == tok_delete) {
-            func_info.is_deleted = TRUE;
-          } else if (defaulted_special_members_enabled &&
-                     (curr_token == tok_default ||
-                      (microsoft_mode && microsoft_version >= 1400 &&
-                       check_context_sensitive_keyword(tok_default,
-                                                       "default")))) {
+        if (curr_token == tok_assign &&
+            deleted_or_defaulted_def_next(&defaulted)) {
+          if (defaulted) {
             func_info.is_defaulted = TRUE;
+          } else {
+            func_info.is_deleted = TRUE;
           }  /* if */
-          rescan_cached_tokens(&cache);
         }  /* if */
         dps->is_definition = (curr_token == tok_lbrace ||
                          curr_token == tok_try ||
