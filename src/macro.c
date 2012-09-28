@@ -2409,7 +2409,7 @@ beyond the operator has not yet been fetched.
              expansion, and some system headers depend on this behavior. */
           pos_warning(ec_defined_always_false, &start_position);
           assoc_symbol = NULL;
-        }
+        }  /* if */
       }  /* if */
       ctoken = make_pp_int_constant((long)(assoc_symbol != NULL));
       /* Set the token position to the start of the keyword "defined". */
