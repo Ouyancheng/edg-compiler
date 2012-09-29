@@ -22849,9 +22849,6 @@ passed via template_decl.
   do {
     a_symbol_locator                  locator;
     a_func_info_block                 func_info;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    a_boolean                         preserve_param_id_list = FALSE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     a_template_symbol_supplement_ptr  tssp;
     a_source_position                 declarator_start_pos;
     a_boolean                         is_function = FALSE;
@@ -23128,9 +23125,6 @@ passed via template_decl.
            scanned). */
         curr_routine_fixup->symbol = rout_sym;
         curr_routine_fixup->func_info = func_info;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        func_info.keep_param_id_list = preserve_param_id_list;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       } else {
         done_with_func_info(func_info);
       }  /* if */
