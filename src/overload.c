@@ -21102,6 +21102,7 @@ controls).
           conv_to_error_operand(&operand);
         }  /* if */
         fill_in_dtor = FALSE;
+        if (elision_done) init_handled_at_this_level = FALSE;
       } else if (is_any_reference_type(dest_type)) {
         /* Reference types. */
         prep_reference_initializer_operand(&operand, dest_type,
@@ -21673,7 +21674,9 @@ controls).
         add_dtor_to_dynamic_init(dip, dest_type, dest_type, start_position);
       }  /* if */
       expr = alloc_temp_init_node(dest_type, dip, make_lvalue_temp,
-                                  /*is_explicit_cast=*/is_cast);
+                                  /*is_explicit_cast=*/is_cast ||
+                                                       dip->is_explicit_cast);
+      expr->rescan_info = dip->rescan_info;
       make_lvalue_or_rvalue_expression_operand(expr, result);
     } else if (constant != NULL) {
       check_assertion(!force_temp);
