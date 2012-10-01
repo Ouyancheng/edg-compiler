@@ -20522,7 +20522,8 @@ conversion, etc.)
     if (arg_match != NULL) {
       arg_match_err = TRUE;
     } else if (expr_error_should_be_issued()) {
-      expect_error();
+      pos_ty_error(ec_init_list_element_type_not_complete_object, pos,
+                   element_type);
     }  /* if */
     element_type = error_type();
   }  /* if */
