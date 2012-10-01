@@ -130,7 +130,8 @@ an_ms_attribute_arg_ptr alloc_ms_attribute_arg(an_ms_attribute_arg_kind	kind);
 
 extern a_property_index_type_ptr alloc_property_index_type(void);
 
-extern a_property_or_event_descr_ptr alloc_property_or_event_descr(void);
+extern a_property_or_event_descr_ptr alloc_property_or_event_descr(
+                                              a_property_or_event_kind  kind);
 
 extern a_generic_constraint_ptr alloc_generic_constraint(void);
 

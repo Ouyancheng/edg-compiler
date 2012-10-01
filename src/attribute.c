@@ -6381,12 +6381,8 @@ stream.
         unexpected_condition();
       } else {
         if (fp->property_or_event_descr == NULL) {
-          fp->property_or_event_descr = alloc_property_or_event_descr();
-          fp->property_or_event_descr->kind =
-                              (a_property_or_event_kind)pek_declspec_property;
-          fp->property_or_event_descr->variant.field = fp;
-          fp->property_or_event_descr->get_routine.name = NULL;
-          fp->property_or_event_descr->set_routine.name = NULL;
+          fp->property_or_event_descr = alloc_property_or_event_descr(
+                             (a_property_or_event_kind)pek_declspec_property);
         }  /* if */
         if (is_get) {
           fp->property_or_event_descr->get_routine.name = aap->variant.token;

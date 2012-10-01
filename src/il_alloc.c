@@ -4657,10 +4657,11 @@ pointer to it.
 }  /* alloc_property_index_type */
 
 
-a_property_or_event_descr_ptr alloc_property_or_event_descr(void)
+a_property_or_event_descr_ptr alloc_property_or_event_descr(
+                                               a_property_or_event_kind  kind)
 /*
-Allocate a property/event description, clear it to default values, and return
-a pointer to it.
+Allocate a property/event description of the given kind, clear it to default
+values, and return a pointer to it.
 */
 {
   a_property_or_event_descr_ptr  pdp;
@@ -4669,15 +4670,29 @@ a pointer to it.
 #if DEBUG
   num_property_or_event_descriptions_allocated++;
 #endif /* DEBUG */
-  pdp->kind = (a_property_or_event_kind)pek_cli_property;
+  pdp->kind = kind;
   pdp->is_trivial = FALSE;
   pdp->is_default_indexed = FALSE;
   pdp->is_virtual = FALSE;
   pdp->is_static = FALSE;
   pdp->indices = NULL;
+  /* Clear field of inactive variant too for union-as-struct testing. */
+  pdp->variant.variable = NULL;
   pdp->variant.field = NULL;
-  pdp->get_routine.ptr = NULL;
-  pdp->set_routine.ptr = NULL;
+  switch (kind) {
+    case pek_declspec_property:
+      pdp->get_routine.name = NULL;
+      pdp->set_routine.name = NULL;
+      break;
+    case pek_cli_property:
+      pdp->get_routine.ptr = NULL;
+      pdp->set_routine.ptr = NULL;
+      break;
+    case pek_cli_event:
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
   pdp->add_routine = NULL;
   pdp->remove_routine = NULL;
   pdp->raise_routine = NULL;

@@ -21432,7 +21432,7 @@ and *class_state->pe_loc.
                                     DSI_VACUOUS_TAG_DECL_ALLOWED |
                                     DSI_IS_MEMBER_DECLARATION;
   a_property_or_event_descr_ptr
-                        pdp = alloc_property_or_event_descr();
+                        pdp;
   a_boolean             ptr_to_member_scanned, use_error_type = FALSE;
   a_source_position     decl_pos, type_pos;
   a_source_position     *p_virtual_or_static_pos = NULL;
@@ -21442,10 +21442,12 @@ and *class_state->pe_loc.
   add_stop_token(tok_lbrace);
   decl_pos = pos_curr_token;
   if (is_property) {
-    pdp->kind = (a_property_or_event_kind)pek_cli_property;
+    pdp = alloc_property_or_event_descr(
+                                  (a_property_or_event_kind)pek_cli_property);
   } else {
     check_assertion(dps->has_cli_event_keyword);
-    pdp->kind = (a_property_or_event_kind)pek_cli_event;
+    pdp = alloc_property_or_event_descr(
+                                     (a_property_or_event_kind)pek_cli_event);
   }  /* if */
   class_state->class_aggregate_ruled_out = TRUE;
   class_state->POD_ruled_out = TRUE;
