@@ -16726,7 +16726,9 @@ friend_template_checks_done:
                         symbol_for_namespace_std->variant.namespace_info.ptr) {
         if (check_std_initializer_list_parameter(templ_params,
                                                  &locator.source_position)) {
-          /* This is std::initializer_list. */
+          /* This is std::initializer_list: Keep a global variable pointing to
+             the associated symbol for quick recognition, and prohibit attempts
+             to explicitly (or partially) specialize that template. */
           symbol_for_std_initializer_list = sym;
           tssp->variant.class_template.cannot_be_specialized = TRUE;
         }  /* if */
