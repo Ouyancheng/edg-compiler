@@ -19951,7 +19951,9 @@ caller.
                         &tssp->variant.function.exception_spec_arg_cache,
                         rtsp->exception_specification->variant.token_cache,
                         decl_state->decl_info);
-        instantiate_exception_spec_if_needed(symbol_for(rout_ptr));
+        if (decl_state->class_declared_in == NULL) {
+          instantiate_exception_spec_if_needed(symbol_for(rout_ptr));
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

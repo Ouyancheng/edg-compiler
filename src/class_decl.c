@@ -12947,8 +12947,10 @@ implicitly declared member functions.
                                          &locator->source_position);
     set_mixed_static_nonstatic_flag(overload_sym);
   }  /* if */
-  if (class_type->variant.class_struct_union.is_nonreal_class ||
-      class_state->is_generic_definition) {
+  if ((class_type->variant.class_struct_union.is_nonreal_class ||
+       class_state->is_generic_definition) &&
+      !class_type->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class) {
     /* This symbol represents a member function of a prototype instantiation
        of a class template.  As such it is a quasi function template itself.
        Set it up to look like that.  Microsoft/Sun in-class specializations
@@ -23020,6 +23022,8 @@ passed via template_decl.
         rout_sym = decl_info.decl_state.sym;
         if ((class_state->is_nonreal_instantiation ||
              class_state->is_generic_definition) &&
+            !class_type->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class &&
             !class_type->
                        variant.class_struct_union.is_in_class_specialization) {
           /* During the prototype instantiation, save the token sequence
