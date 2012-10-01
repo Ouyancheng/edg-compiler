@@ -15329,7 +15329,7 @@ if one is present.
     if (decl_invisible_to_initializer && !state->sym->is_error) {
       state->sym->is_invisible = TRUE;
     }  /* if */
-    if (curr_token == tok_assign) {
+    if (!has_parenthesized_initializer && curr_token == tok_assign) {
       /* Advance past the "=". */
       (void)get_token();
     } else {
