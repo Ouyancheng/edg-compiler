@@ -3388,8 +3388,8 @@ and return a pointer to it.
       tssp->variant.class_template.involves_template_param = FALSE;
       tssp->variant.class_template.any_full_instantiations = FALSE;
       tssp->variant.class_template.alias_uses_own_type = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
       tssp->variant.class_template.cannot_be_specialized = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
       tssp->variant.class_template.any_ms_instantiated_nonreal_classes = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       tssp->variant.class_template.argument_template = NULL;

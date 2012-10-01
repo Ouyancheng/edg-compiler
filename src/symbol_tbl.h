@@ -2516,11 +2516,11 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if an alias template uses its own type in the
 			   type-id referred to by the alias.  This is used to
 			   suppress instantiations of the alias. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
       a_bit_field
 		cannot_be_specialized:1;
 			/* TRUE if this template cannot be explicitly 
 			   specialized. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
       a_bit_field
 		any_ms_instantiated_nonreal_classes:1;
 			/* TRUE if this template has any instantiations that

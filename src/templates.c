@@ -16195,16 +16195,13 @@ declaration of a partial specialization declared outside of its class.
          declaration of a partial specialization. */
       if (sym != NULL && is_template_class_symbol(sym) &&
           locator_for_curr_id.is_template_id) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
         /* Check whether this template can be specialized.  Generics and
            certain templates cannot be partially specialized. */
         a_symbol_ptr                     class_template_sym;
-
         class_template_sym = template_for_instance(sym);
         tssp = class_template_sym->variant.template_info;
-        if (cppcli_enabled &&
-            (decl_state->is_generic ||
-             tssp->variant.class_template.cannot_be_specialized)) {
+        if (tssp->variant.class_template.cannot_be_specialized
+            if_microsoft_extensions(|| decl_state->is_generic)) {
           pos_sy_error(ec_partial_specialization_not_allowed, 
                        &locator_for_curr_id.source_position, 
                        class_template_sym);
@@ -16213,7 +16210,6 @@ declaration of a partial specialization declared outside of its class.
           err = TRUE;
           decl_state->is_partial_specialization = FALSE;
         }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (sym != NULL) decl_state->is_partial_specialization = TRUE;
       }  /* if */
       /* If the symbol found is an injected template symbol, replace it with
@@ -16732,6 +16728,7 @@ friend_template_checks_done:
                                                  &locator.source_position)) {
           /* This is std::initializer_list. */
           symbol_for_std_initializer_list = sym;
+          tssp->variant.class_template.cannot_be_specialized = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -21782,7 +21779,6 @@ that follows.
         }  /* if */
       }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MICROSOFT_EXTENSIONS_ALLOWED
       /* Check whether this template can be specialized.  Generics and
          certain templates cannot be partially specialized. */
       { a_symbol_ptr                     class_template_sym;
@@ -21792,14 +21788,12 @@ that follows.
                     sym->variant.class_struct_union.extra_info->class_template;
         if (class_template_sym != NULL) {
           tssp = class_template_sym->variant.template_info;
-          if (cppcli_enabled && 
-              (tssp->is_generic ||
-                tssp->variant.class_template.cannot_be_specialized)) {
+          if (tssp->variant.class_template.cannot_be_specialized
+              if_microsoft_extensions(|| tssp->is_generic)) {
             sym_error(ec_entity_cannot_be_specialized, class_template_sym);
           }  /* if */
         }  /* if */
       }
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* No locator is set for the class case, so set it to an error locator
        for cleanliness. */
