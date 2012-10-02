@@ -2880,6 +2880,37 @@ class.
   return template_sym;
 }  /* template_symbol_for_class_symbol */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+a_boolean entity_cannot_be_specialized(a_symbol_ptr  sym)
+/*
+Return TRUE if the given entity is an instance of a template that cannot be
+explicitly specialized.
+*/
+{
+  a_boolean     result = FALSE;
+  a_symbol_ptr  template_sym = NULL;
+
+  if (sym->is_class_member) {
+    a_type_ptr  parent_class = sym_parent_class(sym);
+    while (parent_class->source_corresp.is_class_member) {
+      parent_class = parent_class_of(parent_class);
+    }  /* while */
+    template_sym = template_symbol_for_class_symbol(symbol_for(parent_class));
+  } else if (is_class_struct_union_symbol(sym)) {
+    template_sym = template_symbol_for_class_symbol(sym);
+  }  /* if */
+  if (template_sym != NULL &&
+      template_sym->variant.template_info
+                  ->variant.class_template.cannot_be_specialized) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* entity_cannot_be_specialized */
+
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 a_template_cache_segment_ptr alloc_template_cache_segment(
                                 a_symbol_ptr				sym,

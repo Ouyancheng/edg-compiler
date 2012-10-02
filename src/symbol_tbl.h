@@ -3986,6 +3986,12 @@ extern a_symbol_ptr corresp_prototype_for_class_symbol(a_symbol_ptr sym);
 
 extern a_symbol_ptr template_symbol_for_class_symbol(a_symbol_ptr class_sym);
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+extern a_boolean entity_cannot_be_specialized(a_symbol_ptr  sym);
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 extern
 a_template_cache_segment_ptr alloc_template_cache_segment(
                                 a_symbol_ptr				sym,

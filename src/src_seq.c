@@ -1781,12 +1781,13 @@ declared_type points to a type that should be recorded in the entry.
     scp = source_corresp_for_il_entry(ptr, kind);
     sym = (a_symbol_ptr)scp->assoc_info;
     /* Check if turning the partial instantiation into an explicit
-       declaration/specialization is at all meaningful in this location.
-       Specifically, we cannot create an explicit specialization for a
-       namespace scope entity within a class scope. */
-    if (scope_stack[depth_scope_stack].kind ==
-                                       (a_scope_kind)sck_class_struct_union &&
-        !sym->is_class_member) {
+       declaration/specialization is at all meaningful. */
+    if (entity_cannot_be_specialized(sym)) {
+      goto done;
+    } else if (scope_is(&scope_stack_top(), sck_class_struct_union) &&
+               !sym->is_class_member) {
+       /* We cannot create an explicit specialization for a namespace scope
+          entity within a class scope. */
       goto done;
     }  /* if */
     /* Turn on the generation of source sequence entries. */

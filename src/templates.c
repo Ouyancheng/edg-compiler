@@ -3474,6 +3474,8 @@ be completed here.
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr       orig_ssep = NULL;
       a_source_sequence_entry_ptr       saved_sse_insertion_point = NULL;
+      a_boolean                         saved_sses_disallowed =
+                                           source_sequence_entries_disallowed;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       a_type_ptr                        proto_type;
@@ -3508,6 +3510,13 @@ be completed here.
         cssp->class_template = template_sym;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+        if (tssp->variant.class_template.cannot_be_specialized) {
+          /* A template (like std::initializer_list) that cannot be explicitly
+             specialized.  Do not record source sequence entries for this
+             instantiation since they'd represent such a specialization. */
+          source_sequence_entries_disallowed = TRUE;
+          scope_stack_top().source_sequence_entries_disallowed = TRUE;
+        }  /* if */
       } else if (!is_nonreal_instantiation) {
         /* An instance of a nested class of a class template. */
         orig_ssep = class_type->source_corresp.source_sequence_entry;
@@ -3752,6 +3761,13 @@ be completed here.
       /* Do the class fixups for this instantiation. */
       process_deferred_class_fixups_and_instantiations(
                                                    /*for_instantiation=*/TRUE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      source_sequence_entries_disallowed = saved_sses_disallowed;
+      scope_stack_top().source_sequence_entries_disallowed =
+                                                         saved_sses_disallowed;
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* If the translation unit stack was pushed above, pop it now. */
       if (trans_unit_pushed) pop_translation_unit_stack();
     }  /* if */
@@ -4987,6 +5003,12 @@ Instantiate the body of the template function associated with tip.
   a_symbol_ptr                      template_sym, proto_sym;
   a_template_cache_ptr		    tcp;
   a_func_info_block		    *func_info_ptr;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_boolean                         saved_sses_disallowed =
+                                           source_sequence_entries_disallowed;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "instantiate_template_function");
   rout_sym = tip->instance_sym;
@@ -5137,6 +5159,12 @@ Instantiate the body of the template function associated with tip.
     fputs("\":\n", f_debug);
   }  /* if */
 #endif /* DEBUG */
+  if (entity_cannot_be_specialized(rout_sym)) {
+    /* A template function that cannot be specialized: Avoid generating source
+       sequence entries for it (since they'd be interpreted as representing an
+       explicit specialization). */
+    source_sequence_entries_disallowed = TRUE;
+  }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (rout_sym->defined) {
@@ -5147,13 +5175,13 @@ Instantiate the body of the template function associated with tip.
        generated. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    /* If a source sequence entry has not been put out for this member
-       function (say, as part of putting out the class), do it now.  Note
-       that this is only required when source sequence entries for the bodies
-       of template functions are put out -- the source sequence entry for the
-       function itself must be in the list to indicate when to make use of
-       the source sequence list for the function body. */
     if (rout_ptr->source_corresp.source_sequence_entry == NULL) {
+      /* If a source sequence entry has not been put out for this member
+         function (say, as part of putting out the class), do it now.  Note
+         that this is only required when source sequence entries for the bodies
+         of template functions are put out -- the source sequence entry for the
+         function itself must be in the list to indicate when to make use of
+         the source sequence list for the function body. */
       add_to_source_sequence_list((char *)rout_ptr,
                                   (an_il_entry_kind)iek_routine);
     }  /* if */
@@ -5217,6 +5245,11 @@ Instantiate the body of the template function associated with tip.
      is now present. */
   establish_function_instantiation_corresp(rout_ptr);
 done:;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
 }  /* instantiate_template_function */
 
@@ -6552,17 +6585,19 @@ such classes.
       fputs("\":\n", f_debug);
     }  /* if */
 #endif /* DEBUG */
+    if (tssp->variant.class_template.cannot_be_specialized) {
+      /* Don't create source sequence entries that would be interpreted as
+         explicit specializations for implicit specializations of templates
+         that cannot be specialized. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled &&
-        (!cli_class_type_kind_is(class_type, cctk_standard) ||
-         is_member_of_namespace_cli(class_type))) {
+    } else if (cppcli_enabled &&
+               (!cli_class_type_kind_is(class_type, cctk_standard) ||
+                is_member_of_namespace_cli(class_type))) {
       /* Members of namespace cli and C++/CLI managed class instances cannot
          be specialized and should therefore not trigger source sequence
          entries that would be interpreted as specializations. */
-    } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
+    } else {
       add_source_sequence_entry_for_partial_instantiation(
                                              (char *)class_type,
                                              (an_il_entry_kind)iek_type,
