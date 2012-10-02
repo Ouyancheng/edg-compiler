@@ -8743,16 +8743,18 @@ definition of a member function of a class template.
         set_to_error_locator(*locator);
       } else {
         /* Merge type information from the two declarations. */
-        a_type_ptr	prev_type;
+        a_type_ptr  prev_type;
         tssp = template_supplement_for_symbol(sym);
         prev_type = tssp->variant.function.routine->type;
         /* Be sure the current throw specification is consistent with the one
            on the previous declaration.  This must be done prior to reconciling
            the type with that of a previous declaration. */
-        if (locator->is_destructor_name) {
-          /* For destructors, an exception specification may need to be
-             generated. */
-          update_dtor_type_exception_specification_if_needed(
+        if (locator->is_destructor_name ||
+            (locator->is_operator_name &&
+             is_delete_operator(locator->variant.opname))) {
+          /* For destructors and operator delete, an exception specification
+             may need to be generated. */
+          update_routine_type_exception_specification_if_needed(
                                    tssp->variant.function.routine, &type_ptr);
         }  /* if */
         check_exception_specification(type_ptr, sym,

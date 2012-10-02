@@ -9193,42 +9193,55 @@ twice; once to search for templates and again to search for nontemplates.
 }  /* member_function_redecl_sym */
 
 
-void update_dtor_type_exception_specification_if_needed(a_routine_ptr  rp,
-                                                        a_type_ptr     *p_tp)
+void update_routine_type_exception_specification_if_needed(
+                                                         a_routine_ptr  rp,
+                                                         a_type_ptr     *p_tp)
 /*
-rp represents a destructor and *p_tp a type with which that destructor was
-declared.  If needed, record in *p_tp the exception specification that would
-be generated for a synthesized destructor if rp had not been declared
-explicitly.  p_tp may equal &rp->type.
+rp represents a function and *p_tp a type with which that function was
+declared.  If represents a destructor or operator delete and *p_tp does not
+include an exception specification, record in *p_tp the implied exception
+specification (for a destructor, the one that would be generated for a
+synthesized destructor if rp had not been declared explicitly).
+p_tp may equal &rp->type.
 */
 {
-  /* Implicit destructor exception specifications are generated only if
-     implicit_noexcept_enabled is TRUE, and only for declarations that don't
-     include an explicit exception specification. */
+  /* Implicit exception specifications are generated only if
+     implicit_noexcept_enabled is TRUE. */
   if (implicit_noexcept_enabled) {
     a_type_ptr  tp = *p_tp, old_tp;
     if (tp->kind == (a_type_kind)tk_routine) {
       a_routine_type_supplement_ptr  rtsp = tp->variant.routine.extra_info,
                                      old_rtsp;
       if (rtsp->exception_specification == NULL) {
-        /* Generate the exception specification by calling the function
-           form_exception_specification_for_generated_function while any prior
-           exception specification is moved aside. */
+        /* No exception specification was supplied: Generate one if needed. */
         old_tp = rp->type;
         if (old_tp->kind == (a_type_kind)tk_routine) {
-          an_exception_specification_ptr  saved_esp;
-          old_rtsp = old_tp->variant.routine.extra_info;
-          saved_esp = old_rtsp->exception_specification;
-          old_rtsp->exception_specification = NULL;
-          form_exception_specification_for_generated_function(rp);
-          if (p_tp == &rp->type) {
-            /* We're done: The exception specification was generated in
-               rp->type. */
-          } else {
-            /* Move the generated exception specification to *p_tp and restore
-               the prior specification that was temporarily moved aside. */
-            rtsp->exception_specification = old_rtsp->exception_specification;
-            old_rtsp->exception_specification = saved_esp;
+          if (special_kind_is(rp, sfk_operator) &&
+              is_delete_operator(rp->variant.opname_kind)) {
+            /* For a delete operator, the implicit exception specifier is
+               always noexcept. */
+            add_noexcept_specification(rtsp);
+          } else if (special_kind_is(rp, sfk_destructor)) {
+
+            /* Generate the exception specification by calling the function
+               form_exception_specification_for_generated_function while any
+               prior exception specification is moved aside. */
+            an_exception_specification_ptr  saved_esp;
+            old_rtsp = old_tp->variant.routine.extra_info;
+            saved_esp = old_rtsp->exception_specification;
+            old_rtsp->exception_specification = NULL;
+            form_exception_specification_for_generated_function(rp);
+            if (p_tp == &rp->type) {
+              /* We're done: The exception specification was generated in
+                 rp->type. */
+            } else {
+              /* Move the generated exception specification to *p_tp and
+                 restore the prior specification that was temporarily moved
+                 aside. */
+              rtsp->exception_specification =
+                                            old_rtsp->exception_specification;
+              old_rtsp->exception_specification = saved_esp;
+            }  /* if */
           }  /* if */
         } else {
           expect_error();
@@ -9238,7 +9251,7 @@ explicitly.  p_tp may equal &rp->type.
       expect_error();
     }  /* if */
   }  /* if */
-}  /* update_dtor_type_exception_specification_if_needed */
+}  /* update_routine_type_exception_specification_if_needed */
 
 
 void update_friend_function_info(a_routine_ptr rout_ptr,
@@ -9749,8 +9762,10 @@ possibility.
           record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                     declarator_ssep);
           /* Do exception specification compatibility checking. */
-          if (special_kind_is(rp, sfk_destructor)) {
-            update_dtor_type_exception_specification_if_needed(
+          if (special_kind_is(rp, sfk_destructor) ||
+              (special_kind_is(rp, sfk_operator) &&
+               is_delete_operator(rp->variant.opname_kind))) {
+            update_routine_type_exception_specification_if_needed(
                                                           rp, &function_type);
           }  /* if */
           check_exception_specification(function_type, sym,
@@ -18357,7 +18372,7 @@ The routine body is not generated until it is known to be needed.
     }  /* if */
   } else if (cssp->destructor != NULL) {
     a_routine_ptr  rp = cssp->destructor->variant.routine.ptr;
-    update_dtor_type_exception_specification_if_needed(rp, &rp->type);
+    update_routine_type_exception_specification_if_needed(rp, &rp->type);
   }  /* if */
   /* Record whether the destructor is "trivial".  Usually, this means that
      cssp->destructor is NULL, but it could also be a defaulted destructor

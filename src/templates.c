@@ -22219,10 +22219,13 @@ that follows.
 #endif /* DECL_MODIFIERS_IN_USE */
       } else {
         /* A specialization of a routine. */
-        if (special_kind_is(rp, sfk_destructor)) {
-          /* If this is the specialization of a destructor, an implicit
-             exception specification may need to be generated. */
-          update_dtor_type_exception_specification_if_needed(rp, &dps->type);
+        if (special_kind_is(rp, sfk_destructor) ||
+            (special_kind_is(rp, sfk_operator) &&
+             is_delete_operator(rp->variant.opname_kind))) {
+          /* If this is the specialization of a destructor or operator delete,
+             an implicit exception specification may need to be generated. */
+          update_routine_type_exception_specification_if_needed(rp,
+                                                                &dps->type);
         }  /* if */
         if (!gpp_mode) {
           /* Issue an error if the exception specification on the instance does

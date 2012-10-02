@@ -228,7 +228,7 @@ extern a_symbol_ptr member_function_redecl_sym(
                                        a_template_param_ptr  templ_param_list,
                                        a_symbol_ptr          *other_match);
 
-extern void update_dtor_type_exception_specification_if_needed(
+extern void update_routine_type_exception_specification_if_needed(
                                                         a_routine_ptr  rp,
                                                         a_type_ptr     *p_tp);
 
