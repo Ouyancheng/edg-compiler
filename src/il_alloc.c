@@ -4689,6 +4689,9 @@ values, and return a pointer to it.
       pdp->set_routine.ptr = NULL;
       break;
     case pek_cli_event:
+      /* get_routine/set_routine is not used for events. */
+      pdp->get_routine.ptr = NULL;
+      pdp->set_routine.ptr = NULL;
       break;
     default:
       unexpected_condition();
