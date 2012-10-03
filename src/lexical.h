@@ -1899,6 +1899,20 @@ typedef struct a_reusable_cache_entry {
 } a_reusable_cache_entry;
 
 		
+/*
+Bit vector used to pass flags into the cache token stream routines.
+*/
+typedef unsigned int a_cts_flag_set;
+#define CTS_NO_OPTIONS		  0x0
+#define CTS_COALESCE_IDS	  0x1
+			/* TRUE if identifiers should be coalesced during
+			   the caching process. */
+#define CTS_STOP_ON_STATEMENT_END 0x2
+			/* TRUE if the caching should stop if a semicolon
+			   or mismatched right brace is encountered.  This
+			   is used to avoid excessive caching in programs
+			   with certain kinds of syntax errors. */
+
 
 /* Initialize a token cache. */
 extern void clear_token_cache(a_token_cache *cache,
@@ -1922,16 +1936,16 @@ extern
 void cache_token_stream_coalesce_identifiers(a_token_cache_ptr  cache,
                                              a_token_set_array  stop_tokens);
 
-extern
-void cache_token_stream_with_coalesce_flag(a_token_cache_ptr  cache,
-                                           a_token_set_array  stop_tokens,
-                                           a_boolean	      coalesce_ids);
+extern void cache_token_stream_full(a_token_cache_ptr  cache,
+                                    a_token_set_array  stop_tokens,
+                                    a_cts_flag_set     options);
+
 extern void cache_std_attribute(a_token_cache	*cache,
                                 a_boolean	add_tokens_to_cache);
 
 extern a_boolean cache_token_stream_until_matching_token(
 				a_token_cache		*cache,
-                                a_boolean		coalesce_ids);
+				a_cts_flag_set		options);
 
 extern
 void remove_token_from_cache(a_cached_token_ptr	ctp,

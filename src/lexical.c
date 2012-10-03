@@ -1631,7 +1631,7 @@ which has not yet been cached.
 
 a_boolean cache_token_stream_until_matching_token(
 				a_token_cache		*cache,
-                                a_boolean		coalesce_ids)
+				a_cts_flag_set		options)
 /*
 Given curr_token of '<', '(', '[', or '{', copy tokens into the token cache
 specified by cache up to but not including the corresponding closing token,
@@ -1642,9 +1642,13 @@ of throwing tokens away it adds them to the specified token cache.)
 Normally returns FALSE.  Returns TRUE if it returns without finding
 the desired token (i.e., on end-of-source or a zero level right brace).
 
-coalesce_ids is TRUE if identifiers found in the token stream should
-be coalesced.  This should be done when the stop token set includes
-tokens that can appear in an expression, which means that the
+options specifies a set of flags that enable certain modes, such as
+the coalescing of identifiers.  See the CTS flag definitions in lexical.h
+for more information.
+
+The CTS_COALESCE_IDS flag is used if identifiers found in the token
+stream should be coalesced.  This should be done when the stop token set
+includes tokens that can appear in an expression, which means that the
 caching process must be able to determine whether a "<" starts
 a template argument list or is just a less-than sign.  coalesce_ids must
 be TRUE if curr_token is tok_lt.  When coalesce_ids is FALSE and cache is
@@ -1655,7 +1659,10 @@ not NULL, any fetched tokens will be added to cache.
   int           paren_count = 0, bracket_count = 0, brace_count = 0;
   a_boolean	done = FALSE;
   a_boolean	err = FALSE;
+  a_boolean	coalesce_ids = (options & CTS_COALESCE_IDS) != 0;
   a_boolean	add_tokens_to_cache = !coalesce_ids && cache != NULL;
+  a_boolean	stop_on_statement_end =
+                                   (options & CTS_STOP_ON_STATEMENT_END) != 0;
 
   db_enter(4, "cache_token_stream_until_matching_token");
   if (curr_token == tok_lt) {
@@ -1710,6 +1717,13 @@ not NULL, any fetched tokens will be added to cache.
         case tok_rbrace:    if (brace_count > 0) brace_count--;   break;
         default:;
       }  /* switch */
+    } else if (stop_on_statement_end &&
+               (curr_token == tok_semicolon ||
+                (curr_token == tok_rbrace && brace_count == 0))) {
+      /* We are in a mode where we want to limit caching in error cases.
+         Stop when we hit a semicolon or unmatched right brace. */
+      err = TRUE;
+      break;
     } else {
       /* Count paired tokens within the skip. */
       switch (curr_token) {
@@ -1741,9 +1755,9 @@ not NULL, any fetched tokens will be added to cache.
 }  /* cache_token_stream_until_matching_token */
 
 
-void cache_token_stream_with_coalesce_flag(a_token_cache_ptr  cache,
-                                           a_token_set_array  stop_tokens,
-                                           a_boolean	      coalesce_ids)
+void cache_token_stream_full(a_token_cache_ptr  cache,
+                             a_token_set_array  stop_tokens,
+                             a_cts_flag_set	options)
 /*
 Copy the current token and succeeding tokens into the token cache specified
 by cache up to but not including the first token that matches a member of
@@ -1753,9 +1767,13 @@ away it adds them to the specified token cache.)  If cache is NULL, the
 tokens are not added to the cache.  This may be the case when the background
 caching mechanism is being used.
 
-coalesce_ids is TRUE if identifiers found in the token stream should
-be coalesced.  This should be done when the stop token set includes
-tokens that can appear in an expression, which means that the
+options specifies a set of flags that enable certain modes, such as
+the coalescing of identifiers.  See the CTS flag definitions in lexical.h
+for more information.
+
+The CTS_COALESCE_IDS flag is used if identifiers found in the token
+stream should be coalesced.  This should be done when the stop token
+set includes tokens that can appear in an expression, which means that the
 caching process must be able to determine whether a "<" starts
 a template argument list or is just a less-than sign.
 */
@@ -1766,11 +1784,13 @@ a template argument list or is just a less-than sign.
   a_boolean			prev_token_precedes_angle_bracket_list = FALSE;
   a_boolean			prev_token_was_template = FALSE;
   a_boolean			add_tokens_to_cache;
+  a_boolean			coalesce_ids;
 
-  db_enter(4, "cache_token_stream_with_coalesce_flag");
+  db_enter(4, "cache_token_stream_full");
   /* Set a flag that indicates that the tokens being scanned are to be
      cached. */
   caching_tokens = TRUE;
+  coalesce_ids = (options & CTS_COALESCE_IDS) != 0;
   add_tokens_to_cache = !coalesce_ids && cache != NULL;
   /* Start caching of tokens when we are coalescing ids.   This is needed
      because when coalescing ids not all tokens are fetched directly by
@@ -1809,7 +1829,7 @@ a template argument list or is just a less-than sign.
                  curr_token == tok_lbrace ||
           (curr_token == tok_lt && prev_token_precedes_angle_bracket_list)) {
         a_boolean	err;
-        err = cache_token_stream_until_matching_token(cache, coalesce_ids);
+        err = cache_token_stream_until_matching_token(cache, options);
         if (err) break;
       }  /* if */
       prev_token_precedes_angle_bracket_list = FALSE;
@@ -1836,30 +1856,28 @@ a template argument list or is just a less-than sign.
   /* End the caching of tokens when coalescing ids. */
   if (coalesce_ids) end_caching_fetched_tokens();
   db_exit();
-}  /* cache_token_stream_with_coalesce_flag */
+}  /* cache_token_stream_full */
 
 
 void cache_token_stream(a_token_cache      *cache,
                         a_token_set_array  stop_tokens)
 /*
-Interface to cache_token_stream_with_coalesce_flag that does not
+Interface to cache_token_stream_full that does not
 cause identifiers to be coalesced.
 */
 {
-  cache_token_stream_with_coalesce_flag(cache, stop_tokens,
-                                        /*coalesce_ids=*/FALSE);
+  cache_token_stream_full(cache, stop_tokens, CTS_NO_OPTIONS);
 }  /* cache_token_stream */
 
 
 void cache_token_stream_coalesce_identifiers(a_token_cache_ptr  cache,
                                              a_token_set_array  stop_tokens)
 /*
-Interface to cache_token_stream_with_coalesce_flag that causes
+Interface to cache_token_stream_full that causes
 identifiers to be coalesced.
 */
 {
-  cache_token_stream_with_coalesce_flag(cache, stop_tokens, 
-                                        /*coalesce_ids=*/TRUE);
+  cache_token_stream_full(cache, stop_tokens, CTS_COALESCE_IDS);
 }  /* cache_token_stream_coalesce_identifiers */
 
 
@@ -18041,7 +18059,7 @@ of the compound statement.
       might_be_compound_stmt = TRUE;
       local_start_pos = pos_curr_token;
       (void)cache_token_stream_until_matching_token(p_token_cache,
-                                                    /*coalesce_ids=*/FALSE);
+                                                    CTS_NO_OPTIONS);
       cache_curr_token(p_token_cache);
       next_tok = next_token();
     }  /* if */

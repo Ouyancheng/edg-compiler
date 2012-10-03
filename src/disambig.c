@@ -207,9 +207,8 @@ TRUE, coalesce any identifiers.
      in error cases. */
   incr_token_set_array_element(stop_token_array, tok_rbrace);
   incr_token_set_array_element(stop_token_array, tok_semicolon);
-  cache_token_stream_with_coalesce_flag((a_token_cache_ptr)NULL,
-                                        stop_token_array,
-                                        coalesce);
+  cache_token_stream_full((a_token_cache_ptr)NULL, stop_token_array,
+                          coalesce ? CTS_COALESCE_IDS : CTS_NO_OPTIONS);
 }  /* cache_tokens_until */
 
 
@@ -1683,9 +1682,8 @@ Return TRUE if it is a ranged-based-for, FALSE if it is not.
     incr_token_set_array_element(stop_token_array, tok_quest_mark);
     incr_token_set_array_element(stop_token_array, tok_colon);
     incr_token_set_array_element(stop_token_array, tok_semicolon);
-    cache_token_stream_with_coalesce_flag((a_token_cache_ptr)NULL,
-                                          stop_token_array,
-                                          /*coalesce=*/TRUE);
+    cache_token_stream_coalesce_identifiers((a_token_cache_ptr)NULL,
+                                            stop_token_array);
     result = curr_token == tok_colon;
   }  /* if */
   wrapup_disambig_state(&state);

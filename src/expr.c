@@ -29197,8 +29197,7 @@ looks like the latter.
   check_assertion(lambdas_enabled && curr_token == tok_lbracket);
   clear_token_cache(&cache, /*reusable=*/FALSE);
   /* Cache up to the matching right bracket. */
-  if (cache_token_stream_until_matching_token(&cache,
-                                              /*coalesce_ids=*/FALSE)) {
+  if (cache_token_stream_until_matching_token(&cache, CTS_NO_OPTIONS)) {
     /* Put the current token (tok_rbracket) in the cache. */
     cache_curr_token(&cache);
     (void)get_token();

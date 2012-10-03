@@ -14036,8 +14036,8 @@ context of the completed class later on.
   incr_token_set_array_element(stop_tokens, tok_comma);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
   /* Cache the initializer tokens. */
-  cache_token_stream_with_coalesce_flag(&ifp->initializer_token_cache,
-                                        stop_tokens, /*coalesce_ids=*/TRUE);
+  cache_token_stream_coalesce_identifiers(&ifp->initializer_token_cache,
+                                          stop_tokens);
   terminate_token_cache(&ifp->initializer_token_cache);
   /* Record the fixup in the scope stack. */
   check_assertion(scope_is(ssep, sck_class_struct_union));
@@ -20693,8 +20693,7 @@ sensitive keywords.
       cache_curr_token(cache);
       (void)get_token();
       if (curr_token != tok_lparen ||
-          cache_token_stream_until_matching_token(cache,
-                                                  /*coalesce_ids=*/FALSE)) {
+          cache_token_stream_until_matching_token(cache, CTS_NO_OPTIONS)) {
         /* A syntax error.  Assume a context-sensitive error. */
         expect_error();
         result = TRUE;
