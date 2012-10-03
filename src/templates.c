@@ -19386,13 +19386,14 @@ template symbol supplement for this template should be returned to the caller.
        (curr_token == tok_lbrace && list_init_enabled))) {
     a_token_sequence_number	split_location;
     a_token_set_array		stop_tokens;
+    a_boolean			is_braced_init = curr_token == tok_lbrace;
     p_token_cache = &local_token_cache;
     decl_state->decl_pos_block.var_init_range.start = pos_curr_token;
     clear_token_cache(p_token_cache, /*reusable=*/TRUE);
     /* Skip over the tokens that are already part of the token cache. */
     clear_token_set_array(stop_tokens);
     incr_token_set_array_element(stop_tokens, tok_semicolon);
-    if (curr_token != tok_lbrace) {
+    if (!is_braced_init) {
       /* Unless the initializer is an initializer list, the declaration
          token cache contains the declaration and the initializer.  Split
          the cache so that the initialization is removed from the declaration
@@ -19422,7 +19423,7 @@ template symbol supplement for this template should be returned to the caller.
          initializer (either the old form of "= {...}" or a C++11 initializer
          list).  For a C++11 initializer list, cache the initializer now.
          For other cases, cache the remaining portion of the initializer. */
-      if (curr_token != tok_lbrace) remove_cache_terminator(p_token_cache);
+      if (!is_braced_init) remove_cache_terminator(p_token_cache);
       /* Only semicolon should be left on the list. */
       cache_token_stream(p_token_cache, stop_tokens);
       terminate_token_cache(p_token_cache);
