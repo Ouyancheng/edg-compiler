@@ -3510,13 +3510,6 @@ be completed here.
         cssp->class_template = template_sym;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        if (tssp->variant.class_template.cannot_be_specialized) {
-          /* A template (like std::initializer_list) that cannot be explicitly
-             specialized.  Do not record source sequence entries for this
-             instantiation since they'd represent such a specialization. */
-          source_sequence_entries_disallowed = TRUE;
-          scope_stack_top().source_sequence_entries_disallowed = TRUE;
-        }  /* if */
       } else if (!is_nonreal_instantiation) {
         /* An instance of a nested class of a class template. */
         orig_ssep = class_type->source_corresp.source_sequence_entry;
@@ -3594,6 +3587,18 @@ be completed here.
 					      template_arg_list,
                                               /*push_lex_state=*/TRUE,
                                               ps_options);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      if (tssp->variant.class_template.cannot_be_specialized &&
+          !is_nonreal_instantiation) {
+        /* A template (like std::initializer_list) that cannot be explicitly
+           specialized.  Do not record source sequence entries for this
+           instantiation since they'd represent such a specialization. */
+        source_sequence_entries_disallowed = TRUE;
+        scope_stack_top().source_sequence_entries_disallowed = TRUE;
+      }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (tssp_of_prototype->attributes != NULL) {
         /* Some attributes appeared on the definition.  Apply them to the
            instantiated class. */
