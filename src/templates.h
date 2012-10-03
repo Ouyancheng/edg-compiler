@@ -96,9 +96,6 @@ typedef struct a_tmpl_decl_state {
 			   specialization of a class that is a member of
 			   a class template, and the declaration appears
 			   outside of the parent class. */
-  a_boolean	has_dependent_templ_param;
-			/* A template parameter has a type that depends
-			   on another template parameter. */
   a_boolean	is_template_template_param;
 			/* TRUE when scanning the template parameter clauses
 			   of a template template declaration. */
@@ -125,6 +122,10 @@ typedef struct a_tmpl_decl_state {
 		starting_token_sequence_number;
 			/* The token sequence number of the first token of
 			   the template declaration. */
+  a_token_sequence_number
+		last_token_sequence_number_of_params;
+			/* The token sequence number of the last token of
+			   the template parameter clauses. */
   an_access_specifier
 		access;
 			/* When the declaration appears in a class scope,
@@ -158,6 +159,10 @@ typedef struct a_tmpl_decl_state {
 			   to the scope that contains the template
 			   declaration, but is the nearest namespace scope
 			   for friend declarations. */
+  a_scope_depth	err_decl_level;
+			/* The scope depth to be used for error recovery
+			   purposes when a template is declared in an invalid
+			   scope. */
   unsigned long	number_of_template_decl_scopes;
 			/* The number of template declaration scopes pushed
 			   while processing this template declaration. */

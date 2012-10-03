@@ -497,7 +497,6 @@ Initialize a template declaration state block.
   tdsp->friend_depth = 0;
   tdsp->export_present = FALSE;
   tdsp->partial_spec_outside_of_class_template = FALSE;
-  tdsp->has_dependent_templ_param = FALSE;
   tdsp->is_template_template_param = FALSE;
   tdsp->is_template_template_param_rescan = FALSE;
   tdsp->is_variadic = FALSE;
@@ -506,12 +505,14 @@ Initialize a template declaration state block.
   tdsp->generic_constraints_pending = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->starting_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  tdsp->last_token_sequence_number_of_params = NO_TOKEN_SEQUENCE_NUMBER;
   tdsp->access = (an_access_specifier)as_public;
   tdsp->nesting_depth = 0;
   tdsp->final_token_ptr = NULL;
   tdsp->decl_info = NULL;
   tdsp->orig_decl_level = NO_SCOPE_DEPTH;
   tdsp->effective_decl_level = NO_SCOPE_DEPTH;
+  tdsp->err_decl_level = NO_SCOPE_DEPTH;
   tdsp->number_of_template_decl_scopes = 0;
   tdsp->number_of_template_param_clauses = 0;
   tdsp->enclosing_scope = NULL;
@@ -2484,6 +2485,38 @@ the count of parameters to be compared when entire_type is FALSE.
 }  /* compare_function_template */
 
 
+static a_template_nesting_depth *nesting_depth_addr_of_template_param(
+                                                   a_template_param_ptr tpp)
+/*
+Return the address of the template nesting depth of the specified template
+parameter.
+*/
+{
+  a_template_nesting_depth	*p_depth;
+  a_symbol_kind			sym_kind = tpp->param_symbol->kind;
+
+  check_assertion(tpp != NULL);
+  if (sym_kind == (a_symbol_kind)sk_type) {
+    a_type_ptr	tp = tpp->variant.type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_cli_generic_definition_argument_type(tp)) {
+      /* If this is a generic definition argument, get the associated generic
+         parameter. */
+      tp = generic_param_if_generic_definition_argument(tp);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    p_depth = &tp->variant.template_param.extra_info->coordinates.depth;
+  } else if (sym_kind == (a_symbol_kind)sk_constant) {
+    p_depth = &tpp->variant.constant.ptr->
+                   variant.template_param.variant.coordinates.depth;
+  } else {
+    /* A template template parameter. */
+    p_depth = &tpp->variant.templ->il_template_entry->coordinates.depth;
+  }  /* if */
+  return p_depth;
+}  /* nesting_depth_addr_of_template_param */
+
+
 static a_template_nesting_depth nesting_depth_of_template_param
                                                    (a_template_param_ptr tpp)
 /*
@@ -2496,24 +2529,9 @@ Return the template nesting depth of the specified template parameter.
     /* This is an error case -- use a depth of zero. */
     depth = 0;
   } else {
-   a_symbol_kind	sym_kind= tpp->param_symbol->kind;
-    if (sym_kind == (a_symbol_kind)sk_type) {
-      a_type_ptr	tp = tpp->variant.type;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (is_cli_generic_definition_argument_type(tp)) {
-        /* If this is a generic definition argument, get the associated generic
-           parameter. */
-        tp = generic_param_if_generic_definition_argument(tp);
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      depth = tp->variant.template_param.extra_info->coordinates.depth;
-    } else if (sym_kind == (a_symbol_kind)sk_constant) {
-      depth = tpp->variant.constant.ptr->
-                   variant.template_param.variant.coordinates.depth;
-    } else {
-      /* A template template parameter. */
-      depth = tpp->variant.templ->il_template_entry->coordinates.depth;
-    }  /* if */
+    a_template_nesting_depth	*p_depth;
+    p_depth = nesting_depth_addr_of_template_param(tpp);
+    depth = *p_depth;
   }  /* if */
   return depth;
 }  /* nesting_depth_of_template_param */
@@ -17109,48 +17127,22 @@ function declarator.
 }  /* cache_function_template_body */
 
 
-static void prescan_template_declaration(a_tmpl_decl_state_ptr decl_state,
-					 a_boolean	       skip_params)
+static void prescan_template_declaration(a_tmpl_decl_state_ptr decl_state)
 /*
-Scan the tokens of a template declaration and determine whether
-it is full specialization, and whether the token "friend" is used in
-the declaration.  C++/CLI generic declarations cannot be specialized.
-
-skip_params is TRUE if this routine is being called a second time to
-when recaching the template declaration, but not the template parameter list.
-This is done in certain error cases when the initial caching did not
-cache the expected tokens.
+Scan the tokens of a template declaration and determine whether the token
+"friend" is used in the declaration.  In Microsoft and g++ modes, check
+for certain special uses of friend classes that affect the template
+nesting depth to be used.  
 */
 {
   a_boolean		is_template_friend = FALSE;
-  a_boolean		is_full_specialization = !decl_state->is_generic;
   a_token_cache_ptr	p_cache;
 
-  if (skip_params) {
-    p_cache = &decl_state->decl_token_cache;
-  } else {
-    p_cache = &decl_state->param_list_cache;
-  }  /* if */
+  p_cache = &decl_state->decl_token_cache;
   rescan_reusable_cache(p_cache);
-  if (!skip_params) {
-    /* See if the beginning of the declaration consists of template
-       parameter clauses that are all of the form "template <>". */
-    while (curr_token == tok_template ||
-           (cppcli_enabled && is_start_of_generic_decl())) {
-      (void)get_token();
-      if (curr_token != tok_lt) continue;
-      (void)get_token();
-      if (curr_token != tok_gt) {
-        is_full_specialization = FALSE;
-        continue;
-      }  /* if */
-      (void)get_token();
-    }  /* while */
-    decl_state->is_full_specialization = is_full_specialization;
-  }  /* if */
-  /* Go through the remaining tokens of the cache.  We have to scan all
-     the way to the end even if the friend token is found so that the
-     token stream will be at the right place when we return. */
+  /* Go through the tokens of the cache.  We have to scan all the way to
+     the end even if the friend token is found so that the token stream
+     will be at the right place when we return. */
   while (curr_token != tok_end_of_source) {
     if (curr_token == tok_friend) {
       is_template_friend = TRUE;
@@ -17202,38 +17194,23 @@ cache the expected tokens.
 }  /* prescan_template_declaration */
 
 
-static void cache_template_declaration(a_tmpl_decl_state_ptr decl_state,
-				       a_boolean	     skip_params)
+static void cache_template_declaration(a_tmpl_decl_state_ptr decl_state)
 /*
-Scan one or more template parameter clauses and the declaration that
-follows, and cache the tokens so that they can be rescanned for the
-instantiation.  The declarations for functions must be saved
+Scan the tokens that follow the template parameter clauses of a
+template declaration and cache the tokens so that they can be rescanned
+for the instantiation.  The declarations for functions must be saved
 so that they may be rescanned with the appropriate values substituted
-for the template parameters.  The parameter clauses and the actual
-declaration are scanned into the parameter list cache at this point.
-The template declaration will be split into a separate cache later
-later once the template parameter clauses have been scanned.
+for the template parameters.
 
-An initial pass is made through the cache to determine if the declaration
-is a full specialization, and whether the declaration is a friend
-declaration.  A full specialization is one in which all of the template
-clauses contain empty template parameter lists.
-
-skip_params is TRUE if this routine is being called a second time to
-recache the template declaration, but not the template parameter list.
-This is done in certain error cases when the initial caching did not
-cache the expected tokens.
+An initial pass is made through the cache to determine whether the
+declaration is a friend declaration.
 */
 {
   a_token_set_array  stop_tokens;
   a_token_cache_ptr  p_cache;
 
   db_enter(3, "cache_template_declaration");
-  if (skip_params) {
-    p_cache = &decl_state->decl_token_cache;
-  } else {
-    p_cache = &decl_state->param_list_cache;
-  }  /* if */
+  p_cache = &decl_state->decl_token_cache;
   /* Cache the current token and advance past it. */
   cache_curr_token(p_cache);
   (void)get_token();
@@ -17258,7 +17235,7 @@ cache the expected tokens.
   terminate_token_cache(p_cache);
   /* Do an initial scan of the template declaration to determine whether
      it is a full specialization and/or a friend declaration. */
-  prescan_template_declaration(decl_state, skip_params);
+  prescan_template_declaration(decl_state);
   /* Rescan the cached tokens from this cache.  The skip_terminator flag
      is used so that when the original template declaration is scanned the
      last token of the cache is followed by the token that followed it in
@@ -17603,6 +17580,30 @@ template parameter list.  sym is the template parameter symbol.
 }  /* template_param_is_variadic */
 
 
+static void scan_type_template_param_default_arg(a_template_param_ptr	tpp)
+/*
+Scan the default argument of the type template parameter specified by tpp.
+*/
+{
+  a_type_ptr		default_arg_type;
+
+  default_arg_type = scan_template_type_argument();
+  /* If the default argument type is dependent, update the flag in the
+     template parameter.  Note that it could already have been set
+     for other cases that force the re-evaluation of the default
+     argument. */
+  if (is_instantiation_dependent_type(default_arg_type)) {
+    tpp->def_arg_involves_template_param = TRUE;
+    tpp->is_dependent = TRUE;
+  }  /* if */
+  /* Save the scanned value of the default argument.  This is saved
+     even if we also decided to save the cache.  This value will be
+     used if the default is needed, but the parameters on which it
+     depends are still template dependent. */
+  tpp->default_arg.type = default_arg_type;
+}  /* scan_type_template_param_default_arg */
+
+
 static a_template_param_ptr scan_type_template_param(
 		a_tmpl_decl_state_ptr decl_state,
 		a_template_param_list_pos	template_param_list_pos)
@@ -17697,8 +17698,6 @@ parameter entry for the parameter.
   if (is_pack) template_param_is_variadic(sym, template_param, decl_state);
   if (curr_token == tok_assign) {
     a_token_cache  def_arg_cache;
-    a_boolean	   def_arg_involves_template_param = FALSE;
-    a_type_ptr	   default_arg_type;
     a_boolean      ignore_default = FALSE;
     /* Scan the default value for a type argument. */
     if (is_pack) {
@@ -17723,44 +17722,79 @@ parameter entry for the parameter.
     } else if (microsoft_mode && !nonclass_prototype_instantiations) {
       /* The Microsoft compiler doesn't check default arguments until
          an instantiation is done. */
-      def_arg_involves_template_param = TRUE;
+      template_param->def_arg_involves_template_param = TRUE;
       /* Assign a dummy type.  This can be used if the default argument value
          is needed within the prototype instantiation. */
       template_param->default_arg.type = type_of_unknown_templ_param_nontype;
       template_param->def_arg_has_not_been_scanned = TRUE;
     } else {
-      rescan_copy_of_cache(&def_arg_cache);
-      default_arg_type = scan_template_type_argument();
-      if (is_instantiation_dependent_type(default_arg_type)) {
-        def_arg_involves_template_param = TRUE;
+      /* Indicate that a prototype instantiation of this default argument
+         should be done later when the template parameter information
+         is completed. */
+      template_param->do_prototype_instantiation = TRUE;
+      if (decl_state->is_template_template_param) {
+        /* Default arguments of template template parameters need to be
+           scanned immediately because they can be used by later
+           parameters. */
+        rescan_copy_of_cache(&def_arg_cache);
+        scan_type_template_param_default_arg(template_param);
       }  /* if */
-      /* Save the scanned value of the default argument.  This is saved even
-         if we also decide to save the cache.  This value will be used if
-         the default is needed, but the parameters on which it depends
-         are still template dependent. */
-      template_param->default_arg.type = default_arg_type;
     }  /* if */
     template_param->has_default_arg = !ignore_default;
     /* Update the default argument information in the template parameter. */
-    if (def_arg_involves_template_param) {
+    if (template_param->def_arg_involves_template_param) {
       /* The default argument involves a template parameter.  This means that
-         the default needs to be rescanned for each instantiation, so the
-         default is saved as a token cache. */
-      template_param->def_arg_involves_template_param = TRUE;
-      set_template_cache_info(&template_param->default_arg_cache,
-                              &def_arg_cache, decl_state->decl_info);
-      /* Consider this template parameter list to be dependent so that
-         it (and the default argument) will be rescanned for each
-         instantiation. */
-      decl_state->has_dependent_templ_param = TRUE;
-    } else {
-      /* Discard the default argument token cache if it is not needed for
-         later use. */
-      discard_token_cache(&def_arg_cache);
+         the default needs to be rescanned for each instantiation. */
+      template_param->is_dependent = TRUE;
     }  /* if */
+    /* The default argument cannot be evaluated until later.  Save the
+       cache containing the default. */
+    set_template_cache_info(&template_param->default_arg_cache,
+                            &def_arg_cache, decl_state->decl_info);
   }  /* if */
   return template_param;
 }  /* scan_type_template_param */
+
+
+static void scan_nontype_template_param_default_arg(
+						a_template_param_ptr	tpp)
+/*
+Scan the default argument of the nontype template parameter specified by tpp.
+*/
+{
+  a_constant_ptr	default_arg_constant;
+  a_type_ptr		param_type_ptr;
+
+  /* Get the type of the template argument. */
+  param_type_ptr = tpp->param_symbol->variant.constant->type;
+  default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
+  scan_template_argument_constant_expression(param_type_ptr,
+                                             default_arg_constant);
+  /* If the constant has an associated expression, eliminate it so
+     we do not end up pointing to it from different places. */
+  default_arg_constant->expr = NULL;
+  /* If the default argument type is dependent, update the flag in the
+     template parameter.  Note that it could already have been set
+     for other cases that force the re-evaluation of the default
+     argument. */
+  if (default_arg_constant->kind == (a_constant_repr_kind)ck_template_param) {
+    tpp->def_arg_involves_template_param = TRUE;
+    tpp->is_dependent = TRUE;
+  } else {
+    /* Make sure the constant does not use a local or nonexternal
+       variable, etc. */
+    if (nontype_templ_arg_constant_references_non_external_entity(
+                                                       default_arg_constant)) {
+      error(ec_nonexternal_entity_in_template_arg);
+      set_error_constant(default_arg_constant);
+    }  /* if */
+  }  /* if */
+  /* Save the scanned value of the default argument.  This is saved even
+     if we also decided to save the cache.  This value will be used if
+     the default is needed, but the parameters on which it depends
+     are still template dependent. */
+  tpp->default_arg.constant = default_arg_constant;
+}  /* scan_nontype_template_param_default_arg */
 
 
 static a_template_param_ptr scan_nontype_template_param(
@@ -17781,8 +17815,6 @@ depends on a template parameter.
   a_template_param_ptr	template_param;
   a_symbol_ptr         	sym;
   a_boolean		const_type_involves_template_param = FALSE;
-  a_constant_ptr	default_arg_constant = NULL;
-  a_boolean		def_arg_involves_template_param = FALSE;
   a_boolean		is_pack = FALSE;
   a_decl_pos_block	decl_pos_block;
 
@@ -17836,7 +17868,7 @@ depends on a template parameter.
     set_template_cache_info(&template_param->cache, (a_token_cache_ptr)NULL,
                             decl_state->decl_info);
     *param_cache_needed = TRUE;
-    decl_state->has_dependent_templ_param = TRUE;
+    template_param->is_dependent = TRUE;
   }  /* if */
   if (curr_token == tok_assign) {
     /* Scan the default value. */
@@ -17862,60 +17894,40 @@ depends on a template parameter.
          When the type of the constant involves a template parameter we have
          to save the constant as a token cache, so we also set the flag that
          indicates that the default argument contains a template parameter. */
-     def_arg_involves_template_param = TRUE;
+     template_param->def_arg_involves_template_param = TRUE;
     }  /* if */
     if (!const_type_involves_template_param ||
         decl_state->is_template_template_param ||
         nonclass_prototype_instantiations) {
-      /* Scan the default argument expression.  Rescan a copy of the cache.
-         This is done so that when the default argument is scanned, the
-         last token of the cache is followed by the token that followed
-         it in the original source program with no intervening
-         tok_end_of_source.  Note that this is also done for defaults whose
+      /* Indicate that a prototype instantiation of this default argument
+         should be done later when the template parameter information
+         is completed.  Note that this is also done for defaults whose
          type is not template dependent.  This is done because, prior to
          nonclass prototype instantiations, such default arguments were
          scanned in all cases.  This is also done for default arguments of
          template parameters of template template parameters. */
-      rescan_copy_of_cache(&def_arg_cache);
-      default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
-      scan_template_argument_constant_expression(param_type_ptr,
-  					         default_arg_constant);
-      /* If the constant has an associated expression, eliminate it so
-         we do not end up pointing to it from different places. */
-      default_arg_constant->expr = NULL;
-      if (default_arg_constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param) {
-        def_arg_involves_template_param = TRUE;
-      } else {
-        /* Make sure the constant does not use a local or nonexternal
-           variable, etc. */
-        if (nontype_templ_arg_constant_references_non_external_entity(
-                                                       default_arg_constant)) {
-          error(ec_nonexternal_entity_in_template_arg);
-          set_error_constant(default_arg_constant);
-        }  /* if */
+      template_param->do_prototype_instantiation = TRUE;
+      if (decl_state->is_template_template_param) {
+        /* Default arguments of template template parameters need to be
+           scanned immediately because they can be used by later
+           parameters. */
+        rescan_copy_of_cache(&def_arg_cache);
+        scan_nontype_template_param_default_arg(template_param);
       }  /* if */
-      /* Save the scanned value of the default argument.  This is saved even
-         if we also decide to save the cache.  This value will be used if
-         the default is needed, but the parameters on which it depends
-         are still template dependent. */
-      template_param->default_arg.constant = default_arg_constant;
     } else {
       template_param->def_arg_has_not_been_scanned = TRUE;
     }  /* if */
     /* Update the default argument information in the template parameter. */
-    if (def_arg_involves_template_param) {
+    if (template_param->def_arg_involves_template_param) {
       /* The default argument involves a template parameter.  This means that
          the default needs to be rescanned for each instantiation, so the
          default is saved as a token cache. */
-      template_param->def_arg_involves_template_param = TRUE;
-      set_template_cache_info(&template_param->default_arg_cache,
-                              &def_arg_cache, decl_state->decl_info);
-      decl_state->has_dependent_templ_param = TRUE;
-    } else {
-      /* Discard the default argument token cache. */
-      discard_token_cache(&def_arg_cache);
+      template_param->is_dependent = TRUE;
     }  /* if */
+    /* The default argument cannot be evaluated until later.  Save the
+       cache containing the default. */
+    set_template_cache_info(&template_param->default_arg_cache,
+                            &def_arg_cache, decl_state->decl_info);
   }  /* if */
   return template_param;
 }  /* scan_nontype_template_param */
@@ -17944,16 +17956,44 @@ parameter based on the current state.
 }  /* set_decl_state_for_template_param */
 
 
+static void scan_template_template_param_default_arg(
+						a_template_param_ptr	tpp)
+/*
+Scan the default argument of the template template parameter specified by tpp.
+*/
+{
+  a_template_ptr			def_arg_templ;
+  a_template_symbol_supplement_ptr	def_arg_tssp;
+  a_template_ptr			templ_ptr;
+
+  templ_ptr = tpp->param_symbol->variant.template_info->il_template_entry;
+  def_arg_templ = scan_template_template_argument(templ_ptr,
+                                                  &pos_curr_token);
+  def_arg_tssp = template_supplement_for_template(def_arg_templ);
+  /* Save the scanned value of the default argument.  This is saved even
+     if we also decided to save the cache.  This value will be used if
+     the default is needed, but the parameters on which it depends
+     are still template dependent. */
+  tpp->default_arg.templ = def_arg_templ;
+  if (def_arg_tssp->is_nonreal_member ||
+      def_arg_tssp->variant.class_template.template_template_param) {
+    /* If the template that is returned is marked as a nonreal member
+       or a template template parameter, the qualifier must depend on a
+       template parameter.  This means that the default needs to be
+       rescanned for each instantiation. */
+    tpp->def_arg_involves_template_param = TRUE;
+    tpp->is_dependent = TRUE;
+  }  /* if */
+}  /* scan_template_template_param_default_arg */
+
+
 static a_template_param_ptr scan_template_template_param(
 		a_tmpl_decl_state_ptr		parent_decl_state,
 		a_template_param_list_pos	template_param_list_pos,
-		a_boolean			*param_cache_needed,
 		a_boolean			is_rescan)
 /*
 Scan the declaration of a template template parameter.  Return the template
-parameter entry for the parameter.  param_cache_needed is set to TRUE if
-a cache should saved for rescanning the template template parameter when it
-depends on a other template parameters.  is_rescan is TRUE when this
+parameter entry for the parameter.  is_rescan is TRUE when this
 routine is called to rescan a template template parameter declaration that
 depends on a another template parameter.
 */
@@ -18081,8 +18121,6 @@ depends on a another template parameter.
   }  /* if */
   if (curr_token == tok_assign) {
     a_token_cache			def_arg_cache;
-    a_template_ptr			def_arg_templ;
-    a_template_symbol_supplement_ptr	def_arg_tssp;
     a_boolean				ignore_default = FALSE;
     /* Scan the default value for a type argument. */
     if (is_pack) {
@@ -18098,50 +18136,33 @@ depends on a another template parameter.
     prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
 			     /*is_friend_decl=*/FALSE);
-    rescan_copy_of_cache(&def_arg_cache);
-    def_arg_templ = scan_template_template_argument(templ_ptr,
-                                                    &pos_curr_token);
-    def_arg_tssp = template_supplement_for_template(def_arg_templ);
-    /* Save the scanned value of the default argument.  This is saved even
-       if we also decide to save the cache.  This value will be used if
-       the default is needed, but the parameters on which it depends
-       are still template dependent. */
-    if (!ignore_default) template_param->default_arg.templ = def_arg_templ;
-    /* Update the default argument information in the template parameter. */
-    if (!ignore_default &&
-        (def_arg_tssp->is_nonreal_member ||
-         def_arg_tssp->variant.class_template.template_template_param)) {
-      /* If the template that is returned is marked as a nonreal member
-         or a template template parameter, the qualifier must depend on a
-         template parameter.  This means that the default needs to be
-         rescanned for each instantiation, so the default is saved as a
-         token cache. */
-      template_param->def_arg_involves_template_param = TRUE;
-      set_template_cache_info(&template_param->default_arg_cache,
-                              &def_arg_cache, parent_decl_state->decl_info);
-      /* Consider this template template parameter to be dependent so that
-         it (and the default argument) will be rescanned for each
-         instantiation. */
-      local_decl_state.has_dependent_templ_param = TRUE;
-    } else {
+    /* Record whether the prototype instantiation of this default argument
+       should be done later when the template parameter information
+       is completed. */
+    template_param->do_prototype_instantiation = !ignore_default && !is_rescan;
+    if (ignore_default) {
       /* Discard the default argument token cache if it is not needed for
          later use. */
       discard_token_cache(&def_arg_cache);
+    } else {
+      /* Default arguments of template template parameters need to be
+         scanned immediately because they can be used by later
+         parameters. */
+      if (is_rescan || parent_decl_state->is_template_template_param) {
+        rescan_copy_of_cache(&def_arg_cache);
+        scan_template_template_param_default_arg(template_param);
+      }  /* if */
+      /* The default argument cannot be evaluated until later.  Save the
+         cache containing the default. */
+      set_template_cache_info(&template_param->default_arg_cache,
+                              &def_arg_cache, parent_decl_state->decl_info);
     }  /* if */
   }  /* if */
-  if (local_decl_state.has_dependent_templ_param) {
-    /* If one of the template parameters of the template template parameter
-       is dependent, propagate this information up to the enclosing
-       template. */
-    parent_decl_state->has_dependent_templ_param = TRUE;
-    tssp->variant.class_template.involves_template_param = TRUE;
-    if (!is_rescan) {
-      /* Don't attempt to save the cache information if, during a rescan,
-         the template is still dependent. */
-      set_template_cache_info(&template_param->cache, (a_token_cache_ptr)NULL,
-                              parent_decl_state->decl_info);
-      *param_cache_needed = TRUE;
-    }  /* if */
+  if (!is_rescan) {
+    /* Don't attempt to save the cache information even if, during a rescan,
+       the template is still dependent. */
+    set_template_cache_info(&template_param->cache, (a_token_cache_ptr)NULL,
+                            parent_decl_state->decl_info);
   }  /* if */
   return template_param;
 }  /* scan_template_template_param */
@@ -18201,8 +18222,10 @@ to represent the template parameters.
       /* A template template parameter. */
       template_param = scan_template_template_param(decl_state,
                                                     template_param_list_pos,
-                                                    &param_cache_needed,
 						    /*is_rescan=*/FALSE);
+      /* We can't tell yet whether the template template parameter
+         is dependent, so keep the cache. */
+      param_cache_needed = TRUE;
     }  /* if */
     if (param_cache_needed) {
       /* If a template parameter cache is needed, make a copy from the
@@ -18491,7 +18514,6 @@ template parameters that depend on other template parameters.
                        &parent_decl_state,
                        param_ptr->variant.templ->
                                           il_template_entry->coordinates.depth,
-                       (a_boolean*)NULL,
                        /*is_rescan=*/TRUE);
     /* Scan the declaration specifiers. */
     /* Skip past any tokens remaining in the cache.  Extra tokens will
@@ -20620,12 +20642,12 @@ information).  See the definition of a_tmpl_decl_state for details.
     }  /* if */
   }  /* while */
   decl_state->decl_info = template_decl_info;
-  if ((is_template_param ||
-       (decl_state->is_member_decl && !decl_state->is_template_friend)) &&
+  decl_state->last_token_sequence_number_of_params =
+                                                    curr_token_sequence_number;
+  if (is_template_param &&
       decl_state->number_of_template_param_clauses > 1) {
-    /* A declaration with more than one template parameter clause is only
-       valid in a namespace scope definition of a member template or in
-       a friend declaration. */
+    /* A template template parameter cannot have multiple template parameter
+       clauses. */
     error(ec_multiple_template_decls_not_allowed);
     decl_state->decl_scope_err = TRUE;
   }  /* if */
@@ -20971,38 +20993,10 @@ any non-empty template parameter lists that were scanned.
   a_template_cache_segment_ptr	    function_templ_cache_segments = NULL;
   a_boolean			    prototype_okay = FALSE;
   a_boolean			    is_class_template = FALSE;
-  a_cached_token_ptr		    ctp;
   a_boolean			    invalid_decl = FALSE;
   a_decl_parse_state                *dps = &decl_state->decl_parse;
 
   db_enter(3, "template_declaration");
-  /* Now that we know where the template declaration begins (and the template
-     parameter list ends), break the original token cache at this point. */
-  split_token_cache(&decl_state->param_list_cache,
-                    &decl_state->decl_token_cache,
-                    curr_token_sequence_number,
-                    /*include_prev_token=*/FALSE,
-                    /*okay_if_not_found=*/TRUE,
-                    /*update_cache_being_scanned=*/TRUE);
-  /* Skip over any pragma entries for purposes of the following test. */
-  ctp = decl_state->decl_token_cache.first_token;
-  while (ctp != NULL &&
-         ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
-    ctp = ctp->next;
-  }  /* while */
-  if (ctp == NULL ||
-      ctp->token_sequence_number != curr_token_sequence_number) {
-    /* We are not where we expected to be after scanning the template parameter
-       lists.  Recache the template declaration now for better error
-       recovery.  This should only happen in error cases. */
-    check_assertion(total_errors != 0 || curr_token == tok_end_of_source ||
-                    curr_token == tok_colon || curr_token == tok_lbrace ||
-                    curr_token == tok_try || curr_token == tok_semicolon);
-    cache_template_declaration(decl_state, /*skip_params=*/TRUE);
-    /* Set the error flag to indicate that we know that some kind of error
-       has occurred. */
-    decl_state->decl_scope_err = TRUE;
-  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode &&
       curr_token == tok_lbracket && next_token() != tok_lbracket) {
@@ -23194,16 +23188,26 @@ differs between function and nonfunction declarations.
   a_scope_stack_entry_ptr	ssep;
   a_boolean			err = FALSE;
 
-  ssep = &scope_stack[depth];
-  decl_state->enclosing_scope = ssep->il_scope;
+  ssep = &scope_stack_top();
+  /* Skip past any template declaration scopes. */
+  while (ssep->kind == (a_scope_kind)sck_template_declaration) {
+    /* Skip to depth of the previous decl_scope_level. */
+    ssep = scope_stack_entry_for(ssep->decl_scope_level);
+  }  /* while */
+  depth = scope_depth_of(ssep);
   decl_state->is_member_decl =
                            ssep->kind == (a_scope_kind)sck_class_struct_union;
+  /* Save the depth we found for potential use in error recovery before
+     it is might be changed below. */
+  decl_state->err_decl_level = depth;
   if (decl_state->is_member_decl) {
     /* If this template declaration is within a class definition,
        save a pointer to the class in which the definition appears. */
     decl_state->class_declared_in = ssep->assoc_type;
     decl_state->access = ssep->current_access;
-    decl_state->is_variadic = ssep->in_variadic_template;
+    /* If the current context is variadic, set is_variadic.  Note that
+       it could already be set based on the template parameters. */
+    if (ssep->in_variadic_template) decl_state->is_variadic = TRUE;
   }  /* if */
   if (decl_state->is_member_decl) {
     /* A member template cannot be declared in a local class. */
@@ -23233,24 +23237,28 @@ differs between function and nonfunction declarations.
      make up the template declaration. */
   decl_state->is_template_friend = decl_state->is_member_decl &&
                                            decl_state->is_template_friend;
-  /* Determine the nesting depth of this template declaration.  Templates
-     not enclosed within other templates are given a depth of "1".  The
-     depth is incremented for each successive template declaration.  Friend
-     declarations are normally restarted at a depth of "1" (the depth set here
-     is incremented before used).  This is suppressed inside prototype
-     instantiations because the outer template parameters must be distinct
-     from those of the template when prototype instantiations are put in
-     the IL.  This special processing is okay because a friend in a prototype
-     instantiation is never matched up with an existing declaration of a 
-     template.  Friend declarations may also be restarted at different depths
-     for unqualified friend declarations, which may refer to class members in
-     certain modes. */
-  if (decl_state->is_template_friend &&
-      !decl_state->in_prototype_instantiation) {
-    decl_state->nesting_depth = decl_state->friend_depth;
-  } else {
-    decl_state->nesting_depth = template_nesting_depth();
-  }  /* if */
+}  /* decl_level_of_template */
+
+
+static void nesting_depth_of_template(a_tmpl_decl_state_ptr decl_state)
+/*
+Determine the nesting depth of this template declaration.  Templates
+not enclosed within other templates are given a depth of "1".  The
+depth is incremented for each successive template declaration.  Friend
+declarations are normally restarted at a depth of "1" (the depth set here
+is incremented before used).  This is suppressed inside prototype
+instantiations because the outer template parameters must be distinct
+from those of the template when prototype instantiations are put in
+the IL.  This special processing is okay because a friend in a prototype
+instantiation is never matched up with an existing declaration of a 
+template.  Friend declarations may also be restarted at different depths
+for unqualified friend declarations, which may refer to class members in
+certain modes.  We don't know yet if we are processing a friend
+declaration.  Set the nesting_depth assuming we are not in a friend
+declaration.  This will be updated later, if needed.
+*/
+{
+  decl_state->nesting_depth = template_nesting_depth();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_state->is_generic) {
     /* For generic declarations, determine the number of enclosing generic
@@ -23258,7 +23266,268 @@ differs between function and nonfunction declarations.
     decl_state->enclosing_generic_params = enclosing_generic_parameters();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-}  /* decl_level_of_template */
+}  /* nesting_depth_of_template */
+
+
+static void extract_template_parameter_cache(a_tmpl_decl_state_ptr decl_state)
+/*
+We have just completed the scanning of the template parameter clauses.
+Extract the tokens that make up the template parameter clauses and
+record them in the template parameter cache.
+*/
+{
+  a_token_cache_ptr	p_cache;
+
+  p_cache = &decl_state->param_list_cache,
+  copy_tokens_from_cache(curr_lexical_state_cache(),
+                         decl_state->starting_token_sequence_number,
+                         decl_state->last_token_sequence_number_of_params,
+                         /*include_last_token=*/FALSE, p_cache);
+}  /* extract_template_parameter_cache */
+
+
+static void mark_template_params_as_invisible(
+				a_template_decl_info_ptr	decl_info)
+/*
+Later template parameters should not be visible to earlier ones.
+Mark the template parameters from decl_info as invisible.  If there
+is an enclosing decl_info, do a recursive call to process it.
+*/
+{
+  a_template_param_ptr tpp;
+
+  /* Process any enclosing template decl entries. */
+  if (decl_info->enclosing_template_decl != NULL) {
+    mark_template_params_as_invisible(decl_info->enclosing_template_decl);
+  }  /* if */
+  /* Mark the parameters as invisible. */
+  for (tpp = decl_info->parameters; tpp != NULL; tpp = tpp->next) {
+    tpp->param_symbol->is_invisible = TRUE;
+  }  /* for */
+}  /* mark_template_params_as_invisible */
+
+
+static void check_for_valid_end_of_default_arg(void)
+/*
+We just finished scanning template default argument from a cache.
+Make sure we have scanned to the end of the cache.  If not, issue
+a diagnostic.
+*/
+{
+  if (curr_token != tok_end_of_source) {
+    pos_error(ec_exp_comma_or_gt, &pos_curr_token);
+  }  /* if */
+  flush_past_token_cache_terminator();
+}  /* check_for_valid_end_of_default_arg */
+
+
+static void type_param_default_arg_prototype_instantiation(
+						a_template_param_ptr	tpp)
+/*
+Do the prototype instantiation of the type template parameter tpp.
+*/
+{
+  rescan_reusable_cache(&tpp->default_arg_cache.tokens);
+  scan_type_template_param_default_arg(tpp);
+  /* Make sure we have scanned to the end of the cache. */
+  check_for_valid_end_of_default_arg();
+  /* Free the token cache if it is not needed. */
+  if (!tpp->def_arg_involves_template_param) {
+    discard_token_cache(&tpp->default_arg_cache.tokens);
+    clear_template_cache(&tpp->default_arg_cache, /*reusable=*/TRUE);
+  }  /* if */
+}  /* type_param_default_arg_prototype_instantiation */
+
+
+static void nontype_param_default_arg_prototype_instantiation(
+						a_template_param_ptr	tpp)
+/*
+Do the prototype instantiation of the nontype template parameter tpp.
+*/
+{
+  /* Scan the default argument expression. */
+  rescan_reusable_cache(&tpp->default_arg_cache.tokens);
+  scan_nontype_template_param_default_arg(tpp);
+  /* Make sure we have scanned to the end of the cache. */
+  check_for_valid_end_of_default_arg();
+  /* Free the token cache if it is not needed. */
+  if (!tpp->def_arg_involves_template_param) {
+    discard_token_cache(&tpp->default_arg_cache.tokens);
+    clear_template_cache(&tpp->default_arg_cache, /*reusable=*/TRUE);
+  }  /* if */
+}  /* nontype_param_default_arg_prototype_instantiation */
+
+
+static void template_template_param_default_arg_prototype_instantiation(
+						a_template_param_ptr	tpp)
+/*
+Do the prototype instantiation of the template template parameter tpp.
+*/
+{
+  rescan_reusable_cache(&tpp->default_arg_cache.tokens);
+  scan_template_template_param_default_arg(tpp);
+  /* Make sure we have scanned to the end of the cache. */
+  check_for_valid_end_of_default_arg();
+  /* Free the token cache if it is not needed. */
+  if (!tpp->def_arg_involves_template_param) {
+    discard_token_cache(&tpp->default_arg_cache.tokens);
+    clear_template_cache(&tpp->default_arg_cache, /*reusable=*/TRUE);
+  }  /* if */
+}  /* template_template_type_param_default_arg_prototype_instantiation */
+
+
+/* Forward declaration. */
+static void update_param_depth_and_default_args(
+			a_tmpl_decl_state_ptr		decl_state,
+			a_template_decl_info_ptr	decl_info,
+			a_boolean			update_nesting_depths,
+			a_boolean			*is_dependent);
+
+
+static void process_params_of_template_template_param(
+					a_template_param_ptr	tpp,
+					a_boolean		*is_dependent)
+/*
+Call update_param_depth_and_default_args for the template parameters
+of the template template parameter tpp.  This requires that the symbols
+of its template parameter list be reentered into the symbol table
+and removed when the processing is complete.  If any template parameter
+is found to be dependent by recursive calls of this routine, *is_dependent
+is set to TRUE.
+*/
+{
+  a_template_decl_info_ptr		tdip;
+  a_template_symbol_supplement_ptr	tssp;
+
+  tssp = tpp->variant.templ;
+  tdip = tssp->cache.decl_info;
+  /* Reenter the parameters of this template template parameter. */
+  reactivate_template_declaration_scope(tdip);
+  /* Later template parameters should not be visible to earlier ones.
+     Mark all of the symbols as invisible.  They will individually
+     be set to be visible as they are processed later. */
+  mark_template_params_as_invisible(tdip);
+  /* Do any prototype instantiations of default template arguments that
+     are needed, and mark the parameters as visible. */
+  update_param_depth_and_default_args((a_tmpl_decl_state_ptr)NULL,
+                                      tdip, /*update_nesting_depths=*/FALSE,
+                                      is_dependent);
+  /* Pop the template declaration scope. */
+  pop_scope();
+}  /* process_params_of_template_template_param */
+
+
+static void update_param_depth_and_default_args(
+			a_tmpl_decl_state_ptr		decl_state,
+			a_template_decl_info_ptr	decl_info,
+			a_boolean			update_nesting_depths,
+			a_boolean			*is_dependent)
+/*
+If update_nesting_depths is TRUE, update the nesting depths of the
+template parameters of decl_info.   If they have default arguments, do the
+prototype instantiation, if necessary.  If there is an enclosing decl_info,
+do a recursive call to process it.  If any template parameter is found to
+be dependent by recursive calls of this routine, *is_dependent is set
+to TRUE.
+
+*/
+{
+  a_template_param_ptr tpp;
+
+  /* Process any enclosing template decl entries. */
+  if (decl_info->enclosing_template_decl != NULL) {
+    update_param_depth_and_default_args(decl_state,
+                                        decl_info->enclosing_template_decl,
+                                        update_nesting_depths, is_dependent);
+  }  /* if */
+  /* Increment the nesting depth for each level of decl_info. */
+  if (update_nesting_depths) decl_state->nesting_depth++;
+  for (tpp = decl_info->parameters; tpp != NULL; tpp = tpp->next) {
+    a_symbol_kind	sym_kind = tpp->param_symbol->kind;
+    /* Update the nesting depth of the template parameter, if needed. */
+    if (update_nesting_depths) {
+      *nesting_depth_addr_of_template_param(tpp) = decl_state->nesting_depth;
+    }  /* if */
+    if (sym_kind == (a_symbol_kind)sk_class_template) {
+      /* Recursively process any parameters of template template parameters. */
+      a_boolean	local_is_dependent = FALSE;
+      process_params_of_template_template_param(tpp, &local_is_dependent);
+      /* If the template template parameter contains any dependent template
+         arguments, set the appropriate flag. */
+      if (local_is_dependent) tpp->is_dependent = TRUE;
+      if (tpp->is_dependent) {
+        tpp->variant.templ->
+                         variant.class_template.involves_template_param = TRUE;
+      }  /* if */
+    }  /* if */
+    if (tpp->is_dependent) *is_dependent = TRUE;
+    /* If a prototype instantiation should be done for the default
+       argument, do it now. */
+    if (tpp->do_prototype_instantiation) {
+      switch (sym_kind) {
+        case sk_type:
+          type_param_default_arg_prototype_instantiation(tpp);
+          break;
+        case sk_constant:
+          nontype_param_default_arg_prototype_instantiation(tpp);
+          break;
+        case sk_class_template:
+          template_template_param_default_arg_prototype_instantiation(tpp);
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+    }  /* if */
+    tpp->param_symbol->is_invisible = FALSE;
+  }  /* for */
+}  /* update_param_depth_and_default_args */
+
+
+static void complete_template_parameter_clauses(
+					a_tmpl_decl_state_ptr decl_state)
+/*
+When we initially scanned the template parameter clauses, we did not have
+any knowledge of what came later in the declaration.  This information
+is needed to properly determine the nested depth of the template declaration.
+The nesting depth is a part of the types, constants, and templates
+created to represent the template parameters.  Go back through the
+template parameters of all of the template parameter clauses and update
+their nesting depths, if necessary.
+
+The prototype instantiation of any template default arguments cannot be
+done until the nesting depths have been determined.  Do the prototype
+instantiations of any template default arguments now.
+*/
+{
+  a_boolean	update_nesting_depths = FALSE;
+  a_boolean	is_dependent = FALSE;
+
+  if (decl_state->is_member_decl && !decl_state->is_template_friend &&
+      decl_state->number_of_template_param_clauses > 1) {
+    /* A declaration with more than one template parameter clause is only
+       valid in a namespace scope definition of a member template or in
+       a friend declaration. */
+    error(ec_multiple_template_decls_not_allowed);
+    decl_state->decl_scope_err = TRUE;
+  }  /* if */
+  /* Later template parameters should not be visible to earlier ones.
+     Mark all of the symbols as invisible.  They will individually
+     be set to be visible as they are processed later. */
+  mark_template_params_as_invisible(decl_state->decl_info);
+  /* If this is a friend declaration the nesting depths of the parameter
+     may need to be updated. */
+  if (decl_state->is_template_friend &&
+      !decl_state->in_prototype_instantiation) {
+    decl_state->nesting_depth = decl_state->friend_depth;
+    update_nesting_depths = TRUE;
+  }  /* if */
+  /* Update the nesting depths of the parameters, do any prototype
+     instantiations of default template arguments that are needed,
+     and mark the parameters as visible. */
+  update_param_depth_and_default_args(decl_state, decl_state->decl_info,
+                                      update_nesting_depths, &is_dependent);
+}  /* complete_template_parameter_clauses */
+
 
 
 static void template_or_specialization_declaration(
@@ -23284,6 +23553,12 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
   a_tmpl_decl_state		decl_state;
   a_def_arg_expr_fixup_ptr	saved_curr_default_args;
   a_scope_depth			orig_depth = depth_scope_stack;
+  a_boolean			sses_disallowed_at_start_of_decl;
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+  /* The code below manipulates source_sequence_entries_disallowed.  In
+     versions without source sequence lists, provide a local declaration. */
+  a_boolean			source_sequence_entries_disallowed = FALSE;
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 
   check_assertion_str2(curr_token == tok_template ||
                        (curr_token == tok_identifier && is_generic),
@@ -23307,22 +23582,42 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
   decl_state.in_generic_definition =
                          scope_stack[depth_scope_stack].in_generic_definition;
   decl_state.final_token_ptr = final_token;
+  decl_state.enclosing_scope = scope_stack_top().il_scope;
+  sses_disallowed_at_start_of_decl = source_sequence_entries_disallowed;
   /* If there are any pk_immediate pragmas associated with the current
      token, process them now, before the current token is cached, instead
      of in get_token, as is usually done. */
   process_curr_token_pragmas();
-  /* Cache the tokens for this declaration.  If this turns out to be
-     a function the cache will be saved to generates new routine types
-     for this function.  If it is not a function the cache will be
-     discarded.  The tokens are cached and a temporary copy of the
-     cache is made.  The tokens are scanned in a nonreusable manner
-     from the temporary cache.  The last cached token is followed
-     immediately by the token that followed it in the original source
-     program (i.e., the temporary cache does not contain a terminating
-     tok_end_of_source).  The cache is also needed for several different
-     kinds of prescans that are done to determine the kind of declaration
-     being processed. */
-  cache_template_declaration(&decl_state, /*skip_params=*/FALSE);
+  /* Start caching the tokens of the declaration. */
+  begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+  /* Determine the initial nesting depth to be used for the template.
+     This may be updated later for friend declarations. */
+  nesting_depth_of_template(&decl_state);
+  if (export_present) {
+    if (scope_stack[depth_scope_stack].within_unnamed_namespace) {
+      /* A template in an unnamed namespace cannot be declared export. */
+      pos_error(ec_exported_in_unnamed_namespace, export_pos);
+      decl_state.decl_scope_err = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Scan one or more template parameter lists.  Each template parameter
+     list looks like "template < param-list >".  The param-list is
+     optional (but once a parameter list has been specified, all subsequent
+     param-lists must be present). */
+  scan_template_param_clauses(&decl_state, /*is_template_param=*/FALSE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (decl_state.is_generic) {
+    decl_state.decl_parse.is_generic_declaration = TRUE;
+    /* For C++/CLI generics, scan any constraints that may be present. */
+    scan_generic_constraint_clauses(&decl_state);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Terminate the scanning of the fetched tokens. */
+  end_caching_fetched_tokens();
+  /* Get the tokens of the template parameter clauses. */
+  extract_template_parameter_cache(&decl_state);
+  /* Cache the tokens that make up the rest of the declaration. */
+  cache_template_declaration(&decl_state);
   decl_level_of_template(&decl_state);
   /* Make sure that this template declaration is permitted in the current
      scope. */
@@ -23333,8 +23628,8 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     decl_state.decl_scope_err = TRUE;
     /* Set the effective declaration level to a valid value for the remainder
        of the processing. */
-    decl_state.effective_decl_level = depth_scope_stack;
-    decl_state.orig_decl_level = depth_scope_stack;
+    decl_state.effective_decl_level = decl_state.err_decl_level;
+    decl_state.orig_decl_level = decl_state.err_decl_level;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (decl_state.is_member_decl &&
              decl_state.class_declared_in
@@ -23358,12 +23653,14 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     decl_state.decl_scope_err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (export_present) {
-    if (scope_stack[depth_scope_stack].within_unnamed_namespace) {
-      /* A template in an unnamed namespace cannot be declared export. */
-      pos_error(ec_exported_in_unnamed_namespace, export_pos);
-      decl_state.decl_scope_err = TRUE;
-    }  /* if */
+  if (decl_state.decl_info == NULL) {
+    /* If no decl_info was created, this must be a full specialization. */
+    decl_state.is_full_specialization = TRUE;
+  } else {
+    /* Now that we have more information (created as part of the process of
+       caching and prescanning the template declaration) finish the
+       processing of the template parameter clauses. */
+    complete_template_parameter_clauses(&decl_state);
   }  /* if */
   if (decl_state.is_full_specialization) {
     /* No IL template entry required. */
@@ -23373,18 +23670,17 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
        IL entries are usually not created for templates found during prototype
        instantiation of other templates because they will be included in
        the template string of the enclosing template. */
+    a_boolean	saved_sses_disallowed;
+    /* Reset source_sequence_entries_disallowed to the value it has at the
+       start of the template declaration for the purpose of creating
+       the IL template entry. */
+    saved_sses_disallowed = source_sequence_entries_disallowed;
+    source_sequence_entries_disallowed = sses_disallowed_at_start_of_decl;
     decl_state.il_template_entry = make_il_template_entry(&decl_state);
+    source_sequence_entries_disallowed = saved_sses_disallowed;
   }  /* if */
-  /* Scan one or more template parameter lists.  Each template parameter
-     list looks like "template < param-list >".  The param-list is
-     optional (but once a parameter list has been specified, all subsequent
-     param-lists must be present). */
-  scan_template_param_clauses(&decl_state, /*is_template_param=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_state.is_generic) {
-    decl_state.decl_parse.is_generic_declaration = TRUE;
-    /* For C++/CLI generics, scan any constraints that may be present. */
-    scan_generic_constraint_clauses(&decl_state);
     /* Create the constraint types based on the C++/CLI constraints. */
     create_generic_constraint_types(decl_state.decl_info);
   }  /* if */

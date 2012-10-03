@@ -13915,6 +13915,8 @@ and return a pointer to it.
   ptr->def_arg_involves_template_param = FALSE;
   ptr->def_arg_has_not_been_scanned = FALSE;
   ptr->is_pack = FALSE;
+  ptr->do_prototype_instantiation = FALSE;
+  ptr->is_dependent = FALSE;
 #if CENTERLINE_CHECKING
   ptr->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

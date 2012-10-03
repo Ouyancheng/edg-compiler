@@ -149,21 +149,30 @@ when either is_function_template or is_template_param are FALSE.
   incr_token_set_array_element(stop_tokens, tok_ellipsis);
   incr_token_set_array_element(stop_tokens, tok_rparen);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
-  /* When scanning a template default argument add ">" to the stop tokens.
-     Also add "{" and "}" as lambdas cannot appear in template default
-     arguments. */
-  if (is_template_param) {
-    incr_token_set_array_element(stop_tokens, tok_gt);
-    incr_token_set_array_element(stop_tokens, tok_lbrace);
-    incr_token_set_array_element(stop_tokens, tok_rbrace);
-  }  /* if */
   clear_token_cache(token_cache, /*reusable=*/TRUE);
-  cache_token_stream_coalesce_identifiers(token_cache, stop_tokens);
+  /* When scanning a template default argument add ">" to the stop tokens. */
+  if (is_template_param) {
+    /* For template parameters, the background caching mechanism is used.
+       Once the end of the default argument is found, the original
+       (non-coalesced) tokens are extracted from the background cache. */
+    check_assertion(curr_lexical_state_stack_entry->cache_tokens > 0);
+    incr_token_set_array_element(stop_tokens, tok_gt);
+    cache_token_stream_coalesce_identifiers((a_token_cache_ptr)NULL,
+                                            stop_tokens);
+  } else {
+    cache_token_stream_coalesce_identifiers(token_cache, stop_tokens);
+  }  /* if */
   /* Save the token sequence number of the last token of the default
-     argument.  The cache actually contains the token after the last one
-     of the default argument, but that token should not be used as the
-     last token of the cache segment. */
-  last_tsn = curr_token_sequence_number - 1;
+     argument.  For things other than template parameters, the cache
+     actually contains the token after the last one of the default argument,
+     but that token should not be used as the last token of the cache
+     segment. */
+  last_tsn = curr_token_sequence_number;
+  if (!is_template_param) last_tsn--;
+  if (is_template_param) {
+    copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn, last_tsn,
+                           /*include_last_token=*/FALSE, token_cache);
+  }  /* if */
   ssep = &scope_stack[depth_scope_stack];
   if (!is_template_param &&
       ((ssep->in_prototype_instantiation && !is_friend_decl) ||

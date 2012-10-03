@@ -1757,6 +1757,14 @@ typedef struct a_template_param {
 			   have not yet been scanned. */
   a_bit_field	is_pack:1;
 			/* TRUE if this is a template parameter pack. */
+  a_bit_field	do_prototype_instantiation:1;
+			/* TRUE if a prototype instantiation should be done
+			   (or has been done) for this parameter. */
+  a_bit_field	is_dependent:1;
+			/* TRUE if the declaration of the template parameter
+			   or its default argument is dependent.  For
+			   a template template parameter, this is TRUE if
+			   any of its template parameters are dependent. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When param_symbol->kind = sk_type. */
