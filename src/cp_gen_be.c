@@ -1513,9 +1513,22 @@ template instance.
   a_boolean is_accessible;
 
   if (kind == iek_type) {
-    /* Strip off any non-typedef typerefs so we are looking at the type
-       that actually could have a name (class, enum, typedef, etc.). */
-    scp = &skip_typerefs_not_typedefs((a_type_ptr)scp)->source_corresp;
+    /* We need to skip over type modifiers -- pointer-to, array-of, or
+       non-typedef typerefs -- that sit on top of a type that might have
+       a name with access. */
+    a_type_ptr tp = (a_type_ptr)scp;
+    a_boolean  skipping_unnamed_types = TRUE;
+    while (skipping_unnamed_types) {
+      tp = skip_typerefs_not_typedefs(tp);
+      if (tp->kind == (a_type_kind)tk_pointer) {
+        tp = tp->variant.pointer.type;
+      } else if (tp->kind == tk_array) {
+        tp = tp->variant.array.element_type;
+      } else {
+        skipping_unnamed_types = FALSE;
+      }  /* if */
+    }  /* while */
+    scp = &tp->source_corresp;
   }  /* if */
   if (scp->access == (an_access_specifier)as_public) {
     /* Either a public class member or a non-member. */
