@@ -6590,7 +6590,8 @@ such classes.
       fputs("\":\n", f_debug);
     }  /* if */
 #endif /* DEBUG */
-    if (tssp->variant.class_template.cannot_be_specialized) {
+    if (tssp->variant.class_template.cannot_be_specialized &&
+        !instantiate_nonreal_class) {
       /* Don't create source sequence entries that would be interpreted as
          explicit specializations for implicit specializations of templates
          that cannot be specialized. */

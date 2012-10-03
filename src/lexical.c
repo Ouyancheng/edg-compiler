@@ -18771,11 +18771,14 @@ and < end_tsn are included in the string.
         sym =   ctp->variant.extracted_template.symbol;
         tssp = template_supplement_for_symbol(sym);
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        if (sym->kind == (a_symbol_kind)sk_member_function) {
+        if (sym->kind == (a_symbol_kind)sk_member_function &&
+            !entity_cannot_be_specialized(sym)) {
           /* When source sequence entries for nonclass template instantiations
              are generated, member function bodies of class templates are
              suppressed because certain compilers don't permit a member
-             function to be both defined in the class and specialized later. */
+             function to be both defined in the class and specialized later.
+             (If the member function cannot be specialized, don't suppress the
+             body since it will be needed for instantiations.) */
           add_body_string = FALSE;
         }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
