@@ -2256,16 +2256,6 @@ The front end now disallows operator->* members in C++/CLI managed class types.
 This matches the behavior of the Microsoft compiler.
 
 
-5/1/12   [EDGcpfe/12890]
-Remove --old_for_init with --c++11 restriction
-
-The change for EDGcpfe/12648 introduced a restriction to disallow
---old_for_init with the --c++11 option.  Since that time, the changes for
-EDGcpfe/12748,EDGcpfe/12805 removed the need for this restriction, so the
-previous behavior has been restored (i.e., --old_for_init can once again be
-used with --c++11).
-
-
 5/1/12   [EDGcpfe/10144]
 Warning for non-splice trailing backslash inside comment
 
@@ -4823,16 +4813,6 @@ This resulted from a defect in the Windows runtime where the value
 returned by the GetLocaleInfo function was not valid as an input to the
 _create_locale function.  We have now modified the code that constructs the
 system default locale to avoid this issue.
-
-
-2/10/12  [EDGcpfe/12648]
-The --old_for_init command line option cannot be used with C++11 mode
-
-A prior change to enable range-based for statements in C++11 conflicts with the
---old_for_init command line option.  A command line error is now generated
-when --old_for_init is used in C++11 mode.  In cases where
-use_nonstandard_for_init_scope is implicitly enabled (i.e., not by use of
---old_for_init), it is silently disabled when C++11 mode is selected.
 
 
 2/10/12  [EDGcpfe/11655]
