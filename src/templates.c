@@ -19386,7 +19386,9 @@ template symbol supplement for this template should be returned to the caller.
        (curr_token == tok_lbrace && list_init_enabled))) {
     a_token_sequence_number	split_location;
     a_token_set_array		stop_tokens;
-    a_boolean			is_braced_init = curr_token == tok_lbrace;
+    a_boolean			is_braced_init;
+    is_braced_init = !has_parenthesized_initializer &&
+                     curr_token == tok_lbrace;
     p_token_cache = &local_token_cache;
     decl_state->decl_pos_block.var_init_range.start = pos_curr_token;
     clear_token_cache(p_token_cache, /*reusable=*/TRUE);
