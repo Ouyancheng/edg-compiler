@@ -755,6 +755,7 @@ may be a friend template.
   il_header.any_templates_seen = TRUE;
   tp = alloc_template();
   tp->source_corresp.decl_position = decl_state->decl_parse.start_pos;
+  tp->template_decl = decl_state->template_decl;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tp->export_position = decl_state->export_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -20602,11 +20603,7 @@ information).  See the definition of a_tmpl_decl_state for details.
                         make_template_decl(decl_state->decl_info->parameters);
           template_decl->scope = scope_stack_top().il_scope;
           template_decl->template_pos = template_pos;
-          if (decl_state->il_template_entry != NULL) {
-            template_decl->parent =
-                                 decl_state->il_template_entry->template_decl;
-            decl_state->il_template_entry->template_decl = template_decl;
-          }  /* if */
+          template_decl->parent = decl_state->template_decl;
           decl_state->template_decl = template_decl;
         }  /* if */
       } else if (is_template_param || decl_state->is_generic) {
