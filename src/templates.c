@@ -4689,12 +4689,13 @@ user later during real instantiations.
     a_boolean  has_parenthesized_initializer;
 
     rescan_reusable_cache(&tssp->cache.tokens);
-    /* If the first token is an equals sign then this is not a parenthesized
-       initializer.   Initializers that begin with an invalid token will
-       have already been discarded. */
-    has_parenthesized_initializer = (curr_token != tok_assign);
+    /* If the first token is an equals sign or a left brace then this is
+       not a parenthesized initializer.   Initializers that begin with an
+       invalid token will have already been discarded. */
+    has_parenthesized_initializer = (curr_token != tok_assign &&
+                                     curr_token != tok_lbrace);
     /* Bypass the "=" or "(". */
-    (void)get_token();
+    if (curr_token != tok_lbrace) (void)get_token();
     initializer(dps, &template_sym->decl_position, idl_external,
                 has_parenthesized_initializer, &incomplete_type_error_reported,
                 (a_decl_pos_block_ptr)NULL);
@@ -5412,12 +5413,13 @@ and the class instantiation will detect the runaway case.
     a_boolean           has_parenthesized_initializer;
 
     rescan_reusable_cache(&tssp->cache.tokens);
-    /* If the first token is an equals sign then this is not a parenthesized
-       initializer.   Initializers that begin with an invalid token will
-       have already been discarded. */
-    has_parenthesized_initializer = (curr_token != tok_assign);
+    /* If the first token is an equals sign or a left brace then this is
+       not a parenthesized initializer.   Initializers that begin with an
+       invalid token will have already been discarded. */
+    has_parenthesized_initializer = (curr_token != tok_assign &&
+                                     curr_token != tok_lbrace);
     /* Bypass the "=" or "(". */
-    (void)get_token();
+    if (curr_token != tok_lbrace) (void)get_token();
     init_decl_parse_state(&dps);
     dps.sym = static_data_member_sym;
     initializer(&dps, &tip->template_sym->decl_position, idl_external,
@@ -19380,43 +19382,47 @@ template symbol supplement for this template should be returned to the caller.
      Anything else will not get cached and an error will be generated
      on this declaration. */
   if (curr_token != tok_end_of_source &&
-      (curr_token == tok_assign || has_parenthesized_initializer)) {
+      (curr_token == tok_assign || has_parenthesized_initializer ||
+       (curr_token == tok_lbrace && list_init_enabled))) {
     a_token_sequence_number	split_location;
     a_token_set_array		stop_tokens;
     p_token_cache = &local_token_cache;
-
     decl_state->decl_pos_block.var_init_range.start = pos_curr_token;
     clear_token_cache(p_token_cache, /*reusable=*/TRUE);
-    /* The declaration token cache contains the declaration and the
-       initializer.  Split the cache so that the initialization is
-       removed from the declaration cache and placed in the initializer
-       cache. */
-    split_location = curr_token_sequence_number;
-    split_token_cache(&decl_state->decl_token_cache,
-                      p_token_cache, split_location,
-                      /*include_prev_token=*/has_parenthesized_initializer,
-                      /*okay_if_not_found=*/FALSE,
-                      /*update_cache_being_scanned=*/FALSE);
     /* Skip over the tokens that are already part of the token cache. */
     clear_token_set_array(stop_tokens);
     incr_token_set_array_element(stop_tokens, tok_semicolon);
-    if (!has_parenthesized_initializer) {
-      incr_token_set_array_element(stop_tokens, tok_lbrace);
-    }  /* if */
-    /* The normal flush_tokens_with_stop_tokens sometimes issues a warning
-       based on the number of tokens skipped.  This should not be done
-       in this case because the flush is not being done for error
-       recovery. */
-    flush_tokens_with_stop_tokens_and_warning_flag(
+    if (curr_token != tok_lbrace) {
+      /* Unless the initializer is an initializer list, the declaration
+         token cache contains the declaration and the initializer.  Split
+         the cache so that the initialization is removed from the declaration
+         cache and placed in the initializer cache. */
+      split_location = curr_token_sequence_number;
+      split_token_cache(&decl_state->decl_token_cache,
+                        p_token_cache, split_location,
+                        /*include_prev_token=*/has_parenthesized_initializer,
+                        /*okay_if_not_found=*/FALSE,
+                        /*update_cache_being_scanned=*/FALSE);
+      if (!has_parenthesized_initializer) {
+        incr_token_set_array_element(stop_tokens, tok_lbrace);
+      }  /* if */
+      /* The normal flush_tokens_with_stop_tokens sometimes issues a warning
+         based on the number of tokens skipped.  This should not be done
+         in this case because the flush is not being done for error
+         recovery. */
+      flush_tokens_with_stop_tokens_and_warning_flag(
                                        stop_tokens, /*suppress_warning=*/TRUE);
-    if (!has_parenthesized_initializer) {
-      decr_token_set_array_element(stop_tokens, tok_lbrace);
+      if (!has_parenthesized_initializer) {
+        decr_token_set_array_element(stop_tokens, tok_lbrace);
+      }  /* if */
     }  /* if */
     if (curr_token != tok_semicolon) {
       /* The initializer was not fully cached when the template declaration
          was scanned.  This is usually because of a brace enclosed
-         initializer.  Cache the rest of the initializer now. */
-      remove_cache_terminator(p_token_cache);
+         initializer (either the old form of "= {...}" or a C++11 initializer
+         list).  For a C++11 initializer list, cache the initializer now.
+         For other cases, cache the remaining portion of the initializer. */
+      if (curr_token != tok_lbrace) remove_cache_terminator(p_token_cache);
       /* Only semicolon should be left on the list. */
       cache_token_stream(p_token_cache, stop_tokens);
       terminate_token_cache(p_token_cache);
