@@ -1522,7 +1522,7 @@ template instance.
       tp = skip_typerefs_not_typedefs(tp);
       if (tp->kind == (a_type_kind)tk_pointer) {
         tp = tp->variant.pointer.type;
-      } else if (tp->kind == tk_array) {
+      } else if (tp->kind == (a_type_kind)tk_array) {
         tp = tp->variant.array.element_type;
       } else {
         skipping_unnamed_types = FALSE;
