@@ -3035,6 +3035,7 @@ fields, and return a pointer to it.  Reuse a freed entry if possible.
   tdip->declaration_scope = NO_SCOPE_NUMBER;
   tdip->enclosing_scope = NULL;
   tdip->enclosing_template_decl = NULL;
+  tdip->template_decl = NULL;
   tdip->name_linkage = (a_name_linkage_kind)nlk_none;
   tdip->decl_seq = NO_DECL_SEQUENCE_NUMBER;
   tdip->nondependent_calls = NULL;

@@ -20464,13 +20464,15 @@ instantiation, then you don't know what X is.
 }  /* prescan_nonclass_template_declaration */
 
 
-static a_template_decl_ptr make_template_decl(a_template_param_ptr tp_list)
+static void make_template_decl(a_template_decl_ptr	tdp,
+			       a_template_param_ptr	tp_list)
 /*
 Create an IL structure describing the parameterization of a template using the
-information gathered in the front end structures.
+information gathered in the front end structures.  tdp points to a previously
+allocated template declaration entry.  tp_list is the template parameter
+list to be copied to tdp.
 */
 {
-  a_template_decl_ptr       result = alloc_template_decl();
   a_template_parameter_ptr  il_tpp = NULL;
   a_template_param_ptr      sym_tpp;
 
@@ -20508,13 +20510,12 @@ information gathered in the front end structures.
         unexpected_condition_str("make_template_decl: unexpected symbol kind");
     }  /* switch */
     if (il_tpp == NULL) {
-      result->param_list = new_tpp;
+      tdp->param_list = new_tpp;
     } else {
       il_tpp->next = new_tpp;
     }  /* if */
     il_tpp = new_tpp;
   }  /* for */
-  return result;
 }  /* make_template_decl */
 
 
@@ -20605,12 +20606,12 @@ information).  See the definition of a_tmpl_decl_state for details.
            subsequent missing parameter list is an error. */
         param_list_seen = TRUE;
         if (prototype_instantiations_in_il) {
-          template_decl =
-                        make_template_decl(decl_state->decl_info->parameters);
+          template_decl = alloc_template_decl();
           template_decl->scope = scope_stack_top().il_scope;
           template_decl->template_pos = template_pos;
           template_decl->parent = decl_state->template_decl;
           decl_state->template_decl = template_decl;
+          template_decl_info->template_decl = template_decl;
         }  /* if */
       } else if (is_template_param || decl_state->is_generic) {
         /* A template or generic parameter declaration with a missing template
@@ -20630,13 +20631,9 @@ information).  See the definition of a_tmpl_decl_state for details.
         /* Bypass the ">". */
         (void)get_token();
         if (prototype_instantiations_in_il) {
-          template_decl = make_template_decl((a_template_param_ptr)NULL);
+          template_decl = alloc_template_decl();
           template_decl->template_pos = template_pos;
-          if (decl_state->il_template_entry != NULL) {
-            template_decl->parent =
-                                 decl_state->il_template_entry->template_decl;
-            decl_state->il_template_entry->template_decl = template_decl;
-          }  /* if */
+          template_decl->parent = decl_state->template_decl;
           decl_state->template_decl = template_decl;
         }  /* if */
       }  /* if */
@@ -23483,6 +23480,10 @@ to TRUE.
     }  /* if */
     tpp->param_symbol->is_invisible = FALSE;
   }  /* for */
+  if (prototype_instantiations_in_il) {
+    /* Fill in the information in the IL template declaration structures. */
+    make_template_decl(decl_info->template_decl, decl_info->parameters);
+  }  /* if */
 }  /* update_param_depth_and_default_args */
 
 
