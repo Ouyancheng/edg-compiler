@@ -234,7 +234,8 @@ static void prescan_init_list(void)
 Cache the tokens that comprise a brace enclosed initializer list.
 */
 {
-  cache_tokens_until(tok_rbrace, /*coalesce=*/FALSE);
+  (void)cache_token_stream_until_matching_token((a_token_cache_ptr)NULL,
+                                                CTS_NO_OPTIONS);
 }  /* prescan_init_list */
 
 
