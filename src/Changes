@@ -1,5 +1,9 @@
 Version 4.5
 
+10/5/12
+IL version number changed to 4.5
+
+
 10/4/12  [EDGcpfe/13227]
 GNU C++: casting from a pointer-to-member to void * or pointer-to-function
 
