@@ -1,5 +1,26 @@
 Version 4.5
 
+10/4/12  [EDGcpfe/13227]
+GNU C++: casting from a pointer-to-member to void * or pointer-to-function
+
+g++ 4.4 and after allow casting a pointer-to-member value to "void *"
+or a pointer-to-function type.  The front end now emulates that
+in GNU C++ modes when gnu_version >= 40400.  This is a variant of
+EDGcpfe/11893 (see below), implemented by adding an implied zero-address
+object.  As a consequence, it will abort at runtime if the function
+is virtual (as will the g++ implementation).  A warning is issued.
+
+  struct A {
+    void fun() { }
+  };
+  void *ptr;
+  void (A::*pmf)() = &A::fun;
+  int main() {
+    ptr = (void*)&A::fun;
+    ptr = (void*)pmf;
+  }
+
+
 10/3/12  [EDGcpfe/13232]
 C++-generating back end: accessible typedefs to types using inaccessible types
 

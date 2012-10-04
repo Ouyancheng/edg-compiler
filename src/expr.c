@@ -18095,7 +18095,11 @@ merely transformed to something to which the cast may apply.
     make_expression_operand(func_ptr_node, operand);
     restore_operand_details(operand, &orig_operand);
     operand->bound_function = FALSE;
-    expr_pos_warning(ec_conv_of_pm_to_func_ptr, start_position);
+    if (bound_function_selector->is_dummy_lvalue) {
+      expr_pos_warning(ec_conv_of_unbound_pm_to_func_ptr, start_position);
+    } else {
+      expr_pos_warning(ec_conv_of_pm_to_func_ptr, start_position);
+    }  /* if */
   } else {
     /* Any other use of a bound function.  Error. */
     error_in_operand(ec_bound_function_must_be_called, operand);
@@ -18247,8 +18251,27 @@ indicates which.
   a_boolean     allow_rvalue_on_rewrite = FALSE;
   a_ruled_out_expr_kind_set
                 ruled_out_expr_kinds = ROEK_NONE;
+  an_operand    local_bound_function_selector;
 
-  /* The bound function test is done first to make sure bound functions
+  if (gpp_mode && gnu_version >= 40400 &&
+      (is_void_star_type(type_cast_to) ||
+       (is_pointer_type(type_cast_to) &&
+        is_function_type(type_pointed_to(type_cast_to)))) &&
+      is_ptr_to_member_type(operand->type) &&
+      !operand->bound_function) {
+    /* g++ 4.4 and after allow a cast of a pointer-to-member to a void * or
+       a pointer-to-function.  Convert to a bound function with an implied
+       null pointer for the object, then fall into the bound function
+       processing below. */
+    make_dummy_lvalue_operand(pm_class_type(operand->type),
+                              &local_bound_function_selector);
+    bound_function_selector = &local_bound_function_selector;
+    bind_member_function_operand_to_selector(
+                                          bound_function_selector,
+                                          /*selector_is_object_pointer=*/FALSE,
+                                          operand);
+  }  /* if */
+  /* The bound function test is done early to make sure bound functions
      cannot wander into the rest of the cases. */
   if (operand->bound_function) {
     bound_function_in_cast(type_cast_to, start_position, operand,
