@@ -10923,58 +10923,65 @@ accordingly.
     esp->arg_cached = FALSE;
     esp->variant.token_cache = NULL;
     es_cache = &tssp->variant.function.exception_spec_arg_cache;
-    /* Push a new context to instantiate the exception specification. */
-    if (rp->is_prototype_instantiation) {
-      ps_options |= PS_PROTOTYPE_INSTANTIATION;
-    }  /* if */
-    (void)push_template_instantiation_scope(es_cache->decl_info,
-                                            (a_type_ptr)NULL, rp, sym,
-                                            template_sym,
-                                            rp->template_arg_list,
-                                            /*push_lex_state=*/TRUE,
-				            ps_options);
-    /* Recreate a function prototype scope equivalent to the original. */
-    (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
-                     rp->type, (a_routine_ptr)NULL);
-    /* exception_spec_decl_seq is used in g++ mode to limit visibility
-       of names used in exception specification to those previously
-       declared in a class. */
-    scope_stack_top().exception_spec_decl_seq = sym->decl_seq - 1;
-    init_decl_parse_state(&dps);
-    dps.sym = sym;
-    dps.type = rp->type;
-    if (sym->is_class_member) {
-      dps.is_inclass_member_function_decl = TRUE;
-    }  /* if */
-    scope_stack_top().outside_parameter_list = TRUE;
-    scope_stack_top().decl_parse_state = &dps;
-    if (tip->prototype_scope_symbols != NULL) {
-      reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
-    }  /* if */
-    /* Rescan the exception specification argument from the cache. */
-    rescan_reusable_cache(&es_cache->tokens);
-    begin_deferral_of_access_checks();
-    if (esp->is_noexcept) {
-      scan_noexcept_arg(esp, /*cache_in_template=*/FALSE);
+    if (es_cache->decl_info == NULL) {
+      /* Something went wrong during the caching of the template (possible
+         with severe syntax errors).  Don't attempt to instantiate the
+         argument. */
+      expect_error();
     } else {
-      /* Delayed instantiation of dynamic exception specifications is not
-         yet implemented.  (So we should never get here.) */
-      unexpected_condition();
+      /* Push a new context to instantiate the exception specification. */
+      if (rp->is_prototype_instantiation) {
+        ps_options |= PS_PROTOTYPE_INSTANTIATION;
+      }  /* if */
+      (void)push_template_instantiation_scope(es_cache->decl_info,
+                                              (a_type_ptr)NULL, rp, sym,
+                                              template_sym,
+                                              rp->template_arg_list,
+                                              /*push_lex_state=*/TRUE,
+				            ps_options);
+      /* Recreate a function prototype scope equivalent to the original. */
+      (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
+                       rp->type, (a_routine_ptr)NULL);
+      /* exception_spec_decl_seq is used in g++ mode to limit visibility
+         of names used in exception specification to those previously
+         declared in a class. */
+      scope_stack_top().exception_spec_decl_seq = sym->decl_seq - 1;
+      init_decl_parse_state(&dps);
+      dps.sym = sym;
+      dps.type = rp->type;
+      if (sym->is_class_member) {
+        dps.is_inclass_member_function_decl = TRUE;
+      }  /* if */
+      scope_stack_top().outside_parameter_list = TRUE;
+      scope_stack_top().decl_parse_state = &dps;
+      if (tip->prototype_scope_symbols != NULL) {
+        reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
+      }  /* if */
+      /* Rescan the exception specification argument from the cache. */
+      rescan_reusable_cache(&es_cache->tokens);
+      begin_deferral_of_access_checks();
+      if (esp->is_noexcept) {
+        scan_noexcept_arg(esp, /*cache_in_template=*/FALSE);
+      } else {
+        /* Delayed instantiation of dynamic exception specifications is not
+           yet implemented.  (So we should never get here.) */
+        unexpected_condition();
+      }  /* if */
+      perform_deferred_access_checks_for_function(rp);
+      end_deferral_of_access_checks();
+      if (curr_token != tok_end_of_source) {
+        /* Tokens remain in the cache: Issue an error. */
+        pos_error(ec_exp_rparen, &pos_curr_token);
+        /* Flush to the end of the cache. */
+        while (curr_token != tok_end_of_source) (void)get_token();
+      }  /* if */
+      /* Skip past the tok_end_of_source. */
+      (void)get_token();
+      /* Pop the reactivated function prototype scope off the stack. */
+      pop_scope();
+      /* Pop the template instantiation scope. */
+      pop_template_instantiation_scope();
     }  /* if */
-    perform_deferred_access_checks_for_function(rp);
-    end_deferral_of_access_checks();
-    if (curr_token != tok_end_of_source) {
-      /* Tokens remain in the cache: Issue an error. */
-      pos_error(ec_exp_rparen, &pos_curr_token);
-      /* Flush to the end of the cache. */
-      while (curr_token != tok_end_of_source) (void)get_token();
-    }  /* if */
-    /* Skip past the tok_end_of_source. */
-    (void)get_token();
-    /* Pop the reactivated function prototype scope off the stack. */
-    pop_scope();
-    /* Pop the template instantiation scope. */
-    pop_template_instantiation_scope();
   }  /* if */
 }  /* instantiate_exception_spec_if_needed */
 
