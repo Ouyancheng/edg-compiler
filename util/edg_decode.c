@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1994-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 1994-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -214,6 +214,6 @@ edg_decode utility program -- demangles names for C++.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1994-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 1994-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
