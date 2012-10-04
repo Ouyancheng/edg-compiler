@@ -21904,8 +21904,9 @@ that follows.
            declaration is disallowed. */
         pos_error(ec_inherited_member_not_allowed, &locator.source_position);
         reduce_projection_symbol_to_fundamental_symbol(sym);
-      } else if (sym->kind == (a_symbol_kind)sk_namespace_projection ||
-                 sym->synthesized_namespace_projection) {
+      } else if ((sym->kind == (a_symbol_kind)sk_namespace_projection ||
+                  sym->synthesized_namespace_projection) &&
+                  !locator.is_file_scope_qualified_name) {
         /* Specifying a name made visible by a using-declaration or
            using-directive is not allowed unless it is an inline namespace
            member. */
