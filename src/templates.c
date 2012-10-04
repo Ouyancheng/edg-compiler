@@ -10964,8 +10964,8 @@ accordingly.
     perform_deferred_access_checks_for_function(rp);
     end_deferral_of_access_checks();
     if (curr_token != tok_end_of_source) {
-      /* Tokens remain in the cache.  This should have triggered an error. */
-      expect_error();
+      /* Tokens remain in the cache: Issue an error. */
+      pos_error(ec_exp_rparen, &pos_curr_token);
       /* Flush to the end of the cache. */
       while (curr_token != tok_end_of_source) (void)get_token();
     }  /* if */
