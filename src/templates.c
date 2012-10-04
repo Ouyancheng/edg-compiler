@@ -755,7 +755,6 @@ may be a friend template.
   il_header.any_templates_seen = TRUE;
   tp = alloc_template();
   tp->source_corresp.decl_position = decl_state->decl_parse.start_pos;
-  tp->template_decl = decl_state->template_decl;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tp->export_position = decl_state->export_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -23559,12 +23558,6 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
   a_tmpl_decl_state		decl_state;
   a_def_arg_expr_fixup_ptr	saved_curr_default_args;
   a_scope_depth			orig_depth = depth_scope_stack;
-  a_boolean			sses_disallowed_at_start_of_decl;
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
-  /* The code below manipulates source_sequence_entries_disallowed.  In
-     versions without source sequence lists, provide a local declaration. */
-  a_boolean			source_sequence_entries_disallowed = FALSE;
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 
   check_assertion_str2(curr_token == tok_template ||
                        (curr_token == tok_identifier && is_generic),
@@ -23589,7 +23582,6 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
                          scope_stack[depth_scope_stack].in_generic_definition;
   decl_state.final_token_ptr = final_token;
   decl_state.enclosing_scope = scope_stack_top().il_scope;
-  sses_disallowed_at_start_of_decl = source_sequence_entries_disallowed;
   /* If there are any pk_immediate pragmas associated with the current
      token, process them now, before the current token is cached, instead
      of in get_token, as is usually done. */
@@ -23606,6 +23598,12 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
       decl_state.decl_scope_err = TRUE;
     }  /* if */
   }  /* if */
+  /* Create an IL template entry for this declaration.  This is only done
+     for template declarations and specializations that are still templates.
+     IL entries are usually not created for templates found during prototype
+     instantiation of other templates because they will be included in
+     the template string of the enclosing template. */
+  decl_state.il_template_entry = make_il_template_entry(&decl_state);
   /* Scan one or more template parameter lists.  Each template parameter
      list looks like "template < param-list >".  The param-list is
      optional (but once a parameter list has been specified, all subsequent
@@ -23667,27 +23665,26 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     /* If no decl_info was created, this must be a full specialization. */
     decl_state.is_full_specialization = TRUE;
   } else {
+    decl_state.il_template_entry->template_decl = decl_state.template_decl;
     /* Now that we have more information (created as part of the process of
        caching and prescanning the template declaration) finish the
        processing of the template parameter clauses. */
     complete_template_parameter_clauses(&decl_state);
   }  /* if */
   if (decl_state.is_full_specialization) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* An IL template entry was created above.  It is not used for full
+       specializations.  If it was given a source sequence entry, remove
+       it. */
+    if (!source_sequence_entries_disallowed) {
+      a_template_ptr	tp = decl_state.il_template_entry;
+      f_remove_from_src_seq_list(tp->source_corresp.source_sequence_entry,
+                                 orig_depth);
+      tp->source_corresp.source_sequence_entry = NULL;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* No IL template entry required. */
-  } else {
-    /* Create an IL template entry for this declaration.  This is only done
-       for template declarations and specializations that are still templates.
-       IL entries are usually not created for templates found during prototype
-       instantiation of other templates because they will be included in
-       the template string of the enclosing template. */
-    a_boolean	saved_sses_disallowed;
-    /* Reset source_sequence_entries_disallowed to the value it has at the
-       start of the template declaration for the purpose of creating
-       the IL template entry. */
-    saved_sses_disallowed = source_sequence_entries_disallowed;
-    source_sequence_entries_disallowed = sses_disallowed_at_start_of_decl;
-    decl_state.il_template_entry = make_il_template_entry(&decl_state);
-    source_sequence_entries_disallowed = saved_sses_disallowed;
+    decl_state.il_template_entry = NULL;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_state.is_generic) {
