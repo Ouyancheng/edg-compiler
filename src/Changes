@@ -21,25 +21,6 @@ is virtual (as will the g++ implementation).  A warning is issued.
   }
 
 
-10/3/12  [EDGcpfe/13232]
-C++-generating back end: accessible typedefs to types using inaccessible types
-
-The C++-generating back end correctly preserves an accessible typedef in
-the generated code when it is a synonym for an inaccessible named type.
-However, when the underlying type is a pointer, reference, array, or
-cv-qualified type based on an inaccessible type, in some circumstances the
-C++-generating back end put out the underlying type instead of the typedef
-name, resulting in incorrect code.  This is now fixed.  For example:
-
-  template<typename> struct A { };
-  template<typename> class B {
-    struct C;  // private
-  public:
-    typedef C* Cptr;
-  };
-  A<B<int>::Cptr> x;  // Previously generated as "A<B<int>::C *>"
-
-
 9/28/12  [EDGcpfe/13221]
 C++/CLI: spurious error on assignment from value class initonly field
 
