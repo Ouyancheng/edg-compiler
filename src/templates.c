@@ -23200,7 +23200,7 @@ differs between function and nonfunction declarations.
   decl_state->is_member_decl =
                            ssep->kind == (a_scope_kind)sck_class_struct_union;
   /* Save the depth we found for potential use in error recovery before
-     it is might be changed below. */
+     it might be changed below. */
   decl_state->err_decl_level = depth;
   if (decl_state->is_member_decl) {
     /* If this template declaration is within a class definition,
@@ -23311,7 +23311,7 @@ is an enclosing decl_info, do a recursive call to process it.
 
 static void check_for_valid_end_of_default_arg(void)
 /*
-We just finished scanning template default argument from a cache.
+We just finished scanning a template default argument from a cache.
 Make sure we have scanned to the end of the cache.  If not, issue
 a diagnostic.
 */
