@@ -20933,6 +20933,7 @@ controls).
   a_boolean            elision_done;
   a_source_position    *start_position = init_component_pos(icp);
   a_dynamic_init_ptr   dependent_constant_dip = NULL;
+  an_expr_node_ptr     preserved_temp_init = NULL;
 
   /* The basic modes are:
                       issue_errors   generate_il
@@ -21101,6 +21102,18 @@ controls).
         if (dip == NULL) {
           /* There was an error. */
           conv_to_error_operand(&operand);
+        } else {
+          if (elision_done) {
+            /* If we already had a temp init node, remember it so we can
+               reuse it later (it may have cast-related information for
+               a rescan). */
+            if (operand_is_temp_init_full(&operand, &preserved_temp_init) &&
+                preserved_temp_init->variant.init.dynamic_init == dip) {
+              /* Okay. */
+            } else {
+              preserved_temp_init = NULL;
+            }  /* if */
+          }  /* if */
         }  /* if */
         fill_in_dtor = FALSE;
         if (elision_done) init_handled_at_this_level = FALSE;
@@ -21674,10 +21687,17 @@ controls).
       if (dest_type_is_class && fill_in_dtor) {
         add_dtor_to_dynamic_init(dip, dest_type, dest_type, start_position);
       }  /* if */
-      expr = alloc_temp_init_node(dest_type, dip, make_lvalue_temp,
-                                  /*is_explicit_cast=*/is_cast ||
-                                                       dip->is_explicit_cast);
-      expr->rescan_info = dip->rescan_info;
+      if (preserved_temp_init != NULL) {
+        /* We saved a pointer to a temp init we already had above the dynamic
+           init. */
+        expr = preserved_temp_init;
+        check_assertion(expr->kind == (an_expr_node_kind)enk_temp_init &&
+                        expr->variant.init.dynamic_init == dip);
+      } else {
+        expr = alloc_temp_init_node(dest_type, dip, make_lvalue_temp,
+                                    /*is_explicit_cast=*/is_cast ||
+                                                        dip->is_explicit_cast);
+      }  /* if */
       make_lvalue_or_rvalue_expression_operand(expr, result);
     } else if (constant != NULL) {
       check_assertion(!force_temp);
