@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2003-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 2003-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -127,7 +127,7 @@ extern a_hash_value fxp_hash(a_fixed_point_value *value);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2003-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 2003-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 

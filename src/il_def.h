@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -17675,6 +17675,6 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -389,6 +389,6 @@ extern void make_param_syms_invisible(a_boolean  is_invisible);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

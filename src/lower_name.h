@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -147,6 +147,6 @@ extern a_boolean exception_specification_contains_an_individuated_entity(
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

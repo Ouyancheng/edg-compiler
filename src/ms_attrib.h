@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2003-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 2003-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -166,6 +166,6 @@ extern unsigned long db_show_ms_attrib_space_used(unsigned long grand_total);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2003-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 2003-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

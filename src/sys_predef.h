@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -30,6 +30,6 @@ extern void enter_system_specific_predefined_macros_and_assertions(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
