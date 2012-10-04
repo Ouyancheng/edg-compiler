@@ -154,12 +154,15 @@ when either is_function_template or is_template_param are FALSE.
   if (is_template_param) {
     /* For template parameters, the background caching mechanism is used.
        Once the end of the default argument is found, the original
-       (non-coalesced) tokens are extracted from the background cache. */
+       (non-coalesced) tokens are extracted from the background cache.
+       The caller should have enabled the caching, but it is also done here
+       to handle certain error cases. */
     a_source_position	start_pos = pos_curr_token;
-    check_assertion(curr_lexical_state_stack_entry->cache_tokens > 0);
+    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     incr_token_set_array_element(stop_tokens, tok_gt);
     cache_token_stream_full((a_token_cache_ptr)NULL, stop_tokens,
                             CTS_COALESCE_IDS | CTS_STOP_ON_STATEMENT_END);
+    end_caching_fetched_tokens();
     if (curr_token == tok_semicolon || curr_token == tok_rbrace) {
       /* We ended up at an unexpected place because of mismatched
          delimiters in the default argument. */
