@@ -7363,11 +7363,28 @@ is an rvalue, convert it to an lvalue.  This is necessary because the IL
 operators for reference casts take an lvalue as their operand.
 */
 {
+  an_expr_node_ptr temp_init_node;
+
   if (is_an_rvalue(operand)) {
     if (is_class_struct_union_type(operand->type)) {
       conv_class_rvalue_operand_to_lvalue(operand);
     } else if (is_rvalue_reference_object_operand(operand)) {
       conv_rvalue_reference_object_to_lvalue(operand);
+    } else if (is_array_type(operand->type) &&
+               operand_is_temp_init_full(operand, &temp_init_node)) {
+      /* Convert an array rvalue temp to an lvalue temp. */
+      a_boolean  success;
+      an_operand orig_operand;
+      orig_operand = *operand;
+      temp_init_node = conv_rvalue_expr_to_lvalue(temp_init_node,
+                                                  &success,
+                                                  /*see_if_possible=*/FALSE,
+                                                  /*gcc_lvalue=*/FALSE,
+                                                  /*ignore_casts=*/FALSE,
+                                                  (a_type_ptr *)NULL);
+      check_assertion(success);
+      make_lvalue_expression_operand(temp_init_node, operand);
+      restore_operand_details(operand, &orig_operand);
     } else {
       temp_init_from_operand(operand, /*result_is_lvalue=*/TRUE);
     }  /* if */
