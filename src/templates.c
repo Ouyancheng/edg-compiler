@@ -20645,8 +20645,6 @@ information).  See the definition of a_tmpl_decl_state for details.
     }  /* if */
   }  /* while */
   decl_state->decl_info = template_decl_info;
-  decl_state->last_token_sequence_number_of_params =
-                                                    curr_token_sequence_number;
   if (is_template_param &&
       decl_state->number_of_template_param_clauses > 1) {
     /* A template template parameter cannot have multiple template parameter
@@ -23619,6 +23617,10 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     scan_generic_constraint_clauses(&decl_state);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Record the location of the end of the template parameter list (and
+     generic constraints in C++/CLI mode). */
+  decl_state.last_token_sequence_number_of_params =
+                                                    curr_token_sequence_number;
   /* Terminate the scanning of the fetched tokens. */
   end_caching_fetched_tokens();
   /* Get the tokens of the template parameter clauses. */
