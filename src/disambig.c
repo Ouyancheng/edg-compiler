@@ -236,6 +236,7 @@ Cache the tokens that comprise a brace enclosed initializer list.
 {
   (void)cache_token_stream_until_matching_token((a_token_cache_ptr)NULL,
                                                 CTS_NO_OPTIONS);
+  if (curr_token == tok_rbrace) (void)get_token();
 }  /* prescan_init_list */
 
 
