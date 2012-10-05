@@ -1240,7 +1240,7 @@ function_lparen:
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Look for an initializer of the "=" or "{...}" form. */
-  if (!paren_initializer_seen &&
+  if (is_top_level && !paren_initializer_seen &&
       (curr_token == tok_assign ||
        (curr_token == tok_lbrace && list_init_enabled))) {
     /* An initializer that begins with an equals sign or a C++11 brace-enclosed
