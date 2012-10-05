@@ -1,4 +1,4 @@
-Version 4.5
+Version 4.5, October 5, 2012
 
 9/5/12   [EDGcpfe/10617,EDGcpfe/11496,EDGcpfe/12018]
 C++11: Add support for noexcept specifications
