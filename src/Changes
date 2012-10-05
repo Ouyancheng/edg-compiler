@@ -1,5 +1,18 @@
 Version 4.6
 
+10/5/12  [EDGcpfe/11420]
+Internal error on ill-formed template static data member definition
+
+An internal error could occur (in split_token_cache) while processing an
+invalid template static data member definition.  This would most commonly
+occur when the initializer contained a mismatched right brace.  Now fixed.
+
+  template <class T> struct A {
+    static int x;
+  };
+  template < class T > int A < T > :: x ( } ; 
+
+
 10/5/12  [EDGcpfe/13232]
 C++-generating back end: accessible typedefs to types using inaccessible types
 
