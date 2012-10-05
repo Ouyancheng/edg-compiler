@@ -1311,13 +1311,25 @@ in a context in which it is not accessible.
       !entity_name_is_accessible(&targ_type->source_corresp, iek_type,
                                  /*ignore_context=*/TRUE) &&
       !target_type_has_circularity(type)) {
-    /* This typedef can be substituted for the target type when that type
-       is inaccessible.  Add it to the list of such typedefs. */
-    an_accessible_typedef_ptr atp =
+    /* This typedef is public, but we need to check that it can be named
+       without an access error, which includes checking the access of any
+       template arguments for its containing class type(s). */
+    a_type_ptr parent_class;
+    for (parent_class = parent_class_or_null(type);
+         parent_class != NULL &&
+                       entity_name_is_accessible(&parent_class->source_corresp,
+                                                 iek_type,
+                                                 /*ignore_context=*/TRUE);
+         parent_class = parent_class_or_null(parent_class)) {}
+    if (parent_class == NULL) {
+      /* This typedef can be substituted for the target type when that type
+         is inaccessible.  Add it to the list of such typedefs. */
+      an_accessible_typedef_ptr atp =
        (an_accessible_typedef_ptr)alloc_general(sizeof(an_accessible_typedef));
-    atp->next = accessible_typedefs;
-    accessible_typedefs = atp;
-    atp->type = type;
+      atp->next = accessible_typedefs;
+      accessible_typedefs = atp;
+      atp->type = type;
+    }  /* if */
   }  /* if */
 }  /* register_accessible_typedef */
 

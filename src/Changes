@@ -1,5 +1,45 @@
 Version 4.6
 
+10/5/12  [EDGcpfe/13243]
+C++-generating back end: infinite recursion with private template arguments
+
+In configurations with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+and/or NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE,
+the change for EDGcpfe/11015 below could result in the C++-generating back
+end aborting due to infinite recursion between gen_name and
+gen_class_qualifier.  This problem occurred when an instance of a class
+template uses an inaccessible template argument and there is a public member
+typedef for that type nested inside an instance of a class template that also
+uses an inaccessible template argument.  This is now fixed.  For example,
+the front end aborted when attempting to put out the return type, H<C::N>::IT,
+of the explicit specialization generated for H<C::N>::f() in the following
+code:
+
+  template <class T> class H;
+  template <class T> struct I {
+    typedef H<T> HT;
+  };
+  template <class T> struct H {
+    typedef I<T> IT;
+    IT f()   { return IT(); }
+  };
+  template <class T> struct M {
+    typedef H<T> HT;
+    typedef HT::IT IT;
+    HT m;
+    IT f() { return m.f(); }
+  };
+  class C {
+    ~C();
+    struct N { };   // private
+    typedef M<N> MN;
+    MN mn;
+  };
+  C::~C() {
+    mn.f();
+  };
+
+
 ------------------------------------------------------------------------------
 Version 4.5, October 5, 2012
 
