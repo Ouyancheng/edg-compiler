@@ -4179,22 +4179,21 @@ call, and rcblock->argument_list to the previously-scanned argument list.
            optimization level.  DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P
            determines whether we always fold the call in the front end by
            default (setting it to FALSE matches the GNU compiler more closely,
-           but requires support in the back end). */
+           but requires support in the back end).  There was a brief period
+           around gcc 3.4.0 when gcc did not fold cases with result_value
+           equal to 0 when we are in a constant expression but none of the
+           other conditions apply, but we've decided that's an aberration. */
         {
           a_boolean  result_value = operand_is_string_literal(&arg) ||
                                     (is_constant_operand(&arg) &&
                                      arg.variant.constant.kind !=
                                              (a_constant_repr_kind)ck_address);
           if (result_value || innermost_function_scope == NULL ||
-              always_fold_calls_to_builtin_constant_p) {
+              always_fold_calls_to_builtin_constant_p ||
+              in_constant_expression) {
             set_integer_constant(&result, (a_host_large_integer)result_value,
                                  result_type->variant.integer.int_kind);
             make_constant_operand(&result, result_op);
-          } else if (in_constant_expression) {
-            /* The call was not folded, but a constant-expression is required:
-               Issue an error. */
-            expr_pos_error(ec_bad_constant_function_call, &operand->position);
-            make_error_operand(result_op);
           } else {
             /* Leave an actual call in the IL.  (The usual transformations --
                including promotion -- are needed.) */

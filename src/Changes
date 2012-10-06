@@ -1,5 +1,18 @@
 Version 4.6
 
+10/6/12  [EDGcpfe/13248]
+GNU compatibility: always fold __builtin_constant_p in a constant expression
+
+For a short period around gcc 3.4.0, and g++ 4.0, the GNU compilers did
+not fold __builtin_constant_p when inside a function, the operand is
+not a constant, and the expression is required to be constant.  As
+a consequence an error was issued in such cases.  We dutifully emulated
+that back in 2006, but it turns out that was a brief change from the
+normal, and probably correct/expected behavior, to always fold
+__builtin_constant_p in a constant expression.  So we've changed our
+processing to do that as well.
+
+
 10/5/12  [EDGcpfe/11420]
 Internal error on ill-formed template static data member definition
 
