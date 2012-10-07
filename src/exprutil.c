@@ -4286,6 +4286,12 @@ substitutions to be done.
       conv_indefinite_function_operand_to_unknown_dependent_function(
                                                     operand,
                                                     /*force_to_rvalue=*/FALSE);
+    } else if (is_braced_init_list_operand(operand)) {
+      /* Handled okay below by make_node_from_operand. */
+    } else {
+      /* Give an error on other unusual things, e.g., symbol-for-member
+         operands. */
+      eliminate_unusual_operand_kinds(operand);
     }  /* if */
     expr = make_node_from_operand(operand);
     copy_icp = rescan_expr_as_arg_list_elem(expr, rcblock);
