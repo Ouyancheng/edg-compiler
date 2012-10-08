@@ -1558,6 +1558,7 @@ do_set_proper_definition_needed_flag:
             }  /* if */
             break;
           case enk_sizeof:
+          case enk_alignof:
             if (ptr->variant.sizeof_info.is_type) {
               walk_ptr(ptr->variant.sizeof_info.variant.type, a_type_ptr,
                        iek_type);

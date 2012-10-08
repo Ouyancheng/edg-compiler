@@ -3867,8 +3867,9 @@ template argument list being tried.
   eriep = get_expr_rescan_info(expr, &rescan_info);
   if (is_uuidof_expr(expr, &is_type, &op_expr, &type)) {
     /* The expression represents a __uuidof. */
-  } else if (expr->kind == (an_expr_node_kind)enk_sizeof) {
-     /* sizeof in expression form. */
+  } else if (expr->kind == (an_expr_node_kind)enk_sizeof ||
+             expr->kind == (an_expr_node_kind)enk_alignof) {
+     /* sizeof or alignof in expression form. */
     is_type = expr->variant.sizeof_info.is_type;
     if (is_type) {
       type = expr->variant.sizeof_info.variant.type;

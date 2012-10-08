@@ -1,5 +1,14 @@
 Version 4.6
 
+10/8/12  [EDGcpfe/12994]
+enk_alignof node kind for use in backing expressions
+
+In order to preserve __alignof__ operators in C++-generating back end
+output, a new expression kind enk_alignof has been added (IL CHANGE).
+Like enk_sizeof, it is used only in backing expressions and for
+dependent types.
+
+
 10/6/12  [EDGcpfe/13248]
 GNU compatibility: always fold __builtin_constant_p in a constant expression
 

@@ -9557,19 +9557,23 @@ analysis on a previously-scanned expression, and return the result in
 }  /* scan_arith_prefix_operator */
 
 
-static an_expr_node_ptr make_sizeof_expr(a_boolean  is_type,
+static an_expr_node_ptr make_sizeof_expr(a_boolean  is_alignof,
+                                         a_boolean  is_type,
                                          a_type_ptr type,
                                          an_operand *operand,
                                          an_operand *result)
 /*
-Create an enk_sizeof expression for a sizeof and return a pointer
-to it.  If is_type is TRUE, this is a "sizeof(type)", and "type" indicates
-the type.  If is_type is FALSE, this is a "sizeof expression", and
-"operand" indicates the expression.  If result is non-NULL, an operand for
-the sizeof result is built and returned there.
+Create an enk_sizeof expression for a sizeof (or enk_alignof for an
+alignof, if is_alignof is TRUE), and return a pointer to it.  If
+is_type is TRUE, this is a "sizeof(type)", and "type" indicates the
+type.  If is_type is FALSE, this is a "sizeof expression", and
+"operand" indicates the expression.  If result is non-NULL, an operand
+for the sizeof result is built and returned there.
 */
 {
-  an_expr_node_ptr node = alloc_expr_node((an_expr_node_kind)enk_sizeof);
+  an_expr_node_ptr node = alloc_expr_node(is_alignof ?
+                                            (an_expr_node_kind)enk_alignof :
+                                            (an_expr_node_kind)enk_sizeof);
 
   node->type = integer_type(targ_size_t_int_kind);
   node->variant.sizeof_info.is_type = is_type;
@@ -10213,7 +10217,8 @@ previously-scanned sizeof expression, and return the result in *result
     } else {
       /* Make an expression node to represent a sizeof that cannot be
          evaluated until runtime. */
-      (void)make_sizeof_expr(is_type, sizeof_type, &operand, result);
+      (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, sizeof_type,
+                             &operand, result);
       operand_was_used = !is_type;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -10235,7 +10240,8 @@ previously-scanned sizeof expression, and return the result in *result
     } else {
       /* Make an expression node to represent a sizeof that cannot be
          evaluated until runtime. */
-      (void)make_sizeof_expr(is_type, sizeof_type, &operand, result);
+      (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, sizeof_type,
+                             &operand, result);
       operand_was_used = !is_type;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -10254,7 +10260,8 @@ previously-scanned sizeof expression, and return the result in *result
       make_error_operand(result);
     } else {
       /* Make an expression node to represent the sizeof. */
-      (void)make_sizeof_expr(is_type, sizeof_type, &operand, result);
+      (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, sizeof_type,
+                             &operand, result);
       operand_was_used = !is_type;
     }  /* if */
 #endif /* defined(SIZEOF_TYPE_IS_UNKNOWN) */
@@ -10301,7 +10308,8 @@ previously-scanned sizeof expression, and return the result in *result
                cases, and just record the type. */
             is_type = TRUE;
           }  /* if */
-          constant.expr = make_sizeof_expr(is_type, sizeof_type,
+          constant.expr = make_sizeof_expr(/*is_alignof=*/FALSE,
+                                           is_type, sizeof_type,
                                            &operand,
                                            (an_operand *)NULL);
           operand_was_used = !is_type;
@@ -10619,6 +10627,30 @@ result in *result (or an error indication in *rcblock).
     set_unsigned_integer_constant(
                      &constant, (a_host_large_unsigned)alignof_value,
                      targ_size_t_int_kind);
+    /* Make an alignof expression that sits behind the constant and
+       gives the original expression. */
+    if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+      switch_back_to_original_region(region_to_switch_back_to);
+      if (!is_type &&
+          curr_il_region_number == file_scope_region_number &&
+          (innermost_function_scope != NULL || inside_local_class)) {
+        /* An expression in a function scope might point to a local
+           variable, which is in the function scope memory region.
+           Therefore it cannot be attached to a file-scope constant.
+           This comes up when an alignof in an array bound uses a local
+           variable in its expression.  We have no good way of
+           checking whether the expression contains a local variable,
+           so we suppress the recording of the expression in all
+           cases, and just record the type. */
+        is_type = TRUE;
+      }  /* if */
+      constant.expr = make_sizeof_expr(/*is_alignof=*/TRUE,
+                                       is_type, alignof_type,
+                                       &operand,
+                                       (an_operand *)NULL);
+      operand_was_used = !is_type;
+      switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+    }  /* if */
   }  /* if */
   make_constant_operand(&constant, result);
   if (operand_was_created && !operand_was_used) {
@@ -34146,6 +34178,9 @@ set accordingly.
     *unary = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_sizeof_pack) {
     operator_token = tok_sizeof;
+    *unary = TRUE;
+  } else if (expr->kind == (an_expr_node_kind)enk_alignof) {
+    operator_token = tok_alignof;
     *unary = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_typeid) {
     operator_token = tok_typeid;

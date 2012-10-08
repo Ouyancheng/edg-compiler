@@ -13252,6 +13252,11 @@ enum an_expr_node_kind_tag {
 			   variable-length array). */
   enk_sizeof_pack,	/* sizeof...(T), the size of a variadic template
 			   parameter pack. */
+  enk_alignof,		/* An alignof expression.  Similar to sizeof, but
+			   returns the alignment of a type or expression.
+			   Like enk_sizeof, appears in backing expressions
+			   and applied to dependent types or expressions in
+			   prototype instantiations. */
   enk_address_of_ellipsis,
 			/* Used to represent nonstandard construct "&..."
 			   (when ALLOW_ADDRESS_OF_ELLIPSIS is TRUE, to support
@@ -14546,19 +14551,19 @@ typedef struct an_expr_node {
 			   the appropriate System::Type entry. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } typeid_info;
-    /* When kind == enk_sizeof: */
+    /* When kind == enk_sizeof or kind == enk_alignof: */
     struct {
       a_byte_boolean
 		is_type;
 			/* TRUE if the sizeof is sizeof(type); FALSE for
-			   sizeof expression. */
+			   sizeof expression.  Likewise for alignof. */
       union {
         /* When is_type == TRUE: */
         a_type_ptr
-		type;	/* The type whose size is needed. */
+		type;	/* The type whose size/alignment is needed. */
         /* When is_type == FALSE: */
         an_expr_node_ptr
-		expr;	/* The expression whose size is needed. */
+		expr;	/* The expression whose size/alignment is needed. */
       } variant;
     } sizeof_info;
     /* When kind == enk_sizeof_pack: */

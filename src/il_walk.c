@@ -3200,6 +3200,7 @@ as specified in the control block.
       }  /* if */
       break;
     case enk_sizeof:
+    case enk_alignof:
       if (expr->variant.sizeof_info.is_type) {
         if (tblock->process_type != NULL) {
           tblock->process_type(expr->variant.sizeof_info.variant.type,

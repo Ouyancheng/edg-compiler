@@ -3003,6 +3003,7 @@ fields to default values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case enk_sizeof:
+    case enk_alignof:
       node->variant.sizeof_info.is_type = TRUE;
       node->variant.sizeof_info.variant.type = NULL;
       break;

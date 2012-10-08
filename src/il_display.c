@@ -3996,8 +3996,12 @@ Display the indicated expression node.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
+    case enk_alignof:
+      (void)printf("enk_alignof\n");
+      goto to sizeof_cases;
     case enk_sizeof:
       (void)printf("enk_sizeof\n");
+sizeof_cases:
       disp_boolean("is_type",
                    (a_boolean)ptr->variant.sizeof_info.is_type);
       if (ptr->variant.sizeof_info.is_type) {

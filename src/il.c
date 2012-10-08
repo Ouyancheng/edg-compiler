@@ -1802,8 +1802,12 @@ Dump the contents of the indicated expression node for debug purposes.
         db_expr_node(node->variant.typeid_info.expr, level + 2);
       }  /* if */
       break;
+    case enk_alignof:
+      fputs("alignof: ", f_debug);
+      goto sizeof_cases;
     case enk_sizeof:
       fputs("sizeof: ", f_debug);
+sizeof_cases:
       if (node->variant.sizeof_info.is_type) {
         fputs("type = ", f_debug);
         db_abbreviated_type(node->variant.sizeof_info.variant.type);
@@ -6111,6 +6115,7 @@ are done.
                                   options));
         break;
       case enk_sizeof:
+      case enk_alignof:
         eq = (node1->variant.sizeof_info.is_type ==
               node2->variant.sizeof_info.is_type &&
               (node1->variant.sizeof_info.is_type ?
@@ -16583,6 +16588,7 @@ be called to start a copy.
       }  /* if */
       break;
     case enk_sizeof:
+    case enk_alignof:
       /* If there is an expression, copy it. */
       if (!expr->variant.sizeof_info.is_type) {
         if (in_file_scope(expr_copy) && !in_file_scope(expr)) {
@@ -18445,6 +18451,12 @@ doing nothing should be suppressed.
       has_side_effects = FALSE;
       tblock->suppress_subtree_walk = TRUE;
       break;
+    case enk_alignof:
+      /* An alignof doesn't have side effects, but more than that its
+         expression is unevaluated and can't have side effects. */
+      has_side_effects = FALSE;
+      tblock->suppress_subtree_walk = TRUE;
+      break;
     case enk_typeid:
       if (node->variant.typeid_info.expr != NULL) {
         /* A typeid applied to an expression that is a pointer to a
@@ -18890,6 +18902,7 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
       might_throw = TRUE;
       break;
     case enk_sizeof:
+    case enk_alignof:
     case enk_sizeof_pack:
       tblock->suppress_subtree_walk = TRUE;
       break;

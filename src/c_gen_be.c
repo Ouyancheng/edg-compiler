@@ -6072,8 +6072,18 @@ done_with_operation:
       dump_expr(expr->variant.object_lifetime.expr, need_parens);
       break;
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
+    case enk_alignof:
+      if (msvc_is_generated_code_target || sun_is_generated_code_target) {
+        write_tok_str("__alignof(");
+      } else if (gcc_is_generated_code_target) {
+        write_tok_str("__alignof__(");
+      } else {
+        write_tok_str("__ALIGNOF__(");
+      }  /* if */
+      goto sizeof_cases;
     case enk_sizeof:
       write_tok_str("sizeof(");
+sizeof_cases:
       if (expr->variant.sizeof_info.is_type) {
         /* sizeof(type). */
         dump_type(expr->variant.sizeof_info.variant.type,

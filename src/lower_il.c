@@ -14757,6 +14757,7 @@ cast.  See lower_expr for typical invocation.
     case enk_type_operand:
     case enk_param_ref:
     case enk_sizeof_pack:
+    case enk_alignof:
     default:
       unexpected_condition_str("lower_expr: bad kind");
   }  /* switch */

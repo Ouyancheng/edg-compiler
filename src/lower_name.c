@@ -4371,6 +4371,7 @@ dependent.
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_sizeof ||
+             expr->kind == (an_expr_node_kind)enk_alignof ||
              expr->kind == (an_expr_node_kind)enk_typeid ||
              (expr->kind == (an_expr_node_kind)enk_new_delete &&
               !expr->variant.new_delete->is_new) ||
@@ -5815,6 +5816,22 @@ is TRUE.
         mangled_encoding_for_sizeof((a_type_ptr)NULL,
                                     expr->variant.sizeof_info.variant.expr,
                                    (a_template_param_constant_kind)tpck_sizeof,
+                                    expr,
+                                    mctl);
+      }  /* if */
+      break;
+    case enk_alignof:
+      if (expr->variant.sizeof_info.is_type) {
+        mangled_encoding_for_sizeof(expr->variant.sizeof_info.variant.type,
+                                    (an_expr_node_ptr)NULL,
+                                  (a_template_param_constant_kind)tpck_alignof,
+                                    expr,
+                                    mctl);
+      } else {
+        check_assertion(!expr->is_lvalue);
+        mangled_encoding_for_sizeof((a_type_ptr)NULL,
+                                    expr->variant.sizeof_info.variant.expr,
+                                  (a_template_param_constant_kind)tpck_alignof,
                                     expr,
                                     mctl);
       }  /* if */

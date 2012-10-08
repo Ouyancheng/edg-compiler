@@ -11651,17 +11651,28 @@ done_with_operation_after_parens:
         write_tok_ch(')');
       }  /* if */
       break;
+    case enk_alignof:
+      if (msvc_is_generated_code_target || sun_is_generated_code_target) {
+        write_tok_str("__alignof");
+      } else if (gcc_is_generated_code_target) {
+        write_tok_str("__alignof__");
+      } else {
+        write_tok_str("__ALIGNOF__");
+      }  /* if */
+      goto sizeof_cases;
     case enk_sizeof:
+      write_tok_str("sizeof");
+sizeof_cases:
       if (expr->variant.sizeof_info.is_type) {
         /* sizeof(type). */
-        write_tok_str("sizeof(");
+        write_tok_ch('(');
         gen_type(expr->variant.sizeof_info.variant.type);
         write_tok_ch(')');
       } else {
         /* sizeof(expr). */
         an_expr_node_ptr operand =
                 assoc_expr_if_constant(expr->variant.sizeof_info.variant.expr);
-        write_tok_str("sizeof ");
+        write_tok_ch(' ');
         if (operand->kind == (an_expr_node_kind)enk_temp_init) {
           /* Do not use extra parentheses to avoid generating something
              like "sizeof(T())", which is an error (a request for the size
