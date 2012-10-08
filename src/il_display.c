@@ -3998,7 +3998,7 @@ Display the indicated expression node.
       break;
     case enk_alignof:
       (void)printf("enk_alignof\n");
-      goto to sizeof_cases;
+      goto sizeof_cases;
     case enk_sizeof:
       (void)printf("enk_sizeof\n");
 sizeof_cases:
