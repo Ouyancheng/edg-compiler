@@ -11679,7 +11679,9 @@ sizeof_cases:
              of a function returning T). */
           gen_expression(operand);
         } else {
-          gen_expr_with_parens(expr->variant.sizeof_info.variant.expr);
+          write_tok_ch('(');
+          gen_expression(expr->variant.sizeof_info.variant.expr);
+          write_tok_ch(')');
         }  /* if */
       }  /* if */
       break;
