@@ -79,9 +79,9 @@ code:
   };
   template <class T> struct M {
     typedef H<T> HT;
-    typedef HT::IT IT;
+    typedef typename HT::IT HIT;
     HT m;
-    IT f() { return m.f(); }
+    HIT f() { return m.f(); }
   };
   class C {
     ~C();
