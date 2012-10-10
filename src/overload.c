@@ -21702,6 +21702,9 @@ controls).
         expr = preserved_temp_init;
         check_assertion(expr->kind == (an_expr_node_kind)enk_temp_init &&
                         expr->variant.init.dynamic_init == dip);
+        /* Put the dynamic initialization on a destruction list if
+           appropriate. */
+        set_temp_init_dynamic_init_lifetime(expr);
       } else {
         expr = alloc_temp_init_node(dest_type, dip, make_lvalue_temp,
                                     /*is_explicit_cast=*/is_cast ||

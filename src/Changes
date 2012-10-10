@@ -1,5 +1,20 @@
 Version 4.6
 
+10/10/12 [EDGcpfe/13258]
+Abort on multiple levels of copy elision with initializer lists
+
+In some cases involving multiple levels of copy elision on a
+destructible object type with brace-form initializers, the front end
+aborted in IL lowering (in lower_dynamic_init) because of
+malformed IL, to wit a dynamic init entry indicating a destructor
+that was not on any lifetime list.  Now fixed.
+
+  struct A {
+    ~A() {}
+  };
+  A x =  A ( { A() } ); 
+
+
 10/10/12 [EDGcpfe/13257]
 Cast to reference type using T{x} form should use IL reference cast
 
