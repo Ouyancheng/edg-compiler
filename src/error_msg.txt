@@ -2427,6 +2427,7 @@ ec_defined_always_false;;"\"defined\" is always false in a macro expansion in Mi
 ec_init_list_element_type_not_complete_object;;"%t cannot be the element type of an initializer list because it is not a complete object type"
 ec_invalid_default_arg;;"mismatched delimiters in default argument expression"
 ec_conv_of_unbound_pm_to_func_ptr;;"nonstandard conversion of pointer-to-member to a function pointer"
+ec_dynamic_exception_specifications_deprecated;;"dynamic exception specifications are deprecated"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
