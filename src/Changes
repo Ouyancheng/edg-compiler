@@ -1,5 +1,17 @@
 Version 4.6
 
+10/10/12 [EDGcpfe/13256]
+Spurious error on "{}" in cast context
+
+Spurious errors could result if a brace-enclosed initializer was used
+in a cast context.  Now fixed.
+
+  const int I = 2;
+  void f() {
+    int j = (decltype("hello") {})[I];
+ }
+
+
 10/8/12  [EDGcpfe/12994]
 enk_alignof node kind for use in backing expressions
 

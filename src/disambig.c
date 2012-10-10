@@ -1242,7 +1242,8 @@ function_lparen:
   /* Look for an initializer of the "=" or "{...}" form. */
   if (!paren_initializer_seen &&
       (curr_token == tok_assign ||
-       (is_top_level && curr_token == tok_lbrace && list_init_enabled))) {
+       (is_top_level && curr_token == tok_lbrace && list_init_enabled &&
+        real_declarator_allowed(flags)))) {
     /* An initializer that begins with an equals sign or a C++11 brace-enclosed
        initializer list.  Cache the tokens that comprise the initializer and
        leave curr_token as the token following the initializer (usually a
