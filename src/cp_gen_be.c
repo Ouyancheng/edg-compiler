@@ -11678,10 +11678,15 @@ sizeof_cases:
              like "sizeof(T())", which is an error (a request for the size
              of a function returning T). */
           gen_expression(operand);
-        } else {
+        } else if (expr->kind == (an_expr_node_kind)enk_alignof) {
+          /* Microsoft requires parens on __alignof, but only one set. */
           write_tok_ch('(');
-          gen_expression(expr->variant.sizeof_info.variant.expr);
+          operand = skip_parens(operand);
+          gen_expression(operand);
           write_tok_ch(')');
+        } else {
+          /* sizeof */
+          gen_expr_with_parens(operand);
         }  /* if */
       }  /* if */
       break;
