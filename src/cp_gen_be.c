@@ -1550,9 +1550,31 @@ template instances.
   }  /* if */
   if (is_accessible && kind == iek_type) {
     /* If the name of the type itself is accessible, also check for the
-       accessibility of names used in template arguments, if any. */
+       accessibility of other names used in the type name. */
     a_type_ptr type = (a_type_ptr)scp;
-    if (is_immediate_class_type(type)) {
+    if (type->kind == (a_type_kind)tk_routine) {
+      /* Check names used in the return type and parameter types. */
+      a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
+      a_param_type_ptr              ptp;
+      is_accessible = entity_name_is_accessible(
+                            &type->variant.routine.return_type->source_corresp,
+                            iek_type, ignore_context);
+      for (ptp = rtsp->param_type_list; is_accessible && ptp != NULL;
+           ptp = ptp->next) {
+        is_accessible = entity_name_is_accessible(&ptp->type->source_corresp,
+                                                  iek_type, ignore_context);
+      }  /* for */
+    } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
+      /* Check the names of the member's class and type. */
+      is_accessible =
+        entity_name_is_accessible(
+          &type->variant.ptr_to_member.class_of_which_a_member->source_corresp,
+          iek_type, ignore_context) &&
+        entity_name_is_accessible(
+                             &type->variant.ptr_to_member.type->source_corresp,
+                             iek_type, ignore_context);
+    } else if (is_immediate_class_type(type)) {
+      /* Check names used in template arguments, if any. */
       a_template_arg_ptr tap;
       begin_template_arg_list_traversal_simple(
                 type->variant.class_struct_union.extra_info->template_arg_list,
