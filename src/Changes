@@ -1,5 +1,21 @@
 Version 4.6
 
+10/10/12 [EDGcpfe/13257]
+Cast to reference type using T{x} form should use IL reference cast
+
+An explicit cast to a reference type using the brace-enclosed form,
+e.g., T{x}, should generate the same IL as the T(x) form, but didn't
+when the type of x is the same as the underlying type of T; no cast
+was added to the IL for x.  A reference cast node is now added.
+
+  typedef int& T;
+  int main() {
+    int x = 0;
+    T(x)++;
+    T{x}++;  // Should generate same IL as parenthesized case
+  }
+
+
 10/10/12 [EDGcpfe/10618]
 Dynamic exception specifications in strict C++11 mode
 

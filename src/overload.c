@@ -21119,11 +21119,20 @@ controls).
         if (elision_done) init_handled_at_this_level = FALSE;
       } else if (is_any_reference_type(dest_type)) {
         /* Reference types. */
-        prep_reference_initializer_operand(&operand, dest_type,
+        if (is_cast) {
+          cast_operand_for_reference_cast(&operand,
+                                          dest_type,
+                                          start_position,
+                                          /*check_cast_access=*/TRUE,
+                                          /*is_implicit_cast=*/FALSE,
+                                          /*reinterpret_semantics=*/FALSE);
+        } else {
+          prep_reference_initializer_operand(&operand, dest_type,
                                          /*conversion=*/(a_conv_descr_ptr)NULL,
-                                           leave_as_object,
-                                           conv_context,
-                                           ec_bad_initializer_type);
+                                             leave_as_object,
+                                             conv_context,
+                                             ec_bad_initializer_type);
+        }  /* if */
       } else {
         /* Non-class-copy, non-dependent, non-reference cases. */
         if (!is_error_operand(&operand) &&
