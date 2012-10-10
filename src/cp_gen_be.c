@@ -1296,40 +1296,30 @@ the list of accessible typedefs.
 static void register_accessible_typedef(a_type_ptr type)
 /*
 type is a typedef that has just been defined.  If it is publicly accessible
-and is a synonym for a named type that is not publicly accessible or whose
-template arguments are not publicly accessible, add it to the list of
-typedefs that can be used as a substitute when the underlying type is named
-in a context in which it is not accessible.
+(which includes having no inaccessible template arguments in its parent
+class(es)) and is a synonym for a named type that is not publicly
+accessible or whose template arguments are not publicly accessible, add it
+to the list of typedefs that can be used as a substitute when the
+underlying type is named in a context in which it is not accessible.
 */
 {
   a_type_ptr targ_type;
 
   check_assertion(type->kind == (a_type_kind)tk_typeref);
   targ_type = type->variant.typeref.type;
-  if (type->source_corresp.access == (an_access_specifier)as_public &&
+  if (entity_name_is_accessible(&type->source_corresp, iek_type,
+                                /*ignore_context=*/TRUE) &&
       has_name_before_mangling(targ_type) &&
       !entity_name_is_accessible(&targ_type->source_corresp, iek_type,
                                  /*ignore_context=*/TRUE) &&
       !target_type_has_circularity(type)) {
-    /* This typedef is public, but we need to check that it can be named
-       without an access error, which includes checking the access of any
-       template arguments for its containing class type(s). */
-    a_type_ptr parent_class;
-    for (parent_class = parent_class_or_null(type);
-         parent_class != NULL &&
-                       entity_name_is_accessible(&parent_class->source_corresp,
-                                                 iek_type,
-                                                 /*ignore_context=*/TRUE);
-         parent_class = parent_class_or_null(parent_class)) {}
-    if (parent_class == NULL) {
-      /* This typedef can be substituted for the target type when that type
-         is inaccessible.  Add it to the list of such typedefs. */
-      an_accessible_typedef_ptr atp =
+    /* This typedef can be substituted for the target type when that type
+       is inaccessible.  Add it to the list of such typedefs. */
+    an_accessible_typedef_ptr atp =
        (an_accessible_typedef_ptr)alloc_general(sizeof(an_accessible_typedef));
-      atp->next = accessible_typedefs;
-      accessible_typedefs = atp;
-      atp->type = type;
-    }  /* if */
+    atp->next = accessible_typedefs;
+    accessible_typedefs = atp;
+    atp->type = type;
   }  /* if */
 }  /* register_accessible_typedef */
 
@@ -1518,11 +1508,13 @@ Return TRUE if the entity described by scp and kind can be named without
 access errors -- i.e., if the entity and any classes in which it is nested
 are non-members or public members of their containing classes, or (when
 ignore_context is FALSE) if the containing class is in the context stack.
-This check also includes the names of the template arguments of a class
-template instance.
+This check also includes the names of the template arguments of class
+template instances.
 */
 {
   a_boolean is_accessible;
+  a_type_ptr parent_class = scp->is_class_member ? scp_parent_class(scp)
+                                                 : NULL;
 
   if (kind == iek_type) {
     /* We need to skip over type modifiers -- pointer-to, array-of, or
@@ -1547,7 +1539,6 @@ template instance.
     is_accessible = TRUE;
   } else if (!ignore_context) {
     /* Check to see if the containing class is in the context stack. */
-    a_type_ptr parent_class = scp_parent_class(scp);
     is_accessible = (class_is_in_name_context_stack(
                                              parent_class,
                                              /*include_base_classes=*/FALSE) ||
@@ -1573,6 +1564,12 @@ template instance.
         }  /* if */
       }  /* for */
     }  /* if */
+  }  /* if */
+  if (is_accessible && parent_class != NULL) {
+    /* Need to check as well for inaccessible template arguments on parent
+       classes. */
+    is_accessible = entity_name_is_accessible(&parent_class->source_corresp,
+                                              iek_type, ignore_context);
   }  /* if */
   return is_accessible;
 }  /* entity_name_is_accessible */
