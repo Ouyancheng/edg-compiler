@@ -7759,6 +7759,12 @@ typedef struct a_type {
 		is_scoped_enum:1;
 			/* TRUE if this a scoped enum type (enum_type is also
 			   TRUE in that case). */
+#if DO_IL_LOWERING
+      a_bit_field
+		originally_a_scoped_enum:1;
+			/* TRUE if this a scoped enum type that has been
+			   lowered (so is_scoped_enum is now FALSE). */
+#endif /* DO_IL_LOWERING */
 #if GNU_EXTENSIONS_ALLOWED
       a_bit_field
       		packed:1;

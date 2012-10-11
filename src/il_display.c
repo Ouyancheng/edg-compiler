@@ -1817,6 +1817,11 @@ Display the indicated type entry.
         if (integer_type_is_scoped_enum(ptr)) {
           disp_boolean("is_scoped_enum", TRUE);
         }  /* if */       
+#if DO_IL_LOWERING
+        if (integer_type_is_scoped_enum(ptr)) {
+          disp_boolean("originally_a_scoped_enum", TRUE);
+        }  /* if */
+#endif /* DO_IL_LOWERING */
 #if GNU_EXTENSIONS_ALLOWED
 	if (ptr->variant.integer.packed) {
 	  disp_boolean("packed", TRUE);

@@ -1,5 +1,14 @@
 Version 4.6
 
+10/11/12 [EDGcpfe/13255]
+Add a flag for lowered scoped enumeration types
+
+A new flag, originally_a_scoped_enum, has been added to alert back ends
+that a lowered enumeration type had originally been a scoped enumeration type.
+Previously, scoped and unscoped enumeration types had been indistinguishable
+after lowering.
+
+
 10/10/12 [EDGcpfe/13258]
 Abort on multiple levels of copy elision with initializer lists
 

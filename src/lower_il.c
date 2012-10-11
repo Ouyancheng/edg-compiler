@@ -18144,6 +18144,7 @@ symbols that are not unique).
   }  /* if */
   /* Indicate that this is no longer a scoped enum. */
   type->variant.integer.is_scoped_enum = FALSE;
+  type->variant.integer.originally_a_scoped_enum = TRUE;
 }  /* lower_scoped_enum_type */
 
 
