@@ -1,5 +1,25 @@
 Version 4.6
 
+10/11/12 [EDGcpfe/13261]
+Reference cast should not hide temporary from lifetime extension
+
+When a reference is bound to a temporary, the lifetime of the temporary
+is extended to match the lifetime of the reference.  Certain operations
+on top of the temporary are ignored and do not hide it from the lifetime
+extension.  One such operation is a reference cast, but the front end
+previously did not "look through" reference casts when looking for
+a temporary.  Now, it does, so the temporary is extended in a case
+like the following:
+
+  struct A {
+    A();
+    ~A();
+  };
+  int main() {
+    const A &r = (const A&)A();
+  }
+
+
 10/11/12 [EDGcpfe/13255]
 Add a flag for lowered scoped enumeration types
 

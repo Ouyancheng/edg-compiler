@@ -18888,6 +18888,13 @@ like
     node = skip_parens(node);
     /* Drop any adjustment of the type. */
     node = expr_before_type_adjustment(node);
+    while (is_operation_node(node) &&
+           node_operator_is(node, eok_ref_cast)) {
+      /* Drop reference casts (they are also type adjustments that don't
+         create a new object). */
+      node = node->variant.operation.operands;
+      node = expr_before_type_adjustment(node);
+    }  /* while */
     /* Drop any field selections on top of the expression.  (The C++ standard
        says that if the object bound to is a subobject of a complete object
        that is a temporary, the complete object temporary has its lifetime
