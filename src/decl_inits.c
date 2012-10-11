@@ -1014,9 +1014,7 @@ size.
 {
   a_boolean  success = FALSE;
 
-  if (is_string_type(*p_array_type) ||
-      (is_array_type(*p_array_type) &&
-       is_template_param_type(array_element_type(*p_array_type)))) {
+  if (may_be_string_type(*p_array_type)) {
     a_constant_ptr  string_constant;
     /* Permit an extra level of braces. */
     if (is_braced_init_component(icp)) icp = icp->variant.braced.list;
@@ -3053,9 +3051,7 @@ to use for diagnostics when no more specific position is available.
       is->init_con = alloc_error_constant();
       is->init_error = TRUE;
       if (is_incomplete_array_type(dps->type)) dps->type = error_type();
-    } else if ((is_string_type(dps->type) ||
-                (is_array_type(dps->type) &&
-                 is_template_param_type(array_element_type(dps->type)))) &&
+    } else if (may_be_string_type(dps->type) &&
                try_string_literal_init(expr_icp, &dps->type, is,
                                        &is->init_con)) {
       /* String initialization. */
@@ -3138,9 +3134,7 @@ to use for diagnostics by default.
   is->initializer_must_be_constant =
                     C_mode() && (is->static_lifetime_init ||
                                  !allow_nonconstant_auto_aggr_init_in_c_mode);
-  is_string_var = is_string_type(dps->type) ||
-                  (is_array_type(dps->type) &&
-                   is_template_param_type(array_element_type(dps->type)));
+  is_string_var = may_be_string_type(dps->type);
   if (!is_string_var && !C_mode()) {
     /* In C++, the only valid case here is string initialization.  We cannot
        in general know whether this is a string initialization until we've
@@ -3926,6 +3920,100 @@ returned set to TRUE.
 #endif /* DEBUG */
   db_exit();
 }  /* initializer */
+
+
+static void expr_init_field(a_decl_parse_state  *dps,
+                            a_type_ptr          dtype)
+/*
+Scan a field initialization of the form "T x = <expr>".  dps describes the
+field declaration and dtype is the type of the field.
+*/
+{
+  an_init_component_ptr  expr_icp = scan_full_initializer_expr_as_component(
+                                         dps,
+                                         /*parenthesized=*/FALSE,
+                                         /*allow_empty_pack_expansion=*/FALSE);
+  an_init_state          *is = &dps->init_state;
+
+  if (may_be_string_type(dtype) &&
+      try_string_literal_init(expr_icp, &dtype, is, &is->init_con)) {
+    /* A string literal initializer for a string type. */
+    prep_initializer_result(is, /*dtor_rp=*/NULL);
+  } else {
+    convert_initializer(expr_icp, dtype, /*is_var_init=*/FALSE,
+                        /*fill_in_dtor=*/TRUE, is);
+  }  /* if */
+  free_init_component_list(expr_icp);
+}  /* expr_init_field */
+
+
+void field_initializer(a_decl_parse_state  *dps)
+/*
+Scan an initializer for the field described by dps->sym and record it in the
+IL entry for that field.
+*/
+{
+  an_init_state      *is = &dps->init_state;
+  a_field_ptr        field;
+  a_type_ptr         dtype;
+  a_source_position  init_pos;
+  a_boolean          saved_in_field_initializer = 
+                                       scope_stack_top().in_field_initializer;
+
+  scope_stack_top().in_field_initializer = TRUE;
+  is->force_dynamic_init = TRUE;
+  if (symbol_is(dps->sym, sk_field)) {
+    field = dps->sym->variant.field.ptr;
+    dtype = field->type;
+  } else {
+    field = NULL;
+    dtype = error_type();
+  }  /* if */
+  init_pos = pos_curr_token;
+  if (curr_token == tok_assign) {
+    /* A field initialization using copy-initialization syntax. */
+    (void)get_token();
+    if (curr_token == tok_lbrace) {
+      /* An initialization of the form "T x = { ... }". */
+      is->elements_are_full_expressions = TRUE;
+      if (strict_ansi_mode) {
+        is->error_on_narrowing = TRUE;
+      } else {
+        is->warning_on_narrowing = TRUE;
+      }  /* if */
+      /* Scan the initializer. */
+      braced_initializer(dtype, (an_init_component*)NULL, is,
+                         (a_decl_parse_state*)NULL, (an_init_component**)NULL,
+                         &init_pos);
+    } else {
+      /* An initialization of the form "T x = <expr>". */
+      expr_init_field(dps, dtype);
+    }  /* if */
+  } else if (curr_token == tok_lbrace) {
+    /* A direct braced initializer. */
+    is->direct_init = TRUE;
+    is->elements_are_full_expressions = TRUE;
+    if (strict_ansi_mode) {
+      is->error_on_narrowing = TRUE;
+    } else {
+      is->warning_on_narrowing = TRUE;
+    }  /* if */
+    /* Scan the initializer. */
+    braced_initializer(dtype, (an_init_component*)NULL, is,
+                       (a_decl_parse_state*)NULL, (an_init_component**)NULL,
+                       &init_pos);
+  } else {
+    unexpected_condition();
+  }  /* if */
+  if (field != NULL && is->init_dip != NULL) {
+    field->has_direct_braced_initializer = is->direct_init;
+    field->initializer = is->init_dip;
+  } else {
+    expect_error();
+    field->has_initializer = FALSE;
+  }  /* if */
+  scope_stack_top().in_field_initializer = saved_in_field_initializer;
+}  /* field_initializer */
 
 
 void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
@@ -5505,6 +5593,15 @@ initialized.  These are addressed in the course of the processing.
              init entry. */
           dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/TRUE);
         }  /* if */
+      } else if (field_initializers_enabled &&
+                 cip->kind == (a_constructor_init_kind)cik_field &&
+                 cip->variant.field->has_initializer) {
+        /* An implicit constructor-init entry for a field that has an
+           initializer associated with it.  Set the flag indicating that the
+           field initializer should be used, and move on to the next entry. */
+        cip->use_field_initializer = TRUE;
+        prev_cip = cip;
+        continue;
       } else {
         /* No copy/move constructor is required.  If any constructor exists,
            the default constructor should be called. */

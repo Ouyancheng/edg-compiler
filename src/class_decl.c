@@ -2840,7 +2840,6 @@ nested class.
   db_exit();
 }  /* inline_function_fixup_for_class */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void inclass_initializer_fixup_for_class(a_type_ptr  class_type,
                                                 a_boolean   is_template_based)
@@ -2856,25 +2855,36 @@ prototype instantiations).
   cssp = symbol_supplement_for_class(class_type);
   for (ifp = cssp->initializer_fixup_list; ifp != NULL; ifp = next_ifp) {
     a_boolean           incomplete_type_error_reported = FALSE;
+    a_type_ptr          parent_type = sym_parent_class(ifp->symbol);
     a_decl_parse_state  dps;
-    a_decl_pos_block    decl_pos_block;
-    a_variable_ptr      var;
     push_lexical_state_stack();
-    clear_decl_pos_block(&decl_pos_block);
+    /* Reactivate the class scope and parse the initializer. */
+    push_class_and_template_reactivation_scope(parent_type, is_template_based,
+                                               /*extend_namespace=*/TRUE);
+    rescan_cached_tokens(&ifp->initializer_token_cache);
     /* Re-create a declaration parsing state before parsing the initializer. */
     init_decl_parse_state(&dps);
     dps.sym = ifp->symbol;
-    check_assertion(symbol_is(dps.sym, sk_static_data_member));
-    var = dps.sym->variant.static_data_member.variable;
-    dps.type = dps.declared_type = var->type;
-    /* Reactivate the class scope and parse the initializer. */
-    push_class_and_template_reactivation_scope(
-                                 sym_parent_class(dps.sym), is_template_based,
-                                 /*extend_namespace=*/TRUE);
-    rescan_cached_tokens(&ifp->initializer_token_cache);
-    initializer(&dps, &dps.sym->decl_position, idl_external,
-                /*parenthesized_initializer=*/FALSE,
-                &incomplete_type_error_reported, &decl_pos_block);
+    if (symbol_is(dps.sym, sk_static_data_member)) {
+      /* Static data member initializer.  Only in managed classes is
+         initializer processing delayed using a fixup entry. */
+      a_decl_pos_block  decl_pos_block;
+      a_variable_ptr    var;
+      check_assertion(cppcli_enabled && is_managed_class_type(parent_type));
+      clear_decl_pos_block(&decl_pos_block);
+      var = dps.sym->variant.static_data_member.variable;
+      dps.type = dps.declared_type = var->type;
+      initializer(&dps, &dps.sym->decl_position, idl_external,
+                  /*parenthesized_initializer=*/FALSE,
+                  &incomplete_type_error_reported, &decl_pos_block);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      var->initializer_range = decl_pos_block.var_init_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    } else {
+      /* A C++11-style field initializer. */
+      check_assertion(field_initializers_enabled);
+      field_initializer(&dps);
+    }  /* if */
     /* We should now be at the end-of-source terminator inserted when we
        cached the initializer.  If we aren't, it means something other than a
        semicolon (or a comma) followed the initializer expression. */
@@ -2882,9 +2892,6 @@ prototype instantiations).
       pos_error(ec_exp_semicolon, &pos_curr_token);
     }  /* if */
     flush_past_token_cache_terminator();
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    var->initializer_range = decl_pos_block.var_init_range;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     pop_class_reactivation_scope();
     next_ifp = ifp->next;
     free_initializer_fixup(ifp);
@@ -2892,6 +2899,7 @@ prototype instantiations).
   }  /* for */
 }  /* inclass_initializer_fixup_for_class */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void ensure_inclass_static_member_constant_initializer_is_scanned(
                                                           a_variable_ptr  var)
@@ -3084,8 +3092,7 @@ after a class instantiation.
     cfhp->defer_inline_function_fixups--;
     defer_instantiations--;
     if (cfhp->defer_inline_function_fixups == 0) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled) {
+      if (field_initializers_enabled || cppcli_enabled) {
         /* Fix up in-class initializers and in-class inline function bodies. */
         for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
           /* Make sure we are in the right translation unit. */
@@ -3094,7 +3101,6 @@ after a class instantiation.
                                               cfp->is_template_instantiation);
         }  /* for */
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
         /* Make sure we are in the right translation unit. */
         check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
@@ -14016,6 +14022,7 @@ remove those projections (silently).
   }  /* for */
 }  /* check_for_overloaded_property_conflict */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void record_inclass_initializer_fixup(a_decl_parse_state  *dps)
 /*
@@ -14054,7 +14061,6 @@ context of the completed class later on.
   ssep->last_initializer_fixup = ifp;
 }  /* record_inclass_initializer_fixup */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean is_or_is_nested_within_unnamed_class(a_type_ptr  tp)
 /*
@@ -16459,6 +16465,8 @@ decl_nonstatic_data_member to create the field entry to represent it, etc.
 information about the member declaration, respectively.
 */
 {
+  a_decl_parse_state_ptr  dps = &decl_info->decl_state;
+
   decl_info->is_bit_field = FALSE;
   /* A colon next indicates a bit-field. */
   if (curr_token == tok_colon) {
@@ -16472,7 +16480,7 @@ information about the member declaration, respectively.
     scan_fs_integral_constant_expression(&decl_info->bit_field_size);
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_attributes_enabled) {
-      scan_gnu_declarator_attributes(&decl_info->decl_state);
+      scan_gnu_declarator_attributes(dps);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -16485,6 +16493,21 @@ information about the member declaration, respectively.
   /* Create the IL for the field, enter the symbol (if needed), etc. */
   (void)decl_nonstatic_data_member(locator, class_state, decl_info,
                                    depth_scope_stack);
+  if (field_initializers_enabled && !decl_info->is_bit_field &&
+      (curr_token == tok_assign || curr_token == tok_lbrace)) {
+    /* A field initializer.  It must be parsed in the context of the completed
+       class definition.  We therefore create a fixup entry holding the cached
+       tokens of the initializer until we are ready to parse them. */
+    record_inclass_initializer_fixup(dps);
+    if (symbol_is(dps->sym, sk_field)) {
+      dps->sym->variant.field.ptr->has_initializer = TRUE;
+    }  /* if */
+    /* Field initializers make the class a non-POD and a non-aggregate.  Also,
+       it makes the default constructor nontrivial. */
+    class_state->POD_ruled_out = TRUE;
+    class_state->class_aggregate_ruled_out = TRUE;
+    class_state->default_ctor_is_nontrivial = TRUE;
+  }  /* if */
 }  /* scan_nonstatic_data_member */
 
 
@@ -20286,7 +20309,11 @@ member.  Determine whether a diagnostic is actually required and put it out.
         a_field_ptr    field = sym->variant.field.ptr;
         a_type_ptr     tp = field->type;
         an_error_code  error_code;
-
+        if (field->has_initializer) {
+          /* A field with an in-class initializer doesn't require an explicit
+             constructor to be initialized. */
+          continue;
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode && field_is_property_or_event(field)) {
           /* A property or event field in Microsoft C++ mode.  This is not a

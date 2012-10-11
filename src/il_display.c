@@ -2766,6 +2766,13 @@ Display the indicated field.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  if (ptr->has_initializer) {
+    disp_boolean("has_initializer", TRUE);
+    if (ptr->has_direct_braced_initializer) {
+      disp_boolean("has_direct_braced_initializer", TRUE);
+    }  /* if */
+    disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
+  }  /* if */
   if (ptr->is_anonymous_parent_object) {
     disp_boolean("is_anonymous_parent_object", TRUE);
   }  /* if */
@@ -6331,7 +6338,11 @@ do_base_class:
     default:
       (void)printf("**BAD CONSTRUCTOR INIT KIND**\n");
   }  /* switch */
-  disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
+  if (ptr->use_field_initializer) {
+    disp_boolean("use_field_initializer", TRUE);
+  } else {
+    disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
+  }  /* if */
   disp_ptr("source_expr", (char *)ptr->source_expr, iek_expr_node);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("ctor_init_range", &ptr->ctor_init_range);

@@ -1754,6 +1754,24 @@ wchar_t, char16_t, and char32_t).
 }  /* is_string_type */
 
 
+a_boolean may_be_string_type(a_type_ptr  tp)
+/*
+Return TRUE if the given type is an array of character (any kind) or an array
+of template parameter.
+*/
+{
+  a_boolean   result = FALSE;
+  a_type_ptr  elem_type;
+
+  tp = skip_typerefs(tp);
+  if (is_array(tp)) {
+    elem_type = skip_typerefs(tp->variant.array.element_type);
+    result = is_general_character(elem_type) || is_template_param(elem_type);
+  }  /* if */
+  return result;
+}  /* may_be_string_type */
+
+
 a_boolean is_ptrdiff_t_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is ptrdiff_t, possibly cv-qualified.

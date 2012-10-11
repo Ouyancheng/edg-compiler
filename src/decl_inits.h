@@ -60,6 +60,8 @@ extern void initializer(a_decl_parse_state  *state,
                         a_boolean           *incomplete_type_error_reported,
                         a_decl_pos_block    *decl_pos_block);
 
+extern void field_initializer(a_decl_parse_state  *dps);
+
 extern a_boolean def_initializer(a_symbol_ptr       sym,
                                  a_source_position  *err_pos);
 

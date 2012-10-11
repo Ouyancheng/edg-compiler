@@ -887,6 +887,8 @@ typedef struct a_scope_stack_entry {
 			   has been seen.  (Additional elements may follow in
 			   C++, including trailing return types and exception
 			   specifications.) */
+  a_bit_field	in_field_initializer:1;
+			/* TRUE while scanning a field initializer. */
   a_bit_field	in_template_arg_list:1;
 			/* TRUE while scanning a template argument list.  This
 			   flag is inherited by most scopes pushed on the

@@ -1176,6 +1176,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_field_ptr, iek_field);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         definition_needed_if_class(ptr->type);
+        walk_ptr(ptr->initializer, a_dynamic_init_ptr, iek_dynamic_init);
         walk_ptr(ptr->bit_size_constant, a_constant_ptr, iek_constant);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_ptr(ptr->property_or_event_descr, a_property_or_event_descr_ptr,

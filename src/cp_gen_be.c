@@ -6878,6 +6878,16 @@ declaration following this one is such a continuation.
   gen_attributes(attributes, al_postfix, /*primary_only=*/FALSE);
   gen_attributes(attributes, al_id_equivalent_as_postfix,
                  /*primary_only=*/FALSE);
+  if (field->has_initializer) {
+    /* The field was defined with an initializer (a C++11 feature). */
+    a_boolean  braced_init = field->has_direct_braced_initializer;
+    check_assertion(field->initializer != NULL);
+    write_tok_str(braced_init ? (char*)"{" : (char*)" = ");
+    gen_dynamic_init(field->initializer, field->type, (an_expr_node_ptr)NULL,
+                     /*avoid_top_level_comma=*/TRUE,
+                     /*obj_expr_of_mfunc_operator=*/FALSE);
+    if (braced_init) write_tok_ch('}');
+  }  /* if */
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
                                                (a_name_linkage_kind)nlk_none);

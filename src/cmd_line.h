@@ -1103,6 +1103,11 @@ EXTERN a_boolean
 			   accepted. */
 
 EXTERN a_boolean
+		field_initializers_enabled;
+			/* When TRUE, C++11-style field initializers are
+			   accepted. */
+
+EXTERN a_boolean
 		alias_declarations_enabled;
 			/* TRUE if C++11 alias-declarations and alias templates
 			   are allowed. */

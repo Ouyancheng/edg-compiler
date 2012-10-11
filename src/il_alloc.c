@@ -2342,9 +2342,12 @@ to it.
 #if DO_IL_LOWERING
   fp->base_class_subobject_with_tail_padding = FALSE;
 #endif /* DO_IL_LOWERING */
+  fp->has_initializer      = FALSE;
+  fp->has_direct_braced_initializer = FALSE;
 #if CENTERLINE_CHECKING
   fp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
+  fp->initializer          = NULL;
   fp->bit_size_constant    = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   fp->property_or_event_descr = NULL;
@@ -3603,6 +3606,7 @@ pointer to it.
   cip->compiler_generated = FALSE;
   cip->is_pack_expansion = FALSE;
   cip->is_braced = FALSE;
+  cip->use_field_initializer = FALSE;
   switch (kind) {
     case cik_virtual_base_class:
     case cik_direct_base_class:

@@ -2671,6 +2671,7 @@ handling).
   trailing_return_types_enabled = value;
   this_in_trailing_return_types_enabled = value;
   list_init_enabled = value;
+  field_initializers_enabled = value;
   std_attributes_enabled = value;
   alias_declarations_enabled = value;
   inline_namespaces_enabled = value;
@@ -9728,6 +9729,7 @@ variables declared in cmd_line.h.
   trailing_return_types_enabled = FALSE;
   this_in_trailing_return_types_enabled = FALSE;
   list_init_enabled = FALSE;
+  field_initializers_enabled = FALSE;
   alias_declarations_enabled = FALSE;
   variadic_templates_enabled = FALSE;
   inline_namespaces_enabled = FALSE;
