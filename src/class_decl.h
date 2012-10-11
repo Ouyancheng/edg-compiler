@@ -294,10 +294,10 @@ extern unsigned long db_show_class_fixups_used(unsigned long grand_total);
 extern unsigned long db_show_override_registry_entries_used(
                                                    unsigned long grand_total);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 extern unsigned long db_show_initializer_fixups_used(
                                                    unsigned long grand_total);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern unsigned long db_show_quasi_override_descrs_used(
                                                    unsigned long grand_total);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

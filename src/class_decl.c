@@ -2863,7 +2863,12 @@ prototype instantiations).
     /* Re-create a declaration parsing state before parsing the initializer. */
     init_decl_parse_state(&dps);
     dps.sym = ifp->symbol;
-    if (symbol_is(dps.sym, sk_static_data_member)) {
+    if (symbol_is(dps.sym, sk_field)) {
+      /* A C++11-style field initializer. */
+      check_assertion(field_initializers_enabled);
+      field_initializer(&dps);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (symbol_is(dps.sym, sk_static_data_member)) {
       /* Static data member initializer.  Only in managed classes is
          initializer processing delayed using a fixup entry. */
       a_decl_pos_block  decl_pos_block;
@@ -2878,10 +2883,9 @@ prototype instantiations).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       var->initializer_range = decl_pos_block.var_init_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
-      /* A C++11-style field initializer. */
-      check_assertion(field_initializers_enabled);
-      field_initializer(&dps);
+      unexpected_condition();
     }  /* if */
     /* We should now be at the end-of-source terminator inserted when we
        cached the initializer.  If we aren't, it means something other than a
