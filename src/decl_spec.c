@@ -6509,10 +6509,9 @@ unchanged.
           /* No holes to fill in. */
           break;
 #endif /* INT128_EXTENSIONS_ALLOWED */
-#if CHECKING
         default:
-          internal_error("basic_type_from_typedef: bad typedef int kind");
-#endif /* CHECKING */
+          unexpected_condition_str(
+                              "basic_type_from_typedef: bad typedef int kind");
       }  /* switch */
     }  /* if */
   } else if (temp_type->kind == (a_type_kind)tk_float) {
@@ -6592,11 +6591,9 @@ _Sat was specified.
             /* unsigned char. */
             ikind = (an_integer_kind)ik_unsigned_char;
             break;
-#if CHECKING
           default:
-            internal_error(
+            unexpected_condition_str(
                       "combine_type_specifiers: bad value for a_type_sign");
-#endif /* CHECKING */
         }
         /* In Microsoft Visual C++ 6.0 __int8 is a distinct type (not just a
            synonym for a char type). */
@@ -6862,10 +6859,8 @@ _Sat was specified.
       /* Error, already diagnosed. */
       dps->specifiers_type = error_type();
       break;
-#if CHECKING
     default:
-      internal_error("combine_type_specifiers: bad basic type");
-#endif /* CHECKING */
+      unexpected_condition_str("combine_type_specifiers: bad basic type");
   }  /* switch */
 #if FIXED_POINT_ALLOWED
   if (saturating_fp && (basic_type != bt_fract && basic_type != bt_accum)) {
@@ -7320,10 +7315,8 @@ final position of the construct (whether or not a block size was specified).
         case ck_error:
           *err = TRUE;
           break;
-#if CHECKING
         default:
-          internal_error("UPC shared block size: bad constant kind");
-#endif /* if CHECKING */
+          unexpected_condition_str("UPC shared block size: bad constant kind");
       }  /* switch */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

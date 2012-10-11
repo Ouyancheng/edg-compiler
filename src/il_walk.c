@@ -3497,10 +3497,8 @@ as specified in the control block.
               }  /* for */
             }
             break;
-#if CHECKING
           default:
             unexpected_condition();
-#endif /* CHECKING */
         }  /* switch */
         if (statement->variant.for_each_loop.statement != NULL) {
           traverse_statement(statement->variant.for_each_loop.statement,

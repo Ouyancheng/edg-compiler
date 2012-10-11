@@ -380,10 +380,9 @@ derived type to remove the restrict qualifier.
                 case tk_routine:
                   prev_tp->variant.routine.return_type = new_tp;
                   break;
-#if CHECKING
                 default:
-                  internal_error("check_for_restrict...: bad type kind");
-#endif /* CHECKING */
+                  unexpected_condition_str(
+                                       "check_for_restrict...: bad type kind");
               }  /* switch */
             }  /* if */
             *bottom_derived_type = skip_typerefs(new_tp);
@@ -3618,10 +3617,8 @@ constant.
         case ck_error:
           err = TRUE;
           break;
-#if CHECKING
         default:
-          internal_error("array declarator: bad constant kind");
-#endif /* if CHECKING */
+          unexpected_condition_str("array declarator: bad constant kind");
       }  /* switch */
     }  /* if */
   }  /* if */

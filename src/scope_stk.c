@@ -9057,7 +9057,7 @@ in such cases.
     /* Allocate a new entry. */
     prp = alloc_fe_of_type(a_pack_reference);
 #if DEBUG
-   num_pack_references_allocated++;
+    num_pack_references_allocated++;
 #endif /* DEBUG */
   }  /* if */
   prp->next = NULL;
@@ -9077,6 +9077,8 @@ in such cases.
       prp->curr_argument.param_id = NULL;
       prp->curr_argument.param_type = NULL;
       break;
+    default:
+      unexpected_condition();
   }  /* switch */
   prp->prev_template_arg = NULL;
   prp->uses_enclosing_pack = FALSE;

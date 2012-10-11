@@ -3901,11 +3901,8 @@ execute the preprocessor directive.
         nonstandard_pp_directive();
         proc_line(/*cpp_output_form=*/TRUE);
         break;
-#if CHECKING
       default:
-        internal_error("pp_directive: bad pp directive code");
-        break;
-#endif /* CHECKING */
+        unexpected_condition_str("pp_directive: bad pp directive code");
     }  /* switch */
     /* If some other preprocessing directive is seen outside of the
        #ifndef/#endif guard code of the current file then it is not a

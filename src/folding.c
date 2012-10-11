@@ -791,10 +791,8 @@ applied to an address constant that has been cast to an integral type.
       /* Integer cast to a pointer type (probably 0/NULL). */
       *offset = *constant;
       break;
-#if CHECKING
     default:
-      internal_error("get_pointer_offset: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("get_pointer_offset: bad kind");
   }  /* switch */
 }  /* get_pointer_offset */
 
@@ -816,10 +814,9 @@ integral type.
     case ck_integer:
       *constant = *offset;
       break;
-#if CHECKING
     default:
-      internal_error("set_pointer_offset: bad pointer constant kind");
-#endif /* CHECKING */
+      unexpected_condition_str(
+                              "set_pointer_offset: bad pointer constant kind");
   }  /* switch */
 }  /* set_pointer_offset */
 
@@ -863,10 +860,8 @@ it points to the variable, routine, or constant entry.
       case abk_label:
         object = (char *)constant->variant.address.variant.label;
         break;
-#if CHECKING
       default:
-        internal_error("base_object: bad address constant kind");
-#endif /* CHECKING */
+        unexpected_condition_str("base_object: bad address constant kind");
     }  /* switch */
   }  /* if */
   return object;
@@ -2772,11 +2767,8 @@ for any diagnostics issued.
           do_complex_projection(op, constant, result);
           break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-#if CHECKING
         default:
-          internal_error("unary_operation: bad unary operator");
-          break;
-#endif /* CHECKING */
+          unexpected_condition_str("unary_operation: bad unary operator");
       }  /* switch */
     }  /* if */
     if (err_code != ec_no_error) {
@@ -3321,9 +3313,7 @@ operator "op", and return a 0 or 1 integer in "result".
     case eok_lt:  result_value = (cmp <  0); break;
     case eok_ge:  result_value = (cmp >= 0); break;
     case eok_le:  result_value = (cmp <= 0); break;
-#if CHECKING
-    default:       internal_error("do_icompare: bad operator");
-#endif /* CHECKING */
+    default:      unexpected_condition_str("do_icompare: bad operator");
   }  /* switch */
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
   set_integer_value(&result->variant.integer_value,
@@ -3718,9 +3708,7 @@ relational operator "op", and return a 0 or 1 integer in "result".
       case eok_lt:  result_value = (cmp <  0); break;
       case eok_ge:  result_value = (cmp >= 0); break;
       case eok_le:  result_value = (cmp <= 0); break;
-#if CHECKING
-      default:       internal_error("do_fcompare: bad operator");
-#endif /* CHECKING */
+      default:      unexpected_condition_str("do_fcompare: bad operator");
     }  /* switch */
   }  /* if */
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
@@ -3885,9 +3873,7 @@ relational operator "op", and return a 0 or 1 integer in "result".
     case eok_lt:  result_value = (cmp <  0); break;
     case eok_ge:  result_value = (cmp >= 0); break;
     case eok_le:  result_value = (cmp <= 0); break;
-#if CHECKING
-    default:        internal_error("do_fxcompare: bad operator");
-#endif /* CHECKING */
+    default:      unexpected_condition_str("do_fxcompare: bad operator");
   }  /* switch */
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
   set_integer_value(&result->variant.integer_value,
@@ -4476,10 +4462,9 @@ checking.
         /* The object is std::type_info or a class derived from it.  So we
            don't really know the actual size. */
         break;
-#if CHECKING
       default:
-        internal_error("valid_address_constant: bad address constant kind");
-#endif /* CHECKING */
+        unexpected_condition_str(
+                          "valid_address_constant: bad address constant kind");
     }  /* switch */
     /* See if the offset is valid given the size. */
     if (constant->variant.address.offset < 0) {
@@ -4826,9 +4811,7 @@ set if the operation cannot be folded.
       case eok_lt:  result_value = (cmp <  0); break;
       case eok_ge:  result_value = (cmp >= 0); break;
       case eok_le:  result_value = (cmp <= 0); break;
-#if CHECKING
-      default:       internal_error("do_pcompare: bad operator");
-#endif /* CHECKING */
+      default:      unexpected_condition_str("do_pcompare: bad operator");
     }  /* switch */
     set_constant_kind(result, (a_constant_repr_kind)ck_integer);
     set_integer_value(&result->variant.integer_value,
@@ -5423,10 +5406,8 @@ error.  *err_pos is used as the position for any diagnostics issued.
           do_padd(constant_1, op, constant_2, result, did_not_fold,
                   &err_code, &err_severity);
           break;
-#if CHECKING
         default:
-          internal_error("binary_operation: bad binary operator");
-#endif /* CHECKING */
+          unexpected_condition_str("binary_operation: bad binary operator");
       }  /* switch */
     }  /* if */
     if (err_code != ec_no_error) {

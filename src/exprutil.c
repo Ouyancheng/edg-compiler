@@ -2149,10 +2149,8 @@ to default values.
     case ok_braced_init_list:
       operand->variant.braced_init_list = NULL;
       break;
-#if CHECKING
     default:
-      internal_error("set_operand_kind: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("set_operand_kind: bad kind");
   }  /* switch */
 }  /* set_operand_kind */
 
@@ -4385,11 +4383,9 @@ instead.
       node = make_braced_init_expr_from_arg_list_elem(
                                             operand->variant.braced_init_list);
       break;
-#if CHECKING
     default:
-      internal_error
+      unexpected_condition_str
 	("extract_node_from_operand: converting unexpected operand kind");
-#endif /* CHECKING */
   }  /* switch */
   return node;
 }  /* extract_node_from_operand */
@@ -7026,10 +7022,8 @@ user-defined conversions.
                                  /*is_static_cast=*/FALSE,
                                  /*skip_final_adjustment=*/FALSE);
         break;
-#if CHECKING
       default:
-        internal_error("cast_operand_full: bad operand kind");
-#endif /* CHECKING */
+        unexpected_condition_str("cast_operand_full: bad operand kind");
     }  /* switch */
   }  /* if */
   /* Restore the original source position, etc.  Keep the reference

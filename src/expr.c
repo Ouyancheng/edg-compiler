@@ -7275,10 +7275,9 @@ nonstatic_member_function:
           operand_will_not_be_used_because_of_error(operand_1);
           make_error_operand(result);
           break;
-#if CHECKING
         default:
-          internal_error("scan_field_selection_operator: bad symbol kind");
-#endif /* CHECKING */
+          unexpected_condition_str(
+                             "scan_field_selection_operator: bad symbol kind");
       }  /* switch */
 after_switch:;
     }  /* if */
@@ -26519,11 +26518,9 @@ overloaded_function:
           }
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if CHECKING
         case sk_keyword:
         default:
-          internal_error("scan_identifier: bad symbol kind");
-#endif /* CHECKING */
+          unexpected_condition_str("scan_identifier: bad symbol kind");
       }  /* switch */
     }  /* if */
   }  /* if */
@@ -33358,11 +33355,9 @@ expression context.  Return either *is_constant TRUE and a constant value in
         }  /* if */
       }  /* if */
       break;
-#if CHECKING
     default:
-      internal_error(
+      unexpected_condition_str(
                "scan_nonconstant_dimension_expression: bad operand kind");
-#endif /* CHECKING */
   }  /* switch */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL

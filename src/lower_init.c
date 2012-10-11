@@ -1180,10 +1180,8 @@ init position modifier.
       ipmp->curr_field = ctor_init->variant.field;
       ipmp->type = ctor_init->variant.field->type;
       break;
-#if CHECKING
     default:
-      internal_error("modify_ctor_init_pos_descr: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("modify_ctor_init_pos_descr: bad kind");
   }  /* switch */
 }  /* modify_ctor_init_pos_descr */
 
@@ -1524,10 +1522,8 @@ initial value pointed to by dip or con is already lowered.
       /* The expression has already been lowered. */
       init_val_node = dip->variant.expression;
       break;
-#if CHECKING
     default:
-      internal_error("add_init_assignment: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("add_init_assignment: bad kind");
   }  /* switch */
   if (array_assignment &&
       skip_typerefs(init_val_node->type)->
@@ -3561,10 +3557,8 @@ Assumes ctor_init has not been lowered yet.
     case cik_direct_base_class:
       /* These are allocated in the file scope. */
       break;
-#if CHECKING
     default:
       unexpected_condition();
-#endif /* CHECKING */
   }  /* switch */
   if (copy->initializer != NULL) {
     /* Expressions in the dynamic init may have variables (actually parameters)
@@ -8407,10 +8401,8 @@ do_assignment:;
       add_bitwise_copy(ipdp, source_desc, have_complete_object,
                        eff_insert_location);
       break;
-#if CHECKING
     default:
-      internal_error("lower_dynamic_init: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("lower_dynamic_init: bad kind");
   }  /* switch */
   /* If the dynamic init entry indicates a destructor call, it requires
      processing to get the destruction done at the right time. */
@@ -10588,10 +10580,8 @@ Generate code for a stmk_init (dynamic initialization) statement.
       */
       non_C_case = TRUE;
       break;
-#if CHECKING
     default:
-      internal_error("lower_stmk_init: bad dynamic init kind");
-#endif /* CHECKING */
+      unexpected_condition_str("lower_stmk_init: bad dynamic init kind");
   }  /* switch */
   if (non_C_case) {
     /* Rewrite a non-C case. */
@@ -10669,10 +10659,8 @@ Generate code for a stmk_init (dynamic initialization) statement.
         break;
       case dik_none:
         break;
-#if CHECKING
       default:
-        internal_error("lower_stmk_init: bad dynamic init kind (2)");
-#endif /* CHECKING */
+        unexpected_condition_str("lower_stmk_init: bad dynamic init kind (2)");
     }  /* switch */
   }  /* if */
 }  /* lower_stmk_init */

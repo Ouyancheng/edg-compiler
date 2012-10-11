@@ -5821,10 +5821,8 @@ Return the hash value for the indicated constant.
 	  hash_value = 
 	         hash_name(&cp->variant.address.variant.label->source_corresp);
 	  break;
-#if CHECKING
         default:
-          internal_error("hash_constant: bad address constant kind");
-#endif /* CHECKING */
+          unexpected_condition_str("hash_constant: bad address constant kind");
       }  /* switch */
       /* Add the offset in the address constant into the hash value. */
       hash_value += (a_hash_value)(cp->variant.address.offset + 1000);
@@ -6428,10 +6426,9 @@ definition of the CC flags in il.h for more information.
 	      eq = (cp1->variant.address.variant.label == 
 		    cp2->variant.address.variant.label);
 	      break;
-#if CHECKING
             default:
-              internal_error("compare_constants: bad address constant kind");
-#endif /* CHECKING */
+              unexpected_condition_str(
+                               "compare_constants: bad address constant kind");
           }  /* switch */
         }  /* if */
         break;
@@ -6600,17 +6597,14 @@ definition of the CC flags in il.h for more information.
                                                          template_ref.arg_list,
                                       ETA_IS_NONREAL_MEMBER);
               break;
-#if CHECKING
             default:
-              internal_error("compare_constants: bad templ param const kind");
-#endif /* CHECKING */
+              unexpected_condition_str(
+                              "compare_constants: bad templ param const kind");
           }  /* switch */
         }  /* if */
         break;
-#if CHECKING
       default:
-        internal_error("compare_constants: bad constant kind");
-#endif /* CHECKING */
+        unexpected_condition_str("compare_constants: bad constant kind");
     }  /* switch */
   }  /* if */
 end_of_routine:
@@ -6817,10 +6811,9 @@ at the file scope (it would contain a pointer down into a function scope).
           /* Labels are never in the file scope. */
           has_nfs_ref = TRUE;
           break;
-#if CHECKING
         default:
-          internal_error("has_non_file_scope_ref: bad addr constant kind");
-#endif /* CHECKING */
+          unexpected_condition_str(
+                             "has_non_file_scope_ref: bad addr constant kind");
       }  /* switch */
       break;
     case ck_aggregate:
@@ -12083,10 +12076,8 @@ options for the copy.  cblock is a control block for the copy.
                                                          cblock);
       }
       break;
-#if CHECKING
     default:
-      internal_error("i_copy_dynamic_init: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("i_copy_dynamic_init: bad kind");
   }  /* switch */
 #if DO_IL_LOWERING
   /* Pop an init_expr_lifetime object lifetime if we had pushed one
@@ -12216,10 +12207,9 @@ If var_scope is NULL, use the current scope in the scope stack.
     case initk_dynamic:
       lsvip->initializer.dynamic = dip;
       break;
-#if CHECKING
     default:
-      internal_error("make_local_static_variable_init: bad init kind");
-#endif /* CHECKING */
+      unexpected_condition_str(
+                             "make_local_static_variable_init: bad init kind");
   }  /* switch */
   db_exit();
   return lsvip;
@@ -20666,13 +20656,11 @@ with it.  Entries associated with scopes must also have no child entries.
         /* The lifetime associated with a try block is retained in the IL
            even if it has no destructions and no children. */
         break;
-#if CHECKING
       case olk_function_static:
         /* Should not have been created unless there were destructions. */
       default:
         unexpected_condition_str2("is_useless_object_lifetime:",
                                   "bad object lifetime kind");
-#endif /* CHECKING */
     }  /* switch */
   }  /* if */
   return is_useless;

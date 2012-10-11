@@ -5281,6 +5281,8 @@ Display the indicated Microsoft attribute entry.
         disp_host_large_integer(buffer,
                                (a_host_large_integer)arg->variant.enum_value);
         break;
+      default:
+        break;
     }  /* switch */
   }  /* for */
 #undef ATTR_BUFFER_SIZE

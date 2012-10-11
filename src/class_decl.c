@@ -14826,10 +14826,9 @@ nonstandard anonymous unions is_nonstd is TRUE.
       check_assertion(assoc_object_type->kind == (a_type_kind)tk_union);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       break;
-#if CHECKING
     default:
-      internal_error("check_anonymous_union_symbols: bad symbol kind");
-#endif /* CHECKING */
+      unexpected_condition_str(
+                             "check_anonymous_union_symbols: bad symbol kind");
   }  /* switch */
 #if DEBUG
   if (debug_level >= 4) {

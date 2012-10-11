@@ -817,10 +817,8 @@ fields to default values.
       cp->variant.designator.field = NULL;
       cp->variant.designator.array_element = 0;
       break;
-#if CHECKING
     default:
-      internal_error("set_constant_kind: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("set_constant_kind: bad kind");
   }  /* switch */
 }  /* set_constant_kind */
 
@@ -1843,10 +1841,8 @@ to default values.
       pte->variant.vector.size_constant = NULL;
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-#if CHECKING
     default:
-      internal_error("set_type_kind: bad type kind");
-#endif /* CHECKING */
+      unexpected_condition_str("set_type_kind: bad type kind");
   }  /* switch */
 }  /* set_type_kind */
 
@@ -1986,10 +1982,8 @@ the associated variant fields to default values.
       dip->variant.constructor.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
       break;
-#if CHECKING
     default:
-      internal_error("set_dynamic_init_kind: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("set_dynamic_init_kind: bad kind");
   }  /* switch */
 }  /* set_dynamic_init_kind */
 
@@ -3544,10 +3538,8 @@ fields to default values.
       sp->variant.vla.is_typedef_decl  = FALSE;
       sp->variant.vla.variant.variable = NULL;
       break;
-#if CHECKING
     default:
-      internal_error("set_statement_kind: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("set_statement_kind: bad kind");
   }  /* switch */
 }  /* set_statement_kind */
 
@@ -3615,10 +3607,8 @@ pointer to it.
     case cik_field:
       cip->variant.field = NULL;
       break;
-#if CHECKING
     default:
-      internal_error("alloc_ctor_init: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("alloc_ctor_init: bad kind");
   }  /* switch */
   cip->initializer = NULL;
   cip->source_expr = NULL;
@@ -3793,10 +3783,8 @@ in the current IL memory region.
       clear_gcc_pragma_descr(&pp->variant.gcc);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if CHECKING
     default:
-      internal_error("alloc_pragma: bad pragma kind");
-#endif /* CHECKING */
+      unexpected_condition_str("alloc_pragma: bad pragma kind");
   }  /* switch */
 
   return pp;
@@ -3971,10 +3959,8 @@ Initialize the variable fields of the scope entry pointed to by sp.
     case sck_namespace:
       sp->variant.assoc_namespace = NULL;
       break;
-#if CHECKING
     default:
-      internal_error("set_scope_kind: bad scope kind");
-#endif /* CHECKING */
+      unexpected_condition_str("set_scope_kind: bad scope kind");
   }  /* switch */
 }  /* set_scope_kind */
 

@@ -5002,11 +5002,8 @@ expression.
       selector = operand;
       selection = NULL;
       break;
-#if CHECKING
     default:
       unexpected_condition();
-      break;
-#endif /* CHECKING */
   }  /* switch */
   if (expr->variant.operation.compiler_generated) {
     if (expr->is_objectless_nonstatic_data_mem_ref
@@ -5082,11 +5079,8 @@ expression.
         add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_ARROW_STAR, mctl);
         use_unresolved_name_mangling = FALSE;
         break;
-#if CHECKING
       default:
         unexpected_condition();
-        break;
-#endif /* CHECKING */
     }  /* switch */
 #if !IA64_ABI
     /* Count of operands. */
@@ -5150,11 +5144,8 @@ this expression is part of a template-dependent expression.
       call_operand = child;
       arguments = NULL;
       break;
-#if CHECKING
     default:
       unexpected_condition();
-      break;
-#endif /* CHECKING */
   }  /* switch */
   if (expr->variant.operation.call_uses_operator_syntax) {
     /* This is a call operator that was added by the compiler, for example,
@@ -6130,11 +6121,10 @@ is TRUE.
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:  /* Only expected under enk_builtin_operation. */
-    default:;
+    default:
       /* Unexpected expression kind. */
-#if CHECKING
-      internal_error("mangled_encoding_for_expression_full: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str(
+                             "mangled_encoding_for_expression_full: bad kind");
   }  /* switch */
 #if !IA64_ABI
   if (need_close) {
@@ -8668,7 +8658,6 @@ specified type.  Substitutions are not allocated for <builtin-type>s
       result = FALSE;
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
       break;
-#if CHECKING
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -8679,7 +8668,6 @@ specified type.  Substitutions are not allocated for <builtin-type>s
     default:
       /* These are unexpected. */
       unexpected_condition();
-#endif /* CHECKING */
   }  /* switch */
   return result;
 }  /* record_substitution_for_type */
@@ -8995,10 +8983,9 @@ top_of_loop:
               s = MANGLING_STRING_FOR_UNSIGNED_INT128;
               break;
 #endif /* INT128_EXTENSIONS_ALLOWED */
-#if CHECKING
             default:
-              internal_error("mangled_encoding_for_type: bad int kind");
-#endif /* CHECKING */
+              unexpected_condition_str(
+                                    "mangled_encoding_for_type: bad int kind");
           }  /* switch */
         }  /* if */
         break;
@@ -9018,10 +9005,9 @@ top_of_loop:
           case fk_long_double:    
             s = MANGLING_STRING_FOR_LONG_DOUBLE;
             break;
-#if CHECKING
           default:
-            internal_error("mangled_encoding_for_type: bad float kind");
-#endif /* CHECKING */
+            unexpected_condition_str(
+                                  "mangled_encoding_for_type: bad float kind");
         }  /* switch */
         break;
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -9036,10 +9022,9 @@ top_of_loop:
           case fk_long_double:    
             s = MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE;
             break;
-#if CHECKING
           default:
-            internal_error("mangled_encoding_for_type: bad float kind");
-#endif /* CHECKING */
+            unexpected_condition_str(
+                                  "mangled_encoding_for_type: bad float kind");
         }  /* switch */
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -9243,10 +9228,8 @@ top_of_loop:
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         break;
-#if CHECKING
       default:
-        internal_error("mangled_encoding_for_type: bad type kind");
-#endif /* CHECKING */
+        unexpected_condition_str("mangled_encoding_for_type: bad type kind");
     }  /* switch */
     /* s is now set to a type description string to be output. */
     add_str_to_mangled_name(s, mctl);
@@ -9582,10 +9565,8 @@ binary versions of operators are mangled differently.
       name = MANGLING_STRING_FOR_OPERATOR_GNU_MAX;
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if CHECKING
     default:
-      internal_error("mangled_operator_name: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("mangled_operator_name: bad kind");
   }  /* switch */
   return name;
 }  /* mangled_operator_name */

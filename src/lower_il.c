@@ -4722,10 +4722,9 @@ Do IL lowering of the indicated constant and everything under it.
           case abk_typeid:
             lower_typeid_constant(constant);
             break;
-#if CHECKING
           default:
-            internal_error("lower_constant: bad address constant kind");
-#endif /* CHECKING */
+            unexpected_condition_str(
+                                  "lower_constant: bad address constant kind");
         }  /* switch */
         break;
       case ck_ptr_to_member:
@@ -8930,11 +8929,9 @@ Do IL lowering of the indicated type and everything under it.
         type->variant.typeref.type = void_star_type();
         type->variant.typeref.orig_type = copy_of_orig_type;
         break;
-#if CHECKING
       case tk_unknown:  /* Shouldn't make it out of front end. */
       default:
-        internal_error("lower_type: bad kind");
-#endif /* CHECKING */
+        unexpected_condition_str("lower_type: bad kind");
     }  /* switch */
   }  /* if */
 }  /* lower_type */
@@ -9072,10 +9069,8 @@ local-variable-static-init entry.
          as part of the file scope, and the initialization (in the function
          scope memory region) is gone by then. */
       break;
-#if CHECKING
     default:
-      internal_error("lower_initializer: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("lower_initializer: bad kind");
   }  /* switch */
 }  /* lower_initializer */
 

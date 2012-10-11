@@ -1886,10 +1886,9 @@ of the indicated kind.
       alignment = targ_alignof_int128;
       break;
 #endif /* INT128_EXTENSIONS_ALLOWED */
-#if CHECKING
     default:
-      internal_error("get_integer_size_and_alignment: bad integer kind");
-#endif /* CHECKING */
+      unexpected_condition_str(
+                           "get_integer_size_and_alignment: bad integer kind");
   }  /* switch */
   *p_size = size;
   *p_alignment = alignment;

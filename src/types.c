@@ -3650,10 +3650,8 @@ set, leave it alone.  Also compute and set the alignment requirement.
             size = targ_sizeof_long_double;
             alignment = targ_alignof_long_double;
             break;
-#if CHECKING
           default:
-            internal_error("set_type_size: bad float kind");
-#endif /* CHECKING */
+            unexpected_condition_str("set_type_size: bad float kind");
         }  /* switch */
 #if C99_IL_EXTENSIONS_SUPPORTED
         if (type_ptr->kind == (a_type_kind)tk_complex) size *= 2;
@@ -3694,7 +3692,6 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_nullptr:
         size = size_of_pointer_to(void_type(), &alignment);
         break;
-#if CHECKING
       case tk_class:
       case tk_struct:
       case tk_union:
@@ -3705,8 +3702,7 @@ set, leave it alone.  Also compute and set the alignment requirement.
         /* Vector types get their size set when they are created. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       default:
-        internal_error("set_type_size: bad type kind");
-#endif /* CHECKING */
+        unexpected_condition_str("set_type_size: bad type kind");
     }  /* switch */
     type_ptr->size      = size;
     type_ptr->alignment = alignment;
@@ -3827,10 +3823,9 @@ do_signed_char:;
           /* These are deliberately left as they are; they are not supposed
              to be promoted. */
           break;
-#if CHECKING
         default:
-          internal_error("type_after_integral_promotion: bad int kind");
-#endif /* CHECKING */
+          unexpected_condition_str(
+                                "type_after_integral_promotion: bad int kind");
       }  /* switch */
       if (C_dialect == C_dialect_cplusplus) {
         /* enums, wchar_t, char16_t, and char32_t get promoted to the
@@ -5472,10 +5467,8 @@ check_typerefs:
            complete. */
         identical = (type_1->incomplete == type_2->incomplete);
         break;
-#if CHECKING
       default:
-        internal_error("f_identical_types: bad type");
-#endif /* CHECKING */
+        unexpected_condition_str("f_identical_types: bad type");
     }  /* switch */
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && identical &&
@@ -6128,10 +6121,8 @@ check_typerefs:
           }  /* if */
           break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-#if CHECKING
         default:
-          internal_error("f_types_are_compatible_full: bad type");
-#endif /* CHECKING */
+          unexpected_condition_str("f_types_are_compatible_full: bad type");
       }  /* switch */
 #if GNU_EXTENSIONS_ALLOWED
       if (gnu_mode && compat && type_1->kind != (a_type_kind)tk_routine &&
@@ -6569,11 +6560,9 @@ that are not present in standalone back ends and utilities.
                                                  variant.vector.element_type));
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-#if CHECKING
     case tk_typeref:
     default:
-      internal_error("f_standalone_identical_types: bad type");
-#endif /* CHECKING */
+      unexpected_condition_str("f_standalone_identical_types: bad type");
   }  /* switch */
 #if GNU_EXTENSIONS_ALLOWED
   if (identical) {
@@ -10459,12 +10448,10 @@ calling disentangle_default_args).
             }  /* if */
           }  /* if */
           break;
-#if CHECKING
         /* Typerefs were removed above, and therefore shouldn't occur. */
         case tk_typeref:
         default:
-          internal_error("composite_type: bad type kind");
-#endif /* CHECKING */
+          unexpected_condition_str("composite_type: bad type kind");
       }  /* switch */
     }  /* if */
     /* If the composite type is different from both original types, some
@@ -11675,10 +11662,8 @@ check_enclosing_classes:
           status = traverse_type_tree(tp, func, flags);
         }  /* if */
         break;
-#if CHECKING
       default:
-        internal_error("traverse_type_tree: bad type kind");
-#endif /* CHECKING */
+        unexpected_condition_str("traverse_type_tree: bad type kind");
     }  /* switch */
   }  /* if */
 done:
@@ -13081,10 +13066,8 @@ make_new_type:
       }  /* if */
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-#if CHECKING
     default:
-      internal_error("traverse_and_modify_type_tree: bad type kind");
-#endif /* CHECKING */
+      unexpected_condition_str("traverse_and_modify_type_tree: bad type kind");
   }  /* switch */
   return new_type;
 }  /* traverse_and_modify_type_tree */

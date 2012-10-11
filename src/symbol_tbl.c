@@ -1279,11 +1279,9 @@ do_variable:
       }  /* if */
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if CHECKING
     default:
       put_string("UNEXPECTED SYMBOL KIND");
       break;
-#endif /* CHECKING */
   }  /* switch */
   if (type != NULL) {
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
@@ -3464,10 +3462,9 @@ and return a pointer to it.
       clear_template_cache(&tssp->variant.static_data_member.decl_cache,
                           /*reusable=*/TRUE);
       break;
-#if CHECKING
     default:
-      internal_error("alloc_template_symbol_supplement: bad symbol kind");
-#endif /* CHECKING */
+      unexpected_condition_str(
+                          "alloc_template_symbol_supplement: bad symbol kind");
   }  /* switch */
 
   db_exit();
@@ -3759,10 +3756,8 @@ state.
       sym_ptr->variant.property_info = alloc_property_set_symbol_supplement();
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if CHECKING
     default:
-      internal_error("set_symbol_kind: bad symbol kind");
-#endif /* CHECKING */
+      unexpected_condition_str("set_symbol_kind: bad symbol kind");
   }  /* switch */
 
   db_exit();
@@ -6750,10 +6745,8 @@ create the instance symbols for template aliases.
       case tk_class:
       case tk_struct:  kind = (a_symbol_kind)sk_class_or_struct_tag;  break;
       case tk_union:   kind = (a_symbol_kind)sk_union_tag;            break;
-#if CHECKING
       default:
-        internal_error("make_template_class_symbol: bad type kind");
-#endif /* CHECKING */
+        unexpected_condition_str("make_template_class_symbol: bad type kind");
     }  /* switch */
   }  /* if */
   /* Create the symbol.  Use the position of the template declaration as its
@@ -13587,10 +13580,9 @@ can be completed for the dependent types, too.
               }  /* if */
             }  /* if */
             break;
-#if CHECKING
           default:
-            internal_error("check_dependent_type_fixup_list: bad fixup kind");
-#endif /* CHECKING */
+            unexpected_condition_str(
+                            "check_dependent_type_fixup_list: bad fixup kind");
         }  /* switch */
         /* If the head of the list is being removed (the common case) reset the
            list pointer. */

@@ -13056,10 +13056,9 @@ as its first operand.
            See below for postfix (which shows up as a two-operand operator). */
         operand_type_pattern = "La;O";
         break;
-#if CHECKING
       default:
-        internal_error("operand_type_pattern_for_operator: bad unary op");
-#endif /* CHECKING */
+        unexpected_condition_str(
+                            "operand_type_pattern_for_operator: bad unary op");
     }  /* switch */
   } else {
     /* Binary operator. */
@@ -13210,10 +13209,9 @@ as its first operand.
            same class. */
         operand_type_pattern = "=OM";
         break;
-#if CHECKING
       default:
-        internal_error("operand_type_pattern_for_operator: bad binary op");
-#endif /* CHECKING */
+        unexpected_condition_str(
+                           "operand_type_pattern_for_operator: bad binary op");
     }  /* switch */
   } /* if */
   return operand_type_pattern;

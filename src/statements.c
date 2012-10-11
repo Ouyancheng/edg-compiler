@@ -588,10 +588,8 @@ to it.
       break;
     case cfdk_case_label:
       break;
-#if CHECKING
     default:
-      internal_error("alloc_control_flow_descr: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("alloc_control_flow_descr: bad kind");
   }  /* switch */
   db_exit();
   return cfdp;
@@ -1611,11 +1609,9 @@ should be set to TRUE.
         }  /* if */
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if CHECKING
       default:
-        internal_error(
+        unexpected_condition_str(
              "add_statement_list: bad stmt kind in struct stmt stack");
-#endif /* CHECKING */
     }  /* switch */
   }  /* if */
 

@@ -1869,10 +1869,9 @@ Also promote the fields of the union type to the current scope.
       case sc_register:
         /* Okay. */
         break;
-#if CHECKING
       default:
-        internal_error("make_anonymous_union_variable: bad storage class");
-#endif /* CHECKING */
+        unexpected_condition_str(
+                           "make_anonymous_union_variable: bad storage class");
     }  /* switch */
   }  /* if */
   /* Allocate a variable to represent the anonymous union. */
@@ -3185,11 +3184,10 @@ information in the specified id-linkage block.
                 local_storage_class = prior_decl->variant.template_info->
                                       variant.function.routine->storage_class;
                 break;
-#if CHECKING
               case sk_overloaded_function:
               default:
-                internal_error("id_linkage: bad kind for prior_decl");
-#endif /* CHECKING */
+                unexpected_condition_str(
+                                        "id_linkage: bad kind for prior_decl");
             }  /* switch */
             if (local_storage_class == (a_storage_class)sc_static) {
               /* An entity initially declared "static" is now being declared
@@ -3210,9 +3208,8 @@ information in the specified id-linkage block.
       case idl_none:     fputs("none",     f_debug); break;
       case idl_internal: fputs("internal", f_debug); break;
       case idl_external: fputs("external", f_debug); break;
-#if CHECKING
-      default:      internal_error("id_linkage: bad id linkage determination");
-#endif /* CHECKING */
+      default:           unexpected_condition_str(
+                                   "id_linkage: bad id linkage determination");
     }  /* switch */
     putc('\n', f_debug);
   }  /* if */
