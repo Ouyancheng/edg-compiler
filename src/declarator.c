@@ -1422,11 +1422,11 @@ actually declares a function, member function, or function template).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     esp->source_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (cpp11_mode && strict_ansi_mode && !is_noexcept) {
-      /* Dynamic exception specifications are deprecated in C++11.  We only
-         diagnose that in strict mode. */
-      pos_warning(ec_dynamic_exception_specifications_deprecated,
-                  &pos_curr_token);
+    if (cpp11_mode && !is_noexcept) {
+      /* Dynamic exception specifications are deprecated in C++11.  Issue a
+         remark. */
+      pos_remark(ec_dynamic_exception_specifications_deprecated,
+                 &pos_curr_token);
     }  /* if */
   } else if (!exception_spec_allowed) {
     /* This is a declaration on which an exception specification is not

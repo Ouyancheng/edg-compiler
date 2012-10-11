@@ -32,11 +32,11 @@ was added to the IL for x.  A reference cast node is now added.
 
 
 10/10/12 [EDGcpfe/10618]
-Dynamic exception specifications in strict C++11 mode
+Dynamic exception specifications in C++11 mode
 
 The C++11 standard deprecates dynamic exception specifications (i.e.,
 exception specifications of the form "throw ( ... )").  The front end
-therefore issues a warning on such constructs in strict C++11 mode.
+therefore issues a remark on such constructs in C++11 mode.
 
 
 10/10/12 [EDGcpfe/13256]
