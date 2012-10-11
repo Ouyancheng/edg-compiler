@@ -1002,13 +1002,13 @@ typedef struct a_scope_stack_entry {
 			   caching and delayed scanning scheme required for
 			   C++ member functions (routine bodies and default
 			   arguments). */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   an_initializer_fixup_ptr
 		last_initializer_fixup;
 			/* Defined for sck_class_struct_union scopes only:
 			   the tail of a list of entities used in the token
 			   caching and delayed scanning scheme required for
 			   C++ in-class data member initializers. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_deferred_constraint_check_ptr
 		deferred_constraint_checks;
 			/* When defer_constraint_checks is TRUE, this contains

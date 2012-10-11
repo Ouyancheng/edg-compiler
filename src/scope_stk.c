@@ -2658,8 +2658,8 @@ the scope being pushed.
   ssep->shareable_constants_table
                                  = NULL;
   ssep->last_routine_fixup       = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   ssep->last_initializer_fixup   = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   ssep->deferred_constraint_checks
                                  = NULL;
   ssep->types_using_pending_constraints

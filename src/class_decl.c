@@ -510,7 +510,6 @@ Add a class fixup entry for class_type to the class fixup list.
   }  /* if */
 }  /* add_to_class_fixup_list */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 typedef struct an_initializer_fixup {
   an_initializer_fixup_ptr
@@ -592,7 +591,6 @@ reuse.
   avail_initializer_fixup = ifp;
 }  /* free_initializer_fixup */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Data structure in which to track partial overriding of an overload set of
@@ -27010,8 +27008,8 @@ One-time initialization for class_decl.c static variables.
       pch_saved_var_array_elem(avail_class_fixup),
       pch_saved_var_array_elem(avail_derivation_steps),
       pch_saved_var_array_elem(avail_override_registry_entries),
-#if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(avail_initializer_fixup),
+#if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(avail_quasi_override_descrs),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(deferred_friend_fixup_list),
@@ -27021,8 +27019,8 @@ One-time initialization for class_decl.c static variables.
       pch_saved_var_array_elem(num_routine_fixups_allocated),
       pch_saved_var_array_elem(num_class_fixups_allocated),
       pch_saved_var_array_elem(num_override_registry_entries_allocated),
-#if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(num_initializer_fixups_allocated),
+#if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(num_quasi_override_descrs_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(num_override_exception_check_entries),
@@ -27067,8 +27065,8 @@ Initializations for class declaration processing.
   avail_routine_fixup = NULL;
   avail_class_fixup = NULL;
   avail_override_registry_entries = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   avail_initializer_fixup = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   avail_quasi_override_descrs = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if IA64_ABI
@@ -27081,8 +27079,8 @@ Initializations for class declaration processing.
   num_routine_fixups_allocated = 0;
   num_class_fixups_allocated = 0;
   num_override_registry_entries_allocated = 0;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   num_initializer_fixups_allocated = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   num_quasi_override_descrs_allocated = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   num_override_exception_check_entries = 0;

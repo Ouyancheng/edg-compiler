@@ -53,8 +53,8 @@ typedef struct a_namespace_list_entry *a_namespace_list_entry_ptr;
    recursive reference problems.  Similarly, a_deferred_constraint_check
    is declared in templates.h. */
 typedef struct a_routine_fixup *a_routine_fixup_ptr;
-#if MICROSOFT_EXTENSIONS_ALLOWED
 typedef struct an_initializer_fixup *an_initializer_fixup_ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
 typedef struct a_deferred_constraint_check *a_deferred_constraint_check_ptr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -939,13 +939,11 @@ typedef struct a_class_symbol_supplement {
 			   caching and delayed scanning scheme required for
 			   C++ member functions (routine bodies and default
 			   arguments). */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   an_initializer_fixup_ptr
 		initializer_fixup_list;
 			/* Pointer to a list of entities used in the token
 			   caching and delayed scanning scheme required for
 			   C++ in-class initializers. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_symbol_ptr  class_template;
                         /* Pointer to a class template symbol.  Present
                            only when this class is an instantiation of
