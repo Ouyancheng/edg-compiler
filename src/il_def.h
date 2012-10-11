@@ -15681,11 +15681,11 @@ typedef struct a_constructor_init {
   a_bit_field	is_pack_expansion:1;
 			/* TRUE if this mem-initializer is a variadic template
 			   pack expansion, i.e., it's followed by "...". */
-  a_bit_field	is_braced;
+  a_bit_field	is_braced:1;
 			/* TRUE if this mem-initializer uses the C++11 braced
 			   notation rather than the classic parenthesized
 			   form. */
-  a_bit_field	use_field_initializer;
+  a_bit_field	use_field_initializer:1;
 			/* TRUE if the field initializer should be used to
 			   initialize this field (TRUE only when kind is
 			   cik_field).  initializer is NULL in that case. */
