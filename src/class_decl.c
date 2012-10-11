@@ -2852,7 +2852,9 @@ prototype instantiations).
 
   cssp = symbol_supplement_for_class(class_type);
   for (ifp = cssp->initializer_fixup_list; ifp != NULL; ifp = next_ifp) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean           incomplete_type_error_reported = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     a_type_ptr          parent_type = sym_parent_class(ifp->symbol);
     a_decl_parse_state  dps;
     push_lexical_state_stack();
