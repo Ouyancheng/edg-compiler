@@ -7381,7 +7381,8 @@ the constructor initializer.
                 /* If the scope has no destructible objects (aside from those
                    being added here), the function scope may have no object
                    lifetime, in which case we allocate one here. */
-                olp = alloc_object_lifetime(olk_block);
+                olp = alloc_object_lifetime(
+                                           (an_object_lifetime_kind)olk_block);
                 bind_object_lifetime(olp, iek_scope, (char *)scope);
                 scope->lifetime = olp;
               }  /* if */
