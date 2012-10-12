@@ -1512,9 +1512,8 @@ This check also includes the names of the template arguments of class
 template instances.
 */
 {
-  a_boolean is_accessible;
-  a_type_ptr parent_class = scp->is_class_member ? scp_parent_class(scp)
-                                                 : NULL;
+  a_boolean  is_accessible;
+  a_type_ptr parent_class;
 
   if (kind == iek_type) {
     /* We need to skip over type modifiers -- pointer-to, array-of, or
@@ -1534,6 +1533,7 @@ template instances.
     }  /* while */
     scp = &tp->source_corresp;
   }  /* if */
+  parent_class= scp->is_class_member ? scp_parent_class(scp) : NULL;
   if (scp->access == (an_access_specifier)as_public) {
     /* Either a public class member or a non-member. */
     is_accessible = TRUE;
