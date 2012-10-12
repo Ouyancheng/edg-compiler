@@ -5333,6 +5333,9 @@ initialized.  These are addressed in the course of the processing.
         if (is_any_reference_type(tp) || is_const_qualified_type(tp)) {
           /* Reference-type fields and const and array-of-const fields require
              an initializer. */
+        } else if (field->has_initializer) {
+          /* Fields with an in-class initializer requires corresponding
+             constructor-init entries. */
         } else {
           tp = skip_typerefs(tp);
           if (is_array_type(tp)) {

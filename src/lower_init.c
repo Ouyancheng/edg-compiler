@@ -7308,6 +7308,102 @@ this function.
   }  /* if */
 }  /* add_cast_for_cv_qualified_cctor_param_if_necessary */
 
+
+void copy_non_static_data_member_initializers_if_necessary(a_scope_ptr scope)
+/*
+If scope represents a constructor whose class has non-static data member
+initialized fields, copy the dynamic initialization from the field to
+the constructor initializer.
+*/
+{
+  an_object_lifetime_ptr  olp = scope->lifetime;
+  a_dynamic_init_ptr      field_dip, dip, prev_dip = NULL;
+  a_constructor_init_ptr  ctor_init;
+  a_routine_ptr           routine = scope->variant.routine.ptr;
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+  a_constructor_init_ptr  prev_ctor_init = NULL;
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
+
+  check_assertion(scope->kind == (a_scope_kind)sck_function);
+  if (routine->special_kind == (a_special_function_kind)sfk_constructor &&
+      scope->variant.routine.constructor_inits != NULL &&
+      parent_class_of(routine)->variant.class_struct_union.field_list != NULL){
+    for (ctor_init = scope->variant.routine.constructor_inits;
+         ctor_init != NULL;
+         ctor_init = ctor_init->next) {
+      if (ctor_init->kind == (a_constructor_init_kind)cik_field &&
+          ctor_init->use_field_initializer) {
+        /* A non-static data member is initialized with a brace-or-equal
+           initializer.  In this case, the dynamic initialization is associated
+           with the field itself and must be copied before being lowered. */
+        field_dip = ctor_init->variant.field->initializer;
+        check_assertion(field_dip->lifetime == NULL &&
+                        field_dip->init_expr_lifetime == NULL);
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+        if ((field_dip->kind == (a_dynamic_init_kind)dik_none ||
+             (field_dip->kind == (a_dynamic_init_kind)dik_constructor &&
+              call_to_ctor_or_dtor_has_no_effect(
+                                           field_dip->variant.constructor.ptr,
+                                           field_dip->variant.constructor.args,
+                                           /*call_can_be_virtual=*/FALSE))) &&
+            (field_dip->destructor == NULL ||
+             (field_dip->destructor->special_kind ==
+                                     (a_special_function_kind)sfk_destructor &&
+              call_to_ctor_or_dtor_has_no_effect(
+                                            field_dip->destructor,
+                                            (an_expr_node_ptr)NULL,
+                                            /*call_can_be_virtual=*/FALSE)))) {
+          /* Neither the construction nor destruction have any effect;
+             this ctor_init can be safely eliminated before it is copied.
+             Note that in cases where one of construction/destruction has
+             an effect but not the other, the ctor_init is copied below and
+             the do-nothing operation is eliminated later during normal
+             processing (this is just an optimization to prevent unnecessary
+             copies of dynamic inits). */
+          if (prev_ctor_init == NULL) {
+            scope->variant.routine.constructor_inits = ctor_init->next;
+          } else {
+            prev_ctor_init->next = ctor_init->next;
+          }  /* if */
+        } else
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
+        /* Do not insert code here. */
+        {
+          /* Copy the dynamic init into the ctor initializer so that
+             it will be processed by lowering like any other ctor initializer.
+             If a destruction is associated with the initialization,
+             make sure it is placed in the proper location in the object
+             lifetime of the constructor's scope. */
+          dip = copy_dynamic_init(field_dip, CE_NO_OPTIONS);
+          if (dip->destructor != NULL) {
+            if (prev_dip == NULL) {
+              if (olp == NULL) {
+                /* If the scope has no destructible objects (aside from those
+                   being added here), the function scope may have no object
+                   lifetime, in which case we allocate one here. */
+                olp = alloc_object_lifetime(olk_block);
+                bind_object_lifetime(olp, iek_scope, (char *)scope);
+                scope->lifetime = olp;
+              }  /* if */
+              add_to_end_of_destructions_list(dip, olp);
+            } else {
+              add_to_destructions_list_following(prev_dip, dip);
+            }  /* if */
+          }  /* if */
+          ctor_init->initializer = dip;
+        }  /* if */
+      }  /* if */
+      dip = ctor_init->initializer;
+      if (dip != NULL && dip->destructor != NULL) {
+        prev_dip = dip;
+      }  /* if */
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+      prev_ctor_init = ctor_init;
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
+    }  /* for */
+  }  /* if */
+}  /* copy_non_static_data_member_initializers_if_necessary */
+
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
 
 static a_boolean call_to_ctor_or_dtor_has_no_effect(
@@ -7562,6 +7658,7 @@ statement/expression lowering process (mostly by lower_dynamic_init).
          ctor_init != NULL;
          ctor_init = ctor_init->next) {
       dip = ctor_init->initializer;
+      check_assertion(dip != NULL);
       if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
           call_to_ctor_or_dtor_has_no_effect(dip->variant.constructor.ptr,
                                              dip->variant.constructor.args,
@@ -12648,6 +12745,7 @@ and NULL otherwise.  The statement(s) created are inserted at
   an_implied_copy_source source_desc;
 
   dip = ctor_init->initializer;
+  check_assertion(dip != NULL);
   /* Develop a position description for the entity to initialize. */
   develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
   if (base_of_complete_object) ipd.base_of_complete_object = TRUE;

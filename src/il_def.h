@@ -15688,7 +15688,10 @@ typedef struct a_constructor_init {
   a_bit_field	use_field_initializer:1;
 			/* TRUE if the field initializer should be used to
 			   initialize this field (TRUE only when kind is
-			   cik_field).  initializer is NULL in that case. */
+			   cik_field).  initializer is set to NULL by the
+			   front end in that case, but may later be set
+			   to point to a copy of the field initializer in
+			   lowering configurations. */
   union {
     /* When kind is cik_virtual_base_class or cik_direct_base_class: */
     a_base_class_ptr

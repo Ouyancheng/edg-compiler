@@ -10606,7 +10606,14 @@ when exception support is enabled.
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       subobj_qual = get_type_qualifiers(tp);
       tp = skip_typedefs(tp);
-      if (is_template_dependent_type(tp)) {
+      if (fp->has_initializer && first_param == NULL) {
+        /* We're handling the default constructor and this is a field with an
+           in-class initializer.  FIXME: We need to identify the "function
+           directly invoked" for the initialization of this field (if any) and
+           merge its exception specification.  For now, we'll just assume it
+           might throw anything. */
+        throw_any = TRUE;
+      } else if (is_template_dependent_type(tp)) {
         /* We cannot tell what dependent fields might end up throwing. */
         throw_any = TRUE;
       } else if (is_immediate_class_type(tp)) {

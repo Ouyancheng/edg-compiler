@@ -286,6 +286,9 @@ extern void lower_uuidof(a_constant *con);
 
 extern void lower_lambda(an_expr_node_ptr expr);
 
+extern void copy_non_static_data_member_initializers_if_necessary(
+                                                            a_scope_ptr scope);
+
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
 extern void remove_unneeded_constructions_and_destructions(a_scope_ptr scope);
 
