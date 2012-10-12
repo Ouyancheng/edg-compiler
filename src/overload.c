@@ -9785,6 +9785,18 @@ implicit "this" is available, e.g., during overload resolution.
         }  /* if */
       }  /* if */
     }  /* if */
+  } else if (scope_stack_top().in_field_initializer) {
+    /* We're inside a C++11 non-static-data-member-initializer (NSDMI),
+       so "this" is available. */
+    a_scope_stack_entry_ptr ssep = &scope_stack_top();
+    this_exists = TRUE;
+    check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union ||
+                    ssep->kind == (a_scope_kind)sck_class_reactivation);
+    local_this_type = ssep->assoc_type;
+    check_assertion(local_this_type != NULL &&
+                    is_immediate_class_type(local_this_type));
+    local_this_type = add_right_pointer_type_to_this(local_this_type,
+                                                     local_this_type);
   }  /* if */
   if (local_this_var != NULL) local_this_type = local_this_var->type;
   if (this_var != NULL) *this_var = local_this_var;
@@ -9904,8 +9916,9 @@ that case, and this_type is used for the type.
 
   if (this_var == NULL) {
     /* "this" in a prototype instantiation, e.g., in a decltype in a
-       late-specified return type.  There is no variable yet, so use
-       an enk_param_ref with a parameter number of zero. */
+       late-specified return type, or "this" in a nonstatic data member
+       initializer.  There is no variable yet, so use an enk_param_ref
+       with a parameter number of zero. */
     node = alloc_expr_node((an_expr_node_kind)enk_param_ref);
     node->type = this_type;
     node->variant.param_ref.param_num = 0;
