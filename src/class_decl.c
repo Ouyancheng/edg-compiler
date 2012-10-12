@@ -24613,9 +24613,12 @@ bits of information that were acquired while parsing.
        class is abstract as a consequence of inheriting a pure virtual member
        function, and (b) in C++/CLI if all the interfaces are implemented. */
     wrapup_overrides(class_state);
-    /* Issue warnings/remarks if the class has an operator new but no
-       operator delete, etc. */
-    check_operator_new_and_delete(tag_sym);
+    if (!class_state->is_nonreal_instantiation) {
+      /* Issue warnings/remarks if the class has an operator new but no
+         operator delete, etc.  We don't do this for prototype instantiations
+         because projections from dependent base classes can cause problems. */
+      check_operator_new_and_delete(tag_sym);
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Record whether this class is "interface-like" (i.e., a non-__interface
        type that is a valid base for an __interface type). */
