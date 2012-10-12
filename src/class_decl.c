@@ -2852,15 +2852,21 @@ prototype instantiations).
 
   cssp = symbol_supplement_for_class(class_type);
   for (ifp = cssp->initializer_fixup_list; ifp != NULL; ifp = next_ifp) {
+    a_type_ptr              parent_type = sym_parent_class(ifp->symbol);
+    a_decl_parse_state      dps;
+    a_memory_region_number  region_to_switch_back_to;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    a_boolean           incomplete_type_error_reported = FALSE;
+    a_boolean               incomplete_type_error_reported = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    a_type_ptr          parent_type = sym_parent_class(ifp->symbol);
-    a_decl_parse_state  dps;
     push_lexical_state_stack();
     /* Reactivate the class scope and parse the initializer. */
     push_class_and_template_reactivation_scope(parent_type, is_template_based,
                                                /*extend_namespace=*/TRUE);
+    /* Class reactivation doesn't automatically switch the current memory
+       region to file scope memory.  So we do it manually here.  (Ordinarily
+       this shouldn't be needed, but error recovery can cause to get here
+       with a local scope active.) */
+    switch_to_file_scope_region(&region_to_switch_back_to);
     rescan_cached_tokens(&ifp->initializer_token_cache);
     /* Re-create a declaration parsing state before parsing the initializer. */
     init_decl_parse_state(&dps);
@@ -2896,6 +2902,7 @@ prototype instantiations).
       pos_error(ec_exp_semicolon, &pos_curr_token);
     }  /* if */
     flush_past_token_cache_terminator();
+    switch_back_to_original_region(region_to_switch_back_to);
     pop_class_reactivation_scope();
     next_ifp = ifp->next;
     free_initializer_fixup(ifp);

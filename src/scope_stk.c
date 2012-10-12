@@ -3327,7 +3327,9 @@ the scope being pushed.
     if (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_template_instantiation ||
         kind == (a_scope_kind)sck_pragma ||
-        kind == (a_scope_kind)sck_func_prototype) {
+        kind == (a_scope_kind)sck_func_prototype ||
+        kind == (a_scope_kind)sck_class_struct_union ||
+        kind == (a_scope_kind)sck_class_reactivation) {
       /* These scopes do not nest properly from the point of view of object
          lifetimes, so break the object lifetime stack and then restore it
          in pop_scope. */
@@ -7922,7 +7924,9 @@ being popped.
       }  /* if */
     } else if (kind == (a_scope_kind)sck_pragma ||
                kind == (a_scope_kind)sck_func_prototype ||
-               kind == (a_scope_kind)sck_template_instantiation) {
+               kind == (a_scope_kind)sck_template_instantiation ||
+               kind == (a_scope_kind)sck_class_struct_union ||
+               kind == (a_scope_kind)sck_class_reactivation) {
       check_assertion_str2(curr_object_lifetime ==
                                    scope_stack[DEPTH_OF_FILE_SCOPE].
                                                    curr_scope_object_lifetime,
