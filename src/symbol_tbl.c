@@ -13189,6 +13189,7 @@ is_pack_element is TRUE if the parameter is a pack element.
     /* Save the type and storage class for the later declaration. */
     if (is_prototype_param_decl) {
       new_param_id->type = type_ptr;
+      check_assertion(type_pos != NULL);
       copy_source_position(*type_pos, new_param_id->type_pos);
       new_param_id->storage_class = storage_class;
     }  /* if */

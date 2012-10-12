@@ -872,7 +872,7 @@ circuit some of the processing in common cases.
           f_types_are_compatible((t1), (t2),                          \
                                  TCF_IGNORE_CALLING_CONVENTIONS |     \
                                  TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED | \
-                                 (extra_flags)))
+                                 (extra_flags)/*lint --e(835)*/))
 
 #define types_are_compatible_for_impl_conversion(t1, t2)              \
   ((t1) == (t2) ||                                                    \

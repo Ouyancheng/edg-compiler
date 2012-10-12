@@ -15623,8 +15623,7 @@ processing should proceed after the call.
                  (inline_template_allowed && curr_token == tok_inline)) &&
                 next_token() == tok_template) ||
                 (cppcli_enabled &&
-                 (is_generic =
-                      is_start_of_generic_decl()/*lint --e(820)*/) != FALSE)) {
+                 (is_generic = is_start_of_generic_decl()) != FALSE)) {
       /* Do the processing required for a template declaration.  If this is
          a top level declaration, the subroutine should not advance past the
          final token of the declaration. */

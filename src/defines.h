@@ -739,7 +739,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #endif /* defined(_WIN32) */
 #endif /* defined(__sun) */
 
-#if EDG_TEST_VERSION
+#ifdef EDG_TEST_VERSION
 
 /* Define a full-featured set of language features. */
 
@@ -861,7 +861,7 @@ Flags to be set for any version that uses the C++ generating back end.
 
 #endif /* !defined(OPTIMIZED_VERSION) */
 
-#endif /* EDG_TEST_VERSION */
+#endif /* defined(EDG_TEST_VERSION) */
 
 /*
 Enable recognition of Microsoft attributes for internal versions.
@@ -876,9 +876,10 @@ in the global namespace since that doesn't match the EDG run-time support
 library.
 */
 #ifndef MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD
-#if EDG_TEST_VERSION || MACOSX_TEST_VERSION || LINUX_TEST_VERSION
+#if defined(EDG_TEST_VERSION) || defined(MACOSX_TEST_VERSION) || \
+    defined(LINUX_TEST_VERSION)
 #define MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD 1
-#endif /* EDG_TEST_VERSION || MACOSX_TEST_VERSION || LINUX_TEST_VERSION */
+#endif /* defined(EDG_TEST_VERSION) || defined(MACOSX_TEST_VERSION) || ... */
 #endif /* ifndef MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD */
 
 

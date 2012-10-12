@@ -8824,6 +8824,9 @@ of a C++ class, struct, or union or a C struct or union.
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_info is not used in this case. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void record_sse_for_special_friend_class(
                                          a_type_ptr              friend_class,
                                          a_member_decl_info_ptr  decl_info)
@@ -22633,10 +22636,12 @@ class type.  Check that dps->type is a valid type for such a declaration.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
+#if !GENERATE_SOURCE_SEQUENCE_LISTS || !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* instance and template_decl is not used unless source
                 sequence lists are generated. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+             /* ms_attributes is only used when Microsoft extensions are
+                allowed. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS || !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr class_member_declaration(
                       a_type_ptr               class_type,
                       a_class_def_state_ptr    class_state,
@@ -25292,8 +25297,7 @@ classes.
               (extern_template_allowed && curr_token == tok_extern &&
                next_token() == tok_template) ||
                (cppcli_enabled &&
-                (is_generic =
-                      is_start_of_generic_decl()/*lint --e(820)*/) != FALSE)) {
+                (is_generic = is_start_of_generic_decl()) != FALSE)) {
             /* A template declaration in a class may be a member template
                declaration or a friend declaration.  Explicit instantiations
                are not permitted in a class context.  The error for an

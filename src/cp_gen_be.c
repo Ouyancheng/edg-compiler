@@ -15375,6 +15375,7 @@ declarator (or NULL if it wasn't recorded).
       /* Follow the source sequence list for the function. */
       save_source_sequence_scan_state(saved_state);
       state_was_saved = TRUE;
+      check_assertion(scope != NULL);
       curr_source_sequence_entry = scope->source_sequence_list;
       adv_to_signif_source_sequence_entry();
     }  /* if */
