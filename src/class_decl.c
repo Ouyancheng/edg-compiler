@@ -17364,12 +17364,19 @@ deleted.
        fields are checked and to be sure that anonymous union fields are
        picked up. */
     for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
-      if (sym->kind == (a_symbol_kind)sk_field &&
+      if (symbol_is(sym, sk_field)) {
+        a_field_ptr  field = sym->variant.field.ptr;
+        a_type_ptr   tp = field->type;
+        a_boolean    const_member_okay = FALSE;
+        if (field->has_initializer) {
+          /* Fields with a C++11-style in-class initializer are initialized
+             by that initializer rather than "default initialized". */
+          continue;
+        } else if (field_is_property_or_event(field)) {
           /* Property fields and events do not affect the special member
              functions. */
-          !field_is_property_or_event(sym->variant.field.ptr)) {
-        a_type_ptr  tp = sym->variant.field.ptr->type;
-        a_boolean   const_member_okay = FALSE;
+          continue;
+        }  /* if */
         if (is_reference_type(tp)) {
           /* References cannot be default-initialized. */
           gsfd->suppress_default_ctor = TRUE;
