@@ -12477,6 +12477,9 @@ interface classes.
          (This makes a difference in declaration processing, whereas in
          executable expression processing only the ambiguity is of interest.)
          Otherwise just return the first symbol seen. */
+      an_access_specifier	prog_access;
+      a_boolean			prog_is_type;
+      prog_access = progenitor->access;
       if (!is_type_symbol(fundamental_symbol_of(progenitor_sym))) {
         for (pp = progenitor->next; pp != NULL; pp = pp->next) {
           if (is_type_symbol(fundamental_symbol_of(pp->sym))) {
@@ -12486,6 +12489,16 @@ interface classes.
           }  /* if */
         }  /* for */
       }  /* if */
+      prog_is_type = is_type_symbol(fundamental_symbol_of(progenitor_sym));
+      /* Use the access of the most accessible of the symbols. */
+      for (pp = progenitor->next; pp != NULL; pp = pp->next) {
+        if (is_more_accessible(pp->access, prog_access) &&
+            prog_is_type == is_type_symbol(fundamental_symbol_of(pp->sym))) {
+          progenitor = pp;
+          progenitor_sym = progenitor->sym;
+          prog_access = progenitor_sym->variant.projection.access;
+        }  /* if */
+      }  /* for */
       *ambiguous = TRUE;
     }  /* if */
     /* If this projection is ambiguous, it may be appropriate to set a

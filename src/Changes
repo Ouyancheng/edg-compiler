@@ -1,5 +1,25 @@
 Version 4.6
 
+10/12/12 [EDGcpfe/13268]
+Access error on use of injected template name
+
+A spurious access error could be issued if more than one injected class name
+of the same class template was visible and the first one found was not
+accessible but a later one was.  Now fixed.
+
+  template <class T> struct B {
+    template <class U> static void x(U u);
+    template <class U> static void y(U u);
+  };
+  struct C : private B<char> { };
+  struct A : C, private B<int> {
+    // B<char>::B and B<int>::B are both visible, but only B<int>::B is
+    // accessible.
+    using B<int>::x;
+    using B<int>::y;
+  };
+
+
 10/11/12 [EDGcpfe/13261]
 Reference cast should not hide temporary from lifetime extension
 
