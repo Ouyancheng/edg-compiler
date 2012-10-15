@@ -14079,6 +14079,7 @@ cast.  See lower_expr for typical invocation.
     case enk_routine:
     case enk_field:
     case enk_address_of_ellipsis:
+    case enk_param_ref:
       /* No processing required. */
       break;
     case enk_variable:
@@ -14750,7 +14751,6 @@ cast.  See lower_expr for typical invocation.
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:
-    case enk_param_ref:
     case enk_sizeof_pack:
     case enk_alignof:
     default:
