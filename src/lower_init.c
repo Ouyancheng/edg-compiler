@@ -7392,6 +7392,9 @@ the constructor initializer.
             }  /* if */
           }  /* if */
           ctor_init->initializer = dip;
+          /* Set the flag that indicates that a dynamic initializer is pointed
+             to by a constructor_init entry (now that it is). */
+          dip->is_constructor_init = TRUE;
         }  /* if */
       }  /* if */
       dip = ctor_init->initializer;
