@@ -23344,7 +23344,8 @@ passed via template_decl.
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (curr_token == tok_assign && !C_mode() &&
+    } else if (!field_initializers_enabled &&
+               curr_token == tok_assign && !C_mode() &&
                ((is_scalar_type(decl_state->type) && !mutable_specified &&
                  (get_type_qualifiers(decl_state->type) == TQ_CONST)) ||
                 is_template_param_type(decl_state->type)) &&
