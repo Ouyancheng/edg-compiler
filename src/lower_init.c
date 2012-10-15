@@ -7317,6 +7317,7 @@ the constructor initializer.
 */
 {
   an_object_lifetime_ptr  olp = scope->lifetime;
+  an_object_lifetime_ptr  saved_curr_object_lifetime = NULL;
   a_dynamic_init_ptr      field_dip, dip, prev_dip = NULL;
   a_constructor_init_ptr  ctor_init;
   a_routine_ptr           routine = scope->variant.routine.ptr;
@@ -7374,18 +7375,22 @@ the constructor initializer.
              If a destruction is associated with the initialization,
              make sure it is placed in the proper location in the object
              lifetime of the constructor's scope. */
+          if (dip->destructor != NULL && olp == NULL) {
+            /* If the scope has no destructible objects (aside from those
+               being added here), the function scope may have no object
+               lifetime, in which case we allocate one here (before we
+               copy the dynamic init because the lifetime may be needed
+               in that case). */
+            olp = alloc_object_lifetime((an_object_lifetime_kind)olk_block);
+            bind_object_lifetime(olp, iek_scope, (char *)scope);
+            scope->lifetime = olp;
+            /* Make the new object lifetime the current object lifetime. */
+            saved_curr_object_lifetime = curr_object_lifetime;
+            curr_object_lifetime = olp;
+          }  /* if */
           dip = copy_dynamic_init(field_dip, CE_NO_OPTIONS);
           if (dip->destructor != NULL) {
             if (prev_dip == NULL) {
-              if (olp == NULL) {
-                /* If the scope has no destructible objects (aside from those
-                   being added here), the function scope may have no object
-                   lifetime, in which case we allocate one here. */
-                olp = alloc_object_lifetime(
-                                           (an_object_lifetime_kind)olk_block);
-                bind_object_lifetime(olp, iek_scope, (char *)scope);
-                scope->lifetime = olp;
-              }  /* if */
               add_to_end_of_destructions_list(dip, olp);
             } else {
               add_to_destructions_list_following(prev_dip, dip);
@@ -7405,6 +7410,9 @@ the constructor initializer.
       prev_ctor_init = ctor_init;
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
     }  /* for */
+  }  /* if */
+  if (saved_curr_object_lifetime != NULL) {
+    curr_object_lifetime = saved_curr_object_lifetime;
   }  /* if */
 }  /* copy_non_static_data_member_initializers_if_necessary */
 
