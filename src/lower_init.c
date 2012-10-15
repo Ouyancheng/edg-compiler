@@ -7375,7 +7375,7 @@ the constructor initializer.
              If a destruction is associated with the initialization,
              make sure it is placed in the proper location in the object
              lifetime of the constructor's scope. */
-          if (dip->destructor != NULL && olp == NULL) {
+          if (field_dip->destructor != NULL && olp == NULL) {
             /* If the scope has no destructible objects (aside from those
                being added here), the function scope may have no object
                lifetime, in which case we allocate one here (before we
