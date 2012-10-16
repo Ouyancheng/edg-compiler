@@ -11710,33 +11710,50 @@ outside of the expression-processing routines.
 }  /* scan_decltype_operator */
 
 
+/*
+Structure used to save context around an expression rescan.  These
+values are saved by push_expr_rescan_context_if_necessary and restored
+by pop_expr_rescan_context_if_necessary.
+*/
+typedef struct a_saved_expr_rescan_context {
+  an_expr_stack_entry_ptr
+		expr_stack;
+  an_object_lifetime_ptr
+		curr_object_lifetime;
+  a_memory_region_number
+		curr_il_region_number;
+  a_template_decl_info_ptr
+		tdip;
+			/* Pointer to a template declaration information
+			   block, but also used as an indication, when NULL,
+			   that a rescan context did not need to be pushed. */
+} a_saved_expr_rescan_context;
+
+
 static void push_expr_rescan_context_if_necessary(
-                         a_rescan_control_block   *rcblock,
-                         a_template_decl_info_ptr *tdip,
-                         an_expr_stack_entry_ptr  *saved_expr_stack,
-                         an_object_lifetime_ptr   *saved_curr_object_lifetime)
+                                    a_rescan_control_block      *rcblock,
+                                    a_saved_expr_rescan_context *saved_context)
 /*
 We're starting on processing the rescanning of an expression.  If we're
 at the top level, push a template instantiation scope and restart the
 expression stack.  rcblock gives the rescan information, including a
-flag that can tell us whether we're at the top level.  *tdip is returned
-non-NULL if a context was pushed; it can be passed later to
-pop_expr_rescan_context_if_necessary.  *saved_expr_stack and
-*saved_curr_object_lifetime provide a place to save the current expression
-stack pointer and current object lifetime pointer, for restoration when
-the context pop is done.
+flag that can tell us whether we're at the top level.  saved_context
+provides a place to save context information that will be restored later
+by pop_expr_rescan_context_if_necessary.
 */
 {
-  *tdip = NULL;
-  *saved_expr_stack = NULL;
-  *saved_curr_object_lifetime = NULL;
+  saved_context->tdip = NULL;
+  saved_context->expr_stack = NULL;
+  saved_context->curr_object_lifetime = NULL;
+  saved_context->curr_il_region_number = NULL_region_number;
   if (!(rcblock->options & CTWS_INSIDE_EXPR_RESCAN)) {
     rcblock->options |= CTWS_INSIDE_EXPR_RESCAN;
-    save_expr_stack(saved_expr_stack);
-    *saved_curr_object_lifetime = curr_object_lifetime;
+    save_expr_stack(&saved_context->expr_stack);
+    saved_context->curr_object_lifetime = curr_object_lifetime;
     curr_object_lifetime =
                    scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
-    *tdip = alloc_template_decl_info();
+    saved_context->tdip = alloc_template_decl_info();
+    switch_to_file_scope_region(&saved_context->curr_il_region_number);
   } else {
     /* We're already inside an expression rescan, so there should be an
        expression stack already. */
@@ -11746,19 +11763,18 @@ the context pop is done.
 
 
 static void pop_expr_rescan_context_if_necessary(
-                         a_template_decl_info_ptr tdip,
-                         an_expr_stack_entry_ptr  saved_expr_stack,
-                         an_object_lifetime_ptr   saved_curr_object_lifetime)
+                                    a_saved_expr_rescan_context *saved_context)
 /*
 Pop a context for an expression rescan if one was pushed by
-push_expr_rescan_context_if_necessary.  tdip, saved_expr_stack, and
-saved_curr_object_lifetime are the values returned from the push.
+push_expr_rescan_context_if_necessary.  saved_context contains the context
+information saved at the time of the context push.
 */
 {
-  if (tdip != NULL) {
-    free_template_decl_info(tdip);
-    restore_expr_stack(saved_expr_stack);
-    curr_object_lifetime = saved_curr_object_lifetime;
+  if (saved_context->tdip != NULL) {
+    free_template_decl_info(saved_context->tdip);
+    restore_expr_stack(saved_context->expr_stack);
+    curr_object_lifetime = saved_context->curr_object_lifetime;
+    switch_back_to_original_region(saved_context->curr_il_region_number);
   }  /* if */
 }  /* pop_expr_rescan_context_if_necessary */
 
@@ -11805,13 +11821,11 @@ difference.  This routine is intended to be called from outside of the
 expression-processing routines.
 */
 {
-  a_type_ptr               new_type;
-  a_rescan_control_block   rcblock;
-  a_template_decl_info_ptr tdip;
-  an_expr_stack_entry_ptr  saved_expr_stack;
-  an_expr_stack_entry      expr_stack_entry;
-  an_object_lifetime_ptr   saved_curr_object_lifetime;
-  a_boolean                is_typeof = FALSE;
+  a_type_ptr                  new_type;
+  a_rescan_control_block      rcblock;
+  a_saved_expr_rescan_context saved_context;
+  an_expr_stack_entry         expr_stack_entry;
+  a_boolean                   is_typeof = FALSE;
 
   check_assertion(type->kind == (a_type_kind)tk_typeref);
   /* __underlying_type constructs don't allow expression arguments. */
@@ -11825,8 +11839,7 @@ expression-processing routines.
   rcblock.options = options;
   rcblock.ctws_state = ctws_state;
   rcblock.expr = expr;
-  push_expr_rescan_context_if_necessary(&rcblock, &tdip, &saved_expr_stack,
-                                        &saved_curr_object_lifetime);
+  push_expr_rescan_context_if_necessary(&rcblock, &saved_context);
   push_expr_stack_for_expr_rescan((an_expression_kind)ek_sizeof,
                                   &rcblock,
                                   &expr_stack_entry);
@@ -11840,8 +11853,7 @@ expression-processing routines.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   pop_expr_stack();
-  pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack,
-                                       saved_curr_object_lifetime);
+  pop_expr_rescan_context_if_necessary(&saved_context);
   if (rcblock.error_detected) *copy_error = TRUE;
   return new_type;
 }  /* decltype_of_expr_with_substitution */
@@ -34326,9 +34338,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
   an_expr_node_ptr              saved_expr = rcblock->expr;
   a_ctws_options_set            saved_rcblock_options = rcblock->options;
   an_operand                    local_bound_function_selector;
-  a_template_decl_info_ptr      tdip;
-  an_expr_stack_entry_ptr       saved_expr_stack;
-  an_object_lifetime_ptr        saved_curr_object_lifetime;
+  a_saved_expr_rescan_context   saved_context;
 
   if (bound_function_selector == NULL) {
     bound_function_selector = &local_bound_function_selector;
@@ -34340,8 +34350,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
   if (eriep == NULL) {
     eriep = get_expr_rescan_info(expr, &rescan_info);
   }  /* if */
-  push_expr_rescan_context_if_necessary(rcblock, &tdip, &saved_expr_stack,
-                                        &saved_curr_object_lifetime);
+  push_expr_rescan_context_if_necessary(rcblock, &saved_context);
   /* Push an expression stack entry if the stack is empty or if the kind of
      top stack entry we have is not what we need. */
   if (expr_stack == NULL ||
@@ -34633,8 +34642,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
   }  /* if */
   expr_stack->default_rescan_info = saved_default_rescan_info;
   if (stack_pop_needed) pop_expr_stack();
-  pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack,
-                                       saved_curr_object_lifetime);
+  pop_expr_rescan_context_if_necessary(&saved_context);
   rcblock->expr = saved_expr;
   rcblock->options = saved_rcblock_options;
 }  /* rescan_expr_with_substitution_internal */
@@ -34659,14 +34667,11 @@ a guide type that can be used to resolve the instance of an overloaded
 function or template.
 */
 {
-  an_operand               result;
-  a_template_decl_info_ptr tdip;
-  an_expr_stack_entry_ptr  saved_expr_stack;
-  an_object_lifetime_ptr   saved_curr_object_lifetime;
-  an_expr_stack_entry      expr_stack_entry;
+  an_operand                  result;
+  a_saved_expr_rescan_context saved_context;
+  an_expr_stack_entry         expr_stack_entry;
 
-  push_expr_rescan_context_if_necessary(rcblock, &tdip, &saved_expr_stack,
-                                        &saved_curr_object_lifetime);
+  push_expr_rescan_context_if_necessary(rcblock, &saved_context);
   /* We push our own stack entry at this level, instead of just letting
      rescan_expr_with_substitution_internal handle it, because we
      want to have the entry on the stack still at the end of this
@@ -34707,8 +34712,7 @@ function or template.
     expr = make_node_from_operand(&result);
   }  /* if */
   pop_expr_stack();
-  pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack,
-                                       saved_curr_object_lifetime);
+  pop_expr_rescan_context_if_necessary(&saved_context);
   return expr;
 }  /* rescan_expr_with_substitution */
 
