@@ -14063,6 +14063,7 @@ context of the completed class later on.
   clear_token_set_array(stop_tokens);
   incr_token_set_array_element(stop_tokens, tok_comma);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
+  incr_token_set_array_element(stop_tokens, tok_rbrace);
   /* Cache the initializer tokens. */
   cache_token_stream_coalesce_identifiers(&ifp->initializer_token_cache,
                                           stop_tokens);
@@ -16518,6 +16519,7 @@ information about the member declaration, respectively.
     /* A field initializer.  It must be parsed in the context of the completed
        class definition.  We therefore create a fixup entry holding the cached
        tokens of the initializer until we are ready to parse them. */
+    dps->auto_type_allowed = FALSE;
     record_inclass_initializer_fixup(dps);
     if (symbol_is(dps->sym, sk_field)) {
       dps->sym->variant.field.ptr->has_initializer = TRUE;
