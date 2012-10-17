@@ -13657,7 +13657,12 @@ all arguments were explicit.
       a_symbol_ptr	argument_template;
       argument_template = tssp->variant.class_template.argument_template;
       subst_param_tssp = argument_template->variant.template_info;
-      if (!subst_param_tssp->is_error) {
+      /* We can get here in an instantiation of an alias template with a
+         template template argument that is a nonreal template.  In such
+         cases, don't attempt to use the parameter list from the argument
+         template. */
+      if (!subst_param_tssp->is_nonreal_member &&
+          !subst_param_tssp->is_error) {
         param_ptr = subst_param_tssp->cache.decl_info->parameters;
       }  /* if */
     }  /* if */
@@ -14858,6 +14863,10 @@ otherwise the original "sym" is returned.
     if ((options & GID_IS_TYPENAME) != 0) {
       type_wanted = TRUE;
     } else if (next_token() == tok_colon_colon) {
+      type_wanted = TRUE;
+    } else if (!orig_template_sym->variant.template_info->is_nonreal_member) {
+      /* The instantiation of a real template resulted in a nonreal member.
+         We know that a type is needed. */
       type_wanted = TRUE;
     } else if ((use_implicit_typename() ||
                 (gpp_mode && gnu_version <= 40100)) &&

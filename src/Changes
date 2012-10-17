@@ -1,5 +1,16 @@
 Version 4.6
 
+10/17/12 [EDGcpfe/13276]
+Abort on use of alias template with template template parameter
+
+An abort could occur (in scan_template_argument_list) on a reference
+to an alias template with a template template parameter when the
+alias template is instantiated with a nonreal template.  Now fixed.
+
+  template<template<typename> class D> using C = D<int>; 
+  template<typename T> void f(C<T::template U>); 
+
+
 10/16/12 [EDGcpfe/12856]
 Abort on SFINAE expression with destructible object, kicked off from function
 
