@@ -1,5 +1,25 @@
 Version 4.6
 
+10/16/12 [EDGcpfe/12856]
+Abort on SFINAE expression with destructible object, kicked off from function
+
+In some complex cases that involve a C++11 SFINAE evaluation of an expression
+that involves a destructible type, kicked off from within a function scope,
+the front end aborted ("push_or_repush_object_lifetime: parent is in file
+scope memory, new olp is not").  Now fixed.
+
+  struct A {
+    template <class T> A(T, decltype(T()) = 1) {}
+    virtual ~A();
+  };
+  void f() {
+    try {
+    }
+    catch (A) {
+    }
+  }
+
+
 10/12/12 [EDGcpfe/13268]
 Access error on use of injected template name
 
