@@ -360,7 +360,10 @@ extern void decl_spec_one_time_init(void);
                            the specifiers, if any, are consistent with those
                            allowed on a finalizer declaration), and so a type
                            of tk_void was returned. */
-#define DSO_LAST DSO_FINALIZER
+#define DSO_CONSTEXPR 		((a_decl_flag_set)0x80000)
+			/* If this bit is set the specifier "constexpr" was
+			   found. */
+#define DSO_LAST DSO_CONSTEXPR
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSO_LAST)*/
 #endif /* DECL_SPEC_H */

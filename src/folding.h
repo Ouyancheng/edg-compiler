@@ -195,6 +195,19 @@ extern a_boolean fold_lock_free_query_if_possible(
                                          a_type_ptr               result_type);
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
+extern a_boolean fold_constexpr_call(a_routine_ptr     routine,
+                                     an_expr_node_ptr  args,
+                                     a_source_position *pos,
+                                     a_constant        *result_con);
+
+#if DEBUG
+extern unsigned long db_show_folding_fe_space_used(unsigned long grand_total);
+#endif /* DEBUG */
+
+extern void folding_one_time_init(void);
+
+extern void folding_init(void);
+
 #endif /* ifndef FOLDING_H */
 
 /******************************************************************************

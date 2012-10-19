@@ -2429,6 +2429,9 @@ ec_invalid_default_arg;;"mismatched delimiters in default argument expression"
 ec_conv_of_unbound_pm_to_func_ptr;;"nonstandard conversion of pointer-to-member to a function pointer"
 ec_dynamic_exception_specifications_deprecated;;"dynamic exception specifications are deprecated"
 ec_bad_scope_for_partial_spec;;"%n cannot be partially specialized in the current scope"
+ec_previous_constexpr_decl_conflict;;"%nd was previously declared constexpr"
+ec_previous_nonconstexpr_decl_conflict;;"%nd was previously not declared constexpr"
+ec_constexpr_variable_decl_must_be_definition;;"a constexpr variable declaration must be a definition"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

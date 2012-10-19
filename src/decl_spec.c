@@ -7172,6 +7172,8 @@ typedef long a_decl_specifiers_set;
 			/* "overload" has been scanned (a C++ anachronism). */
 #define DS_VOID (a_decl_specifiers_set)(0x800)
 			/* "void" was scanned as the very first specifier. */
+#define DS_CONSTEXPR (a_decl_specifiers_set)(0x1000)
+			/* "constexpr" was scanned. */
 
 
 static void report_bad_type_name(a_decl_flag_set  input_flags)
@@ -8794,6 +8796,18 @@ storage_class_specifier:
           decl_specifiers_seen |= DS_VIRTUAL;
           *output_flags |= DSO_VIRTUAL;
           copy_source_position(pos_curr_token, state->virtual_pos);
+        }  /* if */
+        break;
+      case tok_constexpr:
+        if (is_parameter) {
+          /* "constexpr" may not appear in a function parameter declaration. */
+          error(ec_bad_param_specifier);
+          err = TRUE;
+        } else if (decl_specifiers_seen & DS_CONSTEXPR) {
+          error(ec_dupl_decl_specifier);
+        } else {
+          decl_specifiers_seen |= DS_CONSTEXPR;
+          *output_flags |= DSO_CONSTEXPR;
         }  /* if */
         break;
       case tok_inline:

@@ -7682,6 +7682,524 @@ TRUE.
 
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
+/*
+Context information to be carried around within a constexpr evaluation.
+*/
+typedef struct a_constexpr_evaluation_block {
+  a_source_position
+		source_position;
+			/* Default source position for errors if we have
+			   nothing more specific. */
+} a_constexpr_evaluation_block;
+
+
+static void clear_constexpr_evaluation_block(
+                                         a_constexpr_evaluation_block *ceblock,
+                                         a_source_position            *pos)
+/*
+Clear the indicated constexpr evaluation context block to default values.
+pos gives a default source position.
+*/
+{
+  ceblock->source_position = *pos;
+}  /* clear_constexpr_evaluation_block */
+
+
+/*
+Entry used to record a remapping from a parameter variable to an argument 
+value for the constexpr evaluation process.
+*/
+typedef struct a_constexpr_remap *a_constexpr_remap_ptr;
+typedef struct a_constexpr_remap {
+  a_constexpr_remap_ptr
+		next;
+			/* Next entry on the list, or NULL if this is the
+			   last. */
+  a_variable_ptr
+		param_var;
+			/* A parameter variable to be remapped. */
+  an_expr_node_ptr
+		arg_expr;
+			/* The corresponding argument expression. */
+  a_byte_boolean
+		is_constant;
+			/* TRUE if the argument is constant and the
+			   constant value is stored in constant_value below. */
+  a_constant	constant_value;
+			/* The constant value of the argument, if is_constant
+			   is TRUE. */
+} a_constexpr_remap;
+
+static a_constexpr_remap_ptr
+		avail_constexpr_remaps;
+			/* constexpr remap entries freed and available for
+			   reuse. */
+
+#if DEBUG
+static unsigned long
+		num_constexpr_remaps_allocated;
+#endif /* DEBUG */
+
+
+static a_constexpr_remap_ptr alloc_constexpr_remap(a_variable_ptr   param_var,
+                                                   an_expr_node_ptr arg_expr)
+/*
+Allocate a constexpr remap entry to remap the parameter variable param_var to
+the argument expression arg_expr, and return a pointer to it.
+*/
+{
+  a_constexpr_remap_ptr crp;
+
+  if (avail_constexpr_remaps != NULL) {
+    /* Reuse a previously-freed entry. */
+    crp = avail_constexpr_remaps;
+    avail_constexpr_remaps = crp->next;
+  } else {
+    /* Allocate a new entry. */
+    crp = alloc_fe_of_type(a_constexpr_remap);
+#if DEBUG
+    num_constexpr_remaps_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  crp->param_var = param_var;
+  crp->arg_expr = arg_expr;
+  crp->is_constant = FALSE;
+  return crp;
+}  /* alloc_constexpr_remap */
+
+
+static void free_constexpr_remap_list(a_constexpr_remap_ptr crp)
+/*
+Free a list of constexpr remap entries and make them available for reuse.
+*/
+{
+  a_constexpr_remap_ptr crp_tail;
+
+  if (crp != NULL) {
+    /* Find the last entry on the list. */
+    crp_tail = crp;
+    while (crp_tail->next != NULL) crp_tail = crp_tail->next;
+    /* Add the current available list to the end of the list passed in
+       by the caller. */
+    crp_tail->next = avail_constexpr_remaps;
+    avail_constexpr_remaps = crp;
+  }  /* if */
+}  /* free_constexpr_remap_list */
+
+
+static a_boolean i_fold_constexpr_call(
+                                     a_routine_ptr                routine,
+                                     an_expr_node_ptr             args,
+                                     a_constexpr_remap_ptr        remap_list,
+                                     a_constexpr_evaluation_block *ceblock,
+                                     a_constant                   *result_con);
+
+
+static a_boolean fold_expr(an_expr_node_ptr             expr,
+                           a_constexpr_remap_ptr        remap_list,
+                           a_constexpr_evaluation_block *ceblock,
+                           a_constant                   *result_con)
+/*
+Attempt to fold the expression "expr" to a constant as part of a constexpr
+evaluation, by substituting argument constant values for parameters as
+indicated by remap_list.  If the expression folds to a constant, place
+the constant in *result_con and return TRUE; otherwise, return FALSE.
+ceblock gives context information for the evaluation.
+*/
+{
+  a_boolean         folded = FALSE;
+  a_source_position pos;
+
+  expr = skip_parens(expr);
+  pos = ceblock->source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (cmp_source_positions(expr->operator_position,
+                           null_source_position) != 0) {
+    pos = expr->operator_position;
+  } else if (cmp_source_positions(expr->expr_range.start,
+                                  null_source_position) != 0) {
+    pos = expr->expr_range.start;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (expr->is_lvalue) {
+    /* Only fold expressions that produce rvalue results. */
+  } else if (is_constant_node(expr)) {
+    /* The expression is a constant. */
+    folded = TRUE;
+    copy_constant(expr->variant.constant, result_con);
+  } else if (!expr->is_lvalue &&
+             is_pointer_type(expr->type) &&
+             constant_rvalue_pointer(expr, result_con,
+                                     /*address_escapes=*/TRUE)) {
+    /* The expression is a constant address not represented in enk_constant
+       form (e.g., "&i" or the address of a function). */
+    folded = TRUE;
+  } else if (is_variable_node(expr)) {
+    /* An rvalue variable node for a parameter can be replaced by its
+       value, if constant. */
+    a_variable_ptr var = expr->variant.variable;
+    if (var->is_parameter) {
+      a_constexpr_remap_ptr crp;
+      for (crp = remap_list; crp != NULL; crp = crp->next) {
+        if (crp->param_var == var) {
+          if (crp->is_constant) {
+            /* Replace the parameter variable by its constant value. */
+            folded = TRUE;
+            copy_constant(&crp->constant_value, result_con);
+          }  /* if */
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  } else if (is_operation_node(expr)) {
+    /* An operation node.  If the operands are constant, we may be able to
+       fold it. */
+    a_boolean             did_not_fold, template_constant;
+    an_error_code         error_detected = ec_no_error;
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    an_expr_node_ptr      op1 = expr->variant.operation.operands;
+    an_expr_node_ptr      op2 = (op1 != NULL) ? op1->next : NULL;
+    a_constant            op1_constant, op2_constant;
+    a_boolean             op1_folded = FALSE, op2_folded = FALSE;
+    switch (op) {
+      case eok_question:
+        /* "?" operator. */
+        op1_folded = fold_expr(op1, remap_list, ceblock, &op1_constant);
+        if (op1_folded) {
+          if (is_false_constant(&op1_constant)) {
+            /* First operand is false, so result is op3. */
+            folded = fold_expr(op2->next, remap_list, ceblock, result_con);
+          } else {
+            /* First operand is true, so result is op2. */
+            folded = fold_expr(op2, remap_list, ceblock, result_con);
+          }  /* if */
+        }  /* if */
+        break;
+      case eok_land:
+      case eok_lor:
+        /* && or || operator. */
+        op1_folded = fold_expr(op1, remap_list, ceblock, &op1_constant);
+        if (op1_folded) {
+          a_boolean result;
+          if (op == (an_expr_operator_kind)eok_land) {
+            /* && operator. */
+            if (is_false_constant(&op1_constant)) {
+              /* First operand is false, so result is false. */
+              folded = TRUE;
+              result = FALSE;
+            } else {
+              /* First operand is true, so result is true if op2 is true. */
+              if (fold_expr(op2, remap_list, ceblock, &op2_constant)) {
+                folded = TRUE;
+                result = !is_false_constant(&op2_constant);
+              }  /* if */
+            }  /* if */
+          } else {
+            /* || operator. */
+            if (!is_false_constant(&op1_constant)) {
+              /* First operand is true, so result is true. */
+              folded = TRUE;
+              result = TRUE;
+            } else {
+              /* First operand is false, so result is true if op2 is true. */
+              if (fold_expr(op2, remap_list, ceblock, &op2_constant)) {
+                folded = TRUE;
+                result = !is_false_constant(&op2_constant);
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          if (folded) {
+            /* Build a result true or false constant. */
+            a_type_ptr btype = skip_typerefs(expr->type);
+            check_assertion(btype->kind == (a_type_kind)tk_integer);
+            set_integer_constant(result_con, (a_host_large_integer)result,
+                                 btype->variant.integer.int_kind);
+            result_con->type = expr->type;
+          }  /* if */
+        }  /* if */
+        break;
+      case eok_call:
+        /* Try to fold a call if it's to a constexpr function. */
+        { a_routine_ptr rp = routine_from_function_expr(op1);
+          if (rp != NULL && rp->is_constexpr) {
+            folded = i_fold_constexpr_call(rp, op2, remap_list, ceblock,
+                                           result_con);
+          }  /* if */
+        }
+        break;
+      default:
+        /* "Normal" operators.  For these, the operands have to be constant
+            for folding to be possible. */
+        op1_folded = fold_expr(op1, remap_list, ceblock, &op1_constant);
+        if (op2 != NULL) {
+          op2_folded = fold_expr(op2, remap_list, ceblock, &op2_constant);
+        }  /* if */
+        if (op1_folded && (op2_folded || op2 == NULL)) {
+          /* The operands are constants. */
+          switch (op) {
+            case eok_negate:
+            case eok_unary_plus:
+            case eok_complement:
+            case eok_not:
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+            case eok_xconj:
+            case eok_real_part:
+            case eok_imag_part:
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+              /* Foldable unary operators. */
+              unary_operation(op, &op1_constant, expr->type,
+                              result_con,
+                              /*constant_context=*/TRUE,
+                              /*evaluated_context=*/TRUE,
+                              &did_not_fold,
+                              &template_constant,
+                              &error_detected,
+                              &pos);
+              if (error_detected == ec_no_error && !did_not_fold) {
+                folded = TRUE;
+              }  /* if */
+              break;
+            case eok_add:
+            case eok_subtract:
+            case eok_multiply:
+            case eok_divide:
+            case eok_remainder:
+            case eok_shiftl:
+            case eok_shiftr:
+            case eok_eq:
+            case eok_ne:
+            case eok_gt:
+            case eok_lt:
+            case eok_ge:
+            case eok_le:
+#if GNU_EXTENSIONS_ALLOWED
+            case eok_gnu_max:
+            case eok_gnu_min:
+#endif /* GNU_EXTENSIONS_ALLOWED */
+            case eok_and:
+            case eok_or:
+            case eok_xor:
+            case eok_land:
+            case eok_lor:
+#if C99_IL_EXTENSIONS_SUPPORTED
+            case eok_jmultiply:
+            case eok_jdivide:
+            case eok_fjadd:
+            case eok_jfadd:
+            case eok_fjsubtract:
+            case eok_jfsubtract:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+            case eok_pdiff:
+            case eok_padd:
+            case eok_psubtract:
+              /* Foldable binary (two-operand) operators. */
+              binary_operation(op, &op1_constant, &op2_constant, expr->type,
+                               result_con,
+                               /*constant_context=*/TRUE,
+                               /*evaluated_context=*/TRUE,
+                               &did_not_fold,
+                               &template_constant,
+                               &error_detected,
+                               &pos);
+              if (error_detected == ec_no_error && !did_not_fold) {
+                folded = TRUE;
+              }
+              break;
+            case eok_cast:
+              /* Cast. */
+              type_change_constant(&op1_constant, expr->type,
+                                  expr->variant.operation.compiler_generated,
+                                   /*maintain_expression=*/FALSE,
+                                   &did_not_fold,
+                                   &pos);
+              if (!did_not_fold) {
+                folded = TRUE;
+                copy_constant(&op1_constant, result_con);
+              }  /* if */
+              break;
+            default:
+              /* Assume the operation can't be folded. */
+              break;
+          }  /* switch */
+        }  /* if */
+        break;
+    }  /* switch */
+  }  /* if */
+  return folded;
+}  /* fold_expr */
+
+
+static a_constexpr_remap_ptr constexpr_remap_list_for_args(
+                                    a_scope_ptr                  routine_scope,
+                                    an_expr_node_ptr             args,
+                                    a_constexpr_remap_ptr        remap_list,
+                                    a_constexpr_evaluation_block *ceblock,
+                                    a_boolean                    *not_foldable)
+/*
+Make and return a constexpr remap list for the given argument list for
+a call of the routine with the given scope.  If remap_list is
+non-NULL, it is a remap list for substitution of occurrences of
+parameters by the corresponding argument constants in the context
+surrounding the call.  ceblock gives context information for the
+evaluation.  *not_foldable is returned TRUE if there is some kind of
+failure.
+*/
+{
+  a_constexpr_remap_ptr new_remap_list = NULL, *last_ptr = &new_remap_list;
+  an_expr_node_ptr      arg;
+  a_variable_ptr        param_var;
+
+  *not_foldable = FALSE;
+  check_assertion(routine_scope->kind == (a_scope_kind)sck_function);
+  for (arg = args, param_var = routine_scope->variant.routine.parameters;
+       arg != NULL;
+       arg = arg->next, param_var = param_var->next) {
+    a_constexpr_remap_ptr crp;
+    if (param_var == NULL) {
+      *not_foldable = TRUE;
+      break;
+    }  /* if */
+    crp = alloc_constexpr_remap(param_var, arg);
+    /* See if the argument expression is a constant or can be folded to one. */
+    crp->is_constant = fold_expr(arg, remap_list, ceblock,
+                                 &crp->constant_value);
+    *last_ptr = crp;
+    last_ptr = &crp->next;
+  }  /* for */
+  return new_remap_list;
+}  /* constexpr_remap_list_for_args */
+
+
+static a_boolean i_fold_constexpr_call(
+                                      a_routine_ptr                routine,
+                                      an_expr_node_ptr             args,
+                                      a_constexpr_remap_ptr        remap_list,
+                                      a_constexpr_evaluation_block *ceblock,
+                                      a_constant                   *result_con)
+/*
+The routine "routine" is being called with the argument list "args", and the
+routine is declared constexpr.  Try to fold the call to a constant.  If that's
+possible, place the constant in *result_con and return TRUE; otherwise,
+return FALSE.  If remap_list is non-NULL, it is a remap list for substitution
+of occurrences of parameters by the corresponding argument constants in the
+context surrounding the call (i.e., for references in args, not in the body
+of the routine).  ceblock gives context information for the evaluation.
+This is the internal version of the routine, as indicated by the "i_"
+prefix; fold_constexpr_call should usually be called instead.
+*/
+{
+  a_boolean folded = FALSE;
+
+  check_assertion(routine->is_constexpr);
+  if (routine->defined) {
+    a_scope_ptr     scope = scope_for_routine(routine);
+    a_statement_ptr block = scope->assoc_block;
+    if (block != NULL && block->kind == (a_statement_kind)stmk_block) {
+      a_statement_ptr return_stmt = block->variant.block.statements;
+      if (return_stmt != NULL &&
+          return_stmt->kind == (a_statement_kind)stmk_return &&
+          return_stmt->next == NULL) {
+        if (return_stmt->variant.return_dynamic_init == NULL) {
+          an_expr_node_ptr expr = return_stmt->expr;
+          if (expr != NULL) {
+            /* Make the remap list for the arguments. */
+            a_boolean             not_foldable;
+            a_constexpr_remap_ptr new_remap_list =
+                                  constexpr_remap_list_for_args(scope, args,
+                                                                remap_list,
+                                                                ceblock,
+                                                                &not_foldable);
+            if (not_foldable) {
+              /* Some problem that prevents folding. */
+            } else {
+              /* Substitute values for parameters and attempt to fold to
+                 a constant. */
+              folded = fold_expr(expr, new_remap_list, ceblock, result_con);
+            }  /* if */
+            free_constexpr_remap_list(new_remap_list);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return folded;
+}  /* i_fold_constexpr_call */
+
+
+a_boolean fold_constexpr_call(a_routine_ptr     routine,
+                              an_expr_node_ptr  args,
+                              a_source_position *pos,
+                              a_constant        *result_con)
+/*
+The routine "routine" is being called with the argument list "args", and the
+routine is declared constexpr.  Try to fold the call to a constant.  If that's
+possible, place the constant in *result_con and return TRUE; otherwise,
+return FALSE.
+*/
+{
+  a_boolean                    folded;
+  a_constexpr_evaluation_block ceblock;
+
+  clear_constexpr_evaluation_block(&ceblock, pos);
+  folded = i_fold_constexpr_call(routine, args,
+                                 (a_constexpr_remap_ptr)NULL,
+                                 &ceblock,
+                                 result_con);
+  return folded;
+}  /* fold_constexpr_call */
+
+#if DEBUG
+
+unsigned long db_show_folding_fe_space_used(unsigned long grand_total)
+/*
+Display memory use for entities in front end memory in this file (folding.c).
+*/
+{
+  unsigned long  num, size, total;
+
+  db_space_used_lost("constexpr remaps",
+                     avail_constexpr_remaps,
+                     num_constexpr_remaps_allocated,
+                     a_constexpr_remap);
+  return grand_total;
+}  /* db_show_folding_fe_space_used */
+
+#endif /* DEBUG */
+
+void folding_one_time_init(void)
+/*
+Do one-time initialization of variables related to folding. (Variables
+that need to be reinitialized with each new translation unit are handled
+in folding_init.)
+*/
+{
+  /* Save variables that are needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+#if DEBUG
+      pch_saved_var_array_elem(num_constexpr_remaps_allocated),
+#endif /* DEBUG */
+      pch_saved_var_array_elem(avail_constexpr_remaps),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* folding_one_time_init */
+
+
+void folding_init(void)
+/*
+Initialize static variables related to folding.  This is done as a
+subroutine (rather than relying on static initialization) so that it
+can be redone to compile more than one source file in a single invocation
+of the front end.
+*/
+{
+#if DEBUG
+  num_constexpr_remaps_allocated = 0;
+#endif /* DEBUG */
+  avail_constexpr_remaps = NULL;
+}  /* folding_init */
 
 
 /******************************************************************************

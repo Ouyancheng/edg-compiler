@@ -89,8 +89,15 @@ cache of the tokens fetched for disambiguation should be created.
   dsp->terminate = FALSE;
   dsp->set_decl_class_type = FALSE;
   dsp->friend_encountered = FALSE;
+  /* dsp->variadic_prototype_instantiation set below. */
   dsp->cache_tokens = cache_tokens;
+  /* dsp->saved_in_disambiguation set below. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  dsp->find_static_specifier_only = FALSE;
+  dsp->static_specifier_seen = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   dsp->first_tsn = curr_token_sequence_number;
+  /* dsp->pack_expansion_stack_entry set below. */
   if (cache_tokens) {
     begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
   }  /* if */
@@ -98,10 +105,6 @@ cache of the tokens fetched for disambiguation should be created.
   begin_prescan_context(suppress_packs, &dsp->variadic_prototype_instantiation,
                         &dsp->pack_expansion_stack_entry,
                         &dsp->saved_in_disambiguation);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  dsp->find_static_specifier_only = FALSE;
-  dsp->static_specifier_seen = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* init_disambig_state */
 
 
@@ -673,6 +676,8 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_inline:
       case tok_virtual:
       case tok_explicit:
+      /* Other specifiers. */
+      case tok_constexpr:
         break;
       /* Friend and typedef. */
       case tok_friend:

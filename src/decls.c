@@ -784,6 +784,9 @@ of declarations that are permitted.
   } else if (curr_token == tok_static_assert) {
     /* static_assert is (syntactically) a declarative construct. */
     is_start = TRUE;
+  } else if (curr_token == tok_constexpr) {
+    /* constexpr is always a specifier for a declaration. */
+    is_start = TRUE;
   } else if (is_type_start(expr_context)) {
     /* Is start of type. */
     is_start = TRUE;
@@ -6076,8 +6079,7 @@ for use in generating cross-reference output describing this declaration.
       (qualifier_namespace_ptr(*locator) != NULL ||
        locator->is_file_scope_qualified_name)) {
     /* This identifier is a namespace-qualified name that was previously
-       declared.  Be sure this is a valid scope in which to define it
-       (7.3.1.4). */
+       declared.  Be sure this is a valid scope in which to define it. */
     qualified_name_redecl_sym(&idlb);
   } else {
     /* Determine the linkage of this symbol. */
@@ -6391,6 +6393,14 @@ for use in generating cross-reference output describing this declaration.
     }  /* if */
   } else if (!redeclaration) {
     check_sym_of_other_decl(source_corresp_ptr, sym);
+  }  /* if */
+  if (dps->dso_flags & DSO_CONSTEXPR) {
+    if (is_variable_def) {
+      variable_ptr->is_constexpr = TRUE;
+    } else {
+      pos_error(ec_constexpr_variable_decl_must_be_definition,
+                &dps->specifiers_pos);
+    }  /* if */
   }  /* if */
   dps->sym = sym;
   attach_decl_attributes(dps, is_variable_def);
@@ -7658,6 +7668,15 @@ for use in generating cross-reference output describing this declaration.
           }  /* if */
         }  /* if */
       }  /* if */
+      if (routine_ptr->is_constexpr !=
+                                    ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
+        /* The previous declaration doesn't match the current one wrt. the
+           "constexpr" specifier.  Issue an error. */
+        pos_sy_error(routine_ptr->is_constexpr ?
+                       ec_previous_constexpr_decl_conflict :
+                       ec_previous_nonconstexpr_decl_conflict,
+                     &dps->specifiers_pos, linked_symbol);
+      }  /* if */
     } else {
       /* The linked symbol must be a variable. */
       pos_sy_error(ec_not_compatible_with_previous_decl,
@@ -8393,6 +8412,9 @@ skip_overloading:;
     } else {
       pop_namespace_extension_scope();
     }  /* if */
+  }  /* if */
+  if (!redeclaration && (dps->dso_flags & DSO_CONSTEXPR) != 0) {
+    routine_ptr->is_constexpr = TRUE;
   }  /* if */
   attach_decl_attributes(dps, is_function_def);
 #if MICROSOFT_EXTENSIONS_ALLOWED

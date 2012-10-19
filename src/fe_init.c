@@ -1022,6 +1022,9 @@ Install the keywords in the symbol table.
     if (noexcept_enabled) {
       enter_keyword((a_token_kind)tok_noexcept, "noexcept");
     }  /* if */
+    if (constexpr_enabled) {
+      enter_keyword((a_token_kind)tok_constexpr, "constexpr");
+    }  /* if */
   }  /* if */
   if (microsoft_mode && microsoft_version >= 1300) {
     /* The __wchar_t keyword is entered even when wchar_t_is_keyword is FALSE.
@@ -1224,6 +1227,7 @@ after the command-line processing has been done.
   def_arg_one_time_init();
   error_one_time_init();
   expr_one_time_init();
+  folding_one_time_init();
   il_to_str_one_time_init();
   il_one_time_init();
   lookup_one_time_init();
@@ -1312,6 +1316,7 @@ source file's compilation.
   depth_stmt_stack = -1;
 
   error_init();
+  folding_init();
   mem_manage_init();
   host_envir_init();
   host_init();

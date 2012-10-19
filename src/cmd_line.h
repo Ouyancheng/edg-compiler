@@ -471,6 +471,10 @@ EXTERN a_boolean
 			   implicit noexcept specifications if no explicit
 			   exception specification is provided. */
 
+EXTERN a_boolean
+		constexpr_enabled;
+			/* TRUE if constexpr functions and variables are
+			   accepted (a C++11 feature). */
 
 EXTERN a_boolean
 		rtti_enabled;

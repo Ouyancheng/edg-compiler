@@ -2713,6 +2713,7 @@ handling).
     implicit_noexcept_enabled = noexcept_enabled && strict_ansi_mode &&
                                 exceptions_enabled;
   }  /* if */
+  constexpr_enabled = TRUE;
 }  /* check_and_set_cpp11_mode_options */
 
 
@@ -3827,6 +3828,10 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     /* GCC 4.4 and later accept variadic templates even in non-C++0x mode
        (with a warning, which we don't issue). */
     variadic_templates_enabled = TRUE;
+  }  /* if */
+  if (cpp11_mode && gnu_version >= 40500) {
+    /* g++ 4.5 and later accept constexpr in C++11 mode. */
+    constexpr_enabled =  TRUE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
@@ -9590,6 +9595,7 @@ variables declared in cmd_line.h.
   exceptions_enabled = DEFAULT_EXCEPTIONS_ENABLED;
   noexcept_enabled = FALSE;
   implicit_noexcept_enabled = FALSE;
+  constexpr_enabled = FALSE;
   rtti_enabled = 
 #if RTTI_ENABLING_POSSIBLE
                  DEFAULT_RTTI_ENABLED;

@@ -1219,6 +1219,7 @@ typedef enum /*a_token_kind*/ {
   tok_final,
   tok_is_final,
   tok_noexcept,
+  tok_constexpr,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1360,6 +1361,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #endif /* INT128_EXTENSIONS_ALLOWED */
    "override", "final", "__is_final",
    "noexcept",
+   "constexpr",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -8994,10 +8996,14 @@ typedef struct a_variable {
   a_bit_field	is_member_constant:1;
 			/* TRUE if the variable represents a static data
 			   member for which an initializer was specified at
-			   its declaration within the class definition
-			   (9.5.2).  (It is referred to as a "member constant"
-			   in part because it can be used in constant
-			   expressions elsewhere in the class definition.) */
+			   its declaration within the class definition.
+			   (It is referred to as a "member constant" in part
+			   because it can be used in constant expressions
+			   elsewhere in the class definition.) */
+  a_bit_field	is_constexpr:1;
+			/* TRUE if this is a static data member declared with
+			   the "constexpr" specifier, or if this is another
+			   kind of variable defined with that specifier. */
   a_bit_field	superseded_external:1;
 			/* TRUE (in SVR4 C mode only) if the current variable
 			   was created to represent a block extern declaration
@@ -12468,6 +12474,9 @@ typedef struct a_routine {
 			   determine if a routine would be inline if
 			   instantiated, the is_inline_template_function and
 			   rout_is_inline_template_function can be used. */
+  a_bit_field	is_constexpr:1;
+			/* TRUE for functions that were declared with the
+			   C++11 "constexpr" specifier. */
   a_bit_field	compiler_generated:1;
 			/* TRUE for functions that are created by the
 			   compiler and have not been declared in the source,

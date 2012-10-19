@@ -6925,7 +6925,8 @@ e.g., because it's externally defined.
 a_boolean keep_function_body_for_possible_inlining(a_routine_ptr routine)
 /*
 Return TRUE if it's desirable to keep the body of the indicated
-function around for possible use in inlining calls to it.
+function around for possible use in inlining calls to it.  Also
+keeps constexpr function bodies.
 */
 {
   a_boolean keep = FALSE;
@@ -6945,6 +6946,7 @@ function around for possible use in inlining calls to it.
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   }  /* if */
+  if (routine->is_constexpr) keep = TRUE;
   return keep;
 }  /* keep_function_body_for_possible_inlining */
 
@@ -10138,6 +10140,8 @@ suppression needs to pushed, and can be NULL if suppress_packs is FALSE.
   if (*packs_suppressed) {
     /* Disable variadic processing during the prescan. */
     push_expansion_suppression(pack_expansion_stack_entry);
+  } else {
+    *pack_expansion_stack_entry = NULL;
   }  /* if */
   ssep = &scope_stack_top();
   *saved_in_disambiguation = ssep->in_disambiguation;

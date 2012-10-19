@@ -37,6 +37,7 @@ symbol_tbl.c - Symbol table management routines.
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #include "overload.h"
+#include "folding.h"
 
 /* The multiplier used in the hash algorithm that generates an index
    in the hash table from an identifier name string.  Do not change
@@ -14802,6 +14803,7 @@ for space tracking purposes.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   grand_total = db_show_def_arg_expr_fixups_used(grand_total);
   grand_total = db_show_il_c_fe_space_used(grand_total);
+  grand_total = db_show_folding_fe_space_used(grand_total);
   grand_total = db_show_trans_unit_space_used(grand_total);
 
   db_space_used_total();

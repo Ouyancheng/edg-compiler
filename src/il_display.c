@@ -2681,6 +2681,9 @@ Display the indicated variable.
   if (ptr->is_member_constant) {
     disp_boolean("is_member_constant", TRUE);
   }  /* if */
+  if (ptr->is_constexpr) {
+    disp_boolean("is_constexpr", TRUE);
+  }  /* if */
   if (ptr->superseded_external) {
     disp_boolean("superseded_external", TRUE);
   }  /* if */
@@ -3105,6 +3108,9 @@ Display the indicated routine.
   }  /* if */
   if (ptr->is_inline) {
     disp_boolean("is_inline", TRUE);
+  }  /* if */
+  if (ptr->is_constexpr) {
+    disp_boolean("is_constexpr", TRUE);
   }  /* if */
   if (ptr->compiler_generated) {
     disp_boolean("compiler_generated", TRUE);

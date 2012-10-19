@@ -13565,6 +13565,13 @@ TRUE.  *position is the position of the reference.  Used only in C++.
 
   /* Allocate the dynamic initialization entry. */
   *dip = alloc_dtor_dynamic_init(init_kind, temp_type, position);
+  if (curr_expr_kind_is_const() && (*dip)->destructor != NULL) {
+    /* An operation with a destruction is not allowed in a constant
+       expression (and we would get into trouble trying to attach
+       the dynamic init to a lifetime). */
+    expr_pos_error(ec_expr_not_constant, position);
+    (*dip)->destructor = NULL;
+  }  /* if */
   /* Make an enk_temp_init node that points at the dynamic init entry. */
   temp_init_node = alloc_temp_init_node(temp_type, *dip, is_lvalue,
                                         is_explicit_cast);

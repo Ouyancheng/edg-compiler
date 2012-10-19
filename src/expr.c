@@ -3673,6 +3673,7 @@ address thereof.
 }  /* is_empty_string_literal */
 
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static a_boolean check_call_and_fold_if_possible(an_operand  *op)
 /*
@@ -3681,6 +3682,7 @@ functions require special compile-time checks and can sometimes be constant-
 folded.  This routine does so and returns TRUE if the call is folded (in which
 case *op is replaced by a constant operand).  A diagnostic may be issued if the
 arguments are invalid (and *op is replaced by an error operand in such cases).
+Also folds calls to constexpr functions.
 */
 {
   a_boolean         folded = FALSE;
@@ -3696,6 +3698,8 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
   if (call->variant.operation.kind == (an_expr_operator_kind)eok_call &&
       (rp = routine_from_function_expr(args)) != NULL) {
     /* A direct call: Examine which routine is called. */
+    args = args->next;
+#if GNU_EXTENSIONS_ALLOWED
     if (rp->implicit_alias) {
       /* A call to a user-defined routine that is implicitly assumed equivalent
          to a built-in function (recorded in rp->aliased_routine). */
@@ -3703,7 +3707,6 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
     }  /* if */
     if (is_gnu_builtin_function(rp)) {
       a_type_ptr  result_type = skip_typerefs(call->type);
-      args = args->next;
       if (args != NULL) {
         args2 = args->next;
         args = skip_parens(args);
@@ -3929,20 +3932,26 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
           /* Nothing to be done. */
           break;
       }  /* switch */
-      if (folded) {
-        an_operand  orig_op;
-        copy_operand(op, &orig_op);
-        make_constant_operand(&result, op);
-        restore_operand_details(op, &orig_op);
-        if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-          op->variant.constant.expr = call;
-        }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    if (!folded && rp->is_constexpr) {
+      /* Try to fold a call to a constexpr function. */
+      folded = fold_constexpr_call(rp, args, &op->position, &result);
+    }  /* if */
+    if (folded) {
+      an_operand  orig_op;
+      copy_operand(op, &orig_op);
+      make_constant_operand(&result, op);
+      restore_operand_details(op, &orig_op);
+      if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+        op->variant.constant.expr = call;
       }  /* if */
     }  /* if */
   }  /* if */
   return folded;
 }  /* check_call_and_fold_if_possible */
 
+#if GNU_EXTENSIONS_ALLOWED
 
 static void scan_expr_for_builtin_choose_expr(an_operand  *operand,
                                               a_boolean   is_evaluated,
@@ -4791,7 +4800,8 @@ are expected to be NULL in that case.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (!call_may_be_folded && curr_expr_kind_is_const()) {
+  if (!call_may_be_folded && curr_expr_kind_is_const() &&
+      !constexpr_enabled) {
     /* Routine calls that cannot be folded should not appear in constant-
        expressions. */
     error_in_operand(ec_bad_constant_function_call, operand);
@@ -5265,9 +5275,9 @@ are expected to be NULL in that case.
   } else {
     /* Build the call node and an operand for it.  This includes cases where
        the function is unknown because the call is dependent. */
-    a_boolean uses_operator_syntax = FALSE;
+    a_boolean     uses_operator_syntax = FALSE;
+    a_routine_ptr rp = routine_from_function_operand(operand);
     if (has_overloaded_call_operator) {
-      a_routine_ptr rp = routine_from_function_operand(operand);
       if (rp != NULL &&
           rp->special_kind == (a_special_function_kind)sfk_operator &&
           rp->variant.opname_kind == (an_opname_kind)onk_function_call) {
@@ -5293,20 +5303,21 @@ are expected to be NULL in that case.
                            found_through_adl, uses_operator_syntax,
                            &call_position, result, &function_call_node);
     result_operand_is_call = TRUE;
-#if GNU_EXTENSIONS_ALLOWED
+    if (!call_may_be_folded && constexpr_enabled &&
+        rp != NULL && rp->is_constexpr) {
+      /* constexpr function calls can sometimes be folded to a constant. */
+      call_may_be_folded = TRUE;
+    }  /* if */
     if (call_may_be_folded && !is_error_operand(result)) {
       /* Some __builtin_xxx functions act as constant-expressions. */
       call_folded_to_constant = check_call_and_fold_if_possible(result);
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-  if (call_may_be_folded && curr_expr_kind_is_const() &&
+  if (curr_expr_kind_is_const() &&
       !call_folded_to_constant && !is_error_operand(result)) {
     /* Unfolded routine calls are not allowed in constant expressions. */
     error_in_operand(ec_bad_constant_function_call, result);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   set_operand_position(result, &start_position, &closing_paren_position,
                        &operator_position);
   if (result_operand_is_call) {
@@ -26332,7 +26343,8 @@ do_selection:
         case sk_overloaded_function:
 overloaded_function:
           /* Overloaded function. */
-          if (curr_expr_kind_is(ek_integral_constant)) {
+          if (curr_expr_kind_is(ek_integral_constant) &&
+              !constexpr_enabled) {
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
             /* No need to call change_refs_to_error; rep is NULL. */
