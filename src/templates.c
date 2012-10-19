@@ -15140,10 +15140,12 @@ subordinate templates.
 static a_boolean check_unqualified_template_redecl_scope(
 					a_tmpl_decl_state_ptr	decl_state,
 					a_symbol_ptr		sym,
-					a_symbol_locator	*locator)
+					a_symbol_locator	*locator,
+					a_boolean		is_definition)
 /*
-Make sure the current scope is a valid scope for sym to be redeclared.
-Return TRUE if an error was detected.
+Make sure the current scope is a valid scope for the entity specified
+by sym and locator to be redeclared.  is_definition is TRUE if this is a
+definition.  Return TRUE if an error was detected.
 */
 {
   a_scope_number	decl_scope_number;
@@ -15158,6 +15160,16 @@ Return TRUE if an error was detected.
          using-declaration). */
     } else if (sym->is_error) {
       /* Some other error occurred. */
+    } else if ((microsoft_mode || gpp_mode) &&
+               decl_state->is_partial_specialization && is_definition) {
+      /* Microsoft allows a partial specialization in an invalid scope via
+         a using-directive.  g++ allows it as well in permissive mode.
+         Issue a warning in Microsoft mode and a discretionary error in
+         g++ mode. */
+      an_error_severity	severity = microsoft_mode ? es_warning
+                                                  : es_discretionary_error;
+      pos_sy_diagnostic(severity, ec_bad_scope_for_partial_spec,
+                        &locator->source_position, sym);
     } else {
       pos_sy_error(ec_bad_scope_for_redeclaration,
                    &locator->source_position, sym);
@@ -16418,7 +16430,7 @@ friend_template_checks_done:
         err = TRUE;
       } else if (!sym->is_class_member &&
                  ssep->assoc_namespace != sym_parent_namespace_or_null(sym) &&
-                 (!microsoft_mode ||
+                 (!microsoft_mode && !gpp_mode &&
                   !namespace_is_enclosed_by_scope(sym, ssep))) {
         pos_error(ec_member_partial_spec_not_in_namespace,
                   &locator.source_position);
@@ -16559,11 +16571,11 @@ friend_template_checks_done:
         /* Unless this is a friend declaration, an unqualified name must refer
            to a name from the current scope. */
         suppress_redecl_error = check_unqualified_template_redecl_scope(
-                                                   decl_state, sym, &locator);
+                                     decl_state, sym, &locator, is_definition);
       } else if (decl_state->is_partial_specialization &&
                  partial_spec_nonreal_sym != NULL) {
         suppress_redecl_error = check_unqualified_template_redecl_scope(
-                               decl_state, partial_spec_nonreal_sym, &locator);
+                decl_state, partial_spec_nonreal_sym, &locator, is_definition);
       }  /* if */
     } else if (locator.is_qualified_name) {
       if (sym != NULL) {

@@ -2428,6 +2428,7 @@ ec_init_list_element_type_not_complete_object;;"%t cannot be the element type of
 ec_invalid_default_arg;;"mismatched delimiters in default argument expression"
 ec_conv_of_unbound_pm_to_func_ptr;;"nonstandard conversion of pointer-to-member to a function pointer"
 ec_dynamic_exception_specifications_deprecated;;"dynamic exception specifications are deprecated"
+ec_bad_scope_for_partial_spec;;"%n cannot be partially specialized in the current scope"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

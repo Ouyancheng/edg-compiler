@@ -1,5 +1,24 @@
 Version 4.6
 
+10/18/12 [EDGcpfe/13278]
+Microsoft and GNU C++ compatibility: partial specialization declared though
+a using-directive
+
+The Microsoft compiler allows a partial specialization in an invalid scope
+via a using-directive, as does g++ in permissive mode.  We now issue a
+warning in Microsoft mode and a discretionary error in g++ mode.
+
+  namespace N {
+    template<class T> struct A {};
+  }
+  namespace M {
+    using namespace N;
+    template<class T> class B {};
+    // Now allowed with a warning or discretionary error:
+    template<class T> struct A<B<T> > {};
+  }
+
+
 10/17/12 [EDGcpfe/13276]
 Abort on use of alias template with template template parameter
 
