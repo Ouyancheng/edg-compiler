@@ -7764,6 +7764,7 @@ the argument expression arg_expr, and return a pointer to it.
   crp->param_var = param_var;
   crp->arg_expr = arg_expr;
   crp->is_constant = FALSE;
+  crp->next = NULL;
   return crp;
 }  /* alloc_constexpr_remap */
 
