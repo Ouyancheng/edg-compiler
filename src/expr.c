@@ -3686,7 +3686,7 @@ Also folds calls to constexpr functions.
 */
 {
   a_boolean         folded = FALSE;
-  an_expr_node_ptr  call, args, args2;
+  an_expr_node_ptr  call, args;
   a_constant        result;
   a_routine_ptr     rp;
 
@@ -3706,7 +3706,8 @@ Also folds calls to constexpr functions.
       rp = rp->aliased_routine;
     }  /* if */
     if (is_gnu_builtin_function(rp)) {
-      a_type_ptr  result_type = skip_typerefs(call->type);
+      a_type_ptr       result_type = skip_typerefs(call->type);
+      an_expr_node_ptr args2 = NULL;
       if (args != NULL) {
         args2 = args->next;
         args = skip_parens(args);
@@ -4696,8 +4697,8 @@ are expected to be NULL in that case.
   a_boolean         saved_evaluated, saved_potentially_evaluated;
   an_expr_node_ptr  castexp;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
   a_boolean         call_folded_to_constant = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   a_type_ptr        sync_result_type = NULL;
   int               sync_n_args;
