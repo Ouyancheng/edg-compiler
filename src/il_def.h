@@ -16986,6 +16986,13 @@ typedef struct a_scope {
 			   namely the variable pointed to by this field.
 			   Note that the variable is also on the local
 			   variables list of this scope. */
+      an_expr_node_ptr
+		constexpr_return_expr;
+			/* If non-NULL, points to the expression returned by
+			   a constexpr routine.  Makes it easy to find the
+			   expression, but more importantly this is a copy
+			   of the expression so that in versions that do IL
+			   lowering this remains unlowered. */
     } routine;
   } variant;
   a_statement_ptr

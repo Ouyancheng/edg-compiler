@@ -3954,6 +3954,7 @@ Initialize the variable fields of the scope entry pointed to by sp.
       sp->variant.routine.lifetime_of_local_static_vars = NULL;
       sp->variant.routine.this_param_variable           = NULL;
       sp->variant.routine.return_value_variable         = NULL;
+      sp->variant.routine.constexpr_return_expr         = NULL;
       break;
     case sck_condition:
       sp->variant.assoc_statement = NULL;

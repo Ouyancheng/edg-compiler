@@ -835,6 +835,35 @@ and issue a diagnostic if that was not the case.
 }  /* check_implicit_lambda_return_type */
 
 
+static void set_routine_constexpr_return_expr(a_scope_ptr scope)
+/*
+scope is the function scope for a constexpr routine.  Record a copy of
+the return expression in the scope entry constexpr_return_expr field for
+later use in expansion of calls to the routine.
+*/
+{
+  a_statement_ptr block = scope->assoc_block;
+
+  check_assertion(scope->kind == (a_scope_kind)sck_function && block != NULL);
+  if (block->kind == (a_statement_kind)stmk_block) {
+    a_statement_ptr return_stmt = block->variant.block.statements;
+    if (return_stmt != NULL &&
+        return_stmt->kind == (a_statement_kind)stmk_return &&
+        return_stmt->next == NULL) {
+      if (return_stmt->variant.return_dynamic_init == NULL) {
+        an_expr_node_ptr expr = return_stmt->expr;
+        if (expr != NULL) {
+          /* We make a copy of the expression so that if IL lowering is
+             being done we preserve an unlowered copy. */
+          scope->variant.routine.constexpr_return_expr =
+                                           copy_expr_tree(expr, CE_NO_OPTIONS);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* set_routine_constexpr_return_expr */
+
+
 void scan_function_body(a_routine_ptr     rout_ptr,
                         a_func_info_block *func_info,
                         a_decl_flag_set   flags)
@@ -1326,6 +1355,9 @@ of lambda expressions.
                                                   explicit_return_type,
                                                   /*is_catch_clause=*/FALSE,
                                                   /*is_statement_expr=*/FALSE);
+      if (rout_ptr->is_constexpr) {
+        set_routine_constexpr_return_expr(scope_ptr);
+      }  /* if */
     }  /* if */
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING

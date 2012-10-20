@@ -8007,6 +8007,7 @@ ceblock gives context information for the evaluation.
               }
               break;
             case eok_cast:
+            case eok_bool_cast:
               /* Cast. */
               type_change_constant(&op1_constant, expr->type,
                                   expr->variant.operation.compiler_generated,
@@ -8093,34 +8094,24 @@ prefix; fold_constexpr_call should usually be called instead.
 
   check_assertion(routine->is_constexpr);
   if (routine->defined) {
-    a_scope_ptr     scope = scope_for_routine(routine);
-    a_statement_ptr block = scope->assoc_block;
-    if (block != NULL && block->kind == (a_statement_kind)stmk_block) {
-      a_statement_ptr return_stmt = block->variant.block.statements;
-      if (return_stmt != NULL &&
-          return_stmt->kind == (a_statement_kind)stmk_return &&
-          return_stmt->next == NULL) {
-        if (return_stmt->variant.return_dynamic_init == NULL) {
-          an_expr_node_ptr expr = return_stmt->expr;
-          if (expr != NULL) {
-            /* Make the remap list for the arguments. */
-            a_boolean             not_foldable;
-            a_constexpr_remap_ptr new_remap_list =
+    a_scope_ptr      scope = scope_for_routine(routine);
+    an_expr_node_ptr expr = scope->variant.routine.constexpr_return_expr;
+    if (expr != NULL) {
+      /* Make the remap list for the arguments. */
+      a_boolean             not_foldable;
+      a_constexpr_remap_ptr new_remap_list =
                                   constexpr_remap_list_for_args(scope, args,
                                                                 remap_list,
                                                                 ceblock,
                                                                 &not_foldable);
-            if (not_foldable) {
-              /* Some problem that prevents folding. */
-            } else {
-              /* Substitute values for parameters and attempt to fold to
-                 a constant. */
-              folded = fold_expr(expr, new_remap_list, ceblock, result_con);
-            }  /* if */
-            free_constexpr_remap_list(new_remap_list);
-          }  /* if */
-        }  /* if */
+      if (not_foldable) {
+        /* Some problem that prevents folding. */
+      } else {
+        /* Substitute values for parameters and attempt to fold the call to
+           a constant. */
+        folded = fold_expr(expr, new_remap_list, ceblock, result_con);
       }  /* if */
+      free_constexpr_remap_list(new_remap_list);
     }  /* if */
   }  /* if */
   return folded;
