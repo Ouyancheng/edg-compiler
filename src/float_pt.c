@@ -340,12 +340,18 @@ conversion can be done, return the result in "result".
     char *str_flt_max = buf_flt_max;
 #undef str2_flt_max
 #undef str1_flt_max
-    if (strncmp(str_flt_max, "((float)", 8) == 0) {
+    if (strncmp(str_flt_max, "((float)", 8) == 0 ||
+        strncmp(str_flt_max, "float(", 6) == 0) {
       /* Some systems, e.g., HP-UX, define FLT_MAX with a cast, e.g.,
-         "((float)3.40282347e+38)".  strtod cannot deal with the
-         parentheses or the cast, so skip past them. */
+         "((float)3.40282347e+38)".  Also accept a function-style cast form.
+         strtod cannot deal with the parentheses or the cast, so skip past
+         them. */
       char *tmp;
-      str_flt_max += 8;
+      if (str_flt_max[0] == '(') {
+        str_flt_max += 8;
+      } else {
+        str_flt_max += 6;
+      }  /* if */
       tmp = strchr(str_flt_max, ')');
       check_assertion_str(tmp != NULL && tmp[1] == '\0' &&
                           isdigit((unsigned char)str_flt_max[0]),
@@ -475,12 +481,19 @@ conversion can be done, return the result in "result".
     char *str_dbl_max = buf_dbl_max;
 #undef str2_dbl_max
 #undef str1_dbl_max
-    if (strncmp(str_dbl_max, "((double)", 9) == 0) {
+    if (strncmp(str_dbl_max, "((double)", 9) == 0 ||
+        strncmp(str_dbl_max, "double(", 7) == 0) {
       /* Some systems, e.g., Linux with gcc 4.5 and later, define DBL_MAX with
-         a cast, e.g., "((double)1.79769313486231570815e+308L)".  strtod cannot
-         deal with the parentheses or the cast, so skip past them. */
+         a cast, e.g., "((double)1.79769313486231570815e+308L)".  Starting
+         with g++ 4.6.0, the string "double(1.79769313486231570815e+308L)"
+         is used.  strtod cannot deal with the parentheses or the cast, so
+         skip past them. */
       char *tmp;
-      str_dbl_max += 9;
+      if (str_dbl_max[0] == '(') {
+        str_dbl_max += 9;
+      } else {
+        str_dbl_max += 7;
+      }  /* if */
       tmp = strchr(str_dbl_max, ')');
       check_assertion_str(tmp != NULL && tmp[1] == '\0' &&
                           isdigit((unsigned char)str_dbl_max[0]),

@@ -1,5 +1,15 @@
 Version 4.6
 
+10/22/12 [EDGcpfe/13041]
+Accept function-style cast for DBL_MAX and FLT_MAX
+
+With some compilers, notably g++ 4.6.0 and later, the value of the DBL_MAX
+macro has a function-style cast (e.g., "double(1.79769313486231570815e+308L)");
+the front end now accepts a function-style cast to "double" for this value
+(as well as a function-style cast to "float" for FLT_MAX).  See also the
+changes for EDGcpfe/11604.
+
+
 10/18/12 [EDGcpfe/13278]
 Microsoft and GNU C++ compatibility: partial specialization declared though
 a using-directive
