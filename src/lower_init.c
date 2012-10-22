@@ -4185,7 +4185,8 @@ operator of a no-capture lambda.
     add_to_return_memo_list(return_stmt);
 #if IA64_ABI
     if (new_routine->special_kind == (a_special_function_kind)sfk_destructor &&
-        new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
+        new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting &&
+        !routine->is_virtual) {
       /* Add "if (this != NULL)" around the whole routine for a deleting
          destructor (it can be called with a null "this" pointer). */
       add_null_test_around_routine(new_routine_scope);

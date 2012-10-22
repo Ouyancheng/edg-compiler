@@ -1,5 +1,22 @@
 Version 4.6
 
+10/22/12 [EDGcpfe/13300]
+Remove extraneous check in IA-64 ABI virtual deleting destructors
+
+The IA-64 ABI states that it is not necessary to check for a non-NULL "this"
+pointer in deleting destructors when the class has a virtual destructor
+(because the check has already been performed at the call site when
+determining the address of the virtual destructor).  A change has been made
+to eliminate this check.  For example:
+
+  struct A {
+    virtual ~A() {}  // deleting destructor no longer checks for NULL "this"
+  };
+  int main() {
+    A a;
+  }
+
+
 10/22/12 [EDGcpfe/13253]
 Abort on class template with using-directive for new/delete
 
