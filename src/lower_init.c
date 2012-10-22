@@ -4188,7 +4188,9 @@ operator of a no-capture lambda.
         new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting &&
         !routine->is_virtual) {
       /* Add "if (this != NULL)" around the whole routine for a deleting
-         destructor (it can be called with a null "this" pointer). */
+         destructor (it can be called with a null "this" pointer).   No such
+         test is needed if the destructor is virtual (because "this" must be
+         non-NULL to compute the address of the virtual destructor). */
       add_null_test_around_routine(new_routine_scope);
     }  /* if */
 #endif /* IA64_ABI */
