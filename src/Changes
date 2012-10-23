@@ -1,5 +1,22 @@
 Version 4.6
 
+10/22/12 [EDGcpfe/11214, EDGcpfe/12318]
+Microsoft compatibility: declaring partial specialization in invalid namespace
+
+A partial specialization can only be defined in the namespace in which
+is was initially declared or an enclosing namespace.  The Microsoft
+compiler allows partial specializations to be defined in an unrelated
+namespace.  We now emulate this behavior in Microsoft mode.
+
+  namespace N {
+    template <typename T> struct A { };
+  }
+  namespace M {
+    template<typename T> class B {};
+    template<typename T> struct N::A<B<T> > { };
+  }
+
+
 10/22/12 [EDGcpfe/13300]
 Remove extraneous check in IA-64 ABI virtual deleting destructors
 

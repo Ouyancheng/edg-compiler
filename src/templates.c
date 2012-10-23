@@ -15285,9 +15285,19 @@ of which it is a member.
        cannot be defined -- it is a member (directly or indirectly) of a
        namespace that is not enclosed by the current namespace scope
        (see WP 7.3.1.4). */
-    pos_sy_error(ec_bad_scope_for_definition,
-                 &locator->source_position, sym);
-    result = TRUE;
+    if (decl_state->is_partial_specialization) {
+      /* Microsoft allows a partial specialization in an invalid scope via
+         a using-directive. */
+      an_error_severity	severity = microsoft_mode ? es_warning
+                                                  : es_error;
+      pos_sy_diagnostic(severity, ec_bad_scope_for_partial_spec,
+                        &locator->source_position, sym);
+      result = severity == !es_warning;
+    } else {
+      pos_sy_error(ec_bad_scope_for_definition,
+                   &locator->source_position, sym);
+      result = TRUE;
+    }  /* if */
   } else if (!locator_parent_matches_symbol(locator, sym, &parent_sym) &&
              parent_sym != NULL && !is_symbol_from_inline_namespace(sym)) {
     /* The symbol is something like X::Y, but the locator has a parent
