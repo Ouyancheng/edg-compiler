@@ -12654,6 +12654,9 @@ implicitly declared member functions.
     rtn->source_corresp.assembly_access = class_state->assembly_access;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+  if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
+    rtn->is_constexpr = TRUE;
+  }  /* if */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_operator);
@@ -14142,15 +14145,16 @@ specific information about the member declaration, respectively.
   a_symbol_ptr             property_set = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_variable_ptr           var;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_name_reference_ptr     name_ref = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_decl_parse_state       *decl_state = &decl_info->decl_state;
   a_type_ptr               class_type = class_state->class_type;
   a_type_ptr               member_type = decl_state->type;
   a_source_position        *start_pos = &decl_state->start_pos;
   a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
   a_scope_depth            effective_decl_level;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_name_reference_ptr     name_ref = NULL;
+  a_type_ptr               declared_type = decl_state->declared_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "decl_static_data_member");
   if (is_void_type(member_type)) {
@@ -14225,6 +14229,11 @@ specific information about the member declaration, respectively.
     pos_diagnostic(anachronism_error_severity,
                    ec_static_data_member_not_allowed, start_pos);
   }  /* if */
+  if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0 &&
+      !is_const_qualified_type(member_type)) {
+    member_type = make_qualified_type(member_type,
+                                      (a_type_qualifier_set)TQ_CONST);
+  }  /* if */
   decl_state->type = member_type;
   if (decl_info->is_member_template) set_to_named_error_locator(*locator);
   /* Create the variable entry for the static data member. */
@@ -14232,6 +14241,9 @@ specific information about the member declaration, respectively.
      region and put on the variables list for the current class.  The storage
      class will usually be set to extern (except sometimes in cfront mode). */
   var = make_variable(member_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
+  if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
+    var->is_constexpr = TRUE;
+  }  /* if */
   if (decl_state->auto_type_specifier_seen) {
     var->declared_with_auto_type_specifier = TRUE;
   }  /* if */
@@ -14423,6 +14435,7 @@ specific information about the member declaration, respectively.
   if (record_name_references_in_context()) {
     name_ref = qualifiable_name_reference(locator, &var->source_corresp);
   }  /* if */
+  if (declared_type == NULL) declared_type = member_type;
   if (!(srk_flags & SRK_DEFINITION)) {
     an_sssd_flag_set  flags = SSSD_NO_FLAGS;
 #if GNU_EXTENSIONS_ALLOWED
@@ -14430,10 +14443,10 @@ specific information about the member declaration, respectively.
       flags |= SSSD_MARKED_AS_GNU_EXTENSION;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    (void)update_src_seq_secondary_decl((char *)var, member_type, name_ref,
+    (void)update_src_seq_secondary_decl((char *)var, declared_type, name_ref,
                                         flags, &decl_info->decl_pos_block);
   } else {
-    var->declared_type = member_type;
+    var->declared_type = declared_type;
     var->declared_storage_class = decl_state->declared_storage_class;
   }
   wrapup_sse_for_simple_decl(decl_state);

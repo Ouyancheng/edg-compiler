@@ -6068,6 +6068,12 @@ for use in generating cross-reference output describing this declaration.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
+      !is_const_qualified_type(type_ptr)) {
+    /* constexpr variables are implicitly const. */
+    type_ptr = make_qualified_type(type_ptr, (a_type_qualifier_set)TQ_CONST);
+    dps->type = type_ptr;
+  }  /* if */
   clear_id_linkage_block(&idlb);
   idlb.locator = locator;
   idlb.type = type_ptr;

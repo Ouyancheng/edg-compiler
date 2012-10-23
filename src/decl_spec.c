@@ -8200,6 +8200,32 @@ dps->specifier_attributes list.
 }  /* attach_specifier_attributes */
 
 
+static void check_use_of_constexpr(a_decl_parse_state  *dps)
+/*
+Callback routine called at the end of processing for a declaration containing
+the constexpr specifier.  Issue an error if the specifier is not applicable.
+*/
+{
+  a_symbol_ptr  sym = dps->sym;
+
+  if (symbol_is(sym, sk_routine) ||
+      symbol_is(sym, sk_member_function) ||
+      symbol_is(sym, sk_function_template) ||
+      symbol_is(sym, sk_variable) ||
+      symbol_is(sym, sk_static_data_member)) {
+    /* These are the symbol kinds for which constexpr is potentially valid.
+       No diagnostic is needed. */
+  } else if (sym->is_error ||
+             (dps->type != NULL && is_error_type(dps->type))) {
+    /* An error has presumably already been reported for this declaration.
+       An additional error is unlikely to be helpful. */
+    expect_error();
+  } else {
+    pos_error(ec_invalid_constexpr, &dps->specifiers_pos);
+  }  /* if */
+}  /* check_use_of_constexpr */
+
+
 void decl_specifiers(a_decl_flag_set       input_flags,
                      a_decl_parse_state    *state,
                      a_decl_pos_block_ptr  decl_pos_block)
@@ -8808,6 +8834,7 @@ storage_class_specifier:
         } else {
           decl_specifiers_seen |= DS_CONSTEXPR;
           *output_flags |= DSO_CONSTEXPR;
+          add_end_of_parse_action(check_use_of_constexpr, state);
         }  /* if */
         break;
       case tok_inline:

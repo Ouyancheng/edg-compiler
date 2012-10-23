@@ -2076,10 +2076,17 @@ this is a helper function.
        of the class indicated, but without significant qualifiers. */
     this_class = parent_type;
   }  /* if */
-  if (this_class != NULL &&
-      this_class->kind == (a_type_kind)tk_template_param) {
-    /* Ensure that "this_class" points to a class type. */
-    this_class = proxy_class_for_template_param(this_class);
+  if (this_class != NULL) {
+    if (this_class->kind == (a_type_kind)tk_template_param) {
+      /* Ensure that "this_class" points to a class type. */
+      this_class = proxy_class_for_template_param(this_class);
+    }  /* if */
+    if ((state->dso_flags & DSO_CONSTEXPR) != 0 &&
+        !(is_constructor || is_destructor || is_finalizer)) {
+      /* constexpr nonstatic member functions are implicitly "const" (this
+         does not apply to constructors, destructors, and finalizers). */
+      qualifiers |= TQ_CONST;
+    }  /* if */
   }  /* if */
   /* The implicit "this" param type will be either "pointer to class-type"
      or, if there was a const qualifier on the function, "pointer to const
