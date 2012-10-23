@@ -15292,7 +15292,7 @@ of which it is a member.
                                                   : es_error;
       pos_sy_diagnostic(severity, ec_bad_scope_for_partial_spec,
                         &locator->source_position, sym);
-      result = severity == !es_warning;
+      result = severity != es_warning;
     } else {
       pos_sy_error(ec_bad_scope_for_definition,
                    &locator->source_position, sym);
