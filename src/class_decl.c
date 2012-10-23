@@ -14301,16 +14301,18 @@ specific information about the member declaration, respectively.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   attach_decl_attributes(decl_state, /*primary_decl=*/FALSE);
   update_variable_decl_modifiers(decl_state);
-  if (curr_token == tok_assign &&
-      (is_expr_start_token(next_token()) ||
-       ((list_init_enabled || is_immediate_managed_class_type(class_type)) &&
-        next_token() == tok_lbrace))) {
+  if ((curr_token == tok_assign &&
+       (is_expr_start_token(next_token()) ||
+        ((list_init_enabled || is_immediate_managed_class_type(class_type)) &&
+         next_token() == tok_lbrace))) ||
+      (list_init_enabled && curr_token == tok_lbrace)) {
     a_constant         constant;
     a_source_position  init_pos;
     a_boolean          restore_member_visibility = FALSE;
     a_boolean          delay_initializer_scan = FALSE;
     var->initializer_in_class = TRUE;
     decl_state->init_state.decl_parse_state = decl_state;
+    decl_state->has_initializer = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (is_immediate_managed_class_type(class_type)) {
       /* In managed class types, static data members can have any initializer
@@ -14321,9 +14323,15 @@ specific information about the member declaration, respectively.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     init_pos = pos_curr_token;
-    /* Advance past the "=". */
-    (void)get_token();
-    decl_state->has_initializer = TRUE;
+    if (curr_token == tok_assign) {
+      /* Advance past the "=". */
+      (void)get_token();
+    } else {
+      /* Direct "braced" initialization. */
+      var->has_direct_braced_initializer = TRUE;
+      decl_state->has_direct_initializer = TRUE;
+      decl_state->init_state.direct_init = TRUE;
+    }  /* if */
     if (decl_state->auto_type_specifier_seen && !is_error_type(member_type)) {
       if (delay_initializer_scan) {
         pos_error(ec_auto_not_allowed_here, &decl_state->auto_pos);
@@ -14386,6 +14394,11 @@ specific information about the member declaration, respectively.
         } else {
           pos_ty_error(ec_invalid_member_constant_type, &init_pos,
                        member_type);
+          if (decl_state->auto_type_specifier_seen) {
+            /* Set the member type to an error type to avoid a spurious
+               "auto without an initializer" error. */
+            member_type = decl_state->type = error_type();
+          }  /* if */
         }  /* if */
       }  /* if */
       scan_and_discard_init_component(decl_state);

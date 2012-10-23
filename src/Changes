@@ -1,5 +1,15 @@
 Version 4.6
 
+10/23/12 [EDGcpfe/13271]
+
+In C++11 mode, the front end now accepts an in-class direct braced initializer
+for a const static data member of integral type.  For example:
+
+  struct S {
+    static int const N{33};  // Now accepted in C++11 mode.
+  };
+
+
 10/22/12 [EDGcpfe/11214, EDGcpfe/12318]
 Microsoft compatibility: declaring partial specialization in invalid namespace
 
