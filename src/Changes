@@ -63,6 +63,18 @@ changes for EDGcpfe/11604.
 
 
 10/18/12 [EDGcpfe/13278]
+Initial partial specialization allowed outside of namespace
+
+A partial specialization was not allowed to first be declared outside of
+its namespace.  Now fixed.
+
+  namespace N {
+    template <typename T> struct A { };
+  }
+  template <typename T> struct N::A<T*> { };
+
+
+10/18/12 [EDGcpfe/13278]
 Microsoft and GNU C++ compatibility: partial specialization declared though
 a using-directive
 
