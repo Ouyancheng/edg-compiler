@@ -13,8 +13,6 @@ templates.c -- Support for C++ templates.
 
 */
 
-static void xxx(void){}
-
 /* Header files common to all files. */
 #include "fe_common.h"
 /* Header files used by files involved in declaration processing. */
