@@ -21641,6 +21641,7 @@ and *class_state->pe_loc.
                                  (a_type_qualifier_set *)NULL,
                                  &ptr_to_member_scanned,
                                  &decl_info->decl_pos_block);
+  dps->declared_type = dps->type;
   /* The type constraints for properties and events differ. */
   if (is_property) {
     if (is_array_type(dps->type) || is_function_type(dps->type)) {
