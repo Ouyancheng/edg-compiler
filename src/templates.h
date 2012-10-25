@@ -569,6 +569,7 @@ a_boolean has_matching_template_instance(
                                 a_type_ptr		type,
 				a_template_arg_ptr	explicit_arg_list);
 
+#if !STANDALONE_UTILITY_PROGRAM
 extern a_symbol_ptr find_matching_template_instance(
 		a_symbol_ptr			sym,
 		a_decl_parse_state              *dps,
@@ -578,6 +579,7 @@ extern a_symbol_ptr find_matching_template_instance(
 		a_boolean			prefer_template,
 		a_template_nesting_depth	nesting_depth,
 		an_error_severity		severity_if_not_found);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern int compare_function_templates(
 				a_symbol_ptr 		templ_sym1,
