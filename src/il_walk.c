@@ -3183,8 +3183,10 @@ as specified in the control block.
       }  /* if */
       break;
     case enk_condition:
-      traverse_dynamic_init(expr->variant.condition->dynamic_init, tblock);
-      if (tblock->terminate) goto end_of_routine;
+      if (expr->variant.condition->dynamic_init != NULL) {
+        traverse_dynamic_init(expr->variant.condition->dynamic_init, tblock);
+        if (tblock->terminate) goto end_of_routine;
+      }  /* if */
       traverse_expr(expr->variant.condition->expr, tblock);
       break;
     case enk_object_lifetime:

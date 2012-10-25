@@ -1,5 +1,19 @@
 Version 4.6
 
+10/25/12 [EDGcpfe/13310]
+Traversal of expression with NULL dynamic init in enk_condition
+
+An expression traversal of an enk_condition whose dynamic_init field is
+NULL due to an error had resulted a segfault (in traverse_dynamic_init).
+Now fixed.  For example (if traverse_expr is run on the resulting
+expression tree):
+
+  struct A {};
+  void f() {
+    if (A);
+  }
+
+
 10/23/12 [EDGcpfe/13271]
 
 In C++11 mode, the front end now accepts an in-class direct braced initializer
