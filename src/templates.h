@@ -571,7 +571,7 @@ a_boolean has_matching_template_instance(
 
 extern a_symbol_ptr find_matching_template_instance(
 		a_symbol_ptr			sym,
-		a_type_ptr			type,
+		a_decl_parse_state              *dps,
 		a_template_arg_ptr		explicit_arg_list,
 		a_boolean			explicit_arg_list_present,
 		a_boolean			in_class_specialization,

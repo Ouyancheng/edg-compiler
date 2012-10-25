@@ -1517,8 +1517,8 @@ member declaration (allowed in some Microsoft modes only).
   } else {
     /* Look for a member function symbol of this type in the symbol table.
        It is an error if it is  not already there. */
-    a_symbol_ptr	orig_sym = sym, other_match;
-    sym = member_function_redecl_sym(sym, type_ptr, (a_template_param_ptr)NULL,
+    a_symbol_ptr  orig_sym = sym, other_match;
+    sym = member_function_redecl_sym(orig_sym, dps, (a_template_param_ptr)NULL,
                                      &other_match);
     if (sym == NULL && any_cfront_mode()) {
       /* In cfront it's okay to put a function qualifier on a member function
@@ -1527,7 +1527,7 @@ member declaration (allowed in some Microsoft modes only).
       if (rtsp->this_class != NULL) {
         rtsp->this_class = NULL;
         sym = member_function_redecl_sym(
-                                    locator->specific_symbol, type_ptr,
+                                    locator->specific_symbol, dps,
                                     (a_template_param_ptr)NULL, &other_match);
         /* The qualifiers are cleared only after looking for a redeclaration
            symbol.  This ensures that we find the same declaration Cfront
@@ -1640,6 +1640,14 @@ member declaration (allowed in some Microsoft modes only).
     rp = sym->variant.routine.ptr;
     orig_pos = sym->decl_position;
     dps->prev_type = *old_type = routine_symbol_type(sym);
+    if (rp->is_constexpr != ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
+      /* The previous declaration doesn't match the current one wrt. the
+         "constexpr" specifier.  Issue an error. */
+      pos_sy_error(rp->is_constexpr ? ec_previous_constexpr_decl_conflict :
+                                      ec_previous_nonconstexpr_decl_conflict,
+                   &dps->specifiers_pos, sym);
+      rp->is_constexpr = TRUE;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       if (rtsp->calling_convention != (a_calling_convention)cc_default) {

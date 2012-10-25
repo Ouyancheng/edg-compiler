@@ -224,7 +224,7 @@ extern void decl_friend_class(a_type_ptr  class_type,
 
 extern a_symbol_ptr member_function_redecl_sym(
                                        a_symbol_ptr          sym,
-                                       a_type_ptr            type,
+                                       a_decl_parse_state    *dps,
                                        a_template_param_ptr  templ_param_list,
                                        a_symbol_ptr          *other_match);
 

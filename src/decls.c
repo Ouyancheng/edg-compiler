@@ -719,8 +719,8 @@ expression is permitted.
   if ((is_type_specifier() &&
        !(is_expr_context && list_init_enabled &&
          is_type_keyword(curr_token) && next_token() == tok_lbrace)) ||
-      is_type_qualifier() ||
-      is_function_specifier() || curr_token == tok_friend) {
+      is_type_qualifier() || is_function_specifier() ||
+      curr_token == tok_friend || curr_token == tok_constexpr) {
     is_start = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled && is_expr_context && is_type_keyword(curr_token) &&
@@ -8722,7 +8722,7 @@ definition of a member function of a class template.
       /* Look for a member function symbol of this type in the symbol table.
          It is an error if it is  not already there. */
       a_symbol_ptr  other_match;
-      sym = member_function_redecl_sym(sym, type_ptr, idlb.templ_param_list,
+      sym = member_function_redecl_sym(sym, dps, idlb.templ_param_list,
                                        &other_match);
       if (sym != NULL) {
         if (other_match != NULL) {
@@ -9072,6 +9072,9 @@ definition of a member function of a class template.
       rout_ptr->declared_storage_class = dps->declared_storage_class;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (dps->dso_flags & DSO_CONSTEXPR) {
+      rout_ptr->is_constexpr = TRUE;
+    }  /* if */
     if (func_info->is_inline) {
       set_inline_flag(rout_ptr, TRUE);
     }  /* if */
@@ -9125,6 +9128,19 @@ definition of a member function of a class template.
     }  /* if */
   } else {
     redeclaration = TRUE;
+    if (rout_ptr->is_constexpr != ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
+      /* The previous declaration doesn't match the current one wrt. the
+         "constexpr" specifier.  Issue an error. */
+      pos_sy_error(rout_ptr->is_constexpr ?
+                     ec_previous_constexpr_decl_conflict :
+                     ec_previous_nonconstexpr_decl_conflict,
+                   &dps->specifiers_pos, sym);
+      if (!sym->defined) {
+        /* If the function was not previously defined, treat it as constexpr
+           from here on at least. */
+        rout_ptr->is_constexpr = TRUE;
+      }  /* if */
+    }  /* if */
     if (func_info->is_inline) {
       if (!rout_ptr->is_inline) {
         set_inline_flag(rout_ptr, TRUE);
@@ -14000,7 +14016,7 @@ describe the current declaration.
     a_boolean   is_template_instance;
     a_type_ptr  type = state->type;
     is_member_redecl = member_function_redecl_sym(
-          sym, type, (a_template_param_ptr)NULL, (a_symbol_ptr*)NULL) != NULL;
+          sym, state, (a_template_param_ptr)NULL, (a_symbol_ptr*)NULL) != NULL;
     is_template_instance = has_matching_template_instance(
                                        sym, type, locator->template_arg_list);
     if (!is_member_redecl && is_template_instance) {

@@ -8980,30 +8980,30 @@ ordinary friend class declaration.
 
 static a_symbol_ptr member_function_redecl_sym_with_template_flag(
                                        a_symbol_ptr          sym,
-                                       a_type_ptr            new_type,
+                                       a_decl_parse_state    *dps,
                                        a_template_param_ptr  templ_param_list,
                                        a_boolean             templates_only,
                                        a_symbol_ptr          *other_match)
 /*
-sym is a member function symbol or overloaded function symbol from a
-previous declaration.  new_type is the type from the current
-declaration.  If the new declaration is a function template,
-templ_param_list points to the template parameter list.  Check the
-type for compatibility with sym or, if sym represents an overloaded
-function, with any of the instances.  If a match is found, return a
-pointer to the symbol.  If not, return NULL.  If other_match is non-NULL,
-set *other_match to an additional matching function if there is one
-(this can happen only with Microsoft-mode selective overriders) or to
-NULL otherwise.
+sym is a member function symbol or overloaded function symbol from a previous
+declaration.  *dps describes the current declaration.  If the new declaration
+is a function template, templ_param_list points to the template parameter list.
+Check the type dps->type for compatibility with sym or, if sym represents an
+overloaded function, with any of the instances.  If a match is found, return a
+pointer to the symbol.  If not, return NULL.  If other_match is non-NULL, set
+*other_match to an additional matching function if there is one (this can
+happen only with Microsoft-mode selective overriders) or to NULL otherwise.
 
 If the routine type from the current declaration or one from the original
 declaration indicates that the function as a whole was qualified (e.g.,
-int f(int) const), then the type compatibility check must take the
-const qualification into account when seeking a match.  In other words,
-if one of the functions was so qualified, both must be for them to have
-compatible types.  The qualification is indicated by a separate field
-"qualifiers" in the routine type supplement.
-
+"int f(int) const"), then the type compatibility check must take the const
+qualification into account when seeking a match.  In other words, if one of
+the functions was so qualified, both must be for them to have compatible types.
+The qualification is indicated by a separate field "qualifiers" in the routine
+type supplement.  (Special care must be taken for nonstatic constexpr member
+functions: They are implicitly const, but we don't know whether the function
+is nonstatic until it matches a corresponding declaration in the class
+definition.)
 Otherwise, the type compatibility check is done based only on the return
 type and parameters; the type of the implicit "this" parameter, if any, is
 ignored.  This if for two reasons.  (1) When we are looking for a
@@ -9020,10 +9020,14 @@ When templates_only is TRUE, only function templates members are considered.
 */
 {
   a_boolean                      is_overloaded_function, match;
+  a_type_ptr                     new_type = dps->type;
   a_type_ptr                     orig_type, orig_this_class, new_this_class;
+  a_type_ptr                     parent_class = sym_parent_class(sym);
   a_routine_type_supplement_ptr  orig_rts, new_rts;
   a_boolean                      orig_function_is_qualified;
   a_boolean                      new_function_is_qualified;
+  a_boolean                      new_may_be_implicitly_const;
+  a_type_qualifier_set           new_quals;
 
   if (other_match != NULL) *other_match = NULL;
   /* Get the symbol list if this is an overloaded function. */
@@ -9038,7 +9042,14 @@ When templates_only is TRUE, only function templates members are considered.
      on the return type and parameters. */
   new_rts = (skip_typerefs(new_type))->variant.routine.extra_info;
   new_this_class = new_rts->this_class;
-  new_function_is_qualified = (new_rts->qualifiers != TQ_NONE);
+  new_quals = new_rts->qualifiers;
+  new_function_is_qualified = (new_quals != TQ_NONE);
+  /* new_may_be_implicitly_const indicates that the new declaration should be
+     considered a const member if it matches a nonstatic member function
+     declaration. */
+  new_may_be_implicitly_const = !(new_quals & TQ_CONST) &&
+                                dps->dso_flags & DSO_CONSTEXPR &&
+                                !is_constructor_symbol(sym);
   /* Go through the symbol list and look for an instance in which the
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
@@ -9046,6 +9057,13 @@ When templates_only is TRUE, only function templates members are considered.
     a_routine_ptr                     routine;
     a_symbol_ptr                      fund_sym = sym;
     a_type_compat_flags_set           tcf_flags = TCF_NO_FLAGS;
+    if (new_may_be_implicitly_const) {
+      /* We may have added an implicit qualifier in a previous iteration of
+         this loop.  Restore the original type for this iteration. */
+      new_rts->qualifiers = new_quals;
+      new_rts->this_class = new_this_class;
+      new_function_is_qualified = (new_quals != TQ_NONE);
+    }  /* if */
     if (sym->kind == (a_symbol_kind)sk_projection) {
       /* Ignore projection symbols, except those resulting from a using-
          declaration that project a member function or member function
@@ -9085,6 +9103,15 @@ When templates_only is TRUE, only function templates members are considered.
     orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
     orig_this_class = orig_rts->this_class;
     orig_function_is_qualified = (orig_rts->qualifiers != TQ_NONE);
+    if (new_may_be_implicitly_const && orig_this_class != NULL) {
+      /* We're attempting to match against a nonstatic member function.
+         Treat the new declaration (which is "constexpr") as "const". */
+      new_function_is_qualified = TRUE;
+      if (new_this_class == NULL) {
+        new_rts->this_class = parent_class;
+      }  /* if */
+      new_rts->qualifiers |= TQ_CONST;
+    }  /* if */
     if (new_function_is_qualified != orig_function_is_qualified) {
       /* No match is possible.  Don't bother calling types_are_compatible. */
       continue;
@@ -9157,6 +9184,12 @@ When templates_only is TRUE, only function templates members are considered.
       }  /* if */
     }  /* if */
   }  /* for */
+  if (new_may_be_implicitly_const && !match) {
+    /* We may have added an implicit qualifier in the last iteration of the
+       loop.  Restore the original type if it didn't result in a match. */
+    new_rts->qualifiers = new_quals;
+    new_rts->this_class = new_this_class;
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (sym == NULL && other_match != NULL && *other_match != NULL) {
     /* A selective overrider was found and recorded in *other_match, but no
@@ -9172,7 +9205,7 @@ When templates_only is TRUE, only function templates members are considered.
 
 a_symbol_ptr member_function_redecl_sym(
                                 a_symbol_ptr          sym,
-                                a_type_ptr            new_type,
+                                a_decl_parse_state    *dps,
                                 a_template_param_ptr  templ_param_list,
                                 a_symbol_ptr          *other_match)
 /*
@@ -9201,12 +9234,12 @@ twice; once to search for templates and again to search for nontemplates.
 
   /* First look for a matching template. */
   result = member_function_redecl_sym_with_template_flag(
-                     sym, new_type, templ_param_list, /*templates_only=*/TRUE,
+                     sym, dps, templ_param_list, /*templates_only=*/TRUE,
                      other_match);
   if (result == NULL) {
     /* No template was found, look for a normal member function. */
     result = member_function_redecl_sym_with_template_flag(
-                    sym, new_type, templ_param_list, /*templates_only=*/FALSE,
+                    sym, dps, templ_param_list, /*templates_only=*/FALSE,
                     other_match);
   }  /* if */
   return result;
@@ -9731,7 +9764,7 @@ possibility.
          a member function template.  If none can be found, NULL is
          returned. */
       sym = find_matching_template_instance(
-                               sym, function_type, locator->template_arg_list,
+                               sym, state, locator->template_arg_list,
                                (a_boolean)locator->is_template_id,
                                /*in_class_specialization=*/FALSE,
                                /*prefer_template=*/!gpp_mode &&
@@ -9975,7 +10008,7 @@ was used).
       /* A member function by this name has already been entered into the
          symbol table.  This could be a redeclaration, which is illegal for
          class members.  Check for that first by looking for a type match. */
-      new_sym = member_function_redecl_sym(sym, decl_info->decl_state.type,
+      new_sym = member_function_redecl_sym(sym, &decl_info->decl_state,
                                            (a_template_param_ptr)NULL,
                                            (a_symbol_ptr*)NULL);
       if (new_sym == NULL) {
@@ -11100,13 +11133,13 @@ to (with its overridden_functions field).
 static a_symbol_ptr find_explicitly_overridden_member(
                                            a_symbol_locator       *locator,
                                            a_class_def_state_ptr  class_state,
-                                           a_type_ptr             member_type)
+                                           a_decl_parse_state     *dps)
 /*
-We're declaring a member function with type member_type using a qualified
-declarator described by locator.  class_state describes the class in which the
-member is being declared. This is a microsoft extension to select a virtual
-function from a particular base class type to be overridden.  Return that
-function or NULL if none can be found.
+A member function declaration described by *dps uses a qualified declarator
+described by locator.  class_state describes the class in which the member is
+being declared. This is a microsoft extension to select a virtual function
+from a particular base class type to be overridden.  Return that function or
+NULL if none can be found.
 */
 {
   a_symbol_ptr   result = NULL;
@@ -11133,7 +11166,7 @@ function or NULL if none can be found.
       if (is_member_function_symbol(sym)) {
         /* The qualified declarator identified a known member function. */
         sym = member_function_redecl_sym_with_template_flag(
-                                                    sym, member_type,
+                                                    sym, dps,
                                                     (a_template_param_ptr)NULL,
                                                     /*templates_only=*/FALSE,
                                                     (a_symbol_ptr*)NULL);
@@ -12598,7 +12631,7 @@ implicitly declared member functions.
          classes the construct is not allowed. */
       if (!is_immediate_managed_class_type(class_type)) {
         overridden_function = find_explicitly_overridden_member(
-                                           locator, class_state, member_type);
+                                           locator, class_state, decl_state);
       } else {
         pos_error(ec_qualified_name_not_allowed, &locator->source_position);
         set_to_error_locator(*locator);
@@ -13454,6 +13487,9 @@ decl_member_function, which handles in-class member function declarations.)
   prototype_sym->variant.routine.instance_ptr->prototype_scope_symbols =
                                             func_info->prototype_scope_symbols;
   func_info->keep_param_id_list = TRUE;
+  if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
+    rtn->is_constexpr = TRUE;
+  }  /* if */
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
@@ -21926,13 +21962,13 @@ and record the overridden base class members in decl_info->named_overrides.
           check_assertion(scope_is(&scope_stack_top(),
                                    sck_template_declaration));
           sym = member_function_redecl_sym_with_template_flag(
-                             sym, decl_info->decl_state.type,
+                             sym, &decl_info->decl_state,
                              scope_stack_top().template_decl_info->parameters,
                              /*templates_only=*/TRUE, (a_symbol_ptr*)NULL);
         } else {
           /* Search for an ordinary matching member function. */
           sym = member_function_redecl_sym_with_template_flag(
-                                              sym, decl_info->decl_state.type,
+                                              sym, &decl_info->decl_state,
                                               (a_template_param_ptr)NULL,
                                               /*templates_only=*/FALSE,
                                               (a_symbol_ptr*)NULL);

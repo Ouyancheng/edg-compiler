@@ -12277,6 +12277,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     rp->variant = templ_rout->variant;
     rp->is_deleted = templ_rout->is_deleted;
     rp->is_defaulted = templ_rout->is_defaulted;
+    rp->is_constexpr = templ_rout->is_constexpr;
     set_inline_flag(rp, (a_boolean)templ_rout->is_inline);
 #if IA64_ABI
     rp->inline_in_class_definition = templ_rout->inline_in_class_definition;
@@ -21402,7 +21403,7 @@ any non-empty template parameter lists that were scanned.
 
 a_symbol_ptr find_matching_template_instance(
 		a_symbol_ptr			sym,
-		a_type_ptr			type,
+                a_decl_parse_state              *dps,
 		a_template_arg_ptr		explicit_arg_list,
 		a_boolean			explicit_arg_list_present,
 		a_boolean			in_class_specialization,
@@ -21410,7 +21411,7 @@ a_symbol_ptr find_matching_template_instance(
 		a_template_nesting_depth	nesting_depth,
 		an_error_severity		severity_if_not_found)
 /*
-sym is some kind of function symbol.  type is the type declared for a
+sym is some kind of function symbol.  *dps describes the declaration of a
 function template instance.  explicit_arg_list is an explicitly specified
 template argument list, which may be NULL.  explicit_arg_list_present
 is TRUE if an explicit argument list was provided, even an empty one
@@ -21423,6 +21424,7 @@ is the severity of the diagnostic to be issued if no matching instance is
 found.  Return the symbol for the instance, or NULL if no instance is found.
 */
 {
+  a_type_ptr			type = dps->type;
   a_symbol_ptr  		orig_sym, other_match = NULL;
   a_boolean     		any_found = FALSE;
   a_symbol_ptr			new_sym = NULL;
@@ -21437,7 +21439,7 @@ found.  Return the symbol for the instance, or NULL if no instance is found.
        of a template class.  Skip this step when an explicit template
        argument list has been specified, as this implies that the entity
        to be found must be a template. */
-    member_sym = member_function_redecl_sym(sym, type,
+    member_sym = member_function_redecl_sym(sym, dps,
                                             (a_template_param_ptr)NULL,
                                             &other_match);
     if (member_sym != NULL) any_found = TRUE;
@@ -21940,7 +21942,7 @@ that follows.
       }  /* if */
       if (is_function_type(dps->type) && is_function_or_template_symbol(sym)) {
         sym = find_matching_template_instance(
-                        sym, dps->type, locator.template_arg_list,
+                        sym, dps, locator.template_arg_list,
                         (a_boolean)locator.is_template_id,
 		        /*in_class_specialization=*/decl_state->is_member_decl,
                         /*prefer_template=*/TRUE,
@@ -28483,7 +28485,7 @@ instantiation.
          a match is an error, but in Microsoft bugs mode such a failure is
          accepted with a warning or a remark. */
       new_sym = find_matching_template_instance(
-                                   sym, state.type, locator.template_arg_list,
+                                   sym, &state, locator.template_arg_list,
                                    (a_boolean)locator.is_template_id,
                                    /*in_class_specialization=*/FALSE,
                                    /*prefer_template=*/TRUE,

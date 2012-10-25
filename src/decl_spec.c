@@ -7589,7 +7589,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
        declaration. */
     if (is_member_decl && !result) {
       if (!(decl_specifiers_seen & ~(DS_VIRTUAL | DS_STORAGE_CLASS |
-                                     DS_EXPLICIT | DS_INLINE |
+                                     DS_EXPLICIT | DS_INLINE | DS_CONSTEXPR |
                                      DS_MICROSOFT_INLINE | DS_FORCEINLINE)) &&
           (dps->declared_storage_class == (a_storage_class)sc_unspecified ||
            dps->declared_storage_class == (a_storage_class)sc_static)) {
