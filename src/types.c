@@ -1581,13 +1581,14 @@ Return TRUE if the given type is a literal type.
 {
   a_boolean  result;
 
+  if (is_reference_type(tp)) tp = type_pointed_to(tp);
   tp = skip_array_types(tp);
   tp = skip_typerefs(tp);
   if (is_scalar(tp) || is_any_reference(tp)) {
     result = TRUE;
+  } else if (is_immediate_class_type(tp)) {
+    result = tp->variant.class_struct_union.is_literal_type;
   } else {
-    /* When support for the "constexpr" specifier is added, certain class
-       types will also qualify as "literal types". */
     result = FALSE;
   }  /* if */
   return result;

@@ -902,6 +902,9 @@ typedef struct a_class_def_state {
   a_bit_field   POD_ruled_out:1;
 			/* TRUE if a property of the class disqualifies it as
 			   a "POD". */
+  a_bit_field	has_subobject_of_nonliteral_type:1;
+			/* TRUE if the class has a field or base class of
+			   nonliteral type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field   potentially_interface_like:1;
 			/* TRUE if we haven't ruled out this type from being
@@ -1037,6 +1040,7 @@ class being defined.
   cdsp->is_first_field = TRUE;
   cdsp->class_aggregate_ruled_out = FALSE;
   cdsp->POD_ruled_out = FALSE;
+  cdsp->has_subobject_of_nonliteral_type = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->potentially_interface_like = FALSE;
   cdsp->current_decl_valid_in_property_or_event_def = FALSE;
@@ -7932,6 +7936,9 @@ to FALSE before returning).
        (C++/CLI value class types are the exception.) */
     class_state->class_aggregate_ruled_out = TRUE;
     class_state->POD_ruled_out = TRUE;
+  }  /* if */
+  if (!bcp_type->variant.class_struct_union.is_literal_type) {
+    class_state->has_subobject_of_nonliteral_type = TRUE;
   }  /* if */
   /* The implied default constructor of the current class will be
      nontrivial if any of its base classes is virtual or has a nontrivial
@@ -16414,7 +16421,7 @@ be entered.
     /* If the member's type is class, struct, or union -- or array of class,
        struct, or union -- there is additional checking to be done. */
     a_type_ptr  tp = skip_typerefs(member_element_type);
-    if (is_class_struct_union_type(tp)) {
+    if (is_immediate_class_type(tp)) {
       /* Propagate the flag indicating that zero-initialization may be needed
          as part of value-initialization. */
       if (tp->variant.class_struct_union.has_zero_init_component) {
@@ -16466,6 +16473,9 @@ be entered.
         /* A POD may not have a field with a type that is a non-POD class
            (or array thereof). */
         if (!member_cssp->is_POD) class_state->POD_ruled_out = TRUE;
+        if (!tp->variant.class_struct_union.is_literal_type) {
+          class_state->has_subobject_of_nonliteral_type = TRUE;
+        }  /* if */
       }  /* if */
     } else {
       /* The field's type is an array of nonclass elements. */
@@ -24541,6 +24551,53 @@ cached for later "prototype instantiation".  Perform these instantiations now
 }  /* instantiate_delayed_exception_spec_args_if_needed */
 
 
+static void set_literal_type_flag(a_class_def_state  *cdsp)
+/*
+cdsp describes a class definition that has been completely parsed.  Set the
+is_literal_type in the associated class type entry to TRUE if the class is
+indeed a literal type.
+*/
+{
+  a_type_ptr  type = cdsp->class_type;
+  a_class_symbol_supplement_ptr
+              cssp = symbol_for(type)->variant.class_struct_union.extra_info;
+
+  if (!cdsp->has_subobject_of_nonliteral_type &&
+      !has_nontrivial_destructor(cssp)) {
+    /* All the members and bases are of literal type, and the destructor is
+       trivial.  To be a literal type, the class should additionally be an
+       aggregate, or it should have at least one constexpr constructor that
+       is not a copy or move constructor. */
+    if (cssp->is_class_aggregate) {
+      type->variant.class_struct_union.is_literal_type = TRUE;
+    } else {
+      /* Look for a constexpr constructor that is not a copy or move
+         constructor. */
+      a_symbol_ptr  sym = cssp->constructor;
+      a_boolean     is_list = FALSE;
+      check_assertion(sym != NULL);
+      if (symbol_is(sym, sk_overloaded_function)) {
+        is_list = TRUE;
+        sym = sym->variant.overloaded_function.symbols;
+      }  /* if */
+      for (; sym != NULL; sym = is_list ? sym->next : (a_symbol_ptr)NULL) {
+        if (symbol_is(sym, sk_member_function)) {
+          a_routine_ptr         rp = sym->variant.routine.ptr;
+          a_type_qualifier_set  qualifiers;
+          if (rp->is_constexpr &&
+              !is_copy_constructor_type(rp->type, type, &qualifiers,
+                                        /*include_move_ctors=*/TRUE,
+                                        /*is_declarative_context=*/TRUE)) {
+            type->variant.class_struct_union.is_literal_type = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* set_literal_type_flag */
+
+
 static void complete_class_definition(a_type_ptr         class_type,
                                       a_scope_depth      effective_decl_level,
                                       a_class_def_state  *class_state)
@@ -24660,6 +24717,7 @@ bits of information that were acquired while parsing.
          assignment operator was needed first. */
       cssp->is_POD = TRUE;
     }  /* if */
+    set_literal_type_flag(class_state);
     /* Set shares_virtual_function_info for a base class of class_type, if
        appropriate. */
     set_shares_virtual_function_info_flag(class_type,
