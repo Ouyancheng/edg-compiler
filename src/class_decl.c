@@ -17295,6 +17295,7 @@ by class_state.  If is_deleted is TRUE, make that constructor "deleted".
   a_type_ptr          class_type = class_state->class_type;
   a_member_decl_info  decl_info;
   a_func_info_block   func_info;
+  a_symbol_ptr        sym;
 
   initialize_member_decl_info(&decl_info,
                               &class_type->source_corresp.decl_position);
@@ -17307,11 +17308,29 @@ by class_state.  If is_deleted is TRUE, make that constructor "deleted".
   clear_func_info(&func_info);
   generate_special_function(class_state, &decl_info, &func_info,
                             (a_param_type*)NULL);
+  sym = decl_info.decl_state.sym;
   if (is_deleted) {
-    a_symbol_ptr  sym = decl_info.decl_state.sym;
     sym->defined = TRUE;
     sym->variant.routine.ptr->is_deleted = TRUE;
     sym->variant.routine.ptr->defined = TRUE;
+  }  /* if */
+  /* Check if the generated default constructor is "constexpr". */
+  if (!class_type->variant.class_struct_union.any_virtual_base_classes &&
+      !class_state->has_subobject_of_nonliteral_type) {
+    /* A generated default constructor is implicitly "constexpr" if (a) the
+       parent class has no virtual bases, (b) all subobjects have literal
+       class type, and (c) every field has a field-initializer. */
+    a_boolean    all_fields_have_initializers = TRUE;
+    a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
+    for (; fp != NULL; fp = fp->next) {
+      if (!fp->has_initializer && !fp->compiler_generated) {
+        all_fields_have_initializers = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+    if (all_fields_have_initializers) {
+      sym->variant.routine.ptr->is_constexpr = TRUE;
+    }  /* if */
   }  /* if */
 }  /* generate_default_constructor */
 
