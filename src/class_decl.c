@@ -24589,12 +24589,11 @@ indeed a literal type.
        is not a copy or move constructor. */
     if (cssp->is_class_aggregate) {
       type->variant.class_struct_union.is_literal_type = TRUE;
-    } else {
+    } else if (cssp->constructor != NULL) {
       /* Look for a constexpr constructor that is not a copy or move
          constructor. */
       a_symbol_ptr  sym = cssp->constructor;
       a_boolean     is_list = FALSE;
-      check_assertion(sym != NULL);
       if (symbol_is(sym, sk_overloaded_function)) {
         is_list = TRUE;
         sym = sym->variant.overloaded_function.symbols;
