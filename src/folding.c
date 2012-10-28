@@ -8167,7 +8167,7 @@ prefix; fold_constexpr_call should usually be called instead.
   a_boolean folded = FALSE;
 
   check_assertion(routine->is_constexpr);
-  if (routine->defined) {
+  if (routine->assoc_scope != NULL_region_number) {
     a_scope_ptr      scope = scope_for_routine(routine);
     an_expr_node_ptr expr;
     check_assertion(scope->kind == (a_scope_kind)sck_function);
@@ -8240,7 +8240,7 @@ prefix; fold_constexpr_ctor should usually be called instead.
 
   check_assertion(ctor_routine->is_constexpr &&
                   special_kind_is(ctor_routine, sfk_constructor));
-  if (ctor_routine->defined) {
+  if (ctor_routine->assoc_scope != NULL_region_number) {
     a_scope_ptr scope = scope_for_routine(ctor_routine);
     check_assertion(scope->kind == (a_scope_kind)sck_function);
     if (scope->is_constexpr_routine) {
