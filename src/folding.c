@@ -8121,12 +8121,22 @@ failure.
   check_assertion(routine_scope->kind == (a_scope_kind)sck_function);
   routine = routine_scope->variant.routine.ptr;
   param_var = routine_scope->variant.routine.parameters;
+  /* Skip lowering-generated parameters. */
+  while (param_var->assoc_param_type == NULL &&
+         !param_var->is_this_parameter) {
+    param_var = param_var->next;
+  }  /* while */
   if (param_var->is_this_parameter &&
       special_kind_is(routine, sfk_constructor)) {
     /* Skip the "this" parameter in a constructor, because there is no
        corresponding argument.  Note that */
     param_var = param_var->next;
   }  /* if */
+  /* Skip lowering-generated parameters. */
+  while (param_var->assoc_param_type == NULL &&
+         !param_var->is_this_parameter) {
+    param_var = param_var->next;
+  }  /* while */
   for (arg = args;
        arg != NULL;
        arg = arg->next, param_var = param_var->next) {
