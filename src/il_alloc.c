@@ -3957,6 +3957,7 @@ Initialize the variable fields of the scope entry pointed to by sp.
       sp->variant.routine.this_param_variable           = NULL;
       sp->variant.routine.return_value_variable         = NULL;
       sp->variant.routine.constexpr_return_expr         = NULL;
+      sp->variant.routine.constexpr_constructor_inits   = NULL;
       break;
     case sck_condition:
       sp->variant.assoc_statement = NULL;
@@ -3995,6 +3996,7 @@ points to the associated routine if the kind is sck_function.
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   sp->scope_orphaned_list_header_generated = FALSE;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  sp->is_constexpr_routine = FALSE;
   set_scope_kind(sp, kind, assoc_routine);
   sp->assoc_block                 = NULL;
   sp->lifetime                    = NULL;

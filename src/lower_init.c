@@ -3531,7 +3531,7 @@ an additional VTT parameter (which is skipped when matching parameters).
 }  /* replace_parameters_in_dynamic_init */
 
 
-static a_constructor_init_ptr copy_ctor_init(
+static a_constructor_init_ptr copy_ctor_init_with_remap(
                                            a_constructor_init_ptr   ctor_init,
                                            a_scope_ptr              from_scope,
                                            a_scope_ptr              to_scope,
@@ -3542,24 +3542,8 @@ from from_scope to to_scope.  options is a set of options for the copy.
 Assumes ctor_init has not been lowered yet.
 */
 {
-  a_constructor_init_ptr  copy;
+  a_constructor_init_ptr copy = copy_ctor_init(ctor_init, options);
 
-  copy = alloc_ctor_init(ctor_init->kind);
-  *copy = *ctor_init;
-  copy->next = NULL;
-  copy->initializer = copy_dynamic_init(ctor_init->initializer, options);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  copy->ctor_init_range = null_source_range;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  switch (ctor_init->kind) {
-    case cik_field:
-    case cik_virtual_base_class:
-    case cik_direct_base_class:
-      /* These are allocated in the file scope. */
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
   if (copy->initializer != NULL) {
     /* Expressions in the dynamic init may have variables (actually parameters)
        that refer to parameters in "from_scope"; they need to be replaced with
@@ -3569,7 +3553,7 @@ Assumes ctor_init has not been lowered yet.
                                        to_scope->variant.routine.parameters);
   }  /* if */
   return copy;
-}  /* copy_ctor_init */
+}  /* copy_ctor_init_with_remap */
 
 
 static void move_or_copy_virtual_base_ctor_inits(a_scope_ptr subobj_scope)
@@ -3639,8 +3623,8 @@ scope into the complete object ctor/dtor scope.
       }  /* if */
       /* Copy the constructor init into the current memory region and link
          it onto the list for the complete object ctor/dtor. */
-      copy = copy_ctor_init(ctor_init, subobj_scope, complete_scope,
-                            CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER);
+      copy = copy_ctor_init_with_remap(ctor_init, subobj_scope, complete_scope,
+                                       CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER);
       if (subobj_routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
         /* For destructors, queue the new destruction at the end of the

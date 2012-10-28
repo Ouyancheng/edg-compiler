@@ -835,33 +835,61 @@ and issue a diagnostic if that was not the case.
 }  /* check_implicit_lambda_return_type */
 
 
-static void set_routine_constexpr_return_expr(a_scope_ptr scope)
+static void set_routine_constexpr_info(a_scope_ptr scope)
 /*
-scope is the function scope for a constexpr routine.  Record a copy of
-the return expression in the scope entry constexpr_return_expr field for
-later use in expansion of calls to the routine.
+scope is the function scope for a constexpr function or constructor.
+Check to see if it is valid and record information used later when doing
+a constexpr expansion of the routine.
 */
 {
   a_statement_ptr block = scope->assoc_block;
+  a_routine_ptr   routine;
 
   check_assertion(scope->kind == (a_scope_kind)sck_function && block != NULL);
+  routine = scope->variant.routine.ptr;
+  check_assertion(routine->is_constexpr);
   if (block->kind == (a_statement_kind)stmk_block) {
-    a_statement_ptr return_stmt = block->variant.block.statements;
-    if (return_stmt != NULL &&
-        return_stmt->kind == (a_statement_kind)stmk_return &&
-        return_stmt->next == NULL) {
-      if (return_stmt->variant.return_dynamic_init == NULL) {
-        an_expr_node_ptr expr = return_stmt->expr;
-        if (expr != NULL) {
-          /* We make a copy of the expression so that if IL lowering is
-             being done we preserve an unlowered copy. */
-          scope->variant.routine.constexpr_return_expr =
+    a_statement_ptr stmt = block->variant.block.statements;
+    if (special_kind_is(routine, sfk_constructor)) {
+      /* Constructor.  Must have an empty statement as the body, i.e.,
+         an implicit return. */
+      if (stmt != NULL &&
+          stmt->kind == (a_statement_kind)stmk_return &&
+          stmt->next == NULL &&
+          stmt->expr == NULL) {
+        a_constructor_init_ptr ctor_init, *next_ptr_ptr;
+        scope->is_constexpr_routine = TRUE;
+        /* Make a copy of the constructor inits list so that if IL lowering is
+           being done we preserve unlowered copies. */
+        next_ptr_ptr = &scope->variant.routine.constexpr_constructor_inits;
+        for (ctor_init = scope->variant.routine.constructor_inits;
+             ctor_init != NULL;
+             ctor_init = ctor_init->next) {
+          a_constructor_init_ptr copy = copy_ctor_init(ctor_init,
+                                                       CE_NO_OPTIONS);
+          *next_ptr_ptr = copy;
+          next_ptr_ptr = &copy->next;
+        }  /* for */
+      }  /* if */
+    } else {
+      /* Non-constructor.  Must have a single return statement as the body. */
+      if (stmt != NULL &&
+          stmt->kind == (a_statement_kind)stmk_return &&
+          stmt->next == NULL) {
+        if (stmt->variant.return_dynamic_init == NULL) {
+          an_expr_node_ptr expr = stmt->expr;
+          if (expr != NULL) {
+            scope->is_constexpr_routine = TRUE;
+            /* We make a copy of the expression so that if IL lowering is
+               being done we preserve an unlowered copy. */
+            scope->variant.routine.constexpr_return_expr =
                                            copy_expr_tree(expr, CE_NO_OPTIONS);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* set_routine_constexpr_return_expr */
+}  /* set_routine_constexpr_info */
 
 
 void scan_function_body(a_routine_ptr     rout_ptr,
@@ -1356,7 +1384,7 @@ of lambda expressions.
                                                   /*is_catch_clause=*/FALSE,
                                                   /*is_statement_expr=*/FALSE);
       if (rout_ptr->is_constexpr) {
-        set_routine_constexpr_return_expr(scope_ptr);
+        set_routine_constexpr_info(scope_ptr);
       }  /* if */
     }  /* if */
   }  /* if */

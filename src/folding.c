@@ -7788,6 +7788,66 @@ Free a list of constexpr remap entries and make them available for reuse.
 }  /* free_constexpr_remap_list */
 
 
+static a_boolean fold_expr(an_expr_node_ptr             expr,
+                           a_constexpr_remap_ptr        remap_list,
+                           a_constexpr_evaluation_block *ceblock,
+                           a_constant                   *result_con);
+static a_boolean i_fold_constexpr_ctor(
+                                     a_routine_ptr                ctor_routine,
+                                     an_expr_node_ptr             args,
+                                     a_constexpr_remap_ptr        remap_list,
+                                     a_constexpr_evaluation_block *ceblock,
+                                     a_constant                   *result_con);
+
+
+static a_boolean fold_dynamic_init(a_dynamic_init_ptr           dip,
+                                   a_constexpr_remap_ptr        remap_list,
+                                   a_constexpr_evaluation_block *ceblock,
+                                   a_constant                   *result_con)
+/*
+Attempt to fold the dynamic initialization "dip" to a constant as part
+of a constexpr evaluation, by substituting argument constant values
+for parameters as indicated by remap_list.  If the dynamic init folds
+to a constant, place the constant in *result_con and return TRUE;
+otherwise, return FALSE.  ceblock gives context information for the
+evaluation.
+*/
+{
+  a_boolean folded = FALSE;
+
+  switch(dip->kind) {
+    case dik_constant:
+      copy_constant(dip->variant.constant, result_con);
+      folded = TRUE;
+      break;
+    case dik_expression:
+      folded = fold_expr(dip->variant.expression, remap_list, ceblock,
+                         result_con);
+      break;
+    case dik_constructor:
+      { a_routine_ptr ctor_routine = dip->variant.constructor.ptr;
+        if (ctor_routine != NULL && ctor_routine->is_constexpr) {
+          folded = i_fold_constexpr_ctor(ctor_routine,
+                                         dip->variant.constructor.args,
+                                         remap_list,
+                                         ceblock,
+                                         result_con);
+        }  /* if */
+      }
+      break;
+    case dik_none:
+    case dik_zero:
+    case dik_call_returning_class_via_cctor:
+    case dik_nonconstant_aggregate:
+    case dik_bitwise_copy:
+    default:
+      /* These cases don't fold. */
+      break;
+  }  /* switch */    
+  return folded;
+}  /* fold_dynamic_init */
+
+
 static a_boolean i_fold_constexpr_call(
                                      a_routine_ptr                routine,
                                      an_expr_node_ptr             args,
@@ -8026,6 +8086,11 @@ ceblock gives context information for the evaluation.
         }  /* if */
         break;
     }  /* switch */
+  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    folded = fold_dynamic_init(expr->variant.init.dynamic_init,
+                               remap_list,
+                               ceblock,
+                               result_con);
   }  /* if */
   return folded;
 }  /* fold_expr */
@@ -8047,13 +8112,22 @@ evaluation.  *not_foldable is returned TRUE if there is some kind of
 failure.
 */
 {
+  a_routine_ptr         routine;
   a_constexpr_remap_ptr new_remap_list = NULL, *last_ptr = &new_remap_list;
   an_expr_node_ptr      arg;
   a_variable_ptr        param_var;
 
   *not_foldable = FALSE;
   check_assertion(routine_scope->kind == (a_scope_kind)sck_function);
-  for (arg = args, param_var = routine_scope->variant.routine.parameters;
+  routine = routine_scope->variant.routine.ptr;
+  param_var = routine_scope->variant.routine.parameters;
+  if (param_var->is_this_parameter &&
+      special_kind_is(routine, sfk_constructor)) {
+    /* Skip the "this" parameter in a constructor, because there is no
+       corresponding argument.  Note that */
+    param_var = param_var->next;
+  }  /* if */
+  for (arg = args;
        arg != NULL;
        arg = arg->next, param_var = param_var->next) {
     a_constexpr_remap_ptr crp;
@@ -8095,9 +8169,11 @@ prefix; fold_constexpr_call should usually be called instead.
   check_assertion(routine->is_constexpr);
   if (routine->defined) {
     a_scope_ptr      scope = scope_for_routine(routine);
-    an_expr_node_ptr expr = scope->variant.routine.constexpr_return_expr;
+    an_expr_node_ptr expr;
+    check_assertion(scope->kind == (a_scope_kind)sck_function);
+    expr = scope->variant.routine.constexpr_return_expr;
     if (expr != NULL) {
-      /* Make the remap list for the arguments. */
+      /* Set up remapping of parameter variables to the argument values. */
       a_boolean             not_foldable;
       a_constexpr_remap_ptr new_remap_list =
                                   constexpr_remap_list_for_args(scope, args,
@@ -8139,6 +8215,114 @@ return FALSE.
                                  result_con);
   return folded;
 }  /* fold_constexpr_call */
+
+
+static a_boolean i_fold_constexpr_ctor(
+                                     a_routine_ptr                ctor_routine,
+                                     an_expr_node_ptr             args,
+                                     a_constexpr_remap_ptr        remap_list,
+                                     a_constexpr_evaluation_block *ceblock,
+                                     a_constant                   *result_con)
+/*
+The constructor "ctor_routine" is being called with the argument list
+"args", and it is declared constexpr.  Try to fold the construction to a
+constant.  If that's possible, place the constant in *result_con and
+return TRUE; otherwise, return FALSE.  If remap_list is non-NULL, it
+is a remap list for substitution of occurrences of parameters by the
+corresponding argument constants in the context surrounding the
+constructor call (i.e., for references in args, not in the body of the
+routine).  ceblock gives context information for the evaluation.  This
+is the internal version of the routine, as indicated by the "i_"
+prefix; fold_constexpr_ctor should usually be called instead.
+*/
+{
+  a_boolean folded = FALSE;
+
+  check_assertion(ctor_routine->is_constexpr &&
+                  special_kind_is(ctor_routine, sfk_constructor));
+  if (ctor_routine->defined) {
+    a_scope_ptr scope = scope_for_routine(ctor_routine);
+    check_assertion(scope->kind == (a_scope_kind)sck_function);
+    if (scope->is_constexpr_routine) {
+      a_boolean             not_foldable;
+      a_constexpr_remap_ptr new_remap_list;
+      /* Set up remapping of parameter variables to the argument values. */
+      new_remap_list = constexpr_remap_list_for_args(scope, args,
+                                                     remap_list,
+                                                     ceblock,
+                                                     &not_foldable);
+      if (not_foldable) {
+        /* Some problem that prevents folding. */
+      } else {
+        /* Substitute values for parameters and attempt to fold the
+           ctor-initializers.  Each one provides a value for one nonstatic
+           data member. */
+        a_constant             aggr_con;
+        a_constructor_init_ptr ctor_init;
+        clear_constant(&aggr_con, (a_constant_repr_kind)ck_aggregate);
+        aggr_con.type = parent_class_of(ctor_routine);
+        for (ctor_init = scope->variant.routine.constexpr_constructor_inits;
+             ctor_init != NULL;
+             ctor_init = ctor_init->next) {
+          a_constant         member_con;
+          a_constant_ptr     member_con_ptr;
+          a_dynamic_init_ptr dip = ctor_init->initializer;
+          if (ctor_init->kind != (a_constructor_init_kind)cik_field) {
+             /* FIXME: don't handle base classes yet. */
+            goto fail;
+          } else {
+            a_field_ptr field = ctor_init->variant.field;
+            if (ctor_init->use_field_initializer) {
+              /* The field has an NSDMI. */
+              dip = field->initializer;
+              check_assertion(dip != NULL);
+            }  /* if */
+          }  /* if */
+          /* Try to fold the initialization to a constant. */
+          if (!fold_dynamic_init(dip, new_remap_list, ceblock, &member_con)) {
+            goto fail;
+          }  /* if */
+          member_con_ptr = alloc_unshared_constant(&member_con);
+          /* Add the constant at the end of the aggregate. */
+          if (aggr_con.variant.aggregate.first_constant == NULL) {
+            aggr_con.variant.aggregate.first_constant = member_con_ptr;
+          } else {
+            aggr_con.variant.aggregate.last_constant->next = member_con_ptr;
+          }  /* if */
+          aggr_con.variant.aggregate.last_constant = member_con_ptr;
+        }  /* for */
+        folded = TRUE;
+        copy_constant(&aggr_con, result_con);
+fail:;
+      }  /* if */
+      free_constexpr_remap_list(new_remap_list);
+    }  /* if */
+  }  /* if */
+  return folded;
+}  /* i_fold_constexpr_ctor */
+
+
+a_boolean fold_constexpr_ctor(a_routine_ptr     ctor_routine,
+                              an_expr_node_ptr  args,
+                              a_source_position *pos,
+                              a_constant        *result_con)
+/*
+The constructor "ctor_routine" is being called with the argument list
+"args", and it is declared constexpr.  Try to fold the construction to
+a constant.  If that's possible, place the constant in *result_con and
+return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean                    folded;
+  a_constexpr_evaluation_block ceblock;
+
+  clear_constexpr_evaluation_block(&ceblock, pos);
+  folded = i_fold_constexpr_ctor(ctor_routine, args,
+                                 (a_constexpr_remap_ptr)NULL,
+                                 &ceblock,
+                                 result_con);
+  return folded;
+}  /* fold_constexpr_ctor */
 
 #if DEBUG
 

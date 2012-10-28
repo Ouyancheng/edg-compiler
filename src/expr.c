@@ -2806,6 +2806,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
       /* Error. */
       /* dip = NULL; -- already set. */
     } else {
+      a_constant folded_con;
       if (is_bitwise_copy) {
         /* Bitwise copy construction of a class. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
@@ -2825,6 +2826,15 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         } else {
           dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
         }  /* if */
+      } else if (routine != NULL && routine->is_constexpr &&
+                 fold_constexpr_ctor(routine, arg_expr_list,
+                                     source_pos, &folded_con)) {
+        /* The constructor is declared constexpr and the construction has been
+           folded to a constant. */
+        /* FIXME: value_init TRUE. */
+        if (dest_type != NULL) folded_con.type = dest_type;
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
+        dip->variant.constant = alloc_unshared_constant(&folded_con);
       } else {
         /* Constructor call. */
         dip = alloc_expr_ctor_dynamic_init(routine,

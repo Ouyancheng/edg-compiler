@@ -1382,6 +1382,10 @@ extern void make_uuidof_constant(a_type_ptr     uuidof_type,
 extern void make_typeid_constant(a_type_ptr     typeid_type,
                                  a_constant_ptr typeid_con);
 
+extern
+a_constructor_init_ptr copy_ctor_init(a_constructor_init_ptr   ctor_init,
+                                      an_expr_copy_options_set options);
+
 extern void add_to_dynamic_inits_list(a_dynamic_init_ptr dip);
 
 extern a_local_static_variable_init_ptr make_local_static_variable_init(

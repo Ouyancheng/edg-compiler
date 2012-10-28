@@ -15717,7 +15717,8 @@ typedef struct a_constructor_init {
 		initializer;
 			/* The initial value to be assigned to the object
 			   being initialized, represented by a dynamic
-			   initialization entry. */
+			   initialization entry.  NULL for a field with
+			   its own initializer. */
   an_expr_node_ptr
 		source_expr;
 			/* When copying an explicitly specified array (which
@@ -16924,6 +16925,13 @@ typedef struct a_scope {
 			   been generated for this scope.  This is done right
 			   after IL lowering, if any. */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  a_byte_boolean
+		is_constexpr_routine;
+			/* TRUE for a constexpr function or constructor
+			   which is valid for constexpr expansion, once
+			   case variant.routine.constexpr_return_expr or
+			   variant.routine.contexpr_constructor_inits has
+			   been set. */
   union {
     /* When kind == sck_file, no variant fields. */
     /* When kind == sck_template_declaration, no variant fields. */
@@ -16996,6 +17004,11 @@ typedef struct a_scope {
 			   expression, but more importantly this is a copy
 			   of the expression so that in versions that do IL
 			   lowering this remains unlowered. */
+      a_constructor_init_ptr
+		constexpr_constructor_inits;
+			/* For constexpr constructors, a copy of the
+			   constructor_inits list that will remain unlowered.
+			   Set if is_constexpr_routine is TRUE. */
     } routine;
   } variant;
   a_statement_ptr
