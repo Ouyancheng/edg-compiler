@@ -2186,6 +2186,7 @@ function and update the corresponding flags in *dps.
 
 
 static void function_declarator(a_decl_parse_state  *state,
+                                a_decl_flag_set     di_flags,
                                 a_type_ptr          *new_type_ptr,
                                 a_func_info_block   *func_info,
                                 a_symbol_locator    *locator,
@@ -2197,28 +2198,25 @@ static void function_declarator(a_decl_parse_state  *state,
                                 a_boolean           is_finalizer,
                                 a_boolean           disallow_default_args,
                                 a_boolean           disallow_exception_spec,
-                                a_boolean           is_typedef_decl,
-                                a_boolean           is_friend_decl,
                                 a_decl_pos_block    *decl_pos_block)
 /*
 Scan a function declarator, or an array declarator in an abstract declarator.
 Allocate and return in *new_type_ptr an appropriate function type.  The
 initial opening parenthesis has already been checked and passed over (which is
 unusual; that's necessary because of the syntactic strangeness of abstract
-declarators).  *state contains various bits of information about the
-declaration being parsed.  If func_info is NULL, then the function declarator
-is not a top type or this is an abstract declarator (and therefore certain
-forms are disallowed); otherwise, extra information about the function
-declarator is returned in *func_info.  For member functions, parent_type is a
-pointer to the class (or struct or union) type of which it is a member;
-otherwise it is NULL.  When it is non-NULL, is_nonstatic_member distinguishes
-static from nonstatic member functions when the current scope is that of a
-class definition.  is_constructor, is_static_constructor, is_destructor, and
+declarators).  *state and di_flags describe the declaration being parsed.
+If func_info is NULL, then the function declarator is not for the top-level
+type or this is an abstract declarator (and therefore certain forms are
+disallowed); otherwise, extra information about the function declarator is
+returned in *func_info.  For member functions, parent_type is a pointer to the
+class (or struct or union) type of which it is a member; otherwise it is NULL.
+When parent_type is non-NULL, is_nonstatic_member distinguishes static from
+nonstatic member functions when the current scope is that of a class
+definition.  is_constructor, is_static_constructor, is_destructor, and
 is_finalizer indicate that previous processing determined that this is a
 constructor, a C++/CLI static constructor, a destructor, or a C++/CLI
 finalizer declaration, respectively.  If disallow_default_args is TRUE issue
-an error if a default argument expression is encountered.  is_friend_decl is
-TRUE if this is the function declarator in a friend function declaration.
+an error if a default argument expression is encountered.
 */
 {
   a_param_type_ptr        ptp;
@@ -2248,6 +2246,9 @@ TRUE if this is the function declarator in a friend function declaration.
   a_boolean               is_top_level_declarator = TRUE;
   a_boolean               microsoft_C_leading_ellipsis = FALSE;
   a_boolean               must_pop_function_prototype_scope = FALSE;
+  a_boolean               is_typedef_decl =
+                                  (di_flags & DI_IS_TYPEDEF_DECLARATION) != 0;
+  a_boolean               is_friend_decl = (di_flags & DI_IS_FRIEND_DECL) != 0;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -2398,7 +2399,8 @@ TRUE if this is the function declarator in a friend function declaration.
          template instance through the use of an explicit template argument
          list. */
       if (locator != NULL && !locator->is_conversion_name &&
-          !locator->is_template_id &&
+          (!locator->is_template_id ||
+           (di_flags & DI_IS_EXPLICIT_INSTANTIATION) != 0) &&
           (!locator->is_operator_name ||
            locator->variant.opname == (an_opname_kind)onk_function_call)) {
         default_arg_allowed_on_curr_param = TRUE;
@@ -2583,12 +2585,12 @@ TRUE if this is the function declarator in a friend function declaration.
               ((curr_token == tok_ellipsis &&
                 (next_token() != tok_rparen || any_packs_referenced())) ||
                is_pack_element))) {
-          a_decl_flag_set  di_flags = DI_IS_PARAMETER_DECL |
-                                      DI_REAL_DECLARATOR_ALLOWED |
-                                      DI_ABSTRACT_DECLARATOR_ALLOWED;
+          a_decl_flag_set  param_di_flags = DI_IS_PARAMETER_DECL |
+                                            DI_REAL_DECLARATOR_ALLOWED |
+                                            DI_ABSTRACT_DECLARATOR_ALLOWED;
           if (is_typedef_decl) {
             /* At the top level this is a typedef declaration. */
-            di_flags |= DI_IS_TYPEDEF_DECLARATION;
+            param_di_flags |= DI_IS_TYPEDEF_DECLARATION;
           }  /* if */
           if (vla_enabled && C_mode()) {
             /* Permit a variable length array declaration in C modes that
@@ -2597,7 +2599,7 @@ TRUE if this is the function declarator in a friend function declaration.
                problems wrt. name mangling, for example.  This restriction is
                also imposed by GNU C++ compilers (the other known C++ compiler
                accepting VLAs). */
-            di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
+            param_di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
           }  /* if */
           declarator(di_flags, &param_state, 
                      /*member_parent_type=*/(a_type_ptr)NULL, &param_locator,
@@ -3293,18 +3295,18 @@ the left parenthesis introducing the declarator-like construct.
 */
 {
   a_type_ptr         func_type = void_type();
+  a_decl_flag_set    di_flags = DI_NONSTATIC_MEMBER;
   a_symbol_locator   loc;
 
   check_assertion(curr_token == tok_lparen);
   add_stop_token(tok_rparen);
   (void)get_token();
-  function_declarator(dps, &func_type, func_info, &loc, lambda->closure_class,
+  function_declarator(dps, di_flags, &func_type, func_info, &loc,
+                      lambda->closure_class,
                       /*is_nonstatic_member=*/TRUE, /*is_constructor=*/FALSE, 
                       /*is_static_constructor=*/FALSE, /*is_destructor=*/FALSE,
                       /*is_finalizer=*/FALSE, /*disallow_default_args=*/TRUE,
-                      /*disallow_exception_spec=*/FALSE,
-                      /*is_typedef_decl=*/FALSE, /*is_friend_decl=*/FALSE,
-                      decl_pos_block);
+                      /*disallow_exception_spec=*/FALSE, decl_pos_block);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   func_info->declared_type = func_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -6451,13 +6453,12 @@ function_lparen:
           disallow_exception_spec = (pm_member_type(derived_type) != NULL);
         }  /* if */
       }  /* if */
-      function_declarator(state, &new_type_ptr, local_func_info, locator,
-                          member_parent_type, is_nonstatic_member_function,
+      function_declarator(state, input_flags, &new_type_ptr, local_func_info,
+                          locator, member_parent_type,
+                          is_nonstatic_member_function,
                           *is_constructor, *is_static_constructor,
                           *is_destructor, *is_finalizer,
                           disallow_default_args, disallow_exception_spec,
-                          (input_flags & DI_IS_TYPEDEF_DECLARATION) != 0,
-                          (input_flags & DI_IS_FRIEND_DECL) != 0,
                           decl_pos_block);
       if (state->has_trailing_return_type) {
         /* function_declarator encountered a trailing return type (which means
