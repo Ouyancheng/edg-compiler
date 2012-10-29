@@ -4693,6 +4693,30 @@ is the set of lookup options used to produce "sym".
 }  /* save_super_lookup_symbol */
 
 
+static a_boolean is_base_of_other_base(
+				a_base_class_ptr		base_to_find,
+				a_class_type_supplement_ptr	ctsp)
+/*
+Go through the direct base classes of the class specified by ctsp and check
+whether the base class specified by bcp is a base class of one of the other
+bases.
+*/
+{
+  a_base_class_ptr	bcp;
+  a_boolean		result = FALSE;
+
+  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+    if (bcp != base_to_find && bcp->direct) {
+       if (find_base_class_of(bcp->type, base_to_find->type)) {
+         /* We found a direct base that has base_to_find as a base class. */
+         result = TRUE;
+       }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* is_base_of_other_base */
+
+
 a_symbol_ptr super_qualified_id_lookup(
 				a_symbol_locator		*locator,
 				an_id_lookup_options_set	options)
@@ -4749,6 +4773,7 @@ Microsoft __super keyword.
         /* Only consider direct base classes.  In C++/CLI mode, ignore
            interfaces if the lookup started in a ref class. */
         if (!bcp->direct ||
+            (bcp->is_virtual && is_base_of_other_base(bcp, ctsp)) ||
             (exclude_interface_members &&
              is_cli_interface_type(bcp->type))) {
           continue;

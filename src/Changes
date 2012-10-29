@@ -1,5 +1,25 @@
 Version 4.6
 
+10/29/12 [EDGcpfe/13237]
+Microsoft compatibility: super lookup with virtual base classes
+
+In Microsoft mode, a __super lookup could result in a spurious ambiguity
+error if the derived class had a virtual base class and another base class
+that also had the virtual base class as one of its base classes.  Now fixed.
+
+  struct A {
+    virtual void f();
+  };
+  struct B : virtual public A {
+    virtual void f();
+  };
+  struct C : virtual public A, public B {
+    void g() {
+      __super::f();
+    }
+  };
+
+
 10/29/12 [EDGcpfe/13275]
 GNU and Microsoft compatibility: Default arguments on explicit instantiations
 
