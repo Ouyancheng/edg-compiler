@@ -2859,6 +2859,9 @@ empty statement block.
     check_assertion(scope->assoc_block->kind == (a_statement_kind)stmk_block);
     scope->assoc_block->
                    variant.block.extra_info->end_of_block_reachable = FALSE;
+    if (rout_ptr->is_constexpr) {
+      set_routine_constexpr_info(scope);
+    }  /* if */
     /* Terminate the function scope. */
     pop_scope();
     /* Terminate the class reactivation scope. */
