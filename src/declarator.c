@@ -2601,7 +2601,7 @@ an error if a default argument expression is encountered.
                accepting VLAs). */
             param_di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
           }  /* if */
-          declarator(di_flags, &param_state, 
+          declarator(param_di_flags, &param_state, 
                      /*member_parent_type=*/(a_type_ptr)NULL, &param_locator,
                      (a_func_info_block_ptr)NULL, &local_decl_pos_block);
 #if RECORD_HIDDEN_NAMES_IN_IL
