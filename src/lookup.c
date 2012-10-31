@@ -6227,8 +6227,7 @@ is set to NULL.
                           symbol_for_namespace_std->variant.namespace_info.ptr,
                           &namespace_list);
   }  /* if */
-  if (!do_dependent_name_processing &&
-      microsoft_mode && microsoft_version >= 1310 && normal_sym != NULL) {
+  if (microsoft_mode && microsoft_version >= 1310 && normal_sym != NULL) {
     /* The Microsoft compiler does not do an ADL lookup in namespaces that
        were searched by the normal lookup. */
     remove_namespaces_used_in_normal_lookup(&namespace_list, normal_sym);
