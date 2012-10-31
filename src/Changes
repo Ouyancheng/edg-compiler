@@ -1,5 +1,20 @@
 Version 4.6
 
+10/31/12 [EDGcpfe/13317]
+Internal error on "_Pragma("...");" following a template member function
+
+In modes in which the _Pragma("...") form of pragma operator is allowed,
+an internal error could occur (in find_member_function_template) if a member
+function body in a class template was followed by a _Pragma operator that
+was immediately followed by an extraneous semicolon.  Now fixed.
+
+  template<class T> class A {
+    void process(int) { }
+    _Pragma("diag_warning=10");
+  };
+  A<int> A;
+
+
 10/29/12 [EDGcpfe/13237]
 Microsoft compatibility: super lookup with virtual base classes
 

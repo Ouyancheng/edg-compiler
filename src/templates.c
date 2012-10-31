@@ -4006,10 +4006,6 @@ repl_token_kind, add repl_token_kind to the cache.
      repl_token_kind token.  Only insert one if there is not already one
      there. */
   for (ctp = tcsp->last_token->next; ctp != NULL; ctp = ctp->next) {
-    /* Ignore pragma tokens. */
-    if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
-      continue;
-    }  /* if */
     if (ctp->token != (a_small_token_kind)repl_token_kind) {
       insert_token = TRUE;
     } else {
