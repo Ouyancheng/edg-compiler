@@ -6227,9 +6227,13 @@ is set to NULL.
                           symbol_for_namespace_std->variant.namespace_info.ptr,
                           &namespace_list);
   }  /* if */
-  if (microsoft_mode && microsoft_version >= 1310 && normal_sym != NULL) {
+  if (microsoft_mode && !do_dependent_name_processing &&
+      microsoft_version >= 1310 && normal_sym != NULL) {
     /* The Microsoft compiler does not do an ADL lookup in namespaces that
-       were searched by the normal lookup. */
+       were searched by the normal lookup.  If dependent name processing
+       has been requested in Microsoft mode, don't remove these namespaces
+       as names that appear after the point of definition of the template
+       will not be visible, so can only be found by ADL. */
     remove_namespaces_used_in_normal_lookup(&namespace_list, normal_sym);
   }  /* if */
   if (in_exported_template_instantiation()) {
