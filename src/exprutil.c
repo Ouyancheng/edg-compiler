@@ -12807,14 +12807,12 @@ be returned for a C mode const variable.
   } else if (var->source_corresp.is_class_member &&
              has_static_storage_duration(var->storage_class) &&
              !var->is_member_constant &&
-             (var->is_template_static_data_member || strict_ansi_mode) &&
-             !(gpp_mode && parent_class_of(var)->incomplete)) {
+             (var->is_template_static_data_member || strict_ansi_mode)) {
     /* The variable is a static data member but it's not initialized within
        the class (it might be initialized outside the class), so it's not
        a constant.  The standard puts this requirement on all static data
        members, but many compilers relax that for non-template static data
-       members.  GCC relaxes it further for uses of static data members that
-       appear during the class definition. */
+       members. */
   } else if ((!C_mode() || allow_C_mode_const_var) &&
              is_const_variable(var) &&
              !is_volatile_qualified_type(var->type)) {
@@ -12822,13 +12820,6 @@ be returned for a C mode const variable.
        variables when recording a constant expression (the expression is
        function-local, and that forces the initializer constant to be made
        function-local as well). */
-    if (gpp_mode && var->is_template_static_data_member &&
-        parent_class_of(var)->incomplete) {
-      /* If a template static data member is used while its parent class is
-         being defined, GCC will instantiate the static data member if possible
-         (even though it may be defined outside the class). */
-      complete_template_static_data_member_type_is_needed(var);
-    }  /* if */
     get_variable_initializer(var, (a_scope_ptr)NULL, &init_kind, &init);
     if (init_kind == (an_init_kind)initk_static) {
       /* The variable has a constant initial value. */
@@ -12839,16 +12830,6 @@ be returned for a C mode const variable.
       if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
         con_val = init->dynamic->variant.constant;
       }  /* if */
-    } else if (gpp_mode && init_kind == (an_init_kind)initk_none &&
-               var->source_corresp.is_class_member &&
-               var->assoc_template != NULL &&
-               parent_class_of(var)->incomplete &&
-               is_template_dependent_type(var->type)) {
-      /* g++ accepts a const static data member of a class template with no
-         in-class initializer as a constant-expression while the class is
-         incomplete. */
-        con_val = alloc_constant((a_constant_repr_kind)ck_template_param);
-        make_zero_of_proper_type(var->type, con_val);
     }  /* if */
     if (con_val != NULL) {
       if (con_val->kind == (a_constant_repr_kind)ck_aggregate) {
