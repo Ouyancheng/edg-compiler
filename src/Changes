@@ -1,4 +1,4 @@
-Version 4.6 
+Version 4.6
 
 10/31/12 [EDGcpfe/13317]
 Internal error on "_Pragma("...");" following a template member function
