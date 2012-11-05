@@ -1,5 +1,22 @@
 Version 4.6
 
+11/5/12  [EDGcpfe/13318]
+GNU "const" attribute incorrectly set when composing types
+
+In GNU modes, the front end sometimes incorrectly transferred the "const"
+attribute specified on one function to another function not declared with
+that attribute if both functions participated in an expression producing
+the composite type of the two routine types.  For example:
+
+  void fn(void) {}
+  void __attribute((const)) fc(void) {}
+  void g(int c) {
+    (c ? fn : fc) ();  // Previously, this expression had the side-effect
+  }                    // of adding the "const" attribute to function fn.
+
+This is now fixed.
+
+
 10/31/12 [EDGcpfe/13317]
 Internal error on "_Pragma("...");" following a template member function
 

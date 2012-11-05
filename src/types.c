@@ -10071,6 +10071,18 @@ unique to each type (e.g., by calling disentangle_default_args).
       }  /* if */
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (rtsp1->is_const != rtsp2->is_const) {
+    /* One routine has the GNU "const" attribute and the other not.  Do not
+       use the non-const type as a composite type since it would incorrectly
+       be imbued with the attribute. */
+    if (rtsp1->is_const) {
+      return_type2_as_comp_type = FALSE;
+    } else {
+      return_type1_as_comp_type = FALSE;
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (!return_type1_as_comp_type && !return_type2_as_comp_type) {
     goto make_new_comp_type;
   }  /* if */
