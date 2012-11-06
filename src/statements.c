@@ -7106,7 +7106,7 @@ e.g., ({ ... }).
       !scope_stack[depth_innermost_function_scope].has_exactly_one_return) {
     /* Check that there is exactly one return statement in a constexpr
        function. */
-    pos_error(ec_invalid_constexpr_body, &block->position);
+    pos_error(ec_invalid_constexpr_body, &pos_curr_token);
   }  /* if */
 #if DEBUG
   if (debug_level >= 3 ||
