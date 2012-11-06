@@ -2608,6 +2608,7 @@ the scope being pushed.
                                   (options & PS_MICROSOFT_SPECIALIZATION) != 0;
   ssep->function_partial_instantiation =
                             (options & PS_FUNCTION_PARTIAL_INSTANTIATION) != 0;
+  ssep->has_exactly_one_return = FALSE;
   ssep->is_instantiation_context = FALSE;
   ssep->ignore_during_normal_lookup = FALSE;
   ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;

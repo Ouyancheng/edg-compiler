@@ -6431,6 +6431,7 @@ this statement was preceded by the GNU keyword __extension__.
 {
   a_boolean          prev_was_label = FALSE;
   a_boolean          get_another_statement;
+  a_boolean          can_appear_in_constexpr_function = FALSE;
   a_source_position  start_pos;
 
   db_enter(3, "statement");
@@ -6464,6 +6465,7 @@ rescan_statement:
     case tok_semicolon:
       /* Empty statement (part of expression-statement, 3.6.3). */
       empty_statement();
+      can_appear_in_constexpr_function = TRUE;
       break;
     case tok_lbrace:
       /* Compound statement (3.6.2). */
@@ -6471,6 +6473,7 @@ rescan_statement:
                                /*explicit_return_type=*/FALSE,
                                /*is_catch_clause=*/FALSE,
                                /*is_statement_expr=*/FALSE);
+      if (!strict_ansi_mode) can_appear_in_constexpr_function = TRUE;
       break;
     case tok_if:
       /* If statement (3.6.4). */
@@ -6517,6 +6520,16 @@ rescan_statement:
     case tok_return:
       /* Return statement (3.6.6). */
       return_statement();
+      /* constexpr functions require exactly one return statement. */
+      can_appear_in_constexpr_function = TRUE;
+      if (scope_stack[depth_innermost_function_scope].has_exactly_one_return) {
+        if (current_routine_entry()->is_constexpr) {
+          pos_error(ec_invalid_constexpr_body, &start_pos);
+        }  /* if */
+      } else {
+        scope_stack[depth_innermost_function_scope].has_exactly_one_return =
+                                                                          TRUE;
+      }  /* if */
       break;
     case tok_asm:
     case tok_microsoft_asm:
@@ -6665,6 +6678,14 @@ expr_statement:
           unscan_attributes(sssep->prefix_attributes);
           sssep->prefix_attributes = NULL;
         }  /* if */
+        if (curr_token == tok_using ||
+            curr_token == tok_namespace ||
+            curr_token == tok_static_assert ||
+            curr_token == tok_typedef) {
+          /* Certain declaration statements are allowed in constexpr
+             functions. */
+          can_appear_in_constexpr_function = TRUE;
+        }  /* if */
         decl_statement(marked_as_gnu_extension);
       } else if (C_mode() &&
                  (is_dependent_statement || prev_was_label) &&
@@ -6699,6 +6720,12 @@ expr_statement:
       }  /* if */
       break;
   }  /* switch */
+  if (current_routine_entry()->is_constexpr &&
+      !can_appear_in_constexpr_function) {
+    /* Report an error if the statement is not one that is allowed in
+       a constexpr function. */
+    pos_error(ec_invalid_constexpr_body, &start_pos);
+  }  /* if */
   /* Loop if we just got a label and not an actual statement. */
   if (get_another_statement) {
     marked_as_gnu_extension = FALSE;
@@ -7074,6 +7101,13 @@ e.g., ({ ... }).
     (void)required_token(tok_rbrace, ec_exp_rbrace);
   }  /* if */
   remove_stop_token(tok_rbrace);
+  if (at_function_level &&
+      current_routine_entry()->is_constexpr &&
+      !scope_stack[depth_innermost_function_scope].has_exactly_one_return) {
+    /* Check that there is exactly one return statement in a constexpr
+       function. */
+    pos_error(ec_invalid_constexpr_body, &block->position);
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3 ||
       (at_function_level && db_flag_is_set("dump_stmts"))) {
