@@ -11965,7 +11965,9 @@ options for the copy.
   copy = alloc_ctor_init(ctor_init->kind);
   *copy = *ctor_init;
   copy->next = NULL;
-  copy->initializer = copy_dynamic_init(ctor_init->initializer, options);
+  if (ctor_init->initializer != NULL) {
+    copy->initializer = copy_dynamic_init(ctor_init->initializer, options);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   copy->ctor_init_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
