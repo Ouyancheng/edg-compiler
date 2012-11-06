@@ -1,5 +1,26 @@
 Version 4.6
 
+11/6/12  [EDGcpfe/13229]
+Abort on useless partial specialization in GNU C++ mode
+
+In GNU C++ mode, the front end accepts certain partial specializations that
+cannot be selected under any circumstances because the template parameters
+cannot be deduced from the specialized arguments.  In some cases, this could
+trigger an abort in the C++-generating back end (in push_name_context) due to
+the definition of the partial specialization being erroneously discarded.
+For example:
+
+  template<typename> struct N {};
+  template<typename> struct S {};
+
+  template<typename T> struct S<typename N<typename T::X>::Y> {};
+    // Accepted in GNU C++ mode, but some C++-generating back end
+    // configurations aborted when attempting to render the definition
+    // of the partial specialization.
+
+This is now fixed.
+
+
 11/5/12  [EDGcpfe/13318]
 GNU "const" attribute incorrectly set when composing types
 

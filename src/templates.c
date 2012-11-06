@@ -14988,11 +14988,10 @@ list and template argument list of a partial specialization are valid.
       an_error_severity severity = gpp_mode ? es_warning : es_error;
       pos_sy2_diagnostic(severity, ec_not_used_in_partial_spec_arg_list,
                          &param_sym->decl_position, param_sym, prototype_sym);
-      /* Always set decl_scope_err to indicate that the template cannot be
-         used. */
-      decl_state->decl_scope_err = TRUE;
       if (severity == (an_error_severity)es_error) {
         any_errors = TRUE;
+        /* Set decl_scope_err to indicate that the template cannot be used. */
+        decl_state->decl_scope_err = TRUE;
       }  /* if */
     } /* if */
   } /* for */
