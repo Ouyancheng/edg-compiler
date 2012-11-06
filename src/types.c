@@ -1595,6 +1595,30 @@ Return TRUE if the given type is a literal type.
 }  /* is_literal_type */
 
 
+a_boolean could_be_literal_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a literal type, a template parameter type, or
+an error type.
+*/
+{
+  a_boolean  result;
+
+  if (is_reference_type(tp)) tp = type_pointed_to(tp);
+  tp = skip_array_types(tp);
+  tp = skip_typerefs(tp);
+  if (is_scalar(tp) || is_any_reference(tp)) {
+    result = TRUE;
+  } else if (is_immediate_class_type(tp)) {
+    result = tp->variant.class_struct_union.is_literal_type;
+  } else if (is_template_param(tp) || is_error(tp)) {
+    result = TRUE;
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* could_be_literal_type */
+
+
 a_boolean is_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an array type (3.1.2.5).  Note that

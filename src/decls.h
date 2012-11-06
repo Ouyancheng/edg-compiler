@@ -1205,6 +1205,9 @@ extern void set_routine_declared_type(a_routine_ptr  routine_ptr,
                                       a_type_ptr     declared_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+extern a_boolean check_constexpr_routine_type(a_type_ptr         rtp,
+                                              a_source_position  *diag_pos);
+
 extern void decl_routine(a_symbol_locator         *locator,
                          a_decl_parse_state       *dps,
                          a_func_info_block_ptr    func_info,

@@ -5966,6 +5966,12 @@ done:
          constructors. */
       class_state->default_ctor_is_nontrivial = TRUE;
     }  /* if */
+    if (rout->is_constexpr ||
+        (dps->dso_flags & DSO_CONSTEXPR) != 0) {
+      pos_error(ec_constexpr_virtual_combination, source_pos);
+      rout->is_constexpr = FALSE;
+      dps->dso_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
+    }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (rout_templ != NULL) {
@@ -12694,7 +12700,8 @@ implicitly declared member functions.
     rtn->source_corresp.assembly_access = class_state->assembly_access;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
+  if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0 &&
+      check_constexpr_routine_type(rtn->type, &locator->source_position)) {
     rtn->is_constexpr = TRUE;
   }  /* if */
   if (locator->is_operator_name) {
@@ -13494,7 +13501,8 @@ decl_member_function, which handles in-class member function declarations.)
   prototype_sym->variant.routine.instance_ptr->prototype_scope_symbols =
                                             func_info->prototype_scope_symbols;
   func_info->keep_param_id_list = TRUE;
-  if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
+  if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
+      check_constexpr_routine_type(rtn->type, &locator->source_position)) {
     rtn->is_constexpr = TRUE;
   }  /* if */
   if (func_info->is_inline) {

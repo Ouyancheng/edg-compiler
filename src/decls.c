@@ -7139,6 +7139,42 @@ C++ mode, even exception specifications on definitions are ignored.)
 }  /* issue_no_exception_support_diag_on_throw_spec */
 
 
+a_boolean check_constexpr_routine_type(a_type_ptr         rtp,
+                                       a_source_position  *diag_pos)
+/*
+Return TRUE if and only if the given function type is a valid type for a
+constexpr function.  Otherwise, return FALSE and issue diagnostic at the
+given position.
+*/
+{
+  a_boolean  okay = TRUE;
+
+  rtp = skip_typerefs(rtp);
+  if (rtp->kind == (a_type_kind)tk_error) {
+    /* A severe error must have occurred: Nothing more to be done. */
+    expect_error();
+  } else {
+    check_assertion(rtp->kind == (a_type_kind)tk_routine);
+    if (!could_be_literal_type(rtp->variant.routine.return_type)) {
+      okay = FALSE;
+      pos_ty_error(ec_nonliteral_return_type_in_constexpr_function, diag_pos,
+                   rtp->variant.routine.return_type);
+    } else {
+      a_param_type_ptr  ptp = rtp->variant.routine.extra_info->param_type_list;
+      for (; ptp != NULL; ptp = ptp->next) {
+        if (!could_be_literal_type(ptp->type)) {
+          okay = FALSE;
+          pos_ty_error(ec_nonliteral_param_type_in_constexpr_function,
+                       diag_pos, ptp->type);
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return okay;
+}  /* check_constexpr_routine_type */
+
+
 #if !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS)
 /* ARGSUSED */ /* decl_pos_block is not used in some configurations. */
 #endif /* !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS) */
@@ -8419,7 +8455,9 @@ skip_overloading:;
       pop_namespace_extension_scope();
     }  /* if */
   }  /* if */
-  if (!redeclaration && (dps->dso_flags & DSO_CONSTEXPR) != 0) {
+  if (!redeclaration && (dps->dso_flags & DSO_CONSTEXPR) != 0 &&
+      check_constexpr_routine_type(routine_ptr->type,
+                                   &locator->source_position)) {
     routine_ptr->is_constexpr = TRUE;
   }  /* if */
   attach_decl_attributes(dps, is_function_def);
@@ -9072,7 +9110,8 @@ definition of a member function of a class template.
       rout_ptr->declared_storage_class = dps->declared_storage_class;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    if (dps->dso_flags & DSO_CONSTEXPR) {
+    if (dps->dso_flags & DSO_CONSTEXPR &&
+        check_constexpr_routine_type(type_ptr, &locator->source_position)) {
       rout_ptr->is_constexpr = TRUE;
     }  /* if */
     if (func_info->is_inline) {

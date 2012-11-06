@@ -8792,10 +8792,10 @@ storage_class_specifier:
       case tok_virtual:
         if (is_parameter) {
           /* "virtual" may not appear in a function parameter specification. */
-          error(ec_bad_param_specifier);
+          pos_error(ec_bad_param_specifier, &pos_curr_token);
           err = TRUE;
         } else if ((decl_specifiers_seen & DS_FRIEND) && !microsoft_mode) {
-          error(ec_virtual_not_allowed);
+          pos_error(ec_virtual_not_allowed, &pos_curr_token);
           err = TRUE;
         } else if (!is_member_decl &&
                    !(microsoft_mode &&
@@ -8803,18 +8803,18 @@ storage_class_specifier:
           /* In fact, it may only appear in a C++ class (or struct or union)
              declaration.  However, Microsoft compilers allow this on explicit
              specializations of class template member functions. */
-          error(ec_bad_specifier_outside_class_decl);
+          pos_error(ec_bad_specifier_outside_class_decl, &pos_curr_token);
           err = TRUE;
         } else if ((input_flags & DSI_IS_TEMPLATE_DECLARATION) &&
                    !state->is_generic_declaration) {
           /* Must be a member function template -- virtual is not allowed.
              (Virtual C++/CLI member generics are okay.) */
-          error(ec_virtual_function_template);
+          pos_error(ec_virtual_function_template, &pos_curr_token);
           err = TRUE;
         } else if (decl_specifiers_seen & DS_VIRTUAL) {
           /* Only one "virtual" specifier at a time. */
-          diagnostic(microsoft_mode ? es_warning : es_error,
-                     ec_dupl_decl_specifier);
+          pos_diagnostic(microsoft_mode ? es_warning : es_error,
+                         ec_dupl_decl_specifier, &pos_curr_token);
           if (!microsoft_mode) {
             err = TRUE;
           }  /* if */
@@ -8822,6 +8822,10 @@ storage_class_specifier:
           decl_specifiers_seen |= DS_VIRTUAL;
           *output_flags |= DSO_VIRTUAL;
           copy_source_position(pos_curr_token, state->virtual_pos);
+          if (decl_specifiers_seen & DS_CONSTEXPR) {
+            pos_error(ec_constexpr_virtual_combination, &pos_curr_token);
+            *output_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
+          }  /* if */
         }  /* if */
         break;
       case tok_constexpr:
@@ -8829,6 +8833,8 @@ storage_class_specifier:
           /* "constexpr" may not appear in a function parameter declaration. */
           error(ec_bad_param_specifier);
           err = TRUE;
+        } else if (decl_specifiers_seen & DS_VIRTUAL) {
+          pos_error(ec_constexpr_virtual_combination, &pos_curr_token);
         } else if (decl_specifiers_seen & DS_CONSTEXPR) {
           error(ec_dupl_decl_specifier);
         } else {
