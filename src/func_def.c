@@ -918,8 +918,8 @@ a constexpr expansion of the routine.
     } else {
       /* Non-constructor.  Must have a single return statement as the body. */
       stmt = find_return_statement_in_constexpr_function(stmt);
-      check_assertion(stmt != NULL);
-      if (stmt->variant.return_dynamic_init == NULL) {
+      if (stmt != NULL &&
+          stmt->variant.return_dynamic_init == NULL) {
         an_expr_node_ptr expr = stmt->expr;
         if (expr != NULL) {
           scope->is_constexpr_routine = TRUE;
