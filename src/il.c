@@ -19090,6 +19090,46 @@ instantiation-dependent.
 }  /* examine_constant_for_instantiation_dependence */
 
 
+a_boolean expr_is_dep_static_member_of_current_instantiation(
+                                                         an_expr_node_ptr expr)
+/*
+Return TRUE if the given expression is a routine node for the address of
+a static member of the current template instantiation, which is considered
+dependent.
+*/
+{
+  a_boolean is_dependent = FALSE;
+
+  expr = skip_parens(expr);
+  if (is_routine_node(expr)) {
+    a_routine_ptr rout = expr->variant.routine.ptr;
+    if (rout->source_corresp.is_class_member &&
+        !routine_type_is_nonstatic_member_function(rout->type) &&
+        parent_class_of(rout)->variant.class_struct_union.is_nonreal_class) {
+      is_dependent = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_dependent;
+}  /* expr_is_dep_static_member_of_current_instantiation */
+
+
+static void examine_expr_for_instantiation_dependence(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from traverse_expr to check whether the expression is
+instantiation-dependent.
+*/
+{
+  /* Most cases are resolved by the type, but a routine node that is the
+     address of a static member of the current instantiation is not. */
+  if (expr_is_dep_static_member_of_current_instantiation(expr)) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_expr_for_instantiation_dependence */
+
+
 a_boolean expr_is_instantiation_dependent(an_expr_node_ptr expr)
 /*
 Return TRUE if expr is instantiation-dependent.  This includes type-dependent
@@ -19104,6 +19144,7 @@ value-dependent.
     an_expr_or_stmt_traversal_block tblock;
 
     clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = examine_expr_for_instantiation_dependence;
     tblock.process_constant = examine_constant_for_instantiation_dependence;
     tblock.process_type = examine_type_for_instantiation_dependence;
     tblock.process_non_dynamic_constants = TRUE;

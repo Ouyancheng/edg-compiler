@@ -1,5 +1,27 @@
 Version 4.6
 
+11/6/12  [EDGcpfe/13176]
+Static member of current instantiation is dependent as template argument
+
+An additional case beyond those covered by EDGcpfe/12993: the name of a
+non-overloaded static member function of the current instantiation
+is now considered dependent when used as a template argument.
+Because of a failure to treat such a reference as dependent, a case
+like the following formerly aborted in g++ mode:
+
+  typedef void (*pf)();
+  template <pf f> void foo();
+  template <typename T> struct C {
+    static void g();
+    static void sub() {
+      foo<C::g>();
+    }
+  };
+  int main() {
+    pf f = C<int>::sub;
+  }
+
+
 11/6/12  [EDGcpfe/13229]
 Abort on useless partial specialization in GNU C++ mode
 

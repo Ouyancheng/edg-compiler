@@ -7906,16 +7906,11 @@ means type-dependent rather than value-dependent.
       is_template_dependent_indefinite_function(operand)) {
     is_dependent = TRUE;
   } else if (is_expression_operand(operand)) {
-    an_expr_node_ptr expr = skip_parens(operand->variant.expression);
-    if (is_routine_node(expr)) {
+    an_expr_node_ptr expr = operand->variant.expression;
+    if (expr_is_dep_static_member_of_current_instantiation(expr)) {
       /* The address of a static member function of the current class is also
          considered dependent. */
-      a_routine_ptr rout = expr->variant.routine.ptr;
-      if (rout->source_corresp.is_class_member &&
-          !routine_type_is_nonstatic_member_function(rout->type) &&
-          parent_class_of(rout)->variant.class_struct_union.is_nonreal_class) {
-        is_dependent = TRUE;
-      }  /* if */
+      is_dependent = TRUE;
     }  /* if */
   } else if (is_braced_init_list_operand(operand)) {
     /* See if a braced-init-list is dependent by checking its elements. */
