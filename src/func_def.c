@@ -848,9 +848,13 @@ a constexpr expansion of the routine.
   check_assertion(scope->kind == (a_scope_kind)sck_function && block != NULL);
   routine = scope->variant.routine.ptr;
   check_assertion(routine->is_constexpr);
+#if GNU_EXTENSIONS_ALLOWED
   if (routine->contains_statement_expression) {
     /* We can't expand the function if it contains statement expressions. */
-  } else if (block->kind == (a_statement_kind)stmk_block) {
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  if (block->kind == (a_statement_kind)stmk_block) {
     a_statement_ptr stmt = block->variant.block.statements;
     if (special_kind_is(routine, sfk_constructor)) {
       /* Constructor.  Must have an empty statement as the body, i.e.,
