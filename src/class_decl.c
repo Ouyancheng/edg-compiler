@@ -17329,7 +17329,13 @@ by class_state.  If is_deleted is TRUE, make that constructor "deleted".
       }  /* if */
     }  /* for */
     if (all_fields_have_initializers) {
+#if /*FIXME*/0
+      /* Various parts of the front end aren't ready to deal with constexpr
+         default constructors, and this affects many tests that don't
+         mention "constexpr" at all.  Re-enable when we're closer to a full
+         implementation of constexpr. */
       sym->variant.routine.ptr->is_constexpr = TRUE;
+#endif /*FIXME*/
     }  /* if */
   }  /* if */
 }  /* generate_default_constructor */
