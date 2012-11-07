@@ -18042,8 +18042,8 @@ FALSE in a node where the default setting would be TRUE.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-a_boolean node_does_fetch(an_expr_node_ptr node,
-                          a_type_ptr       *p_fetched_type)
+static a_boolean node_does_fetch(an_expr_node_ptr node,
+                                 a_type_ptr       *p_fetched_type)
 /*
 Return TRUE if the indicated expression does a fetch from memory.  If so,
 and if p_fetched_type is non-NULL, set *p_fetched_type to the type of the
