@@ -273,6 +273,9 @@ a_boolean set_severity_for_error_number(int		  error_number,
 extern a_boolean is_effective_error(an_error_code	error_code,
                                     an_error_severity	severity);
 
+extern a_boolean is_effective_diagnostic(an_error_code     error_code,
+                                         an_error_severity severity);
+
 /*lint -sem(command_line_error, r_no)*/
 extern DOES_NOT_RETURN command_line_error(an_error_code error_code);
 /*lint -sem(str_command_line_error, r_no)*/

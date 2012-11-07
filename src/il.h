@@ -1961,6 +1961,9 @@ extern void break_source_corresp(a_source_correspondence *sc);
 
 extern void break_constant_source_corresp(a_constant_ptr cp);
 
+extern a_boolean node_does_fetch(an_expr_node_ptr node,
+                                 a_type_ptr       *p_fetched_type);
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern a_boolean seq_is_in_system_header(a_seq_number  seq_number);

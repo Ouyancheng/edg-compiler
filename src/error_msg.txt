@@ -2437,6 +2437,7 @@ ec_invalid_constexpr_body;;"\"constexpr\" function must contain exactly one retu
 ec_constexpr_virtual_combination;;"\"constexpr\" and \"virtual\" cannot both be specified on the same declaration"
 ec_nonliteral_return_type_in_constexpr_function;;"a constexpr function cannot have a nonliteral return type %t"
 ec_nonliteral_param_type_in_constexpr_function;;"a constexpr function cannot have a parameter of nonliteral type %t"
+ec_unsequenced_use_of_variable;;"unsequenced uses of %n in expression may produce undefined results"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

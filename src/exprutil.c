@@ -76,6 +76,19 @@ static a_ref_entry_ptr
 		avail_ref_entries;
 			/* List of reference entries that have been freed
 			   and are available for reuse. */
+static a_seq_pt_var_entry_ptr
+                avail_seq_pt_var_entries;
+                        /* List of sequence point variable entries that
+                           have been freed and are available for reuse. */
+
+static a_seq_pt_info_entry_ptr
+                avail_sequence_info_entries;
+                        /* List of sequence point info entries that have
+                           been freed and are available for reuse. */
+
+static a_boolean
+                sequencing_diagnostics_enabled;
+                        /* TRUE if sequencing diagnostics are enabled. */
 
 static an_arg_operand_ptr
 		avail_arg_operands;
@@ -103,8 +116,143 @@ static unsigned long
 		num_init_components_freed,
 		num_expr_rescan_info_entries_allocated,
 		num_ref_entries_allocated,
-		num_dynamic_init_dtor_fixups_allocated;
+		num_dynamic_init_dtor_fixups_allocated,
+		num_seq_pt_var_entries_allocated,
+		num_sequence_info_entries_allocated;
 #endif /* DEBUG */
+
+
+static a_seq_pt_info_entry_ptr alloc_sequence_info_entry(
+                                                         an_expr_node_ptr expr)
+/*
+Allocate and return a sequence info entry that points to expr.
+*/
+{
+  a_seq_pt_info_entry_ptr spiep;
+
+  if (avail_sequence_info_entries != NULL) {
+    /* Reuse a previously-freed entry. */
+    spiep = avail_sequence_info_entries;
+    avail_sequence_info_entries = spiep->next;
+  } else {
+    /* Allocate a new entry. */
+    spiep = alloc_fe_of_type(a_seq_pt_info_entry);
+#if DEBUG
+    num_sequence_info_entries_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  spiep->next = NULL;
+  spiep->expr = expr;
+  spiep->independent_of_value_computation = FALSE;
+  spiep->diagnostic_issued = FALSE;
+  return spiep;
+}  /* alloc_sequence_info_entry */
+
+
+static void free_sequence_info_entry_list(a_seq_pt_info_entry_ptr spiep)
+/*
+Free the (possibly NULL) list of entries pointed to by spiep.
+*/
+{
+  a_seq_pt_info_entry_ptr last;
+
+  if (spiep != NULL) {
+    /* Add the entries to the available list. */
+    for (last = spiep; last->next != NULL; last = last->next) {}
+    last->next = avail_sequence_info_entries;
+    avail_sequence_info_entries = spiep;
+  }  /* if */
+}  /* free_sequence_info_entry_list */
+
+
+static a_seq_pt_var_entry_ptr alloc_seq_pt_var_entry(a_variable_ptr variable)
+/*
+Allocate and return a sequence point variable entry that points to variable.
+*/
+{
+  a_seq_pt_var_entry_ptr spvep;
+
+  if (avail_seq_pt_var_entries != NULL) {
+    /* Reuse a previously-freed entry. */
+    spvep = avail_seq_pt_var_entries;
+    avail_seq_pt_var_entries = spvep->next;
+  } else {
+    /* Allocate a new entry. */
+    spvep = alloc_fe_of_type(a_seq_pt_var_entry);
+#if DEBUG
+    num_seq_pt_var_entries_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  spvep->next = NULL;
+  spvep->variable = variable;
+  spvep->side_effects = NULL;
+  spvep->uses = NULL;
+  return spvep;
+}  /* alloc_seq_pt_var_entry */
+
+
+static a_seq_pt_var_entry_ptr seq_pt_entry_for_var(
+                                               a_seq_pt_var_entry_ptr *list,
+                                               a_variable_ptr         variable)
+/*
+If a sequence point variable entry for variable exists on list, return it,
+otherwise allocate a new entry, queue it on the list and return it.  The list
+is kept sorted by the variable's name.
+*/
+{
+  a_seq_pt_var_entry_ptr spvep, prev = NULL;
+
+  for (spvep = *list; spvep != NULL; spvep = spvep->next) {
+    if (spvep->variable == variable ||
+        strcmp(spvep->variable->source_corresp.name,
+               variable->source_corresp.name) > 0) break;
+    prev = spvep;
+  }  /* for */
+  if (spvep == NULL || spvep->variable != variable) {
+    /* Not on the list. */
+    spvep = alloc_seq_pt_var_entry(variable);
+    if (prev == NULL) {
+      spvep->next = *list;
+      *list = spvep;
+    } else {
+      spvep->next = prev->next;
+      prev->next = spvep;
+    }  /* if */
+  }  /* if */
+  return spvep;
+}  /* seq_pt_entry_for_var */
+
+
+static void free_seq_pt_entry_for_var(a_seq_pt_var_entry_ptr spvep)
+/*
+Free the entry pointed to by spvep.
+*/
+{
+  /* Add the entry to the available list. */
+  if (spvep->side_effects != NULL) {
+    free_sequence_info_entry_list(spvep->side_effects);
+  }  /* if */
+  if (spvep->uses != NULL) {
+    free_sequence_info_entry_list(spvep->uses);
+  }  /* if */
+  spvep->next = avail_seq_pt_var_entries;
+  avail_seq_pt_var_entries = spvep;
+}  /* free_seq_pt_entry_for_var */
+
+
+static void free_seq_pt_var_entry_list(a_seq_pt_var_entry_ptr spvep)
+/*
+Free all entries on the list headed by spvep (which may be NULL).
+*/
+{
+  a_seq_pt_var_entry_ptr spvep_next;
+
+  while (spvep != NULL) {
+    spvep_next = spvep->next;
+    free_seq_pt_entry_for_var(spvep);
+    spvep = spvep_next;
+  }  /* while */
+}  /* free_seq_pt_var_entry_list */
 
 
 static a_ref_entry_ptr alloc_ref_entry(a_symbol_ptr            sym_ptr,
@@ -1728,19 +1876,287 @@ qualifies as, for example, an integral constant expression.
 }  /* rule_out_expr_kinds */
 
 
-static a_boolean examine_expr_list_for_unordered_temp_inits(
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/  /* spiep is not used in that case. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+static void issue_sequencing_diagnostic(a_seq_pt_info_entry_ptr spiep)
+/*
+If a sequencing diagnostic hasn't been previously emitted, emit one now.
+Typically, the same diagnostic is issued multiple times in the same expression
+(once for each unsequenced side-effect or use).
+*/
+{
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (!spiep->diagnostic_issued) {
+    /* FIXME: reduce warning to remark after testing. */
+    if (expr_diagnostic_should_be_issued(es_warning,
+                                         ec_unsequenced_use_of_variable)) {
+      check_assertion(is_variable_node(spiep->expr));
+      pos_sy_diagnostic(es_warning, ec_unsequenced_use_of_variable,
+                        &spiep->expr->expr_range.start,
+                        symbol_for(spiep->expr->variant.variable));
+    }  /* if */
+    spiep->diagnostic_issued = TRUE;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* issue_sequencing_diagnostic */
+
+
+static a_seq_pt_info_entry_ptr check_for_unsequenced_uses(
+                                          a_seq_pt_info_entry_ptr side_effects,
+                                          a_seq_pt_info_entry_ptr uses)
+/*
+Issue diagnostics for every case where there's a side-effect and a use.
+Returns a pointer to the last "use" on the list of uses.
+*/
+{
+  a_seq_pt_info_entry_ptr effect, use, result = NULL;
+
+  for (use = uses; use != NULL; use = use->next) {
+    for (effect = side_effects; effect != NULL; effect = effect->next) {
+      issue_sequencing_diagnostic(effect);
+      issue_sequencing_diagnostic(use);
+    }  /* for */
+    result = use;
+  }  /* for */
+  return result;
+}  /* check_for_unsequenced_uses */
+
+
+static void complete_outstanding_side_effects(
+                                            a_seq_pt_var_entry_ptr spvep,
+                                            a_boolean              entire_list)
+/*
+A sequencing operation has occurred that forces completion of all side-effects;
+reset those side-effects that are independent of value computation.  If
+entire_list is TRUE, process all entries on spvep; otherwise just operate
+on spvep itself.
+*/
+{
+  a_seq_pt_info_entry_ptr se;
+
+  for (; spvep != NULL; spvep = spvep->next) {
+    for (se = spvep->side_effects; se != NULL; se = se->next) {
+      if (se->independent_of_value_computation) {
+        se->independent_of_value_computation = FALSE;
+      }  /* if */
+    }  /* for */
+    if (!entire_list) break;
+  }  /* for */
+}  /* complete_outstanding_side_effects */
+
+
+static void merge_seq_pt_info_lists(a_seq_pt_var_entry_ptr lspvep,
+                                    a_seq_pt_var_entry_ptr rspvep,
+                                    a_boolean              sequenced,
+                                    a_boolean              is_assignment)
+/*
+This routine merges two sets of sequencing information pertaining to the
+same variable.  Items are moved from rspvep to lspvep (so that rspvep
+is effectively empty on return).  When sequenced is TRUE, all of the
+side-effects and uses in lspvep occur before any side-effect or use in
+rspvep, so no sequencing diagnostics are generated.  When sequenced is
+FALSE, a sequencing diagnostic is issued if a side-effect in one list
+is found with either a side-effect or a use on the other list.  When
+is_assignment is TRUE, the side-effect in rspvep represents the modification
+of object in an assignment expression.
+*/
+{
+  a_seq_pt_info_entry_ptr se1, se2, use, last = NULL;
+
+  check_assertion(lspvep->variable == rspvep->variable);
+  if (lspvep->side_effects == NULL) {
+    /* No side-effects in the first expression; the resulting list is
+       whatever is in the second expression. */
+    lspvep->side_effects = rspvep->side_effects;
+  } else if (rspvep->side_effects == NULL) {
+    /* No side-effects in the second expression; reset the
+       independent_of_value_computation flag on all side-effects in the
+       first expression (e.g., a case like "(x++, x)" where the post-increment
+       side-effect has been sequenced). */
+    if (sequenced) {
+      complete_outstanding_side_effects(lspvep, /*entire_list=*/FALSE);
+    }  /* if */
+  } else {
+    /* Both expressions have side-effects on the same variable. */
+    if (is_assignment) {
+      /* In this case we're adding the side-effect for an assignment
+         expression; the side-effect is sequenced after the value computation
+         of both of the operands (lspvep reflects the merged lists of both
+         right and left operands of the assignment expression).  Only
+         side-effects that are unaffected by value computation will conflict
+         with this new side-effect (e.g., "x = ++x" is okay, but "x = x++" is
+         unsequenced). */
+      check_assertion(rspvep->side_effects->next == NULL);
+      for (se1 = lspvep->side_effects; se1 != NULL; se1 = se1->next) {
+        if (se1->independent_of_value_computation) {
+          issue_sequencing_diagnostic(se1);
+          issue_sequencing_diagnostic(rspvep->side_effects);
+        }  /* if */
+      }  /* for */
+      last = rspvep->side_effects;
+    } else {
+      if (sequenced) {
+        complete_outstanding_side_effects(lspvep, /*entire_list=*/FALSE);
+      } else {
+        for (se1 = lspvep->side_effects; se1 != NULL; se1 = se1->next) {
+          /* This un-sequenced side-effect must conflict with at least one
+             other side-effect, so issue a diagnostic. */
+          issue_sequencing_diagnostic(se1);
+        }  /* for */
+      }  /* if */
+      for (se2 = rspvep->side_effects; se2 != NULL; se2 = se2->next) {
+        if (!sequenced) {
+          issue_sequencing_diagnostic(se2);
+        }  /* if */
+        last = se2;
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  if (last != NULL) {
+    /* Merge the two lists of side-effects. */
+    last->next = lspvep->side_effects;
+    lspvep->side_effects = rspvep->side_effects;
+  }  /* if */
+  if (sequenced) {
+    /* The entries are sequenced, no need for diagnostics, just find the
+       end of the second list. */
+    last = NULL;
+    for (use = rspvep->uses; use != NULL; use = use->next) {
+      last = use;
+    }  /* for */
+  } else {
+    /* Issue diagnostics if uses and side-effects for the two lists
+       conflict. */
+    (void)check_for_unsequenced_uses(rspvep->side_effects, lspvep->uses);
+    last = check_for_unsequenced_uses(lspvep->side_effects, rspvep->uses);
+  }  /* if */
+  if (last != NULL) {
+    /* Merge the two lists of uses. */
+    last->next = lspvep->uses;
+    lspvep->uses = rspvep->uses;
+  }  /* if */
+  rspvep->uses = NULL;
+  rspvep->side_effects = NULL;
+}  /* merge_seq_pt_info_lists */
+
+
+static a_seq_pt_var_entry_ptr merge_lists_and_check_for_sequencing_issues(
+                                          a_seq_pt_var_entry_ptr lspvep,
+                                          a_seq_pt_var_entry_ptr rspvep,
+                                          a_boolean              sequenced,
+                                          a_boolean              is_assignment)
+/*
+Return a list of sequence point variable entries that contains entries from
+both lspvep and rspvep, issuing diagnostics when appropriate.  lspvep
+contains a list of sequence point variable entries for the left operand
+(or merged left-most operands) and rspvep contains a list of sequence point
+variable entries for the right (or next) operand.  sequenced is TRUE when the
+expression imposes a left-to-right sequencing on the operands (i.e., comma,
+question, logical and, and logical or operations).  is_assignment is TRUE when
+the side-effect in rspvep is the side-effect associated with an assignment
+expression.
+*/
+{
+  a_seq_pt_var_entry_ptr copy, lprev = NULL;
+  a_seq_pt_var_entry_ptr result;
+
+  if (lspvep == NULL) {
+    result = rspvep;
+  } else if (rspvep == NULL) {
+    result = lspvep;
+  } else {
+    /* Merge rspvep's elements into lspvep. */
+    result = lspvep;
+    while (lspvep != NULL && rspvep != NULL) {
+      /* The two lists are sorted using the variable's name as a key. */
+      int       ret;
+      a_boolean found = FALSE;
+      if (lspvep->variable == rspvep->variable) {
+        /* This variable is common to both lists; merge the two lists of
+           side-effects into one list (lspvep), possibly issuing
+           diagnostics. */
+        merge_seq_pt_info_lists(lspvep, rspvep, sequenced, is_assignment);
+        lprev = lspvep;
+        lspvep = lspvep->next;
+        copy = rspvep;
+        rspvep = rspvep->next;
+        /* Now that the lists have been merged, free the unused list. */
+        free_seq_pt_entry_for_var(copy);
+        found = TRUE;
+      } else if ((ret = strcmp(lspvep->variable->source_corresp.name,
+                               rspvep->variable->source_corresp.name)) == 0) {
+        /* The entry on rspvep has the same name as an entry on lspvep, but
+           doesn't match the first such variable; see if there are any
+           other similarly named variables on the list that match. */
+        a_seq_pt_var_entry_ptr ptr = lspvep;
+        for (ptr = lspvep;
+             ptr != NULL;
+             ptr = ptr->next) {
+          if (ptr->variable == rspvep->variable) {
+            /* This variable is common to both lists; merge the two lists of
+               side-effects into one list (lspvep), possibly issuing
+               diagnostics. */
+            merge_seq_pt_info_lists(ptr, rspvep, sequenced, is_assignment);
+            copy = rspvep;
+            rspvep = rspvep->next;
+            /* Now that the lists have been merged, free the unused list. */
+            free_seq_pt_entry_for_var(copy);
+            found = TRUE;
+            /* Don't update lspvep (so it'll still point to the first
+               variable with this name). */
+            break;
+          }  /* if */
+          if (strcmp(ptr->variable->source_corresp.name,
+                     rspvep->variable->source_corresp.name) != 0) break;
+        }  /* for */
+      }  /* if */
+      if (!found) {
+        if (ret >= 0) {
+          /* Variable is on rspvep list but not lspvep; move it to lspvep. */
+          if (lprev == NULL) {
+            result = rspvep;
+          } else {
+            lprev->next = rspvep;
+          }  /* if */
+          lprev = rspvep;
+          copy = rspvep->next;
+          rspvep->next = lspvep;
+          rspvep = copy;
+        } else {
+          /* Variable is on lspvep list but not rspvep; leave it. */
+          lprev = lspvep;
+          lspvep = lspvep->next;
+        }  /* if */
+      }  /* if */
+    }  /* while */
+    if (rspvep != NULL) {
+      /* Everything on rspvep comes after everything on lspvep; move
+         the items from rspvep to lspvep. */
+      check_assertion(lprev != NULL);
+      lprev->next = rspvep;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* merge_lists_and_check_for_sequencing_issues */
+
+
+static a_boolean examine_expr_list_for_unordered_issues(
                      an_expr_node_ptr                    expr_list,
                      a_boolean                           sequenced,
                      an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Examine the list of expressions headed by expr_list, and their
-subtrees, looking for unordered enk_temp_init initializations.  If any
+subtrees, looking for unordered enk_temp_init initializations or
+unsequenced expressions with side-effects.  If any unordered enk_temp_inits
 are found, mark their dynamic initialization entries as unordered.  If
 tblock->set_unordered_on_dynamic_inits is TRUE, mark all enk_temp_init
 dynamic initializations as unordered (because of something detected
 higher up in the expression tree).  If sequenced is TRUE, the
 expressions on the list are sequenced left-to-right (e.g., because
 there is a sequence point after the first expression on the list).
+Creates a list (in tblock->seq_pt_var_list) of side-effects and uses
+of variables in the expression (when sequencing diagnostics are enabled).
 Return TRUE if there are any temp inits (unordered or not) in the
 expression list.
 */
@@ -1750,11 +2166,16 @@ expression list.
                                         tblock->set_unordered_on_dynamic_inits;
   a_boolean        any_temp_inits = FALSE;
   an_expr_node_ptr expr, first_expr_with_temp_init = NULL;
+  a_seq_pt_var_entry_ptr
+                   expr_seq_pt_var_list = NULL;
+  a_seq_pt_var_entry_ptr
+                   save_seq_pt_var_list = tblock->seq_pt_var_list;
 
   for (expr = expr_list; expr != NULL; expr = expr->next) {
     a_boolean curr_expr_has_temp_init;
     /* See whether this expression contains any temp inits. */
     tblock->result = FALSE;
+    tblock->seq_pt_var_list = NULL;
     traverse_expr(expr, tblock);
     curr_expr_has_temp_init = tblock->result;
     any_temp_inits |= curr_expr_has_temp_init;
@@ -1790,11 +2211,37 @@ expression list.
         first_expr_with_temp_init = expr;
       }  /* if */
     }  /* if */
+    if (sequencing_diagnostics_enabled) {
+      /* Check for the presence of side-effects in unsequenced operations.
+         Most operations are unsequenced, that is, their operands can be
+         executed in any order.  This can cause undefined behavior in cases
+         where operands have side-effects (like increment, decrement,
+         assignment).  tblock->seq_pt_var_list has been set to a list of
+         side-effects and uses in the current operand.  Merge that list with
+         the side-effects and uses of any previous operands in this
+         expression. */
+      expr_seq_pt_var_list = merge_lists_and_check_for_sequencing_issues(
+                                                      expr_seq_pt_var_list,
+                                                      tblock->seq_pt_var_list,
+                                                      sequenced,
+                                                      /*is_assignment=*/FALSE);
+    }  /* if */
   }  /* for */
+  if (save_seq_pt_var_list != NULL) {
+    /* This can occur when dynamic inits are intermixed with expressions,
+       e.g., "A *a = new (x++) A(x++);".  In this case, merge the two lists
+       (assuming they're not sequenced). */
+    expr_seq_pt_var_list = merge_lists_and_check_for_sequencing_issues(
+                                                      save_seq_pt_var_list,
+                                                      expr_seq_pt_var_list,
+                                                      /*sequenced=*/FALSE,
+                                                      /*is_assignment=*/FALSE);
+  }  /* if */
+  tblock->seq_pt_var_list = expr_seq_pt_var_list;
   tblock->result = saved_result | any_temp_inits;
   tblock->set_unordered_on_dynamic_inits= saved_set_unordered_on_dynamic_inits;
   return any_temp_inits;
-}  /* examine_expr_list_for_unordered_temp_inits */
+}  /* examine_expr_list_for_unordered_issues */
 
 
 static void update_last_processed_dynamic_init(
@@ -1879,19 +2326,20 @@ destructions preceding the first destruction from the expression).
 }  /* update_last_processed_dynamic_init */
 
 
-static void examine_dynamic_init_for_unordered_temp_inits(
+static void examine_dynamic_init_for_unordered_issues(
                                     a_dynamic_init_ptr                  dip,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Called from the expression traversal routines to process a dynamic
-initialization entry as part of looking for unordered temp inits.
+initialization entry as part of looking for unordered temp inits, or
+unsequenced side-effects.
 */
 {
   if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
     /* Handle the constructor case here, because the expressions in
        the argument list might be unordered. */
     a_boolean sequenced = dip->variant.constructor.has_sequenced_arguments;
-    (void)examine_expr_list_for_unordered_temp_inits(
+    (void)examine_expr_list_for_unordered_issues(
                                                dip->variant.constructor.args,
                                                sequenced,
                                                tblock);
@@ -1906,43 +2354,132 @@ initialization entry as part of looking for unordered temp inits.
       dip->unordered = TRUE;
     }  /* if */
   }  /* if */
-}  /* examine_dynamic_init_for_unordered_temp_inits */
+}  /* examine_dynamic_init_for_unordered_issues */
 
 
-static void examine_expr_for_unordered_temp_inits(
+static void examine_expr_for_unordered_issues(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Called from the expression traversal routines to process an expression
-as part of looking for unordered temp inits.
+as part of looking for unordered temp inits or unsequenced side-effects.
 */
 {
-  a_boolean             sequenced;
-  an_expr_operator_kind op;
+  a_boolean                 sequenced;
+  an_expr_operator_kind     op;
+  a_seq_pt_var_entry_ptr    spvep;
+  a_seq_pt_info_entry_ptr   spiep;
 
   switch (expr->kind) {
     case enk_operation:
+      op = expr->variant.operation.kind;
+      sequenced = FALSE;
+      switch (op) {
+        case eok_land:
+        case eok_lor:
+        case eok_comma:
+        case eok_question:
+          /* Operators with a sequence point after the first never have
+             unordered operands.  The two-operand cases like a && b
+             obviously have no ordering issues, and in a ? b : c
+             b and c are not considered unordered with respect to
+             one another because only one of the two expressions will
+             be evaluated. */
+          sequenced = TRUE;
+          break;
+        default:
+          break;
+      }  /* switch */
       /* The operands of an operation can be unordered, so handle them
          specially. */
-      sequenced = FALSE;
-      op = expr->variant.operation.kind;
-      if (op == (an_expr_operator_kind)eok_land ||
-          op == (an_expr_operator_kind)eok_lor ||
-          op == (an_expr_operator_kind)eok_comma ||
-          op == (an_expr_operator_kind)eok_question) {
-        /* Operators with a sequence point after the first never have
-           unordered operands.  The two-operand cases like a && b
-           obviously have no ordering issues, and in a ? b : c
-           b and c are not considered unordered with respect to
-           one another because only one of the two expressions will
-           be evaluated. */
-        sequenced = TRUE;
-      }  /* if */
-      (void)examine_expr_list_for_unordered_temp_inits(
+      (void)examine_expr_list_for_unordered_issues(
                                         expr->variant.operation.operands,
                                         sequenced,
                                         tblock);
+      if (sequencing_diagnostics_enabled &&
+          !tblock->set_unordered_on_dynamic_inits) {
+        a_boolean               independent_of_value_computation = FALSE;
+        a_boolean               is_assignment = FALSE;
+        an_expr_node_ptr        var_node;
+        switch (op) {
+          case eok_call:
+            /* All side-effects of a call are completed before the function
+               is invoked. */
+            complete_outstanding_side_effects(tblock->seq_pt_var_list,
+                                              /*entire_list=*/TRUE);
+            break;
+          case eok_post_decr:
+          case eok_post_incr:
+            /* Most side-effects don't last through a value computation,
+               but post-increment and post-decrement are independent of
+               value computation. */
+            independent_of_value_computation = TRUE;
+            goto process_side_effect;
+          case eok_assign:
+          case eok_bassign:
+          case eok_add_assign:
+          case eok_subtract_assign:
+          case eok_multiply_assign:
+          case eok_divide_assign:
+          case eok_remainder_assign:
+          case eok_shiftl_assign:
+          case eok_shiftr_assign:
+          case eok_and_assign:
+          case eok_or_assign:
+          case eok_xor_assign:
+          case eok_padd_assign:
+          case eok_psubtract_assign:
+          case eok_pre_decr:    /* defined as += */
+          case eok_pre_incr:    /* defined as -= */
+            is_assignment = TRUE;
+process_side_effect:
+            var_node = expr->variant.operation.operands;
+            if (is_variable_node(var_node) &&
+                has_name(var_node->variant.variable)) {
+              /* This expression modifies the value of a variable; allocate
+                 a side-effect entry that captures this information and
+                 see if it conflicts with any existing side-effects or uses
+                 for the variable. */
+              /* Note that we're ignoring side-effects on operands that
+                 aren't variables (e.g., fields).  Further, only operations
+                 with side-effects that directly operate on variables are
+                 handled here, so for example, "(1, x) = x++" isn't flagged.
+                 An addressing path traversal of this node could be made,
+                 (though it would need to handle cases like
+                 "(0 ? y : x ) = x++" where there are multiple lvalues). */
+              check_assertion(var_node->is_lvalue);
+              spvep = alloc_seq_pt_var_entry(var_node->variant.variable);
+              spiep = alloc_sequence_info_entry(var_node);
+              spiep->independent_of_value_computation =
+                                              independent_of_value_computation;
+              spiep->next = spvep->side_effects;
+              spvep->side_effects = spiep;
+              tblock->seq_pt_var_list =
+                                  merge_lists_and_check_for_sequencing_issues(
+                                                       tblock->seq_pt_var_list,
+                                                       spvep,
+                                                       is_assignment,
+                                                       is_assignment);
+            }  /* if */
+            break;
+          default:
+            break;
+        }  /* switch */
+      }  /* if */
       tblock->suppress_subtree_walk = TRUE;
+      break;
+    case enk_variable:
+      if (sequencing_diagnostics_enabled &&
+          !tblock->set_unordered_on_dynamic_inits &&
+          !expr->is_lvalue &&
+          has_name(expr->variant.variable)) {
+        /* Record a use of the variable in this expression. */
+        spvep = seq_pt_entry_for_var(&tblock->seq_pt_var_list,
+                                     expr->variant.variable);
+        spiep = alloc_sequence_info_entry(expr);
+        spiep->next = spvep->uses;
+        spvep->uses = spiep;
+      }  /* if */
       break;
     case enk_new_delete:
       /* There are no ordering issues for new and delete, though perhaps that
@@ -1969,24 +2506,61 @@ as part of looking for unordered temp inits.
       /* There are no ordering issues for other cases. */
       break;
   }  /* switch */
-}  /* examine_expr_for_unordered_temp_inits */
+}  /* examine_expr_for_unordered_issues */
 
 
-static void set_up_unordered_temp_inits_traversal_block(
+static void examine_constant_for_unordered_issues(
+                                    a_constant_ptr                      con,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Set up the control block used for the unordered temp inits traversal.
+Called from the expression traversal routines to process a constant
+as part of looking for unsequenced side-effects.
+*/
+{
+  if (con->kind == (a_constant_repr_kind)ck_aggregate &&
+      !tblock->set_unordered_on_dynamic_inits) {
+    /* Each initializer in an aggregate is sequenced. */
+    a_seq_pt_var_entry_ptr save_seq_pt_var_list = tblock->seq_pt_var_list;
+    a_seq_pt_var_entry_ptr con_seq_pt_var_list = NULL;
+    for (con = con->variant.aggregate.first_constant;
+         con != NULL;
+         con = con->next) {
+      tblock->seq_pt_var_list = NULL;
+      traverse_constant(con, tblock);
+      con_seq_pt_var_list = merge_lists_and_check_for_sequencing_issues(
+                                                      con_seq_pt_var_list,
+                                                      tblock->seq_pt_var_list,
+                                                      /*sequenced=*/TRUE,
+                                                      /*is_assignment=*/FALSE);
+    }  /* for */
+    tblock->seq_pt_var_list = merge_lists_and_check_for_sequencing_issues(
+                                                      save_seq_pt_var_list,
+                                                      con_seq_pt_var_list,
+                                                      /*sequenced=*/FALSE,
+                                                      /*is_assignment=*/FALSE);
+    tblock->suppress_subtree_walk = TRUE;
+  }  /* if */
+}  /* examine_constant_for_unordered_issues */
+
+
+static void set_up_unordered_issues_traversal_block(
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Set up the control block used for the unordered issues traversal.
 */
 {
   clear_expr_or_stmt_traversal_block(tblock);
-  tblock->process_expr = examine_expr_for_unordered_temp_inits;
-  tblock->process_dynamic_init = examine_dynamic_init_for_unordered_temp_inits;
+  tblock->process_expr = examine_expr_for_unordered_issues;
+  tblock->process_dynamic_init = examine_dynamic_init_for_unordered_issues;
   /* We'll also be relinking dynamic initialization entries in the
      order in which we encounter them.  The routine for that must be called
      after the subtree is walked to get the linking in the right order. */
   tblock->process_post_dynamic_init = update_last_processed_dynamic_init;
+  if (sequencing_diagnostics_enabled) {
+    tblock->process_constant = examine_constant_for_unordered_issues;
+  }  /* if */
   tblock->relink_dynamic_inits = TRUE;
-}  /* set_up_unordered_temp_inits_traversal_block */
+}  /* set_up_unordered_issues_traversal_block */
 
 
 static a_boolean curr_expr_may_contain_unordered_temp_inits(void)
@@ -2009,31 +2583,34 @@ more temp inits in the whole expression.
   }  /* if */
   return may_contain_unordered_temp_inits;
 }  /* curr_expr_may_contain_unordered_temp_inits */
-    
+
 
 an_expr_node_ptr wrap_up_full_expression(an_expr_node_ptr expr)
 /*
 Do any processing required at the end of a "full expression" that is expr.
 Do nothing if the expression is not a full expression (according to
-the expr_stack).  Also do nothing in C mode.
+the expr_stack).
 */
 {
   an_object_lifetime_ptr lifetime = expr_stack->lifetime;
 
-  if (!C_mode() && expr_stack->prev == NULL) {
-    /* Full expression in C++ mode. */
+  if (expr_stack->prev == NULL) {
+    /* Full expression. */
     /* If the expression contains more than one enk_temp_init, see if they
        are unordered with respect to one another.  This must be done at the
        end because of temp inits that get optimized out. */
-    if (curr_expr_may_contain_unordered_temp_inits()) {
+    /* Also issue diagnostics for sequencing issues (e.g., i = v[i++]). */
+    if ((!C_mode() && curr_expr_may_contain_unordered_temp_inits()) ||
+        sequencing_diagnostics_enabled) {
       an_expr_or_stmt_traversal_block tblock;
-      set_up_unordered_temp_inits_traversal_block(&tblock);
+      set_up_unordered_issues_traversal_block(&tblock);
       traverse_expr(expr, &tblock);
+      free_seq_pt_var_entry_list(tblock.seq_pt_var_list);
     }  /* if */
     /* If the current expression has an associated object lifetime with
        something in it, add an enk_object_lifetime node on the top of the
        expression tree. */
-    if (lifetime != NULL) {
+    if (!C_mode() && lifetime != NULL) {
       /* Check to see if the object lifetime has anything in it.  If not,
          there is no need to add the enk_object_lifetime node. */
       if (!is_useless_object_lifetime(lifetime)) {
@@ -2060,22 +2637,24 @@ a previous error.
 {
   an_object_lifetime_ptr lifetime = expr_stack->lifetime;
 
-  if (!C_mode()) {
-    /* If the initialization contains more than one enk_temp_init, see if they
-       are unordered with respect to one another.  This must be done at the
-       end because of temp inits that get optimized out. */
-    if (dip != NULL && curr_expr_may_contain_unordered_temp_inits()) {
-      an_expr_or_stmt_traversal_block tblock;
-      set_up_unordered_temp_inits_traversal_block(&tblock);
-      traverse_dynamic_init(dip, &tblock);
-    }  /* if */
-    if (lifetime != NULL) {
-      if (dip != NULL) {
-        bind_object_lifetime(lifetime, iek_dynamic_init, (char *)dip);
-      } else {
-        /* Error. */
-        mark_object_lifetime_as_useless(lifetime);
-      }  /* if */      
+  /* If the initialization contains more than one enk_temp_init, see if they
+     are unordered with respect to one another.  This must be done at the
+     end because of temp inits that get optimized out.  Also check for
+     any sequencing issues if so enabled. */
+  if (dip != NULL && !C_mode() &&
+      (sequencing_diagnostics_enabled ||
+       curr_expr_may_contain_unordered_temp_inits())) {
+    an_expr_or_stmt_traversal_block tblock;
+    set_up_unordered_issues_traversal_block(&tblock);
+    traverse_dynamic_init(dip, &tblock);
+    free_seq_pt_var_entry_list(tblock.seq_pt_var_list);
+  }  /* if */
+  if (!C_mode() && lifetime != NULL) {
+    if (dip != NULL) {
+      bind_object_lifetime(lifetime, iek_dynamic_init, (char *)dip);
+    } else {
+      /* Error. */
+      mark_object_lifetime_as_useless(lifetime);
     }  /* if */
   }  /* if */
 }  /* wrap_up_dynamic_init_full_expression */
@@ -18553,6 +19132,11 @@ Display and return the amount of space used for various expression tables.
                      num_candidate_functions_allocated, a_candidate_function);
   db_space_used_lost("ref entry", avail_ref_entries,
                       num_ref_entries_allocated, a_ref_entry);
+  db_space_used_lost("seq point variable entry", avail_seq_pt_var_entries,
+                      num_seq_pt_var_entries_allocated, a_seq_pt_var_entry);
+  db_space_used_lost("seq point info entry", avail_sequence_info_entries,
+                      num_sequence_info_entries_allocated,
+                      a_seq_pt_info_entry);
   db_space_used_lost("dynamic init dtor fixup", avail_dynamic_init_dtor_fixups,
                       num_dynamic_init_dtor_fixups_allocated,
                       a_dynamic_init_dtor_fixup);
@@ -18593,6 +19177,8 @@ Do one-time initialization of variables related to expression processing.
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_ref_entries),
+      pch_saved_var_array_elem(avail_seq_pt_var_entries),
+      pch_saved_var_array_elem(avail_sequence_info_entries),
       pch_saved_var_array_elem(avail_arg_operands),
       pch_saved_var_array_elem(avail_init_components),
       pch_saved_var_array_elem(avail_dynamic_init_dtor_fixups),
@@ -18612,6 +19198,8 @@ Do one-time initialization of variables related to expression processing.
       pch_saved_var_array_elem(num_init_components_freed),
       pch_saved_var_array_elem(num_expr_rescan_info_entries_allocated),
       pch_saved_var_array_elem(num_ref_entries_allocated),
+      pch_saved_var_array_elem(num_seq_pt_var_entries_allocated),
+      pch_saved_var_array_elem(num_sequence_info_entries_allocated),
       pch_saved_var_array_elem(num_dynamic_init_dtor_fixups_allocated),
       pch_saved_var_array_elem(num_arg_match_summaries_allocated),
       pch_saved_var_array_elem(num_candidate_functions_allocated),
@@ -18631,6 +19219,13 @@ Do one-time initialization of variables related to expression processing.
 #if C99_IL_EXTENSIONS_SUPPORTED
   register_trans_unit_variable(imaginary_unit);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  sequencing_diagnostics_enabled = is_effective_diagnostic(
+                                                ec_unsequenced_use_of_variable,
+                                                es_warning);
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+  sequencing_diagnostics_enabled = FALSE;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* expr_one_time_init */
 
 
@@ -18659,6 +19254,8 @@ for each compilation.
 */
 {
   avail_ref_entries = NULL;
+  avail_seq_pt_var_entries = NULL;
+  avail_sequence_info_entries = NULL;
   avail_arg_operands = NULL;
   avail_init_components = NULL;
   avail_dynamic_init_dtor_fixups = NULL;
@@ -18670,6 +19267,8 @@ for each compilation.
   num_init_components_freed              = 0;
   num_expr_rescan_info_entries_allocated = 0;
   num_ref_entries_allocated              = 0;
+  num_seq_pt_var_entries_allocated       = 0;
+  num_sequence_info_entries_allocated    = 0;
   num_dynamic_init_dtor_fixups_allocated = 0;
 #endif /* DEBUG */
 

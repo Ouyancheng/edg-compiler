@@ -2624,6 +2624,7 @@ default values.
   tblock->skip_valid_lvalue_uses_of_initonly_fields = FALSE;
   tblock->is_static_initonly_field = FALSE;
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+  tblock->seq_pt_var_list = NULL;
 }  /* clear_expr_or_stmt_traversal_block */
 
 

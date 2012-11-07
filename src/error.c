@@ -3478,7 +3478,7 @@ return_point:;
 static void check_for_overridden_severity(an_error_code     error_code,
 					  an_error_severity *severity)
 /*
-Determine whether this error code has should have its severity
+Determine whether this error code should have its severity
 overridden by a value specified on the command line.  Diagnostics
 may have their severity increased or decreased using this mechanism,
 but diagnostics with a severity greater than es_discretionary_error
@@ -3595,6 +3595,22 @@ at a severity of discretionary error or above.
   result = (int)severity >= (int)es_discretionary_error;
   return result;
 }  /* is_effective_error */
+
+
+a_boolean is_effective_diagnostic(an_error_code     error_code,
+                                  an_error_severity severity)
+/*
+Returns TRUE if a diagnostic with the specified error_code would be emitted
+at the current error threshold, taking into account any overridden
+severities.
+*/
+{
+  a_boolean	result;
+
+  check_for_overridden_severity(error_code, &severity);
+  result = (int)severity >= (int)error_threshold;
+  return result;
+}  /* is_effective_diagnostic */
 
 
 #if !STANDALONE_UTILITY_PROGRAM

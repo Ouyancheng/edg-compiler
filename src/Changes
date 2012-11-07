@@ -1,5 +1,31 @@
 Version 4.6
 
+11/7/12  [EDGcpfe/10525]
+Issue remarks for unsequenced operations
+
+The front end now issues remarks for operations on variables that
+are unsequenced and could therefore result in undefined behavior.
+The algorithm does not detect all instances of unsequenced behavior
+(in particular, it limits the processing to expressions involving
+variables).  The additional processing to detect unsequenced operations
+is only performed when the ec_unsequenced_use_of_variable diagnostic
+is enabled (either by enabling all remarks or by explicitly enabling this
+remark).  The new processing is only available in configurations where
+EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  For example, the expression statements
+below will each generate new remarks (with --remark):
+
+  int g(int, int);
+  void f() {
+    int x = 0;
+    int *px = &x;
+    int a[5];
+    x = x++;
+    g(x, x=0);
+    a[x] = a[x++];
+    *px++ = *px;
+  }
+
+
 11/6/12  [EDGcpfe/13176]
 Static member of current instantiation is dependent as template argument
 

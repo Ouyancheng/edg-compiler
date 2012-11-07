@@ -217,6 +217,9 @@ typedef void a_traversal_type_process_function(
                                  an_expr_or_stmt_traversal_block_ptr tblock);
 typedef a_traversal_type_process_function
 		*a_traversal_type_process_function_ptr;
+
+struct a_seq_pt_var_entry;
+
 typedef struct an_expr_or_stmt_traversal_block {
   /* If you add fields here, also add them to
      clear_expr_or_stmt_traversal_block. */
@@ -359,6 +362,11 @@ typedef struct an_expr_or_stmt_traversal_block {
 			/* TRUE if the C++/CLI initonly field that was found
 			   during the tree walk is a static member. */
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+  struct a_seq_pt_var_entry
+		*seq_pt_var_list;
+			/* A list of variables referenced in the expression
+			   and the sequence point information associated
+			   with each variable. */
 } an_expr_or_stmt_traversal_block;
 
 extern void clear_expr_or_stmt_traversal_block(

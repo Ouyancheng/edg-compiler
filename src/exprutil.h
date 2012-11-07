@@ -918,6 +918,51 @@ EXTERN a_ref_entry_ptr
 			   each indicates might be adjusted. */
 
 /*
+When checking full expressions for side-effects that are unsequenced
+with respect to other side-effects and uses in the expression, the
+following structures are used to maintain a list of variables used in the
+expression, and for each of these variables, lists of side-effects
+(modifications) and uses (loads) of the variable.
+*/
+
+typedef struct a_seq_pt_info_entry *a_seq_pt_info_entry_ptr;
+typedef struct a_seq_pt_info_entry {
+  a_seq_pt_info_entry_ptr
+                next;   /* Pointer to the next entry on this list. */
+  an_expr_node_ptr
+                expr;   /* The expression (always an enk_variable node)
+                           that generated the side-effect/use. */
+  a_byte_boolean
+                independent_of_value_computation;
+                        /* Most side-effects are required to complete before
+                           a value computation for the operation; however
+                           certain side-effects are independent of value
+                           computation (and result in this flag being set
+                           to TRUE).  Used only for side-effects, not uses. */
+  a_byte_boolean
+                diagnostic_issued;
+                        /* Set to TRUE if a sequencing diagnostic has been
+                           issued for this side-effect/use. */
+} a_seq_pt_info_entry;
+
+typedef struct a_seq_pt_var_entry *a_seq_pt_var_entry_ptr;
+typedef struct a_seq_pt_var_entry {
+  a_seq_pt_var_entry_ptr
+                next;   /* Pointer to the next entry on this list.  Entries
+                           are sorted using the variable name as a key. */
+  a_variable_ptr
+                variable;
+                        /* The variable for which side-effects and uses
+                           appertain. */
+  a_seq_pt_info_entry_ptr
+                side_effects;
+                        /* A list of side-effects (modifications) of
+                           variable. */
+  a_seq_pt_info_entry_ptr
+                uses;   /* A list of uses (loads) of variable. */
+} a_seq_pt_var_entry;
+
+/*
 Variable that controls whether an attempt should be made to fold all
 initializers to constant expressions or only initializers for variables
 with static duration.  Also indicates a preference for other expressions,
