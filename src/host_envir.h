@@ -1011,6 +1011,28 @@ configurations that set it to FALSE to avoid surprises.
 #endif /* ifdef REPRESENT_EMPTY_STATEMENTS_IN_IL */
 
 /*
+Flag that is TRUE if sequencing diagnostics (i.e., to diagnose undefined
+behavior in expressions like "x=x++") should be allowed in this configuration.
+Note that setting this configuration macro to TRUE doesn't necessarily
+enable the diagnostics -- they are enabled only when the
+ec_unsequenced_use_of_variable diagnostic is enabled (e.g., when remarks
+are enabled or that diagnostic is specifically enabled).
+*/
+#ifndef SEQUENCING_DIAGNOSTICS_ENABLED
+#define SEQUENCING_DIAGNOSTICS_ENABLED FALSE
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
+
+#if SEQUENCING_DIAGNOSTICS_ENABLED
+#ifndef EXTRA_SOURCE_POSITIONS_IN_IL
+#define EXTRA_SOURCE_POSITIONS_IN_IL TRUE
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+ #error -- EXTRA_SOURCE_POSITIONS_IN_IL must be TRUE when \
+           SEQUENCING_DIAGNOSTICS_ENABLED is TRUE.
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
+
+/*
 Flag that is TRUE to cause additional IL entries to contain source position
 information.  Note that this can take a lot of extra space, so you should
 enable this only if you really need it.
@@ -1032,26 +1054,6 @@ is TRUE.
 #define FULL_SOURCE_POS_IN_IL_STATEMENT FALSE
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
-
-/*
-Flag that is TRUE if sequencing diagnostics (i.e., to diagnose undefined
-behavior in expressions like "x=x++") should be allowed in this configuration.
-Note that setting this configuration macro to TRUE doesn't necessarily
-enable the diagnostics -- they are enabled only when the
-ec_unsequenced_use_of_variable diagnostic is enabled (e.g., when remarks
-are enabled or that diagnostic is specifically enabled).
-*/
-#ifndef SEQUENCING_DIAGNOSTICS_ENABLED
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-#define SEQUENCING_DIAGNOSTICS_ENABLED TRUE
-#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-#define SEQUENCING_DIAGNOSTICS_ENABLED FALSE
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
-#if SEQUENCING_DIAGNOSTICS_ENABLED && !EXTRA_SOURCE_POSITIONS_IN_IL
- #error -- EXTRA_SOURCE_POSITIONS_IN_IL must be TRUE when \
-           SEQUENCING_DIAGNOSTICS_ENABLED is TRUE.
-#endif /* SEQUENCING_DIAGNOSTICS_ENABLED && !EXTRA_SOURCE_POSITIONS_IN_IL */
 
 /*
 Flag that is TRUE to cause IL lowering to be done, to lower C++ intermediate

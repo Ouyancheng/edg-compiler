@@ -11,7 +11,10 @@ variables).  The additional processing to detect unsequenced operations
 is only performed when the ec_unsequenced_use_of_variable diagnostic
 is enabled (either by enabling all remarks or by explicitly enabling this
 remark).  The new processing is only available in configurations where
-the new configuration macro SEQUENCING_DIAGNOSTICS_ENABLED is TRUE.
+the new configuration macro SEQUENCING_DIAGNOSTICS_ENABLED is TRUE
+(its default value is FALSE because setting SEQUENCING_DIAGNOSTICS_ENABLED
+also enables EXTRA_SOURCE_POSITIONS_IN_IL which has a significant cost
+in space use).
 
 For example, the expression statements below will each generate new remarks
 (with --remark):

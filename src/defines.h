@@ -1044,6 +1044,12 @@ Allow export to be enabled and enable it by default.
 #define DEFAULT_EXPORT_TEMPLATE_ALLOWED 1
 #endif /* ifndef EXPORT_ENABLING_POSSIBLE */
 
+#ifndef SEQUENCING_DIAGNOSTICS_ENABLED
+#if defined(EXTRA_SOURCE_POSITIONS_IN_IL) && EXTRA_SOURCE_POSITIONS_IN_IL
+#define SEQUENCING_DIAGNOSTICS_ENABLED 1
+#endif /* defined(EXTRA_SOURCE_POSITIONS_IN_IL) && EXTRA_SOURCE_POSITIONS... */
+#endif /* !defined(SEQUENCING_DIAGNOSTICS_ENABLED) */
+
 /*
 If using lint on a non-Sun platform, define some features that are in the
 SUN_TEST_VERSION but not the EDG_TEST_VERSION.
