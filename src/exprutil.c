@@ -76,6 +76,8 @@ static a_ref_entry_ptr
 		avail_ref_entries;
 			/* List of reference entries that have been freed
 			   and are available for reuse. */
+#if SEQUENCING_DIAGNOSTICS_ENABLED
+
 static a_seq_pt_var_entry_ptr
                 avail_seq_pt_var_entries;
                         /* List of sequence point variable entries that
@@ -85,6 +87,8 @@ static a_seq_pt_info_entry_ptr
                 avail_sequence_info_entries;
                         /* List of sequence point info entries that have
                            been freed and are available for reuse. */
+
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
 
 static a_boolean
                 sequencing_diagnostics_enabled;
@@ -116,11 +120,15 @@ static unsigned long
 		num_init_components_freed,
 		num_expr_rescan_info_entries_allocated,
 		num_ref_entries_allocated,
-		num_dynamic_init_dtor_fixups_allocated,
+		num_dynamic_init_dtor_fixups_allocated;
+#if SEQUENCING_DIAGNOSTICS_ENABLED
+static unsigned long
 		num_seq_pt_var_entries_allocated,
 		num_sequence_info_entries_allocated;
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
 #endif /* DEBUG */
 
+#if SEQUENCING_DIAGNOSTICS_ENABLED
 
 static a_seq_pt_info_entry_ptr alloc_sequence_info_entry(
                                                          an_expr_node_ptr expr)
@@ -254,6 +262,7 @@ Free all entries on the list headed by spvep (which may be NULL).
   }  /* while */
 }  /* free_seq_pt_var_entry_list */
 
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
 
 static a_ref_entry_ptr alloc_ref_entry(a_symbol_ptr            sym_ptr,
                                        a_source_position       *pos)
@@ -1875,10 +1884,8 @@ qualifies as, for example, an integral constant expression.
   operand->ruled_out_expr_kinds |= ruled_out_set;
 }  /* rule_out_expr_kinds */
 
+#if SEQUENCING_DIAGNOSTICS_ENABLED
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/  /* spiep is not used in that case. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void issue_sequencing_diagnostic(a_seq_pt_info_entry_ptr spiep)
 /*
 If a sequencing diagnostic hasn't been previously emitted, emit one now.
@@ -1886,7 +1893,6 @@ Typically, the same diagnostic is issued multiple times in the same expression
 (once for each unsequenced side-effect or use).
 */
 {
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   if (!spiep->diagnostic_issued) {
     /* FIXME: reduce warning to remark after testing. */
     if (expr_diagnostic_should_be_issued(es_warning,
@@ -1898,7 +1904,6 @@ Typically, the same diagnostic is issued multiple times in the same expression
     }  /* if */
     spiep->diagnostic_issued = TRUE;
   }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* issue_sequencing_diagnostic */
 
 
@@ -2140,6 +2145,7 @@ expression.
   return result;
 }  /* merge_lists_and_check_for_sequencing_issues */
 
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
 
 static a_boolean examine_expr_list_for_unordered_issues(
                      an_expr_node_ptr                    expr_list,
@@ -2166,16 +2172,20 @@ expression list.
                                         tblock->set_unordered_on_dynamic_inits;
   a_boolean        any_temp_inits = FALSE;
   an_expr_node_ptr expr, first_expr_with_temp_init = NULL;
+#if SEQUENCING_DIAGNOSTICS_ENABLED
   a_seq_pt_var_entry_ptr
                    expr_seq_pt_var_list = NULL;
   a_seq_pt_var_entry_ptr
                    save_seq_pt_var_list = tblock->seq_pt_var_list;
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
 
   for (expr = expr_list; expr != NULL; expr = expr->next) {
     a_boolean curr_expr_has_temp_init;
     /* See whether this expression contains any temp inits. */
     tblock->result = FALSE;
+#if SEQUENCING_DIAGNOSTICS_ENABLED
     tblock->seq_pt_var_list = NULL;
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
     traverse_expr(expr, tblock);
     curr_expr_has_temp_init = tblock->result;
     any_temp_inits |= curr_expr_has_temp_init;
@@ -2211,6 +2221,7 @@ expression list.
         first_expr_with_temp_init = expr;
       }  /* if */
     }  /* if */
+#if SEQUENCING_DIAGNOSTICS_ENABLED
     if (sequencing_diagnostics_enabled) {
       /* Check for the presence of side-effects in unsequenced operations.
          Most operations are unsequenced, that is, their operands can be
@@ -2226,7 +2237,9 @@ expression list.
                                                       sequenced,
                                                       /*is_assignment=*/FALSE);
     }  /* if */
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
   }  /* for */
+#if SEQUENCING_DIAGNOSTICS_ENABLED
   if (save_seq_pt_var_list != NULL) {
     /* This can occur when dynamic inits are intermixed with expressions,
        e.g., "A *a = new (x++) A(x++);".  In this case, merge the two lists
@@ -2238,6 +2251,7 @@ expression list.
                                                       /*is_assignment=*/FALSE);
   }  /* if */
   tblock->seq_pt_var_list = expr_seq_pt_var_list;
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
   tblock->result = saved_result | any_temp_inits;
   tblock->set_unordered_on_dynamic_inits= saved_set_unordered_on_dynamic_inits;
   return any_temp_inits;
@@ -2367,8 +2381,10 @@ as part of looking for unordered temp inits or unsequenced side-effects.
 {
   a_boolean                 sequenced;
   an_expr_operator_kind     op;
+#if SEQUENCING_DIAGNOSTICS_ENABLED
   a_seq_pt_var_entry_ptr    spvep;
   a_seq_pt_info_entry_ptr   spiep;
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
 
   switch (expr->kind) {
     case enk_operation:
@@ -2396,6 +2412,7 @@ as part of looking for unordered temp inits or unsequenced side-effects.
                                         expr->variant.operation.operands,
                                         sequenced,
                                         tblock);
+#if SEQUENCING_DIAGNOSTICS_ENABLED
       if (sequencing_diagnostics_enabled &&
           !tblock->set_unordered_on_dynamic_inits) {
         a_boolean               independent_of_value_computation = FALSE;
@@ -2466,8 +2483,10 @@ process_side_effect:
             break;
         }  /* switch */
       }  /* if */
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
       tblock->suppress_subtree_walk = TRUE;
       break;
+#if SEQUENCING_DIAGNOSTICS_ENABLED
     case enk_variable:
       if (sequencing_diagnostics_enabled &&
           !tblock->set_unordered_on_dynamic_inits &&
@@ -2481,6 +2500,7 @@ process_side_effect:
         spvep->uses = spiep;
       }  /* if */
       break;
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
     case enk_new_delete:
       /* There are no ordering issues for new and delete, though perhaps that
          requires some explanation.  For delete, there's just the one operand,
@@ -2508,6 +2528,7 @@ process_side_effect:
   }  /* switch */
 }  /* examine_expr_for_unordered_issues */
 
+#if SEQUENCING_DIAGNOSTICS_ENABLED
 
 static void examine_constant_for_unordered_issues(
                                     a_constant_ptr                      con,
@@ -2542,6 +2563,7 @@ as part of looking for unsequenced side-effects.
   }  /* if */
 }  /* examine_constant_for_unordered_issues */
 
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
 
 static void set_up_unordered_issues_traversal_block(
                                     an_expr_or_stmt_traversal_block_ptr tblock)
@@ -2556,9 +2578,11 @@ Set up the control block used for the unordered issues traversal.
      order in which we encounter them.  The routine for that must be called
      after the subtree is walked to get the linking in the right order. */
   tblock->process_post_dynamic_init = update_last_processed_dynamic_init;
+#if SEQUENCING_DIAGNOSTICS_ENABLED
   if (sequencing_diagnostics_enabled) {
     tblock->process_constant = examine_constant_for_unordered_issues;
   }  /* if */
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
   tblock->relink_dynamic_inits = TRUE;
 }  /* set_up_unordered_issues_traversal_block */
 
@@ -2605,7 +2629,9 @@ the expr_stack).
       an_expr_or_stmt_traversal_block tblock;
       set_up_unordered_issues_traversal_block(&tblock);
       traverse_expr(expr, &tblock);
+#if SEQUENCING_DIAGNOSTICS_ENABLED
       free_seq_pt_var_entry_list(tblock.seq_pt_var_list);
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
     }  /* if */
     /* If the current expression has an associated object lifetime with
        something in it, add an enk_object_lifetime node on the top of the
@@ -2647,7 +2673,9 @@ a previous error.
     an_expr_or_stmt_traversal_block tblock;
     set_up_unordered_issues_traversal_block(&tblock);
     traverse_dynamic_init(dip, &tblock);
+#if SEQUENCING_DIAGNOSTICS_ENABLED
     free_seq_pt_var_entry_list(tblock.seq_pt_var_list);
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
   }  /* if */
   if (!C_mode() && lifetime != NULL) {
     if (dip != NULL) {
@@ -19132,11 +19160,13 @@ Display and return the amount of space used for various expression tables.
                      num_candidate_functions_allocated, a_candidate_function);
   db_space_used_lost("ref entry", avail_ref_entries,
                       num_ref_entries_allocated, a_ref_entry);
+#if SEQUENCING_DIAGNOSTICS_ENABLED
   db_space_used_lost("seq point variable entry", avail_seq_pt_var_entries,
                       num_seq_pt_var_entries_allocated, a_seq_pt_var_entry);
   db_space_used_lost("seq point info entry", avail_sequence_info_entries,
                       num_sequence_info_entries_allocated,
                       a_seq_pt_info_entry);
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
   db_space_used_lost("dynamic init dtor fixup", avail_dynamic_init_dtor_fixups,
                       num_dynamic_init_dtor_fixups_allocated,
                       a_dynamic_init_dtor_fixup);
@@ -19177,8 +19207,10 @@ Do one-time initialization of variables related to expression processing.
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_ref_entries),
+#if SEQUENCING_DIAGNOSTICS_ENABLED
       pch_saved_var_array_elem(avail_seq_pt_var_entries),
       pch_saved_var_array_elem(avail_sequence_info_entries),
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
       pch_saved_var_array_elem(avail_arg_operands),
       pch_saved_var_array_elem(avail_init_components),
       pch_saved_var_array_elem(avail_dynamic_init_dtor_fixups),
@@ -19198,8 +19230,10 @@ Do one-time initialization of variables related to expression processing.
       pch_saved_var_array_elem(num_init_components_freed),
       pch_saved_var_array_elem(num_expr_rescan_info_entries_allocated),
       pch_saved_var_array_elem(num_ref_entries_allocated),
+#if SEQUENCING_DIAGNOSTICS_ENABLED
       pch_saved_var_array_elem(num_seq_pt_var_entries_allocated),
       pch_saved_var_array_elem(num_sequence_info_entries_allocated),
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
       pch_saved_var_array_elem(num_dynamic_init_dtor_fixups_allocated),
       pch_saved_var_array_elem(num_arg_match_summaries_allocated),
       pch_saved_var_array_elem(num_candidate_functions_allocated),
@@ -19219,13 +19253,13 @@ Do one-time initialization of variables related to expression processing.
 #if C99_IL_EXTENSIONS_SUPPORTED
   register_trans_unit_variable(imaginary_unit);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
+#if SEQUENCING_DIAGNOSTICS_ENABLED
   sequencing_diagnostics_enabled = is_effective_diagnostic(
                                                 ec_unsequenced_use_of_variable,
                                                 es_warning);
-#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#else /* !SEQUENCING_DIAGNOSTICS_ENABLED */
   sequencing_diagnostics_enabled = FALSE;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
 }  /* expr_one_time_init */
 
 
@@ -19254,8 +19288,10 @@ for each compilation.
 */
 {
   avail_ref_entries = NULL;
+#if SEQUENCING_DIAGNOSTICS_ENABLED
   avail_seq_pt_var_entries = NULL;
   avail_sequence_info_entries = NULL;
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
   avail_arg_operands = NULL;
   avail_init_components = NULL;
   avail_dynamic_init_dtor_fixups = NULL;
@@ -19267,8 +19303,10 @@ for each compilation.
   num_init_components_freed              = 0;
   num_expr_rescan_info_entries_allocated = 0;
   num_ref_entries_allocated              = 0;
+#if SEQUENCING_DIAGNOSTICS_ENABLED
   num_seq_pt_var_entries_allocated       = 0;
   num_sequence_info_entries_allocated    = 0;
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
   num_dynamic_init_dtor_fixups_allocated = 0;
 #endif /* DEBUG */
 

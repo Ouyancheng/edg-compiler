@@ -11,8 +11,10 @@ variables).  The additional processing to detect unsequenced operations
 is only performed when the ec_unsequenced_use_of_variable diagnostic
 is enabled (either by enabling all remarks or by explicitly enabling this
 remark).  The new processing is only available in configurations where
-EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  For example, the expression statements
-below will each generate new remarks (with --remark):
+the new configuration macro SEQUENCING_DIAGNOSTICS_ENABLED is TRUE.
+
+For example, the expression statements below will each generate new remarks
+(with --remark):
 
   int g(int, int);
   void f() {

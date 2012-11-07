@@ -917,6 +917,8 @@ EXTERN a_ref_entry_ptr
 			   expression.  Before that, the kind of reference
 			   each indicates might be adjusted. */
 
+#if SEQUENCING_DIAGNOSTICS_ENABLED
+
 /*
 When checking full expressions for side-effects that are unsequenced
 with respect to other side-effects and uses in the expression, the
@@ -961,6 +963,8 @@ typedef struct a_seq_pt_var_entry {
   a_seq_pt_info_entry_ptr
                 uses;   /* A list of uses (loads) of variable. */
 } a_seq_pt_var_entry;
+
+#endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
 
 /*
 Variable that controls whether an attempt should be made to fold all
