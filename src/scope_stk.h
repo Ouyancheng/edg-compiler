@@ -911,9 +911,10 @@ typedef struct a_scope_stack_entry {
 			   tokens of a function template are being rescanned
 			   to create a partial instantiation of the
 			   function. */
-  a_bit_field	has_exactly_one_return:1;
-			/* TRUE if the function has exactly one return
-			   statement (a requirement of constexpr functions). */
+  a_bit_field	has_at_least_one_return:1;
+			/* TRUE if the function has at least one return
+			   statement (constexpr functions are required to
+			   have exactly one return statement). */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;

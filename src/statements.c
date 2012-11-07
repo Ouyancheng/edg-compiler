@@ -6431,7 +6431,7 @@ this statement was preceded by the GNU keyword __extension__.
 {
   a_boolean          prev_was_label = FALSE;
   a_boolean          get_another_statement;
-  a_boolean          can_appear_in_constexpr_function = FALSE;
+  a_boolean          can_appear_in_constexpr_body = FALSE;
   a_source_position  start_pos;
 
   db_enter(3, "statement");
@@ -6465,7 +6465,7 @@ rescan_statement:
     case tok_semicolon:
       /* Empty statement (part of expression-statement, 3.6.3). */
       empty_statement();
-      can_appear_in_constexpr_function = TRUE;
+      can_appear_in_constexpr_body = TRUE;
       break;
     case tok_lbrace:
       /* Compound statement (3.6.2). */
@@ -6473,7 +6473,7 @@ rescan_statement:
                                /*explicit_return_type=*/FALSE,
                                /*is_catch_clause=*/FALSE,
                                /*is_statement_expr=*/FALSE);
-      if (!strict_ansi_mode) can_appear_in_constexpr_function = TRUE;
+      if (!strict_ansi_mode) can_appear_in_constexpr_body = TRUE;
       break;
     case tok_if:
       /* If statement (3.6.4). */
@@ -6520,15 +6520,18 @@ rescan_statement:
     case tok_return:
       /* Return statement (3.6.6). */
       return_statement();
-      /* constexpr functions require exactly one return statement. */
-      can_appear_in_constexpr_function = TRUE;
-      if (scope_stack[depth_innermost_function_scope].has_exactly_one_return) {
-        if (current_routine_entry()->is_constexpr) {
+      if (current_routine_entry()->is_constexpr &&
+          !special_kind_is(current_routine_entry(), sfk_constructor)) {
+        /* No return statements are allowed in constexpr constructors. */
+        can_appear_in_constexpr_body = TRUE;
+        if (scope_stack[depth_innermost_function_scope].
+                                                     has_at_least_one_return) {
+          /* A constexpr function cannot have more than one return. */
           pos_error(ec_invalid_constexpr_body, &start_pos);
-        }  /* if */
-      } else {
-        scope_stack[depth_innermost_function_scope].has_exactly_one_return =
+        } else {
+          scope_stack[depth_innermost_function_scope].has_at_least_one_return =
                                                                           TRUE;
+        }  /* if */
       }  /* if */
       break;
     case tok_asm:
@@ -6684,7 +6687,7 @@ expr_statement:
             curr_token == tok_typedef) {
           /* Certain declaration statements are allowed in constexpr
              functions. */
-          can_appear_in_constexpr_function = TRUE;
+          can_appear_in_constexpr_body = TRUE;
         }  /* if */
         decl_statement(marked_as_gnu_extension);
       } else if (C_mode() &&
@@ -6721,10 +6724,13 @@ expr_statement:
       break;
   }  /* switch */
   if (current_routine_entry()->is_constexpr &&
-      !can_appear_in_constexpr_function) {
+      !can_appear_in_constexpr_body) {
     /* Report an error if the statement is not one that is allowed in
-       a constexpr function. */
-    pos_error(ec_invalid_constexpr_body, &start_pos);
+       a constexpr function or constexpr constructor. */
+    pos_error(special_kind_is(current_routine_entry(), sfk_constructor) ?
+                                ec_invalid_statement_in_constexpr_constructor :
+                                ec_invalid_statement_in_constexpr_function,
+              &start_pos);
   }  /* if */
   /* Loop if we just got a label and not an actual statement. */
   if (get_another_statement) {
@@ -7103,9 +7109,11 @@ e.g., ({ ... }).
   remove_stop_token(tok_rbrace);
   if (at_function_level &&
       current_routine_entry()->is_constexpr &&
-      !scope_stack[depth_innermost_function_scope].has_exactly_one_return) {
+      !special_kind_is(current_routine_entry(), sfk_constructor) &&
+      !scope_stack[depth_innermost_function_scope].has_at_least_one_return) {
     /* Check that there is exactly one return statement in a constexpr
-       function. */
+       function (an error has already been given if more than one
+       return was encountered). */
     pos_error(ec_invalid_constexpr_body, &pos_curr_token);
   }  /* if */
 #if DEBUG
