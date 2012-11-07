@@ -12700,10 +12700,6 @@ implicitly declared member functions.
     rtn->source_corresp.assembly_access = class_state->assembly_access;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0 &&
-      check_constexpr_routine_type(rtn, &locator->source_position)) {
-    rtn->is_constexpr = TRUE;
-  }  /* if */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_operator);
@@ -12766,6 +12762,10 @@ implicitly declared member functions.
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0 &&
+      check_constexpr_routine_type(rtn, &locator->source_position)) {
+    rtn->is_constexpr = TRUE;
   }  /* if */
   check_defaulted_or_deleted_function(&decl_info->decl_state, func_info,
                                       &locator->source_position);
