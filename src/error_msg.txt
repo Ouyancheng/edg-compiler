@@ -2434,7 +2434,7 @@ ec_previous_nonconstexpr_decl_conflict;;"%nd was previously not declared constex
 ec_constexpr_variable_decl_must_be_definition;;"a constexpr variable declaration must be a definition"
 ec_invalid_constexpr;;"\"constexpr\" is not valid in this declaration"
 ec_invalid_constexpr_body;;"\"constexpr\" function must contain exactly one return statement"
-ec_constexpr_virtual_combination;;"\"constexpr\" and \"virtual\" cannot both be specified on the same declaration"
+ec_constexpr_virtual_combination;;"a function cannot be both constexpr and virtual"
 ec_nonliteral_return_type_in_constexpr_function;;"a constexpr function cannot have a nonliteral return type %t"
 ec_nonliteral_param_type_in_constexpr_function;;"a constexpr function cannot have a parameter of nonliteral type %t"
 ec_unsequenced_use_of_variable;;"unsequenced uses of %n in expression may produce undefined results"

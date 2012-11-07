@@ -7139,7 +7139,7 @@ C++ mode, even exception specifications on definitions are ignored.)
 }  /* issue_no_exception_support_diag_on_throw_spec */
 
 
-a_boolean check_constexpr_routine_type(a_type_ptr         rtp,
+a_boolean check_constexpr_routine_type(a_routine_ptr      rp,
                                        a_source_position  *diag_pos)
 /*
 Return TRUE if and only if the given function type is a valid type for a
@@ -7147,15 +7147,17 @@ constexpr function.  Otherwise, return FALSE and issue diagnostic at the
 given position.
 */
 {
-  a_boolean  okay = TRUE;
+  a_boolean   okay = TRUE;
+  a_type_ptr  rtp = skip_typerefs(rp->type);
 
-  rtp = skip_typerefs(rtp);
   if (rtp->kind == (a_type_kind)tk_error) {
     /* A severe error must have occurred: Nothing more to be done. */
     expect_error();
   } else {
     check_assertion(rtp->kind == (a_type_kind)tk_routine);
-    if (!could_be_literal_type(rtp->variant.routine.return_type)) {
+    if (!(special_kind_is(rp, sfk_constructor) ||
+          special_kind_is(rp, sfk_destructor)) &&
+        !could_be_literal_type(rtp->variant.routine.return_type)) {
       okay = FALSE;
       pos_ty_error(ec_nonliteral_return_type_in_constexpr_function, diag_pos,
                    rtp->variant.routine.return_type);
@@ -8456,8 +8458,7 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   if (!redeclaration && (dps->dso_flags & DSO_CONSTEXPR) != 0 &&
-      check_constexpr_routine_type(routine_ptr->type,
-                                   &locator->source_position)) {
+      check_constexpr_routine_type(routine_ptr, &locator->source_position)) {
     routine_ptr->is_constexpr = TRUE;
   }  /* if */
   attach_decl_attributes(dps, is_function_def);
@@ -9111,7 +9112,7 @@ definition of a member function of a class template.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (dps->dso_flags & DSO_CONSTEXPR &&
-        check_constexpr_routine_type(type_ptr, &locator->source_position)) {
+        check_constexpr_routine_type(rout_ptr, &locator->source_position)) {
       rout_ptr->is_constexpr = TRUE;
     }  /* if */
     if (func_info->is_inline) {

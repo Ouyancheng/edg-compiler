@@ -12701,7 +12701,7 @@ implicitly declared member functions.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0 &&
-      check_constexpr_routine_type(rtn->type, &locator->source_position)) {
+      check_constexpr_routine_type(rtn, &locator->source_position)) {
     rtn->is_constexpr = TRUE;
   }  /* if */
   if (locator->is_operator_name) {
@@ -13502,7 +13502,7 @@ decl_member_function, which handles in-class member function declarations.)
                                             func_info->prototype_scope_symbols;
   func_info->keep_param_id_list = TRUE;
   if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
-      check_constexpr_routine_type(rtn->type, &locator->source_position)) {
+      check_constexpr_routine_type(rtn, &locator->source_position)) {
     rtn->is_constexpr = TRUE;
   }  /* if */
   if (func_info->is_inline) {

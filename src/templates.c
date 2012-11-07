@@ -12274,7 +12274,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     rp->is_deleted = templ_rout->is_deleted;
     rp->is_defaulted = templ_rout->is_defaulted;
     if (templ_rout->is_constexpr &&
-        check_constexpr_routine_type(rp->type, &error_position)) {
+        check_constexpr_routine_type(rp, &error_position)) {
       rp->is_constexpr = TRUE;
     }  /* if */
     set_inline_flag(rp, (a_boolean)templ_rout->is_inline);
