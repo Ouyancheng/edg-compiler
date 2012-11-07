@@ -996,6 +996,12 @@ extern int fileno(FILE *);
 /*lint -esym(759,is_transparent_union_type)*/
 /*lint -esym(765,is_transparent_union_type)*/
 #endif /* GNU_EXTENSIONS_ALLOWED && !BACK_END_IS_CP_GEN_BE */
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*lint -esym(714,is_effective_diagnostic)*/
+/*lint -esym(759,is_effective_diagnostic)*/
+/*lint -esym(765,is_effective_diagnostic)*/
+/*lint -esym(765,ec_unsequenced_use_of_variable)*/
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #endif /* ifndef LINT_H */
 
