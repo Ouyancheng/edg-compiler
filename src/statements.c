@@ -6702,7 +6702,10 @@ expr_statement:
             curr_token == tok_static_assert ||
             curr_token == tok_typedef) {
           /* Certain declaration statements are allowed in constexpr
-             functions. */
+             functions or constructors.  Note that this check is somewhat
+             incomplete: the standard disallows typedefs and aliases that
+             introduce class or enum types (though g++ doesn't enforce
+             this). */
           can_appear_in_constexpr_body = TRUE;
         }  /* if */
         decl_statement(marked_as_gnu_extension);
