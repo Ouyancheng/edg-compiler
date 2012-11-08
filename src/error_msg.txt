@@ -2440,6 +2440,7 @@ ec_constexpr_virtual_combination;;"a function cannot be both constexpr and virtu
 ec_nonliteral_return_type_in_constexpr_function;;"a constexpr function cannot have a nonliteral return type %t"
 ec_nonliteral_param_type_in_constexpr_function;;"a constexpr function cannot have a parameter of nonliteral type %t"
 ec_unsequenced_use_of_variable;;"unsequenced uses of %n in expression may produce undefined results"
+ec_3rd_arg_of_assume_aligned_must_be_integral;;"the optional third argument of a call to __builtin_assumed_aligned must have integral type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

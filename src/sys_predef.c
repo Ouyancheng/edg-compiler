@@ -2170,6 +2170,10 @@ Enter the standard predeclared functions for GCC.
   if (gnu_version >= 40400) {
     enter_gnu_builtin_vararg_func5(_fpclassify, int, int, int, int, int, int);
   }  /* if */
+  if (gnu_version >= 40700) {
+    enter_gnu_builtin_vararg_func2(_assume_aligned, void_star,
+                                   const_void_star, size_t);
+  }  /* if */
 
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   enter_gnu_sync_functions();

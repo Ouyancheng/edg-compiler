@@ -1,5 +1,16 @@
 Version 4.6
 
+11/8/12  [EDGcpfe/12988]
+GNU compatibility: __builtin_assume_aligned
+
+In GNU modes with gnu_version >= 40700, the front end now predeclares a
+function
+	void* __builtin_assumed_aligned(void const*, size_t, ...);
+The function is not treated in any special way by the front end, except that
+it verifies that at most one argument is passed for the ellipsis parameter,
+and that if present that argument has integer type.
+
+
 11/8/12  [EDGcpfe/13326]
 GNU C++: use of static data member initialized outside of class as constant
 

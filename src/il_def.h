@@ -10846,6 +10846,7 @@ enum a_builtin_function_kind_tag {
   bfk_isfinite,			/* __builtin_isfinite */
   bfk_isnormal,			/* __builtin_isnormal */
   bfk_fpclassify,		/* __builtin_fpclassify */
+  bfk_assume_aligned,		/* __builtin_assume_aligned */
   bfk_last
 };
 /* Define as "unsigned short" to explicitly control storage size (a_byte
@@ -12265,6 +12266,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_isfinite */		     "__builtin_isfinite",
   /* bfk_isnormal */		     "__builtin_isnormal",
   /* bfk_fpclassify */		     "__builtin_fpclassify",
+  /* bfk_assume_aligned */	     "__builtin_assume_aligned",
   /* bfk_last */                     "last" /* used to check that 
                                                initialization is right. */
 }

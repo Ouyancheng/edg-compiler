@@ -3506,6 +3506,7 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_atomic_always_lock_free:
       case bfk_atomic_is_lock_free:
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+      case bfk_assume_aligned:
         result = TRUE;
         break;
       default:
@@ -3939,6 +3940,22 @@ Also folds calls to constexpr functions.
                                            args, args2, &result, result_type);
           break;
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+        case bfk_assume_aligned:
+          /* Calls to __builtin_assume_aligned are never actually folded, but
+             we treat it as "potentially folded" to simplify checking for
+             extraneous call arguments. */
+          if (args2 != NULL && args2->next != NULL) {
+            /* A optional third argument is permitted but must be of integer
+               type.  A fourth argument is not permitted. */
+            if (args2->next->next != NULL) {
+              expr_pos_error(ec_too_many_arguments, &op->position);
+            } else if (!is_integral_type(args2->next->type)) {
+              expr_pos_error(ec_3rd_arg_of_assume_aligned_must_be_integral,
+                             &op->position);
+            }  /* if */
+          }  /* if */
+          folded = FALSE;
+          break;
         default:
           /* Nothing to be done. */
           break;
