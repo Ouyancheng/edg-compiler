@@ -3891,10 +3891,8 @@ returned set to TRUE.
        also end up here with an sk_variable.) */
     /* Note that this call has to be after the select_destructor call in the
        preceding section of code. */
-    if (is_incomplete_type(sym_parent_class(symbol_ptr))) {
-      check_assertion_or_expect_error(
-               is_immediate_managed_class_type(sym_parent_class(symbol_ptr)));
-    } else if (reactivation_pushed) {
+    if (reactivation_pushed) {
+      check_assertion(!is_incomplete_type(sym_parent_class(symbol_ptr)));
       pop_class_reactivation_scope();
     }  /* if */
   } else {

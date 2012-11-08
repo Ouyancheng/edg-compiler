@@ -13411,17 +13411,28 @@ be returned for a C mode const variable.
     check_assertion(init_kind == (an_init_kind)initk_static);
     con_val = init->constant;
   } else if (var->source_corresp.is_class_member &&
-             has_static_storage_duration(var->storage_class) &&
              !var->is_member_constant &&
-             (var->is_template_static_data_member || strict_ansi_mode)) {
+             (strict_ansi_mode ||
+              (var->is_template_static_data_member &&
+               !gpp_mode))) {
     /* The variable is a static data member but it's not initialized within
        the class (it might be initialized outside the class), so it's not
        a constant.  The standard puts this requirement on all static data
        members, but many compilers relax that for non-template static data
-       members. */
+       members.  g++ also allows template static data members. */
   } else if ((!C_mode() || allow_C_mode_const_var) &&
              is_const_variable(var) &&
              !is_volatile_qualified_type(var->type)) {
+    if (gpp_mode &&
+        var->source_corresp.is_class_member &&
+        !var->is_member_constant &&
+        var->assoc_template != NULL &&
+        !parent_class_of(var)->variant.class_struct_union
+                                                 .is_prototype_instantiation) {
+      /* Instantiate a template static data member to get its out-of-class
+         definition. */
+      complete_template_static_data_member_type_is_needed(var);
+    }  /* if */
     /* initk_function_local initialization can come up with local static
        variables when recording a constant expression (the expression is
        function-local, and that forces the initializer constant to be made
@@ -13436,6 +13447,19 @@ be returned for a C mode const variable.
       if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
         con_val = init->dynamic->variant.constant;
       }  /* if */
+    } else if (gpp_mode &&
+               init_kind == (an_init_kind)initk_none &&
+               var->source_corresp.is_class_member &&
+               !var->is_member_constant &&
+               parent_class_of(var)->variant.class_struct_union
+                                                 .is_prototype_instantiation &&
+               is_template_dependent_type(var->type)) {
+      /* g++ accepts a const static data member of a class template with no
+         in-class initializer as a constant-expression during the prototype
+         instantiation of its class.  In a real instantiation, the out-of-class
+         definition must be present. */
+      con_val = alloc_constant((a_constant_repr_kind)ck_template_param);
+      make_template_param_expr_constant(var_rvalue_expr(var), con_val);
     }  /* if */
     if (con_val != NULL) {
       if (con_val->kind == (a_constant_repr_kind)ck_aggregate) {

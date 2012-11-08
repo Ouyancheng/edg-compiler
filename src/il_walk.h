@@ -218,7 +218,7 @@ typedef void a_traversal_type_process_function(
 typedef a_traversal_type_process_function
 		*a_traversal_type_process_function_ptr;
 
-struct a_seq_pt_var_entry;
+typedef struct a_seq_pt_var_entry a_seq_pt_var_entry_dummy_typedef;
 
 typedef struct an_expr_or_stmt_traversal_block {
   /* If you add fields here, also add them to

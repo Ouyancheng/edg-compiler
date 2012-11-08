@@ -1,5 +1,21 @@
 Version 4.6
 
+11/8/12  [EDGcpfe/13326]
+GNU C++: use of static data member initialized outside of class as constant
+
+g++ apparently allows the use of a template static data member as a
+constant even if its value is provided by an out-of-class definition.
+Now, in g++ mode, we do too.
+
+  template <class T>
+  struct A {
+    static const T x;
+    int a[x];  // Use of x as constant okay now
+  };
+  template <class T> const T A<T>::x = 1;
+  int a[A<int>::x];  // Use of x as constant okay now
+
+
 11/7/12  [EDGcpfe/10525]
 Issue remarks for unsequenced operations
 
