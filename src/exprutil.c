@@ -1894,11 +1894,10 @@ Typically, the same diagnostic is issued multiple times in the same expression
 */
 {
   if (!spiep->diagnostic_issued) {
-    /* FIXME: reduce warning to remark after testing. */
-    if (expr_diagnostic_should_be_issued(es_warning,
+    if (expr_diagnostic_should_be_issued(es_remark,
                                          ec_unsequenced_use_of_variable)) {
       check_assertion(is_variable_node(spiep->expr));
-      pos_sy_diagnostic(es_warning, ec_unsequenced_use_of_variable,
+      pos_sy_diagnostic(es_remark, ec_unsequenced_use_of_variable,
                         &spiep->expr->expr_range.start,
                         symbol_for(spiep->expr->variant.variable));
     }  /* if */
@@ -19256,7 +19255,7 @@ Do one-time initialization of variables related to expression processing.
 #if SEQUENCING_DIAGNOSTICS_ENABLED
   sequencing_diagnostics_enabled = is_effective_diagnostic(
                                                 ec_unsequenced_use_of_variable,
-                                                es_warning);
+                                                es_remark);
 #else /* !SEQUENCING_DIAGNOSTICS_ENABLED */
   sequencing_diagnostics_enabled = FALSE;
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
