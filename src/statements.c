@@ -5863,6 +5863,30 @@ See also 3.6.6.4.
       update_source_sequence_list((char*)sp, iek_statement, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
+    if (current_routine_entry()->is_constexpr &&
+        !special_kind_is(current_routine_entry(), sfk_constructor)) {
+      /* A constexpr function must have exactly one return. */
+      a_scope_ptr scope = scope_stack[depth_innermost_function_scope].il_scope;
+      if (scope_stack[depth_innermost_function_scope].has_at_least_one_return){
+        /* There has already been at least one return in this constexpr
+           function; give an error and disqualify the routine from being
+           constexpr. */
+        scope_stack[depth_innermost_function_scope].constexpr_ruled_out = TRUE;
+        scope->variant.routine.constexpr_return_expr = NULL;
+        pos_error(ec_invalid_constexpr_body, &return_pos);
+      } else {
+        scope_stack[depth_innermost_function_scope].has_at_least_one_return =
+                                                                          TRUE;
+        if (dip == NULL && return_expr != NULL) {
+          /* Assume this will be the only return statement in the function
+             body and capture the return expression here. */
+          /* We make a copy of the expression so that if IL lowering is
+             being done we preserve an unlowered copy. */
+          scope->variant.routine.constexpr_return_expr =
+                                    copy_expr_tree(return_expr, CE_NO_OPTIONS);
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (curr_token == tok_semicolon) {
@@ -6524,14 +6548,6 @@ rescan_statement:
           !special_kind_is(current_routine_entry(), sfk_constructor)) {
         /* No return statements are allowed in constexpr constructors. */
         can_appear_in_constexpr_body = TRUE;
-        if (scope_stack[depth_innermost_function_scope].
-                                                     has_at_least_one_return) {
-          /* A constexpr function cannot have more than one return. */
-          pos_error(ec_invalid_constexpr_body, &start_pos);
-        } else {
-          scope_stack[depth_innermost_function_scope].has_at_least_one_return =
-                                                                          TRUE;
-        }  /* if */
       }  /* if */
       break;
     case tok_asm:
@@ -6731,6 +6747,7 @@ expr_statement:
                                 ec_invalid_statement_in_constexpr_constructor :
                                 ec_invalid_statement_in_constexpr_function,
               &start_pos);
+    scope_stack[depth_innermost_function_scope].constexpr_ruled_out = TRUE;
   }  /* if */
   /* Loop if we just got a label and not an actual statement. */
   if (get_another_statement) {
@@ -7115,6 +7132,7 @@ e.g., ({ ... }).
        function (an error has already been given if more than one
        return was encountered). */
     pos_error(ec_invalid_constexpr_body, &pos_curr_token);
+    scope_stack[depth_innermost_function_scope].constexpr_ruled_out = TRUE;
   }  /* if */
 #if DEBUG
   if (debug_level >= 3 ||

@@ -28,7 +28,9 @@ func_def.c -- Processing for function definitions (both user supplied and
 /* Additional header files. */
 #include "class_decl.h"
 #include "exprutil.h"
+#if DO_IL_LOWERING
 #include "il_walk.h"
+#endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -833,102 +835,50 @@ and issue a diagnostic if that was not the case.
 }  /* check_implicit_lambda_return_type */
 
 
-static a_statement_ptr
-                constexpr_return_stmt;
-                        /* Used during a statement traversal to point to
-                           the stmk_return statement in a constexpr
-                           function. */
-
-
-static void find_return_statement(
-                                 a_statement_ptr                     statement,
-                                 an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-Called during a statement traversal to find an stmk_return statement.
-*/
-{
-  if (statement->kind == (a_statement_kind)stmk_return) {
-    constexpr_return_stmt = statement;
-    tblock->terminate = TRUE;
-  }  /* if */
-}  /* find_return_statement */
-
-
-static a_statement_ptr find_return_statement_in_constexpr_function(
-                                                          a_statement_ptr stmt)
-/*
-A constexpr function must have exactly one return statement (and that is
-enforced during statement processing), but may also have empty statements
-and certain declarative statements (as well as compound statements in some
-modes).  Return a pointer to the return statement (or NULL if none is found).
-*/
-{
-  an_expr_or_stmt_traversal_block tblock;
-
-  clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_statement = find_return_statement;
-  constexpr_return_stmt = NULL;
-  traverse_statement_list(stmt, &tblock);
-  return constexpr_return_stmt;
-}  /* find_return_statement_in_constexpr_function */
-
-
-static void set_routine_constexpr_info(a_scope_ptr scope)
+static void set_routine_constexpr_info(a_scope_ptr scope,
+                                       a_boolean   constexpr_ruled_out)
 /*
 scope is the function scope for a constexpr function or constructor.
 Check to see if it is valid and record information used later when doing
-a constexpr expansion of the routine.
+a constexpr expansion of the routine.  When constexpr_ruled_out is TRUE,
+the routine's body failed the criteria for a constexpr function or
+constructor.
 */
 {
-  a_statement_ptr block = scope->assoc_block;
   a_routine_ptr   routine;
 
-  check_assertion(scope->kind == (a_scope_kind)sck_function && block != NULL);
-  routine = scope->variant.routine.ptr;
-  check_assertion(routine->is_constexpr);
+  if (!constexpr_ruled_out) {
+    check_assertion(scope->kind == (a_scope_kind)sck_function);
+    routine = scope->variant.routine.ptr;
+    check_assertion(routine->is_constexpr);
 #if GNU_EXTENSIONS_ALLOWED
-  if (routine->contains_statement_expression) {
-    /* We can't expand the function if it contains statement expressions. */
-  } else
+    if (routine->contains_statement_expression) {
+      /* We can't expand the function if it contains statement expressions. */
+    } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  if (block->kind == (a_statement_kind)stmk_block) {
-    a_statement_ptr stmt = block->variant.block.statements;
+    /* Do not insert code here. */
     if (special_kind_is(routine, sfk_constructor)) {
       /* Constructor.  Must have an empty statement as the body, i.e.,
          an implicit return. */
-      if (stmt != NULL &&
-          stmt->kind == (a_statement_kind)stmk_return &&
-          stmt->next == NULL &&
-          stmt->expr == NULL) {
-        a_constructor_init_ptr ctor_init, *next_ptr_ptr;
-        scope->is_constexpr_routine = TRUE;
-        /* Make a copy of the constructor inits list so that if IL lowering is
-           being done we preserve unlowered copies. */
-        next_ptr_ptr = &scope->variant.routine.constexpr_constructor_inits;
-        for (ctor_init = scope->variant.routine.constructor_inits;
-             ctor_init != NULL;
-             ctor_init = ctor_init->next) {
-          a_constructor_init_ptr copy = copy_ctor_init(ctor_init,
-                                                       CE_NO_OPTIONS);
-          *next_ptr_ptr = copy;
-          next_ptr_ptr = &copy->next;
-        }  /* for */
-      }  /* if */
+      a_constructor_init_ptr ctor_init, *next_ptr_ptr;
+      scope->is_constexpr_routine = TRUE;
+      /* Make a copy of the constructor inits list so that if IL lowering is
+         being done we preserve unlowered copies. */
+      next_ptr_ptr = &scope->variant.routine.constexpr_constructor_inits;
+      for (ctor_init = scope->variant.routine.constructor_inits;
+           ctor_init != NULL;
+           ctor_init = ctor_init->next) {
+        a_constructor_init_ptr copy = copy_ctor_init(ctor_init,
+                                                     CE_NO_OPTIONS);
+        *next_ptr_ptr = copy;
+        next_ptr_ptr = &copy->next;
+      }  /* for */
     } else {
-      /* Non-constructor.  Must have a single return statement as the body. */
-      stmt = find_return_statement_in_constexpr_function(stmt);
-      if (stmt != NULL &&
-          stmt->variant.return_dynamic_init == NULL) {
-        an_expr_node_ptr expr = stmt->expr;
-        if (expr != NULL) {
-          scope->is_constexpr_routine = TRUE;
-          /* We make a copy of the expression so that if IL lowering is
-             being done we preserve an unlowered copy. */
-          scope->variant.routine.constexpr_return_expr =
-                                         copy_expr_tree(expr, CE_NO_OPTIONS);
-        }  /* if */
-      }  /* if */
+      /* constexpr function.  The expression (if there is one) from the
+         single return statement has already been copied to
+         constexpr_return_expr (a copy is necessary in configurations
+         where lowering is performed).*/
+      scope->is_constexpr_routine = TRUE;
     }  /* if */
   }  /* if */
 }  /* set_routine_constexpr_info */
@@ -1426,7 +1376,9 @@ of lambda expressions.
                                                   /*is_catch_clause=*/FALSE,
                                                   /*is_statement_expr=*/FALSE);
       if (rout_ptr->is_constexpr) {
-        set_routine_constexpr_info(scope_ptr);
+        set_routine_constexpr_info(
+              scope_ptr,
+              scope_stack[depth_innermost_function_scope].constexpr_ruled_out);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2902,7 +2854,9 @@ empty statement block.
     scope->assoc_block->
                    variant.block.extra_info->end_of_block_reachable = FALSE;
     if (rout_ptr->is_constexpr) {
-      set_routine_constexpr_info(scope);
+      /* A default constructor satisfies the rules for a constexpr
+         constructor function body. */
+      set_routine_constexpr_info(scope, /*constexpr_ruled_out=*/FALSE);
     }  /* if */
     /* Terminate the function scope. */
     pop_scope();

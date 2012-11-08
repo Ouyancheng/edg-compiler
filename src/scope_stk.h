@@ -915,6 +915,10 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if the function has at least one return
 			   statement (constexpr functions are required to
 			   have exactly one return statement). */
+  a_bit_field	constexpr_ruled_out:1;
+			/* TRUE if the constexpr constructor or constexpr
+			   function has an invalid body (which precludes
+			   it from being considered constexpr). */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
