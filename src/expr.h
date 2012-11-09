@@ -574,9 +574,7 @@ void scan_constant_initializer_expression(a_type_ptr         required_type,
                                           a_decl_parse_state *dps,
                                           a_constant         *constant);
 
-extern void scan_dependent_type_parenthesized_initializer(
-                                                     a_decl_parse_state *dps,
-                                                     a_dynamic_init_ptr *dip);
+extern void scan_dependent_type_parenthesized_initializer(an_init_state  *is);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

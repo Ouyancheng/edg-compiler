@@ -35351,16 +35351,16 @@ overall errors.
 }  /* scan_class_parenthesized_initializer */
 
 
-void scan_dependent_type_parenthesized_initializer(a_decl_parse_state *dps,
-                                                   a_dynamic_init_ptr *dip)
+void scan_dependent_type_parenthesized_initializer(an_init_state  *is)
 /*
 Scan a parenthesized initializer that initializes an object of a template
 parameter type in a prototype instantiation.  If the initializer is for a
-variable declaration, *dps describes that declaration.  (dps is NULL when
-the initializer is a ctor-initializer.)  Create a dynamic initialization entry
-to describe the initialization and return a pointer to it in *dip.  On entry,
-the current token is the one following the opening parenthesis.  On return, the
-current token is the one following the closing parenthesis.
+variable declaration, *is->decl_parse_state describes that declaration.
+(is->decl_parse_state is NULL when the initializer is a ctor-initializer.)
+Create a dynamic initialization entry to describe the initialization and
+return a pointer to it in is->init_dip.  On entry, the current token is the
+one following the opening parenthesis.  On return, the current token is the
+one following the closing parenthesis.
 */
 {
   an_expr_stack_entry *saved_expr_stack;
@@ -35373,18 +35373,18 @@ current token is the one following the closing parenthesis.
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
                                   /*is_full_expr=*/TRUE,
-                                  dps, (an_init_state *)NULL);
+                                  is->decl_parse_state, is);
   scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
                                            /*arg_list_supplied=*/FALSE,
                                            (an_arg_list_elem *)NULL,
                                            (an_operand *)NULL,
-                                           dip);
+                                           &is->init_dip);
   /* If there's an object lifetime around the initialization, transfer it
      to the dynamic initialization entry. */
-  wrap_up_dynamic_init_full_expression(*dip);
+  wrap_up_dynamic_init_full_expression(is->init_dip);
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
-                                 dps, (an_init_state *)NULL);
+                                 is->decl_parse_state, is);
   db_exit();
 }  /* scan_dependent_type_parenthesized_initializer */
 

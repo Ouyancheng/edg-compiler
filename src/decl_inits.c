@@ -3594,13 +3594,11 @@ returned set to TRUE.
       /* Use the source position of the first argument as the call position. */
       pos = pos_first_token;
       if (dependent_class_type) {
-        scan_dependent_type_parenthesized_initializer(dps, &init_dip);
+        scan_dependent_type_parenthesized_initializer(&dps->init_state);
       } else {
         scan_class_parenthesized_initializer(vp_type, vp_type, &pos,
                                              /*fill_in_dtor=*/TRUE,
                                              &dps->init_state);
-        init_dip = dps->init_state.init_dip;
-        check_assertion(init_dip != NULL || dps->init_state.init_error);
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (decl_pos_block != NULL) {
@@ -3609,7 +3607,9 @@ returned set to TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* If no dynamic init entry was created, there must have been an
          error. */
-      if (init_dip == NULL) init_err = TRUE;
+      init_dip = dps->init_state.init_dip;
+      init_err = dps->init_state.init_error;
+      check_assertion(init_dip != NULL || init_err);
     } else {
       /* An entity with no constructor.  (If it's a C-style struct with no
          constructor, initialization with bitwise copy is allowed -- e.g.,
@@ -4904,11 +4904,13 @@ cases, array_type is NULL).
        either case, it will be initialized by a constructor call if
        a constructor exists.  Otherwise, it will be initialized
        like any scalar. */
+    an_init_state  is;
+    clear_init_state(&is);
+    is.direct_init = TRUE;
+    is.force_dynamic_init = TRUE;
     if (dependent_class_init) {
-      scan_dependent_type_parenthesized_initializer((a_decl_parse_state*)NULL,
-                                                    &dip);
+      scan_dependent_type_parenthesized_initializer(&is);
     } else {
-      an_init_state  is;
       a_type_ptr     object_class_type;
       /* If it is a base class, the object being constructed is the whole
          class (and the base class is a subobject thereof).  If it is a field,
@@ -4925,16 +4927,13 @@ cases, array_type is NULL).
          constructor will be selected and returned.  The scan function returns
          is.init_error set to TRUE and is.init_dip set to NULL if it finds no
          constructor for which the arguments match. */
-      clear_init_state(&is);
-      is.direct_init = TRUE;
-      is.force_dynamic_init = TRUE;
       scan_class_parenthesized_initializer(init_type, object_class_type,
                                            &lparen_pos,
                                            /*fill_in_dtor=*/exceptions_enabled,
                                            &is);
-      dip = is.init_dip;
-      check_assertion(dip != NULL || is.init_error);
     }  /* if */
+    dip = is.init_dip;
+    check_assertion(dip != NULL || is.init_error);
     if (dip == NULL) {
       /* Create a fake initializer to represent the error. */
       dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
