@@ -874,11 +874,15 @@ constructor.
         next_ptr_ptr = &copy->next;
       }  /* for */
     } else {
-      /* constexpr function.  The expression (if there is one) from the
-         single return statement has already been copied to
-         constexpr_return_expr (a copy is necessary in configurations
-         where lowering is performed).*/
+      /* constexpr function.  A copy of the return expression (if there is one)
+         is made (so that an unlowered version of the expression is
+         preserved). */
       scope->is_constexpr_routine = TRUE;
+      if (scope->variant.routine.constexpr_return_expr != NULL) {
+        scope->variant.routine.constexpr_return_expr = copy_expr_tree(
+                                  scope->variant.routine.constexpr_return_expr,
+                                  CE_NO_OPTIONS);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* set_routine_constexpr_info */

@@ -5879,11 +5879,10 @@ See also 3.6.6.4.
                                                                           TRUE;
         if (dip == NULL && return_expr != NULL) {
           /* Assume this will be the only return statement in the function
-             body and capture the return expression here. */
-          /* We make a copy of the expression so that if IL lowering is
-             being done we preserve an unlowered copy. */
-          scope->variant.routine.constexpr_return_expr =
-                                    copy_expr_tree(return_expr, CE_NO_OPTIONS);
+             body and capture a pointer to return expression here (a copy
+             of the expression is made later so that if IL lowering is
+             being done an unlowered copy is preserved). */
+          scope->variant.routine.constexpr_return_expr = return_expr;
         }  /* if */
       }  /* if */
     }  /* if */
