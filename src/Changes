@@ -1,5 +1,18 @@
 Version 4.6
 
+11/9/12  [EDGcpfe/13348]
+Abort on Microsoft-style inline assembly comment
+
+The changes for EDGcpfe/11376 (see entry of 2/25/11) caused the front end to
+abort in copy_from_source_to_asm_func_buffer (lexical.c) when processing
+Microsoft-style inline assembly containing a comment (introduced by a
+semicolon) if the assembly code itself was not brace-enclosed.  For example:
+
+  __asm mov eax, 1; This previously caused an abort in Microsoft mode.
+
+This is now fixed.
+
+
 11/8/12  [EDGcpfe/12988]
 GNU compatibility: __builtin_assume_aligned
 

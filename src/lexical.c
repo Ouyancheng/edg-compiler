@@ -9400,6 +9400,7 @@ mechanism.  This routine scans and builds the asm string.
   /* Set a flag that indicates we are scanning a Microsoft asm.  This
      prevents this routine from being called recursively. */
   scanning_microsoft_asm = TRUE;
+  fetch_pp_tokens = TRUE;
   /* Save the position of this token so that it can be restored later. */
   saved_pos_curr_token = pos_curr_token;
   /* Advance past the __asm token. */
@@ -9409,7 +9410,6 @@ mechanism.  This routine scans and builds the asm string.
   /* Initialize global variables used by lexical routines. */
   in_asm_function_body = TRUE;
   treat_newline_as_token = TRUE;
-  fetch_pp_tokens = TRUE;
   is_asm_block = curr_token == tok_lbrace;
   if (is_asm_block) {
     /* Loop through the tokens and build the string token by token. */
