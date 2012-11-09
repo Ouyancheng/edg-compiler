@@ -13425,12 +13425,11 @@ be returned for a C mode const variable.
              !is_volatile_qualified_type(var->type)) {
     if (gpp_mode &&
         var->source_corresp.is_class_member &&
+        var->is_template_static_data_member &&
         !var->is_member_constant &&
-        var->assoc_template != NULL &&
-        !parent_class_of(var)->variant.class_struct_union
-                                                 .is_prototype_instantiation) {
+        !parent_class_of(var)->variant.class_struct_union.is_nonreal_class) {
       /* Instantiate a template static data member to get its out-of-class
-         definition. */
+         definition (but don't force a definition in the object file). */
       complete_template_static_data_member_type_is_needed(var);
     }  /* if */
     /* initk_function_local initialization can come up with local static
@@ -13452,7 +13451,7 @@ be returned for a C mode const variable.
                var->source_corresp.is_class_member &&
                !var->is_member_constant &&
                parent_class_of(var)->variant.class_struct_union
-                                                 .is_prototype_instantiation &&
+                                                           .is_nonreal_class &&
                is_template_dependent_type(var->type)) {
       /* g++ accepts a const static data member of a class template with no
          in-class initializer as a constant-expression during the prototype

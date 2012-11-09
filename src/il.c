@@ -22355,7 +22355,7 @@ only in C++ mode.
         !(tp->variant.class_struct_union.is_generic_instance ||
           tp->variant.class_struct_union.is_generic_definition) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        !tp->variant.class_struct_union.is_prototype_instantiation &&
+        !tp->variant.class_struct_union.is_nonreal_class &&
         class_type_supp(tp)->assoc_scope != NULL) {
       clear_instantiation_required_on_unneeded_entities(
                                              class_type_supp(tp)->assoc_scope);
