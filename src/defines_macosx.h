@@ -100,7 +100,9 @@ This version is for the Apple MacOS X operating system.
 
 
 /* ABI selection. */
+#ifndef IA64_ABI
 #define IA64_ABI 1
+#endif /* ifndef IA64_ABI */
 #define DEFAULT_EMULATE_GNU_ABI_BUGS 0
 #ifndef CP_GEN_BE_VERSION
 #ifndef GCC_IS_GENERATED_CODE_TARGET
