@@ -497,10 +497,9 @@ extern void value_init_variable_or_member(a_type_ptr         type,
 extern void scan_class_parenthesized_initializer(
                                    a_type_ptr         class_type,
                                    a_type_ptr         object_class_type,
-                                   a_decl_parse_state *dps,
                                    a_source_position  *source_pos,
                                    a_boolean          fill_in_dtor,
-                                   a_dynamic_init_ptr *p_dip);
+                                   an_init_state      *is);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern void scan_template_argument_constant_expression(a_type_ptr param_type,

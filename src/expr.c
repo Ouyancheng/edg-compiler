@@ -35268,17 +35268,17 @@ position.
 void scan_class_parenthesized_initializer(
                                    a_type_ptr         class_type,
                                    a_type_ptr         object_class_type,
-                                   a_decl_parse_state *dps,
                                    a_source_position  *source_pos,
                                    a_boolean          fill_in_dtor,
-                                   a_dynamic_init_ptr *p_dip)
+                                   an_init_state      *is)
 /*
 Scan a parenthesized initializer for an object of type class_type.  If the
-initializer is for a variable declaration, *dps describes that declaration.
-(dps is NULL when the initializer is a ctor-initializer.)  class_type must be
-a class type having at least one constructor.  Build a dynamic initialization
-entry for the initialization, and set *p_dip pointing to it.  If there is an
-error, set *p_dip to NULL.
+initializer is for a variable declaration, *is->decl_parse_state describes
+that declaration (is->decl_parse_state is NULL when the initializer is a
+ctor-initializer.)  class_type must be a class type having at least one
+constructor.  Build a dynamic initialization or constant entry for the
+initialization, and set *is pointing to it (or set is->init_error to TRUE if
+there is an error).
 The current token is right after the left parenthesis of the initialization.
 This routine is used for constructs like
 
@@ -35308,7 +35308,7 @@ overall errors.
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
                                   /*is_full_expr=*/TRUE,
-                                  dps, (an_init_state *)NULL);
+                                  is->decl_parse_state, is);
   check_assertion(C_dialect == C_dialect_cplusplus &&
                   is_class_struct_union_type(class_type));
   cssp = symbol_supplement_for_class(class_type);
@@ -35326,23 +35326,24 @@ overall errors.
                       /*unboxing_conv=*/(a_boolean *)NULL,
                       /*string_ctor_skip=*/(a_boolean *)NULL,
                       /*simple_result=*/(an_operand *)NULL,
-                      p_dip,
+                      &is->init_dip,
                       (an_expr_node_ptr *)NULL,
                       (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (*p_dip == NULL) {
+  if (is->init_dip == NULL) {
     /* An error or a trivial constructor call. */
+    is->init_error = TRUE;
     discard_curr_expr_object_lifetime();
   } else {
     /* If there's an object lifetime around the initialization, transfer it
        to the dynamic initialization entry. */
-    wrap_up_dynamic_init_full_expression(*p_dip);
+    wrap_up_dynamic_init_full_expression(is->init_dip);
   }  /* if */
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
-                                 dps, (an_init_state *)NULL);
+                                 is->decl_parse_state, is);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

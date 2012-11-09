@@ -3596,9 +3596,11 @@ returned set to TRUE.
       if (dependent_class_type) {
         scan_dependent_type_parenthesized_initializer(dps, &init_dip);
       } else {
-        scan_class_parenthesized_initializer(vp_type, vp_type, dps,
-                                             &pos, /*fill_in_dtor=*/TRUE,
-                                             &init_dip);
+        scan_class_parenthesized_initializer(vp_type, vp_type, &pos,
+                                             /*fill_in_dtor=*/TRUE,
+                                             &dps->init_state);
+        init_dip = dps->init_state.init_dip;
+        check_assertion(init_dip != NULL || dps->init_state.init_error);
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (decl_pos_block != NULL) {
@@ -4906,7 +4908,8 @@ cases, array_type is NULL).
       scan_dependent_type_parenthesized_initializer((a_decl_parse_state*)NULL,
                                                     &dip);
     } else {
-      a_type_ptr  object_class_type;
+      an_init_state  is;
+      a_type_ptr     object_class_type;
       /* If it is a base class, the object being constructed is the whole
          class (and the base class is a subobject thereof).  If it is a field,
          the object being constructed is the field itself.  Set the object
@@ -4920,13 +4923,17 @@ cases, array_type is NULL).
       /* This is treated like an initialization of the form S x (arg [, ...]),
          where S is a class type name.  Depending on the arguments present, a
          constructor will be selected and returned.  The scan function returns
-         dip set to NULL if it finds no constructor for which the arguments
-         match. */
+         is.init_error set to TRUE and is.init_dip set to NULL if it finds no
+         constructor for which the arguments match. */
+      clear_init_state(&is);
+      is.direct_init = TRUE;
+      is.force_dynamic_init = TRUE;
       scan_class_parenthesized_initializer(init_type, object_class_type,
-                                           (a_decl_parse_state*)NULL,
                                            &lparen_pos,
                                            /*fill_in_dtor=*/exceptions_enabled,
-                                           &dip);
+                                           &is);
+      dip = is.init_dip;
+      check_assertion(dip != NULL || is.init_error);
     }  /* if */
     if (dip == NULL) {
       /* Create a fake initializer to represent the error. */
