@@ -4335,8 +4335,12 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                           tag_symbol == NULL || symbol_is(sym, sk_projection));
                 if (tag_symbol == NULL) tag_symbol = sym;
               } else {
-                /* Take the symbol. */
-                goto end_lookup;
+                if (sym->kind == (a_symbol_kind)sk_type) {
+                  type_tag_symbol = sym;
+                } else {
+                  /* Take the symbol. */
+                  goto end_lookup;
+                }  /* if */
               }  /* if */
             } else {
               /* A tag lookup. */
@@ -4346,6 +4350,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                 check_assertion_or_expect_error(
                           tag_symbol == NULL || symbol_is(sym, sk_projection));
                 if (tag_symbol == NULL) tag_symbol = sym;
+                if (type_tag_symbol == NULL) type_tag_symbol = sym;
               } else {
                 /* Take the symbol. */
                 goto end_lookup;

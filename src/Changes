@@ -1,5 +1,21 @@
 Version 4.6
 
+11/12/12 [EDGcpfe/13311]
+Microsoft Compatibility: regression on enum followed by typedef name
+
+A change made in version 4.5 inadvertently broke certain code that
+relied on the emulation of a Microsoft mode feature that allowed an enum
+specifier to refer to a typedef to an enum.  This is once again accepted 
+in Microsoft mode.
+
+  struct A {
+    typedef enum { a, b, c } B;
+  };
+  int main() {
+    enum A::B x = A::B::b;
+  }
+
+
 11/9/12  [EDGcpfe/13348]
 Abort on Microsoft-style inline assembly comment
 
