@@ -10529,8 +10529,19 @@ Most cases fit a simple pattern, but some require special handling.
     /* The normal case:
           <operation-name> ( <operand1>, <operand2>, ... )
     */
-    write_tok_str(
-               builtin_operation_names[expr->variant.builtin_operation.kind]);
+    char *name;
+    if (gcc_is_generated_code_target &&
+        expr->variant.builtin_operation.kind ==
+                                       (a_builtin_operation_kind)bok_intaddr) {
+      /* The GNU __offsetof__ builtin function has the same effect as our
+         __INTADDR__ operation, so it is represented in the IL as
+         __INTADDR__; however, it must be spelled as __offsetof__ in output
+         destined for gcc/g++. */
+      name = "__offsetof__";
+    } else {
+      name = builtin_operation_names[expr->variant.builtin_operation.kind];
+    }  /* if */
+    write_tok_str(name);
     gen_argument_list(expr->variant.builtin_operation.operands,
                       (a_type_ptr)NULL, /*skip_num=*/0);
   }  /* if */

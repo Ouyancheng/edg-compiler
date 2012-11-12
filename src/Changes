@@ -1,5 +1,22 @@
 Version 4.6
 
+11/12/12 [EDGcpfe/13360]
+C++-generating back end: GNU builtin function __offsetof__
+
+The C++-generating back end previously transformed the GNU builtin function
+__offsetof__ into the equivalent EDG-specific builtin function __INTADDR__,
+resulting in errors when the generated code was compiled with gcc/g++.
+This is now fixed: when gcc_is_generated_code_target is TRUE, the
+C++-generating back end uses the GNU spelling for this operation.  For
+example:
+
+  struct S { int i; };
+  int f() {
+    return __offsetof__(&static_cast<S*>(0)->i);  // Previously generated as
+                                                  // return __INTADDR__(...
+  }
+
+
 11/12/12 [EDGcpfe/13357]
 Abort in i_copy_expr_tree with GNU statement expressions
 
