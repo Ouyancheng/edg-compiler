@@ -16678,6 +16678,16 @@ be called to start a copy.
          are considered not to be inlinable.  Copying these would involve
          copying the statement subtree, the associated scopes, the variables
          in those scopes, the initializers on those variables... */
+      if (options & CE_COPY_NOT_EVALUATED) {
+        /* If the statement expression occurs in a context where it's not
+           evaluated, create a zero of the appropriate type instead. */
+        a_constant zero_constant;
+        make_zero_of_proper_type(expr->type, &zero_constant);
+        expr_copy->kind = (an_expr_node_kind)enk_constant;
+        expr_copy->variant.constant = alloc_shareable_constant(&zero_constant);
+        break;
+      }  /* if */
+      /*FALLTHROUGH*/
 #endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("i_copy_expr_tree: bad expr kind");
