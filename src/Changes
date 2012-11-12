@@ -1,5 +1,24 @@
 Version 4.6
 
+11/12/12 [EDGcpfe/13355]
+C++-generating back end: unnecessary parentheses with explicit temporaries
+
+When generating an explicit temporary, a change in version 4.5 (see
+EDGcpfe/12719 below) inadvertently resulted in the C++-generating back end
+enclosing the expression in unneeded parentheses.  Although redundant
+parentheses are generally harmless, bugs in early versions of g++ resulted
+in spurious errors when the generated code was compiled.  The problematic
+parentheses have now been suppressed.  For example:
+
+  struct A {
+    A() { }
+  };
+  void f() {
+    static_cast<void>(A());  // Previously generated as
+                             // static_cast<void>((A()))
+  }
+
+
 11/12/12 [EDGcpfe/13360]
 C++-generating back end: GNU builtin function __offsetof__
 

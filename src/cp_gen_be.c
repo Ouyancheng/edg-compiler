@@ -8871,7 +8871,7 @@ is_reinterpret_cast indicate it.
     write_tok_str("< ");
     gen_type(dest_type);
     write_tok_str(">(");
-    gen_expr_with_parens(operand_1);
+    gen_expression(operand_1);
     write_tok_ch(')');
   } else if (operand_1->is_pack_expansion) {
     /* This is something like "int(x...)", which cannot be generated as an
@@ -9302,7 +9302,13 @@ function reference.
         write_tok_str("((");
         overparenthesize = TRUE;
       }  /* if */
-      gen_expr_with_parens(object_expr);
+      if (object_expr->kind == (an_expr_node_kind)enk_temp_init) {
+        /* A temp-init does not need extra parentheses. */
+        gen_expression(object_expr);
+      } else {
+        /* Other kinds of expressions might need parentheses. */
+        gen_expr_with_parens(object_expr);
+      }  /* if */
       if (overparenthesize) {
         write_tok_str("))");
       }  /* if */
