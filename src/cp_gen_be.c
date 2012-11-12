@@ -16230,6 +16230,10 @@ parameter declarations).
     a_src_seq_secondary_decl_ptr  sec_decl = NULL;
     /* Process macros, pragmas. */
     (void)process_preprocessing_directives();
+    if (curr_source_sequence_entry == NULL) {
+      /* The last thing in the list was a preprocessing directive. */
+      break;
+    }  /* if */
     kind = ss_entry_kind(curr_source_sequence_entry);
     if (kind == (an_il_entry_kind)iek_src_seq_end_of_construct) {
       /* Macro or pragma with no declaration following it. */
