@@ -2446,6 +2446,8 @@ extern void clear_instantiation_required_on_unneeded_entities(
                                                             a_scope_ptr scope);
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+extern an_expr_node_ptr make_dummy_lvalue_expr(a_type_ptr type);
+
 #endif /* ifndef IL_H */
 
 /******************************************************************************

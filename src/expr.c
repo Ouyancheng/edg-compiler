@@ -10714,26 +10714,8 @@ Make a placeholder lvalue operand whose type is "type".
 */
 {
   an_expr_node_ptr expr;
-  a_constant       zero_con;
-  a_type_ptr       ptr_type = make_pointer_type(type);
 
-  if (is_template_dependent_type(type)) {
-    /* Force a template-dependent constant for the dependent type case. */
-    a_constant_ptr con;
-    make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), &zero_con);
-    con = alloc_shareable_constant(&zero_con);
-    /* Cast is marked as explicit so the C++-generating back end won't
-       elide it. */
-    make_template_param_cast_constant(con,
-                                      &zero_con,
-                                      ptr_type,
-                                      /*is_explicit=*/TRUE);
-  } else {
-    /* Normal non-dependent case. */
-    make_zero_of_proper_type(ptr_type, &zero_con);
-  }  /* if */
-  expr = alloc_node_for_constant(&zero_con);
-  expr = add_indirection_to_node(expr);
+  expr = make_dummy_lvalue_expr(type);
   make_lvalue_expression_operand(expr, operand);
   operand->is_dummy_lvalue = TRUE;
 }  /* make_dummy_lvalue_operand */

@@ -61,8 +61,8 @@ example:
 Abort in i_copy_expr_tree with GNU statement expressions
 
 An attempt to copy a GNU statement expression had resulted in an abort
-in i_copy_expr_tree; a change has been made to substitute a zero of the
-proper type in cases where the expression is not evaluated, thereby easing
+in i_copy_expr_tree; a change has been made to substitute a dummy expression of
+the proper type in cases where the expression is not evaluated, thereby easing
 this restriction in certain cases.  The example below had compiled
 in versions prior to 4.5 and now compiles again (with --g++):
 

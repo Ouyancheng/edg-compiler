@@ -16227,6 +16227,53 @@ adjust its type to "type", and return a pointer to the resulting expression.
 }  /* add_rvalue_class_adjust_node */
 
 
+an_expr_node_ptr make_dummy_lvalue_expr(a_type_ptr type)
+/*
+Make a placeholder lvalue expression whose type is "type".
+*/
+{
+  an_expr_node_ptr expr;
+  a_constant       zero_con;
+  a_type_ptr       ptr_type = make_pointer_type(type);
+
+  if (is_template_dependent_type(type)) {
+    /* Force a template-dependent constant for the dependent type case. */
+    a_constant_ptr con;
+    make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), &zero_con);
+    con = alloc_shareable_constant(&zero_con);
+    /* Cast is marked as explicit so the C++-generating back end won't
+       elide it. */
+    make_template_param_cast_constant(con,
+                                      &zero_con,
+                                      ptr_type,
+                                      /*is_explicit=*/TRUE);
+  } else {
+    /* Normal non-dependent case. */
+    make_zero_of_proper_type(ptr_type, &zero_con);
+  }  /* if */
+  expr = alloc_node_for_constant(&zero_con);
+  expr = add_indirection_to_node(expr);
+  return expr;
+}  /* make_dummy_lvalue_expr */
+
+
+static an_expr_node_ptr make_dummy_expr(a_type_ptr type,
+                                        a_boolean  is_lvalue)
+/*
+Make a placeholder expression whose type is "type" and whose lvalueness
+matches is_lvalue.
+*/
+{
+  an_expr_node_ptr expr;
+
+  expr = make_dummy_lvalue_expr(type);
+  if (!is_lvalue) {
+    rvalue_expr_for_lvalue(expr);
+  }  /* if */
+  return expr;
+}  /* make_dummy_expr */
+
+
 static a_lambda_ptr copy_lambda(a_lambda_ptr lambda)
 /*
 Allocate a copy of a lambda and return a pointer to it.
@@ -16680,11 +16727,9 @@ be called to start a copy.
          in those scopes, the initializers on those variables... */
       if (options & CE_COPY_NOT_EVALUATED) {
         /* If the statement expression occurs in a context where it's not
-           evaluated, create a zero of the appropriate type instead. */
-        a_constant zero_constant;
-        make_zero_of_proper_type(expr->type, &zero_constant);
-        expr_copy->kind = (an_expr_node_kind)enk_constant;
-        expr_copy->variant.constant = alloc_shareable_constant(&zero_constant);
+           evaluated, create a dummy expression of the appropriate type
+           and lvalueness. */
+        expr_copy = make_dummy_expr(expr->type, expr->is_lvalue);
         break;
       }  /* if */
       /*FALLTHROUGH*/
