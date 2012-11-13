@@ -1,6 +1,6 @@
 Version 4.6
 
-11/12/12 [EDGcpfe/13362]
+11/13/12 [EDGcpfe/13362]
 GNU C++ compatibility: Matching of default template template arguments 
 
 In GNU C++ mode, the front end now delays the matching of a template template
