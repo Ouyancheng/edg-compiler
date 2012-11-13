@@ -3416,6 +3416,7 @@ and return a pointer to it.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       tssp->variant.class_template.not_standalone_nested_class = FALSE;
       tssp->variant.class_template.template_template_param = FALSE;
+      tssp->variant.class_template.def_templ_templ_arg_check_delayed = FALSE;
       tssp->variant.class_template.involves_template_param = FALSE;
       tssp->variant.class_template.any_full_instantiations = FALSE;
       tssp->variant.class_template.alias_uses_own_type = FALSE;

@@ -2513,6 +2513,13 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if this is a class template symbol associated
 			   with a template template parameter. */
       a_bit_field
+		def_templ_templ_arg_check_delayed:1;
+			/* TRUE when template_template_param is TRUE and a
+			   default template argument was scanned, but its
+			   template parameter list was not yet checked against
+			   the parameter list of the template template
+			   parameter.  (Used to emulate g++ behavior.) */
+      a_bit_field
 		involves_template_param:1;
 			/* TRUE for template template parameters for which
 			   one or more template parameters depends on another

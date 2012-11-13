@@ -17997,8 +17997,8 @@ Scan the default argument of the template template parameter specified by tpp.
   a_template_ptr			templ_ptr;
 
   templ_ptr = tpp->param_symbol->variant.template_info->il_template_entry;
-  def_arg_templ = scan_template_template_argument(templ_ptr,
-                                                  &pos_curr_token);
+  def_arg_templ = scan_template_template_argument(templ_ptr, &pos_curr_token,
+                                                  /*is_default=*/TRUE);
   def_arg_tssp = template_supplement_for_template(def_arg_templ);
   /* Save the scanned value of the default argument.  This is saved even
      if we also decided to save the cache.  This value will be used if

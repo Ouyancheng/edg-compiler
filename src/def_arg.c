@@ -419,7 +419,8 @@ that was scanned.
   a_template_ptr	templ;
 
   db_enter(3, "delayed_scan_of_template_default_template_arg");
-  templ = scan_template_template_argument(param_template, err_pos);
+  templ = scan_template_template_argument(param_template, err_pos,
+                                          /*is_default=*/TRUE);
   check_for_valid_end_of_template_def_arg();
   db_exit();
   return templ;

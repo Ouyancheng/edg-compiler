@@ -1,5 +1,26 @@
 Version 4.6
 
+11/12/12 [EDGcpfe/13362]
+GNU C++ compatibility: Matching of default template template arguments 
+
+In GNU C++ mode, the front end now delays the matching of a template template
+parameter's parameter list with a corresponding default template template
+argument until that default argument is used.  For example:
+
+  template<typename, typename> struct S { };
+  template<typename, template<typename> class TT = S> struct X {};
+                            // S doesn't match TT because it has an extra
+                            // template parameter.  In GNU C++ mode, this
+                            // is now accepted as long as the default
+                            // argument is not used.  (In other modes, an
+                            // error is issued here.)
+  template<typename> struct F {};
+  X<int, F> x1;  // Accepted (S is not used, and F matches TT).
+  X<int> x2;     // An error is now issued here in GNU C++ mode because
+                 // S is used as the substitution for TT, and its parameter
+                 // list does not match.
+  
+
 11/12/12 [EDGcpfe/13355]
 C++-generating back end: unnecessary parentheses with explicit temporaries
 
