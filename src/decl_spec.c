@@ -1307,6 +1307,22 @@ caution when modifying this routine.
             goto done;
           }  /* if */
         }  /* if */
+      } else if (gpp_mode && gnu_version >= 30300 && gnu_version < 40100 &&
+                 scope_is(&scope_stack_top(), sck_template_instantiation) &&
+                 scope_stack_top().template_sym == templ_sym &&
+                 is_class_template_symbol(templ_sym)) {
+        /* g++ versions 3.3 through 4.0 treat the elaborated name of a class
+           template as an injected class name while scanning base classes.
+           For example:
+             template<class> struct B {};
+             template<class> struct D: B<D> {};  // B<D> same as B<D<T>>
+           (We know we are scanning base class specifiers because the
+           sck_template_instantiation scope for the class template
+           is on top of the stack.  Once we're past the base class specifiers
+           a class scope will be pushed.)
+        */
+        tag_sym = scope_stack_top().instance_sym;
+        templ_sym = NULL;
       }  /* if */
     }  /* if */
     if (templ_sym != NULL) {

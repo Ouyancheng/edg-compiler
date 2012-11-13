@@ -1,5 +1,22 @@
 Version 4.6
 
+11/13/12 [EDGcpfe/13361]
+GNU C++ compatibility: Elaborated template names in base class specifiers
+
+In GNU C++ mode with gnu_version >= 30300 but < 40100, the front end now
+treats the elaborated template name (i.e., the name preceded with "struct" or
+"class", but without a template argument list) of a class template being
+defined as the name of the current instantiation while scanning a base class
+specifier list.  For example:
+
+  template<class> struct B {};
+  template<class> struct D: B<struct D> {};  // B<struct D> now treated as
+                                             // B<struct D<T>> in some GNU
+                                             // modes.
+
+In other modes, such uses remain errors.
+
+
 11/13/12 [EDGcpfe/13362]
 GNU C++ compatibility: Matching of default template template arguments 
 
