@@ -16256,6 +16256,7 @@ Make a placeholder lvalue expression whose type is "type".
   return expr;
 }  /* make_dummy_lvalue_expr */
 
+#if GNU_EXTENSIONS_ALLOWED
 
 static an_expr_node_ptr make_dummy_expr(a_type_ptr type,
                                         a_boolean  is_lvalue)
@@ -16268,11 +16269,12 @@ matches is_lvalue.
 
   expr = make_dummy_lvalue_expr(type);
   if (!is_lvalue) {
-    rvalue_expr_for_lvalue(expr);
+    expr = rvalue_expr_for_lvalue(expr);
   }  /* if */
   return expr;
 }  /* make_dummy_expr */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static a_lambda_ptr copy_lambda(a_lambda_ptr lambda)
 /*
