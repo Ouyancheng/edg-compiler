@@ -2775,7 +2775,6 @@ empty statement block.
        instantiation of a template class. */
   } else {
     a_scope_depth                   saved_innermost_scope_that_affects_access;
-    an_exception_specification_ptr  declared_exception_spec;
     a_symbol_ptr                    rout_sym = symbol_for(rout_ptr);
     a_boolean                       trans_unit_pushed;
     check_assertion(class_type->variant.class_struct_union.extra_info
@@ -2806,7 +2805,8 @@ empty statement block.
     }  /* if */
     rtsp = skip_typerefs(rout_ptr->type)->variant.routine.extra_info;
     rtsp->assoc_routine = rout_ptr;
-    if (rout_ptr->is_defaulted && !rout_ptr->defined_outside_of_parent) {
+    if (rout_ptr->is_defaulted && !rout_ptr->defined_outside_of_parent &&
+        exceptions_enabled) {
       /* If a special member is defaulted inside the parent class, it
          implicitly gets the exception specification that the corresponding
          implicitly generated member would have had.  If an explicit exception
@@ -2814,7 +2814,8 @@ empty statement block.
          generated one. */
       /* Save any declared exception specification for later comparison to the
          generated specification. */
-      declared_exception_spec = rtsp->exception_specification;
+      an_exception_specification_ptr  declared_exception_spec
+                                              = rtsp->exception_specification;
       rtsp->exception_specification = NULL;
       form_exception_specification_for_generated_function(rout_ptr);
       if (declared_exception_spec != NULL) {
