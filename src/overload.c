@@ -22961,11 +22961,12 @@ do access checking on the copy constructor.
       *class_bitwise_copy = TRUE;
     }  /* if */
   } else if (cssp->constructor == NULL) {
-    /* This can currently only happen in Microsoft mode, where generated
+    /* This can currently only happen in some Microsoft modes, where generated
        constructors may be suppressed. */
     check_assertion_str(microsoft_mode &&
-                        class_type->variant.class_struct_union
-                                           .copy_ctor_decl_suppressed,
+                        (class_type->variant.class_struct_union
+                                            .copy_ctor_decl_suppressed ||
+                         is_immediate_managed_class_type(class_type)),
                        "select_overloaded_copy_constructor: NULL constructor");
     cctor_sym = NULL;
   } else {

@@ -2498,6 +2498,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->sealed                      = FALSE;
   rp->new_member                  = FALSE;
   rp->interface_slot              = FALSE;
+  rp->definition_cannot_be_generated = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   rp->covariant_return_virtual_override
                                   = FALSE;

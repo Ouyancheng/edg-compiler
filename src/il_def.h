@@ -12458,6 +12458,14 @@ typedef struct a_routine {
 			        void C2::f();  // Creates a "slot" in C2.
 			      };
 			   */
+  a_bit_field	definition_cannot_be_generated:1;
+			/* TRUE for compiler-generated special members whose
+			   definition cannot be generated because the
+			   corresponding special member in a subobject is
+			   not callable (e.g., because it is inaccessible).
+			   Set only in some Microsoft modes to determine
+			   whether the definition of such members should be
+			   forced for dllexported classes. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	covariant_return_virtual_override:1;
 			/* TRUE if is_virtual is TRUE and this routine is an

@@ -3105,6 +3105,9 @@ Display the indicated routine.
   if (ptr->interface_slot) {
     disp_boolean("interface_slot", TRUE);
   }  /* if */
+  if (ptr->definition_cannot_be_generated) {
+    disp_boolean("definition_cannot_be_generated", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->covariant_return_virtual_override) {
     disp_boolean("covariant_return_virtual_override", TRUE);

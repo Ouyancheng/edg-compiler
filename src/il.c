@@ -11557,25 +11557,25 @@ and return a pointer to the new list.
 }  /* copy_template_arg_list */
 
 
-a_boolean is_default_constructor(a_routine_ptr  ctor_rout,
+a_boolean is_default_constructor(a_routine_ptr  rout,
                                  a_boolean      is_declarative_context)
 /*
-ctor_rout points to a routine entry for a constructor.   Return TRUE if it
-points to a default constructor routine entry.  is_declarative_context is
-TRUE if this is a constructor declaration rather than a constructor reference.
+Return TRUE if rout points to a default constructor routine entry.
+is_declarative_context is TRUE if this is a constructor declaration rather
+than a constructor reference.
 */
 {
   a_param_type_ptr  ptp;
   a_boolean         is_def_ctor = FALSE;
+  a_type_ptr        rout_type = skip_typerefs(rout->type);
 
-  check_assertion(ctor_rout->special_kind ==
-                                  (a_special_function_kind)sfk_constructor);
-  ptp = skip_typerefs(ctor_rout->type)->
-                                  variant.routine.extra_info->param_type_list;
+  check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+  ptp = rout_type->variant.routine.extra_info->param_type_list;
   /* There are no parameters or if the first (and therefore its successors,
      if any) has a default argument expression, then this is a default
      constructor. */
-  if (ptp == NULL) {
+  if (!special_kind_is(rout, sfk_constructor)) {
+  } else if (ptp == NULL) {
     is_def_ctor = TRUE;
   } else if (ptp->has_default_arg) {
     is_def_ctor = TRUE;

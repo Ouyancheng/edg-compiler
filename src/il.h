@@ -1143,7 +1143,7 @@ extern void advance_to_next_template_arg_simple(a_template_arg_ptr *tap);
 
 extern a_template_arg_ptr copy_template_arg_list(a_template_arg_ptr orig_list);
 
-extern a_boolean is_default_constructor(a_routine_ptr  ctor_rout,
+extern a_boolean is_default_constructor(a_routine_ptr  rout,
                                         a_boolean      is_declarative_context);
 
 extern a_boolean is_copy_constructor_type(

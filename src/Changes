@@ -1,5 +1,29 @@
 Version 4.6
 
+11/14/12 [EDGcpfe/13365]
+Microsoft compatibility: dllexport and generated special members
+
+The changes for EDGcpfe/12772 (see the entry of 3/21/12) caused generated
+class members of dllexported classes to always be defined (i.e., their
+bodies were always generated).  Such definitions could trigger errors if,
+for example, a required member function is inaccessible.  Now, such problems
+cause the definition of the dllexported generated member not to be generated
+until the special member is used.  For example:
+
+  class X { X &operator=(X const&); };  // Private copy assignment.
+  class Y: public X {};
+  class __declspec(dllexport) Z: public Y {
+    // Previously, the front attempted to define Z::operator= at this point,
+    // which in turn required the definition of Y::operator=, and that
+    // triggered an error because X::operator= is inaccessible in Y.
+    // Now, Z::operator= is left declared but not defined instead.
+  };
+  void g(Z *p, Z z) {
+    *p = z;  // This assignment still requires the definition of
+  }          // Z::operator=, which then triggers an error because
+             // X::operator= is inaccessible.
+  
+
 11/13/12 [EDGcpfe/13363]
 Abort in C++11 mode on defaulted special member when exceptions are disabled
 

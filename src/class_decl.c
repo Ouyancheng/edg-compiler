@@ -16947,19 +16947,33 @@ done:;
 }  /* default_copy_constructor_check */
 
 
-static a_boolean is_deleted_member_sym(a_symbol_ptr  sym)
+static a_boolean is_unusable_member_sym(a_symbol_ptr  sym)
 /*
-Return TRUE if the given symbol represents a member defined with "= delete".
+Return TRUE if the given symbol represents an inaccessible member, a member
+function defined with "= delete", or, in some Microsoft modes, a generated
+special member whose definition cannot be generated.
 */
 {
   a_boolean  result = FALSE;
 
-  sym = fundamental_symbol_of(sym);
-  if (symbol_is(sym, sk_member_function)) {
-    result = sym->variant.routine.ptr->is_deleted;
+  if (sym == NULL) {
+  } else if (!have_access_to_symbol(sym)) {
+    result = TRUE;
+  } else {
+    sym = fundamental_symbol_of(sym);
+    if (symbol_is(sym, sk_member_function)) {
+      a_routine_ptr  rp = sym->variant.routine.ptr;
+      if (rp->is_deleted) {
+        result = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (rp->definition_cannot_be_generated) {
+        result = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
+    }  /* if */
   }  /* if */
   return result;
-}  /* is_deleted_member_sym */
+}  /* is_unusable_member_sym */
 
 
 static void check_base_or_mbr_class_type_for_suppression(
@@ -17003,21 +17017,13 @@ remarks may be issued in some cases.
                          &class_type->source_corresp.decl_position,
                          class_type, type);
     }  /* if */
-  } else if (microsoft_mode && microsoft_version >= 1400 &&
-             !generate_move_operations) {
-    /* Starting with version 8, Microsoft's compiler no longer appears to
-       inhibit copy assignment generation due to the copy assignment being
-       inaccessible or ambiguous for subobjects. */
   } else {
     rout_sym = find_copy_assignment_operator(
                                       type, gsfd->copy_assign_qualifiers,
                                       /*source_is_rvalue=*/FALSE, subobj_qual, 
                                       &type->source_corresp.decl_position,
                                       &ambiguous, &bitwise_copy);
-    if (ambiguous ||
-        (rout_sym != NULL &&
-         (!have_access_to_symbol(rout_sym) ||
-          is_deleted_member_sym(rout_sym)))) {
+    if (ambiguous || is_unusable_member_sym(rout_sym)) {
       /* A base or member with an ambiguous or inaccessible copy assignment
          operator prevents this copy assignment operator from being
          generated. */
@@ -17043,9 +17049,7 @@ remarks may be issued in some cases.
                              &ambiguous, &bitwise_copy);
     if (ambiguous ||
         (rout_sym == NULL && !trivially_copyable) ||
-        (rout_sym != NULL &&
-         (!have_access_to_symbol(rout_sym) ||
-          is_deleted_member_sym(rout_sym)))) {
+        is_unusable_member_sym(rout_sym)) {
       /* A base or member with an ambiguous or inaccessible move assignment
          operator prevents this move assignment operator from being
          generated. */
@@ -17065,21 +17069,13 @@ remarks may be issued in some cases.
                          &class_type->source_corresp.decl_position,
                          class_type, type);
     }  /* if */
-  } else if (microsoft_mode && microsoft_version >= 1400 &&
-             !generate_move_operations) {
-    /* Starting with version 8, Microsoft's compiler no longer appears to
-       inhibit copy constructor generation due to the copy constructor being
-       inaccessible or ambiguous for subobjects. */
   } else {
     rout_sym = find_copy_constructor(type, gsfd->copy_ctor_qualifiers,
                                      /*source_is_rvalue=*/FALSE,
                                      &type->source_corresp.decl_position,
                                      &ambiguous, (a_symbol**)NULL,
                                      &bitwise_copy);
-    if (ambiguous ||
-        (rout_sym != NULL &&
-         (!have_access_to_symbol(rout_sym) ||
-          is_deleted_member_sym(rout_sym)))) {
+    if (ambiguous || is_unusable_member_sym(rout_sym)) {
       /* A base or member with an ambiguous or inaccessible copy constructor
          prevents this one from being generated. */
       gsfd->suppress_copy_ctor = TRUE;
@@ -17106,9 +17102,7 @@ remarks may be issued in some cases.
         (!bitwise_copy &&
          (rout_sym == NULL ||
           !routine_is_move_constructor(rout_sym->variant.routine.ptr))) ||
-        (rout_sym != NULL &&
-         (!have_access_to_symbol(rout_sym) ||
-          is_deleted_member_sym(rout_sym)))) {
+        is_unusable_member_sym(rout_sym)) {
       /* A base or member with a missing, ambiguous, or inaccessible move
          constructor prevents this one from being generated. */
       gsfd->suppress_move_ctor = TRUE;
@@ -17122,9 +17116,7 @@ remarks may be issued in some cases.
        of the copy and/or move constructors.  If those are already suppressed,
        no additional checking is needed. */
   } else {
-    if (cssp->destructor != NULL &&
-        (!have_access_to_symbol(cssp->destructor) ||
-         is_deleted_member_sym(cssp->destructor))) {
+    if (cssp->destructor != NULL && is_unusable_member_sym(cssp->destructor)) {
       /* An inaccessible base or member destructor prevents this one from
          being generated. */
       if (gsfd->warn_about_suppressed_dtor && !gsfd->suppress_dtor) {
@@ -17294,11 +17286,39 @@ indicates that they should be suppressed.
 }  /* mark_suppressed_defaulted_members_as_deleted */
 
 
+static void mark_special_member_suppressed(a_symbol_ptr  sym)
+/*
+sym represents a special member function whose definition cannot be generated.
+If deleted functions are enabled, mark the member as deleted, except that in
+some Microsoft modes, we just record that the member's definition cannot be
+generated (to avoid having attempts at generating that definition in the case
+of dllexported class types).
+*/
+{
+  a_routine_ptr  rp = sym->variant.routine.ptr;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && microsoft_version > 1400 &&
+      is_default_constructor(rp, /*is_declarative_context=*/TRUE) ?
+           cpp11_mode : !generate_move_operations) {
+    sym->variant.routine.ptr->definition_cannot_be_generated = TRUE;
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  if (deleted_functions_enabled) {
+    sym->defined = TRUE;
+    sym->variant.routine.ptr->is_deleted = TRUE;
+    sym->variant.routine.ptr->defined = TRUE;
+  }  /* if */
+}  /* mark_special_member_suppressed */
+
+
 static void generate_default_constructor(a_class_def_state_ptr  class_state,
-                                         a_boolean              is_deleted)
+                                         a_boolean              suppressed)
 /*
 Add a declaration for a default constructor to the class definition described
-by class_state.  If is_deleted is TRUE, make that constructor "deleted".
+by class_state.  If suppressed is TRUE, make that constructor "deleted" (or,
+in some Microsoft modes, record that its body cannot be generated).
 */
 {
   a_type_ptr          class_type = class_state->class_type;
@@ -17309,7 +17329,7 @@ by class_state.  If is_deleted is TRUE, make that constructor "deleted".
   initialize_member_decl_info(&decl_info,
                               &class_type->source_corresp.decl_position);
   decl_info.is_constructor = TRUE;
-  if (!class_state->default_ctor_is_nontrivial && !is_deleted) {
+  if (!class_state->default_ctor_is_nontrivial && !suppressed) {
     /* We are generating a declaration of a trivial default constructor.
        Since it will never actually be called it gets special handling. */
     decl_info.is_trivial_default_constructor = TRUE;
@@ -17318,10 +17338,8 @@ by class_state.  If is_deleted is TRUE, make that constructor "deleted".
   generate_special_function(class_state, &decl_info, &func_info,
                             (a_param_type*)NULL);
   sym = decl_info.decl_state.sym;
-  if (is_deleted) {
-    sym->defined = TRUE;
-    sym->variant.routine.ptr->is_deleted = TRUE;
-    sym->variant.routine.ptr->defined = TRUE;
+  if (suppressed) {
+    mark_special_member_suppressed(sym);
   }  /* if */
   /* Check if the generated default constructor is "constexpr". */
   if (!class_type->variant.class_struct_union.any_virtual_base_classes &&
@@ -17378,11 +17396,12 @@ for C++/CLI managed classes the type of the parameter is X cv%.
 
 
 static void generate_copy_constructor(a_class_def_state_ptr  class_state,
-                                      a_boolean              is_deleted,
+                                      a_boolean              suppressed,
                                       a_type_qualifier_set   qualifiers)
 /*
 Add a declaration for a copy constructor to the class definition described by
-class_state.  If is_deleted is TRUE, define the construct "deleted".
+class_state.  If suppressed is TRUE, define the construct "deleted" (or, in
+some Microsoft modes, record that the constructor body cannot be generated).
 qualifiers determine the cv-qualification of the constructor's parameter.
 */
 {
@@ -17396,11 +17415,8 @@ qualifiers determine the cv-qualification of the constructor's parameter.
   decl_info.is_constructor = TRUE;
   clear_func_info(&func_info);
   generate_special_function(class_state, &decl_info, &func_info, ptp);
-  if (is_deleted) {
-    a_symbol_ptr  sym = decl_info.decl_state.sym;
-    sym->defined = TRUE;
-    sym->variant.routine.ptr->is_deleted = TRUE;
-    sym->variant.routine.ptr->defined = TRUE;
+  if (suppressed) {
+    mark_special_member_suppressed(decl_info.decl_state.sym);
   }  /* if */
 }  /* generate_copy_constructor */
 
@@ -17638,11 +17654,12 @@ record that fact in *gsfd.
 
 static void generate_copy_assignment_operator(
                                            a_class_def_state_ptr  class_state,
-                                           a_boolean              is_deleted,
+                                           a_boolean              suppressed,
                                            a_type_qualifier_set   qualifiers)
 /*
 Add a declaration for a copy assignment operator to the class definition
-described by class_state.  If is_deleted is TRUE, make that operator "deleted".
+described by class_state.  If suppressed is TRUE, make that operator "deleted"
+(or, in some Microsoft modes, record that the body cannot be generated).
 The parameter of the assignment operator is of type X& (where X is the possibly
 qualified parent class type) and qualifiers describes the qualifiers in X.
 (In some modes, a second operator is declared to handle "far" objects.)
@@ -17658,11 +17675,8 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
   ptp = make_copy_function_param(class_type, qualifiers);
   clear_func_info(&func_info);
   generate_special_function(class_state, &decl_info, &func_info, ptp);
-  if (is_deleted) {
-    a_symbol_ptr  sym = decl_info.decl_state.sym;
-    sym->defined = TRUE;
-    sym->variant.routine.ptr->is_deleted = TRUE;
-    sym->variant.routine.ptr->defined = TRUE;
+  if (suppressed) {
+    mark_special_member_suppressed(decl_info.decl_state.sym);
   }  /* if */
 #if NEAR_AND_FAR_ALLOWED
   if (near_and_far_enabled()) {
@@ -17678,11 +17692,8 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
       clear_func_info(&func_info);
       generate_special_function(class_state, &decl_info, &func_info, ptp);
     }  /* if */
-    if (is_deleted) {
-      a_symbol_ptr  sym = decl_info.decl_state.sym;
-      sym->defined = TRUE;
-      sym->variant.routine.ptr->is_deleted = TRUE;
-      sym->variant.routine.ptr->defined = TRUE;
+    if (suppressed) {
+      mark_special_member_suppressed(decl_info.decl_state.sym);
     }  /* if */
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -17710,10 +17721,11 @@ described by class_state.
 
 
 static void generate_destructor(a_class_def_state_ptr  class_state,
-                                a_boolean              is_deleted)
+                                a_boolean              suppressed)
 /*
 Add a declaration for a destructor to the class definition described by
-class_state.  If is_deleted is TRUE, make that destructor "deleted".
+class_state.  If suppressed is TRUE, make that destructor "deleted" (or, in
+some Microsoft modes, record that the body cannot be generated).
 */
 {
   a_type_ptr          class_type = class_state->class_type;
@@ -17726,11 +17738,8 @@ class_state.  If is_deleted is TRUE, make that destructor "deleted".
   clear_func_info(&func_info);
   generate_special_function(class_state, &decl_info, &func_info,
                             (a_param_type_ptr)NULL);
-  if (is_deleted) {
-    a_symbol_ptr  sym = decl_info.decl_state.sym;
-    sym->defined = TRUE;
-    sym->variant.routine.ptr->is_deleted = TRUE;
-    sym->variant.routine.ptr->defined = TRUE;
+  if (suppressed) {
+    mark_special_member_suppressed(decl_info.decl_state.sym);
   }  /* if */
 }  /* generate_destructor */
 
@@ -18457,7 +18466,8 @@ The routine body is not generated until it is known to be needed.
        declared as deleted (copy constructors, destructors) if generating their
        definitions would produce errors.  Microsoft compilers similarly do not
        generate special members that don't have a valid definition. */
-    if (!generate_move_operations) {
+    if (microsoft_mode && microsoft_version < 1400 &&
+        !generate_move_operations) {
       gsfd.warn_about_suppressed_copy_ctor = declare_copy_ctor;
       gsfd.warn_about_suppressed_copy_assign = declare_copy_asgn_op;
       gsfd.warn_about_suppressed_dtor = declare_dtor;
@@ -18466,10 +18476,10 @@ The routine body is not generated until it is known to be needed.
     mark_suppressed_defaulted_members_as_deleted(class_type, &gsfd);
   }  /* if */
   if (declare_default_ctor) {
-    if (!cpp11_mode && gsfd.suppress_default_ctor) {
+    if (microsoft_mode && microsoft_version < 1400 && !cpp11_mode &&
+        gsfd.suppress_default_ctor) {
       /* Mark this class as having a suppressed default constructor and do not
-         add its declaration.  (This only happens in Microsoft mode.) */
-      check_assertion(microsoft_mode);
+         add its declaration. */
       class_type->variant.class_struct_union
                          .default_ctor_decl_suppressed = TRUE;
     } else {
@@ -18504,9 +18514,10 @@ The routine body is not generated until it is known to be needed.
     generate_move_constructor(class_state);
   }  /* if */
   if (declare_copy_ctor) {
-    if (!generate_move_operations && gsfd.suppress_copy_ctor) {
+    if (microsoft_mode && microsoft_version < 1400 &&
+        !generate_move_operations && gsfd.suppress_copy_ctor) {
       /* Mark this class as having a suppressed copy constructor and do not
-         add its declaration.  (This only happens in Microsoft mode.) */
+         add its declaration. */
       check_assertion(microsoft_mode);
       class_type->variant.class_struct_union.copy_ctor_decl_suppressed = TRUE;
     } else if (gpp_mode && gnu_version >= 40600 && gnu_version < 40700 &&
@@ -18520,7 +18531,8 @@ The routine body is not generated until it is known to be needed.
     }  /* if */
   }  /* if */
   if (declare_dtor) {
-    if (!generate_move_operations && gsfd.suppress_dtor) {
+    if (microsoft_mode && microsoft_version < 1400 &&
+        !generate_move_operations && gsfd.suppress_dtor) {
       /* Mark the class as having a suppressed destructor and do not add
          the declaration. */
       class_type->variant.class_struct_union.dtor_decl_suppressed = TRUE;
@@ -18549,9 +18561,10 @@ The routine body is not generated until it is known to be needed.
   if (declare_copy_asgn_op) {
     /* An implicit assignment operator is generated if the class does not
        contain a user-declared copy assignment operator. */
-    if (!generate_move_operations && gsfd.suppress_copy_assign) {
+    if (microsoft_mode && microsoft_version < 1400 &&
+        !generate_move_operations && gsfd.suppress_copy_assign) {
       /* Mark this class as having a suppressed copy assignment operator and
-         do not add its declaration.  (This only happens in Microsoft mode.) */
+         do not add its declaration. */
       class_type->variant.class_struct_union.copy_assignment_decl_suppressed
                                                                         = TRUE;
     } else if (gpp_mode && gnu_version >= 40600 && gnu_version < 40700 &&
@@ -24549,7 +24562,7 @@ created.
   a_routine_ptr  rp = scope->routines;
 
   for (; rp != NULL; rp = rp->next) {
-    if (rp->compiler_generated &&
+    if (rp->compiler_generated && !rp->definition_cannot_be_generated &&
         (special_kind_is(rp, sfk_constructor) ||
          special_kind_is(rp, sfk_destructor) ||
          (special_kind_is(rp, sfk_operator) &&
@@ -25123,14 +25136,14 @@ classes.
     if ((cpp11_mode || microsoft_mode ||
          (gpp_mode && gnu_version >= 30400 && is_template_instantiation)) &&
         !scope_stack_top().defer_access_checks) {
-       /* Access checking of the base specifiers must be done in the context
-          of the complete class.  Defer checks in the current scope if this
-          is not already being done.  See the comments at the call of
-          perform_deferred_access_checks_at_depth below for more information.
-          g++ (3.4 and newer) ignore the access of base specifiers in class
-          template declarations. */
-       begin_deferral_of_access_checks();
-       access_checks_deferred = TRUE;
+      /* Access checking of the base specifiers must be done in the context
+         of the complete class.  Defer checks in the current scope if this
+         is not already being done.  See the comments at the call of
+         perform_deferred_access_checks_at_depth below for more information.
+         g++ (3.4 and newer) ignore the access of base specifiers in class
+         template declarations. */
+      begin_deferral_of_access_checks();
+      access_checks_deferred = TRUE;
     }  /* if */
     access_check_depth = curr_deferred_access_scope;
     if (use_microsoft_specialization_scope && !is_in_class_specialization &&
