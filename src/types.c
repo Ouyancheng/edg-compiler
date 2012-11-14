@@ -1584,7 +1584,7 @@ Return TRUE if the given type is a literal type.
   if (is_reference_type(tp)) tp = type_pointed_to(tp);
   tp = skip_array_types(tp);
   tp = skip_typerefs(tp);
-  if (is_scalar(tp) || is_any_reference(tp)) {
+  if (is_scalar(tp)) {
     result = TRUE;
   } else if (is_immediate_class_type(tp)) {
     result = tp->variant.class_struct_union.is_literal_type;
