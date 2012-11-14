@@ -17295,7 +17295,9 @@ generated (to avoid having attempts at generating that definition in the case
 of dllexported class types).
 */
 {
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_routine_ptr  rp = sym->variant.routine.ptr;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && microsoft_version > 1400 &&
