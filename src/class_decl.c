@@ -18462,6 +18462,9 @@ The routine body is not generated until it is known to be needed.
                  cssp->destructor == NULL;
   if ((generate_move_operations || microsoft_mode) &&
       !is_prototype_instantiation_context() &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      !class_type->variant.class_struct_union.is_generic_constraint &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       (declare_copy_asgn_op || declare_copy_ctor || declare_dtor)) {
     /* In standard C++11 mode (a mode where generate_move_operations is TRUE),
        some special members are either not declared (move constructors) or
