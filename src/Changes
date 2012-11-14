@@ -1,5 +1,23 @@
 Version 4.6
 
+11/14/12 [EDGcpfe/10809, EDGcpfe/13359]
+Defer final conversion on member default argument conversion for g++ 3.4 mode
+
+g++ 3.4 apparently does the final conversion from a default argument
+expression of a member or friend function to the parameter type at the
+point of use rather than (as required by the standard) at the point
+of declaration.  As a result, some cases like the following are
+accepted without error as long as the default argument is never
+used.  Now, we accept them also in g++ 3.4 mode.
+
+  struct S {
+    S(void*);
+  };
+  struct X {
+    void f(S = 1);  // Invalid, but accepted by g++ 3.4
+  };
+
+
 11/14/12 [EDGcpfe/13365]
 Microsoft compatibility: dllexport and generated special members
 

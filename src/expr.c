@@ -32538,14 +32538,16 @@ Sets *expr_position to the beginning position of the range expression.
 }  /* scan_range_based_for_expression */
 
 
-void scan_default_arg_expr(a_param_type_ptr ptp)
+void scan_default_arg_expr(a_param_type_ptr ptp,
+                           a_boolean        is_member_or_friend)
 /*
 Scan a default argument expression on a formal parameter declaration, change
 its type as required by the type of the formal parameter, and attach the
 expression node to the param type entry.  If an error is detected in the
 expression scan, an error node is assigned.  If ptp is NULL (as the result of
 a prior error, or when passing over a default argument expression, e.g.,
-in a template instantiation) just do the scan.
+in a template instantiation) just do the scan.  is_member_or_friend is
+TRUE if the function being declared is a class member or friend.
 */
 {
   an_operand              result;
@@ -32593,6 +32595,10 @@ in a template instantiation) just do the scan.
                     ec_bad_default_arg_type,
                     &result);
       free_init_component_list(icp);
+    } else if (gpp_mode && gnu_version >= 30400 && gnu_version < 40000 &&
+               is_member_or_friend) {
+      /* g++ 3.4 leaves the final conversion to be done at the point of
+         reference for member functions and friends. */
     } else {
       prep_argument_operand(&result, ptp,
                             (a_conv_descr_ptr)NULL,
@@ -32638,6 +32644,39 @@ in a template instantiation) just do the scan.
 #endif /* DEBUG */
   db_exit();
 }  /* scan_default_arg_expr */
+
+
+an_expr_node_ptr convert_default_arg_expr(an_expr_node_ptr expr,
+                                          a_param_type_ptr ptp,
+                                          a_boolean        evaluated)
+/*
+For a g++ quirk, convert an expression for a default argument to the
+required parameter type.
+*/
+{
+  an_expr_stack_entry *saved_expr_stack;
+  an_expr_stack_entry expr_stack_entry;
+  an_operand          operand;
+  an_init_state       is;
+
+  clear_init_state(&is);
+  is.evaluated = evaluated;
+  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                  (an_expression_kind)ek_normal,
+                                  /*is_full_expr=*/FALSE,
+                                  (a_decl_parse_state *)NULL,
+                                  &is);
+  make_lvalue_or_rvalue_expression_operand(expr, &operand);
+  prep_argument_operand(&operand, ptp,
+                        (a_conv_descr_ptr)NULL,
+                        ec_bad_default_arg_type);
+  expr = make_node_from_operand(&operand);
+  pop_expr_stack_for_initializer(saved_expr_stack,
+                                 /*is_full_expr=*/FALSE,
+                                 (a_decl_parse_state *)NULL,
+                                 &is);
+  return expr;
+}  /* convert_default_arg_expr */
 
 
 static void fix_up_dynamic_init_dtors(void)

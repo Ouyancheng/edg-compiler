@@ -2933,7 +2933,7 @@ an error if a default argument expression is encountered.
             /* Not a case in which the default argument should be
                cached -- or else a syntax error.  Go ahead and
                scan the expression and convert it to the required type. */
-            scan_default_arg_expr(ptp_for_scan);
+            scan_default_arg_expr(ptp_for_scan, is_member_or_friend_function);
           }  /* if */
           if (default_arg_allowed_on_curr_param &&
               !ignore_disallowed_default_arg) {
