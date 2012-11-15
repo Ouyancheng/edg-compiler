@@ -18461,7 +18461,7 @@ The routine body is not generated until it is known to be needed.
                   class_state->base_destruction_required) &&
                  cssp->destructor == NULL;
   if ((generate_move_operations || microsoft_mode) &&
-      !is_prototype_instantiation_context() &&
+      !is_template_dependent_context() &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
       !class_type->variant.class_struct_union.is_generic_constraint &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
