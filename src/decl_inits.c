@@ -5141,15 +5141,6 @@ entries are replaced as needed for each mem-initializer that is encountered.
       new_cip = scan_mem_initializer_id(class_type, cibp, &init_type,
                                         &array_type);
     }  /* if */
-    if (curr_token != tok_lparen && curr_token != tok_lbrace) {
-      /* Neither brace nor parenthesis: A syntax error. */
-      set_err_pos_to_curr_token();
-      add_stop_token(tok_lparen);
-      if (list_init_enabled) add_stop_token(tok_lbrace);
-      syntax_error(list_init_enabled ? ec_exp_lparen_or_brace : ec_exp_lparen);
-      if (list_init_enabled) remove_stop_token(tok_lbrace);
-      remove_stop_token(tok_lparen);
-    }  /* if */
     if (curr_token == tok_lparen) {
       /* A classic (i.e., parenthesized) mem-initializer argument. */
       scan_parenthesized_mem_init_args(new_cip, class_type, init_type,
@@ -5159,8 +5150,13 @@ entries are replaced as needed for each mem-initializer that is encountered.
       a_type_ptr         dtype = (array_type != NULL) ? array_type : init_type;
       braced_mem_initializer(dtype, new_cip);
     } else {
-      /* A syntax error was already issued. */
-      expect_error();
+      /* Neither brace nor parenthesis: A syntax error. */
+      set_err_pos_to_curr_token();
+      add_stop_token(tok_lparen);
+      if (list_init_enabled) add_stop_token(tok_lbrace);
+      syntax_error(list_init_enabled ? ec_exp_lparen_or_brace : ec_exp_lparen);
+      if (list_init_enabled) remove_stop_token(tok_lbrace);
+      remove_stop_token(tok_lparen);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (new_cip != NULL) {
