@@ -1,5 +1,28 @@
 Version 4.6
 
+11/15/12 [EDGcpfe/13375]
+C++-generating back end: unnecessary parentheses with explicit temporaries in
+static member access expressions
+
+In addition to the cases described below for EDGcpfe/13355, early versions
+of g++ are also confused by redundant parentheses around an explicit
+temporary appearing as the object expression in a member-access expression
+referring to a static class member.  The C++-generating back end has now
+been changed to suppress the extra parentheses in this context as well.
+For example:
+
+  struct S {
+    static bool b;
+    static bool f();
+  };
+
+  void g() {
+    S().f();       // Previously generated as (S()).f()
+    if (S().b) {   // Previously generated as (S()).b
+    }
+  }
+
+
 11/14/12 [EDGcpfe/10809, EDGcpfe/13359]
 Defer final conversion on member default argument conversion for g++ 3.4 mode
 

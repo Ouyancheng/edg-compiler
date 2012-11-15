@@ -8384,7 +8384,14 @@ indicated by opstr.
        use "->" with a non-pointer value. */
     opstr = ".";
   }  /* if */
-  gen_expr_with_parens(operand_1);
+  if (operand_1->kind == (an_expr_node_kind)enk_temp_init) {
+    /* There is no need for parentheses around an explicit temporary,
+       and they confuse some older versions of g++. */
+    gen_expression(operand_1);
+  } else {
+    /* Other expressions may require parentheses. */
+    gen_expr_with_parens(operand_1);
+  }  /* if */
   if (operand_1->is_lvalue &&
       is_template_param_or_nonreal_class_type(operand_1_type)) {
     /* Watch out for prototype instantiations. */
