@@ -1,5 +1,35 @@
 Version 4.6
 
+11/15/12 [EDGcpfe/13376]
+Generated copy functions and volatile fields
+
+Volatile objects of a trivially copyable class type X (e.g., a plain C-style
+struct) cannot be copied because the generated trivial copy function has a
+parameter of type "X const&".  The front end previously failed to take this
+into account when determining whether to "suppress" a generated copy function
+of a class with a volatile field of trivially copyable class type (where
+"suppress" means "make implicitly = delete" in C++11 mode, but can mean that
+the declaration and/or the definition are simply not generated in some
+Microsoft modes).  For example, in C++11 mode:
+
+  struct S { int i; };  // A trivially copyable class type.
+  struct V {
+    S volatile sv;      // The generated constructor V::V(V const&) cannot
+  };                    // copy sv, and is therefore now marked as deleted.
+                        // The generated copy assignment operator is treated
+                        // similarly.
+
+In Microsoft mode, this change also interacts with the change for
+EDGcpfe/13365:
+
+  struct S { int i; };
+  struct __declspec(dllexport) EV {
+    S volatile sv;  // Previously, an error was issued during the generation
+  };                // of the definition of EV::EV(EV const&).  Now, the
+                    // front end no longer attempts to generate that
+                    // definition.
+
+
 11/15/12 [EDGcpfe/13375]
 C++-generating back end: unnecessary parentheses with explicit temporaries in
 static member access expressions

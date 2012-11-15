@@ -17003,6 +17003,18 @@ remarks may be issued in some cases.
   trivially_copyable = cssp->assignment_by_bitwise_copy_allowed &&
                        cssp->construction_by_bitwise_copy_allowed &&
                        cssp->has_trivial_destructor;
+  if (any_qualifier_in_set_missing(TQ_CONST, subobj_qual)) {
+    /* A volatile subobject cannot be copied by its trivial copy functions
+       because they have a "X const&" parameter.  Microsoft therefore
+       suppresses the generation of copy function that would otherwise fail
+       to be generated because of this. */
+    if (cssp->assignment_by_bitwise_copy_allowed) {
+      gsfd->suppress_copy_assign = TRUE;
+    }  /* if */
+    if (cssp->construction_by_bitwise_copy_allowed) {
+      gsfd->suppress_copy_ctor = TRUE;
+    }  /* if */
+  }  /* if */
   /* Check the copy assignment operator. */
   if (gsfd->suppress_copy_assign) {
     /* If we already know the copy assignment operator should be suppressed,
