@@ -27204,6 +27204,8 @@ emitted in this translation unit.
   } else if (rout_ptr->compiler_generated && !rout_ptr->is_deleted &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
              (rout_ptr->decl_modifiers & DM_DLLIMPORT) == 0 &&
+             !((rout_ptr->decl_modifiers & DM_DLLEXPORT) != 0 &&
+               rout_ptr->definition_cannot_be_generated) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
              !rout_ptr->is_trivial_default_constructor) {
     /* A compiler generated routine, but not a trivial default constructor and
