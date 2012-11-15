@@ -17326,8 +17326,8 @@ of dllexported class types).
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && microsoft_version > 1400 &&
-      is_default_constructor(rp, /*is_declarative_context=*/TRUE) ?
-           cpp11_mode : !generate_move_operations) {
+      (is_default_constructor(rp, /*is_declarative_context=*/TRUE) ?
+             cpp11_mode : !generate_move_operations)) {
     sym->variant.routine.ptr->definition_cannot_be_generated = TRUE;
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
