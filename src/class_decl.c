@@ -16429,7 +16429,8 @@ be entered.
   if (is_aggregate_or_union_type(member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,
        struct, or union -- there is additional checking to be done. */
-    a_type_ptr  tp = skip_typerefs(member_element_type);
+    a_type_qualifier_set  quals = get_type_qualifiers(member_element_type);
+    a_type_ptr            tp = skip_typerefs(member_element_type);
     if (is_immediate_class_type(tp)) {
       /* Propagate the flag indicating that zero-initialization may be needed
          as part of value-initialization. */
@@ -16464,13 +16465,27 @@ be entered.
           class_state->member_destruction_required = TRUE;
         }  /* if */
         /* The parent class cannot be copy-constructed or assigned by bitwise
-           copying if the member class does not allow it.  (If the member
+           copying if the member type does not allow it.  (If the member
            class is nonreal, assume it doesn't affect this.) */
         if (!tp->variant.class_struct_union.is_nonreal_class) {
-          if (!member_cssp->construction_by_bitwise_copy_allowed) {
+          if (!cssp->construction_by_bitwise_copy_allowed) {
+            /* Bitwise copy construction has already been ruled out. */
+          } else if (!member_cssp->construction_by_bitwise_copy_allowed) {
+            cssp->construction_by_bitwise_copy_allowed = FALSE;
+          } else if (any_qualifier_in_set_missing(TQ_CONST, quals)) {
+            /* A trivially copyable class type is not copyable if it is
+               volatile (because the constructor's parameter type is
+               "X const&"). */
             cssp->construction_by_bitwise_copy_allowed = FALSE;
           }  /* if */
-          if (!member_cssp->assignment_by_bitwise_copy_allowed) {
+          if (!cssp->assignment_by_bitwise_copy_allowed) {
+            /* Bitwise copy assignment has already been ruled out. */
+          } else if (!member_cssp->assignment_by_bitwise_copy_allowed) {
+            cssp->assignment_by_bitwise_copy_allowed = FALSE;
+          } else if (any_qualifier_in_set_missing(TQ_CONST, quals)) {
+            /* A trivially copyable class type is not copyable if it is
+               volatile (because the constructor's parameter type is
+               "X const&"). */
             cssp->assignment_by_bitwise_copy_allowed = FALSE;
           }  /* if */
         }  /* if */
@@ -17005,9 +17020,7 @@ remarks may be issued in some cases.
                        cssp->has_trivial_destructor;
   if (any_qualifier_in_set_missing(TQ_CONST, subobj_qual)) {
     /* A volatile subobject cannot be copied by its trivial copy functions
-       because they have a "X const&" parameter.  Microsoft therefore
-       suppresses the generation of copy function that would otherwise fail
-       to be generated because of this. */
+       because they have a "X const&" parameter. */
     if (cssp->assignment_by_bitwise_copy_allowed) {
       gsfd->suppress_copy_assign = TRUE;
     }  /* if */
