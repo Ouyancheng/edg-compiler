@@ -13704,8 +13704,14 @@ can match zero or more parameters from new_list.
   }  /* while */
   if ((old_tpp != NULL &&
        !(is_templ_templ_param_match && old_tpp->is_pack)) ||
-      new_tpp != NULL) {
-    /* The lists differ in the number of parameters. */
+      (new_tpp != NULL &&
+        !(is_templ_templ_param_match && gnu_mode && gnu_version < 40200 &&
+          new_tpp->has_default_arg))) {
+    /* The lists differ in the number of parameters.  If we're matching a
+       template template parameter that just has an extra parameter pack, it
+       can be ignored.  Also, if we're matching a template template argument
+       with extraneous default template arguments, they are also ignored in
+       some GNU C++ modes. */
     any_errors = TRUE;
     if (issue_errors) {
       /* The number of template parameters does not match the previous

@@ -147,8 +147,16 @@ argument until that default argument is used.  For example:
   X<int> x2;     // An error is now issued here in GNU C++ mode because
                  // S is used as the substitution for TT, and its parameter
                  // list does not match.
-  
 
+In addition, in GNU C++ modes with gnu_version < 40200, the front end now
+ignores template parameters with a default argument when matching a template
+against a template template parameter.  For example:
+
+  template<typename, typename = int> struct D {};
+  template<template<typename> class TT> struct Y {};
+  Y<D> yd;  // Now accepted in some GNU C++ modes.
+
+  
 11/12/12 [EDGcpfe/13355]
 C++-generating back end: unnecessary parentheses with explicit temporaries
 
