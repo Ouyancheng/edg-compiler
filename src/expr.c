@@ -32666,7 +32666,11 @@ required parameter type.
                                   /*is_full_expr=*/FALSE,
                                   (a_decl_parse_state *)NULL,
                                   &is);
-  make_lvalue_or_rvalue_expression_operand(expr, &operand);
+  if (is_constant_node(expr)) {
+    make_constant_operand(expr->variant.constant, &operand);
+  } else {
+    make_lvalue_or_rvalue_expression_operand(expr, &operand);
+  }  /* if */
   prep_argument_operand(&operand, ptp,
                         (a_conv_descr_ptr)NULL,
                         ec_bad_default_arg_type);
