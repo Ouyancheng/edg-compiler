@@ -18481,8 +18481,7 @@ The routine body is not generated until it is known to be needed.
     mark_suppressed_defaulted_members_as_deleted(class_type, &gsfd);
   }  /* if */
   if (declare_default_ctor) {
-    if (microsoft_mode && microsoft_version < 1400 && !cpp11_mode &&
-        gsfd.suppress_default_ctor) {
+    if (microsoft_mode && !cpp11_mode && gsfd.suppress_default_ctor) {
       /* Mark this class as having a suppressed default constructor and do not
          add its declaration. */
       class_type->variant.class_struct_union
