@@ -5057,6 +5057,8 @@ doesn't apply to the given type, issue an error and return an error type.
        the caller does not expect the type to be changed). */
     report_bad_attribute_arg(aap, ap);
     if (!is_tag_attribute(ap)) type = error_type();
+  } else if (is_template_param_type(type)) {
+    /* Leave template parameter types unchanged. */
   } else {
     a_type_ptr  mode_type =
                  get_type_with_mode(type, (a_type_mode_kind)i, &ap->position);
