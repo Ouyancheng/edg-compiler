@@ -22801,7 +22801,8 @@ error.  Called in C++/CLI mode only.
   check_assertion(cppcli_enabled);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (!cli_class_type_kind_is(class_type, cctk_ref) &&
-      !cli_class_type_kind_is(class_type, cctk_value)) {
+      !cli_class_type_kind_is(class_type, cctk_value) &&
+      (!cpp11_mode || !cli_class_type_kind_is(class_type, cctk_standard))) {
     pos_error(ec_cppcli_explicit_conversion_only_in_ref_and_value_classes,
               &dps->start_pos);
     okay = FALSE;
