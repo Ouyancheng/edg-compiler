@@ -4558,17 +4558,17 @@ void check_default_args_for_param_type(a_param_type_ptr  ptp,
                                        a_source_position *pos)
 /*
 Given a param type pointer, make sure that any parameter with a default
-argument value is followed only by other parameters with defaults.
-Issue an error if a default argument that is followed by a parameter
-without a default is found.
+argument value is followed only by other parameters with defaults or by a
+parameter pack.  Issue an error otherwise.
 */
 {
   /* Loop through the single list. */
   for (; ptp != NULL; ptp = ptp->next) {
     if (ptp->has_default_arg && ptp->next != NULL &&
-        !ptp->next->has_default_arg) {
-      /* Current parameter has a default argument and its successor does
-         not.  Report the error and break out of the loop. */
+        !ptp->next->has_default_arg && !ptp->next->is_parameter_pack) {
+      /* Current parameter has a default argument while its successor does not
+         and isn't a parameter pack.  Report the error and break out of the
+         loop. */
       pos_error(ec_default_arg_not_at_end, pos);
       break;
     }  /* if */

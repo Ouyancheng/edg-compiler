@@ -1,5 +1,18 @@
 Version 4.6
 
+11/16/12 [EDGcpfe/13395]
+Default arguments and parameter packs
+
+The front end previously issued a spurious error when a function parameter
+with a default argument is followed by a parameter pack.  For example:
+
+  template<typename... T> void g(int = 0, T ... x) {}
+    // Previously, the front end issued an error complaining that the
+    // default argument isn't at the end of the parameter list.
+
+This is now fixed.
+
+
 11/16/12 [EDGcpfe/13401]
 GNU mode attribute and template parameters
 
