@@ -17340,6 +17340,58 @@ of dllexported class types).
 }  /* mark_special_member_suppressed */
 
 
+static a_boolean fields_initialized_for_constexpr_constructor(
+                                                       a_type_ptr  class_type)
+/*
+Return TRUE if the field initialization constraints for a constexpr constructor
+are satisfied by the given class type.  For non-union types, all fields must be
+initialized, and for union types exactly one field must be initialized.
+*/
+{
+  a_boolean    okay = TRUE, initializer_seen = FALSE;
+  a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
+
+  if (fp != NULL) {
+    a_boolean  is_union = class_type->kind == (a_type_kind)tk_union;
+    for (; fp != NULL; fp = fp->next) {
+      a_boolean  member_initialized;
+      if (fp->compiler_generated) {
+        if (fp->is_anonymous_parent_object) {
+          /* If this field represents an anonymous union, apply the
+             requirement recursively. */
+          member_initialized = fields_initialized_for_constexpr_constructor(
+                                                     skip_typerefs(fp->type));
+        } else {
+          continue;
+        }  /* if */
+      } else {
+        member_initialized = fp->has_initializer;
+      }  /* if */
+      if (is_union) {
+        /* Unions must have exactly one initialized member. */
+        if (member_initialized) {
+          if (initializer_seen) {
+            /* A second initializer: Not valid for a constexpr
+               constructor. */
+            okay = FALSE;
+          } else {
+            initializer_seen = TRUE;
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Non-unions must have all fields initialized. */
+        if (!member_initialized) {
+          okay = FALSE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (is_union && !initializer_seen) okay = FALSE;
+  }  /* if */
+  return okay;
+}  /* fields_initialized_for_constexpr_constructor */
+
+
 static void generate_default_constructor(a_class_def_state_ptr  class_state,
                                          a_boolean              suppressed)
 /*
@@ -17369,20 +17421,14 @@ in some Microsoft modes, record that its body cannot be generated).
     mark_special_member_suppressed(sym);
   }  /* if */
   /* Check if the generated default constructor is "constexpr". */
-  if (!class_type->variant.class_struct_union.any_virtual_base_classes &&
+  if (constexpr_enabled &&
+      !class_type->variant.class_struct_union.any_virtual_base_classes &&
       !class_state->has_subobject_of_nonliteral_type) {
     /* A generated default constructor is implicitly "constexpr" if (a) the
        parent class has no virtual bases, (b) all subobjects have literal
-       class type, and (c) every field has a field-initializer. */
-    a_boolean    all_fields_have_initializers = TRUE;
-    a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
-    for (; fp != NULL; fp = fp->next) {
-      if (!fp->has_initializer && !fp->compiler_generated) {
-        all_fields_have_initializers = FALSE;
-        break;
-      }  /* if */
-    }  /* for */
-    if (all_fields_have_initializers) {
+       class type (FIXME: incorrect), and (c) every field has a
+       field-initializer. */
+    if (fields_initialized_for_constexpr_constructor(class_type)) {
 #if /*FIXME*/0
       /* Various parts of the front end aren't ready to deal with constexpr
          default constructors, and this affects many tests that don't
