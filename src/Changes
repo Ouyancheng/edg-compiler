@@ -4,14 +4,14 @@ Version 4.6
 Explicit conversion functions in C++/CLI mode with C++11 enabled
 
 C++/CLI permits explicit conversion functions only in value class and ref
-classes.  C++11 permit them in standard classes.  Previously, combining
+classes.  C++11 permits them in standard classes.  Previously, combining
 C++/CLI and C++11 modes did not enable explicit conversion functions in
 standard classes; now it does.  For example:
 
   struct S {
     explicit operator int();  // Previously an error with "--cppcli --c++11";
   };                          // now accepted (still an error in "plain
-                              // C++/CLI" mode.
+                              // C++/CLI" mode).
 
 
 11/16/12 [EDGcpfe/13395]
