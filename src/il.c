@@ -22880,6 +22880,11 @@ includes removing any initialization.
     }
   }  /* if */
   variable->init_kind = (an_init_kind)initk_none;
+  variable->has_parenthesized_initializer = FALSE;
+  variable->has_direct_braced_initializer = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+  variable->has_flexible_array_initializer = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
   if (variable->storage_class == (a_storage_class)sc_unspecified) {
     variable->storage_class = (a_storage_class)sc_extern;
 #if IA64_ABI && DO_IL_LOWERING
