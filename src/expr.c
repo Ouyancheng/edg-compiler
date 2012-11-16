@@ -32665,7 +32665,11 @@ required parameter type.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   if (is_constant_node(expr)) {
-    make_constant_operand(expr->variant.constant, &operand);
+    a_constant_ptr   con = expr->variant.constant;
+    an_expr_node_ptr saved_backing_expr = con->expr;
+    con->expr = NULL;
+    make_constant_operand(con, &operand);
+    con->expr = saved_backing_expr;
   } else {
     make_lvalue_or_rvalue_expression_operand(expr, &operand);
   }  /* if */
