@@ -14,6 +14,20 @@ standard classes; now it does.  For example:
                               // C++/CLI" mode).
 
 
+11/16/12 [EDGcpfe/13381]
+GNU C++ compatibility: Typedefs for bool in system headers
+
+In GNU C++ mode, the front end now ignores typedefs for bool that appear
+in system headers.  For example:
+
+  // The following preprocessor directive simulates a system header.
+  #2 "t.c" 3
+  typedef int bool;  // Now silently accepted in GNU C++ mode.
+
+(See the entry for EDGcpfe/12755 on 3/13/12 for the similar case of a
+typedef for wchar_t.)
+
+
 11/16/12 [EDGcpfe/13395]
 Default arguments and parameter packs
 

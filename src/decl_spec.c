@@ -8943,13 +8943,14 @@ storage_class_specifier:
           /* Basic type has already been specified in some way. */
 #if GNU_EXTENSIONS_ALLOWED
           if ((gcc_mode && gnu_version < 40000) ||
-              (gpp_mode && curr_token == tok_wchar_t &&
+              (gpp_mode && 
+               (curr_token == tok_wchar_t || curr_token == tok_bool) &&
                seq_is_in_system_header(pos_curr_token.seq))) {
             /* Early GNU C allows multiple basic type specifiers, but they
                must be part of a typedef declaration that doesn't include a
                declarator (and therefore it doesn't really declare anything).
-               In system headers, a typedef for wchar_t is discarded like this
-               by all current GNU C++ compilers. */
+               In system headers, a typedef for wchar_t or bool is discarded
+               like this by all current GNU C++ compilers. */
             delayed_error = ec_bad_combination_of_type_specifiers;
             copy_source_position(pos_curr_token, pos_delayed_error);
           } else
