@@ -32596,7 +32596,9 @@ TRUE if the function being declared is a class member or friend.
                     &result);
       free_init_component_list(icp);
     } else if (gpp_mode && gnu_version >= 30400 && gnu_version < 40000 &&
-               is_member_or_friend) {
+               is_member_or_friend &&
+               (is_expression_operand(&result) ||
+                is_constant_operand(&result))) {
       /* g++ 3.4 leaves the final conversion to be done at the point of
          reference for member functions and friends. */
     } else {
@@ -32654,18 +32656,14 @@ For a g++ quirk, convert an expression for a default argument to the
 required parameter type.
 */
 {
-  an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   an_operand          operand;
-  an_init_state       is;
 
-  clear_init_state(&is);
-  is.evaluated = evaluated;
-  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
-                                  (an_expression_kind)ek_normal,
-                                  /*is_full_expr=*/FALSE,
-                                  (a_decl_parse_state *)NULL,
-                                  &is);
+  push_expr_stack(evaluated ? (an_expression_kind)ek_normal :
+                              (an_expression_kind)ek_sizeof,
+                  &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
   if (is_constant_node(expr)) {
     make_constant_operand(expr->variant.constant, &operand);
   } else {
@@ -32675,10 +32673,7 @@ required parameter type.
                         (a_conv_descr_ptr)NULL,
                         ec_bad_default_arg_type);
   expr = make_node_from_operand(&operand);
-  pop_expr_stack_for_initializer(saved_expr_stack,
-                                 /*is_full_expr=*/FALSE,
-                                 (a_decl_parse_state *)NULL,
-                                 &is);
+  pop_expr_stack();
   return expr;
 }  /* convert_default_arg_expr */
 
