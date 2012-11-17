@@ -24677,7 +24677,7 @@ cached for later "prototype instantiation".  Perform these instantiations now
 static void set_literal_type_flag(a_class_def_state  *cdsp)
 /*
 cdsp describes a class definition that has been completely parsed.  Set the
-is_literal_type in the associated class type entry to TRUE if the class is
+is_literal_type flag in the associated class type entry to TRUE if the class is
 indeed a literal type.
 */
 {

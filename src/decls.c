@@ -7143,7 +7143,7 @@ a_boolean check_constexpr_routine_type(a_routine_ptr      rp,
                                        a_source_position  *diag_pos)
 /*
 Return TRUE if and only if the given function type is a valid type for a
-constexpr function.  Otherwise, return FALSE and issue diagnostic at the
+constexpr function.  Otherwise, return FALSE and issue a diagnostic at the
 given position.
 */
 {

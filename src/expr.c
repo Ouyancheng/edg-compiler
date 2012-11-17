@@ -35299,7 +35299,7 @@ void scan_class_parenthesized_initializer(
 Scan a parenthesized initializer for an object of type class_type.  If the
 initializer is for a variable declaration, *is->decl_parse_state describes
 that declaration (is->decl_parse_state is NULL when the initializer is a
-ctor-initializer.)  class_type must be a class type having at least one
+ctor-initializer).  class_type must be a class type having at least one
 constructor.  Build a dynamic initialization or constant entry for the
 initialization, and set *is pointing to it (or set is->init_error to TRUE if
 there is an error).
@@ -35311,12 +35311,10 @@ This routine is used for constructs like
 In other words, this is direct-initialization of a class object.
 object_class_type indicates the class type of the full object being
 initialized.  It is the same as class_type, or a derived type thereof.
-An object lifetime is forced around the initialization if
-force_object_lifetime is TRUE.  On return, the current position is
-following the closing parenthesis of the initializer.  If fill_in_dtor
-is TRUE, any required destruction will be indicated in the dynamic
-initialization.  *source_pos is the source position to be used in
-overall errors.
+On return, the current position is following the closing parenthesis
+of the initializer.  If fill_in_dtor is TRUE, any required destruction
+will be indicated in the dynamic initialization.  *source_pos is the
+source position to be used in overall errors.
 */
 {
   an_expr_stack_entry           *saved_expr_stack;
@@ -35380,7 +35378,7 @@ void scan_dependent_type_parenthesized_initializer(an_init_state  *is)
 Scan a parenthesized initializer that initializes an object of a template
 parameter type in a prototype instantiation.  If the initializer is for a
 variable declaration, *is->decl_parse_state describes that declaration.
-(is->decl_parse_state is NULL when the initializer is a ctor-initializer.)
+(is->decl_parse_state is NULL when the initializer is a ctor-initializer).
 Create a dynamic initialization entry to describe the initialization and
 return a pointer to it in is->init_dip.  On entry, the current token is the
 one following the opening parenthesis.  On return, the current token is the
