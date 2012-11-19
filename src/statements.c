@@ -5589,6 +5589,10 @@ in which such a return is undefined.
             no_returned_value_severity = es_remark;
           }  /* if */
         }  /* if */
+      } else if (rout->is_constexpr) {
+        /* A constexpr function must return a value (strictly speaking,
+           this is undefined behavior, but an error seems warranted). */
+        no_returned_value_severity = es_error;
       } else {
         /* Not "main". */
         /* See if the diagnostic level should be adjusted for other reasons. */
@@ -5875,13 +5879,16 @@ See also 3.6.6.4.
         scope->variant.routine.constexpr_return_expr = NULL;
         pos_error(ec_invalid_constexpr_body, &return_pos);
       } else {
-        scope_stack[depth_innermost_function_scope].has_at_least_one_return =
-                                                                          TRUE;
-        if (dip == NULL && return_expr != NULL) {
+        if (return_expr == NULL) {
+          /* A void return in a constexpr function; an error has been issued
+             above -- ignore this for constexpr return processing. */
+        } else {
           /* Assume this will be the only return statement in the function
              body and capture a pointer to return expression here (a copy
              of the expression is made later so that if IL lowering is
              being done an unlowered copy is preserved). */
+          scope_stack[depth_innermost_function_scope].has_at_least_one_return =
+                                                                          TRUE;
           scope->variant.routine.constexpr_return_expr = return_expr;
         }  /* if */
       }  /* if */
