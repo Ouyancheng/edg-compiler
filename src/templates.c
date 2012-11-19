@@ -12112,6 +12112,13 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
        processing. */
     a_source_position		saved_pos_curr_token;
     a_source_position		saved_error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    a_source_position           saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if DECL_MODIFIERS_IN_USE
+    a_source_position	        locator_position;
+#endif /* DECL_MODIFIERS_IN_USE */
+    a_template_cache_ptr        tcp;
     /* PS_FORCE_DECL_SEQ_CHECK is used to ensure that names declared after
        the declaration of the function template cannot affect the partial
        instantiation. */
@@ -12123,13 +12130,6 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
          processing was explicitly requested. */
       ps_options |= PS_FORCE_DECL_SEQ_CHECK;
     }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    a_source_position           saved_curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if DECL_MODIFIERS_IN_USE
-    a_source_position	        locator_position;
-#endif /* DECL_MODIFIERS_IN_USE */
-    a_template_cache_ptr        tcp;
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_template_instantiation_scope is NULL.  This is done
        because the type associated with the symbol is not yet complete
