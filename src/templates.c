@@ -12115,8 +12115,14 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     /* PS_FORCE_DECL_SEQ_CHECK is used to ensure that names declared after
        the declaration of the function template cannot affect the partial
        instantiation. */
-    a_push_scope_options_set	ps_options = PS_FORCE_DECL_SEQ_CHECK |
-                                             PS_FUNCTION_PARTIAL_INSTANTIATION;
+    a_push_scope_options_set	ps_options = PS_FUNCTION_PARTIAL_INSTANTIATION;
+    if (!microsoft_mode || do_dependent_name_processing) {
+      /* In modes in which names after the point of declaration of the template
+         are visible, they should still be ignored for partial instantiations
+         of functions except in Microsoft mode unless dependent name
+         processing was explicitly requested. */
+      ps_options |= PS_FORCE_DECL_SEQ_CHECK;
+    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     a_source_position           saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
