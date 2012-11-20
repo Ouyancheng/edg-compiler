@@ -1,5 +1,19 @@
 Version 4.6
 
+11/19/12 [EDGcpfe/13404]
+Abort on noexcept-specification in template when exceptions are disabled
+
+In modes that disable exceptions but allow noexcept-specifications (e.g.,
+with the command-line options "--c++11 --no_exceptions") the front end
+aborted in scan_noexcept_arg (declarator.c) when handling the argument to
+the noexcept-specification of a function template.  For example:
+
+  template<class T> void f() noexcept(true) {}
+        // Previously caused the front end to abort.
+
+This is now fixed.
+
+
 11/16/12 [EDGcpfe/13394]
 Explicit conversion functions in C++/CLI mode with C++11 enabled
 

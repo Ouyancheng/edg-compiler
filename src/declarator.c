@@ -420,13 +420,21 @@ array-to-pointer decay).
   } else {
     /* Make a copy of the type.  Note that default arg expressions, if any,
        will be copied later. */
+    a_routine_type_supplement_ptr  copied_rtsp;
     declared_type =
                copy_routine_type_with_param_types(type_ptr,
                                                   /*copy_default_args=*/FALSE);
+    copied_rtsp = skip_typerefs(declared_type)->variant.routine.extra_info;
+    if (!exceptions_enabled && copied_rtsp->exception_specification != NULL) {
+      /* When exceptions are disabled, no exception specification should be
+         recorded.  However, with noexcept an entry may have been created to
+         enable later instantiation.  Discard that entry in the declared
+         type. */
+      copied_rtsp->exception_specification = NULL;
+    }  /* if */
     fixup_needed = FALSE;
     param_id = func_info->param_id_list;
-    param_type_list = skip_typerefs(declared_type)->
-                            variant.routine.extra_info->param_type_list;
+    param_type_list = copied_rtsp->param_type_list;
     if (param_id != NULL && param_type_list != NULL) {
       /* There is no need to create a new routine type entry if none of the
          parameter types underwent adjustment. */
@@ -1411,16 +1419,25 @@ actually declares a function, member function, or function template).
        but ignored, set a flag to control the diagnostics that are put out. */
     ignoring_exception_spec = TRUE;
   }  /* if */
-  if (!ignoring_exception_spec) {
-    /* Exceptions are outside the "Embedded C++" subset. */
-    feature_is_not_part_of_embedded_cplusplus_subset(
-                                          &pos_curr_token,
-                                          ec_exceptions_in_embedded_cplusplus);
+  if (!ignoring_exception_spec ||
+      (is_noexcept && is_top_level_declarator && next_token() == tok_lparen &&
+       (is_template_dependent_context() ||
+        is_nonspecialized_instantiation_context()))) {
+    /* An exception specification must be recorded if it is not ignored later
+       on, but, in the case of noexcept we also want to record it so that it
+       can be instantiated later on (even though it will be ignored after that
+       instantiation). */
     esp = alloc_exception_specification();
     esp->is_noexcept = is_noexcept;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     esp->source_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  if (!ignoring_exception_spec) {
+    /* Exceptions are outside the "Embedded C++" subset. */
+    feature_is_not_part_of_embedded_cplusplus_subset(
+                                          &pos_curr_token,
+                                          ec_exceptions_in_embedded_cplusplus);
     if (cpp11_mode && !is_noexcept) {
       /* Dynamic exception specifications are deprecated in C++11.  Issue a
          remark. */
