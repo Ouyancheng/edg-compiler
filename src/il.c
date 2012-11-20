@@ -15396,6 +15396,9 @@ for the copy/substitution.
     sym = con->variant.template_param.variant.unknown_function.symbol;
     check_assertion(sym != NULL);
     if (microsoft_mode && !do_dependent_name_processing) {
+      /* In Microsoft mode, the lookup done previously might not have found
+         some instances of the function declared after the template.  Do the
+         lookup again to get the full overload set. */
       a_symbol_locator locator;
       make_locator_for_symbol(sym, &locator);
       locator.specific_symbol = NULL;
