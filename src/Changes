@@ -1,5 +1,23 @@
 Version 4.6
 
+11/20/12 [EDGcpfe/13384]
+Microsoft compatibility: incorrect overload resolution in a decltype in
+a function template declaration
+
+A function call in a decltype operator in a function template declaration
+could result in the incorrect function being used (or no function being
+found) when evaluating a call of the function template.  Now fixed.
+
+  void g(char);
+  namespace N {
+    template <class T> auto f(T t) -> decltype(g(t)) { return t; }
+    int g(int){}
+  }
+  int main() {
+    N::f(1);
+  }
+
+
 11/19/12 [EDGcpfe/13404]
 Abort on noexcept-specification in template when exceptions are disabled
 

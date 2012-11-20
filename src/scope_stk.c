@@ -4715,8 +4715,7 @@ the template that is being rescanned and can be NULL.
   a_routine_ptr			rp = NULL;
   a_scope_stack_entry_ptr	ssep;
 
-  if (cpp11_sfinae_enabled && !cpp11_sfinae_ignore_access &&
-      template_sym != NULL) {
+  if (cpp11_sfinae_enabled && template_sym != NULL) {
     a_template_symbol_supplement_ptr	tssp;
     tssp = template_supplement_for_symbol(template_sym);
     check_assertion(tssp != NULL);
@@ -4777,7 +4776,10 @@ push_instantiation_scope_for_rescan.
     tdip = ssep->template_decl_info;
   }  /* if */
   pop_template_instantiation_scope();
-  if (tdip != NULL) free_template_decl_info(tdip);
+  /* If the parameters field is NULL, that means this was a dummy entry
+     allocated when the rescan scope was pushed, and the entry should be
+     freed. */
+  if (tdip != NULL && tdip->parameters == NULL) free_template_decl_info(tdip);
 }  /* pop_instantiation_scope_for_rescan */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

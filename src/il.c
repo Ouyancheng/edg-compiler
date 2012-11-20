@@ -15395,6 +15395,13 @@ for the copy/substitution.
        an overload set) was saved when this constant was created. */
     sym = con->variant.template_param.variant.unknown_function.symbol;
     check_assertion(sym != NULL);
+    if (microsoft_mode && !do_dependent_name_processing) {
+      a_symbol_locator locator;
+      make_locator_for_symbol(sym, &locator);
+      locator.specific_symbol = NULL;
+      sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+      check_assertion(sym != NULL);
+    }  /* if */
   } else {
     /* Member constant (normal case). */
     /* This occurs for member constants specified in forms such as A<T>::x.
