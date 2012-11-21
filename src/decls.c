@@ -5219,10 +5219,12 @@ associated sk_external_variable or sk_external_routine symbol, if any.
                something else requires us to move the entry to the appropriate
                scope: Otherwise, schedule_move_to_current_end_of_routines_list
                will operate on the wrong routines list. */
-            remove_from_routines_list(sym->variant.routine.ptr,
-                                      DEPTH_OF_FILE_SCOPE);
-            add_to_routines_list(sym->variant.routine.ptr,
-                                 idlbp->effective_decl_level);
+            a_routine_ptr  rp = sym->variant.routine.ptr;
+            remove_from_routines_list(rp, DEPTH_OF_FILE_SCOPE);
+            /* Clear the parent_scope pointer so add_to_routines_list can
+               update it for the effective scope. */
+            rp->source_corresp.parent_scope = NULL;
+            add_to_routines_list(rp, idlbp->effective_decl_level);
           }  /* if */
           if (microsoft_mode && !sym->defined && sev == es_error &&
               idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
@@ -8252,14 +8254,6 @@ skip_overloading:;
     }  /* if */
     if (is_function_def) {
       a_boolean      saved_referenced_flag;
-      if (!linked_redecl_error) {
-        /* If this is a definition, unlink the routine entry and relink it
-           at the end of the routines list, so that routines appear in the
-           order that their bodies appear.  If a redeclaration error
-           occurred, the scope depth is unreliable and this operation
-           might not be possible. */
-        schedule_move_to_current_end_of_routines_list(routine_ptr);
-      }  /* if */
       /* Put in the storage class for the definition (static or 
          unspecified). */
       routine_ptr->storage_class = storage_class;
@@ -8400,6 +8394,15 @@ skip_overloading:;
      declaration, and report inconsistencies, if appropriate. */
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
+  if (is_function_def && !linked_redecl_error) {
+    /* If this is a definition, unlink the routine entry and relink it at the
+       end of the routines list, so that routines appear in the order that
+       their bodies appear.  If a redeclaration error occurred, the scope
+       depth is unreliable and this operation might not be possible.  Also,
+       this must be done after the call to set_name_linkage because that call
+       can move the routine entry from one list to another. */
+    schedule_move_to_current_end_of_routines_list(routine_ptr);
+  }  /* if */
   if (notify_correspondence_processing) {
     /* This had to be delayed until the name linkage was set. */
     establish_block_extern_function_correspondence(routine_ptr);
