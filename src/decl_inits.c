@@ -2726,6 +2726,7 @@ the type pointed to is opaque to declaration processing.
         if (arg_match != NULL) record_aggr_init_match(arg_match);
         break;
       }  /* if */
+      /*FALLTHROUGH*/
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     default:
       unexpected_condition();
