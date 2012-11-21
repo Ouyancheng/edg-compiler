@@ -1,5 +1,23 @@
 Version 4.6
 
+11/21/12 [EDGcpfe/13413]
+Abort in C++/CLI mode on event definition using a malformed delegate type
+
+In C++/CLI mode, the front end aborted in f_types_are_compatible_full (called
+from check_event_accessor_type) when processing an event definition based on
+a delegate type that was previously erroneously defined with a non-function
+type.  For example:
+
+  delegate void D;  // Error: delegate not based on a function type.
+  ref class R {
+    event D ^e {
+      int raise() { return 0; }  // Previously triggered an abort.
+    }
+  };
+
+This is now fixed.
+
+
 11/21/12 [EDGcpfe/13412]
 Abort in Microsoft mode on malformed constructor-like member declaration
 

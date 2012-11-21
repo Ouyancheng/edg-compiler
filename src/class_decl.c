@@ -11915,7 +11915,8 @@ with and issue diagnostics as needed.
          delegate invocation type. */
     } else {
       invocation_type = delegate_invocation_type(type_pointed_to(prop_type));
-      if (!f_types_are_compatible(rtp, invocation_type,
+      if (invocation_type != NULL &&
+          !f_types_are_compatible(rtp, invocation_type,
                                   TCF_IGNORE_THIS_CLASS_TYPE |
                                   TCF_IGNORE_CALLING_CONVENTIONS |
                                   TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
