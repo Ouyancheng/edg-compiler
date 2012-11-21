@@ -6161,8 +6161,9 @@ constructor).
                locator_for_curr_id.is_class_member) {
       a_type_ptr  qualifier = qualifier_class_type(locator_for_curr_id);
       if (!same_entities(qualifier, class_type) &&
-          !same_entities(qualifier, parent_class_of(class_type))) {
-        /* In Microsoft mode qualifier constructor names are accepted, but the
+          !(class_type->source_corresp.is_class_member &&
+            same_entities(qualifier, parent_class_of(class_type)))) {
+        /* In Microsoft mode qualified constructor names are accepted, but the
            qualifier should either be the current class or the enclosing class.
         */
         type_mismatch = TRUE;
