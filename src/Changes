@@ -9,7 +9,7 @@ For example:
 
   void g() {
     int i = 1;  // In version 4.5, the end position of the initializer was
-  }             // incorrectly to be the end position of the identifier "i".
+  }             // incorrectly set to the end position of the identifier "i".
 
 This is now fixed.
 
