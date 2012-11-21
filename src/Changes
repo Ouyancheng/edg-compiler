@@ -1,6 +1,6 @@
 Version 4.6
 
-11/21/12 [EDGcpfe/13413]
+11/21/12 [EDGcpfe/13413,EDGcpfe/13414]
 Abort in C++/CLI mode on event definition using a malformed delegate type
 
 In C++/CLI mode, the front end aborted in f_types_are_compatible_full (called
@@ -15,7 +15,16 @@ type.  For example:
     }
   };
 
-This is now fixed.
+Similarly, an event defined with a handle to an undeclared type resulted in
+an abort in delegate_invocation_type (types.c).  For example:
+
+  ref class R {
+    event E ^e {                 // Error: Type E undeclared.
+      int raise() { return 0; }  // Previously triggered an abort.
+    }
+  };
+
+Both these issues are now fixed.
 
 
 11/21/12 [EDGcpfe/13412]
