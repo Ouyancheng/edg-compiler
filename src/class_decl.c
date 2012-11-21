@@ -11874,7 +11874,7 @@ with and issue diagnostics as needed.
   } else {
     prop_type = pdp->variant.field->type;
   }  /* if */
-  err = is_error_type(prop_type);
+  err = is_or_contains_error_type(prop_type);
   if (err) {
     /* Further error checks are unlikely to be helpful. */
     expect_error();
