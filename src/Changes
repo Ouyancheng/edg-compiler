@@ -1,5 +1,19 @@
 Version 4.6
 
+11/21/12 [EDGcpfe/13406]
+Incorrect end position recorded for simple variable initialization
+
+Version 4.5 of the front end did not always correctly record the end position
+of a simple variable initializer (when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE).
+For example:
+
+  void g() {
+    int i = 1;  // In version 4.5, the end position of the initializer was
+  }             // incorrectly to be the end position of the identifier "i".
+
+This is now fixed.
+
+  
 11/21/12 [EDGcpfe/13413,EDGcpfe/13414]
 Abort in C++/CLI mode on event definition using a malformed delegate type
 

@@ -3329,6 +3329,11 @@ to use for diagnostics by default.
                                          dps,
                                          /*parenthesized=*/FALSE,
                                          /*allow_empty_pack_expansion=*/FALSE);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    decl_pos_block->var_init_range.end = *init_component_end_pos(expr_icp);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (dps->sym == NULL || var_for_symbol(dps->sym) == NULL) {
     /* In some error cases (e.g., an old-style C parameter with an initializer)
        dps->sym may not actually represent an initializable variable. */
@@ -3338,11 +3343,6 @@ to use for diagnostics by default.
                         /*fill_in_dtor=*/TRUE, &dps->init_state);
   }  /* if */
   free_init_component_list(expr_icp);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (decl_pos_block != NULL) {
-    decl_pos_block->var_init_range.end = curr_construct_end_position;
-  }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* expr_init_scalar_variable */
 
 
