@@ -13853,6 +13853,17 @@ all arguments were explicit.
   }  /* if */
   /* All arguments should have been processed and the current token should
      be the closing angle bracket. */
+  if (gpp_mode && gnu_version < 40200 &&
+      orig_param_ptr == NULL && param_ptr != NULL) {
+    /* In g++ mode, a template with more parameters can be passed to
+       a template template parameter with fewer parameters if the
+       argument template has default arguments for the additional
+       parameters.  In that case, we will have exhausted the list of
+       original parameters.  Use the remaining elements from the
+       argument template. */
+    check_assertion(tssp->variant.class_template.template_template_param);
+    orig_param_ptr = param_ptr;
+  }  /* if */
   for (; param_ptr != NULL && orig_param_ptr != NULL;
          param_ptr = param_ptr->next, orig_param_ptr = orig_param_ptr->next) {
     /* There are still entries on the formal parameters list -- see if
