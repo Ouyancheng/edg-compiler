@@ -2723,7 +2723,6 @@ the type pointed to is opaque to declaration processing.
            braces remain simple initializations and therefore fall through
            to the default case). */
         aggr_init_complex(&icp, dtype, is, &is->init_con);
-        if (arg_match != NULL) record_aggr_init_match(arg_match);
         break;
       }  /* if */
       /*FALLTHROUGH*/

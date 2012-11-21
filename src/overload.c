@@ -20257,11 +20257,13 @@ initialization processing.
       /* Floating-point to integer is always narrowing. */
       is_narrowing = TRUE;
 #if C99_IL_EXTENSIONS_SUPPORTED
-    } else if (is_nonreal_floating_type(source_type) &&
-               source_type->kind != dest_type->kind) {
-      /* Something like complex --> float.  Not covered by the standard.
-         May or may not be valid as an implicit conversion, but leave that
-         to the caller; don't call it a narrowing conversion. */
+    } else if (source_type->kind != dest_type->kind &&
+               (is_nonreal_floating_type(source_type) ||
+                is_nonreal_floating_type(dest_type))) {
+      /* Something like _Complex double --> float or double --> _Complex float.
+         Not covered by the standard.  May or may not be valid as an implicit
+         conversion, but leave that to the caller; don't call it a narrowing
+         conversion. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     } else if (is_floating_type(dest_type)) {
       /* We ruled out complex and imaginary cases above. */
@@ -21179,12 +21181,25 @@ controls).
     a_type_ptr            element_type;
     an_init_component_ptr list = icp->variant.braced.list;
     a_type_ptr            singleton_expr_type = NULL;
-    if (list != NULL && list->next == NULL &&
-        list->pack_expansion_descr == NULL &&
-        is_expression_component(list)) {
-      /* The list has a single expression member.  Remember its type for easy
-         testing below. */
-      singleton_expr_type = operand_of_arg_list_elem(list)->type;
+    if (list == NULL) {
+      /* Empty list: No special processing here. */
+    } else if (list->next == NULL) {
+      /* Singleton list: Check for the case of a single expression. */
+      if (list->pack_expansion_descr == NULL &&
+          is_expression_component(list)) {
+        /* The list has a single expression member.  Remember its type for easy
+           testing below. */
+        singleton_expr_type = operand_of_arg_list_elem(list)->type;
+      }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    } else if (gpp_mode && gnu_version >= 40700 &&
+               is_complex_type(dest_type)) {
+      /* g++ 4.7 introduced the possibility of initializing the real and
+         imaginary components of a built-in "complex" object with aggregate
+         initialization syntax.  Cases with empty braces or singleton
+         braces remain simple initializations. */
+      aggregate_case = TRUE;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     }  /* if */
     if (icp->braced_init_in_parentheses && !dest_type_is_class &&
         !could_be_dependent_class_type(dest_type)) {
@@ -21259,10 +21274,20 @@ controls).
           if (!generate_il) eff_is->check_validity_only = TRUE;
           if (is_cast) eff_is->force_dynamic_init = TRUE;
         }  /* if */
-        if (arg_match != NULL && is_array_type(dest_type)) {
-          /* Keep track of the worst match on converting an element of
-             an array. */
-          aggr_arg_match = arg_match;
+        if (arg_match != NULL) {
+          if (is_array_type(dest_type)) {
+            /* Keep track of the worst match on converting an element of
+               an array. */
+            aggr_arg_match = arg_match;
+#if C99_IL_EXTENSIONS_SUPPORTED
+          } else if (gpp_mode && gnu_version >= 40700 &&
+                     is_complex_type(dest_type)) {
+            /* The GNU extension that allows a complex object to be initialized
+               with a braced initializer appears to behave like array
+               initialization when it comes to match ranking. */
+            aggr_arg_match = arg_match;
+          }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         }  /* if */
         /* No unbundling here, since we will still want to handle the
            expressions individually at the next level down. */
