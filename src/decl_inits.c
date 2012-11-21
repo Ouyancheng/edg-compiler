@@ -909,6 +909,59 @@ vector type.
 }  /* aggr_init_vector */
 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+
+static void aggr_init_complex(an_init_component_ptr  *p_icp,
+                              a_type_ptr             dtype,
+                              an_init_state          *is,
+                              a_constant_ptr         *init_con)
+/*
+Produce an aggregate constant (in *init_con) for the initialization of a GNU
+complex type dtype.  *p_icp represents a braced initializer with at least two
+elements.  *is tracks the current initialization.  The component following the
+braced initializer (or NULL if there is none) is returned through *p_icp.
+*/
+{
+  an_init_component_ptr  icp = *p_icp;
+  a_source_position      *diag_pos;
+  a_type_ptr             ftype;
+  a_constant_ptr         elem_con;
+
+  check_assertion(is_braced_init_component(icp));
+  diag_pos = &icp->variant.braced.end_pos;
+  /* Create the result entry (unless we are only checking validity). */
+  if (is->check_validity_only) {
+    *init_con = NULL;
+  } else {
+    *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    (*init_con)->type = dtype;
+    (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+    (*init_con)->explicit_braces_on_aggregate = TRUE;
+  }  /* if */
+  /* Determine the underlying floating-point type of dtype. */
+  ftype = skip_typerefs(dtype);
+  check_assertion(dtype->kind == (a_type_kind)tk_complex);
+  ftype = float_type(ftype->variant.float_kind);
+  /* Convert the real and complex parts in turn. */
+  icp = icp->variant.braced.list;
+  check_assertion(icp != NULL && icp->next != NULL);
+  aggr_init_element(&icp, ftype, is, diag_pos, &elem_con);
+  if (!is->check_validity_only) {
+    append_constant_in_aggr(elem_con, *init_con);
+  }  /* if */
+  aggr_init_element(&icp, ftype, is, diag_pos, &elem_con);
+  if (!is->check_validity_only) {
+    append_constant_in_aggr(elem_con, *init_con);
+  }  /* if */
+  /* Issue an error if there are extraneous elements. */
+  if (icp != NULL) {
+    pos_error(ec_too_many_initializer_values, init_component_pos(icp));
+  }  /* if */
+  /* Move to the next element after the braces. */
+  *p_icp = (*p_icp)->next;
+}  /* aggr_init_complex */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 static a_constant_ptr default_nontrivial_init_constant_for_aggr_member(
                                                  a_type_ptr         tp,
@@ -2469,6 +2522,19 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
     is->arg_match = NULL;
     aggr_init_vector(p_icp, etype, is, init_con);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  } else if (gpp_mode && gnu_version >= 40700 &&
+             etype_kind == (a_type_kind)tk_complex &&
+             is_braced_init_component(icp) &&
+             icp->variant.braced.list != NULL &&
+             icp->variant.braced.list->next) {
+    /* g++ 4.7 introduced the possibility of initializing the real and
+       imaginary components of a built-in "complex" object with aggregate
+       initialization syntax.  Cases with empty braces or singleton braces
+       remain simple initializations and therefore fall through to the
+       default case). */
+    aggr_init_complex(p_icp, etype, is, &is->init_con);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled && is_braced_init_component(icp) &&
              is_handle_type(etype) &&
@@ -2646,6 +2712,21 @@ the type pointed to is opaque to declaration processing.
       aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
       if (arg_match != NULL) record_aggr_init_match(arg_match);
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
+      if (gpp_mode && gnu_version >= 40700 &&
+          icp->variant.braced.list != NULL &&
+          icp->variant.braced.list->next) {
+        /* g++ 4.7 introduced the possibility of initializing the real and
+           imaginary components of a built-in "complex" object with aggregate
+           initialization syntax.  Cases with empty braces or singleton
+           braces remain simple initializations and therefore fall through
+           to the default case). */
+        aggr_init_complex(&icp, dtype, is, &is->init_con);
+        if (arg_match != NULL) record_aggr_init_match(arg_match);
+        break;
+      }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     default:
       unexpected_condition();
   }  /* switch */
@@ -2872,6 +2953,21 @@ initializer, already copied and substituted.
         }  /* if */
       }  /* if */
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
+      if (gpp_mode && gnu_version >= 40700 &&
+          icp->variant.braced.list != NULL &&
+          icp->variant.braced.list->next) {
+        /* g++ 4.7 introduced the possibility of initializing the real and
+           imaginary components of a built-in "complex" object with aggregate
+           initialization syntax.  Cases with empty braces or singleton
+           braces remain simple initializations and therefore fall through
+           to the default case). */
+        aggr_init_complex(&icp, dtype, is, &is->init_con);
+        break;
+      }  /* if */
+      /*FALLTHROUGH*/
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     default:
       /* Non-class, non-aggregate initialization. */
       process_simple_init_component(icp, dtype, is, is_var_init);

@@ -4710,6 +4710,9 @@ field designator.
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         array_case = TRUE;
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4749,6 +4752,11 @@ field designator.
       /* Vector -- like an array. */
       sub_type = type->variant.vector.element_type;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    } else if (type->kind == (a_type_kind)tk_complex) {
+      /* A complex aggregate value: Treat as an array of two elements. */
+      sub_type = constant->variant.aggregate.first_constant->type;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (is_handle_to_cli_array_type(type)) {
       check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
