@@ -1479,6 +1479,9 @@ extern void perform_scheduled_routine_moves(void);
 
 extern void schedule_move_to_current_end_of_routines_list(a_routine_ptr  rp);
 
+extern a_boolean is_last_routine_scheduled_for_move(a_routine_ptr  rp,
+                                                    a_scope_depth  *depth);
+
 extern void remove_from_routines_list(a_routine_ptr rout_ptr,
                                       a_scope_depth scope_depth);
 

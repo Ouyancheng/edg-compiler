@@ -5211,18 +5211,20 @@ associated sk_external_variable or sk_external_routine symbol, if any.
              !sym->explicit_linkage_specifier) ||
             scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
             idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
-          if (is_function &&
-              scp->name_linkage == (a_name_linkage_kind)nlk_external &&
-              decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-            /* Since this is an extern "C" function, its a_routine entry is
-               on the file scope's list.  Changing the name linkage to
-               something else requires us to move the entry to the appropriate
-               scope: Otherwise, schedule_move_to_current_end_of_routines_list
-               will operate on the wrong routines list. */
-            remove_from_routines_list(sym->variant.routine.ptr,
-                                      DEPTH_OF_FILE_SCOPE);
-            add_to_routines_list(sym->variant.routine.ptr,
-                                 idlbp->effective_decl_level);
+          if (is_function) {
+            a_routine_ptr  rp = sym->variant.routine.ptr;
+            a_scope_depth  move_depth;
+            if (scp->name_linkage == (a_name_linkage_kind)nlk_external &&
+                is_last_routine_scheduled_for_move(rp, &move_depth) &&
+                move_depth != DEPTH_OF_FILE_SCOPE) {
+              /* Since this is an extern "C" function, its a_routine entry is
+                 on the file scope's list.  Changing the name linkage may
+                 require us to move the entry to the appropriate scope:
+                 Otherwise, schedule_move_to_current_end_of_routines_list will
+                 operate on the wrong routines list. */
+              remove_from_routines_list(rp, DEPTH_OF_FILE_SCOPE);
+              add_to_routines_list(rp, move_depth);
+            }  /* if */
           }  /* if */
           if (microsoft_mode && !sym->defined && sev == es_error &&
               idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
