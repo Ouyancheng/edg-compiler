@@ -1939,6 +1939,15 @@ that is an abstract class type.
 }  /* routine_has_abstract_param_or_return_type */
 
 
+static a_type_ptr substitute_template_arguments_full(
+				a_symbol_ptr		templ_sym,
+				a_template_arg_ptr	templ_arg_list,
+				a_template_arg_ptr	*new_arg_list,
+				a_template_param_ptr	templ_param_list,
+				a_boolean		is_partial_order_check,
+				a_boolean		is_rescan_check);
+
+
 a_type_ptr wrapup_function_template_argument_deduction(
 				a_template_arg_ptr   *templ_arg_list,
                                 a_symbol_ptr         rout_templ_sym,
@@ -1977,10 +1986,11 @@ compare_function_templates.
   if (wrapup_template_argument_deduction(*templ_arg_list, rout_templ_sym,
                                          templ_param_list,
                                          is_partial_order_check)) {
-    new_type = substitute_template_arguments(rout_templ_sym, *templ_arg_list,
-                                             (a_template_arg_ptr*)NULL,
-                                             templ_param_list,
-                                             is_partial_order_check);
+    new_type = substitute_template_arguments_full(
+                                  rout_templ_sym, *templ_arg_list,
+                                  (a_template_arg_ptr*)NULL, templ_param_list,
+                                  is_partial_order_check,
+                                  /*is_rescan_check=*/FALSE);
     if (new_type != NULL && (microsoft_mode || gpp_mode)) {
       /* Normally, a function type will have been considered invalid if
          a parameter or return type was an abstract class type, but in
@@ -10152,7 +10162,8 @@ a pointer over a reference type or creating an array of references.
             new_type = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
-            if (!gpp_mode) {
+            if (!gpp_mode &&
+                !(microsoft_mode && (options & CTWS_FOR_RESCAN_CHECK))) {
               /* Qualifiers on the class type are normally ignored, but GCC
                  compilers sometimes transfer the qualifiers from the class
                  type to a member function type in this context.  (Microsoft
@@ -10720,12 +10731,13 @@ supplement associated with the function template being used.
 }  /* find_substituted_type */
 
 
-a_type_ptr substitute_template_arguments(
+static a_type_ptr substitute_template_arguments_full(
 				a_symbol_ptr		templ_sym,
 				a_template_arg_ptr	templ_arg_list,
 				a_template_arg_ptr	*new_arg_list,
 				a_template_param_ptr	templ_param_list,
-				a_boolean		is_partial_order_check)
+				a_boolean		is_partial_order_check,
+				a_boolean		is_rescan_check)
 /*
 In the function template specified by templ_sym, replace the template
 parameters in the function type with the values specified by
@@ -10740,7 +10752,11 @@ parameter list from the template symbol supplement is used.  The
 parameter is supplied because some calls of this routine occur before
 the field in the template symbol supplement has been set.
 is_partial_order_check is TRUE when this function is called (indirectly)
-during wrapup processing by compare_function_templates.
+during wrapup processing by compare_function_templates.  is_rescan_check
+is TRUE when this function is called to check that the type obtained by
+rescanning a function template declaration is equivalent to the one
+obtained by substitution (through verify_routine_type_matches_template).
+See also substitute_template_arguments_full.
 */
 {
   a_boolean				copy_error = FALSE;
@@ -10780,11 +10796,14 @@ during wrapup processing by compare_function_templates.
     }  /* if */
   }  /* if */
   if (templ_arg_list != NULL) {
+    if (is_rescan_check) ctws_options |= CTWS_FOR_RESCAN_CHECK;
     /* See whether copy_type_with_substitution has already been done for
-       this template argument list.  If so, simply return the type
-       already created.  Don't do this when preserving deduced packs as
-       that flag causes a different type to be returned below. */
-    if ((ctws_options & CTWS_PRESERVE_DEDUCED_PACKS) == 0) {
+       this template argument list.  If so, simply return the type already
+       created.  Don't do this when preserving deduced packs or checking
+       the routine type obtained by rescanning a function template as
+       those flags can cause a different type to be returned below. */
+    if ((ctws_options & (CTWS_PRESERVE_DEDUCED_PACKS |
+                         CTWS_FOR_RESCAN_CHECK)) == 0) {
       templ_rout_type = find_substituted_type(tssp, templ_arg_list);
     }  /* if */
     if (templ_rout_type == NULL) {
@@ -10826,8 +10845,23 @@ during wrapup processing by compare_function_templates.
     }  /* if */
   }  /* if */
   return templ_rout_type;
-}  /* substitute_template_arguments */
+}  /* substitute_template_arguments_full */
 
+
+a_type_ptr substitute_template_arguments(
+				a_symbol_ptr		templ_sym,
+				a_template_arg_ptr	templ_arg_list,
+				a_template_arg_ptr	*new_arg_list,
+				a_template_param_ptr	templ_param_list)
+/*
+Convenience interface to substitute_template_arguments_full with common (FALSE)
+values for the flag parameters.
+*/
+{
+  return substitute_template_arguments_full(
+                  templ_sym, templ_arg_list, new_arg_list, templ_param_list,
+                  /*is_partial_order_check=*/FALSE, /*is_rescan_check=*/FALSE);
+}  /* substitute_template_arguments */
 
 #if CHECKING
 static void check_function_template_arg_list(
@@ -11548,11 +11582,12 @@ declared and before the partial instantiation of the function was done.
   a_type_ptr	substituted_type;
   a_type_ptr	type = rout->type;
 
-  substituted_type = substitute_template_arguments(
+  substituted_type = substitute_template_arguments_full(
                                   templ_sym, templ_arg_list,
                                   (a_template_arg_ptr*)NULL,
                                   (a_template_param_ptr)NULL,
-                                  /*is_partial_order_check=*/FALSE);
+                                  /*is_partial_orer_check=*/FALSE,
+                                  /*is_rescan_check=*/TRUE);
   if (substituted_type == NULL ||
       incompatible_substituted_and_rescanned_types_after_fixup(
                                                     substituted_type, type)) {
@@ -12610,8 +12645,7 @@ matching process.
     a_template_arg_ptr	new_arg_list;
     templ_rout_type = substitute_template_arguments(
                                   templ_sym, explicit_arg_list, &new_arg_list,
-                                  (a_template_param_ptr)NULL,
-                                  /*is_partial_order_check=*/FALSE);
+                                  (a_template_param_ptr)NULL);
     *templ_arg_list = new_arg_list;
     /* A NULL type will be returned if the copy could not be done because
        the substitution of the template arguments would result in an invalid
@@ -12845,8 +12879,7 @@ matches, a new argument list is returned in *new_arg_list.
     /* Create a substituted type based on the template arguments. */
     result_type = substitute_template_arguments(
                            template_sym, *new_arg_list,
-                           (a_template_arg_ptr*)NULL,
-                           templ_param_list, /*is_partial_order_check=*/FALSE);
+                           (a_template_arg_ptr*)NULL, templ_param_list);
   }  /* if */
   pop_instantiation_scope_for_rescan();
   /* If there was no match, free the new template argument list, if any. */

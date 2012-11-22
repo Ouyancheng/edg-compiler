@@ -1587,6 +1587,11 @@ typedef int a_ctws_options_set;
 			   explicitly supplied template arguments so that
 			   the resulting type will still be usable to deduce
 			   the remaining pack. */
+#define CTWS_FOR_RESCAN_CHECK	0x80
+			/* TRUE if copy_type_with_substitution is being called
+			   to verify that it yields a type equivalent to one
+			   obtained by rescanning a function template
+			   declaration. */
 
 /*
 Structure used to represent a set of function parameters that resulted from

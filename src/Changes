@@ -1,5 +1,28 @@
 Version 4.6
 
+11/21/12 [EDGcpfe/13377]
+Spurious error on certain instantiated pointer-to-member functions in
+Microsoft mode
+
+In Microsoft mode (and in GNU C++ mode) the front end treats the instantiation
+of pointer-to-member-function types specially: See the entry for EDGcpfe/12214
+of 1/18/12.  In some cases, however, an internally inconsistent application of
+this special treatment triggered a spurious error in Microsoft mode (but not
+in GNU C++ mode).  For example:
+
+  template <typename T> struct X {
+    template<class U> static char f(void(U::*p)());
+                // p has dependent pointer-to-member-function type.
+    static const unsigned value = (unsigned)sizeof(f<T>(0));
+  };
+  class C {};
+  bool b = X<const C>::value;
+      // Instantiation of the pointer-to-member function type with a "const"
+      // class type previously triggered a "unexpected function type" error.
+
+This is now fixed.
+
+
 11/21/12 [EDGcpfe/13406]
 Incorrect end position recorded for simple variable initialization
 
