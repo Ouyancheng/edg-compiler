@@ -21285,8 +21285,8 @@ controls).
                with a braced initializer appears to behave like array
                initialization when it comes to match ranking. */
             aggr_arg_match = arg_match;
-          }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+          }  /* if */
         }  /* if */
         /* No unbundling here, since we will still want to handle the
            expressions individually at the next level down. */
