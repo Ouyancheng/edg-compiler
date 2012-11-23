@@ -1,5 +1,27 @@
 Version 4.6
 
+11/23/12 [EDGcpfe/13425]
+Incorrect complete-object-type determination with pointer-to-member operator
+
+The code that determines the complete object type for an expression
+incorrectly assumed that a pointer-to-member reference always yields
+a complete object, because a member of a class is always a complete
+object.  That logic unfortunately ignored the fact that the member may
+have base classes.  Now fixed, by assuming we can never tell the
+complete object type for pointer-to-member operations.  Formerly, this
+test case got a link-time error because the call was interpreted
+as a non-virtual call to the pure virtual function of the base class:
+
+  struct B { virtual void f() = 0; };
+  struct D : B { virtual void f() {} };
+  struct A { D d; };
+  int main() {
+    A a;
+    B A::*pm = (B A::*)&A::d;
+    (a.*pm).f();
+  }
+
+
 11/21/12 [EDGcpfe/13377]
 Spurious error on certain instantiated pointer-to-member functions in
 Microsoft mode

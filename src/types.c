@@ -4003,11 +4003,9 @@ object or an rvalue that is a pointer (or C++/CLI handle) to an object.
             suppress_subtree_walk = TRUE;
           } else if (op == (an_expr_operator_kind)eok_pm_field ||
                      op == (an_expr_operator_kind)eok_pm_points_to_field) {
-            /* a.*pm, p->*pm.  The member type of the second operand gives the
-               complete object type. */
-            if (is_ptr_to_member_type(operand2->type)) {
-              complete_object_type = pm_member_type(operand2->type);
-            }  /* if */
+            /* a.*pm, p->*pm.  We can't tell the complete object type because
+               the member type of the pointer-to-member might be a base class
+               of the actual member type. */
             suppress_subtree_walk = TRUE;
           } else if (op == (an_expr_operator_kind)eok_question
 #if GNU_EXTENSIONS_ALLOWED
