@@ -10838,7 +10838,8 @@ See also substitute_template_arguments_full.
            parameter contains any template parameters. */
         set_parameter_list_template_param_flags(templ_rout_type);
       }  /* if */
-      if ((ctws_options & CTWS_PRESERVE_DEDUCED_PACKS) == 0) {
+      if ((ctws_options & (CTWS_PRESERVE_DEDUCED_PACKS |
+                           CTWS_FOR_RESCAN_CHECK)) == 0) {
         /* Add the new type to the list of substituted types. */
         add_to_substituted_types_list(tssp, templ_arg_list, templ_rout_type);
       }  /* if */
@@ -11586,7 +11587,7 @@ declared and before the partial instantiation of the function was done.
                                   templ_sym, templ_arg_list,
                                   (a_template_arg_ptr*)NULL,
                                   (a_template_param_ptr)NULL,
-                                  /*is_partial_orer_check=*/FALSE,
+                                  /*is_partial_order_check=*/FALSE,
                                   /*is_rescan_check=*/TRUE);
   if (substituted_type == NULL ||
       incompatible_substituted_and_rescanned_types_after_fixup(
