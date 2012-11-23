@@ -4675,7 +4675,8 @@ the point of call.  conv_context describes the context of the conversion.
         push_instantiation_scope_for_rescan(function_symbol);
         routine_type = substitute_template_arguments(
                          function_symbol, template_arg_list,
-                         &local_template_arg_list, (a_template_param_ptr)NULL);
+                         &local_template_arg_list, (a_template_param_ptr)NULL,
+                         /*is_partial_order_check=*/FALSE);
         --(tssp->variant.function.pending_deductions);
         pop_instantiation_scope_for_rescan();
         /* Bail out if there is a mismatch. */
