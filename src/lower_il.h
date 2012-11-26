@@ -99,6 +99,15 @@ when a just-allocated entry requires lowering.
 */
 #define mark_as_not_visited(entry_ptr) (il_lowering_flag_of(entry_ptr) = FALSE)
 
+/*
+Macro to test for a zero-length field.  This includes zero-length bit fields,
+incomplete array fields (where allowed), and nontrivial properties and events
+(in Microsoft mode).
+*/
+#define field_has_zero_length(field)                                        \
+  ((field)->is_bit_field ? (field)->bit_size == 0 :                         \
+                           (skip_typerefs((field)->type)->size == 0 ||      \
+                            field_is_nontrivial_property_or_event(field)))
 
 EXTERN an_integer_kind
 		targ_ptr_to_data_member_int_kind;

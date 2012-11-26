@@ -1015,17 +1015,6 @@ a type identical to base_class_type.  It must be found.
 }  /* find_direct_or_virtual_base_class_of */
 
 
-/*
-Macro to test for a zero-length field.  This includes zero-length bit fields,
-incomplete array fields (where allowed), and nontrivial properties and events
-(in Microsoft mode).
-*/
-#define field_has_zero_length(field)                                        \
-  ((field)->is_bit_field ? (field)->bit_size == 0 :                         \
-                           (skip_typerefs((field)->type)->size == 0 ||      \
-                            field_is_nontrivial_property_or_event(field)))
-
-
 static a_field_ptr add_field(char          *field_name,
                              a_type_ptr    field_type,
                              a_targ_size_t field_offset,
@@ -4732,6 +4721,7 @@ Do IL lowering of the indicated constant and everything under it.
         break;
       case ck_aggregate:
         lower_constant_list(constant->variant.aggregate.first_constant);
+        initialize_vptr_in_aggregate_constant(constant);
 #if IA64_ABI
         fill_out_aggregate_ptr_to_data_member_initialization(constant);
 #endif /* IA64_ABI */

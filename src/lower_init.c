@@ -319,6 +319,46 @@ calling sequence.
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- class_type and bcp are unused in that case. */
 #endif /* !IA64_ABI */
+static void make_vtbl_address_constant(a_variable_ptr   var,
+                                       a_type_ptr       class_type,
+                                       a_base_class_ptr bcp,
+                                       a_constant       *addr_constant)
+/*
+Make an address constant for the address of a virtual function table variable
+(var) and return it in *addr_constant.  class_type is the type whose
+constructor or destructor is being generated; bcp is the base whose virtual
+function table is being addressed, or NULL if the primary virtual function
+table is being addressed.  The variable has an array type.  The pointer has
+type pointer to element.
+*/
+{
+  a_type_ptr                  ptr_element_type;
+#if IA64_ABI
+  a_virtual_table_index       vtbl_index;
+#endif /* IA64_ABI */
+
+  ptr_element_type = make_pointer_type(array_element_type(var->type));
+  /* Make a constant for the address of the array, implicitly cast it to
+     pointer-to-element-type, and make an expression whose value is the
+     address constant.  This gives an address with the right type. */
+  set_variable_address_constant(var, addr_constant,
+                                /*set_address_taken_flag=*/FALSE);
+  implicit_cast(addr_constant, ptr_element_type);
+  set_variable_address_taken(var);
+  var->source_corresp.referenced = TRUE;
+#if IA64_ABI
+  /* Add the offset from the start of the variable to the actual address
+     point. */
+  check_assertion(bcp == NULL || !bcp->shares_virtual_function_info);
+  vtbl_index = num_negative_vtable_entries(class_type, bcp);
+  if (bcp != NULL) {
+    vtbl_index += bcp->virtual_function_table_offset;
+  }  /* if */
+  addr_constant->variant.address.offset = vtbl_index * (long)vtbl_entry_size();
+#endif /* IA64_ABI */
+}  /* make_vtbl_address_constant */
+
+
 static an_expr_node_ptr make_vtbl_address_node(a_variable_ptr   var,
                                                a_type_ptr       class_type,
                                                a_base_class_ptr bcp)
@@ -333,30 +373,8 @@ element.
 {
   an_expr_node_ptr            var_node;
   a_constant                  addr_constant;
-  a_type_ptr                  ptr_element_type;
-#if IA64_ABI
-  a_virtual_table_index       vtbl_index;
-#endif /* IA64_ABI */
 
-  ptr_element_type = make_pointer_type(array_element_type(var->type));
-  /* Make a constant for the address of the array, implicitly cast it to
-     pointer-to-element-type, and make an expression whose value is the
-     address constant.  This gives an address with the right type. */
-  set_variable_address_constant(var, &addr_constant,
-                                /*set_address_taken_flag=*/FALSE);
-  implicit_cast(&addr_constant, ptr_element_type);
-  set_variable_address_taken(var);
-  var->source_corresp.referenced = TRUE;
-#if IA64_ABI
-  /* Add the offset from the start of the variable to the actual address
-     point. */
-  check_assertion(bcp == NULL || !bcp->shares_virtual_function_info);
-  vtbl_index = num_negative_vtable_entries(class_type, bcp);
-  if (bcp != NULL) {
-    vtbl_index += bcp->virtual_function_table_offset;
-  }  /* if */
-  addr_constant.variant.address.offset = vtbl_index * (long)vtbl_entry_size();
-#endif /* IA64_ABI */
+  make_vtbl_address_constant(var, class_type, bcp, &addr_constant);
   var_node = alloc_node_for_constant(&addr_constant);
   return var_node;
 }  /* make_vtbl_address_node */
@@ -1449,6 +1467,75 @@ NULL pointer-to-data member in the IA-64 ABI.
     }  /* if */
   }  /* if */
 }  /* make_lowered_zero_of_proper_type */
+
+
+void initialize_vptr_in_aggregate_constant(a_constant_ptr constant)
+/*
+An aggregate constant is being lowered; if the constant is initializing
+a class which has a virtual function table, add an entry to the
+initializer to set the virtual function table to the primary virtual
+function table for the class.  This situation arises when a default
+constexpr constructor is created for a class.  There is no need to deal with
+construction vtables because a constexpr constructor can't have virtual
+base classes.
+*/
+{
+  a_type_ptr class_type = skip_typerefs(constant->type);
+
+  if (is_class_struct_union_type(class_type) &&
+      needs_virtual_function_table(class_type)) {
+    a_constant                  addr_constant;
+    a_constant_ptr              vptr_con, aggr_con, prev_con = NULL;
+    a_field_ptr                 field;
+    a_class_type_supplement_ptr ctsp =
+                             class_type->variant.class_struct_union.extra_info;
+    check_assertion(!class_type->
+                          variant.class_struct_union.any_virtual_base_classes);
+    /* Make sure the class type has been lowered. */
+    prelower_class_type(class_type);
+    check_assertion(ctsp->virtual_function_table_var != NULL);
+    /* Create the address constant that points to the primary vtable for
+       the class. */
+    make_vtbl_address_constant(ctsp->virtual_function_table_var,
+                               class_type,
+                               (a_base_class_ptr)NULL,
+                               &addr_constant);
+    vptr_con = alloc_unshared_constant(&addr_constant);
+    /* Iterate over the field list for the class and find the __vptr
+       field (recurse for any nested subobjects). */
+    check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
+    aggr_con = constant->variant.aggregate.first_constant;
+    for (field = class_type->variant.class_struct_union.field_list;
+         field != NULL;
+         field = field->next) {
+      if (field->offset == ctsp->virtual_function_info_offset &&
+          !field_has_zero_length(field)) {
+        /* We've found the proper field; insert an initial value for the
+           __vptr field into the aggregate constant. */
+        if (prev_con == NULL) {
+          /* Insert at beginning of list. */
+          vptr_con->next = constant->variant.aggregate.first_constant;
+          constant->variant.aggregate.first_constant = vptr_con;
+        } else {
+          vptr_con->next = prev_con->next;
+          prev_con->next = vptr_con;
+        }  /* if */
+        if (constant->variant.aggregate.last_constant == prev_con) {
+          constant->variant.aggregate.last_constant = vptr_con;
+        }  /* if */
+      } else {
+        /* Advance to the next constant in the aggregate. */
+        check_assertion(aggr_con != NULL);
+        /* Check any nested subobjects. */
+        if (is_class_struct_union_type(skip_typerefs(aggr_con->type))) {
+          initialize_vptr_in_aggregate_constant(aggr_con);
+        }
+        prev_con = aggr_con;
+        aggr_con = aggr_con->next;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* initialize_vptr_in_aggregate_constant */
 
 
 static void add_init_assignment(a_dynamic_init_ptr     dip,
