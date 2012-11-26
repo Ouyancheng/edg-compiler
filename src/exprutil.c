@@ -10953,9 +10953,8 @@ function type.  If there is an error, change the operand to an error operand.
 
 a_boolean check_scalar_operand(an_operand *operand)
 /*
-Return FALSE and issue an error message if the operand is not of scalar type.
-If there is an error, change "operand" to an error operand.
-See section 3.1.2.5 of the standard.
+Return FALSE and issue an error message if the operand is not of a simple
+scalar type.  If there is an error, change "operand" to an error operand.
 */
 {
   a_boolean okay = TRUE;
@@ -10964,7 +10963,7 @@ See section 3.1.2.5 of the standard.
     /* If the operand has a type of error, an error message has already been
        issued. */
     okay = FALSE;
-  } else if (!is_scalar_type(operand->type)) {
+  } else if (!is_simple_scalar_type(operand->type)) {
     error_in_operand(expr_not_arithmetic_or_pointer_code(), operand);
     okay = FALSE;
   }  /* if */

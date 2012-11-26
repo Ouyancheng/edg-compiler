@@ -185,11 +185,12 @@ predicates.
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_reference_ptr(tp) (is_any_reference(tp))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-/* Scalar types are the arithmetic and enum types plus the pointer
-   types and the nullptr type.  C++/CLI handle types are also scalar
-   (ECMA-372, 12). */
+/* Scalar types are the arithmetic and enum types plus the pointer (and
+   pointer-to-member) types and the nullptr type.  C++/CLI handle types
+   are also scalar (ECMA-372, 12). */
 #define is_scalar(tp) (is_arithmetic_or_enum(tp) || \
                        is_pointer_or_handle(tp) ||  \
+                       is_ptr_to_member(tp) ||      \
                        is_nullptr(tp))
 
 /* Array types are simply array types. */
@@ -1543,12 +1544,24 @@ Return TRUE if tp is a C++/CLI open constructed type (ECMA-372 31.2.1).
 
 a_boolean is_scalar_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a scalar type (3.1.2.5).
+Return TRUE if the given type is a scalar type (which in C++ includes
+pointer-to-member types).
 */
 {
   tp = skip_typerefs(tp);
-  return(is_scalar(tp));
+  return is_scalar(tp);
 }  /* is_scalar_type */
+
+
+a_boolean is_simple_scalar_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a scalar type but not a C++ pointer-to-member
+type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_scalar(tp) && !is_ptr_to_member(tp);
+}  /* is_simple_scalar_type */
 
 
 a_boolean is_trivially_copyable_type(a_type_ptr tp)

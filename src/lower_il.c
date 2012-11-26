@@ -12939,7 +12939,7 @@ and lvalueness as question_node.
      type is scalar, use a zero cast to that type.  Otherwise (e.g., if
      it's a struct), indirect through a null pointer to the right kind. */
   zero_type = question_node_type;
-  nonscalar = !is_scalar_type(question_node_type);
+  nonscalar = !is_simple_scalar_type(question_node_type);
   if (question_node->is_lvalue || nonscalar) {
     zero_type = make_pointer_type(question_node_type);
   }  /* if */
@@ -15120,8 +15120,8 @@ is_full_expr is TRUE.
      (and is not required if normalization is not required). */
   if (is_operation_node(top_op) && node_operator_is(top_op, eok_bool_cast)) {
     a_type_ptr  op_type = top_op->variant.operation.operands->type;
-    if (is_scalar_type(op_type)) {
-      /* The test for scalar types excludes pointer-to-member types. */
+    if (is_simple_scalar_type(op_type)) {
+      /* The test for simple scalar types excludes pointer-to-member types. */
       overwrite_node(top_op, top_op->variant.operation.operands);
     }  /* if */
   }  /* if */
