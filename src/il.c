@@ -11817,7 +11817,7 @@ input.
   }  /* if */
   if (is_class_struct_union_type(tp)) {
     /* The type of the first parameter is a class type. */
-    if (f_same_entities(skip_typerefs(tp), class_type)) {
+    if (types_are_compatible_ignoring_qualifiers(tp, class_type)) {
       /* The parameter's type matches the class of which the assignment
          operator is a member. */
       is_copy_assign = TRUE;
