@@ -17477,28 +17477,37 @@ the temporary.
   } else if (conversion_routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
     /* Conversion function. */
+    a_constant       result_con;
     an_expr_node_ptr conv_function_call_node;
 
     set_up_for_conversion_function_call(operand, conversion_routine,
                                         conversion->routine_symbol,
                                         &arg_expr_list);
-    /* Conversion routines are called directly. */
-    /* Make a node for the function. */
-    rout_node = function_rvalue_expr(conversion_routine);
-    rout_node->next = arg_expr_list;
-    /* Make an operand for the call. */
-    make_function_call(rout_node, conversion_routine->type,
-                       (a_boolean)conversion_routine->is_virtual,
-                       /*virtual_suppressed=*/FALSE,
-                       /*selector_is_object_pointer=*/FALSE,
-                       /*compiler_generated=*/!is_explicit_cast,
-                       /*is_conversion=*/TRUE,
-                       /*arg_dep_lookup_suppressed=*/FALSE,
-                       /*qualified_function_name=*/FALSE,
-                       /*found_through_adl=*/FALSE,
-                       /*uses_operator_syntax=*/FALSE,
-                       &orig_operand.position, operand,
-                       &conv_function_call_node);
+    if (conversion_routine->is_constexpr &&
+        fold_constexpr_call(conversion_routine, arg_expr_list,
+                            &orig_operand.position, &result_con)) {
+      /* The conversion function is constexpr and the call was folded to a
+         constant result. */
+      make_constant_operand(&result_con, operand);
+      copy_operand_position(&orig_operand, operand);
+    } else {
+      /* Make a node for the function. */
+      rout_node = function_rvalue_expr(conversion_routine);
+      rout_node->next = arg_expr_list;
+      /* Make an operand for the call. */
+      make_function_call(rout_node, conversion_routine->type,
+                         (a_boolean)conversion_routine->is_virtual,
+                         /*virtual_suppressed=*/FALSE,
+                         /*selector_is_object_pointer=*/FALSE,
+                         /*compiler_generated=*/!is_explicit_cast,
+                         /*is_conversion=*/TRUE,
+                         /*arg_dep_lookup_suppressed=*/FALSE,
+                         /*qualified_function_name=*/FALSE,
+                         /*found_through_adl=*/FALSE,
+                         /*uses_operator_syntax=*/FALSE,
+                         &orig_operand.position, operand,
+                         &conv_function_call_node);
+    }  /* if */
     if (dest_type == NULL) {
       /* No specified destination type.  The result type of the conversion
          function is what we want. */
