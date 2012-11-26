@@ -134,7 +134,7 @@ in function perform_scheduled_routine_moves (il.c).  For example:
   extern "C" namespace N { void f(), g(); }
   namespace N {
     static void f() {}  // This definition previously caused the front end
-  }                     // to enter an infinite loop is many modes.
+  }                     // to enter an infinite loop in many modes.
 
 This is now fixed.
 
