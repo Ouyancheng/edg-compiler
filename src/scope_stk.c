@@ -798,15 +798,15 @@ discriminator field in the symbol supplement.
 
 static void assign_discriminators_to_entities_list(
                                          an_il_entity_list_entry_ptr  elp,
-                                         a_boolean                    sdm_init)
+                                         a_symbol_ptr                 sym)
 /*
 Assign consecutive discriminator values (starting with one) to the entities
 in the given list when appropriate (currently, this is only for closure types
-in the list).  If sdm_init is TRUE, the entities list is one associated with a
-static data member initializer.
+in the list).  If the entities list is one associated with a data member
+initializer, sym represents that data member (otherwise, it is NULL).
 */
 {
-  a_discriminator              last_n = 0;
+  a_discriminator  last_n = 0;
 
   for (; elp != NULL; elp = elp->next) {
     if (elp->entity.kind == (a_byte_il_entry_kind)iek_type) {
@@ -817,8 +817,10 @@ static data member initializer.
       ctsp = class_type_supp(tp);
       if (ctsp->is_lambda_closure_class) {
         symbol_supplement_for_class(tp)->discriminator = ++last_n;
-        if (sdm_init) {
+        if (symbol_is(sym, sk_static_data_member)) {
           ctsp->defined_in_static_data_member_initializer = TRUE;
+        } else if (symbol_is(sym, sk_field)) {
+          ctsp->defined_in_field_initializer = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -836,7 +838,7 @@ discriminators now.  (Currently, this only applies to closure types.)
 */
 {
   assign_discriminators_to_entities_list(ptp->entities_defined_in_default_arg,
-                                         /*sdm_init=*/FALSE);
+                                         (a_symbol_ptr)NULL);
 }  /* compute_default_arg_name_collision_discriminators */
 
 
@@ -848,11 +850,14 @@ applies to closure types and only static data member initializers are
 possible.)
 */
 {
-  if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+  if (symbol_is(sym, sk_static_data_member)) {
     a_variable_ptr  sdm_var = sym->variant.static_data_member.variable;
     assign_discriminators_to_entities_list(
-                                    sdm_var->entities_defined_in_initializer,
-                                    /*sdm_init=*/TRUE);
+                               sdm_var->entities_defined_in_initializer, sym);
+  } else if (symbol_is(sym, sk_field)) {
+    a_field_ptr  field = sym->variant.field.ptr;
+    assign_discriminators_to_entities_list(
+                                 field->entities_defined_in_initializer, sym);
   } else {
     unexpected_condition();
   }  /* if */
@@ -880,9 +885,11 @@ in the symbol supplement for the closure type to indicate this).
       check_assertion(is_immediate_class_type(tp));
       ctsp = class_type_supp(tp);
       if (ctsp->is_lambda_closure_class) {
-        if (parent_sym->kind == (a_symbol_kind)sk_static_data_member) {
+        if (symbol_is(parent_sym, sk_static_data_member)) {
           ctsp->lambda_parent.variable =
                               parent_sym->variant.static_data_member.variable;
+        } else if (symbol_is(parent_sym, sk_field)) {
+          ctsp->lambda_parent.field = parent_sym->variant.field.ptr;
         } else {
           check_assertion(is_simple_function_symbol(parent_sym));
           ctsp->lambda_parent.routine = parent_sym->variant.routine.ptr;

@@ -6983,6 +6983,11 @@ typedef struct a_class_type_supplement {
 			   member (closure classes nested in such closure
 			   classes do not necessarily have this flag set to
 			   TRUE). */
+  a_bit_field	defined_in_field_initializer:1;
+			/* TRUE if the class is a closure class defined
+			   directly in the initializer for a field (closure
+			   classes nested in such closure classes do not
+			   necessarily have this flag set to TRUE). */
 #endif /* NEED_NAME_MANGLING */
   a_bit_field	named_in_inline_template_directive:1;
 			/* TRUE if the class was named in a GNU
@@ -7143,7 +7148,8 @@ typedef struct a_class_type_supplement {
 			   arguments were always explicitly specified. */
 #if NEED_NAME_MANGLING
   union {
-    /* When defined_in_static_data_member_initializer is FALSE: */
+    /* When defined_in_static_data_member_initializer and
+       defined_in_field_initializer are both FALSE: */
     a_routine_ptr
 		routine;
 			/* If this entry is for a closure type defined directly
@@ -7157,6 +7163,12 @@ typedef struct a_class_type_supplement {
 			   defined_in_static_data_member_initializer is TRUE),
 			   this points to the entry representing that data
 			   member. */
+    /* When defined_in_field_initializer is TRUE: */
+    a_field_ptr
+		field;
+			/* If this entry is for a closure type defined directly
+			   in the initializer of a field, this points to that
+			   field. */
   } lambda_parent;
 #endif /* NEED_NAME_MANGLING */
   a_hash_value
@@ -9358,6 +9370,11 @@ typedef struct a_field {
 			/* The initializer specified on the field (initializers
 			   on nonstatic data members are a C++11 feature).
 			   NULL if there is no such initializer. */
+  an_il_entity_list_entry_ptr
+		entities_defined_in_initializer;
+			/* A list of entities defined in the initializer
+			   associated with this field.  Currently, this list
+			   only has C++11 closure types. */
   a_constant_ptr
 		bit_size_constant;
 			/* An IL constant representing the size of the bit

@@ -2778,6 +2778,10 @@ Display the indicated field.
       disp_boolean("has_direct_braced_initializer", TRUE);
     }  /* if */
     disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
+    if (ptr->entities_defined_in_initializer != NULL) {
+      disp_entity_list("entities_defined_in_initializer",
+                       ptr->entities_defined_in_initializer);
+    }  /* if */
   }  /* if */
   if (ptr->is_anonymous_parent_object) {
     disp_boolean("is_anonymous_parent_object", TRUE);
@@ -6222,6 +6226,9 @@ Display the indicated class type supplement entry.
 #if NEED_NAME_MANGLING
   if (ptr->defined_in_static_data_member_initializer) {
     disp_boolean("defined_in_static_data_member_initializer", TRUE);
+  }  /* if */
+  if (ptr->defined_in_field_initializer) {
+    disp_boolean("defined_in_field_initializer", TRUE);
   }  /* if */
 #endif /* NEED_NAME_MANGLING */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {

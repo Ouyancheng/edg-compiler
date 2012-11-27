@@ -226,16 +226,21 @@ constant and expr_kind is not already a constant expression kind.
     expr_stack_entry->favor_constant_result = TRUE;
   }  /* if */
   if (dps != NULL && dps->sym != NULL &&
-      symbol_is(dps->sym, sk_static_data_member)) {
+      (symbol_is(dps->sym, sk_static_data_member) ||
+       symbol_is(dps->sym, sk_field))) {
     /* Record entities defined in the initializer expression for a
        static data member (needed for correspondence checking and name
        mangling when the static data member is a template instance).
        In the case of aggregate initializers, this routine may be called
        multiple times for the same initializer: Ensure that additional
        entries are appended to any existing entries. */
-    a_variable_ptr sdm_var = dps->sym->variant.static_data_member.variable;
-    an_il_entity_list_entry_ptr
-                   *ep = &sdm_var->entities_defined_in_initializer;
+    an_il_entity_list_entry_ptr *ep;
+    if (symbol_is(dps->sym, sk_static_data_member)) {
+      a_variable_ptr sdm_var = dps->sym->variant.static_data_member.variable;
+      ep = &sdm_var->entities_defined_in_initializer;
+    } else {
+      ep = &dps->sym->variant.field.ptr->entities_defined_in_initializer;
+    }  /* if */
     while (*ep != NULL) ep = &(*ep)->next;
     expr_stack_entry->p_end_of_entities_defined_in_expression = ep;
   }  /* if */
@@ -256,7 +261,8 @@ parameters match the corresponding ones for push_expr_stack_for_initializer.
   if (is == NULL && dps != NULL) is = &dps->init_state;
   if (dps == NULL && is != NULL) dps = is->decl_parse_state;
   if (dps != NULL && dps->sym != NULL &&
-      symbol_is(dps->sym, sk_static_data_member)) {
+      (symbol_is(dps->sym, sk_static_data_member) ||
+       symbol_is(dps->sym, sk_field))) {
     /* Stop the recording of entities defined in the expression (not strictly
        necessary, but just to be neat). */
     expr_stack->p_end_of_entities_defined_in_expression = NULL;

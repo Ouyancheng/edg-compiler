@@ -1514,6 +1514,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #if NEED_NAME_MANGLING
   ctsp->defined_in_static_data_member_initializer
                                           = FALSE;
+  ctsp->defined_in_field_initializer      = FALSE;
 #endif /* NEED_NAME_MANGLING */
   ctsp->befriending_classes               = NULL;
   ctsp->assoc_template                    = NULL;
@@ -2345,6 +2346,7 @@ to it.
   fp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
   fp->initializer          = NULL;
+  fp->entities_defined_in_initializer = NULL;
   fp->bit_size_constant    = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   fp->property_or_event_descr = NULL;

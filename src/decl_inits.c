@@ -3969,7 +3969,7 @@ returned set to TRUE.
   }  /* if */
   if (symbol_ptr->is_class_member) {
 #if NEED_NAME_MANGLING
-    if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+    if (symbol_is(symbol_ptr, sk_static_data_member)) {
       /* A static data member initializer.  If the initializer defines closure
          types (i.e., contains lambda expressions), assign unique numbers
          ("discriminators") to each one; this numbers will be used by name
@@ -4108,6 +4108,15 @@ IL entry for that field.
     expect_error();
     field->has_initializer = FALSE;
   }  /* if */
+  /* If the initializer defines closure types (i.e., contains lambda
+     expressions), assign unique numbers ("discriminators") to each one; these
+     numbers will be used by name mangling.  Also record the data member as a
+     "parent entity" for such closure types (this is also used in the mangled
+     encoding). */
+  compute_data_member_name_collision_discriminators(dps->sym);
+  set_parent_entity_for_closure_types(
+                             field->entities_defined_in_initializer, dps->sym,
+                             /*subject_to_trans_unit_corresp=*/TRUE);
   scope_stack_top().in_field_initializer = saved_in_field_initializer;
 }  /* field_initializer */
 
