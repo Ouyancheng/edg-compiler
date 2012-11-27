@@ -24767,7 +24767,9 @@ bits of information that were acquired while parsing.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */    
-  if (!class_state->is_nonreal_instantiation) {
+  if (!class_state->is_nonreal_instantiation &&
+      (prototype_instantiations_in_il ||
+       !class_type->variant.class_struct_union.is_nonreal_class)) {
     if (may_be_added_to_types_list(class_type, effective_decl_level)) {
       /* The type will already have been added to the current scope's types
          list.  However, it should be moved to the end of the list (unless
