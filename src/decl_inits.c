@@ -4108,6 +4108,7 @@ IL entry for that field.
     expect_error();
     field->has_initializer = FALSE;
   }  /* if */
+#if NEED_NAME_MANGLING
   /* If the initializer defines closure types (i.e., contains lambda
      expressions), assign unique numbers ("discriminators") to each one; these
      numbers will be used by name mangling.  Also record the data member as a
@@ -4117,6 +4118,7 @@ IL entry for that field.
   set_parent_entity_for_closure_types(
                              field->entities_defined_in_initializer, dps->sym,
                              /*subject_to_trans_unit_corresp=*/TRUE);
+#endif /* NEED_NAME_MANGLING */
   scope_stack_top().in_field_initializer = saved_in_field_initializer;
 }  /* field_initializer */
 
