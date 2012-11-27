@@ -12776,11 +12776,15 @@ a_field_ptr next_initializable_field(a_field_ptr field)
 /*
 Given a pointer to a field (or NULL), return a pointer to the first field
 at or after the given field that is initializable.  Unnamed bit fields,
-for example, are not initializable, and are skipped by initialization
-processing.  If there is no next such field, return NULL.
+and Microsoft properties for example, are not initializable, and are skipped by
+initialization processing.  If there is no next such field, return NULL.
 */
 {
   for (; field != NULL; field = field->next) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Skip any property or event fields. */
+    if (field->property_or_event_descr != NULL) continue;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Unnamed bit fields are not initializable. */
     if (has_name(field) || !field->is_bit_field) break;
     /* Anonymous unions are also initializable in C++.  An extension allows

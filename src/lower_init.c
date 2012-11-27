@@ -1472,12 +1472,13 @@ NULL pointer-to-data member in the IA-64 ABI.
 void initialize_vptr_in_aggregate_constant(a_constant_ptr constant)
 /*
 An aggregate constant is being lowered; if the constant is initializing
-a class which has a virtual function table, add an entry to the
+a class that has a virtual function table, add an entry to the
 initializer to set the virtual function table to the primary virtual
 function table for the class.  This situation arises when a default
 constexpr constructor is created for a class.  There is no need to deal with
 construction vtables because a constexpr constructor can't have virtual
-base classes.
+base classes.  There is no need for the constant to have been previously
+lowered.
 */
 {
   a_type_ptr class_type = skip_typerefs(constant->type);
@@ -1505,11 +1506,11 @@ base classes.
        field (recurse for any nested subobjects). */
     check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
     aggr_con = constant->variant.aggregate.first_constant;
-    for (field = class_type->variant.class_struct_union.field_list;
+    for (field = next_initializable_field(
+                            class_type->variant.class_struct_union.field_list);
          field != NULL;
-         field = field->next) {
-      if (field->offset == ctsp->virtual_function_info_offset &&
-          !field_has_zero_length(field)) {
+         field = next_initializable_field(field->next)) {
+      if (field->offset == ctsp->virtual_function_info_offset) {
         /* We've found the proper field; insert an initial value for the
            __vptr field into the aggregate constant. */
         if (prev_con == NULL) {
@@ -1527,9 +1528,9 @@ base classes.
         /* Advance to the next constant in the aggregate. */
         check_assertion(aggr_con != NULL);
         /* Check any nested subobjects. */
-        if (is_class_struct_union_type(skip_typerefs(aggr_con->type))) {
+        if (is_class_struct_union_type(aggr_con->type)) {
           initialize_vptr_in_aggregate_constant(aggr_con);
-        }
+        }  /* if */
         prev_con = aggr_con;
         aggr_con = aggr_con->next;
       }  /* if */
