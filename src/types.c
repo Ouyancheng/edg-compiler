@@ -6760,29 +6760,6 @@ handler-parameter is of type "other_type".
 }  /* type_is_catchable_by_handler_for_other_type */
 
 
-a_boolean is_nothrow_spec(an_exception_specification_ptr  esp)
-/*
-Return TRUE if the given exception specification is of the form "noexcept",
-"noexcept(<true-constant>)", or "throw()".
-*/
-{
-  a_boolean  result = FALSE;
-
-  if (esp != NULL && !esp->arg_cached) {
-    if (esp->throw_any) {
-      /* This case eliminates "noexcept(<false-constant>)" and
-         "noexcept(<template-dependent-constant>)". */
-      result = FALSE;
-    } else if (esp->is_noexcept) {
-      result = TRUE;
-    } else {
-      result = esp->variant.exception_specification_type_list == NULL;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_nothrow_spec */
-
-
 a_boolean is_nothrow_type(a_type_ptr  type)
 /*
 The given type is a routine type.  Return TRUE if it has an associated
@@ -6801,7 +6778,13 @@ specification.
       result = FALSE;
     } else {
       check_assertion(!esp->arg_cached);
-      result = is_nothrow_spec(esp);
+      if (esp->throw_any) {
+        result = FALSE;
+      } else if (esp->is_noexcept) {
+        result = TRUE;
+      } else {
+        result = esp->variant.exception_specification_type_list == NULL;
+      }  /* if */
     }  /* if */
   } else {
     result = TRUE;

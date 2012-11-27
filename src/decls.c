@@ -1728,13 +1728,12 @@ consistent with that of the previous declaration.
       /* Ignore any differences between exception specifications on a
          compiler generated routine (e.g., predeclared operator new or delete)
          and the current declaration. */
-    } else if (new_esp->arg_cached) {
-      /* Compatibility cannot be checked in some template cases. */
-    } else if (old_esp == NULL || old_esp->throw_any) {
+    } else if (old_esp == NULL ||
+               (old_esp->throw_any && !old_esp->is_noexcept)) {
       /* Previous specification asserted that any exception may be thrown
-         ("throw (...)", "noexcept(<false-constant>)", or no specification at
-         all). */
-      if (new_esp != NULL && !new_esp->throw_any) {
+         (either no specification at all, or "throw (...)"). */
+      if (new_esp != NULL &&
+          !(new_esp->throw_any && !new_esp->is_noexcept)) {
         /* The new declaration restricts the permitted exceptions.  Issue an
            error (except if the incompatibility is with a declaration from a
            system header in GNU C++ modes). */
@@ -1743,43 +1742,34 @@ consistent with that of the previous declaration.
       }  /* if */
     } else if (new_esp == NULL ||
                (new_esp->throw_any && !new_esp->is_noexcept)) {
-      /* The new declaration may throw anything (the noexcept case is handled
-         later since it requires a different diagnostic message). */
-      if (0 && old_esp->is_noexcept) {  
-        /* The prior declaration was "noexcept(<false-constant>)", which is
-           compatible with the new declaration's assertion that any type may
-           be thrown. */
-        check_assertion(old_esp->throw_any);
-      } else {
-        /* Issue a diagnostic on the omission of a throw specification on the
-           current declaration (it must have been present on the previous
-           one). */
-        if (is_redecl && rp != NULL && !rp->source_corresp.is_class_member &&
-            special_kind_is(rp, sfk_operator) &&
-            (is_new_operator(rp->variant.opname_kind) ||
-             is_delete_operator(rp->variant.opname_kind))) {
-          /* Unless we are in strict mode, issue a warning instead of an error
-             if this is a redeclaration of what may be a library new or delete
-             routine: the relaxation is to ease the upgrading of old code. */
-          severity = strict_ansi_mode ? strict_ansi_error_severity
-                                      : es_warning;
-        } else if (gpp_mode) {
-          /* In GNU C++ modes, dropping a throw specifier is not diagnosed if
-             the earlier declaration came from a system header. */
-          severity = pos_adjusted_severity(severity, prev_decl);
-        }  /* if */
-        pos_sy_diagnostic(
-                       severity,
-                       is_redecl?
-                         ec_omitted_exception_specification :
-                         ec_omitted_exception_specification_on_specialization,
-                       throw_pos, prev_decl);
+      /* Issue a diagnostic on the omission of a throw specification on the
+         current declaration (it must have been present on the previous
+         one). */
+      if (is_redecl && rp != NULL && !rp->source_corresp.is_class_member &&
+          rp->special_kind == (a_special_function_kind)sfk_operator &&
+          (is_new_operator(rp->variant.opname_kind) ||
+           is_delete_operator(rp->variant.opname_kind))) {
+        /* Unless we are in strict mode, issue a warning instead of an error
+           if this is a redeclaration of what may be a library new or delete
+           routine: the relaxation is to ease the upgrading of old code. */
+        severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
+      } else if (gpp_mode) {
+        /* In GNU C++ modes, dropping a throw specifier is not diagnosed if
+           the earlier declaration came from a system header. */
+        severity = pos_adjusted_severity(severity, prev_decl);
       }  /* if */
-    } else if (is_nothrow_spec(old_esp)) {
+      pos_sy_diagnostic(severity,
+                        is_redecl?
+                          ec_omitted_exception_specification :
+                          ec_omitted_exception_specification_on_specialization,
+                        throw_pos, prev_decl);
+    } else if (old_esp->is_noexcept ||
+               old_esp->variant.exception_specification_type_list == NULL) {
       /* Previous specification asserted that no exceptions will be thrown.
          It is compatible only with another nonthrowing specification on the
          current declaration. */
-      if (!is_nothrow_spec(new_esp)) {
+      if (!new_esp->is_noexcept &&
+          new_esp->variant.exception_specification_type_list != NULL) {
         pos_stsy_start_error(error_code, throw_pos, ":", prev_decl);
         add_diag_info(ec_previous_exception_specification_was_empty);
         end_error();
