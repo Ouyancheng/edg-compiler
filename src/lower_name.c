@@ -618,6 +618,7 @@ static void mangled_dynamic_init(a_dynamic_init_ptr       dip,
                                  a_type_ptr               type,
                                  a_boolean                is_static_cast,
                                  a_mangling_control_block *mctl);
+static a_boolean type_is_lambda_in_initializer(a_type_ptr type);
 
 /*
 Interface to mangled_type_name_full for the usual case, where the
@@ -1635,7 +1636,7 @@ Return the routine in which the lambda appears in a default argument in
   check_assertion(type_is_lambda_closure(type) &&
                   cssp != NULL &&
                   cssp->lambda_immediately_inside_default_arg_expression);
-  check_assertion(!ctsp->defined_in_static_data_member_initializer);
+  check_assertion(!type_is_lambda_in_initializer(type));
   routine = ctsp->lambda_parent.routine;
   check_assertion(routine != NULL);
   if (enclosing_routine != NULL) *enclosing_routine = routine;
@@ -6199,11 +6200,12 @@ which these types are lacking).
 static a_boolean type_is_lambda_in_initializer(a_type_ptr type)
 /*
 Returns TRUE if the specified type is a lambda closure that was defined
-in a static data member initializer.
+in a (static or nonstatic) data member initializer.
 */
 {
   return type_is_lambda_closure(type) &&
-         class_type_supp(type)->defined_in_static_data_member_initializer;
+         (class_type_supp(type)->defined_in_static_data_member_initializer ||
+          class_type_supp(type)->defined_in_field_initializer);
 }  /* type_is_lambda_in_initializer */
 
 
@@ -6220,7 +6222,7 @@ in a default argument of a function.
     check_assertion(cssp != NULL);
     if (cssp->lambda_immediately_inside_default_arg_expression) {
       a_class_type_supplement_ptr  ctsp = class_type_supp(type);
-      check_assertion(!ctsp->defined_in_static_data_member_initializer);
+      check_assertion(!type_is_lambda_in_initializer(type));
       if (ctsp->lambda_parent.routine != NULL) {
         result = TRUE;
       } else {
