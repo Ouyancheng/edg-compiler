@@ -1,5 +1,17 @@
 Version 4.6
 
+11/27/12 [EDGcpfe/13455]
+Missing diagnostics on noexcept redeclarations
+
+The front end previously failed to diagnose many cases of function
+redeclarations involving unmatched noexcept-specifiers.  For example:
+
+  void f() noexcept;
+  void f() noexcept(false);  // Previously accepted; now an error.
+
+This is now fixed.
+
+
 11/27/12 [EDGcpfe/13456]
 Incorrect syntax disambiguation with some noexcept uses
 
