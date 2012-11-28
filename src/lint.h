@@ -219,6 +219,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(552,virtual_function_table_definition)*/
 /*lint -esym(759,alloc_unshared_constant_full)*/
 /*lint -esym(765,alloc_unshared_constant_full)*/
+/*lint -esym(714,alloc_unshared_constant_in_region)*/
 /*lint -esym(759,alloc_unshared_constant_in_region)*/
 /*lint -esym(765,alloc_unshared_constant_in_region)*/
 /*lint -esym(759,clear_expr_node)*/
