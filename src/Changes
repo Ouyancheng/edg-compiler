@@ -1,7 +1,7 @@
 Version 4.6
 
 11/28/12 [EDGcpfe/13465]
-GU compatibility: Attribute fastcall
+GNU compatibility: Attribute fastcall
 
 When GNU_X86_ATTRIBUTES_ALLOWED is TRUE (and USE_X86_64 is FALSE), the front
 end now accepts the GNU "fastcall" attribute when gnu_version >= 30400.  For
