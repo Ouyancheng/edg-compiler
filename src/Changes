@@ -1,5 +1,15 @@
 Version 4.6
 
+11/28/12 [EDGcpfe/13347]
+GNU C++11 compatibility: Aggregate initialization of complex type
+
+In GNU C++11 mode with gnu_version >= 40700, the front end now accepts
+braced initializers with two elements to initialize an object of a built-in
+complex type.  For example:
+
+  __complex double z = { 1.0, 2.0 };  // Real part 1.0, imaginary part 2.0.
+
+
 11/28/12 [EDGcpfe/13465]
 GNU compatibility: Attribute fastcall
 
