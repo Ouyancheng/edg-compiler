@@ -5188,6 +5188,22 @@ expression).
   /* Determine the type of the aggregate being initialized. */
   aggr_type = type_from_init_pos_descr(ipdp);
   aggr_type = skip_typerefs(aggr_type);
+#if LOWER_COMPLEX
+  if (is_complex_type(aggr_type)) {
+    /* GNU allows initializer-list style initialization of complex objects,
+       e.g., "__complex float z {x, 1.0};".  Complex types are typically
+       maintained through the lowering process and changed to their lowered
+       types at the end of lowering the file scope, but here we need the
+       lowered type (because the constant contains some type of dynamic
+       initialization that needs to be rewritten as executable code).
+       Use the lowered complex type (a struct with an array of two elements
+       of the appropriate type) and also change the aggregate constant to
+       match the lowered form. */
+    check_assertion(is_complex_type(aggr_const->type));
+    aggr_type = lowered_complex_type(aggr_type->variant.float_kind);
+    lower_c99_complex_aggregate_constant(aggr_const);
+  }  /* if */
+#endif /* LOWER_COMPLEX */
   /* Start a new level in the init_pos_modifier chain. */
   ipd = *ipdp;
   if (!C_mode()) {

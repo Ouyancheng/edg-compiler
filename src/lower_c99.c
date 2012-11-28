@@ -1268,7 +1268,7 @@ floating point elements.
 }  /* make_lowered_complex_type */
 
 
-static a_type_ptr lowered_complex_type(a_float_kind fkind)
+a_type_ptr lowered_complex_type(a_float_kind fkind)
 /*
 Return the structure used to represent a complex type of the kind fkind in
 lowered IL.
@@ -3439,6 +3439,29 @@ allocated in file scope, the lowered structure must also be placed there.)
   constant->variant.aggregate.last_constant = pair;
 }  /* lower_c99_complex_constant */
 
+
+void lower_c99_complex_aggregate_constant(a_constant_ptr constant)
+/*
+In some GNU C++ modes, initializer-list syntax can be used to initialize
+a complex object.  In such cases the front end provides an aggregate with
+two values (for the real and imaginary components).  The lowered type for
+a complex object is a structure that contains an array of two elements, so
+re-write the aggregate constant to include another level of aggregate so that
+it'll match the lowered complex type.  Note that the elements of the original
+constant are not lowered here.
+*/
+{
+  a_constant_ptr copy_con;
+
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
+  copy_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  check_assertion(in_file_scope(constant) == in_file_scope(copy_con));
+  copy_constant(constant, copy_con);
+  constant->variant.aggregate.first_constant = copy_con;
+  constant->variant.aggregate.last_constant = copy_con;
+  constant->type = lowered_complex_type(constant->type->variant.float_kind);
+}  /* lower_c99_complex_aggregate_constant */
+
 #endif /* LOWER_COMPLEX */
 
 void lower_c99_constant(a_constant_ptr  constant)
@@ -3470,6 +3493,9 @@ replace them by a representation compatible with C89.
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_aggregate:
+#if LOWER_COMPLEX
+      check_assertion(!is_complex_type(constant->type));
+#endif /* LOWER_COMPLEX */
       lower_c99_constant_list(constant->variant.aggregate.first_constant);
       break;
     case ck_address:

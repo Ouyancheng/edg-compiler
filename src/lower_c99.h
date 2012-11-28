@@ -144,6 +144,11 @@ void lower_xconj(an_expr_node_ptr  expr);
 void lower_complex_projection(an_expr_node_ptr  expr);
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
+extern void lower_c99_complex_aggregate_constant(a_constant_ptr constant);
+
+extern a_type_ptr lowered_complex_type(a_float_kind fkind);
+
 #endif /* LOWER_COMPLEX */
 #if DO_C99_IL_LOWERING
 extern a_boolean c99_il_lowering_needed(void);

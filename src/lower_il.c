@@ -4720,6 +4720,14 @@ Do IL lowering of the indicated constant and everything under it.
         lower_ptr_to_member_constant(constant);
         break;
       case ck_aggregate:
+#if LOWER_COMPLEX
+        if (is_complex_type(constant->type)) {
+          /* GNU allows the use of aggregate syntax to initialize the real
+             and imaginary portions of a complex object.  Convert the
+             aggregate constant to the proper format before lowering. */
+          lower_c99_complex_aggregate_constant(constant);
+        }  /* if */
+#endif /* LOWER_COMPLEX */
         lower_constant_list(constant->variant.aggregate.first_constant);
         initialize_vptr_in_aggregate_constant(constant);
 #if IA64_ABI
