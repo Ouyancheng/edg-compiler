@@ -1218,6 +1218,10 @@ extern a_constant_ptr alloc_unshared_constant_full(a_constant *cp,
                                                    a_boolean  source_in_il,
                                                    a_boolean  suppress_copy);
 
+extern a_constant_ptr alloc_unshared_constant_in_region(
+                                                    a_constant *cp,
+                                                    a_boolean  in_file_region);
+
 /*
 Options for copy_expr_tree et al.
 */

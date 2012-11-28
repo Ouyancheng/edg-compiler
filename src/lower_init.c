@@ -1501,7 +1501,8 @@ lowered.
                                class_type,
                                (a_base_class_ptr)NULL,
                                &addr_constant);
-    vptr_con = alloc_unshared_constant(&addr_constant);
+    vptr_con = alloc_unshared_constant_in_region(&addr_constant,
+                                                 in_file_scope(constant));
     /* Iterate over the field list for the class and find the __vptr
        field (recurse for any nested subobjects). */
     check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
@@ -10632,7 +10633,6 @@ This routine returns TRUE if guard code was emitted.
   an_expr_node_ptr       test_var_node, compare_node;
 #endif /* !IA64_ABI */
   a_constant             minus_one_constant;
-  a_memory_region_number region_to_switch_back_to;
   a_boolean              guard_code_emitted = FALSE;
 
   *guard_var = NULL;
@@ -10654,10 +10654,9 @@ This routine returns TRUE if guard code was emitted.
     test_var->init_kind = (an_init_kind)initk_static;
     set_integer_constant(&minus_one_constant, (a_host_large_integer)-1,
                          (an_integer_kind)ik_int);
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    test_var->initializer.constant =
-                                  alloc_unshared_constant(&minus_one_constant);
-    switch_back_to_original_region(region_to_switch_back_to);
+    test_var->initializer.constant = alloc_unshared_constant_in_region(
+                                                      &minus_one_constant,
+                                                      /*in_file_region=*/TRUE);
   } else {
     /* This is not a specialization, so the guard variable must be tested
        here. */
@@ -10692,10 +10691,9 @@ This routine returns TRUE if guard code was emitted.
     test_var->init_kind = (an_init_kind)initk_static;
     set_integer_constant(&minus_one_constant, (a_host_large_integer)-1,
                          (an_integer_kind)ik_int);
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    test_var->initializer.constant =
-                                  alloc_unshared_constant(&minus_one_constant);
-    switch_back_to_original_region(region_to_switch_back_to);
+    test_var->initializer.constant = alloc_unshared_constant_in_region(
+                                                      &minus_one_constant,
+                                                      /*in_file_region=*/TRUE);
   } else {
     /* Normal case -- emit the usual guard code. */
     add_first_time_test(variable, insert_location, insert_location2,

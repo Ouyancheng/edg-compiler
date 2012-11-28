@@ -5234,6 +5234,30 @@ alloc_unshared_constant_full.
 }  /* alloc_unshared_constant */
 
 
+a_constant_ptr alloc_unshared_constant_in_region(a_constant *cp,
+                                                 a_boolean  in_file_region)
+/*
+Allocate an unshared constant in the file scope memory region if
+in_file_region is TRUE, or in the current IL memory region if in_file_region
+is FALSE.  The value of *cp is copied into the allocated constant.
+See alloc_unshared_constant for more details.
+*/
+{
+  a_constant_ptr         result;
+  a_memory_region_number region_to_switch_back_to = NULL_region_number;
+
+  if (in_file_region &&
+      curr_il_region_number != file_scope_region_number) {
+    switch_to_file_scope_region(&region_to_switch_back_to);
+  }  /* if */
+  result = alloc_unshared_constant(cp);
+  if (region_to_switch_back_to != NULL_region_number) {
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
+  return result;
+}  /* alloc_unshared_constant_in_region */
+
+
 static a_constant_ptr i_copy_constant_full(
                                         a_constant_ptr            old_constant,
                                         a_constant_ptr            new_constant,
