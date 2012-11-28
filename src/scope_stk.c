@@ -817,7 +817,9 @@ initializer, sym represents that data member (otherwise, it is NULL).
       ctsp = class_type_supp(tp);
       if (ctsp->is_lambda_closure_class) {
         symbol_supplement_for_class(tp)->discriminator = ++last_n;
-        if (symbol_is(sym, sk_static_data_member)) {
+        if (sym == NULL) {
+          /* Nothing more to be done. */
+        } else if (symbol_is(sym, sk_static_data_member)) {
           ctsp->defined_in_static_data_member_initializer = TRUE;
         } else if (symbol_is(sym, sk_field)) {
           ctsp->defined_in_field_initializer = TRUE;
