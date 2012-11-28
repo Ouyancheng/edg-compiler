@@ -1744,37 +1744,26 @@ consistent with that of the previous declaration.
     } else if (new_esp == NULL ||
                (new_esp->throw_any && !new_esp->is_noexcept)) {
       /* The new declaration may throw anything (the noexcept case is handled
-         later since it requires a different diagnostic message). */
-      if (0 && old_esp->is_noexcept) {  
-        /* The prior declaration was "noexcept(<false-constant>)", which is
-           compatible with the new declaration's assertion that any type may
-           be thrown. */
-        check_assertion(old_esp->throw_any);
-      } else {
-        /* Issue a diagnostic on the omission of a throw specification on the
-           current declaration (it must have been present on the previous
-           one). */
-        if (is_redecl && rp != NULL && !rp->source_corresp.is_class_member &&
-            special_kind_is(rp, sfk_operator) &&
-            (is_new_operator(rp->variant.opname_kind) ||
-             is_delete_operator(rp->variant.opname_kind))) {
-          /* Unless we are in strict mode, issue a warning instead of an error
-             if this is a redeclaration of what may be a library new or delete
-             routine: the relaxation is to ease the upgrading of old code. */
-          severity = strict_ansi_mode ? strict_ansi_error_severity
-                                      : es_warning;
-        } else if (gpp_mode) {
-          /* In GNU C++ modes, dropping a throw specifier is not diagnosed if
-             the earlier declaration came from a system header. */
-          severity = pos_adjusted_severity(severity, prev_decl);
-        }  /* if */
-        pos_sy_diagnostic(
-                       severity,
-                       is_redecl?
-                         ec_omitted_exception_specification :
-                         ec_omitted_exception_specification_on_specialization,
-                       throw_pos, prev_decl);
+         later since it requires a different diagnostic message) but the old
+         declaration may not: Issue a diagnostic. */
+      if (is_redecl && rp != NULL && !rp->source_corresp.is_class_member &&
+          special_kind_is(rp, sfk_operator) &&
+          (is_new_operator(rp->variant.opname_kind) ||
+           is_delete_operator(rp->variant.opname_kind))) {
+        /* Unless we are in strict mode, issue a warning instead of an error
+           if this is a redeclaration of what may be a library new or delete
+           routine: the relaxation is to ease the upgrading of old code. */
+        severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
+      } else if (gpp_mode) {
+        /* In GNU C++ modes, dropping a throw specifier is not diagnosed if
+           the earlier declaration came from a system header. */
+        severity = pos_adjusted_severity(severity, prev_decl);
       }  /* if */
+      pos_sy_diagnostic(severity,
+                        is_redecl?
+                          ec_omitted_exception_specification :
+                          ec_omitted_exception_specification_on_specialization,
+                        throw_pos, prev_decl);
     } else if (is_nothrow_spec(old_esp)) {
       /* Previous specification asserted that no exceptions will be thrown.
          It is compatible only with another nonthrowing specification on the
