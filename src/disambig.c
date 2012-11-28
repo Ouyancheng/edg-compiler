@@ -946,30 +946,34 @@ part of a function declarator is found, may_be_decl is set to FALSE.
   while (is_type_qualifier() or_is_near_or_far()) {
     get_token_and_coalesce_if_identifier(flags);
   }  /* while */
-  /* Cache the tokens associated with the optional throw specification.
+  /* Cache the tokens associated with the optional exception specification.
      Note that we don't try to disambiguate a throw expression from a
      throw declaration. */
-  if (curr_token == tok_throw) {
-    /* Advance past the throw keyword. */
+  if (curr_token == tok_throw || curr_token == tok_noexcept) {
+    /* Advance past the throw or noexcept keyword. */
+    a_boolean  arg_optional = curr_token == tok_noexcept;
     get_token_and_coalesce_if_identifier(flags);
     if (curr_token != tok_lparen) {
-      /* A throw specification must follow the throw keyword in a function
-         declarator. */
-      state->may_be_decl = FALSE;
-      goto done;
-    }  /* if */
-    /* Advance past the left parenthesis. */
-    get_token_and_coalesce_if_identifier(flags);
-    cache_tokens_until(tok_rparen, /*coalesce=*/TRUE);
-    if (curr_token == tok_rparen) {
-      /* Cache the right parenthesis. */
+      if (!arg_optional) {
+        /* A throw specification must follow the throw keyword in a function
+           declarator. */
+        state->may_be_decl = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      /* Advance past the left parenthesis. */
       get_token_and_coalesce_if_identifier(flags);
+      cache_tokens_until(tok_rparen, /*coalesce=*/TRUE);
+      if (curr_token == tok_rparen) {
+        /* Cache the right parenthesis. */
+        get_token_and_coalesce_if_identifier(flags);
+      }  /* if */
     }  /* if */
-    if (trailing_return_types_enabled && curr_token == tok_arrow) {
-      /* Cache the trailing return type. */
-      (void)get_token();
-      prescan_trailing_return_type(state);
-    }  /* if */
+  }  /* if */
+  if (trailing_return_types_enabled && curr_token == tok_arrow) {
+    /* Cache the trailing return type. */
+    (void)get_token();
+    prescan_trailing_return_type(state);
   }  /* if */
 done:
   return;

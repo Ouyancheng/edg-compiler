@@ -1,5 +1,17 @@
 Version 4.6
 
+11/27/12 [EDGcpfe/13456]
+Incorrect syntax disambiguation with some noexcept uses
+
+The front end did not correctly parse certain function declarations that
+include a parameter with a noexcept-specifier.  For example:
+
+  void f(int (*p)() noexcept);  // Previously triggered spurious errors
+                                // because "(*p)" was parsed as an expression.
+
+This is now fixed.
+
+
 11/26/12 [EDGcpfe/13364]
 Spurious Microsoft-mode error on assignment operator from a dependent base
 
