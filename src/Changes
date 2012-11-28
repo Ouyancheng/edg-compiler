@@ -1,5 +1,16 @@
 Version 4.6
 
+11/28/12 [EDGcpfe/13467]
+Mutable lambdas not marked as such in IL
+
+The front end previously failed to set the is_mutable flag in a_lambda
+entries for mutable lambdas.  For example:
+
+  auto i = []() mutable { return 2; };
+         // The a_lambda entry associated with this lambda now has its
+         // is_mutable flag set.
+
+
 11/27/12 [EDGcpfe/13455]
 Missing diagnostics on noexcept redeclarations
 
