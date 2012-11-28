@@ -2533,7 +2533,7 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
        initialization syntax.  Cases with empty braces or singleton braces
        remain simple initializations and therefore fall through to the
        default case). */
-    aggr_init_complex(p_icp, etype, is, &is->init_con);
+    aggr_init_complex(p_icp, etype, is, init_con);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled && is_braced_init_component(icp) &&
