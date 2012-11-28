@@ -2251,6 +2251,9 @@ typedef enum an_attribute_kind_tag {
   ak_error,		/* "error" (gnu). */
   ak_externally_visible,
 			/* "externally_visible" (gnu). */
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+  ak_fastcall,		/* "fastcall" (gnu). */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   ak_flatten,		/* "flatten" (gnu). */
   ak_format,		/* "format" (gnu). */
   ak_format_arg,	/* "format_arg" (gnu). */

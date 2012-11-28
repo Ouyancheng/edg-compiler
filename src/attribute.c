@@ -232,6 +232,9 @@ static an_attr_descr known_attr_table[] = {
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "error", "(sn)", "gx(40000-)", ak_error },
   { "externally_visible", "", "gx(40000-)", ak_externally_visible },
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+  { "fastcall", "", "gx(30400-)", ak_fastcall },
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   { "flatten", "", "gx(40000-)", ak_flatten },
   { "format", "(n,ci,ci)", "gx", ak_format },
   { "format_arg", "(ci)", "gx", ak_format_arg },
@@ -477,6 +480,9 @@ static an_attr_application_fn apply_common_attr;
 static an_attr_application_fn apply_const_attr;
 static an_attr_application_fn apply_constructor_attr;
 static an_attr_application_fn apply_destructor_attr;
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+static an_attr_application_fn apply_fastcall_attr;
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
 static an_attr_application_fn apply_format_attr;
 static an_attr_application_fn apply_format_arg_attr;
 static an_attr_application_fn apply_gnu_inline_attr;
@@ -591,6 +597,9 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_destructor, "r", apply_destructor_attr },
   { ak_error, "r", NO_APPL_FN },
   { ak_externally_visible, "r:+x|v:+x", NO_APPL_FN },
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+  { ak_fastcall, "t|r|v|d|p", apply_fastcall_attr },
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   { ak_flatten, "r", NO_APPL_FN },
   { ak_format, "t|r|v|d|p", apply_format_attr },
   { ak_format_arg, "r", apply_format_arg_attr },
@@ -4341,12 +4350,13 @@ Apply the GNU "cdecl" attribute to the given entity and return that entity.
     if (rtsp->calling_convention != (a_calling_convention)cc_default &&
         rtsp->calling_convention != (a_calling_convention)cc_cdecl) {
       /* gcc issues an error on incompatible calling convention attributes,
-         but g++ silently keeps the cdecl convention. */
+         but g++ silently keeps the non-cdecl convention. */
       an_error_severity  sev = gpp_mode ? es_warning : es_error;
       pos_diagnostic(sev, ec_conflicting_calling_conventions, &ap->position);
+    } else {
+      rtsp->calling_convention = (a_calling_convention)cc_cdecl;
+      rtsp->explicit_calling_convention = TRUE;
     }  /* if */
-    rtsp->calling_convention = (a_calling_convention)cc_cdecl;
-    rtsp->explicit_calling_convention = TRUE;
   }  /* if */
   return entity;
 }  /* apply_cdecl_attr */
@@ -4559,6 +4569,37 @@ it and return the entity.
   return entity;
 }  /* apply_destructor_attr */
 
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+
+static char* apply_fastcall_attr(an_attribute_ptr  ap,
+                                 char              *entity,
+                                 an_il_entry_kind  entity_kind)
+/*
+Apply the GNU "fastcall" attribute to the given entity and return that entity.
+*/
+{
+  a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
+
+  if (func_type != NULL) {
+    a_routine_type_supplement_ptr  rtsp =
+                                        func_type->variant.routine.extra_info;
+    if (rtsp->calling_convention != (a_calling_convention)cc_default &&
+        rtsp->calling_convention != (a_calling_convention)cc_fastcall) {
+      /* gcc issues an error, but g++ accepts the conflict. If the previous
+         convention was cdecl, fastcall is recorded.  If the previous
+         convention was stdcall, g++ appears to record a calling convention
+         distinct from any other; we don't emulate that behavior and instead
+         just record the latest attribute. */
+      an_error_severity  sev = gpp_mode ? es_warning : es_error;
+      pos_diagnostic(sev, ec_conflicting_calling_conventions, &ap->position);
+    }  /* if */
+    rtsp->calling_convention = (a_calling_convention)cc_fastcall;
+    rtsp->explicit_calling_convention = TRUE;
+  }  /* if */
+  return entity;
+}  /* apply_fastcall_attr */
+
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
 
 static struct {
   /* Data structure for table entries mapping the argument to a GNU "format"
@@ -5327,16 +5368,18 @@ Apply the GNU "stdcall" attribute to the given entity and return that entity.
   if (func_type != NULL) {
     a_routine_type_supplement_ptr  rtsp =
                                         func_type->variant.routine.extra_info;
-    if (rtsp->calling_convention == (a_calling_convention)cc_default) {
-      rtsp->calling_convention = (a_calling_convention)cc_stdcall;
-      rtsp->explicit_calling_convention = TRUE;
-    } else if (rtsp->calling_convention != (a_calling_convention)cc_stdcall) {
-      /* gcc issues an error, but g++ silently keeps the cdecl convention. */
+    if (rtsp->calling_convention != (a_calling_convention)cc_default &&
+        rtsp->calling_convention != (a_calling_convention)cc_stdcall) {
+      /* gcc issues an error, but g++ accepts the conflict. If the previous
+         convention was cdecl, stdcall is recorded.  If the previous convention
+         was fastcall, g++ appears to record a calling convention distinct from
+         any other; we don't emulate that behavior and instead just record the
+         latest attribute. */
       an_error_severity  sev = gpp_mode ? es_warning : es_error;
       pos_diagnostic(sev, ec_conflicting_calling_conventions, &ap->position);
-      check_assertion(
-                  rtsp->calling_convention == (a_calling_convention)cc_cdecl);
     }  /* if */
+    rtsp->calling_convention = (a_calling_convention)cc_stdcall;
+    rtsp->explicit_calling_convention = TRUE;
   }  /* if */
   return entity;
 }  /* apply_stdcall_attr */

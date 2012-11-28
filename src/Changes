@@ -1,5 +1,26 @@
 Version 4.6
 
+11/28/12 [EDGcpfe/13465]
+GU compatibility: Attribute fastcall
+
+When GNU_X86_ATTRIBUTES_ALLOWED is TRUE (and USE_X86_64 is FALSE), the front
+end now accepts the GNU "fastcall" attribute when gnu_version >= 30400.  For
+example:
+
+  __attribute((fastcall)) void f();
+
+A tweak was also made to the handling of conflicting GNU calling convention
+attributes in GNU C++ modes.  Now, the last-specified attribute that is not
+"cdecl" is retained.  For example:
+
+  __attribute((cdecl)) void f();    // Calling convention is now "cdecl".
+  __attribute((stdcall)) void f();  // Calling convention is now "stdcall".
+  __attribute((cdecl)) void f();    // Calling convention is still "stdcall".
+  __attribute((fastcall)) void f(); // Calling convention is now "fastcall".
+
+This better approximates the behavior of g++.
+
+
 11/28/12 [EDGcpfe/13467]
 Mutable lambdas not marked as such in IL
 
