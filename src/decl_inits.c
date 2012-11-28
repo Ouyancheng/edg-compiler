@@ -2963,6 +2963,7 @@ initializer, already copied and substituted.
            initialization syntax.  Cases with empty braces or singleton
            braces remain simple initializations and therefore fall through
            to the default case). */
+        is_aggregate = TRUE;
         aggr_init_complex(&icp, dtype, is, &is->init_con);
         break;
       }  /* if */
