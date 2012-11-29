@@ -282,9 +282,9 @@ extern void f_consume_any_stray_microsoft_rparen(void);
 #define consume_any_stray_microsoft_rparen()  /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
+#if USE_X86_64
 extern a_type_ptr make_va_list_tag_type(void);
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
+#endif /* USE_X86_64 */
 
 #if DEBUG
 extern unsigned long db_show_routine_fixups_used(unsigned long grand_total);

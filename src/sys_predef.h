@@ -17,6 +17,8 @@ sys_predef.h -- System dependent predefined macros and assertions.
 #ifndef SYS_PREDEF_H
 #define SYS_PREDEF_H 1
 
+extern a_type_ptr get_default_va_list_type();
+
 extern void enter_system_specific_predeclared_symbols(void);
 
 extern void enter_system_specific_predefined_macros_and_assertions(void);

@@ -26629,7 +26629,7 @@ For example:
   return lambda;
 }  /* scan_lambda */
 
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
+#if USE_X86_64
 
 static void add_field_to_generated_type(char        *name,
                                         a_type_ptr  type)
@@ -26714,7 +26714,7 @@ Create and return the __va_list_tag struct type that is predefined by certain
   return type;
 }  /* make_va_list_tag_type */
 
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
+#endif /* USE_X86_64 */
 
 /* Forward declaration for recursive call. */
 static void check_type_for_linkage_change(a_type_ptr type,

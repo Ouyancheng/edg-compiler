@@ -38,6 +38,7 @@ symbol_tbl.c - Symbol table management routines.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #include "overload.h"
 #include "folding.h"
+#include "sys_predef.h"
 
 /* The multiplier used in the hash algorithm that generates an index
    in the hash table from an identifier name string.  Do not change
@@ -7904,16 +7905,10 @@ and global namespaces.
                                  IDL_NO_OPTIONS);
       if (sym != NULL && is_type_symbol(sym)) {
         va_list_type = type_symbol_type(sym);
-      } else if (type_underlying_va_list != NULL) {
-        va_list_type = type_underlying_va_list;
       } else {
-        /* The special symbol does not exist and no default is configured.
-           So use "char*" as the default in Microsoft mode, and "void*" in
-           other modes. */
-        va_list_type = make_pointer_type(
-                         microsoft_mode ?
-                                      integer_type((an_integer_kind)ik_char) :
-                                      void_type());
+        /* The special symbol does not exist.  Use a generated of configured
+           default (often char* or void*). */
+        va_list_type = get_default_va_list_type();
       }  /* if */
       /* If the new va_list symbol is to be created in the std namespace,
          push the namespace now. */

@@ -2358,20 +2358,20 @@ global array named_register_storage_classes (see targ_def.h).
 }  /* enter_predefined_named_registers */
 
 #endif /* NAMED_REGISTERS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
 
-static void enter_builtin_va_list_type(void)
+a_type_ptr get_default_va_list_type(void)
 /*
-Enter a predefined type __builtin_va_list.
+Return the default type to use for va_list or __builtin_va_list.  In GNU modes,
+this is the type underlying __builtin_va_list.  In other modes, this is the
+type generated for va_list when the standard header <stdarg.h> or <cstdarg> is
+handled internally (i.e., pass_stdarg_references_to_generated_code is TRUE)
+instead of being mapped on an actual header file.
 */
 {
-  /* On most 32-bit GCC implementations __builtin_va_list is a type compatible
-     with char*.  On x86-64 (at least on Linux), __builtin_va_list is an array
-     of one element of struct type. */
   a_type_ptr  tp;
 
   if (type_underlying_va_list != NULL) {
-    /* Use type_underlying_va_list as the type underlying __builtin_va_list. */
+    /* Use type_underlying_va_list if it has been configured. */
     tp = type_underlying_va_list;
   } else {
 #if USE_X86_64
@@ -2389,10 +2389,29 @@ Enter a predefined type __builtin_va_list.
     tp->variant.array.variant.number_of_elements = 1;
     set_type_size(tp);
 #else /* !USE_X86_64 */
-    tp = make_pointer_type(integer_type((an_integer_kind)ik_char));
+    /* Use char* in Microsoft and GNU modes, and void* otherwise. */
+    if (microsoft_mode || gnu_mode) {
+      tp = make_pointer_type(integer_type((an_integer_kind)ik_char));
+    } else {
+      tp = make_pointer_type(void_type());
+    }  /* if */
 #endif /* USE_X86_64 */
   }  /* if */
-  builtin_va_list_type = enter_predefined_typedef("__builtin_va_list", tp);
+  return tp;
+}  /* get_default_va_list_type */
+
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+
+static void enter_builtin_va_list_type(void)
+/*
+Enter a predefined type __builtin_va_list.
+*/
+{
+  /* On most 32-bit GCC implementations __builtin_va_list is a type compatible
+     with char*.  On x86-64 (at least on Linux), __builtin_va_list is an array
+     of one element of struct type. */
+  builtin_va_list_type = enter_predefined_typedef("__builtin_va_list",
+                                                  get_default_va_list_type());
   builtin_va_list_type->is_builtin_va_list = TRUE;
 }  /* enter_builtin_va_list_type */
 

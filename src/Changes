@@ -1,5 +1,23 @@
 Version 4.6
 
+11/28/12 [EDGcpfe/13431]
+Default type for va_list or __builtin_va_list
+
+In non-GNU modes, when DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE is
+TRUE, the front end previously set the va_list type to char* or void*
+(depending on the mode) if sys_predef.c did not set the configurable
+type_underlying_va_list to a specific type.  In GNU modes, on the other hand,
+when type_underlying_va_list is left NULL, the type for __builtin_va_list was
+set to char* or, when USE_X86_64 is TRUE, to a special array type (see entry
+for EDGcpfe/10180).  This could lead to surprises when, e.g., compiling code
+in non-GNU mode with the C-generating back end targeting GCC on an x86-64
+platform.  To avoid such surprises, the default type underlying va_list or
+__builtin_va_list is now always retrieved by a call to the new function
+get_default_va_list_type defined in sys_predef.c.  That function can be
+customized if needed, but by default it always produces the special array
+type described in the entry for EDGcpfe/10180 when USE_X86_64 is TRUE.
+
+
 11/28/12 [EDGcpfe/13347]
 GNU C++11 compatibility: Aggregate initialization of complex type
 
