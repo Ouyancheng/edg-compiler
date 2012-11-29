@@ -276,7 +276,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #define KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED 1
 #define DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE 1
 #ifdef SOLARIS
+#ifndef ASM_FUNCTION_ALLOWED
 #define ASM_FUNCTION_ALLOWED 1
+#endif /* !defined(ASM_FUNCTION_ALLOWED) */
 #endif /* ifdef SOLARIS */
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */
 #if 1
