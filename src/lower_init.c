@@ -7430,8 +7430,7 @@ the constructor initializer.
            initializer.  In this case, the dynamic initialization is associated
            with the field itself and must be copied before being lowered. */
         field_dip = ctor_init->variant.field->initializer;
-        check_assertion(field_dip->lifetime == NULL &&
-                        field_dip->init_expr_lifetime == NULL);
+        check_assertion(field_dip->lifetime == NULL);
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
         if ((field_dip->kind == (a_dynamic_init_kind)dik_none ||
              (field_dip->kind == (a_dynamic_init_kind)dik_constructor &&
@@ -7467,12 +7466,14 @@ the constructor initializer.
              If a destruction is associated with the initialization,
              make sure it is placed in the proper location in the object
              lifetime of the constructor's scope. */
-          if (field_dip->destructor != NULL && olp == NULL) {
+          if ((field_dip->destructor != NULL && olp == NULL) ||
+              field_dip->init_expr_lifetime != NULL) {
             /* If the scope has no destructible objects (aside from those
                being added here), the function scope may have no object
                lifetime, in which case we allocate one here (before we
                copy the dynamic init because the lifetime may be needed
-               in that case). */
+               in that case).  An object lifetime is also needed if the
+               dynamic init has an init_expr_lifetime. */
             olp = alloc_object_lifetime((an_object_lifetime_kind)olk_block);
             bind_object_lifetime(olp, iek_scope, (char *)scope);
             scope->lifetime = olp;
