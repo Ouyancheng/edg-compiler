@@ -4112,7 +4112,9 @@ semicolon.  However, this routine is also called for some error cases as
 well.
 */
 {
+#if EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS
   a_statement_ptr  esp = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "empty_statement");
   if (curr_token == tok_semicolon) {
@@ -4124,7 +4126,11 @@ well.
        current statement. */
     discard_curr_construct_pragmas();
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS
   esp = add_statement((a_statement_kind)stmk_empty);
+#else /* !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS) */
+  (void)add_statement((a_statement_kind)stmk_empty);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS */
   stmt_update_source_sequence_list(esp);
   /* Advance past the semicolon. */
   if (curr_token == tok_semicolon) {
