@@ -7906,7 +7906,7 @@ and global namespaces.
       if (sym != NULL && is_type_symbol(sym)) {
         va_list_type = type_symbol_type(sym);
       } else {
-        /* The special symbol does not exist.  Use a generated of configured
+        /* The special symbol does not exist.  Use a generated or configured
            default (often char* or void*). */
         va_list_type = get_default_va_list_type();
       }  /* if */
