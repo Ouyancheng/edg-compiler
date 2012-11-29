@@ -7466,14 +7466,13 @@ the constructor initializer.
              If a destruction is associated with the initialization,
              make sure it is placed in the proper location in the object
              lifetime of the constructor's scope. */
-          if ((field_dip->destructor != NULL && olp == NULL) ||
-              field_dip->init_expr_lifetime != NULL) {
+          if (olp == NULL) {
             /* If the scope has no destructible objects (aside from those
                being added here), the function scope may have no object
                lifetime, in which case we allocate one here (before we
                copy the dynamic init because the lifetime may be needed
-               in that case).  An object lifetime is also needed if the
-               dynamic init has an init_expr_lifetime. */
+               in that case).  If the lifetime ends up being useless, it
+               is removed below. */
             olp = alloc_object_lifetime((an_object_lifetime_kind)olk_block);
             bind_object_lifetime(olp, iek_scope, (char *)scope);
             scope->lifetime = olp;
@@ -7505,6 +7504,10 @@ the constructor initializer.
     }  /* for */
   }  /* if */
   if (saved_curr_object_lifetime != NULL) {
+    if (is_useless_object_lifetime(scope->lifetime)) {
+      /* Remove useless object lifetime that was allocated above. */
+      scope->lifetime = NULL;
+    }  /* if */
     curr_object_lifetime = saved_curr_object_lifetime;
   }  /* if */
 }  /* copy_non_static_data_member_initializers_if_necessary */
