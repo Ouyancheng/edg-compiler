@@ -1,5 +1,24 @@
 Version 4.6
 
+11/29/12 [EDGcpfe/12052,EDGcpfe/13432]
+C-generating back end: duplicate dummy members in generated union
+
+In configurations with USE_EMPTY_STRUCT_IN_GENERATED_C (see the entry for
+EDGcpfe/11105 below) set to TRUE, a union with multiple members whose types
+were generated as empty structs caused the C-generating back end to insert
+multiple (unnecessary) padding members, all named __dummy_empty1, into the
+union in the generated code.  This is now fixed; no padding members are
+inserted into generated unions.  For example:
+
+struct A {};
+struct B {
+  union {
+    A a1;    // Each of a1 and a2 was previously followed by a member named
+    A a2;    // __dummy_empty1 in the generated C code
+  } u;
+} b;
+
+
 11/28/12 [EDGcpfe/13431]
 Default type for va_list or __builtin_va_list
 
