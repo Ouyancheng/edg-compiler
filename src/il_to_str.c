@@ -5557,7 +5557,11 @@ Do the output in the way described by octl.
       form_simple_attribute("__cdecl__", need_leading_space, octl);
       break;
     case cc_fastcall:
-      if (!octl->gen_compilable_code || gnu_target_version_number >= 40200) {
+      if (!octl->gen_compilable_code
+#if GCC_IS_GENERATED_CODE_TARGET
+          || gnu_target_version_number >= 40200
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
+                                               ) {
         form_simple_attribute("__fastcall__", need_leading_space, octl);
       }  /* if */
       break;
