@@ -1884,7 +1884,7 @@ or enum.  This is always a reference/declaration, never a definition.
   } else
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   /* Do not insert code here. */
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
+#if USE_X86_64
   if (gcc_is_generated_code_target && is_immediate_class_type(type) &&
       class_type_supp(type)->is_va_list_tag) {
     /* The predefined struct __va_list_tag is necessarily distinct from,
@@ -1893,7 +1893,7 @@ or enum.  This is always a reference/declaration, never a definition.
        dump_type_decl in its place. */
     write_tok_str("__va_list_tag_type");
   } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
+#endif /* USE_X86_64 */
   /* Do not insert code here. */
   {
     /* Put out a reference to the tag by name.  Note that unnamed tags will

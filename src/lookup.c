@@ -5830,12 +5830,12 @@ associated namespaces and classes to "namespace_list" and "class_list".
     case tk_struct:
     case tk_union:
       ctsp = type->variant.class_struct_union.extra_info;
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
+#if USE_X86_64
       if (ctsp->is_va_list_tag) {
         /* The __va_list_tag predeclared class doesn't participate in
            this lookup. */
       } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
+#endif /* USE_X86_64 */
       /* Do not insert code here. */
       {
         /* The standard specifies different behavior for unions vs. classes.
