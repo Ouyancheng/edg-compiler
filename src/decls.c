@@ -7161,6 +7161,7 @@ given position.
        implies they cannot be constexpr. */
     if (special_kind_is(rp, sfk_destructor)) {
       pos_error(ec_constexpr_destructor, diag_pos);
+      okay = FALSE;
     } else if (!special_kind_is(rp, sfk_constructor) &&
                !could_be_literal_type(rtp->variant.routine.return_type)) {
       okay = FALSE;
