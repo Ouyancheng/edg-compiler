@@ -5874,7 +5874,7 @@ See also 3.6.6.4.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
     if (current_routine_entry()->is_constexpr &&
-        special_kind_is(current_routine_entry(), sfk_none)) {
+        !special_kind_is(current_routine_entry(), sfk_constructor)) {
       /* A constexpr function must have exactly one return. */
       a_scope_ptr scope = scope_stack[depth_innermost_function_scope].il_scope;
       if (scope_stack[depth_innermost_function_scope].has_at_least_one_return){
@@ -7141,7 +7141,7 @@ e.g., ({ ... }).
   remove_stop_token(tok_rbrace);
   if (at_function_level &&
       current_routine_entry()->is_constexpr &&
-      special_kind_is(current_routine_entry(), sfk_none) &&
+      !special_kind_is(current_routine_entry(), sfk_constructor) &&
       !scope_stack[depth_innermost_function_scope].has_at_least_one_return) {
     /* Check that there is exactly one return statement in a constexpr
        function (an error has already been given if more than one

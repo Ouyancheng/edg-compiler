@@ -873,7 +873,7 @@ constructor.
         *next_ptr_ptr = copy;
         next_ptr_ptr = &copy->next;
       }  /* for */
-    } else if (special_kind_is(routine, sfk_none)) {
+    } else {
       /* constexpr function.  A copy of the return expression is made (so that
          an unlowered version of the expression is preserved).  */
       check_assertion(scope->variant.routine.constexpr_return_expr != NULL);
