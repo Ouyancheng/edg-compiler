@@ -17824,6 +17824,9 @@ scanned is, in fact, an identifier).
                                      (a_symbol_ptr)NULL,
                                      /*instantiate_nonreal=*/FALSE);
         locator_for_curr_id.is_unknown_template_reference = FALSE;
+        locator_for_curr_id.specific_symbol = symbol;
+        locator_for_curr_id.do_not_clear_specific_symbol = TRUE;
+        locator_for_curr_id.symbol_header = symbol->header;
       }  /* if */
     } else {
       symbol = coalesce_template_class_reference(symbol, options, &templ_err);
