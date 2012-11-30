@@ -3296,8 +3296,7 @@ to use for diagnostics by default.
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void expr_init_scalar_variable(a_variable_ptr      vp,
-                                      a_decl_parse_state  *dps,
+static void expr_init_scalar_variable(a_decl_parse_state  *dps,
                                       a_decl_pos_block    *decl_pos_block)
 /*
 vp, dps (which must be non-NULL) and decl_pos_block describe a variable of
@@ -3838,7 +3837,7 @@ returned set to TRUE.
     /* A non-aggregate object is being initialized with an expression (the
        braced initializer case was handled above).  A constant or non-constant
        expression may be permitted as the initializer. */
-    expr_init_scalar_variable(vp, dps, decl_pos_block);
+    expr_init_scalar_variable(dps, decl_pos_block);
     init_err = dps->init_state.init_error;
     init_con = dps->init_state.init_con;
     init_dip = dps->init_state.init_dip;
