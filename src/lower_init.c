@@ -7473,11 +7473,9 @@ the constructor initializer.
                copy the dynamic init because the lifetime may be needed
                in that case).  If the lifetime ends up being useless, it
                is removed below. */
-            olp = alloc_object_lifetime((an_object_lifetime_kind)olk_block);
-            bind_object_lifetime(olp, iek_scope, (char *)scope);
-            scope->lifetime = olp;
-            /* Make the new object lifetime the current object lifetime. */
             saved_curr_object_lifetime = curr_object_lifetime;
+            add_object_lifetime_to_function_scope(scope);
+            olp = scope->lifetime;
             curr_object_lifetime = olp;
           }  /* if */
           dip = copy_dynamic_init(field_dip, CE_NO_OPTIONS);
@@ -7505,8 +7503,10 @@ the constructor initializer.
   }  /* if */
   if (saved_curr_object_lifetime != NULL) {
     if (is_useless_object_lifetime(scope->lifetime)) {
-      /* Remove useless object lifetime that was allocated above. */
-      scope->lifetime = NULL;
+      /* Remove useless object lifetime that was allocated above.  No need to
+         unlink it from its parent (function scope object lifetimes
+         aren't queued on the file scope object lifetime). */
+      unbind_object_lifetime(scope->lifetime);
     }  /* if */
     curr_object_lifetime = saved_curr_object_lifetime;
   }  /* if */
