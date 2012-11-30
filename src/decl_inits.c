@@ -3068,16 +3068,6 @@ is part of.  diag_pos is the position to be used by default for diagnostics
     }  /* if */
   }  /* if */
   if (vp != NULL) vp->has_direct_braced_initializer = direct;
-  if (C_mode() &&
-      (dps->init_state.static_lifetime_init ||
-       (is_aggregate_or_union_type(dps->type) &&
-        !allow_nonconstant_auto_aggr_init_in_c_mode))) {
-    /* In C mode, variables with static lifetime can only be initialized with
-       constant expressions.  For variables of aggregate types, this may also
-       be true for variables with automatic storage duration (depending on the
-       mode and configuration). */
-    dps->init_state.initializer_must_be_constant = TRUE;
-  }  /* if */
   braced_initializer(dps->type, (an_init_component *)NULL,
                      &dps->init_state, dps, (an_init_component **)NULL,
                      diag_pos);
@@ -3228,9 +3218,6 @@ to use for diagnostics by default.
   vp = var_for_symbol(dps->sym);
   check_assertion(vp != NULL);
   is->elided_braces_allowed = TRUE;
-  is->initializer_must_be_constant =
-                    C_mode() && (is->static_lifetime_init ||
-                                 !allow_nonconstant_auto_aggr_init_in_c_mode);
   is_string_var = may_be_string_type(dps->type);
   if (!is_string_var && !C_mode()) {
     /* In C++, the only valid case here is string initialization.  We cannot
@@ -3309,12 +3296,13 @@ to use for diagnostics by default.
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void expr_init_scalar_variable(a_decl_parse_state  *dps,
+static void expr_init_scalar_variable(a_variable_ptr      vp,
+                                      a_decl_parse_state  *dps,
                                       a_decl_pos_block    *decl_pos_block)
 /*
-dps (which must be non-NULL) and decl_pos_block describe a variable of scalar
-type initialized with what looks like an expression.  I.e., an initialization
-of the form:
+vp, dps (which must be non-NULL) and decl_pos_block describe a variable of
+scalar type initialized with what looks like an expression.  I.e., an
+initialization of the form:
 
 	T x = <expr>
 
@@ -3324,8 +3312,6 @@ to use for diagnostics by default.
 {
   an_init_component_ptr  expr_icp;
 
-  dps->init_state.initializer_must_be_constant =
-                             C_mode() && dps->init_state.static_lifetime_init;
   expr_icp = scan_full_initializer_expr_as_component(
                                          dps,
                                          /*parenthesized=*/FALSE,
@@ -3454,7 +3440,6 @@ returned set to TRUE.
   a_constant_ptr                    init_con = NULL;
   a_dynamic_init_ptr                init_dip = NULL;
   a_class_symbol_supplement_ptr     cssp = NULL;
-  a_boolean                         nonconstant_allowed;
   a_memory_region_number            region_to_switch_back_to;
   an_object_lifetime_ptr            local_static_lifetime = NULL;
   a_local_static_variable_init_ptr  local_static_var_init = NULL;
@@ -3669,6 +3654,18 @@ returned set to TRUE.
     }  /* if */
   }  /* if */
   dps->type = vp_type;
+  if (C_mode()) {
+    /* In C mode, static lifetime variables require constant initializers.
+       In addition, some C mode also require constant initializers for
+       automatic variables of aggregate type. */
+    dps->init_state.initializer_must_be_constant =
+          static_lifetime || (!allow_nonconstant_auto_aggr_init_in_c_mode &&
+                              is_aggregate_or_union_type(vp_type));
+  } else {
+    /* In C++ mode, constexpr variables require constant initializers. */
+    dps->init_state.initializer_must_be_constant = vp != NULL &&
+                                                   vp->is_constexpr;
+  }  /* if */
   /* Now process the initializer.  There are four syntactic cases:
        (1) parenthesized initializers (a C++ feature; e.g., "T x(3);"),
        (2) direct list initializers (a C++11 feature; e.g., "T x{3};"),
@@ -3714,8 +3711,6 @@ returned set to TRUE.
       add_stop_token(tok_rparen);
       /* Scan the initializer.  Either a constant pointer is returned or else
          a dynamic init entry representing an expression. */
-      nonconstant_allowed = (!C_mode() || !static_lifetime);
-      dps->init_state.initializer_must_be_constant = !nonconstant_allowed;
       expr_direct_init_object(dps, linkage, source_pos);
       init_err = dps->init_state.init_error;
       init_con = dps->init_state.init_con;
@@ -3843,7 +3838,7 @@ returned set to TRUE.
     /* A non-aggregate object is being initialized with an expression (the
        braced initializer case was handled above).  A constant or non-constant
        expression may be permitted as the initializer. */
-    expr_init_scalar_variable(dps, decl_pos_block);
+    expr_init_scalar_variable(vp, dps, decl_pos_block);
     init_err = dps->init_state.init_error;
     init_con = dps->init_state.init_con;
     init_dip = dps->init_state.init_dip;
