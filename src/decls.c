@@ -7156,9 +7156,13 @@ given position.
     expect_error();
   } else {
     check_assertion(rtp->kind == (a_type_kind)tk_routine);
-    if (!(special_kind_is(rp, sfk_constructor) ||
-          special_kind_is(rp, sfk_destructor)) &&
-        !could_be_literal_type(rtp->variant.routine.return_type)) {
+    /* The return type and parameter types of a constexpr function must be
+       literal types.  Since destructors don't have a return type, this
+       implies they cannot be constexpr. */
+    if (special_kind_is(rp, sfk_destructor)) {
+      pos_error(ec_constexpr_destructor, diag_pos);
+    } else if (!special_kind_is(rp, sfk_constructor) &&
+               !could_be_literal_type(rtp->variant.routine.return_type)) {
       okay = FALSE;
       pos_ty_error(ec_nonliteral_return_type_in_constexpr_function, diag_pos,
                    rtp->variant.routine.return_type);
