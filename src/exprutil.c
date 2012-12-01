@@ -12050,7 +12050,8 @@ used as an rvalue.
 {
   check_assertion(curr_expr_kind_is_const());
   do_rvalue_generic_operand_transformations(operand);
-  check_assertion(is_constant_operand(operand) ||
+  check_assertion(constexpr_enabled /*FIXME*/ ||
+                  is_constant_operand(operand) ||
                   is_error_operand(operand));
 }  /* do_constant_generic_operand_transformations */
 
