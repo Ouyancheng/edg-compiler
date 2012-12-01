@@ -3656,10 +3656,12 @@ returned set to TRUE.
   if (C_mode()) {
     /* In C mode, static lifetime variables require constant initializers.
        In addition, some C mode also require constant initializers for
-       automatic variables of aggregate type. */
+       automatic variables of aggregate type initialized with a braced
+       construct. */
     dps->init_state.initializer_must_be_constant =
           static_lifetime || (!allow_nonconstant_auto_aggr_init_in_c_mode &&
-                              is_aggregate_or_union_type(vp_type));
+                              is_aggregate_or_union_type(vp_type) &&
+                              first_token == tok_lbrace);
   } else {
     /* In C++ mode, constexpr variables require constant initializers. */
     dps->init_state.initializer_must_be_constant = vp != NULL &&
