@@ -118,7 +118,8 @@ typedef a_byte an_expression_kind;
 /*
 Kinds of expressions again, this time as bits in a set used to
 record occurrence of constructs that rule out certain expression
-kinds.
+kinds.  These are used for C and pre-C++11 C++; in C++11 different
+rules apply.
 */
 typedef a_byte a_ruled_out_expr_kind_set;
 #define ROEK_NONE              ((a_ruled_out_expr_kind_set)0)
@@ -818,6 +819,12 @@ typedef struct an_expr_stack_entry {
 			   the next expression stack push should consider that
 			   we are still in the same expression even if we went
 			   into declaration processing and came back. */
+  a_byte_boolean
+		cpp11_constant_expr_ruled_out;
+			/* TRUE if the expression contains something that
+			   rules it out as a C++11 constant expression, even
+			   if the expression is not being scanned as a
+			   constant expression. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
@@ -1727,6 +1734,14 @@ extern void revert_gcc_rvalue_to_lvalue_if_possible(an_operand *operand,
 extern void revert_microsoft_rvalue_to_lvalue_if_possible(an_operand *operand);
 
 extern a_boolean check_modifiable_lvalue_operand(an_operand *operand);
+
+extern
+a_boolean construct_not_allowed_in_cpp11_constant_expr(
+                                                    an_error_code     err_code,
+                                                    a_source_position *pos);
+
+extern
+a_boolean operator_not_allowed_in_cpp11_constant_expr(a_source_position *pos);
 
 extern a_boolean check_scalar_operand(an_operand *operand);
 

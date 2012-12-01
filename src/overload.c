@@ -9996,9 +9996,15 @@ wondering if it's available.
   a_base_class_ptr bcp;
 
   /* This routine is similar to cast_pointer_for_field_selection. */
-  if (curr_expr_kind_is_const()) {
+  if (!constexpr_enabled && curr_expr_kind_is_const()) {
     /* Nonstatic members are not allowed in constant expressions. */
     expr_pos_error(ec_expr_not_constant, member_pos);
+    make_error_operand(result);
+    okay = FALSE;
+  } else if (constexpr_enabled &&
+             construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+                                                          member_pos)) {
+    /* Use of "this" not allowed in C++11 constant expressions. */
     make_error_operand(result);
     okay = FALSE;
   } else {

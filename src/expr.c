@@ -267,11 +267,6 @@ parameters match the corresponding ones for push_expr_stack_for_initializer.
        necessary, but just to be neat). */
     expr_stack->p_end_of_entities_defined_in_expression = NULL;
   }  /* if */
-  if (curr_expr_kind_is_const()) {
-    /* Discard any object lifetime created in a constant expression (errors
-       were issued). */
-    discard_constant_expr_object_lifetime();
-  }  /* if */
   pop_expr_stack();
   if (is_full_expr) {
     restore_expr_stack(saved_expr_stack);
@@ -1175,6 +1170,9 @@ constructs, in which case offsetof_case is TRUE.
     /* Subscripting not allowed in preprocessing expression. */
     expr_pos_error(ec_bad_pp_operator, &operator_position);
     err = TRUE;
+  } else if (constexpr_enabled) {
+    /* C++11 constant expressions allow subscripting if the ultimate result
+       is constant. */
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Subscripting not allowed in integral constant expression. */
     expr_pos_error(ec_bad_integral_operator, &operator_position);
@@ -3006,11 +3004,16 @@ been scanned: builtin_func represents the reference to the builtin function
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_matching_stop_token(tok_rparen);
   }  /* if */
-  if (curr_expr_kind_is_const()) {
+  if (constexpr_enabled) {
+    /* C++11 constant expressions do not allow va_start (it sets the
+       operand variable). */
+    err = operator_not_allowed_in_cpp11_constant_expr(&start_position);
+  } else if (curr_expr_kind_is_const()) {
     /* va_start is not allowed in constant expressions. */
-    expr_pos_error(ec_bad_va_start, &start_position);
+    expr_pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;
-  } else {
+  }  /* if */
+  if (!err) {
     /* Check if we are in a valid function for the use of va_start. */
     a_boolean bad_scope = TRUE;
     if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
@@ -3201,9 +3204,13 @@ been scanned: builtin_func represents the reference to the builtin function
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_matching_stop_token(tok_rparen);
   }  /* if */
-  if (curr_expr_kind_is_const()) {
+  if (constexpr_enabled) {
+    /* C++11 constant expressions do not allow va_arg (it updates the
+       parameter list tracking variable). */
+    err = operator_not_allowed_in_cpp11_constant_expr(&start_position);
+  } else if (curr_expr_kind_is_const()) {
     /* va_arg is not allowed in constant expressions. */
-    expr_pos_error(ec_bad_va_arg, &start_position);
+    expr_pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;
   }  /* if */
   add_stop_token(tok_comma);
@@ -3322,9 +3329,13 @@ been scanned: builtin_func represents the reference to the builtin function
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_matching_stop_token(tok_rparen);
   }  /* if */
-  if (curr_expr_kind_is_const()) {
+  if (constexpr_enabled) {
+    /* C++11 constant expressions do not allow va_end (it may update the
+       parameter list tracking variable). */
+    err = operator_not_allowed_in_cpp11_constant_expr(&start_position);
+  } else if (curr_expr_kind_is_const()) {
     /* va_end is not allowed in constant expressions. */
-    expr_pos_error(ec_bad_va_end, &start_position);
+    expr_pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;
   }  /* if */
   /* Scan the expression. */
@@ -3393,9 +3404,13 @@ been scanned: builtin_func represents the reference to the builtin function
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_matching_stop_token(tok_rparen);
   }  /* if */
-  if (curr_expr_kind_is_const()) {
+  if (constexpr_enabled) {
+    /* C++11 constant expressions do not allow va_copy (it sets the
+       destination operand variable). */
+    err = operator_not_allowed_in_cpp11_constant_expr(&start_position);
+  } else if (curr_expr_kind_is_const()) {
     /* va_copy is not allowed in constant expressions. */
-    expr_pos_error(ec_bad_va_copy, &start_position);
+    expr_pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;
   }  /* if */
   add_stop_token(tok_comma);
@@ -4835,7 +4850,7 @@ are expected to be NULL in that case.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (!call_may_be_folded && curr_expr_kind_is_const() &&
-      !constexpr_enabled) {
+      (!constexpr_enabled || curr_expr_kind_is(ek_pp))) {
     /* Routine calls that cannot be folded should not appear in constant-
        expressions. */
     error_in_operand(ec_bad_constant_function_call, operand);
@@ -5347,10 +5362,17 @@ are expected to be NULL in that case.
       call_folded_to_constant = check_call_and_fold_if_possible(result);
     }  /* if */
   }  /* if */
-  if (curr_expr_kind_is_const() &&
-      !call_folded_to_constant && !is_error_operand(result)) {
+  if (!call_folded_to_constant && !is_error_operand(result)) {
     /* Unfolded routine calls are not allowed in constant expressions. */
-    error_in_operand(ec_bad_constant_function_call, result);
+    if (constexpr_enabled) {
+      if (construct_not_allowed_in_cpp11_constant_expr(
+                                                 ec_bad_constant_function_call,
+                                                 &result->position)) {
+        conv_to_error_operand(result);
+      }  /* if */
+    } else if (curr_expr_kind_is_const()) {
+      error_in_operand(ec_bad_constant_function_call, result);
+    }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &closing_paren_position,
                        &operator_position);
@@ -7460,6 +7482,9 @@ the selection, not an operator token for the call.
     /* Operation not allowed in preprocessor expression. */
     expr_pos_error(ec_bad_pp_operator, &operator_position);
     err = TRUE;
+  } else if (constexpr_enabled) {
+    /* C++11 constant expressions allow pointer-to-member operations if
+       the ultimate result is constant. */
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Operation not allowed in integral constant expression. */
     expr_pos_error(ec_bad_integral_operator, &operator_position);
@@ -8157,9 +8182,15 @@ case.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   is_increment = (operator_token == tok_plus_plus);
-  if (curr_expr_kind_is_const()) {
+  if ((!constexpr_enabled && curr_expr_kind_is_const()) ||
+      curr_expr_kind_is(ek_pp)) {
     /* Postfix ++/-- not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &operator_position);
+    make_error_operand(result);
+    operand_will_not_be_used_because_of_error(operand);
+  } else if (constexpr_enabled &&
+             operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
+    /* Postfix ++/-- not allowed in C++11 constant expressions. */
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand);
   } else {
@@ -8473,9 +8504,14 @@ and return the result in *result (or an error indication in *rcblock).
   }  /* if */
   is_increment = (operator_token == tok_plus_plus);
 
-  if (curr_expr_kind_is_const()) {
+  if ((!constexpr_enabled && curr_expr_kind_is_const()) ||
+      curr_expr_kind_is(ek_pp)) {
     /* Prefix ++ and -- are not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &operator_position);
+    err = TRUE;
+  } else if (constexpr_enabled &&
+             operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
+    /* Prefix ++/-- not allowed in C++11 constant expressions. */
     err = TRUE;
   }  /* if */
 
@@ -8717,6 +8753,9 @@ error indication in *rcblock).
     /* Address constants not allowed in preprocessing expressions. */
     expr_pos_error(ec_bad_pp_operator, &start_position);
     err = TRUE;
+  } else if (constexpr_enabled) {
+    /* C++11 constant expressions allow "&" if the ultimate result
+       is constant. */
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Address constants not allowed in integral constant expressions. */
     expr_pos_error(ec_bad_integral_operator, &start_position);
@@ -8959,10 +8998,14 @@ result in *result (or an error indication in *rcblock).
     /* Handles not allowed in preprocessing expressions. */
     expr_pos_error(ec_bad_pp_operator, &start_position);
     err = TRUE;
-  } else if (curr_expr_kind_is_const()) {
+  } else if (!constexpr_enabled && curr_expr_kind_is_const()) {
     /* Handles not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;
+  } else if (constexpr_enabled &&
+             operator_not_allowed_in_cpp11_constant_expr(&start_position)) {
+    /* Handles not allowed in C++11 constant expressions. */
+    err = TRUE;  
   }  /* if */
 
   if (rcblock == NULL) {
@@ -9059,6 +9102,9 @@ current token on entry.
     /* Address-of-label not allowed in preprocessing expressions. */
     expr_pos_error(ec_bad_pp_operator, &start_position);
     err = TRUE;
+  } else if (constexpr_enabled) {
+    /* C++11 constant expressions allow address-of-label if the ultimate result
+       is constant. */
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Address-of-label not allowed in integral constant expressions. */
     expr_pos_error(ec_bad_integral_operator, &start_position);
@@ -9250,6 +9296,9 @@ error indication in *rcblock).
     /* Address indirection not allowed in preprocessing expressions. */
     expr_pos_error(ec_bad_pp_operator, &operator_position);
     err = TRUE;
+  } else if (constexpr_enabled) {
+    /* C++11 constant expressions allow "*" if the ultimate result
+       is constant. */
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Address indirection not allowed in integral constant expressions. */
     expr_pos_error(ec_bad_integral_operator, &operator_position);
@@ -9460,7 +9509,7 @@ analysis on a previously-scanned expression, and return the result in
                                    (a_source_position *)NULL,
                                    result, &processed);
   }  /* if */
-  if (!processed && curr_expr_kind_is(ek_template_arg)) {
+  if (!processed && !constexpr_enabled && curr_expr_kind_is(ek_template_arg)) {
     if (is_bad_type_for_template_arg_operand(operand.type) &&
         /* Allow negation of a floating point constant. */
         !((floating_point_template_parameters_allowed || microsoft_mode) &&
@@ -9913,8 +9962,6 @@ previously-scanned sizeof expression, and return the result in *result
   a_type_ptr            sizeof_type;
   an_expr_stack_entry   expr_stack_entry;
   a_boolean             template_case = FALSE;
-  a_boolean             in_constant_expression = (expr_stack != NULL &&
-                                                  curr_expr_kind_is_const());
   a_token_kind          operator_token;
 #if UPC_EXTENSIONS_ALLOWED
   a_upc_block_size      block_size;
@@ -10227,7 +10274,7 @@ previously-scanned sizeof expression, and return the result in *result
           break;
       }  /* switch */
     }  /* if */
-    if (multiply_by_threads_needed && in_constant_expression) {
+    if (multiply_by_threads_needed && curr_expr_kind_is_const()) {
       /* Not allowed in a constant expression. */
       expr_pos_error(ec_expr_not_constant, &start_position);
       make_error_operand(result);
@@ -10254,7 +10301,7 @@ previously-scanned sizeof expression, and return the result in *result
   /* Do not add code here. */
   if (vla_enabled && is_vla_type(sizeof_type) && !template_case) {
     /* One or more of the top array types is a variable-length array. */
-    if (in_constant_expression) {
+    if (curr_expr_kind_is_const()) {
       /* Not allowed in a constant expression. */
       expr_pos_error(ec_expr_not_constant, &start_position);
       make_error_operand(result);
@@ -10278,7 +10325,7 @@ previously-scanned sizeof expression, and return the result in *result
          cli_class_type_kind_is(tp, cctk_interface))) {
       expr_pos_error(ec_sizeof_ref_or_interface_class, &start_position);
       make_error_operand(result);
-    } else if (in_constant_expression) {
+    } else if (curr_expr_kind_is_const()) {
       expr_pos_error(ec_expr_not_constant, &start_position);
       make_error_operand(result);
     } else {
@@ -10298,7 +10345,7 @@ previously-scanned sizeof expression, and return the result in *result
        some (e.g., non-POD classes) might not be.  SIZEOF_TYPE_IS_UNKNOWN
        is a function-like macro that returns TRUE for the complicated
        cases. */
-    if (in_constant_expression) {
+    if (curr_expr_kind_is_const()) {
       /* Not allowed in a constant expression. */
       expr_pos_error(ec_expr_not_constant, &start_position);
       make_error_operand(result);
@@ -13010,6 +13057,7 @@ indication in *rcblock).
                     region_to_switch_back_to;
   a_boolean         objectless_nonstatic_data_ref_seen = FALSE;
   a_source_position objectless_nonstatic_data_ref_pos;
+  a_boolean         saved_cpp11_constant_expr_ruled_out;
 
   db_enter(4, "scan_typeid_operator");
   if (rcblock != NULL) {
@@ -13047,7 +13095,10 @@ indication in *rcblock).
   feature_is_not_part_of_embedded_cplusplus_subset(
                                               &start_position,
                                               ec_rtti_in_embedded_cplusplus);
-  if (curr_expr_kind_is_const()) {
+  if (constexpr_enabled) {
+    /* C++11 constant expressions do not allow typeid in certain cases,
+       but that's based on the type of the operand, so we delay the test. */
+  } else if (curr_expr_kind_is_const()) {
     /* typeid is not allowed in constant expressions. */
     if (microsoft_mode && curr_expr_kind_is(ek_template_arg) &&
         !is_cli_typeid) {
@@ -13088,6 +13139,8 @@ indication in *rcblock).
                                  rcblock);
     expr_stack->potentially_unevaluated = TRUE;
   }  /* if */
+  saved_cpp11_constant_expr_ruled_out =
+                                     expr_stack->cpp11_constant_expr_ruled_out;
   if (rcblock == NULL) {
     /* Not rescan, scanning from tokens. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -13168,6 +13221,9 @@ indication in *rcblock).
                        &objectless_nonstatic_data_ref_pos);
       }  /* if */
       runtime_case = TRUE;
+      if (operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
+        err = TRUE;
+      }  /* if */
       if (is_expression_operand(&operand)) {
         /* Passing call_case TRUE here because we want to treat something
            like "*this" in a constructor as having known type, and not go
@@ -13182,7 +13238,7 @@ indication in *rcblock).
           runtime_case = FALSE;
         }  /* if */
       }  /* if */
-    }  /* if */ 
+    }  /* if */
     if (microsoft_template_arg_case && runtime_case) {
       /* The Microsoft extension doesn't allow cases that require runtime
          evaluation. */
@@ -13203,6 +13259,13 @@ indication in *rcblock).
       /* We're not keeping the expression in the IL. */
       discard_operand(&operand);
     }  /* if */
+  }  /* if */
+  if (!runtime_case) {
+    /* If this is not a runtime case, the expression is not evaluated,
+       which means any operators not valid for a C++11 constant expression
+       that appear within the operand don't count. */
+    expr_stack->cpp11_constant_expr_ruled_out =
+                                           saved_cpp11_constant_expr_ruled_out;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_cli_typeid) {
@@ -13486,9 +13549,13 @@ indication in *rcblock).  after_keyword is ignored in that case.
                                /*suppress_object_lifetime=*/FALSE,
                                rcblock);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
-  if (curr_expr_kind_is(ek_integral_constant)) {
-    /* __uuidof is not allowed in integral constant expression. */
+  if (!constexpr_enabled && curr_expr_kind_is(ek_integral_constant)) {
+    /* __uuidof is not allowed in integral constant expressions. */
     expr_pos_error(ec_bad_integral_operator, &start_position);
+    err = TRUE;
+  } else if (constexpr_enabled &&
+             operator_not_allowed_in_cpp11_constant_expr(&start_position)) {
+    /* __uuidof is not allowed in C++11 constant expressions. */
     err = TRUE;
   }  /* if */
   if (rcblock == NULL) {
@@ -13827,9 +13894,14 @@ indication in *rcblock).
                            &operand)) {
     err = TRUE;
   }  /* if */
-  if (curr_expr_kind_is_const()) {
+  if (!constexpr_enabled && curr_expr_kind_is_const()) {
     /* dynamic_cast is not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &start_position);
+    err = TRUE;
+  } else if (constexpr_enabled &&
+             operator_not_allowed_in_cpp11_constant_expr(&start_position)) {
+    /* dynamic_cast is not allowed in C++11 constant expressions, even
+       when there's no runtime test. */
     err = TRUE;
   }  /* if */
   if (!err) {
@@ -15169,9 +15241,13 @@ expression, and return the result in *result (or an error indication in
   check_assertion(!(is_gcnew && !cppcli_enabled));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-  if (curr_expr_kind_is_const()) {
+  if (!constexpr_enabled && curr_expr_kind_is_const()) {
     /* "new" nor "gcnew" allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &start_position);
+    err = TRUE;
+  } else if (constexpr_enabled &&
+             operator_not_allowed_in_cpp11_constant_expr(&start_position)) {
+    /* "new" and "gcnew" not allowed in C++11 constant expressions. */
     err = TRUE;
   }  /* if */
 
@@ -16731,9 +16807,13 @@ in *rcblock).
     start_position = pos_curr_token;
   }  /* if */
 
-  if (curr_expr_kind_is_const()) {
+  if (!constexpr_enabled && curr_expr_kind_is_const()) {
     /* "delete" not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &start_position);
+    err = TRUE;
+  } else if (constexpr_enabled &&
+             operator_not_allowed_in_cpp11_constant_expr(&start_position)) {
+    /* "delete" is not allowed in C++11 constant expressions. */
     err = TRUE;
   }  /* if */
 
@@ -17106,8 +17186,16 @@ C++ functional-notation type conversions, and C++ new-style casts.
     if (!C_mode()) {
       /* In C++, a cast to a class is allowed. */
       /* But not in a constant expression. */
-      if (curr_expr_kind_is_const()) {
+      if (!constexpr_enabled && curr_expr_kind_is_const()) {
         expr_pos_error(ec_expr_not_constant, type_position);
+        err = TRUE;
+      } else if (constexpr_enabled &&
+                 !is_literal_type(type_cast_to) &&
+                 construct_not_allowed_in_cpp11_constant_expr(
+                                                          ec_expr_not_constant,
+                                                          type_position)) {
+        /* Casts to class types are allowed if they are constexpr, but
+           errors otherwise. */
         err = TRUE;
       }  /* if */
       /* But not a cast to an abstract class. */
@@ -17380,7 +17468,7 @@ expressions allow only certain limited casts).
       use_type_position_in_diag = TRUE;
     }  /* if */
   }  /* if */
-  if (curr_expr_kind_is(ek_integral_constant)) {
+  if (!constexpr_enabled && curr_expr_kind_is(ek_integral_constant)) {
     if (err_code != ec_no_error) {
       expr_pos_diagnostic(err_severity, err_code,
                           use_type_position_in_diag ? type_position :
@@ -17488,7 +17576,7 @@ expressions allow only certain limited casts).
       use_type_position_in_diag = TRUE;
     }  /* if */
   }  /* if */
-  if (curr_expr_kind_is(ek_init_constant)) {
+  if (!constexpr_enabled && curr_expr_kind_is(ek_init_constant)) {
     /* Diagnose casts not allowed in an init-constant expression. */
     if (err_code != ec_no_error) {
       expr_pos_diagnostic(err_severity, err_code,
@@ -17501,7 +17589,7 @@ expressions allow only certain limited casts).
     /* This cast is not valid in a constant expression. */
     *ruled_out_expr_kinds |= ROEK_CONSTANT;
   }  /* if */
-  if (curr_expr_kind_is(ek_template_arg)) {
+  if (!constexpr_enabled && curr_expr_kind_is(ek_template_arg)) {
     /* Only casts between integral or enum types are allowed in nontype
        template arguments. */
     if (is_integral_or_enum_type(dest_type)) {
@@ -19520,6 +19608,11 @@ indication in *rcblock).
                            result)) {
     err = TRUE;
   } else {
+    if (constexpr_enabled &&
+        operator_not_allowed_in_cpp11_constant_expr(&start_position)) {
+      /* reinterpret_cast is not allowed in C++11 constant expressions. */
+      err = TRUE;
+    }  /* if */
     operand_expression = expr_node_from_operand(result);
     if (microsoft_bugs &&
         is_pointer_type(type_cast_to) &&
@@ -19705,7 +19798,7 @@ scanned, return the selector in *bound_function_selector.
      in an integral constant or template argument expression specially to
      allow address expressions that reduce to integer values.  This is
      to provide better support for common variants of offsetof. */
-  if (!strict_ansi_mode &&
+  if (!strict_ansi_mode && !constexpr_enabled &&
       (curr_expr_kind_is(ek_integral_constant) ||
        curr_expr_kind_is(ek_template_arg)) &&
       is_integral_type(type_cast_to)) {
@@ -19873,9 +19966,16 @@ already been consumed.
   a_source_position left_brace_position;
 
   left_brace_position = pos_curr_token;
-  if (curr_expr_kind_is_const()) {
+  if ((!constexpr_enabled && curr_expr_kind_is_const()) ||
+      curr_expr_kind_is(ek_pp)) {
     /* Not allowed in a constant expression. */
     expr_pos_error(ec_expr_not_constant, &left_brace_position);
+    err = TRUE;
+  } else if (constexpr_enabled &&
+             construct_not_allowed_in_cpp11_constant_expr(
+                                                       ec_expr_not_constant,
+                                                       &left_brace_position)) {
+    /* Statement expressions not allowed in C++11 constant expressions. */
     err = TRUE;
   }  /* if */
   if (!is_local_scope_kind(scope_stack_top().kind) ||
@@ -20691,7 +20791,7 @@ freed by this routine.
     } else {
       /* More than one argument, or zero arguments for a class type.
          Therefore, definitely a class (albeit an unknown one). */
-      if (curr_expr_kind_is_const()) {
+      if (!constexpr_enabled && curr_expr_kind_is_const()) {
         expr_pos_error(ec_expr_not_constant, start_position);
         make_error_operand(result);
         err = TRUE;
@@ -22490,6 +22590,7 @@ that case.
   a_boolean             processed = FALSE;
   a_boolean             might_be_overloaded = FALSE;
   a_boolean             operand_1_transformations_done = FALSE;
+  a_boolean             saved_cpp11_constant_expr_ruled_out;
   a_boolean             saved_evaluated = curr_expr_is_evaluated();
   a_boolean             expr2_evaluated;
   a_boolean             saved_inside_conditional_expression =
@@ -22516,7 +22617,7 @@ that case.
   potential_sequence_point_after_operand(operand_1);
 
   if (C_dialect == C_dialect_cplusplus &&
-      !curr_expr_kind_is_const() &&
+      (!curr_expr_kind_is_const() || constexpr_enabled) &&
       any_opname_function_symbol(opname_kind_for_token[(int)operator_token])) {
     /* We are in C++ mode, and there is an operator function that overloads
        this operator. */
@@ -22574,12 +22675,16 @@ that case.
     }  /* if */
     (void)get_token();
     expr_stack->evaluated = expr2_evaluated;
+    saved_cpp11_constant_expr_ruled_out =
+                            expr_stack->cpp11_constant_expr_ruled_out;
     expr_stack->inside_conditional_expression = TRUE;
     scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
     expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
     /* Restore the evaluated flag as it was on entry. */
     expr_stack->evaluated = saved_evaluated;
+    expr_stack->cpp11_constant_expr_ruled_out =
+                            saved_cpp11_constant_expr_ruled_out;
   }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
@@ -22623,8 +22728,10 @@ that case.
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     }  /* if */
     (void)check_boolean_controlling_expr(operand_1);
+    expr_stack->evaluated = expr2_evaluated;
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     (void)check_boolean_controlling_expr(&operand_2);
+    expr_stack->evaluated = saved_evaluated;
     result_type = boolean_result_type();
     /* See if we should reduce this operation to a constant in the case
        that the first operand is constant and dictates the result and
@@ -22922,6 +23029,7 @@ that case.
   a_type_ptr            operation_type_underlying_class;
   a_boolean             operand_2_is_ptr_to_member = FALSE;
   a_boolean             operand_3_is_ptr_to_member = FALSE;
+  a_boolean             saved_cpp11_constant_expr_ruled_out;
   a_boolean             saved_evaluated = curr_expr_is_evaluated();
   a_boolean             expr2_evaluated, expr3_evaluated;
   a_boolean             types_are_the_same = FALSE;
@@ -23012,11 +23120,15 @@ that case.
        evaluating expressions. */
     expr_stack->nested_construct_depth++;
     expr_stack->evaluated = expr2_evaluated;
+    saved_cpp11_constant_expr_ruled_out =
+                            expr_stack->cpp11_constant_expr_ruled_out;
     expr_stack->inside_conditional_expression = TRUE;
     scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
     expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
     expr_stack->evaluated = saved_evaluated;
+    expr_stack->cpp11_constant_expr_ruled_out =
+                            saved_cpp11_constant_expr_ruled_out;
     expr_stack->nested_construct_depth--;
   }  /* if */
 
@@ -23037,6 +23149,8 @@ that case.
        is non-constant or a zero constant, and if we are currently evaluating
        expressions. */
     expr_stack->evaluated = expr3_evaluated;
+    saved_cpp11_constant_expr_ruled_out =
+                            expr_stack->cpp11_constant_expr_ruled_out;
     expr_stack->inside_conditional_expression = TRUE;
     /* In C++, the 3rd operand is an assignment-expression (this was changed
        after the ARM) to allow things like "a ? i=1 : j=2". */
@@ -23047,6 +23161,8 @@ that case.
     expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
     expr_stack->evaluated = saved_evaluated;
+    expr_stack->cpp11_constant_expr_ruled_out =
+                            saved_cpp11_constant_expr_ruled_out;
   }  /* if */
 
   /* Check the second and third operand types. */
@@ -23925,9 +24041,14 @@ that case.  If the second operand of the assignment was a braced-init-list
     operator_tok_seq_number = curr_token_sequence_number;
   }  /* if */
 
-  if (curr_expr_kind_is_const()) {
-    /* Assignment operation not allowed in constant expressions. */
+  if ((!constexpr_enabled && curr_expr_kind_is_const()) ||
+      curr_expr_kind_is(ek_pp)) {
+    /* Assignment not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &operator_position);
+    err = TRUE;
+  } else if (constexpr_enabled &&
+             operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
+    /* Assignment not allowed in C++11 constant expressions. */
     err = TRUE;
   }  /* if */
 
@@ -24019,9 +24140,14 @@ assignment was a braced-init-list (allowed in C++11 mode),
   }  /* if */
   save_token = operator_token;
 
-  if (curr_expr_kind_is_const()) {
-    /* Assignment operation not allowed in constant expressions. */
+  if ((!constexpr_enabled && curr_expr_kind_is_const()) ||
+      curr_expr_kind_is(ek_pp)) {
+    /* Assignment not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &operator_position);
+    err = TRUE;
+  } else if (constexpr_enabled &&
+             operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
+    /* Assignment not allowed in C++11 constant expressions. */
     err = TRUE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -24668,9 +24794,13 @@ in *rcblock).
        semantic errors will not be issued on this throw expression. */
     expr_pos_error(ec_no_exception_support, &start_position);
     err = TRUE;
-  } else if (curr_expr_kind_is_const()) {
+  } else if (!constexpr_enabled && curr_expr_kind_is_const()) {
     /* "throw" not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &start_position);
+    err = TRUE;
+  } else if (constexpr_enabled &&
+             operator_not_allowed_in_cpp11_constant_expr(&start_position)) {
+    /* "throw" not allowed in C++11 constant expressions. */
     err = TRUE;
   } else {
     /* Exceptions are outside the "Embedded C++" subset. */
@@ -24901,7 +25031,10 @@ expression, and return the result in *result (or an error indication in
   /* There is a potential sequence point after the first operand. */
   potential_sequence_point_after_operand(operand_1);
 
-  if (c99_mode && !curr_expr_is_evaluated()) {
+  if (constexpr_enabled) {
+    /* Comma are allowed in C++11 constant expressions. */
+    comma_allowed_in_constant_expr = TRUE;
+  } else if (c99_mode && !curr_expr_is_evaluated()) {
     /* C99 allows a comma expression in a constant expression if it's
        not evaluated (6.6p3).  Even if the current expression kind is not
        constant, we still need to track whether it contains any operators
@@ -24909,7 +25042,8 @@ expression, and return the result in *result (or an error indication in
        determining whether an expression is a null pointer constant. */
     comma_allowed_in_constant_expr = TRUE;
   }  /* if */
-  if (curr_expr_kind_is_const() && !comma_allowed_in_constant_expr) {
+  if (!comma_allowed_in_constant_expr &&
+      curr_expr_kind_is_const()) {
     /* Comma operator not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
@@ -24971,7 +25105,7 @@ expression, and return the result in *result (or an error indication in
         copy_operand(&operand_2, result);
         preserve_ruled_out_expr_kinds_from_discarded_operand(operand_1,
                                                              result);
-      } else if (curr_expr_kind_is_const()) {
+      } else if (!constexpr_enabled && curr_expr_kind_is_const()) {
         /* We allowed the comma operator in case it could be folded, but
            it turned out its operands aren't constant, so we have to issue
            an error now that the expression is not constant. */
@@ -25608,6 +25742,8 @@ This function doesn't look at the current or nearby tokens.
        curr_expr_kind_is(ek_template_arg) ||
        curr_expr_kind_is(ek_init_constant))) {
     allows_folding = TRUE;
+  } else if (constexpr_enabled) {
+    allows_folding = TRUE;
   }  /* if */
   return allows_folding;
 }  /* current_mode_allows_field_selection_folding */
@@ -26105,7 +26241,8 @@ variable:
               add_reference_indirection(result);
             }  /* if */
             okay_for_integral_const_expr = FALSE;
-          } else if (!C_mode() && curr_expr_kind_is(ek_integral_constant) &&
+          } else if (!C_mode() && !constexpr_enabled &&
+                     curr_expr_kind_is(ek_integral_constant) &&
                      is_const_variable(var_ptr) &&
                      var_constant_value(var_ptr) == NULL) {
             /* This is a const variable without a constant value, e.g.,
@@ -26645,13 +26782,19 @@ called.
       expr_pos_error(ec_this_used_incorrectly, &start_position);
     }  /* if */
     make_error_operand(result);
-  } else if (curr_expr_kind_is_const() &&
+  } else if (!constexpr_enabled &&
+             curr_expr_kind_is_const() &&
              /* Some modes allow this->k, where k is a constant, in a
                 constant expression. */
              !(current_mode_allows_field_selection_folding() &&
                next_token() == tok_arrow)) {
     /* "this" cannot be used in a constant expression. */
     expr_pos_error(ec_expr_not_constant, &start_position);
+    make_error_operand(result);
+  } else if (constexpr_enabled &&
+             construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+                                                          &start_position)) {
+    /* "this" not allowed in C++11 constant expressions. */
     make_error_operand(result);
   } else {
     /* Make an rvalue for the "this" variable.  Note that this rewrites
@@ -27149,7 +27292,7 @@ which of the various keywords was used.
        we don't have a scope to use to save the variable pointer.  gcc
        treats this case as a string; g++ treats it as a variable. */
     is_string = TRUE;
-  } else if (curr_expr_kind_is(ek_integral_constant)) {
+  } else if (!constexpr_enabled && curr_expr_kind_is(ek_integral_constant)) {
     /* These are not allowed in an integral constant expression. */
     error_and_make_error_operand(expr_not_integral_or_any_enum_code(), result);
     goto end_of_routine;
@@ -27352,7 +27495,7 @@ and the other function-name tokens.
     /* __LPREFIX not allowed in preprocessing expression. */
     expr_pos_error(ec_bad_pp_operator, &start_position);
     err = TRUE;
-  } else if (curr_expr_kind_is(ek_integral_constant)) {
+  } else if (!constexpr_enabled && curr_expr_kind_is(ek_integral_constant)) {
     /* __LPREFIX not allowed in integral constant expression. */
     expr_pos_error(ec_bad_integral_operator, &start_position);
     err = TRUE;
@@ -27664,13 +27807,19 @@ Scan a C++ lambda expression, e.g., something like
   an_expr_stack_entry expr_stack_entry;
 
   start_pos = pos_curr_token;
-  if (curr_expr_kind_is_const()) {
+  if (!constexpr_enabled && curr_expr_kind_is_const()) {
     /* A lambda is not allowed in a constant expression. */
     expr_pos_error(ec_bad_constant_lambda, &start_pos);
     err = TRUE;
   } else if (!curr_expr_is_potentially_evaluated()) {
     /* A lambda is not allowed in an unevaluated expression. */
     expr_pos_error(ec_bad_unevaluated_lambda, &start_pos);
+    err = TRUE;
+  } else if (constexpr_enabled &&
+             construct_not_allowed_in_cpp11_constant_expr(
+                                                        ec_bad_constant_lambda,
+                                                        &start_pos)) {
+    /* Lambdas are not allowed in C++11 constant expressions. */
     err = TRUE;
   }  /* if */
   /* Push an entry on the expression stack so that we have our own
@@ -27832,7 +27981,7 @@ see expr.h).
   curr_expr_ref_entries = NULL;
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && curr_expr_kind_is_const() &&
+  if (gnu_mode && !constexpr_enabled && curr_expr_kind_is_const() &&
       !curr_expr_is_evaluated()) {
     /* gcc/g++ allows non-constant expressions in not-evaluated parts
        of constant expressions. */
@@ -27981,10 +28130,13 @@ handle_identifier:
            the immediate operand of a cast to integral.  Here we can
            only check that the constant is the operand of a cast; the check
            for the destination type is done higher up. */
-        if ((local_options & EOPT_OPERAND_OF_CAST) &&
-            curr_token == tok_float_constant &&
-            /* Guard against something like "int(3.0/1)". */
-            token_ends_expr(next_token(), prec_level, local_options)) {
+        if (constexpr_enabled) {
+          /* Cast issues are irrelevant when C++11 constexpr is enabled. */
+          float_con_allowed_in_integral_const_expr = TRUE;
+        } else if ((local_options & EOPT_OPERAND_OF_CAST) &&
+                   curr_token == tok_float_constant &&
+                   /* Guard against something like "int(3.0/1)". */
+                   token_ends_expr(next_token(), prec_level, local_options)) {
           float_con_allowed_in_integral_const_expr = TRUE;
         } else if ((gpp_mode || microsoft_mode) &&
                    curr_expr_kind_is(ek_template_arg)) {
@@ -27997,6 +28149,8 @@ handle_identifier:
           /* Floating constants are not allowed in preprocessing
              expressions. */
           float_con_allowed = FALSE;
+        } else if (constexpr_enabled) {
+          float_con_allowed = TRUE;
         } else if (curr_expr_kind_is(ek_integral_constant) ||
                    (curr_expr_kind_is(ek_template_arg) &&
                     !floating_point_template_parameters_allowed)) {
@@ -28047,7 +28201,7 @@ handle_identifier:
         make_string_constant_operand(&const_for_curr_token, &local_result);
         local_result.is_simple_string_literal = is_simple_string;
         if (curr_expr_kind_is(ek_pp) ||
-            curr_expr_kind_is(ek_integral_constant)) {
+            (!constexpr_enabled && curr_expr_kind_is(ek_integral_constant))) {
           /* String literals are not allowed in pp and integral constant
              expressions. */
           error_and_make_error_operand(expr_not_integral_or_any_enum_code(),

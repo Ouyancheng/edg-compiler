@@ -1656,6 +1656,7 @@ is pushed regardless of any of the other factors.
                               is_template_deduction_context();
   new_entry->in_static_initializer = FALSE;
   new_entry->next_stack_push_considered_same_expression = FALSE;
+  new_entry->cpp11_constant_expr_ruled_out = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -1792,6 +1793,11 @@ major expression.
     /* An object lifetime was pushed for the expression, so it must be
        popped now. */
     check_assertion(curr_object_lifetime == expr_stack->lifetime);
+    if (curr_expr_kind_is_const()) {
+      /* Discard any object lifetime created in a constant expression (errors
+         were issued). */
+      discard_constant_expr_object_lifetime();
+    }  /* if */
     (void)pop_object_lifetime();
   }  /* if */
   /* Flush the reference entries list for the current expression. */
@@ -8499,6 +8505,7 @@ on "operand", with result type "type".  The operand is an rvalue.
   node = make_node_from_operand(operand);
   node = make_operator_node(kind, type, node);
   make_expression_operand(node, result);
+  copy_operand_position(operand, result);
 }  /* build_unary_result_operand */
 
 
@@ -8534,6 +8541,10 @@ lvalue if result_is_lvalue is TRUE.
       set_lvalue_operand_state(result);
     }  /* if */
   }  /* if */
+  copy_operand_position(operand_1, result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  result->end_position = operand_2->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* build_binary_result_operand_full */
 
 
@@ -10617,6 +10628,48 @@ lvalue.  If there is an error, change the operand to an error operand.
 
   return okay;
 }  /* check_modifiable_lvalue_operand */
+
+
+a_boolean construct_not_allowed_in_cpp11_constant_expr(
+                                                    an_error_code     err_code,
+                                                    a_source_position *pos)
+/*
+Called from expression-scanning routines when the construct is not allowed in
+a C++11 constant expression.  The indicated error is issued at the indicated
+position, and TRUE is returned, if we are currently inside a constant
+expression (and the expression is evaluated).
+*/
+{
+  a_boolean err = FALSE;
+
+  /* Constant expressions allow invalid operators/constructs in unevaluated
+     subexpressions, including dead operands of "?", "&&", and "||". */
+  if (cpp11_mode &&
+      curr_expr_is_evaluated() &&
+      !curr_expr_is_potentially_unevaluated()) {
+    expr_stack->cpp11_constant_expr_ruled_out = TRUE;
+    if (curr_expr_kind_is_const()) {
+      /* We're in a constant expression, so this construct is an error. */
+      expr_pos_error(err_code, pos);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  return err;
+}  /* construct_not_allowed_in_cpp11_constant_expr */
+
+
+a_boolean operator_not_allowed_in_cpp11_constant_expr(a_source_position *pos)
+/*
+Called from operator-scanning routines when the operator is not allowed in
+a C++11 constant expression.  An error is issued at the indicated position,
+and TRUE is returned, if we are currently inside a constant expression
+(and the expression is evaluated).
+*/
+{
+  a_boolean err = construct_not_allowed_in_cpp11_constant_expr(
+                                                ec_bad_constant_operator, pos);
+  return err;
+}  /* operator_not_allowed_in_cpp11_constant_expr */
 
 
 an_error_code expr_not_integral_or_any_enum_code(void)
@@ -13106,7 +13159,7 @@ on output it will be an lvalue.
 
   check_assertion_str(is_any_reference_type(result->type),
                       "add_reference_indirection: not reference type");
-  if (curr_expr_kind_is_const() &&
+  if (!constexpr_enabled && curr_expr_kind_is_const() &&
       !current_mode_allows_field_selection_folding()) {
     /* Can't do reference indirection in a constant expression.  This is
        needed in particular for ek_init_constant expressions out of
@@ -13115,7 +13168,12 @@ on output it will be an lvalue.
        x.y, where x is a reference and y is a constant, can be considered
        constant expressions.  There will still be a check later that the
        result of the constant expression is constant. */
-    error_and_make_error_operand(ec_expr_not_constant, result);
+    error_in_operand(ec_expr_not_constant, result);
+  } else if (constexpr_enabled &&
+             construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+                                                          &result->position)) {
+    /* Reference indirection is not allowed in C++11 constant expressions. */
+    conv_to_error_operand(result);
   } else {
     orig_result = *result;
     node = make_node_from_operand(result);
@@ -17439,14 +17497,19 @@ cases so we don't do it here.
         change_some_ref_kinds(operand->ref_entries_list, SRK_USE,
                               (SRK_USE | SRK_CONST_VALUE_USE));
         make_constant_operand(con_value, operand);
-      } else if (curr_expr_kind_is_const()) {
-        /* An lvalue cannot be converted to an rvalue in a constant
-           expression.  We've previously ruled out the cases that result
-           in a constant. */
-        copy_operand_position(&orig_operand, operand);
+      } else if (!constexpr_enabled && curr_expr_kind_is_const()) {
+        /* An lvalue cannot be converted to an rvalue in a pre-C++11 constant
+           expression. */
         error_in_operand(ec_expr_not_constant, operand);
+      } else if (constexpr_enabled &&
+                 construct_not_allowed_in_cpp11_constant_expr(
+                                                         ec_expr_not_constant,
+                                                         &operand->position)) {
+        /* An lvalue cannot be converted to an rvalue in a C++11 constant
+           expression. */
+        conv_to_error_operand(operand);
       } else {
-        /* The value of the rvalue expression is not a constant. */
+        /* Normal case: not constant-valued, not a constant expression. */
         make_expression_operand(node, operand);
       }  /* if */
     }  /* if */
@@ -17610,7 +17673,7 @@ current mode -- just do it.
     expr = make_node_from_operand(operand);
   }  /* if */
   /* Fold to a constant address if possible and desirable. */
-  if (curr_expr_kind_is(ek_integral_constant)) {
+  if (!constexpr_enabled && curr_expr_kind_is(ek_integral_constant)) {
     /* Array-to-pointer decay is not allowed in an integral constant
        expression. */
     error_in_operand(ec_expr_not_integral_constant, operand);
@@ -17625,7 +17688,8 @@ current mode -- just do it.
     make_constant_operand(&conaddr, operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;
-  } else if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+  } else if (!constexpr_enabled &&
+             curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
     /* The array-to-pointer operation must fold to a constant in a constant
        expression. */
     error_in_operand(ec_expr_not_constant, operand);
