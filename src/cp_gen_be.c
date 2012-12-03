@@ -8150,7 +8150,14 @@ the expression reflects an implicit member access ("this->y"), so the
     }  /* if */
   } else {
     /* Normal "." case. */ 
-    gen_expr_with_parens(object_expr);
+    if (object_expr->kind == (an_expr_node_kind)enk_temp_init) {
+      /* Parentheses are not needed for an explicit temporary and can
+         cause spurious errors with early versions of g++. */
+      gen_expression(object_expr);
+    } else {
+      /* Parentheses may be needed for other kinds of object expressions. */
+      gen_expr_with_parens(object_expr);
+    }  /* if */
     m_write_tok_ch('.');
   }  /* if */
   if (il_header.source_language == sl_Cplusplus) {

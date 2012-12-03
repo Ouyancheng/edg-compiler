@@ -1,5 +1,25 @@
 Version 4.6
 
+11/15/12 [EDGcpfe/13423]
+C++-generating back end: unnecessary parentheses with explicit temporaries in
+non-static member access expressions
+
+In addition to the cases described below for EDGcpfe/13355 and
+EDGcpfe/13375, early versions of g++ are also confused by redundant
+parentheses around an explicit temporary appearing as the object expression
+in a member-access expression referring to a non-static class member.  The
+C++-generating back end has now been changed to suppress the extra
+parentheses in this context as well.  For example:
+
+  struct S {
+    int i;
+    S();
+  };
+  void f() {
+    int i = S().i;
+  }
+
+
 11/29/12 [EDGcpfe/12052,EDGcpfe/13432]
 C-generating back end: duplicate dummy members in generated union
 
