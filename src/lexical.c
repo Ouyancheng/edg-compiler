@@ -13370,9 +13370,16 @@ when scanning the default argument of the template template parameter.
                                                      &err);
     /* In early g++ mode, if the symbol found is an injected template symbol,
        replace it with the template that it represents. */
-    if (gpp_mode && gnu_version < 30400 && sym != NULL &&
-        is_injected_template_symbol(sym)) {
-      sym = class_template_for_injected_template_symbol(sym);
+    if (gpp_mode && gnu_version < 30400 && sym != NULL) {
+      if (class_name_injection_enabled) {
+        if (is_injected_template_symbol(sym)) {
+          sym = class_template_for_injected_template_symbol(sym);
+        } else if (is_template_class_symbol(sym)) {
+          a_class_symbol_supplement_ptr	cssp;
+          cssp = sym->variant.class_struct_union.extra_info;
+          sym = cssp->class_template;
+        }  /* if */
+      }  /* if */
     }  /* if */
     /* Make sure the symbol found is accessible and unambiguous. */
     check_ambiguity_and_verify_access(&locator_for_curr_id);

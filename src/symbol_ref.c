@@ -917,15 +917,18 @@ hidden name checking on its own members, too.
         }  /* if */
       }  /* if */
     }  /* for */
-    if (microsoft_bugs && microsoft_version < 1400 &&
+    if (((microsoft_bugs && microsoft_version < 1400) ||
+         (gpp_mode && gnu_version < 40500)) &&
+        !class_type->variant.class_struct_union.is_specialized &&
         class_type->variant.class_struct_union.extra_info->
                                                    template_arg_list != NULL) {
-      /* Microsoft compilers prior to version 8.0 do not inject the name of a
-         template instance, so this class does not contain an injected class
-         name.  However, to enable the C++-generating back end to generate
-         correctly-qualified code for dialects that do inject the template
-         name, we need to simulate an injected class name in this case for
-         hidden name processing. */
+      /* Microsoft compilers prior to version 8.0 and g++ compilers prior
+         to version 4.5 do not inject the name of a template instance, so
+         this class does not contain an injected class name.  However, to
+         enable the C++-generating back end to generate correctly-qualified
+         code for dialects that do inject the template name, we need to
+         simulate an injected class name in this case for hidden name
+         processing. */
       sym_ptr = (a_symbol_ptr)class_type->source_corresp.assoc_info;
       record_defeatable_hiding_if_not_same(sym_ptr,
                                            sp,

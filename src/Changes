@@ -1,5 +1,28 @@
 Version 4.6
 
+12/3/12  [EDGcpfe/13446]
+GNU C++ compatibility: injected class name for class templates
+
+g++ prior to version 4.5 does not create an injected class name for class
+templates.  We now emulate this behavior in g++ mode when gnu_version < 40500.
+Formerly, we emulated portions of this behavior by ignoring the injected
+class names in certain contexts, but it was still found it in certain cases,
+such as the example below.  In addition to the source compatibility issue,
+this could result in the C++-generating back end producing code that
+could not be compiled by the g++ version indicated by the gnu_version being
+used because the generated code assumed the existence of an injected
+class name.
+
+  namespace N {
+    template<typename T> struct B { int i; };
+  }
+  struct D: N::B<int> {
+    void f() {
+      B b;  // Formerly (and still) rejected with gnu_version < 40500
+      B::i = 1;  // Now rejected with gnu_version < 40500
+    }
+  };
+
 11/15/12 [EDGcpfe/13423]
 C++-generating back end: unnecessary parentheses with explicit temporaries in
 non-static member access expressions
