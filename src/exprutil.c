@@ -16807,7 +16807,7 @@ static a_constant_ptr value_of_constant_var_lvalue_expr(
 /*
 node is an expression for an lvalue.  If it is an lvalue for a constant-valued
 variable, return a pointer to the constant that is the variable's value.
-Otherwise, return NULL.  If copy_for_reuse if TRUE, copy the constant if
+Otherwise, return NULL.  If copy_for_reuse is TRUE, copy the constant if
 necessary so it's suitable for later incorporation in the IL tree, and not
 merely for short-term inspection.  The constant is not copied merely
 to clear its backing expression; it's assumed the caller will put the
