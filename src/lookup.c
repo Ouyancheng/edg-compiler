@@ -2679,12 +2679,6 @@ that do normal id lookup processing.
             sym = NULL;
           }  /* if */
         }  /* if */
-      } else if (gpp_mode && gnu_version < 40500) {
-        /* g++ ignores inherited injected class names from template classes. */
-        if (!lookup_state->must_be_class_or_namespace &&
-            is_injected_template_symbol(fund_sym)) {
-          sym = NULL;
-        }  /* if */
       }  /* if */
     }  /* if */
   } else {
