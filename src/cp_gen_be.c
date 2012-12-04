@@ -8179,9 +8179,13 @@ the expression reflects an implicit member access ("this->y"), so the
     }  /* if */
   } else {
     /* Normal "." case. */ 
-    if (object_expr->kind == (an_expr_node_kind)enk_temp_init) {
-      /* Parentheses are not needed for an explicit temporary and can
-         cause spurious errors with early versions of g++. */
+    if (object_expr->kind == (an_expr_node_kind)enk_temp_init &&
+        (object_expr->variant.init.dynamic_init->kind ==
+                                        (a_dynamic_init_kind)dik_constructor ||
+         object_expr->variant.init.dynamic_init->kind ==
+                                              (a_dynamic_init_kind)dik_zero)) {
+      /* Parentheses are not needed for an explicit constructor call or
+         value initialization and can confuse early versions of g++. */
       gen_expression(object_expr);
     } else {
       /* Parentheses may be needed for other kinds of object expressions. */
@@ -8428,9 +8432,14 @@ indicated by opstr.
        use "->" with a non-pointer value. */
     opstr = ".";
   }  /* if */
-  if (operand_1->kind == (an_expr_node_kind)enk_temp_init) {
-    /* There is no need for parentheses around an explicit temporary,
-       and they confuse some older versions of g++. */
+  if (operand_1->kind == (an_expr_node_kind)enk_temp_init &&
+      (operand_1->variant.init.dynamic_init->kind ==
+                                        (a_dynamic_init_kind)dik_constructor ||
+       operand_1->variant.init.dynamic_init->kind ==
+                                              (a_dynamic_init_kind)dik_zero)) {
+    /* There is no need for parentheses around an explicit constructor call
+       or value initialization, and they confuse some older versions of
+       g++. */
     gen_expression(operand_1);
   } else {
     /* Other expressions may require parentheses. */
@@ -9353,8 +9362,14 @@ function reference.
         write_tok_str("((");
         overparenthesize = TRUE;
       }  /* if */
-      if (object_expr->kind == (an_expr_node_kind)enk_temp_init) {
-        /* A temp-init does not need extra parentheses. */
+      if (object_expr->kind == (an_expr_node_kind)enk_temp_init &&
+          (object_expr->variant.init.dynamic_init->kind ==
+                                        (a_dynamic_init_kind)dik_constructor ||
+           object_expr->variant.init.dynamic_init->kind ==
+                                              (a_dynamic_init_kind)dik_zero)) {
+        /* There is no need for parentheses around an explicit constructor
+           call or value initialization, and they confuse some older
+           versions of g++. */
         gen_expression(object_expr);
       } else {
         /* Other kinds of expressions might need parentheses. */

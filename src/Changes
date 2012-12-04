@@ -60,7 +60,7 @@ class name.
     }
   };
 
-11/15/12 [EDGcpfe/13423]
+12/3/12  [EDGcpfe/13423]
 C++-generating back end: unnecessary parentheses with explicit temporaries in
 non-static member access expressions
 
