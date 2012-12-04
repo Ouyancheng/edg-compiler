@@ -16958,10 +16958,15 @@ typedef struct a_scope {
   a_byte_boolean
 		is_constexpr_routine;
 			/* TRUE for a constexpr function or constructor
-			   which is valid for constexpr expansion, once
-			   case variant.routine.constexpr_return_expr or
-			   variant.routine.contexpr_constructor_inits has
-			   been set. */
+			   which is valid for constexpr expansion. */
+  a_byte_boolean
+		has_constexpr_return_expr;
+			/* When TRUE, the constexpr function's return
+			   expression is in constexpr_return_expr; when
+			   FALSE the return value is given by
+			   constexpr_return_dynamic_init.  This field is
+			   unused for constexpr constructors (which have
+			   no return values). */
   union {
     /* When kind == sck_file, no variant fields. */
     /* When kind == sck_template_declaration, no variant fields. */
@@ -17027,18 +17032,30 @@ typedef struct a_scope {
 			   namely the variable pointed to by this field.
 			   Note that the variable is also on the local
 			   variables list of this scope. */
-      an_expr_node_ptr
+      union {
+        an_expr_node_ptr
 		constexpr_return_expr;
-			/* If non-NULL, points to the expression returned by
-			   a constexpr routine.  Makes it easy to find the
-			   expression, but more importantly this is a copy
-			   of the expression so that in versions that do IL
-			   lowering this remains unlowered. */
-      a_constructor_init_ptr
+			/* When has_constexpr_return_expr is TRUE, points to
+			   the expression returned by a constexpr function.
+			   Makes it easy to find the expression, but more
+			   importantly this is a copy of the expression so that
+			   in versions that do IL lowering this remains
+			   unlowered.  Only NULL in error cases. */
+        a_dynamic_init_ptr
+		constexpr_return_dynamic_init;
+			/* When has_constexpr_return_expr is FALSE, points to
+			   the dynamic initialization returned by a constexpr
+			   function.  Makes it easy to find the initialization,
+			   but more importantly this is a copy of the dynamic
+			   initialization so that in versions that do IL
+			   lowering this remains unlowered.  Only NULL in error
+			   cases. */
+        a_constructor_init_ptr
 		constexpr_constructor_inits;
 			/* For constexpr constructors, a copy of the
 			   constructor_inits list that will remain unlowered.
 			   Set if is_constexpr_routine is TRUE. */
+      } variant;
     } routine;
   } variant;
   a_statement_ptr

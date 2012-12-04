@@ -864,7 +864,8 @@ constructor.
       scope->is_constexpr_routine = TRUE;
       /* Make a copy of the constructor inits list so that if IL lowering is
          being done we preserve unlowered copies. */
-      next_ptr_ptr = &scope->variant.routine.constexpr_constructor_inits;
+      next_ptr_ptr =
+                   &scope->variant.routine.variant.constexpr_constructor_inits;
       for (ctor_init = scope->variant.routine.constructor_inits;
            ctor_init != NULL;
            ctor_init = ctor_init->next) {
@@ -874,13 +875,20 @@ constructor.
         next_ptr_ptr = &copy->next;
       }  /* for */
     } else {
-      /* constexpr function.  A copy of the return expression is made (so that
-         an unlowered version of the expression is preserved).  */
-      check_assertion(scope->variant.routine.constexpr_return_expr != NULL);
+      /* constexpr function.  A copy of the return expression or dynamic
+         init is made (so that an unlowered version of the expression or
+         dynamic init is preserved). */
       scope->is_constexpr_routine = TRUE;
-      scope->variant.routine.constexpr_return_expr = copy_expr_tree(
-                                  scope->variant.routine.constexpr_return_expr,
-                                  CE_NO_OPTIONS);
+      if (scope->has_constexpr_return_expr) {
+        scope->variant.routine.variant.constexpr_return_expr = copy_expr_tree(
+                          scope->variant.routine.variant.constexpr_return_expr,
+                          CE_NO_OPTIONS);
+      } else {
+        scope->variant.routine.variant.constexpr_return_dynamic_init =
+              copy_dynamic_init(
+                  scope->variant.routine.variant.constexpr_return_dynamic_init,
+                  CE_NO_OPTIONS);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* set_routine_constexpr_info */

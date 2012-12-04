@@ -8182,24 +8182,31 @@ prefix; fold_constexpr_call should usually be called instead.
   if (routine->assoc_scope != NULL_region_number) {
     a_scope_ptr      scope = scope_for_routine(routine);
     an_expr_node_ptr expr;
-    check_assertion(scope->kind == (a_scope_kind)sck_function);
-    expr = scope->variant.routine.constexpr_return_expr;
-    if (expr != NULL) {
-      /* Set up remapping of parameter variables to the argument values. */
-      a_boolean             not_foldable;
-      a_constexpr_remap_ptr new_remap_list =
+    check_assertion(scope->kind == (a_scope_kind)sck_function &&
+                    !special_kind_is(routine, sfk_constructor));
+    if (scope->has_constexpr_return_expr) {
+      expr = scope->variant.routine.variant.constexpr_return_expr;
+      if (expr != NULL) {
+        /* Set up remapping of parameter variables to the argument values. */
+        a_boolean             not_foldable;
+        a_constexpr_remap_ptr new_remap_list =
                                   constexpr_remap_list_for_args(scope, args,
                                                                 remap_list,
                                                                 ceblock,
                                                                 &not_foldable);
-      if (not_foldable) {
-        /* Some problem that prevents folding. */
-      } else {
-        /* Substitute values for parameters and attempt to fold the call to
-           a constant. */
-        folded = fold_expr(expr, new_remap_list, ceblock, result_con);
+        if (not_foldable) {
+          /* Some problem that prevents folding. */
+        } else {
+          /* Substitute values for parameters and attempt to fold the call to
+             a constant. */
+          folded = fold_expr(expr, new_remap_list, ceblock, result_con);
+        }  /* if */
+        free_constexpr_remap_list(new_remap_list);
       }  /* if */
-      free_constexpr_remap_list(new_remap_list);
+    } else {
+      /* FIXME: */
+      unexpected_condition_str(
+                          "constexpr_return_dynamic_init not implemented yet");
     }  /* if */
   }  /* if */
   return folded;
@@ -8273,7 +8280,8 @@ prefix; fold_constexpr_ctor should usually be called instead.
         a_constructor_init_ptr ctor_init;
         clear_constant(&aggr_con, (a_constant_repr_kind)ck_aggregate);
         aggr_con.type = parent_class_of(ctor_routine);
-        for (ctor_init = scope->variant.routine.constexpr_constructor_inits;
+        for (ctor_init =
+                    scope->variant.routine.variant.constexpr_constructor_inits;
              ctor_init != NULL;
              ctor_init = ctor_init->next) {
           a_constant         member_con;

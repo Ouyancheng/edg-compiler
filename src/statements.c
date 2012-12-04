@@ -5882,20 +5882,25 @@ See also 3.6.6.4.
            function; give an error and disqualify the routine from being
            constexpr. */
         scope_stack[depth_innermost_function_scope].constexpr_ruled_out = TRUE;
-        scope->variant.routine.constexpr_return_expr = NULL;
         pos_error(ec_invalid_constexpr_body, &return_pos);
       } else {
-        if (return_expr == NULL) {
+        if (return_expr == NULL && dip == NULL) {
           /* A void return in a constexpr function; an error has been issued
              above -- ignore this for constexpr return processing. */
         } else {
           /* Assume this will be the only return statement in the function
-             body and capture a pointer to return expression here (a copy
-             of the expression is made later so that if IL lowering is
+             body and capture a pointer to return expression or dynamic
+             init here (a copy is made later so that if IL lowering is
              being done an unlowered copy is preserved). */
           scope_stack[depth_innermost_function_scope].has_at_least_one_return =
                                                                           TRUE;
-          scope->variant.routine.constexpr_return_expr = return_expr;
+          if (return_expr != NULL) {
+            scope->has_constexpr_return_expr = TRUE;
+            scope->variant.routine.variant.constexpr_return_expr = return_expr;
+          } else {
+            scope->has_constexpr_return_expr = FALSE;
+            scope->variant.routine.variant.constexpr_return_dynamic_init = dip;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
