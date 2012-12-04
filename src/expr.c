@@ -13095,16 +13095,16 @@ indication in *rcblock).
   feature_is_not_part_of_embedded_cplusplus_subset(
                                               &start_position,
                                               ec_rtti_in_embedded_cplusplus);
+  if (microsoft_mode && curr_expr_kind_is(ek_template_arg) && !is_cli_typeid) {
+    /* Microsoft allows typeid in template arguments. */
+    microsoft_template_arg_case = TRUE;
+  }  /* if */
   if (constexpr_enabled) {
     /* C++11 constant expressions do not allow typeid in certain cases,
        but that's based on the type of the operand, so we delay the test. */
   } else if (curr_expr_kind_is_const()) {
     /* typeid is not allowed in constant expressions. */
-    if (microsoft_mode && curr_expr_kind_is(ek_template_arg) &&
-        !is_cli_typeid) {
-      /* ... except that MSVC++ allows it in template arguments. */
-      microsoft_template_arg_case = TRUE;
-    } else {
+    if (!microsoft_template_arg_case) {
       expr_pos_error(ec_bad_constant_operator, &start_position);
       err = TRUE;
     }  /* if */
