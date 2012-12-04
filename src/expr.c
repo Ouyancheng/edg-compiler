@@ -25009,7 +25009,8 @@ expression, and return the result in *result (or an error indication in
   a_type_ptr        result_type;
   a_boolean         err = FALSE, processed = FALSE;
   a_boolean         result_is_an_lvalue = FALSE;
-  a_boolean         comma_allowed_in_constant_expr = FALSE;
+  a_boolean         comma_allowed_in_c99_constant_expr = FALSE;
+  a_boolean         template_case = FALSE;
   an_expr_node_ptr  node;
 
   db_enter(4, "scan_comma_operator");
@@ -25032,19 +25033,16 @@ expression, and return the result in *result (or an error indication in
   potential_sequence_point_after_operand(operand_1);
 
   if (constexpr_enabled) {
-    /* Comma are allowed in C++11 constant expressions. */
-    comma_allowed_in_constant_expr = TRUE;
+    /* Commas are allowed in C++11 constant expressions. */
   } else if (c99_mode && !curr_expr_is_evaluated()) {
     /* C99 allows a comma expression in a constant expression if it's
        not evaluated (6.6p3).  Even if the current expression kind is not
        constant, we still need to track whether it contains any operators
        that are not valid in constant expressions, for use, e.g., in
        determining whether an expression is a null pointer constant. */
-    comma_allowed_in_constant_expr = TRUE;
-  }  /* if */
-  if (!comma_allowed_in_constant_expr &&
-      curr_expr_kind_is_const()) {
-    /* Comma operator not allowed in constant expressions. */
+    comma_allowed_in_c99_constant_expr = TRUE;
+  } else if (curr_expr_kind_is_const()) {
+    /* Comma operator not allowed in (non-C++11) constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
   }  /* if */
@@ -25096,7 +25094,15 @@ expression, and return the result in *result (or an error indication in
       }  /* if */
       /* The result type is the type of the second operand. */
       result_type = operand_2.type;
-      if (comma_allowed_in_constant_expr &&
+      template_case = (!C_mode() &&
+                       (is_template_param_constant_operand(operand_1) ||
+                        is_template_param_constant_operand(&operand_2)) &&
+                       (is_constant_operand(operand_1) &&
+                        is_constant_operand(&operand_2)));
+      if ((curr_expr_kind_is_const() ||
+           expr_stack->favor_constant_result ||
+           comma_allowed_in_c99_constant_expr) &&
+          !template_case &&
           !result_is_an_lvalue &&
           is_constant_operand(operand_1) &&
           is_constant_operand(&operand_2)) {
@@ -25105,7 +25111,8 @@ expression, and return the result in *result (or an error indication in
         copy_operand(&operand_2, result);
         preserve_ruled_out_expr_kinds_from_discarded_operand(operand_1,
                                                              result);
-      } else if (!constexpr_enabled && curr_expr_kind_is_const()) {
+      } else if (!constexpr_enabled && !template_case &&
+                 curr_expr_kind_is_const()) {
         /* We allowed the comma operator in case it could be folded, but
            it turned out its operands aren't constant, so we have to issue
            an error now that the expression is not constant. */
@@ -25132,6 +25139,9 @@ expression, and return the result in *result (or an error indication in
           result->variant.expression->is_lvalue = TRUE;
           result->ref_entries_list = operand_2.ref_entries_list;
         }  /* if */
+        if (template_case) {
+          make_template_param_expr_constant_operand(result);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -25151,7 +25161,7 @@ expression, and return the result in *result (or an error indication in
                                           &operator_position,
                                           operator_tok_seq_number,
                                           (a_source_position *)NULL);
-  if (!comma_allowed_in_constant_expr) {
+  if (!comma_allowed_in_c99_constant_expr) {
     rule_out_expr_kinds(ROEK_CONSTANT, result);
   }  /* if */
   db_exit();
