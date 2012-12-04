@@ -8204,9 +8204,8 @@ prefix; fold_constexpr_call should usually be called instead.
         free_constexpr_remap_list(new_remap_list);
       }  /* if */
     } else {
-      /* FIXME: */
-      unexpected_condition_str(
-                          "constexpr_return_dynamic_init not implemented yet");
+      /* FIXME: Need to handle the case where the constexpr routine returns
+         a dynamic init rather than an expression. */
     }  /* if */
   }  /* if */
   return folded;
