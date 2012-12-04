@@ -5365,7 +5365,9 @@ error.  *err_pos is used as the position for any diagnostics issued.
         case eok_lor:
           do_lor(constant_1, constant_2, result, did_not_fold);
           break;
-
+        case eok_comma:
+          copy_constant(constant_2, result);
+          break;
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_jmultiply:
           do_jmultiply(constant_1, constant_2, result,

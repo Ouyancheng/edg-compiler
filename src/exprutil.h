@@ -2237,10 +2237,6 @@ extern void restore_operand_id_details(an_operand *operand,
 extern void restore_operand_form_of_name_reference(an_operand *operand,
                                                    an_operand *orig_operand);
 
-extern void preserve_ruled_out_expr_kinds_from_discarded_operand(
-                                                 an_operand *discarded_operand,
-                                                 an_operand *result_operand);
-
 extern a_boolean check_call_function_pointer_operand(an_operand *operand);
 
 extern void make_function_designator_operand(

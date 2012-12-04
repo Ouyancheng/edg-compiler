@@ -5433,7 +5433,7 @@ modification.
 }  /* restore_operand_form_of_name_reference */
 
 
-void preserve_ruled_out_expr_kinds_from_discarded_operand(
+static void preserve_ruled_out_expr_kinds_from_discarded_operand(
                                                  an_operand *discarded_operand,
                                                  an_operand *result_operand)
 /*
@@ -8538,6 +8538,9 @@ lvalue if result_is_lvalue is TRUE.
     make_expression_operand(node, result);
     if (result_is_lvalue) {
       node->is_lvalue = TRUE;
+      if (kind == (an_expr_operator_kind)eok_comma) {
+        node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+      }  /* if */
       set_lvalue_operand_state(result);
     }  /* if */
   }  /* if */

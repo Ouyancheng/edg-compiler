@@ -13005,6 +13005,8 @@ to operands of the given type.
     /* Logical operators may have operands of any scalar types, but they are
        really an operation on two boolean/integer values. */
     result = (a_type_kind)tk_integer;
+  } else if (op == (an_expr_operator_kind)eok_comma) {
+    result = (a_type_kind)tk_unknown;
   } else if (kind1 == kind2) {
     result = kind1;
 #if C99_IL_EXTENSIONS_SUPPORTED 

@@ -25006,12 +25006,9 @@ expression, and return the result in *result (or an error indication in
   a_source_position operator_position;
   a_token_sequence_number
                     operator_tok_seq_number;
-  a_type_ptr        result_type;
   a_boolean         err = FALSE, processed = FALSE;
   a_boolean         result_is_an_lvalue = FALSE;
   a_boolean         comma_allowed_in_c99_constant_expr = FALSE;
-  a_boolean         template_case = FALSE;
-  an_expr_node_ptr  node;
 
   db_enter(4, "scan_comma_operator");
 
@@ -25092,56 +25089,18 @@ expression, and return the result in *result (or an error indication in
       } else {
         do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       }  /* if */
-      /* The result type is the type of the second operand. */
-      result_type = operand_2.type;
-      template_case = (!C_mode() &&
-                       (is_template_param_constant_operand(operand_1) ||
-                        is_template_param_constant_operand(&operand_2)) &&
-                       (is_constant_operand(operand_1) &&
-                        is_constant_operand(&operand_2)));
-      if ((curr_expr_kind_is_const() ||
-           expr_stack->favor_constant_result ||
-           comma_allowed_in_c99_constant_expr) &&
-          !template_case &&
-          !result_is_an_lvalue &&
-          is_constant_operand(operand_1) &&
-          is_constant_operand(&operand_2)) {
-        /* Some modes allow a comma operator in a constant expression and
-           fold it to the second operand. */
-        copy_operand(&operand_2, result);
-        preserve_ruled_out_expr_kinds_from_discarded_operand(operand_1,
-                                                             result);
-      } else if (!constexpr_enabled && !template_case &&
-                 curr_expr_kind_is_const()) {
-        /* We allowed the comma operator in case it could be folded, but
-           it turned out its operands aren't constant, so we have to issue
-           an error now that the expression is not constant. */
-        if (!is_error_operand(operand_1) && !is_error_operand(&operand_2)) {
-          expr_pos_error(ec_expr_not_constant, &operator_position);
-        }  /* if */
-        make_error_operand(result);
-        operand_will_not_be_used_because_of_error(operand_1);
-        operand_will_not_be_used_because_of_error(&operand_2);
-        err = TRUE;
-      } else {
-        /* Make a comma operator expression. */
-        node = make_node_from_void_expression_operand(operand_1);
-        node->next = make_node_from_operand(&operand_2);
-        node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                  result_type, node);
-        make_expression_operand(node, result);
-        /* In C++ mode, the result is an lvalue if the second operation
-           is an lvalue. */
-        if (result_is_an_lvalue) {
-          set_lvalue_operand_state(result);
-          result->variant.expression->variant.operation.
-                                 returns_lvalue_instead_of_usual_rvalue = TRUE;
-          result->variant.expression->is_lvalue = TRUE;
-          result->ref_entries_list = operand_2.ref_entries_list;
-        }  /* if */
-        if (template_case) {
-          make_template_param_expr_constant_operand(result);
-        }  /* if */
+      do_binary_operation_full((an_expr_operator_kind)eok_comma,
+                               operand_1,
+                               &operand_2,
+                               operand_2.type,
+                               result_is_an_lvalue,
+                               result,
+                               &operator_position,
+                               operator_tok_seq_number,
+                               (a_source_position *)NULL);
+      if (result_is_an_lvalue) {
+        result->ref_entries_list = operand_2.ref_entries_list;
+        operand_2.ref_entries_list = NULL;
       }  /* if */
     }  /* if */
   }  /* if */
