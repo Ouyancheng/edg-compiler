@@ -1,5 +1,20 @@
 Version 4.6
 
+12/4/12  [EDGcpfe/13356]
+GNU compatibility: Spurious error on g++-mode specialization
+
+Version 4.5 introduced a problem that resulted in a spurious error on an
+explicit specialization with the wrong number of template parameter clauses,
+which formerly was accepted in g++ mode.  Examples such as the one below are
+once again accepted in g++ mode with a nesting depth warning.  An error is
+still issued in other modes.
+
+  template <class T> struct A {
+    template <class U> int f(U u);
+  };
+  template <> int A<long>::f(int i) { return i; }
+
+
 12/4/12  [EDGcpfe/13492]
 GNU and Microsoft compatibility: spurious nesting depth warning
 

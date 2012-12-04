@@ -21966,7 +21966,9 @@ that follows.
                         (a_boolean)locator.is_template_id,
 		        /*in_class_specialization=*/decl_state->is_member_decl,
                         /*prefer_template=*/TRUE,
-                        decl_state->nesting_depth + decl_state->friend_depth,
+                        gpp_mode ? NO_NESTING_DEPTH
+                                 : decl_state->nesting_depth +
+                                                      decl_state->friend_depth,
 			es_error);
         if (sym == NULL) {
           /* No match was found and an error was issued. */
