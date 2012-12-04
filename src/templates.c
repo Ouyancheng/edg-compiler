@@ -17219,6 +17219,9 @@ nesting depth to be used.
             if (curr_token == tok_end_of_source) {
               a_symbol_ptr	sym;
               sym = normal_id_lookup(&locator, IDL_FRIEND_LOOKUP);
+              if (sym != NULL && is_injected_template_symbol(sym)) {
+                sym = class_template_for_injected_template_symbol(sym);
+              }  /* if */
               if (sym != NULL &&
                   sym->kind == (a_symbol_kind)sk_class_template) {
                 a_template_symbol_supplement_ptr	tssp;

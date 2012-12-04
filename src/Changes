@@ -1,5 +1,23 @@
 Version 4.6
 
+12/4/12  [EDGcpfe/13492]
+GNU and Microsoft compatibility: spurious nesting depth warning
+
+In Microsoft and g++ modes, the front end allows nonstandard friend
+template declarations that have the wrong number of template parameter
+clauses.  In cases where the injected class name was named in the
+friend template declaration, the nesting depth of the declaration was not
+being determined properly, resulting in a spurious nesting depth warning.
+Now fixed.
+
+  template <class T> struct A {
+    template <int> class B {
+      template <int> friend class B;
+    };
+  };
+  A<int>::B<1> a;
+
+
 12/4/12  [EDGcpfe/13385]
 C++-generating back end: explicit specializations of non-member function
 templates
