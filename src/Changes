@@ -1,5 +1,24 @@
 Version 4.6
 
+12/4/12  [EDGcpfe/13385]
+C++-generating back end: explicit specializations of non-member function
+templates
+
+The changes for EDGcpfe/12731 (included in version 4.5; see below)
+incorrectly applied to non-member function templates.  As a result, in
+configurations with DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to TRUE, an
+explicit specialization of a non-member function template that appears
+outside its namespace was generated inside its namespace but with a
+qualified name, which is an error.  This is now fixed.  For example:
+
+  namespace N {
+    template<typename T> void f(void);
+    template<> void f<int>(void);
+  }
+  template<> void N::f<int>() { }  // Previously generated as
+                                   // namespace N { template<> void N::f... }
+
+
 12/3/12  [EDGcpfe/13446]
 GNU C++ compatibility: injected class name for class templates
 
