@@ -25098,6 +25098,10 @@ expression, and return the result in *result (or an error indication in
                                &operator_position,
                                operator_tok_seq_number,
                                (a_source_position *)NULL);
+      if (!constexpr_enabled && is_constant_operand(result)) {
+        /* The result is not a null pointer constant. */
+        result->variant.constant.null_pointer_constant_ruled_out = TRUE;
+      }  /* if */
       if (result_is_an_lvalue) {
         result->ref_entries_list = operand_2.ref_entries_list;
         operand_2.ref_entries_list = NULL;
