@@ -825,6 +825,14 @@ typedef struct an_expr_stack_entry {
 			   rules it out as a C++11 constant expression, even
 			   if the expression is not being scanned as a
 			   constant expression. */
+  a_byte_boolean
+		is_traditional_const_expr;
+			/* TRUE if we're in a constant expression to be
+			   processed with the pre-C++11 rules for constant
+			   expressions, i.e., disallowed operators and types
+			   are invalid wherever they appear, rather than
+			   (as in C++11) let through with a final check that
+			   the end result is a constant of the right kind. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
@@ -1014,6 +1022,15 @@ kinds are at the beginning of the list.
 #define curr_expr_kind_is_const()                                     \
   ((int)(curr_expr_kind()) <= (int)ek_init_constant)
 
+/*
+Macro that returns TRUE if the current expression is some kind of
+C or pre-C++11 constant expression.  In such expressions, disallowed
+operators or types are flagged immediately when encountered.  In C++11
+constant expressions, they are often allowed, and then a final check
+is done that the end result is a constant of the right kind.
+*/
+#define curr_expr_kind_is_traditional_const()                         \
+  (expr_stack->is_traditional_const_expr)
 
 /*
 Macro that returns TRUE if the current expression kind is one in which
@@ -1343,6 +1360,13 @@ extern void push_expr_stack_with_rcblock(
 extern void undo_side_effects_for_discarded_unevaluated_expression(void);
 
 extern void pop_expr_stack(void);
+
+extern void temporarily_set_non_constant_expression_kind(
+                                        an_expression_kind *saved_kind,
+                                        a_boolean          *saved_traditional);
+extern
+void restore_constant_expression_kind(an_expression_kind saved_kind,
+                                      a_boolean          saved_traditional);
 
 extern void record_entity_defined_in_expression(
                                              char              *entity,

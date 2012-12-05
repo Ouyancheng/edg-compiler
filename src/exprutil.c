@@ -1657,6 +1657,7 @@ is pushed regardless of any of the other factors.
   new_entry->in_static_initializer = FALSE;
   new_entry->next_stack_push_considered_same_expression = FALSE;
   new_entry->cpp11_constant_expr_ruled_out = FALSE;
+  new_entry->is_traditional_const_expr = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -1686,6 +1687,13 @@ is pushed regardless of any of the other factors.
   if (curr_expr_kind_is_const()) {
     /* Constant operations should be folded to constants inside
        constant expressions. */
+    /* Set the flag for pre-C++11 constant expression scanning.  For the
+       ek_template_arg case, the caller may change it further. */
+    if (!constexpr_enabled ||
+        curr_expr_kind_is(ek_pp) ||
+        curr_expr_kind_is(ek_template_arg)) {
+      new_entry->is_traditional_const_expr = TRUE;
+    }  /* if */
     expr_stack->favor_constant_result = TRUE;
     /* Constant expressions are always evaluated even when inside a
        not-evaluated expression.  For example, in sizeof(int[1+1])
@@ -1832,6 +1840,38 @@ major expression.
   expr_stack = new_top;
 }  /* pop_expr_stack */
 
+
+void temporarily_set_non_constant_expression_kind(
+                                         an_expression_kind *saved_kind,
+                                         a_boolean          *saved_traditional)
+/*
+Temporarily set a non-constant expression kind so that something that is
+normally not allowed in a constant expression will be accepted.  Save some
+values in saved_kind and saved_traditional for restoration through a call
+to restore_constant_expression_kind.
+*/
+{
+  check_assertion(expr_stack != NULL &&
+                  curr_expr_kind_is_const());
+  *saved_kind = expr_stack->expression_kind;
+  *saved_traditional = expr_stack->is_traditional_const_expr;
+  expr_stack->expression_kind = (an_expression_kind)ek_normal;
+  expr_stack->is_traditional_const_expr = FALSE;
+}  /* temporarily_set_non_constant_expression_kind */
+
+
+void restore_constant_expression_kind(an_expression_kind saved_kind,
+                                      a_boolean          saved_traditional)
+/*
+Undo the temporary change to the expression kind set up by
+temporarily_set_non_constant_expression_kind.
+*/
+{
+  check_assertion(expr_stack != NULL);
+  expr_stack->expression_kind = saved_kind;
+  expr_stack->is_traditional_const_expr = saved_traditional;
+}  /* restore_constant_expression_kind */
+  
 
 void record_entity_defined_in_expression(char              *entity,
                                          an_il_entry_kind  kind,
@@ -10647,7 +10687,7 @@ expression (and the expression is evaluated).
 
   /* Constant expressions allow invalid operators/constructs in unevaluated
      subexpressions, including dead operands of "?", "&&", and "||". */
-  if (cpp11_mode &&
+  if (constexpr_enabled &&
       curr_expr_is_evaluated() &&
       !curr_expr_is_potentially_unevaluated()) {
     expr_stack->cpp11_constant_expr_ruled_out = TRUE;
@@ -13163,7 +13203,7 @@ on output it will be an lvalue.
 
   check_assertion_str(is_any_reference_type(result->type),
                       "add_reference_indirection: not reference type");
-  if (!constexpr_enabled && curr_expr_kind_is_const() &&
+  if (curr_expr_kind_is_traditional_const() &&
       !current_mode_allows_field_selection_folding()) {
     /* Can't do reference indirection in a constant expression.  This is
        needed in particular for ek_init_constant expressions out of
@@ -13173,8 +13213,7 @@ on output it will be an lvalue.
        constant expressions.  There will still be a check later that the
        result of the constant expression is constant. */
     error_in_operand(ec_expr_not_constant, result);
-  } else if (constexpr_enabled &&
-             construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+  } else if (construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
                                                           &result->position)) {
     /* Reference indirection is not allowed in C++11 constant expressions. */
     conv_to_error_operand(result);
@@ -17501,12 +17540,11 @@ cases so we don't do it here.
         change_some_ref_kinds(operand->ref_entries_list, SRK_USE,
                               (SRK_USE | SRK_CONST_VALUE_USE));
         make_constant_operand(con_value, operand);
-      } else if (!constexpr_enabled && curr_expr_kind_is_const()) {
+      } else if (curr_expr_kind_is_traditional_const()) {
         /* An lvalue cannot be converted to an rvalue in a pre-C++11 constant
            expression. */
         error_in_operand(ec_expr_not_constant, operand);
-      } else if (constexpr_enabled &&
-                 construct_not_allowed_in_cpp11_constant_expr(
+      } else if (construct_not_allowed_in_cpp11_constant_expr(
                                                          ec_expr_not_constant,
                                                          &operand->position)) {
         /* An lvalue cannot be converted to an rvalue in a C++11 constant
@@ -17677,7 +17715,8 @@ current mode -- just do it.
     expr = make_node_from_operand(operand);
   }  /* if */
   /* Fold to a constant address if possible and desirable. */
-  if (!constexpr_enabled && curr_expr_kind_is(ek_integral_constant)) {
+  if (curr_expr_kind_is_traditional_const() &&
+      curr_expr_kind_is(ek_integral_constant)) {
     /* Array-to-pointer decay is not allowed in an integral constant
        expression. */
     error_in_operand(ec_expr_not_integral_constant, operand);
@@ -17692,8 +17731,8 @@ current mode -- just do it.
     make_constant_operand(&conaddr, operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;
-  } else if (!constexpr_enabled &&
-             curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+  } else if (curr_expr_kind_is_traditional_const() &&
+             curr_expr_is_evaluated()) {
     /* The array-to-pointer operation must fold to a constant in a constant
        expression. */
     error_in_operand(ec_expr_not_constant, operand);
