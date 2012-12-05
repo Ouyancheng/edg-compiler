@@ -2585,6 +2585,9 @@ Display the indicated variable.
   if (ptr->initializer_in_class) {
     disp_boolean("initializer_in_class", TRUE);
   }  /* if */
+  if (ptr->constant_valued) {
+    disp_boolean("constant_valued", TRUE);
+  }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer);
   if (ptr->entities_defined_in_initializer != NULL) {
     disp_entity_list("entities_defined_in_initializer",

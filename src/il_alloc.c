@@ -2179,6 +2179,7 @@ Clear the fields of the given variable to default values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   vp->is_enhanced_for_iterator    = FALSE;
   vp->initializer_in_class        = FALSE;
+  vp->constant_valued             = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
   /* One of the variant fields, chosen arbitrarily, is initialized. */
   vp->initializer.constant        = NULL;

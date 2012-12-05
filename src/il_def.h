@@ -9149,6 +9149,10 @@ typedef struct a_variable {
   a_bit_field	initializer_in_class:1;
 			/* TRUE for static data members with in-class
 			   initializers. */
+  a_bit_field	constant_valued:1;
+			/* TRUE for variables of a const type initialized with
+			   a constant expression so that uses of the variable's
+			   value are permitted in constant-expressions. */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.
 			   When init_kind == initk_function_local (local
