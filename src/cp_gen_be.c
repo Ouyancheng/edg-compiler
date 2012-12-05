@@ -4276,6 +4276,7 @@ interpreted as an argument separator rather than an operator).
   an_expr_or_stmt_traversal_block tblock;
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = check_for_unprotected_comma_operation;
+  tblock.process_non_dynamic_constants = TRUE;
   tblock.process_expressions_for_constants = TRUE;
   /* Without the following flag, the traversal would not examine
      dependent expressions in prototype instantiations, which would
@@ -10834,6 +10835,7 @@ argument list will not be prematurely terminated by a ">" operator.
 
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = check_for_unprotected_gt_operation;
+  tblock.process_non_dynamic_constants = TRUE;
   tblock.process_expressions_for_constants = TRUE;
   /* The scan must consider dependent expressions as well, in cases
      where prototype instantiations are included in the IL. */
