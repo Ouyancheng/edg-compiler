@@ -25371,8 +25371,8 @@ classes.
              and in g++ mode for g++ versions prior to 4.5 template class
              names are not injected.
              (NB: code in check_hiding_by_inherited_names duplicates this
-              test to simulate an injected class name for the hidden name
-              table.  If this condition changes, so should that one.) */
+             test to simulate an injected class name for the hidden name
+             table.  If this condition changes, so should that one.) */
         } else {
           enter_injected_class_name_symbol(tag_sym);
         }  /* if */
