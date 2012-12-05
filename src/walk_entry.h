@@ -2950,6 +2950,8 @@ after_entry_from_class:
 #if !NEEDED_FLAG_WALK
         if (ptr->defined_in_static_data_member_initializer) {
           remap_ptr(ptr->lambda_parent.variable, a_variable_ptr, iek_variable);
+        } else if (ptr->defined_in_field_initializer) {
+          remap_ptr(ptr->lambda_parent.field, a_field_ptr, iek_field);
         } else {
           remap_ptr(ptr->lambda_parent.routine, a_routine_ptr, iek_routine);
         }  /* if */
