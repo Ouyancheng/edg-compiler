@@ -33480,7 +33480,9 @@ expression context.  Return either *is_constant TRUE and a constant value in
   } else {
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   }  /* if */
-  is_nonconstant = (result.ruled_out_expr_kinds & ROEK_CONSTANT) != 0;
+  is_nonconstant = constexpr_enabled ?
+                     expr_stack->cpp11_constant_expr_ruled_out :
+                     (result.ruled_out_expr_kinds & ROEK_CONSTANT) != 0;
   /* Convert from a class type to integral if necessary. */
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(result.type)) {
