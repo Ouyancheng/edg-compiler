@@ -8570,7 +8570,11 @@ lvalue if result_is_lvalue is TRUE.
     make_error_operand(result);
   } else {
     /* Make nodes from the operands, and link the first node to the second. */
-    node = make_node_from_operand(operand_1);
+    if (kind == (an_expr_operator_kind)eok_comma) {
+      node = make_node_from_void_expression_operand(operand_1);
+    } else {
+      node = make_node_from_operand(operand_1);
+    }  /* if */
     node->next = make_node_from_operand(operand_2);
     /* Make an expression operator node which has the above operand nodes. */
     node = make_operator_node(kind, type, node);

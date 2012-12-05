@@ -17291,8 +17291,7 @@ C++ functional-notation type conversions, and C++ new-style casts.
 }  /* cast_type_pre_check */
 
 
-static an_expr_node_ptr make_node_from_void_expression_operand(
-                                                           an_operand *operand)
+an_expr_node_ptr make_node_from_void_expression_operand(an_operand *operand)
 /*
 *operand is an expression scanned as a void expression, or cast to void.
 Determine an expression representation for the operand, and return a pointer
