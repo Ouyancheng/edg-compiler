@@ -8096,6 +8096,23 @@ syntax ("a->b") rather than an explicit function call.
 }  /* is_operator_syntax_arrow */
 
 
+static a_boolean is_expl_ctor_or_value_init(an_expr_node_ptr expr)
+/*
+Return TRUE if expr (which may be NULL) designates an enk_temp_init node
+representing either an explicit constructor call or a value initialization
+(i.e., something of the form "T(...)") and FALSE otherwise.  This is used
+to avoid putting unnecessary parentheses around such expressions, which can
+confuse early versions of g++.
+*/
+{
+  return (expr != NULL && expr->kind == (an_expr_node_kind)enk_temp_init &&
+          (expr->variant.init.dynamic_init->kind ==
+                                        (a_dynamic_init_kind)dik_constructor ||
+           expr->variant.init.dynamic_init->kind ==
+                                              (a_dynamic_init_kind)dik_zero));
+}  /* is_expl_ctor_or_value_init */
+
+
 static void gen_simple_field_selection(an_expr_node_ptr expr)
 /*
 Generate "x.y" or "x->y", depending on expr (which must be either an
@@ -8180,18 +8197,8 @@ the expression reflects an implicit member access ("this->y"), so the
     }  /* if */
   } else {
     /* Normal "." case. */ 
-    if (object_expr->kind == (an_expr_node_kind)enk_temp_init &&
-        (object_expr->variant.init.dynamic_init->kind ==
-                                        (a_dynamic_init_kind)dik_constructor ||
-         object_expr->variant.init.dynamic_init->kind ==
-                                              (a_dynamic_init_kind)dik_zero)) {
-      /* Parentheses are not needed for an explicit constructor call or
-         value initialization and can confuse early versions of g++. */
-      gen_expression(object_expr);
-    } else {
-      /* Parentheses may be needed for other kinds of object expressions. */
-      gen_expr_with_parens(object_expr);
-    }  /* if */
+    gen_expr(object_expr, !is_expl_ctor_or_value_init(object_expr),
+             /*obj_expr_of_mfunc_operator=*/FALSE);
     m_write_tok_ch('.');
   }  /* if */
   if (il_header.source_language == sl_Cplusplus) {
@@ -8433,19 +8440,8 @@ indicated by opstr.
        use "->" with a non-pointer value. */
     opstr = ".";
   }  /* if */
-  if (operand_1->kind == (an_expr_node_kind)enk_temp_init &&
-      (operand_1->variant.init.dynamic_init->kind ==
-                                        (a_dynamic_init_kind)dik_constructor ||
-       operand_1->variant.init.dynamic_init->kind ==
-                                              (a_dynamic_init_kind)dik_zero)) {
-    /* There is no need for parentheses around an explicit constructor call
-       or value initialization, and they confuse some older versions of
-       g++. */
-    gen_expression(operand_1);
-  } else {
-    /* Other expressions may require parentheses. */
-    gen_expr_with_parens(operand_1);
-  }  /* if */
+  gen_expr(operand_1, !is_expl_ctor_or_value_init(operand_1),
+           /*obj_expr_of_mfunc_operator=*/FALSE);
   if (operand_1->is_lvalue &&
       is_template_param_or_nonreal_class_type(operand_1_type)) {
     /* Watch out for prototype instantiations. */
@@ -8809,11 +8805,7 @@ obscure Microsoft bug).
         temp_init_node = NULL;
         traverse_expr(expr, &tblock);
       }  /* if */
-      if (temp_init_node != NULL &&
-          (temp_init_node->variant.init.dynamic_init->kind == 
-                                        (a_dynamic_init_kind)dik_constructor ||
-           temp_init_node->variant.init.dynamic_init->kind ==
-                                              (a_dynamic_init_kind)dik_zero) &&
+      if (is_expl_ctor_or_value_init(temp_init_node) &&
           is_pointer_type(expr->type)) {
         /* See if the type of the temporary being created is a template-id
            that's namespace-qualified and has more than one
@@ -9363,19 +9355,8 @@ function reference.
         write_tok_str("((");
         overparenthesize = TRUE;
       }  /* if */
-      if (object_expr->kind == (an_expr_node_kind)enk_temp_init &&
-          (object_expr->variant.init.dynamic_init->kind ==
-                                        (a_dynamic_init_kind)dik_constructor ||
-           object_expr->variant.init.dynamic_init->kind ==
-                                              (a_dynamic_init_kind)dik_zero)) {
-        /* There is no need for parentheses around an explicit constructor
-           call or value initialization, and they confuse some older
-           versions of g++. */
-        gen_expression(object_expr);
-      } else {
-        /* Other kinds of expressions might need parentheses. */
-        gen_expr_with_parens(object_expr);
-      }  /* if */
+      gen_expr(object_expr, !is_expl_ctor_or_value_init(object_expr),
+               /*obj_expr_of_mfunc_operator=*/FALSE);
       if (overparenthesize) {
         write_tok_str("))");
       }  /* if */
