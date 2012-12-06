@@ -9135,12 +9135,60 @@ See conversion_possible.
 }  /* impl_conversion_possible */
 
 
+static a_boolean impl_converted_constant_expr_conversion_possible(
+                                           a_type_ptr       source_type,
+                                           a_boolean        source_is_constant,
+                                           a_constant       *source_constant,
+                                           a_type_ptr       dest_type)
+/*
+Return TRUE if a conversion from source_type to dest_type is allowed
+as the implicit conversion on a converted constant expression (see
+[expr.const] in the C++11 standard).  If source_is_constant is TRUE,
+source_constant gives the constant value of the source; if
+source_is_constant is FALSE, the source is assumed not to be a constant.
+*/
+{
+  a_boolean okay = FALSE;
+
+  source_type = skip_typerefs(source_type);
+  dest_type = skip_typerefs(dest_type);
+  if (identical_types(source_type, dest_type)) {
+    okay = TRUE;
+  } else if (is_template_param_type(source_type) ||
+             is_template_param_type(dest_type)) {
+    /* A template parameter type might match another type. */
+    okay = TRUE;
+  } else if (is_integral_or_unscoped_enum_type(source_type) &&
+             is_integral_type(dest_type)) {
+    /* Integral or enum to integral is allowed as long as it's not a
+       narrowing conversion. */
+    if (!is_narrowing_conversion(source_type,
+                                 source_is_constant ? source_constant :
+                                                      (a_constant *)NULL,
+                                 dest_type,
+                                 (a_boolean *)NULL,
+                                 (a_boolean *)NULL)) {
+      okay = TRUE;
+    }  /* if */
+  }  /* if */
+  return okay;
+}  /* impl_converted_constant_expr_conversion_possible */
+
+
 a_boolean conversion_allowed_for_nontype_template_argument(
-                                                  a_std_conv_descr *conversion)
+                                           a_std_conv_descr *conversion,
+                                           a_type_ptr       source_type,
+                                           a_boolean        source_is_constant,
+                                           a_constant       *source_constant,
+                                           a_type_ptr       dest_type)
 /*
 Return TRUE unless the indicated conversion contains something that
 is not allowed in a conversion for a nontype template argument, e.g.,
-a conversion of 0 to a pointer type.
+a conversion of 0 to a pointer type.  "conversion" is a previously
+determined conversion description, which is often enough to resolve the
+question.  Additionally, for C++11 constant expressions, source_type,
+source_is_constant, source_constant, and dest_type may be specified.
+If those are not available, dest_type is passed as NULL.
 */
 {
   a_boolean allowed = TRUE;
@@ -9154,6 +9202,38 @@ a conversion of 0 to a pointer type.
        pointer-to-member conversions are not allowed on a nontype
        template argument. */
     allowed = FALSE;
+  } else if (constexpr_enabled) {
+    /* C++11 checks.  More checks are needed in part because C++11
+       constant expressions allow more things inside the expression. */
+    if (dest_type != NULL && is_integral_or_unscoped_enum_type(dest_type)) {
+      /* For integer and enum nontype template parameters, the conversions
+         are those allowed for a converted constant expression. */
+      if (!impl_converted_constant_expr_conversion_possible(source_type,
+                                                            source_is_constant,
+                                                            source_constant,
+                                                            dest_type)) {
+        allowed = FALSE;
+      }  /* if */
+    } else {
+      /* For other cases, e.g., address constants, any nontrivial conversion
+         is disallowed. */
+      if (conversion->nontrivial_conversion) {
+        if (dest_type != NULL &&
+            (is_template_param_type(source_type) ||
+             is_template_param_type(dest_type))) {
+          /* Conversions between template parameter types are allowed. */
+        } else if (source_is_constant &&
+                   is_nullptr_type(source_constant->type) &&
+                   dest_type != NULL &&
+                   (is_pointer_type(dest_type) ||
+                    is_ptr_to_member_type(dest_type))) {
+          /* Conversions from nullptr to a pointer or pointer to member are
+             allowed. */
+        } else {
+          allowed = FALSE;
+        }  /* if */
+      } /* if */
+    }  /* if */
   }  /* if */
   return allowed;
 }  /* conversion_allowed_for_nontype_template_argument */

@@ -1042,7 +1042,12 @@ is TRUE, template_arg_list is a set of explicit template arguments for sym.
                                                    &unknown_dependent_function,
                                                    &ambiguous);
   if (func_sym == NULL ||
-      !conversion_allowed_for_nontype_template_argument(&std_conversion) ||
+      !conversion_allowed_for_nontype_template_argument(
+                                                  &std_conversion,
+                                                  (a_type *)NULL,
+                                                  /*source_is_constant=*/FALSE,
+                                                  (a_constant *)NULL,
+                                                  (a_type *)NULL) ||
       std_conversion.exception_spec_incompatibility) {
     *err = TRUE;
   } else {
@@ -17712,7 +17717,12 @@ is_transparent.  conv_context describes the context of the conversion.
                                     &local_conversion)) {
     /* Some conversions are not allowed on a nontype template argument. */
     if ((conv_context & CCO_NONTYPE_TEMPLATE_ARG) &&
-        !conversion_allowed_for_nontype_template_argument(&conversion->std)) {
+        !conversion_allowed_for_nontype_template_argument(
+                                           &conversion->std,
+                                           source_operand->type,
+                                           is_constant_operand(source_operand),
+                                           &source_operand->variant.constant,
+                                           dest_type)) {
       if (expr_diagnostic_should_be_issued(es_discretionary_error,
                                            incompatible_err)) {
         pos_ty2_diagnostic(es_discretionary_error, incompatible_err, err_pos,
@@ -22320,7 +22330,11 @@ if so.
   if (compatible) {
     /* Some conversions are not allowed on a nontype template argument. */
     if (!conversion_allowed_for_nontype_template_argument(
-                                                &arg_summary.conversion.std)) {
+                                                &arg_summary.conversion.std,
+                                                operand->type,
+                                                is_constant_operand(operand),
+                                                &operand->variant.constant,
+                                                param_type)) {
       compatible = FALSE;
     }  /* if */
   }  /* if */

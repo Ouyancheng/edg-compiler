@@ -9074,7 +9074,12 @@ Return TRUE if the conversion was successful.
                                &conv_descr)) {
     /* An implicit conversion is possible.  See if the conversion
        is one of those allowed for template arguments. */
-    if (conversion_allowed_for_nontype_template_argument(&conv_descr)) {
+    if (conversion_allowed_for_nontype_template_argument(
+                               &conv_descr,
+                               orig_constant->type,
+                               /*source_is_constant=*/TRUE,
+                               tap->variant.constant,
+                               type_required)) {
       a_constant	constant;
       a_boolean		did_not_fold;
       clear_constant(&constant, orig_constant->kind);

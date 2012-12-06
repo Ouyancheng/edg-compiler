@@ -15629,7 +15629,12 @@ name lookup options.
                                     /*suppress_extensions=*/TRUE,
                                     ec_no_error,
                                     &std_conv) ||
-          !conversion_allowed_for_nontype_template_argument(&std_conv)) {
+          !conversion_allowed_for_nontype_template_argument(
+                                    &std_conv,
+                                    source_type,
+                                    /*source_is_constant=*/TRUE,
+                                    source_con,
+                                    guide_type)) {
         err = TRUE;
       }  /* if */
     }  /* if */

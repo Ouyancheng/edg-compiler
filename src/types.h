@@ -1115,7 +1115,11 @@ extern a_boolean impl_conversion_possible(
                           an_error_code        default_warning_code,
                           a_std_conv_descr_ptr std_conv);
 extern a_boolean conversion_allowed_for_nontype_template_argument(
-                                                 a_std_conv_descr *conversion);
+                                           a_std_conv_descr *conversion,
+                                           a_type_ptr       source_type,
+                                           a_boolean        source_is_constant,
+                                           a_constant       *source_constant,
+                                           a_type_ptr       dest_type);
 extern a_boolean static_cast_conversion_possible(
                                  a_type_ptr    source_type,
                                  a_boolean     source_is_constant,
