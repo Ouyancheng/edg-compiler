@@ -7604,7 +7604,7 @@ user-defined conversions.
                                   &did_not_fold, err_pos);
         if (did_not_fold) {
           /* Cast of a constant did not fold. */
-          if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+          if (curr_expr_kind_is_evaluated_const()) {
             error_in_operand(ec_expr_not_constant, operand);
           } else if (is_implicit_cast &&
                      cast_identical_types(operand->type, new_type)) {
@@ -7862,11 +7862,10 @@ used only in C++ mode.
     }  /* if */
     if (did_not_fold) {
       /* The cast could not be folded to a constant. */
-      if (curr_expr_kind_is_const() &&
+      if (curr_expr_kind_is_evaluated_const() &&
           !(is_an_lvalue(operand) &&
             (curr_expr_kind_is(ek_template_arg) ||
-             curr_expr_kind_is(ek_init_constant))) &&
-          curr_expr_is_evaluated()) {
+             curr_expr_kind_is(ek_init_constant)))) {
         /* The cast must fold to a constant in a constant expression.
            Certain expression kinds allow an lvalue because its address might
            be taken later. */
@@ -11880,8 +11879,8 @@ of a subscript operation).
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     if (did_not_fold) {
-      if (!template_constant && curr_expr_kind_is_const() &&
-          !result_is_lvalue && curr_expr_is_evaluated()) {
+      if (!template_constant && curr_expr_kind_is_evaluated_const() &&
+          !result_is_lvalue) {
         /* An operation on constants could not be folded.  For example,
            a pointer comparison between pointers that aren't in the
            same object can't be represented as a constant.  In a
@@ -12097,9 +12096,9 @@ used as an rvalue.
 {
   check_assertion(curr_expr_kind_is_const());
   do_rvalue_generic_operand_transformations(operand);
-  check_assertion(constexpr_enabled /*FIXME*/ ||
-                  is_constant_operand(operand) ||
-                  is_error_operand(operand));
+  check_assertion(is_constant_operand(operand) ||
+                  is_error_operand(operand) ||
+                  !curr_expr_kind_is_traditional_const());
 }  /* do_constant_generic_operand_transformations */
 
 
@@ -12650,8 +12649,7 @@ token sequence number of the operator.
       }  /* if */
     }  /* if */
     if (did_not_fold) {
-      if (!template_constant && curr_expr_kind_is_const() &&
-          curr_expr_is_evaluated()) {
+      if (!template_constant && curr_expr_kind_is_evaluated_const()) {
         /* A constant operation could not be folded in a constant
            expression. */
         expr_pos_error(ec_expr_not_constant, start_position);
@@ -13046,9 +13044,8 @@ question_position and colon_position give the position of the "?" and ":".
              is_error_operand(operand_3)) {
     /* Some error. */
     make_error_operand(result);
-  } else if (curr_expr_kind_is_const() &&
+  } else if (curr_expr_kind_is_evaluated_const() &&
              !operand_1_is_const &&
-             curr_expr_is_evaluated() &&
              !(!C_mode() &&
                is_constant_operand(operand_1) &&
                operand_1->variant.constant.kind ==
@@ -15851,8 +15848,8 @@ explicit "&" operator in the source and *operator_position gives its position.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (did_not_fold && !template_constant && curr_expr_kind_is_const() &&
-          curr_expr_is_evaluated() &&
+      if (did_not_fold && !template_constant &&
+          curr_expr_kind_is_evaluated_const() &&
           !(gcc_mode && is_expression_operand(operand) &&
             is_lvalue_for_auto_object(operand->variant.expression,
                                       (a_boolean *)NULL))) {
@@ -16967,7 +16964,7 @@ constant if k is a constant.
 {
   a_boolean allows_folding = FALSE;
 
-  if (curr_expr_kind_is_const()) {
+  if (curr_expr_kind_is_traditional_const()) {
     /* In constant expressions, we fold such things only as a nonstandard
        feature.  If we decide to do the folding, the left side is guaranteed
        not to have side effects because it's a constant expression. */
@@ -17735,8 +17732,7 @@ current mode -- just do it.
     make_constant_operand(&conaddr, operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;
-  } else if (curr_expr_kind_is_traditional_const() &&
-             curr_expr_is_evaluated()) {
+  } else if (curr_expr_kind_is_evaluated_const()) {
     /* The array-to-pointer operation must fold to a constant in a constant
        expression. */
     error_in_operand(ec_expr_not_constant, operand);
@@ -17938,7 +17934,7 @@ by an "&" operator and *ampersand_position gives its position.
     make_constant_operand(&constant, operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;
-  } else if (curr_expr_kind_is_const() && !will_call) {
+  } else if (curr_expr_kind_is_traditional_const() && !will_call) {
     /* A constant result is required in a constant expression. */
     error_in_operand(ec_expr_not_constant, operand);
   } else {
@@ -18404,8 +18400,14 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
        entries marked as permanently allocated. */
     free_arg_list(arg_list);
   }  /* if */
-  if (curr_expr_kind_is_const() && !is_error_operand(operand)) {
-    error_in_operand(ec_expr_not_constant, operand);
+  if (!is_error_operand(operand)) {
+    if (curr_expr_kind_is_traditional_const()) {
+      error_in_operand(ec_expr_not_constant, operand);
+    } else if (construct_not_allowed_in_cpp11_constant_expr(
+                                                         ec_expr_not_constant,
+                                                         &operand->position)) {
+      conv_to_error_operand(operand);
+    }  /* if */
   }  /* if */
   rule_out_expr_kinds(ROEK_CONSTANT, operand);
 }  /* rewrite_property_reference */

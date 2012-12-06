@@ -829,10 +829,12 @@ typedef struct an_expr_stack_entry {
 		is_traditional_const_expr;
 			/* TRUE if we're in a constant expression to be
 			   processed with the pre-C++11 rules for constant
-			   expressions, i.e., disallowed operators and types
-			   are invalid wherever they appear, rather than
-			   (as in C++11) let through with a final check that
-			   the end result is a constant of the right kind. */
+			   expressions.  Those are (1) disallowed operators,
+			   types, and constructs are flagged as invalid
+			   immediately when they appear, even in unevaluated
+			   subexpressions; (2) each operation/conversion must
+			   immediately fold to a constant result, except when
+			   unevaluated (e.g., 1 || 1/0 is okay). */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
@@ -1023,16 +1025,6 @@ kinds are at the beginning of the list.
   ((int)(curr_expr_kind()) <= (int)ek_init_constant)
 
 /*
-Macro that returns TRUE if the current expression is some kind of
-C or pre-C++11 constant expression.  In such expressions, disallowed
-operators or types are flagged immediately when encountered.  In C++11
-constant expressions, they are often allowed, and then a final check
-is done that the end result is a constant of the right kind.
-*/
-#define curr_expr_kind_is_traditional_const()                         \
-  (expr_stack->is_traditional_const_expr)
-
-/*
 Macro that returns TRUE if the current expression kind is one in which
 backing expressions are recorded for constants.  They are never recorded
 for preprocessing expressions (because the constants are never saved).  The
@@ -1095,6 +1087,35 @@ i.e., it's an unevaluated operand or the operand of typeid.
 #define curr_expr_is_potentially_unevaluated() \
   ((a_boolean)expr_stack->potentially_unevaluated)
 
+/*
+Macro that returns TRUE if the current expression is const and the current
+subexpression is evaluated.  This is the right test for the requirement that
+folding of an operation on constants produces a constant result, e.g., 1/0
+does not have to fold when in an unevaluated context.  Those rules are the
+same in C++11 constant expressions and traditional constant expressions.
+*/
+#define curr_expr_kind_is_evaluated_const()                           \
+  (curr_expr_kind_is_const() && curr_expr_is_evaluated())
+
+/*
+Macro that returns TRUE if the current expression is some kind of
+C or pre-C++11 constant expression.  In such expressions,
+  (1) disallowed operators, types, and constructs are flagged as
+      invalid immediately when they appear, even in unevaluated
+      subexpressions;
+  (2) each operation/conversion must immediately fold to a constant
+      result, except when unevaluated (e.g., 1 || 1/0 is okay).
+In C++11 constant expressions, most operators/types/constructs are
+allowed as long as the final result is a constant of the right kind.
+
+This is the right test for a validity test of a source construct,
+i.e., a particular operator (for example, "*" for indirection is not
+allowed in pre-C++11 constant expressions).  Often, a use of this
+macro will be followed by an "else" that calls
+operator_not_allowed_in_cpp11_constant_expr.
+*/
+#define curr_expr_kind_is_traditional_const()                         \
+  (expr_stack->is_traditional_const_expr)
 
 /*
 Macro that returns TRUE if there is at least one initializer cached for the

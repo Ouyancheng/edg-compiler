@@ -19877,10 +19877,15 @@ the conversion.
         }  /* if */
         conv_to_error_operand(source_operand);
       }  /* if */
-    } else if (curr_expr_kind_is_const()) {
+    } else if (curr_expr_kind_is_traditional_const()) {
       /* In a constant context (e.g., a nontype template argument),
          a temporary is not allowed. */
       error_in_operand(ec_init_needing_temp_not_allowed, source_operand);
+    } else if (construct_not_allowed_in_cpp11_constant_expr(
+                                              ec_init_needing_temp_not_allowed,
+                                              &source_operand->position)) {
+      /* In a C++11 constant expression a temporary is not allowed. */
+      conv_to_error_operand(source_operand);
     } else {
       /* Allocate a temporary and copy the operand into it, converting
          if necessary.  source_operand is set to the address of the

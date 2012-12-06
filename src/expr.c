@@ -5363,14 +5363,12 @@ are expected to be NULL in that case.
   }  /* if */
   if (!call_folded_to_constant && !is_error_operand(result)) {
     /* Unfolded routine calls are not allowed in constant expressions. */
-    if (constexpr_enabled) {
-      if (construct_not_allowed_in_cpp11_constant_expr(
+    if (curr_expr_kind_is_traditional_const()) {
+      error_in_operand(ec_bad_constant_function_call, result);
+    } else if (construct_not_allowed_in_cpp11_constant_expr(
                                                  ec_bad_constant_function_call,
                                                  &result->position)) {
-        conv_to_error_operand(result);
-      }  /* if */
-    } else if (curr_expr_kind_is_const()) {
-      error_in_operand(ec_bad_constant_function_call, result);
+      conv_to_error_operand(result);
     }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &closing_paren_position,
@@ -10299,9 +10297,13 @@ previously-scanned sizeof expression, and return the result in *result
   /* Do not add code here. */
   if (vla_enabled && is_vla_type(sizeof_type) && !template_case) {
     /* One or more of the top array types is a variable-length array. */
-    if (curr_expr_kind_is_const()) {
+    if (curr_expr_kind_is_traditional_const()) {
       /* Not allowed in a constant expression. */
       expr_pos_error(ec_expr_not_constant, &start_position);
+      make_error_operand(result);
+    } else if (construct_not_allowed_in_cpp11_constant_expr(
+                                                          ec_expr_not_constant,
+                                                          &start_position)) {
       make_error_operand(result);
     } else {
       /* Make an expression node to represent a sizeof that cannot be
@@ -10323,8 +10325,12 @@ previously-scanned sizeof expression, and return the result in *result
          cli_class_type_kind_is(tp, cctk_interface))) {
       expr_pos_error(ec_sizeof_ref_or_interface_class, &start_position);
       make_error_operand(result);
-    } else if (curr_expr_kind_is_const()) {
+    } else if (curr_expr_kind_is_traditional_const()) {
       expr_pos_error(ec_expr_not_constant, &start_position);
+      make_error_operand(result);
+    } else if (construct_not_allowed_in_cpp11_constant_expr(
+                                                          ec_expr_not_constant,
+                                                          &start_position)) {
       make_error_operand(result);
     } else {
       /* Make an expression node to represent a sizeof that cannot be
@@ -10343,9 +10349,13 @@ previously-scanned sizeof expression, and return the result in *result
        some (e.g., non-POD classes) might not be.  SIZEOF_TYPE_IS_UNKNOWN
        is a function-like macro that returns TRUE for the complicated
        cases. */
-    if (curr_expr_kind_is_const()) {
+    if (curr_expr_kind_is_traditional_const()) {
       /* Not allowed in a constant expression. */
       expr_pos_error(ec_expr_not_constant, &start_position);
+      make_error_operand(result);
+    } else if (construct_not_allowed_in_cpp11_constant_expr(
+                                                          ec_expr_not_constant,
+                                                          &start_position)) {
       make_error_operand(result);
     } else {
       /* Make an expression node to represent the sizeof. */
@@ -14264,6 +14274,7 @@ Microsoft, Sun) allow extended forms of integer constants.
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
+  expr_stack->is_traditional_const_expr = TRUE;
   if (top_level) transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the expression. */
   if (is_expr_list) {
@@ -20788,6 +20799,11 @@ freed by this routine.
         expr_pos_error(ec_expr_not_constant, start_position);
         make_error_operand(result);
         err = TRUE;
+      } else if (construct_not_allowed_in_cpp11_constant_expr(
+                                                          ec_expr_not_constant,
+                                                          start_position)) {
+        make_error_operand(result);
+        err = TRUE;
       } else {
         temp_init_node = alloc_temp_init_node(type_cast_to, dip,
                                               /*is_lvalue=*/FALSE,
@@ -25696,15 +25712,18 @@ This function doesn't look at the current or nearby tokens.
 {
   a_boolean allows_folding = FALSE;
 
-  if ((any_cfront_mode() || sun_mode ||
-       (microsoft_mode && !C_mode()) ||
-       (gpp_mode && gnu_version < 30400)) &&
-      (curr_expr_kind_is(ek_integral_constant) ||
-       curr_expr_kind_is(ek_template_arg) ||
-       curr_expr_kind_is(ek_init_constant))) {
-    allows_folding = TRUE;
-  } else if (curr_expr_kind_is_const() &&
-             !curr_expr_kind_is_traditional_const()) {
+  if (curr_expr_kind_is_traditional_const()) {
+    if ((any_cfront_mode() || sun_mode ||
+         (microsoft_mode && !C_mode()) ||
+         (gpp_mode && gnu_version < 30400)) &&
+        (curr_expr_kind_is(ek_integral_constant) ||
+         curr_expr_kind_is(ek_template_arg) ||
+         curr_expr_kind_is(ek_init_constant))) {
+      allows_folding = TRUE;
+    }  /* if */
+  } else if (curr_expr_kind_is_const()) {
+    /* C++11 constant expressions not treated as traditional const
+       expressions. */
     allows_folding = TRUE;
   }  /* if */
   return allows_folding;
@@ -28092,7 +28111,7 @@ handle_identifier:
            the immediate operand of a cast to integral.  Here we can
            only check that the constant is the operand of a cast; the check
            for the destination type is done higher up. */
-        if (constexpr_enabled) {
+        if (constexpr_enabled && !curr_expr_kind_is_traditional_const()) {
           /* Cast issues are irrelevant when C++11 constexpr is enabled. */
           float_con_allowed_in_integral_const_expr = TRUE;
         } else if ((local_options & EOPT_OPERAND_OF_CAST) &&
