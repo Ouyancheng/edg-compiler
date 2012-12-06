@@ -3927,6 +3927,155 @@ Note that the returned type is intended as an rvalue type, so qualifiers like
 }  /* type_after_array_to_pointer_transformation */
 
 
+a_boolean is_narrowing_conversion(a_type_ptr source_type,
+                                  a_constant *source_constant,
+                                  a_type_ptr dest_type,
+                                  a_boolean  *con_check_done,
+                                  a_boolean  *fp_precision_check_failed)
+/*
+Return TRUE if converting from source_type to dest_type is a narrowing
+conversion as defined by [dcl.init.list] of the C++11 standard.
+If source_constant is non-NULL, it gives the known constant value of
+the source; if it's NULL, it's assumed the source is not constant.
+If con_check_done is non-NULL, *con_check_done is returned TRUE if
+the narrowing is due to the specific constant value not fitting in
+the destination type.  If fp_precision_check_failed is non-NULL,
+*fp_precision_check_failed is returned TRUE if the narrowing is due to
+the specific constant losing precision in a floating-point conversion.
+*/
+{
+  a_boolean is_narrowing = FALSE;
+  a_boolean err, depends_on_fp_mode, dependent_constant = FALSE;
+
+  check_assertion(!C_mode());
+  if (con_check_done != NULL) *con_check_done = FALSE;
+  if (fp_precision_check_failed != NULL) *fp_precision_check_failed = FALSE;
+  source_type = skip_typerefs(source_type);
+  dest_type = skip_typerefs(dest_type);
+  if (source_constant != NULL &&
+      source_constant->kind == (a_constant_repr_kind)ck_template_param) {
+    dependent_constant = TRUE;
+  }  /* if */
+  if (is_floating_type(source_type)) {
+    if (is_integral_type(dest_type)) {
+      /* Floating-point to integer is always narrowing. */
+      is_narrowing = TRUE;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    } else if (source_type->kind != dest_type->kind &&
+               (is_nonreal_floating_type(source_type) ||
+                is_nonreal_floating_type(dest_type))) {
+      /* Something like _Complex double --> float or double --> _Complex float.
+         Not covered by the standard.  May or may not be valid as an implicit
+         conversion, but leave that to the caller; don't call it a narrowing
+         conversion. */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    } else if (is_floating_type(dest_type)) {
+      /* We ruled out complex and imaginary cases above. */
+      check_assertion(source_type->kind == (a_type_kind)tk_float &&
+                      dest_type->kind   == (a_type_kind)tk_float);
+      if ((int)source_type->variant.float_kind >
+                                          (int)dest_type->variant.float_kind) {
+        /* Floating-point to smaller floating_point.  Okay if the value is
+           constant and preserved, even if not with full precision. */
+        is_narrowing = TRUE;
+        if (source_constant != NULL &&
+            source_constant->kind == (a_constant_repr_kind)ck_float) {
+          an_internal_float_value fval;
+          if (con_check_done != NULL) *con_check_done = TRUE;
+          check_assertion(is_floating_type(source_constant->type));
+          fp_change_kind(&source_constant->variant.float_value,
+                         skip_typerefs(source_constant->type)
+                                                          ->variant.float_kind,
+                         &fval,
+                         dest_type->variant.float_kind,
+                         &err,
+                         &depends_on_fp_mode);
+          if (!err) is_narrowing = FALSE;
+        } else if (dependent_constant) {
+          /* A dependent constant might have a value that can be converted
+             without loss. */
+          is_narrowing = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else if (is_integral_or_unscoped_enum_type(source_type)) {
+    if (is_floating_type(dest_type)) {
+      /* Integer or unscoped enum to floating.  Okay if the value is constant
+         and is preserved. */
+      is_narrowing = TRUE;
+      if (source_constant != NULL &&
+          source_constant->kind == (a_constant_repr_kind)ck_integer
+#if C99_IL_EXTENSIONS_SUPPORTED
+          && !is_imaginary_type(dest_type)
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+         ) {
+        a_constant fp_constant;
+        if (con_check_done != NULL) *con_check_done = TRUE;
+        clear_constant(&fp_constant, (a_constant_repr_kind)ck_float);
+        fp_constant.type = dest_type;
+        conv_integer_value_to_float(&source_constant->variant.integer_value,
+                                    int_constant_is_signed(source_constant),
+                                    &fp_constant.variant.float_value,
+                                    dest_type->variant.float_kind,
+                                    &err);
+        if (!err) {
+          /* Convert back to the original integral type to see if we lost
+             anything due to precision issues. */
+          an_error_code     err_code;
+          an_error_severity err_severity;
+          a_constant        int_constant;
+          clear_constant(&int_constant, (a_constant_repr_kind)ck_integer);
+          int_constant.type = source_constant->type;
+          conv_float_to_integer(&fp_constant,
+                                &int_constant,
+                                &err_code,
+                                &err_severity,
+                                &depends_on_fp_mode,
+                                /*constant_context=*/FALSE);
+          if (err_code == ec_no_error &&
+              cmp_integer_constants(source_constant, &int_constant) == 0) {
+            is_narrowing = FALSE;
+          } else {
+            if (fp_precision_check_failed != NULL) {
+              *fp_precision_check_failed = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      } else if (dependent_constant) {
+        /* A dependent constant might have a value that can be converted
+           without loss. */
+        is_narrowing = FALSE;
+      }  /* if */
+    } else if (is_integral_type(dest_type)) {
+      check_assertion(source_type->kind == (a_type_kind)tk_integer &&
+                      dest_type->kind   == (a_type_kind)tk_integer);
+      if (source_type->size > dest_type->size ||
+          (source_type->size == dest_type->size &&
+           int_kind_is_signed[(int)source_type->variant.integer.int_kind] !=
+           int_kind_is_signed[(int)  dest_type->variant.integer.int_kind])) {
+        /* Integer or unscoped enum to integer to integer that cannot represent
+           all the values of the source type.  Okay if the value is constant
+           and is preserved. */
+        is_narrowing = TRUE;
+        if (source_constant != NULL &&
+            source_constant->kind == (a_constant_repr_kind)ck_integer) {
+          if (con_check_done != NULL) *con_check_done = TRUE;
+          if (in_range_for_integer_kind(source_constant, source_constant,
+                                        dest_type->variant.integer.int_kind)) {
+            is_narrowing = FALSE;
+          }  /* if */
+        } else if (dependent_constant) {
+          /* A dependent constant might have a value that can be converted
+             without loss. */
+          is_narrowing = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_narrowing;
+}  /* is_narrowing_conversion */
+
+
 a_type_ptr pointer_con_complete_object_type(a_constant_ptr constant)
 /*
 Return the type of the complete object that contains the location pointed to

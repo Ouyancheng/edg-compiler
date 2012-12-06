@@ -20244,12 +20244,10 @@ those narrowing conversions that would not get warnings in normal
 initialization processing.
 */
 {
-  a_boolean               is_narrowing = FALSE, con_check_done = FALSE;
-  a_boolean               fp_precision_check_failed = FALSE;
+  a_boolean               is_narrowing, con_check_done;
+  a_boolean               fp_precision_check_failed;
   a_type_ptr              source_type = source_operand->type;
   a_constant              *con = NULL;
-  an_internal_float_value fval;
-  a_boolean               err, depends_on_fp_mode, dependent_constant = FALSE;
 
   check_assertion(!(error_on_narrowing && warning_on_narrowing));
   check_assertion(!C_mode());
@@ -20268,126 +20266,15 @@ initialization processing.
        when converted to an rvalue. */
     con = value_of_constant_var_lvalue_operand(source_operand);
   }  /* if */
-  if (con != NULL && con->kind == (a_constant_repr_kind)ck_template_param) {
-    dependent_constant = TRUE;
-  }  /* if */
-  if (is_floating_type(source_type)) {
-    if (is_integral_type(dest_type)) {
-      /* Floating-point to integer is always narrowing. */
-      is_narrowing = TRUE;
-#if C99_IL_EXTENSIONS_SUPPORTED
-    } else if (source_type->kind != dest_type->kind &&
-               (is_nonreal_floating_type(source_type) ||
-                is_nonreal_floating_type(dest_type))) {
-      /* Something like _Complex double --> float or double --> _Complex float.
-         Not covered by the standard.  May or may not be valid as an implicit
-         conversion, but leave that to the caller; don't call it a narrowing
-         conversion. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    } else if (is_floating_type(dest_type)) {
-      /* We ruled out complex and imaginary cases above. */
-      check_assertion(source_type->kind == (a_type_kind)tk_float &&
-                      dest_type->kind   == (a_type_kind)tk_float);
-      if ((int)source_type->variant.float_kind >
-                                          (int)dest_type->variant.float_kind) {
-        /* Floating-point to smaller floating_point.  Okay if the value is
-           constant and preserved, even if not with full precision. */
-        is_narrowing = TRUE;
-        if (con != NULL && con->kind == (a_constant_repr_kind)ck_float) {
-          con_check_done = TRUE;
-          if (dependent_constant) {
-            /* A dependent constant might have an appropriate value. */
-            is_narrowing = FALSE;
-          } else {
-            check_assertion(is_floating_type(con->type));
-            fp_change_kind(&con->variant.float_value,
-                           skip_typerefs(con->type)->variant.float_kind,
-                           &fval,
-                           dest_type->variant.float_kind,
-                           &err,
-                           &depends_on_fp_mode);
-            if (!err) is_narrowing = FALSE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  } else if (is_integral_or_unscoped_enum_type(source_type)) {
-    if (is_floating_type(dest_type)) {
-      /* Integer or unscoped enum to floating.  Okay if the value is constant
-         and is preserved. */
-      is_narrowing = TRUE;
-      if (con != NULL && con->kind == (a_constant_repr_kind)ck_integer
-#if C99_IL_EXTENSIONS_SUPPORTED
-          && !is_imaginary_type(dest_type)
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-         ) {
-        con_check_done = TRUE;
-        if (dependent_constant) {
-          /* A dependent constant might have an appropriate value. */
-          is_narrowing = FALSE;
-        } else {
-          a_constant fp_constant;
-          clear_constant(&fp_constant, (a_constant_repr_kind)ck_float);
-          fp_constant.type = dest_type;
-          conv_integer_value_to_float(&con->variant.integer_value,
-                                      int_constant_is_signed(con),
-                                      &fp_constant.variant.float_value,
-                                      dest_type->variant.float_kind,
-                                      &err);
-          if (!err) {
-            /* Convert back to the original integral type to see if we lost
-               anything due to precision issues. */
-            an_error_code     err_code;
-            an_error_severity err_severity;
-            a_constant        int_constant;
-            clear_constant(&int_constant, (a_constant_repr_kind)ck_integer);
-            int_constant.type = con->type;
-            conv_float_to_integer(&fp_constant,
-                                  &int_constant,
-                                  &err_code,
-                                  &err_severity,
-                                  &depends_on_fp_mode,
-                                  /*constant_context=*/FALSE);
-            
-            if (err_code == ec_no_error &&
-                cmp_integer_constants(con, &int_constant) == 0) {
-              is_narrowing = FALSE;
-            } else {
-              fp_precision_check_failed = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    } else if (is_integral_type(dest_type)) {
-      check_assertion(source_type->kind == (a_type_kind)tk_integer &&
-                      dest_type->kind   == (a_type_kind)tk_integer);
-      if (source_type->size > dest_type->size ||
-          (source_type->size == dest_type->size &&
-           int_kind_is_signed[(int)source_type->variant.integer.int_kind] !=
-           int_kind_is_signed[(int)  dest_type->variant.integer.int_kind])) {
-        /* Integer or unscoped enum to integer to integer that cannot represent
-           all the values of the source type.  Okay if the value is constant
-           and is preserved. */
-        is_narrowing = TRUE;
-        if (con != NULL) {
-          /* Don't do this check for warning purposes, since we issue
-             warnings for these cases anyway. */
-          if (warning_on_narrowing) {
-            is_narrowing = FALSE;
-          } else if (dependent_constant) {
-            /* A dependent constant might have an appropriate value. */
-            is_narrowing = FALSE;
-            con_check_done = TRUE;  /* For consistency with other cases. */
-          } else if (con->kind == (a_constant_repr_kind)ck_integer) {
-            con_check_done = TRUE;
-            if (in_range_for_integer_kind(con, con,
-                                        dest_type->variant.integer.int_kind)) {
-              is_narrowing = FALSE;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
+  is_narrowing = is_narrowing_conversion(source_type, con, dest_type,
+                                         &con_check_done,
+                                         &fp_precision_check_failed);
+  if (warning_on_narrowing && is_narrowing && con_check_done &&
+      is_integral_type(source_type) && is_integral_type(dest_type)) {
+    /* When issuing warnings for narrowing, return FALSE for integer
+       narrowing of constants since we will issue a warning anyway on the
+       conversion. */
+    is_narrowing = FALSE;
   }  /* if */
   if (is_narrowing &&
       (error_on_narrowing || warning_on_narrowing)) {
