@@ -5990,10 +5990,10 @@ variable.
 {
   a_variable_ptr  vp = var_for_symbol(dps->sym);
 
-  if (vp != NULL &&
-      is_const_qualified_type(vp->type) &&
-      !is_volatile_qualified_type(vp->type) &&
-      !dps->init_state.init_error) {
+  if (vp != NULL && !dps->init_state.init_error &&
+      ((is_const_qualified_type(vp->type) &&
+        !is_volatile_qualified_type(vp->type)) ||
+       is_template_param_type(vp->type))) {
     /* A const variable initialized with a true constant-expression can be
        used as an rvalue in constant-expressions. */
     if (dps->init_state.initializer_is_constant_expression_form) {
