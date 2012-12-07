@@ -5988,7 +5988,8 @@ constant-expression, set the "constant_valued" flag in the IL entry for that
 variable.
 */
 {
-  a_variable_ptr  vp = var_for_symbol(dps->sym);
+  a_variable_ptr  vp = dps->sym != NULL ? var_for_symbol(dps->sym)
+                                        : (a_variable_ptr)NULL;
 
   if (vp != NULL && !dps->init_state.init_error &&
       ((is_const_qualified_type(vp->type) &&
