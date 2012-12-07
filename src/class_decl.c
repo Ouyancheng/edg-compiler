@@ -13284,6 +13284,11 @@ implicitly declared member functions.
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+    if (!is_static_member) {
+      /* Non-static member declarations implicitly reference the parent class
+         through the implicit this parameter. */
+      class_type->source_corresp.referenced = TRUE;
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);

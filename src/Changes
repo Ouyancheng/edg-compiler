@@ -1,5 +1,26 @@
 Version 4.6
 
+12/7/12  [EDGcpfe/13512]
+Referenced flag and nonstatic member functions
+
+The representation of nonstatic member functions reference their parent class
+through their this parameter.  However, nonstatic member function declarations
+previously did not force the "referenced" flag in the source correspondence of
+the parent type entry to be set to TRUE.  That in turn could e.g. cause the
+C-generating back end to generate poor code in configurations with the macro
+MAINTAIN_NEEDED_FLAGS set to FALSE (such configurations are fairly uncommon).
+For example:
+
+  struct S { S(); };  // If S was not otherwise used in the translation unit,
+                      // the C-generating back end rendered a declaration for
+                      // the lowered constructor referring to an otherwise
+                      // undeclared "struct S;".  Such code is likely to
+                      // elicit warnings from a target C compiler.
+
+This is now fixed: The referenced flag of the parent class of a nonstatic
+member function is now always set to TRUE.
+
+
 12/4/12  [EDGcpfe/13356]
 GNU compatibility: Spurious error on g++-mode specialization
 
