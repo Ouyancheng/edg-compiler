@@ -58,7 +58,7 @@ GNU C++ compatibility: injected class name for class templates
 g++ prior to version 4.5 does not create an injected class name for class
 templates.  We now emulate this behavior in g++ mode when gnu_version < 40500.
 Formerly, we emulated portions of this behavior by ignoring the injected
-class names in certain contexts, but it was still found it in certain cases,
+class names in certain contexts, but it was still found in certain cases,
 such as the example below.  In addition to the source compatibility issue,
 this could result in the C++-generating back end producing code that
 could not be compiled by the g++ version indicated by the gnu_version being
