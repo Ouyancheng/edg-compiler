@@ -17731,6 +17731,9 @@ is_transparent.  conv_context describes the context of the conversion.
         pos_ty2_diagnostic(es_discretionary_error, err_code, err_pos,
                            source_operand->type, dest_type);
       }  /* if */
+      if (is_effective_error(err_code, es_discretionary_error)) {
+        conv_to_error_operand(source_operand);
+      }  /* if */
     }  /* if */
     /* The types are compatible.  Do the conversion. */
     if (conv_context & CCO_CAST) conversion->is_explicit_cast = TRUE;
