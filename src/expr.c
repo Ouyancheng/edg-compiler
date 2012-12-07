@@ -32811,6 +32811,9 @@ required parameter type.
     an_expr_node_ptr saved_backing_expr = con->expr;
     con->expr = NULL;
     make_constant_operand(con, &operand);
+    if (operand_is_string_literal(&operand)) {
+      operand.is_simple_string_literal = TRUE;
+    }  /* if */
     con->expr = saved_backing_expr;
   } else {
     make_lvalue_or_rvalue_expression_operand(expr, &operand);
