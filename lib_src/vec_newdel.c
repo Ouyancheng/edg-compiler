@@ -478,6 +478,19 @@ use.
 #endif /* EXCEPTION_HANDLING */
   if (array_ptr == NULL || prefix_size != 0) {
     a_boolean	err;
+#if EXCEPTION_HANDLING && ABI_COMPATIBILITY_VERSION >= 406
+    /* A run-time check is inserted during lowering to ensure that the
+       multiplication below doesn't overflow.  If the number of elements
+       is too small or too large std::bad_array_new_length is thrown. */
+#ifdef __EDG_IA64_ABI
+    /* The IA-64 ABI standard calls for a check for overflow here
+       (though the front end has already performed this check). */
+    if (element_size != 0 &&
+        number_of_elements > ((size_t)(-1) - prefix_size)/element_size) {
+      ABI_NAMESPACE::__cxa_throw_bad_array_new_length();
+    }  /* if */
+#endif /* defined(__EDG_IA64_ABI) */
+#endif /* EXCEPTION_HANDLING && ABI_COMPATIBILITY_VERSION >= 406 */
     array_size = number_of_elements * element_size;
     /* Always allocate at least a byte of storage for the array to guarantee
        that the pointer returned to the caller (which points after the prefix)
@@ -1126,6 +1139,22 @@ and to invoke terminate if a destructor exits with a throw.
                          /*terminate_immediately=*/TRUE);
   }  /* if */
 }  /* __cxa_vec_cleanup */
+
+#if ABI_COMPATIBILITY_VERSION >= 406
+
+EXTERN_C void ABI_NAMESPACE::__cxa_throw_bad_array_new_length(void)
+/*
+This routine is called by lowered code or the run-time library if it has been
+determined that the overall size of an array new operation is invalid for
+some reason (i.e., overflow, less than zero, too small for initializer list).
+*/
+{
+#if EXCEPTION_HANDLING
+  __throw_bad_array_new_length();
+#endif /* EXCEPTION_HANDLING */
+}  /* __cxa_throw_bad_array_new_length */
+
+#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
 
 #endif /* defined(__EDG_IA64_ABI) */
 

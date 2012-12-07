@@ -1,3 +1,15 @@
+Version 4.6
+
+12/7/12 [EDGcpfe/13489,EDGcpfe/9247,EDGcpfe/9975]
+C++11: add std::bad_array_new_length and __cxa_throw_bad_array_new_length
+
+The std::bad_array_new_length class (thrown when the number of elements in an
+array new operation is invalid) has been added to the new.stdh include file.
+In the IA-64 ABI, __cxa_throw_bad_array_new_length has also been added
+(which unconditionally throws an object of type std::bad_array_new_length).
+
+
+-------------------------------------------------------------------------------
 Version 4.5, October 5, 2012
 
 No changes.

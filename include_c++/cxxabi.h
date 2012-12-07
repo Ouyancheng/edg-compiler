@@ -168,6 +168,9 @@ namespace __cxxabiv1 {
     void __cxa_vec_cctor(void *, void *, size_t, size_t, 
                          __ctor_dtor_return_type (*)(void *, void *),
                          __ctor_dtor_return_type (*)(void *));
+#if ABI_COMPATIBILITY_VERSION >= 406
+    void __cxa_throw_bad_array_new_length(void);
+#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
 
     /* Finalization. */
     int __cxa_atexit(void (*)(void *), void *, void *);

@@ -9,7 +9,7 @@
 ******************************************************************************/
 /*
 
-Member functions of the bad_cast class.
+Member functions of the bad_alloc and bad_array_new_length classes.
 
 */
 
@@ -77,6 +77,29 @@ no additional information is available.
 {
   return "";
 }  /* bad_alloc::~bad_alloc */
+
+
+/*
+The bad_array_new_length class is used to report array new errors that can only
+be detected at run-time, namely a value that is too small (less than zero or
+less than the number of elements in a braced-init-list) or too large.
+*/
+
+bad_array_new_length::bad_array_new_length() THROW_NOTHING()
+/*
+Constructor for bad_array_new_length.
+*/
+{
+}  /* bad_array_new_length::bad_array_new_length */
+
+
+bad_array_new_length::~bad_array_new_length() THROW_NOTHING()
+/*
+Destructor for bad_array_new_length.
+*/
+{
+}  /* bad_array_new_length::~bad_array_new_length */
+
 
 #endif /* EXCEPTION_HANDLING */
 

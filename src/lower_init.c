@@ -2678,7 +2678,52 @@ for the IA-64 ABI (see "Array operator new cookies", section 2.7).
   return padding_node;
 }  /* get_array_new_padding */
 
-#endif /* IA64_ABI */
+#else /* !IA64_ABI */
+
+/*
+Variable entry for the runtime global variable __array_new_prefix_size,
+which gives the size in bytes of the array allocation prefix.  NULL until
+created.  Used only with ABI_CHANGES_FOR_PLACEMENT_DELETE set to TRUE.
+*/
+static a_variable_ptr
+		array_new_prefix_size_var;
+
+#endif /* !IA64_ABI */
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+
+#if !IA64_ABI
+/*ARGSUSED*/ /* <-- elem_type, new_routine are not used in that case. */
+#endif /* !IA64_ABI */
+static an_expr_node_ptr get_prefix_size_node(a_type_ptr    elem_type,
+                                             a_routine_ptr new_routine)
+/*
+Utility routine to return an expression that represents the size of the
+prefix that is added to an array whose type is elem_type or NULL (in the
+IA-64 ABI) if no prefix is needed.  If new_routine is non-NULL, it is the
+placement new routine that is being called to allocate the memory.
+*/
+{
+  an_expr_node_ptr prefix_size_node = NULL;
+
+#if !IA64_ABI
+  if (array_new_prefix_size_var == NULL) {
+    /* Create the variable for the runtime __array_new_prefix_size
+       variable. */
+    array_new_prefix_size_var =
+                  make_lowered_variable("__array_new_prefix_size",
+                                        /*already_il_name=*/FALSE,
+                                        integer_type(targ_size_t_int_kind),
+                                        (a_storage_class)sc_extern);
+  }  /* if */
+  prefix_size_node = var_rvalue_expr(array_new_prefix_size_var);
+#else /* IA64_ABI */
+  prefix_size_node = get_array_new_padding(elem_type, new_routine,
+                                           /*even_if_zero=*/FALSE);
+#endif /* IA64_ABI  */
+  return prefix_size_node;
+}  /* get_prefix_size_node */
+
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
 
 #if IA64_ABI
 /*ARGSUSED*/ /* <-- zero_storage is not used in that case. */
@@ -8953,6 +8998,159 @@ virtual table table pointer that should be passed to the destructor
   error_position = saved_error_position;
 }  /* lower_destructor_dynamic_init */
 
+#if ABI_COMPATIBILITY_VERSION >= 406
+
+static a_routine_ptr
+                throw_bad_array_new_length_routine;
+                        /* Pointer to __throw_bad_array_new_length runtime
+                           routine. */
+
+
+static void insert_runtime_array_length_check(
+                                        a_dynamic_init_ptr     dip,
+                                        a_type_ptr             elem_type,
+                                        a_routine_ptr          new_routine,
+                                        an_expr_node_ptr       *num_elem_node,
+                                        an_insert_location_ptr insert_location)
+/*
+Insert code to validate the value of the number of elements being allocated
+by an array new operation.  This is only done when the number of elements
+being allocated is not known at compilation time.  If the number of elements
+is too large, or too small (less than zero for signed types or less than
+the number of initializers provided), then std::bad_array_new_length is
+thrown.  dip describes any dynamic initialization being performed for this
+allocation (and may be NULL).  elem_type gives the underlying element type
+for the array.  If new_routine is non-NULL, it is the placement new routine
+that is being called to allocate the memory.  *num_elem_node is an expression
+for the total number of elements being allocated; it is replaced with an
+expression for a temporary that gives the same value.  insert_location gives
+the position to insert the necessary code.
+*/
+{
+  an_insert_location  then_insert_location;
+  an_expr_node_ptr    lt_node, test_node, call_node, temp_node;
+  an_expr_node_ptr    prefix_size_node, max_elem_node;
+  a_constant          zero_constant, elem_size_constant, max_elements_constant;
+  a_boolean           err;
+  a_variable_ptr      temp;
+  a_type_ptr          num_elements_type = (*num_elem_node)->type;
+
+  check_assertion(exceptions_enabled);
+  /* Create a temporary for the number of elements in the array (because
+     that value will typically be used multiple times in this routine). */
+  temp = make_lowered_temporary(num_elements_type);
+  temp_node = make_assignment_expr(var_lvalue_expr(temp),
+                                   (an_expr_operator_kind)eok_assign,
+                                   *num_elem_node);
+  (void)insert_expr_statement(temp_node, insert_location);
+  *num_elem_node = var_rvalue_expr(temp);
+  /* Compute the maximum number of elements that an array of the specified
+     element type can have, i.e.,
+     (targ_size_t_max - sizeof(cookie))/sizeof(array element). */
+  check_assertion(elem_type->size != 0);
+  set_unsigned_integer_constant(&elem_size_constant,
+                                (a_host_large_integer)elem_type->size,
+                                targ_size_t_int_kind);
+  set_unsigned_integer_constant(&max_elements_constant,
+                                (a_host_large_integer)targ_size_t_max,
+                                targ_size_t_int_kind);
+  prefix_size_node = get_prefix_size_node(elem_type, new_routine);
+  if (prefix_size_node != NULL) {
+    /* A cookie is required.  If the cookie size is known, subtract it
+       now, otherwise create an expression to do the subtraction. */
+    if (is_constant_node(prefix_size_node)) {
+      a_constant_ptr  cookie_size = prefix_size_node->variant.constant;
+      check_assertion(cookie_size->type->kind == (a_type_kind)tk_integer);
+      subtract_integer_values(&max_elements_constant.variant.integer_value,
+                              &(cookie_size->variant.integer_value),
+                              /*is_signed=*/FALSE, &err);
+      check_assertion(!err);
+      prefix_size_node = NULL;
+    }  /* if */
+  }  /* if */
+  if (prefix_size_node == NULL) {
+    /* No cookie, or a cookie whose size is known at compile time (and has
+       already been subtracted above). */
+    divide_integer_values(&max_elements_constant.variant.integer_value,
+                          &elem_size_constant.variant.integer_value,
+                          /*is_signed=*/FALSE, &err);
+    check_assertion(!err);
+    max_elem_node = alloc_node_for_constant(&max_elements_constant);
+  } else {
+    /* The cookie size isn't known at compile time; create an expression
+       to perform the subtraction and division. */
+    max_elem_node = alloc_node_for_constant(&max_elements_constant);
+    max_elem_node->next = prefix_size_node;
+    max_elem_node = make_operator_node((an_expr_operator_kind)eok_subtract,
+                                       max_elem_node->type,
+                                       max_elem_node);
+    max_elem_node->next = alloc_node_for_constant(&elem_size_constant);
+    max_elem_node = make_operator_node((an_expr_operator_kind)eok_divide,
+                                       max_elem_node->type,
+                                       max_elem_node);
+  }  /* if */
+  /* Make "num_elements > max_elements". */
+  temp_node = var_rvalue_expr(temp);
+  temp_node->next = max_elem_node;
+  test_node = make_operator_node((an_expr_operator_kind)eok_gt,
+                               integer_type((an_integer_kind)ik_int),
+                               temp_node);
+  if (dip != NULL && dip->is_braced_initializer) {
+    /* This initialization has a braced initializer.  Make sure that the
+       number of elements that have been allocated is at least as large
+       as the number of initializers. */
+    check_assertion(dip->is_partially_initialized &&
+                    (dip->kind == (a_dynamic_init_kind)dik_constant ||
+                     dip->kind == (a_dynamic_init_kind)
+                                                  dik_nonconstant_aggregate) &&
+                    is_array_type(dip->variant.constant->type));
+    /* Add "|| num_elements < num_initializers" to the test above. */
+    temp_node = var_rvalue_expr(temp);
+    temp_node->next = node_for_host_large_integer(
+                         (a_host_large_integer)
+                               num_array_elements(dip->variant.constant->type),
+                         targ_size_t_int_kind);
+    lt_node = make_operator_node((an_expr_operator_kind)eok_lt,
+                                 integer_type((an_integer_kind)ik_int),
+                                 temp_node);
+    test_node->next = lt_node;
+    test_node = make_operator_node((an_expr_operator_kind)eok_lor,
+                                   integer_type((an_integer_kind)ik_int),
+                                   test_node);
+  } else if (is_signed_integral_type(num_elements_type)) {
+    /* Add "|| num_elements < 0" to the test. */
+    temp_node = var_rvalue_expr(temp);
+    make_zero_of_proper_type(num_elements_type, &zero_constant);
+    temp_node->next = alloc_node_for_constant(&zero_constant);
+    lt_node = make_operator_node((an_expr_operator_kind)eok_lt,
+                                 integer_type((an_integer_kind)ik_int),
+                                 temp_node);
+    test_node->next = lt_node;
+    test_node = make_operator_node((an_expr_operator_kind)eok_lor,
+                                   integer_type((an_integer_kind)ik_int),
+                                   test_node);
+  }  /* if */
+  /* If the tests fails, invoke __throw_bad_array_new_length to
+     throw std::bad_array_new_length. */
+  insert_if_statement(test_node,
+                      /*is_initialization_guard=*/FALSE,
+                      insert_location,
+                      (a_statement_ptr *)NULL,
+                      &then_insert_location,
+                      (an_insert_location *)NULL);
+  call_node = make_runtime_rout_call(
+#if IA64_ABI
+                                     "__cxa_throw_bad_array_new_length",
+#else /* !IA64_ABI */
+                                     "__throw_bad_array_new_length",
+#endif /* IA64_ABI */
+                                     &throw_bad_array_new_length_routine,
+                                     void_star_type(),
+                                     (an_expr_node_ptr)NULL);
+  insert_expr(call_node, &then_insert_location);
+}  /* insert_runtime_array_length_check */
+
+#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
 
 static an_expr_node_ptr size_arg_for_new(
                                    a_new_delete_supplement_ptr ndsp,
@@ -9001,6 +9199,17 @@ and its initialization put in insert_location).
                                            number_of_elements->type,
                                            number_of_elements);
     }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 406
+    if (exceptions_enabled) {
+      /* Insert code to check, at run-time, that the number of elements
+         has a valid value; throw std::bad_array_new_length otherwise. */
+      insert_runtime_array_length_check(ndsp->dynamic_init,
+                                        underlying_elem_type,
+                                        ndsp->routine,
+                                        &number_of_elements,
+                                        insert_location);
+    }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
     /* Add a cast to size_t. */
     number_of_elements = add_cast_if_necessary(number_of_elements,
                                                integer_type(
@@ -9129,53 +9338,6 @@ no temporary is needed; a copy is made.)
   return arg_list;
 }  /* copy_arg_list_for_placement_delete */
 
-#if !IA64_ABI
-
-/*
-Variable entry for the runtime global variable __array_new_prefix_size,
-which gives the size in bytes of the array allocation prefix.  NULL until
-created.  Used only with ABI_CHANGES_FOR_PLACEMENT_DELETE set to TRUE.
-*/
-static a_variable_ptr
-		array_new_prefix_size_var;
-
-#endif /* !IA64_ABI */
-
-#if ABI_CHANGES_FOR_PLACEMENT_DELETE
-
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- elem_type, new_routine are not used in that case. */
-#endif /* !IA64_ABI */
-static an_expr_node_ptr get_prefix_size_node(a_type_ptr    elem_type,
-                                             a_routine_ptr new_routine)
-/*
-Utility routine to return an expression that represents the size of the
-prefix that is added to an array whose type is elem_type or NULL (in the
-IA-64 ABI) if no prefix is needed.  If new_routine is non-NULL, it is the
-placement new routine that is being called to allocate the memory.
-*/
-{
-  an_expr_node_ptr prefix_size_node = NULL;
-
-#if !IA64_ABI
-  if (array_new_prefix_size_var == NULL) {
-    /* Create the variable for the runtime __array_new_prefix_size
-       variable. */
-    array_new_prefix_size_var =
-                  make_lowered_variable("__array_new_prefix_size",
-                                        /*already_il_name=*/FALSE,
-                                        integer_type(targ_size_t_int_kind),
-                                        (a_storage_class)sc_extern);
-  }  /* if */
-  prefix_size_node = var_rvalue_expr(array_new_prefix_size_var);
-#else /* IA64_ABI */
-  prefix_size_node = get_array_new_padding(elem_type, new_routine,
-                                           /*even_if_zero=*/FALSE);
-#endif /* IA64_ABI  */
-  return prefix_size_node;
-}  /* get_prefix_size_node */
-
-#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
 
 static void lower_array_new(an_expr_node_ptr expr)
 /*
@@ -15804,7 +15966,10 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(cctor_ptr_type),
       pch_saved_var_array_elem(new_routine_ptr_type),
       pch_saved_var_array_elem(delete_routine_ptr_type),
-      pch_saved_var_array_terminating_elem()
+      pch_saved_var_array_terminating_elem(),
+#if ABI_COMPATIBILITY_VERSION >= 406
+      pch_saved_var_array_elem(throw_bad_array_new_length_routine)
+#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
@@ -15862,6 +16027,9 @@ Do one-time initialization of static variables declared in lower_init.c.
   register_trans_unit_variable(cctor_ptr_type);
   register_trans_unit_variable(new_routine_ptr_type);
   register_trans_unit_variable(delete_routine_ptr_type);
+#if ABI_COMPATIBILITY_VERSION >= 406
+  register_trans_unit_variable(throw_bad_array_new_length_routine);
+#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
 }  /* init_lower_one_time_init */
 
 
@@ -15922,6 +16090,9 @@ for each translation unit.
   dtor_ptr_type = NULL;
   cctor_ptr_type = NULL;
   new_routine_ptr_type = NULL;
+#if ABI_COMPATIBILITY_VERSION >= 406
+  throw_bad_array_new_length_routine = NULL;
+#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
   delete_routine_ptr_type = NULL;
 }  /* init_lower_trans_unit_init */
 
