@@ -9029,7 +9029,7 @@ the position to insert the necessary code.
 {
   an_insert_location  then_insert_location;
   an_expr_node_ptr    lt_node, test_node, call_node, temp_node;
-  an_expr_node_ptr    prefix_size_node, max_elem_node;
+  an_expr_node_ptr    prefix_size_node = NULL, max_elem_node;
   a_constant          zero_constant, elem_size_constant, max_elements_constant;
   a_boolean           err;
   a_variable_ptr      temp;
@@ -9054,7 +9054,9 @@ the position to insert the necessary code.
   set_unsigned_integer_constant(&max_elements_constant,
                                 (a_host_large_integer)targ_size_t_max,
                                 targ_size_t_int_kind);
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
   prefix_size_node = get_prefix_size_node(elem_type, new_routine);
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   if (prefix_size_node != NULL) {
     /* A cookie is required.  If the cookie size is known, subtract it
        now, otherwise create an expression to do the subtraction. */
