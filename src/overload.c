@@ -16960,7 +16960,7 @@ context of the conversion.
     internal_error("conversion_possible: dest_type is reference");
   }  /* if */
 #endif /* CHECKING */
-  if (!C_mode() && !curr_expr_kind_is_const() &&
+  if (!C_mode() && (!curr_expr_kind_is_const() || constexpr_enabled) &&
       user_defined_conversion_possible(source_operand, dest_type,
                                        need_lvalue_result,
                                        is_copy_initialization,
@@ -16971,11 +16971,19 @@ context of the conversion.
                                        &failed)) {
     /* A user-defined conversion can be done. */
     okay = TRUE;
-  } else if (failed ||
-             (curr_expr_kind_is_const() && !C_mode() &&
-              (is_class_struct_union_type(dest_type) ||
-               is_class_struct_union_type(source_operand->type)))) {
+  } else if (failed) {
+    /* A user-defined conversion was tried, and failed. */
+  } else if (curr_expr_kind_is_const() && !C_mode() &&
+             (is_class_struct_union_type(dest_type) ||
+              is_class_struct_union_type(source_operand->type))) {
     /* A user-defined conversion was our only hope, and it failed. */
+    if (constexpr_enabled && !is_error_operand(source_operand)) {
+      expr_pos_error(ec_expr_not_constant, err_pos);
+    } else {
+      /* In pre-C++11 mode, we should have issued an error earlier on
+         the subexpression that created this value. */
+      if (expr_error_should_be_issued()) expect_error();
+    }  /* if */
   } else {
     a_boolean      source_is_constant;
     a_constant_ptr source_constant;
