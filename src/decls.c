@@ -5993,11 +5993,12 @@ variable.
   if (vp != NULL &&
       is_const_qualified_type(vp->type) &&
       !is_volatile_qualified_type(vp->type) &&
-      dps->init_state.initializer_is_constant_expression_form &&
       !dps->init_state.init_error) {
     /* A const variable initialized with a true constant-expression can be
        used as an rvalue in constant-expressions. */
-    vp->constant_valued = TRUE;
+    if (dps->init_state.initializer_is_constant_expression_form) {
+      vp->constant_valued = TRUE;
+    }  /* if */
     if (vp->initializer_in_class) vp->is_member_constant = TRUE;
   }  /* if */
 }  /* check_constant_valued_variable */
