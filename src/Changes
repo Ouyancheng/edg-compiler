@@ -1,5 +1,13 @@
 Version 4.6
 
+12/7/12  [EDGcpfe/13513]
+Use of uninitialized memory
+
+A constant copy incorrectly used in_file_scope on a constant that
+is allocated on the stack.  That refers to memory preceding the
+stack-based variable, which is mostly random.  Now fixed.
+
+
 12/7/12 [EDGcpfe/13489,EDGcpfe/9247,EDGcpfe/9975]
 C++11: run-time checking of array new size (IL CHANGE)
 

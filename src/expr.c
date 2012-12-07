@@ -33619,7 +33619,8 @@ required adjustment to make that possible.
     a_constant old_constant;
     copy_constant(constant, &old_constant);
     (void)copy_constant_full(&old_constant, constant,
-                             CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+                             (CE_COPIED_CONSTANTS_MAY_BE_SHARED |
+                              CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL));
     check_assertion_str2(!has_non_file_scope_ref(constant),
                          "extract_constant_from_operand_with_fs_fixup:",
                          "copied constant still has func scope ref");
