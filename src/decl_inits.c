@@ -3958,15 +3958,8 @@ returned set to TRUE.
       vp->init_kind = (an_init_kind)initk_static;
       vp->initializer.constant = init_con;
     }  /* if */
-    if (is_const_qualified_type(vp->type) &&
-        !is_volatile_qualified_type(vp->type) &&
-        dps->init_state.initializer_is_constant_expression_form &&
-        !init_err) {
-      /* A const variable initialized with a true constant-expression can be
-         used as an rvalue in constant-expressions. */
-      vp->constant_valued = TRUE;
-      check_assertion(init_con != NULL);
-    }  /* if */
+    check_constant_valued_variable(dps);
+    check_assertion(init_con != NULL || !vp->constant_valued);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (decl_pos_block != NULL) {
       vp->initializer_range = decl_pos_block->var_init_range;

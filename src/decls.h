@@ -1227,12 +1227,14 @@ extern void decl_routine(a_symbol_locator         *locator,
                          a_symbol_ptr             *ext_sym,
                          a_decl_pos_block_ptr     decl_pos_block);
 
-void decl_variable(a_symbol_locator             *locator,
-                   a_decl_parse_state           *dps,
-                   a_symbol_reference_kind      srk_flags,
-                   an_id_linkage_kind           *linkage_ptr,
-                   a_symbol_ptr                 *ext_sym,
-                   a_decl_pos_block_ptr         decl_pos_block);
+extern void check_constant_valued_variable(a_decl_parse_state  *dps);
+
+extern void decl_variable(a_symbol_locator             *locator,
+                          a_decl_parse_state           *dps,
+                          a_symbol_reference_kind      srk_flags,
+                          an_id_linkage_kind           *linkage_ptr,
+                          a_symbol_ptr                 *ext_sym,
+                          a_decl_pos_block_ptr         decl_pos_block);
 
 extern void decl_function_template(a_symbol_locator            *locator,
                                    a_func_info_block           *func_info,

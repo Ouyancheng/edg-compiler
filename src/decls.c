@@ -5981,6 +5981,28 @@ declaration.  Update scp->assoc_info to point to new_decl if needed.
 }  /* check_sym_of_other_decl */
 
 
+void check_constant_valued_variable(a_decl_parse_state  *dps)
+/*
+If dps represents the declaration of a const variable initialized with a true
+constant-expression, set the "constant_valued" flag in the IL entry for that
+variable.
+*/
+{
+  a_variable_ptr  vp = var_for_symbol(dps->sym);
+
+  if (vp != NULL &&
+      is_const_qualified_type(vp->type) &&
+      !is_volatile_qualified_type(vp->type) &&
+      dps->init_state.initializer_is_constant_expression_form &&
+      !dps->init_state.init_error) {
+    /* A const variable initialized with a true constant-expression can be
+       used as an rvalue in constant-expressions. */
+    vp->constant_valued = TRUE;
+    if (vp->initializer_in_class) vp->is_member_constant = TRUE;
+  }  /* if */
+}  /* check_constant_valued_variable */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL && !NAMED_REGISTERS_ALLOWED && \
     !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */

@@ -35028,7 +35028,7 @@ standard form).  Assumes copy-initialization ("="-form).
                                    /*is_full_expr=*/TRUE,
                                    dps, (an_init_state *)NULL);
   }  /* if */
-
+  check_constant_valued_variable(dps);
 #if DEBUG
   if (debug_level >= 3) {
     db_constant(constant);
