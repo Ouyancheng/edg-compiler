@@ -15634,7 +15634,8 @@ name lookup options.
                                     source_type,
                                     /*source_is_constant=*/TRUE,
                                     source_con,
-                                    guide_type)) {
+                                    guide_type,
+                                    (an_error_code *)NULL)) {
         err = TRUE;
       }  /* if */
     }  /* if */

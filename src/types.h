@@ -589,12 +589,10 @@ extern void set_type_size(a_type_ptr type_ptr);
 extern a_type_ptr type_after_integral_promotion(a_type_ptr type);
 extern a_type_ptr default_argument_promotion(a_type_ptr old_type);
 extern a_type_ptr type_after_array_to_pointer_transformation(a_type_ptr type);
-extern a_boolean is_narrowing_conversion(
-                                  a_type_ptr source_type,
-                                  a_constant *source_constant,
-                                  a_type_ptr dest_type,
-                                  a_boolean  *con_check_done,
-                                  a_boolean  *fp_precision_check_failed);
+extern a_boolean is_narrowing_conversion(a_type_ptr    source_type,
+                                         a_constant    *source_constant,
+                                         a_type_ptr    dest_type,
+                                         an_error_code *err_code);
 extern a_type_ptr expr_complete_object_type(an_expr_node_ptr node,
                                             a_boolean        call_case);
 extern a_type_ptr pointer_con_complete_object_type(a_constant_ptr constant);
@@ -1119,7 +1117,8 @@ extern a_boolean conversion_allowed_for_nontype_template_argument(
                                            a_type_ptr       source_type,
                                            a_boolean        source_is_constant,
                                            a_constant       *source_constant,
-                                           a_type_ptr       dest_type);
+                                           a_type_ptr       dest_type,
+                                           an_error_code    *err_code);
 extern a_boolean static_cast_conversion_possible(
                                  a_type_ptr    source_type,
                                  a_boolean     source_is_constant,

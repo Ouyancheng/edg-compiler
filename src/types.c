@@ -3927,29 +3927,25 @@ Note that the returned type is intended as an rvalue type, so qualifiers like
 }  /* type_after_array_to_pointer_transformation */
 
 
-a_boolean is_narrowing_conversion(a_type_ptr source_type,
-                                  a_constant *source_constant,
-                                  a_type_ptr dest_type,
-                                  a_boolean  *con_check_done,
-                                  a_boolean  *fp_precision_check_failed)
+a_boolean is_narrowing_conversion(a_type_ptr    source_type,
+                                  a_constant    *source_constant,
+                                  a_type_ptr    dest_type,
+                                  an_error_code *err_code)
 /*
 Return TRUE if converting from source_type to dest_type is a narrowing
 conversion as defined by [dcl.init.list] of the C++11 standard.
 If source_constant is non-NULL, it gives the known constant value of
 the source; if it's NULL, it's assumed the source is not constant.
-If con_check_done is non-NULL, *con_check_done is returned TRUE if
-the narrowing is due to the specific constant value not fitting in
-the destination type.  If fp_precision_check_failed is non-NULL,
-*fp_precision_check_failed is returned TRUE if the narrowing is due to
-the specific constant losing precision in a floating-point conversion.
+If err_code is non-NULL, *err_code is set to an appropriate error
+code if TRUE is returned (the error codes take two type fill-ins,
+for source and destination type).
 */
 {
-  a_boolean is_narrowing = FALSE;
-  a_boolean err, depends_on_fp_mode, dependent_constant = FALSE;
+  a_boolean   is_narrowing = FALSE;
+  a_boolean   err, depends_on_fp_mode, dependent_constant = FALSE;
+  a_boolean   con_check_done = FALSE, fp_precision_check_failed = FALSE;
 
   check_assertion(!C_mode());
-  if (con_check_done != NULL) *con_check_done = FALSE;
-  if (fp_precision_check_failed != NULL) *fp_precision_check_failed = FALSE;
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
   if (source_constant != NULL &&
@@ -3981,7 +3977,7 @@ the specific constant losing precision in a floating-point conversion.
         if (source_constant != NULL &&
             source_constant->kind == (a_constant_repr_kind)ck_float) {
           an_internal_float_value fval;
-          if (con_check_done != NULL) *con_check_done = TRUE;
+          con_check_done = TRUE;
           check_assertion(is_floating_type(source_constant->type));
           fp_change_kind(&source_constant->variant.float_value,
                          skip_typerefs(source_constant->type)
@@ -4010,7 +4006,7 @@ the specific constant losing precision in a floating-point conversion.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
          ) {
         a_constant fp_constant;
-        if (con_check_done != NULL) *con_check_done = TRUE;
+        con_check_done = TRUE;
         clear_constant(&fp_constant, (a_constant_repr_kind)ck_float);
         fp_constant.type = dest_type;
         conv_integer_value_to_float(&source_constant->variant.integer_value,
@@ -4021,24 +4017,22 @@ the specific constant losing precision in a floating-point conversion.
         if (!err) {
           /* Convert back to the original integral type to see if we lost
              anything due to precision issues. */
-          an_error_code     err_code;
+          an_error_code     local_err_code;
           an_error_severity err_severity;
           a_constant        int_constant;
           clear_constant(&int_constant, (a_constant_repr_kind)ck_integer);
           int_constant.type = source_constant->type;
           conv_float_to_integer(&fp_constant,
                                 &int_constant,
-                                &err_code,
+                                &local_err_code,
                                 &err_severity,
                                 &depends_on_fp_mode,
                                 /*constant_context=*/FALSE);
-          if (err_code == ec_no_error &&
+          if (local_err_code == ec_no_error &&
               cmp_integer_constants(source_constant, &int_constant) == 0) {
             is_narrowing = FALSE;
           } else {
-            if (fp_precision_check_failed != NULL) {
-              *fp_precision_check_failed = TRUE;
-            }  /* if */
+            fp_precision_check_failed = TRUE;
           }  /* if */
         }  /* if */
       } else if (dependent_constant) {
@@ -4059,7 +4053,7 @@ the specific constant losing precision in a floating-point conversion.
         is_narrowing = TRUE;
         if (source_constant != NULL &&
             source_constant->kind == (a_constant_repr_kind)ck_integer) {
-          if (con_check_done != NULL) *con_check_done = TRUE;
+          con_check_done = TRUE;
           if (in_range_for_integer_kind(source_constant, source_constant,
                                         dest_type->variant.integer.int_kind)) {
             is_narrowing = FALSE;
@@ -4071,6 +4065,20 @@ the specific constant losing precision in a floating-point conversion.
         }  /* if */
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (err_code != NULL) {
+    /* Return an appropriate error code. */
+    an_error_code local_err_code = ec_no_error;
+    if (is_narrowing) {
+      if (fp_precision_check_failed) {
+        local_err_code = ec_constant_narrowing_conversion_to_float;
+      } else if (con_check_done) {
+        local_err_code = ec_constant_narrowing_conversion;
+      } else {
+        local_err_code = ec_narrowing_conversion;
+      }  /* if */
+    }  /* if */
+    *err_code = local_err_code;
   }  /* if */
   return is_narrowing;
 }  /* is_narrowing_conversion */
@@ -9139,16 +9147,21 @@ static a_boolean impl_converted_constant_expr_conversion_possible(
                                            a_type_ptr       source_type,
                                            a_boolean        source_is_constant,
                                            a_constant       *source_constant,
-                                           a_type_ptr       dest_type)
+                                           a_type_ptr       dest_type,
+                                           an_error_code    *err_code)
 /*
 Return TRUE if a conversion from source_type to dest_type is allowed
 as the implicit conversion on a converted constant expression (see
 [expr.const] in the C++11 standard).  If source_is_constant is TRUE,
 source_constant gives the constant value of the source; if
 source_is_constant is FALSE, the source is assumed not to be a constant.
+If err_code is non-NULL, *err_code is set to an appropriate error code
+if a specific one is appropriate, otherwise to ec_no_error if
+a generic conversion error code appropriate to the context should be used.
 */
 {
-  a_boolean okay = FALSE;
+  a_boolean     okay = FALSE;
+  an_error_code local_err_code = ec_no_error;
 
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
@@ -9158,6 +9171,10 @@ source_is_constant is FALSE, the source is assumed not to be a constant.
              is_template_param_type(dest_type)) {
     /* A template parameter type might match another type. */
     okay = TRUE;
+  } else if (is_error_type(source_type) ||
+             is_error_type(dest_type)) {
+    /* An error type might match another type. */
+    okay = TRUE;
   } else if (is_integral_or_unscoped_enum_type(source_type) &&
              is_integral_type(dest_type)) {
     /* Integral or enum to integral is allowed as long as it's not a
@@ -9166,10 +9183,12 @@ source_is_constant is FALSE, the source is assumed not to be a constant.
                                  source_is_constant ? source_constant :
                                                       (a_constant *)NULL,
                                  dest_type,
-                                 (a_boolean *)NULL,
-                                 (a_boolean *)NULL)) {
+                                 &local_err_code)) {
       okay = TRUE;
     }  /* if */
+  }  /* if */
+  if (err_code != NULL) {
+    *err_code = local_err_code;
   }  /* if */
   return okay;
 }  /* impl_converted_constant_expr_conversion_possible */
@@ -9180,7 +9199,8 @@ a_boolean conversion_allowed_for_nontype_template_argument(
                                            a_type_ptr       source_type,
                                            a_boolean        source_is_constant,
                                            a_constant       *source_constant,
-                                           a_type_ptr       dest_type)
+                                           a_type_ptr       dest_type,
+                                           an_error_code    *err_code)
 /*
 Return TRUE unless the indicated conversion contains something that
 is not allowed in a conversion for a nontype template argument, e.g.,
@@ -9189,9 +9209,12 @@ determined conversion description, which is often enough to resolve the
 question.  Additionally, for C++11 constant expressions, source_type,
 source_is_constant, source_constant, and dest_type may be specified.
 If those are not available, dest_type is passed as NULL.
+If err_code is non-NULL, *err_code is set to an appropriate error code
+if there is an error, otherwise to ec_no_error.
 */
 {
-  a_boolean allowed = TRUE;
+  a_boolean     allowed = TRUE;
+  an_error_code local_err_code = ec_no_error;
 
   if (conversion->pointer_normalization_needed && !microsoft_mode) {
     /* Conversion of 0 to a pointer type, or of a pointer to object type
@@ -9211,29 +9234,44 @@ If those are not available, dest_type is passed as NULL.
       if (!impl_converted_constant_expr_conversion_possible(source_type,
                                                             source_is_constant,
                                                             source_constant,
-                                                            dest_type)) {
+                                                            dest_type,
+                                                            &local_err_code)) {
         allowed = FALSE;
       }  /* if */
     } else {
-      /* For other cases, e.g., address constants, any nontrivial conversion
-         is disallowed. */
+      /* For other cases, e.g., address constants, most nontrivial conversions
+         are disallowed. */
       if (conversion->nontrivial_conversion) {
-        if (dest_type != NULL &&
-            (is_template_param_type(source_type) ||
-             is_template_param_type(dest_type))) {
-          /* Conversions between template parameter types are allowed. */
-        } else if (source_is_constant &&
-                   is_nullptr_type(source_constant->type) &&
-                   dest_type != NULL &&
-                   (is_pointer_type(dest_type) ||
-                    is_ptr_to_member_type(dest_type))) {
-          /* Conversions from nullptr to a pointer or pointer to member are
-             allowed. */
-        } else {
-          allowed = FALSE;
+        allowed = FALSE;
+        if (dest_type != NULL) {
+          if (is_template_param_type(source_type) ||
+              is_template_param_type(dest_type)) {
+            /* Conversions between template parameter types are allowed. */
+            allowed = TRUE;
+          } else if (is_error_type(source_type) ||
+                     is_error_type(dest_type)) {
+            /* Conversions between error types are allowed. */
+            allowed = TRUE;
+          } else if (source_is_constant &&
+                     is_nullptr_type(source_constant->type) &&
+                     (is_pointer_type(dest_type) ||
+                      is_ptr_to_member_type(dest_type))) {
+            /* Conversions from nullptr to a pointer or pointer to member are
+               allowed. */
+            allowed = TRUE;
+          }  /* if */
         }  /* if */
       } /* if */
     }  /* if */
+  }  /* if */
+  if (err_code != NULL) {
+    /* Return an appropriate error code. */
+    if (allowed) {
+      local_err_code = ec_no_error;
+    } else if (local_err_code == ec_no_error) {
+      local_err_code = ec_bad_nontype_template_arg;
+    }  /* if */
+    *err_code = local_err_code;
   }  /* if */
   return allowed;
 }  /* conversion_allowed_for_nontype_template_argument */

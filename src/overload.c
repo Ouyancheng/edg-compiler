@@ -1047,7 +1047,8 @@ is TRUE, template_arg_list is a set of explicit template arguments for sym.
                                                   (a_type *)NULL,
                                                   /*source_is_constant=*/FALSE,
                                                   (a_constant *)NULL,
-                                                  (a_type *)NULL) ||
+                                                  (a_type *)NULL,
+                                                  (an_error_code *)NULL) ||
       std_conversion.exception_spec_incompatibility) {
     *err = TRUE;
   } else {
@@ -17698,7 +17699,8 @@ reference type.  See conversion_possible for the meaning of
 is_transparent.  conv_context describes the context of the conversion.
 */
 {
-  a_conv_descr local_conversion;
+  a_conv_descr  local_conversion;
+  an_error_code err_code;
 
 #if CHECKING
   if (is_any_reference_type(dest_type)) {
@@ -17722,10 +17724,11 @@ is_transparent.  conv_context describes the context of the conversion.
                                            source_operand->type,
                                            is_constant_operand(source_operand),
                                            &source_operand->variant.constant,
-                                           dest_type)) {
+                                           dest_type,
+                                           &err_code)) {
       if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                           incompatible_err)) {
-        pos_ty2_diagnostic(es_discretionary_error, incompatible_err, err_pos,
+                                           err_code)) {
+        pos_ty2_diagnostic(es_discretionary_error, err_code, err_pos,
                            source_operand->type, dest_type);
       }  /* if */
     }  /* if */
@@ -20254,10 +20257,10 @@ those narrowing conversions that would not get warnings in normal
 initialization processing.
 */
 {
-  a_boolean               is_narrowing, con_check_done;
-  a_boolean               fp_precision_check_failed;
-  a_type_ptr              source_type = source_operand->type;
-  a_constant              *con = NULL;
+  a_boolean     is_narrowing;
+  a_type_ptr    source_type = source_operand->type;
+  a_constant    *con = NULL;
+  an_error_code err_code;
 
   check_assertion(!(error_on_narrowing && warning_on_narrowing));
   check_assertion(!C_mode());
@@ -20277,9 +20280,9 @@ initialization processing.
     con = value_of_constant_var_lvalue_operand(source_operand);
   }  /* if */
   is_narrowing = is_narrowing_conversion(source_type, con, dest_type,
-                                         &con_check_done,
-                                         &fp_precision_check_failed);
-  if (warning_on_narrowing && is_narrowing && con_check_done &&
+                                         &err_code);
+  if (warning_on_narrowing && is_narrowing &&
+      err_code == ec_constant_narrowing_conversion &&
       is_integral_type(source_type) && is_integral_type(dest_type)) {
     /* When issuing warnings for narrowing, return FALSE for integer
        narrowing of constants since we will issue a warning anyway on the
@@ -20288,14 +20291,8 @@ initialization processing.
   }  /* if */
   if (is_narrowing &&
       (error_on_narrowing || warning_on_narrowing)) {
-    an_error_code     err_code = (con_check_done ?
-                                    ec_constant_narrowing_conversion :
-                                    ec_narrowing_conversion);
     an_error_severity sev = (error_on_narrowing ? es_discretionary_error :
                                                   es_warning);
-    if (fp_precision_check_failed) {
-      err_code = ec_constant_narrowing_conversion_to_float;
-    }  /* if */
     if (error_on_narrowing && !is_effective_error(err_code, sev)) {
       /* The error has been given a non-error severity by the user.
          call this case not a narrowing error, and we'll come back again
@@ -22334,7 +22331,8 @@ if so.
                                                 operand->type,
                                                 is_constant_operand(operand),
                                                 &operand->variant.constant,
-                                                param_type)) {
+                                                param_type,
+                                                (an_error_code *)NULL)) {
       compatible = FALSE;
     }  /* if */
   }  /* if */

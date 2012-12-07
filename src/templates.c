@@ -9079,7 +9079,8 @@ Return TRUE if the conversion was successful.
                                orig_constant->type,
                                /*source_is_constant=*/TRUE,
                                tap->variant.constant,
-                               type_required)) {
+                               type_required,
+                               (an_error_code *)NULL)) {
       a_constant	constant;
       a_boolean		did_not_fold;
       clear_constant(&constant, orig_constant->kind);
