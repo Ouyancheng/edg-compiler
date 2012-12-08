@@ -9179,8 +9179,10 @@ a generic conversion error code appropriate to the context should be used.
              is_integral_type(dest_type)) {
     /* Integral or enum to integral is allowed as long as it's not a
        narrowing conversion. */
-    if (gpp_mode) {
-      /* g++ doesn't seem to do the narrowing check (as of 4.7). */
+    if (gpp_mode || microsoft_mode) {
+      /* g++ doesn't seem to do the narrowing check (as of 4.7).  Assume
+         Microsoft mode shouldn't either (even though there is no MSVC that
+         supports constexpr yet as of 2012). */
       okay = TRUE;
     } else if (!is_narrowing_conversion(source_type,
                                         source_is_constant ? source_constant :

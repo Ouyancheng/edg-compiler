@@ -33732,7 +33732,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
-  if (constexpr_enabled && param_type != NULL &&
+  if (constexpr_enabled && param_type != NULL && !microsoft_mode &&
       is_integral_or_unscoped_enum_type(param_type)) {
     expr_stack_entry.is_traditional_const_expr = FALSE;
   }  /* if */
