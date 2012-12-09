@@ -434,16 +434,14 @@ typedef struct an_init_state {
 			/* TRUE if the initializer is evaluated, e.g.,
 			   FALSE in the operand of a sizeof and also FALSE in
 			   a dead operand of a short-circuiting operation. */
-  a_bit_field	initializer_is_constant_expression_form:1;
-			/* TRUE if the initializer should be treated as a true
-			   constant-expression (which e.g. might mean that a
-			   variable must be initialized statically).  If TRUE,
-			   init_con must be non-NULL (and init_dip must be
-			   NULL).  However, some initializers can be folded to
-			   constants but aren't treated as true constant-
-			   expressions (e.g., the standard specifies that a
-			   reinterpret_cast evaluation cannot result in a
-			   constant-expression). */
+  a_bit_field	initializer_has_constant_expression_form:1;
+			/* TRUE if the initializer has the form of a
+			   constant-expression.  That means adherence to
+			   the specific rules of [expr.const], which is
+			   very slightly different from the cases where
+			   we produce a constant result for the expression.
+			   Set even for expressions scanned as nonconstant
+			   expressions. */
 } an_init_state;
 
 

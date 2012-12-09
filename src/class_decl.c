@@ -2968,6 +2968,7 @@ of a constant-expression.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       var->initializer_range.end = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      check_constant_valued_variable(&dps);
       /* We should now be at the end-of-source terminator inserted when we
          cached the initializer.  If we aren't, it means something other than a
          semicolon (or a comma) followed the initializer expression. */
@@ -14450,6 +14451,7 @@ specific information about the member declaration, respectively.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       var->init_kind = (an_init_kind)initk_static;
       var->initializer.constant = alloc_unshared_constant(&constant);
+      check_constant_valued_variable(decl_state);
     } else {
       /* Issue a diagnostic for an invalid member constant type. */
       if (!is_error_type(member_type)) {

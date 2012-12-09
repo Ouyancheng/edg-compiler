@@ -112,7 +112,7 @@ Clear the fields of *is.
   is->variable_size_array = FALSE;
   is->initializer_can_dimension_array = FALSE;
   is->evaluated = TRUE;
-  is->initializer_is_constant_expression_form = FALSE;
+  is->initializer_has_constant_expression_form = FALSE;
 }  /* clear_init_state_fields */
 
 
@@ -5991,14 +5991,32 @@ variable.
   a_variable_ptr  vp = dps->sym != NULL ? var_for_symbol(dps->sym)
                                         : (a_variable_ptr)NULL;
 
-  if (vp != NULL && !dps->init_state.init_error &&
-      ((is_const_qualified_type(vp->type) &&
-        !is_volatile_qualified_type(vp->type)) ||
-       is_template_param_type(vp->type))) {
-    /* A const variable initialized with a true constant-expression can be
-       used as an rvalue in constant-expressions. */
-    if (dps->init_state.initializer_is_constant_expression_form) {
+  if (!C_mode() && vp != NULL && !dps->init_state.init_error &&
+      is_potentially_constant_valued_variable(vp)) {
+    /* A const variable initialized with a constant-expression can be
+       used as a constant in other constant-expressions. */
+    an_init_kind       init_kind;
+    an_initializer_ptr init;
+    a_constant_ptr     con_val = NULL;
+    get_variable_initializer(vp, (a_scope_ptr)NULL, &init_kind, &init);
+    if (init_kind == (an_init_kind)initk_static) {
+      /* The variable has a constant initial value. */
+      con_val = init->constant;
+    } else if (init_kind == (an_init_kind)initk_dynamic) {
+      /* The variable is dynamically initialized.  See if the initialization
+         is to a constant. */
+      if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
+        con_val = init->dynamic->variant.constant;
+      }  /* if */
+    }  /* if */
+    if (con_val != NULL) {
       vp->constant_valued = TRUE;
+      if (strict_ansi_mode &&
+          !dps->init_state.initializer_has_constant_expression_form) {
+        /* In strict mode, rule out some subtle cases that produce
+           a constant but don't have the form of a "constant expression". */
+        vp->constant_valued = FALSE;
+      }  /* if */
     }  /* if */
     if (vp->initializer_in_class) vp->is_member_constant = TRUE;
   }  /* if */

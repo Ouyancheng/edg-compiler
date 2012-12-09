@@ -119,7 +119,8 @@ typedef a_byte an_expression_kind;
 Kinds of expressions again, this time as bits in a set used to
 record occurrence of constructs that rule out certain expression
 kinds.  These are used for C and pre-C++11 C++; in C++11 different
-rules apply.
+rules apply, and a different mechanism is used (see
+constant_expr_ruled_out in the expression stack).
 */
 typedef a_byte a_ruled_out_expr_kind_set;
 #define ROEK_NONE              ((a_ruled_out_expr_kind_set)0)
@@ -417,7 +418,8 @@ typedef struct an_operand {
 			   the roek_integral_constant bit will be set.
 			   Of use in checking after a scan whether an
 			   expression scanned in default mode meets the
-			   requirements of a certain expression kind. */
+			   requirements of a certain expression kind.
+			   Not used for C++11 constant expressions. */
   a_source_position
 		position;
 			/* The source position for the operand. */
@@ -820,11 +822,15 @@ typedef struct an_expr_stack_entry {
 			   we are still in the same expression even if we went
 			   into declaration processing and came back. */
   a_byte_boolean
-		cpp11_constant_expr_ruled_out;
+		constant_expr_ruled_out;
 			/* TRUE if the expression contains something that
-			   rules it out as a C++11 constant expression, even
+			   rules it out as a constant expression, even
 			   if the expression is not being scanned as a
-			   constant expression. */
+			   constant expression.  In C++11, this is the
+			   only thing used to track adherence to the
+			   restrictions of constant expressions.  In
+			   other modes, the ruled_out_expr_kinds set in
+			   an operand is also maintained. */
   a_byte_boolean
 		is_traditional_const_expr;
 			/* TRUE if we're in a constant expression to be
@@ -1240,7 +1246,7 @@ Macro that is TRUE if the operand is a function designator.
 	((operand)->state == (an_operand_state)os_function_designator)
 
 
-extern a_boolean is_const_variable(a_variable_ptr var);
+extern a_boolean is_potentially_constant_valued_variable(a_variable_ptr var);
 
 extern a_ref_entry_ptr copy_ref_entry_list(a_ref_entry_ptr ref_list);
 

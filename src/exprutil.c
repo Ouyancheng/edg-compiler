@@ -951,6 +951,7 @@ kind to "kind" and its fields to default values, and return a pointer to it.
 #if CHECKING
   icp->on_free_list = FALSE;
 #endif /* CHECKING */
+  icp->constant_expr_ruled_out = FALSE;
   icp->pack_expansion_descr = NULL;
   set_init_component_kind(icp, kind);
   return icp;
@@ -1656,7 +1657,7 @@ is pushed regardless of any of the other factors.
                               is_template_deduction_context();
   new_entry->in_static_initializer = FALSE;
   new_entry->next_stack_push_considered_same_expression = FALSE;
-  new_entry->cpp11_constant_expr_ruled_out = FALSE;
+  new_entry->constant_expr_ruled_out = FALSE;
   new_entry->is_traditional_const_expr = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
@@ -1920,14 +1921,24 @@ constructs have appeared in the expression that are not allowed to
 appear in the ruled-out kinds of expressions.  This is not an error;
 we're just keeping track so that we can ask later if the expression
 qualifies as, for example, an integral constant expression.
+This mechanism is not used in C++11 mode.
 */
 {
-  if (ruled_out_set & ROEK_CONSTANT) {
-    /* If a constant expression is ruled out, an integral constant
-       expression is ruled out also. */
-    ruled_out_set |= ROEK_INTEGRAL_CONSTANT;
+  /* These flags are not maintained in C++11 mode.  There, we only care
+     whether an entire expression is constant, not about subexpressions.
+     If an unevaluated operand of a "?" doesn't have the form of a constant
+     in C++11 mode, for example, that's fine; the overall expression
+     can still be constant. */
+  if (!constexpr_enabled) {
+    if (ruled_out_set & ROEK_CONSTANT) {
+      /* Record the fact that the entire current expression is nonconstant. */
+      expr_stack->constant_expr_ruled_out = TRUE;
+      /* If a constant expression is ruled out, an integral constant
+         expression is ruled out also. */
+      ruled_out_set |= ROEK_INTEGRAL_CONSTANT;
+    }  /* if */
+    operand->ruled_out_expr_kinds |= ruled_out_set;
   }  /* if */
-  operand->ruled_out_expr_kinds |= ruled_out_set;
 }  /* rule_out_expr_kinds */
 
 #if SEQUENCING_DIAGNOSTICS_ENABLED
@@ -10693,7 +10704,7 @@ expression (and the expression is evaluated).
   if (constexpr_enabled &&
       curr_expr_is_evaluated() &&
       !curr_expr_is_potentially_unevaluated()) {
-    expr_stack->cpp11_constant_expr_ruled_out = TRUE;
+    expr_stack->constant_expr_ruled_out = TRUE;
     if (curr_expr_kind_is_const()) {
       /* We're in a constant expression, so this construct is an error. */
       expr_pos_error(err_code, pos);
@@ -13438,13 +13449,14 @@ or is NULL if none is needed.
 }  /* make_lvalue_variable_operand */
 
 
-a_boolean is_const_variable(a_variable_ptr var)
+a_boolean is_potentially_constant_valued_variable(a_variable_ptr var)
 /*
-Return TRUE if var is a constant variable usable in constant expressions.
-Such a variable has const integral or enum type.  In a prototype
-instantiation, it could instead have a template parameter type.
-The other half of this check, that the variable has an initializer,
-is done in var_constant_value[_full].
+Return TRUE if var is a constant variable potentially usable in
+constant expressions.  Such a variable has non-volatile const integral
+or enum type, and possibly some other const types in some modes.  In a
+prototype instantiation, it could instead have a template parameter
+type.  The other half of this check, that the variable has an
+initializer, is done in var_constant_value[_full].
 */
 {
   a_boolean  is_const = FALSE;
@@ -13462,8 +13474,12 @@ is done in var_constant_value[_full].
     is_const = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
+  if (is_const && is_volatile_qualified_type(var_type)) {
+    /* A volatile-qualified variable can't be treated as constant-valued. */
+    is_const = FALSE;
+  }  /* if */
   return is_const;
-}  /* is_const_variable */
+}  /* is_potentially_constant_valued_variable */
 
 
 a_constant_ptr var_constant_value_full(a_variable_ptr var,
@@ -13494,7 +13510,7 @@ be returned for a C mode const variable.
   if (cppcli_enabled && var->source_corresp.is_class_member &&
       var->init_kind == (an_init_kind)initk_none &&
       is_immediate_managed_class_type(parent_class_of(var)) &&
-      is_const_variable(var)) {
+      is_potentially_constant_valued_variable(var)) {
     /* A static data member of a managed class type.  The scanning of its
        in-class initializer (if any) is delayed by default until the complete
        class definition has been seen.  However, if the member is used in the
@@ -13522,8 +13538,7 @@ be returned for a C mode const variable.
        members, but many compilers relax that for non-template static data
        members.  g++ also allows template static data members. */
   } else if ((!C_mode() || allow_C_mode_const_var) &&
-             is_const_variable(var) &&
-             !is_volatile_qualified_type(var->type)) {
+              is_potentially_constant_valued_variable(var)) {
     if (gpp_mode &&
         var->source_corresp.is_class_member &&
         var->is_template_static_data_member &&
@@ -13561,6 +13576,12 @@ be returned for a C mode const variable.
       con_val = alloc_constant((a_constant_repr_kind)ck_template_param);
       make_template_param_expr_constant(var_rvalue_expr(var), con_val);
     }  /* if */
+    if (!C_mode() && strict_ansi_mode && !var->constant_valued) {
+      /* In strict C++ mode, there are some cases that look constant
+         but don't have the right form, so pretend the initializer is
+         not constant for those. */
+      con_val = NULL;
+    }  /* if */
     if (con_val != NULL) {
       if (con_val->kind == (a_constant_repr_kind)ck_aggregate) {
         /* An aggregate cannot be considered a constant value. */
@@ -13570,10 +13591,10 @@ be returned for a C mode const variable.
            generally be considered a constant value. */
         /* However, in g++ mode they are allowed because const variables
            initialized with scalars are considered constants (see
-           is_const_variable).  String literals are excluded so that
-           back ends can distinguish cases specified as constants
-           (for which back ends can assume that string literals have
-           no identity, and use different constants for different uses
+           is_potentially_constant_valued_variable).  String literals
+           are excluded so that back ends can distinguish cases specified
+           as constants (for which back ends can assume that string literals
+           have no identity, and use different constants for different uses
            of the same constant if that helps optimization) and
            cases specified as constant variables (for which back ends are
            required to use the same constant for every reference). */
@@ -17513,7 +17534,7 @@ cases so we don't do it here.
            constant expressions. */
         a_variable_ptr var;
         if (operand_is_lvalue_for_variable(operand, &var) &&
-            is_const_variable(var) &&
+            is_potentially_constant_valued_variable(var) &&
             (con_value = var_constant_value_full(
                                    var,
                                    /*copy_for_reuse=*/TRUE,

@@ -2713,7 +2713,7 @@ handling).
     implicit_noexcept_enabled = noexcept_enabled && strict_ansi_mode &&
                                 exceptions_enabled;
   }  /* if */
-  constexpr_enabled = TRUE;
+  constexpr_enabled = value;
 }  /* check_and_set_cpp11_mode_options */
 
 

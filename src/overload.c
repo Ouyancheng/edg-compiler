@@ -15779,11 +15779,11 @@ no_applicable_operator_function:
         free_arg_list(arg_list);
       }  /* if */
     }  /* if */
+    if (*processed) rule_out_expr_kinds(ROEK_CONSTANT, result);
   }  /* if */
   /* If an operand was created, put the right position in it. */
   if (*processed) {
     result->position = *operator_position;
-    rule_out_expr_kinds(ROEK_CONSTANT, result);
   }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
@@ -20756,6 +20756,9 @@ object lifetime context.
     check_assertion(is_expression_component(icp));
     reattach_ref_entries_to_curr_expr(operand_of_arg_list_elem(icp));
     icp->detached_ref_entries = FALSE;
+  }  /* if */
+  if (is_expression_component(icp) && icp->constant_expr_ruled_out) {
+    expr_stack->constant_expr_ruled_out = TRUE;
   }  /* if */
 }  /* unbundle_init_component_expressions */
 

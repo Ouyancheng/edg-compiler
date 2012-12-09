@@ -152,6 +152,12 @@ typedef struct an_init_component {
 			/* TRUE if this entry has been freed and is on the
 			   available list. */
 #endif /* CHECKING */
+  a_bit_field	constant_expr_ruled_out:1;
+			/* For an ick_expression component, TRUE if the
+			   expression does not have the form required of a
+			   constant expression in the current mode.  That
+			   can be very slightly different from whether the
+			   expression actually evaluates to a constant. */
   a_pack_expansion_descr_ptr
 		pack_expansion_descr;
 			/* If non-NULL, this entity is a pack expansion

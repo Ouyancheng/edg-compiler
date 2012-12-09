@@ -267,6 +267,14 @@ parameters match the corresponding ones for push_expr_stack_for_initializer.
        necessary, but just to be neat). */
     expr_stack->p_end_of_entities_defined_in_expression = NULL;
   }  /* if */
+  if (is != NULL) {
+    /* Remember whether the expression has the form of a constant
+       expression.  We want to remember that even when the expression is
+       not being scanned as a constant expression, for initializers of
+       const variables. */
+    is->initializer_has_constant_expression_form =
+                                          !expr_stack->constant_expr_ruled_out;
+  }  /* if */
   pop_expr_stack();
   if (is_full_expr) {
     restore_expr_stack(saved_expr_stack);
@@ -13146,8 +13154,7 @@ indication in *rcblock).
                                  rcblock);
     expr_stack->potentially_unevaluated = TRUE;
   }  /* if */
-  saved_cpp11_constant_expr_ruled_out =
-                                     expr_stack->cpp11_constant_expr_ruled_out;
+  saved_cpp11_constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
   if (rcblock == NULL) {
     /* Not rescan, scanning from tokens. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -13271,8 +13278,9 @@ indication in *rcblock).
     /* If this is not a runtime case, the expression is not evaluated,
        which means any operators not valid for a C++11 constant expression
        that appear within the operand don't count. */
-    expr_stack->cpp11_constant_expr_ruled_out =
-                                           saved_cpp11_constant_expr_ruled_out;
+    if (constexpr_enabled) {
+      expr_stack->constant_expr_ruled_out= saved_cpp11_constant_expr_ruled_out;
+    }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_cli_typeid) {
@@ -22684,16 +22692,17 @@ that case.
     }  /* if */
     (void)get_token();
     expr_stack->evaluated = expr2_evaluated;
-    saved_cpp11_constant_expr_ruled_out =
-                            expr_stack->cpp11_constant_expr_ruled_out;
+    saved_cpp11_constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
     expr_stack->inside_conditional_expression = TRUE;
     scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
     expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
     /* Restore the evaluated flag as it was on entry. */
     expr_stack->evaluated = saved_evaluated;
-    expr_stack->cpp11_constant_expr_ruled_out =
-                            saved_cpp11_constant_expr_ruled_out;
+    if (constexpr_enabled) {
+      expr_stack->constant_expr_ruled_out =
+                                           saved_cpp11_constant_expr_ruled_out;
+    }  /* if */
   }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
@@ -23129,15 +23138,15 @@ that case.
        evaluating expressions. */
     expr_stack->nested_construct_depth++;
     expr_stack->evaluated = expr2_evaluated;
-    saved_cpp11_constant_expr_ruled_out =
-                            expr_stack->cpp11_constant_expr_ruled_out;
+    saved_cpp11_constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
     expr_stack->inside_conditional_expression = TRUE;
     scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
     expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
     expr_stack->evaluated = saved_evaluated;
-    expr_stack->cpp11_constant_expr_ruled_out =
-                            saved_cpp11_constant_expr_ruled_out;
+    if (constexpr_enabled) {
+      expr_stack->constant_expr_ruled_out= saved_cpp11_constant_expr_ruled_out;
+    }  /* if */
     expr_stack->nested_construct_depth--;
   }  /* if */
 
@@ -23158,8 +23167,7 @@ that case.
        is non-constant or a zero constant, and if we are currently evaluating
        expressions. */
     expr_stack->evaluated = expr3_evaluated;
-    saved_cpp11_constant_expr_ruled_out =
-                            expr_stack->cpp11_constant_expr_ruled_out;
+    saved_cpp11_constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
     expr_stack->inside_conditional_expression = TRUE;
     /* In C++, the 3rd operand is an assignment-expression (this was changed
        after the ARM) to allow things like "a ? i=1 : j=2". */
@@ -23170,8 +23178,9 @@ that case.
     expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
     expr_stack->evaluated = saved_evaluated;
-    expr_stack->cpp11_constant_expr_ruled_out =
-                            saved_cpp11_constant_expr_ruled_out;
+    if (constexpr_enabled) {
+      expr_stack->constant_expr_ruled_out= saved_cpp11_constant_expr_ruled_out;
+    }  /* if */
   }  /* if */
 
   /* Check the second and third operand types. */
@@ -26225,7 +26234,7 @@ variable:
             okay_for_integral_const_expr = FALSE;
           } else if (!C_mode() && !constexpr_enabled &&
                      curr_expr_kind_is(ek_integral_constant) &&
-                     is_const_variable(var_ptr) &&
+                     is_const_qualified_type(var_ptr->type) &&
                      var_constant_value(var_ptr) == NULL) {
             /* This is a const variable without a constant value, e.g.,
                  extern const int x;
@@ -29989,6 +29998,9 @@ empty pack expansion, this routine returns NULL.
                                  (allow_empty_expansion ? &expr_not_present :
                                                           NULL));
   if (icp != NULL && !parenthesized) check_arg_list_elem_is_expression(icp);
+  if (icp != NULL && is_expression_component(icp)) {
+    icp->constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
+  }  /* if */
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
@@ -33466,7 +33478,7 @@ expression context.  Return either *is_constant TRUE and a constant value in
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
   int                 constant_sign;
-  a_boolean           processed = FALSE, is_nonconstant;
+  a_boolean           processed = FALSE, has_nonconstant_form;
   an_expression_kind  ekind;
 
   db_enter(3, "scan_nonconstant_dimension_expression");
@@ -33502,9 +33514,7 @@ expression context.  Return either *is_constant TRUE and a constant value in
   } else {
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   }  /* if */
-  is_nonconstant = constexpr_enabled ?
-                     expr_stack->cpp11_constant_expr_ruled_out :
-                     (result.ruled_out_expr_kinds & ROEK_CONSTANT) != 0;
+  has_nonconstant_form = expr_stack->constant_expr_ruled_out;
   /* Convert from a class type to integral if necessary. */
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(result.type)) {
@@ -33529,7 +33539,7 @@ expression context.  Return either *is_constant TRUE and a constant value in
       /* Some sort of error; message was already issued. */
       set_error_constant(constant);
       discard_curr_expr_object_lifetime();
-      if (!is_new_or_delete_bound && is_nonconstant) {
+      if (!is_new_or_delete_bound && has_nonconstant_form) {
         /* Return an error expression if the expression was nonconstant
            and a VLA is allowed. */
         *expression = error_node();
@@ -35032,7 +35042,6 @@ standard form).  Assumes copy-initialization ("="-form).
                                    /*is_full_expr=*/TRUE,
                                    dps, (an_init_state *)NULL);
   }  /* if */
-  check_constant_valued_variable(dps);
 #if DEBUG
   if (debug_level >= 3) {
     db_constant(constant);

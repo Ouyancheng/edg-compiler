@@ -3959,7 +3959,6 @@ returned set to TRUE.
       vp->initializer.constant = init_con;
     }  /* if */
     check_constant_valued_variable(dps);
-    check_assertion(init_con != NULL || !vp->constant_valued);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (decl_pos_block != NULL) {
       vp->initializer_range = decl_pos_block->var_init_range;
