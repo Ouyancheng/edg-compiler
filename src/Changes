@@ -1,5 +1,30 @@
 Version 4.6
 
+12/10/12 [EDGcpfe/13504]
+Form of name reference for static data member definitions
+
+In configurations that record the form of name references, the name
+reference information (i.e., the set of qualifiers used in the name) was
+inadvertently not recorded for the definition of a static data member.  One
+consequence of this omission was that the C++-generating back end might use
+a fully-qualified name when generating such definitions; depending on the
+other declarations in scope, versions of g++ prior to 4.5 could issue
+spurious errors for the generated code.  This is now fixed.  For example:
+
+  namespace N {
+    class C { };
+  }
+  namespace C {
+    class D {
+      static int m;
+    };
+  }
+  using namespace N;
+  using namespace C;
+  int D::m;   // Previously generated as int (::C::D::m), causing a g++ error
+              // Now maintains the qualification from the source
+
+
 12/7/12  [EDGcpfe/13513]
 Use of uninitialized memory
 

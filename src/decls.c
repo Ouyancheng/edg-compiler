@@ -9670,6 +9670,13 @@ the symbol through dps->sym and its linkage (which is always "none") through
       }  /* if */
       record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                 dps->source_sequence_entry);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (record_name_references_in_context()) {
+        a_name_reference_ptr  name_ref;
+        name_ref = qualifiable_name_reference(locator, &var->source_corresp);
+        name_ref->used_in_primary_declarator = TRUE;
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       attach_decl_attributes(dps, /*primary_decl=*/TRUE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       update_decl_pos_info(&var->source_corresp, decl_pos_block);
