@@ -5176,10 +5176,11 @@ the outermost class was defined in an unnamed namespace.
          issued for IA-64 virtual call thunks. */
       if (!routine_defined(rp)) {
         an_error_severity  sev = es_discretionary_error;
-        if (!strict_ansi_mode && !class_type->source_corresp.referenced) {
-          /* If the enclosing class is unreferenced, the lack of a
-             definition for a virtual function is rarely a serious
-             problem. */
+        a_symbol_ptr       parent_sym = symbol_for(class_type);
+        if (!strict_ansi_mode &&
+            parent_sym != NULL && !parent_sym->referenced) {
+          /* If the enclosing class is unreferenced, the lack of a definition
+             for a virtual function is rarely a serious problem. */
           sev = es_remark;
         }  /* if */
         pos_sy_diagnostic(sev,
