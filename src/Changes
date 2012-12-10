@@ -18,17 +18,7 @@ operation).  If the new test fails, the new library routine
 __throw_bad_array_new_length (Cfront ABI) or __cxa_throw_bad_array_new_length
 (IA-64 ABI) is called to throw std::bad_array_new_length.  This new code is
 added when exceptions are enabled and when ABI_COMPATIBILITY_VERSION >= 406.
-
-This necessitated the following IL CHANGE (in all cases): previously
-the a_new_delete_supplement::arg field had specified the entire argument
-list to be passed to a "new" or "new[]" operation, including the first
-argument which contained the size (in bytes) to be allocated.  Now, that
-first argument is omitted and must be provided by a back end (if needed).
-Additionally, a new field, a_new_delete_supplement::number_of_elements, is
-provided that contains (when non-NULL), an expression that represents the
-number of elements in the array.  Previously, back ends that had needed
-this information (e.g., to pass to a library routine) needed to extract it
-from the expression in the first argument.
+For example:
 
   #include <new>
   int main() {
