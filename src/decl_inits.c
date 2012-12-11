@@ -743,7 +743,7 @@ remove_any_extraneous_braces:
   if (elem_is.init_error || is_error_component(icp)) {
     is->init_error = TRUE;
   }  /* if */
-  if (elem.constant_expr_ruled_out) {
+  if (elem_is.constant_expr_ruled_out) {
     is->constant_expr_ruled_out = TRUE;
   }  /* if */
   if (is->check_validity_only) {
