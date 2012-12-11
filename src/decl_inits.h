@@ -80,11 +80,9 @@ extern void check_for_missing_initializer_full(
                                       /*explicitly_internal=*/FALSE))
 
 extern
-void scan_compound_literal_initializer(a_type_ptr         *type,
-                                       a_boolean          is_static,
+void scan_compound_literal_initializer(a_decl_parse_state  *dps,
                                        an_init_component  *rescan_aggr,
-                                       an_init_component  **return_icp,
-                                       a_dynamic_init_ptr *dip);
+                                       an_init_component  **return_icp);
 
 #endif /* ifndef DECL_INITS_H */
 

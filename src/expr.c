@@ -20156,6 +20156,7 @@ indication in *rcblock).  rescan_icp is not freed.
   a_boolean          saved_same_expression;
   an_init_component  **return_icp = NULL;
   an_init_component  *braced_init_list = NULL;
+  a_decl_parse_state dps;
 
   check_assertion((C_mode() || gpp_mode) &&
                   !curr_expr_kind_is(ek_pp));
@@ -20210,10 +20211,18 @@ indication in *rcblock).  rescan_icp is not freed.
      current one. */
   saved_same_expression=expr_stack->next_stack_push_considered_same_expression;
   expr_stack->next_stack_push_considered_same_expression = TRUE;
+  /* Prepare dps (and the init state is embeds) to describe the required
+     initializer. */
+  init_decl_parse_state(&dps);
+  dps.type = literal_type;
+  expr_clear_init_state(&dps.init_state);
+  dps.init_state.static_lifetime_init = is_static;
   /* Scan the brace-enclosed initializer (or rescan, if rescan_icp is
      non-NULL). */
-  scan_compound_literal_initializer(&literal_type, is_static, rescan_icp,
-                                    return_icp, &dip);
+  scan_compound_literal_initializer(&dps, rescan_icp, return_icp);
+  dip = dps.init_state.init_dip;
+  /* The type can be updated for an incomplete array. */
+  *p_literal_type = literal_type = dps.type;
   expr_stack->next_stack_push_considered_same_expression=saved_same_expression;
   if (dip == NULL) {
     /* No dynamic init entry will be returned if an error occurred. */
@@ -20223,8 +20232,6 @@ indication in *rcblock).  rescan_icp is not freed.
        form. */
     save_rescan_info_for_braced_init_list(dip, braced_init_list);
   }  /* if */
-  /* The type can be updated for an incomplete array. */
-  *p_literal_type = literal_type;
   if (err) {
     make_error_operand(result);
     if (rcblock != NULL) rcblock->error_detected = TRUE; 

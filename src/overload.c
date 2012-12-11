@@ -21220,6 +21220,9 @@ controls).
         constant = eff_is->init_con;
         dip = eff_is->init_dip;
         partial_initializer = eff_is->partial_initializer;
+        if (eff_is->constant_expr_ruled_out) {
+          expr_stack->constant_expr_ruled_out = TRUE;
+        }  /* if */
         fill_in_dtor = FALSE;
         if (arg_match != NULL) {
           if (eff_is->init_error) {
