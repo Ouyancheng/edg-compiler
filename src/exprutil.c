@@ -17470,6 +17470,35 @@ it might produce an error).
 }  /* conv_lvalue_expr_to_rvalue */
 
 
+an_expr_node_ptr conv_lvalue_expr_to_rvalue_external(
+                                            an_expr_node_ptr   node,
+                                            a_boolean          *constant_case,
+                                            a_constant_ptr     *con_value,
+                                            a_source_position  *err_pos,
+                                            a_ctws_options_set options)
+/*
+Interface for calling conv_lvalue_expr_to_rvalue from outside of the
+expression routines when one wants to pass constant_case non-NULL (which
+is normally forbidden for "outside" calls).  Pushes an expression
+stack entry around the call.  options is a set of copy_type_with_substitution
+options.
+*/
+{
+  an_expr_node_ptr    expr;
+  an_expr_stack_entry expr_stack_entry;
+  an_expression_kind  kind = (options & CTWS_NON_CONSTANT_EXPR) ?
+                                (an_expression_kind)ek_normal :
+                                (an_expression_kind)ek_init_constant;
+
+  push_expr_stack(kind, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr = conv_lvalue_expr_to_rvalue(node, constant_case, con_value, err_pos);
+  pop_expr_stack();
+  return expr;
+}  /* conv_lvalue_expr_to_rvalue_external */
+
+
 void conv_lvalue_to_rvalue(an_operand *operand)
 /*
 Convert an lvalue operand to an rvalue operand.  See section 6.3.2.1 of the

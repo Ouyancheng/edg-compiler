@@ -14651,10 +14651,11 @@ produced.  See copy_template_param_expr for the parameter descriptions.
       } else {
         /* Other kind of lvalue (not an array or function). */
         a_boolean constant_case;
-        expr_copy = conv_lvalue_expr_to_rvalue(expr_copy,
-                                               &constant_case,
-                                               alloc_con,
-                                               source_pos);
+        expr_copy = conv_lvalue_expr_to_rvalue_external(expr_copy,
+                                                        &constant_case,
+                                                        alloc_con,
+                                                        source_pos,
+                                                        options);
       }  /* if */
     }  /* if */
   }  /* if */

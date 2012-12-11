@@ -16960,7 +16960,7 @@ context of the conversion.
     internal_error("conversion_possible: dest_type is reference");
   }  /* if */
 #endif /* CHECKING */
-  if (!C_mode() && !curr_expr_kind_is_const() &&
+  if (!C_mode() && (!curr_expr_kind_is_const() || constexpr_enabled) &&
       user_defined_conversion_possible(source_operand, dest_type,
                                        need_lvalue_result,
                                        is_copy_initialization,

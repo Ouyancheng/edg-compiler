@@ -1476,6 +1476,13 @@ an_expr_node_ptr conv_lvalue_expr_to_rvalue(an_expr_node_ptr node,
                                             a_constant_ptr   *con_value,
                                             a_source_position *err_pos);
 
+extern an_expr_node_ptr conv_lvalue_expr_to_rvalue_external(
+                                            an_expr_node_ptr   node,
+                                            a_boolean          *constant_case,
+                                            a_constant_ptr     *con_value,
+                                            a_source_position  *err_pos,
+                                            a_ctws_options_set options);
+
 extern void conv_lvalue_to_rvalue(an_operand *operand);
 
 extern a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
