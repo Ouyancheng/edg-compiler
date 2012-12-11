@@ -7306,7 +7306,7 @@ block with state information for the processing.
       /* dump_field_list adds a padding member after a member whose base
          type is an empty struct, and we need to initialize it, too. */
       if (type->generated_as_empty_struct && ipdp->prev != NULL &&
-          !is_array_type(ipdp->prev->type)) {
+          !is_array_type(ipdp->prev->type) && !is_union_type(variable->type)) {
         need_scalar_dummy_init = TRUE;
       } else if (is_array_type(type) && ipdp->prev != NULL &&
                  !is_array_type(ipdp->prev->type) &&
