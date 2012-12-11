@@ -3377,6 +3377,7 @@ copied and substituted.
   dps.init_state.initializer_can_dimension_array = TRUE;
   if (C_mode() && (is_static || !allow_nonconstant_auto_aggr_init_in_c_mode)) {
     dps.init_state.initializer_must_be_constant = TRUE;
+    dps.init_state.traditional_const_expr_required = TRUE;
   }  /* if */
   braced_initializer(dps.type, rescan_aggr, &dps.init_state, &dps,
                      return_icp, &start_pos);
@@ -3661,10 +3662,12 @@ returned set to TRUE.
        In addition, some C mode also require constant initializers for
        automatic variables of aggregate type initialized with a braced
        construct. */
-    dps->init_state.initializer_must_be_constant =
-          static_lifetime || (!allow_nonconstant_auto_aggr_init_in_c_mode &&
-                              is_aggregate_or_union_type(vp_type) &&
-                              first_token == tok_lbrace);
+    if (static_lifetime || (!allow_nonconstant_auto_aggr_init_in_c_mode &&
+                            is_aggregate_or_union_type(vp_type) &&
+                            first_token == tok_lbrace)) {
+      dps->init_state.initializer_must_be_constant = TRUE;
+      dps->init_state.traditional_const_expr_required = TRUE;
+    }  /* if */
   } else {
     /* In C++ mode, constexpr variables require constant initializers. */
     dps->init_state.initializer_must_be_constant = vp != NULL &&

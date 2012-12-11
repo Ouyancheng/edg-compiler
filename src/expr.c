@@ -35039,11 +35039,17 @@ standard form).  Assumes copy-initialization ("="-form).
     an_init_component_ptr  icp;
     /* The call to push_expr_stack_for_initializer will re-activate a cached
        initializer (for auto-type deduction) if necessary. */
+    /* Indicate that a constant-expression is required.  In C mode and in
+       modes that don't support C++11-style constant expressions, use the
+       traditional definition of a constant-expression. */
+    dps->init_state.initializer_must_be_constant = TRUE;
+    if (!constexpr_enabled) {
+      dps->init_state.traditional_const_expr_required = TRUE;
+    }  /* if */
     push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                     (an_expression_kind)ek_integral_constant,
                                     /*is_full_expr=*/TRUE,
                                     dps, (an_init_state *)NULL);
-    dps->init_state.initializer_must_be_constant = TRUE;
     icp = scan_expr_or_braced_init_list(/*bundle=*/TRUE,
                                         /*always_allow_braced=*/FALSE);
     convert_initializer(icp, dps->type, /*is_var_init=*/TRUE,
