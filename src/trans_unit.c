@@ -440,10 +440,10 @@ pointed to by the translation unit entry.
 }  /* restore_translation_unit_state */
 
 
-void fixup_translation_unit(a_translation_unit_ptr       tup)
+void fix_up_translation_unit(a_translation_unit_ptr       tup)
 /*
 The specified translation unit (which is the only translation unit at this
-point), has just been restored from a PCH file; fixup any pointers in the
+point), has just been restored from a PCH file; fix up any pointers in the
 a_translation_unit field that point to global variables (as their addresses
 may have changed due to ASLR).
 */
@@ -458,7 +458,7 @@ may have changed due to ASLR).
       *field = (a_void_ptr)vrp->ptr;
     }  /* if */
   }  /* for */
-}  /* fixup_translation_unit */
+}  /* fix_up_translation_unit */
 
 #if DEBUG
 
