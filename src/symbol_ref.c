@@ -1572,15 +1572,18 @@ scopes and for the file scope.
         check_name_hiding_by_template_parameters(sp);
         tp = sp->variant.assoc_type;
         sym_list = symbol_supplement_for_class(tp)->symbols;
-        if (microsoft_bugs &&
+        if (((microsoft_bugs && microsoft_version < 1400) ||
+             (gpp_mode && gnu_version < 40500)) &&
+            !tp->variant.class_struct_union.is_specialized &&
             tp->variant.class_struct_union.extra_info->
                                                    template_arg_list != NULL) {
-          /* Microsoft compilers do not inject the name of a template instance,
-             so this class does not contain an injected class name.  However,
-             to enable the C++-generating back end to generate correctly-
-             qualified code for dialects that do inject the template name, we
-             need to simulate an injected class name in this case for hidden
-             name processing. */
+          /* Microsoft compilers prior to version 8.0 and g++ compilers
+             prior to version 4.5 do not inject the name of a template
+             instance, so this class does not contain an injected class
+             name.  However, to enable the C++-generating back end to
+             generate correctly-qualified code for dialects that do inject
+             the template name, we need to simulate an injected class name
+             in this case for hidden name processing. */
           record_defeatable_hiding_if_not_same((a_symbol_ptr)tp->
                                                      source_corresp.assoc_info,
                                                sp,
