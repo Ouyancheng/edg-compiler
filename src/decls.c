@@ -112,7 +112,9 @@ Clear the fields of *is.
   is->variable_size_array = FALSE;
   is->initializer_can_dimension_array = FALSE;
   is->evaluated = TRUE;
-  is->initializer_has_constant_expression_form = FALSE;
+  is->potentially_evaluated = TRUE;
+  is->traditional_const_expr_required = FALSE;
+  is->constant_expr_ruled_out = FALSE;
 }  /* clear_init_state_fields */
 
 
@@ -6010,12 +6012,11 @@ variable.
       }  /* if */
     }  /* if */
     if (con_val != NULL) {
-      vp->constant_valued = TRUE;
-      if (strict_ansi_mode &&
-          !dps->init_state.initializer_has_constant_expression_form) {
-        /* In strict mode, rule out some subtle cases that produce
-           a constant but don't have the form of a "constant expression". */
-        vp->constant_valued = FALSE;
+      if (strict_ansi_mode && dps->init_state.constant_expr_ruled_out) {
+        /* In strict mode, rule out some subtle cases that produce a constant
+           but don't have the form of a "constant expression". */
+      } else {
+        vp->constant_valued = TRUE;
       }  /* if */
     }  /* if */
     if (vp->initializer_in_class) vp->is_member_constant = TRUE;

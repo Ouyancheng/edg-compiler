@@ -1658,7 +1658,7 @@ is pushed regardless of any of the other factors.
   new_entry->in_static_initializer = FALSE;
   new_entry->next_stack_push_considered_same_expression = FALSE;
   new_entry->constant_expr_ruled_out = FALSE;
-  new_entry->is_traditional_const_expr = FALSE;
+  new_entry->traditional_const_expr_required = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -1693,7 +1693,7 @@ is pushed regardless of any of the other factors.
     if (!constexpr_enabled ||
         curr_expr_kind_is(ek_pp) ||
         curr_expr_kind_is(ek_template_arg)) {
-      new_entry->is_traditional_const_expr = TRUE;
+      new_entry->traditional_const_expr_required = TRUE;
     }  /* if */
     expr_stack->favor_constant_result = TRUE;
     /* Constant expressions are always evaluated even when inside a
@@ -1855,9 +1855,9 @@ to restore_constant_expression_kind.
   check_assertion(expr_stack != NULL &&
                   curr_expr_kind_is_const());
   *saved_kind = expr_stack->expression_kind;
-  *saved_traditional = expr_stack->is_traditional_const_expr;
+  *saved_traditional = expr_stack->traditional_const_expr_required;
   expr_stack->expression_kind = (an_expression_kind)ek_normal;
-  expr_stack->is_traditional_const_expr = FALSE;
+  expr_stack->traditional_const_expr_required = FALSE;
 }  /* temporarily_set_non_constant_expression_kind */
 
 
@@ -1870,7 +1870,7 @@ temporarily_set_non_constant_expression_kind.
 {
   check_assertion(expr_stack != NULL);
   expr_stack->expression_kind = saved_kind;
-  expr_stack->is_traditional_const_expr = saved_traditional;
+  expr_stack->traditional_const_expr_required = saved_traditional;
 }  /* restore_constant_expression_kind */
   
 
@@ -5890,8 +5890,11 @@ Fills in some things from expression context.
   clear_init_state(init_state);
   if (curr_expr_kind_is_const()) {
     init_state->initializer_must_be_constant = TRUE;
+    init_state->traditional_const_expr_required =
+                                        curr_expr_kind_is_traditional_const();
   }  /* if */
   init_state->evaluated = curr_expr_is_evaluated();
+  init_state->potentially_evaluated = curr_expr_is_potentially_evaluated();
 }  /* expr_clear_init_state */
 
 

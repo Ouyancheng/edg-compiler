@@ -225,6 +225,18 @@ constant and expr_kind is not already a constant expression kind.
   } else if (favor_constant_result_for_nonstatic_init) {
     expr_stack_entry->favor_constant_result = TRUE;
   }  /* if */
+  if (is != NULL) {
+    /* Transfer some additional flags from the init state. */
+    expr_stack_entry->traditional_const_expr_required =
+                                          is->traditional_const_expr_required;
+    if (is->potentially_evaluated) {
+      expr_stack_entry->potentially_evaluated = TRUE;
+    } else {
+      /* If an initializer is not potentially evaluated, it is certainly not
+         evaluated at all. */
+      check_assertion(!is->evaluated);
+    }  /* if */
+  }  /* if */
   if (dps != NULL && dps->sym != NULL &&
       (symbol_is(dps->sym, sk_static_data_member) ||
        symbol_is(dps->sym, sk_field))) {
@@ -268,12 +280,12 @@ parameters match the corresponding ones for push_expr_stack_for_initializer.
     expr_stack->p_end_of_entities_defined_in_expression = NULL;
   }  /* if */
   if (is != NULL) {
-    /* Remember whether the expression has the form of a constant
-       expression.  We want to remember that even when the expression is
-       not being scanned as a constant expression, for initializers of
-       const variables. */
-    is->initializer_has_constant_expression_form =
-                                          !expr_stack->constant_expr_ruled_out;
+    /* Copy the constant_expr_ruled_out flag from the expression stack into
+       the init state.  That flag may then be carried up to another expression
+       stack in cases that involve a
+           <expression> -> <initializer> -> <expression>
+       transition. */
+    is->constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
   }  /* if */
   pop_expr_stack();
   if (is_full_expr) {
@@ -14282,7 +14294,7 @@ Microsoft, Sun) allow extended forms of integer constants.
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  expr_stack->is_traditional_const_expr = TRUE;
+  expr_stack->traditional_const_expr_required = TRUE;
   if (top_level) transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the expression. */
   if (is_expr_list) {
@@ -33744,7 +33756,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
   expr_stack_entry.is_template_arg_expression = TRUE;
   if (constexpr_enabled && param_type != NULL && !microsoft_mode &&
       is_integral_or_unscoped_enum_type(param_type)) {
-    expr_stack_entry.is_traditional_const_expr = FALSE;
+    expr_stack_entry.traditional_const_expr_required = FALSE;
   }  /* if */
   switch_to_file_scope_region(&region_to_switch_back_to);
   /* Scan the constant expression. */

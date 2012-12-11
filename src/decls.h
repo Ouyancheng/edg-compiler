@@ -434,14 +434,33 @@ typedef struct an_init_state {
 			/* TRUE if the initializer is evaluated, e.g.,
 			   FALSE in the operand of a sizeof and also FALSE in
 			   a dead operand of a short-circuiting operation. */
-  a_bit_field	initializer_has_constant_expression_form:1;
-			/* TRUE if the initializer has the form of a
-			   constant-expression.  That means adherence to
-			   the specific rules of [expr.const], which is
-			   very slightly different from the cases where
-			   we produce a constant result for the expression.
-			   Set even for expressions scanned as nonconstant
-			   expressions. */
+  a_bit_field	potentially_evaluated:1;
+			/* TRUE if the initializer is potentially evaluated.
+			   For example, FALSE if the initializer appears in the
+			   operand of a sizeof, but TRUE if it appear in a
+			   branch of an eok_question operation known not to be
+			   evaluated. */
+  a_bit_field	traditional_const_expr_required:1;
+			/* TRUE if the initializer must be a constant-
+			   expression "in the spirit of C and C++03".  In such
+			   cases, each operation is folded right away (unless
+			   it is unevaluated; e.g. "1 || 1/0" is okay), and
+			   errors are reported on disallowed constructs when
+			   they are encountered.  (In contrast, C++11-style
+			   constant-expressions permit most constructs a
+			   priori, provided the final value is a valid
+			   constant. */
+  a_bit_field	constant_expr_ruled_out:1;
+			/* TRUE if the initializer that was scanned contained
+			   a construct that cannot be part of a true constant-
+			   expression (see [expr.const] in the C++ standard).
+			   This is slightly different from the cases where we
+			   produce a dynamic init entry (i.e., a non-NULL
+			   init_dip) because we sometimes produce a constant
+			   entry for an expression that is not really a true
+			   constant-expressions (for example, reinterpret_cast
+			   may be folded, but standard C++ does not permit it
+			   in a constant-expression). */
 } an_init_state;
 
 

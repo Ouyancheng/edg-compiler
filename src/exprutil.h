@@ -832,7 +832,7 @@ typedef struct an_expr_stack_entry {
 			   other modes, the ruled_out_expr_kinds set in
 			   an operand is also maintained. */
   a_byte_boolean
-		is_traditional_const_expr;
+		traditional_const_expr_required;
 			/* TRUE if we're in a constant expression to be
 			   processed with the pre-C++11 rules for constant
 			   expressions.  Those are (1) disallowed operators,
@@ -1121,7 +1121,7 @@ macro will be followed by an "else" that calls
 operator_not_allowed_in_cpp11_constant_expr.
 */
 #define curr_expr_kind_is_traditional_const()                         \
-  (expr_stack->is_traditional_const_expr)
+  (expr_stack->traditional_const_expr_required)
 
 /*
 Macro that returns TRUE if there is at least one initializer cached for the
