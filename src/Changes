@@ -1,5 +1,16 @@
 Version 4.6
 
+12/11/12 [EDGcpfe/12763,EDGcpfe/13508]
+Use of pre-compiled header files on systems with ASLR
+
+Many recent versions of operating systems implement some form of Address
+Space Layout Randomization (ASLR) where the addresses of various portions
+of a process' address space change between invocations; in such environments,
+the use of pre-compiled header (PCH) files could lead to aborts
+(say in f_add_orphaned_file_scope_il_entry or module_id_for_source_corresp).
+This issue has now been fixed.
+
+
 12/10/12 [EDGcpfe/13504]
 Form of name reference for static data member definitions
 

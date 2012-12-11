@@ -439,6 +439,27 @@ pointed to by the translation unit entry.
   }  /* if */
 }  /* restore_translation_unit_state */
 
+
+void fixup_translation_unit(a_translation_unit_ptr       tup)
+/*
+The specified translation unit (which is the only translation unit at this
+point), has just been restored from a PCH file; fixup any pointers in the
+a_translation_unit field that point to global variables (as their addresses
+may have changed due to ASLR).
+*/
+{
+  a_variable_registration_ptr   vrp;
+
+  check_assertion(!secondary_translation_unit_seen());
+  for (vrp = trans_unit_variables; vrp != NULL; vrp = vrp->next) {
+    if (vrp->field_offset != 0) {
+      a_void_ptr        *field;
+      field = (a_void_ptr*)((char *)tup + vrp->field_offset);
+      *field = (a_void_ptr)vrp->ptr;
+    }  /* if */
+  }  /* for */
+}  /* fixup_translation_unit */
+
 #if DEBUG
 
 void db_translation_unit(a_translation_unit_ptr	tup)

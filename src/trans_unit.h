@@ -242,6 +242,8 @@ extern a_trans_unit_corresp_ptr alloc_trans_unit_corresp(void);
 
 extern void free_trans_unit_corresp(a_trans_unit_corresp_ptr	tucp);
 
+extern void fixup_translation_unit(a_translation_unit_ptr       tup);
+
 /*
 Macro that returns whether a secondary translation unit has been seen.
 */
