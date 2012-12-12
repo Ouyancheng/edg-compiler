@@ -13558,7 +13558,7 @@ be returned for a C mode const variable.
        function-local as well). */
     con_val = initializer_constant(var);
     if (con_val == NULL && gpp_mode &&
-        init_kind == (an_init_kind)initk_none &&
+        var->init_kind == (an_init_kind)initk_none &&
         var->source_corresp.is_class_member &&
         !var->is_member_constant &&
         parent_class_of(var)->variant.class_struct_union.is_nonreal_class &&
