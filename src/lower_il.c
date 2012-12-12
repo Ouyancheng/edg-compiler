@@ -14037,8 +14037,8 @@ represents "this" in the member function.
     if (param->is_this_parameter) break;
   }  /* for */
   check_assertion(param != NULL &&
-                  identical_types(skip_typerefs(param->type),
-                                  skip_typerefs(expr->type)));
+                  identical_types_ignoring_qualifiers(param->type,
+                                                      expr->type));
   set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
   expr->variant.variable = param;
 }  /* lower_param_ref */
