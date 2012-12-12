@@ -1,5 +1,26 @@
 Version 4.6
 
+12/12/12 [EDGcpfe/13383]
+Regression involving dependent name looked up in both base and derived class
+
+A change made in version 4.5 (see EDGcpfe/12671 on 2/28/12) caused certain
+cases to be rejected where a name was looked up using a qualified name first
+as member of a class template, then as a member of a dependent base class
+of the class template and then once again as a member of the class template.
+In the example below, the final lookup was finding B<T>::type instead of
+D<T>::type causing a spurious "declaration is incompatible" error.  Now fixed.
+
+  template <typename T1> struct B {
+    struct type {};
+  };
+  template <typename T> struct D : public B<T> {
+    typename D<T>::type f(typename B<T>::type);
+  };
+  template <typename T> typename D<T>::type D<T>::f(typename B<T>::type) {
+    return D<T>::type();
+  }
+
+
 12/12/12 [EDGcpfe/13505]
 GNU C++ compatibility: use of ambiguous namespace name allowed
 

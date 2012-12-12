@@ -4459,10 +4459,24 @@ bypass_normal_search:
            only" lookup, projection symbols are not created and conversion
 	   template instances are not found.  Destructors are not inherited,
            so don't attempt to look for a destructor name. */
+        a_boolean	use_nonreal_in_curr_class = FALSE;
         determine_projected_symbol_insert_location(locator,
                                                    class_type,
                                                    &add_to_active_list,
                                                    &insert_sym);
+        if ((options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS) == 0 &&
+            ((options & IDL_IS_DECLARATOR) == 0 ||
+             ((options & IDL_FRIEND_LOOKUP) != 0 &&
+              (gpp_mode || microsoft_mode))) &&
+            (cssp->any_nonreal_base_classes ||
+             ((gpp_mode || microsoft_mode) &&
+              is_prototype_instantiation_lookup))) {
+          /* If a nonreal member needs to be created, create it as a member of
+             the class in which the lookup is being done.  See the comment
+             below where create_proxy_of_nonreal_class_member is called for
+             more information. */
+          use_nonreal_in_curr_class = TRUE;
+        }  /* if */
         (void)find_projected_symbol(
                             class_type, locator, options,
                             /*look_in_dependent_bases=*/TRUE,
@@ -4473,13 +4487,14 @@ bypass_normal_search:
                             (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0,
                             add_to_active_list, insert_sym, &sym,
                             /*can_create_nonreal=*/FALSE);
-        if (sym == NULL && (options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS) == 0 &&
-            ((options & IDL_IS_DECLARATOR) == 0 ||
-             ((options & IDL_FRIEND_LOOKUP) != 0 &&
-              (gpp_mode || microsoft_mode))) &&
-            (cssp->any_nonreal_base_classes ||
-             ((gpp_mode || microsoft_mode) &&
-              is_prototype_instantiation_lookup))) {
+        if (use_nonreal_in_curr_class && sym != NULL &&
+            fundamental_symbol_of(sym)->is_nonreal_member) {
+          /* If we found a previously created nonreal member, ignore it if we
+             should be using a nonreal member of the class in which the lookup
+             is actually being done. */
+          sym = NULL;
+        }  /* if */
+        if (sym == NULL && use_nonreal_in_curr_class) {
           /* This is a lookup of a name like D::x, where D is a
              prototype instantiation or local class of a prototype
              instantiation.  Create a symbol whose parent is the class
