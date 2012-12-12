@@ -2208,6 +2208,7 @@ of the lookup is returned to the caller.
 			audp;
   a_namespace_symbol_supplement_ptr
 			nssp;
+  a_boolean		gpp_namespace_only_mode = FALSE;
 
   db_enter(4, "do_using_directive_lookup");
   if (microsoft_bugs && sym_from_scope != NULL) {
@@ -2219,6 +2220,14 @@ of the lookup is returned to the caller.
       sym = sym_from_scope;
       goto done;
     }  /* if */
+  }  /* if */
+  if (gpp_mode && sym_from_scope != NULL &&
+      lookup_state->must_be_class_or_namespace &&
+      sym_from_scope->kind == (a_symbol_kind)sk_namespace) {
+    /* In g++ mode, if a namespace is found by normal lookup and is followed by
+       "::", symbols from using-directives that are not namespaces are
+       ignored. */
+    gpp_namespace_only_mode = TRUE;
   }  /* if */
   /* Loop through the using-directives that apply at this scope to see if
      any of them contain symbols that match the lookup options. */
@@ -2240,6 +2249,12 @@ of the lookup is returned to the caller.
       fund_sym = fundamental_symbol_of(new_sym);
       if (!is_acceptable_symbol(new_sym, fund_sym, *lookup_state,
                                 /*invisible_okay=*/FALSE)) {
+        continue;
+      }  /* if */
+      if (gpp_namespace_only_mode &&
+          fund_sym->kind != (a_symbol_kind)sk_namespace) {
+        /* Non-namespace symbols should be ignored.  See the comment about
+           gpp_namespace_only_mode for more information. */
         continue;
       }  /* if */
       if (gpp_using_directive_lookup) {

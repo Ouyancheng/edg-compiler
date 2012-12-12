@@ -1,5 +1,27 @@
 Version 4.6
 
+12/12/12 [EDGcpfe/13505]
+GNU C++ compatibility: use of ambiguous namespace name allowed
+
+When doing a lookup involving using-directives, g++ prefers a namespace
+name over a non-namespace name when the name is followed by a "::".  We
+now emulate this behavior in g++ mode.
+
+  namespace N {
+    struct A {};
+  }
+  namespace M {
+   struct N {};
+  }
+  template <typename T> struct C {
+    static void f(T t);
+  };
+  using namespace M;
+  int main() {
+    C<N::A*>::f(0);  // N should be ambiguous, but g++ finds ::N
+  }
+
+
 12/11/12 [EDGcpfe/13490]
 Spurious error on elaborated enum name qualified with dependent class name
 
