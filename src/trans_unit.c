@@ -443,16 +443,17 @@ pointed to by the translation unit entry.
 void fix_up_translation_unit(a_translation_unit_ptr       tup)
 /*
 The specified translation unit (which is the only translation unit at this
-point), has just been restored from a PCH file; fix up any pointers in
-a_translation_unit.  Any variable registration entries with non-NULL
-field offsets represent a field in a_translation unit that either points
-to a global variable (if the translation unit is primary) or a variable block
-(if the translation unit is secondary).  Since there's only one translation
-unit at the time a PCH file has been restored, we know that these fields
-don't point to variable blocks and must point instead to global variables.
-The addresses of these global variables may have changed since the PCH
-file was written (due to ASLR on many operating systems), so re-initialize
-them.
+point), has just been restored from a PCH file; fix any invalid pointers
+that it may contain (due to ASLR on many operating systems).  Most fields
+in tup point directly to memory that resides in memory regions and need
+no fixing, however there are some fields in a_translation_unit (namely
+orphaned_file_scope_il_entries and module_id_ptr) that point to global
+variables (or into a variable block).  Since the addresses of global variables
+may have changed since the PCH file was written, these fields need to be
+re-initialized to the new addresses of the global variables.  Such fields
+are identified by variable registration entries with non-NULL pointers;
+use these variable registration entries to reset the tup fields to the
+proper global variable addresses.
 */
 {
   a_variable_registration_ptr   vrp;
