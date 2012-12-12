@@ -451,9 +451,9 @@ orphaned_file_scope_il_entries and module_id_ptr) that point to global
 variables (or into a variable block).  Since the addresses of global variables
 may have changed since the PCH file was written, these fields need to be
 re-initialized to the new addresses of the global variables.  Such fields
-are identified by variable registration entries with non-NULL pointers;
-use these variable registration entries to reset the tup fields to the
-proper global variable addresses.
+are identified by variable registration entries with non-NULL field_offset
+pointers; use these variable registration entries to reset the tup fields to
+the proper global variable addresses.
 */
 {
   a_variable_registration_ptr   vrp;
