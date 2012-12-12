@@ -446,7 +446,7 @@ The specified translation unit (which is the only translation unit at this
 point), has just been restored from a PCH file; fix any invalid pointers
 that it may contain (due to ASLR on many operating systems).  Most fields
 in tup point directly to memory that resides in memory regions and need
-no fixing, however there are some fields in a_translation_unit (namely
+no fixing; however there are some fields in a_translation_unit (namely
 orphaned_file_scope_il_entries and module_id_ptr) that point to global
 variables (or into a variable block).  Since the addresses of global variables
 may have changed since the PCH file was written, these fields need to be
