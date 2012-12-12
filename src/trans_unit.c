@@ -443,15 +443,24 @@ pointed to by the translation unit entry.
 void fix_up_translation_unit(a_translation_unit_ptr       tup)
 /*
 The specified translation unit (which is the only translation unit at this
-point), has just been restored from a PCH file; fix up any pointers in the
-a_translation_unit field that point to global variables (as their addresses
-may have changed due to ASLR).
+point), has just been restored from a PCH file; fix up any pointers in
+a_translation_unit.  Any variable registration entries with non-NULL
+field offsets represent a field in a_translation unit that either points
+to a global variable (if the translation unit is primary) or a variable block
+(if the translation unit is secondary).  Since there's only one translation
+unit at the time a PCH file has been restored, we know that these fields
+don't point to variable blocks and must point instead to global variables.
+The addresses of these global variables may have changed since the PCH
+file was written (due to ASLR on many operating systems), so re-initialize
+them.
 */
 {
   a_variable_registration_ptr   vrp;
 
   check_assertion(!secondary_translation_unit_seen());
   for (vrp = trans_unit_variables; vrp != NULL; vrp = vrp->next) {
+    /* If there is an associated translation unit field, set it to point
+       to the global variable. */
     if (vrp->field_offset != 0) {
       a_void_ptr        *field;
       field = (a_void_ptr*)((char *)tup + vrp->field_offset);
