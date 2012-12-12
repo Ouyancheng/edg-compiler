@@ -610,6 +610,101 @@ updating list_ptr and end_of_list_ptr if appropriate.
   return head;
 }  /* f_unlink_src_seq_entries */
 
+
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+void move_sses_out_of_class_if_otherwise_invalid(a_type_ptr      class_type,
+                                                 a_template_ptr  templ_entry)
+/*
+When generating source sequence entries for class template instantiations, it
+is sometimes unavoidable to generate source sequence entries that represent
+member declarations that cannot actually appear in a class definition.  This
+routine attempts to fix the resulting source sequence list in some cases by
+moving the offending entries to after the class definition.
+In particular, this routine moves the source sequence entries resulting from
+the instantiation of a static data member definition that occurred while the
+parent class was still being instantiated.  For example:
+    template<class T> struct S {
+      static T const N;
+      enum E { e = int(N) };
+    };
+    template<class T> T const S<T>::N = T(42);
+    template struct S<double>;
+Here, S<double>::N's initializer is instantiated for the value of S<double>::e
+during the instantiation of S<double>. As a result, a primary source sequence
+entry for S<double>::N ends up just before the source sequence entry for
+S<double>::e, but it is not valid there.  This routine moves it to after the
+"end-of-construct" entry for S<double>.
+class_type represents the class template instantiation.  If it is a prototype
+instantiation, templ_entry represents the associated template; otherwise,
+templ_entry is NULL.
+*/
+{
+  a_source_sequence_entry_ptr  start_ssep, ssep, head_to_move, tail_to_move,
+                               moved_list = NULL, end_moved_list = NULL;
+  char                         *entity;
+
+  if (templ_entry != NULL) {
+    start_ssep = templ_entry->source_corresp.source_sequence_entry;
+    entity = (char*)templ_entry;
+  } else {
+    start_ssep = class_type->source_corresp.source_sequence_entry;
+    entity = (char*)class_type;
+  };
+  if (start_ssep == NULL) {
+    /* Some classes do not have associated source sequence entries; nothing
+       needs to be done in such cases. */
+    goto done;
+  }  /* if */
+  ssep = start_ssep->next;
+  /* Look for entries to move. */
+  for (;;) {
+    check_assertion(ssep != NULL);
+    if (ss_entry_kind(ssep) == iek_variable) {
+      /* A source sequence entry for a variable must be a static data member
+         definition.  Move it to after the class. */
+      a_variable_ptr  var = ss_entry_ptr(ssep, a_variable_ptr);
+      head_to_move = ssep;
+      if (var->embedded_source_sequence_entries) {
+        /* If the definition of the variable embedded additional declarations
+           its associated source sequence entries have to be moved along with
+           the variable. */
+        while (ss_entry_kind(ssep) != iek_src_seq_end_of_construct ||
+               ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->entity.ptr
+                                                              != (char*)var) {
+          ssep = ssep->next;
+        }  /* if */
+      }  /* if */
+      tail_to_move = ssep;
+      ssep = tail_to_move->next;
+      f_unlink_src_seq_entries(head_to_move, tail_to_move, &start_ssep,
+                               /*end_of_list_ptr=*/NULL);
+      if (moved_list == NULL) {
+        moved_list = head_to_move;
+        end_moved_list = head_to_move;
+      } else {
+        end_moved_list->next = head_to_move;
+        end_moved_list = tail_to_move;
+      }  /* if */
+    } else if (ss_entry_kind(ssep) == iek_src_seq_end_of_construct &&
+               ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->entity.ptr
+                                                                  == entity) {
+      /* We found the end of the class.  End the search here. */
+      break;
+    } else {
+      ssep = ssep->next;
+    }  /* if */
+  }  /* for */
+  if (moved_list != NULL) {
+    end_moved_list->next = ssep->next;
+    ssep->next->prev = end_moved_list;
+    moved_list->prev = ssep;
+    ssep->next = moved_list;
+  }  /* if */
+done:;
+}  /* move_sses_out_of_class_if_otherwise_invalid */
+
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
 /* Macro to call unlink_src_seq_entries.  head and tail are source sequence
@@ -2663,6 +2758,52 @@ entries.
     }  /* for */
   }  /* for */
 }  /* promote_src_seq_sublists_to_file_scope_list */
+
+
+void eliminate_variable_definition_source_sequence_entry(a_variable_ptr  vp)
+/*
+Eliminate the source sequence entries that represent the definition of the
+given variable, and either replace the primary source sequence entry of the
+variable by a secondary source sequence entry (if valid) or eliminate it
+altogether (if a secondary source sequence entry would not be valid; e.g.,
+for an out-of-class definition of a static data member).
+*/
+{
+  a_source_sequence_entry_ptr   ssep;
+  a_src_seq_secondary_decl_ptr  sssdp;
+
+  ssep = vp->source_corresp.source_sequence_entry;
+  if (ssep != NULL) {
+    check_assertion(ss_entry_kind(ssep) == iek_variable);
+    if (vp->source_corresp.is_class_member) {
+      /* Out-of-class definitions of static data members cannot validly be
+         replaced by non-defining declarations.  We therefore eliminate the
+         entry altogether and replace the record in the variable entry by
+         the declaration in the class definition. */
+      remove_src_seq_entry(ssep);
+      ssep = parent_class_of(vp)->source_corresp.source_sequence_entry;
+      ssep = find_src_seq_secondary_decl_entry(ssep, (char *)vp);
+      vp->source_corresp.source_sequence_entry = ssep;
+    } else {
+      /* Turn the associated source sequence entry into a secondary-decl
+         source sequence entry. */
+      check_assertion(!vp->source_corresp.is_local_to_function);
+      sssdp = alloc_src_seq_secondary_decl();
+      sssdp->entity = ssep->entity;
+      ssep->entity.ptr = (char *)sssdp;
+      ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+      sssdp->decl_position = vp->source_corresp.decl_position;
+      /* Move the declared type pointer from the variable into the source
+         sequence entry, clearing the variable's pointer (since vp no longer
+         represents a definition). */
+      sssdp->declared_type = vp->declared_type;
+      vp->declared_type = NULL;
+      /* Do the same with the declared storage class. */
+      sssdp->declared_storage_class = vp->declared_storage_class;
+      vp->declared_storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
+  }  /* if */
+}  /* eliminate_variable_definition_source_sequence_entry */
 
 
 void eliminate_function_body_source_sequence_entries(a_scope_ptr  sp)

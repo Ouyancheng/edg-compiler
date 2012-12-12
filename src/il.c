@@ -22932,6 +22932,9 @@ includes removing any initialization.
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   variable->has_flexible_array_initializer = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  eliminate_variable_definition_source_sequence_entry(variable);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (variable->storage_class == (a_storage_class)sc_unspecified) {
     variable->storage_class = (a_storage_class)sc_extern;
 #if IA64_ABI && DO_IL_LOWERING

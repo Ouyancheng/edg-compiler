@@ -3789,6 +3789,8 @@ be completed here.
       source_sequence_entries_disallowed = saved_sses_disallowed;
       scope_stack_top().source_sequence_entries_disallowed =
                                                          saved_sses_disallowed;
+      move_sses_out_of_class_if_otherwise_invalid(
+                                          class_type, /*template_entry=*/NULL);
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* If the translation unit stack was pushed above, pop it now. */
@@ -4354,6 +4356,12 @@ A pointer to the head of the list is returned in tcsp.
   /* Set the flag that indicates that the prototype instantiation has
      been completed. */
   tssp->variant.class_template.prototype_instantiation_complete = TRUE;
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (prototype_instantiations_in_il) {
+    move_sses_out_of_class_if_otherwise_invalid(
+                               prototype_type, decl_state->il_template_entry);
+  }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   db_exit();
 }  /* instantiate_class_template */
 
@@ -11799,6 +11807,18 @@ Static data members are sometimes instantiated simply so that their
 size can be known.  Remove any such instantiations from the IL.
 */
 {
+#if GENERATE_SOURCE_SEQUENCE_LISTS && \
+    NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  /* If we record non-class template instantiations in source sequence lists,
+     do nothing since the instantiation may still be material to the back end.
+     For example:
+       template<class T> struct S { static int i[]; };
+       template<class T> int A<T>::i[4];
+       unsigned s = sizeof(A<int>::i);
+     Here, e.g., the C++-generating back end will render an explicit
+     specialization of S<int>, and it must therefore also render a definition
+     of A<int>::i to make the sizeof expression valid. */
+#else /* !(GENERATE_SOURCE_SEQUENCE_LISTS && NONCLASS_TEMPLATE_INST...) */
   a_master_instance_ptr	mip;
 
   for (mip = master_instantiations_list; mip != NULL; mip = mip->next) {
@@ -11818,6 +11838,7 @@ size can be known.  Remove any such instantiations from the IL.
       }  /* if */
     }  /* if */
   }  /* for */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && NONCLASS_TEMPLATE_INST... */
 }  /* remove_unneeded_static_data_member_instantiations */
 
 

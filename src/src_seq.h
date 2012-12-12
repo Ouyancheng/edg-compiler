@@ -48,6 +48,11 @@ extern void db_ss_list_for_scope(a_scope_ptr  sp);
 
 extern void fixup_function_scope_source_sequence_list(a_scope_ptr  sp);
 
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+void move_sses_out_of_class_if_otherwise_invalid(a_type_ptr      class_type,
+                                                 a_template_ptr  templ_entry);
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+
 extern void add_source_sequence_entry_to_list(
                                        a_source_sequence_entry_ptr new_ssep);
 
@@ -187,6 +192,9 @@ extern a_boolean update_src_seq_secondary_decl(
 
 extern a_type_ptr type_from_src_seq_declaration(
                                              a_source_sequence_entry_ptr ssep);
+
+extern
+void eliminate_variable_definition_source_sequence_entry(a_variable_ptr  vp);
 
 extern void eliminate_function_body_source_sequence_entries(a_scope_ptr sp);
 
