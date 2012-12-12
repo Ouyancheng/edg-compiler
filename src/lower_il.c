@@ -14018,6 +14018,32 @@ lowering).  Note that eok_class_rvalue_adjust operations are not modified here
 }  /* remove_qualifiers_from_expr_type_if_needed */
 
 
+static void lower_param_ref(an_expr_node_ptr expr)
+/*
+enk_param_refs are generally not seen by lowering except in the case where
+the front end uses them to represent "this" in some instances (e.g.,
+the implicit use in a case like "struct A { int i = 0; int j = i; };").
+Replace the enk_param_ref with an enk_variable node for the parameter that
+represents "this" in the member function.
+*/
+{
+  a_variable_ptr   param;
+
+  check_assertion(expr->kind == (an_expr_node_kind)enk_param_ref &&
+                  expr->variant.param_ref.param_num == 0);
+  for (param = innermost_function_scope->variant.routine.parameters;
+       param != NULL;
+       param = param->next) {
+    if (param->is_this_parameter) break;
+  }  /* for */
+  check_assertion(param != NULL &&
+                  identical_types(skip_typerefs(param->type),
+                                  skip_typerefs(expr->type)));
+  set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+  expr->variant.variable = param;
+}  /* lower_param_ref */
+
+
 void lower_expr_full(an_expr_node_ptr expr,
                      a_boolean        assume_expr_is_non_null)
 /*
@@ -14077,7 +14103,6 @@ cast.  See lower_expr for typical invocation.
     case enk_routine:
     case enk_field:
     case enk_address_of_ellipsis:
-    case enk_param_ref:
       /* No processing required. */
       break;
     case enk_variable:
@@ -14744,6 +14769,10 @@ cast.  See lower_expr for typical invocation.
     case enk_lambda:
       /* Lower a lambda expression. */
       lower_lambda(expr);
+      break;
+    case enk_param_ref:
+      /* Lower a parameter reference. */
+      lower_param_ref(expr);
       break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:

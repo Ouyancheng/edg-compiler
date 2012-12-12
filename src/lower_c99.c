@@ -3863,7 +3863,9 @@ second parameter.
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_param_ref:
-      /* Nothing to be done. */
+      /* Nothing to be done (the back end handles this case). */
+      check_assertion(expr->variant.param_ref.param_num != 0 &&
+                      expr->variant.param_ref.levels_up == 1);
       break;
     default:
       unexpected_condition_str("Invalid C99 IL expression kind");

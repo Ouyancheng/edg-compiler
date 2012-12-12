@@ -918,27 +918,6 @@ because of remapped variables.
         }  /* if */
       }  /* if */
     }  /* if */
-  } else if (kind == (an_expr_node_kind)enk_param_ref) {
-    /* When inlining a non-static data member initializer, an enk_param_ref
-       can occur to indicate a reference to "this".  For example:
-         struct A { void* m = this; };
-       In this case, replace the node with an enk_variable for the parameter
-       that represents "this" in the routine being inlined and recurse
-       to find a suitable replacement for it. */
-    a_variable_ptr   this_param;
-    check_assertion(expr->variant.param_ref.param_num == 0 &&
-                    routine_scope_being_inlined->variant.routine.ptr->
-                                                                special_kind ==
-                                     (a_special_function_kind)sfk_constructor);
-    for (this_param = routine_scope_being_inlined->variant.routine.parameters;
-         this_param != NULL;
-         this_param = this_param->next) {
-      if (this_param->is_this_parameter) break;
-    }  /* for */
-    check_assertion(this_param != NULL);
-    set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-    expr->variant.variable = this_param;
-    adjust_copied_expression_for_inlining(expr);
   }  /* if */
   if (expr->is_non_normalized_boolean_controlling_expr) {
     /* Non-normalized boolean controlling expressions have an implied "!= 0",
