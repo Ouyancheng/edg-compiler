@@ -3776,16 +3776,15 @@ returned set to TRUE.
       /* In ordinary C a struct or union variable may be initialized by an
          object of the same type as long as dynamic initialization is
          otherwise allowed. */
-      if (scan_class_initializer_expression(dps, &init_dip)) {
+      scan_class_initializer_expression(dps);
+      init_err = dps->init_state.init_error;
+      init_con = dps->init_state.init_con;
+      init_dip = dps->init_state.init_dip;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        if (decl_pos_block != NULL) {
-          decl_pos_block->var_init_range.end = curr_construct_end_position;
-        }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      } else {
-        /* No appropriate constructor was found.  Abort the initialization. */
-        init_err = TRUE;
+      if (decl_pos_block != NULL) {
+        decl_pos_block->var_init_range.end = curr_construct_end_position;
       }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else if (gnu_mode && static_lifetime) {
       /* In GNU modes, a compound literal is treated as a constant-expression
          that can initialize a variable with a static lifetime.  We may also

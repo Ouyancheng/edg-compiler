@@ -4697,7 +4697,11 @@ field designator.
   a_type_ptr     sub_type;
   a_field_ptr    field;
 
-  if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
+  if (constant_should_be_put_out_as_expr(constant)) {
+    /* The constant resulted from a recorded constant-expression: Render it in
+       its original form. */
+    gen_expr_with_parens(constant->expr);
+  } else if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     a_boolean      array_case = FALSE, template_dependent_case = FALSE;
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
     if (!suppress_braces && !transparent_case) {
@@ -4886,11 +4890,7 @@ field designator.
                           /*need_parens=*/TRUE, &octl);
   } else {
     /* Normal constant. */
-    if (constant_should_be_put_out_as_expr(constant)) {
-      gen_expr_with_parens(constant->expr);
-    } else {
-      gen_constant(constant, /*need_parens=*/TRUE);
-    }  /* if */
+    gen_constant(constant, /*need_parens=*/TRUE);
   }  /* if */
 }  /* gen_initializer_constant */
 

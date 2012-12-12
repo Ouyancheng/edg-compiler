@@ -486,9 +486,7 @@ extern an_expr_node_ptr prep_generated_arg_expr(an_expr_node_ptr  expr,
                                                 a_source_position *err_pos);
 
 #if !STANDALONE_UTILITY_PROGRAM
-extern a_boolean scan_class_initializer_expression(a_decl_parse_state  *dps,
-                                                   a_dynamic_init_ptr  *dip);
-
+extern void scan_class_initializer_expression(a_decl_parse_state  *dps);
 
 extern a_boolean whole_aggr_class_init_possible(
                                             an_init_component_ptr  icp,

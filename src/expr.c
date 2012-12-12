@@ -35329,16 +35329,16 @@ If an error is detected, use err_pos as the error position.
 }  /* prep_generated_arg_expr */
 
 
-a_boolean scan_class_initializer_expression(a_decl_parse_state  *dps,
-                                            a_dynamic_init_ptr  *dip)
+void scan_class_initializer_expression(a_decl_parse_state  *dps)
 /*
 Scan an expression that is the initial value of a variable of class type.
 *dps describes various aspects of the initialization.  E.g., dps->type
 indicates the class type (it may have some qualifiers on top of it).  When
-there is no error build a dynamic initialization entry that describes the
-initialization to be done (placing the pointer to it in *dip) and return
-TRUE.  If there is an error return FALSE.  This routine is used in both C
-and C++, but it exists to allow copy constructor elision in C++ cases:
+there is no error build a dynamic initialization entry or a constant that
+describes the initialization to be done and return it through dps->init_state.
+Otherwise, set dps->init_state.init_error to TRUE.
+This routine is used in both C and C++, but it exists to allow copy
+constructor elision in C++ cases:
 
   struct A { A(int) {...} A(const A&) {...} };
   A x = 1;            // A::A(int)
@@ -35352,8 +35352,8 @@ As indicated, this is initialization with the "=" semantics
   an_operand          result;
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
-  a_boolean           okay = TRUE;
   a_conv_context_set  conv_context = CCO_INITIALIZING_VARIABLE;
+  a_dynamic_init_ptr  dip;
 
   db_enter(3, "scan_class_initializer_expression");
   check_assertion(dps != NULL);
@@ -35372,10 +35372,28 @@ As indicated, this is initialization with the "=" semantics
                                    conv_context,
                                    ec_bad_initializer_type,
                                    /*elision_done=*/(a_boolean *)NULL,
-                                   dip);
-  wrap_up_dynamic_init_full_expression(*dip);
-  /* *dip == NULL means there was an error. */
-  if (*dip == NULL) okay = FALSE;
+                                   &dps->init_state.init_dip);
+  dip = dps->init_state.init_dip;
+  wrap_up_dynamic_init_full_expression(dip);
+  if (dip == NULL) {
+    /* dps->init_state.init_dip == NULL means there was an error. */
+    dps->init_state.init_error = TRUE;
+  } else {
+    if (dip->destructor == NULL) {
+      a_constant_ptr  cp = NULL;
+      if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+        cp = dip->variant.constant;
+      } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+        if (is_constant_node(dip->variant.expression)) {
+          cp = dip->variant.expression->variant.constant;
+        }  /* if */
+      }  /* if */
+      if (cp != NULL) {
+        dps->init_state.init_con = cp;
+        dps->init_state.init_dip = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
@@ -35383,7 +35401,6 @@ As indicated, this is initialization with the "=" semantics
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
-  return okay;
 }  /* scan_class_initializer_expression */
 
 
