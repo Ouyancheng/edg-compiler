@@ -12332,6 +12332,13 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     rp->source_corresp.access = templ_rout->source_corresp.access;
     rp->template_arg_list = templ_arg_list;
     rp->assoc_template = tssp->il_template_entry;
+    if (special_kind_is(rp, sfk_destructor) ||
+        (special_kind_is(rp, sfk_operator) &&
+         is_delete_operator(rp->variant.opname_kind))) {
+      /* If this is an instance of a destructor or operator delete, an
+         implicit exception specification may need to be generated. */
+      update_routine_type_exception_specification_if_needed(rp, &rp->type);
+    }  /* if */
     record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
                               sym, &sym->decl_position,
                               (a_source_sequence_entry_ptr)NULL);

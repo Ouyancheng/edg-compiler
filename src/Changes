@@ -1,5 +1,20 @@
 Version 4.6
 
+12/12/12 [EDGcpfe/13518]
+Spurious exception specification mismatch error on template operator delete
+
+In strict C++11 mode, the front end sometimes issued a spurious exception
+specification incompatibility error when specializing an operator delete
+template.  For example:
+
+  template<class T> void operator delete(void*, T) {}
+  template<> void operator delete(void*, float) {}
+      // Previously triggered a spurious error in strict C++11 mode.
+
+This is now fixed.  (Operator delete is special in this context because in
+strict C++11 mode it has an implicit "noexcept" specification by default.)
+
+
 12/12/12 [EDGcpfe/13383]
 Regression involving dependent name looked up in both base and derived class
 
