@@ -1417,6 +1417,8 @@ extern void get_variable_initializer(a_variable_ptr     variable,
                                      an_init_kind       *init_kind,
                                      an_initializer_ptr *initializer);
 
+extern a_constant_ptr initializer_constant(a_variable_ptr var);
+
 extern void remove_from_variables_list(a_variable_ptr var_ptr,
                                        a_scope_depth  scope_depth);
 

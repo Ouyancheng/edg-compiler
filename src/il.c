@@ -12439,6 +12439,37 @@ or the variable's scope must be on the scope stack.
   }  /* if */
 }  /* get_variable_initializer */
 
+
+a_constant_ptr initializer_constant(a_variable_ptr var)
+/*
+If var is initialized with a constant expression, return the initializer
+constant; otherwise, return NULL.
+*/
+{
+  a_constant_ptr     con_val = NULL;
+  an_init_kind       init_kind;
+  an_initializer_ptr init;
+
+  /* Get the initializer and check if it is a constant. */
+  get_variable_initializer(var, (a_scope_ptr)NULL, &init_kind, &init);
+  if (init_kind == (an_init_kind)initk_static) {
+    /* The variable has a constant initial value. */
+    con_val = init->constant;
+  } else if (init_kind == (an_init_kind)initk_dynamic) {
+    /* The variable is dynamically initialized.  See if the initialization
+       is to a constant. */
+    if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
+      con_val = init->dynamic->variant.constant;
+    } else if (init->dynamic->kind == (a_dynamic_init_kind)dik_expression &&
+               is_constant_node(init->dynamic->variant.expression)) {
+      /* FIXME: This case should not arise and should be removed once
+         constexpr initializers are all represented as dik_constant. */
+      con_val = init->dynamic->variant.expression->variant.constant;
+    }  /* if */
+  }  /* if */
+  return con_val;
+}  /* if */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_vla_dimension_ptr make_vla_dimension(a_type_ptr        array_type,

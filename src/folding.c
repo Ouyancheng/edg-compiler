@@ -5964,12 +5964,18 @@ prefer to handle that higher up.
       set_error_constant(con);
       break;
     case enk_variable:
-      /* An rvalue for a variable.  There aren't any pointer-typed constant
-         variables in the C or C++ languages currently. */
+      /* An rvalue for a variable can only be a pointer-typed constant in
+         C++11. */
+      if (constexpr_enabled) {
+        a_constant_ptr var_con = var_constant_value(expr->variant.variable);
+        if (var_con != NULL) {
+          copy_constant(var_con, con);
+          is_constant_ptr = TRUE;
+        }  /* if */
+      }  /* if */
       break;
     case enk_param_ref:
-      /* A reference to a parameter is similar to a variable in this
-         respect. */
+      /* A reference to a parameter cannot be a pointer constant. */
       break;
     case enk_routine:
       /* An rvalue for a function.  That's a function pointer, which can
@@ -6067,6 +6073,19 @@ cast_case:
               /* A cast to a virtual base class might not fold to a
                  constant even if the original pointer is a constant. */
               if (err_code == ec_no_error && !did_not_fold) {
+                is_constant_ptr = TRUE;
+              }  /* if */
+            }  /* if */
+            break;
+          case eok_dot_field:
+          case eok_points_to_field:
+            /* A member of an object with a const literal type initialized
+               to a constant is a constant in C++11. */
+            if (constexpr_enabled) {
+              a_constant_ptr member_sel_con =
+                                         fold_constexpr_member_selection(expr);
+              if (member_sel_con != NULL) {
+                copy_constant(member_sel_con, con);
                 is_constant_ptr = TRUE;
               }  /* if */
             }  /* if */
@@ -8342,6 +8361,111 @@ return TRUE; otherwise, return FALSE.
                                  result_con);
   return folded;
 }  /* fold_constexpr_ctor */
+
+
+a_constant_ptr fold_constexpr_member_selection(an_expr_node_ptr node)
+/*
+node points to a field selection operation node (eok_dot_field or
+eok_points_to_field).  If the object expression is a constant object of
+literal type, return a constant containing the value of the field
+designated by the second operand; otherwise, return NULL.  A constant
+returned by this routine should be considered read-only and must be copied
+before adding it to the IL tree.
+*/
+{
+  a_constant_ptr   result_con = NULL;
+  a_type_ptr       obj_expr_type;
+  a_boolean        pointer_case;
+  an_expr_node_ptr obj_expr;
+  an_expr_node_ptr field_expr;
+
+  check_assertion(constexpr_enabled &&
+                  is_operation_node(node) &&
+                  (node_operator_is(node, eok_dot_field) ||
+                   node_operator_is(node, eok_points_to_field)));
+  /* Get the operands and the type of the object expression. */
+  obj_expr = node->variant.operation.operands;
+  field_expr = obj_expr->next;
+  if (is_template_param_or_nonreal_class_type(obj_expr->type)) {
+    /* Such expressions cannot be folded. */
+  } else {
+    if (node_operator_is(node, eok_points_to_field)) {
+      obj_expr_type = type_pointed_to(obj_expr->type);
+      pointer_case = TRUE;
+    } else {
+      obj_expr_type = obj_expr->type;
+      pointer_case = FALSE;
+    }  /* if */
+    obj_expr_type = skip_typerefs(obj_expr_type);
+    check_assertion(is_immediate_class_type(obj_expr_type));
+    if (is_literal_type(obj_expr_type)) {
+      /* The object expression has a literal type.  Now check to see if it
+         is a compile-time constant and, if so, set obj_expr_con to point
+         to it. */
+      a_constant_ptr obj_expr_con = NULL;
+      if (pointer_case) {
+        /* Check to see if we have a pointer constant as the left operand;
+           if so and it designates a variable, and if the variable has a
+           constant initializer, we will use that initializer as the object
+           expression. */
+        a_constant pointer_con;
+        if (constant_rvalue_pointer(obj_expr, &pointer_con,
+                                    /*address_escapes=*/FALSE)) {
+          a_variable_ptr var;
+          if (con_is_exact_addr_of_variable(&pointer_con, &var,
+                                            /*array_decay_allowed=*/FALSE)) {
+            obj_expr_con = var_constant_value(var);          
+          }  /* if */
+        }  /* if */
+      } else {
+        /* The eok_dot_field case has three possibilities that might allow
+           folding: a constexpr variable, an aggregate constant, or another
+           eok_dot_field expression. */
+        if (is_variable_node(obj_expr)) {
+          /* Check to see if the variable has a constant initializer and,
+             if so, get it. */
+          obj_expr_con = var_constant_value(obj_expr->variant.variable);
+        } else if (is_constant_node(obj_expr)) {
+          /* The object expression has already been folded to a constant, so
+             we can use it directly. */
+          obj_expr_con = obj_expr->variant.constant;
+        } else if (is_operation_node(obj_expr) &&
+                   node_operator_is(obj_expr, eok_dot_field)) {
+          /* Recursively check to see if the object expression can be
+             folded to a constant. */
+          obj_expr_con = fold_constexpr_member_selection(obj_expr);
+        }  /* if */
+      }  /* if */
+      if (obj_expr_con != NULL &&
+          obj_expr_con->kind == (a_constant_repr_kind)ck_aggregate) {
+        /* We've found a constexpr object.  Now find the element of the
+           aggregate that corresponds to the specified field and set
+           result_con to point to it. */
+        a_constant_ptr member_con =
+                                obj_expr_con->variant.aggregate.first_constant;
+        a_field_ptr    field = next_initializable_field(
+                         obj_expr_type->variant.class_struct_union.field_list);
+        while (member_con != NULL && field != NULL &&
+               field != field_expr->variant.field) {
+          /* FIXME: The traversal of the ck_aggregate will need to be more
+             elaborate to allow for things like anonymous unions, arrays
+             initialized with string literals, etc. */
+          member_con = member_con->next;
+          field = next_initializable_field(field->next);
+        }  /* while */
+        /* Check to make sure that the field and constant match. */
+        check_assertion(member_con != NULL && field != NULL &&
+                        same_type_with_added_qualifiers(
+                                                    member_con->type,
+                                                    field->type,
+                                                    /*ignore_qualifiers=*/TRUE,
+                                                    (a_boolean *)NULL));
+        result_con = member_con;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result_con;
+}  /* fold_constexpr_member_selection */
 
 #if DEBUG
 

@@ -5995,22 +5995,8 @@ variable.
 
   if (!C_mode() && vp != NULL && !dps->init_state.init_error &&
       is_potentially_constant_valued_variable(vp)) {
-    /* A const variable initialized with a constant-expression can be
-       used as a constant in other constant-expressions. */
-    an_init_kind       init_kind;
-    an_initializer_ptr init;
-    a_constant_ptr     con_val = NULL;
-    get_variable_initializer(vp, (a_scope_ptr)NULL, &init_kind, &init);
-    if (init_kind == (an_init_kind)initk_static) {
-      /* The variable has a constant initial value. */
-      con_val = init->constant;
-    } else if (init_kind == (an_init_kind)initk_dynamic) {
-      /* The variable is dynamically initialized.  See if the initialization
-         is to a constant. */
-      if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
-        con_val = init->dynamic->variant.constant;
-      }  /* if */
-    }  /* if */
+    /* See if the variable is initialized with a constant. */
+    a_constant_ptr con_val = initializer_constant(vp);
     if (con_val != NULL) {
       if (strict_ansi_mode && dps->init_state.constant_expr_ruled_out) {
         /* In strict mode, rule out some subtle cases that produce a constant

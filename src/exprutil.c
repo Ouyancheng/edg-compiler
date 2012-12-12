@@ -13465,7 +13465,8 @@ initializer, is done in var_constant_value[_full].
   a_boolean  is_const = FALSE;
   a_type_ptr var_type = var->type;
 
-  if ((is_integral_or_enum_type(var_type) &&
+  if (((is_integral_or_enum_type(var_type) ||
+        (constexpr_enabled && is_literal_type(var_type))) &&
        is_const_qualified_type(var_type)) ||
       is_template_param_type(var_type)) {
     is_const = TRUE;
@@ -13555,23 +13556,13 @@ be returned for a C mode const variable.
        variables when recording a constant expression (the expression is
        function-local, and that forces the initializer constant to be made
        function-local as well). */
-    get_variable_initializer(var, (a_scope_ptr)NULL, &init_kind, &init);
-    if (init_kind == (an_init_kind)initk_static) {
-      /* The variable has a constant initial value. */
-      con_val = init->constant;
-    } else if (init_kind == (an_init_kind)initk_dynamic) {
-      /* The variable is dynamically initialized.  See if the initialization
-         is to a constant. */
-      if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
-        con_val = init->dynamic->variant.constant;
-      }  /* if */
-    } else if (gpp_mode &&
-               init_kind == (an_init_kind)initk_none &&
-               var->source_corresp.is_class_member &&
-               !var->is_member_constant &&
-               parent_class_of(var)->variant.class_struct_union
-                                                           .is_nonreal_class &&
-               is_template_dependent_type(var->type)) {
+    con_val = initializer_constant(var);
+    if (con_val == NULL && gpp_mode &&
+        init_kind == (an_init_kind)initk_none &&
+        var->source_corresp.is_class_member &&
+        !var->is_member_constant &&
+        parent_class_of(var)->variant.class_struct_union.is_nonreal_class &&
+        is_template_dependent_type(var->type)) {
       /* g++ accepts a const static data member of a class template with no
          in-class initializer as a constant-expression during the prototype
          instantiation of its class.  In a real instantiation, the out-of-class
@@ -13586,12 +13577,14 @@ be returned for a C mode const variable.
       con_val = NULL;
     }  /* if */
     if (con_val != NULL) {
-      if (con_val->kind == (a_constant_repr_kind)ck_aggregate) {
-        /* An aggregate cannot be considered a constant value. */
+      if (con_val->kind == (a_constant_repr_kind)ck_aggregate &&
+          !is_literal_type(var->type)) {
+        /* An aggregate is only considered a constant value for a const
+           literal type. */
         con_val = NULL;
       } else if (con_val->kind == (a_constant_repr_kind)ck_address) {
         /* The address of a variable, routine, or string literal cannot
-           generally be considered a constant value. */
+           generally be considered a constant value except in C++11. */
         /* However, in g++ mode they are allowed because const variables
            initialized with scalars are considered constants (see
            is_potentially_constant_valued_variable).  String literals
@@ -13601,7 +13594,7 @@ be returned for a C mode const variable.
            of the same constant if that helps optimization) and
            cases specified as constant variables (for which back ends are
            required to use the same constant for every reference). */
-        if (!gpp_mode ||
+        if ((!gpp_mode && !constexpr_enabled) ||
             con_val->variant.address.kind ==
                                           (an_address_base_kind)abk_constant) {
           con_val = NULL;
@@ -17161,6 +17154,21 @@ it might produce an error).
       /* Operations that don't have returns_lvalue_instead_of_usual_rvalue
          set. */
       switch (op) {
+        case eok_dot_field:
+        case eok_points_to_field:
+          /* An object expression designating a literal class type
+             initialized to a constant value allows use of a member
+             value as a constant. */
+          if (constexpr_enabled &&
+              (con_expr_value = fold_constexpr_member_selection(node)) !=
+                                                                        NULL) {
+            /* Use con_expr_value (designating the member constant) as the
+               value of the expression. */
+            node->is_lvalue = FALSE;
+            node->type = rvalue_node_type;
+            processed = TRUE;
+          }  /* if */
+          break;
         case eok_indirect:
           op1 = skip_parens(op1);
           if (allow_folding != NULL && gnu_mode && is_constant_node(op1)) {

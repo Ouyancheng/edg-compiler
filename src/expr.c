@@ -6725,42 +6725,45 @@ case).
   /* Remember if this was an arrow or a dot selector. */
   is_arrow_operator = (operator_token == tok_arrow);
 
-  if (curr_expr_kind_is(ek_pp)) {
-    /* Field selection not allowed in preprocessor expression. */
-    expr_pos_error(ec_bad_pp_operator, &pos_curr_token);
-    err = TRUE;
-  } else if (curr_expr_kind_is(ek_integral_constant) ||
-             curr_expr_kind_is(ek_template_arg)) {
-    /* Field selection is not allowed in integral constant expressions
-       or template argument expressions. */
-    if (current_mode_allows_field_selection_folding()) {
-      /* ... except in certain modes, where something like
-           struct A { enum { e1 = 1 }; } a;
-           int x[a.e1];
-         is allowed.  The constant check is done at the end. */
+  if (curr_expr_kind_is_traditional_const()) {
+    if (curr_expr_kind_is(ek_pp)) {
+      /* Field selection not allowed in preprocessor expression. */
+      expr_pos_error(ec_bad_pp_operator, &pos_curr_token);
+      err = TRUE;
+    } else if (curr_expr_kind_is(ek_integral_constant) ||
+               curr_expr_kind_is(ek_template_arg)) {
+      /* Field selection is not allowed in integral constant expressions
+         or template argument expressions. */
+      if (current_mode_allows_field_selection_folding()) {
+        /* ... except in certain modes, where something like
+             struct A { enum { e1 = 1 }; } a;
+             int x[a.e1];
+           is allowed.  The constant check is done at the end. */
+        allow_constant_selection = TRUE;
+      } else if (curr_expr_kind_is(ek_integral_constant)) {
+        /* Field selection not allowed in integral constant expression. */
+        expr_pos_error(ec_bad_integral_operator, &pos_curr_token);
+        err = TRUE;
+      } else {
+        /* Field selection not allowed in a template argument expression. */
+        expr_pos_error(ec_bad_templ_arg_expr_operator, &pos_curr_token);
+        err = TRUE;
+      }  /* if */
+    } else if (curr_expr_kind_is(ek_init_constant) &&
+               !C_mode() && is_arrow_operator &&
+               current_mode_allows_field_selection_folding() &&
+               (is_an_lvalue(operand_1) ||
+                (is_an_rvalue(operand_1) &&
+		 !is_constant_operand(operand_1)))) {
+      /* In certain C++ modes, a->e1 can be used as a constant if e1 is a
+         constant member (like an enumerator).  The "a" expression requires
+         a dereference (test just done), so this selection will get an
+         error in the normal processing.  Suppress the dereference of the
+         first operand in exchange for a requirement that the result is a
+         constant (in which case the left operand would not have to be
+         evaluated). */
       allow_constant_selection = TRUE;
-    } else if (curr_expr_kind_is(ek_integral_constant)) {
-      /* Field selection not allowed in integral constant expression. */
-      expr_pos_error(ec_bad_integral_operator, &pos_curr_token);
-      err = TRUE;
-    } else {
-      /* Field selection not allowed in a template argument expression. */
-      expr_pos_error(ec_bad_templ_arg_expr_operator, &pos_curr_token);
-      err = TRUE;
     }  /* if */
-  } else if (curr_expr_kind_is(ek_init_constant) &&
-             !C_mode() && is_arrow_operator &&
-             current_mode_allows_field_selection_folding() &&
-             (is_an_lvalue(operand_1) ||
-              (is_an_rvalue(operand_1) && !is_constant_operand(operand_1)))) {
-    /* In certain C++ modes, a->e1 can be used as a constant if e1
-       is a constant member (like an enumerator).  The "a" expression
-       requires a dereference (test just done), so this selection will
-       get an error in the normal processing.  Suppress the dereference
-       of the first operand in exchange for a requirement that the result
-       is a constant (in which case the left operand would not have to be
-       evaluated). */
-    allow_constant_selection = TRUE;
   }  /* if */
   if (err) {
     /* Operation is not allowed in this kind of expression. */
