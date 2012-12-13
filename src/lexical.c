@@ -13359,10 +13359,10 @@ when scanning the default argument of the template template parameter.
 
 
   options = GID_TEMPLATE_ARGS_OPTIONAL;
-  if (gpp_mode && gnu_version >= 30400) {
-    /* The GNU compiler treats "T::template X" as a class template.  Normally
-       the "template" keyword there is only used to disambiguate a "<"
-       following an identifier. */
+  if ((gpp_mode && gnu_version >= 30400) || microsoft_mode) {
+    /* The GNU and Microsoft compilers treat "T::template X" as a class
+       template.  Normally the "template" keyword there is only used to
+       disambiguate a "<" following an identifier. */
     options |= GID_CLASS_TEMPLATE_REQUIRED;
   }  /* if */
   if (is_generalized_identifier_start(options)) {

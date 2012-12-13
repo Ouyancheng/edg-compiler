@@ -1,5 +1,20 @@
 Version 4.6
 
+12/13/12 [EDGcpfe/13482]
+Microsoft compatibility: regression involving template keyword in default
+template template argument
+
+A change made in version 4.5 (see EDGcpfe/12785 on 3/23/12) resulted in
+spurious errors in Microsoft mode on the use of the template keyword for
+syntactic disambiguation in a default template template argument.  Now fixed.
+Note that although the earlier change was made to address an issue when
+the --parse_templates option was used, this issue affects all uses of
+Microsoft mode.
+
+  template <template <typename U> class T> struct A { };
+  template <typename T> void f(A<T::template xxx>* = 0);
+
+
 12/13/12 [EDGcpfe/13170]
 Visibility of template parameter in its default argument
 
