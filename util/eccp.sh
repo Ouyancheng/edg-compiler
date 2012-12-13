@@ -1593,6 +1593,7 @@ process_option()
           --diag_error=* | \
           --diag_once=* | \
           --inline_statement_limit=* | \
+          --mmap_address=* | \
           --microsoft_version=* | \
           --gnu_version=* | \
           --pending_instantiations=* | \
