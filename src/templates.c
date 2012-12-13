@@ -17586,6 +17586,14 @@ entered into the symbol table.
       /* Create a symbol and enter it into the symbol table. */
       sym = enter_symbol(kind, locator, decl_scope_level,
                          /*suppress_redecl_error=*/FALSE);
+      /* Mark the symbol as invisible so that it cannot be used in the
+         template parameter's default argument (if any).  This is not
+         done in Microsoft mode for type parameters, because we don't have
+         the ability to skip over arbitrary invalid type parameters.  An
+         error will still be issued if the default is instantiated. */
+      if (!microsoft_mode || kind != (a_symbol_kind)sk_type) {
+        sym->is_invisible = TRUE;
+      }  /* if */
     } else {
       /* The symbol should not be entered into the symbol table.  Create a
          symbol of the appropriate name and kind. */
@@ -17838,6 +17846,9 @@ parameter entry for the parameter.
     set_template_cache_info(&template_param->default_arg_cache,
                             &def_arg_cache, decl_state->decl_info);
   }  /* if */
+  /* Mark the symbol as visible now that the default (if any) has been
+     scanned. */
+  sym->is_invisible = FALSE;
   return template_param;
 }  /* scan_type_template_param */
 
@@ -18015,6 +18026,9 @@ depends on a template parameter.
     set_template_cache_info(&template_param->default_arg_cache,
                             &def_arg_cache, decl_state->decl_info);
   }  /* if */
+  /* Mark the symbol as visible now that the default (if any) has been
+     scanned. */
+  sym->is_invisible = FALSE;
   return template_param;
 }  /* scan_nontype_template_param */
 
@@ -18250,6 +18264,9 @@ depends on a another template parameter.
     set_template_cache_info(&template_param->cache, (a_token_cache_ptr)NULL,
                             parent_decl_state->decl_info);
   }  /* if */
+  /* Mark the symbol as visible now that the default (if any) has been
+     scanned. */
+  sym->is_invisible = FALSE;
   return template_param;
 }  /* scan_template_template_param */
 

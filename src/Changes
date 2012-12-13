@@ -1,5 +1,19 @@
 Version 4.6
 
+12/13/12 [EDGcpfe/13170]
+Visibility of template parameter in its default argument
+
+A template parameter was incorrectly being found by lookup when scanning
+its default argument.  Template parameters are now no longer visible
+in their default arguments.  An exception is made for type parameters
+in Microsoft mode (see 4/13/06 entry).
+
+  template <typename T> struct A {
+    static const bool value = true;
+  };
+  template <typename T, bool A = A<T>::value> struct B {};
+
+
 12/12/12 [EDGcpfe/13518]
 Spurious exception specification mismatch error on template operator delete
 
