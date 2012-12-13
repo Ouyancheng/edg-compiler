@@ -1682,7 +1682,7 @@ and return its value.
         goto number_error;
       }  /* if */
     }  /* if */
-    if (result > (size_t)(-1) / base) goto number_error;
+    if (result > (size_t)(-1) / (size_t)base) goto number_error;
     result *= base;
     if (result > (size_t)(-1) - digit) goto number_error;
     result += digit;
