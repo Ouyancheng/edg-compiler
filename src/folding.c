@@ -8367,8 +8367,8 @@ a_constant_ptr fold_constexpr_member_selection(an_expr_node_ptr node)
 /*
 node points to a field selection operation node (eok_dot_field or
 eok_points_to_field).  If the object expression is a constant object of
-literal type, return a constant containing the value of the field
-designated by the second operand; otherwise, return NULL.  A constant
+literal type and the designated field is non-mutable, return a constant
+containing the value of the field; otherwise, return NULL.  A constant
 returned by this routine should be considered read-only and must be copied
 before adding it to the IL tree.
 */
@@ -8403,10 +8403,12 @@ before adding it to the IL tree.
     /* Not a dependent type. */
     obj_expr_type = skip_typerefs(obj_expr_type);
     check_assertion(is_immediate_class_type(obj_expr_type));
-    if (is_literal_type(obj_expr_type)) {
-      /* The object expression has a literal type.  Now check to see if it
-         is a compile-time constant and, if so, set obj_expr_con to point
-         to it. */
+    if (is_literal_type(obj_expr_type) &&
+        !field_expr->variant.field->is_mutable) {
+      /* The object expression has a literal type and the field is not
+         mutable.  Now check to see if the object expression is a
+         compile-time constant and, if so, set obj_expr_con to point to
+         it. */
       a_constant_ptr obj_expr_con = NULL;
       if (pointer_case) {
         /* Check to see if we have a pointer constant as the left operand;
