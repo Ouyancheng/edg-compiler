@@ -8375,7 +8375,7 @@ before adding it to the IL tree.
 {
   a_constant_ptr   result_con = NULL;
   a_type_ptr       obj_expr_type;
-  a_boolean        pointer_case;
+  a_boolean        pointer_case = FALSE;
   an_expr_node_ptr obj_expr;
   an_expr_node_ptr field_expr;
 
@@ -8386,16 +8386,21 @@ before adding it to the IL tree.
   /* Get the operands and the type of the object expression. */
   obj_expr = node->variant.operation.operands;
   field_expr = obj_expr->next;
-  if (is_template_param_or_nonreal_class_type(obj_expr->type)) {
-    /* Such expressions cannot be folded. */
+  obj_expr_type = obj_expr->type;
+  /* Watch out for dependent types. */
+  if (is_template_param_or_nonreal_class_type(obj_expr_type)) {
+    obj_expr_type = NULL;
   } else {
     if (node_operator_is(node, eok_points_to_field)) {
       obj_expr_type = type_pointed_to(obj_expr->type);
       pointer_case = TRUE;
-    } else {
-      obj_expr_type = obj_expr->type;
-      pointer_case = FALSE;
+      if (is_template_param_or_nonreal_class_type(obj_expr_type)) {
+        obj_expr_type = NULL;
+      }  /* if */
     }  /* if */
+  }  /* if */
+  if (obj_expr_type != NULL) {
+    /* Not a dependent type. */
     obj_expr_type = skip_typerefs(obj_expr_type);
     check_assertion(is_immediate_class_type(obj_expr_type));
     if (is_literal_type(obj_expr_type)) {
@@ -8453,14 +8458,23 @@ before adding it to the IL tree.
           member_con = member_con->next;
           field = next_initializable_field(field->next);
         }  /* while */
-        /* Check to make sure that the field and constant match. */
-        check_assertion(member_con != NULL && field != NULL &&
-                        same_type_with_added_qualifiers(
+        if (member_con == NULL) {
+          /* We ran off the end of the aggregate initializer, so the field
+             was implicitly zero-initialized.  Make a zero constant of the
+             requisite type and use that. */
+          a_constant zero;
+          make_zero_of_proper_type(field_expr->type, &zero);
+          result_con = alloc_shareable_constant(&zero);
+        } else {
+          /* Check to make sure that the field and constant match. */
+          check_assertion(field != NULL &&
+                          same_type_with_added_qualifiers(
                                                     member_con->type,
                                                     field->type,
                                                     /*ignore_qualifiers=*/TRUE,
                                                     (a_boolean *)NULL));
-        result_con = member_con;
+          result_con = member_con;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
