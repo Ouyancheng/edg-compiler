@@ -8468,11 +8468,8 @@ before adding it to the IL tree.
         } else {
           /* Check to make sure that the field and constant match. */
           check_assertion(field != NULL &&
-                          same_type_with_added_qualifiers(
-                                                    member_con->type,
-                                                    field->type,
-                                                    /*ignore_qualifiers=*/TRUE,
-                                                    (a_boolean *)NULL));
+                          identical_types_ignoring_qualifiers(member_con->type,
+                                                              field->type));
           result_con = member_con;
         }  /* if */
       }  /* if */
