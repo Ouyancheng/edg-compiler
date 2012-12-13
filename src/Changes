@@ -1,5 +1,20 @@
 Version 4.6
 
+12/13/12 [EDGcpfe/13525]
+Internal error with --no_func_prototype_tags and C++-generating back end
+
+Using the --no_func_prototype_tags options (see entry for EDGcpfe/13002) in
+non-Microsoft C mode could previously lead to an internal error triggered by
+the C++-generating back end (in bypass_prototypes_param_src_seq_entries).
+For example:
+
+  void g(struct S *p) {}  // Previously aborted in the C++-generating
+                          // back end when compiled with options
+                          // "--c --no_func_prototype_tags".
+
+This is now fixed.
+
+
 12/13/12 [EDGcpfe/13254]
 GNU C++ compatibility: namespace made inline by namespace extension
 

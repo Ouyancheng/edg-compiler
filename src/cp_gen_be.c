@@ -5537,12 +5537,13 @@ will be put out when they are encountered when generating the parameter types.
       /* found_decl = FALSE; */
     } else {
       /* Anything else should be a type declared or defined in the parameter
-         list (and in the prototype scope, in non-Microsoft C). */
+         list (and in the prototype scope, in most C modes). */
       if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
-        check_assertion_str(il_header.source_language == sl_Cplusplus ||
-                            microsoft_mode ||
+#if !STANDALONE_UTILITY_PROGRAM
+        check_assertion_str(!func_prototype_tags_enabled ||
                             type->declared_in_function_prototype,
                       "bypass_prototyped_param_...: not prototype scope type");
+#endif /* !STANDALONE_UTILITY_PROGRAM */
          found_decl = is_type = TRUE;
       } else {
         unexpected_condition_str("bypass_prototyped_param_...: not a type");
