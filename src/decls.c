@@ -12714,17 +12714,14 @@ this using-directive.
 
 static void add_implicit_using_directive(
 				a_namespace_ptr		nsp,
-				a_scope_depth		depth,
-				a_source_position	*pos,
 				a_boolean		inline_namespace,
 				a_boolean		namespace_pushed)
 /*
 Add an implicit using-directive for an unnamed or inline namespace.  nsp
-is the namespace to be made visible by the using-directive.  depth is the
-scope depth at which it is to be added.  pos it the position to be used for
-the using-decl entry that is created.  inline_namespace is TRUE for an
-inline namespace, FALSE for an unnamed namespace.  namespace_pushed is
-TRUE if the namespace scope for nsp has already been pushed.
+is the namespace to be made visible by the using-directive.  inline_namespace
+is TRUE for an inline namespace, FALSE for an unnamed namespace.
+namespace_pushed is TRUE if the namespace scope for nsp has already been
+pushed.
 */
 {
   /* The model for the initial definition of an unnamed namespace
@@ -12746,8 +12743,9 @@ TRUE if the namespace scope for nsp has already been pushed.
      the namespace containing the inline namespace. */
   if (namespace_pushed) pop_scope();
   /* Do an implicit "using" directive of the unnamed namespace. */
-  make_using_directive(nsp, depth, pos, /*compiler_generated=*/TRUE,
-                       inline_namespace, (an_attribute_ptr)NULL);
+  make_using_directive(nsp, depth_scope_stack, &pos_curr_token,
+                       /*compiler_generated=*/TRUE, inline_namespace,
+                       (an_attribute_ptr)NULL);
   if (namespace_pushed) {
     (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
     scope_stack_top().explicitly_declared_namespace_extension = TRUE;
@@ -13127,8 +13125,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       if (is_unnamed_namespace || is_inline) {
         /* Create the using-directive to make the unnamed or inline namespace
            visible. */
-        add_implicit_using_directive(nsp, depth_scope_stack, &pos_curr_token,
-                                     is_inline, /*namespace_pushed=*/TRUE);
+        add_implicit_using_directive(nsp, is_inline,
+                                     /*namespace_pushed=*/TRUE);
       }  /* if */
       srk_flags |= SRK_DEFINITION;
     } else {
@@ -13150,8 +13148,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
           nsp->is_inline = TRUE;
           /* Create the using-directive to make the unnamed or inline namespace
              visible. */
-          add_implicit_using_directive(nsp, depth_scope_stack, &pos_curr_token,
-                                       is_inline, /*namespace_pushed=*/FALSE);
+          add_implicit_using_directive(nsp, is_inline,
+                                       /*namespace_pushed=*/FALSE);
         }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
