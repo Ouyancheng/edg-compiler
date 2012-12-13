@@ -180,6 +180,10 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(769,ec_out_of_memory_during_pch_allocation)*/
 /*lint -esym(769,ec_not_enough_preallocated_memory)*/
 /*lint -esym(769,ec_program_entity_too_large_for_pch)*/
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+/*lint -esym(759,get_page_size)*/
+/*lint -esym(765,get_page_size)*/
+/*lint -esym(769,ec_invalid_mmap_address)*/
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 #if !BACK_END_IS_C_GEN_BE || !ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
 /*lint -esym(769,ec_double_for_long_double)*/
