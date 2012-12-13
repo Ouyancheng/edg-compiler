@@ -35389,6 +35389,9 @@ As indicated, this is initialization with the "=" semantics
         }  /* if */
       }  /* if */
       if (cp != NULL) {
+        if (dip->is_partially_initialized) {
+          dps->init_state.partial_initializer = TRUE;
+        }  /* if */
         dps->init_state.init_con = cp;
         dps->init_state.init_dip = NULL;
       }  /* if */
