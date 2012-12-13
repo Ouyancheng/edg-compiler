@@ -1,5 +1,21 @@
 Version 4.6
 
+12/13/12 [EDGcpfe/13254]
+GNU C++ compatibility: namespace made inline by namespace extension
+
+g++ allows a namespace to be made inline through use of the inline
+keyword on a namespace extension declaration.  This previously resulted
+in a warning, but the namespace was not made inline.  The warning is
+still issued, but now the namespace is made inline in g++ mode (making A
+visible in the example below).
+
+  namespace N {
+    template<typename T> struct A;
+  }
+  inline namespace N { }
+  typedef A<char> a;
+
+
 12/13/12 [EDGcpfe/13482]
 Microsoft compatibility: regression involving template keyword in default
 template template argument

@@ -12712,6 +12712,50 @@ this using-directive.
 }  /* make_using_directive */
 
 
+static void add_implicit_using_directive(
+				a_namespace_ptr		nsp,
+				a_scope_depth		depth,
+				a_source_position	*pos,
+				a_boolean		inline_namespace,
+				a_boolean		namespace_pushed)
+/*
+Add an implicit using-directive for an unnamed or inline namespace.  nsp
+is the namespace to be made visible by the using-directive.  depth is the
+scope depth at which it is to be added.  pos it the position to be used for
+the using-decl entry that is created.  inline_namespace is TRUE for an
+inline namespace, FALSE for an unnamed namespace.  namespace_pushed is
+TRUE if the namespace scope for nsp has already been pushed.
+*/
+{
+  /* The model for the initial definition of an unnamed namespace
+       namespace { ... }
+     is this:
+       namespace UNIQUE { }
+       using namespace UNIQUE;
+       namespace UNIQUE { ... }
+     This enables this sort of code to work:
+       namespace {
+         int i;
+         int j = ::i;       // lookup rules find UNIQUE::i
+       }
+     The model is implemented by immediately popping the
+     original definition of the unnamed namespace, inserting the
+     implicit using directive, and then reopening the namespace as
+     as an extension.  A similar process is used for inline
+     namespaces -- an inline namespace using-directive is created in
+     the namespace containing the inline namespace. */
+  if (namespace_pushed) pop_scope();
+  /* Do an implicit "using" directive of the unnamed namespace. */
+  make_using_directive(nsp, depth_scope_stack, &pos_curr_token,
+                       /*compiler_generated=*/TRUE, inline_namespace,
+                       (an_attribute_ptr)NULL);
+  if (namespace_pushed) {
+    (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
+    scope_stack_top().explicitly_declared_namespace_extension = TRUE;
+  }  /* if */
+}  /* add_implicit_using_directive */
+
+
 static void namespace_declaration(a_token_kind  *final_token)
 /*
 Scan a namespace declaration, which may be an original namespace definition,
@@ -13082,32 +13126,10 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
         namespace_scope_pushed = TRUE;
       }  /* if */
       if (is_unnamed_namespace || is_inline) {
-        /* The model for the initial definition of an unnamed namespace
-             namespace { ... }
-           is this:
-             namespace UNIQUE { }
-             using namespace UNIQUE;
-             namespace UNIQUE { ... }
-           This enables this sort of code to work:
-             namespace {
-               int i;
-               int j = ::i;       // lookup rules find UNIQUE::i
-             }
-           The model is implemented by immediately popping the
-           original definition of the unnamed namespace, inserting the
-           implicit using directive, and then reopening the namespace as
-           as an extension.  A similar process is used for inline
-           namespaces -- an inline namespace using-directive is created in
-           the namespace containing the inline namespace. */
-        pop_scope();
-        /* Do an implicit "using" directive of the unnamed namespace. */
-        make_using_directive(nsp, depth_scope_stack, &pos_curr_token,
-                             /*compiler_generated=*/TRUE, is_inline,
-                             (an_attribute_ptr)NULL);
-        (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
-                                   nsp);
-        scope_stack[depth_scope_stack].
-                              explicitly_declared_namespace_extension = TRUE;
+        /* Create the using-directive to make the unnamed or inline namespace
+           visible. */
+        add_implicit_using_directive(nsp, depth_scope_stack, &pos_curr_token,
+                                     is_inline, /*namespace_pushed=*/TRUE);
       }  /* if */
       srk_flags |= SRK_DEFINITION;
     } else {
@@ -13124,6 +13146,14 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
                                                : ec_prev_ns_inline;
         pos_sy_diagnostic(strict_ansi_discretionary_severity, error_code,
                           &start_pos, ns_sym);
+        if (gpp_mode && is_inline) {
+          /* g++ allows a namespace extension to make a namespace inline. */
+          nsp->is_inline = TRUE;
+          /* Create the using-directive to make the unnamed or inline namespace
+             visible. */
+          add_implicit_using_directive(nsp, depth_scope_stack, &pos_curr_token,
+                                       is_inline, /*namespace_pushed=*/FALSE);
+        }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* User code is not permitted to extend the cli namespace. */
