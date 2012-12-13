@@ -12746,9 +12746,8 @@ TRUE if the namespace scope for nsp has already been pushed.
      the namespace containing the inline namespace. */
   if (namespace_pushed) pop_scope();
   /* Do an implicit "using" directive of the unnamed namespace. */
-  make_using_directive(nsp, depth_scope_stack, &pos_curr_token,
-                       /*compiler_generated=*/TRUE, inline_namespace,
-                       (an_attribute_ptr)NULL);
+  make_using_directive(nsp, depth, pos, /*compiler_generated=*/TRUE,
+                       inline_namespace, (an_attribute_ptr)NULL);
   if (namespace_pushed) {
     (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
     scope_stack_top().explicitly_declared_namespace_extension = TRUE;
