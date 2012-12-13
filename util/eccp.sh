@@ -680,6 +680,7 @@ check_abbreviation()
 --microsoft_16
 --microsoft_bugs
 --microsoft_version
+--mmap_address
 --module_init
 --mscorlib_file_name
 --multibyte_chars
@@ -1513,6 +1514,7 @@ process_option()
          --diag_once | \
          --inline_statement_limit | \
          --microsoft_version | \
+         --mmap_address | \
          --gnu_version | \
 	 --definition_list_file | \
          --pending_instantiations | \

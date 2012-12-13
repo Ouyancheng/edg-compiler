@@ -677,7 +677,7 @@ ec_pch_curr_directory_changed;;"precompiled header file %sq was not generated in
 ec_pch_header_files_have_changed;;"header files used to generate precompiled header file %sq have changed"
 ec_pch_cmd_line_option_mismatch;;"the command line options do not match those used when precompiled header file %sq was created"
 ec_pch_file_prefix_mismatch;;"the initial sequence of preprocessing directives is not compatible with those of precompiled header file %sq"
-ec_unable_to_get_mapped_memory;;"unable to obtain mapped memory for %sq"
+ec_unable_to_get_mapped_memory;;"unable to obtain mapped memory"
 ec_using_pch;;"\"%s\": using precompiled header file \"%s\""
 ec_creating_pch;;"\"%s\": creating precompiled header file \"%s\""
 ec_memory_mismatch;;"memory usage conflict with precompiled header file %sq"
@@ -2442,6 +2442,7 @@ ec_nonliteral_param_type_in_constexpr_function;;"a constexpr function cannot hav
 ec_unsequenced_use_of_variable;;"unsequenced uses of %n in expression may produce undefined results"
 ec_3rd_arg_of_assume_aligned_must_be_integral;;"the optional third argument of a call to __builtin_assumed_aligned must have integral type"
 ec_constexpr_destructor;;"a destructor cannot be constexpr"
+ec_invalid_mmap_address;;"address supplied for mmap must be aligned on a page boundary: "
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

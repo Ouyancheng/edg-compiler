@@ -1832,7 +1832,8 @@ assigns the address.
 
 /*
 When using mapped memory at a fixed address, the fixed address must be
-specified.  FIXED_ADDRESS_FOR_MMAP is used to provide the address.
+specified.  FIXED_ADDRESS_FOR_MMAP is used to provide the default address
+(which may be overridden on the command line with the --mmap_address option).
 */
 #ifndef FIXED_ADDRESS_FOR_MMAP
 #if USE_FIXED_ADDRESS_FOR_MMAP
@@ -3143,6 +3144,9 @@ extern void open_mapped_il_temp_file(void);
 #if MAKE_FRONT_END_CALLABLE
 extern void close_mapped_il_temp_file(void);
 #endif /* MAKE_FRONT_END_CALLABLE */
+
+extern int get_page_size(void);
+
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*

@@ -3071,7 +3071,7 @@ page size.
                                 (LPTSTR)NULL);
       if (f_map != INVALID_HANDLE_VALUE) {
 #if USE_FIXED_ADDRESS_FOR_MMAP
-        map_address = ((char *)FIXED_ADDRESS_FOR_MMAP) + curr_size;
+        map_address = fixed_address_for_mmap + curr_size;
         addr = MapViewOfFileEx(f_map, FILE_MAP_WRITE, (DWORD)0,
                                (DWORD)file_offset, incremental_size,
                                map_address);
@@ -3149,7 +3149,7 @@ Unmap a block of previously mapped memory.
 }  /* unmap_memory */
 
 
-static int get_page_size(void)
+int get_page_size(void)
 /*
 Return the size of a host page.  When map_file_region is called,
 incremental_size must be a multiple of the page size.
@@ -3181,7 +3181,7 @@ static FILE*	f_mmap_file;
 static int	mmap_file_number;
 			/* The file number of the mmap file. */
 
-static int get_page_size(void)
+int get_page_size(void)
 /*
 Return the size of a host page.  When map_file_region is called,
 incremental_size must be a multiple of the page size.
@@ -3229,7 +3229,7 @@ page size.
       /* Suppress the CodeCenter warning that would be issued because we
          build an address that is not yet valid. */
       /*SUPPRESS 25 */  /*SUPPRESS 26 */
-      map_address = ((char *)FIXED_ADDRESS_FOR_MMAP) + curr_size;
+      map_address = fixed_address_for_mmap + curr_size;
       /* Suppress the CodeCenter warning that an invalid pointer is being
          passed. */
       /*SUPPRESS 71 */

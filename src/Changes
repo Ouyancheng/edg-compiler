@@ -1,5 +1,20 @@
 Version 4.6
 
+12/13/12 [EDGcpfe/11484,EDGcpfe/12983]
+New option to set fixed mmap address at run time
+
+A new command-line option, --mmap_address, and corresponding global
+variable, fixed_address_for_mmap, have been added to allow the fixed address
+used by mmap to be set at run time.  The --mmap_address command-line option
+takes a decimal or hexadecimal (as indicated by a leading "0x" prefix)
+argument.  Valid values for this argument are dependent on the operating system
+and the only validation is to ensure that the given argument is aligned to a
+page boundary.  It is expected that this option will only be used in driver
+scripts as specifying an invalid value will likely lead to a catastrophic error
+or possibly an abort.  These changes only affect configurations where
+USE_FIXED_ADDRESS_FOR_MMAP is TRUE.
+
+
 12/13/12 [EDGcpfe/13525]
 Internal error with --no_func_prototype_tags and C++-generating back end
 

@@ -450,6 +450,11 @@ Initialize the option information table.
   add_option_description(optk_pch_verbose, "no_pch_verbose",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_none);
+#if USE_FIXED_ADDRESS_FOR_MMAP
+  add_option_description(optk_fixed_address_for_mmap, "mmap_address",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 #if !USE_MMAP_FOR_MEMORY_REGIONS
   add_option_description(optk_pch_mem, "pch_mem",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
@@ -1645,6 +1650,51 @@ return_point:
   return result;
 }  /* scan_opt_arg_number */
 
+#if USE_FIXED_ADDRESS_FOR_MMAP
+
+static char *scan_address(char *optstr)
+/*
+Scan an argument option as an address (either decimal or hexadecimal),
+and return its value.
+*/
+{
+  char   *arg_ptr = optstr;
+  size_t result = 0;
+  int    digit, base;
+
+  if (*arg_ptr != '\0' && *arg_ptr == '0' &&
+      (arg_ptr[1] == 'x' || arg_ptr[1] == 'X')) {
+    base = 16;
+    arg_ptr += 2;
+  } else {
+    base = 10;
+  }  /* if */
+  for (; *arg_ptr != '\0'; arg_ptr++) {
+    if (isdigit((unsigned char)*arg_ptr)) {
+      digit = *arg_ptr - '0';
+    } else {
+      if (base == 10) goto number_error;
+      if (*arg_ptr >= 'a' && *arg_ptr <= 'f') {
+        digit = *arg_ptr - 'a';
+      } else if (*arg_ptr >= 'A' && *arg_ptr <= 'F') {
+        digit = *arg_ptr - 'A';
+      } else {
+        goto number_error;
+      }  /* if */
+    }  /* if */
+    if (result > (size_t)(-1) / base) goto number_error;
+    result *= base;
+    if (result > (size_t)(-1) - digit) goto number_error;
+    result += digit;
+  }  /* for */
+  goto return_point;
+number_error:
+  str_command_line_error(ec_cl_invalid_number, optstr);
+return_point:
+  return (char *)result;
+}  /* scan_address */
+
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 
 static char *file_name_from_opt_arg(char *optstr)
 /*
@@ -8130,6 +8180,19 @@ Process the arguments on the command line that invoked the compiler.
           str_command_line_error(ec_cl_invalid_pch_directory, pch_dir_name);
         }  /* if */
         break;
+#if USE_FIXED_ADDRESS_FOR_MMAP
+      case optk_fixed_address_for_mmap:
+        /* Specify the address to use for the mmap system call.  Specifying
+           an arbitrary address will likely result in a catastrophic failure
+           or even an abort, but there's no good mechanism to verify that the
+           address given is reasonable -- though the address should be on
+           a page boundary. */
+        fixed_address_for_mmap = scan_address(opt_arg);
+        if (((size_t)fixed_address_for_mmap & (get_page_size()-1)) != 0) {
+          str_command_line_error(ec_invalid_mmap_address, opt_arg);
+        }  /* if */
+        break;
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
       case optk_restrict:
         /* Enables or disables recognition of the restrict token. */
         restrict_keyword_enabled = opt_value;
@@ -9716,6 +9779,9 @@ variables declared in cmd_line.h.
   automatic_pch_processing = FALSE;
   suppress_pch_messages = FALSE;
   verbose_pch_messages = FALSE;
+#if USE_FIXED_ADDRESS_FOR_MMAP
+  fixed_address_for_mmap = (char *)FIXED_ADDRESS_FOR_MMAP;
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 #if !USE_MMAP_FOR_MEMORY_REGIONS
   pch_mem_size = 0;
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */

@@ -292,6 +292,9 @@ typedef enum /*an_option_kind*/ {
   optk_cpp03_mode,
   optk_func_prototype_tags,
   optk_implicit_noexcept,
+#if USE_FIXED_ADDRESS_FOR_MMAP
+  optk_fixed_address_for_mmap,
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1886,6 +1889,12 @@ EXTERN a_boolean
 			   terminator.  FALSE indicates that only newlines
 			   are to be considered to terminate a line. */
 
+#if USE_FIXED_ADDRESS_FOR_MMAP
+EXTERN char	*fixed_address_for_mmap;
+			/* The fixed address to use for mmap calls;
+			   initially set to FIXED_ADDRESS_FOR_MMAP and may be
+			   modified by command line option. */
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
