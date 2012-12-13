@@ -12455,20 +12455,13 @@ constant; otherwise, return NULL.
   if (init_kind == (an_init_kind)initk_static) {
     /* The variable has a constant initial value. */
     con_val = init->constant;
-  } else if (init_kind == (an_init_kind)initk_dynamic) {
-    /* The variable is dynamically initialized.  See if the initialization
-       is to a constant. */
-    if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
+  } else if (init_kind == (an_init_kind)initk_dynamic &&
+             init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
+    /* The variable is dynamically initialized to a constant. */
       con_val = init->dynamic->variant.constant;
-    } else if (init->dynamic->kind == (a_dynamic_init_kind)dik_expression &&
-               is_constant_node(init->dynamic->variant.expression)) {
-      /* FIXME: This case should not arise and should be removed once
-         constexpr initializers are all represented as dik_constant. */
-      con_val = init->dynamic->variant.expression->variant.constant;
-    }  /* if */
   }  /* if */
   return con_val;
-}  /* if */
+}  /* initializer_constant */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
