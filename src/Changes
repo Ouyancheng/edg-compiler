@@ -1,5 +1,23 @@
 Version 4.6
 
+12/14/12 [EDGcpfe/13190]
+Microsoft compatibility: Use of "." in qualified names
+
+A change made in version 4.4 (see EDGcpfe/12452 on 11/18/11) restricted
+the use of "." in place of "::" (is allowed in Microsoft bugs mode) to
+apply only when microsoft_version <= 1400.  The microsoft_version test
+has now been updated to <= 1500.
+
+  struct A {
+    static int i;
+  };
+  int main() {
+    A.B ab;
+    int i = A.i;  // Only accepted in Microsoft bugs mode when
+                  //  microsoft_version <= 1500
+  }
+
+
 12/14/12 [EDGcpfe/13252]
 Missing definition of friend function of class instantiated by default argument
 

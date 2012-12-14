@@ -16189,7 +16189,7 @@ selection operator, in which case it points to the type of the left operand.
         follows_template || is_conversion_type) {
       might_be_qualifier = TRUE;
     } else if ((cfront_2_1_mode ||
-                (microsoft_bugs && microsoft_version <= 1400)) &&
+                (microsoft_bugs && microsoft_version <= 1500)) &&
                next_tok == tok_period &&
                !(options & GID_IS_FIELD_SELECTION_OPERAND)) {
       /* Check for the anachronism of allowing a "." as a qualifier separator
@@ -16486,7 +16486,7 @@ selection operator, in which case it points to the type of the left operand.
       is_qualified_name = TRUE;
     } else if (((next_tok = next_token()) == qualifier_separator ||
                 (is_qualified_name && !is_global_qualified_name &&
-                 (microsoft_bugs && microsoft_version <= 1400) &&
+                 (microsoft_bugs && microsoft_version <= 1500) &&
                  next_tok == tok_period)) &&
                ((!microsoft_bugs || microsoft_version >= 1300) ||
                 is_vacuous_dtor_or_finalizer ||
@@ -16714,7 +16714,7 @@ selection operator, in which case it points to the type of the left operand.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (curr_token != tok_identifier ||
             ((next_tok != qualifier_separator &&
-              (!(microsoft_bugs && microsoft_version <= 1400) ||
+              (!(microsoft_bugs && microsoft_version <= 1500) ||
                (is_qualified_name &&
                 (next_tok != tok_period ||
                  (qualifier_is_type &&
