@@ -7419,6 +7419,23 @@ for making NULL pointer constants.
                        &did_not_fold, &error_position);
 }  /* make_zero_of_proper_type */
 
+
+void make_value_initialized_constant(a_type_ptr type,
+                                     a_constant *con)
+/*
+Make a constant of the specified type in *con.  The type can be a scalar,
+in which case this routine is a wrapper for make_zero_of_proper_type, or an
+aggregate, in which case the resulting constant is an empty aggregate.
+*/
+{
+  if (is_scalar_type(type)) {
+    make_zero_of_proper_type(type, con);
+  } else {
+    clear_constant(con, (a_constant_repr_kind)ck_aggregate);
+    con->type = type;
+  }  /* if */
+}  /* make_value_initialized_constant */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void make_uuidof_constant(a_type_ptr     uuidof_type,

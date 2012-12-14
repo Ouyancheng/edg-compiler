@@ -8600,10 +8600,10 @@ otherwise, return FALSE.
       field = next_initializable_field(field->next);
     }  /* while */
     if (member_con == NULL) {
-      /* We ran off the end of the aggregate initializer, so the field
-         was implicitly zero-initialized.  Make a zero constant of the
-         requisite type and use that. */
-      make_zero_of_proper_type(field->type, result_con);
+      /* We ran off the end of the aggregate initializer, so the field was
+         implicitly value-initialized.  Make a constant of the requisite
+         type and use that. */
+      make_value_initialized_constant(field->type, result_con);
     } else {
       /* Check to make sure that the field and constant match. */
       check_assertion(field != NULL &&
