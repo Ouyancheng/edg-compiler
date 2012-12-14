@@ -3580,7 +3580,8 @@ parentheses are not needed.
       /* Address of a constant, specifically a string. */
       con = constant->variant.address.variant.constant;
       check_assertion_str(con->kind == (a_constant_repr_kind)ck_string ||
-                          con->kind == (a_constant_repr_kind)ck_error, 
+                          con->kind == (a_constant_repr_kind)ck_error ||
+                          constexpr_enabled, 
                  "form_lvalue_for_addressed_entity: address of nonstring con");
       type = con->type;
       break;

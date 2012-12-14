@@ -13465,10 +13465,15 @@ initializer, is done in var_constant_value[_full].
   a_boolean  is_const = FALSE;
   a_type_ptr var_type = var->type;
 
-  if (((is_integral_or_enum_type(var_type) ||
-        (constexpr_enabled && is_literal_type(var_type))) &&
+  if ((is_integral_or_enum_type(var_type) &&
        is_const_qualified_type(var_type)) ||
       is_template_param_type(var_type)) {
+    is_const = TRUE;
+  } else if (var->is_constexpr &&
+             is_literal_type(var_type) &&
+             is_const_qualified_type(var_type)) {
+    /* C++11 also allows other literal types (e.g., classes) if the variable
+       is declared "constexpr". */
     is_const = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
   } else if (gpp_mode && is_scalar_type(var_type) &&
@@ -13577,14 +13582,16 @@ be returned for a C mode const variable.
       con_val = NULL;
     }  /* if */
     if (con_val != NULL) {
-      if (con_val->kind == (a_constant_repr_kind)ck_aggregate &&
-          !is_literal_type(var->type)) {
-        /* An aggregate is only considered a constant value for a const
-           literal type. */
+      if (constexpr_enabled && var->is_constexpr) {
+        /* C++11 allows more kinds of constants for variables declared
+           "constexpr" (e.g., class types). */
+      } else if (con_val->kind == (a_constant_repr_kind)ck_aggregate) {
+        /* An aggregate cannot be considered a constant value in pre-C++11
+           code. */
         con_val = NULL;
       } else if (con_val->kind == (a_constant_repr_kind)ck_address) {
         /* The address of a variable, routine, or string literal cannot
-           generally be considered a constant value except in C++11. */
+           generally be considered a constant value in pre-C++11 code. */
         /* However, in g++ mode they are allowed because const variables
            initialized with scalars are considered constants (see
            is_potentially_constant_valued_variable).  String literals
@@ -13594,9 +13601,11 @@ be returned for a C mode const variable.
            of the same constant if that helps optimization) and
            cases specified as constant variables (for which back ends are
            required to use the same constant for every reference). */
-        if ((!gpp_mode && !constexpr_enabled) ||
-            con_val->variant.address.kind ==
-                                          (an_address_base_kind)abk_constant) {
+        if (!gpp_mode ||
+            (con_val->variant.address.kind ==
+                                          (an_address_base_kind)abk_constant &&
+             con_val->variant.address.variant.constant->kind ==
+                                           (a_constant_repr_kind)ck_string)) {
           con_val = NULL;
         }  /* if */
       }  /* if */
@@ -17160,10 +17169,8 @@ it might produce an error).
              initialized to a constant value allows use of a member
              value as a constant. */
           if (constexpr_enabled &&
-              (con_expr_value = fold_constexpr_member_selection(node)) !=
-                                                                        NULL) {
-            /* Use con_expr_value (designating the member constant) as the
-               value of the expression. */
+              fold_constexpr_member_selection(node, &result_con)) {
+            con_expr_value = alloc_shareable_constant(&result_con);
             node->is_lvalue = FALSE;
             node->type = rvalue_node_type;
             processed = TRUE;
@@ -17339,6 +17346,32 @@ it might produce an error).
           set_node_operator(node, (an_expr_operator_kind)eok_cast,
                             rvalue_node_type, /*is_lvalue=*/FALSE, op1);
           processed = TRUE;
+          break;
+        case eok_lvalue_adjust:
+          /* If the operand of an lvalue adjust can be converted to a
+             constant, the result is the type-adjusted constant.
+             Otherwise, it's rvalueable so we go to the general case. */
+          if (allow_folding != NULL && op1->is_lvalue) {
+            a_variable_ptr variable;
+            con_expr_value = value_of_constant_var_lvalue_expr(
+                                                       op1,
+                                                       /*copy_for_reuse=*/TRUE,
+                                                       &variable);
+            if (con_expr_value != NULL) {
+              a_boolean did_not_fold;
+              copy_constant(con_expr_value, &result_con);
+              expr_type_change_constant(&result_con, rvalue_node_type,
+                                        /*is_implicit_cast=*/FALSE,
+                                        /*check_cast_access=*/FALSE,
+                                        /*check_ambiguity=*/FALSE,
+                                        /*is_reinterpret_cast=*/FALSE,
+                                        /*maintain_expression=*/TRUE,
+                                        &did_not_fold, err_pos);
+              check_assertion(!did_not_fold);
+              con_expr_value = alloc_shareable_constant(&result_con);
+              processed = TRUE;
+            }  /* if */
+          }  /* if */
           break;
         case eok_lvalue:
           /* A node that forces an rvalue to be considered to be an lvalue, in

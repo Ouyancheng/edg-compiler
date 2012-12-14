@@ -14870,6 +14870,7 @@ operand when initializer lists are enabled.
   a_boolean                potential_operator_synthesis_case = FALSE;
   an_opname_kind           corresp_simple_operator = (an_opname_kind)onk_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean                folded_to_constant = FALSE;
 
   db_enter(4, "check_for_operator_overloading");
 #if DEBUG
@@ -14892,7 +14893,7 @@ operand when initializer lists are enabled.
                                    operator_tok_seq_number,
                                    operator_position_2);
     *processed = TRUE;
-  } else if (!curr_expr_kind_is_const()) {
+  } else if ((!curr_expr_kind_is_const() || constexpr_enabled)) {
     /* Check for operator overloading (but not in constant expressions). */
     eff_operand_1_type = operand_1->type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -15708,6 +15709,8 @@ no_applicable_operator_function:
               /* Note that reference_to_implicitly_invoked_function is not
                  called. */
             } else {
+              a_routine_ptr rp;
+              a_constant    result_con;
               /* Not the builtin bitwise operator=. */
               /* Build an expression-form argument list.  Convert the arguments
                  on the argument list to the right types.  Note that for the
@@ -15747,17 +15750,32 @@ no_applicable_operator_function:
                                           /*is_property=*/FALSE,
                                           /*compiler_generated=*/TRUE,
                                           &function_operand);
-              /* Make the call node and an operand for it. */
-              assemble_function_call(&function_operand,
-                                     bound_function_selector,
-                                     arg_expr_list,
-                                     /*compiler_generated=*/TRUE,
-                                     /*arg_dep_lookup_suppressed=*/FALSE,
-                                     /*qualified_function_name=*/FALSE,
-                                     found_through_adl,
-                                     /*uses_operator_syntax=*/TRUE,
-                                     operator_position, result,
-                                     (an_expr_node_ptr *)NULL);
+              if (constexpr_enabled &&
+                  (rp = routine_from_function_operand(&function_operand))
+                                                                     != NULL &&
+                  rp->is_constexpr &&
+                  fold_constexpr_call(rp, arg_expr_list,
+                                      selector_is_object_pointer,
+                                      operator_position,
+                                      &result_con)) {
+                /* The operator function is constexpr and the call was folded
+                   to a constant result. */
+                make_constant_operand(&result_con, result);
+                result->position = *operator_position;
+                folded_to_constant = TRUE;
+              } else {
+                /* Make the call node and an operand for it. */
+                assemble_function_call(&function_operand,
+                                       bound_function_selector,
+                                       arg_expr_list,
+                                       /*compiler_generated=*/TRUE,
+                                       /*arg_dep_lookup_suppressed=*/FALSE,
+                                       /*qualified_function_name=*/FALSE,
+                                       found_through_adl,
+                                       /*uses_operator_syntax=*/TRUE,
+                                       operator_position, result,
+                                       (an_expr_node_ptr *)NULL);
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
@@ -15779,7 +15797,9 @@ no_applicable_operator_function:
         free_arg_list(arg_list);
       }  /* if */
     }  /* if */
-    if (*processed) rule_out_expr_kinds(ROEK_CONSTANT, result);
+    if (*processed && !folded_to_constant) {
+      rule_out_expr_kinds(ROEK_CONSTANT, result);
+    }  /* if */
   }  /* if */
   /* If an operand was created, put the right position in it. */
   if (*processed) {
@@ -17504,6 +17524,7 @@ the temporary.
                                         &arg_expr_list);
     if (conversion_routine->is_constexpr &&
         fold_constexpr_call(conversion_routine, arg_expr_list,
+                            operand->selector_is_object_pointer,
                             &orig_operand.position, &result_con)) {
       /* The conversion function is constexpr and the call was folded to a
          constant result. */
@@ -17517,7 +17538,7 @@ the temporary.
       make_function_call(rout_node, conversion_routine->type,
                          (a_boolean)conversion_routine->is_virtual,
                          /*virtual_suppressed=*/FALSE,
-                         /*selector_is_object_pointer=*/FALSE,
+                         operand->selector_is_object_pointer,
                          /*compiler_generated=*/!is_explicit_cast,
                          /*is_conversion=*/TRUE,
                          /*arg_dep_lookup_suppressed=*/FALSE,

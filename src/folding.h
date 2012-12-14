@@ -197,6 +197,7 @@ extern a_boolean fold_lock_free_query_if_possible(
 
 extern a_boolean fold_constexpr_call(a_routine_ptr     routine,
                                      an_expr_node_ptr  args,
+                                     a_boolean         this_arg_is_pointer,
                                      a_source_position *pos,
                                      a_constant        *result_con);
 
@@ -204,8 +205,9 @@ extern a_boolean fold_constexpr_ctor(a_routine_ptr     ctor_routine,
                                      an_expr_node_ptr  args,
                                      a_source_position *pos,
                                      a_constant        *result_con);
-
-extern a_constant_ptr fold_constexpr_member_selection(an_expr_node_ptr node);
+extern
+a_boolean fold_constexpr_member_selection(an_expr_node_ptr expr,
+                                          a_constant       *result_con);
 
 #if DEBUG
 extern unsigned long db_show_folding_fe_space_used(unsigned long grand_total);

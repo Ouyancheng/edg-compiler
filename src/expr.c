@@ -3726,9 +3726,11 @@ address thereof.
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-static a_boolean check_call_and_fold_if_possible(an_operand  *op)
+static a_boolean check_call_and_fold_if_possible(an_operand       *op,
+                                                 an_expr_node_ptr call)
 /*
-The given operand must represent a function call.  Some GNU __builtin_xxx
+The given operand must represent a function call, and call is the
+function call node from that call.  Some GNU __builtin_xxx
 functions require special compile-time checks and can sometimes be constant-
 folded.  This routine does so and returns TRUE if the call is folded (in which
 case *op is replaced by a constant operand).  A diagnostic may be issued if the
@@ -3737,20 +3739,19 @@ Also folds calls to constexpr functions.
 */
 {
   a_boolean         folded = FALSE;
-  an_expr_node_ptr  call, args;
+  an_expr_node_ptr  args;
   a_constant        result;
   a_routine_ptr     rp;
 
   check_assertion(is_expression_operand(op));
-  call = op->variant.expression;
   check_assertion(call != NULL &&
                   call->kind == (an_expr_node_kind)enk_operation);
+#if GNU_EXTENSIONS_ALLOWED
   args = call->variant.operation.operands;
   if (call->variant.operation.kind == (an_expr_operator_kind)eok_call &&
       (rp = routine_from_function_expr(args)) != NULL) {
     /* A direct call: Examine which routine is called. */
     args = args->next;
-#if GNU_EXTENSIONS_ALLOWED
     if (rp->implicit_alias) {
       /* A call to a user-defined routine that is implicitly assumed equivalent
          to a built-in function (recorded in rp->aliased_routine). */
@@ -4001,19 +4002,31 @@ Also folds calls to constexpr functions.
           break;
       }  /* switch */
     }  /* if */
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    if (!folded && rp->is_constexpr) {
+  if (!folded) {
+    an_expr_operator_kind opkind = call->variant.operation.kind;
+    args = call->variant.operation.operands;
+    if ((opkind == (an_expr_operator_kind)eok_call ||
+         opkind == (an_expr_operator_kind)eok_dot_member_call ||
+         opkind == (an_expr_operator_kind)eok_points_to_member_call) &&
+        (rp = routine_from_function_expr(args)) != NULL &&
+        rp->is_constexpr) {
       /* Try to fold a call to a constexpr function. */
-      folded = fold_constexpr_call(rp, args, &op->position, &result);
+      a_boolean points_to = 
+                  (opkind == (an_expr_operator_kind)eok_points_to_member_call);
+      folded = fold_constexpr_call(rp, args->next, points_to,
+                                   &op->position, &result);
     }  /* if */
-    if (folded) {
-      an_operand  orig_op;
-      copy_operand(op, &orig_op);
-      make_constant_operand(&result, op);
-      restore_operand_details(op, &orig_op);
-      if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-        op->variant.constant.expr = call;
-      }  /* if */
+  }  /* if */
+  if (folded) {
+    /* Replace the call with a constant result. */
+    an_operand  orig_op;
+    copy_operand(op, &orig_op);
+    make_constant_operand(&result, op);
+    restore_operand_details(op, &orig_op);
+    if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+      op->variant.constant.expr = call;
     }  /* if */
   }  /* if */
   return folded;
@@ -5378,7 +5391,9 @@ are expected to be NULL in that case.
     }  /* if */
     if (call_may_be_folded && !is_error_operand(result)) {
       /* Some __builtin_xxx functions act as constant-expressions. */
-      call_folded_to_constant = check_call_and_fold_if_possible(result);
+      call_folded_to_constant = check_call_and_fold_if_possible(
+                                                           result,
+                                                           function_call_node);
     }  /* if */
   }  /* if */
   if (!call_folded_to_constant && !is_error_operand(result)) {

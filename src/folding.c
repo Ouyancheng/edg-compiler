@@ -31,6 +31,11 @@ folding.c -- Folding routines.
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
 
+static a_boolean fold_constant_field_selection(a_constant   *object_con,
+                                               a_boolean    object_is_pointer,
+                                               a_field_ptr  field,
+                                               a_constant   *result_con);
+
 /*
 Determine the severity (error or warning) to be used for integer
 operation overflows.
@@ -6081,13 +6086,9 @@ cast_case:
           case eok_points_to_field:
             /* A member of an object with a const literal type initialized
                to a constant is a constant in C++11. */
-            if (constexpr_enabled) {
-              a_constant_ptr member_sel_con =
-                                         fold_constexpr_member_selection(expr);
-              if (member_sel_con != NULL) {
-                copy_constant(member_sel_con, con);
-                is_constant_ptr = TRUE;
-              }  /* if */
+            if (constexpr_enabled &&
+                fold_constexpr_member_selection(expr, con)) {
+              is_constant_ptr = TRUE;
             }  /* if */
             break;
           default:
@@ -7856,10 +7857,52 @@ evaluation.
         }  /* if */
       }
       break;
+    case dik_nonconstant_aggregate:
+      { a_constant_ptr new_aggr;
+        a_constant_ptr *last_ptr_ptr;
+        a_constant_ptr elem_con;
+        a_constant_ptr aggr = dip->variant.constant;
+        check_assertion(aggr->kind == (a_constant_repr_kind)ck_aggregate);
+        new_aggr = result_con;
+        clear_constant(new_aggr, (a_constant_repr_kind)ck_aggregate);
+        new_aggr->type = aggr->type;
+        last_ptr_ptr = &new_aggr->variant.aggregate.first_constant;
+        folded = TRUE;
+        /* Loop through the elements of the aggregate and copy each one.
+           Dynamic constants get parameter substitution. */
+        for (elem_con = aggr->variant.aggregate.first_constant;
+             elem_con != NULL;
+             elem_con = elem_con->next) {
+          a_constant_ptr new_elem_con = NULL;
+          if (elem_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+            a_constant con;
+            if (fold_dynamic_init(elem_con->variant.dynamic_init,
+                                  remap_list,
+                                  ceblock,
+                                  &con)) {
+              new_elem_con = alloc_unshared_constant(&con);
+            }  /* if */
+          } else if (elem_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+            /* FIXME */
+          } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
+            /* FIXME */
+          } else {
+            /* Normal constant. */
+            new_elem_con = alloc_unshared_constant(elem_con);
+          }  /* if */
+          if (new_elem_con == NULL) {
+            folded = FALSE;
+            break;
+          }  /* if */
+          (*last_ptr_ptr) = new_elem_con;
+          last_ptr_ptr = &new_elem_con->next;
+          new_aggr->variant.aggregate.last_constant = new_elem_con;
+        }  /* for */
+      }
+      break;
     case dik_none:
     case dik_zero:
     case dik_call_returning_class_via_cctor:
-    case dik_nonconstant_aggregate:
     case dik_bitwise_copy:
     default:
       /* These cases don't fold. */
@@ -7870,11 +7913,41 @@ evaluation.
 
 
 static a_boolean i_fold_constexpr_call(
-                                     a_routine_ptr                routine,
-                                     an_expr_node_ptr             args,
-                                     a_constexpr_remap_ptr        remap_list,
-                                     a_constexpr_evaluation_block *ceblock,
-                                     a_constant                   *result_con);
+                              a_routine_ptr                routine,
+                              an_expr_node_ptr             args,
+                              a_boolean                    this_arg_is_pointer,
+                              a_constexpr_remap_ptr        remap_list,
+                              a_constexpr_evaluation_block *ceblock,
+                              a_constant                   *result_con);
+
+
+static a_boolean fold_variable_reference(an_expr_node_ptr      expr,
+                                         a_constexpr_remap_ptr remap_list,
+                                         a_constant            *result_con)
+/*
+expr is an enk_variable node.  See if the variable appears on the
+constexpr remap list provided as remap_list, and if so set *result_con
+to the variable's value and return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean      folded = FALSE;
+  a_variable_ptr var = expr->variant.variable;
+
+  if (var->is_parameter) {
+    a_constexpr_remap_ptr crp;
+    for (crp = remap_list; crp != NULL; crp = crp->next) {
+      if (crp->param_var == var) {
+        if (crp->is_constant) {
+          /* Replace the parameter variable by its constant value. */
+          folded = TRUE;
+          copy_constant(&crp->constant_value, result_con);
+        }  /* if */
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return folded;
+}  /* fold_variable_reference */
 
 
 static a_boolean fold_expr(an_expr_node_ptr             expr,
@@ -7919,19 +7992,8 @@ ceblock gives context information for the evaluation.
   } else if (is_variable_node(expr)) {
     /* An rvalue variable node for a parameter can be replaced by its
        value, if constant. */
-    a_variable_ptr var = expr->variant.variable;
-    if (var->is_parameter) {
-      a_constexpr_remap_ptr crp;
-      for (crp = remap_list; crp != NULL; crp = crp->next) {
-        if (crp->param_var == var) {
-          if (crp->is_constant) {
-            /* Replace the parameter variable by its constant value. */
-            folded = TRUE;
-            copy_constant(&crp->constant_value, result_con);
-          }  /* if */
-          break;
-        }  /* if */
-      }  /* for */
+    if (fold_variable_reference(expr, remap_list, result_con)) {
+      folded = TRUE;
     }  /* if */
   } else if (is_operation_node(expr)) {
     /* An operation node.  If the operands are constant, we may be able to
@@ -8001,13 +8063,34 @@ ceblock gives context information for the evaluation.
         }  /* if */
         break;
       case eok_call:
+      case eok_dot_member_call:
+      case eok_points_to_member_call:
         /* Try to fold a call if it's to a constexpr function. */
         { a_routine_ptr rp = routine_from_function_expr(op1);
           if (rp != NULL && rp->is_constexpr) {
-            folded = i_fold_constexpr_call(rp, op2, remap_list, ceblock,
+            a_boolean points_to =
+                      (op == (an_expr_operator_kind)eok_points_to_member_call);
+            folded = i_fold_constexpr_call(rp, op2, points_to,
+                                           remap_list, ceblock,
                                            result_con);
           }  /* if */
         }
+        break;
+      case eok_dot_field:
+      case eok_points_to_field:
+        /* a.f or p->f.  Try to fold the left operand to a constant, then
+           try to fold the field selection. */
+        op1_folded = fold_expr(op1, remap_list, ceblock, &op1_constant);
+        if (op1_folded) {
+          a_boolean points_to =
+                            (op == (an_expr_operator_kind)eok_points_to_field);
+          if (fold_constant_field_selection(&op1_constant,
+                                            points_to,
+                                            op2->variant.field,
+                                            result_con)) {
+            folded = TRUE;
+          }  /* if */
+        }  /* if */
         break;
       default:
         /* "Normal" operators.  For these, the operands have to be constant
@@ -8085,7 +8168,7 @@ ceblock gives context information for the evaluation.
                                &pos);
               if (error_detected == ec_no_error && !did_not_fold) {
                 folded = TRUE;
-              }
+              }  /* if */
               break;
             case eok_cast:
             case eok_bool_cast:
@@ -8117,20 +8200,91 @@ ceblock gives context information for the evaluation.
 }  /* fold_expr */
 
 
+static a_boolean fold_object_expr(an_expr_node_ptr             expr,
+                                  a_constexpr_remap_ptr        remap_list,
+                                  a_constexpr_evaluation_block *ceblock,
+                                  a_constant                   *result_con)
+/*
+Attempt to fold the expression "expr", the non-pointer object expression
+of a nonstatic member function call, to a constant object value as part of
+a constexpr evaluation, by substituting argument constant values for
+parameters as indicated by remap_list.  If the expression folds to a
+constant, place the constant in *result_con and return TRUE; otherwise,
+return FALSE.  ceblock gives context information for the evaluation.
+*/
+{
+  a_boolean         folded = FALSE;
+  a_source_position pos;
+
+  check_assertion(is_class_struct_union_type(expr->type) ||
+                  is_error_type(expr->type));
+  expr = skip_parens(expr);
+  pos = ceblock->source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (cmp_source_positions(expr->operator_position,
+                           null_source_position) != 0) {
+    pos = expr->operator_position;
+  } else if (cmp_source_positions(expr->expr_range.start,
+                                  null_source_position) != 0) {
+    pos = expr->expr_range.start;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (is_variable_node(expr)) {
+    /* A variable node for a parameter can be replaced by its value, if
+       constant. */
+    if (fold_variable_reference(expr, remap_list, result_con)) {
+      /* The parameter can be replaced by a constant argument value. */
+      folded = TRUE;
+    }  /* if */
+  } else if (is_operation_node(expr)) {
+    /* An operation node.  If the operands are constant, we may be able to
+       fold it. */
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    an_expr_node_ptr      op1 = expr->variant.operation.operands;
+    a_constant            op1_constant;
+    a_boolean             op1_folded = FALSE;
+    a_boolean             did_not_fold;
+    switch (op) {
+      case eok_lvalue_adjust:
+        /* If the operand of an lvalue adjust can be folded to a constant,
+           the result is the type-adjusted constant. */
+        op1_folded = fold_object_expr(op1, remap_list, ceblock, &op1_constant);
+        if (op1_folded) {
+          type_change_constant(&op1_constant, expr->type,
+                               expr->variant.operation.compiler_generated,
+                               /*maintain_expression=*/FALSE,
+                               &did_not_fold,
+                               &pos);
+          if (!did_not_fold) {
+            folded = TRUE;
+            copy_constant(&op1_constant, result_con);
+          }  /* if */
+        }  /* if */
+        break;
+      default:
+        break;
+    }  /* switch */
+  }  /* if */
+  return folded;
+}  /* fold_object_expr */
+
+
 static a_constexpr_remap_ptr constexpr_remap_list_for_args(
-                                    a_scope_ptr                  routine_scope,
-                                    an_expr_node_ptr             args,
-                                    a_constexpr_remap_ptr        remap_list,
-                                    a_constexpr_evaluation_block *ceblock,
-                                    a_boolean                    *not_foldable)
+                              a_scope_ptr                  routine_scope,
+                              an_expr_node_ptr             args,
+                              a_boolean                    this_arg_is_pointer,
+                              a_constexpr_remap_ptr        remap_list,
+                              a_constexpr_evaluation_block *ceblock,
+                              a_boolean                    *not_foldable)
 /*
 Make and return a constexpr remap list for the given argument list for
-a call of the routine with the given scope.  If remap_list is
-non-NULL, it is a remap list for substitution of occurrences of
-parameters by the corresponding argument constants in the context
-surrounding the call.  ceblock gives context information for the
-evaluation.  *not_foldable is returned TRUE if there is some kind of
-failure.
+a call of the routine with the given scope.  If the routine is a
+nonstatic member function and the argument for "this" is provided in
+pointer form, this_arg_is_pointer is TRUE.  If remap_list is non-NULL,
+it is a remap list for substitution of occurrences of parameters by
+the corresponding argument constants in the context surrounding the
+call.  ceblock gives context information for the evaluation.
+*not_foldable is returned TRUE if there is some kind of failure.
 */
 {
   a_routine_ptr         routine;
@@ -8167,9 +8321,23 @@ failure.
       break;
     }  /* if */
     crp = alloc_constexpr_remap(param_var, arg);
-    /* See if the argument expression is a constant or can be folded to one. */
-    crp->is_constant = fold_expr(arg, remap_list, ceblock,
-                                 &crp->constant_value);
+    if (param_var->is_this_parameter && !this_arg_is_pointer) {
+      /* For a non-pointer object expression (for the "this" parameter),
+         see if the object is a constant. */
+      a_constant constant_object;
+      if (fold_object_expr(arg, remap_list, ceblock, &constant_object)) {
+        crp->is_constant = TRUE;
+        /* The argument value is the address of the constant. */
+        set_constant_address_constant(
+                                    alloc_shareable_constant(&constant_object),
+                                    &crp->constant_value);
+      }  /* if */
+    } else {
+      /* Normal case: see if the argument expression is a constant or can
+         be folded to one. */
+      crp->is_constant = fold_expr(arg, remap_list, ceblock,
+                                   &crp->constant_value);
+    }  /* if */
     *last_ptr = crp;
     last_ptr = &crp->next;
   }  /* for */
@@ -8178,14 +8346,17 @@ failure.
 
 
 static a_boolean i_fold_constexpr_call(
-                                      a_routine_ptr                routine,
-                                      an_expr_node_ptr             args,
-                                      a_constexpr_remap_ptr        remap_list,
-                                      a_constexpr_evaluation_block *ceblock,
-                                      a_constant                   *result_con)
+                              a_routine_ptr                routine,
+                              an_expr_node_ptr             args,
+                              a_boolean                    this_arg_is_pointer,
+                              a_constexpr_remap_ptr        remap_list,
+                              a_constexpr_evaluation_block *ceblock,
+                              a_constant                   *result_con)
 /*
 The routine "routine" is being called with the argument list "args", and the
-routine is declared constexpr.  Try to fold the call to a constant.  If that's
+routine is declared constexpr.  If the routine is a nonstatic member
+function and the argument for "this" is provided in pointer form,
+this_arg_is_pointer is TRUE.  Try to fold the call to a constant.  If that's
 possible, place the constant in *result_con and return TRUE; otherwise,
 return FALSE.  If remap_list is non-NULL, it is a remap list for substitution
 of occurrences of parameters by the corresponding argument constants in the
@@ -8209,10 +8380,11 @@ prefix; fold_constexpr_call should usually be called instead.
         /* Set up remapping of parameter variables to the argument values. */
         a_boolean             not_foldable;
         a_constexpr_remap_ptr new_remap_list =
-                                  constexpr_remap_list_for_args(scope, args,
-                                                                remap_list,
-                                                                ceblock,
-                                                                &not_foldable);
+                             constexpr_remap_list_for_args(scope, args,
+                                                           this_arg_is_pointer,
+                                                           remap_list,
+                                                           ceblock,
+                                                           &not_foldable);
         if (not_foldable) {
           /* Some problem that prevents folding. */
         } else {
@@ -8233,11 +8405,14 @@ prefix; fold_constexpr_call should usually be called instead.
 
 a_boolean fold_constexpr_call(a_routine_ptr     routine,
                               an_expr_node_ptr  args,
+                              a_boolean         this_arg_is_pointer,
                               a_source_position *pos,
                               a_constant        *result_con)
 /*
 The routine "routine" is being called with the argument list "args", and the
-routine is declared constexpr.  Try to fold the call to a constant.  If that's
+routine is declared constexpr.  If the routine is a nonstatic member
+function and the argument for "this" is provided in pointer form,
+this_arg_is_pointer is TRUE.  Try to fold the call to a constant.  If that's
 possible, place the constant in *result_con and return TRUE; otherwise,
 return FALSE.
 */
@@ -8246,7 +8421,7 @@ return FALSE.
   a_constexpr_evaluation_block ceblock;
 
   clear_constexpr_evaluation_block(&ceblock, pos);
-  folded = i_fold_constexpr_call(routine, args,
+  folded = i_fold_constexpr_call(routine, args, this_arg_is_pointer,
                                  (a_constexpr_remap_ptr)NULL,
                                  &ceblock,
                                  result_con);
@@ -8285,6 +8460,7 @@ prefix; fold_constexpr_ctor should usually be called instead.
       a_constexpr_remap_ptr new_remap_list;
       /* Set up remapping of parameter variables to the argument values. */
       new_remap_list = constexpr_remap_list_for_args(scope, args,
+                                                 /*this_arg_is_pointer=*/FALSE,
                                                      remap_list,
                                                      ceblock,
                                                      &not_foldable);
@@ -8363,35 +8539,102 @@ return TRUE; otherwise, return FALSE.
 }  /* fold_constexpr_ctor */
 
 
-a_constant_ptr fold_constexpr_member_selection(an_expr_node_ptr node)
+static a_boolean fold_constant_field_selection(a_constant   *object_con,
+                                               a_boolean    object_is_pointer,
+                                               a_field_ptr  field,
+                                               a_constant   *result_con)
 /*
-node points to a field selection operation node (eok_dot_field or
-eok_points_to_field).  If the object expression is a constant object of
-literal type and the designated field is non-mutable, return a constant
-containing the value of the field; otherwise, return NULL.  A constant
-returned by this routine should be considered read-only and must be copied
-before adding it to the IL tree.
+Fold a constant field selection to a constant result.  object_con is
+the object (or a pointer to the object if object_is_pointer is TRUE),
+and field is the field to be selected.  If the result is a constant,
+set *result_con to the value of the extracted field and return TRUE;
+otherwise, return FALSE.
 */
 {
-  a_constant_ptr   result_con = NULL;
+  a_boolean      folded = FALSE;
+  a_constant_ptr eff_obj_con = NULL;
+
+  if (object_is_pointer) {
+    /* eok_points_to_field case.  See if the pointer value points to
+       a constant. */
+    a_variable_ptr var;
+    if (con_is_exact_addr_of_variable(object_con, &var,
+                                      /*array_decay_allowed=*/FALSE)) {
+      eff_obj_con = var_constant_value(var);
+    } else if (object_con->kind == (a_constant_repr_kind)ck_address &&
+               object_con->variant.address.kind ==
+                                          (an_address_base_kind)abk_constant) {
+      eff_obj_con = object_con->variant.address.variant.constant;
+    }  /* if */
+  } else {
+    /* eok_dot_field case. */
+    eff_obj_con = object_con;
+  }  /* if */
+  if (eff_obj_con != NULL &&
+      eff_obj_con->kind == (a_constant_repr_kind)ck_aggregate &&
+      is_real_class_type(eff_obj_con->type) &&
+      !field->is_mutable) {
+    /* We've found a constexpr object.  Now find the element of the
+       aggregate that corresponds to the specified field and set
+       result_con to it. */
+    a_constant_ptr member_con = eff_obj_con->variant.aggregate.first_constant;
+    a_type_ptr     class_type = skip_typerefs(eff_obj_con->type);
+    a_field_ptr    curr_field = next_initializable_field(
+                            class_type->variant.class_struct_union.field_list);
+    while (member_con != NULL && curr_field != NULL &&
+           curr_field != field) {
+      /* FIXME: The traversal of the ck_aggregate will need to be more
+         elaborate to allow for things like anonymous unions, arrays
+         initialized with string literals, etc. */
+      member_con = member_con->next;
+      field = next_initializable_field(field->next);
+    }  /* while */
+    if (member_con == NULL) {
+      /* We ran off the end of the aggregate initializer, so the field
+         was implicitly zero-initialized.  Make a zero constant of the
+         requisite type and use that. */
+      make_zero_of_proper_type(field->type, result_con);
+    } else {
+      /* Check to make sure that the field and constant match. */
+      check_assertion(field != NULL &&
+                      identical_types_ignoring_qualifiers(member_con->type,
+                                                          field->type));
+      copy_constant(member_con, result_con);
+    }  /* if */
+    folded = TRUE;
+  }  /* if */
+  return folded;
+}  /* fold_constant_field_selection */
+
+
+a_boolean fold_constexpr_member_selection(an_expr_node_ptr expr,
+                                          a_constant       *result_con)
+/*
+expr points to a field selection operation node (eok_dot_field or
+eok_points_to_field).  If the object expression is a constant object of
+literal type, set *result_con to the value of the field designated by
+the second operand and return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean        folded = FALSE;
   a_type_ptr       obj_expr_type;
   a_boolean        pointer_case = FALSE;
   an_expr_node_ptr obj_expr;
   an_expr_node_ptr field_expr;
 
   check_assertion(constexpr_enabled &&
-                  is_operation_node(node) &&
-                  (node_operator_is(node, eok_dot_field) ||
-                   node_operator_is(node, eok_points_to_field)));
+                  is_operation_node(expr) &&
+                  (node_operator_is(expr, eok_dot_field) ||
+                   node_operator_is(expr, eok_points_to_field)));
   /* Get the operands and the type of the object expression. */
-  obj_expr = node->variant.operation.operands;
+  obj_expr = expr->variant.operation.operands;
   field_expr = obj_expr->next;
   obj_expr_type = obj_expr->type;
   /* Watch out for dependent types. */
   if (is_template_param_or_nonreal_class_type(obj_expr_type)) {
     obj_expr_type = NULL;
   } else {
-    if (node_operator_is(node, eok_points_to_field)) {
+    if (node_operator_is(expr, eok_points_to_field)) {
       obj_expr_type = type_pointed_to(obj_expr->type);
       pointer_case = TRUE;
       if (is_template_param_or_nonreal_class_type(obj_expr_type)) {
@@ -8403,26 +8646,18 @@ before adding it to the IL tree.
     /* Not a dependent type. */
     obj_expr_type = skip_typerefs(obj_expr_type);
     check_assertion(is_immediate_class_type(obj_expr_type));
-    if (is_literal_type(obj_expr_type) &&
-        !field_expr->variant.field->is_mutable) {
-      /* The object expression has a literal type and the field is not
-         mutable.  Now check to see if the object expression is a
-         compile-time constant and, if so, set obj_expr_con to point to
-         it. */
+    if (is_literal_type(obj_expr_type)) {
+      /* The object expression has a literal type.  Now check to see if it
+         is a compile-time constant and, if so, set obj_expr_con to point
+         to it. */
+      a_constant     local_con;
       a_constant_ptr obj_expr_con = NULL;
       if (pointer_case) {
-        /* Check to see if we have a pointer constant as the left operand;
-           if so and it designates a variable, and if the variable has a
-           constant initializer, we will use that initializer as the object
-           expression. */
-        a_constant pointer_con;
-        if (constant_rvalue_pointer(obj_expr, &pointer_con,
+        /* eok_points_to_field case.  Check to see if we have a pointer
+           constant as the left operand. */
+        if (constant_rvalue_pointer(obj_expr, &local_con,
                                     /*address_escapes=*/FALSE)) {
-          a_variable_ptr var;
-          if (con_is_exact_addr_of_variable(&pointer_con, &var,
-                                            /*array_decay_allowed=*/FALSE)) {
-            obj_expr_con = var_constant_value(var);          
-          }  /* if */
+          obj_expr_con = &local_con;
         }  /* if */
       } else {
         /* The eok_dot_field case has three possibilities that might allow
@@ -8440,44 +8675,22 @@ before adding it to the IL tree.
                    node_operator_is(obj_expr, eok_dot_field)) {
           /* Recursively check to see if the object expression can be
              folded to a constant. */
-          obj_expr_con = fold_constexpr_member_selection(obj_expr);
+          if (fold_constexpr_member_selection(obj_expr, &local_con)) {
+            obj_expr_con = &local_con;
+          }  /* if */
         }  /* if */
       }  /* if */
+      /* If we have a constant for the first operand, see if we can fold the
+         whole selection to a constant result. */
       if (obj_expr_con != NULL &&
-          obj_expr_con->kind == (a_constant_repr_kind)ck_aggregate) {
-        /* We've found a constexpr object.  Now find the element of the
-           aggregate that corresponds to the specified field and set
-           result_con to point to it. */
-        a_constant_ptr member_con =
-                                obj_expr_con->variant.aggregate.first_constant;
-        a_field_ptr    field = next_initializable_field(
-                         obj_expr_type->variant.class_struct_union.field_list);
-        while (member_con != NULL && field != NULL &&
-               field != field_expr->variant.field) {
-          /* FIXME: The traversal of the ck_aggregate will need to be more
-             elaborate to allow for things like anonymous unions, arrays
-             initialized with string literals, etc. */
-          member_con = member_con->next;
-          field = next_initializable_field(field->next);
-        }  /* while */
-        if (member_con == NULL) {
-          /* We ran off the end of the aggregate initializer, so the field
-             was implicitly zero-initialized.  Make a zero constant of the
-             requisite type and use that. */
-          a_constant zero;
-          make_zero_of_proper_type(field_expr->type, &zero);
-          result_con = alloc_shareable_constant(&zero);
-        } else {
-          /* Check to make sure that the field and constant match. */
-          check_assertion(field != NULL &&
-                          identical_types_ignoring_qualifiers(member_con->type,
-                                                              field->type));
-          result_con = member_con;
-        }  /* if */
+          fold_constant_field_selection(obj_expr_con, pointer_case,
+                                        field_expr->variant.field,
+                                        result_con)) {
+        folded = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
-  return result_con;
+  return folded;
 }  /* fold_constexpr_member_selection */
 
 #if DEBUG
