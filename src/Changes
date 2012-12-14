@@ -9,6 +9,7 @@ apply only when microsoft_version <= 1400.  The microsoft_version test
 has now been updated to <= 1500.
 
   struct A {
+    struct B {};
     static int i;
   };
   int main() {
