@@ -2449,6 +2449,7 @@ ec_specific_symbol;;"%n"
 ec_default_ctor_call_not_constant;;"calling the default constructor for %t does not produce a constant value"
 ec_default_ctor_not_constexpr;;"the default constructor is not constexpr"
 ec_constexpr_variable_must_have_literal_type;;"a constexpr variable must have a literal type or a reference type"
+ec_constexpr_ctor_with_virtual_base;;"a constructor for a class with virtual bases cannot be constexpr"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

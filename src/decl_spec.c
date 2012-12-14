@@ -8236,12 +8236,20 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
     /* An error has presumably already been reported for this declaration.
        An additional error is unlikely to be helpful. */
     expect_error();
+  } else if (symbol_is(sym, sk_member_function)) {
+    a_routine_ptr  rp = sym->variant.routine.ptr;
+    if (special_kind_is(rp, sfk_constructor)) {
+      a_type_ptr  class_type = parent_class_of(rp);
+      if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+        pos_error(ec_constexpr_ctor_with_virtual_base, &dps->specifiers_pos);
+        rp->is_constexpr = FALSE;
+      }  /* if */
+    }  /* if */
   } else if (symbol_is(sym, sk_routine) ||
-             symbol_is(sym, sk_member_function) ||
              symbol_is(sym, sk_function_template) ||
              symbol_is(sym, sk_variable) ||
              symbol_is(sym, sk_static_data_member)) {
-    /* These are the symbol kinds for which constexpr is potentially valid.
+    /* Other symbol kinds for which constexpr is potentially valid.
        No diagnostic is needed. */
   } else {
     pos_error(ec_invalid_constexpr, &dps->specifiers_pos);
