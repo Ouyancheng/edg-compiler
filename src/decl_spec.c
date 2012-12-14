@@ -8245,10 +8245,15 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
         rp->is_constexpr = FALSE;
       }  /* if */
     }  /* if */
-  } else if (symbol_is(sym, sk_routine) ||
-             symbol_is(sym, sk_function_template) ||
-             symbol_is(sym, sk_variable) ||
+  } else if (symbol_is(sym, sk_variable) ||
              symbol_is(sym, sk_static_data_member)) {
+    a_variable_ptr  vp = var_for_symbol(sym);
+    if (!is_literal_type(vp->type) && !is_any_reference_type(vp->type)) {
+      pos_error(ec_constexpr_variable_must_have_literal_type,
+                &dps->specifiers_pos);
+    }  /* if */
+  } else if (symbol_is(sym, sk_routine) ||
+             symbol_is(sym, sk_function_template)) {
     /* Other symbol kinds for which constexpr is potentially valid.
        No diagnostic is needed. */
   } else {

@@ -3641,25 +3641,6 @@ returned set to TRUE.
      initializer. */
   first_token = curr_token;
   pos_first_token = pos_curr_token;
-  if (dps->auto_type_specifier_seen && !dps->has_trailing_return_type &&
-      !is_error_type(vp_type)) {
-    /* An initializer for a variable declared with the "auto" type specifier.*/
-    if (first_token == tok_lbrace && !list_init_enabled) {
-      error(ec_auto_brace_initialization_not_allowed);
-      vp->type = vp_type = error_type();
-      invalidate_type(dps);
-      dps->auto_type_specifier_seen = FALSE;
-      dps->auto_type = NULL;
-    } else {
-      prescan_initializer_for_auto_type_deduction(dps,
-                                                  parenthesized_initializer);
-      vp_type = dps->type;
-    }  /* if */
-    if (is_error_type(vp_type)) {
-      cssp = NULL;
-    }  /* if */
-  }  /* if */
-  dps->type = vp_type;
   if (C_mode()) {
     /* In C mode, static lifetime variables require constant initializers.
        In addition, some C mode also require constant initializers for
@@ -3675,7 +3656,27 @@ returned set to TRUE.
     /* In C++ mode, constexpr variables require constant initializers. */
     dps->init_state.initializer_must_be_constant = vp != NULL &&
                                                    vp->is_constexpr;
+    if (dps->auto_type_specifier_seen && !dps->has_trailing_return_type &&
+        !is_error_type(vp_type)) {
+      /* An initializer for a variable declared with the "auto" type
+         specifier.*/
+      if (first_token == tok_lbrace && !list_init_enabled) {
+        error(ec_auto_brace_initialization_not_allowed);
+        vp->type = vp_type = error_type();
+        invalidate_type(dps);
+        dps->auto_type_specifier_seen = FALSE;
+        dps->auto_type = NULL;
+      } else {
+        prescan_initializer_for_auto_type_deduction(dps,
+                                                    parenthesized_initializer);
+        vp_type = dps->type;
+      }  /* if */
+      if (is_error_type(vp_type)) {
+        cssp = NULL;
+      }  /* if */
+    }  /* if */
   }  /* if */
+  dps->type = vp_type;
   /* Now process the initializer.  There are four syntactic cases:
        (1) parenthesized initializers (a C++ feature; e.g., "T x(3);"),
        (2) direct list initializers (a C++11 feature; e.g., "T x{3};"),
