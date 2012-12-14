@@ -8228,18 +8228,18 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
 {
   a_symbol_ptr  sym = dps->sym;
 
-  if (symbol_is(sym, sk_routine) ||
-      symbol_is(sym, sk_member_function) ||
-      symbol_is(sym, sk_function_template) ||
-      symbol_is(sym, sk_variable) ||
-      symbol_is(sym, sk_static_data_member)) {
-    /* These are the symbol kinds for which constexpr is potentially valid.
-       No diagnostic is needed. */
-  } else if (sym->is_error ||
-             (dps->type != NULL && is_error_type(dps->type))) {
+  if (sym == NULL || sym->is_error ||
+      (dps->type != NULL && is_error_type(dps->type))) {
     /* An error has presumably already been reported for this declaration.
        An additional error is unlikely to be helpful. */
     expect_error();
+  } else if (symbol_is(sym, sk_routine) ||
+             symbol_is(sym, sk_member_function) ||
+             symbol_is(sym, sk_function_template) ||
+             symbol_is(sym, sk_variable) ||
+             symbol_is(sym, sk_static_data_member)) {
+    /* These are the symbol kinds for which constexpr is potentially valid.
+       No diagnostic is needed. */
   } else {
     pos_error(ec_invalid_constexpr, &dps->specifiers_pos);
   }  /* if */
