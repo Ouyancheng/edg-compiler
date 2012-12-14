@@ -22915,7 +22915,7 @@ class type if necessary.
      necessary. */
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(result->type) &&
-      !curr_expr_kind_is_const()) {
+      (!curr_expr_kind_is_const() || constexpr_enabled)) {
     a_builtin_type_kind_set type_kind_set;
     if (bool_is_keyword) {
       type_kind_set = BTK_BOOL;

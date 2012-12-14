@@ -8172,6 +8172,7 @@ ceblock gives context information for the evaluation.
               break;
             case eok_cast:
             case eok_bool_cast:
+            case eok_class_rvalue_adjust:
               /* Cast. */
               type_change_constant(&op1_constant, expr->type,
                                   expr->variant.operation.compiler_generated,
@@ -8229,7 +8230,12 @@ return FALSE.  ceblock gives context information for the evaluation.
     pos = expr->expr_range.start;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (is_variable_node(expr)) {
+  if (!expr->is_lvalue) {
+    /* Use the normal folding routine for an rvalue. */
+    if (fold_expr(expr, remap_list, ceblock, result_con)) {
+      folded = TRUE;
+    }  /* if */
+  } else if (is_variable_node(expr)) {
     /* A variable node for a parameter can be replaced by its value, if
        constant. */
     if (fold_variable_reference(expr, remap_list, result_con)) {
@@ -8247,17 +8253,21 @@ return FALSE.  ceblock gives context information for the evaluation.
     switch (op) {
       case eok_lvalue_adjust:
         /* If the operand of an lvalue adjust can be folded to a constant,
-           the result is the type-adjusted constant. */
-        op1_folded = fold_object_expr(op1, remap_list, ceblock, &op1_constant);
-        if (op1_folded) {
-          type_change_constant(&op1_constant, expr->type,
-                               expr->variant.operation.compiler_generated,
-                               /*maintain_expression=*/FALSE,
-                               &did_not_fold,
-                               &pos);
-          if (!did_not_fold) {
-            folded = TRUE;
-            copy_constant(&op1_constant, result_con);
+           the result is the type-adjusted constant.  Allow only cv-qualifier
+           changes. */
+        if (identical_types_ignoring_qualifiers(op1->type, expr->type)) {
+          op1_folded = fold_object_expr(op1, remap_list, ceblock,
+                                        &op1_constant);
+          if (op1_folded) {
+            type_change_constant(&op1_constant, expr->type,
+                                 expr->variant.operation.compiler_generated,
+                                 /*maintain_expression=*/FALSE,
+                                 &did_not_fold,
+                                 &pos);
+            if (!did_not_fold) {
+              folded = TRUE;
+              copy_constant(&op1_constant, result_con);
+            }  /* if */
           }  /* if */
         }  /* if */
         break;
