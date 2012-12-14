@@ -465,8 +465,8 @@ ec_no_constructor_for_conversion;;"no suitable constructor exists to convert fro
 ec_ambiguous_constructor_for_conversion;;"more than one constructor applies to convert from %t1 to %t2:"
 ec_ambiguous_conversion_function;;"more than one conversion function from %t1 to %t2 applies:"
 ec_ambiguous_conversion_to_builtin;;"more than one conversion function from %t to a built-in type applies:"
-ec_const_member;INTERNAL;"const %n"
-ec_reference_member;INTERNAL;"reference %n"
+ec_const_member;;"const %n"
+ec_reference_member;;"reference %n"
 ec_ambiguous_function_add_on;INTERNAL;"%npT"
 ec_builtin_operator_add_on;INTERNAL;"built-in operator %sq"
 ec_ambiguous_by_inheritance_add_on;INTERNAL;"%no (ambiguous by inheritance)"
@@ -2443,6 +2443,9 @@ ec_unsequenced_use_of_variable;;"unsequenced uses of %n in expression may produc
 ec_3rd_arg_of_assume_aligned_must_be_integral;;"the optional third argument of a call to __builtin_assumed_aligned must have integral type"
 ec_constexpr_destructor;;"a destructor cannot be constexpr"
 ec_invalid_mmap_address;;"address supplied for mmap must be aligned on a page boundary: "
+ec_constexpr_constructor_with_function_try_block;;"the body of a constexpr constructor cannot be a function try block" 
+ec_missing_initializer_on_fields_with_constexpr_ctor;;"constexpr %nf provides no initializer for:"
+ec_specific_symbol;;"%n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

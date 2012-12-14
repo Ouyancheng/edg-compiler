@@ -5270,6 +5270,40 @@ entries are replaced as needed for each mem-initializer that is encountered.
 }  /* scan_mem_initializer */
 
 
+static a_boolean is_variant_member_sym(a_symbol_ptr  sym)
+/*
+Return TRUE if the given field symbol is a variant member of a class (i.e., a 
+member of an anonymous union).
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(symbol_is(sym, sk_field));
+  while (sym->variant.field.anonymous_parent_object != NULL) {
+    /* sym is some sort of "anonymous union" member, except that with
+       nonstandard cases, the parent object may not actually be a union. */
+    sym = sym->variant.field.anonymous_parent_object;
+    /* The parent object is always either a variable or a field. */
+    if (symbol_is(sym, sk_variable)) {
+      /* If the parent object is a variable, the cannot be a higher-up
+         parent object, and the loop can be terminated. */
+      result = is_union_type(sym->variant.variable.ptr->type);
+      break;
+    } else {
+      check_assertion(symbol_is(sym, sk_field));
+      if (is_union_type(sym->variant.field.ptr->type)) {
+        result = TRUE;
+        break;
+      } else {
+        /* The anonymous parent object was not a union, but it may itself be
+           a member of an anonymous parent. */
+      }  /* if */
+    }  /* if */
+  }  /* while */
+  return result;
+}  /* is_variant_member_sym */
+
+
 a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
                                         a_boolean      user_defined)
 /*
@@ -5316,6 +5350,7 @@ which subobjects require initialization and therefore must be implicitly
 initialized.  These are addressed in the course of the processing.
 */
 {
+  a_boolean                     is_union;
   a_boolean                     is_generated_cctor, is_generated_mctor;
   a_type_qualifier_set          required_qualifiers, object_qualifiers;
   a_type_ptr                    class_type, tp, array_type;
@@ -5337,6 +5372,7 @@ initialized.  These are addressed in the course of the processing.
   cib.last_order_checked_init = NULL;
   cib.out_of_order_diag_issued = FALSE;
   class_type = parent_class_of(ctor_rout);
+  is_union = class_type->kind == (a_type_kind)tk_union;
   check_assertion(class_type != NULL);
   ctsp = class_type_supp(class_type);
   /* Check if we are dealing with a generated move/copy constructor. */
@@ -5427,6 +5463,10 @@ initialized.  These are addressed in the course of the processing.
         /* All fields are explicitly listed for a generated copy or move
            constructor, since even if there is no constructor at least a
            bitwise copy is required. */
+      } else if (ctor_rout->is_constexpr &&
+                 !(is_union || is_variant_member_sym(sym))) {
+        /* All non-variant fields must be initialized in a constexpr
+           constructor. */
       } else {
         /* This is not a copy constructor.  See if this is a field that
            requires an initializer. */
@@ -5559,7 +5599,7 @@ initialized.  These are addressed in the course of the processing.
   */
   prev_cip = NULL;
   for (cip = cib.cip_list; cip != NULL; cip = next_cip) {
-    a_boolean          is_const_qualified;
+    a_boolean          is_const_qualified, is_ref;
     a_source_position  err_pos;
     /* object_class_type is the type of the object being created.
        For base classes it will be different than the type associated
@@ -5619,6 +5659,7 @@ initialized.  These are addressed in the course of the processing.
     object_qualifiers = TQ_NONE;
     cssp = NULL;
     is_const_qualified = FALSE;
+    is_ref = FALSE;
     if (user_defined) err_pos = pos_curr_token;
     if (cip->kind == (a_constructor_init_kind)cik_field) {
       /* Get the field type.  For arrays, we want the element type. */
@@ -5629,6 +5670,8 @@ initialized.  These are addressed in the course of the processing.
       if (is_array_type(tp)) {
         array_type = tp;
         tp = f_skip_typerefs(underlying_array_element_type(tp));
+      } else if (is_any_reference_type(tp)) {
+        is_ref = TRUE;
       }  /* if */
       object_class_type = tp;
       if (is_class_struct_union_type(tp)) {
@@ -5710,18 +5753,20 @@ initialized.  These are addressed in the course of the processing.
         /* No copy/move constructor is required.  If any constructor exists,
            the default constructor should be called. */
         if (cip->kind == (a_constructor_init_kind)cik_field &&
-            (is_any_reference_type(tp) || is_const_qualified)) {
-          /* Ref-type field or const-qualified field but no initializer. */
-          if (is_union_type(class_type)) {
+            (is_ref || is_const_qualified || ctor_rout->is_constexpr)) {
+          /* An uninitialized field that probably requires initialization.
+             That includes ref-type fields and const-qualified fields, as well
+             as any non-variant field for a constexpr constructor. */
+          if (is_union) {
             /* We don't issue diagnostics on initializing union members,
                partly because it's not well defined what should happen when
                const and non-const members are mixed, */
-          } else if (is_const_qualified && 
+          } else if (!is_ref && 
                      ((cssp != NULL &&
                        cssp->has_user_provided_default_constructor) ||
                       is_template_dependent_type(tp)
                       if_microsoft_extensions(|| is_value_class_type(tp)))) {
-            /* A const qualified field may be initialized without an explicit
+            /* A non-reference field may be initialized without an explicit
                initializer if it is of class type and there is a default
                constructor for the class.  Microsoft also treats value class
                types as initialized in this context.  Note that value class
@@ -5756,10 +5801,8 @@ initialized.  These are addressed in the course of the processing.
           if (cssp->is_POD) {
             if (tp->variant.class_struct_union.any_const_member) {
               if (cip->kind == (a_constructor_init_kind)cik_field) {
-                a_symbol_ptr field_sym = (a_symbol_ptr)cip->variant.field->
-                                                   source_corresp.assoc_info;
                 pos_sy_error(ec_uninitialized_field_with_const_member,
-                             &err_pos, field_sym);
+                             &err_pos, symbol_for(cip->variant.field));
               } else {
                 pos_ty_error(ec_uninitialized_base_class_with_const_member,
                              &err_pos, tp);
@@ -5889,17 +5932,25 @@ initialized.  These are addressed in the course of the processing.
          12.6.2 [class.base.init] para 4.  However, if only const members are
          involved, a discretionary error (or a warning, in early GNU C++ mode)
          is issued. */
-      if (!any_ref_member_on_uninit_list) {
+      an_error_code  errcode = ec_missing_initializer_on_fields;
+      if (ctor_rout->is_constexpr) {
+        /* Use a slightly different wording for constexpr constructors. */
+        errcode = ec_missing_initializer_on_fields_with_constexpr_ctor;
+      } else if (!any_ref_member_on_uninit_list) {
         severity = (gpp_mode && gnu_version < 30400) ? es_warning
                                                      : es_discretionary_error;
       }  /* if */
-      pos_sy_start_diagnostic(severity, ec_missing_initializer_on_fields,
+      pos_sy_start_diagnostic(severity, errcode,
                               &pos_curr_token, (a_symbol_ptr)ctor_rout->
                                                    source_corresp.assoc_info);
     }  /* if */
     for (cip = uninit_list; cip != NULL; cip = cip->next) {
       a_symbol_ptr field_sym = symbol_for(cip->variant.field);
-      if (is_any_reference_type(cip->variant.field->type)) {
+      if (ctor_rout->is_constexpr) {
+        /* The field being a reference or a const member is not relevant, so
+           we use a diagnostic that doesn't emphasize that. */
+        sym_add_diag_info(ec_specific_symbol, field_sym);
+      } else if (is_any_reference_type(cip->variant.field->type)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
         /* Fields cannot be tracking references. */
         check_assertion(!cppcli_enabled || !is_tracking_reference_type(tp));

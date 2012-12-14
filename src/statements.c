@@ -7186,8 +7186,11 @@ function try block has to have been established first.
 {
   a_statement_ptr           sp;
   a_control_flow_descr_ptr  cfdp;
+  a_routine_ptr             rp = current_routine_entry();
+  a_source_position         pos;
 
   db_enter(3, "start_of_function_try_block");
+  pos = pos_curr_token;
   /* Some of this is identical to initializations done for function blocks
      in compound_statement. */
   set_reachable(curr_reachability);
@@ -7208,14 +7211,15 @@ function try block has to have been established first.
   stmt_update_source_sequence_list(sp);
   /* Do additional initialization generic to scanning a try statement. */
   start_of_try_block(sp);
-  if (current_routine_entry()->special_kind ==
-                                    (a_special_function_kind)sfk_constructor ||
-      current_routine_entry()->special_kind ==
-                                    (a_special_function_kind)sfk_destructor) {
-    /* For a constructor or destructor, push a block object lifetime
-       inside the try-block lifetime to capture any destructions in
-       the ctor-initializer list.  Those get done on exit from the main
-       statement, before any catch clause is entered. */
+  if (special_kind_is(rp, sfk_constructor) ||
+      special_kind_is(rp, sfk_destructor)) {
+    if (rp->is_constexpr && special_kind_is(rp, sfk_constructor)) {
+      pos_error(ec_constexpr_constructor_with_function_try_block, &pos);
+    }  /* if */
+    /* For a constructor or destructor, push a block object lifetime inside
+       the try-block lifetime to capture any destructions in the
+       ctor-initializer list.  Those get done on exit from the main statement,
+       before any catch clause is entered. */
     push_object_lifetime((an_il_entry_kind)iek_none,
                          (char *)NULL,
                          (an_object_lifetime_kind)olk_block);
