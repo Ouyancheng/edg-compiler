@@ -1,5 +1,31 @@
 Version 4.6
 
+12/14/12 [EDGcpfe/13252]
+Missing definition of friend function of class instantiated by default argument
+
+A problem with class fixup processing could cause a function defined in
+a friend function declaration to not have its definition undergo fixup
+processing if the enclosing class was first instantiated by a function
+default argument.  This result would be as if the function did not have a
+definition.  The function body would not undergo semantic analysis and no
+IL would be emitted (e.g., in the example below the operator!= would be
+reported as undefined by the linker).  Now fixed
+
+
+  template <typename T> struct A {
+    friend bool operator!=(const A& a, const A& b) {
+      return true;
+    }
+  };
+  struct test {
+    void f(A<int> a = A<int>());
+  };
+  int main() {
+    A<int> a;
+    return (a != a) != true;
+  }
+
+
 12/13/12 [EDGcpfe/11484,EDGcpfe/12983]
 New option to set fixed mmap address at run time
 

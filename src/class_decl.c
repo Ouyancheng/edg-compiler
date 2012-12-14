@@ -497,7 +497,8 @@ Add a class fixup entry for class_type to the class fixup list.
   /* Don't attempt to fix-up nonreal classes instantiated in Microsoft mode. */
   if (!class_type->
                  variant.class_struct_union.is_ms_instantiated_nonreal_class) {
-    cfhp = curr_class_fixup_header(/*for_instantiation=*/FALSE);
+    cfhp = curr_class_fixup_header(
+                              /*for_instantiation=*/is_template_instantiation);
     cfp = alloc_class_fixup();
     cfp->class_type = class_type;
     cfp->is_template_instantiation = is_template_instantiation;
@@ -3072,11 +3073,13 @@ after a class instantiation.
   a_boolean			trans_unit_pushed = FALSE;
 
   db_enter(3, "process_deferred_class_fixups");
-  cfhp = curr_class_fixup_header(for_instantiation);
-  if (cfhp->fixup_list != NULL) {
+  /* cfhp points into the scope_stack, so refresh the pointer for each
+     iteration. */
+  while (cfhp = curr_class_fixup_header(for_instantiation),
+         cfhp->fixup_list != NULL) {
     /* Clear the pointers to the start of the fixup lists so that classes
-       created by the fixup process can be fixed up by a recursive call to
-       this routine.  This could happen if a function body contains a
+       created by the fixup process can be fixed up by the next iteration
+       of the loop.  This could happen if a function body contains a
        nested class, for example. */
     fixup_list = cfhp->fixup_list;
     cfhp->fixup_list = NULL;
@@ -3143,15 +3146,19 @@ void process_deferred_class_fixups_and_instantiations(
 While one or more class definitions are pending, the fixup of member function
 bodies and default arguments is deferred until all class definitions have
 been complete.  Nonclass template definitions are also deferred.  When the
-count of pending class definitions is zero, all class definitions have been
-completed and any deferred class fixups and instantiations may now be done.
+count of pending class definitions and deferred inline function fixups are
+zero, all class definitions have been completed and any deferred class
+fixups and instantiations may now be done.
 
 for_instantiation is TRUE if this routine is being called to do the fixup
 after a class instantiation.
 */
 {
-  if (curr_class_fixup_header(for_instantiation)->pending_class_definitions
-                                                                        == 0) {
+  a_class_fixup_header_ptr	cfhp;
+
+  cfhp = curr_class_fixup_header(for_instantiation);
+  if (cfhp->pending_class_definitions == 0 &&
+      cfhp->defer_inline_function_fixups == 0) {
     process_deferred_class_fixups(for_instantiation);
     if (defer_instantiations == 0) {
       process_deferred_instantiation_requests();
