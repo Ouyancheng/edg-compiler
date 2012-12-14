@@ -8228,8 +8228,11 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
 {
   a_symbol_ptr  sym = dps->sym;
 
-  if (sym == NULL || sym->is_error ||
-      (dps->type != NULL && is_error_type(dps->type))) {
+  if (sym == NULL) {
+    /* No declaration is associated with "constexpr": Issue an error. */
+    pos_error(ec_invalid_constexpr, &dps->specifiers_pos);
+  } else if (sym->is_error ||
+             (dps->type != NULL && is_error_type(dps->type))) {
     /* An error has presumably already been reported for this declaration.
        An additional error is unlikely to be helpful. */
     expect_error();
