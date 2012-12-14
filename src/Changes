@@ -8335,7 +8335,7 @@ differences in prelinker output.
 
 
 11/18/11 [EDGcpfe/12452]
-Microsoft compatibility: Use of "." as in qualified names
+Microsoft compatibility: Use of "." in qualified names
 
 Older versions of the Microsoft compiler allowed "." to be used in place of
 "::" in qualified names (i.e., type-name. was treated like type-name::).
@@ -8345,6 +8345,7 @@ involved here is different than field selections where the thing before
 the "." is an expression, not a type.
 
   struct A {
+    struct B {};
     static int i;
   };
   int main() {
