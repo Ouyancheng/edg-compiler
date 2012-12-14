@@ -11686,6 +11686,12 @@ done_with_operation_after_parens:
                                          iek_constant,
                                          /*is_declaration=*/FALSE)) {
           /* We generated the name in its source form. */
+        } else if (constant->kind == (a_constant_repr_kind)ck_aggregate &&
+                   il_header.source_language == sl_C) {
+          /* A brace-enclosed constant appearing in a C expression context.
+             Use compound-literal syntax. */
+          gen_compound_literal(constant, (a_dynamic_init_ptr)NULL,
+                               (a_type_ptr)NULL, /*transparent_case=*/FALSE);
         } else { 
           if ((expr->is_lvalue ||
                (constant->kind == (a_constant_repr_kind)ck_address &&
