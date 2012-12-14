@@ -980,7 +980,7 @@ to indicate that an error occurred).  Diagnostics should be issued at the
 given position, unless is->no_diagnostics is TRUE.
 */
 {
-  a_constant_ptr      result;
+  a_constant_ptr      result = NULL;
   a_dynamic_init_ptr  dip;
   a_routine_ptr       ctor_rp, dtor_rp;
   a_boolean           err = FALSE, *p_err = NULL;
@@ -1003,8 +1003,22 @@ given position, unless is->no_diagnostics is TRUE.
   } else  {
     if (!is->check_validity_only) {
       /* For a non-trivial constructor, create a dik_constructor dynamic init
-         entry. */
-      dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
+         entry or, if a constant result is needed, a constant representing
+         the folded constructor. */
+      if (is->initializer_must_be_constant) {
+        result = alloc_constant((a_constant_repr_kind)ck_error);
+        if (ctor_rp->is_constexpr) {
+          if (!fold_constexpr_ctor(ctor_rp, (an_expr_node_ptr)NULL, diag_pos,
+                                   result)) {
+            /* The call to the default constructor could not be folded. */
+            pos_ty_error(ec_default_ctor_call_not_constant, diag_pos, tp);
+          }  /* if */
+        } else {
+          pos_ty_error(ec_default_ctor_not_constexpr, diag_pos, tp);
+        }  /* if */
+      } else {
+        dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
+      }  /* if */
     }  /* if */
     /* If the default constructor is generated and some component of the class
        requires zeroing, initialization is not really done because the
@@ -1028,9 +1042,7 @@ given position, unless is->no_diagnostics is TRUE.
     }  /* if */
   }  /* if */
   /* Now create the constant entry (if needed). */
-  if (is->check_validity_only) {
-    result = NULL;
-  } else {
+  if (!is->check_validity_only && result == NULL) {
     result = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
     result->variant.dynamic_init = dip;
     result->type = tp;

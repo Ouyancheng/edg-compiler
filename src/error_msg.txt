@@ -2446,6 +2446,9 @@ ec_invalid_mmap_address;;"address supplied for mmap must be aligned on a page bo
 ec_constexpr_constructor_with_function_try_block;;"the body of a constexpr constructor cannot be a function try block" 
 ec_missing_initializer_on_fields_with_constexpr_ctor;;"constexpr %nf provides no initializer for:"
 ec_specific_symbol;;"%n"
+ec_default_ctor_call_not_constant;;"calling the default constructor for %t does not produce a constant value"
+ec_default_ctor_not_constexpr;;"the default constructor is not constexpr"
+ec_constexpr_variable_must_have_literal_type;;"a constexpr variable must have a literal type or a reference type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

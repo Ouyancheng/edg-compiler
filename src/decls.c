@@ -6432,7 +6432,10 @@ for use in generating cross-reference output describing this declaration.
     check_sym_of_other_decl(source_corresp_ptr, sym);
   }  /* if */
   if (dps->dso_flags & DSO_CONSTEXPR) {
-    if (is_variable_def) {
+    if (!is_literal_type(type_ptr) && !is_any_reference_type(type_ptr)) {
+      pos_error(ec_constexpr_variable_must_have_literal_type,
+                &dps->specifiers_pos);
+    } else if (is_variable_def) {
       variable_ptr->is_constexpr = TRUE;
     } else {
       pos_error(ec_constexpr_variable_decl_must_be_definition,
