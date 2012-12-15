@@ -3757,6 +3757,15 @@ typedef struct a_constant {
 			   named constant (the enumerator in the definition
 			   of an enumeration or a non-standard class member
 			   constant). */
+  a_bit_field	partial_aggr_value:1;
+			/* TRUE for a ck_aggregate constant whose list of
+			   constants does not cover all the elements of the
+			   destination type. */
+  a_bit_field	implicit_aggr_element:1;
+			/* TRUE if this constant was generated implicitly for
+			   an aggregate initializer that does not explicitly
+			   specify values for all the elements of the
+			   destination type. */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;

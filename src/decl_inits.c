@@ -1018,6 +1018,7 @@ given position, unless is->no_diagnostics is TRUE.
         }  /* if */
       } else {
         dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
+        is->has_dynamic_init_component = TRUE;
       }  /* if */
     }  /* if */
     /* If the default constructor is generated and some component of the class
@@ -1208,10 +1209,10 @@ the position at which diagnostics should be issued.
          trivial. */
       a_constant_ptr  remainder_con;
       partial_init_flag = FALSE;
-      is->has_dynamic_init_component = TRUE;
       remainder_con = default_nontrivial_init_constant_for_aggr_member(
                                                          etype, is, diag_pos);
       if (!is->check_validity_only) {
+        remainder_con->implicit_aggr_element = TRUE;
         /* Add the constant entry to the list of constants, but add a
            ck_repeat_init on top of it if needed. */
         check_assertion(array_con->type->kind == (a_type_kind)tk_array &&
@@ -1227,7 +1228,10 @@ the position at which diagnostics should be issued.
         }  /* if */
         /* Add a ck_init_repeat constant if needed (which includes the case
            of a run-time count, represented using a "zero" ck_init_repeat. */
-        if (count != 1) remainder_con = add_repeat_con(remainder_con, count);
+        if (count != 1) {
+          remainder_con = add_repeat_con(remainder_con, count);
+          remainder_con->implicit_aggr_element = TRUE;
+        }  /* if */
         append_constant_in_aggr(remainder_con, array_con);
       }  /* if */
     }  /* if */
@@ -1236,6 +1240,7 @@ the position at which diagnostics should be issued.
     /* The missing initializations are not explicit in the initializer.  Set
        the partial initializer flag in the initializer state. */
     is->partial_initializer = TRUE;
+    if (array_con != NULL) array_con->partial_aggr_value = TRUE;
   }  /* if */
 }  /* aggr_init_array_remainder_if_needed */
 
@@ -1846,6 +1851,17 @@ initialization of as[1]).
 }  /* try_whole_aggr_class_init */
 
 
+static a_boolean has_initializable_field(a_type_ptr  class_type)
+/*
+Return TRUE if the given class type has an initializable field.
+*/
+{
+  a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
+
+  return next_initializable_field(fp) != NULL;
+}  /* has_initializable_field */
+
+
 static void aggr_init_class_remainder_if_needed(a_constant_ptr     aggr_con,
                                                 a_field_ptr        next_field,
                                                 an_init_state      *is,
@@ -1884,7 +1900,6 @@ position for which diagnostics should be issued.
   }  /* for */
   if (last_dyn_field != NULL) {
     a_field_ptr  end_fp = next_initializable_field(last_dyn_field->next);
-    is->has_dynamic_init_component = TRUE;
     for (fp = next_field;
          fp != end_fp;
          fp = next_initializable_field(fp->next)) {
@@ -1920,22 +1935,39 @@ position for which diagnostics should be issued.
       if (!is->check_validity_only) {
         if (init_con == NULL) {
           /* Default initialization doesn't involve a constructor or destructor
-             call.  Use a dik_zero dynamic init entry to represent this. */
-          init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-          init_con->variant.dynamic_init = 
-                            alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
-          init_con->type = ftp;
+             call.  Use a zero-valued constant for scalar types, and an empty
+             aggregate for aggregate types. */
+          init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+          if (is_scalar_type(ftp)) {
+            make_zero_of_proper_type(ftp, init_con);
+          } else {
+            init_con->type = ftp;
+            if (!(is_immediate_class_type(ftp) &&
+                  has_initializable_field(ftp)) &&
+                !(ftp->kind == (a_type_kind)tk_array &&
+                  ftp->variant.array.bound_is_zero)) {
+              /* Other than for empty classes and zero-length arrays, an empty
+                 aggregate constant does not cover all the elements of the
+                 destination type. */
+              init_con->partial_aggr_value = TRUE;
+            }  /* if */
+          }  /* if */
         }  /* if */
         /* Add the constant entry to the list of constants. */
+        init_con->implicit_aggr_element = TRUE;
         append_constant_in_aggr(init_con, aggr_con);
       }  /* if */
     }  /* for */
   }  /* if */
   /* Check if there are any remaining fields not covered by the initializer. */
   if (last_dyn_field == NULL) {
-    if (next_field != NULL) is->partial_initializer = TRUE;
+    if (next_field != NULL) {
+      is->partial_initializer = TRUE;
+      if (aggr_con != NULL) aggr_con->partial_aggr_value = TRUE;
+    }  /* if */
   } else if (next_initializable_field(last_dyn_field->next) != NULL) {
     is->partial_initializer = TRUE;
+    if (aggr_con != NULL) aggr_con->partial_aggr_value = TRUE;
   }  /* if */
 }  /* aggr_init_class_remainder_if_needed */
 

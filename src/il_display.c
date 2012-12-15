@@ -1061,6 +1061,12 @@ Display the indicated constant entry.
   if (ptr->is_named_constant_definition) {
     disp_boolean("is_named_constant_definition", TRUE);
   }  /* if */
+  if (ptr->partial_aggr_value) {
+    disp_boolean("partial_aggr_value", TRUE);
+  }  /* if */
+  if (ptr->implicit_aggr_element) {
+    disp_boolean("implicit_aggr_element", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:

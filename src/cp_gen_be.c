@@ -4783,8 +4783,9 @@ field designator.
     /* Loop through the list of initializer constants. */
     sub_con = constant->variant.aggregate.first_constant;
     if (sub_con != NULL &&
-        sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
-        is_default_dynamic_init(sub_con->variant.dynamic_init)) {
+        (sub_con->implicit_aggr_element ||
+         (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
+          is_default_dynamic_init(sub_con->variant.dynamic_init)))) {
       /* First member gets default initialization, so we're done with
          this aggregate. */
     } else if (sub_con != NULL &&
@@ -4842,8 +4843,9 @@ field designator.
         /* Stop after the last constant. */
         if (sub_con == NULL) break;
         /* Stop on default initialization of trailing fields. */
-        if (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
-            is_default_dynamic_init(sub_con->variant.dynamic_init)) {
+        if (sub_con->implicit_aggr_element ||
+            (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
+             is_default_dynamic_init(sub_con->variant.dynamic_init))) {
           break;
         }  /* if */
         if (sub_con->kind == (a_constant_repr_kind)ck_init_repeat) {

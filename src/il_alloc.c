@@ -868,6 +868,8 @@ associated variant fields to default values.
   cp->elide_aggregate_braces = FALSE;
 #endif /* BACK_END_IS_C_GEN_BE */
   cp->is_named_constant_definition = FALSE;
+  cp->partial_aggr_value = FALSE;
+  cp->implicit_aggr_element = FALSE;
 #if CENTERLINE_CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
