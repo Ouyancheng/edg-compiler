@@ -8300,31 +8300,26 @@ call.  ceblock gives context information for the evaluation.
   a_routine_ptr         routine;
   a_constexpr_remap_ptr new_remap_list = NULL, *last_ptr = &new_remap_list;
   an_expr_node_ptr      arg;
-  a_variable_ptr        param_var;
+  a_variable_ptr        param_var, this_param_var, first_real_param = NULL;
 
   *not_foldable = FALSE;
   check_assertion(routine_scope->kind == (a_scope_kind)sck_function);
   routine = routine_scope->variant.routine.ptr;
   param_var = routine_scope->variant.routine.parameters;
-  /* Skip lowering-generated parameters. */
-  while (param_var != NULL && param_var->assoc_param_type == NULL &&
-         !param_var->is_this_parameter) {
+  /* Skip lowering-generated parameters and the lowered "this" parameter. */
+  while (param_var != NULL && param_var->assoc_param_type == NULL) {
     param_var = param_var->next;
   }  /* while */
-  if (param_var != NULL && param_var->is_this_parameter &&
-      special_kind_is(routine, sfk_constructor)) {
-    /* Skip the "this" parameter in a constructor, because there is no
-       corresponding argument.  Note that */
-    param_var = param_var->next;
+  this_param_var = routine_scope->variant.routine.this_param_variable;
+  if (this_param_var != NULL &&
+      !special_kind_is(routine, sfk_constructor)) {
+    /* Process the "this" parameter first.  Don't process the "this"
+       parameter in constructors, because there is no corresponding
+       argument. */
+    first_real_param = param_var;
+    param_var = this_param_var;
   }  /* if */
-  /* Skip lowering-generated parameters. */
-  while (param_var != NULL && param_var->assoc_param_type == NULL &&
-         !param_var->is_this_parameter) {
-    param_var = param_var->next;
-  }  /* while */
-  for (arg = args;
-       arg != NULL;
-       arg = arg->next, param_var = param_var->next) {
+  for (arg = args; arg != NULL; arg = arg->next) {
     a_constexpr_remap_ptr crp;
     if (param_var == NULL) {
       *not_foldable = TRUE;
@@ -8350,6 +8345,13 @@ call.  ceblock gives context information for the evaluation.
     }  /* if */
     *last_ptr = crp;
     last_ptr = &crp->next;
+    /* Advance to the next parameter.  If we processed the "this" parameter
+       the first time around, go to the first real parameter next. */
+    if (param_var == this_param_var) {
+      param_var = first_real_param;
+    } else {
+      param_var = param_var->next;
+    }  /* if */
   }  /* for */
   return new_remap_list;
 }  /* constexpr_remap_list_for_args */
