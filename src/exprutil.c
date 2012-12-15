@@ -17369,6 +17369,8 @@ it might produce an error).
                                         &did_not_fold, err_pos);
               check_assertion(!did_not_fold);
               con_expr_value = alloc_shareable_constant(&result_con);
+              node->is_lvalue = FALSE;
+              node->type = rvalue_node_type;
               processed = TRUE;
             }  /* if */
           }  /* if */
