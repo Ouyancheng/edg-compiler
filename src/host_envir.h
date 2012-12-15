@@ -1842,6 +1842,13 @@ specified.  FIXED_ADDRESS_FOR_MMAP is used to provide the default address
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 #endif /* ifndef FIXED_ADDRESS_FOR_MMAP */
 
+#if USE_FIXED_ADDRESS_FOR_MMAP
+EXTERN char	*fixed_address_for_mmap;
+			/* The fixed address to use for mmap calls;
+			   initially set to FIXED_ADDRESS_FOR_MMAP and may be
+			   modified by command line option. */
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+
 /*
 When using precompiled headers, it must be possible to duplicate the memory
 allocation done by the process that created the precompiled header.  This
