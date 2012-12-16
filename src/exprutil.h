@@ -2155,6 +2155,9 @@ extern void extract_constant_from_operand(an_operand     *operand,
 
 extern void discard_operand(an_operand *operand);
 
+extern void call_did_not_fold_to_constant(an_error_code err_code,
+                                          an_operand    *operand);
+
 extern void prep_generic_nontype_template_argument(an_operand *operand);
 
 extern void prep_generic_template_argument_list(

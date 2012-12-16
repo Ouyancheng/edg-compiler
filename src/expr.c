@@ -5396,15 +5396,12 @@ are expected to be NULL in that case.
                                                            function_call_node);
     }  /* if */
   }  /* if */
-  if (!call_folded_to_constant && !is_error_operand(result)) {
+  if (!call_folded_to_constant) {
     /* Unfolded routine calls are not allowed in constant expressions. */
-    if (curr_expr_kind_is_traditional_const()) {
-      error_in_operand(ec_bad_constant_function_call, result);
-    } else if (construct_not_allowed_in_cpp11_constant_expr(
-                                                 ec_bad_constant_function_call,
-                                                 &result->position)) {
-      conv_to_error_operand(result);
-    }  /* if */
+    call_did_not_fold_to_constant(constexpr_enabled ?
+                                    ec_bad_cpp11_constant_function_call :
+                                    ec_bad_constant_function_call,
+                                  result);
   }  /* if */
   set_operand_position(result, &start_position, &closing_paren_position,
                        &operator_position);

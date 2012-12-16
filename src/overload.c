@@ -15798,6 +15798,7 @@ no_applicable_operator_function:
       }  /* if */
     }  /* if */
     if (*processed && !folded_to_constant) {
+      call_did_not_fold_to_constant(ec_expr_not_constant, result);
       rule_out_expr_kinds(ROEK_CONSTANT, result);
     }  /* if */
   }  /* if */
@@ -17547,6 +17548,7 @@ the temporary.
                          /*uses_operator_syntax=*/FALSE,
                          &orig_operand.position, operand,
                          &conv_function_call_node);
+      call_did_not_fold_to_constant(ec_expr_not_constant, operand);
     }  /* if */
     if (dest_type == NULL) {
       /* No specified destination type.  The result type of the conversion

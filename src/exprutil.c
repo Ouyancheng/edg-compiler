@@ -5327,6 +5327,29 @@ This is only used in C++, for some strange cases.
 }  /* discard_operand */
 
 
+void call_did_not_fold_to_constant(an_error_code err_code,
+                                   an_operand    *operand)
+/*
+A call (or call-like construct) has been allowed with the hope that it
+would fold to a constant.  It's now known that it has not, so issue the
+indicated error on the given operand.  Also called in non-constant
+expressions, so that for C++11 it can record something that rules out
+a constant expression.
+*/
+{
+  if (!is_error_operand(operand)) {
+    /* Unfolded routine calls are not allowed in constant expressions. */
+    if (curr_expr_kind_is_traditional_const()) {
+      error_in_operand(err_code, operand);
+    } else if (construct_not_allowed_in_cpp11_constant_expr(
+                                                         err_code,
+                                                         &operand->position)) {
+      conv_to_error_operand(operand);
+    }  /* if */
+  }  /* if */
+}  /* call_did_not_fold_to_constant */
+
+
 static a_boolean operand_allows_is_operand_of_address_of(an_operand *operand)
 /*
 Return TRUE if the given operand is one on which the is_operand_of_address_of
