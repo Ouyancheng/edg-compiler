@@ -8605,6 +8605,7 @@ otherwise, return FALSE.
       /* We ran off the end of the aggregate initializer, so the field was
          implicitly value-initialized.  Make a constant of the requisite
          type and use that. */
+      check_assertion(eff_obj_con->partial_aggr_value);
       make_value_initialized_constant(field->type, result_con);
     } else {
       /* Check to make sure that the field and constant match. */
