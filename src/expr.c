@@ -20801,6 +20801,8 @@ freed by this routine.
     } else {
       dip->is_explicit_cast = TRUE;
       make_expression_operand(temp_init_node, result);
+      result->position = *start_position;
+      call_did_not_fold_to_constant(ec_expr_not_constant, result);
       rule_out_expr_kinds(ROEK_CONSTANT, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs && microsoft_version < 1100) {
