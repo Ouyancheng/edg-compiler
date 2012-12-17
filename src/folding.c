@@ -8599,14 +8599,14 @@ otherwise, return FALSE.
          elaborate to allow for things like anonymous unions, arrays
          initialized with string literals, etc. */
       member_con = member_con->next;
-      field = next_initializable_field(field->next);
+      curr_field = next_initializable_field(curr_field->next);
     }  /* while */
     if (member_con == NULL) {
       /* We ran off the end of the aggregate initializer, so the field was
          implicitly value-initialized.  Make a constant of the requisite
          type and use that. */
       check_assertion(eff_obj_con->partial_aggr_value);
-      make_value_initialized_constant(field->type, result_con);
+      make_value_initialized_constant(curr_field->type, result_con);
     } else {
       /* Check to make sure that the field and constant match. */
       check_assertion(field != NULL &&
