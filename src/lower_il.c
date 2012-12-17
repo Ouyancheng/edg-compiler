@@ -18577,9 +18577,6 @@ is instantiated in more than one translation unit.
     enclosing_rout = enclosing_routine_for_local_type_or_null(
                                                         parent_class_of(rout));
     if (enclosing_rout != NULL) {
-      check_assertion(!rout->is_template_function
-                      if_microsoft_extensions(
-                                    || enclosing_rout->is_generic_definition));
       rout = enclosing_rout;
     } else {
       /* This should only happen with types defined in local function prototype
