@@ -8230,7 +8230,7 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
 
   if (sym == NULL) {
     /* No declaration is associated with "constexpr": Issue an error. */
-    pos_error(ec_invalid_constexpr, &dps->specifiers_pos);
+    pos_error(ec_invalid_constexpr, &dps->constexpr_pos);
   } else if (sym->is_error ||
              (dps->type != NULL && is_error_type(dps->type))) {
     /* An error has presumably already been reported for this declaration.
@@ -8241,7 +8241,7 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
     if (special_kind_is(rp, sfk_constructor)) {
       a_type_ptr  class_type = parent_class_of(rp);
       if (class_type->variant.class_struct_union.any_virtual_base_classes) {
-        pos_error(ec_constexpr_ctor_with_virtual_base, &dps->specifiers_pos);
+        pos_error(ec_constexpr_ctor_with_virtual_base, &dps->constexpr_pos);
         rp->is_constexpr = FALSE;
       }  /* if */
     }  /* if */
@@ -8250,14 +8250,14 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
     a_variable_ptr  vp = var_for_symbol(sym);
     if (!is_literal_type(vp->type) && !is_any_reference_type(vp->type)) {
       pos_error(ec_constexpr_variable_must_have_literal_type,
-                &dps->specifiers_pos);
+                &dps->constexpr_pos);
     }  /* if */
   } else if (symbol_is(sym, sk_routine) ||
              symbol_is(sym, sk_function_template)) {
     /* Other symbol kinds for which constexpr is potentially valid.
        No diagnostic is needed. */
   } else {
-    pos_error(ec_invalid_constexpr, &dps->specifiers_pos);
+    pos_error(ec_invalid_constexpr, &dps->constexpr_pos);
   }  /* if */
 }  /* check_use_of_constexpr */
 
@@ -8876,6 +8876,7 @@ storage_class_specifier:
         } else {
           decl_specifiers_seen |= DS_CONSTEXPR;
           *output_flags |= DSO_CONSTEXPR;
+          state->constexpr_pos = pos_curr_token;
           add_end_of_parse_action(check_use_of_constexpr, state);
         }  /* if */
         break;

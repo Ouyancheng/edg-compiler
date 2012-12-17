@@ -141,6 +141,7 @@ be restored).
     dps->inline_pos = null_source_position;
     dps->virtual_pos = null_source_position;
     dps->auto_pos = null_source_position;
+    dps->constexpr_pos = null_source_position;
     dps->in_class_scope = FALSE;
     dps->secondary_declarator = FALSE;
     dps->is_trailing_return_type = FALSE;
@@ -6436,7 +6437,7 @@ for use in generating cross-reference output describing this declaration.
       variable_ptr->is_constexpr = TRUE;
     } else {
       pos_error(ec_constexpr_variable_decl_must_be_definition,
-                &dps->specifiers_pos);
+                &dps->constexpr_pos);
     }  /* if */
   }  /* if */
   dps->sym = sym;
@@ -7755,7 +7756,9 @@ for use in generating cross-reference output describing this declaration.
         pos_sy_error(routine_ptr->is_constexpr ?
                        ec_previous_constexpr_decl_conflict :
                        ec_previous_nonconstexpr_decl_conflict,
-                     &dps->specifiers_pos, linked_symbol);
+                     routine_ptr->is_constexpr ? &dps->constexpr_pos
+                                               : &dps->declarator_pos,
+                     linked_symbol);
       }  /* if */
     } else {
       /* The linked symbol must be a variable. */
@@ -8495,7 +8498,7 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   if (!redeclaration && (dps->dso_flags & DSO_CONSTEXPR) != 0 &&
-      check_constexpr_routine_type(routine_ptr, &locator->source_position)) {
+      check_constexpr_routine_type(routine_ptr, &dps->constexpr_pos)) {
     routine_ptr->is_constexpr = TRUE;
   }  /* if */
   attach_decl_attributes(dps, is_function_def);
@@ -9149,7 +9152,7 @@ definition of a member function of a class template.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (dps->dso_flags & DSO_CONSTEXPR &&
-        check_constexpr_routine_type(rout_ptr, &locator->source_position)) {
+        check_constexpr_routine_type(rout_ptr, &dps->constexpr_pos)) {
       rout_ptr->is_constexpr = TRUE;
     }  /* if */
     if (func_info->is_inline) {
@@ -10938,6 +10941,7 @@ common cases.
     }  /* if */
   }  /* if */
   copy_source_position(dps->start_pos, error_position);
+  run_end_of_parse_actions(dps);
   db_exit();
 }  /* type_name_full */
 

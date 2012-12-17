@@ -1677,7 +1677,9 @@ member declaration (allowed in some Microsoft modes only).
          "constexpr" specifier.  Issue an error. */
       pos_sy_error(rp->is_constexpr ? ec_previous_constexpr_decl_conflict :
                                       ec_previous_nonconstexpr_decl_conflict,
-                   &dps->specifiers_pos, sym);
+                   rp->is_constexpr ? &dps->constexpr_pos
+                                    : &dps->declarator_pos,
+                   sym);
       rp->is_constexpr = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

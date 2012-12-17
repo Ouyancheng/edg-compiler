@@ -577,6 +577,10 @@ typedef struct a_decl_parse_state {
   a_source_position
 		auto_pos;
 			/* The position of the "auto" specifier (if any). */
+  a_source_position
+		constexpr_pos;
+			/* The position of the "constexpr" specifier (if
+			   any). */
   a_bit_field
 		in_class_scope:1;
 			/* TRUE if the current declaration appears in class
