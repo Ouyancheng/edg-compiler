@@ -17361,9 +17361,10 @@ initialized, and for union types exactly one field must be initialized.
   a_boolean    okay = TRUE, initializer_seen = FALSE;
   a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
 
+  fp = next_initializable_field(fp);
   if (fp != NULL) {
     a_boolean  is_union = class_type->kind == (a_type_kind)tk_union;
-    for (; fp != NULL; fp = fp->next) {
+    for (; fp != NULL; fp = next_initializable_field(fp->next)) {
       a_boolean  member_initialized;
       if (fp->compiler_generated) {
         if (fp->is_anonymous_parent_object) {
