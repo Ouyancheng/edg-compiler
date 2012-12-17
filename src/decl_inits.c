@@ -3388,7 +3388,9 @@ Scan the brace-enclosed part of a compound literal.  Such literals are of the
 form (type){initializer} or (type){initializer,}.  The type provided in
 parentheses is passed to this function through dps->type; if this type is
 incomplete, the complete type should be deduced from the initializer and
-dps->type will be updated with that complete type.  A dynamic init entry is
+dps->type will be updated with that complete type.  The caller also sets the
+dps->init_state.static_lifetime_init flag depending on the context of the
+expression containing the compound literal.  A dynamic init entry is
 created by this function and a pointer to it is returned through
 dps->init_state.init_dip.  If return_icp is non-NULL, return the init-component
 entry for the braced-init-list in *return_icp instead of freeing it as usual.
