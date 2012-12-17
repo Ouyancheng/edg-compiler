@@ -1000,6 +1000,7 @@ given position, unless is->no_diagnostics is TRUE.
     if (!is->check_validity_only) {
       dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
     }  /* if */
+    is->has_dynamic_init_component = TRUE;
   } else  {
     if (!is->check_validity_only) {
       /* For a non-trivial constructor, create a dik_constructor dynamic init
