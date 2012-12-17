@@ -56,8 +56,11 @@ argument.  Valid values for this argument are dependent on the operating system
 and the only validation is to ensure that the given argument is aligned to a
 page boundary.  It is expected that this option will only be used in driver
 scripts as specifying an invalid value will likely lead to a catastrophic error
-or possibly an abort.  These changes only affect configurations where
-USE_FIXED_ADDRESS_FOR_MMAP is TRUE.
+or possibly an abort.  The use of a fixed address for mmap is useful in cases
+where pre-compiled header files are used (to ensure that the same address
+space is available from one invocation of the front end to another).
+These changes only affect configurations where USE_FIXED_ADDRESS_FOR_MMAP
+is TRUE.
 
 
 12/13/12 [EDGcpfe/13525]
