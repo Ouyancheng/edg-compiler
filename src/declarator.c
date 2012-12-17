@@ -1358,9 +1358,10 @@ is TRUE, cache the argument tokens if this is a template-dependent context.
 
 
 static an_exception_specification_ptr scan_exception_specification(
-                                  a_func_info_block  *func_info,
-                                  a_boolean          exception_spec_allowed,
-                                  a_boolean          is_top_level_declarator)
+                                  a_decl_parse_state  *dps,
+                                  a_func_info_block   *func_info,
+                                  a_boolean           exception_spec_allowed,
+                                  a_boolean           is_top_level_declarator)
 /*
 Scan an exception specification, which may be empty or take one of the
 following forms:
@@ -1490,7 +1491,16 @@ actually declares a function, member function, or function template).
   if (curr_token == tok_lparen) {
     (void)get_token();
     if (is_noexcept) {
-      scan_noexcept_arg(esp, /*cache_in_template=*/is_top_level_declarator);
+      a_boolean  cache_in_template = FALSE;
+      if (is_top_level_declarator && 
+          !((dps->dso_flags & DSO_FRIEND) != 0 && dps->in_class_scope)) {
+        /* A noexcept argument should generally be cached for later
+           instantiation if we are in a template.  However, that's not the
+           case if we're in an ordinary friend function declaration (for a
+           friend template, dps->in_class_scope is FALSE). */
+        cache_in_template = TRUE;
+      }  /* if */
+      scan_noexcept_arg(esp, cache_in_template);
       goto finish_list;
     } else if (curr_token == tok_rparen) {
       /* Case is "throw ()" -- which means "no exception will be thrown by
@@ -2125,8 +2135,8 @@ this is a helper function.
     rtsp->qualifiers = (qualifiers & ~TQ_RESTRICT);
     rtsp->this_qualifiers = (qualifiers & TQ_RESTRICT);
   }  /* if */
-  esp = scan_exception_specification(func_info, !disallow_exception_spec,
-                                     top_level);
+  esp = scan_exception_specification(state, func_info,
+                                     !disallow_exception_spec, top_level);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled && esp != NULL && parent_type != NULL &&
       is_managed_class_type(parent_type)) {
