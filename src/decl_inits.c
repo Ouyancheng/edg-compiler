@@ -3347,9 +3347,9 @@ to use for diagnostics by default.
 static void expr_init_scalar_variable(a_decl_parse_state  *dps,
                                       a_decl_pos_block    *decl_pos_block)
 /*
-vp, dps (which must be non-NULL) and decl_pos_block describe a variable of
-scalar type initialized with what looks like an expression.  I.e., an
-initialization of the form:
+ dps (which must be non-NULL) and decl_pos_block describe a variable of scalar
+type initialized with what looks like an expression.  I.e., an initialization
+of the form:
 
 	T x = <expr>
 
