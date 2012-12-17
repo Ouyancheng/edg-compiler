@@ -906,6 +906,9 @@ typedef struct a_class_def_state {
   a_bit_field	has_subobject_of_nonliteral_type:1;
 			/* TRUE if the class has a field or base class of
 			   nonliteral type. */
+  a_bit_field	has_constexpr_nonstatic_member_function:1;
+			/* TRUE if the class has a nonstatic member function
+			   that is constexpr. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field   potentially_interface_like:1;
 			/* TRUE if we haven't ruled out this type from being
@@ -1042,6 +1045,7 @@ class being defined.
   cdsp->class_aggregate_ruled_out = FALSE;
   cdsp->POD_ruled_out = FALSE;
   cdsp->has_subobject_of_nonliteral_type = FALSE;
+  cdsp->has_constexpr_nonstatic_member_function = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->potentially_interface_like = FALSE;
   cdsp->current_decl_valid_in_property_or_event_def = FALSE;
@@ -12775,6 +12779,9 @@ implicitly declared member functions.
   if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0 &&
       check_constexpr_routine_type(rtn, &decl_state->constexpr_pos)) {
     rtn->is_constexpr = TRUE;
+    if (!is_static_member) {
+      class_state->has_constexpr_nonstatic_member_function = TRUE;
+    }  /* if */
   }  /* if */
   check_defaulted_or_deleted_function(&decl_info->decl_state, func_info,
                                       &locator->source_position);
@@ -24705,7 +24712,8 @@ indeed a literal type.
        is not a copy or move constructor. */
     if (cssp->is_class_aggregate) {
       type->variant.class_struct_union.is_literal_type = TRUE;
-    } else if (cssp->constructor != NULL) {
+    } else if (cssp->constructor != NULL &&
+               cdsp->has_constexpr_nonstatic_member_function) {
       /* Look for a constexpr constructor that is not a copy or move
          constructor. */
       a_symbol_ptr  sym = cssp->constructor;
@@ -24728,6 +24736,34 @@ indeed a literal type.
         }  /* if */
       }  /* for */
     }  /* if */
+  }  /* if */
+  if (!type->variant.class_struct_union.is_literal_type &&
+      cdsp->has_constexpr_nonstatic_member_function) {
+    /* If there were any nonstatic constexpr member functions in the class
+       issue an error (nonstatic non-constructor member functions can be
+       constexpr only if their parent class is a literal type). */
+    a_symbol_ptr  sym = cssp->symbols;
+    for (; sym != NULL; sym = sym->next_in_scope) {
+      a_symbol_ptr  member_sym = sym;
+      a_boolean     is_list = FALSE;
+      if (symbol_is(member_sym, sk_overloaded_function)) {
+        is_list = TRUE;
+        member_sym = member_sym->variant.overloaded_function.symbols;
+      }  /* if */
+      for (; member_sym != NULL; member_sym = is_list ? member_sym->next
+                                                      : (a_symbol_ptr)NULL) {
+        if (symbol_is(member_sym, sk_member_function)) {
+          a_routine_ptr  rp = member_sym->variant.routine.ptr;
+          if (rp->is_constexpr &&
+              routine_type_is_nonstatic_member_function(rp->type)) {
+            pos_error(ec_constexpr_nonstatic_member_func_in_nonliteral_class,
+                      &member_sym->decl_position);
+            goto done;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* for */
+done:;
   }  /* if */
 }  /* set_literal_type_flag */
 
