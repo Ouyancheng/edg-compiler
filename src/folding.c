@@ -8593,11 +8593,35 @@ otherwise, return FALSE.
     a_type_ptr     class_type = skip_typerefs(eff_obj_con->type);
     a_field_ptr    curr_field = next_initializable_field(
                             class_type->variant.class_struct_union.field_list);
+    a_type_ptr     parent_of_field = parent_class_of(field);
+    a_type_ptr     anon_union_member_type = NULL;
+    int            anon_union_member_depth = 0;
+    /* Check to see if the requested field is a member of an anonymous
+       union.  If so, set anon_union_member_type to be the type of the
+       immediate anonymous union member of class_type and set
+       anon_union_member_depth to indicate the number of layers of
+       anonymous unions between class_type and field. */
+    while (parent_of_field != class_type) {
+      check_assertion(parent_of_field != NULL);
+      anon_union_member_type = parent_of_field;
+      ++anon_union_member_depth;
+      parent_of_field = parent_class_of(parent_of_field);
+    }  /* while */
+    /* Step through the elements of the initializer constant and the
+       fields of class_type, breaking out of the loop when we've found
+       either the indicated field or the anonymous union member of which
+       the indicated field is a (possibly indirect) member. */
     while (member_con != NULL && curr_field != NULL &&
            curr_field != field) {
       /* FIXME: The traversal of the ck_aggregate will need to be more
-         elaborate to allow for things like anonymous unions, arrays
-         initialized with string literals, etc. */
+         elaborate to allow for things like arrays initialized with string
+         literals, etc. */
+      if (curr_field->type == anon_union_member_type) {
+        /* We have found the anonymous union member to which field
+           belongs. */
+        check_assertion(curr_field->is_anonymous_parent_object);
+        break;
+      }  /* if */
       member_con = member_con->next;
       curr_field = next_initializable_field(curr_field->next);
     }  /* while */
@@ -8607,14 +8631,36 @@ otherwise, return FALSE.
          type and use that. */
       check_assertion(eff_obj_con->partial_aggr_value);
       make_value_initialized_constant(curr_field->type, result_con);
+      folded = TRUE;
     } else {
-      /* Check to make sure that the field and constant match. */
-      check_assertion(field != NULL &&
-                      identical_types_ignoring_qualifiers(member_con->type,
-                                                          field->type));
+      check_assertion(field != NULL);
+      /* If the field is a member of an anonymous union, scan through
+         the aggregates in which the value is nested. */
+      while (anon_union_member_depth-- > 0) {
+        check_assertion(member_con->kind ==
+                                          (a_constant_repr_kind)ck_aggregate &&
+                        member_con->variant.aggregate.first_constant != NULL &&
+                        member_con->variant.aggregate.first_constant ==
+                                  member_con->variant.aggregate.last_constant);
+        member_con = member_con->variant.aggregate.first_constant;
+      }  /* while */
       copy_constant(member_con, result_con);
+      if (anon_union_member_type != NULL) {
+        /* The type of the initializer constant will be that of the first
+           member of the union, but field can be any member of the union and
+           thus might not have the same type.  Make sure the types are
+           compatible; if not, it's undefined behavior, which causes the
+           expression not to be constant. */
+        folded = types_are_compatible(result_con->type, field->type);
+      } else {
+        /* Make sure we found the right constant for the field: at a
+           minimum, the types should be the same except for
+           cv-qualifiers. */
+        check_assertion(identical_types_ignoring_qualifiers(result_con->type,
+                                                            field->type));
+        folded = TRUE;
+      }  /* if */
     }  /* if */
-    folded = TRUE;
   }  /* if */
   return folded;
 }  /* fold_constant_field_selection */
