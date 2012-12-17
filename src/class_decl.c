@@ -9689,8 +9689,8 @@ possibility.
         a_boolean  is_inline = func_info->is_inline;
 
         func_info->is_main_function = TRUE;
-        check_main_function(func_info, function_type, &state->storage_class,
-                            &is_inline, &locator->source_position);
+        check_main_function(func_info, function_type, state, &is_inline,
+                            &locator->source_position);
         func_info->is_inline = is_inline;
       } else if (func_info->is_definition) {
         if (class_type->source_corresp.is_local_to_function) {

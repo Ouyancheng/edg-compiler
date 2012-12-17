@@ -1129,7 +1129,7 @@ extern a_label_ptr scan_label(a_boolean  is_definition,
 
 extern void check_main_function(a_func_info_block_ptr  func_info,
                                 a_type_ptr             type,
-                                a_storage_class        *declared_storage_class,
+                                a_decl_parse_state     *dps,
                                 a_boolean              *is_inline,
                                 a_source_position_ptr  pos);
 

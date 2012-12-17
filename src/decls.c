@@ -14171,16 +14171,14 @@ Remove stop tokens as suggested by *state (and clear the associated flags).
 
 void check_main_function(a_func_info_block_ptr  func_info,
                          a_type_ptr             type,
-                         a_storage_class        *declared_storage_class,
+                         a_decl_parse_state     *dps,
                          a_boolean              *is_inline,
                          a_source_position_ptr  pos)
 /*
-Check some constraints on the main() function declared with type "type"
-and storage class "*declared_storage_class".  If "*is_inline" is TRUE, the
-function was declared "inline" (or was defined as an in-class friend).
-Additional information is provided through the "func_info" parameter, while
-the "pos" parameter determines which positions should be reported in any
-diagnostics.
+Check some constraints on the main() function whose declaration is described
+by func_info, type, and dps.  If "*is_inline" is TRUE, the function was
+declared "inline" (or was defined as an in-class friend).  Any diagnostics are
+issued at the given position.
 */
 {
   a_routine_type_supplement_ptr  rtsp;
@@ -14207,6 +14205,12 @@ diagnostics.
       *is_inline = FALSE;
     }  /* if */
   }  /* if */
+  if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
+    /* main() cannot be declared constexpr (because that would imply that
+       it is inline). */
+    pos_error(ec_constexpr_main, pos);
+    dps->dso_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
+  }  /* if */
   rtsp = skip_typerefs(type)->variant.routine.extra_info;
   if (!C_mode()) {
     if (rtsp->routine_name_linkage_is_explicit) {
@@ -14222,9 +14226,9 @@ diagnostics.
       rtsp->exception_specification = NULL;
     }  /* if */
     /* "static" is not allowed (ARM 3.4). */
-    if (*declared_storage_class == (a_storage_class)sc_static) {
+    if (dps->storage_class == (a_storage_class)sc_static) {
       pos_error(ec_static_not_allowed, pos);
-      *declared_storage_class = (a_storage_class)sc_unspecified;
+      dps->storage_class = (a_storage_class)sc_unspecified;
     }  /* if */
   }  /* if */
   /* Check for one of the standard signatures and issue remarks if
@@ -14731,8 +14735,8 @@ proceed after the call.
       }  /* if */
     }  /* if */
     if (is_main_function) {
-      check_main_function(func_info, type, &state->storage_class,
-                          &inline_specified, &locator->source_position);
+      check_main_function(func_info, type, state, &inline_specified,
+                          &locator->source_position);
     }  /* if */
   }  /* if */
 #if ASM_FUNCTION_ALLOWED
