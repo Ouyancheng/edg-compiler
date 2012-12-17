@@ -11232,6 +11232,7 @@ is_parenthesized comes in FALSE.
        to use it anywhere but in a pointer-to-member declaration. */
     invalidate_type(state);
   }  /* if */
+  run_end_of_parse_actions(state);
   db_exit();
 }  /* new_type_name */
 
