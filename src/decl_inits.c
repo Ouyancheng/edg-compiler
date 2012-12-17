@@ -5319,11 +5319,12 @@ entries are replaced as needed for each mem-initializer that is encountered.
 static a_boolean is_variant_member_sym(a_symbol_ptr  sym)
 /*
 Return TRUE if the given field symbol is a variant member of a class (i.e., a 
-member of an anonymous union).
+member of an anonymous union).  C++ mode only.
 */
 {
   a_boolean  result = FALSE;
 
+  check_assertion(!C_mode());
   check_assertion(symbol_is(sym, sk_field));
   while (sym->variant.field.anonymous_parent_object != NULL) {
     /* sym is some sort of "anonymous union" member, except that with
