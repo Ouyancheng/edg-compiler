@@ -2267,9 +2267,10 @@ Does the fixup on the friend function that is otherwise done when the
 enclosing class is instantiated.  Normally, the fixup of such routines
 is deferred until the first use of the routine.  But in some modes the
 fixup is further postponed until the end of the translation unit.  This
-routine is called by add_to_deferred_friend_fixup_list in the former case
-and by process_deferred_friend_fixup list in the latter.  This routine is
-also used for Microsoft in-class member function template specializations.
+routine is called by add_to_deferred_friend_function_fixup_list in the
+former case and by process_deferred_friend_fixup list in the latter.
+This routine is also used for Microsoft in-class member function template
+specializations.
 */
 {
   a_routine_ptr                rp = rfp->symbol->variant.routine.ptr;
