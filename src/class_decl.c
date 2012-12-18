@@ -24711,6 +24711,13 @@ indeed a literal type.
        aggregate, or it should have at least one constexpr constructor that
        is not a copy or move constructor. */
     if (cssp->is_class_aggregate) {
+      /* Aggregate class types are literal types. */
+      type->variant.class_struct_union.is_literal_type = TRUE;
+    } else if (cssp->trivial_default_constructor != NULL &&
+               cssp->trivial_default_constructor
+                   ->variant.routine.ptr->is_constexpr) {
+      /* A constexpr trivial default constructor makes the class a literal
+         type. */
       type->variant.class_struct_union.is_literal_type = TRUE;
     } else if (cssp->constructor != NULL &&
                cdsp->has_constexpr_nonstatic_member_function) {
