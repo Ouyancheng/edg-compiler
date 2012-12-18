@@ -1,5 +1,23 @@
 Version 4.6
 
+12/18/12 [EDGcpfe/13529]
+Invalid IL for noexcept on lambda in function template instantiation
+
+The front end sometimes generated invalid IL for the representation of a
+noexcept-specification on a lambda appearing in a function template instance.
+For example:
+
+  template<class T> void f(T) {
+    []() noexcept(false) { throw 42; }  // Previously the "noexcept(false)"
+  }                                     // was incorrectly recorded in the IL.
+  main() {
+    try { f(1); } catch (...) {}  // After code generation, the exception
+  }                               // was likely not caught, resulting in a
+                                  // call to "terminate()".
+
+This is now fixed.
+
+
 12/18/12 [EDGcpfe/13526]
 C++-generating back end, GNU C++ compatibility: namespaces and classes with
 the same name
