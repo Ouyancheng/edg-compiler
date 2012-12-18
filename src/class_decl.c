@@ -17448,13 +17448,12 @@ in some Microsoft modes, record that its body cannot be generated).
        class type (FIXME: incorrect), and (c) every field has a
        field-initializer. */
     if (fields_initialized_for_constexpr_constructor(class_type)) {
-#if /*FIXME*/1
       /* Various parts of the front end aren't ready to deal with constexpr
          default constructors, and this affects many tests that don't
          mention "constexpr" at all.  Re-enable when we're closer to a full
          implementation of constexpr. */
       sym->variant.routine.ptr->is_constexpr = TRUE;
-#endif /*FIXME*/
+      class_state->has_constexpr_nonstatic_member_function = TRUE;
     }  /* if */
   }  /* if */
 }  /* generate_default_constructor */
