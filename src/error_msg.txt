@@ -2453,6 +2453,7 @@ ec_constexpr_ctor_with_virtual_base;;"a constructor for a class with virtual bas
 ec_bad_cpp11_constant_function_call;;"function call must have a constant value in a constant expression"
 ec_constexpr_main;;"function \"main\" may not be declared constexpr"
 ec_constexpr_nonstatic_member_func_in_nonliteral_class;;"a constexpr member function is only permitted in a literal class type"
+ec_tag_defined_in_constexpr_body;;"a class or enumeration type definition cannot appear in a constexpr function or constructor body"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -179,6 +179,7 @@ be restored).
     dps->is_explicit_instantiation = FALSE;
     dps->is_for_init_decl = FALSE;
     dps->range_based_for = FALSE;
+    dps->decl_okay_in_constexpr_body = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
@@ -9896,6 +9897,10 @@ symbol entry, and return a pointer to it in state->sym.
   a_symbol_ptr             loc_sym;
 
   db_enter(3, "decl_typedef");
+  /* typedefs (and alias declarations, which also come through here) are
+     usually permitted in constexpr bodies.  (They aren't if they define a
+     class or enumeration type, but that is checked elsewhere.) */
+  state->decl_okay_in_constexpr_body = TRUE;
   if (state->auto_type != NULL && !state->has_trailing_return_type) {
     /* An "auto" type specifier is not allowed in a typedef declaration. */
     pos_error(ec_auto_not_allowed_here, &state->auto_pos);
@@ -15826,6 +15831,11 @@ processing should proceed after the call.
       disallow_attributes(&state->prefix_attributes);
       /* Process a namespace definition or a namespace alias declaration. */
       namespace_declaration(final_token);
+      if (gpp_mode) {
+        /* The C++11 standard doesn't allow namespace alias declarations in
+           constexpr function definition, but GCC does. */
+        state->decl_okay_in_constexpr_body = TRUE;
+      }  /* if */
       /* Swallow the current token if it is the same as *final_token, then
          return. */
       end_of_decl_action = eoda_skip_final_token;
@@ -15843,6 +15853,7 @@ processing should proceed after the call.
       disallow_attributes(&state->prefix_attributes);
       if (curr_token == tok_namespace) {
         using_directive(state);
+        state->decl_okay_in_constexpr_body = TRUE;
       } else {
         a_token_kind  next_tok;
         if (alias_declarations_enabled &&
@@ -15855,6 +15866,7 @@ processing should proceed after the call.
           alias_declaration(state, &end_of_using_pos);
         } else {
           nonmember_using_declaration(state);
+          state->decl_okay_in_constexpr_body = TRUE;
         }  /* if */
       }  /* if */
       cannot_bind_to_curr_construct();
@@ -15872,6 +15884,7 @@ processing should proceed after the call.
       end_of_decl_action = eoda_check_semicolon;
     } else if (curr_token == tok_static_assert) {
       static_assert_declaration(/*leave_semicolon=*/TRUE);
+      state->decl_okay_in_constexpr_body = TRUE;
       end_of_decl_action = eoda_check_semicolon;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled &&

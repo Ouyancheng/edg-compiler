@@ -1848,13 +1848,17 @@ over.
 }  /* record_trivial_init_control_flow */
 
 
-static void decl_statement(a_boolean    marked_as_gnu_extension)
+static void decl_statement(a_boolean  marked_as_gnu_extension,
+                           a_boolean  *p_okay_in_constexpr_body)
 /*
 Parse a declaration statement.  An stmk_decl statement is created for the
 statement and the declared entities are recorded in it (except for entities
 declared in embedded scopes, like function prototype scopes or block scopes
 for GNU statement expressions).  If marked_as_gnu_extension is TRUE, the
 __extension__ keyword was scanned just before the upcoming declaration.
+If p_okay_in_constexpr_body is non-NULL, *p_okay_in_constexpr_body is set
+to TRUE if (and only if) the declaration that is parsed can be valid in the
+body of a constexpr function or constructor.
 */
 {
   a_decl_parse_state             dps;
@@ -1869,6 +1873,9 @@ __extension__ keyword was scanned just before the upcoming declaration.
   dps.marked_as_gnu_extension = marked_as_gnu_extension;
   dps.is_for_init_decl = sssep->for_init;
   scan_nonmember_declaration(&dps, (a_source_range *)NULL);
+  if (p_okay_in_constexpr_body != NULL) {
+    *p_okay_in_constexpr_body = dps.decl_okay_in_constexpr_body;
+  }  /* if */
   /* Re-load sssep since the call to scan_nonmember_declaration may have
      caused the statement stack to be reallocated. */
   sssep = &struct_stmt_stack[depth_stmt_stack];
@@ -4376,7 +4383,8 @@ can be NULL.
         start_for_init_block(sssep->statement, pointers_block);
       }  /* if */
     }  /* if */
-    decl_statement(/*marked_as_gnu_extension=*/FALSE);
+    decl_statement(/*marked_as_gnu_extension=*/FALSE,
+                   /*p_okay_in_constexpr_body=*/NULL);
   } else {
     /* Scan an expression.  It may be omitted. */
     if (curr_token != tok_semicolon) expression_statement(
@@ -6714,18 +6722,7 @@ expr_statement:
           unscan_attributes(sssep->prefix_attributes);
           sssep->prefix_attributes = NULL;
         }  /* if */
-        if (curr_token == tok_using ||
-            curr_token == tok_namespace ||
-            curr_token == tok_static_assert ||
-            curr_token == tok_typedef) {
-          /* Certain declaration statements are allowed in constexpr
-             functions or constructors.  Note that this check is somewhat
-             incomplete: the standard disallows typedefs and aliases that
-             introduce class or enum types (though g++ doesn't enforce
-             this). */
-          can_appear_in_constexpr_body = TRUE;
-        }  /* if */
-        decl_statement(marked_as_gnu_extension);
+        decl_statement(marked_as_gnu_extension, &can_appear_in_constexpr_body);
       } else if (C_mode() &&
                  (is_dependent_statement || prev_was_label) &&
                  is_decl_start(IDS_EXPR_CONTEXT |
@@ -6748,7 +6745,8 @@ expr_statement:
           /* A labeled declaration in pre-C99 C. */
           error(ec_labeled_declaration);
         }  /* if */
-        decl_statement(marked_as_gnu_extension);
+        decl_statement(marked_as_gnu_extension,
+                       /*p_okay_in_constexpr_body=*/NULL);
       } else {
         /* An expression-statement. */
         add_stop_token(tok_semicolon);
@@ -7007,7 +7005,8 @@ e.g., ({ ... }).
           if (at_function_level && pos_curr_token.column == 1) break;
         }  /* if */
         (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
-        decl_statement(marked_as_gnu_extension);
+        decl_statement(marked_as_gnu_extension,
+                       /*p_okay_in_constexpr_body=*/NULL);
       } else {
         /* Scan a statement. */
         any_statements = TRUE;

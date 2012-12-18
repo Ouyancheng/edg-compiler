@@ -821,6 +821,9 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this is a for-init declaration and the
 			   colon indicating a range-based "for" loop has been
 			   seen. */
+  a_bit_field	decl_okay_in_constexpr_body:1;
+			/* TRUE if this declaration is a valid form for a
+			   constexpr function or constructor body. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)

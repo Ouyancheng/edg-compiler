@@ -3523,6 +3523,12 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                                  no_definition_allowed);
     definition_removed = FALSE;
   }  /* if */
+  if ((is_class_definition || definition_removed) &&
+      constexpr_enabled && !gpp_mode &&
+      innermost_function_scope != NULL &&
+      innermost_function_scope->variant.routine.ptr->is_constexpr) {
+    pos_error(ec_tag_defined_in_constexpr_body, &decl_start_pos);
+  }  /* if */
   if (is_class_definition && is_friend_decl) {
     /* This is an error.  Defer the diagnostic until we have a tag_sym
        to use for the fill-in.  If tag_sym is already non-NULL, we'll create
@@ -5365,6 +5371,10 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       /* Issue diagnostics on pragmas that are trying to bind to an unnamed
          enum. */
       cannot_bind_to_curr_construct();
+    }  /* if */
+    if (constexpr_enabled && innermost_function_scope != NULL && !gpp_mode &&
+        innermost_function_scope->variant.routine.ptr->is_constexpr) {
+      pos_error(ec_tag_defined_in_constexpr_body, &enum_pos);
     }  /* if */
     /* Scan the enumeration itself.  Since the enumeration type entry is
        allocated in the file scope memory region, all its components should
