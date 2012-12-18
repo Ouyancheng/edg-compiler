@@ -17191,7 +17191,7 @@ it might produce an error).
           /* An object expression designating a literal class type
              initialized to a constant value allows use of a member
              value as a constant. */
-          if (constexpr_enabled &&
+          if (constexpr_enabled && allow_folding != NULL &&
               fold_constexpr_member_selection(node, &result_con)) {
             con_expr_value = alloc_shareable_constant(&result_con);
             node->is_lvalue = FALSE;
