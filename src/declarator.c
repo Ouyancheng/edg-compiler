@@ -1493,11 +1493,15 @@ actually declares a function, member function, or function template).
     if (is_noexcept) {
       a_boolean  cache_in_template = FALSE;
       if (is_top_level_declarator && 
-          !((dps->dso_flags & DSO_FRIEND) != 0 && dps->in_class_scope)) {
+          !((dps->dso_flags & DSO_FRIEND) != 0 && dps->in_class_scope) &&
+          func_info->lambda == NULL &&
+          !scope_stack_top().inside_local_class) {
         /* A noexcept argument should generally be cached for later
            instantiation if we are in a template.  However, that's not the
            case if we're in an ordinary friend function declaration (for a
-           friend template, dps->in_class_scope is FALSE). */
+           friend template, dps->in_class_scope is FALSE), nor for lambdas
+           (which aren't "members" or any enclosing templates), nor for
+           members of local class types. */
         cache_in_template = TRUE;
       }  /* if */
       scan_noexcept_arg(esp, cache_in_template);
