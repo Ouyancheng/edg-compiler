@@ -2856,6 +2856,14 @@ typedef struct a_namespace {
 		named_in_strong_using;
 			/* TRUE if the namespace was named in a g++ strong
 			   using directive. */
+#if BACK_END_IS_CP_GEN_BE
+  a_byte_boolean
+		shadowed_by_class;
+			/* TRUE if this namespace is hidden in some scope
+			   by a class.  This allows cp_gen_be to put out
+			   a namespace alias that can be used in qualifiers
+			   to work around a g++ bug. */
+#endif /* BACK_END_IS_CP_GEN_BE */
   union {
     /* When is_namespace_alias == FALSE: */
     a_scope_ptr	assoc_scope;

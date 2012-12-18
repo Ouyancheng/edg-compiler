@@ -3715,7 +3715,14 @@ unqualified_part:
   }  /* if */
   /* Finally, emit the unqualified part of the name, with or without
      template arguments. */
-  if (options & GN_NO_TEMPLATE_ARGS) {
+  if (gcc_is_generated_code_target && (options & GN_QUALIFIER) &&
+      entry_kind == iek_namespace &&
+      ((a_namespace_ptr)scp)->shadowed_by_class) {
+    /* Some versions of g++ report spurious errors if a class name is
+       visible in the same scope as a namespace name, so use the namespace
+       alias that was put out when the namespace was declared. */
+    gen_temp_name((char *)scp);
+  } else if (options & GN_NO_TEMPLATE_ARGS) {
     gen_bare_name(scp, entry_kind);
   } else {
     gen_unqualified_name(scp, entry_kind);
@@ -12908,6 +12915,17 @@ Generate code for a namespace definition or namespace alias declaration.
     }
     pop_name_context();
     write_tok_ch('}');
+    if (gcc_is_generated_code_target && nsp->shadowed_by_class) {
+      /* Some versions of g++ issue spurious errors when a namespace
+         qualifier is used and a class name is visible in the same scope.
+         Put out a namespace alias using a unique name that can be used
+         instead of the actual namespace name. */
+      write_tok_str(" namespace ");
+      gen_temp_name((char *)nsp);
+      write_tok_str(" = ");
+      gen_unqualified_name(&nsp->source_corresp, iek_namespace);
+      write_tok_ch(';');
+    }  /* if */
   }  /* if */
 }  /* gen_namespace */
 

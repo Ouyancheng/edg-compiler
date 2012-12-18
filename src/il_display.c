@@ -5729,6 +5729,11 @@ Display the indicated namespace entry.
   if (ptr->named_in_strong_using) {
     disp_boolean("named_in_strong_using", TRUE);
   }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+  if (ptr->shadowed_by_class) {
+    disp_boolean("shadowed_by_class", TRUE);
+  }  /* if */
+#endif /* BACK_END_IS_CP_GEN_ BE */
   if (ptr->is_namespace_alias) {
     disp_boolean("is_namespace_alias", TRUE);
     disp_ptr("assoc_namespace", (char *)ptr->variant.assoc_namespace,

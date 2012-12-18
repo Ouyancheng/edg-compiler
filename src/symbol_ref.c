@@ -350,6 +350,16 @@ a class template in Microsoft mode.
     }  /* if */
     hnp->hidden_by_simulated_injected_class_name = simulated_hiding;
   }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+  if (kind == iek_namespace && hidden_by != NULL &&
+      is_class_struct_union_symbol(hidden_by)) {
+    /* Some versions of g++ issue spurious errors when a namespace name is
+       used as a qualifier in a scope in which a class name is visible.
+       Mark the namespace so cp_gen_be can declare and use a namespace
+       alias for qualification. */
+    ((a_namespace_ptr)entity)->shadowed_by_class = TRUE;
+  }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
 }  /* record_defeatable_name_hiding_for_single_entity */
 
 

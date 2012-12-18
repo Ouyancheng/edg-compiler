@@ -1,5 +1,38 @@
 Version 4.6
 
+12/18/12 [EDGcpfe/13526]
+C++-generating back end, GNU C++ compatibility: namespaces and classes with
+the same name
+
+When a class name is made visible by a using-directive in the same scope as
+a namespace with the same name, versions of g++ prior to 4.5 reported
+spurious errors if the namespace name is used as a qualifier.  The
+C++-generating back end has now been changed to generate and use a unique
+namespace alias in such cases when gcc_is_generated_code_target is TRUE,
+circumventing the problem.  For example, given:
+
+  namespace N {
+    struct A { };
+  }
+  namespace A {
+    struct S {
+      static S* m;
+    };
+  }
+  using namespace N;
+  using namespace A;
+  S* S::m;    // Previously generated as ::A::S *S::m, a g++ error
+
+The C++-generating back end now adds a namespace-alias declaration using a
+unique name of the form
+
+  namespace __T12345678 = A;
+
+and generates the static member definition as
+
+  ::__T12345678::S *S::m;
+
+
 12/14/12 [EDGcpfe/13190]
 Microsoft compatibility: Use of "." in qualified names
 

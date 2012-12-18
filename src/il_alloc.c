@@ -3868,6 +3868,9 @@ is_alias is TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   nsp->is_inline = FALSE;
   nsp->named_in_strong_using = FALSE;
+#if BACK_END_IS_CP_GEN_BE
+  nsp->shadowed_by_class = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
   if (is_alias) {
     nsp->variant.assoc_namespace = NULL;
   } else {
