@@ -24761,6 +24761,7 @@ indeed a literal type.
         if (symbol_is(member_sym, sk_member_function)) {
           a_routine_ptr  rp = member_sym->variant.routine.ptr;
           if (rp->is_constexpr &&
+              !special_kind_is(rp, sfk_constructor) &&
               routine_type_is_nonstatic_member_function(rp->type)) {
             pos_error(ec_constexpr_nonstatic_member_func_in_nonliteral_class,
                       &member_sym->decl_position);
