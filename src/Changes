@@ -8,9 +8,10 @@ noexcept-specification on a lambda appearing in a function template instance.
 For example:
 
   template<class T> void f(T) {
-    []() noexcept(false) { throw 42; }  // Previously the "noexcept(false)"
-  }                                     // was incorrectly recorded in the IL.
-  main() {
+    []() noexcept(false) { throw 42; }();
+              // Previously the "noexcept(false)" was not correctly recorded
+  }           // in the IL.
+  int main() {
     try { f(1); } catch (...) {}  // After code generation, the exception
   }                               // was likely not caught, resulting in a
                                   // call to "terminate()".
