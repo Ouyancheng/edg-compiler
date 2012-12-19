@@ -9693,6 +9693,7 @@ i.e., arrays with class elements.
   a_routine_ptr               dtor_routine;
   an_expr_node_ptr            ptr_node = ndsp->arg, vec_delete_node;
   an_expr_node_ptr            dtor_addr_node, assign_node = NULL;
+  an_expr_node_ptr            ptr_node_test = NULL;
   a_variable_ptr              vtbl_temp_var;
 
   /* Lower "arg". */
@@ -9711,6 +9712,11 @@ i.e., arrays with class elements.
          GNU and Microsoft use the destructor address found in the
          virtual function table.  This can cause errors at runtime if the
          sizes of the base and derived classes are not the same. */
+      /* Dispatch through the virtual function table requires a
+         null-pointer test.  Force use of a temporary which will be used
+         later in the null-pointer test. */
+      ptr_node_test = ptr_node;
+      ptr_node = make_reusable_copy(ptr_node, /*vars_can_change=*/FALSE);
       /* Cast the expression to a pointer-to-element type (it typically
          already is, but may be a pointer-to-array type in some non-standard
          cases). */
@@ -9742,6 +9748,18 @@ i.e., arrays with class elements.
     /* If an assignment to a temporary was necessary, create a comma node
        to perform the assignment before the temporary is used. */
     vec_delete_node = make_comma_node(assign_node, vec_delete_node);
+  }  /* if */
+  if (ptr_node_test != NULL) {
+    /* Add a null pointer test, producing
+         ptr_node ? vec_delete(...) : (void)0
+         ^ plus possible assignment to temporary here
+    */
+    /* Make "ptr_node ? vec_delete(...) : (void)0". */
+    ptr_node_test = boolean_controlling_expr(ptr_node_test);
+    ptr_node_test->next = vec_delete_node;
+    vec_delete_node->next = zero_cast_to_void();
+    vec_delete_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                         vec_delete_node->type, ptr_node_test);
   }  /* if */
   /* Overwrite the original node with the __vec_delete call. */
   overwrite_node(expr, vec_delete_node);

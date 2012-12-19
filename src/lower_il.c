@@ -11223,6 +11223,9 @@ represents the vtable for *object_node is returned in *vtbl_temp_var.  If a
 temporary variable assignment is necessary, an expression is returned in
 *assign_node (otherwise set to NULL).  The caller is responsible for ensuring
 that the assignment is performed before the returned expression is executed.
+The caller is also responsible for ensuring that the expression given
+by *object_node will not evaluate to NULL at runtime (or a segfault will
+occur in the generated code).
 */
 {
   an_expr_node_ptr  object_node_copy, vtbl_entry_node, func_select_node;

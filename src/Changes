@@ -1,5 +1,23 @@
 Version 4.6
 
+12/19/12 [EDGcpfe/13535]
+Runtime abort when "delete []" is used on a null pointer in GNU and MS modes
+
+The changes for EDGcpfe/10873 introduced a virtual function lookup in cases
+where the type given to "delete []" has a virtual destructor (only in GNU and
+Microsoft emulation modes).  Unfortunately, when a null pointer is used,
+the virtual function lookup had caused a runtime abort.  Lowering now adds
+the requisite check to avoid the call when the object pointer is null.
+For example (with --g++ or --microsoft):
+
+  struct A {
+    virtual ~A() {}
+  };
+  int main() {
+    delete [] (A*)0;
+  }
+
+
 12/18/12 [EDGcpfe/13533]
 Microsoft compatibility: Explicit dllimport class template instantiation
 
