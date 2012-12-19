@@ -1084,6 +1084,26 @@ The count can be zero.
 }  /* add_repeat_con */
 
 
+static a_constant_ptr repeat_constant_for_array_init(a_constant_ptr  cp,
+                                                     a_type_ptr      atp)
+/*
+Return an aggregate constant for the initialization of the given array type
+with every element initialized with the given constant.
+*/
+{
+  a_constant_ptr  result;
+  a_targ_size_t   count;
+
+  check_assertion(is_array_type(atp));
+  result = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  result->type = atp;
+  count = num_array_elements(atp);
+  if (count > 1) cp = add_repeat_con(cp, count);
+  if (count > 0) append_constant_in_aggr(cp, result);
+  return result;
+}  /* repeat_constant_for_array_init */
+
+
 static a_boolean try_string_literal_init(an_init_component_ptr  icp,
                                          a_type_ptr             *p_array_type,
                                          an_init_state          *is,
@@ -1938,13 +1958,7 @@ position for which diagnostics should be issued.
           if (atp != NULL && !is->check_validity_only) {
             /* The field is an array.  Wrap its initializer in an aggregate
                constant entry (but add an ck_init_repeat if needed). */
-            a_targ_size_t   count = num_array_elements(atp);
-            a_constant_ptr  temp_con;
-            temp_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-            if (count > 1) init_con = add_repeat_con(init_con, count);
-            append_constant_in_aggr(init_con, temp_con);
-            init_con = temp_con;
-            init_con->type = atp;
+            init_con = repeat_constant_for_array_init(init_con, atp);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -4382,6 +4396,11 @@ FALSE is returned) for non-class objects.
              initializer. */
           a_constant_ptr  cp =
                           get_default_constructed_constant(ctor, tp, err_pos);
+          if (!same_entities(var_type, tp)) {
+            /* The object has an array type.  We need to build an aggregate
+               initialization on top of the constant. */
+            cp = repeat_constant_for_array_init(cp, var_type);
+          }  /* if */
           if (static_lifetime &&
               depth_innermost_function_scope == NO_SCOPE_DEPTH) {
             /* A nonlocal static-lifetime variable initialized with a constant
