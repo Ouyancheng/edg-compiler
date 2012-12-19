@@ -8119,7 +8119,6 @@ the DLL flags.  That is done elsewhere using dps->decl_modifiers.flags.)
 {
   an_attribute_ptr  ap = find_attribute(ak_property, dps->prefix_attributes);
 
-  
   if (ap != NULL) {
     if (scope_stack_top().kind != (a_scope_kind)sck_class_struct_union) {
       pos_st_error(ec_attr_must_appear_in_class_definition, &ap->position,
