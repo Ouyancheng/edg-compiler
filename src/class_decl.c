@@ -16628,8 +16628,12 @@ information about the member declaration, respectively.
   /* Create the IL for the field, enter the symbol (if needed), etc. */
   (void)decl_nonstatic_data_member(locator, class_state, decl_info,
                                    depth_scope_stack);
-  if (field_initializers_enabled && !decl_info->is_bit_field &&
-      (curr_token == tok_assign || curr_token == tok_lbrace)) {
+  if (!scope_is(&scope_stack_top(), sck_class_struct_union)) {
+    /* Fields can only be declared in class scope, but severe syntax errors
+       can sometimes get us here with a different scope on top of the stack. */
+    expect_error();
+  } else if (field_initializers_enabled && !decl_info->is_bit_field &&
+             (curr_token == tok_assign || curr_token == tok_lbrace)) {
     /* A field initializer.  It must be parsed in the context of the completed
        class definition.  We therefore create a fixup entry holding the cached
        tokens of the initializer until we are ready to parse them. */
