@@ -13154,7 +13154,7 @@ typedef struct a_routine {
 			   alternate entry point, this points to the
 			   primary constructor or destructor routine.
 			   NULL for a primary constructor or destructor
-			   routine */
+			   routine. */
 #endif /* DO_IL_LOWERING && IA64_ABI */
 #if ONE_INSTANTIATION_PER_OBJECT
   unsigned long	instantiation_needed_bit_number;
