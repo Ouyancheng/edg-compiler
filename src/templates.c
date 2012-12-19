@@ -28042,6 +28042,7 @@ dllimport or dllexport attribute to a template instance.
 {
   a_symbol_ptr	mem_sym;
   a_type_ptr	class_type;
+  a_boolean     skip_nested_classes = FALSE;
 
   /* See if this is a valid scope for the explicit instantiation of this
      entity.  This test is only done for explicit instantiation directives,
@@ -28095,6 +28096,11 @@ dllimport or dllexport attribute to a template instance.
                              class_type->variant.class_struct_union.extra_info;
         if (ctsp->decl_modifiers & DM_DLLIMPORT) {
           pragma_kind = (a_pragma_kind)pk_do_not_instantiate;
+          if (microsoft_version >= 1310) {
+            /* Microsoft compilers (starting with version 1310) don't
+               instantiate nested classes of dllimport class templates. */
+            skip_nested_classes = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -28130,7 +28136,7 @@ dllimport or dllexport attribute to a template instance.
         if (is_member_function_symbol(mem_sym)) {
           /* If this is an overloaded function, loop through each of the
              functions underneath it. */
-          if (mem_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          if (symbol_is(mem_sym, sk_overloaded_function)) {
             list_sym = mem_sym->variant.overloaded_function.symbols;
             is_list = TRUE;
           } else {
@@ -28151,15 +28157,15 @@ dllimport or dllexport attribute to a template instance.
                                          is_pragma, is_dll_directive);
             }  /* if */
           }  /* for */
-        } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
+        } else if (symbol_is(mem_sym, sk_static_data_member)) {
           if (sym_can_be_instantiated(mem_sym, /*issue_errors=*/FALSE,
                                       is_pragma, pragma_kind)) {
             update_instantiation_flags(mem_sym, pragma_kind, pos,
                                        /*is_class_instantiation=*/TRUE,
                                        is_pragma, is_dll_directive);
           }  /* if */
-        } else if (mem_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
-                   mem_sym->kind == (a_symbol_kind)sk_union_tag) {
+        } else if (is_class_struct_union_symbol(mem_sym) &&
+                   !skip_nested_classes) {
           /* Instantiate the members of any nested classes.  (The effect of
              a Microsoft DLL attribute does not propagate to these.) */
           update_instantiation_flags_for_class(
