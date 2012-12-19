@@ -539,6 +539,30 @@ is not needed.
 }  /* pop_object_lifetime_for_local_static_init */
 
 
+static a_constant_ptr get_default_constructed_constant(
+                                                 a_routine_ptr      ctor,
+                                                 a_type_ptr         tp,
+                                                 a_source_position  *diag_pos)
+/*
+If the given default constructor (for the given type) is constexpr and a call
+to it folds to a constant, return that constant.  Otherwise, issue an error
+at the given position and return an error constant.
+*/
+{
+  a_constant_ptr  result = alloc_constant((a_constant_repr_kind)ck_error);
+
+  if (ctor->is_constexpr) {
+    if (!fold_constexpr_ctor(ctor, (an_expr_node_ptr)NULL, diag_pos, result)) {
+      /* The call to the default constructor could not be folded. */
+      pos_ty_error(ec_default_ctor_call_not_constant, diag_pos, tp);
+    }  /* if */
+  } else {
+    pos_ty_error(ec_default_ctor_not_constexpr, diag_pos, tp);
+  }  /* if */
+  return result;
+}  /* get_default_constructed_constant */
+
+
 static a_routine_ptr get_init_destructor(a_type_ptr         tp,
                                          an_init_state      *is,
                                          a_source_position  *diag_pos)
@@ -1007,16 +1031,7 @@ given position, unless is->no_diagnostics is TRUE.
          entry or, if a constant result is needed, a constant representing
          the folded constructor. */
       if (is->initializer_must_be_constant) {
-        result = alloc_constant((a_constant_repr_kind)ck_error);
-        if (ctor_rp->is_constexpr) {
-          if (!fold_constexpr_ctor(ctor_rp, (an_expr_node_ptr)NULL, diag_pos,
-                                   result)) {
-            /* The call to the default constructor could not be folded. */
-            pos_ty_error(ec_default_ctor_call_not_constant, diag_pos, tp);
-          }  /* if */
-        } else {
-          pos_ty_error(ec_default_ctor_not_constexpr, diag_pos, tp);
-        }  /* if */
+        result = get_default_constructed_constant(ctor_rp, tp, diag_pos);
       } else {
         dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
         is->has_dynamic_init_component = TRUE;
@@ -4222,7 +4237,7 @@ FALSE is returned) for non-class objects.
   a_variable_ptr                    var = NULL;
   a_type_ptr                        var_type, tp;
   a_class_symbol_supplement_ptr     cssp = NULL;
-  a_dynamic_init_ptr                init_dip, orig_init_dip;
+  a_dynamic_init_ptr                init_dip = NULL, orig_init_dip;
   a_routine_ptr                     ctor = NULL, dtor = NULL;
   a_boolean                         static_lifetime;
   an_object_lifetime_ptr            local_static_lifetime = NULL;
@@ -4356,6 +4371,30 @@ FALSE is returned) for non-class objects.
              attempts to branch past the trivial initialization. */
           record_trivial_init_control_flow(var);
         }  /* if */
+      } else if (var->is_constexpr) {
+        check_assertion(!has_nontrivial_destructor(cssp));
+        if (ctor == NULL) {
+          /* This should only be possible with nonreal classes or in some
+             error cases. */
+          check_assertion_or_expect_error(is_nonreal_class);
+        } else {
+          /* Fold the default constructor call to obtain a constant
+             initializer. */
+          a_constant_ptr  cp =
+                          get_default_constructed_constant(ctor, tp, err_pos);
+          if (static_lifetime &&
+              depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+            /* A nonlocal static-lifetime variable initialized with a constant
+               value. */
+            var->init_kind = (an_init_kind)initk_static;
+            var->initializer.constant = cp;
+          } else {
+            /* A local variable with automatic storage duration; use a
+               dynamic init entry. */
+            init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+            init_dip->variant.constant = cp;
+          }  /* if */
+        }  /* if */
       } else {
         if (ctor != NULL) {
           /* Normal case -- there's a constructor to do the initialization. */
@@ -4398,8 +4437,9 @@ FALSE is returned) for non-class objects.
            dynamic init entry (local_di) was set to represent the
            initialization. */
         init_dip->destructor = dtor;
-        /* Allocate a dynamic init entry (a copy of local_di) and attach it
-           to the variable. */
+      }  /* if */
+      if (init_dip != NULL) {
+        /* Attach the dynamic init entry to the variable. */
         gen_dynamic_initialization(var, init_dip, &local_static_var_init,
                                    err_pos, (a_decl_pos_block_ptr)NULL,
                                    (a_statement_ptr *)NULL);
