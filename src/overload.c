@@ -23407,7 +23407,8 @@ dependent, *still_dependent is returned TRUE and FALSE is returned.
                                     /*any_prototype_allowed=*/FALSE,
                                     /*specific_prototype_allowed=*/
                                                               (a_symbol *)NULL,
-                                    /*instantiate_nonreal=*/FALSE);
+                                    /*instantiate_nonreal=*/FALSE,
+                                    /*do_not_create=*/FALSE);
           templ_arg->variant.type = type_symbol_type(sym);
           complete_class_type_is_needed(templ_arg->variant.type);
         }  /* if */

@@ -6963,7 +6963,8 @@ a_symbol_ptr find_template_class(
                              a_template_arg_ptr  *new_list,
 			     a_boolean	         any_prototype_allowed,
 			     a_symbol_ptr        specific_prototype_allowed,
-			     a_boolean		 instantiate_nonreal)
+			     a_boolean		 instantiate_nonreal,
+			     a_boolean		 do_not_create)
 /*
 Given a symbol for a class template or alias template and a template argument
 list (that is, a list of actual arguments), look for an existing class or
@@ -7013,6 +7014,10 @@ instantiate_nonreal is TRUE in Microsoft mode if a nonreal class should be
 instantiated as if it were a real class instead of just creating a normal
 nonreal class.  This is used for nonreal classes used as base classes
 because the Microsoft compiler does actual name lookup in such classes.
+
+do_not_create is TRUE if the call is only being done to look for a matching
+type, and that a new type should not be created if one does not already
+exist.
 */
 {
   a_symbol_ptr                      sym;
@@ -7117,7 +7122,7 @@ because the Microsoft compiler does actual name lookup in such classes.
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
-  if (sym == NULL ||
+  if ((sym == NULL && !do_not_create) ||
       (is_alias_template &&
        sym->variant.type.ptr->variant.typeref.type == NULL)) {
     /* There is no instantiation for this set of template arguments.  Create
@@ -9507,7 +9512,8 @@ are looked up, if needed.  The symbol of the new instance is returned.
   } else {
     new_sym = find_template_class(template_sym, &new_list, orig_is_prototype,
                                   (a_symbol_ptr)NULL,
-                                  /*instantiate_nonreal=*/FALSE);
+                                  /*instantiate_nonreal=*/FALSE,
+                                  /*do_not_create=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled && new_sym != NULL &&
         !check_cli_internal_template_instantiation(
@@ -29876,7 +29882,8 @@ corresponding symbol for a CLI array type and return it.
   result = find_template_class(cli_array_tmpl_sym, &arg_list,
                                /*any_prototype_allowed=*/TRUE,
                                /*specific_prototype_allowed=*/NULL,
-                               /*instantiate_nonreal=*/FALSE);
+                               /*instantiate_nonreal=*/FALSE,
+                               /*do_not_create=*/FALSE);
   return result;
 }  /* make_cli_array_type */
 

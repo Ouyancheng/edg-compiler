@@ -1,5 +1,29 @@
 Version 4.6
 
+12/20/12 [EDGcpfe/11548]
+Microsoft compatibility: __if_exists and template instances
+
+Our emulation of the Microsoft __if_exists and __if_not_exists keywords
+did not handle instances of templates properly.  We returned TRUE if
+the instance had been fully instantiated.  The Microsoft compiler returns
+TRUE if the instance had been partially or fully instantiated, but the
+reference in the __if_exists (or __if_not_exists) does not cause the
+instance to be partially instantiated.  We now emulate this behavior in
+Microsoft mode.  This is used by the version of the Boost encode_counter
+class that targeted for the Microsoft compiler.
+
+  template <int I> struct A { };
+  struct B {
+    __if_exists(A<1>) { int n[-1]; }
+    __if_not_exists(A<1>) { int n[-2]; }  // does not exist here
+  };
+  typedef A<1> a1;
+  struct C {
+    __if_exists(A<1>) { int n[-1]; }  // does exist here
+    __if_not_exists(A<1>) { int n[-2]; }
+  };
+
+
 12/19/12 [EDGcpfe/13535]
 Runtime abort when "delete []" is used on a null pointer in GNU and MS modes
 

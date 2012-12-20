@@ -9554,11 +9554,10 @@ position of the __if_exists or __if_not_exists token.
            considered to not exist). */
       } else if (is_template_class_and_not_specific_def_symbol(sym)) {
         /* For a non-specialized instance of a class template, the symbol
-           is only considered to exist if the type has been (or is in the
-           process of being) instantiated. */
-        a_type_ptr	tp = type_symbol_type(sym);
-        exists =
-                tp->variant.class_struct_union.extra_info->assoc_scope != NULL;
+           is only considered to exist if the type has been partially or
+           fully instantiated, but the reference in the __if_exists does
+           not cause the instance to be partially instantiated. */
+        exists = TRUE;
       } else {
         /* All other symbols are considered to exist. */
         exists = TRUE;
@@ -14626,8 +14625,19 @@ a routine to lookup the appropriate instance (or generate one if needed).
     }  /* if */
     new_sym = find_template_class(template_sym, &arg_list, prototype_allowed,
                                   current_instantiation_sym,
-                                  instantiate_nonreal);
+                                  instantiate_nonreal,
+                                  (options & GID_IN_IF_EXISTS) != 0);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    if (new_sym == NULL) {
+      /* A NULL symbol should only be returned in a Microsoft __if_exists
+         if the template instance has not been created. */
+      check_assertion(microsoft_mode && (options & GID_IN_IF_EXISTS) != 0);
+      make_specific_symbol_error_locator(&locator_for_curr_id);
+      new_sym = locator_for_curr_id.specific_symbol;
+      any_errors = TRUE;
+      error_locator_created = TRUE;
+      goto normal_exit;
+    }  /* if */
     if (is_cli_generic_class_symbol(template_sym) &&
         !is_prototype_instantiation_symbol(new_sym)) {
       /* Make sure the generic argument list satisfies the constraints
@@ -17829,7 +17839,8 @@ scanned is, in fact, an identifier).
         symbol = find_template_class(symbol, &arg_list,
                                      /*prototype_allowed=*/FALSE,
                                      (a_symbol_ptr)NULL,
-                                     /*instantiate_nonreal=*/FALSE);
+                                     /*instantiate_nonreal=*/FALSE,
+                                     /*do_not_create=*/FALSE);
         locator_for_curr_id.is_unknown_template_reference = FALSE;
         locator_for_curr_id.specific_symbol = symbol;
         locator_for_curr_id.do_not_clear_specific_symbol = TRUE;

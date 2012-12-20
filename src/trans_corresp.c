@@ -6992,7 +6992,8 @@ corresponding instance, or NULL if no corresponding instance is found.
       result_sym = find_template_class(template_sym, &templ_arg_list,
                                        /*any_prototype_allowed=*/FALSE,
                                        (a_symbol_ptr)NULL,
-                                       /*instantiate_nonreal=*/FALSE);
+                                       /*instantiate_nonreal=*/FALSE,
+                                       /*do_not_create=*/FALSE);
     }  /* if */
   }  /* if */
   return result_sym;
