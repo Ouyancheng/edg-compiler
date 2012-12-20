@@ -4386,7 +4386,7 @@ FALSE is returned) for non-class objects.
           record_trivial_init_control_flow(var);
         }  /* if */
       } else if (var->is_constexpr) {
-        check_assertion(!has_nontrivial_destructor(cssp));
+        check_assertion_or_expect_error(!has_nontrivial_destructor(cssp));
         if (ctor == NULL) {
           /* This should only be possible with nonreal classes or in some
              error cases. */
