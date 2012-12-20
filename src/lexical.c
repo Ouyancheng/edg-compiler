@@ -14636,7 +14636,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
       new_sym = locator_for_curr_id.specific_symbol;
       any_errors = TRUE;
       error_locator_created = TRUE;
-      goto normal_exit;
+      goto normal_exit_with_stop_tokens;
     }  /* if */
     if (is_cli_generic_class_symbol(template_sym) &&
         !is_prototype_instantiation_symbol(new_sym)) {
@@ -14730,6 +14730,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
     error_locator_created = TRUE;
     new_sym = locator_for_curr_id.specific_symbol;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+normal_exit_with_stop_tokens:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   switch_back_to_original_region(region_to_switch_back_to);
   remove_stop_token(tok_gt);
   if (right_shift_can_be_angle_brackets) {
