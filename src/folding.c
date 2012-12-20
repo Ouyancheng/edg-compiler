@@ -7851,6 +7851,7 @@ evaluation.
   a_boolean folded = FALSE;
   a_boolean ref_case = is_reference_type(dest_type);
 
+  if (dip->destructor != NULL) goto end_of_routine;
   switch(dip->kind) {
     case dik_constant:
       copy_constant(dip->variant.constant, result_con);
@@ -7931,7 +7932,8 @@ evaluation.
     default:
       /* These cases don't fold. */
       break;
-  }  /* switch */    
+  }  /* switch */
+end_of_routine:
   return folded;
 }  /* fold_dynamic_init */
 
