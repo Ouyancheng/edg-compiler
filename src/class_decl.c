@@ -13522,10 +13522,6 @@ decl_member_function, which handles in-class member function declarations.)
   prototype_sym->variant.routine.instance_ptr->prototype_scope_symbols =
                                             func_info->prototype_scope_symbols;
   func_info->keep_param_id_list = TRUE;
-  if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
-      check_constexpr_routine_type(rtn, &dps->constexpr_pos)) {
-    rtn->is_constexpr = TRUE;
-  }  /* if */
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
@@ -13674,6 +13670,10 @@ decl_member_function, which handles in-class member function declarations.)
                       il_template_entry->source_corresp.source_sequence_entry;
     wrapup_sse_for_simple_decl(dps);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
+        check_constexpr_routine_type(rtn, &dps->constexpr_pos)) {
+      rtn->is_constexpr = TRUE;
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* decl_member_function_template */
