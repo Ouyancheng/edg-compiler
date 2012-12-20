@@ -8614,10 +8614,15 @@ otherwise, return FALSE.
       make_value_initialized_constant(curr_field->type, result_con);
       folded = TRUE;
     } else {
-      check_assertion(field != NULL);
+      check_assertion(curr_field != NULL);
       /* If the field is a member of an anonymous union, scan through
          the aggregates in which the value is nested. */
       while (anon_union_member_depth-- > 0) {
+        if (is_error_constant(member_con)) {
+          /* There was an error in the initializer, so this access cannot
+             be folded. */
+          break;
+        }  /* if */
         check_assertion(member_con->kind ==
                                           (a_constant_repr_kind)ck_aggregate &&
                         member_con->variant.aggregate.first_constant != NULL &&
@@ -8626,7 +8631,10 @@ otherwise, return FALSE.
         member_con = member_con->variant.aggregate.first_constant;
       }  /* while */
       copy_constant(member_con, result_con);
-      if (anon_union_member_type != NULL) {
+      if (is_error_type(result_con->type)) {
+        /* There was an error in the initializer, so the access cannot be
+           folded. */
+      } else if (anon_union_member_type != NULL) {
         /* The type of the initializer constant will be that of the first
            member of the union, but field can be any member of the union and
            thus might not have the same type.  Make sure the types are
