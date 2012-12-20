@@ -15711,6 +15711,7 @@ no_applicable_operator_function:
             } else {
               a_routine_ptr rp;
               a_constant    result_con;
+              a_boolean     returns_reference;
               /* Not the builtin bitwise operator=. */
               /* Build an expression-form argument list.  Convert the arguments
                  on the argument list to the right types.  Note that for the
@@ -15757,12 +15758,16 @@ no_applicable_operator_function:
                   fold_constexpr_call(rp, arg_expr_list,
                                       selector_is_object_pointer,
                                       operator_position,
-                                      &result_con)) {
+                                      &result_con,
+                                      &returns_reference)) {
                 /* The operator function is constexpr and the call was folded
                    to a constant result. */
                 make_constant_operand(&result_con, result);
                 result->position = *operator_position;
                 folded_to_constant = TRUE;
+                if (returns_reference) {
+                  add_reference_indirection(result);
+                }  /* if */
               } else {
                 /* Make the call node and an operand for it. */
                 assemble_function_call(&function_operand,
@@ -17519,6 +17524,7 @@ the temporary.
     /* Conversion function. */
     a_constant       result_con;
     an_expr_node_ptr conv_function_call_node;
+    a_boolean        returns_reference;
 
     set_up_for_conversion_function_call(operand, conversion_routine,
                                         conversion->routine_symbol,
@@ -17526,11 +17532,15 @@ the temporary.
     if (conversion_routine->is_constexpr &&
         fold_constexpr_call(conversion_routine, arg_expr_list,
                             operand->selector_is_object_pointer,
-                            &orig_operand.position, &result_con)) {
+                            &orig_operand.position, &result_con,
+                            &returns_reference)) {
       /* The conversion function is constexpr and the call was folded to a
          constant result. */
       make_constant_operand(&result_con, operand);
       copy_operand_position(&orig_operand, operand);
+      if (returns_reference) {
+        add_reference_indirection(operand);
+      }  /* if */
     } else {
       /* Make a node for the function. */
       rout_node = function_rvalue_expr(conversion_routine);

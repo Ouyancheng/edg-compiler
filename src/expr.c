@@ -3742,6 +3742,7 @@ Also folds calls to constexpr functions.
   an_expr_node_ptr  args;
   a_constant        result;
   a_routine_ptr     rp;
+  a_boolean         returns_constant_reference = FALSE;
 
   check_assertion(is_expression_operand(op));
   check_assertion(call != NULL &&
@@ -4016,7 +4017,8 @@ Also folds calls to constexpr functions.
       a_boolean points_to = 
                   (opkind == (an_expr_operator_kind)eok_points_to_member_call);
       folded = fold_constexpr_call(rp, args->next, points_to,
-                                   &op->position, &result);
+                                   &op->position, &result,
+                                   &returns_constant_reference);
     }  /* if */
   }  /* if */
   if (folded) {
@@ -4027,6 +4029,9 @@ Also folds calls to constexpr functions.
     restore_operand_details(op, &orig_op);
     if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
       op->variant.constant.expr = call;
+    }  /* if */
+    if (returns_constant_reference) {
+      add_reference_indirection(op);
     }  /* if */
   }  /* if */
   return folded;

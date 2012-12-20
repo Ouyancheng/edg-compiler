@@ -5447,6 +5447,86 @@ error.  *err_pos is used as the position for any diagnostics issued.
 }  /* binary_operation */
 
 
+static a_constexpr_remap_ptr
+		avail_constexpr_remaps;
+			/* constexpr remap entries freed and available for
+			   reuse. */
+
+#if DEBUG
+static unsigned long
+		num_constexpr_remaps_allocated;
+#endif /* DEBUG */
+
+
+static a_constexpr_remap_ptr alloc_constexpr_remap(a_variable_ptr   param_var,
+                                                   an_expr_node_ptr arg_expr)
+/*
+Allocate a constexpr remap entry to remap the parameter variable param_var to
+the argument expression arg_expr, and return a pointer to it.
+*/
+{
+  a_constexpr_remap_ptr crp;
+
+  if (avail_constexpr_remaps != NULL) {
+    /* Reuse a previously-freed entry. */
+    crp = avail_constexpr_remaps;
+    avail_constexpr_remaps = crp->next;
+  } else {
+    /* Allocate a new entry. */
+    crp = alloc_fe_of_type(a_constexpr_remap);
+#if DEBUG
+    num_constexpr_remaps_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  crp->param_var = param_var;
+  crp->arg_expr = arg_expr;
+  crp->is_constant = FALSE;
+  crp->next = NULL;
+  return crp;
+}  /* alloc_constexpr_remap */
+
+
+static void free_constexpr_remap_list(a_constexpr_remap_ptr crp)
+/*
+Free a list of constexpr remap entries and make them available for reuse.
+*/
+{
+  a_constexpr_remap_ptr crp_tail;
+
+  if (crp != NULL) {
+    /* Find the last entry on the list. */
+    crp_tail = crp;
+    while (crp_tail->next != NULL) crp_tail = crp_tail->next;
+    /* Add the current available list to the end of the list passed in
+       by the caller. */
+    crp_tail->next = avail_constexpr_remaps;
+    avail_constexpr_remaps = crp;
+  }  /* if */
+}  /* free_constexpr_remap_list */
+
+
+static void clear_constexpr_evaluation_block(
+                                         a_constexpr_evaluation_block *ceblock,
+                                         a_source_position            *pos)
+/*
+Clear the indicated constexpr evaluation context block to default values.
+pos gives a default source position.
+*/
+{
+  ceblock->remap_list = NULL;
+  ceblock->source_position = *pos;
+  ceblock->do_not_call_back = FALSE;
+}  /* clear_constexpr_evaluation_block */
+
+
+static a_boolean fold_expr(an_expr_node_ptr             expr,
+                           a_constexpr_evaluation_block *ceblock,
+                           a_constant                   *result_con);
+static a_boolean fold_lvalue_expr(an_expr_node_ptr             expr,
+                                  a_constexpr_evaluation_block *ceblock,
+                                  a_constant                   *result_con);
+
+
 static void accum_field_offset(a_constant_ptr  total_offset,
                                a_field_ptr     field,
                                a_boolean       *ovflo)
@@ -5528,6 +5608,7 @@ through the usual interface because a field cannot be passed as a constant.
 
 static a_boolean constant_padd_or_subscript(
                              an_expr_node_ptr              expr,
+                             a_constexpr_evaluation_block  *ceblock,
                              a_constant                    *con,
                              a_boolean                     address_escapes,
                              a_constant_address_option_set options,
@@ -5538,7 +5619,8 @@ operation.  If its result (eok_padd, eok_psubtract) or address (lvalue
 eok_subscript) is constant, return the value/address in *con, and return TRUE.
 address_escapes, options, and template_constant are as for
 constant_lvalue_address_full (except that template_constant is always
-non-NULL).
+non-NULL).  If ceblock is non-NULL, this call is part of processing a
+constexpr expansion, and the block provides context information.
 */
 {
   a_boolean        is_constant = FALSE;
@@ -5553,7 +5635,8 @@ non-NULL).
     ptr_op = int_op->next;
   }  /* if */
   if (is_constant_node(int_op) &&
-      constant_rvalue_pointer_full(ptr_op, &ptr_con, address_escapes, options,
+      constant_rvalue_pointer_full(ptr_op, ceblock, &ptr_con,
+                                   address_escapes, options,
                                    template_constant)) {
     /* Both operands are constant; fold to a constant address. */
     a_constant_ptr    int_con = int_op->variant.constant;
@@ -5606,6 +5689,7 @@ address_escapes and template_constant are as for constant_lvalue_address_full
 
 static a_boolean constant_lvalue_address_full(
                              an_expr_node_ptr              expr,
+                             a_constexpr_evaluation_block  *ceblock,
                              a_constant                    *con,
                              a_boolean                     address_escapes,
                              a_constant_address_option_set options,
@@ -5619,18 +5703,33 @@ set of additional options.  *template_constant is returned TRUE if the
 constant is template-dependent.  If template_constant is NULL, a
 template-dependent constant is labeled as such at this level.  Passing
 it in as non-NULL is a signal that the caller would prefer to handle
-that higher up.
+that higher up.  If ceblock is non-NULL, this call is part of processing
+a constexpr expansion, and the block provides context information.
 */
 {
   a_boolean is_constant_addr = FALSE;
   a_boolean local_template_constant;
+  a_boolean do_not_call_back = FALSE;
 
   if (template_constant == NULL) {
     template_constant = &local_template_constant;
   }  /* if */
   *template_constant = FALSE;
+  if (ceblock != NULL) {
+    do_not_call_back = ceblock->do_not_call_back;
+    ceblock->do_not_call_back = FALSE;
+  }  /* if */
   expr = skip_parens(expr);
   check_assertion(expr->is_lvalue || is_error_node(expr));
+  if (ceblock != NULL &&
+      !do_not_call_back &&
+      expr->is_lvalue &&
+      (ceblock->do_not_call_back = TRUE,
+       fold_lvalue_expr(expr, ceblock, con))) {
+    /* The expression could be folded to a constant address. */
+    is_constant_addr = TRUE;
+    goto have_result;
+  }  /* if */
   switch (expr->kind) {
     case enk_error:
       /* Assume an error expression could have been an lvalue with a
@@ -5703,7 +5802,8 @@ that higher up.
             /* Field selection, x.y.  If the left operand is an lvalue with a
                constant address, we can develop an address for the field. */
             if (op1->is_lvalue &&
-                constant_lvalue_address_full(op1, &conaddr1, address_escapes,
+                constant_lvalue_address_full(op1, ceblock, &conaddr1,
+                                             address_escapes,
                                              options, template_constant)) {
               pconaddr1 = &conaddr1;
               goto handle_field_selection;
@@ -5736,40 +5836,40 @@ handle_field_selection:
             break;
           case eok_subscript:
             /* Subscript operation. */
-            if (constant_padd_or_subscript(expr, con, address_escapes,
+            if (ceblock != NULL) ceblock->do_not_call_back = do_not_call_back;
+            if (constant_padd_or_subscript(expr, ceblock, con, address_escapes,
                                            options, template_constant)) {
               is_constant_addr = TRUE;
             }  /* if */
+            if (ceblock != NULL) ceblock->do_not_call_back = FALSE;
             break;
           case eok_indirect:
             /* "*" operation.  If the operand is a constant address, we can
                use it as the address of the lvalue. */
-            if (is_constant_node(op1) &&
-                is_pointer_type(op1->type)) {
+            if (is_pointer_type(op1->type) &&
+                constant_rvalue_pointer_full(op1, ceblock, con,
+                                             address_escapes,
+                                             options, template_constant)) {
               is_constant_addr = TRUE;
-              copy_constant(op1->variant.constant, con);
-              if (con->kind == (a_constant_repr_kind)ck_template_param) {
-                *template_constant = TRUE;
-              }  /* if */
             }  /* if */
             break;
           case eok_ref_indirect:
             /* Reference "*" operation.  If the operand is a constant
                address, we can use it as the address of the lvalue. */
-            if (is_constant_node(op1) &&
-                is_any_reference_type(op1->type)) {
+            if (is_reference_type(op1->type) &&
+                constant_rvalue_pointer_full(op1, ceblock, &conaddr1,
+                                             address_escapes,
+                                             options, template_constant)) {
               is_constant_addr = TRUE;
-              copy_constant(op1->variant.constant, con);
+              copy_constant(&conaddr1, con);
               con->type = make_pointer_type(type_pointed_to(op1->type));
-              if (con->kind == (a_constant_repr_kind)ck_template_param) {
-                *template_constant = TRUE;
-              }  /* if */
             }  /* if */
             break;
           case eok_base_class_cast:
             /* A cast of a class lvalue to a base class. */
             check_assertion(op1->is_lvalue);
-            if (constant_lvalue_address_full(op1, &conaddr1, address_escapes,
+            if (constant_lvalue_address_full(op1, ceblock, &conaddr1,
+                                             address_escapes,
                                              options, template_constant)) {
               /* The operand has a constant address.  Fold the base class
                  cast into it. */
@@ -5810,7 +5910,8 @@ handle_field_selection:
           case eok_ref_cast:
           case eok_lvalue_adjust:
             /* These operations are used to adjust the type of an lvalue. */
-            if (constant_lvalue_address_full(op1, &conaddr1, address_escapes,
+            if (constant_lvalue_address_full(op1, ceblock, &conaddr1,
+                                             address_escapes,
                                              options, template_constant)) {
               /* The address of the operand is constant.  Adjust its type
                  and it is also the address of the result lvalue. */
@@ -5888,6 +5989,7 @@ handle_field_selection:
       /* Other expression kinds cannot be folded. */
       break;
   }  /* switch */
+have_result:
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled && is_constant_addr) {
     /* A C++/CLI gc-lvalue should not ever be treated as a constant address,
@@ -5922,16 +6024,20 @@ TRUE if the address might escape from its immediate context and get saved
 somewhere (if in doubt, the safe value is TRUE).
 */
 {
-  a_boolean is_constant_addr = constant_lvalue_address_full(expr, con,
-                                                            address_escapes,
-                                                            CAO_NONE,
-                                                            (a_boolean *)NULL);
+  a_boolean is_constant_addr = constant_lvalue_address_full(
+                                          expr,
+                                          (a_constexpr_evaluation_block *)NULL,
+                                          con,
+                                          address_escapes,
+                                          CAO_NONE,
+                                          (a_boolean *)NULL);
   return is_constant_addr;
 }  /* constant_lvalue_address */
 
 
 a_boolean constant_rvalue_pointer_full(
                              an_expr_node_ptr              expr,
+                             a_constexpr_evaluation_block  *ceblock,
                              a_constant                    *con,
                              a_boolean                     address_escapes,
                              a_constant_address_option_set options,
@@ -5945,22 +6051,38 @@ options contains a set of additional options.  *template_constant is
 returned TRUE if the constant is template-dependent.  If template_constant
 is NULL, a template-dependent constant is labeled as such at this
 level.  Passing it in as non-NULL is a signal that the caller would
-prefer to handle that higher up.
+prefer to handle that higher up.  If ceblock is non-NULL, this call is
+part of processing a constexpr expansion, and the block provides
+context information.
 */
 {
   a_boolean is_constant_ptr = FALSE;
   a_boolean local_template_constant;
+  a_boolean do_not_call_back = FALSE;
 
   if (template_constant == NULL) {
     template_constant = &local_template_constant;
   }  /* if */
   *template_constant = FALSE;
+  if (ceblock != NULL) {
+    do_not_call_back = ceblock->do_not_call_back;
+    ceblock->do_not_call_back = FALSE;
+  }  /* if */
   expr = skip_parens(expr);
   check_assertion(!expr->is_lvalue &&
                   ((is_pointer_type(expr->type) ||
+                    is_reference_type(expr->type) ||
                     is_template_param_type(expr->type) ||
                     is_error_type(expr->type)) ||
                    is_error_node(expr)));
+  if (ceblock != NULL &&
+      !do_not_call_back &&
+      (ceblock->do_not_call_back = TRUE,
+       fold_expr(expr, ceblock, con))) {
+    /* The expression could be folded to a constant. */
+    is_constant_ptr = TRUE;
+    goto have_result;
+  }  /* if */
   switch (expr->kind) {
     case enk_error:
       /* Assume an error expression could have been an rvalue constant
@@ -6003,7 +6125,8 @@ prefer to handle that higher up.
           case eok_address_of:
             /* "&" operation.  If the operand is an lvalue with a constant
                address, the result is a constant pointer. */
-            if (constant_lvalue_address_full(op1, con, address_escapes,
+            if (constant_lvalue_address_full(op1, ceblock, con,
+                                             address_escapes,
                                              options, template_constant)) {
               is_constant_ptr = TRUE;
             }  /* if */
@@ -6013,7 +6136,8 @@ prefer to handle that higher up.
                array with a constant address, the result is a constant
                pointer. */
             if (op1->is_lvalue &&
-                constant_lvalue_address_full(op1, con, address_escapes,
+                constant_lvalue_address_full(op1, ceblock, con,
+                                             address_escapes,
                                              options, template_constant) &&
                 is_pointer_type(con->type)) {
               a_type_ptr atype = type_pointed_to(con->type);
@@ -6028,10 +6152,12 @@ prefer to handle that higher up.
           case eok_psubtract:
             /* p + i or i + p, or p - i.  These are constant if i is constant
                and p is or can be made constant. */
-            if (constant_padd_or_subscript(expr, con, address_escapes,
+            if (ceblock != NULL) ceblock->do_not_call_back = do_not_call_back;
+            if (constant_padd_or_subscript(expr, ceblock, con, address_escapes,
                                            options, template_constant)) {
               is_constant_ptr = TRUE;
             }  /* if */
+            if (ceblock != NULL) ceblock->do_not_call_back = FALSE;
             break;
           case eok_cast:
             /* Pointer cast that passes through an address. */
@@ -6053,7 +6179,8 @@ prefer to handle that higher up.
             /* Cast of a pointer to a base class pointer. */
             /* Casts of a class lvalue or rvalue shouldn't get here. */
 cast_case:
-            if (constant_rvalue_pointer_full(op1, &conaddr1, address_escapes,
+            if (constant_rvalue_pointer_full(op1, ceblock, &conaddr1,
+                                             address_escapes,
                                              options, template_constant) &&
                 !*template_constant) {
               an_error_code     err_code;
@@ -6082,15 +6209,6 @@ cast_case:
               }  /* if */
             }  /* if */
             break;
-          case eok_dot_field:
-          case eok_points_to_field:
-            /* A member of an object with a const literal type initialized
-               to a constant is a constant in C++11. */
-            if (constexpr_enabled &&
-                fold_constexpr_member_selection(expr, con)) {
-              is_constant_ptr = TRUE;
-            }  /* if */
-            break;
           default:
             /* Other operators cannot be folded. */
             break;
@@ -6101,6 +6219,7 @@ cast_case:
       /* Other expression kinds cannot be folded. */
       break;
   }  /* switch */
+have_result:
   if (template_constant == &local_template_constant && is_constant_ptr) {
     /* Handle tagging a template constant locally. */
     if (local_template_constant &&
@@ -6127,10 +6246,13 @@ address_escapes is TRUE if the address might escape from its immediate context
 and get saved somewhere (if in doubt, the safe value is TRUE).
 */
 {
-  a_boolean is_constant_ptr = constant_rvalue_pointer_full(expr, con,
-                                                           address_escapes,
-                                                           CAO_NONE,
-                                                           (a_boolean *)NULL);
+  a_boolean is_constant_ptr = constant_rvalue_pointer_full(
+                                          expr,
+                                          (a_constexpr_evaluation_block *)NULL,
+                                          con,
+                                          address_escapes,
+                                          CAO_NONE,
+                                          (a_boolean *)NULL);
   return is_constant_ptr;
 }  /* constant_rvalue_pointer */
 
@@ -7704,119 +7826,6 @@ TRUE.
 
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
-/*
-Entry used to record a remapping from a parameter variable to an argument 
-value for the constexpr evaluation process.
-*/
-typedef struct a_constexpr_remap *a_constexpr_remap_ptr;
-typedef struct a_constexpr_remap {
-  a_constexpr_remap_ptr
-		next;
-			/* Next entry on the list, or NULL if this is the
-			   last. */
-  a_variable_ptr
-		param_var;
-			/* A parameter variable to be remapped. */
-  an_expr_node_ptr
-		arg_expr;
-			/* The corresponding argument expression. */
-  a_byte_boolean
-		is_constant;
-			/* TRUE if the argument is constant and the
-			   constant value is stored in constant_value below. */
-  a_constant	constant_value;
-			/* The constant value of the argument, if is_constant
-			   is TRUE. */
-} a_constexpr_remap;
-
-static a_constexpr_remap_ptr
-		avail_constexpr_remaps;
-			/* constexpr remap entries freed and available for
-			   reuse. */
-
-#if DEBUG
-static unsigned long
-		num_constexpr_remaps_allocated;
-#endif /* DEBUG */
-
-
-static a_constexpr_remap_ptr alloc_constexpr_remap(a_variable_ptr   param_var,
-                                                   an_expr_node_ptr arg_expr)
-/*
-Allocate a constexpr remap entry to remap the parameter variable param_var to
-the argument expression arg_expr, and return a pointer to it.
-*/
-{
-  a_constexpr_remap_ptr crp;
-
-  if (avail_constexpr_remaps != NULL) {
-    /* Reuse a previously-freed entry. */
-    crp = avail_constexpr_remaps;
-    avail_constexpr_remaps = crp->next;
-  } else {
-    /* Allocate a new entry. */
-    crp = alloc_fe_of_type(a_constexpr_remap);
-#if DEBUG
-    num_constexpr_remaps_allocated++;
-#endif /* DEBUG */
-  }  /* if */
-  crp->param_var = param_var;
-  crp->arg_expr = arg_expr;
-  crp->is_constant = FALSE;
-  crp->next = NULL;
-  return crp;
-}  /* alloc_constexpr_remap */
-
-
-static void free_constexpr_remap_list(a_constexpr_remap_ptr crp)
-/*
-Free a list of constexpr remap entries and make them available for reuse.
-*/
-{
-  a_constexpr_remap_ptr crp_tail;
-
-  if (crp != NULL) {
-    /* Find the last entry on the list. */
-    crp_tail = crp;
-    while (crp_tail->next != NULL) crp_tail = crp_tail->next;
-    /* Add the current available list to the end of the list passed in
-       by the caller. */
-    crp_tail->next = avail_constexpr_remaps;
-    avail_constexpr_remaps = crp;
-  }  /* if */
-}  /* free_constexpr_remap_list */
-
-/*
-Context information to be carried around within a constexpr evaluation.
-*/
-typedef struct a_constexpr_evaluation_block {
-  a_constexpr_remap_ptr
-		remap_list;
-			/* List of remappings of parameter variables to
-			   argument values for a constexpr call. */
-  a_source_position
-		source_position;
-			/* Default source position for errors if we have
-			   nothing more specific. */
-} a_constexpr_evaluation_block;
-
-
-static void clear_constexpr_evaluation_block(
-                                         a_constexpr_evaluation_block *ceblock,
-                                         a_source_position            *pos)
-/*
-Clear the indicated constexpr evaluation context block to default values.
-pos gives a default source position.
-*/
-{
-  ceblock->remap_list = NULL;
-  ceblock->source_position = *pos;
-}  /* clear_constexpr_evaluation_block */
-
-
-static a_boolean fold_expr(an_expr_node_ptr             expr,
-                           a_constexpr_evaluation_block *ceblock,
-                           a_constant                   *result_con);
 static a_boolean i_fold_constexpr_ctor(
                                      a_routine_ptr                ctor_routine,
                                      an_expr_node_ptr             args,
@@ -7825,17 +7834,22 @@ static a_boolean i_fold_constexpr_ctor(
 
 
 static a_boolean fold_dynamic_init(a_dynamic_init_ptr           dip,
+                                   a_type_ptr                   dest_type,
                                    a_constexpr_evaluation_block *ceblock,
                                    a_constant                   *result_con)
 /*
 Attempt to fold the dynamic initialization "dip" to a constant as part
 of a constexpr evaluation, by substituting argument constant values
-for parameters.  If the dynamic init folds to a constant, place the
-constant in *result_con and return TRUE; otherwise, return FALSE.
-ceblock gives context information for the evaluation.
+for parameters.  dest_type is the type of the entity being initialized,
+which may be a reference.  If the dynamic init folds to a constant,
+place the constant in *result_con and return TRUE; otherwise, return
+FALSE.  For a reference case, the returned constant is the constant
+address for the reference.  ceblock gives context information for the
+evaluation.
 */
 {
   a_boolean folded = FALSE;
+  a_boolean ref_case = is_reference_type(dest_type);
 
   switch(dip->kind) {
     case dik_constant:
@@ -7843,9 +7857,15 @@ ceblock gives context information for the evaluation.
       folded = TRUE;
       break;
     case dik_expression:
-      folded = fold_expr(dip->variant.expression, ceblock, result_con);
+      if (ref_case) {
+        folded = fold_lvalue_expr(dip->variant.expression, ceblock,
+                                  result_con);
+      } else {
+        folded = fold_expr(dip->variant.expression, ceblock, result_con);
+      }  /* if */
       break;
     case dik_constructor:
+      check_assertion(!ref_case);
       { a_routine_ptr ctor_routine = dip->variant.constructor.ptr;
         if (ctor_routine != NULL && ctor_routine->is_constexpr) {
           folded = i_fold_constexpr_ctor(ctor_routine,
@@ -7875,6 +7895,7 @@ ceblock gives context information for the evaluation.
           if (elem_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
             a_constant con;
             if (fold_dynamic_init(elem_con->variant.dynamic_init,
+                                  elem_con->type,
                                   ceblock,
                                   &con)) {
               new_elem_con = alloc_unshared_constant(&con);
@@ -7895,6 +7916,12 @@ ceblock gives context information for the evaluation.
           last_ptr_ptr = &new_elem_con->next;
           new_aggr->variant.aggregate.last_constant = new_elem_con;
         }  /* for */
+        if (ref_case) {
+          /* Return the address of the aggregate constant for the reference
+             case. */
+          set_constant_address_constant(alloc_shareable_constant(new_aggr),
+                                        result_con);
+        }  /* if */
       }
       break;
     case dik_none:
@@ -7914,7 +7941,27 @@ static a_boolean i_fold_constexpr_call(
                               an_expr_node_ptr             args,
                               a_boolean                    this_arg_is_pointer,
                               a_constexpr_evaluation_block *ceblock,
-                              a_constant                   *result_con);
+                              a_constant                   *result_con,
+                              a_boolean                    *returns_reference);
+
+static a_constexpr_remap_ptr constant_remap_entry_for_variable(
+                                         a_variable_ptr        var,
+                                         a_constexpr_remap_ptr remap_list)
+/*
+If the variable "var" appears on the remap list given, and the entry indicates
+the parameter is remapped to a constant, return a pointer to the remap entry.
+Otherwise, return NULL.
+*/
+{
+  a_constexpr_remap_ptr crp;
+
+  for (crp = remap_list; crp != NULL; crp = crp->next) {
+    if (crp->param_var == var && crp->is_constant) {
+      break;
+    }  /* if */
+  }  /* for */
+  return crp;
+}  /* constant_remap_entry_for_variable */
 
 
 static a_boolean fold_variable_reference(
@@ -7925,26 +7972,69 @@ static a_boolean fold_variable_reference(
 expr is an enk_variable node.  See if the variable appears on the
 constexpr remap list provided as ceblock->remap_list, and if so set
 *result_con to the variable's value and return TRUE; otherwise, return FALSE.
+The expression node can be an lvalue or rvalue; it doesn't matter.
 */
 {
   a_boolean      folded = FALSE;
   a_variable_ptr var = expr->variant.variable;
 
   if (var->is_parameter) {
-    a_constexpr_remap_ptr crp;
-    for (crp = ceblock->remap_list; crp != NULL; crp = crp->next) {
-      if (crp->param_var == var) {
-        if (crp->is_constant) {
-          /* Replace the parameter variable by its constant value. */
-          folded = TRUE;
-          copy_constant(&crp->constant_value, result_con);
-        }  /* if */
-        break;
-      }  /* if */
-    }  /* for */
+    a_constexpr_remap_ptr crp =
+                        constant_remap_entry_for_variable(var,
+                                                          ceblock->remap_list);
+    if (crp != NULL) {
+      folded = TRUE;
+      copy_constant(&crp->constant_value, result_con);
+    }  /* if */
   }  /* if */
   return folded;
 }  /* fold_variable_reference */
+
+
+static a_boolean points_to_constant(
+                                  a_constant                   *con,
+                                  a_constexpr_evaluation_block *ceblock,
+                                  a_constant                   *pointed_to_con)
+/*
+If the constant "con" is a pointer to a constant, set *pointed_to_con to
+the value of the underlying constant, and return TRUE.  Otherwise, return
+FALSE.  ceblock gives context information for the evaluation (e.g.,
+parameter values).
+*/
+{
+  a_boolean      is_con = FALSE;
+  a_variable_ptr var;
+  a_constant     *con_val = NULL;
+
+  if (con_is_exact_addr_of_variable(con, &var,
+                                    /*array_decay_allowed=*/FALSE)) {
+    /* The constant points to a variable.  See if the variable has a constant
+       value. */
+    if (var->is_parameter) {
+      a_constexpr_remap_ptr crp =
+                        constant_remap_entry_for_variable(var,
+                                                          ceblock->remap_list);
+      if (crp != NULL) {
+        /* The variable is a parameter with an associated constant argument
+           value. */
+        con_val = &crp->constant_value;
+      }  /* if */
+    } else {
+      /* See if the variable has a constant value. */
+      con_val = var_constant_value(var);
+    }  /* if */
+  } else if (con->kind == (a_constant_repr_kind)ck_address &&
+             con->variant.address.kind == (an_address_base_kind)abk_constant) {
+    /* The constant is the address of a constant. */
+    con_val = con->variant.address.variant.constant;
+  }  /* if */
+  if (con_val != NULL) {
+    /* The constant does point to a constant. */
+    is_con = TRUE;
+    copy_constant(con_val, pointed_to_con);
+  }  /* if */
+  return is_con;
+}  /* points_to_constant */
 
 
 static a_boolean fold_expr(an_expr_node_ptr             expr,
@@ -7954,13 +8044,16 @@ static a_boolean fold_expr(an_expr_node_ptr             expr,
 Attempt to fold the expression "expr" to a constant as part of a
 constexpr evaluation, by substituting argument constant values for
 parameters.  If the expression folds to a constant, place the constant
-in *result_con and return TRUE; otherwise, return FALSE.  ceblock
-gives context information for the evaluation.
+in *result_con and return TRUE; otherwise, return FALSE.  If the
+expression is an lvalue, do not fold (see fold_lvalue_expr instead).
+ceblock gives context information for the evaluation.
 */
 {
   a_boolean         folded = FALSE;
   a_source_position pos;
+  a_boolean         do_not_call_back = ceblock->do_not_call_back;
 
+  ceblock->do_not_call_back = FALSE;
   expr = skip_parens(expr);
   pos = ceblock->source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -7978,10 +8071,12 @@ gives context information for the evaluation.
     /* The expression is a constant. */
     folded = TRUE;
     copy_constant(expr->variant.constant, result_con);
-  } else if (!expr->is_lvalue &&
+  } else if (!do_not_call_back &&
              is_pointer_type(expr->type) &&
-             constant_rvalue_pointer(expr, result_con,
-                                     /*address_escapes=*/TRUE)) {
+             (ceblock->do_not_call_back = TRUE,
+              constant_rvalue_pointer_full(expr, ceblock, result_con,
+                                           /*address_escapes=*/TRUE,
+                                           CAO_NONE, (a_boolean *)NULL))) {
     /* The expression is a constant address not represented in enk_constant
        form (e.g., "&i" or the address of a function). */
     folded = TRUE;
@@ -8068,7 +8163,8 @@ gives context information for the evaluation.
                       (op == (an_expr_operator_kind)eok_points_to_member_call);
             folded = i_fold_constexpr_call(rp, op2, points_to,
                                            ceblock,
-                                           result_con);
+                                           result_con,
+                                           (a_boolean *)NULL);
           }  /* if */
         }
         break;
@@ -8189,6 +8285,7 @@ gives context information for the evaluation.
     }  /* switch */
   } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
     folded = fold_dynamic_init(expr->variant.init.dynamic_init,
+                               expr->type,
                                ceblock,
                                result_con);
   }  /* if */
@@ -8196,23 +8293,23 @@ gives context information for the evaluation.
 }  /* fold_expr */
 
 
-static a_boolean fold_object_expr(an_expr_node_ptr             expr,
+static a_boolean fold_lvalue_expr(an_expr_node_ptr             expr,
                                   a_constexpr_evaluation_block *ceblock,
                                   a_constant                   *result_con)
 /*
-Attempt to fold the expression "expr", the non-pointer object expression
-of a nonstatic member function call, to a constant object value as part of
-a constexpr evaluation, by substituting argument constant values for
-parameters.  If the expression folds to a constant, place the constant
-in *result_con and return TRUE; otherwise, return FALSE.  ceblock
-gives context information for the evaluation.
+Attempt to fold the lvalue expression "expr" to a constant address as
+part of constexpr evaluation, by substituting argument constant values for
+parameters.  If the expression folds to a constant address, place the
+constant in *result_con and return TRUE; otherwise, return FALSE.  If
+the expression is not an lvalue, do not fold (see fold_expr instead).
+ceblock gives context information for the evaluation.
 */
 {
   a_boolean         folded = FALSE;
   a_source_position pos;
+  a_boolean         do_not_call_back = ceblock->do_not_call_back;
 
-  check_assertion(is_class_struct_union_type(expr->type) ||
-                  is_error_type(expr->type));
+  ceblock->do_not_call_back = FALSE;
   expr = skip_parens(expr);
   pos = ceblock->source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -8225,48 +8322,85 @@ gives context information for the evaluation.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (!expr->is_lvalue) {
-    /* Use the normal folding routine for an rvalue. */
-    if (fold_expr(expr, ceblock, result_con)) {
-      folded = TRUE;
-    }  /* if */
+    /* Do not fold expressions that are not lvalues. */
+  } else if (!do_not_call_back &&
+             (ceblock->do_not_call_back = TRUE,
+              constant_lvalue_address_full(expr, ceblock, result_con,
+                                           /*address_escapes=*/TRUE,
+                                           CAO_NONE, (a_boolean *)NULL))) {
+    /* The expression has a constant address. */
+    folded = TRUE;
   } else if (is_variable_node(expr)) {
-    /* A variable node for a parameter can be replaced by its value, if
-       constant. */
-    if (fold_variable_reference(expr, ceblock, result_con)) {
-      /* The parameter can be replaced by a constant argument value. */
+    /* An lvalue variable node for a parameter can be replaced by the
+       address of the constant argument value. */
+    a_constant local_constant;
+    if (fold_variable_reference(expr, ceblock, &local_constant)) {
       folded = TRUE;
+      set_constant_address_constant(alloc_shareable_constant(&local_constant),
+                                    result_con);
     }  /* if */
   } else if (is_operation_node(expr)) {
-    /* An operation node.  If the operands are constant, we may be able to
-       fold it. */
     an_expr_operator_kind op = expr->variant.operation.kind;
     an_expr_node_ptr      op1 = expr->variant.operation.operands;
-    a_constant            op1_constant;
-    a_boolean             op1_folded = FALSE;
-    a_boolean             did_not_fold;
+    an_expr_node_ptr      op2 = op1->next;
     switch (op) {
-      case eok_lvalue_adjust:
-        /* If the operand of an lvalue adjust can be folded to a constant,
-           the result is the type-adjusted constant.  Allow only cv-qualifier
-           changes. */
-        if (identical_types_ignoring_qualifiers(op1->type, expr->type)) {
-          op1_folded = fold_object_expr(op1, ceblock, &op1_constant);
-          if (op1_folded) {
-            type_change_constant(&op1_constant, expr->type,
-                                 expr->variant.operation.compiler_generated,
-                                 /*maintain_expression=*/FALSE,
-                                 &did_not_fold,
-                                 &pos);
-            if (!did_not_fold) {
-              folded = TRUE;
-              copy_constant(&op1_constant, result_con);
-            }  /* if */
+      case eok_call:
+      case eok_dot_member_call:
+      case eok_points_to_member_call:
+        /* Try to fold a call if it's to a constexpr function that returns
+           a reference. */
+        { a_routine_ptr rp = routine_from_function_expr(op1);
+          if (rp != NULL && rp->is_constexpr &&
+              is_reference_type(il_return_type_of(rp->type))) {
+            a_boolean returns_reference;
+            a_boolean points_to =
+                      (op == (an_expr_operator_kind)eok_points_to_member_call);
+            folded = i_fold_constexpr_call(rp, op2, points_to,
+                                           ceblock,
+                                           result_con,
+                                           &returns_reference);
+            check_assertion(returns_reference);
           }  /* if */
-        }  /* if */
+        }
         break;
       default:
         break;
     }  /* switch */
+  }  /* if */
+  return folded;
+}  /* fold_lvalue_expr */
+
+
+static a_boolean fold_object_expr(an_expr_node_ptr             expr,
+                                  a_constexpr_evaluation_block *ceblock,
+                                  a_constant                   *result_con)
+/*
+Attempt to fold the expression "expr", the non-pointer object expression
+of a nonstatic member function call, to a constant object address as part of
+a constexpr call evaluation, by substituting argument constant values for
+parameters.  If the expression folds to a constant address, place the constant
+in *result_con and return TRUE; otherwise, return FALSE.  ceblock
+gives context information for the evaluation.
+*/
+{
+  a_boolean  folded = FALSE;
+
+  check_assertion(is_class_struct_union_type(expr->type) ||
+                  is_error_type(expr->type));
+  if (!expr->is_lvalue) {
+    a_constant constant_object;
+    if (fold_expr(expr, ceblock, &constant_object)) {
+      /* The object is an rvalue constant (probably a ck_aggregate).
+         Return the address of that constant. */
+      folded = TRUE;
+      set_constant_address_constant(alloc_shareable_constant(&constant_object),
+                                    result_con);
+    }  /* if */
+  } else {
+    /* Try to fold an lvalue to a constant address. */
+    if (fold_lvalue_expr(expr, ceblock, result_con)) {
+      folded = TRUE;
+    }  /* if */
   }  /* if */
   return folded;
 }  /* fold_object_expr */
@@ -8316,20 +8450,16 @@ there is some kind of failure.
       break;
     }  /* if */
     crp = alloc_constexpr_remap(param_var, arg);
+    /* See if the argument expression is a constant or can be folded to one. */
     if (param_var->is_this_parameter && !this_arg_is_pointer) {
       /* For a non-pointer object expression (for the "this" parameter),
          see if the object is a constant. */
-      a_constant constant_object;
-      if (fold_object_expr(arg, ceblock, &constant_object)) {
-        crp->is_constant = TRUE;
-        /* The argument value is the address of the constant. */
-        set_constant_address_constant(
-                                    alloc_shareable_constant(&constant_object),
-                                    &crp->constant_value);
-      }  /* if */
+      crp->is_constant = fold_object_expr(arg, ceblock, &crp->constant_value);
+    } else if (is_reference_type(param_var->type)) {
+      /* For a reference parameter, try to get a constant address. */
+      crp->is_constant = fold_lvalue_expr(arg, ceblock, &crp->constant_value);
     } else {
-      /* Normal case: see if the argument expression is a constant or can
-         be folded to one. */
+      /* Non-reference parameter. */
       crp->is_constant = fold_expr(arg, ceblock, &crp->constant_value);
     }  /* if */
     *last_ptr = crp;
@@ -8351,20 +8481,27 @@ static a_boolean i_fold_constexpr_call(
                               an_expr_node_ptr             args,
                               a_boolean                    this_arg_is_pointer,
                               a_constexpr_evaluation_block *ceblock,
-                              a_constant                   *result_con)
+                              a_constant                   *result_con,
+                              a_boolean                    *returns_reference)
 /*
 The routine "routine" is being called with the argument list "args", and the
 routine is declared constexpr.  If the routine is a nonstatic member
 function and the argument for "this" is provided in pointer form,
 this_arg_is_pointer is TRUE.  Try to fold the call to a constant.  If that's
 possible, place the constant in *result_con and return TRUE; otherwise,
-return FALSE.  ceblock gives context information for the evaluation.
-This is the internal version of the routine, as indicated by the "i_"
-prefix; fold_constexpr_call should usually be called instead.
+return FALSE.  If returns_reference is non-NULL, *returns_reference is
+returned TRUE if the result is a reference, and result_con is the
+constant address for the reference.  If returns_reference is NULL, the
+caller requires an rvalue result and the reference return case
+will be converted to an rvalue if possible.  ceblock gives context
+information for the evaluation.  This is the internal version of the
+routine, as indicated by the "i_" prefix; fold_constexpr_call should
+usually be called instead.
 */
 {
   a_boolean folded = FALSE;
 
+  if (returns_reference != NULL) *returns_reference = FALSE;
   check_assertion(routine->is_constexpr);
   if (routine->assoc_scope != NULL_region_number) {
     a_scope_ptr      scope = scope_for_routine(routine);
@@ -8387,7 +8524,25 @@ prefix; fold_constexpr_call should usually be called instead.
         } else {
           /* Substitute values for parameters and attempt to fold the call to
              a constant. */
-          folded = fold_expr(expr, ceblock, result_con);
+          if (is_reference_type(il_return_type_of(routine->type))) {
+            folded = fold_lvalue_expr(expr, ceblock, result_con);
+            if (returns_reference != NULL) {
+              *returns_reference = TRUE;
+            } else {
+              /* The caller is not expecting a reference result, so try
+                 to convert to an underlying constant value.  If we can't,
+                 the folding fails. */
+              a_constant copy;
+              copy_constant(result_con, &copy);
+              if (points_to_constant(&copy, ceblock, result_con)) {
+                /* Okay. */
+              } else {
+                folded = FALSE;
+              }  /* if */
+            }  /* if */
+          } else {
+            folded = fold_expr(expr, ceblock, result_con);
+          } /* if */
         }  /* if */
         free_constexpr_remap_list(ceblock->remap_list);
         ceblock->remap_list = saved_remap_list;
@@ -8405,14 +8560,19 @@ a_boolean fold_constexpr_call(a_routine_ptr     routine,
                               an_expr_node_ptr  args,
                               a_boolean         this_arg_is_pointer,
                               a_source_position *pos,
-                              a_constant        *result_con)
+                              a_constant        *result_con,
+                              a_boolean         *returns_reference)
 /*
 The routine "routine" is being called with the argument list "args", and the
 routine is declared constexpr.  If the routine is a nonstatic member
 function and the argument for "this" is provided in pointer form,
 this_arg_is_pointer is TRUE.  Try to fold the call to a constant.  If that's
 possible, place the constant in *result_con and return TRUE; otherwise,
-return FALSE.
+return FALSE.  If returns_reference is non-NULL, *returns_reference is
+returned TRUE if the result is a reference, and result_con is the
+constant address for the reference.  If returns_reference is NULL, the
+caller requires an rvalue result and the reference return case will be
+converted to an rvalue if possible.
 */
 {
   a_boolean                    folded;
@@ -8421,7 +8581,8 @@ return FALSE.
   clear_constexpr_evaluation_block(&ceblock, pos);
   folded = i_fold_constexpr_call(routine, args, this_arg_is_pointer,
                                  &ceblock,
-                                 result_con);
+                                 result_con,
+                                 returns_reference);
   return folded;
 }  /* fold_constexpr_call */
 
@@ -8473,12 +8634,14 @@ usually be called instead.
              ctor_init = ctor_init->next) {
           a_constant         member_con;
           a_constant_ptr     member_con_ptr;
+          a_type_ptr         member_type = NULL;
           a_dynamic_init_ptr dip = ctor_init->initializer;
           if (ctor_init->kind != (a_constructor_init_kind)cik_field) {
              /* FIXME: don't handle base classes yet. */
             goto fail;
           } else {
             a_field_ptr field = ctor_init->variant.field;
+            member_type = field->type;
             if (ctor_init->use_field_initializer) {
               /* The field has an NSDMI. */
               dip = field->initializer;
@@ -8486,7 +8649,7 @@ usually be called instead.
             }  /* if */
           }  /* if */
           /* Try to fold the initialization to a constant. */
-          if (!fold_dynamic_init(dip, ceblock, &member_con)) {
+          if (!fold_dynamic_init(dip, member_type, ceblock, &member_con)) {
             goto fail;
           }  /* if */
           member_con_ptr = alloc_unshared_constant(&member_con);
@@ -8662,6 +8825,8 @@ expr points to a field selection operation node (eok_dot_field or
 eok_points_to_field).  If the object expression is a constant object of
 literal type, set *result_con to the value of the field designated by
 the second operand and return TRUE; otherwise, return FALSE.
+Whether expr is an lvalue or not, the returned constant is the
+rvalue result of the field selection.
 */
 {
   a_boolean        folded = FALSE;

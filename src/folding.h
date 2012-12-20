@@ -128,6 +128,54 @@ extern void trunc_and_set_integer(an_integer_value  *result_value,
 				  a_boolean	    saturate_on_overflow,
                                   an_error_code     *err_code,
                                   an_error_severity *err_severity);
+
+/*
+Entry used to record a remapping from a parameter variable to an argument 
+value for the constexpr evaluation process.
+*/
+typedef struct a_constexpr_remap *a_constexpr_remap_ptr;
+typedef struct a_constexpr_remap {
+  a_constexpr_remap_ptr
+		next;
+			/* Next entry on the list, or NULL if this is the
+			   last. */
+  a_variable_ptr
+		param_var;
+			/* A parameter variable to be remapped. */
+  an_expr_node_ptr
+		arg_expr;
+			/* The corresponding argument expression. */
+  a_byte_boolean
+		is_constant;
+			/* TRUE if the argument is constant and the
+			   constant value is stored in constant_value below. */
+  a_constant	constant_value;
+			/* The constant value of the argument, if is_constant
+			   is TRUE. */
+} a_constexpr_remap;
+
+/*
+Context information to be carried around within a constexpr evaluation.
+*/
+typedef struct a_constexpr_evaluation_block {
+  a_constexpr_remap_ptr
+		remap_list;
+			/* List of remappings of parameter variables to
+			   argument values for a constexpr call. */
+  a_source_position
+		source_position;
+			/* Default source position for errors if we have
+			   nothing more specific. */
+  a_byte_boolean
+		do_not_call_back;
+			/* Set for calls from fold_expr/fold_lvalue_expr to
+			   constant_lvalue_address_full/
+			   constant_rvalue_pointer_full and vice-versa, to
+			   prevent a call back (and infinite recursion) on
+			   the current expression node (but not its
+			   subtree). */
+} a_constexpr_evaluation_block;
+
 /*
 Options for constant_lvalue_address and constant_rvalue_pointer.
 */
@@ -148,6 +196,7 @@ extern a_boolean constant_lvalue_address(an_expr_node_ptr expr,
 
 extern a_boolean constant_rvalue_pointer_full(
                              an_expr_node_ptr              expr,
+                             a_constexpr_evaluation_block  *ceblock,
                              a_constant                    *con,
                              a_boolean                     address_escapes,
                              a_constant_address_option_set options,
@@ -199,7 +248,8 @@ extern a_boolean fold_constexpr_call(a_routine_ptr     routine,
                                      an_expr_node_ptr  args,
                                      a_boolean         this_arg_is_pointer,
                                      a_source_position *pos,
-                                     a_constant        *result_con);
+                                     a_constant        *result_con,
+                                     a_boolean         *returns_reference);
 
 extern a_boolean fold_constexpr_ctor(a_routine_ptr     ctor_routine,
                                      an_expr_node_ptr  args,

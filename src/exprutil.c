@@ -11894,12 +11894,14 @@ of a subscript operation).
                is_pointer_type(operand_2->type) &&
                constant_rvalue_pointer_full(
                                           operand_1->variant.expression,
+                                          (a_constexpr_evaluation_block *)NULL,
                                           &con_1,
                                           /*address_escapes=*/FALSE,
                                           CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
                                           (a_boolean *)NULL) &&
                constant_rvalue_pointer_full(
                                           operand_2->variant.expression,
+                                          (a_constexpr_evaluation_block *)NULL,
                                           &con_2,
                                           /*address_escapes=*/FALSE,
                                           CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
@@ -13251,11 +13253,8 @@ on output it will be an lvalue.
        constant expressions.  There will still be a check later that the
        result of the constant expression is constant. */
     error_in_operand(ec_expr_not_constant, result);
-  } else if (construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
-                                                          &result->position)) {
-    /* Reference indirection is not allowed in C++11 constant expressions. */
-    conv_to_error_operand(result);
   } else {
+    a_boolean err = FALSE;
     orig_result = *result;
     node = make_node_from_operand(result);
     if (is_an_lvalue(result)) {
@@ -13265,17 +13264,29 @@ on output it will be an lvalue.
       node = conv_lvalue_expr_to_rvalue(node, (a_boolean *)NULL,
                                         (a_constant_ptr *)NULL,
                                         &result->position);
-      /* Change the references to "use". */
-      change_some_ref_kinds(result->ref_entries_list, SRK_REFERENCE, SRK_USE);
+      if (construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+                                                          &result->position)) {
+        /* Reference indirection is not allowed in C++11 constant
+           expressions if you actually have to load the reference variable. */
+        err = TRUE;
+      } else {
+        /* Change the references to "use". */
+        change_some_ref_kinds(result->ref_entries_list,
+                              SRK_REFERENCE, SRK_USE);
+      }  /* if */
     }  /* if */
-    /* Add a reference indirection to make an lvalue.  This is similar to
-       adding a "*" operator on top of a pointer rvalue. */
-    node = add_ref_indirection_to_node(node);
-    make_lvalue_expression_operand(node, result);
-    /* Restore the original source position, etc.  Note that the reference
-       entries are NOT restored, on purpose. */
-    restore_operand_details(result, &orig_result);
-    result->ref_entries_list = NULL;
+    if (err) {
+      conv_to_error_operand(result);
+    } else {
+      /* Add a reference indirection to make an lvalue.  This is similar to
+         adding a "*" operator on top of a pointer rvalue. */
+      node = add_ref_indirection_to_node(node);
+      make_lvalue_expression_operand(node, result);
+      /* Restore the original source position, etc.  Note that the reference
+         entries are NOT restored, on purpose. */
+      restore_operand_details(result, &orig_result);
+      result->ref_entries_list = NULL;
+    }  /* if */
   }  /* if */
   /* A reference indirection rules out a constant expression. */
   rule_out_expr_kinds(ROEK_CONSTANT, result);
