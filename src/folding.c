@@ -8305,22 +8305,11 @@ the expression is not an lvalue, do not fold (see fold_expr instead).
 ceblock gives context information for the evaluation.
 */
 {
-  a_boolean         folded = FALSE;
-  a_source_position pos;
-  a_boolean         do_not_call_back = ceblock->do_not_call_back;
+  a_boolean folded = FALSE;
+  a_boolean do_not_call_back = ceblock->do_not_call_back;
 
   ceblock->do_not_call_back = FALSE;
   expr = skip_parens(expr);
-  pos = ceblock->source_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (cmp_source_positions(expr->operator_position,
-                           null_source_position) != 0) {
-    pos = expr->operator_position;
-  } else if (cmp_source_positions(expr->expr_range.start,
-                                  null_source_position) != 0) {
-    pos = expr->expr_range.start;
-  }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (!expr->is_lvalue) {
     /* Do not fold expressions that are not lvalues. */
   } else if (!do_not_call_back &&

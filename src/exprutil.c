@@ -13504,8 +13504,7 @@ initializer, is done in var_constant_value[_full].
       is_template_param_type(var_type)) {
     is_const = TRUE;
   } else if (var->is_constexpr &&
-             is_literal_type(var_type) &&
-             is_const_qualified_type(var_type)) {
+             is_literal_type(var_type)) {
     /* C++11 also allows other literal types (e.g., classes) if the variable
        is declared "constexpr". */
     is_const = TRUE;
