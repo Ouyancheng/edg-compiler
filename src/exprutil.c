@@ -12969,7 +12969,8 @@ question_position and colon_position give the position of the "?" and ":".
     }  /* if */
   }  /* if */
   template_constant = (!C_mode() &&
-                       (is_template_param_constant_operand(operand_1) ||
+                       (template_case ||
+                        is_template_param_constant_operand(operand_1) ||
                         is_template_param_constant_operand(operand_2) ||
                         is_template_param_constant_operand(operand_3)) &&
                        (is_constant_operand(operand_1) &&

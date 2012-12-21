@@ -1,5 +1,19 @@
 Version 4.6
 
+12/21/12 [EDGcpfe/13470]
+Microsoft: Spurious error on use of nontype template parameter in base class
+
+A change made in version 4.5 broke some obscure uses of a nontype template
+parameter in a "?" operator in a class that is used as a dependent base class
+of a template in Microsoft mode.  Now fixed.
+
+  template <int I, unsigned int UI, bool B = true> struct A {
+    enum {E1 = I};
+    enum {E2 = B ? E1 : 0};  // Gave spurious error: B is not constant
+  };
+  template <int J = 6> struct B : public A<1, J> {};
+
+
 12/20/12 [EDGcpfe/11548]
 Microsoft compatibility: __if_exists and template instances
 
