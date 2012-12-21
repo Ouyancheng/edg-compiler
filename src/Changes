@@ -1,5 +1,22 @@
 Version 4.6
 
+12/21/12 [EDGcpfe/13536]
+Incorrect gcc mode folding of pointer difference with VLA array
+
+A change made in version 4.5 (see EDGcpfe/12676) broke some cases of
+pointer difference folding in gcc mode when the pointers are to
+VLAs.  Now fixed again.
+
+  int func(int i) {
+    int arr[i][i];
+    int res = (arr[1] - arr[0]);  // Incorrectly computed as a constant
+    return res;
+  }
+  int main() {
+    if (func(5) != 5) return 1;
+  }
+
+
 12/21/12 [EDGcpfe/13470]
 Microsoft: Spurious error on use of nontype template parameter in base class
 

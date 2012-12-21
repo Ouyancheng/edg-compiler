@@ -4586,7 +4586,7 @@ detected, or *err_code == ec_no_error if everything went fine.
 {
   a_targ_size_t    size;
   a_constant       offset;
-  a_boolean        err, offset_is_signed = FALSE;
+  a_boolean        err = FALSE, offset_is_signed = FALSE;
   a_boolean        integer_case = FALSE;
 
   *did_not_fold = FALSE;
@@ -4602,7 +4602,12 @@ detected, or *err_code == ec_no_error if everything went fine.
     /* Get the size of the thing pointed to. */
     a_type_ptr  object_type =
                            f_skip_typerefs(type_pointed_to(constant_1->type));
-    if (gcc_mode) {
+    if (is_vla_type(object_type)) {
+      /* Can't do pointer arithmetic on a VLA types, since the size is not
+         known at compile time. */
+      *did_not_fold = TRUE;
+      goto have_result;
+    } else if (gcc_mode) {
       size = gcc_stride_size(object_type);
     } else {
       size = object_type->size;
@@ -4631,6 +4636,7 @@ detected, or *err_code == ec_no_error if everything went fine.
     /* If this was an unsigned integer operation, overflow is ignored. */
     if (integer_case && !offset_is_signed) err = FALSE;
   }  /* if */
+have_result:
   if (err) {
     /* Some folding error. */
     *err_code = ec_integer_overflow;
