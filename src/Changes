@@ -1,5 +1,23 @@
 Version 4.6
 
+12/22/12 [EDGcpfe/13539]
+Spurious macro redefinition warning
+
+The change to support function-style macros in the predefined macro file
+(added in version 4.5; see EDGcpfe/12912 et al. below) introduced a bug
+that could result in spurious warnings about macro redefinitions.  The bug
+was most likely to manifest itself when a paste (##) operation appeared
+near the end of the macro definition.  This is now fixed.  For example, the
+front end sometimes warned that the second definition of TRX in the
+following was an incompatible redefinition:
+
+  #define TRN(n) TRX(n)
+  #define TRX(n) TR##n
+
+  #define TRN(n) TRX(n)
+  #define TRX(n) TR##n
+
+
 12/21/12 [EDGcpfe/13536]
 Incorrect gcc mode folding of pointer difference with VLA array
 

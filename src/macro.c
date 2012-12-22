@@ -6067,6 +6067,12 @@ repl_text_length does not include the rt_null terminator.
                       repl_text[new_idx + 3] == mdp->repl_text[orig_idx + 3]);
         new_idx += 3;
         orig_idx += 3;
+      } else if (ch == (char)rt_paste ||
+                 ch == (char)rt_microsoft_magic_arg_marker) {
+        /* These take no parameter, so a dummy value of 0 was added.  Skip
+           over it. */
+        new_idx += 3;
+        orig_idx += 3;
       } else if (ch == LE_ESCAPE) {
         /* Check to make sure it's the same escape, then skip over it. */
         mismatch_seen = repl_text[new_idx + 1] != mdp->repl_text[orig_idx + 1];
