@@ -3416,21 +3416,30 @@ the subexpressions of the ck_template_param for the template-dependent
 bound case, FALSE for the "expr" field of the constant itself.
 */
 {
-  if (*expr != NULL && !in_file_scope(*expr)) {
-    /* The type can only refer to file-scope expressions, so special
-       handling is needed.  This comes up with bound expressions that
-       are permitted to be VLAs but turn out to be constant. */
+  if (*expr != NULL) {
     if (expr_has_reference_to_routine_scope_variable(*expr)) {
-      /* The expression refers to a function-scope variable, so we
-         can't copy it to file scope.  Create a local expr node
-         reference to it instead. */
+      /* The expression refers to a function-scope variable, so it can't be
+         referenced from file scope.  Create a local expr node reference to
+         it instead. */
+      if (in_file_scope(*expr)) {
+        /* Even though there is a reference to a local variable somewhere
+           in the expression tree, the top-level node is in file-scope
+           memory.  Make a copy in the innermost function scope and use
+           that for the local expr node reference. */
+        check_assertion(innermost_function_scope != NULL &&
+                        curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
+        switch_il_region(
+                   innermost_function_scope->variant.routine.ptr->assoc_scope);
+        *expr = copy_expr_tree(*expr, CE_COPYING_EXPRESSION_FOR_CONSTANT);
+        switch_il_region(FILE_SCOPE_REGION_NUMBER);
+      }  /* if */
       make_local_expr_node_ref(
                       *expr,
                       (dep ? (a_local_expr_node_ref_kind)lerk_dep_array_bound :
                              (a_local_expr_node_ref_kind)lerk_array_bound),
                       (char *)type, innermost_function_scope);
       *expr = NULL;
-    } else {
+    } else if (!in_file_scope(*expr)) {
       /* Copy the expression to file-scope memory. */
       *expr = copy_expr_tree(*expr, CE_COPYING_EXPRESSION_FOR_CONSTANT);
     }  /* if */
