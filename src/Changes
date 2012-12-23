@@ -59,7 +59,7 @@ TRUE if the instance had been partially or fully instantiated, but the
 reference in the __if_exists (or __if_not_exists) does not cause the
 instance to be partially instantiated.  We now emulate this behavior in
 Microsoft mode.  This is used by the version of the Boost encode_counter
-class that targeted for the Microsoft compiler.  In the example below
+class that targeted for the Microsoft compiler.  The example below
 should compile correctly (i.e., only the declarations with the positive
 subscripts are evaluated).
 
