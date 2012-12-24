@@ -19292,6 +19292,11 @@ or can be converted to it, or (if bool is disabled) it's a scalar
 Also, convert the expression to bool if bool is enabled.
 This routine does not attempt conversions from class types to built-in
 types to get a boolean expression (see process_boolean_controlling_expression).
+That's convenient for operands of potentially-overloaded operators, because
+the search for conversions to the right operand types is handled
+by check_for_operator_overloading.  In modern C++ modes, this routine
+implements "contextually converted to bool" (C++11 [conv]p4) except for
+user-defined conversions.
 */
 {
   a_boolean             okay = FALSE;

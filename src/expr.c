@@ -22910,7 +22910,8 @@ static void process_boolean_controlling_expression(an_operand *result)
 /*
 *result is the controlling expression of an if/while/do-while/for statement,
 or of a "?" operator.  Check that it has the right type.  Convert it from a
-class type if necessary.
+class type if necessary.  In modern C++ modes, this routine implements
+"contextually converted to bool" (C++11 [conv]p4).
 */
 {
   a_boolean processed = FALSE;
@@ -26217,7 +26218,8 @@ if rescan_is_template_id is TRUE, and return the result in *operand
           /* Constant (e.g., an enum constant).  Make a constant operand. */
           make_sym_constant_operand(sym_ptr, result);
           set_operand_id_details_from_locator(result, &locator);
-          if (curr_expr_kind_is(ek_integral_constant)) {
+          if (curr_expr_kind_is(ek_integral_constant) &&
+              curr_expr_kind_is_traditional_const()) {
             /* In an integral constant expression, check that the constant
                is integral or enum.  This is needed for nontype template
                arguments.  It might also be needed for the extension that
@@ -26273,8 +26275,9 @@ variable:
               add_reference_indirection(result);
             }  /* if */
             okay_for_integral_const_expr = FALSE;
-          } else if (!C_mode() && !constexpr_enabled &&
+          } else if (!C_mode() &&
                      curr_expr_kind_is(ek_integral_constant) &&
+                     curr_expr_kind_is_traditional_const() &&
                      is_const_qualified_type(var_ptr->type) &&
                      var_constant_value(var_ptr) == NULL) {
             /* This is a const variable without a constant value, e.g.,
@@ -26313,7 +26316,8 @@ variable:
             goto overloaded_function;
           }  /* if */
 normal_function:
-          if (curr_expr_kind_is(ek_integral_constant)
+          if (curr_expr_kind_is(ek_integral_constant) &&
+              curr_expr_kind_is_traditional_const()
 #if GNU_EXTENSIONS_ALLOWED
               && (!gnu_mode ||
                   !is_foldable_gnu_builtin_function(
@@ -26354,7 +26358,7 @@ normal_function:
           /* See whether nonstandard folding of a constant field selection
              is allowed. */
           nonstd_field_folding_case = FALSE;
-          if (curr_expr_kind_is_const() &&
+          if (curr_expr_kind_is_traditional_const() &&
               is_field_selection_on_field_foldable(
                                                  sym_ptr->variant.field.ptr)) {
             nonstd_field_folding_case = TRUE;
@@ -26362,7 +26366,8 @@ normal_function:
             temporarily_set_non_constant_expression_kind(&saved_expr_kind,
                                                          &saved_traditional);
           }  /* if */
-          if (curr_expr_kind_is(ek_integral_constant)) {
+          if (curr_expr_kind_is(ek_integral_constant) &&
+              curr_expr_kind_is_traditional_const()) {
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
             change_refs_to_error(rep);
@@ -26372,7 +26377,7 @@ normal_function:
                                                                         NULL) {
             /* This field is a member of a top-level (variable) anonymous
                union. */
-            if (curr_expr_kind_is_const()) {
+            if (curr_expr_kind_is_traditional_const()) {
               /* This is not allowed in a constant expression. */
               error_and_make_error_operand(ec_expr_not_constant, result);
               change_refs_to_error(rep);
@@ -26506,7 +26511,8 @@ do_selection:
             goto normal_function;
           }  /* if */
           /* Nonstatic nonoverloaded member function. */
-          if (curr_expr_kind_is(ek_integral_constant)) {
+          if (curr_expr_kind_is(ek_integral_constant) &&
+              curr_expr_kind_is_traditional_const()) {
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
             change_refs_to_error(rep);
@@ -26547,7 +26553,8 @@ overloaded_function:
           break;
         case sk_function_template:
           /* Function template. */
-          if (curr_expr_kind_is(ek_integral_constant)) {
+          if (curr_expr_kind_is(ek_integral_constant) &&
+              curr_expr_kind_is_traditional_const()) {
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
             /* No need to call change_refs_to_error; rep is NULL. */
@@ -29325,36 +29332,102 @@ the expression is also allowed to have that type.
 }  /* scan_typed_expression */
 
 
-void scan_converted_constant_expression(a_type_ptr required_type,
-                                        a_constant *constant)
+static void process_converted_constant_expression(
+                                   an_operand              *operand,
+                                   a_type_ptr              dest_type,
+                                   a_builtin_type_kind_set builtin_types,
+                                   a_constant              *result_con)
 /*
-Scan a "converted constant expression" (C++11 standard, [expr.const]p3),
-which is a constant expression converted to required_type.
-An error is issued if the constant is not convertible to that type.
-Return the constant in *constant (which may be an error constant
-if there was an error, or may be a template-dependent constant in
-a template prototype instantiation).
+"operand" is an expression scanned as a constant expression, and it
+appears in a context where C++11 calls for a "converted constant
+expression" ([expr.const]p3).  That is, the expression is implicitly
+converted to the type dest_type (if dest_type is non-NULL) or to
+a built-in type in the set given by builtin_types (if dest_type is
+NULL) using only a certain set of acceptable conversions, and must
+produce a constant.  If the conversion does not cause an error,
+the converted constant is returned in *result_con; otherwise, an
+error constant is returned.
+*/
+{
+  a_boolean processed = FALSE;
+
+  if (dest_type == NULL && constexpr_enabled &&
+      is_class_struct_union_type(operand->type) &&
+      is_literal_type(operand->type)) {
+    /* Try to convert a class operand to one of the built-in types
+       in the set given. */
+    try_to_convert_class_operand_to_builtin_type(operand,
+                                                 builtin_types,
+                                                 &processed);
+  }  /* if */
+  if (!processed) {
+    an_error_code err_code = ec_no_error;
+    /* Do lvalue --> rvalue and other transformations for the non-class
+       case. */
+    do_operand_transformations(operand, TOPT_NO_OPTIONS);
+    if (dest_type != NULL &&
+        (!constexpr_enabled ||
+         impl_converted_constant_expr_conversion_possible(
+                                                  operand->type,
+                                                  is_constant_operand(operand),
+                                                  &operand->variant.constant,
+                                                  dest_type,
+                                                  &err_code))) {
+      /* The expression can be converted using the subset of implicit
+         conversions allowed for a converted constant expression.
+         Do the conversion.  In C or pre-C++11 C++, the set of conversions
+         is not limited (the limits are imposed previously on the operands
+         themselves). */
+      prep_initializer_operand(operand,
+                               dest_type,
+                               (a_boolean *)NULL,
+                               (a_conv_descr_ptr)NULL,
+                               /*is_copy_initialization=*/TRUE,
+                               CCO_DEFAULT,
+                               ec_unconvertible_con_expr);
+    } else if (dest_type == NULL &&
+               (type_is_in_builtin_type_set(operand->type, builtin_types) ||
+                is_error_operand(operand) ||
+                is_template_param_type(operand->type))) {
+      /* There's no destination type, but the operand already has a built-in
+         type in the required set, so it's okay without a conversion. */
+    } else {
+      /* The conversion is not allowed. */
+      if (err_code == ec_no_error) err_code = ec_unconvertible_con_expr;
+      if (expr_error_should_be_issued()) {
+        pos_opt_ty2_error(err_code, &operand->position, operand->type,
+                          dest_type);
+      }  /* if */
+      conv_to_error_operand(operand);
+    }  /* if */
+  }  /* if */
+  /* The result is required to be a constant. */
+  force_operand_to_constant_if_possible(operand);
+  extract_constant_from_operand(operand, result_con);
+}  /* process_converted_constant_expression */
+
+
+void scan_bool_constant_expression(a_constant *constant)
+/*
+Scan a constant-expression that is "contextually converted to bool"
+(C++11 [conv]p4).  Return the result in *constant.
 */
 {
   an_operand          result;
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
 
-  db_enter(3, "scan_converted_constant_expression");
+  db_enter(3, "scan_bool_constant_expression");
   save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_init_constant,
+  push_expr_stack((an_expression_kind)ek_integral_constant,
                   &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  /* Convert to the required type. */
-  prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
-                           (a_conv_descr_ptr)NULL,
-                           /*is_copy_initialization=*/TRUE,
-                           CCO_DEFAULT,
-                           ec_unconvertible_con_expr);
+  /* Convert to bool. */
+  process_boolean_controlling_expression(&result);
   extract_constant_from_operand(&result, constant);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
@@ -29368,7 +29441,7 @@ a template prototype instantiation).
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-}  /* scan_converted_constant_expression */
+}  /* scan_bool_constant_expression */
 
 
 static an_init_component_ptr scan_expr_as_init_component(a_boolean bundle)
@@ -33419,10 +33492,11 @@ and [expr.const] in the ISO C++98 standard.
   an_operand result;
 
   db_enter(3, "scan_integral_constant_expression");
-  if (gcc_mode ||
-      (gpp_mode && gnu_version < 40000) ||
-      sun_mode ||
-      microsoft_mode) {
+  if ((gcc_mode ||
+       (gpp_mode && gnu_version < 40000) ||
+       sun_mode ||
+       microsoft_mode) &&
+      !constexpr_enabled) {
     /* Sun, GNU and Microsoft C and C++ allow more than the standard allows. */
     scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
                                                /*is_expr_list=*/FALSE,
@@ -33443,17 +33517,28 @@ and [expr.const] in the ISO C++98 standard.
     transfer_expr_context_if_applicable(saved_expr_stack);
     /* Scan the constant expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-    do_operand_transformations(&result, TOPT_NO_OPTIONS);
-    extract_constant_from_operand(&result, constant);
-    if (!is_okay_integral_constant_expression_result(constant,
-                                                     /*will_cast=*/FALSE)) {
-      /* The expression doesn't reduce to an appropriately-typed constant.
-         The check here is mostly redundant, because non-integral values
-         can't generally enter the expression, but with some extensions it
-         is possible to get here with a non-integral expression. */
-      if (!is_error_constant(constant)) {
-        expr_pos_error(ec_expr_not_integral_constant, &result.position);
-        set_error_constant(constant);
+    if (constexpr_enabled) {
+      /* C++11 allows user-defined conversions and limits certain
+         implicit conversions. */
+      process_converted_constant_expression(&result,
+                                            (a_type_ptr)NULL,
+                                            (a_builtin_type_kind_set)
+                                                     (BTK_INTEGRAL | BTK_ENUM),
+                                            constant);
+    } else {
+      /* C mode or pre-C++11 C++ mode. */
+      do_operand_transformations(&result, TOPT_NO_OPTIONS);
+      extract_constant_from_operand(&result, constant);
+      if (!is_okay_integral_constant_expression_result(constant,
+                                                       /*will_cast=*/FALSE)) {
+        /* The expression doesn't reduce to an appropriately-typed constant.
+           The check here is mostly redundant, because non-integral values
+           can't generally enter the expression, but with some extensions it
+           is possible to get here with a non-integral expression. */
+        if (!is_error_constant(constant)) {
+          expr_pos_error(ec_expr_not_integral_constant, &result.position);
+          set_error_constant(constant);
+        }  /* if */
       }  /* if */
     }  /* if */
     pop_expr_stack();

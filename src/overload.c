@@ -12182,6 +12182,48 @@ by this routine.
 }  /* select_and_prepare_to_call_overloaded_function */
 
 
+a_boolean type_is_in_builtin_type_set(a_type_ptr              type,
+                                      a_builtin_type_kind_set builtin_types)
+/*
+Return TRUE if "type" is a built-in type in the set described by
+builtin_types.
+*/
+{
+  a_boolean in_set = FALSE;
+
+  if (((builtin_types & BTK_INTEGRAL) &&
+                            is_integral_type(type)) ||
+      ((builtin_types & BTK_ENUM) &&
+                             is_enum_type(type)) ||
+      ((builtin_types & BTK_UNSCOPED_ENUM) &&
+                             is_unscoped_enum_type(type)) ||
+      ((builtin_types & BTK_BOOL) &&
+                             is_bool_type(type)) ||
+      ((builtin_types & BTK_FLOATING) &&
+                             is_floating_type(type)) ||
+      ((builtin_types & BTK_POINTER) &&
+                             is_pointer_type(type)) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      ((builtin_types & BTK_HANDLE) &&
+                             is_handle_type(type)) ||
+      ((builtin_types & BTK_HANDLE_TO_CLI_ARRAY) &&
+                             is_handle_to_cli_array_type(type)) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      ((builtin_types & BTK_POINTER_TO_OBJECT) &&
+                             is_pointer_to_object_type(type)) ||
+      ((builtin_types & BTK_POINTER_TO_FUNCTION) &&
+                             is_pointer_type(type) &&
+                             is_function_type(type_pointed_to(type))) ||
+      ((builtin_types & BTK_PTR_TO_MEMBER) &&
+                             is_ptr_to_member_type(type)) ||
+      ((builtin_types & BTK_PTRDIFF_T) &&
+                             is_ptrdiff_t_type(type))) {
+    in_set = TRUE;
+  }  /* if */
+  return in_set;
+}  /* type_is_in_builtin_type_set */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- only_std_funcs not used in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12278,7 +12320,9 @@ are considered).  conv_context describes the context of the conversion.
   /* This routine is similar to try_overloaded_function_match. */
   if (builtin_types_allowed == BTK_BOOL) {
     /* There's only one type in the BTK_BOOL category, so make this a
-       conversion to a specific type so that templates can be used. */
+       conversion to a specific type so that templates can be used.
+       Note that BTK_BOOL alone corresponds to the C++11 "contextually
+       converted to bool", which allows explicit conversion functions. */
     dest_type = requested_type = bool_type();
     builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
     boolean_converted_case = (explicit_conversion_functions_enabled &&
@@ -12652,32 +12696,8 @@ are considered).  conv_context describes the context of the conversion.
          type. */
       if (need_lvalue_result && is_const_qualified_type(return_type)) {
         /* Rule out const types if an lvalue is required. */
-      } else if (
-          ((builtin_types_allowed & BTK_INTEGRAL) != 0 &&
-                                              is_integral_type(return_type)) ||
-          ((builtin_types_allowed & BTK_ENUM) != 0 &&
-                                              is_enum_type(return_type)) ||
-          ((builtin_types_allowed & BTK_BOOL) != 0 &&
-                                              is_bool_type(return_type)) ||
-          ((builtin_types_allowed & BTK_FLOATING) != 0 &&
-                                              is_floating_type(return_type)) ||
-          ((builtin_types_allowed & BTK_POINTER) != 0 &&
-                                              is_pointer_type(return_type)) ||
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          ((builtin_types_allowed & BTK_HANDLE) != 0 &&
-                                              is_handle_type(return_type)) ||
-          ((builtin_types_allowed & BTK_HANDLE_TO_CLI_ARRAY) != 0 &&
-                                   is_handle_to_cli_array_type(return_type)) ||
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          ((builtin_types_allowed & BTK_POINTER_TO_OBJECT) != 0 &&
-                                     is_pointer_to_object_type(return_type)) ||
-          ((builtin_types_allowed & BTK_POINTER_TO_FUNCTION) != 0 &&
-                             is_pointer_type(return_type) &&
-                             is_function_type(type_pointed_to(return_type))) ||
-          ((builtin_types_allowed & BTK_PTR_TO_MEMBER) != 0 &&
-                                         is_ptr_to_member_type(return_type)) ||
-          ((builtin_types_allowed & BTK_PTRDIFF_T) != 0 &&
-                                         is_ptrdiff_t_type(return_type))) {
+      } else if (type_is_in_builtin_type_set(return_type,
+                                             builtin_types_allowed)) {
         /* This conversion function returns an acceptable built-in type. */
         compatible = TRUE;
         /* The result does not have to be forced to an rvalue. */

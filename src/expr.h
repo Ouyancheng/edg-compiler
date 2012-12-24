@@ -388,9 +388,7 @@ an_expr_node_ptr scan_typed_expression(a_type_ptr         required_type,
                                        a_type_ptr         alternate_type,
                                        an_error_code      err_code);
 
-extern
-void scan_converted_constant_expression(a_type_ptr required_type,
-                                        a_constant *constant);
+extern void scan_bool_constant_expression(a_constant *constant);
 
 extern void check_range_based_for_statement(
                           a_statement_ptr            statement,

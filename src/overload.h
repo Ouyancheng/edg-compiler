@@ -164,16 +164,21 @@ conversion_from_class_possible.
 #define BTK_PTR_TO_MEMBER 0x20
 			/* Any pointer to member. */
 #define BTK_BOOL 0x40
-			/* bool (C++). */
+			/* bool (C++).  Note that a conversion to BTK_BOOL
+			   alone is the C++11 "contextually converted to bool"
+			   conversion, which allows explicit conversion
+			   functions. */
 #define BTK_ENUM 0x80
 			/* Enumeration types in C++ (in C, they're
 			   integral). */
-#define BTK_PTRDIFF_T 0x100
+#define BTK_UNSCOPED_ENUM 0x100
+			/* Unscoped enumeration types in C++. */
+#define BTK_PTRDIFF_T 0x200
 			/* ptrdiff_t */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define BTK_HANDLE 0x200
+#define BTK_HANDLE 0x400
 			/* Any C++/CLI handle type. */
-#define BTK_HANDLE_TO_CLI_ARRAY 0x400
+#define BTK_HANDLE_TO_CLI_ARRAY 0x800
 			/* Handle to a CLI array type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define BTK_NONE 0
@@ -881,6 +886,10 @@ extern a_boolean select_and_prepare_to_call_overloaded_function(
                            a_boolean               *found_through_adl,
                            an_operand              *function_operand,
                            an_expr_node_ptr        *arg_expr_list);
+
+extern
+a_boolean type_is_in_builtin_type_set(a_type_ptr              type,
+                                      a_builtin_type_kind_set builtin_types);
 
 extern void adjust_class_object_type(an_operand       *operand,
                                      a_type_ptr       dest_type,

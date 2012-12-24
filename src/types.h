@@ -76,6 +76,7 @@ extern a_boolean is_integral_type(a_type_ptr tp);
 extern a_boolean is_signed_integral_type(a_type_ptr tp);
 extern a_boolean is_enum_type(a_type_ptr tp);
 extern a_boolean is_scoped_enum_type(a_type_ptr tp);
+extern a_boolean is_unscoped_enum_type(a_type_ptr tp);
 extern a_boolean is_integral_or_enum_type(a_type_ptr tp);
 extern a_boolean is_integral_or_unscoped_enum_type(a_type_ptr tp);
 extern a_boolean is_bool_type(a_type_ptr tp);
@@ -1112,6 +1113,12 @@ extern a_boolean impl_conversion_possible(
                           a_boolean            suppress_extensions,
                           an_error_code        default_warning_code,
                           a_std_conv_descr_ptr std_conv);
+extern a_boolean impl_converted_constant_expr_conversion_possible(
+                                           a_type_ptr       source_type,
+                                           a_boolean        source_is_constant,
+                                           a_constant       *source_constant,
+                                           a_type_ptr       dest_type,
+                                           an_error_code    *err_code);
 extern a_boolean conversion_allowed_for_nontype_template_argument(
                                            a_std_conv_descr *conversion,
                                            a_type_ptr       source_type,

@@ -577,6 +577,16 @@ Return TRUE if the given type is a scoped enum type.
 }  /* is_scoped_enum_type */
 
 
+a_boolean is_unscoped_enum_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an unscoped enum type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_enum(tp) && !integer_type_is_scoped_enum(tp);
+}  /* is_unscoped_enum_type */
+
+
 a_boolean is_integral_or_enum_type(a_type_ptr tp)
 /*
 Return TRUE if the type is an integral type or an enum type.  (In C++ an
@@ -9143,7 +9153,7 @@ See conversion_possible.
 }  /* impl_conversion_possible */
 
 
-static a_boolean impl_converted_constant_expr_conversion_possible(
+a_boolean impl_converted_constant_expr_conversion_possible(
                                            a_type_ptr       source_type,
                                            a_boolean        source_is_constant,
                                            a_constant       *source_constant,

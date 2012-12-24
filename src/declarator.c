@@ -1342,7 +1342,7 @@ is TRUE, cache the argument tokens if this is a template-dependent context.
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* Scan the argument for the noexcept-specifier, which must be a
        constant-expression convertible to bool. */
-    scan_converted_constant_expression(bool_type(), &noexcept_con);
+    scan_bool_constant_expression(&noexcept_con);
     if (esp != NULL) {
       if (noexcept_con.kind == (a_constant_repr_kind)ck_template_param ||
           noexcept_con.kind == (a_constant_repr_kind)ck_error ||
