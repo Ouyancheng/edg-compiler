@@ -3774,19 +3774,19 @@ constant.
              it may need to be referred to indirectly if the expression is
              allocated in function scope memory. */
           il_constant = alloc_shareable_constant(&constant);
-          if (!(constant.expr != NULL &&
-                is_constant_node(constant.expr) &&
-                constant.expr->variant.constant == il_constant)) {
+          if (il_constant->is_named_constant_definition) {
+            /* We must not copy the backing expression from the bound
+               constant if il_constant is the definition of a named
+               constant.  In such a case, the backing expression will refer
+               to the shared constant, and copying it into il_constant
+               would create a loop in the IL. */
+          } else {
             /* Preserve the bound expression, which will not have been
                copied if it refers to local variables, and ensure that it
-               can be referenced from the file-scope type entry.  We must
-               avoid the case where the backing expression is a constant
-               node referring to the shared constant, however, which arises
-               in the Microsoft-mode case in which an enumerator is named
-               using a member access expression.  Note that il_constant
-               will be unshared in this case because of the non-NULL
-               backing expression in the source constant, even though the
-               backing expression was cleared in il_constant. */
+               can be referenced from the file-scope type entry.  Note that
+               il_constant will be unshared in this case because of the
+               non-NULL backing expression in the source constant, even
+               though the backing expression was cleared in il_constant. */
             il_constant->expr = constant.expr;
             make_bound_expr_referenceable_from_file_scope(&il_constant->expr,
                                                           *new_type_ptr,
