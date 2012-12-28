@@ -1,5 +1,22 @@
 Version 4.6
 
+12/28/12 [EDGcpfe/13351]
+C++-generating back end, GNU C compatibility: casting scalar to union type
+
+The changes enabling C++11 initializer lists (added in version 4.5; see
+EDGcpfe/9170 below) introduced a bug that caused an abort (in
+gen_temp_init) in C++-generating back end configurations when the source
+contains a cast of a scalar to a union type (a gcc extension).  This is now
+fixed.  For example:
+
+  union U { int i; double d; };
+  int x;
+  void f() {
+    union U u;
+    u = (union U)x;   // Previously aborted
+  }
+
+
 12/22/12 [EDGcpfe/13539]
 Spurious macro redefinition warning
 

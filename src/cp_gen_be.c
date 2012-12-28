@@ -4308,13 +4308,18 @@ An example of the form of a compound literal:
 In GNU C mode, passing an expression to a transparent union function
 parameter is represented in the IL as a compound literal; in this
 case, transparent_union will be TRUE, and the cast and braces must be
-suppressed.
+suppressed.  gcc also allows an explicit cast to a (non-transparent) union
+type, which is represented in the IL and the generated output as a
+compound literal.
 */
 {
   a_boolean is_aggregate;
 
-  check_assertion(dip == NULL || dip->is_compound_literal ||
-                  transparent_case);
+  check_assertion(dip == NULL || dip->is_compound_literal
+#if GNU_EXTENSIONS_ALLOWED
+                  || is_union_type(literal_type)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                  );
   if (literal_con != NULL) {
     literal_type = literal_con->type;
   } else if (dip->kind == (a_dynamic_init_kind)dik_constant ||
@@ -8338,11 +8343,11 @@ in determining how to generate dynamic initializations).
     gen_compound_literal((a_constant_ptr)NULL, dip, temp_type,
                          /*transparent_case=*/FALSE);
   } else if (C_mode()) {
-    /* Other cases in C mode are transparent union cases. */
+    /* Other cases in C mode are GNU union cases. */
 #if GNU_EXTENSIONS_ALLOWED
-    check_assertion(is_transparent_union_type(temp_type));
+    check_assertion(is_union_type(temp_type));
     gen_compound_literal((a_constant_ptr)NULL, dip, temp_type,
-                         /*transparent_case=*/TRUE);
+                         is_transparent_union_type(temp_type));
 #else /* !GNU_EXTENSIONS_ALLOWED */
     unexpected_condition();
 #endif /* GNU_EXTENSIONS_ALLOWED */

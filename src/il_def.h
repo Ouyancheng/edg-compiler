@@ -3293,10 +3293,12 @@ typedef struct a_dynamic_init {
     a_constant_ptr
 		constant;
 			/* The constant initial value.  Always an unshared
-                           constant.  When kind is dik_nonconstant_aggregate
-                           (used only in C++) it points to a ck_aggregate
-                           constant entry for which one or more of the entries
-			   on its linked list are ck_dynamic_init constants. */
+                           constant.  When kind is
+                           dik_nonconstant_aggregate (used only in C++,
+                           C99, and GNU C) it points to a ck_aggregate
+                           constant entry for which one or more of the
+                           entries on its linked list are ck_dynamic_init
+                           constants. */
     /* When kind == dik_expression or
        kind == dik_call_returning_class_via_cctor: */
     an_expr_node_ptr
