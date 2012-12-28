@@ -4315,11 +4315,12 @@ compound literal.
 {
   a_boolean is_aggregate;
 
-  check_assertion(dip == NULL || dip->is_compound_literal
 #if GNU_EXTENSIONS_ALLOWED
-                  || is_union_type(literal_type)
+  check_assertion(dip == NULL || dip->is_compound_literal ||
+                  is_union_type(literal_type));
+#else /* !GNU_EXTENSIONS_ALLOWED */
+  check_assertion(dip == NULL || dip->is_compound_literal);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                  );
   if (literal_con != NULL) {
     literal_type = literal_con->type;
   } else if (dip->kind == (a_dynamic_init_kind)dik_constant ||
