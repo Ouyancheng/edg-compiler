@@ -12865,6 +12865,7 @@ Generate code for a namespace definition or namespace alias declaration.
   a_src_seq_secondary_decl_ptr sec_decl;
   a_namespace_ptr              nsp;
   an_attribute_ptr             attributes;
+  a_boolean                    saved_shadowed_by_class;
 
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
@@ -12876,6 +12877,11 @@ Generate code for a namespace definition or namespace alias declaration.
   }  /* if */
   /* Advance past the source sequence entry for the namespace. */
   adv_curr_source_sequence_entry();
+  /* Save the shadowed_by_class flag and set it to FALSE to ensure that
+     the temporary name (see below) is not used within the namespace body,
+     before it is declared. */
+  saved_shadowed_by_class = nsp->shadowed_by_class;
+  nsp->shadowed_by_class = FALSE;
   /* Position the output file to the declaration position. */
   set_decl_position(&nsp->source_corresp, sec_decl);
   if (nsp->is_inline) {
@@ -12921,7 +12927,7 @@ Generate code for a namespace definition or namespace alias declaration.
     }
     pop_name_context();
     write_tok_ch('}');
-    if (gcc_is_generated_code_target && nsp->shadowed_by_class) {
+    if (gcc_is_generated_code_target && saved_shadowed_by_class) {
       /* Some versions of g++ issue spurious errors when a namespace
          qualifier is used and a class name is visible in the same scope.
          Put out a namespace alias using a unique name that can be used
@@ -12931,6 +12937,9 @@ Generate code for a namespace definition or namespace alias declaration.
       write_tok_str(" = ");
       gen_unqualified_name(&nsp->source_corresp, iek_namespace);
       write_tok_ch(';');
+      /* Restore the value of the shadowed_by_class flag so the temporary
+         name will be used for qualifiers in later references. */
+      nsp->shadowed_by_class = TRUE;
     }  /* if */
   }  /* if */
 }  /* gen_namespace */
