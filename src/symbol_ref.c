@@ -422,13 +422,9 @@ name of an instance of a class template in Microsoft mode.
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sk_projection:
-        if (!hidden_sym->synthesized_namespace_projection) {
-          /* Ignore most projection symbols. */
-          break;
-        }  /* if */
-        /* FALLTHROUGH */
       case sk_namespace_projection:
-        /* Enter the fundamental symbol of a namespace projection. */
+        /* Enter the fundamental symbol of a class or namespace
+           projection. */
         sym = fundamental_symbol_of(hidden_sym);
         /* If the fundamental symbol belongs to the same namespace as the
            symbol it's hidden by (something that can happen with synthesized
