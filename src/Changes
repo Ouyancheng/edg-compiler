@@ -1,5 +1,23 @@
 Version 4.6
 
+12/31/12 [EDGcpfe/13480]
+GNU attributes in nested declarators
+
+The front end previously accepts GNU attributes as the first element of a
+nested declarator, but previously such attributes applied to the complete
+declaration.  For example:
+
+  int (__attribute((stdcall)) **ppf)();
+
+Previously, the attribute was applied to the variable declaration as a whole,
+which resulted in the attribute being ignored (with a warning) because the
+declaration does not have a function or pointer-to-function type.  Now, the
+attribute is applied to the type under the nested declarator (in this case
+the function type).
+This change also improves the output of such attributes by the C++-generating
+back end.
+
+
 12/31/12 [EDGcpfe/13477]
 C++-generating back end: hiding of and by inherited names
 

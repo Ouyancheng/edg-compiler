@@ -5158,8 +5158,13 @@ Display the indicated attribute entry.
     case al_post_ptr_or_ref:     loc_name = "post ptr or ref";      break;
     case al_post_array:          loc_name = "post array";           break;
     case al_post_func:           loc_name = "post func";            break;
+    case al_postfix:             loc_name = "postfix";              break;
+    case al_predeclarator:       loc_name = "predeclarator";        break;
+    case al_id_equivalent:       loc_name = "id_equivalent";        break;
     case al_trailing_return:     loc_name = "trailing return";      break;
     case al_post_initializer:    loc_name = "post initializer";     break;
+    case al_namespace:           loc_name = "namespace";            break;
+    case al_label:               loc_name = "label";                break;
     default:                     loc_name = "** BAD LOCATION **";   break;
   }  /* switch */
   disp_name("syntactic_location");

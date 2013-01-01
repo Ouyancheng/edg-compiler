@@ -2454,6 +2454,7 @@ ec_bad_cpp11_constant_function_call;;"function call must have a constant value i
 ec_constexpr_main;;"function \"main\" may not be declared constexpr"
 ec_constexpr_nonstatic_member_func_in_nonliteral_class;;"a constexpr member function is only permitted in a literal class type"
 ec_tag_defined_in_constexpr_body;;"a class or enumeration type definition cannot appear in a constexpr function or constructor body"
+ec_only_gnu_attributes_here;;"only GNU-style attributes are permitted here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

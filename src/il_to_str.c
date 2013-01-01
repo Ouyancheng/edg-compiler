@@ -262,6 +262,40 @@ is a tk_routine entry, attributes on that routine type entry are rendered.
 }  /* output_type_attributes */
 
 
+static void output_predeclarator_attributes(
+                                   a_type_ptr                            type,
+                                   an_il_to_str_output_control_block_ptr octl)
+/*
+Render any "predeclarator" attributes (a GNU feature) for the given type.
+Do the output in the way described by octl.
+*/
+{
+  if (octl->output_attributes != NULL) {
+    octl->output_attributes(type->source_corresp.attributes,
+                            al_predeclarator, /*primary_only=*/FALSE);
+  }  /* if */
+}  /* output_predeclarator_attributes */
+
+
+static a_boolean has_predeclarator_attribute(a_type_ptr  type)
+/*
+Return TRUE if the given type has a "predeclarator" attribute attached to it.
+*/
+{
+  a_boolean         result = FALSE;
+  an_attribute_ptr  ap = type->source_corresp.attributes;
+
+  for (; ap != NULL; ap = ap->next) {
+    if (ap->syntactic_location ==
+                                (a_byte_attribute_location)al_predeclarator) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* has_predeclarator_attribute */
+
+
 #if !PROTOTYPE_INSTANTIATIONS_IN_IL
 static a_source_correspondence_ptr source_corresp_for_template_param(
                                         a_template_param_coordinate_ptr coord);
@@ -2209,7 +2243,10 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     }  /* if */
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
-    if (under_lhs_declarator) octl->output_str("(", octl);
+    if (under_lhs_declarator) {
+      octl->output_str("(", octl);
+      output_predeclarator_attributes(type, octl);
+    }  /* if */
     if (qualifiers != TQ_NONE) {
       /* As noted above, qualifiers cannot appear in compilable code, only
          in diagnostic and debugging output. */
@@ -2243,7 +2280,10 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                          octl);
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
-    if (under_lhs_declarator) octl->output_str("(", octl);
+    if (under_lhs_declarator) {
+      octl->output_str("(", octl);
+      output_predeclarator_attributes(type, octl);
+    }  /* if */
   } else {
 handle_specifiers_type:
     /* No declarator part to process.  Handle the specifier type. */
@@ -2264,6 +2304,10 @@ handle_specifiers_type:
         octl->output_str(" __w64", octl);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (has_predeclarator_attribute(orig_type)) {
+        octl->output_str(" (", octl);
+        output_predeclarator_attributes(orig_type, octl);
+      }  /* if */
       /* Put out a trailing space if required. */
       if (need_trailing_space) octl->output_str(" ", octl);
     }  /* if */
@@ -2650,6 +2694,12 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
       form_type_second_part(type->variant.array.element_type,
                             /*under_lhs_declarator=*/FALSE,
                             options, octl);
+    }  /* if */
+  } else {
+    if (has_predeclarator_attribute(orig_type)) {
+      /* form_type_first_part opened a parentheses to render predeclarator
+         attributes.  Close that parenthesis now. */
+      octl->output_str(")", octl);
     }  /* if */
   }  /* if */
 end_of_routine:;

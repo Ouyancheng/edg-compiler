@@ -151,6 +151,35 @@ standard-attribute syntax).
 }  /* scan_declarator_attributes */
 
 
+static an_attribute_ptr scan_predeclarator_attributes(void)
+/*
+Scan and return any attributes appearing as the first constructed in a nested
+declarator.  Issue an error if non-GNU attributes are scanned.
+*/
+{
+  a_boolean         error_issued = FALSE;
+  an_attribute_ptr  attributes, ap;
+
+  attributes = scan_attributes(al_predeclarator);
+  if (attributes != NULL) {
+    if (gnu_mode) {
+      /* Check that any scanned attributes are GNU attributes.  (Other
+         attribute kinds are not permitted in this syntactic context.) */
+      for (ap = attributes; ap != NULL; ap = ap->next) {
+        if (ap->family != (a_byte_attribute_family)af_gnu && !error_issued) {
+          pos_error(ec_only_gnu_attributes_here, &ap->position);
+          error_issued = TRUE;
+        }  /* if */
+      }  /* for */
+    } else {
+      pos_error(ec_attribute_not_allowed, &attributes->position);
+      attributes = NULL;
+    }  /* if */
+  }  /* if */
+  return attributes;
+}  /* scan_predeclarator_attributes */
+
+
 static a_boolean check_pm_member_type(a_type_ptr  member_type)
 /*
 member_type is to be used in a pointer-to-member type.  Check its validity
@@ -5805,14 +5834,15 @@ static void r_declarator(
                   a_call_conv_descr_ptr       p_unbound_call_conv,
                   a_type_qualifier_set        *p_left_qualifiers,
                   a_type_qualifier_set        *p_unbound_qualifiers,
+                  an_attribute_ptr            *p_predeclarator_attributes,
                   a_source_sequence_entry_ptr *declarator_ssep,
                   a_func_info_block           *func_info,
                   a_decl_pos_block_ptr        decl_pos_block)
 /*
-Scan a declarator (3.5.4) or an abstract declarator (3.5.5), depending on the
-values of real_declarator_allowed and abstract_declarator_allowed (real,
-abstract, or either can be allowed).  input_flags indicates various options
-for parsing (e.g., whether variable-length array declarators should be allowed)
+Scan a declarator or an abstract declarator, depending on the values of the
+DI_REAL_DECLARATOR_ALLOWED and DI_ABSTRACT_DECLARATOR_ALLOWED flags in
+input_flags.  input_flags also indicates various other options for parsing
+(e.g., whether variable-length array declarators should be allowed)
 and *output_flags returns some properties about the scanned declarator to the
 caller.  *state contains state information about the declaration being parsed.
 specifiers_type points to the type scanned in a preceding specifiers list, or
@@ -5844,9 +5874,12 @@ in *p_left_call_conv, *p_unbound_call_conv, *left_qualifiers, and
 *unbound_qualifiers.  See pointer_declarator for more information
 on those.
 
-The syntax is:
+For a nested declarator, *p_predeclarator_attributes is set to any
+attributes scanned as the first construct in the nested declarator.
 
-3.5.4  declarator:
+The original C89 syntax for declarators is:
+
+       declarator:
 		pointer    direct-declarator
 		       opt
 
@@ -5864,7 +5897,7 @@ The syntax is:
 		* type-qualifier-list    pointer
 				     opt
 
-3.5.5  abstract-declarator:
+       abstract-declarator:
 		pointer
 		pointer    direct-abstract-declarator
                        opt
@@ -5876,6 +5909,9 @@ The syntax is:
 		direct-abstract-declarator    ( parameter-type-list    )
 					  opt                      opt
 
+C++, C99, and dialects thereof add various extensions to this (including
+reference types, variable-length arrays, calling conventions, attributes,
+etc.).
 */
 {
   a_type_ptr            complete_type;
@@ -5902,6 +5938,9 @@ The syntax is:
   a_boolean             pointer_to_member_scanned;
   a_boolean             parenthesized_new_declarator = FALSE;
   a_boolean             allow_one_more_array_dimension = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+  an_attribute_ptr      predeclarator_attributes = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "r_declarator");
   set_err_pos_to_curr_token();
@@ -6012,10 +6051,44 @@ The syntax is:
     }  /* if */
     /* This parenthesis begins a nested declarator. */
     state->in_nested_declarator = TRUE;
-    /* Attributes may appear as the first construct of a parenthesized
-       declarator.  If valid (GNU attributes only), they are treated as if
-       they appeared before the parentheses. */
-    scan_declarator_attributes(state, &state->type);
+#if GNU_EXTENSIONS_ALLOWED
+    predeclarator_attributes = scan_predeclarator_attributes();
+    if (gnu_mode) {
+      /* GCC accepts declarations like:
+             void (__attribute((cdecl)) **p)();
+         The attributes in that position appertain to the type underlying the
+         declarator (here, the function type).  Currently, however, we only
+         take the attributes into account if no nested pointer operators have
+         been seen.  I.e., we accept:
+             int *((__attribute((stdcall)) **p2))();
+         but not:
+             int (*(__attribute((stdcall)) **p3))();
+         This is a limitation of how we currently build up types.  E.g., in
+         the case of p3, the attribute would be applied to a type "pointer
+         to <null>", which is too little information to determine if the
+         attribute is valid. */
+      if (specifiers_type != NULL) {
+        /* The first level of declarator nesting. */
+        p_predeclarator_attributes =
+                               last_attribute_link(&predeclarator_attributes);
+      } else if (complete_type == NULL && p_predeclarator_attributes != NULL) {
+        /* An more deeply nested level of declarator nesting that hasn't
+           introduced pointer operators. */
+        *p_predeclarator_attributes = predeclarator_attributes;
+        p_predeclarator_attributes =
+                               last_attribute_link(&predeclarator_attributes);
+      } else {
+        /* Some nested pointer operators were seen: Don't accept more
+           predeclarator attributes. */
+        if (predeclarator_attributes != NULL) {
+          pos_error(ec_attribute_not_allowed,
+                    &predeclarator_attributes->position);
+        }  /* if */
+        predeclarator_attributes = NULL;
+        p_predeclarator_attributes = NULL;
+      }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
@@ -6056,8 +6129,8 @@ The syntax is:
                  &bottom_derived_type, is_constructor, is_static_constructor, 
                  is_destructor, is_finalizer, &inner_left_call_conv,
                  &unbound_call_conv, &inner_left_qualifiers,
-                 &unbound_qualifiers, declarator_ssep, func_info,
-                 decl_pos_block);
+                 &unbound_qualifiers, p_predeclarator_attributes,
+                 declarator_ssep, func_info, decl_pos_block);
     state->in_nested_declarator = saved_in_nested_declarator;
     state->qualifiers = saved_qualifiers;
     state->qualifiers_pos = saved_qualifiers_pos;
@@ -6573,6 +6646,16 @@ function_lparen:
         nonconstant_dimension_allowed = FALSE;
       }  /* if */
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    if (specifiers_type != NULL && predeclarator_attributes != NULL) {
+      /* Apply the nested predeclarator attributes to the topmost array or
+         function type.  Note that this means attribute application routines
+         must deal with partially assembled types. */
+      attach_type_attributes(&new_type_ptr, predeclarator_attributes,
+                             (void*)state);
+      predeclarator_attributes = NULL;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       /* Apply left-side qualifiers that were hanging:
@@ -6641,6 +6724,16 @@ function_lparen:
      is set a bit early here so that any errors below from combining the
      two lists will have the right position. */
   copy_source_position(declarator_pos, error_position);
+#if GNU_EXTENSIONS_ALLOWED
+    if (specifiers_type != NULL && predeclarator_attributes != NULL) {
+      /* Apply the nested predeclarator attributes to the type specified
+         before the nested declarator (if there were postfix declarator
+         operators, the attributes were already consumed above). */
+      attach_type_attributes(&complete_type, predeclarator_attributes,
+                             (void*)state);
+      predeclarator_attributes = NULL;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* Apply left-side qualifiers that were hanging, for the case where
@@ -7023,8 +7116,8 @@ the parameters.
                &bottom_derived_type, &is_constructor, &is_static_constructor, 
                &is_destructor, &is_finalizer, (a_call_conv_descr_ptr)NULL, 
                (a_call_conv_descr_ptr)NULL, (a_type_qualifier_set *)NULL, 
-               (a_type_qualifier_set *)NULL, &state->source_sequence_entry, 
-               func_info, decl_pos_block);
+               (a_type_qualifier_set *)NULL, (an_attribute_ptr*)NULL,
+               &state->source_sequence_entry, func_info, decl_pos_block);
   if (is_constructor) {
     state->do_flags |= DO_IS_CONSTRUCTOR;
   }  /* if */

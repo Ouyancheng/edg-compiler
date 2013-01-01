@@ -4156,11 +4156,14 @@ marked as being associated with the primary declaration.
       continue;
     }  /* if */
     /* al_explicit indicates that all non-implicit attributes should be
-       rendered. */
+       rendered (except GNU "predeclarator" attributes which must be handled
+       separately). */
     if (ap->syntactic_location !=
                               (a_byte_attribute_location)syntactic_location &&
         !(syntactic_location == al_explicit &&
-          ap->syntactic_location != (a_byte_attribute_location)al_implicit)) {
+          ap->syntactic_location != (a_byte_attribute_location)al_implicit &&
+          ap->syntactic_location !=
+                               (a_byte_attribute_location)al_predeclarator)) {
       continue;
     }  /* if */
     if (primary_only && !ap->on_primary_declaration) continue;

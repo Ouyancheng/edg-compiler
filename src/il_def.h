@@ -2171,6 +2171,12 @@ typedef enum an_attribute_location_tag {
   al_postfix,		/* The attribute follows the top-level declarator.
 			   (GNU attributes only; al_postfix attributes have
 			   the same effect as al_declarator_id attributes.) */
+  al_predeclarator,
+			/* The attribute appeared as the first construct of a
+			   nested declarator (GNU attributes only).  E.g.:
+			      int (__attribute((cdecl)) **pf)();
+			   Such an attribute applies to the type "underneath"
+			   the declarator (type "int()" in this example). */
   al_id_equivalent,	/* The attribute appeared in an unusual place, but
 			   is treated as if it were a declarator-id attribute.
 			   (GNU attributes only.)  E.g.,
