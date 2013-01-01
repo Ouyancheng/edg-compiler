@@ -150,6 +150,7 @@ standard-attribute syntax).
   }  /* if */
 }  /* scan_declarator_attributes */
 
+#if GNU_EXTENSIONS_ALLOWED
 
 static an_attribute_ptr scan_predeclarator_attributes(void)
 /*
@@ -179,6 +180,7 @@ declarator.  Issue an error if non-GNU attributes are scanned.
   return attributes;
 }  /* scan_predeclarator_attributes */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static a_boolean check_pm_member_type(a_type_ptr  member_type)
 /*
