@@ -1,5 +1,31 @@
 Version 4.6
 
+1/1/13   [EDGcpfe/13478]
+C++-generating back end: qualified and parenthesized friend function names
+
+The C++-generating back end incorrectly omitted necessary parentheses and
+qualification in some friend function declarations.  For example, with the
+following input
+
+  struct X { };
+  X f(int);
+  namespace N {
+    class B {
+      friend X (::f)(int);   // Previously generated incorrectly
+    };
+  }
+
+the indicated friend declaration was generated as
+
+  friend X ::f(int);   // Missing parentheses
+
+in configurations with DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to TRUE and
+
+  friend X f(int);     // Missing qualification
+
+otherwise.  Both of these issues are now fixed.
+
+
 12/31/12 [EDGcpfe/13480]
 GNU attributes in nested declarators
 

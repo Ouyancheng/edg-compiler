@@ -1112,6 +1112,26 @@ Return TRUE if the indicated scope is currently on the name context stack.
 }  /* scope_is_in_name_context_stack */
 
 
+static a_namespace_ptr innermost_enclosing_namespace()
+/*
+Return a pointer to the innermost namespace in the name context stack or
+NULL if there is none.
+*/
+{
+  a_namespace_ptr    result = NULL;
+  a_name_context_ptr ncp;
+
+  for (ncp = curr_name_context; result == NULL && ncp != NULL;
+       ncp = ncp->next) {
+    if (ncp->assoc_scope != NULL &&
+        ncp->assoc_scope->kind == (a_scope_kind)sck_namespace) {
+      result = ncp->assoc_scope->variant.assoc_namespace;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* innermost_enclosing_namespace */
+
+
 static a_boolean class_is_in_name_context_stack(
                                                a_type_ptr class_type,
                                                a_boolean  include_base_classes)
@@ -3834,20 +3854,19 @@ put out nothing.
 }  /* gen_name_qualifier_list */
 
 
-#if !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* <-- is_declaration is not used in that case. */
-#endif /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 static a_boolean gen_name_from_name_reference(
                                         a_name_reference_ptr    nrp,
                                         a_source_correspondence *scp,
                                         an_il_entry_kind        entry_kind,
                                         a_boolean               is_declaration)
 /*
-Generate a name reference for the entity with source correspondence
-scp and kind entry_kind using the name-reference information in *nrp.  If
-nrp is NULL, or if the reference represents an unqualified reference to a
-class member in a non-class context, return FALSE; otherwise, return TRUE
-to indicate that the name reference was successfully emitted.
+Generate a name reference for the entity with source correspondence scp and
+kind entry_kind using the name-reference information in *nrp.
+is_declaration is TRUE if the name is the declarator-id in a declaration,
+FALSE if the name reference appears as part of an expression.  If nrp is
+NULL, or if the reference represents an unqualified reference to a class
+member in a non-class context, return FALSE; otherwise, return TRUE to
+indicate that the name reference was successfully emitted.
 */
 {
   a_boolean            name_generated = FALSE;
@@ -3903,9 +3922,18 @@ to indicate that the name reference was successfully emitted.
       }  /* if */
     }  /* if */
     if (use_name_reference) {
+      a_boolean need_closing_paren = FALSE;
       name_generated = TRUE;
       if (nrp->is_global_qualified_name) {
         /* The name starts with a leading "::". */
+        if (is_declaration) {
+          /* This name is the declarator-id in a declaration.  We need to
+             add parentheses to prevent the type specifier from being
+             interpreted as a qualifier, e.g., "T (::x)" instead of "T
+             ::x". */
+          write_tok_ch('(');
+          need_closing_paren = TRUE;
+        }  /* if */
         write_tok_str("::");
       } else if (nrp->is_super_qualified) {
         /* The name starts with "__super::". */
@@ -3936,6 +3964,9 @@ to indicate that the name reference was successfully emitted.
       } else {
         /* Not a routine name. */
         gen_unqualified_name(scp, entry_kind);
+      }  /* if */
+      if (need_closing_paren) {
+        write_tok_ch(')');
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4528,10 +4559,20 @@ declaration.
     }  /* if */
   } else {
     a_gen_name_options_set options = GN_DECLARATION | GN_FRIEND_DECL;
+    a_boolean              need_closing_paren = FALSE;
     if (omit_template_args) {
       options |= GN_NO_TEMPLATE_ARGS;
     }  /* if */
-    gen_name(scp, iek_routine, options, (a_boolean *)NULL);
+    if (!scp->is_class_member &&
+        scp_parent_namespace_or_null(scp) != innermost_enclosing_namespace()) {
+      /* The name is not a member of the innermost enclosing namespace, so
+         a qualified name is needed. */
+      options |= (GN_FORCE_QUALIFIED_NAME | GN_PARENS_IF_GLOBAL_QUALIFIER);
+    }  /* if */
+    gen_name(scp, iek_routine, options, &need_closing_paren);
+    if (need_closing_paren) {
+      write_tok_ch(')');
+    }  /* if */
   }  /* if */
 }  /* gen_friend_function_decl_name */
 
