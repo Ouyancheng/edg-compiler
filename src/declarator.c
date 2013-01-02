@@ -6071,14 +6071,12 @@ etc.).
          attribute is valid. */
       if (specifiers_type != NULL) {
         /* The first level of declarator nesting. */
-        p_predeclarator_attributes =
-                               last_attribute_link(&predeclarator_attributes);
+        p_predeclarator_attributes = &predeclarator_attributes;
       } else if (complete_type == NULL && p_predeclarator_attributes != NULL) {
         /* An more deeply nested level of declarator nesting that hasn't
            introduced pointer operators. */
         *p_predeclarator_attributes = predeclarator_attributes;
-        p_predeclarator_attributes =
-                               last_attribute_link(&predeclarator_attributes);
+        p_predeclarator_attributes = &predeclarator_attributes;
       } else {
         /* Some nested pointer operators were seen: Don't accept more
            predeclarator attributes. */
@@ -6089,6 +6087,8 @@ etc.).
         predeclarator_attributes = NULL;
         p_predeclarator_attributes = NULL;
       }  /* if */
+      p_predeclarator_attributes =
+                              last_attribute_link(p_predeclarator_attributes);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
