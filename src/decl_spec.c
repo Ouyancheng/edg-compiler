@@ -1092,13 +1092,20 @@ caution when modifying this routine.
     is_tag_definition = tag_definition_next(next_tok, tag_kind,
                                             is_ref_within_new_expr,
                                             no_definition_allowed);
-    if (gpp_mode && gnu_version < 30400 &&
+    if (gpp_mode &&
         tag_kind != (a_symbol_kind)sk_enum_tag &&
         !locator_for_curr_id.is_error &&
         locator_for_curr_id.is_qualified_name) {
       /* Early GNU C++ compilers allow elaborated class names whose identifier
-         is a qualified typedef name. */
-      allow_typedef = TRUE;
+         is a qualified typedef name.  Later versions allow this only when the
+         name was specified as dependent name.  In a real instantiation, we
+         can't tell if the qualifier was originally specified using a
+         dependent name, but if we only allow this in real instantiations,
+         an error will be issued on the dependent typedef in the prototype
+         instantiation, producing the desired result. */
+      if (gnu_version < 30400 || is_real_instantiation_context()) {
+        allow_typedef = TRUE;
+      }  /* if */
       if (!locator_for_curr_id.is_class_member) {
         /* GNU C++ compilers sometimes treat elaborated class names qualified
            with the current namespace scope as unqualified names. */

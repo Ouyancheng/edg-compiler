@@ -1,5 +1,24 @@
 Version 4.6
 
+1/2/13   [EDGcpfe/12865, EDGcpfe/13086]
+GNU C++ compatibility: dependent qualified typedefs
+
+Older versions of g++ (3.3 and earlier) allowed a typedef to refer to an
+elaborated type specifier (and we emulate this behavior).  Versions 3.4 and
+newer allow such typedefs, but only when a qualified name is used and the
+qualifier is dependent.  We now emulate this behavior in g++ mode when
+gnu_version >= 30400.
+
+  struct C {};
+  template <class T> struct A {
+    typedef T my_type;
+  };
+  template<class T> struct B {
+    friend class A<T>::my_type;
+  };
+  B<C> bc;
+
+
 1/1/13   [EDGcpfe/13478]
 C++-generating back end: qualified and parenthesized friend function names
 
