@@ -1067,6 +1067,9 @@ Display the indicated constant entry.
   if (ptr->implicit_aggr_element) {
     disp_boolean("implicit_aggr_element", TRUE);
   }  /* if */
+  if (ptr->is_compound_literal) {
+    disp_boolean("is_compound_literal", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:

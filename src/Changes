@@ -1,5 +1,6 @@
 Version 4.6
 
+<<<<<<< Updated upstream
 1/2/13   [EDGcpfe/12865, EDGcpfe/13086]
 GNU C++ compatibility: dependent qualified typedefs
 
@@ -17,6 +18,23 @@ gnu_version >= 30400.
     friend class A<T>::my_type;
   };
   B<C> bc;
+=======
+1/2/13   [EDGcpfe/13352,EDGcpfe/13542]
+Representation of compound literals
+
+Prior to version 4.5 the front end set the flag "explicit_cast_applied" for
+the aggregate constant representing a compound literal.  Version 4.5 no
+longer sets that flag in such cases (for other reasons), but that caused the
+C++-generating back end to incorrectly drop the "cast-like" part of compound
+literals.  For example, in GNU C++ mode:
+
+  int x = (struct S { int x; }){ .x = 42 }.x;
+      // In version 4.5, the C++-generating back end failed to render
+      // the "(struct S { int x; })" part of the compound literal.
+
+This is now fixed.  A new flag is_compound_literal now identifies a_constant
+entries representing compound literals.
+>>>>>>> Stashed changes
 
 
 1/1/13   [EDGcpfe/13478]

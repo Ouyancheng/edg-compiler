@@ -870,6 +870,7 @@ associated variant fields to default values.
   cp->is_named_constant_definition = FALSE;
   cp->partial_aggr_value = FALSE;
   cp->implicit_aggr_element = FALSE;
+  cp->is_compound_literal = FALSE;
 #if CENTERLINE_CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

@@ -3685,8 +3685,7 @@ typedef struct a_constant {
 			   template_param variant below) when an explicit
 			   cast was used in the source to convert the value
 			   indicated by the representation to the type
-			   indicated above.  Also TRUE for the constant in
-			   a compound literal. */
+			   indicated above. */
   a_bit_field	is_reinterpret_cast:1;
 			/* If this is TRUE, implicit_cast will also be
 			   TRUE, and the cast was a reinterpret_cast in
@@ -3782,6 +3781,9 @@ typedef struct a_constant {
 			   an aggregate initializer that does not explicitly
 			   specify values for all the elements of the
 			   destination type. */
+  a_bit_field	is_compound_literal:1;
+			/* TRUE if this is an aggregate constant resulting
+			   from a compound literal construct. */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;

@@ -3872,7 +3872,9 @@ precedence confusion.  Do the output in the way described by octl.
              !octl->debug_output &&
 #endif /* DEBUG */
              !octl->c_generating_back_end &&
-             constant->implicit_cast && !constant->explicit_cast_applied) {
+             constant->implicit_cast &&
+             !(constant->explicit_cast_applied ||
+               constant->is_compound_literal)) {
     /* The constant was cast, but only implicitly, so leave off the cast.
        Don't do this in the C-generating back end, because some casts
        added there are "implicit" and yet they have to be put out. */
@@ -4724,7 +4726,8 @@ precedence confusion.  Do the output in the way described by octl.
         /* The source form used reinterpret_cast, so a cast is needed. */
         need_cast = TRUE;
         need_reinterpret_cast = TRUE;
-      } else if (constant->explicit_cast_applied) {
+      } else if (constant->explicit_cast_applied ||
+                 constant->is_compound_literal) {
         /* The source form involved an explicit cast. */
         if (kind == (a_constant_repr_kind)ck_string) {
           /* This was a compound literal in the source, but the generated
@@ -4946,7 +4949,7 @@ precedence confusion.  Do the output in the way described by octl.
         } else
 #endif /* BACK_END_IS_C_GEN_BE */
         /* Do not insert code here.  This is the "else" of an "if". */
-        { if (constant->explicit_cast_applied &&
+        { if (constant->is_compound_literal &&
               (!octl->gen_compilable_code || !octl->c_generating_back_end)) {
             /* The string was originally a compound literal and, except in
                generated C code, should be put out that way. */
@@ -5018,7 +5021,7 @@ precedence confusion.  Do the output in the way described by octl.
             }  /* for */
             output_partial_token_str("\"", octl);
           }  /* if */
-          if (constant->explicit_cast_applied &&
+          if (constant->is_compound_literal &&
               (!octl->gen_compilable_code || !octl->c_generating_back_end)) {
             /* The string was originally a compound literal and, except in
                generated C code, should be put out that way. */
