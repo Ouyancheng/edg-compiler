@@ -1,5 +1,18 @@
 Version 4.6
 
+1/3/13   [EDGcpfe/12817]
+Use of "auto" with secondary declarators
+
+In strict C++11 mode, the front end now issues an error if an "auto" type
+specifier followed by multiple declarators is used both to announce a
+trailing return type and to deduce a type from an initializer.  For example:
+
+  auto f()->int, x = 0;  // Now an error in strict C++11 mode.
+
+In nonstrict modes, a warning is issued.  (This constraint was added to the
+language through core issue 1265.)
+
+
 1/3/13   [EDGcpfe/13543]
 Abort when lowering designated initializers in GNU compound literal
 

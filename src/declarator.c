@@ -7000,7 +7000,11 @@ static void check_type_with_auto_specifier(a_decl_parse_state  *state)
 /*
 *state describes a declaration parsing state involving a complete declarator
 that builds a type on top of an "auto" type specifier.  Check that the
-resulting type is neither an array type nor a function type.
+resulting type is neither an array type nor a function type without a trailing
+return type.  Also, if this is a secondary declarator, diagnose cases such as
+    auto f()->int, x = 0;
+where "auto" is used both to deduce a type from an initializer and to
+announce a trailing return type.
 */
 {
   a_boolean  err = FALSE;
@@ -7025,6 +7029,15 @@ resulting type is neither an array type nor a function type.
     *state->auto_type = *error_type();
     state->auto_type = NULL;
     state->auto_type_specifier_seen = FALSE;
+  } else if (state->secondary_declarator) {
+    /* Check that "auto" is not used both to announce a trailing return type
+       and as a deducible type specifier. */
+    if ((state->deduced_auto_type == NULL) !=
+                                            state->has_trailing_return_type) {
+      pos_diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
+                                      : es_warning,
+                     ec_auto_used_two_ways, &state->auto_pos);
+    }  /* if */
   }  /* if */
 }  /* check_type_with_auto_specifier */
 
