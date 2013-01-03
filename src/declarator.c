@@ -2562,13 +2562,14 @@ an error if a default argument expression is encountered.
             abandon_potential_pack_expansion_context(pesep);
             break;
           } else if (is_void_type(param_state.type) &&
-                     !is_qualified_type(param_state.type) &&
+                     (c99_mode || cpp11_mode ||
+                      !is_qualified_type(param_state.type)) &&
                      param_storage_class == (a_storage_class)sc_unspecified) {
             /* A type name is bound to void type -- this construct is treated
                as a (possibly nonstandard) way of signifying an empty param
-               list.  In C99 mode, this is a standard form and no diagnostic
-               is needed.  Otherwise, issue an error (in strict mode) or a
-               warning. */
+               list.  In C99 and C++11 modes, this is a standard form and no
+               diagnostic is needed.  Otherwise, issue an error (in strict
+               mode) or a warning. */
             if ((is_template_dependent_context() ||
                  is_nonspecialized_instantiation_context()) &&
                 !microsoft_mode) {
@@ -2585,17 +2586,23 @@ an error if a default argument expression is encountered.
               pos_error(ec_void_param_not_allowed, &param_type_pos);
               invalidate_type(&param_state);
             } else {
+              a_boolean  qualified_void = is_qualified_type(param_state.type);
               if (param_state.decl_specifiers_error) {
                 /* An error already occurred during the call to
                    decl_specifiers.  Don't issue another one. */
                 check_assertion(total_errors != 0);
-              } else if (!c99_mode) {
+              } else if (!c99_mode && !cpp11_mode) {
                 an_error_severity  sev = es_warning;
-                if (strict_ansi_mode) {
+                if (qualified_void) {
+                  sev = es_error;
+                } if (strict_ansi_mode) {
                   sev = strict_ansi_discretionary_severity;
                 }  /* if */
                 pos_diagnostic(sev, ec_nonstd_void_param_list,
                                &param_type_pos);
+              } else if (qualified_void) {
+                pos_error(ec_nonstd_qualified_void_param_list,
+                          &param_type_pos);
               }  /* if */
               remove_stop_token(tok_comma);
               abandon_potential_pack_expansion_context(pesep);
