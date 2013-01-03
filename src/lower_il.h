@@ -1016,8 +1016,9 @@ extern void add_to_reusable_temporaries_list(a_variable_ptr temp_var);
 extern a_variable_ptr make_local_temporary(a_type_ptr temp_type);
 
 extern a_variable_ptr make_temporary_for_dynamic_init(
-                                               a_type_ptr         temp_type,
-                                               a_dynamic_init_ptr dip);
+                                         a_type_ptr         temp_type,
+                                         a_dynamic_init_ptr dip,
+                                         a_boolean          *is_reusable_temp);
 
 extern a_type_ptr make_lowered_class_type(a_type_kind  kind);
 

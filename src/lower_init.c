@@ -95,8 +95,6 @@ static a_boolean call_to_ctor_or_dtor_has_no_effect(
                                          an_expr_node_ptr args,
                                          a_boolean        call_can_be_virtual);
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
-static void add_stmk_init_for_temp_init(a_variable_ptr      var,
-                                        a_dynamic_init_ptr  dip);
 static void set_up_freeing_of_storage_on_exception(
                                  a_new_delete_supplement_ptr ndsp,
                                  an_init_pos_descr_ptr       ipdp,
@@ -7986,7 +7984,9 @@ keep_dynamic_init == NULL, no value is returned; the value determined
 in this routine must be FALSE in that case.  *keep_dynamic_init will always
 be set to TRUE if the dynamic init is for an element of a vector type;
 these are kept in the aggregate because vector elements are not individually
-addressable.
+addressable.  The caller should only provide a non-NULL keep_dynamic_init
+value if it's okay to have an initial value for the variable (i.e., not
+in the case of a temporary variable that may be reused).
 
 On return, *constant_to_keep is set to point to a constant part of the
 initialization that should be kept.  If this feature is not needed,
@@ -10551,8 +10551,9 @@ Do IL lowering of an enk_temp_init expression node.
   an_init_pos_descr  ipd;
   a_boolean          result_is_lvalue = expr->is_lvalue;
   an_insert_location insert_location;
-  a_boolean          is_constructor_init;
+  a_boolean          is_constructor_init, is_reusable_temp;
   a_variable_ptr     temp_var;
+  a_boolean          keep_dynamic_init = FALSE, *eff_keep_dynamic_init = NULL;
 
   dip = expr->variant.init.dynamic_init;
   if (dip->kind == (a_dynamic_init_kind)dik_expression &&
@@ -10599,7 +10600,9 @@ Do IL lowering of an enk_temp_init expression node.
     } else {
       /* Create a suitable temporary variable for the dynamic
          initialization. */
-      temp_var = make_temporary_for_dynamic_init(temp_type, dip);
+      temp_var = make_temporary_for_dynamic_init(temp_type, dip,
+                                                 &is_reusable_temp);
+      if (!is_reusable_temp) eff_keep_dynamic_init = &keep_dynamic_init;
     }  /* if */
     if (temp_var == NULL) {
       /* Initializing something more complex than a variable. */
@@ -10640,7 +10643,7 @@ Do IL lowering of an enk_temp_init expression node.
                        LDIO_NONE,
                        /*others_follow_in_aggr=*/FALSE,
                        &insert_location,
-                       (a_boolean *)NULL,
+                       eff_keep_dynamic_init,
                        (a_constant **)NULL);
     if (temp_var != NULL) {
 #if LOWER_VARIABLE_LENGTH_ARRAYS
@@ -10657,6 +10660,11 @@ Do IL lowering of an enk_temp_init expression node.
         add_to_end_of_pending_stmk_init_statements_list(stmk_vla_decl_stmt);
       }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+      if (keep_dynamic_init) {
+        /* If the initializer for the dynamic init is to be kept, allocate
+           an stmk_init for it. */
+        add_stmk_init_for_temp_init(dip->variable, dip);
+      }  /* if */
       if (temp_var->init_kind == (an_init_kind)initk_zero) {
         if (!has_static_storage_duration(temp_var->storage_class)) {
           /* If an automatic temporary ends up with initk_zero initialization,
@@ -11119,8 +11127,8 @@ Also resets the insert location mark.
 }  /* insert_pending_stmk_init_statements_at_mark */
 
 
-static void add_stmk_init_for_temp_init(a_variable_ptr      var,
-                                        a_dynamic_init_ptr  dip)
+void add_stmk_init_for_temp_init(a_variable_ptr      var,
+                                 a_dynamic_init_ptr  dip)
 /*
 var represents a temporary variable created to hold the value of a compound
 literal or array, while dip describes the required dynamic initialization.

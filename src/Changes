@@ -1,5 +1,23 @@
 Version 4.6
 
+1/3/13   [EDGcpfe/13541]
+GNU: Lowering of compound literals had generated out-of-order initialization
+
+As a result of the changes for C++11 initializer lists (see the Changes entry
+for EDGcpfe/9170), the lowering of certain compound literals had resulted
+in a temporary whose initial value referred to a static variable that followed
+the temporary (resulting in generated C code that would not compile in
+C-generating back end configurations).  Now fixed.  For example (with --g++):
+
+  struct S {
+    int *p;
+  };
+  void f() {
+    static int list[1];
+    (struct S){ list };
+  }
+
+
 1/3/13   [EDGcpfe/12815]
 C++11: void parameter lists
 

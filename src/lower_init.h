@@ -256,6 +256,9 @@ extern void insert_pending_stmk_init_statements(a_statement_ptr  statement);
 extern void add_to_end_of_pending_stmk_init_statements_list(
                                                         a_statement_ptr  stmt);
 
+extern void add_stmk_init_for_temp_init(a_variable_ptr      var,
+                                        a_dynamic_init_ptr  dip);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
 extern void lower_microsoft_C_mode_nonconstant_aggregate_init(

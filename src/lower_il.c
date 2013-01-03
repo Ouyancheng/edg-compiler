@@ -1808,13 +1808,17 @@ full expression, and can be reused after that.
 }  /* make_local_temporary */
 
 
-a_variable_ptr make_temporary_for_dynamic_init(a_type_ptr         temp_type,
-                                               a_dynamic_init_ptr dip)
+a_variable_ptr make_temporary_for_dynamic_init(
+                                          a_type_ptr         temp_type,
+                                          a_dynamic_init_ptr dip,
+                                          a_boolean          *is_reusable_temp)
 /*
 Create a temporary variable of type temp_type that will be initialized by
 the dynamic initialization in dip.  If possible a reusable temporary will
 be allocated, but in cases where the initialization may result in a
-constant portion, a non-reusable temporary will be returned.
+constant portion, a non-reusable temporary will be returned.  *is_reusable_temp
+is set to TRUE if a temporary that is (or can be) reused is allocated
+(FALSE otherwise).
 */
 {
   a_variable_ptr  temp_var;
@@ -1831,11 +1835,13 @@ constant portion, a non-reusable temporary will be returned.
        expression will do.  Can't use a reusable temporary if
        the temporary may end up with an initializer. */
     temp_var = make_local_temporary(temp_type);
+    *is_reusable_temp = TRUE;
   } else {
     temp_var = make_temporary_in_scope(temp_type,
                                        (a_scope_ptr)NULL,
                                        (a_boolean)dip->static_temp,
                                        /*promote_if_necessary=*/TRUE);
+    *is_reusable_temp = FALSE;
   }  /* if */
   return temp_var;
 }  /* make_temporary_for_dynamic_init */
@@ -16562,7 +16568,8 @@ Lower an stmk_return statement.
   a_statement_ptr    return_statement, assign_statement;
   a_routine_ptr      routine = innermost_function_scope->variant.routine.ptr;
   a_type_ptr         routine_type = skip_typerefs(routine->type);
-  a_boolean          make_block, any_cleanup_on_return;
+  a_boolean          make_block, any_cleanup_on_return, is_reusable_temp;
+  a_boolean          keep_dynamic_init = FALSE, *eff_keep_dynamic_init = NULL;
   a_dynamic_init_ptr dip;
   a_variable_ptr     temp_var;
   an_insert_location insert_location;
@@ -16627,7 +16634,8 @@ Lower an stmk_return statement.
            Initialize a temporary using the dynamic init entry, and return
            the value of the temporary. */
         temp_var = make_temporary_for_dynamic_init(skip_typerefs(return_type),
-                                                   dip);
+                                                   dip, &is_reusable_temp);
+        if (!is_reusable_temp) eff_keep_dynamic_init = &keep_dynamic_init;
         set_var_init_pos_descr(temp_var, &ipd);
         check_assertion(dip->variable == NULL);
         dip->variable = temp_var;
@@ -16641,10 +16649,16 @@ Lower an stmk_return statement.
                          (a_variable_ptr)NULL,
                          LDIO_FULL_EXPR,
                          /*others_follow_in_aggr=*/FALSE,
-                         &insert_location, (a_boolean *)NULL,
+                         &insert_location,
+                         eff_keep_dynamic_init,
                          (a_constant **)NULL);
       if (temp_var != NULL) {
         return_statement->expr = return_expr = var_rvalue_expr(temp_var);
+        if (keep_dynamic_init) {
+          /* If the initializer for the dynamic init is to be kept, allocate
+             an stmk_init for it. */
+          add_stmk_init_for_temp_init(temp_var, dip);
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (!rtsp->value_returned_by_cctor &&
