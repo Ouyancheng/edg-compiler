@@ -4347,7 +4347,7 @@ type, which is represented in the IL and the generated output as a
 compound literal.
 */
 {
-  a_boolean is_aggregate;
+  a_boolean is_aggregate = FALSE, is_compound_literal_string = FALSE;
 
 #if GNU_EXTENSIONS_ALLOWED
   check_assertion(dip == NULL || dip->is_compound_literal ||
@@ -4362,15 +4362,24 @@ compound literal.
     /* Constant dynamic initializations are handled as constants. */
     literal_con = dip->variant.constant;
   }  /* if */
-  /* In the transparent union case, omit the cast-like prefix and the
-     surrounding parentheses. */
-  if (!transparent_case) {
+  if (literal_con != NULL) {
+    if (literal_con->kind == (a_constant_repr_kind)ck_aggregate) {
+      is_aggregate = TRUE;
+    } else if (literal_con->kind == (a_constant_repr_kind)ck_string &&
+               literal_con->is_compound_literal) {
+      /* Something like "(char[]){ "Text" }", which form_constant will
+         eventually render as a compound literal, and therefore should not
+         have braces or a cast-like prefix added. */
+      is_compound_literal_string = TRUE;
+    }  /* if */
+  }  /* if */
+  /* In the transparent union and compound-literal string cases, omit the
+     cast-like prefix and the surrounding parentheses. */
+  if (!transparent_case && !is_compound_literal_string) {
     write_tok_ch('(');
     gen_cast(literal_type);
   }  /* if */
-  is_aggregate = (literal_con != NULL &&
-                  literal_con->kind == (a_constant_repr_kind)ck_aggregate);
-  if (!is_aggregate) {
+  if (!is_aggregate && !is_compound_literal_string) {
     /* Scalar initialization.  Put an extra set of braces around the
        initializer. */
     write_tok_ch('{');
@@ -4385,10 +4394,8 @@ compound literal.
     gen_expr(dip->variant.expression, parens_needed,
              /*obj_expr_of_mfunc_operator=*/FALSE);
   }  /* if */
-  if (!is_aggregate) write_tok_ch('}');
-  if (!transparent_case) {
-    write_tok_ch(')');
-  }  /* if */
+  if (!is_aggregate && !is_compound_literal_string) write_tok_ch('}');
+  if (!transparent_case && !is_compound_literal_string) write_tok_ch(')');
 }  /* gen_compound_literal */
 
 
