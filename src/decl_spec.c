@@ -1106,7 +1106,7 @@ caution when modifying this routine.
       if (gnu_version < 30400 || is_real_instantiation_context()) {
         allow_typedef = TRUE;
       }  /* if */
-      if (!locator_for_curr_id.is_class_member) {
+      if (!locator_for_curr_id.is_class_member && gnu_version < 30400) {
         /* GNU C++ compilers sometimes treat elaborated class names qualified
            with the current namespace scope as unqualified names. */
         a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
