@@ -4365,6 +4365,7 @@ pointers to data members are properly initialized to -1 for NULL.
     for (cp = constant->variant.aggregate.first_constant;
          cp != NULL;
          cp = cp->next) {
+      check_assertion(f != NULL);
       f = next_initializable_field(f->next);
     }  /* for */
     /* At this point f points to the first field that is uninitialized. */
@@ -4720,6 +4721,12 @@ Do IL lowering of the indicated constant and everything under it.
         lower_ptr_to_member_constant(constant);
         break;
       case ck_aggregate:
+#if LOWER_DESIGNATED_INITIALIZERS
+        /* Re-write any designated initializers in the aggregate constant. */
+        lower_designated_initializers(constant,
+                                      (a_dynamic_init *)NULL,
+                                      (a_type_ptr)NULL);
+#endif /* LOWER_DESIGNATED_INITIALIZERS */
 #if LOWER_COMPLEX
         if (is_complex_type(constant->type)) {
           /* GNU allows the use of aggregate syntax to initialize the real
@@ -9046,11 +9053,6 @@ local-variable-static-init entry.
     case initk_none:
       break;
     case initk_static:
-#if LOWER_DESIGNATED_INITIALIZERS
-      lower_designated_initializers(initializer->constant,
-                                    (a_dynamic_init *)NULL,
-                                    (a_type_ptr)NULL);
-#endif /* LOWER_DESIGNATED_INITIALIZERS */
       lower_constant(initializer->constant);
       break;
     case initk_dynamic:

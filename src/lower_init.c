@@ -12329,6 +12329,7 @@ as C++ mode.
                      recompute_partially_initialized_flag(init_con, aggr_type);
     }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
+    init_con->uses_designated_initializers = FALSE;
   }  /* if */
 }  /* lower_designated_initializers */
 
