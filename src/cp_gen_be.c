@@ -4362,39 +4362,32 @@ compound literal.
     /* Constant dynamic initializations are handled as constants. */
     literal_con = dip->variant.constant;
   }  /* if */
-  if (literal_con != NULL && literal_con->is_compound_literal) {
-    /* A constant entry that resulted from compound-literal syntax in the
-       source.  Rendering the constant the usual way will produce the
-       compound-literal form. */
-    gen_constant(literal_con, /*need_parens=*/FALSE);
+  /* In the transparent union case, omit the cast-like prefix and the
+     surrounding parentheses. */
+  if (!transparent_case) {
+    write_tok_ch('(');
+    gen_cast(literal_type);
+  }  /* if */
+  is_aggregate = (literal_con != NULL &&
+                  literal_con->kind == (a_constant_repr_kind)ck_aggregate);
+  if (!is_aggregate) {
+    /* Scalar initialization.  Put an extra set of braces around the
+       initializer. */
+    write_tok_ch('{');
+  }  /* if */
+  if (literal_con != NULL) {
+    gen_initializer_constant(literal_con, literal_type, transparent_case,
+                             /*suppress_braces=*/FALSE);
   } else {
-    /* In the transparent union case, omit the cast-like prefix and the
-       surrounding parentheses. */
-    if (!transparent_case) {
-      write_tok_ch('(');
-      gen_cast(literal_type);
-    }  /* if */
-    is_aggregate = (literal_con != NULL &&
-                    literal_con->kind == (a_constant_repr_kind)ck_aggregate);
-    if (!is_aggregate) {
-      /* Scalar initialization.  Put an extra set of braces around the
-         initializer. */
-      write_tok_ch('{');
-    }  /* if */
-    if (literal_con != NULL) {
-      gen_initializer_constant(literal_con, literal_type, transparent_case,
-                               /*suppress_braces=*/FALSE);
-    } else {
-      a_boolean parens_needed;
-      check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
-      parens_needed = expr_has_comma_operation(dip->variant.expression);
-      gen_expr(dip->variant.expression, parens_needed,
-               /*obj_expr_of_mfunc_operator=*/FALSE);
-    }  /* if */
-    if (!is_aggregate) write_tok_ch('}');
-    if (!transparent_case) {
-      write_tok_ch(')');
-    }  /* if */
+    a_boolean parens_needed;
+    check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
+    parens_needed = expr_has_comma_operation(dip->variant.expression);
+    gen_expr(dip->variant.expression, parens_needed,
+             /*obj_expr_of_mfunc_operator=*/FALSE);
+  }  /* if */
+  if (!is_aggregate) write_tok_ch('}');
+  if (!transparent_case) {
+    write_tok_ch(')');
   }  /* if */
 }  /* gen_compound_literal */
 
