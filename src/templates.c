@@ -7055,8 +7055,6 @@ is the template of which sym is an instance.
   if (can_be_ms_instantiated_nonreal_class(primary_tssp)) {
     a_template_symbol_supplement_ptr	tssp;
     a_type_ptr				class_type;
-    a_class_symbol_supplement_ptr	cssp;
-    cssp = sym->variant.class_struct_union.extra_info;
     tssp = template_sym->variant.template_info;
     class_type = type_symbol_type(sym);
     tssp->variant.class_template.any_ms_instantiated_nonreal_classes = TRUE;
