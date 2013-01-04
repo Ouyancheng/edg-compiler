@@ -6465,6 +6465,7 @@ such classes.
   if (!open_constructed_arg_list &&
       template_arg_list_is_dependent(template_arg_list)) {
     class_type->variant.class_struct_union.is_nonreal_class = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode && instantiate_nonreal &&
         can_be_ms_instantiated_nonreal_class(primary_tssp)) {
       /* In Microsoft mode, certain nonreal classes are instantiated
@@ -6473,6 +6474,7 @@ such classes.
       class_type->variant.class_struct_union.
                                        is_ms_instantiated_nonreal_class = TRUE;
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_template_dependent_context() &&
              template_arg_list_involves_error_entity(template_arg_list)) {
     /* If the template argument list contains error entities and we are in
