@@ -6360,6 +6360,9 @@ can have a Microsoft mode nonreal instantiation.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* instantiate_nonreal is not used in this case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr create_partial_instantiation_of_class(
 				a_symbol_ptr		class_template_sym,
 				a_template_arg_ptr	template_arg_list,
