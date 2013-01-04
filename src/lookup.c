@@ -1104,6 +1104,25 @@ This routine is given the original symbol and creates the nonreal version.
 }  /* create_nonreal_version_of_nested_type */
 
 
+a_type_ptr f_orig_nested_type_if_nonreal_nested_type(a_type_ptr	tp)
+/*
+If tp is a template parameter type that is the nonreal type for a nested
+type of a class template return the original nested type, otherwise return
+tp.
+*/
+{
+  check_assertion(tp->kind == (a_type_kind)tk_template_param);
+  /* If this is a template parameter that represents a nested class of
+     a class template, use the original nested type in its place. */
+  a_template_param_type_supplement_ptr	tptsp;
+  tptsp = tp->variant.template_param.extra_info;
+  if (tptsp->orig_nested_type != NULL) {
+    tp = tptsp->orig_nested_type;
+  }  /* if */
+  return tp;
+}  /* f_orig_nested_type_if_nonreal_nested_type */
+
+
 static
 a_symbol_ptr enter_sym_for_out_of_scope_routine(a_symbol_ptr     extern_sym,
 						a_symbol_locator *locator)
@@ -4196,6 +4215,11 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Remove any typedef on the class type. */
   class_type = skip_typerefs_not_dependent_decltypes(class_type);
+  if ((options & IDL_IS_DECLARATOR) != 0) {
+    /* If this is a template parameter that represents a nested class of
+       a class template, use the original nested type in its place. */
+    class_type = orig_nested_type_if_nonreal_nested_type(class_type);
+  }  /* if */
   if (class_type->kind == (a_type_kind)tk_template_param ||
       class_type->kind == (a_type_kind)tk_typeref) {
     /* We are looking up a name in a template parameter that is being used

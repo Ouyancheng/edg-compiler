@@ -5412,7 +5412,15 @@ declared entity is known to not be a function.
         /* The locator will be set to an error locator below. */
         check_assertion(total_errors != 0);
       } else if (locator_for_curr_id.is_qualified_name) {
-        *p_member_parent_type = qualifier_class_type(locator_for_curr_id);
+        a_type_ptr	tp;
+        tp = qualifier_class_type(locator_for_curr_id);
+        if (tp != NULL) {
+          tp = skip_typerefs(tp);
+          /* If this is a template parameter that represents a nested class of
+             a class template, use the original nested type in its place. */
+          tp = orig_nested_type_if_nonreal_nested_type(tp);
+        }  /* if */
+        *p_member_parent_type = tp;
         if (*p_member_parent_type != NULL) {
           a_boolean  reactivate_scope = FALSE;
           sym = locator_for_curr_id.specific_symbol;

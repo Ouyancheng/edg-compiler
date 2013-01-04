@@ -1,5 +1,21 @@
 Version 4.6
 
+1/4/13   [EDGcpfe/13515]
+Spurious error on definition of member of nested class of class template via
+typedef
+
+A spurious error was issued if a member of a nested class of a class template
+was defined outside of the class using a typedef to the nested class.  Now
+fixed.
+
+  template <class T> struct A {
+    typedef struct B {
+      void f(T param1);
+    } C;
+  };
+  template<class T> void A<T>::C::f(T) { }
+
+
 1/4/13   [EDGcpfe/13506]
 GNU C++ compatibility: Qualified local declarations
 

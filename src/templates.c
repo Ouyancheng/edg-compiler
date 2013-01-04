@@ -20539,7 +20539,10 @@ instantiation, then you don't know what X is.
   if (tp != NULL) tp = skip_typerefs(tp);
   /* The following is_class_struct_union_type test is needed because in
      certain error cases the type may not be a class type. */
-  if (tp != NULL && is_class_struct_union_type(tp)) {
+  if (tp != NULL) {
+    /* If this is a template parameter that represents a nested class of
+       a class template, use the original nested type in its place. */
+    tp = orig_nested_type_if_nonreal_nested_type(tp);
     /* Make sure that this is a class type.  If it is not, ignore the
        type.  It must be an error and will be diagnosed during the real
        scanning of the template. */

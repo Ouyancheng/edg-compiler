@@ -331,6 +331,17 @@ extern a_symbol_ptr find_unknown_function_symbol(
 
 extern void create_nonreal_version_of_nested_type(a_symbol_ptr	orig_sym);
 
+extern a_type_ptr f_orig_nested_type_if_nonreal_nested_type(a_type_ptr	tp);
+
+/*
+Macro that calls f_orig_nested_type_if_nonreal_nested_type only if tp
+is a template parameter type.
+*/
+#define orig_nested_type_if_nonreal_nested_type(tp)			\
+  ((tp)->kind == (a_type_kind)tk_template_param			\
+    ? f_orig_nested_type_if_nonreal_nested_type(tp)			\
+    : (tp))
+
 extern
 a_symbol_ptr find_conversion_template_instance(
 			a_symbol_locator		*locator,
