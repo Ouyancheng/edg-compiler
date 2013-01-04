@@ -1,5 +1,29 @@
 Version 4.6
 
+1/4/13   [EDGcpfe/13336]
+Spurious warnings and/or internal errors on Microsoft-mode enum definitions
+
+The changes for EDGcpfe/12762 (see entry of 3/19/12) caused a regression in
+Microsoft C++ mode when declaring an enumeration type in class definition
+scope and later defining that type with an explicit underlying type outside
+the class.  Uses of the enumeration type potentially resulted in an internal
+error (in class_qualified_id_lookup, lookup.c).  Also, if the original enum
+declaration was scoped or opaque, a spurious warning about an incompatible
+underlying type was sometimes emitted.
+For example, with microsoft_version == 1700:
+
+  struct S {
+    enum struct E: short;
+  };
+  enum struct S::E: short { e, f };  // Previously triggered a spurious
+                                     // warning in Microsoft C++ mode.
+  int main() {
+    S::E::f;  // Previously triggered an internal error.
+  }
+
+This is now fixed.
+
+
 1/4/13   [EDGcpfe/13515]
 Spurious error on definition of member of nested class of class template via
 typedef

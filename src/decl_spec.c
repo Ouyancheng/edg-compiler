@@ -5083,9 +5083,12 @@ dsi_flags is the set of input flags passed to decl_specifiers.
             enum E: char { e };  // New type E (incompatible with previous E).
          Ignore the previous declaration of E if necessary. */
       a_type_ptr  prev_type = type_symbol_type(tag_sym);
-      if (is_immediate_enum_type(prev_type)) {
+      if (is_immediate_enum_type(prev_type) &&
+          !prev_type->variant.integer.has_explicit_enum_base &&
+          !prev_type->variant.integer.is_scoped_enum) {
         pos_sy_warning(ec_enum_type_replacement, &tag_position, tag_sym);
         tag_sym->variant.enumeration.extra_info->replaced_enum_symbol = TRUE;
+        tag_sym->is_invisible = TRUE;
         tag_sym = NULL;
       }  /* if */
     }  /* if */
