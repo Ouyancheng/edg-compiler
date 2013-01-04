@@ -1,5 +1,20 @@
 Version 4.6
 
+1/4/13   [EDGcpfe/13506]
+GNU C++ compatibility: Qualified local declarations
+
+In GNU C++ mode with gnu_version < 40101 the front end now ignores a
+namespace qualifier on a local declaration (with a warning) if the qualifier
+denotes the innermost namespace.  For example:
+
+  namespace N {
+    void g() {
+      int N::x;    // Treated like "int x;" after a warning is issued.
+      int N::f();  // Treated like "int f();" after a warning is issued.
+    }
+  }
+
+
 1/3/13   [EDGcpfe/13541]
 GNU: Lowering of compound literals had generated out-of-order initialization
 

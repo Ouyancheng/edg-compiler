@@ -16114,8 +16114,10 @@ after the call.
       di_flags |= DI_OPERATOR_NAME_ALLOWED;
       if (state->declared_storage_class != (a_storage_class)sc_typedef) {
         di_flags |= DI_PARENTHESIZED_INITIALIZER_ALLOWED;
+        /* A qualified-id is only allowed for namespace-scope declarations,
+           but some Microsoft and GNU compilers also them in local scopes. */
         if (decl_scope_level == depth_innermost_namespace_scope ||
-            (microsoft_mode &&
+            ((microsoft_mode || (gpp_mode && gnu_version < 40101)) &&
              depth_innermost_namespace_scope != NO_SCOPE_DEPTH)) {
           di_flags |= DI_QUALIFIED_NAME_ALLOWED;
         }  /* if */

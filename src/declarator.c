@@ -5299,14 +5299,24 @@ declared entity is known to not be a function.
           /* This is a template declaration. */
           is_template_decl = TRUE;
           ssep--;
-        } else if (gpp_mode && (input_flags & DI_IS_FRIEND_DECL) &&
+        } else if (gpp_mode &&
+                   ((input_flags & DI_IS_FRIEND_DECL) ||
+                    (gnu_version < 40101 &&
+                     depth_innermost_function_scope != NO_SCOPE_DEPTH)) &&
                    !locator_for_curr_id.is_template_id) {
           /* An unqualified friend declarator would declare a member of the
              nearest enclosing namespace scope.  GNU C++ compilers therefore
              ignore qualifiers that refer to that scope.  If a friend
              declaration is a qualified template-id, however, the template
              must already have been declared in that namespace, so this
-             processing is not needed. */
+             processing is not needed.  GCC up to version 4.1.0 also ignores
+             such qualifiers on local declarations.  For example:
+                 namespace N {
+                   void g() {
+                     double N::x;  // GCC treats this as "double x;".
+                   }
+                 }
+          */
           ssep = &scope_stack[depth_innermost_namespace_scope];
         }  /* if */
         if (locator_for_curr_id.is_error) {
@@ -5373,7 +5383,11 @@ declared entity is known to not be a function.
             */
             set_to_named_error_locator(locator_for_curr_id);
           }  /* if */
-          if (gpp_mode && (input_flags & DI_IS_FRIEND_DECL) &&
+          if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+              (int)severity <= (int)es_warning) {
+            check_assertion(gpp_mode);
+            err_code = ec_qualifier_ignored_on_local_declaration;
+          } else if (gpp_mode && (input_flags & DI_IS_FRIEND_DECL) &&
               (int)severity <= (int)es_warning) {
             err_code = ec_friend_qualification_ignored;
           } else if (ssep->kind == (a_scope_kind)sck_file) {
