@@ -6338,6 +6338,28 @@ hashes template argument lists works properly.
 
 #endif /* EXPENSIVE_CHECKING */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean can_be_ms_instantiated_nonreal_class(
+			a_template_symbol_supplement_ptr	primary_tssp)
+/*
+Return TRUE if the current context and the template specified by primary_tssp
+can have a Microsoft mode nonreal instantiation.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (!is_variadic_template_context() &&
+      !primary_tssp->is_variadic &&
+      primary_tssp->variant.class_template.partial_specializations == NULL &&
+      primary_tssp->variant.class_template.prototype_instantiation_complete) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* can_be_ms_instantiated_nonreal_class */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 static a_symbol_ptr create_partial_instantiation_of_class(
 				a_symbol_ptr		class_template_sym,
 				a_template_arg_ptr	template_arg_list,
@@ -6444,11 +6466,7 @@ such classes.
       template_arg_list_is_dependent(template_arg_list)) {
     class_type->variant.class_struct_union.is_nonreal_class = TRUE;
     if (microsoft_mode && instantiate_nonreal &&
-        !is_variadic_template_context() &&
-        !primary_tssp->is_variadic &&
-        primary_tssp->variant.class_template.partial_specializations == NULL &&
-        primary_tssp->
-                     variant.class_template.prototype_instantiation_complete) {
+        can_be_ms_instantiated_nonreal_class(primary_tssp)) {
       /* In Microsoft mode, certain nonreal classes are instantiated
          like normal classes. */
       instantiate_nonreal_class = TRUE;
@@ -6919,42 +6937,133 @@ error type is used.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean has_ms_instantiated_nonreal_class(
-		a_template_symbol_supplement_ptr	tssp,
+		a_type_ptr				class_type,
+		a_symbol_ptr				template_sym,
 		a_template_arg_ptr			template_arg_list,
 		an_equiv_templ_arg_options_set		eta_options)
 /*
-Return TRUE if the template specified by tssp has a Microsoft mode
-instantiated nonreal class that matches template_arg_list.  eta_options is
-the options set to be passed to equiv_template_arg_lists.  This check does
-not require an exact match on nonreal template arguments, so the search
-must be done using the complete list of types, not the usual hash table
-mechanism (and this routine is only called after the hash lookup has failed).
-Return TRUE if a matching instantiated nonreal class is found, FALSE otherwise.
+Return TRUE if class_type has a base class that is a Microsoft mode
+instantiated nonreal class that is an instance of template_sym and has an
+argument list that matches template_arg_list.  eta_options is the options
+set to be passed to equiv_template_arg_lists.  Return TRUE if a matching
+instantiated nonreal class is found, FALSE otherwise.
+*/
+{
+  a_base_class_ptr	bcp;
+  a_boolean		result = FALSE;
+
+  bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+  for (; bcp != NULL; bcp = bcp->next) {
+    a_type_ptr			base_type = bcp->type;
+    a_class_symbol_supplement_ptr	cssp;
+    if (base_type->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class) {
+      cssp = symbol_supplement_for_class(base_type);
+      if (cssp->class_template == template_sym) {
+        a_template_arg_ptr	old_list;
+        old_list = base_type->
+                      variant.class_struct_union.extra_info->template_arg_list;
+        if (equiv_template_arg_lists(old_list, template_arg_list,
+                                     eta_options)) {
+          /* We've found a match. */
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* has_ms_instantiated_nonreal_class */
+
+
+static a_boolean scope_stack_has_ms_instantiated_nonreal_class(
+		a_symbol_ptr				template_sym,
+		a_template_arg_ptr			template_arg_list,
+		an_equiv_templ_arg_options_set		eta_options)
+/*
+Go through the scope stack and see if any of the class or class reactivation
+scopes are for a class type that has a base class that is a Microsoft mode
+instantiated nonreal class that is an instance if template_sym and has an
+argument list that matches template_arg_list.  eta_options is the options
+set to be passed to equiv_template_arg_lists.  Return TRUE if a matching
+instantiated nonreal class is found, FALSE otherwise.
 */
 {
   a_boolean			result = FALSE;
-  a_symbol_list_entry_ptr	slep;
+  a_scope_stack_entry_ptr	ssep;
 
-  for (slep = tssp->variant.class_template.instantiations;
-       slep != NULL; slep = slep->next) {
-    a_template_arg_ptr	old_list;
-    a_symbol_ptr	sym;
-    a_type_ptr		class_type;
-    sym = slep->symbol;
-    class_type = sym->variant.class_struct_union.type;
-    /* Only consider existing Microsoft instantiated nonreal classes. */
-    if (class_type->
-                 variant.class_struct_union.is_ms_instantiated_nonreal_class) {
-      old_list = template_arg_list_for_symbol(sym);
-      if (equiv_template_arg_lists(old_list, template_arg_list, eta_options)) {
-        /* We've found a match. */
-        result = TRUE;
-        break;
+  for (ssep = &scope_stack_top(); ssep != NULL;
+       ssep = previous_scope_of(ssep)) {
+    if (scope_is(ssep, sck_class_struct_union) ||
+        scope_is(ssep, sck_class_reactivation)) {
+      a_type_ptr	class_type = ssep->assoc_type;
+      if (class_type->variant.class_struct_union.is_prototype_instantiation) {
+        if (has_ms_instantiated_nonreal_class(class_type, template_sym,
+                                              template_arg_list,
+                                              eta_options)) {
+          result = TRUE;
+          break;
+        }  /* if */
       }  /* if */
-    }  /* for */
+    }  /* if */
+  }  /* for */
+  if (!result) {
+    /* If the test above did not find a class or class reactivation scope
+       that had a Microsoft instantiated nonreal class as a base class,
+       check to see if the class associated with the declarator of a
+       current template declaration (if any) has such a base class.  In a
+       declaration such as:
+         template <class T> Base<T> Derived<T>::f(T){}
+       the templ_member_class_sym of the template declaration scope on the
+       top of the scope stack will point to Derived<T>.  Check whether
+       that class has a base class based on template_sym.  This is needed
+       so that the Base<T> will be treated as an instantiated nonreal class
+       instead of a normal nonreal class. */
+    a_symbol_ptr	tmc_sym;
+    tmc_sym = scope_stack_top().templ_member_class_sym;
+    if (tmc_sym != NULL) {
+      a_type_ptr	class_type;
+      class_type = type_symbol_type(tmc_sym);
+      check_assertion(is_immediate_class_type(class_type));
+      result = has_ms_instantiated_nonreal_class(class_type, template_sym,
+                                                 template_arg_list,
+                                                 eta_options);
+    }  /* if */
   }  /* if */
   return result;
-}  /* has_ms_instantiated_nonreal_class */
+}  /* scope_stack_has_ms_instantiated_nonreal_class */
+
+
+static void make_into_ms_instantiated_nonreal_class(
+						a_symbol_ptr	template_sym,
+						a_symbol_ptr	sym)
+/*
+The class specified by sym was previously created as a normal nonreal
+class.  Convert it to a Microsoft instantiated nonreal class.  template_sym
+is the template of which sym is an instance.
+*/
+{
+  a_symbol_ptr				primary_template_sym;
+  a_template_symbol_supplement_ptr	primary_tssp;
+
+  primary_template_sym = primary_template_of(template_sym);
+  primary_tssp = primary_template_sym->variant.template_info;
+  /* Instantiated nonreal classes can only be created for certain types and
+     in certain contexts. */
+  if (can_be_ms_instantiated_nonreal_class(primary_tssp)) {
+    a_template_symbol_supplement_ptr	tssp;
+    a_type_ptr				class_type;
+    a_class_symbol_supplement_ptr	cssp;
+    cssp = sym->variant.class_struct_union.extra_info;
+    tssp = template_sym->variant.template_info;
+    class_type = type_symbol_type(sym);
+    tssp->variant.class_template.any_ms_instantiated_nonreal_classes = TRUE;
+    class_type->variant.class_struct_union.
+                                       is_ms_instantiated_nonreal_class = TRUE;
+    class_type->incomplete = TRUE;
+    class_type->size = 0;
+  }  /* if */
+}  /* make_into_ms_instantiated_nonreal_class */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -7092,23 +7201,28 @@ exist.
     /* hash_table_sym will be NULL if no entry is found, otherwise it will
        point to the symbol in the hash table. */
     sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (sym == NULL && !instantiate_nonreal && !is_alias_template &&
-      tssp->variant.class_template.any_ms_instantiated_nonreal_classes &&
+  if (microsoft_mode && !instantiate_nonreal && !is_alias_template &&
+      (sym == NULL || !is_ms_instantiated_nonreal_class_symbol(sym)) &&
       template_arg_list_is_dependent(*new_list)) {
-      /* Check whether there are any instantiations of this template that are
-         Microsoft mode nonreal instantiations that have the same template
-         argument list we are looking for.  Such instances will not be found
-         above because the search requires an exact match on nonreal template
-         arguments.  Do a second search without requiring an exact match.
-         If an instance is found, we won't use it, we will just cause the
-         newly created instance to also be an instantiated nonreal class. */
-      if (has_ms_instantiated_nonreal_class(tssp, *new_list, eta_options)) {
-        instantiate_nonreal = TRUE;
+    /* Check whether the scope stack contains any classes that have
+       Microsoft mode nonreal instantiations as base classes.  If so, this
+       reference should use a Microsoft mode instantiated nonreal class. */
+    if (scope_stack_has_ms_instantiated_nonreal_class(template_sym,
+                                                      *new_list,
+                                                      eta_options)) {
+      instantiate_nonreal = TRUE;
+      if (sym != NULL) {
+        /* A class was previously created as a normal nonreal class.  Convert
+           it to a Microsoft instantiated nonreal class.  This can come up
+           in an out-of-class definition of a member of a class template if
+           the class was first instantiated during a prescan. */
+        make_into_ms_instantiated_nonreal_class(template_sym, sym);
       }  /* if */
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (db_flag_is_set("ftc")) {
     fprintf(f_debug, "find_template_class: for arg list ");

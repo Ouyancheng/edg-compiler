@@ -5361,6 +5361,17 @@ otherwise return NULL.
    ? symbol_for(type)->variant.class_struct_union.extra_info->		\
                                       template_param_for_proxy_class	\
    : NULL)
+
+/* Return TRUE if the symbol is a template class symbol for a Microsoft mode
+   instantiated nonreal class. */
+#define is_ms_instantiated_nonreal_class_symbol(sym)			\
+  (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||           \
+    (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
+   (sym)->variant.class_struct_union.type->			      \
+      variant.class_struct_union.is_ms_instantiated_nonreal_class &&  \
+   (sym)->variant.class_struct_union.type->			      \
+                   variant.class_struct_union.is_nonreal_class)
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean is_proxy_member_symbol(a_symbol_ptr  sym);

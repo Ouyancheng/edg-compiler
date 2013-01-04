@@ -1,4 +1,4 @@
-Version 4.6
+`Version 4.6
 
 1/4/13   [EDGcpfe/13515]
 Spurious error on definition of member of nested class of class template via
@@ -29,6 +29,45 @@ denotes the innermost namespace.  For example:
       int N::f();  // Treated like "int f();" after a warning is issued.
     }
   }
+
+
+1/4/13   [EDGcpfe/13479]
+C++-generating back end, Microsoft compatibility: dependent value in base
+class replaced with constant
+
+A change made in version 4.5 (see EDGcpfe/12786 on 5/14/12) could result
+in an dependent value in a template argument of a base class being replaced
+with a constant in the C++-generating back end output.  This could occur
+in Microsoft mode if the class of the dependent value had previously been
+used as a base class of a class template and the --parse_templates option
+was used.  Now fixed.
+
+  template<typename T> struct A { static const bool B = false; };
+  template<> struct A<bool> { static const bool B = true; };
+  template<typename T> struct Z : public A<T> { };
+  template<bool> struct Y { };
+  // The base class on the following line was emitted as Y<false>
+  template<typename T> struct X : Y<A<T>::B> { };
+
+
+1/4/13   [EDGcpfe/13469]
+Microsoft compatibility: spurious error on definition of class template member
+
+A change made in version 4.5 (see EDGcpfe/12786 on 5/14/12) could result
+in spurious redeclaration errors, in Microsoft mode, on the out-of-class
+definition of a member of a class template if the declaration made use of
+a nonreal class that had been previously used as a base class of a class
+template.  Now fixed.
+
+  template <int I> class A {};
+  template <int I> class C {
+    typedef typename A<I>::B B;
+  };
+  struct D {
+    template <int I> static void f(typename C<I>::B);
+  };
+  template <int I> struct E : public C<I> {};
+  template <int I> void D::f(typename C<I>::B) {}
 
 
 1/3/13   [EDGcpfe/13541]
