@@ -1111,10 +1111,10 @@ type of a class template return the original nested type, otherwise return
 tp.
 */
 {
-  check_assertion(tp->kind == (a_type_kind)tk_template_param);
   /* If this is a template parameter that represents a nested class of
      a class template, use the original nested type in its place. */
   a_template_param_type_supplement_ptr	tptsp;
+  check_assertion(tp->kind == (a_type_kind)tk_template_param);
   tptsp = tp->variant.template_param.extra_info;
   if (tptsp->orig_nested_type != NULL) {
     tp = tptsp->orig_nested_type;
