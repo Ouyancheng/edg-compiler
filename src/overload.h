@@ -184,6 +184,7 @@ conversion_from_class_possible.
 #define BTK_NONE 0
 typedef int a_builtin_type_kind_set;
 
+extern char *name_for_builtin_type_kind(a_builtin_type_kind_set builtin_types);
 
 /*
 Bit flags used to indicate information about the context of a conversion

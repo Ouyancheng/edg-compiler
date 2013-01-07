@@ -5297,6 +5297,22 @@ indicated position.
   diag_message(error_code, error_pos, es_error, dck_standalone);
 }  /* pos_ty2_error */
 
+
+void pos_ty_str_error(an_error_code     error_code,
+                      a_source_position *error_pos,
+                      a_type_ptr        type,
+                      char              *error_string)
+/*
+Report the indicated error (with the indicated type and string value) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_types[1] = type;
+  error_msg_strings[1] = error_string;
+  diag_message(error_code, error_pos, es_error, dck_standalone);
+}  /* pos_ty_str_error */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void pos_ty3_error(an_error_code     error_code,

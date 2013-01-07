@@ -1861,6 +1861,66 @@ for overload resolution.
 			   class object if possible. */
 
 
+char *name_for_builtin_type_kind(a_builtin_type_kind_set builtin_types)
+/*
+Return the name of the built-in type indicated by builtin_types.  The form of
+the name is one that can appear before the word "type", so for example
+"integral" as in "integral type".  If there is no simple description of
+the type set when the set indicates multiple types, return "built-in".
+*/
+{
+  char *result;
+
+  switch (builtin_types) {
+    case BTK_INTEGRAL:
+      result = "integral";
+      break;
+    case BTK_FLOATING:
+      result = "floating";
+      break;
+    case BTK_POINTER:
+      result = "pointer";
+      break;
+    case BTK_POINTER_TO_OBJECT:
+      result = "pointer-to-object";
+      break;
+    case BTK_POINTER_TO_FUNCTION:
+      result = "pointer-to-function";
+      break;
+    case BTK_PTR_TO_MEMBER:
+      result = "pointer-to-member";
+      break;
+    case BTK_BOOL:
+      result = "bool";
+      break;
+    case BTK_ENUM:
+      result = "enum";
+      break;
+    case BTK_INTEGRAL | BTK_ENUM:
+      result = "integral or enum";
+      break;
+    case BTK_UNSCOPED_ENUM:
+      result = "unscoped enum";
+      break;
+    case BTK_PTRDIFF_T:
+      result = "ptrdiff_t";
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case BTK_HANDLE:
+      result = "handle";
+      break;
+    case BTK_HANDLE_TO_CLI_ARRAY:
+      result = "handle-to-CLI-array";
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      result = "built-in";
+      break;
+  }  /* switch */
+  return result;
+}  /* name_for_builtin_type_kind */
+    
+
 static char *name_for_type_code(char type_code)
 /*
 Return a printable string describing a type code.

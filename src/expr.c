@@ -29394,9 +29394,17 @@ error constant is returned.
     } else {
       /* The conversion is not allowed. */
       if (err_code == ec_no_error) err_code = ec_unconvertible_con_expr;
-      if (expr_error_should_be_issued()) {
-        pos_opt_ty2_error(err_code, &operand->position, operand->type,
-                          dest_type);
+      if (expr_error_should_be_issued() &&
+          !is_error_operand(operand) &&
+          !(dest_type != NULL && is_error_type(dest_type))) {
+        if (dest_type != NULL) {
+          pos_opt_ty2_error(err_code, &operand->position, operand->type,
+                            dest_type);
+        } else {
+          pos_ty_str_error(ec_bad_conv_constant_expr_type, &operand->position,
+                           operand->type,
+                           name_for_builtin_type_kind(builtin_types));
+        }  /* if */
       }  /* if */
       conv_to_error_operand(operand);
     }  /* if */

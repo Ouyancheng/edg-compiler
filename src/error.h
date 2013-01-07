@@ -449,6 +449,10 @@ extern void pos_ty2_error(an_error_code     error_code,
                           a_source_position *error_pos,
                           struct a_type     *type1,
                           struct a_type     *type2);
+extern void pos_ty_str_error(an_error_code     error_code,
+                             a_source_position *error_pos,
+                             struct a_type     *type,
+                             char              *error_string);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void pos_ty3_error(an_error_code      error_code,
                           a_source_position  *error_pos,

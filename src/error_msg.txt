@@ -2458,6 +2458,7 @@ ec_only_gnu_attributes_here;;"only GNU-style attributes are permitted here"
 ec_auto_used_two_ways;;"nonstandard use of \"auto\" to both deduce the type from an initializer and to announce a trailing return type"
 ec_nonstd_qualified_void_param_list;;"declaring a void parameter list with a qualified void type is nonstandard"
 ec_qualifier_ignored_on_local_declaration;;"the qualifier on this local declaration is ignored"
+ec_bad_conv_constant_expr_type;;"this constant expression has type %t instead of the required %s type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
