@@ -1,5 +1,22 @@
 Version 4.6
 
+1/7/13   [EDGcpfe/13553]
+Spurious error in GNU C++ mode on initialization of array in template
+
+When processing a braced initializer for a multidimensional array in GNU C++
+mode, the front end frequently issued a spurious error (about there being too
+many initializer values) if the array appeared in a template but had known
+(i.e., not template-dependent) bounds.  For example:
+
+  template<typename T> void f() {
+    int x[2][2] = { 1, 2, 3, 4 };  // Previously triggered a spurious error.
+  }
+  int main() { f<int>(); }
+
+This regression (introduced by the changes for EDGcpfe/9170 in version 4.5)
+is now fixed.
+
+
 1/4/13   [EDGcpfe/13336]
 Spurious warnings and/or internal errors on Microsoft-mode enum definitions
 

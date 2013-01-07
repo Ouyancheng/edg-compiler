@@ -2566,9 +2566,11 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
        since we don't know how many elements it should match. */
     etype = type_of_unknown_templ_param_nontype;
     pack_expansion = is->pack_expansion_handled = TRUE;
-  } else if (gpp_mode && is_prototype_instantiation_context()) {
-    /* GCC doesn't attempt to match the initializer to the type in template
-       definitions, even if the type is fully known (i.e., nondependent). */
+  } else if (gpp_mode && is_prototype_instantiation_context() &&
+             is_class_struct_union_type(etype)) {
+    /* GCC doesn't attempt to match the initializer to the class type in
+       template definitions, even if the type is fully known (i.e.,
+       nondependent). */
     etype = type_of_unknown_templ_param_nontype;
   }  /* if */
   etype_kind = skip_typerefs(etype)->kind;
