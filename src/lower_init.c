@@ -7473,7 +7473,7 @@ the constructor initializer.
            initializer.  In this case, the dynamic initialization is associated
            with the field itself and must be copied before being lowered. */
         field_dip = ctor_init->variant.field->initializer;
-        check_assertion(field_dip->lifetime == NULL);
+        check_assertion(field_dip != NULL && field_dip->lifetime == NULL);
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
         if ((field_dip->kind == (a_dynamic_init_kind)dik_none ||
              (field_dip->kind == (a_dynamic_init_kind)dik_constructor &&
