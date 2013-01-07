@@ -2174,6 +2174,7 @@ Enter the standard predeclared functions for GCC.
     enter_gnu_builtin_vararg_func2(_assume_aligned, void_star,
                                    const_void_star, size_t);
   }  /* if */
+  enter_gnu_builtin_func0(_unreachable, no_return);
 
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   enter_gnu_sync_functions();

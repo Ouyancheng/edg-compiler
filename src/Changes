@@ -1,5 +1,14 @@
 Version 4.6
 
+1/7/13   [EDGcpfe/13554]
+GNU compatibility: __builtin_unreachable
+
+The front end now predeclares a function "void __builtin_unreachable();" in
+GNU modes.  A call to this function is not treated specially by the front end,
+but back ends should eliminate the call and can assume that the location of
+the call is unreachable.
+
+
 1/7/13   [EDGcpfe/13553]
 Spurious error in GNU C++ mode on initialization of array in template
 
