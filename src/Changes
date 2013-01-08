@@ -1,5 +1,28 @@
 Version 4.6
 
+1/8/13   [EDGcpfe/13270]
+Microsoft mode: function found in dependent base considered dependent
+
+In Microsoft mode with --parse_templates, name lookup in the prototype
+instantiation can find member functions in a dependent base class.
+The implementation for that was changed in version 4.5, and that
+caused a regression in some cases like the following, because
+we assumed we had full information on the base class member function
+in the prototype instantiation even though we don't have it until
+the real instantiation.  Now working again.
+
+  template<class T> struct A {       
+    void f(char *p1 = 0) {}
+  };
+  template<class T> struct B : public A<T> {       
+    typedef A<T> Dep;
+    B() {       
+      Dep::f();  // Formerly gave a spurious error "too few arguments" error
+    }
+  };
+  B<char> b;
+
+
 1/8/13   [EDGcpfe/13354]
 Aggregate initialization of GNU vectors
 

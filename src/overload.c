@@ -8026,7 +8026,14 @@ dependent context.
   a_boolean defer = FALSE;
 
   check_assertion(is_template_dependent_context());
-  if (any_function_has_dependent_param_or_default_arg(sym)) {
+  if (microsoft_mode &&
+      sym->is_class_member &&
+      sym_parent_class(sym)->variant.class_struct_union
+                                           .is_ms_instantiated_nonreal_class) {
+    /* In Microsoft mode, symbols found in dependent base classes should
+       be considered placeholders until the real instantiation. */
+    defer = TRUE;
+  } else if (any_function_has_dependent_param_or_default_arg(sym)) {
     /* If any function in the set has a dependent parameter type we cannot
        do overload resolution.  If any function has a dependent default
        argument expression, we might be able to determine the function
