@@ -868,71 +868,135 @@ of the whole initialization (*is) as appropriate.
 
 #if GNU_VECTOR_TYPES_ALLOWED
 
+static a_boolean try_whole_vector_init(an_init_component_ptr  *p_icp,
+                                       a_type_ptr             vtype,
+                                       an_init_state          *is,
+                                       a_constant_ptr         *result)
+/*
+p_icp represents an expression that might initialize vector of the given type
+(the whole vector; not just an element of it).  If it does, return TRUE, set
+*result to the a_constant entry representing the initializer, and update
+*p_icp to the next component that hasn't been consumed.
+*/
+{
+  a_boolean  success = FALSE;
+
+  check_assertion(is_expression_component(*p_icp));
+  if (whole_vector_init_possible(*p_icp, vtype)) {
+    aggr_init_simple_element(p_icp, vtype, is, result);
+    success = TRUE;
+  }  /* if */
+  return success;
+}  /* try_whole_vector_init */
+
+
+
 static void aggr_init_vector(an_init_component_ptr  *p_icp,
                              a_type_ptr             vtype,
                              an_init_state          *is,
+                             a_source_position      *diag_pos,
                              a_constant_ptr         *init_con)
 /*
 Produce an aggregate constant (in *init_con) for the initialization of a GNU
-vector type.
+vector type (vtype).  The initializer is described by *p_icp, and that value
+is updated to the next initializer to be considered by the caller (if the
+initializer is braced, just one initializer is "consumed", but otherwise
+multiple components may be used for this initialization).  *is describes the
+initialization as a whole.  diag_pos is the default position for
+diagnostics.
 */
 {
   an_init_component_ptr  icp = *p_icp;
-  a_source_position      *diag_pos;
-  a_targ_size_t          ecount, icount = 0;
-  a_type_ptr             etype;
-  a_boolean              no_bound = FALSE;
 
-  check_assertion(is_braced_init_component(icp));
-  diag_pos = &icp->variant.braced.end_pos;
   vtype = skip_typerefs(vtype);
-  check_assertion(is_vector_type(vtype));
-  ecount = num_vector_elements(vtype);
-  etype = vtype->variant.vector.element_type;
-  check_assertion(!is_aggregate_or_union_type(etype));
-  /* Create the result entry (unless we are only checking validity). */
-  if (is->check_validity_only) {
-    *init_con = NULL;
+  check_assertion(vtype->kind == (a_type_kind)tk_vector);
+  if (is_expression_component(icp) &&
+      try_whole_vector_init(p_icp, vtype, is, init_con)) {
+    /* An expression of vector type (or convertible to a vector type) that
+       initializes the whole vector. */
   } else {
-    *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-    (*init_con)->type = vtype;
-    (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
-    (*init_con)->explicit_braces_on_aggregate = TRUE;
-  }  /* if */
-  icp = icp->variant.braced.list;
-  while (icp != NULL && (no_bound || icount < ecount)) {
-    a_constant_ptr  elem_con;
-    aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
-    if (!is->check_validity_only) {
-      append_constant_in_aggr(elem_con, *init_con);
-    }  /* if */
-    if (is->pack_expansion_handled) {
-      /* If a pack expansion was seen, don't try to track element counts. */
-      no_bound = TRUE;
+    a_targ_size_t      ecount, icount = 0;
+    a_boolean          no_bound = FALSE, saved_pack_expansion_handled;
+    a_boolean          braced = is_braced_init_component(icp);
+    a_type_ptr         etype;
+    ecount = num_vector_elements(vtype);
+    etype = vtype->variant.vector.element_type;
+    check_assertion(!is_aggregate_or_union_type(etype));
+    if (braced) {
+      /* The element values are enclosed in braces. */
+      /* Diagnostics not associated with a particular element should be issued
+         on the closing brace. */
+      diag_pos = &icp->variant.braced.end_pos;
+      /* Unwrap the braced list for the processing that follows. */
+      icp = icp->variant.braced.list;
+      /* Save the pack-expansion-handled state: Any expansions seen have an
+         effect only within the braces. */
+      saved_pack_expansion_handled = is->pack_expansion_handled;
     } else {
-      ++icount;
+      if (!is->elided_braces_allowed) {
+        /* Braces were elided at this level, but this is not a context that
+           permits such elision.  (We don't issue an error if another error
+           has already been issued for this initialization.) */
+        if (!is->no_diagnostics && !is->init_error) {
+          pos_error(ec_cannot_elide_braces, init_component_pos(icp));
+        }  /* if */
+        is->init_error = TRUE;
+      }  /* if */
+    }  /* if */
+    /* Create the result entry (unless we are only checking validity). */
+    if (is->check_validity_only) {
+      *init_con = NULL;
+    } else {
+      *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      (*init_con)->type = vtype;
+      (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+      (*init_con)->explicit_braces_on_aggregate = TRUE;
+    }  /* if */
+    while (icp != NULL && (no_bound || icount < ecount)) {
+      a_constant_ptr  elem_con;
+      aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
+      if (!is->check_validity_only) {
+        append_constant_in_aggr(elem_con, *init_con);
+      }  /* if */
+      if (is->pack_expansion_handled) {
+        /* If a pack expansion was seen, don't try to track element counts. */
+        no_bound = TRUE;
+      } else {
+        ++icount;
+      }  /* if */
+    }  /* if */
+    if (no_bound) {
+      /* The number of elements in the initializer isn't really known: Don't
+         attempt related checks. */
+    } else if (icp == NULL && icount < ecount) {
+      /* No more initializers, but not all elements were initialized. */
+      is->partial_initializer = TRUE;
+    }  /* if */
+    if (braced) {
+      /* The caller should move on to the component that follows the braced
+         list (if any). */
+      *p_icp = (*p_icp)->next;
+      if (icp != NULL) {
+        /* Extraneous elements: Issue a diagnostic (an error in GNU C++ mode; a
+           warning otherwise). */
+        if (!is->no_diagnostics) {
+          pos_diagnostic(gpp_mode ? es_error : es_warning,
+                         gpp_mode ? ec_too_many_initializer_values
+                                  : ec_excess_initializers_ignored,
+                         init_component_pos(icp));
+        } else if (gpp_mode) {
+          is->init_error = TRUE;
+        }  /* if */
+      }  /* if */
+      is->pack_expansion_handled = saved_pack_expansion_handled;
+    } else {
+      /* Braces were omitted at this level of aggregate initialization: The
+         the caller should continue associating the next component with any
+         aggregate elements that follow this array. */
+      check_assertion_or_expect_error(is->non_top_level_aggregate);
+      *p_icp = icp;
     }  /* if */
   }  /* if */
-  if (no_bound) {
-    /* The number of elements in the initializer isn't really known: Don't
-       attempt related checks. */
-  } else if (icp != NULL) {
-    /* Extraneous elements: Issue a diagnostic (an error in GNU C++ mode; a
-       warning otherwise). */
-    if (!is->no_diagnostics) {
-      pos_diagnostic(gpp_mode ? es_error : es_warning,
-                     gpp_mode ? ec_too_many_initializer_values
-                              : ec_excess_initializers_ignored,
-                     init_component_pos(icp));
-    } else if (gpp_mode) {
-      is->init_error = TRUE;
-    }  /* if */
-  } else if (icount < ecount) {
-    /* No more initializers, but not all elements were initialized. */
-    is->partial_initializer = TRUE;
-  }  /* if */
-  /* Move to the next element after the braces. */
-  *p_icp = (*p_icp)->next;
 }  /* aggr_init_vector */
 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -1510,7 +1574,7 @@ initialization).  *is describes the initialization as a whole.
       /* The element values are enclosed in braces. */
       /* Diagnostics not associated with a particular element should be issued
          on the closing brace. */
-      if (braced) diag_pos = &icp->variant.braced.end_pos;
+      diag_pos = &icp->variant.braced.end_pos;
       /* Unwrap the braced list for the processing that follows. */
       icp = icp->variant.braced.list;
       if (icp == NULL && C_mode() && !gcc_mode) {
@@ -2601,13 +2665,12 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
     aggr_init_generic_element(icp, etype, is, init_con);
     *p_icp = icp->next;
 #if GNU_VECTOR_TYPES_ALLOWED
-  } else if (etype_kind == (a_type_kind)tk_vector &&
-             is_braced_init_component(icp))  {
+  } else if (etype_kind == (a_type_kind)tk_vector) {
     /* A braced component can initialize the elements of a GNU vector
        individually. */
     is->non_top_level_aggregate = TRUE;
     is->arg_match = NULL;
-    aggr_init_vector(p_icp, etype, is, init_con);
+    aggr_init_vector(p_icp, etype, is, diag_pos, init_con);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
   } else if (gpp_mode && gnu_version >= 40700 &&
@@ -2785,7 +2848,7 @@ the type pointed to is opaque to declaration processing.
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
-      aggr_init_vector(&icp, dtype, is, &is->init_con);
+      aggr_init_vector(&icp, dtype, is, diag_pos, &is->init_con);
       if (arg_match != NULL) record_aggr_init_match(arg_match);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -2997,7 +3060,7 @@ initializer, already copied and substituted.
     case tk_vector:
       /* A GNU vector type. */
       is_aggregate = TRUE;
-      aggr_init_vector(&icp, dtype, is, &is->init_con);
+      aggr_init_vector(&icp, dtype, is, diag_pos, &is->init_con);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_class:

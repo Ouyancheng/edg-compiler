@@ -1,5 +1,17 @@
 Version 4.6
 
+1/8/13   [EDGcpfe/13354]
+Aggregate initialization of GNU vectors
+
+In GNU modes, the aggregate initialization of a vector subobject no longer
+requires braces (similarly to standard array and aggregate struct types).
+For example:
+
+  void g() {
+    __attribute((vector_size(8))) int x[1] = { 37 };
+  }       // Now accepted and treated as "... = { { 37 } };"
+
+
 1/8/13   [EDGcpfe/13566]
 Default setting for implicit noexcept specifiers
 

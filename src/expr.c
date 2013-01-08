@@ -35582,6 +35582,45 @@ Currently, this can only happen in GNU C mode with compound literals.
   return possible;
 }  /* whole_array_init_possible */
 
+#if GNU_VECTOR_TYPES_ALLOWED
+
+a_boolean whole_vector_init_possible(an_init_component_ptr  icp,
+                                     a_type_ptr             dest_type)
+/*
+Return TRUE if the initializer component icp can initialize a field or array
+element of vector type dest_type (as a whole; not just an element of it).
+*/
+{
+  a_boolean       result = FALSE;
+  an_operand_ptr  operand;
+
+  check_assertion(is_expression_component(icp) &&
+                  dest_type->kind == (a_type_kind)tk_vector);
+  operand = operand_of_arg_list_elem(icp);
+  if (C_mode()) {
+    result = types_are_compatible_ignoring_qualifiers(operand->type,
+                                                      dest_type);
+  } else {
+    a_conv_descr   conversion;
+    a_boolean      is_constant = is_constant_operand(operand);
+    a_constant_ptr p_constant = is_constant ? &operand->variant.constant
+                                            : NULL;
+    clear_conv_descr(&conversion);
+    result = impl_conversion_possible(operand->type,
+                                      is_constant,
+                                      operand->is_simple_string_literal,
+                                      operand_is_function(operand),
+                                      p_constant,
+                                      dest_type,
+                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                      /*suppress_extensions=*/FALSE,
+                                      ec_no_error,
+                                      &conversion.std);
+  }  /* if */
+  return result;
+}  /* whole_vector_init_possible */
+
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 void value_init_variable_or_member(a_type_ptr         type,
                                    an_init_state      *is,

@@ -494,6 +494,11 @@ extern a_boolean whole_array_init_possible(an_init_component_ptr  icp,
                                            a_type_ptr             dest_type,
                                            a_constant_ptr         *result);
 
+#if GNU_VECTOR_TYPES_ALLOWED
+a_boolean whole_vector_init_possible(an_init_component_ptr  icp,
+                                     a_type_ptr             dest_type);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+
 extern
 a_boolean is_overloadable_type_operand_full(an_operand_ptr operand,
                                             a_boolean      first_operand,
