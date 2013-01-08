@@ -200,6 +200,15 @@ which can be modified by the "-x" command line option.
 #endif /* ifndef DEFAULT_EXCEPTIONS_ENABLED */
 
 /*
+Flag that is TRUE if, when support for exceptions and noexcept is enabled,
+destructors and operator delete operators should implicitly be made "noexcept"
+if they are not explicitly declared otherwise in default C++11 mode.
+*/
+#ifndef DEFAULT_IMPLICIT_NOEXCEPT_ENABLED
+#define DEFAULT_IMPLICIT_NOEXCEPT_ENABLED TRUE
+#endif /* DEFAULT_IMPLICIT_NOEXCEPT_ENABLED */
+
+/*
 Flag that is TRUE if, in C++, support for runtime type information (RTTI)
 is enabled by default.  This is the default value of the variable rtti_enabled,
 which can be modified by the "--rtti" or "--no_rtti" command-line options.

@@ -2178,6 +2178,12 @@ by a command line option.
 #endif /* DO_IL_LOWERING */
   ms_declspec_attributes_enabled = TRUE;
   if (cppcli_enabled) explicit_conversion_functions_enabled = TRUE;
+  if (!option_kind_used[(int)optk_implicit_noexcept]) {
+    /* Microsoft compilers do not yet (as of Visual C++ 2010) implement
+       noexcept.  We therefore keep the traditional relaxed semantics for
+       destructors and operator delete. */
+    implicit_noexcept_enabled = FALSE;
+  }  /* if */
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2288,6 +2294,11 @@ by a command line option.
   ref_to_unknown_bound_array_allowed_in_param_type = TRUE;
   /* Cfront does not check accessibility of friend function declarations. */
   no_access_check_on_friend_declarator_ids = TRUE;
+  if (!option_kind_used[(int)optk_implicit_noexcept]) {
+    /* Keep the traditional relaxed semantics for destructors and
+       operator delete. */
+    implicit_noexcept_enabled = FALSE;
+  }  /* if */
 }  /* set_cfront_mode_flags */
 
 
@@ -2760,8 +2771,9 @@ handling).
   }  /* if */
   noexcept_enabled = value;
   if (!option_kind_used[(int)optk_implicit_noexcept]) {
-    implicit_noexcept_enabled = noexcept_enabled && strict_ansi_mode &&
-                                exceptions_enabled;
+    implicit_noexcept_enabled = exceptions_enabled && noexcept_enabled &&
+                                (strict_ansi_mode ||
+                                 DEFAULT_IMPLICIT_NOEXCEPT_ENABLED);
   }  /* if */
   constexpr_enabled = value;
 }  /* check_and_set_cpp11_mode_options */
@@ -3551,6 +3563,11 @@ checked again here.)
   /* Recent Sun compilers accept some GNU attributes. */
   gnu_attributes_enabled = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (!option_kind_used[(int)optk_implicit_noexcept]) {
+    /* Keep the traditional relaxed semantics for destructors and
+       operator delete. */
+    implicit_noexcept_enabled = FALSE;
+  }  /* if */
 }  /* check_and_set_sun_mode_options */
 
 
@@ -9662,7 +9679,7 @@ variables declared in cmd_line.h.
   addr_of_bit_field_allowed = ADDR_OF_BIT_FIELD_ALLOWED;
   exceptions_enabled = DEFAULT_EXCEPTIONS_ENABLED;
   noexcept_enabled = FALSE;
-  implicit_noexcept_enabled = FALSE;
+  implicit_noexcept_enabled = DEFAULT_IMPLICIT_NOEXCEPT_ENABLED;
   constexpr_enabled = FALSE;
   rtti_enabled = 
 #if RTTI_ENABLING_POSSIBLE

@@ -1,5 +1,25 @@
 Version 4.6
 
+1/8/13   [EDGcpfe/13566]
+Default setting for implicit noexcept specifiers
+
+In strict C++11 mode, the front end generates implicit noexcept specifiers
+for certain destructors and deallocation functions (see the entry of 9/3/12).
+Now a new configuration macro DEFAULT_IMPLICIT_NOEXCEPT_ENABLED determines
+whether this behavior should also apply to default C++11 mode.  The macro is
+set to TRUE by default, which changes some cases in default C++11 mode.
+For example:
+
+  struct B { virtual ~B() noexcept; };
+  struct D: B { virtual ~D(); };
+
+Previously an error was issued on this example in default C++11 mode (but not
+in strict C++11 mode) because the exception specification on the derived
+class destructor is incompatible with (i.e., more relaxed than) the
+overridden destructor.  Now, by default, the derived class destructor is
+implicitly "noexcept", and hence the exception specifications are compatible.
+
+
 1/8/13   [EDGcpfe/13523]
 C++-generating back end: unnecessary parentheses with explicit temporaries in
 conditional expressions
