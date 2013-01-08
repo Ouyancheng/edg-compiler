@@ -24708,7 +24708,6 @@ indeed a literal type.
               cssp = symbol_for(type)->variant.class_struct_union.extra_info;
 
   if (!cdsp->has_subobject_of_nonliteral_type &&
-      !type->variant.class_struct_union.any_volatile_member &&
       !has_nontrivial_destructor(cssp)) {
     /* All the members and bases are of literal type, and the destructor is
        trivial.  To be a literal type, the class should additionally be an
