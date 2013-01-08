@@ -890,7 +890,6 @@ p_icp represents an expression that might initialize vector of the given type
 }  /* try_whole_vector_init */
 
 
-
 static void aggr_init_vector(an_init_component_ptr  *p_icp,
                              a_type_ptr             vtype,
                              an_init_state          *is,
@@ -2665,9 +2664,10 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
     aggr_init_generic_element(icp, etype, is, init_con);
     *p_icp = icp->next;
 #if GNU_VECTOR_TYPES_ALLOWED
-  } else if (etype_kind == (a_type_kind)tk_vector) {
+  } else if (etype_kind == (a_type_kind)tk_vector &&
+             (gpp_mode || is_braced_init_component(icp))) {
     /* A braced component can initialize the elements of a GNU vector
-       individually. */
+       individually.  GNU C++ also allows cases with elided braces. */
     is->non_top_level_aggregate = TRUE;
     is->arg_match = NULL;
     aggr_init_vector(p_icp, etype, is, diag_pos, init_con);
