@@ -11530,10 +11530,12 @@ gen_expr that might end up generating this expr as a temporary.
 #endif /* GNU_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
           {
-            gen_expr_with_parens(operand_2);
+            gen_expression(operand_2);
           }  /* if */
           write_tok_str(" : ");
-          gen_expr_with_parens(operand_2->next);
+          gen_expr(operand_2->next,
+                   !is_expl_ctor_or_value_init(operand_2->next),
+                   /*obj_expr_of_mfunc_operator=*/FALSE);
           goto done_with_operation;
         case eok_call:
         case eok_dot_member_call:

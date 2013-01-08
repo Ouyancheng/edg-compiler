@@ -1,5 +1,25 @@
 Version 4.6
 
+1/8/13   [EDGcpfe/13523]
+C++-generating back end: unnecessary parentheses with explicit temporaries in
+conditional expressions
+
+In addition to the cases described below for EDGcpfe/13355, EDGcpfe/13375,
+and EDGcpfe/13423, early versions of g++ are also confused by redundant
+parentheses around an explicit temporary appearing as the second or third
+operand of a conditional (?:) expression.  The C++-generating back end has
+now been changed to suppress the extra parentheses in this context as well.
+For example:
+
+  struct A {
+    A();
+  };
+  void f(bool b) {
+    A a;
+    b ? A() : A();   // Operands previously generated as "(A())"
+  }
+
+
 1/7/13   [EDGcpfe/13549]
 Abort on initialization of an enum bit field in Microsoft mode
 
