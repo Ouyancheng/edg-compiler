@@ -2093,20 +2093,28 @@ position is available).
   aggr_init_element(p_icp, dtype, is, diag_pos, &elem_con);
   if (ms_enum_bit_field) {
     /* A Microsoft enum bit field being initialized with an integer.
-       Implicitly cast the result back to the enumeration type. */
-    a_boolean  did_not_fold = FALSE;
-    type_change_constant_full(elem_con, fp->type,
-                              /*is_implicit_cast=*/TRUE,
-                              /*constant_context=*/FALSE,
-                              /*evaluated_context=*/TRUE,
-                              /*fold_constant_addr_exprs=*/FALSE,
-                              /*check_cast_access=*/FALSE,
-                              /*check_ambiguity=*/FALSE,
-                              /*is_reinterpret_cast=*/FALSE,
-                              /*maintain_expression=*/TRUE,
-                              &did_not_fold,
-                              /*error_detected=*/(an_error_code *)NULL,
-                              init_component_pos(icp));
+       Implicitly cast the result back to the enumeration type.
+       (We use type_change_constant_full for the constant and add_cast for the
+       non-constant case.) */
+    if (elem_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+      a_dynamic_init_ptr  dip = elem_con->variant.dynamic_init;
+      check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
+      dip->variant.expression = add_cast(dip->variant.expression, fp->type);
+    } else {
+      a_boolean  did_not_fold = FALSE;
+      type_change_constant_full(elem_con, fp->type,
+                                /*is_implicit_cast=*/TRUE,
+                                /*constant_context=*/FALSE,
+                                /*evaluated_context=*/TRUE,
+                                /*fold_constant_addr_exprs=*/FALSE,
+                                /*check_cast_access=*/FALSE,
+                                /*check_ambiguity=*/FALSE,
+                                /*is_reinterpret_cast=*/FALSE,
+                                /*maintain_expression=*/TRUE,
+                                &did_not_fold,
+                                /*error_detected=*/(an_error_code *)NULL,
+                                init_component_pos(icp));
+    }  /* if */
   }  /* if */
   if (!is->check_validity_only) {
     append_constant_in_aggr(elem_con, aggr_con);
