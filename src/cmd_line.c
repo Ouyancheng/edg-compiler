@@ -2770,10 +2770,13 @@ handling).
     friend_function_injection_enabled = FALSE;
   }  /* if */
   noexcept_enabled = value;
-  if (!option_kind_used[(int)optk_implicit_noexcept]) {
-    implicit_noexcept_enabled = exceptions_enabled && noexcept_enabled &&
-                                (strict_ansi_mode ||
-                                 DEFAULT_IMPLICIT_NOEXCEPT_ENABLED);
+  if (exceptions_enabled && noexcept_enabled &&
+      !option_kind_used[(int)optk_implicit_noexcept]) {
+    if (strict_ansi_mode) {
+      implicit_noexcept_enabled = TRUE;
+    } else {
+      implicit_noexcept_enabled = DEFAULT_IMPLICIT_NOEXCEPT_ENABLED;
+    }  /* if */
   }  /* if */
   constexpr_enabled = value;
 }  /* check_and_set_cpp11_mode_options */
@@ -9679,7 +9682,7 @@ variables declared in cmd_line.h.
   addr_of_bit_field_allowed = ADDR_OF_BIT_FIELD_ALLOWED;
   exceptions_enabled = DEFAULT_EXCEPTIONS_ENABLED;
   noexcept_enabled = FALSE;
-  implicit_noexcept_enabled = DEFAULT_IMPLICIT_NOEXCEPT_ENABLED;
+  implicit_noexcept_enabled = FALSE;
   constexpr_enabled = FALSE;
   rtti_enabled = 
 #if RTTI_ENABLING_POSSIBLE
