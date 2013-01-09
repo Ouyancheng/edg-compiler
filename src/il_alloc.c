@@ -2875,6 +2875,7 @@ fields to default values.
   a_condition_supplement_ptr  csp;
 
   node->kind = kind;
+  node->orig_lvalue_type = NULL;
   switch (kind) {
     case enk_error:
     case enk_address_of_ellipsis:

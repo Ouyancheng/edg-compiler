@@ -3822,6 +3822,9 @@ Display the indicated expression node.
 */
 {
   disp_ptr("type", (char *)ptr->type, iek_type);
+  if (ptr->orig_lvalue_type != NULL) {
+    disp_ptr("orig_lvalue_type", (char *)ptr->orig_lvalue_type, iek_type);
+  }  /* if */
   disp_ptr("next", (char *)ptr->next, iek_expr_node);
   if (ptr->is_lvalue) {
     disp_boolean("is_lvalue", TRUE);

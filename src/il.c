@@ -13879,6 +13879,7 @@ type kind" as a function of the operator kind and the type of the operands.
 */
 {
   node->type = type;
+  node->orig_lvalue_type = NULL;
   node->variant.operation.kind = kind;
   node->variant.operation.operands = operands;
   node->is_lvalue = is_lvalue;
@@ -23785,8 +23786,6 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
       /* The builtin operations for stdarg support usually take va_list
          lvalues, but if va_list is an array type they take rvalue pointer
          operands. */
-      /* The builtin_va_list_type variable is not always set in back ends. */
-      check_assertion(builtin_va_list_type != NULL || !in_front_end);
       if ((flags & LVRV_OPND1_IS_LVALUE) &&
           !operand_1->is_lvalue &&
           is_pointer_type(operand_1->type)) {
@@ -23884,6 +23883,11 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
+#if CHECKING
+  if (node->orig_lvalue_type != NULL) {
+    check_assertion(node_includes_lvalue_to_rvalue_conv(node));
+  }  /* if */
+#endif /* CHECKING */
   return !operand_error;
 }  /* node_operands_have_correct_lvalueness */
 
@@ -24544,8 +24548,6 @@ by back ends.
 */
 {
   a_type_ptr       dest_type = expr->type;
-  an_expr_node_ptr operand_1 = (check_assertion(is_operation_node(expr)),
-                                expr->variant.operation.operands);
 
   check_assertion(ref_type != NULL &&
                   (expr->variant.operation.is_reference_cast ||
@@ -24555,41 +24557,12 @@ by back ends.
   if (!expr->is_lvalue) {
     /* The cast has an lvalue-to-rvalue conversion built in, so the node
        type may be a little different from the underlying cast type. */
-    if (is_function_type(operand_1->type) &&
-        is_pointer_type(dest_type) &&
-        is_function_type(type_pointed_to(dest_type))) {
-      /* When the underlying lvalue is a function, the decay to rvalue
-         adds a "pointer-to" to the type, which must be stripped off to
-         get back to the underlying cast type. */
-      dest_type = type_pointed_to(dest_type);
-    }  /* if */
-    if ((expr->is_static_cast || expr->variant.operation.is_reinterpret_cast
-#if MICROSOFT_EXTENSIONS_ALLOWED
-         || expr->is_safe_cast
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        ) && any_qualifier_missing(dest_type, operand_1->type)) {
-      /* This node is a static_cast to a reference type followed by an
-         lvalue-to-rvalue conversion that drops the cv-qualifiers.  We don't
-         have a way of recovering the original cv-qualifiers of the reference
-         cast, so make a destination type that has all the cv-qualifiers
-         of the source lvalue, which will do the right thing and
-         compile correctly. */
-      a_type_qualifier_set dest_quals = get_type_qualifiers(dest_type);
-      a_type_qualifier_set src_quals  = get_type_qualifiers(operand_1->type);
-      a_type_qualifier_set quals_to_add;
-      quals_to_add = src_quals & ~dest_quals;
-#if !STANDALONE_UTILITY_PROGRAM
-      clear_type(quals_type, (a_type_kind)tk_typeref);
-#else /* STANDALONE_UTILITY_PROGRAM */
-      /* clear_type is not available in a standalone program -- it's part
-         of the memory management routines -- so we just zero-fill the
-         struct and set the kind. */
-      memzero((char *)quals_type, sizeof(*quals_type));
-      quals_type->kind = (a_type_kind)tk_typeref;
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-      quals_type->variant.typeref.type = dest_type;
-      quals_type->variant.typeref.qualifiers = quals_to_add;
-      dest_type = quals_type;
+    if (expr->orig_lvalue_type != NULL) {
+      /* If the type was saved on conversion from lvalue to rvalue,
+         use that.  It has the complete set of cv-qualifiers. */
+      dest_type = expr->orig_lvalue_type;
+    } else {
+      unexpected_condition();
     }  /* if */
   }  /* if */
   /* Substitute a reference type for the destination type. */

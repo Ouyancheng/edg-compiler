@@ -4435,13 +4435,16 @@ on top of the expansion.
     dump_cast(node->type);
   } else {
     if (!suppress_indirection) write_tok_ch('*');
+    if (node->orig_lvalue_type != NULL) {
+      /* If we saved the original lvalue type, use that. */
+      dump_cast_to_pointer_to(node->orig_lvalue_type);
+    } else if (!node->is_lvalue &&
+               is_function_type(operand_1->type) &&
+               is_pointer_type(node->type) &&
+               is_function_type(type_pointed_to(node->type))) {
       /* If an eok_lvalue_adjust has an implicit lvalue-to-rvalue conversion
          built in, and the underlying lvalue is a function, the decay to
          rvalue adds a "pointer-to" to the type. */
-    if (!node->is_lvalue &&
-        is_function_type(operand_1->type) &&
-        is_pointer_type(node->type) &&
-        is_function_type(type_pointed_to(node->type))) {
       dump_cast(node->type);
     } else {
       dump_cast_to_pointer_to(node->type);

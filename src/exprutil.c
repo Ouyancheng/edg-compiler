@@ -8093,6 +8093,7 @@ the expression node to indicate that.
   expr->variant.operation.is_reference_cast = TRUE;
   if (is_rvalue_reference_type(ref_type)) {
     expr->variant.operation.is_rvalue_reference_cast = TRUE;
+    expr->orig_lvalue_type = type_pointed_to(ref_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (is_tracking_reference_type(ref_type)) {
     expr->variant.operation.is_tracking_reference_cast = TRUE;
@@ -16236,6 +16237,11 @@ from being re-introduced once lowering has eliminated it).
   check_assertion(!node->is_lvalue);
   check_assertion(in_front_end);
   lvalue_type = node->type;
+  if (node->orig_lvalue_type != NULL) {
+    /* If the lvalue type was saved on the conversion from lvalue to rvalue,
+       use that type. */
+    lvalue_type = node->orig_lvalue_type;
+  }  /* if */
   /* No skip_parens here.  Parentheses are handled under the enk_operation
      case. */
   if (is_variable_node(node)) {
@@ -16621,6 +16627,7 @@ assignment_case:
     a_type_ptr orig_type = node->type;
 #endif /* DO_IL_LOWERING */
     node->type = lvalue_type;
+    node->orig_lvalue_type = NULL;
     node->is_lvalue = TRUE;
 #if DO_IL_LOWERING
     if (il_lowering_underway &&
@@ -17525,6 +17532,7 @@ it might produce an error).
     }  /* if */
 #endif /* CHECKING */
     node->is_lvalue = FALSE;
+    node->orig_lvalue_type = node->type;
     node->type = rvalue_node_type;
   }  /* if */
   if (con_expr_value != NULL) {

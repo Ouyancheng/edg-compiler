@@ -1374,6 +1374,7 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         an_expr_node_ptr ptr = (an_expr_node_ptr)entry_ptr;
         walk_ptr(ptr->type, a_type_ptr, iek_type);
+        walk_ptr(ptr->orig_lvalue_type, a_type_ptr, iek_type);
         if (!ptr->is_lvalue) {
           definition_needed_if_class(ptr->type);
         }  /* if */

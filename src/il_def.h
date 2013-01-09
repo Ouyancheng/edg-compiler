@@ -14261,6 +14261,14 @@ typedef struct an_expr_node {
   /* A single expression node. */
   a_type_ptr    type;
                         /* The type of the expression. */
+  a_type_ptr    orig_lvalue_type;
+                        /* If the expression has been converted from an
+                           lvalue to an rvalue simply by clearing the is_lvalue
+                           flag, this records the type the lvalue had (which
+                           may have cv-qualifiers that were dropped in the
+                           rvalue type).  NULL otherwise.  Note that
+                           this field will also be NULL for expressions that
+                           were created during the lowering process. */
   an_expr_node_ptr
                 next;
                         /* When this node is part of a list of operands, this

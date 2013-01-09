@@ -12938,6 +12938,9 @@ harmless.
   tblock.process_expr = perform_post_pass_on_lowered_node;
   tblock.process_post_expr = perform_post_pass_on_lowered_node_post_expr;
   traverse_expr(expr, &tblock);
+#if EXPENSIVE_CHECKING
+  check_assertion(tree_has_correct_lvalueness(expr));
+#endif /* EXPENSIVE_CHECKING */
 }  /* perform_post_pass_on_lowered_expression */
 
 
