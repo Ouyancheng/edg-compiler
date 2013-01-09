@@ -5162,6 +5162,45 @@ computation.  Otherwise, just dump the expression normally.
   }  /* if */
 }  /* dump_possible_ptr_to_empty_struct */
 
+#if SUNPRO_C_IS_C_GEN_BE_TARGET
+
+static void adjust_question_operand_if_necessary(an_expr_node_ptr operand)
+/*
+The SUNPRO C compiler doesn't like "?" operators where the
+branches are struct rvalues with different type qualifiers.
+That's a bug -- in standard C the qualifiers on rvalues are
+dropped.  For a few simple cases, do some casting to drop
+the type qualifiers on the specified operand (which is the second
+or third operand of a "?" operator).
+*/
+{
+  if (is_class_struct_union_type(operand->type)) {
+    if ((is_variable_node(operand) &&
+         is_qualified_type(operand->variant.variable->type)) ||
+        (is_operation_node(operand) &&
+         (node_operator_is(operand, eok_indirect) ||
+          node_operator_is(operand, eok_points_to_field)) &&
+         is_qualified_type(type_pointed_to(
+                      operand->variant.operation.operands->type)))) {
+      write_tok_ch('*');
+      dump_cast_to_pointer_to(operand->type);
+      write_tok_ch('&');
+    } else if (operand->orig_lvalue_type != NULL &&
+               is_qualified_type(operand->orig_lvalue_type) &&
+               is_operation_node(operand) &&
+               (node_operator_is(operand, eok_lvalue_adjust) ||
+                node_operator_is(operand, eok_lvalue_cast))) {
+      /* If this node has gone through an lvalue-to-rvalue conversion and
+         the original lvalue type was cv-qualified, remove the original
+         lvalue type so that the node will be emitted with the
+         non-cv-qualified type (to match the other operand of the "?"
+         operator). */
+      operand->orig_lvalue_type = NULL;
+    }  /* if */
+  }  /* if */
+}  /* adjust_question_operand_if_necessary */
+
+#endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
 
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens)
@@ -5784,24 +5823,8 @@ process_assignment:
           if (void_operand) write_tok_ch('(');
 #endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
 #if SUNPRO_C_IS_C_GEN_BE_TARGET
-          /* The SUNPRO C compiler doesn't like "?" operators where the
-             branches are struct rvalues with different type qualifiers.
-             That's a bug -- in standard C the qualifiers on rvalues are
-             dropped.  For a few simple cases, do some casting to drop
-             the type qualifiers. */
-          if (is_class_struct_union_type(expr_type)) {
-            if ((is_variable_node(operand_2) &&
-                 is_qualified_type(operand_2->variant.variable->type)) ||
-                (is_operation_node(operand_2) &&
-                 (node_operator_is(operand_2, eok_indirect) ||
-                  node_operator_is(operand_2, eok_points_to_field)) &&
-                 is_qualified_type(type_pointed_to(
-                              operand_2->variant.operation.operands->type)))) {
-              write_tok_ch('*');
-              dump_cast_to_pointer_to(expr_type);
-              write_tok_ch('&');
-            }  /* if */                  
-          }  /* if */
+          /* Perform SunPro-specific adjustment of cv-qualified types. */
+          adjust_question_operand_if_necessary(operand_2);
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
           dump_expr_with_parens(operand_2);
 #if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
@@ -5813,20 +5836,8 @@ process_assignment:
           if (void_operand) write_tok_ch('(');
 #endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
 #if SUNPRO_C_IS_C_GEN_BE_TARGET
-          /* See comment above.*/
-          if (is_class_struct_union_type(expr_type)) {
-            if ((is_variable_node(operand_3) &&
-                 is_qualified_type(operand_3->variant.variable->type)) ||
-                (is_operation_node(operand_3) &&
-                 (node_operator_is(operand_3, eok_indirect) ||
-                  node_operator_is(operand_3, eok_points_to_field)) &&
-                 is_qualified_type(type_pointed_to(
-                              operand_3->variant.operation.operands->type)))) {
-              write_tok_ch('*');
-              dump_cast_to_pointer_to(expr_type);
-              write_tok_ch('&');
-            }  /* if */                  
-          }  /* if */
+          /* Perform SunPro-specific adjustment of cv-qualified types. */
+          adjust_question_operand_if_necessary(operand_3);
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
           dump_expr_with_parens(operand_3);
 #if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
