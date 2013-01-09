@@ -24539,16 +24539,17 @@ void destination_type_for_reference_cast(an_expr_node_ptr  expr,
 /*
 The type of an (rvalue) reference cast operation doesn't reflect the
 (rvalue) reference, but that type is needed both for mangling as well as
-in the C++ generating back end.  This routine returns, in *ref_type, a
-type that approximates the type used in the source code (as specified by
-expr->type).  Note that this routine uses pointers to a_type parameters that
-are supplied by the caller rather than simply constructing and returning types
-so that it can be used by back ends.
+in the C++ generating back end.  This routine returns, in *ref_type,
+the reference type that appeared in the source code.  Note that this
+routine uses a pointer to a_type parameter that is supplied by the
+caller rather than simply constructing and returning a type so that
+it can be used by back ends.
 */
 {
-  a_type_ptr       dest_type = expr->type;
+  a_type_ptr dest_type = expr->type;
 
   check_assertion(ref_type != NULL &&
+                  is_operation_node(expr) &&
                   (expr->variant.operation.is_reference_cast ||
                    node_operator_is(expr, eok_ref_cast) ||
                    node_operator_is(expr, eok_ref_dynamic_cast)));
