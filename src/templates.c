@@ -7207,6 +7207,7 @@ exist.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !instantiate_nonreal && !is_alias_template &&
+      tssp->variant.class_template.any_ms_instantiated_nonreal_classes &&
       is_template_dependent_context() &&
       (sym == NULL || !is_ms_instantiated_nonreal_class_symbol(sym)) &&
       template_arg_list_is_dependent(*new_list)) {
