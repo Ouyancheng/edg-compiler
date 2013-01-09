@@ -7207,6 +7207,7 @@ exist.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !instantiate_nonreal && !is_alias_template &&
+      is_template_dependent_context() &&
       (sym == NULL || !is_ms_instantiated_nonreal_class_symbol(sym)) &&
       template_arg_list_is_dependent(*new_list)) {
     /* Check whether the scope stack contains any classes that have
