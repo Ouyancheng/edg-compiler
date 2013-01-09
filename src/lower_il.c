@@ -14160,6 +14160,9 @@ cast.  See lower_expr for typical invocation.
             /* Convert this node to an rvalue in preparation for the
                indirection. */
             var_copy = rvalue_expr_for_lvalue(var_copy);
+          } else if (var_copy->orig_lvalue_type != NULL) {
+            /* Update the orig_lvalue_type (if one has been captured). */
+            var_copy->orig_lvalue_type = var_copy->type;
           }  /* if */
           new_expr = add_indirection_to_node(var_copy);
           if (!expr->is_lvalue) {
