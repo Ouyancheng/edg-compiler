@@ -10,9 +10,10 @@ cv-qualifiers are dropped during the lvalue-to-rvalue conversion, and prior
 to this change the original lvalue type (with any cv-qualifiers) had not been
 available in the IL.  orig_lvalue_type is also set for casts to reference
 types (i.e., when is_reference_cast is TRUE), to the underlying type
-of the cast (whether the cast produces an lvalue or rvalue).  The
-field is NULL otherwise, and (for now at least) it's NULL if the
-expression was created during the lowering process.
+of the cast (whether the cast produces an lvalue or rvalue).  See
+destination_type_for_reference_cast.  The orig_lvalue_type field is
+NULL otherwise, and (for now at least) it's NULL if the expression
+was created during the lowering process.
 
 
 1/8/13   [EDGcpfe/13270]
