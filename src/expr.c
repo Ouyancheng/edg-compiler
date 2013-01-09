@@ -34153,6 +34153,10 @@ is TRUE if the expression is the immediate operand of an "&" operator.
          type. */
       new_type = do_type_substitution_for_rescan(expr->type, rcblock, eriep);
     }  /* if */
+    if (!expr_copy->is_lvalue) {
+      expr_copy->orig_lvalue_type = new_type;
+      new_type = rvalue_type(new_type);
+    }  /* if */
     expr_copy->type = new_type;
     make_lvalue_or_rvalue_expression_operand(expr_copy, result);
     if (is_any_reference_type(result->type)) {
