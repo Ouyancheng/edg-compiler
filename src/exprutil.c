@@ -8091,9 +8091,9 @@ the expression node to indicate that.
   check_assertion(is_cast_operation_node(expr) &&
                   is_any_reference_type(ref_type));
   expr->variant.operation.is_reference_cast = TRUE;
+  expr->orig_lvalue_type = type_pointed_to(ref_type);
   if (is_rvalue_reference_type(ref_type)) {
     expr->variant.operation.is_rvalue_reference_cast = TRUE;
-    expr->orig_lvalue_type = type_pointed_to(ref_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (is_tracking_reference_type(ref_type)) {
     expr->variant.operation.is_tracking_reference_cast = TRUE;

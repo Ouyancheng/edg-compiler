@@ -14266,9 +14266,12 @@ typedef struct an_expr_node {
                            lvalue to an rvalue simply by clearing the is_lvalue
                            flag, this records the type the lvalue had (which
                            may have cv-qualifiers that were dropped in the
-                           rvalue type).  NULL otherwise.  Note that
-                           this field will also be NULL for expressions that
-                           were created during the lowering process. */
+                           rvalue type).  Also set for casts to reference type
+                           (is_reference_cast is TRUE), to indicate the
+                           underlying type of the cast.  NULL otherwise.
+                           Note that this field will also be NULL for
+                           expressions that were created during the lowering
+                           process. */
   an_expr_node_ptr
                 next;
                         /* When this node is part of a list of operands, this

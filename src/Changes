@@ -6,11 +6,13 @@ Original lvalue type now captured on lvalue-to-rvalue conversion
 A new field, orig_lvalue_type, has been added to an_expr_node to capture
 the original type of the lvalue when an expression is converted from an
 lvalue to an rvalue simply by clearing the is_lvalue flag.
-cv-qualifiers are dropped during the lvalue-to-rvalue conversion and prior
+cv-qualifiers are dropped during the lvalue-to-rvalue conversion, and prior
 to this change the original lvalue type (with any cv-qualifiers) had not been
-available in the IL.  orig_lvalue_type is NULL if the expression hasn't
-undergone an rvalue-to-lvalue conversion or if the expression was created
-during the lowering process.
+available in the IL.  orig_lvalue_type is also set for casts to reference
+types (i.e., when is_reference_cast is TRUE), to the underlying type
+of the cast (whether the cast produces an lvalue or rvalue).  The
+field is NULL otherwise, and (for now at least) it's NULL if the
+expression was created during the lowering process.
 
 
 1/8/13   [EDGcpfe/13270]

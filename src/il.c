@@ -23885,7 +23885,9 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
   }  /* if */
 #if CHECKING
   if (node->orig_lvalue_type != NULL) {
-    check_assertion(node_includes_lvalue_to_rvalue_conv(node));
+    check_assertion(node_includes_lvalue_to_rvalue_conv(node) ||
+                    (is_operation_node(node) &&
+                     node->variant.operation.is_reference_cast));
   }  /* if */
 #endif /* CHECKING */
   return !operand_error;
@@ -24553,14 +24555,10 @@ so that it can be used by back ends.
   /* A cast to a reference type. */
   if (!expr->is_lvalue) {
     /* The cast has an lvalue-to-rvalue conversion built in, so the node
-       type may be a little different from the underlying cast type. */
-    if (expr->orig_lvalue_type != NULL) {
-      /* If the type was saved on conversion from lvalue to rvalue,
-         use that.  It has the complete set of cv-qualifiers. */
-      dest_type = expr->orig_lvalue_type;
-    } else {
-      unexpected_condition();
-    }  /* if */
+       type may be a little different from the underlying cast type.
+       Use the type saved when the reference cast was recorded. */
+    dest_type = expr->orig_lvalue_type;
+    check_assertion(dest_type != NULL);
   }  /* if */
   /* Substitute a reference type for the destination type. */
 #if !STANDALONE_UTILITY_PROGRAM
