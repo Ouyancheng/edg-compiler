@@ -4475,14 +4475,13 @@ on every expression.
           } else if (is_cast_operation_node(expr)) {
             /* Casts. */
             char       *new_style_op = NULL;
-            a_type     ref_type, quals_type;
+            a_type     ref_type;
             a_type_ptr dest_type = expr->type;
             if (expr->variant.operation.is_reference_cast ||
                 op == (an_expr_operator_kind)eok_ref_cast ||
                 op == (an_expr_operator_kind)eok_ref_dynamic_cast) {
               /* A cast to a reference type. */
-              destination_type_for_reference_cast(expr,
-                                                  &ref_type, &quals_type);
+              destination_type_for_reference_cast(expr, &ref_type);
               dest_type = &ref_type;
             }  /* if */
             if (expr->is_static_cast) {

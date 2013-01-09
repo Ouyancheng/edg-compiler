@@ -24533,18 +24533,15 @@ be used, but there are exceptions.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void destination_type_for_reference_cast(an_expr_node_ptr  expr,
-                                         a_type            *ref_type,
-                                         a_type            *quals_type)
+                                         a_type            *ref_type)
 /*
 The type of an (rvalue) reference cast operation doesn't reflect the
 (rvalue) reference, but that type is needed both for mangling as well as
 in the C++ generating back end.  This routine returns, in *ref_type, a
 type that approximates the type used in the source code (as specified by
-expr->type).  quals_type points to an a_type structure that may be
-referred to by the returned *ref_type.  Note that this routine uses
-pointers to a_type parameters that are supplied by the caller rather
-than simply constructing and returning types so that it can be used
-by back ends.
+expr->type).  Note that this routine uses pointers to a_type parameters that
+are supplied by the caller rather than simply constructing and returning types
+so that it can be used by back ends.
 */
 {
   a_type_ptr       dest_type = expr->type;

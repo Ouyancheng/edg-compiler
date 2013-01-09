@@ -8951,14 +8951,14 @@ is_reinterpret_cast indicate it.
   a_type_ptr            dest_type = expr->type;
   an_expr_operator_kind op = expr->variant.operation.kind;
   an_expr_node_ptr      operand_1 = expr->variant.operation.operands;
-  a_type                ref_type, quals_type;
+  a_type                ref_type;
   char                  *new_cast_keyword = NULL;
 
   if (expr->variant.operation.is_reference_cast ||
       op == (an_expr_operator_kind)eok_ref_cast ||
       op == (an_expr_operator_kind)eok_ref_dynamic_cast) {
     /* A cast to a reference type. */
-    destination_type_for_reference_cast(expr, &ref_type, &quals_type);
+    destination_type_for_reference_cast(expr, &ref_type);
     dest_type = &ref_type;
   } else if (is_cast_of_UDC_to_different_pointer_type(dest_type, operand_1)) {
     /* Ensure that a class object is not explicitly cast to a pointer type
