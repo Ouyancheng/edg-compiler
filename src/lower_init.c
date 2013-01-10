@@ -12234,10 +12234,11 @@ have already had their designated initializers lowered.
 static a_boolean recompute_partially_initialized_flag(a_constant_ptr aggr_con,
                                                       a_type_ptr     aggr_type)
 /*
-Check the initialization constant aggr_con to determine if
-it partially initializes the aggregate.  aggr_type is the type of the
-aggregate being initialized.  Returns TRUE if the constant only
-partially initializes the aggregate; otherwise returns FALSE.
+Check the initialization constant, aggr_con, to determine if it partially
+initializes the aggregate type, aggr_type, that is being initialized.  Returns
+TRUE if the constant only partially initializes the aggregate; otherwise
+returns FALSE.  Also sets aggr_con->partial_aggr_value to reflect the new
+value.
 */
 { 
   a_constant_ptr        temp_con;
@@ -12252,17 +12253,27 @@ partially initializes the aggregate; otherwise returns FALSE.
   } else {
     check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
     temp_con = aggr_con->variant.aggregate.first_constant;
-    /* Union is fully initialized if it has at least one initializer. */
-    if (is_union_type(aggr_con->type)) {
-      is_partially_initialized = (temp_con == NULL);
-      goto done;
-    }  /* if */
     /* Set initial positions in both aggregate and constant. */
     init_aggregate_position(aggr_con, &aggr_pos);
     set_init_con_pos(temp_con, &con_pos);
     /* Iterate for each constant in the aggregate constant. */
     while (con_pos.ptr != NULL) {
       temp_con = con_pos.ptr;
+      if (temp_con->kind == (a_constant_repr_kind)ck_designator) {
+        /* Generally speaking, designators have been removed, but that's not
+           the case for unions where a designator is left in place if a field
+           other than the first field of the union is being initialized.
+           Move the aggregate position accordingly. */
+        check_assertion(is_union_type(aggr_type) && temp_con->next != NULL);
+        if (temp_con->variant.designator.field == NULL) {
+          aggr_pos.curr_elem = temp_con->variant.designator.array_element;
+        } else {
+          set_aggregate_position_for_field(temp_con->variant.designator.field,
+                                           &aggr_pos);
+        }  /* if */
+        temp_con = temp_con->next;
+        set_init_con_pos(temp_con, &con_pos);
+      }  /* if */
       if (temp_con->kind == (a_constant_repr_kind)ck_init_repeat) {
         temp_con = temp_con->variant.init_repeat.constant;
       }  /* if */
@@ -12293,10 +12304,16 @@ partially initializes the aggregate; otherwise returns FALSE.
     }  /* while */
     /* We've exhausted the list of constants.  If there are any more
        fields in the aggregate, this initializer only partially
-       initializes the aggregate. */
-    is_partially_initialized = any_more_members_in_aggregate(&aggr_pos);
+       initializes the aggregate (unless the aggregate is a union). */
+    if (is_union_type(aggr_type)) {
+      is_partially_initialized = FALSE;
+    } else {
+      is_partially_initialized = any_more_members_in_aggregate(&aggr_pos);
+    }  /* if */
   }  /* if */
 done:
+  /* Re-set partial_aggr_value for this aggregate based on our findings. */
+  aggr_con->partial_aggr_value = is_partially_initialized;
   return is_partially_initialized;
 }  /* recompute_partially_initialized_flag */
 

@@ -1,5 +1,33 @@
 Version 4.6
 
+1/10/13  [EDGcpfe/13571]
+Designated initializers in unions with partial aggregate initialization
+
+In C-generating back end configurations, the re-computation of the
+is_partially_initialized flag during lowering for a dynamic init had been
+incorrect in some cases involving designated initializers in unions,
+resulting in generated C code that failed to completely initialize
+the target.  This has now been fixed.  Additionally, the partial_aggr_value
+flag of a_constant is now also set during the re-computation of the
+is_partially_initialized flag (previously the value originally determined
+by the front end had been passed through lowering, irrespective of
+changes made to the constant when lowering designated initializers).
+This example (with --c99) had left the last two elements of the array
+uninitialized:
+
+  extern int printf(const char *,...);
+  union A {
+    int b[2][2];
+  };
+  int main() {
+    int x;
+    x = 99;
+    union A u = { { [0][1] = x } };
+    printf("%d %d %d %d\n", u.b[0][0], u.b[0][1], u.b[1][0], u.b[1][1]);
+    return (u.b[0][0] + u.b[0][1] + u.b[1][0] + u.b[1][1]) != 99;
+  }
+
+
 1/9/13   [EDGcpfe/13231]
 Original lvalue type now captured on lvalue-to-rvalue conversion
 

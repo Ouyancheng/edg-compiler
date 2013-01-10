@@ -446,6 +446,9 @@ typedef struct an_init_control_block {
 			   assignments in this initialization.  Therefore,
 			   the test must be closed at the end of the
 			   assignments. */
+#if CHECKING
+  a_boolean     zeroed;	/* TRUE if the variable has been zeroed. */
+#endif /* CHECKING */
 } an_init_control_block;
 
 /* Value to use to specify that no source correspondence is provided. */
@@ -6545,6 +6548,9 @@ Clear the flags that control dump_initializer output.
   icbp->initializer_assignments_started = FALSE;
   icbp->suppress_initializer_equals = FALSE;
   icbp->first_time_test_closing_needed = FALSE;
+#if CHECKING
+  icbp->zeroed = FALSE;
+#endif /* CHECKING */
 }  /* clear_initialization_flags */
 
 
@@ -6774,6 +6780,9 @@ If this assignment is the first one, put out anything that must precede it.
             (init_kind == (an_init_kind)initk_dynamic &&
              variable->initializer.dynamic->is_partially_initialized)) {
           zero_variable(variable);
+#if CHECKING
+          icbp->zeroed = TRUE;
+#endif /* CHECKING */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7073,6 +7082,14 @@ block with state information for the processing.
     ipdp->type = type;
     ipdp->curr_field = NULL;
     if (constant != NULL) {
+      /* Ensure that a variable for which we're generating initializing
+         assignments has been previously zeroed if the constant that is
+         initializing it is only partially-initialized (otherwise some portion
+         of the variable may be uninitialized). */
+      check_assertion_str(!(*gen_assignments &&
+                            constant->partial_aggr_value &&
+                            !icbp->zeroed),
+           "dump_initializer_part: can't generate code for partial aggregate");
       elem_con = constant->variant.aggregate.first_constant;
       check_assertion_str(constant->type != NULL,
                          "dump_initializer_part: ck_aggregate with null type");
