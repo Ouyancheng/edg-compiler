@@ -11025,7 +11025,9 @@ gen_expr that might end up generating this expr as a temporary.
   if (is_operation_node(expr)) {
     check_operation_node_consistency(expr);
   } else {
+#if EXPENSIVE_CHECKING
     check_assertion(tree_has_correct_lvalueness(expr));
+#endif /* EXPENSIVE_CHECKING */
   }  /* if */
 #endif /* CHECKING */
 #if GNU_EXTENSIONS_ALLOWED
