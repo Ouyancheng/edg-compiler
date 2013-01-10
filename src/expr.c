@@ -17423,7 +17423,10 @@ but apply for all kinds of casts.  If the operand is supposed to undergo
 array --> pointer (etc.) transformations, they should have been done before
 this routine is called.  *ruled_out_expr_kinds is set to to the kinds of
 expressions that are ruled out by this cast (e.g., integral constant
-expressions allow only certain limited casts).
+expressions allow only certain limited casts).  For C++11, if the
+cast is not allowed in a constant expression a routine is called to
+either issue an error or set a flag indicating the current expression
+contains something not valid in a constant expression.
 */
 {
   a_boolean         err = FALSE;
@@ -17698,15 +17701,15 @@ expressions allow only certain limited casts).
          such a cast are the same in all contexts and are enforced
          elsewhere.) */
     } else if (microsoft_mode &&
-               is_pointer_type(dest_type) && is_pointer_type(operand->type) &&
+               is_pointer_type(dest_type) && is_pointer_type(source_type) &&
                f_same_entities(type_pointed_to(dest_type),
-                            f_skip_typerefs(type_pointed_to(operand->type)))) {
+                              f_skip_typerefs(type_pointed_to(source_type)))) {
       /* A cast that strips qualifiers from a pointer type.  Allow as an
          extension in Microsoft mode. */
     } else if ((microsoft_bugs || (gpp_mode && gnu_version < 30400)) &&
                is_pointer_type(dest_type) &&
-               (is_pointer_type(operand->type) ||
-                is_integral_type(operand->type))) {
+               (is_pointer_type(source_type) ||
+                is_integral_type(source_type))) {
       /* A more controversial cast to pointer type.  Allow in Microsoft bugs
          and some g++ modes. */
     } else if (is_template_param_type(dest_type)) {
@@ -17717,6 +17720,19 @@ expressions allow only certain limited casts).
         diagnose_bad_template_arg_operation(type_position);
       }  /* if */
       err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (constexpr_enabled) {
+    /* Some things are not valid in C++11 constant expressions. */
+    /* Core issue 1312: a cast from pointer-to-void to pointer-to-object
+       is not allowed in a constant expression. */
+    if (is_pointer_type(source_type) &&
+        is_void_type(type_pointed_to(source_type)) &&
+        is_pointer_to_object_type(dest_type)) {
+      if (construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+                                                       type_position)) {
+        err = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return !err;
