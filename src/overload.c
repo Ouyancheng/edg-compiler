@@ -20547,6 +20547,7 @@ conversion, etc.)
   a_boolean          initializing_var = (conv_context &
                                          CCO_INITIALIZING_VARIABLE) != 0;
   a_boolean          is_new_expr = (conv_context & CCO_NEW_INITIALIZER) != 0;
+  a_boolean          is_partially_initialized = FALSE;
 
   check_assertion(is_braced_init_component(list_icp));
   if (p_dip != NULL) *p_dip = NULL;
@@ -20701,6 +20702,10 @@ conversion, etc.)
       }  /* if */
       aggr_constant->variant.aggregate.last_constant = con;
     }  /* if */
+    if (con != NULL && con->partial_aggr_value) {
+      /* Set a flag to indicate that the aggregate is partially initialized. */
+      is_partially_initialized = TRUE;
+    }  /* if */
   }  /* for */
   if (arg_match == NULL) {
     /* Make the type of the temporary array. */
@@ -20721,6 +20726,7 @@ conversion, etc.)
     dip->variant.constant = aggr_constant;
     dip->is_braced_initializer = TRUE;
     dip->destructor = dtor;
+    dip->is_partially_initialized = is_partially_initialized;
     expr = alloc_temp_init_node(array_type, dip,
                                 /*is_lvalue=*/TRUE,
                                 /*is_explicit_cast=*/FALSE);

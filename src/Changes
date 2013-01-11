@@ -1,5 +1,23 @@
 Version 4.6
 
+1/10/13  [EDGcpfe/13572]
+is_partially_initialized flag set incorrectly on std::initializer_list objects
+
+The is_partially_initialized flag had been set incorrectly on some
+dynamic initializations involving std::initializer_list objects raising
+the possibility that back ends might not properly initialize the
+std::initializer_list object.  This is now fixed.  For example (with --c++11):
+
+  #include <initializer_list>
+  int main() {
+    std::initializer_list<int[3]> x = {
+      {},
+      {1,2,3}
+    };
+    return (x.begin()[0][0] | x.begin()[0][1] | x.begin()[0][2]);
+  }
+
+
 1/10/13  [EDGcpfe/13571]
 Designated initializers in unions with partial aggregate initialization
 
