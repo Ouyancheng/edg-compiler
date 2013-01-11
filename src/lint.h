@@ -602,6 +602,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_pragma_gcc_system_header_in_primary_file)*/
 /*lint -esym(769,ec_3rd_arg_of_assume_aligned_must_be_integral)*/
 /*lint -esym(769,ec_only_gnu_attributes_here)*/
+/*lint -esym(769,ec_bad_argument_for_bases)*/
+/*lint -esym(769,ec_bad_prototype_argument_for_bases)*/
+/*lint -esym(769,ec_bases_not_in_template)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/
