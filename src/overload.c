@@ -20668,6 +20668,7 @@ conversion, etc.)
           /* The initialization is to a constant. */
           con = init_state.init_con;
           check_assertion(con != NULL);
+          if (init_state.partial_initializer) is_partially_initialized = TRUE;
         }  /* if */
         /* If a destructor must be specified, force a dynamic
            initialization. */
@@ -20701,10 +20702,6 @@ conversion, etc.)
         aggr_constant->variant.aggregate.last_constant->next = con;
       }  /* if */
       aggr_constant->variant.aggregate.last_constant = con;
-    }  /* if */
-    if (con != NULL && con->partial_aggr_value) {
-      /* Set a flag to indicate that the aggregate is partially initialized. */
-      is_partially_initialized = TRUE;
     }  /* if */
   }  /* for */
   if (arg_match == NULL) {
