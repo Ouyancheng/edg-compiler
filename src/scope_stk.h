@@ -273,8 +273,10 @@ typedef enum /* a_pack_reference_kind */ {
   prk_template_param,	/* A template parameter pack */
   prk_variable,		/* An argument pack represented by a parameter
 			   variable. */
-  prk_parameter		/* An argument pack represented by a parameter
+  prk_parameter,	/* An argument pack represented by a parameter
 			   symbol. */
+  prk_bases		/* A generated pack that represents a g++ __bases
+			   or __direct_bases trait. */
 } a_pack_reference_kind;
 
 
@@ -299,7 +301,8 @@ typedef struct a_pack_reference {
 			   pointer is cleared when the end of the prototype
 			   instantiation of the function is reached
 			   because the variable pointed to will be in the
-			   function memory region. */
+			   function memory region.  NULL for prk_bases
+			   entries. */
   uint32_t	param_num;
 			/* This is used for function parameter packs to
 			   record the parameter number of the parameter
@@ -351,9 +354,9 @@ typedef struct a_pack_reference {
 			   be used for the current expansion. */
     a_template_arg_ptr
 		template_arg;
-			/* When kind == prk_template_param, this points to the
-			   template argument entry to be used for the current
-			   expansion. */
+			/* When kind == prk_template_param or prk_bases, this
+			   points to the template argument entry to be used
+			   for the current expansion. */
   } curr_argument;
   a_template_arg_ptr
 		prev_template_arg;
@@ -368,6 +371,10 @@ typedef struct a_pack_reference {
 			   enclosing template context.  This is the case
 			   when, for example, a template parameter from
 			   an outer template is used in a nested template. */
+  a_byte_boolean
+		direct_bases;
+			/* For a prk_bases entry, this is TRUE if the
+			   entry is for a __direct_bases, FALSE otherwise. */
 } a_pack_reference;
 
 
@@ -2053,9 +2060,23 @@ a_boolean advance_to_next_pack_element(a_pack_expansion_stack_entry_ptr	pesep);
 extern
 void abandon_potential_pack_expansion_context(
 				a_pack_expansion_stack_entry_ptr	pesep);
+
+extern void record_potential_pack_reference_full(
+				a_symbol_ptr		pack_symbol,
+				a_source_position_ptr	position,
+				a_type_ptr		bases_type,
+				a_boolean		direct_bases);
+
 extern
 void record_potential_pack_reference(a_symbol_ptr		pack_symbol,
 				     a_source_position_ptr	position);
+
+#if GNU_EXTENSIONS_ALLOWED
+extern a_type_ptr get_type_for_bases_operator(
+				a_type_ptr		bases_type,
+				a_source_position_ptr	position,
+				a_boolean		direct_bases);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern void record_pack_expansion_ellipsis(void);
 

@@ -1505,14 +1505,16 @@ in the current context.
 
 an_expr_node_ptr decltype_arg(a_type_ptr  type)
 /*
-The given type represents a decltype or typeof construct.  Return its argument
-expression if available, or NULL otherwise.
+The given type represents a decltype, typeof, or other type construct.
+Return its argument expression if available, or NULL otherwise.
 */
 {
   an_expr_node_ptr  expr = type->variant.typeref.extra_info->expr;
 
-  if (type->variant.typeref.is_underlying_type) {
-    /* __underlying_type constructs don't allow expression arguments. */
+  if (type->variant.typeref.is_underlying_type ||
+      type->variant.typeref.is_bases) {
+    /* __underlying_type and __based constructs don't allow expression
+        arguments. */
   } else if (expr == NULL && innermost_function_scope != NULL) {
     a_local_expr_node_ref_kind  lerk = type->variant.typeref.is_decltype ?
                                    (a_local_expr_node_ref_kind)lerk_decltype :
@@ -1719,7 +1721,8 @@ by octl.
           }  /* if */
           octl->output_str(")", octl);
         }  /* if */
-      } else if (type->variant.typeref.is_underlying_type) {
+      } else if (type->variant.typeref.is_underlying_type ||
+                 type->variant.typeref.is_bases) {
         if (octl->gen_compilable_code && octl->output_name != NULL) {
           /* It may seem strange to use "output_name" to render a type that
              doesn't really have a name.  However, this uses the same
@@ -1728,7 +1731,15 @@ by octl.
              types. */
           octl->output_name((char*)type, iek_type);
         } else {
-          octl->output_str("__underlying_type(", octl);
+          if (type->variant.typeref.is_underlying_type) {
+            octl->output_str("__underlying_type(", octl);
+          } else {
+            check_assertion(type->variant.typeref.is_bases);
+            octl->output_str(type->variant.typeref.direct_bases
+                                                   ? (char *)"__direct_bases("
+                                                   : (char *)"__bases(",
+                             octl);
+          }  /* if */
           form_type(type->variant.typeref.extra_info->operator_type_arg, octl);
           octl->output_str(")", octl);
         } /* if */
@@ -1969,11 +1980,12 @@ available or not portable).
          C-generating back end. */
       render = FALSE;
     } else if (type->variant.typeref.is_underlying_type ||
+               type->variant.typeref.is_bases ||
                (!type->variant.typeref.is_decltype &&
                 decltype_arg(type) == NULL)) {
-      /* A non-expression case: __underlying_type or typeof applied to a type
-         name.  Render the operator in the C++-generating back end (to match
-         the source form) or when the argument is template-dependent.
+      /* A non-expression case: __underlying_type, typeof, etc. applied to
+         a type name.  Render the operator in the C++-generating back end
+         (to match the source form) or when the argument is template-dependent.
          Otherwise, render the underlying type. */
       render = octl->gen_compilable_code ||
                type->variant.typeref.is_dependent_type_operator;

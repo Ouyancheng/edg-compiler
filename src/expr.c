@@ -12331,6 +12331,89 @@ type of the expression.
   pop_expr_stack();
 }  /* typedef_initializer */
 
+
+a_type_ptr scan_bases_operator(void)
+/*
+Scan the __bases or __direct_bases operator.  This is a g++ construct that is
+similar to decltype.  It is used in type contexts, not expression contexts.
+
+Syntax:
+        __bases( type-name ) ...
+        __direct_bases( type-name ) ...
+
+The parentheses are required.  The "__bases(type-name)"  or
+"__direct_bases(type-name)" is treated as a pack reference, and so it must
+be followed by a pack expansion ellipsis.  This routine creates the pack
+reference, and the end of pack expansion context processing will check for
+the presence of the ellipsis.  The construct (after pack expansion processing)
+expands to a list of base classes or direct base classes of the specified type.
+
+This routine is intended to be called from outside of the
+expression-processing routines.
+*/
+{
+  a_type_ptr		result;
+  a_type_ptr		type_arg;
+  a_source_position	type_position;
+  a_boolean		direct_bases;
+  a_boolean		err = FALSE;
+  char			*token_name;
+
+  check_assertion(curr_token == tok_bases || curr_token == tok_direct_bases);
+  token_name = token_names[(int)curr_token];
+  /* Skip the __bases token. */
+  direct_bases = curr_token == tok_direct_bases;
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_stop_token(tok_rparen);
+  type_position = pos_curr_token;
+  type_name(&type_arg);
+  /* Check for and pass over the right parenthesis. */
+  remove_stop_token(tok_rparen);
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  if (!is_template_context()) {
+    /* Because it is treated as a pack, the construct is only permitted
+       in template contexts. */
+    pos_st_error(ec_bases_not_in_template, &type_position, token_name);
+    err = TRUE;
+  } else if (is_template_dependent_context()) {
+    a_symbol_ptr	sym = symbol_for(type_arg);
+    /* In a template declaration or definition the argument must be a
+       template type parameter. */
+    if (sym == NULL || !is_template_param_type(type_arg) ||
+        !sym->is_template_param) {
+      pos_error(ec_bad_prototype_argument_for_bases, &type_position);
+      err = TRUE;
+    }  /* if */
+  } else {
+    /* During an instantiation the argument must be a class type. */
+    type_arg = skip_typerefs(type_arg);
+    if (!is_immediate_class_type(type_arg)) {
+      pos_error(ec_bad_argument_for_bases, &type_position);
+      err = TRUE;
+    }  /* if */
+  }  /* if */    
+  if (err) {
+    result = error_type();
+  } else {
+    /* The operator is considered a pack reference.  During a prototype
+       instantiation a special pack is created.  During a real instantiation,
+       the current base class o the generated pack is returned. */
+    a_type_ptr  type = alloc_type((a_type_kind)tk_typeref);
+    type->variant.typeref.is_bases = TRUE;
+    type->variant.typeref.is_dependent_type_operator =
+                                               is_template_dependent_context();
+    type->variant.typeref.direct_bases = direct_bases;
+    result = get_type_for_bases_operator(type_arg, &type_position,
+                                         direct_bases);
+    type->variant.typeref.type = result;
+    type->variant.typeref.extra_info->operator_type_arg = type_arg;
+    result = type;
+  }  /* if */
+  return result;
+}  /* scan_bases_operator */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static a_type_ptr scan_type_generic_expression_and_return_type(void)

@@ -1220,6 +1220,9 @@ typedef enum /*a_token_kind*/ {
   tok_is_final,
   tok_noexcept,
   tok_constexpr,
+  /* g++ variadic type traits. */
+  tok_bases,
+  tok_direct_bases,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1362,6 +1365,8 @@ EXTERN char	*token_names[(int)tok_last+1]
    "override", "final", "__is_final",
    "noexcept",
    "constexpr",
+   "__bases",
+   "__direct_bases",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -7385,7 +7390,8 @@ typedef struct a_typeref_type_supplement {
 			   use has been encountered. */
   a_type_ptr	operator_type_arg;
 			/* The type that originally appeared as the argument
-			   to the __underlying_type or typeof operator. */
+			   to the __underlying_type, typeof, __bases or
+			   __direct_bases operator. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
 		type_id_range;
@@ -8510,6 +8516,14 @@ typedef struct a_type {
 		is_prototype_instantiation:1;
 			/* TRUE when this type is a nonreal type that
 		 	   is a prototype instantiation. */
+      a_bit_field
+		is_bases:1;
+			/* TRUE for a typeref entry for a g++ __bases or
+			   __direct_bases operator. */
+      a_bit_field
+		direct_bases:1;
+			/* If is_bases is TRUE, this is FALSE for __bases
+			   and TRUE for __direct_bases. */
       bitfield_to_avoid_codecenter_warnings()
     } typeref;
     /* When kind == tk_ptr_to_member: */

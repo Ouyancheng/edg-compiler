@@ -499,7 +499,9 @@ Initialize a template declaration state block.
   tdsp->partial_spec_outside_of_class_template = FALSE;
   tdsp->is_template_template_param = FALSE;
   tdsp->is_template_template_param_rescan = FALSE;
-  tdsp->is_variadic = FALSE;
+  /* Because the __bases and __direct_bases use the variadic mechanism,
+     all template declaration contexts must be considered variadic. */
+  tdsp->is_variadic = gnu_bases_operators_enabled;
   tdsp->is_generic = FALSE;
   tdsp->is_delegate = FALSE;
   tdsp->generic_constraints_pending = FALSE;
@@ -8518,6 +8520,10 @@ points to the template parameter list.
     /* decltype and typeof should be considered nondeduced.  Consider
        this a match for now. */
     match = TRUE;
+  } else if (templ_type->kind == (a_type_kind)tk_typeref &&
+             type->variant.typeref.is_bases) {
+    /* Deduction and substitution of __bases and __direct_bases is not
+       supported. */
   } else if (is_template_param_type(templ_type)) {
     if (is_qualified_type(templ_type)) {
       /* If the template parameter has any type qualifiers, the argument type
@@ -10220,6 +10226,9 @@ a pointer over a reference type or creating an array of references.
             /* __underlying_type doesn't apply to non-enum types. */
             *copy_error = TRUE;
           }  /* if */
+        } else if (type->variant.typeref.is_bases) {
+          /* Substitution of __bases and __direct_bases is not supported. */
+          *copy_error = TRUE;
         } else {
           /* Make an identically qualified type of a copy (or reuse) of the
              type that underlies the typeref. */

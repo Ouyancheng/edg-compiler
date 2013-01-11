@@ -2201,6 +2201,12 @@ Display the indicated type entry.
       if (ptr->variant.typeref.is_prototype_instantiation) {
         disp_boolean("is_prototype_instantiation", TRUE);
       }  /* if */
+      if (ptr->variant.typeref.is_bases) {
+        disp_boolean("is_bases", TRUE);
+      }  /* if */
+      if (ptr->variant.typeref.direct_bases) {
+        disp_boolean("direct_bases", TRUE);
+      }  /* if */
       break;
     case tk_ptr_to_member:
       disp_ptr("class_of_which_a_member",

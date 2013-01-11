@@ -5246,6 +5246,9 @@ such cases.
 {
   a_source_sequence_scan_state  saved_state;
   a_boolean                     is_decltype = tp->variant.typeref.is_decltype;
+  a_boolean                     is_bases = tp->variant.typeref.is_bases;
+  a_boolean                     direct_bases =
+                                              tp->variant.typeref.direct_bases;
   a_boolean                     is_underlying_type =
                                        tp->variant.typeref.is_underlying_type;
   char                          *kwd;
@@ -5261,6 +5264,8 @@ such cases.
     }  /* if */
   } else if (is_underlying_type) {
     kwd = (char *)"__underlying_type(";
+  } else if (is_bases) {
+    kwd = direct_bases ? (char *)"__direct_bases(" : (char *)"__bases(";
   } else {
     kwd = (char *)"__typeof__(";
   }  /* if */
@@ -5307,7 +5312,7 @@ srq_seq_sublist_parent_found:
     }  /* if */
     adv_curr_source_sequence_entry();
   }  /* if */
-  if (is_underlying_type
+  if (is_underlying_type || is_bases
 #if GNU_EXTENSIONS_ALLOWED
       || tp->variant.typeref.is_typeof_with_type_operand
 #endif /* GNU_EXTENSIONS_ALLOWED */

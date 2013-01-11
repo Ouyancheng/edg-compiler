@@ -1125,6 +1125,11 @@ EXTERN a_boolean
 			   packs) are accepted. */
 
 EXTERN a_boolean
+		gnu_bases_operators_enabled;
+			/* TRUE if the g++ __bases and __direct_bases operators
+			   are accepted. */
+
+EXTERN a_boolean
 		std_attributes_enabled;
 			/* TRUE if C++11 attribute syntax (e.g., [[final]]) is
 			   accepted. */

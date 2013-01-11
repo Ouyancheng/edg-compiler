@@ -2459,6 +2459,9 @@ ec_auto_used_two_ways;;"nonstandard use of \"auto\" to both deduce the type from
 ec_nonstd_qualified_void_param_list;;"declaring a void parameter list with a qualified void type is nonstandard"
 ec_qualifier_ignored_on_local_declaration;;"the qualifier on this local declaration is ignored"
 ec_bad_conv_constant_expr_type;;"this constant expression has type %t instead of the required %s type"
+ec_bad_argument_for_bases;;"an instantiation of __bases or __direct_bases requires a class type"
+ec_bad_prototype_argument_for_bases;;"the argument of __bases and __direct_bases must be a type template parameter"
+ec_bases_not_in_template;;"%s can only be used in template contexts"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

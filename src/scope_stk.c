@@ -3134,6 +3134,11 @@ the scope being pushed.
     if (kind == (a_scope_kind)sck_template_declaration) {
       ssep->depth_template_declaration_scope =
         depth_template_declaration_scope = depth_scope_stack;
+      if (gnu_bases_operators_enabled) {
+        /* Because the __bases and __direct_bases use the variadic mechanism,
+           all template declaration scopes must be considered variadic. */
+        ssep->in_variadic_template = TRUE;
+      }  /* if */
     } else if (kind == (a_scope_kind)sck_template_instantiation ||
                kind == (a_scope_kind)sck_instantiation_context) {
       /* A template instantiation.  The things outside the instantiation
@@ -9091,7 +9096,10 @@ in such cases.
   prp->function_scopes_to_skip = 0;
   switch (kind) {
     case prk_variable:       prp->curr_argument.variable = NULL;     break;
-    case prk_template_param: prp->curr_argument.template_arg = NULL; break;
+    case prk_template_param:
+    case prk_bases:
+      prp->curr_argument.template_arg = NULL; break;
+      break;
     case prk_parameter:
       /* Both entries are initialized to handle union-as-struct testing. */
       prp->curr_argument.param_id = NULL;
@@ -9102,6 +9110,7 @@ in such cases.
   }  /* switch */
   prp->prev_template_arg = NULL;
   prp->uses_enclosing_pack = FALSE;
+  prp->direct_bases = FALSE;
   return prp;
 }  /* alloc_pack_reference */
 
@@ -9706,6 +9715,44 @@ Return a pointer to the copy.
 }  /* copy_pack_reference */
 
 
+static a_template_arg_ptr make_base_class_arg_list(
+						a_type_ptr	class_type,
+						a_boolean	direct_bases,
+						uint32_t	*elements)
+/*
+Create a list of template arguments that represent the base classes of the
+bases of class_type.  direct_bases is TRUE for the __direct_bases operator,
+FALSE for the __bases operator.  Return the number of actual arguments in
+*elements.
+*/
+{
+  a_template_arg_ptr	arg_list = NULL;
+  a_template_arg_ptr	last_arg = NULL;
+
+  *elements = 0;
+  class_type = skip_typerefs(class_type);
+  /* The type might not be a class type in error cases. */
+  if (is_immediate_class_type(class_type)) {
+    a_base_class_ptr	bcp = base_classes_of(class_type);
+    for (; bcp != NULL; bcp = bcp->next) {
+      /* The __bases operator includes all bases, the __direct_bases only
+         direct bases. */
+      if (bcp->direct || !direct_bases) {
+        a_template_arg_ptr	tap;
+        tap = alloc_template_arg((a_templ_arg_kind)tak_type);
+        tap->variant.type = bcp->type;
+        tap->is_pack_element = TRUE;
+        if (arg_list == NULL) arg_list = tap;
+        if (last_arg != NULL) last_arg->next = tap;
+        last_arg = tap;
+        (*elements)++;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return arg_list;
+}  /* make_base_class_arg_list */
+
+
 static a_pack_instantiation_descr_ptr create_pack_instantiation_descr(
 		a_pack_expansion_descr_ptr		pedp,
 		a_template_param_ptr			templ_param_list,
@@ -9812,6 +9859,15 @@ lengths) *err is set to TRUE, FALSE otherwise.
                                          prp->symbol, &elements_for_pack,
                                          is_rescan, is_deduction);
         new_prp->curr_argument.template_arg = tap;
+      } else if (prp->kind == prk_bases) {
+        /* A g++ __bases or __direct_bases operator. */
+        a_template_arg_ptr	tap;
+        tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
+                                         prp->symbol, &elements_for_pack,
+                                         is_rescan, is_deduction);
+        new_prp->curr_argument.template_arg =
+                make_base_class_arg_list(tap->variant.type, prp->direct_bases,
+                                         &elements_for_pack);
       } else {
         check_assertion(prp->kind == prk_parameter);
         /* A parameter from a function prototype scope. */
@@ -9918,6 +9974,8 @@ pack expansion stack entry for which the symbols are to be updated.
         arg_prp->primary_var_or_param_symbol->variant.variable.ptr =
                                                arg_prp->curr_argument.variable;
       }  /* if */
+    } else if (param_prp->kind == prk_bases) {
+      /* There is nothing to be done for this case. */
     } else {
       check_assertion(param_prp->kind == prk_parameter);
       if (arg_prp->primary_var_or_param_symbol != NULL) {
@@ -10776,6 +10834,13 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
             update_template_param_symbol(sym, tap);
           }  /* if */
         }  /* if */
+      } else if (param_prp->kind == prk_bases) {
+        /* A template argument. */
+        a_template_arg_ptr	tap = arg_prp->curr_argument.template_arg;
+        /* Advance to the next argument, if any. */
+        tap = tap->next;
+        arg_prp->curr_argument.template_arg = tap;
+        if (tap == NULL) done = TRUE;
       } else {
         /* A parameter from a function prototype scope. */
         check_assertion(param_prp->kind == prk_parameter);
@@ -10869,8 +10934,11 @@ references and we are in a template definition context.
 }  /* any_packs_referenced */
 
 
-void record_potential_pack_reference(a_symbol_ptr		pack_symbol,
-				     a_source_position_ptr	position)
+void record_potential_pack_reference_full(
+				a_symbol_ptr		pack_symbol,
+				a_source_position_ptr	position,
+				a_type_ptr		bases_type,
+				a_boolean		direct_bases)
 /*
 This routine is called to determine whether pack_symbol is a reference
 to a parameter pack, and if so, make a record that the particular
@@ -10879,6 +10947,10 @@ The symbol passed in can be of any kind (but, an actual pack can only
 be a template parameter symbol for a template parameter pack, or a
 parameter or variable symbol for the parameter of a function parameter pack).
 The source position of the use of the symbol is indicated by position.
+It is also called to record the use of an implicit pack reference created
+for the g++ __bases or __direct_bases type operators, in which case bases_type
+is the type specified, and direct_bases is TRUE for the __direct_bases
+form.
 */
 {
   /* It is only possible to reference a pack expansion in a template
@@ -10887,13 +10959,13 @@ The source position of the use of the symbol is indicated by position.
   if (is_prototype_instantiation_context() &&
       (pack_expansion_stack == NULL || !pack_expansion_stack->is_rescan ||
        pack_expansion_stack->is_suppression)) {
-    if (symbol_is_pack(pack_symbol)) {
+    if (bases_type != NULL || symbol_is_pack(pack_symbol)) {
       /* Add this pack symbol to the list of packs in the scope stack
          entry. */
       a_pack_reference_ptr		prp;
       a_scope_stack_entry_ptr		ssep;
       a_pack_reference_ptr		*p_prp;
-      if (!pack_symbol->is_template_param &&
+      if (pack_symbol != NULL && !pack_symbol->is_template_param &&
           pack_symbol->kind == (a_symbol_kind)sk_type) {
         /* For type symbols, strip off any typerefs.  This is not done for
            template parameter symbols as you want to use the actual parameter
@@ -10905,7 +10977,8 @@ The source position of the use of the symbol is indicated by position.
       }  /* if */
       ssep = get_outermost_template_dependent_context();
       p_prp = &ssep->packs_referenced;
-      /* Look for an existing expansion of this symbol at this location. */
+      /* Look for an existing expansion of this symbol or type at this
+         location. */
       for (prp = ssep->packs_referenced; prp != NULL;
            p_prp = &prp->next, prp = prp->next) {
         if (prp->symbol == pack_symbol &&
@@ -10922,7 +10995,9 @@ The source position of the use of the symbol is indicated by position.
         /* An existing entry was not found.  Create a new one. */
         a_pack_reference_kind	kind;
         /* Determine the kind of entity being represented. */
-        if (pack_symbol->kind == (a_symbol_kind)sk_variable) {
+        if (bases_type != NULL) {
+          kind = prk_bases;
+        } else if (pack_symbol->kind == (a_symbol_kind)sk_variable) {
           kind = prk_variable;
         } else if (pack_symbol->kind == (a_symbol_kind)sk_parameter) {
           kind = prk_parameter;
@@ -10936,6 +11011,8 @@ The source position of the use of the symbol is indicated by position.
                             variant.variable.ptr->assoc_param_type->param_num;
         } else if (kind == prk_parameter) {
           prp->param_num = pack_symbol->variant.param_id->param_num;
+        } else if (kind == prk_bases) {
+          prp->direct_bases = direct_bases;
         } else {
           /* Determine whether the template parameter referenced is from
              an enclosing pack. */
@@ -10944,7 +11021,8 @@ The source position of the use of the symbol is indicated by position.
             depth = depth_template_declaration_scope;
           }  /* if */
           check_assertion(depth != NO_SCOPE_DEPTH);
-          prp->uses_enclosing_pack = pack_symbol->decl_scope !=
+          prp->uses_enclosing_pack = pack_symbol != NULL &&
+                                     pack_symbol->decl_scope !=
                                                      scope_stack[depth].number;
         }  /* if */
         prp->position = *position;
@@ -10955,15 +11033,80 @@ The source position of the use of the symbol is indicated by position.
 #if DEBUG
         if (db_flag_is_set("packs")) {
           fprintf(f_debug, "Recording pack reference for ");
-          db_symbol_name(pack_symbol);
+          if (pack_symbol != NULL) {
+            db_symbol_name(pack_symbol);
+          } else {
+            db_type_name(bases_type);
+          }  /* if */
           fprintf(f_debug, " at tsn %lu\n", (long)curr_token_sequence_number);
         }  /* if */
 #endif /* DEBUG */
       }  /* if */
     }  /* if */
   }  /* if */
+}  /* record_potential_pack_reference_full */
+
+
+void record_potential_pack_reference(a_symbol_ptr		pack_symbol,
+				     a_source_position_ptr	position)
+/*
+Interface to record_potential_pack_reference_full for the most common
+case where only a pack_symbol and position are provided.
+*/
+{
+  record_potential_pack_reference_full(pack_symbol, position, (a_type_ptr)NULL,
+                                       /*direct_bases=*/FALSE);
 }  /* record_potential_pack_reference */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+a_type_ptr get_type_for_bases_operator(
+				a_type_ptr		bases_type,
+				a_source_position_ptr	position,
+				a_boolean		direct_bases)
+/*
+This routine is called to record an implicit back reference created for the
+g++ __bases or __direct_bases type operators.  It is called both during
+prototype and real instantiations.  During a prototype instantiation,
+it creates a pack reference to the bases_type.   During a real instantiation
+it updates the pack reference for the instantiation to refer to bases_type.
+position is the source position of the operator.  direct_bases is TRUE for
+the __direct_bases form, FALSE otherwise.  During the prototype instantiation,
+bases_type is returned.  During a real instantiation, an element of the base
+class list is returned.
+*/
+{
+  a_symbol_ptr	sym;
+  a_type_ptr	result = NULL;
+
+  sym = symbol_for(bases_type);
+  if (is_prototype_instantiation_context()) {
+    record_potential_pack_reference_full(sym, position,
+                                         bases_type, direct_bases);
+    result = bases_type;
+  } else if (is_real_instantiation_context() &&
+             pack_expansion_stack != NULL) {
+    a_pack_reference_ptr		prp;
+    a_pack_expansion_stack_entry_ptr	pesep;
+    a_pack_instantiation_descr_ptr	pidp;
+    pesep = pack_expansion_stack;
+    pidp = pesep->instantiation_descr;
+    prp = pidp == NULL ? NULL : pidp->pack_status;
+    /* Look for an existing expansion of this symbol or type at this
+       location. */
+    for (prp = pidp->pack_status; prp != NULL; prp = prp->next) {
+      if (prp->token_sequence_number == curr_token_sequence_number) {
+        result = prp->curr_argument.template_arg->variant.type;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  check_assertion_or_expect_error(result != NULL);
+  if (result == NULL) result = error_type();
+  return result;
+}  /* get_type_for_bases_operator */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void record_pack_expansion_ellipsis(void)
 /*

@@ -856,6 +856,10 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_int128, "__int128");
     }  /* if */
 #endif /*  INT128_EXTENSIONS_ALLOWED */
+    if (gnu_version >= 40700) {
+      enter_keyword((a_token_kind)tok_bases, "__bases");
+      enter_keyword((a_token_kind)tok_direct_bases, "__direct_bases");
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Enable alternative token spellings. */
     enter_gnu_keyword((a_token_kind)tok_inline, "__inline");

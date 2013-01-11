@@ -9418,6 +9418,25 @@ process_enum_specifier:
           goto no_get_token;
         }
 #if GNU_EXTENSIONS_ALLOWED
+      case tok_bases:
+      case tok_direct_bases:
+        /* The g++ __bases or __direct_bases operators. */
+        { a_source_position  bases_pos = pos_curr_token;
+          *type_ptr = scan_bases_operator();
+          if (!is_error_type(*type_ptr) &&
+              (basic_type != bt_none || sign != sign_none ||
+               size != size_none)) {
+            /* We've already seen specifiers that cannot be combined with
+               __underlying_type: Ignore them and issue an error. */
+            pos_error(ec_bad_combination_of_type_specifiers, &bases_pos);
+            *type_ptr = error_type();
+            sign = sign_none;
+            size = size_none;
+          }  /* if */
+          basic_type = bt_typedef;
+          decl_specifiers_seen |= DS_TYPE;
+          goto no_get_token;
+        }
       case tok_typeof:
         { a_source_position  typeof_pos = pos_curr_token;
           *type_ptr = scan_typeof_operator((a_rescan_control_block *)NULL,

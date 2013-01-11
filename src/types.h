@@ -353,10 +353,12 @@ __underlying_type, or GNU typeof construct.
 #define typeref_is_type_operator(tp)                                   \
   ((tp)->variant.typeref.is_decltype ||                                     \
    (tp)->variant.typeref.is_underlying_type ||                              \
+   (tp)->variant.typeref.is_bases ||                                        \
    (tp)->variant.typeref.is_typeof)
 #else /* !GNU_EXTENSIONS_ALLOWED */
 #define typeref_is_type_operator(tp)                                   \
   ((tp)->variant.typeref.is_decltype ||                                     \
+   (tp)->variant.typeref.is_bases ||                                        \
    (tp)->variant.typeref.is_underlying_type)
 #endif /* GNU_EXTENSIONS_ALLOWED */
 

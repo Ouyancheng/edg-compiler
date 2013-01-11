@@ -1,5 +1,32 @@
 Version 4.6
 
+1/10/13  [EDGcpfe/12749]
+GNU C++ compatibility: __bases and __direct_bases operators
+
+The g++ __bases and __direct_bases operators are now supported in g++
+mode when gnu_version >= 40700.  These are needed to support the GNU
+tr2/type_traits header.  The argument of the operators must be a type
+template parameter and in an instantiation the actual type argument
+must be a class type.  Use of the operators in deduction and substitution
+contexts is not supported, as is the case with g++.
+
+  struct A {};
+  struct B {};
+  struct C : public A, B {};
+  struct D : public C {};
+  template <typename... Elements> struct typelist { };
+  template <typename T> struct bases {
+    typedef typelist<__bases(T)...> type;
+    type t;
+  };
+  template <typename T> struct direct_bases {
+    typedef typelist<__direct_bases(T)...> type;
+    type t;
+  };
+  bases<D> b;  // instantiates typelist<A,B,C>
+  direct_bases<C> d;  // instantiates typelist<A,B>
+
+
 1/10/13  [EDGcpfe/13572]
 is_partially_initialized flag set incorrectly on std::initializer_list objects
 

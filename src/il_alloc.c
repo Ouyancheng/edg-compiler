@@ -1810,6 +1810,8 @@ to default values.
       pte->variant.typeref.is_template_alias = FALSE;
       pte->variant.typeref.is_nonreal = FALSE;
       pte->variant.typeref.is_prototype_instantiation = FALSE;
+      pte->variant.typeref.is_bases = FALSE;
+      pte->variant.typeref.direct_bases = FALSE;
 #if CENTERLINE_CHECKING
       pte->variant.typeref.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

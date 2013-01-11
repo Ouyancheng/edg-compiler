@@ -618,6 +618,8 @@ extern a_type_ptr scan_underlying_type_operator(void);
 
 #if GNU_EXTENSIONS_ALLOWED 
 
+extern a_type_ptr scan_bases_operator(void);
+
 extern a_type_ptr scan_typeof_operator(a_rescan_control_block *rcblock,
                                        a_decl_pos_block       *decl_pos_block);
 

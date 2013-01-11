@@ -2474,6 +2474,7 @@ process.
   cpp11_sfinae_enabled = FALSE;
   cpp11_sfinae_ignore_access = FALSE;
   variadic_templates_enabled = FALSE;
+  gnu_bases_operators_enabled = FALSE;
   inline_namespaces_enabled = FALSE;
   assume_references_cannot_be_null = FALSE;
 #if DO_IL_LOWERING
@@ -3902,6 +3903,12 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   if (cpp11_mode && gnu_version >= 40500) {
     /* g++ 4.5 and later accept constexpr in C++11 mode. */
     constexpr_enabled =  TRUE;
+  }  /* if */
+  if (gnu_version >= 40700 && variadic_templates_enabled) {
+    /* g++ 4.7 and later support __bases and __direct_bases.  This uses the
+       variadic mechanism, so don't enable them if variadic templates have
+       been disabled. */
+    gnu_bases_operators_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
