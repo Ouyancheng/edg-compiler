@@ -9098,7 +9098,7 @@ in such cases.
     case prk_variable:       prp->curr_argument.variable = NULL;     break;
     case prk_template_param:
     case prk_bases:
-      prp->curr_argument.template_arg = NULL; break;
+      prp->curr_argument.template_arg = NULL;
       break;
     case prk_parameter:
       /* Both entries are initialized to handle union-as-struct testing. */
