@@ -2665,9 +2665,11 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
     *p_icp = icp->next;
 #if GNU_VECTOR_TYPES_ALLOWED
   } else if (etype_kind == (a_type_kind)tk_vector &&
-             (gpp_mode || is_braced_init_component(icp))) {
+             (gpp_mode || (gcc_mode && gnu_version >= 40500) ||
+              is_braced_init_component(icp))) {
     /* A braced component can initialize the elements of a GNU vector
-       individually.  GNU C++ also allows cases with elided braces. */
+       individually.  GCC also allows brace elision, except in early C
+       compilers. */
     is->non_top_level_aggregate = TRUE;
     is->arg_match = NULL;
     aggr_init_vector(p_icp, etype, is, diag_pos, init_con);

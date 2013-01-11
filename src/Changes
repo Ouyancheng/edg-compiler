@@ -115,13 +115,13 @@ don't have it until the real instantiation.  Now working again.
 1/8/13   [EDGcpfe/13354]
 Aggregate initialization of GNU vectors
 
-In GNU C++ mode (but not in GNU C mode), the aggregate initialization of a
-vector subobject no longer requires braces (similarly to standard array and
-aggregate struct types).  For example:
+In all GNU C++ modes and in GNU C modes with gnu_version >= 40500 the
+aggregate initialization of a vector subobject no longer requires braces
+(similarly to standard array and aggregate struct types).  For example:
 
   void g() {
     __attribute((vector_size(8))) int x[1] = { 37 };
-  }       // Now accepted and treated as "... = { { 37 } };" in GNU C++ mode.
+  }       // Now accepted and treated as "... = { { 37 } };".
 
 
 1/8/13   [EDGcpfe/13566]
