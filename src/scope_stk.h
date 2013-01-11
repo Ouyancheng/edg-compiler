@@ -2061,12 +2061,6 @@ extern
 void abandon_potential_pack_expansion_context(
 				a_pack_expansion_stack_entry_ptr	pesep);
 
-extern void record_potential_pack_reference_full(
-				a_symbol_ptr		pack_symbol,
-				a_source_position_ptr	position,
-				a_type_ptr		bases_type,
-				a_boolean		direct_bases);
-
 extern
 void record_potential_pack_reference(a_symbol_ptr		pack_symbol,
 				     a_source_position_ptr	position);

@@ -10934,7 +10934,7 @@ references and we are in a template definition context.
 }  /* any_packs_referenced */
 
 
-void record_potential_pack_reference_full(
+static void record_potential_pack_reference_full(
 				a_symbol_ptr		pack_symbol,
 				a_source_position_ptr	position,
 				a_type_ptr		bases_type,

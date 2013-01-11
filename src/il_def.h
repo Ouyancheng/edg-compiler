@@ -1220,9 +1220,11 @@ typedef enum /*a_token_kind*/ {
   tok_is_final,
   tok_noexcept,
   tok_constexpr,
-  /* g++ variadic type traits. */
+#if GNU_EXTENSIONS_ALLOWED
+  /* g++ variadic type operators. */
   tok_bases,
   tok_direct_bases,
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1365,8 +1367,10 @@ EXTERN char	*token_names[(int)tok_last+1]
    "override", "final", "__is_final",
    "noexcept",
    "constexpr",
+#if GNU_EXTENSIONS_ALLOWED
    "__bases",
    "__direct_bases",
+#endif /* GNU_EXTENSIONS_ALLOWED */
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
