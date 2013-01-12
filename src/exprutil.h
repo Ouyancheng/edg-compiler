@@ -2155,7 +2155,10 @@ extern void extract_constant_from_operand(an_operand     *operand,
 
 extern void discard_operand(an_operand *operand);
 
+extern a_boolean in_potential_constant_constexpr_context(void);
+
 extern void call_did_not_fold_to_constant(an_error_code err_code,
+                                          a_routine_ptr routine,
                                           an_operand    *operand);
 
 extern void prep_generic_nontype_template_argument(an_operand *operand);

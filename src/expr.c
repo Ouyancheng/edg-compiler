@@ -5347,6 +5347,7 @@ are expected to be NULL in that case.
     }  /* if */
   }  /* if */
   result_operand_is_call = FALSE;
+  routine = NULL;  /* Henceforth "routine actually called". */
   if (vacuous_destructor_case) {
     /* Vacuous destructor case; leave the original operand alone. */
     copy_operand(operand, result);
@@ -5361,12 +5362,12 @@ are expected to be NULL in that case.
   } else {
     /* Build the call node and an operand for it.  This includes cases where
        the function is unknown because the call is dependent. */
-    a_boolean     uses_operator_syntax = FALSE;
-    a_routine_ptr rp = routine_from_function_operand(operand);
+    a_boolean uses_operator_syntax = FALSE;
+    routine = routine_from_function_operand(operand);
     if (has_overloaded_call_operator) {
-      if (rp != NULL &&
-          rp->special_kind == (a_special_function_kind)sfk_operator &&
-          rp->variant.opname_kind == (an_opname_kind)onk_function_call) {
+      if (routine != NULL &&
+          routine->special_kind == (a_special_function_kind)sfk_operator &&
+          routine->variant.opname_kind == (an_opname_kind)onk_function_call) {
         /* The original "function" was a class object with an operator()
            member, and the resulting call is to an operator() (as opposed to
            using a conversion operator to a function pointer): mark the call
@@ -5390,7 +5391,7 @@ are expected to be NULL in that case.
                            &call_position, result, &function_call_node);
     result_operand_is_call = TRUE;
     if (!call_may_be_folded && constexpr_enabled &&
-        rp != NULL && rp->is_constexpr) {
+        routine != NULL && routine->is_constexpr) {
       /* constexpr function calls can sometimes be folded to a constant. */
       call_may_be_folded = TRUE;
     }  /* if */
@@ -5406,6 +5407,7 @@ are expected to be NULL in that case.
     call_did_not_fold_to_constant(constexpr_enabled ?
                                     ec_bad_cpp11_constant_function_call :
                                     ec_bad_constant_function_call,
+                                  routine,
                                   result);
   }  /* if */
   set_operand_position(result, &start_position, &closing_paren_position,
@@ -10344,6 +10346,7 @@ previously-scanned sizeof expression, and return the result in *result
     } else if (construct_not_allowed_in_cpp11_constant_expr(
                                                           ec_expr_not_constant,
                                                           &start_position)) {
+      /* sizeof(vla) not allowed in a C++11 constant expression. */
       make_error_operand(result);
     } else {
       /* Make an expression node to represent a sizeof that cannot be
@@ -20903,10 +20906,14 @@ freed by this routine.
       /* Error of some sort. */
       make_error_operand(result);
     } else {
+      a_routine_ptr routine = NULL;
       dip->is_explicit_cast = TRUE;
       make_expression_operand(temp_init_node, result);
       result->position = *start_position;
-      call_did_not_fold_to_constant(ec_expr_not_constant, result);
+      if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        routine = dip->variant.constructor.ptr;
+      }  /* if */
+      call_did_not_fold_to_constant(ec_expr_not_constant, routine, result);
       rule_out_expr_kinds(ROEK_CONSTANT, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs && microsoft_version < 1100) {
@@ -33412,12 +33419,16 @@ required_type will be void if the expression should have void type
     if (lambda_implicit_return_case) {
       /* A braced-init-list cannot be used for a lambda with an implicit
          return type, as it does not provide a type. */
+      make_error_operand(&result);
+      result.position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      result.end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       expr_pos_error(ec_braced_list_for_implicit_lambda_type,
-                     init_component_pos(icp));
+                     &result.position);
       arg_list_will_not_be_used_because_of_error(icp);
       free_init_component_list(icp);
       icp = NULL;
-      make_error_operand(&result);
       goto handle_implicit_lambda_return_type;
     }  /* if */
     expr_clear_init_state(&init_state);
@@ -33455,6 +33466,20 @@ handle_implicit_lambda_return_type:
            initialization entries where they were partially suppressed. */
         fix_up_dynamic_init_dtors();
       }  /* if */
+    }  /* if */
+  }  /* if */
+  if (curr_routine->is_constexpr &&
+      expr_stack->constant_expr_ruled_out) {
+    /* If the return of a constexpr function can't be a constant, issue
+       an error. */
+    a_boolean use_icp = (icp != NULL && !return_by_cctor_case);
+    if (use_icp ? init_state.init_error : is_error_operand(&result)) {
+      /* There was a previous error. */
+    } else {
+      expr_pos_diagnostic(es_discretionary_error,
+                          ec_constexpr_return_not_constant,
+                          use_icp ? init_component_pos(icp) :
+                                    &result.position);
     }  /* if */
   }  /* if */
   if (return_by_cctor_case) {

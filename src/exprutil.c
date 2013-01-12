@@ -5327,19 +5327,53 @@ This is only used in C++, for some strange cases.
 }  /* discard_operand */
 
 
+a_boolean in_potential_constant_constexpr_context(void)
+/*
+Return TRUE if we're inside the definition of a constexpr function or
+constructor, including the header, and we're in an expression that
+is not required to be constant in the definition but might be constant
+in an invocation of the function, e.g., the return expression.  Used to
+avoid setting the constant_expr_ruled_out flag for expressions that
+might turn out to be constant in the actual use.
+*/
+{
+  a_boolean potential_constant_context = FALSE;
+
+  if (constexpr_enabled &&
+      innermost_function_scope != NULL &&
+      current_routine_entry()->is_constexpr &&
+      !curr_expr_kind_is_const()) {
+    potential_constant_context = TRUE;
+  }  /* if */
+  return potential_constant_context;
+}  /* in_potential_constant_constexpr_context */
+
+
 void call_did_not_fold_to_constant(an_error_code err_code,
+                                   a_routine_ptr routine,
                                    an_operand    *operand)
 /*
 A call (or call-like construct) has been allowed with the hope that it
 would fold to a constant.  It's now known that it has not, so issue the
 indicated error on the given operand.  Also called in non-constant
 expressions, so that for C++11 it can record something that rules out
-a constant expression.
+a constant expression.  routine indicates the routine that was called,
+or is NULL if we don't know the specific routine (e.g., because of
+an error, or because the call was mapped to some other nonconstant
+construct).
 */
 {
   if (!is_error_operand(operand)) {
     /* Unfolded routine calls are not allowed in constant expressions. */
-    if (curr_expr_kind_is_traditional_const()) {
+    if (in_potential_constant_constexpr_context() &&
+        (routine == NULL || routine->is_constexpr)) {
+      /* This is a reference inside a constexpr function to a routine that
+         is or might be constexpr.  Do not set the flag indicating that
+         a constant expression has been ruled out, because in an invocation
+         of the constexpr function the call might be folded to a constant.
+         If the current expression is a constant expression, go on to the
+         tests below where we will issue an error. */
+    } else if (curr_expr_kind_is_traditional_const()) {
       error_in_operand(err_code, operand);
     } else if (construct_not_allowed_in_cpp11_constant_expr(
                                                          err_code,
@@ -17600,6 +17634,7 @@ cases so we don't do it here.
   a_type_ptr        operand_type;
   a_boolean         constant_case = FALSE;
   a_constant_ptr    con_value;
+  a_boolean         possibly_constant_with_constexpr = FALSE;
 
   /* Ignore non-lvalues. */
   if (is_an_lvalue(operand)) {
@@ -17665,6 +17700,27 @@ cases so we don't do it here.
         }  /* if */
       }  /* if */
       if (!constant_case) {
+        a_variable_ptr var;
+        if (in_potential_constant_constexpr_context()) {
+          /* For expressions in the body of a constexpr function, the
+             constant_expr_ruled_out flag should be lenient, considering
+             things that might be constant in an actual call of the
+             function because the parameters may have constant values.
+             So suppress setting that flag if the lvalue is one that might
+             end of being constant. */
+          if (operand_is_lvalue_for_variable(operand, &var)) {
+            /* A reference to a parameter might be constant, but references
+               to other variables won't be. */
+            possibly_constant_with_constexpr = var->is_parameter;
+          } else {
+            /* Many more complex expressions can have embedded uses of
+               the parameters, like "this->i" or "*&(this->i)", so be
+               conservative.  The only downside is that we might not
+               issue an error on a constexpr function whose return can
+               never be constant. */
+            possibly_constant_with_constexpr = TRUE;
+          }  /* if */
+        }  /* if */
         /* Convert the expression to an rvalue. */
         node = conv_lvalue_expr_to_rvalue(node, &constant_case, &con_value,
                                           &operand->position);
@@ -17683,7 +17739,8 @@ cases so we don't do it here.
         /* An lvalue cannot be converted to an rvalue in a pre-C++11 constant
            expression. */
         error_in_operand(ec_expr_not_constant, operand);
-      } else if (construct_not_allowed_in_cpp11_constant_expr(
+      } else if (!possibly_constant_with_constexpr &&
+                 construct_not_allowed_in_cpp11_constant_expr(
                                                          ec_expr_not_constant,
                                                          &operand->position)) {
         /* An lvalue cannot be converted to an rvalue in a C++11 constant

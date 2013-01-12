@@ -10074,7 +10074,8 @@ wondering if it's available.
     expr_pos_error(ec_expr_not_constant, member_pos);
     make_error_operand(result);
     okay = FALSE;
-  } else if (construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+  } else if (!in_potential_constant_constexpr_context() &&
+             construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
                                                           member_pos)) {
     /* Use of "this" not allowed in C++11 constant expressions. */
     make_error_operand(result);
@@ -14941,7 +14942,6 @@ operand when initializer lists are enabled.
   a_boolean                member_is_best_match, have_selector;
   a_boolean                nonstatic_member_is_best_match;
   an_expr_node_ptr         arg;
-  a_type_ptr               routine_type;
   a_param_type_ptr         param;
   an_operand               *bound_function_selector;
   a_boolean                ambiguous;
@@ -15521,6 +15521,11 @@ select_best_function:
                 }  /* if */
                 *processed = TRUE;
                 insert_temporary_initialization(temp_init_expr, result);
+                if (operator_not_allowed_in_cpp11_constant_expr(
+                                                          operator_position)) {
+                  /* Assignment not allowed in C++11 constant expressions. */
+                  conv_to_error_operand(result);
+                }  /* if */
               } else {
                 /* Look for a suitable operator= function. */
                 /* Again, we specify has_predef_meaning TRUE so we can issue
@@ -15654,7 +15659,8 @@ no_applicable_operator_function:
                                                   arg_match->next);
             }  /* if */
           } else {
-            a_boolean bitwise_assignment = FALSE;
+            a_boolean  bitwise_assignment = FALSE;
+            a_type_ptr routine_type;
             /* An operator function was selected. */
 #if DEBUG
             if (debug_level >= 4 || db_flag_is_set("overload")) {
@@ -15795,8 +15801,13 @@ no_applicable_operator_function:
               make_lvalue_expression_operand(assign_node, result);
               /* Note that reference_to_implicitly_invoked_function is not
                  called. */
+              if (operator_not_allowed_in_cpp11_constant_expr(
+                                                          operator_position)) {
+                /* Assignment not allowed in C++11 constant expressions. */
+                conv_to_error_operand(result);
+              }  /* if */
             } else {
-              a_routine_ptr rp;
+              a_routine_ptr rp = NULL;
               a_constant    result_con;
               a_boolean     returns_reference;
               /* Not the builtin bitwise operator=. */
@@ -15867,6 +15878,8 @@ no_applicable_operator_function:
                                        /*uses_operator_syntax=*/TRUE,
                                        operator_position, result,
                                        (an_expr_node_ptr *)NULL);
+                call_did_not_fold_to_constant(ec_expr_not_constant,
+                                              rp, result);
               }  /* if */
             }  /* if */
           }  /* if */
@@ -15890,7 +15903,6 @@ no_applicable_operator_function:
       }  /* if */
     }  /* if */
     if (*processed && !folded_to_constant) {
-      call_did_not_fold_to_constant(ec_expr_not_constant, result);
       rule_out_expr_kinds(ROEK_CONSTANT, result);
     }  /* if */
   }  /* if */
@@ -17645,7 +17657,9 @@ the temporary.
                          /*uses_operator_syntax=*/FALSE,
                          &orig_operand.position, operand,
                          &conv_function_call_node);
-      call_did_not_fold_to_constant(ec_expr_not_constant, operand);
+      call_did_not_fold_to_constant(ec_expr_not_constant,
+                                    conversion_routine,
+                                    operand);
     }  /* if */
     if (dest_type == NULL) {
       /* No specified destination type.  The result type of the conversion
