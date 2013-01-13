@@ -11929,16 +11929,21 @@ the expression have already been lowered.
 
 
 #if !MINIMAL_INLINING
-/*ARGSUSED*/ /* <-- statement is not used in this case. */
+/*ARGSUSED*/ /* <-- statement and expr_has_been_detached are not used
+                    in this case. */
 #endif /* !MINIMAL_INLINING */
 void lower_call(an_expr_node_ptr      expr,
                 an_init_pos_descr_ptr ipdp,
-                a_statement_ptr       statement)
+                a_statement_ptr       statement,
+                a_boolean             *expr_has_been_detached)
 /*
 Lower a call (nonmember, member, virtual, or pointer-to-member).  expr points
 to the call node.  ipdp, if non-NULL, indicates an entity into which the
 call should return its value.  If statement is non-NULL, this call is
 the top node of the indicated statement (which is an expression statement).
+If expr_has_been_detached is non-NULL, *expr_has_been_detached is set to
+TRUE if expr has been inlined as a separate statement and therefore
+detached from the IL tree; otherwise it is set to FALSE.
 */
 {
   a_type_ptr                    rout_type;
@@ -11948,6 +11953,7 @@ the top node of the indicated statement (which is an expression statement).
   a_routine_ptr                 routine = NULL;
   an_expr_node_ptr              call_expr = expr;
 
+  if (expr_has_been_detached != NULL) *expr_has_been_detached = FALSE;
   /* If this call takes a class selector object as an operand, convert the
      operand to a pointer to class. */
   lower_class_selector_operand_if_any(expr);
@@ -12067,7 +12073,9 @@ the top node of the indicated statement (which is an expression statement).
     /* Normal member or non-member call. */
     expr->variant.operation.kind = (an_expr_operator_kind)eok_call;
 #if MINIMAL_INLINING
-    if (inlining_enabled) do_inlining_of_call(call_expr, statement);
+    if (inlining_enabled) {
+      do_inlining_of_call(call_expr, statement, expr_has_been_detached);
+    }  /* if */
 #endif /* MINIMAL_INLINING */
   }  /* if */
 }  /* lower_call */
@@ -14251,7 +14259,8 @@ cast.  See lower_expr for typical invocation.
         lower_pm_related_class_cast(expr);
       } else if (is_call_node(expr)) {
         /* Calls of various kinds. */
-        lower_call(expr, (an_init_pos_descr_ptr)NULL, (a_statement_ptr)NULL);
+        lower_call(expr, (an_init_pos_descr_ptr)NULL, (a_statement_ptr)NULL,
+                   (a_boolean *)NULL);
       } else if (node_operator_type_kind_is(expr, tk_ptr_to_member) &&
                  (op == (an_expr_operator_kind)eok_eq ||
                   op == (an_expr_operator_kind)eok_ne)) {
@@ -14917,6 +14926,7 @@ expression statement, statement points to the statement; otherwise, it is NULL.
 #if MINIMAL_INLINING
   if (inlining_enabled && statement != NULL && expr_to_lower == expr &&
       is_call_node(expr_to_lower)) {
+    a_boolean expr_has_been_detached;
     /* Special-case a call as the top expression so inlining can be
        done with statement insertions.  Don't do this if an enk_object_lifetime
        appears (it could be done, but it's more complicated because of
@@ -14924,7 +14934,9 @@ expression statement, statement points to the statement; otherwise, it is NULL.
     /* Remove cv-qualifiers from the types of rvalues.  In C++, such
        rvalues retain their type qualifiers, but in C they do not. */
     remove_qualifiers_from_expr_type_if_needed(expr_to_lower);
-    lower_call(expr_to_lower, (an_init_pos_descr_ptr)NULL, statement);
+    lower_call(expr_to_lower, (an_init_pos_descr_ptr)NULL, statement,
+               &expr_has_been_detached);
+    if (expr_has_been_detached) expr_to_lower = expr = NULL;
   } else
   /* Normal case, not call. */
 #endif /* MINIMAL_INLINING */
@@ -14934,6 +14946,7 @@ expression statement, statement points to the statement; otherwise, it is NULL.
   }  /* if */
   if (lifetime != NULL) {
     /* More processing for the enk_object_lifetime case. */
+    check_assertion(expr_to_lower != NULL);
     if (any_cleanup_actions(lifetime)) {
       /* Generate any cleanup actions for temporaries built within
          the expression.  Note that this is a special "insert after"
@@ -14960,8 +14973,10 @@ expression statement, statement points to the statement; otherwise, it is NULL.
       overwrite_node(expr, expr_to_lower);
     }  /* if */
   }  /* if */
-  /* Perform end-of-full-expression processing. */
-  end_of_full_expr_processing(expr);
+  if (expr != NULL) {
+    /* Perform end-of-full-expression processing. */
+    end_of_full_expr_processing(expr);
+  }  /* if */
 #if CHECKING
   curr_context->in_full_expression = FALSE;
 #endif /* CHECKING */

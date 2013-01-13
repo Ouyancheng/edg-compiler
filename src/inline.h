@@ -122,7 +122,8 @@ extern a_boolean copy_and_simplify_short_circuited_operation(
                                                         an_expr_node_ptr expr);
 
 extern void do_inlining_of_call(an_expr_node_ptr expr,
-                                a_statement_ptr  statement);
+                                a_statement_ptr  statement,
+                                a_boolean        *expr_has_been_detached);
 
 extern void set_up_routine_for_inlining(a_scope_ptr scope);
 

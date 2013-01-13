@@ -79,8 +79,7 @@ extern a_routine_ptr make_subobject_destruction_routine(
 #endif /* !IA64_ABI */
 
 extern an_expr_node_ptr make_call_node(a_routine_ptr      routine,
-                                       an_expr_node_ptr   arg_list,
-                                       an_insert_location *insert_location);
+                                       an_expr_node_ptr   arg_list);
 
 extern a_routine_ptr make_runtime_routine(char          *name,
                                           a_routine_ptr *routine,

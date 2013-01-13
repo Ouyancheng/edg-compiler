@@ -101,7 +101,7 @@ argument).
                                           param3_type);
   }  /* if */
   /* Make the call node. */
-  result = make_call_node(*routine, arg_expr_list, (an_insert_location *)NULL);
+  result = make_call_node(*routine, arg_expr_list);
   return result;
 }  /* make_prototyped_runtime_call_full */
 
@@ -3774,7 +3774,11 @@ second parameter.
 #if MINIMAL_INLINING
         if (is_call_node(expr)) {
           /* Do inlining of a call if appropriate. */
-          if (inlining_enabled) do_inlining_of_call(expr, statement);
+          if (inlining_enabled) {
+            a_boolean expr_has_been_detached;
+            do_inlining_of_call(expr, statement, &expr_has_been_detached);
+            if (expr_has_been_detached) expr = NULL;
+          }  /* if */
         }  /* if */
 #endif /* MINIMAL_INLINING */
       }  /* if */
@@ -3878,11 +3882,13 @@ second parameter.
       unexpected_condition_str("Invalid C99 IL expression kind");
       break;
   }  /* switch */
+  if (expr != NULL) {
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-  if (vla_enabled && !expr->type->visited_for_vla_lowering) {
-    record_vla_component_types_for_lowering(expr->type);
-  }  /* if */
+    if (vla_enabled && !expr->type->visited_for_vla_lowering) {
+      record_vla_component_types_for_lowering(expr->type);
+    }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+  }  /* if */
 }  /* lower_c99_expr_full */
 
 

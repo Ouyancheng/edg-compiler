@@ -85,10 +85,10 @@ static a_variable_ptr make_construction_vtbls_array(
                                            a_type_ptr              class_type,
                                            a_construction_vtbl_ptr elements);
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-static an_expr_node_ptr make_delete_call(a_routine_ptr      delete_routine,
-                                         a_type_ptr         delete_type,
-                                         an_expr_node_ptr   arg_node,
-                                         an_insert_location *insert_location);
+static void make_delete_call_statement(a_routine_ptr      delete_routine,
+                                       a_type_ptr         delete_type,
+                                       an_expr_node_ptr   arg_node,
+                                       an_insert_location *insert_location);
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
 static a_boolean call_to_ctor_or_dtor_has_no_effect(
                                          a_routine_ptr    routine,
@@ -536,7 +536,11 @@ and return a pointer to it.  arg_list is assumed to be lowered already.
 If insert_location is not NULL, an expression statement containing the
 created call node is inserted at *insert_location.  If is_virtual_call
 is TRUE, the call is virtual, and the caller will do further lowering on
-the returned expression.
+the returned expression.  In cases where a non-NULL insert_location is
+specified and inlining of the routine is possible, the returned expression
+is NULL (reflecting that the call has been inlined and inserted into
+the specified location).  For this reason, use of either make_call_node
+or make_call_statement is preferred when possible.
 */
 {
   an_expr_node_ptr      call_node, rout_node;
@@ -586,7 +590,9 @@ the returned expression.
     routine->source_corresp.referenced = TRUE;
 #if MINIMAL_INLINING
     if (inlining_enabled) {
-      do_inlining_of_call(call_node, call_stmt);
+      a_boolean expr_has_been_detached;
+      do_inlining_of_call(call_node, call_stmt, &expr_has_been_detached);
+      if (expr_has_been_detached) call_node = NULL;
     }  /* if */
 #endif /* MINIMAL_INLINING */
   }  /* if */
@@ -595,21 +601,19 @@ the returned expression.
 
 
 an_expr_node_ptr make_call_node(a_routine_ptr      routine,
-                                an_expr_node_ptr   arg_list,
-                                an_insert_location *insert_location)
+                                an_expr_node_ptr   arg_list)
 /*
 Make an expression that calls routine "routine" with arguments "arg_list",
 and return a pointer to it.  arg_list is assumed to be lowered already.
-If insert_location is not NULL, an expression statement containing the
-created call node is inserted at *insert_location.  If inlining is
-enabled and the called routine is inline, inlining of the call will be
-attempted.
+If inlining is enabled and the called routine is inline, inlining of the call
+will be attempted.
 */
 {
   an_expr_node_ptr call_node;
 
   call_node = make_call_node_full(routine, arg_list, /*is_virtual_call=*/FALSE,
-                                  insert_location);
+                                  (an_insert_location *)NULL);
+  check_assertion(call_node != NULL);
   return call_node;
 }  /* make_call_node */
 
@@ -622,7 +626,8 @@ Make a statement that calls routine "routine" with arguments "arg_list"
 and insert it at *insert_location.  arg_list is assumed to be lowered already.
 */
 {
-  (void)make_call_node(routine, arg_list, insert_location);
+  (void)make_call_node_full(routine, arg_list, /*is_virtual_call=*/FALSE,
+                            insert_location);
 }  /* make_call_statement */
 
 
@@ -643,7 +648,7 @@ is assumed to be lowered already.
   /* Make the routine entry if it does not exist already. */
   (void)make_runtime_routine(name, routine, return_type);
   /* Make the call node. */
-  node = make_call_node(*routine, arg_expr_list, (an_insert_location *)NULL);
+  node = make_call_node(*routine, arg_expr_list);
   return node;
 }  /* make_runtime_rout_call */
 
@@ -3140,8 +3145,7 @@ IA-64 ABI, the routines called are different.
                                              void_star_type());
     entity_node_copy->next = delete_args;
     /* Make a call of the placement delete routine. */
-    delete_call = make_call_node(delete_routine, entity_node_copy,
-                                 (an_insert_location *)NULL);
+    delete_call = make_call_node(delete_routine, entity_node_copy);
     /* Wrap the expressions in an internal "try" block. */
     call_node = make_internal_try_expr(call_node, delete_call);
     /* Add a comma expression to get the value returned from the call as
@@ -4196,7 +4200,7 @@ operator of a no-capture lambda.
     /* Make a call node that calls the original routine with all
        the implicit arguments, i.e., that passes all the extra arguments
        to the original routine. */
-    call_node = make_call_node(routine, first_arg, (an_insert_location *)NULL);
+    call_node = make_call_node(routine, first_arg);
     /* If the routine has a void type, insert a statement for the call
        followed by a return statement.  Otherwise, attach the call directly
        to the return. */
@@ -4284,8 +4288,8 @@ operator of a no-capture lambda.
                                                  assoc_operator_delete_routine;
         check_assertion(delete_routine != NULL);
         this_arg = var_rvalue_expr(this_param_var);
-        (void)make_delete_call(delete_routine, new_class_type, this_arg,
-                               &insert_location);
+        make_delete_call_statement(delete_routine, new_class_type, this_arg,
+                                   &insert_location);
       }  /* if */
 #endif /* IA64_ABI */
     }  /* if */
@@ -7116,8 +7120,7 @@ to a constructor to be called after the zeroing have been done.
     /* Add a call of the indicated constructor after the copying/zeroing
        code. */
     an_expr_node_ptr ctor_call;
-    ctor_call = make_call_node(ctor_routine, ctor_entity_expr,
-                               (an_insert_location *)NULL);
+    ctor_call = make_call_node(ctor_routine, ctor_entity_expr);
     copy_expr = make_comma_node(copy_expr, ctor_call);
   }  /* if */
   /* Perform a lowering post-pass on the expression to optimize it and clean up
@@ -7264,11 +7267,11 @@ from entity_type itself.  Insert the code for the call at *insert_location.
     entity_node = add_cast_if_necessary(entity_node,
                                         make_pointer_type(element_type));
     if (array_case) entity_node->next = num_elem_node;
-    (void)make_call_node(helper_routine_to_zero_entity(orig_element_type,
+    make_call_statement(helper_routine_to_zero_entity(orig_element_type,
                                                        have_complete_object,
                                                        array_case,
                                                        (a_routine_ptr)NULL),
-                         entity_node, insert_location);
+                        entity_node, insert_location);
 #endif /* IA64_ABI */
   } else {
     /* The entity (not an empty base class) must be set to all zeroes. */
@@ -8467,7 +8470,8 @@ do_assignment:;
          via a copy constructor. */
       /* The address of the temporary being initialized is added as an
          implicit argument of the call. */
-      lower_call(dip->variant.expression, ipdp, (a_statement_ptr)NULL);
+      lower_call(dip->variant.expression, ipdp, (a_statement_ptr)NULL,
+                 (a_boolean *)NULL);
       (void)insert_expr_statement_set_pos(dip->variant.expression,
                                           eff_insert_location);
       break;
@@ -9439,8 +9443,7 @@ arrays with class elements.
     }
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     /* Make the "new" call. */
-    new_node = make_call_node(new_routine, size_node,
-                              (an_insert_location *)NULL);
+    new_node = make_call_node(new_routine, size_node);
     /* Make "temp = (type *)new-call(...)". */
     temp_var = make_local_temporary(ptr_elem_type);
     assign_node = make_var_assignment_expr(temp_var,
@@ -9880,7 +9883,7 @@ as well as any additional code needed to process the deletion.
         entity_node->next = delete_args;
         /* Make a call of the appropriate delete routine. */
         delete_call = make_call_node(dyn_init_to_free_storage->destructor,
-                                     entity_node, (an_insert_location *)NULL);
+                                     entity_node);
         if (ndsp->placement_new) {
           /* Placement delete.  In the placement delete case, code must be
              generated to delete the entity if a failure occurs anywhere
@@ -10047,8 +10050,7 @@ The subtree of the node has not yet been lowered.
       end_implied_arg_list->next = dip->variant.constructor.args;
     }  /* if */
     /* Make the constructor call. */
-    call_node = make_call_node(ctor_routine, null_node,
-                               (an_insert_location *)NULL);
+    call_node = make_call_node(ctor_routine, null_node);
     /* The constructor call returns a pointer to the object initialized.
        Cast the pointer to the right type if necessary. */
     call_node = add_cast_if_necessary(call_node, expr->type);
@@ -10093,8 +10095,7 @@ The subtree of the node has not yet been lowered.
       delete_args = copy_arg_list_for_placement_delete(args->next);
     }  /* if */
     /* Create a call of the "new" routine. */
-    call_node = make_call_node(ndsp->routine, args,
-                               (an_insert_location *)NULL);
+    call_node = make_call_node(ndsp->routine, args);
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
     if (dip != NULL &&
         dip->kind == (a_dynamic_init_kind)dik_constructor &&
@@ -10221,25 +10222,25 @@ The subtree of the node has not yet been lowered.
 }  /* lower_new */
 
 
-static an_expr_node_ptr make_delete_call(a_routine_ptr      delete_routine,
+static an_expr_node_ptr modify_delete_call_args(
+                                         a_routine_ptr      delete_routine,
                                          a_type_ptr         delete_type,
-                                         an_expr_node_ptr   arg_node,
-                                         an_insert_location *insert_location)
+                                         an_expr_node_ptr   arg_node)
 /*
-Create an expression for a call of the delete routine indicated by
-delete_routine, with arg_node as the argument.  Return a pointer to
-the call expression.  If insert_location is not NULL, an expression
-statement containing the created call node is inserted at *insert_location.
+Returns the modified argument list for a delete call to routine delete_routine.
+A modification is necessary if the delete routine is one with two arguments
+(in which case a size argument is added).  delete_type is the type of the
+object being deleted.  arg_node is the argument list being passed to the
+delete routine.
 */
 {
-  an_expr_node_ptr call_node, second_arg_node;
+  an_expr_node_ptr second_arg_node;
 
   /* Cast the argument to "void *", which is what the delete routine
      expects. */
   arg_node = add_cast_if_necessary(arg_node, void_star_type());
   /* If the delete routine is one with two arguments, pass the size
      of the entity as the second argument. */
-  second_arg_node = NULL;
   if (is_two_argument_delete(delete_routine)) {
     /* Two-argument form.  Add a second argument of type size_t that
        indicates the (static) size of the object. */
@@ -10248,10 +10249,45 @@ statement containing the created call node is inserted at *insert_location.
                     targ_size_t_int_kind);
     arg_node->next = second_arg_node;
   }  /* if */
+  return arg_node;
+}  /* modify_delete_call_args */
+
+
+static an_expr_node_ptr make_delete_call_node(a_routine_ptr    delete_routine,
+                                              a_type_ptr       delete_type,
+                                              an_expr_node_ptr arg_node)
+/*
+Create an expression for a call of the delete routine indicated by
+delete_routine, with arg_node as the argument.  delete_type is the type
+of the object being deleted.  Return a pointer to the call expression (which
+may have been inlined).
+*/
+{
+  an_expr_node_ptr call_node;
+
   /* Make the call. */
-  call_node = make_call_node(delete_routine, arg_node, insert_location);
+  arg_node = modify_delete_call_args(delete_routine, delete_type, arg_node);
+  call_node = make_call_node(delete_routine, arg_node);
   return call_node;
-}  /* make_delete_call */
+}  /* make_delete_call_node */
+
+
+static void make_delete_call_statement(a_routine_ptr      delete_routine,
+                                       a_type_ptr         delete_type,
+                                       an_expr_node_ptr   arg_node,
+                                       an_insert_location *insert_location)
+/*
+Create a statement for a call of the delete routine indicated by
+delete_routine, with arg_node as the argument and insert the statement
+at the location indicated by *insert_location.  delete_type is the type
+of the object being deleted.
+*/
+{
+  /* Make the call. */
+  arg_node = modify_delete_call_args(delete_routine, delete_type, arg_node);
+  make_call_statement(delete_routine, arg_node, insert_location);
+  return;
+}  /* make_delete_call_statement */
 
 
 static an_expr_node_ptr make_dtor_call_for_delete(
@@ -10370,6 +10406,7 @@ tricks.
   call_node = make_call_node_full(dtor_routine, ptr_node,
                                   /*is_virtual_call=*/dtor_routine->is_virtual,
                                   (an_insert_location *)NULL);
+  check_assertion(call_node != NULL);
   if (dtor_routine->is_virtual) {
     /* The destructor is virtual, so rewrite the virtual call. */
     lower_virtual_function_call(call_node);
@@ -10383,16 +10420,16 @@ tricks.
            (dtor(...), delete(...))
       */
       an_expr_node_ptr delete_call_node =
-                  make_delete_call(delete_routine, class_type, ptr_node_delete,
-                                   (an_insert_location *)NULL);
+                  make_delete_call_node(delete_routine, class_type,
+                                        ptr_node_delete);
       call_node = make_comma_node(call_node, delete_call_node);
 #if DTORS_RETURN_THIS
     } else {
       /* In the variant of the IA-64 ABI where destructors return "this",
          and "this" is a suitable argument for the delete routine,
          build delete(dtor(...)). */
-      call_node = make_delete_call(delete_routine, class_type, call_node,
-                                   (an_insert_location *)NULL);
+      call_node = make_delete_call_node(delete_routine, class_type,
+                                        call_node);
 #endif /* DTORS_RETURN_THIS */
     }  /* if */
   } else {
@@ -10495,8 +10532,7 @@ The subtree of the node has not yet been lowered.
     lower_expr(ptr_node);
     /* Make the "delete" call.  It is not necessary to test for non-NULL;
        the delete routine does that. */
-    call_node = make_delete_call(delete_routine, ndsp->type, ptr_node,
-                                 (an_insert_location *)NULL);
+    call_node = make_delete_call_node(delete_routine, ndsp->type, ptr_node);
     /* Overwrite the enk_new_delete node with the final expression. */
     overwrite_node(expr, call_node);
   }  /* if */
@@ -13709,8 +13745,7 @@ constructor scope, and also lower the user code.
       size_node = node_for_host_large_integer(
                                         (a_host_large_integer)class_type->size,
                                         targ_size_t_int_kind);
-      call_node = make_call_node(new_routine, size_node,
-                                 (an_insert_location *)NULL);
+      call_node = make_call_node(new_routine, size_node);
       /* Make "this = new_rout(size)". */
       unqual_this_param_type = f_skip_typerefs(this_param_var->type);
       call_node = add_cast_if_necessary(call_node, unqual_this_param_type);
@@ -14934,8 +14969,8 @@ destructor scope, and also lower the user code.
                         &insert_location3, (an_insert_location *)NULL);
     /* Make "delete-routine((void *)this);" under the "if". */
     this_param_node = var_rvalue_expr(this_param_var);
-    (void)make_delete_call(delete_routine, class_type, this_param_node,
-                           &insert_location3);
+    make_delete_call_statement(delete_routine, class_type, this_param_node,
+                               &insert_location3);
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
     /* Mark the "if" statement and the "delete" call. */
     check_assertion(insert_location.kind == ilk_after_statement &&

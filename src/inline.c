@@ -1642,11 +1642,16 @@ end_of_routine:
 
 
 void do_inlining_of_call(an_expr_node_ptr expr,
-                         a_statement_ptr  statement)
+                         a_statement_ptr  statement,
+                         a_boolean        *expr_has_been_detached)
 /*
 expr is a lowered call expression.  If the routine called is an inline
 function, do inlining on the expression.  If statement is non-NULL, the call
-is the top node of the indicated statement (which is an expression statement).
+is the top node of the indicated statement (which is an expression statement),
+and the call (if inlinable) will replace this statement with a statement
+representing the inlined code.  If expr_has_been_detached is non-NULL,
+*expr_has_been_detached will be set to TRUE if expr has been effectively
+detached from the IL (and should therefore no longer be used), FALSE otherwise.
 */
 {
   an_expr_node_ptr      arg;
@@ -1660,6 +1665,7 @@ is the top node of the indicated statement (which is an expression statement).
      lowered to eok_call already. */
   check_assertion(is_operation_node(expr) &&
                   node_operator_is(expr, eok_call));
+  if (expr_has_been_detached != NULL) *expr_has_been_detached = FALSE;
   arg = expr->variant.operation.operands;
   routine = routine_from_function_expr(arg);
   if (routine != NULL) {
@@ -1765,6 +1771,10 @@ is the top node of the indicated statement (which is an expression statement).
               statement->variant.block.extra_info->final_position =
                                                                 saved_position;
             }
+            /* The original expression has been detached from the IL tree and
+               should no longer be used by the caller. */
+            check_assertion(expr_has_been_detached != NULL);
+            *expr_has_been_detached = TRUE;
           } else {
             an_expr_node_ptr inlined_call_expr = insert_location.variant.expr;
             check_assertion(inlined_call_expr != NULL);

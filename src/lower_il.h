@@ -1196,7 +1196,8 @@ extern void lower_virtual_function_call(an_expr_node_ptr expr);
 
 extern void lower_call(an_expr_node_ptr      expr,
                        an_init_pos_descr_ptr ipdp,
-                       a_statement_ptr       statement);
+                       a_statement_ptr       statement,
+                       a_boolean             *expr_has_been_detached);
 
 extern void initial_processing_on_destructible_initialization(
                                           a_dynamic_init_ptr dip,

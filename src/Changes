@@ -1,5 +1,30 @@
 Version 4.6
 
+1/13/13  [EDGcpfe/13567]
+Dangling pointers to some inlined call expressions
+
+In some cases during inlining, the call expression to be inlined is
+replaced by a block statement rather than by re-writing the expression.
+In those cases, the original expression has been detached from the IL
+tree (and portions of the original expression may have been used to
+create the inlined code, thereby rendering the original expression
+invalid).  In some cases, lowering had continued to process the original
+expression which, after the changes for EDGcpfe/13231 and in configurations
+where EXPENSIVE_CHECKING is TRUE, had led to an abort (in
+node_operands_have_correct_lvalueness) on this case:
+
+  struct A {
+    void g() {}
+  } a;
+  A f() { return a; }
+  main () {
+    f().g();
+  }
+
+Changes have been made to ensure that dangling pointers to the original
+expression are not used.
+
+
 1/10/13  [EDGcpfe/12749]
 GNU C++ compatibility: __bases and __direct_bases operators
 
