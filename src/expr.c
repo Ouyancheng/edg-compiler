@@ -18773,6 +18773,15 @@ indicates which.
                                               /*is_implicit_cast=*/FALSE,
                                               reinterpret_semantics);
             }  /* if */
+            if (reinterpret_semantics) {
+              /* A reinterpret_cast is not allowed in C++11 constant
+                 expressions, including when hidden inside other casts. */
+              if (construct_not_allowed_in_cpp11_constant_expr(
+                                                          ec_expr_not_constant,
+                                                          start_position)) {
+                conv_to_error_operand(operand);
+              }  /* if */
+            }  /* if */
           } else if (any_cfront_mode() && operand_is_constant &&
                      operand_con->kind ==
                                       (a_constant_repr_kind)ck_ptr_to_member &&
