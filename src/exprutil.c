@@ -13300,7 +13300,8 @@ on output it will be an lvalue.
       node = conv_lvalue_expr_to_rvalue(node, (a_boolean *)NULL,
                                         (a_constant_ptr *)NULL,
                                         &result->position);
-      if (construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+      if (!in_potential_constant_constexpr_context() &&
+          construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
                                                           &result->position)) {
         /* Reference indirection is not allowed in C++11 constant
            expressions if you actually have to load the reference variable. */
