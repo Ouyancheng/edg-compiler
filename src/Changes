@@ -481,8 +481,8 @@ otherwise.  Both of these issues are now fixed.
 12/31/12 [EDGcpfe/13480]
 GNU attributes in nested declarators
 
-The front end previously accepts GNU attributes as the first element of a
-nested declarator, but previously such attributes applied to the complete
+The front end accepts GNU attributes as the first element of a nested
+declarator, but previously such attributes applied to the complete
 declaration.  For example:
 
   int (__attribute((stdcall)) **ppf)();
