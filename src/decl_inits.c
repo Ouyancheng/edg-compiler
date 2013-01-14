@@ -2165,6 +2165,7 @@ position is available).
       a_dynamic_init_ptr  dip = elem_con->variant.dynamic_init;
       check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
       dip->variant.expression = add_cast(dip->variant.expression, fp->type);
+      elem_con->type = dip->variant.expression->type;
     } else {
       a_boolean  did_not_fold = FALSE;
       type_change_constant_full(elem_con, fp->type,
