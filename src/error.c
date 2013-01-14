@@ -23,6 +23,7 @@ error.c -- Error reporting routines.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 #include "err_data.h"
+#include "decls.h"
 #include "templates.h"
 #if !STANDALONE_UTILITY_PROGRAM
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
