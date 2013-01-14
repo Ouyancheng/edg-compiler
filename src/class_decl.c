@@ -17716,9 +17716,12 @@ record that fact in *gsfd.
   /* Do not insert code here. */
   if (cssp->constructor == NULL) {
     /* See if a default constructor declaration is needed. */
-    if (!class_state->POD_ruled_out) {
-      /* This is a POD class.  Its implicitly-declared default constructor
-         need not actually be generated. */
+    if (!class_state->POD_ruled_out &&
+        cssp->construction_by_bitwise_copy_allowed) {
+      /* This is a POD class with trivial copy semantics (a POD class may have
+         nontrivial copy semantics if it has a volatile field).
+         Its implicitly-declared default constructor need not actually be
+         generated. */
     } else if (class_type_supp(class_type)->is_lambda_closure_class) {
       /* A deleted constructor was already declared (but not recorded in
          cssp->constructor if it was trivial). */
@@ -18582,14 +18585,15 @@ The routine body is not generated until it is known to be needed.
     } else {
       generate_default_constructor(class_state, gsfd.suppress_default_ctor);
     }  /* if */
-    if (generate_move_operations && cssp->constructor == NULL &&
+    if (cssp->constructor == NULL &&
         cssp->trivial_default_constructor != NULL &&
         (declare_copy_ctor || declare_move_ctor)) {
-      /* A trivial constructor was generated but not added to the set of
-         constructors, presumably because no nontrivial constructor is
-         expected.  However, if move operations are generated, a deleted copy
-         constructor might be generated later, and it will have to be
-         overloaded with the trivial copy constructor. */
+      /* A trivial default constructor was generated but not added to the set
+         of constructors, presumably because no nontrivial constructor is
+         expected.  However, sometimes a copy or move constructor must be
+         generated later after all (e.g., for PODs with volatile members, or
+         to indicate that a copy constructor is deleted), and it will have to
+         be overloaded with the trivial default constructor. */
       cssp->constructor = cssp->trivial_default_constructor;
     }  /* if */
   }  /* if */
