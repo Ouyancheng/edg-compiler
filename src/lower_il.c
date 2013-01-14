@@ -17654,7 +17654,7 @@ Do IL lowering of the indicated statement and everything under it.
         break;
 #if GNU_EXTENSIONS_ALLOWED
       case stmk_assigned_goto:
-        /* No processing required. */
+        lower_full_expr(stmt_expr, statement);
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       default:

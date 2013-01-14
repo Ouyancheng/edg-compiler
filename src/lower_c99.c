@@ -4152,9 +4152,6 @@ Do C99 lowering on the indicated statement.
     switch (statement->kind) {
       case stmk_goto:
       case stmk_label:
-#if GNU_EXTENSIONS_ALLOWED
-      case stmk_assigned_goto:
-#endif /* GNU_EXTENSIONS_ALLOWED */
       case stmk_return:
 #if ASM_FUNCTION_ALLOWED
       case stmk_asm_func_body:
@@ -4172,6 +4169,9 @@ Do C99 lowering on the indicated statement.
       case stmk_asm:
         lower_asm_statement(statement);
         break;
+#if GNU_EXTENSIONS_ALLOWED
+      case stmk_assigned_goto:
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case stmk_expr:
         /* Expression statement.  Pass in the statement to allow better
            inlining. */

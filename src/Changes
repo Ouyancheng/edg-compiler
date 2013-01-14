@@ -1,5 +1,20 @@
 Version 4.6
 
+1/14/13  [EDGcpfe/13169]
+GNU compatibility: Lowering of assigned goto expressions
+
+The expression in a GNU assigned goto statement was never lowered causing
+unlowered IL to be emitted by the front end.  The case below had caused
+an assertion failure (in dump_expr) in C-generating configurations (with
+--g++):
+
+  int f(int x) {
+    goto *(x ? &&A : &&B);
+  A: return 0;
+  B: return 1;
+  }
+
+
 1/13/13  [EDGcpfe/13567]
 Dangling pointers to some inlined call expressions
 
