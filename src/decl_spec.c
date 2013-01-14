@@ -9427,7 +9427,7 @@ process_enum_specifier:
               (basic_type != bt_none || sign != sign_none ||
                size != size_none)) {
             /* We've already seen specifiers that cannot be combined with
-               __underlying_type: Ignore them and issue an error. */
+               this operator: Ignore them and issue an error. */
             pos_error(ec_bad_combination_of_type_specifiers, &bases_pos);
             *type_ptr = error_type();
             sign = sign_none;

@@ -12405,7 +12405,7 @@ expression-processing routines.
   } else {
     /* The operator is considered a pack reference.  During a prototype
        instantiation a special pack is created.  During a real instantiation,
-       the current base class o the generated pack is returned. */
+       the current base class of the generated pack is returned. */
     a_type_ptr  type = alloc_type((a_type_kind)tk_typeref);
     type->variant.typeref.is_bases = TRUE;
     type->variant.typeref.is_dependent_type_operator =
