@@ -154,7 +154,7 @@ standard-attribute syntax).
 
 static an_attribute_ptr scan_predeclarator_attributes(void)
 /*
-Scan and return any attributes appearing as the first constructed in a nested
+Scan and return any attributes appearing as the first construct in a nested
 declarator.  Issue an error if non-GNU attributes are scanned.
 */
 {
@@ -6102,7 +6102,7 @@ etc.).
         /* The first level of declarator nesting. */
         p_predeclarator_attributes = &predeclarator_attributes;
       } else if (complete_type == NULL && p_predeclarator_attributes != NULL) {
-        /* An more deeply nested level of declarator nesting that hasn't
+        /* A more deeply nested level of declarator nesting that hasn't
            introduced pointer operators. */
         *p_predeclarator_attributes = predeclarator_attributes;
         p_predeclarator_attributes = &predeclarator_attributes;

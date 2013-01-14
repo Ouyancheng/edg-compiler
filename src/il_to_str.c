@@ -2709,7 +2709,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
     }  /* if */
   } else {
     if (has_predeclarator_attribute(orig_type)) {
-      /* form_type_first_part opened a parentheses to render predeclarator
+      /* form_type_first_part opened a parenthesis to render predeclarator
          attributes.  Close that parenthesis now. */
       octl->output_str(")", octl);
     }  /* if */
