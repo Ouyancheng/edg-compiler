@@ -308,9 +308,9 @@ denotes the innermost namespace.  For example:
 
   namespace N {
     void g() {
-      int N::x;    // Treated like "int x;" after a warning is issued.
-      int N::f();  // Treated like "int f();" after a warning is issued.
-    }
+      int N::x;           // Treated like "int x;" after a warning is issued.
+      extern int N::f();  // Treated like "extern int f();" after a warning
+    }                     // is issued.
   }
 
 
