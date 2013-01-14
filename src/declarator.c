@@ -2568,8 +2568,9 @@ an error if a default argument expression is encountered.
             /* A type name is bound to void type -- this construct is treated
                as a (possibly nonstandard) way of signifying an empty param
                list.  In C99 and C++11 modes, this is a standard form and no
-               diagnostic is needed.  Otherwise, issue an error (in strict
-               mode) or a warning. */
+               diagnostic is needed (unless the void type is qualified; in
+               that case an error is issued below).  Otherwise, issue an error
+               (in strict mode) or a warning. */
             if ((is_template_dependent_context() ||
                  is_nonspecialized_instantiation_context()) &&
                 !microsoft_mode) {
