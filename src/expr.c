@@ -5347,10 +5347,13 @@ are expected to be NULL in that case.
     }  /* if */
   }  /* if */
   result_operand_is_call = FALSE;
-  routine = NULL;  /* Henceforth "routine actually called". */
   if (vacuous_destructor_case) {
     /* Vacuous destructor case; leave the original operand alone. */
     copy_operand(operand, result);
+    if (construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+                                                     &call_position)) {
+      conv_to_error_operand(result);
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ignore_call) {
     /* Ignore a call of the form 0(x) -- copy the zero to the result. */
@@ -5401,14 +5404,14 @@ are expected to be NULL in that case.
                                                            result,
                                                            function_call_node);
     }  /* if */
-  }  /* if */
-  if (!call_folded_to_constant) {
-    /* Unfolded routine calls are not allowed in constant expressions. */
-    call_did_not_fold_to_constant(constexpr_enabled ?
-                                    ec_bad_cpp11_constant_function_call :
-                                    ec_bad_constant_function_call,
-                                  routine,
-                                  result);
+    if (!call_folded_to_constant) {
+      /* Unfolded routine calls are not allowed in constant expressions. */
+      call_did_not_fold_to_constant(constexpr_enabled ?
+                                      ec_bad_cpp11_constant_function_call :
+                                      ec_bad_constant_function_call,
+                                    routine,
+                                    result);
+    }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &closing_paren_position,
                        &operator_position);
