@@ -11065,7 +11065,7 @@ a_type_ptr get_type_for_bases_operator(
 				a_source_position_ptr	position,
 				a_boolean		direct_bases)
 /*
-This routine is called to record an implicit back reference created for the
+This routine is called to record an implicit pack reference created for the
 g++ __bases or __direct_bases type operators.  It is called both during
 prototype and real instantiations.  During a prototype instantiation,
 it creates a pack reference to the bases_type.   During a real instantiation
