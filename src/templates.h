@@ -660,6 +660,16 @@ extern a_boolean equiv_template_param_lists(
 		a_source_position			*error_pos,
 		an_error_severity			error_severity);
 
+extern a_boolean reconcile_template_param_lists(
+			a_template_param_ptr  param_list,
+		        a_tmpl_decl_state_ptr decl_state,
+			a_symbol_ptr          class_sym,
+			a_source_position     *error_pos,
+			a_boolean	      default_allowed,
+			a_boolean	      checking_parent_params,
+			a_boolean	      allow_missing_member_constraint,
+			an_error_severity     error_severity);
+
 extern a_boolean identical_templates_given_symbol(a_symbol_ptr	sym1,
 					          a_symbol_ptr	sym2);
 

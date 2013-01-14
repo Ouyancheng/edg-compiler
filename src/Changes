@@ -1,5 +1,18 @@
 Version 4.6
 
+1/14/13  [EDGcpfe/13334]
+Merging of default template arguments across declarations
+
+Default template arguments for function templates were added to C++11
+(see EDGcpfe/7122 on 6/23/10), but the front end failed to merge the
+set of default arguments provided across multiple declarations.
+Now fixed.
+
+  template <int, int> int f();
+  template <int i = 1, int j = 2> int f() { return i+j; }
+  int  k = f();  // now accepted
+
+
 1/14/13  [EDGcpfe/13169]
 GNU compatibility: Lowering of assigned goto expressions
 

@@ -9115,6 +9115,15 @@ definition of a member function of a class template.
       /* Merge type information from the two declarations. */
       reconcile_routine_types(rout_ptr, type_ptr, /*preserve_rout_type=*/TRUE,
                               /*preserve_type_ptr=*/FALSE, dps);
+      /* Merge the default template argument information. */
+      (void)reconcile_template_param_lists(
+                                decl_state->decl_info->parameters,
+                                decl_state, sym,
+                                &locator->source_position,
+                                /*default_allowed=*/TRUE,
+                                /*checking_parent_params=*/FALSE,
+                                /*allow_missing_member_constraint=*/TRUE,
+                                es_discretionary_error);
       /* If appropriate, clear the is_invisible flag in the symbol and
          in the symbol representing its overload set. */
       if (sym->is_invisible && !idlb.is_friend_decl) {

@@ -13932,7 +13932,7 @@ done:
 /*ARGSUSED*/  /* <-- allow_missing_member_constraint is not used
                  in this case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static a_boolean reconcile_template_param_lists(
+a_boolean reconcile_template_param_lists(
 			a_template_param_ptr  param_list,
 		        a_tmpl_decl_state_ptr decl_state,
 			a_symbol_ptr          class_sym,
