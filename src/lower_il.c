@@ -11929,8 +11929,7 @@ the expression have already been lowered.
 
 
 #if !MINIMAL_INLINING
-/*ARGSUSED*/ /* <-- statement and expr_has_been_detached are not used
-                    in this case. */
+/*ARGSUSED*/ /* <-- statement is not used in this case. */
 #endif /* !MINIMAL_INLINING */
 void lower_call(an_expr_node_ptr      expr,
                 an_init_pos_descr_ptr ipdp,
