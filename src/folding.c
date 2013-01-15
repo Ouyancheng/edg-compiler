@@ -5776,6 +5776,18 @@ a constexpr expansion, and the block provides context information.
             /* The variable has a template-dependent type. */
             *template_constant = TRUE;
           }  /* if */
+        } else if (var->is_constexpr) {
+          /* For a constexpr variable that does not have a constant address,
+             return the address of the underlying constant (because we do
+             want to return a constant, but we can't return the address
+             of the variable). */
+          a_constant_ptr valcon = var_constant_value_full(
+                                             var,
+                                             /*copy_for_reuse=*/TRUE,
+                                             /*clear_backing_expr=*/TRUE,
+                                             /*allow_C_mode_const_var=*/FALSE);
+          is_constant_addr = TRUE;
+          set_constant_address_constant(valcon, con);
         }  /* if */
       }
       break;
@@ -7951,6 +7963,10 @@ static a_boolean i_fold_constexpr_call(
                               a_constexpr_evaluation_block *ceblock,
                               a_constant                   *result_con,
                               a_boolean                    *returns_reference);
+static a_boolean fold_object_expr(an_expr_node_ptr             expr,
+                                  a_constexpr_evaluation_block *ceblock,
+                                  a_boolean                    want_addr,
+                                  a_constant                   *result_con);
 
 static a_constexpr_remap_ptr constant_remap_entry_for_variable(
                                          a_variable_ptr        var,
@@ -7980,7 +7996,8 @@ static a_boolean fold_variable_reference(
 expr is an enk_variable node.  See if the variable appears on the
 constexpr remap list provided as ceblock->remap_list, and if so set
 *result_con to the variable's value and return TRUE; otherwise, return FALSE.
-The expression node can be an lvalue or rvalue; it doesn't matter.
+Also replace constexpr variables by their values.  The expression node can
+be an lvalue or rvalue; it doesn't matter.
 */
 {
   a_boolean      folded = FALSE;
@@ -7994,6 +8011,15 @@ The expression node can be an lvalue or rvalue; it doesn't matter.
       folded = TRUE;
       copy_constant(&crp->constant_value, result_con);
     }  /* if */
+  } else if (var->is_constexpr) {
+    a_constant_ptr valcon = var_constant_value_full(
+                                             var,
+                                             /*copy_for_reuse=*/TRUE,
+                                             /*clear_backing_expr=*/TRUE,
+                                             /*allow_C_mode_const_var=*/FALSE);
+    folded = TRUE;
+    check_assertion(valcon != NULL);
+    copy_constant(valcon, result_con);
   }  /* if */
   return folded;
 }  /* fold_variable_reference */
@@ -8177,10 +8203,15 @@ ceblock gives context information for the evaluation.
         }
         break;
       case eok_dot_field:
+        /* a.field. */
+        op1_folded = fold_object_expr(op1, ceblock, /*want_addr=*/FALSE,
+                                      &op1_constant);
+        goto field_selection;
       case eok_points_to_field:
-        /* a.f or p->f.  Try to fold the left operand to a constant, then
-           try to fold the field selection. */
+        /* a.field or p->field.  Try to fold the left operand to a constant,
+           then try to fold the field selection. */
         op1_folded = fold_expr(op1, ceblock, &op1_constant);
+field_selection:
         if (op1_folded) {
           a_boolean points_to =
                             (op == (an_expr_operator_kind)eok_points_to_field);
@@ -8191,6 +8222,12 @@ ceblock gives context information for the evaluation.
             folded = TRUE;
           }  /* if */
         }  /* if */
+        break;
+      case eok_address_of:
+      case eok_reference_to:
+        /* &x or the reference equivalent.  If the underlying lvalue has a
+           constant address, the result is that address. */
+        folded = fold_lvalue_expr(op1, ceblock, result_con);
         break;
       default:
         /* "Normal" operators.  For these, the operands have to be constant
@@ -8370,14 +8407,17 @@ ceblock gives context information for the evaluation.
 
 static a_boolean fold_object_expr(an_expr_node_ptr             expr,
                                   a_constexpr_evaluation_block *ceblock,
+                                  a_boolean                    want_addr,
                                   a_constant                   *result_con)
 /*
-Attempt to fold the expression "expr", the non-pointer object expression
-of a nonstatic member function call, to a constant object address as part of
-a constexpr call evaluation, by substituting argument constant values for
-parameters.  If the expression folds to a constant address, place the constant
-in *result_con and return TRUE; otherwise, return FALSE.  ceblock
-gives context information for the evaluation.
+Attempt to fold the expression "expr", a class object that might be in
+lvalue or rvalue form, to either a constant value for the class object
+(want_addr == FALSE) or a constant address for the object (want_addr == TRUE),
+by substituting argument constant values for parameters.  If a constant
+result is possible, place the constant value in *result_con and return
+TRUE; otherwise, return FALSE.  ceblock gives context information for
+the evaluation.  This is used, for example, for the non-pointer object
+expression of a nonstatic member function call.
 */
 {
   a_boolean  folded = FALSE;
@@ -8385,18 +8425,38 @@ gives context information for the evaluation.
   check_assertion(is_class_struct_union_type(expr->type) ||
                   is_error_type(expr->type));
   if (!expr->is_lvalue) {
-    a_constant constant_object;
-    if (fold_expr(expr, ceblock, &constant_object)) {
-      /* The object is an rvalue constant (probably a ck_aggregate).
-         Return the address of that constant. */
+    if (fold_expr(expr, ceblock, result_con)) {
+      /* The object is an rvalue constant (probably a ck_aggregate). */
       folded = TRUE;
-      set_constant_address_constant(alloc_shareable_constant(&constant_object),
-                                    result_con);
+      if (want_addr) {
+        /* Return the address of that constant. */
+        a_constant_ptr con = alloc_shareable_constant(result_con);
+        set_constant_address_constant(con, result_con);
+      }  /* if */
     }  /* if */
   } else {
     /* Try to fold an lvalue to a constant address. */
     if (fold_lvalue_expr(expr, ceblock, result_con)) {
       folded = TRUE;
+      if (!want_addr) {
+        a_constant pointed_to_con;
+        if (points_to_constant(result_con, ceblock, &pointed_to_con)) {
+          copy_constant(&pointed_to_con, result_con);
+        } else {
+          folded = FALSE;
+        }  /* if */
+      }  /* if */
+    } else if (!want_addr && is_variable_node(expr)) {
+      /* An lvalue variable node for a parameter or constexpr variable
+         can be replaced by the value of the variable. */
+      folded = fold_variable_reference(expr, ceblock, result_con);
+    } else if (!want_addr && expr->kind == (an_expr_node_kind)enk_temp_init) {
+      /* A dynamic initialization.  Try folding it to a constant.  This
+         comes up when passing class values via copy constructor. */
+      folded = fold_dynamic_init(expr->variant.init.dynamic_init,
+                                 expr->type,
+                                 ceblock,
+                                 result_con);
     }  /* if */
   }  /* if */
   return folded;
@@ -8442,21 +8502,24 @@ there is some kind of failure.
   }  /* if */
   for (arg = args; arg != NULL; arg = arg->next) {
     a_constexpr_remap_ptr crp;
+    a_param_type_ptr      ptp;
     if (param_var == NULL) {
       *not_foldable = TRUE;
       break;
     }  /* if */
+    ptp = param_var->assoc_param_type;  /* Might be NULL. */
     crp = alloc_constexpr_remap(param_var, arg);
     /* See if the argument expression is a constant or can be folded to one. */
     if (param_var->is_this_parameter && !this_arg_is_pointer) {
       /* For a non-pointer object expression (for the "this" parameter),
          see if the object is a constant. */
-      crp->is_constant = fold_object_expr(arg, ceblock, &crp->constant_value);
-    } else if (is_reference_type(param_var->type)) {
-      /* For a reference parameter, try to get a constant address. */
-      crp->is_constant = fold_lvalue_expr(arg, ceblock, &crp->constant_value);
+      crp->is_constant = fold_object_expr(arg, ceblock, /*want_addr=*/TRUE,
+                                          &crp->constant_value);
+    } else if (ptp != NULL && ptp->passed_via_copy_constructor) {
+      /* For a class value passed via a copy constructor, get the value. */
+      crp->is_constant = fold_object_expr(arg, ceblock, /*want_addr=*/FALSE,
+                                          &crp->constant_value);
     } else {
-      /* Non-reference parameter. */
       crp->is_constant = fold_expr(arg, ceblock, &crp->constant_value);
     }  /* if */
     *last_ptr = crp;
