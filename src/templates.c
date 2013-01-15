@@ -7033,8 +7033,8 @@ instantiated nonreal class is found, FALSE otherwise.
       class_type = type_symbol_type(tmc_sym);
       check_assertion(is_immediate_class_type(class_type));
       for (; class_type != NULL && !result;
-           class_type->source_corresp.is_class_member
-                                     ? class_type = parent_class_of(class_type)
+           class_type = class_type->source_corresp.is_class_member
+                                     ? parent_class_of(class_type)
                                      : NULL) {
         /* Start with the innermost class that is a class template and seek
            outward looking for a class that has a Microsoft instantiated
