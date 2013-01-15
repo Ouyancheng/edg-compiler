@@ -17653,7 +17653,10 @@ Do IL lowering of the indicated statement and everything under it.
         break;
 #if GNU_EXTENSIONS_ALLOWED
       case stmk_assigned_goto:
-        lower_full_expr(stmt_expr, statement);
+        /* Lower the expression for the assigned goto; pass a NULL statement
+           pointer to prevent inlining from replacing this statement (though
+           there should never be a top-level call operation). */
+        lower_full_expr(stmt_expr, (a_statement_ptr)NULL);
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       default:

@@ -4169,9 +4169,6 @@ Do C99 lowering on the indicated statement.
       case stmk_asm:
         lower_asm_statement(statement);
         break;
-#if GNU_EXTENSIONS_ALLOWED
-      case stmk_assigned_goto:
-#endif /* GNU_EXTENSIONS_ALLOWED */
       case stmk_expr:
         /* Expression statement.  Pass in the statement to allow better
            inlining. */
@@ -4245,6 +4242,16 @@ Do C99 lowering on the indicated statement.
         }
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+      case stmk_assigned_goto:
+        /* Lower the expression for the assigned goto.  Although it should
+           never occur, pass a NULL statement pointer to the expression
+           lowering to prevent inlining from replacing the entire statement. */
+        check_assertion(statement->expr != NULL);
+        lower_c99_expr_full(statement->expr, (a_statement_ptr)NULL);
+        end_of_full_expr_processing(statement->expr);
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition_str("lower_c99_statement: bad statement kind");
     }  /* switch */
