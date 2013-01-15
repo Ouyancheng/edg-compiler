@@ -1,5 +1,24 @@
 Version 4.6
 
+1/15/13  [EDGcpfe/13579]
+Abort after error on use of C++/CLI event
+
+The front end used an uninitialized variable after issuing an error
+on a use of a C++/CLI event.  The use of the uninitialized variable
+caused garbage on an available list, which could manifest itself
+later in various kinds of aborts.  Now fixed.
+
+  delegate void D();
+  ref struct S {
+    event D^ e {
+      void add(D^);
+    }
+  };
+  void f(S ^s, D ^d) {
+   s->e -= d;
+  }
+
+
 1/14/13  [EDGcpfe/13334]
 Merging of default template arguments across declarations
 

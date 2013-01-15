@@ -18637,7 +18637,7 @@ to TRUE and *result becomes an error operand.
     a_symbol_ptr         event_sym = lhs->symbol, accessor_sym = NULL;
     a_symbol_locator     accessor_loc;
     an_operand           function_operand, selector;
-    an_arg_list_elem_ptr arg_list;
+    an_arg_list_elem_ptr arg_list = NULL;
     an_expr_node_ptr     argument_list;
     a_boolean            have_selector =
                                        (lhs->variant.event_ref.object != NULL);
