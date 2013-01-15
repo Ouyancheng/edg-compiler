@@ -7032,6 +7032,7 @@ instantiated nonreal class is found, FALSE otherwise.
       a_type_ptr	class_type;
       class_type = type_symbol_type(tmc_sym);
       check_assertion(is_immediate_class_type(class_type));
+      /*lint --e{850} class_type modified in loop (LINTBUG) */
       for (; class_type != NULL && !result;
            class_type = class_type->source_corresp.is_class_member
                                      ? parent_class_of(class_type)
