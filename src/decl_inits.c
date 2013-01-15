@@ -6042,6 +6042,10 @@ initialized.  These are addressed in the course of the processing.
           /* A default constructor does exist.  Generate the dynamic init
              entry. */
           dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/FALSE);
+          if (ctor_rout->is_constexpr && !rp->is_constexpr) {
+            pos_sy_error(ec_nonconstexpr_call_in_mem_initializer, &err_pos,
+                         symbol_for(rp));
+          }  /* if */
         }  /* if */
       }  /* if */
       /* Attach the new dynamic init entry to the constructor initializer. */

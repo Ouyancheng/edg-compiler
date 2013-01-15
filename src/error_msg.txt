@@ -2463,6 +2463,7 @@ ec_bad_argument_for_bases;;"an instantiation of __bases or __direct_bases requir
 ec_bad_prototype_argument_for_bases;;"the argument of __bases and __direct_bases must be a type template parameter"
 ec_bases_not_in_template;;"%s can only be used in template contexts"
 ec_constexpr_return_not_constant;;"constexpr function return is non-constant"
+ec_nonconstexpr_call_in_mem_initializer;;"constexpr constructor calls non-constexpr %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
