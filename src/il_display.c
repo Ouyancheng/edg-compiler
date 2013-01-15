@@ -2795,6 +2795,9 @@ Display the indicated field.
     if (ptr->has_direct_braced_initializer) {
       disp_boolean("has_direct_braced_initializer", TRUE);
     }  /* if */
+    if (ptr->has_nonconstant_initializer) {
+      disp_boolean("has_nonconstant_initializer", TRUE);
+    }  /* if */
     disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
     if (ptr->entities_defined_in_initializer != NULL) {
       disp_entity_list("entities_defined_in_initializer",

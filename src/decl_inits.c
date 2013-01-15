@@ -4254,6 +4254,7 @@ IL entry for that field.
   if (field != NULL && is->init_dip != NULL) {
     field->has_direct_braced_initializer = is->direct_init;
     field->initializer = is->init_dip;
+    field->has_nonconstant_initializer = is->constant_expr_ruled_out;
   } else {
     expect_error();
     field->has_initializer = FALSE;
@@ -5934,6 +5935,16 @@ initialized.  These are addressed in the course of the processing.
            initializer associated with it.  Set the flag indicating that the
            field initializer should be used, and move on to the next entry. */
         cip->use_field_initializer = TRUE;
+        if (ctor_rout->is_constexpr) {
+          a_field_ptr  field = cip->variant.field;
+          /* FIXME Ensure the field initializer is scanned if necessary. */
+          if (field->has_nonconstant_initializer) {
+            /* If the field initializer is known not to be a constant, it
+               cannot be used for constexpr construction. */
+            pos_sy_error(ec_nonconstant_field_initializer_in_mem_initializer,
+                         &err_pos, symbol_for(field));
+          }  /* if */
+        }  /* if */
         prev_cip = cip;
         continue;
       } else {

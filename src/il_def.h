@@ -9417,6 +9417,10 @@ typedef struct a_field {
   a_bit_field	has_direct_braced_initializer:1;
 			/* TRUE if a direct braced initializer was specified
 			   for this field. */
+  a_bit_field	has_nonconstant_initializer:1;
+			/* TRUE if a C++11-style initializer was specified for
+			   this field, and the initializer is known not to be
+			   a constant expression. */
   bitfield_to_avoid_codecenter_warnings()
   a_dynamic_init_ptr
 		initializer;

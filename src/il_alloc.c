@@ -2348,6 +2348,7 @@ to it.
 #endif /* DO_IL_LOWERING */
   fp->has_initializer      = FALSE;
   fp->has_direct_braced_initializer = FALSE;
+  fp->has_nonconstant_initializer = FALSE;
 #if CENTERLINE_CHECKING
   fp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
