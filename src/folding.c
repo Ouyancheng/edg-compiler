@@ -5786,8 +5786,11 @@ a constexpr expansion, and the block provides context information.
                                              /*copy_for_reuse=*/TRUE,
                                              /*clear_backing_expr=*/TRUE,
                                              /*allow_C_mode_const_var=*/FALSE);
-          is_constant_addr = TRUE;
-          set_constant_address_constant(valcon, con);
+          /* valcon can be NULL in error cases. */
+          if (valcon != NULL) {
+            is_constant_addr = TRUE;
+            set_constant_address_constant(valcon, con);
+          }  /* if */
         }  /* if */
       }
       break;
@@ -8017,9 +8020,11 @@ be an lvalue or rvalue; it doesn't matter.
                                              /*copy_for_reuse=*/TRUE,
                                              /*clear_backing_expr=*/TRUE,
                                              /*allow_C_mode_const_var=*/FALSE);
-    folded = TRUE;
-    check_assertion(valcon != NULL);
-    copy_constant(valcon, result_con);
+    /* valcon can be NULL in error cases. */
+    if (valcon != NULL) {
+      folded = TRUE;
+      copy_constant(valcon, result_con);
+    }  /* if */
   }  /* if */
   return folded;
 }  /* fold_variable_reference */
