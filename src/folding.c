@@ -8686,12 +8686,14 @@ usually be called instead.
            data member. */
         a_constant             aggr_con;
         a_constructor_init_ptr ctor_init;
+        a_type_ptr             class_type = parent_class_of(ctor_routine);
         clear_constant(&aggr_con, (a_constant_repr_kind)ck_aggregate);
-        aggr_con.type = parent_class_of(ctor_routine);
+        aggr_con.type = class_type;
         for (ctor_init =
                     scope->variant.routine.variant.constexpr_constructor_inits;
              ctor_init != NULL;
              ctor_init = ctor_init->next) {
+          a_field_ptr        field = NULL;
           a_constant         member_con;
           a_constant_ptr     member_con_ptr;
           a_type_ptr         member_type = NULL;
@@ -8700,19 +8702,38 @@ usually be called instead.
              /* FIXME: don't handle base classes yet. */
             goto fail;
           } else {
-            a_field_ptr field = ctor_init->variant.field;
+            field = ctor_init->variant.field;
             member_type = field->type;
             if (ctor_init->use_field_initializer) {
               /* The field has an NSDMI. */
               dip = field->initializer;
               check_assertion(dip != NULL);
             }  /* if */
+            /* FIXME: for non-first field of union, add designator. */
           }  /* if */
           /* Try to fold the initialization to a constant. */
           if (!fold_dynamic_init(dip, member_type, ceblock, &member_con)) {
             goto fail;
           }  /* if */
           member_con_ptr = alloc_unshared_constant(&member_con);
+          if (field != NULL && parent_class_of(field) != class_type) {
+            /* Add extra ck_aggregate levels for an anonymous union field. */
+            a_field_ptr curr_field = field;
+            do {
+              a_constant_ptr new_aggr_con;
+              a_type_ptr     curr_class = parent_class_of(curr_field);
+              a_class_type_supplement_ptr
+                             ctsp = class_type_supp(curr_class);
+              check_assertion(ctsp->anonymous_union_kind ==
+                                           (an_anonymous_union_kind)auk_field);
+              new_aggr_con= alloc_constant((a_constant_repr_kind)ck_aggregate);
+              new_aggr_con->variant.aggregate.first_constant = member_con_ptr;
+              new_aggr_con->variant.aggregate.last_constant = member_con_ptr;
+              new_aggr_con->type = curr_class;
+              member_con_ptr = new_aggr_con;
+              curr_field = ctsp->anonymous_union_field;
+            } while (parent_class_of(curr_field) != class_type);
+          }  /* if */
           /* Add the constant at the end of the aggregate. */
           if (aggr_con.variant.aggregate.first_constant == NULL) {
             aggr_con.variant.aggregate.first_constant = member_con_ptr;
