@@ -22226,6 +22226,7 @@ that follows.
          namespace they belong to or a namespace that encloses it. */
       if (sym->decl_scope != scope_stack[depth_scope_stack].number) {
         a_boolean	err = FALSE;
+        a_boolean	make_gpp_warning = FALSE;
         if (!sym_is_class_or_namespace_member(sym)) {
           /* A global scope symbol.  This is allowed only if this is
              a Microsoft or Sun in-class specialization. */
@@ -22234,11 +22235,28 @@ that follows.
           /* A class or namespace member being specialized outside of its
              namespace. */
           err = TRUE;
+          if (gpp_mode && sym->is_class_member) {
+            /* g++ allows a static data member to be specialized in an invalid
+               namespace in all versions.  It allows other class members to be
+               specialized in an invalid namespace prior to version 4.1. */
+            if (symbol_is(sym, sk_static_data_member)) {
+              make_gpp_warning = TRUE;
+            } else if (gnu_version < 40100) {
+              make_gpp_warning = TRUE;
+            }  /* if */
+          }  /* if */
         }  /* if */
         if (err && !decl_state->decl_scope_err) {
-          pos_sy_error(ec_bad_scope_for_specialization,
-                       &locator.source_position, sym);
-          decl_state->decl_scope_err = TRUE;
+          an_error_severity	severity = es_error;
+          if (gpp_mode && make_gpp_warning) {
+            /* Some diagnostics are issued as warnings in g++ mode. */
+            severity = es_warning;
+            err = FALSE;
+          } else {
+            decl_state->decl_scope_err = TRUE;
+          }  /* if */
+          pos_sy_diagnostic(severity, ec_bad_scope_for_specialization,
+                            &locator.source_position, sym);
         }  /* if */
         if (err) sym = NULL;
       }  /* if */

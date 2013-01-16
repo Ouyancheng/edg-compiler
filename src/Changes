@@ -1,5 +1,24 @@
 Version 4.6
 
+1/15/13  [EDGcpfe/12444]
+GNU C++ compatibility: specializations of class members in invalid namespaces
+
+g++ allows a member of a class template to be specialized in an invalid
+namespace.  This is allowed for static data members in all g++ versions.
+It is allowed for other class members for g++ versions prior to 4.1.  We
+now emulate this behavior in g++ mode as appropriate for a given gnu_version
+value.
+
+  template <typename T> class A {
+   static int I;
+   void f();
+  };
+  namespace N {
+   template <> int A<int>::I;  // okay in g++ mode for any gnu_version
+   template <> void A<int>::f(){} // okay in g++ mode for gnu_version < 40100
+  }
+
+
 1/15/13  [EDGcpfe/13579]
 Abort after error on use of C++/CLI event
 
