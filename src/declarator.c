@@ -2499,9 +2499,8 @@ an error if a default argument expression is encountered.
         }  /* if */
       }  /* while */
       any_variadic_params = any_params;
-    }  /* while */
+    }  /* if */
     if (any_params) {
-      a_boolean		is_new_param = TRUE;
       last_param_type = NULL;
       do {
         a_decl_parse_state   param_state;
@@ -2515,9 +2514,6 @@ an error if a default argument expression is encountered.
         a_boolean	     is_non_initial_pack_element;
         /* Mark the start of the parameter declaration as the start of a
            potential variadic pack expansion. */
-        if (is_new_param) {
-          is_new_param = FALSE;
-        }  /* if */
         is_pack_element = pesep != NULL && pesep->instantiation_descr != NULL;
         is_non_initial_pack_element = is_non_initial_variadic_element();
         /* Count the number of parameters encountered.  All elements of a given
@@ -3064,7 +3060,6 @@ an error if a default argument expression is encountered.
         }  /* if */
         any_variadic_params = advance_to_next_pack_element(pesep);
         if (!any_variadic_params && !done) {
-          is_new_param = TRUE;
           any_variadic_params = begin_potential_pack_expansion_context(&pesep);
           if (!any_variadic_params) done = TRUE;
         }  /* if */
