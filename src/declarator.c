@@ -2556,6 +2556,7 @@ an error if a default argument expression is encountered.
             }  /* if */
             remove_stop_token(tok_comma);
             abandon_potential_pack_expansion_context(pesep);
+            pesep = NULL;
             break;
           } else if (is_void_type(param_state.type) &&
                      (c99_mode || cpp11_mode ||
@@ -2603,6 +2604,7 @@ an error if a default argument expression is encountered.
               }  /* if */
               remove_stop_token(tok_comma);
               abandon_potential_pack_expansion_context(pesep);
+              pesep = NULL;
               break;
             }  /* if */
           }  /* if */
@@ -3109,6 +3111,10 @@ an error if a default argument expression is encountered.
                we now know that the ellipsis terminates the parameter list.
                E.g., template<class ...T> void f(int, T..., ...) {} */
             any_variadic_params = FALSE;
+            if (!is_top_level_declarator) {
+              abandon_potential_pack_expansion_context(pesep);
+              pesep = NULL;
+            }  /* if */
           }  /* if */
         }  /* if */
         if (is_constructor && parent_type != NULL) {
