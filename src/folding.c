@@ -8903,8 +8903,9 @@ otherwise, return FALSE.
       }  /* while */
       copy_constant(member_con, result_con);
       if (is_error_type(result_con->type)) {
-        /* There was an error in the initializer, so the access cannot be
-           folded. */
+        /* There was an error in the initializer. */
+        folded = TRUE;
+        set_error_constant(result_con);
       } else if (anon_union_member_type != NULL) {
         /* The type of the initializer constant will be that of the first
            member of the union, but field can be any member of the union and
@@ -8921,6 +8922,10 @@ otherwise, return FALSE.
         folded = TRUE;
       }  /* if */
     }  /* if */
+  } else if (eff_obj_con != NULL &&
+             is_error_constant(eff_obj_con)) {
+    set_error_constant(result_con);
+    folded = TRUE;
   }  /* if */
   return folded;
 }  /* fold_constant_field_selection */

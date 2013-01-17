@@ -2870,8 +2870,13 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
              must have its arguments evaluated in order. */
           dip->variant.constructor.has_sequenced_arguments = TRUE;
         }  /* if */
+        if (!in_potential_constant_constexpr_context() &&
+            construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+                                                         source_pos)) {
+          dip = NULL;
+        }  /* if */
       }  /* if */
-      if (fill_in_dtor) {
+      if (fill_in_dtor && dip != NULL) {
         /* Fill in the destructor information.  Note that we cannot use
            alloc_dtor_dynamic_init because it does not allow for the
            object_class_type to differ from the class_type. */
