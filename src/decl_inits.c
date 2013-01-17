@@ -48,13 +48,7 @@ aconstant is a ck_aggregate constant.  Append econstant to the list embedded in
 aconstant.
 */
 {
-  check_assertion(aconstant->kind == (a_constant_repr_kind)ck_aggregate);
-  if (aconstant->variant.aggregate.first_constant == NULL) {
-    aconstant->variant.aggregate.first_constant = econstant;
-  } else {
-    aconstant->variant.aggregate.last_constant->next = econstant;
-  }  /* if */
-  aconstant->variant.aggregate.last_constant = econstant;
+  add_constant_to_aggregate(econstant, aconstant);
   if (econstant->uses_designated_initializers) {
     aconstant->uses_designated_initializers = TRUE;
   }  /* if */

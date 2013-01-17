@@ -27932,11 +27932,8 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
     if (aggr_con == NULL) {
       aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
       aggr_con->type = lambda->closure_class;
-      aggr_con->variant.aggregate.first_constant = init_con;
-    } else {
-      aggr_con->variant.aggregate.last_constant->next = init_con;
     }  /* if */
-    aggr_con->variant.aggregate.last_constant = init_con;
+    add_constant_to_aggregate(init_con, aggr_con);
   }  /* for */
   /* Make a dynamic initializer for the aggregate.  If no initialization
      is needed, make a dik_none dynamic init. */

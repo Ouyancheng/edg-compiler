@@ -1202,6 +1202,9 @@ extern a_scope_ptr new_il_region(a_scope_kind   kind,
 extern void copy_constant(a_constant *from,
                           a_constant *to);
 
+extern void add_constant_to_aggregate(a_constant_ptr con,
+                                      a_constant_ptr aggr_con);
+
 void explode_string_initializer(a_constant_ptr con);
 
 extern void combine_initializers(a_constant_ptr     first,

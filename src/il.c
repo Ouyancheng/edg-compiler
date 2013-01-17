@@ -4950,6 +4950,23 @@ character kind.
 }  /* character_type */
 
 
+void add_constant_to_aggregate(a_constant_ptr con,
+                               a_constant_ptr aggr_con)
+/*
+Add con at the end of the list of constants in the aggregate constant
+aggr_con.
+*/
+{
+  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
+  if (aggr_con->variant.aggregate.first_constant == NULL) {
+    aggr_con->variant.aggregate.first_constant = con;
+  } else {
+    aggr_con->variant.aggregate.last_constant->next = con;
+  }  /* if */
+  aggr_con->variant.aggregate.last_constant = con;
+}  /* add_constant_to_aggregate */
+  
+
 void explode_string_initializer(a_constant_ptr con)
 /*
 If the indicated initializer constant is a string literal constant,
@@ -4980,13 +4997,7 @@ characters.  The constant is updated in place.
                                    (a_host_large_unsigned)val);
       }  /* if */
       char_con = alloc_unshared_constant(&char_val);
-      /* Add the constant to the aggregate list. */
-      if (con->variant.aggregate.first_constant == NULL) {
-        con->variant.aggregate.first_constant = char_con;
-      } else {
-        con->variant.aggregate.last_constant->next = char_con;
-      }  /* if */
-      con->variant.aggregate.last_constant = char_con;
+      add_constant_to_aggregate(char_con, con);
     }  /* for */
   }  /* if */
 }  /* explode_string_initializer */
@@ -5321,12 +5332,7 @@ copy_constant_full should be called to start a copy.
       new_aggr_con = i_copy_constant_full(old_aggr_con, (a_constant *)NULL,
                                           options_unshared, cblock);
       /* Add the constant to the aggregate list. */
-      if (new_constant->variant.aggregate.first_constant == NULL) {
-        new_constant->variant.aggregate.first_constant = new_aggr_con;
-      } else {
-        new_constant->variant.aggregate.last_constant->next = new_aggr_con;
-      }  /* if */
-      new_constant->variant.aggregate.last_constant = new_aggr_con;
+      add_constant_to_aggregate(new_aggr_con, new_constant);
     }  /* for */
   } else if (new_constant->kind == (a_constant_repr_kind)ck_init_repeat) {
     /* For ck_init_repeat constants, copy the subtree also. */

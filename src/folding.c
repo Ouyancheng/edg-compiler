@@ -7899,14 +7899,12 @@ evaluation.
       break;
     case dik_nonconstant_aggregate:
       { a_constant_ptr new_aggr;
-        a_constant_ptr *last_ptr_ptr;
         a_constant_ptr elem_con;
         a_constant_ptr aggr = dip->variant.constant;
         check_assertion(aggr->kind == (a_constant_repr_kind)ck_aggregate);
         new_aggr = result_con;
         clear_constant(new_aggr, (a_constant_repr_kind)ck_aggregate);
         new_aggr->type = aggr->type;
-        last_ptr_ptr = &new_aggr->variant.aggregate.first_constant;
         folded = TRUE;
         /* Loop through the elements of the aggregate and copy each one.
            Dynamic constants get parameter substitution. */
@@ -7934,9 +7932,7 @@ evaluation.
             folded = FALSE;
             break;
           }  /* if */
-          (*last_ptr_ptr) = new_elem_con;
-          last_ptr_ptr = &new_elem_con->next;
-          new_aggr->variant.aggregate.last_constant = new_elem_con;
+          add_constant_to_aggregate(new_elem_con, new_aggr);
         }  /* for */
         if (ref_case) {
           /* Return the address of the aggregate constant for the reference
@@ -8692,6 +8688,7 @@ usually be called instead.
         a_constant             aggr_con;
         a_constructor_init_ptr ctor_init;
         a_type_ptr             class_type = parent_class_of(ctor_routine);
+        a_field_ptr            last_init_field = NULL;
         clear_constant(&aggr_con, (a_constant_repr_kind)ck_aggregate);
         aggr_con.type = class_type;
         for (ctor_init =
@@ -8720,6 +8717,28 @@ usually be called instead.
           if (!fold_dynamic_init(dip, member_type, ceblock, &member_con)) {
             goto fail;
           }  /* if */
+          if (field != NULL) {
+            /* See if the field being initialized immediately follows the
+               previous one we initialized. */
+            if (last_init_field == NULL) {
+              /* This is the first initialization. */
+              last_init_field = next_initializable_field(
+                            class_type->variant.class_struct_union.field_list);
+            } else {
+              last_init_field= next_initializable_field(last_init_field->next);
+            }  /* if */
+            while (last_init_field != NULL &&
+                   last_init_field->is_anonymous_parent_object) {
+              /* Add an empty aggregate initializer for any anonymous union
+                 containing no members. */
+              a_constant_ptr anon_union_aggr =
+                            alloc_constant((a_constant_repr_kind)ck_aggregate);
+              add_constant_to_aggregate(anon_union_aggr, &aggr_con);
+              anon_union_aggr->type = last_init_field->type;
+              last_init_field= next_initializable_field(last_init_field->next);
+            }  /* while */
+            check_assertion(last_init_field == field);
+          }  /* if */
           member_con_ptr = alloc_unshared_constant(&member_con);
           if (field != NULL && parent_class_of(field) != class_type) {
             /* Add extra ck_aggregate levels for an anonymous union field. */
@@ -8732,20 +8751,15 @@ usually be called instead.
               check_assertion(ctsp->anonymous_union_kind ==
                                            (an_anonymous_union_kind)auk_field);
               new_aggr_con= alloc_constant((a_constant_repr_kind)ck_aggregate);
-              new_aggr_con->variant.aggregate.first_constant = member_con_ptr;
-              new_aggr_con->variant.aggregate.last_constant = member_con_ptr;
+              add_constant_to_aggregate(member_con_ptr, new_aggr_con);
               new_aggr_con->type = curr_class;
               member_con_ptr = new_aggr_con;
               curr_field = ctsp->anonymous_union_field;
+              last_init_field = curr_field;
             } while (parent_class_of(curr_field) != class_type);
           }  /* if */
           /* Add the constant at the end of the aggregate. */
-          if (aggr_con.variant.aggregate.first_constant == NULL) {
-            aggr_con.variant.aggregate.first_constant = member_con_ptr;
-          } else {
-            aggr_con.variant.aggregate.last_constant->next = member_con_ptr;
-          }  /* if */
-          aggr_con.variant.aggregate.last_constant = member_con_ptr;
+          add_constant_to_aggregate(member_con_ptr, &aggr_con);
         }  /* for */
         folded = TRUE;
         copy_constant(&aggr_con, result_con);

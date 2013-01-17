@@ -20705,12 +20705,7 @@ conversion, etc.)
         }  /* if */
       }  /* if */
       /* Add con to the aggregate constant list. */
-      if (aggr_constant->variant.aggregate.first_constant == NULL) {
-        aggr_constant->variant.aggregate.first_constant = con;
-      } else {
-        aggr_constant->variant.aggregate.last_constant->next = con;
-      }  /* if */
-      aggr_constant->variant.aggregate.last_constant = con;
+      add_constant_to_aggregate(con, aggr_constant);
     }  /* if */
   }  /* for */
   if (arg_match == NULL) {
