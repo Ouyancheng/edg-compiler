@@ -1,5 +1,21 @@
 Version 4.6
 
+1/17/13  [EDGcpfe/13585]
+Microsoft mode: initialization of local static variable
+
+Due to a typo in the original fix (see Changes entry for 5/8/08), the
+initialization for a local static variable in an inline function with a
+DLL interface in Microsoft mode in configurations that use lowering had been
+initk_none, but is now initk_zero.  For example:
+
+  struct __declspec(dllexport) X {
+    X();
+  };
+  __declspec(dllexport) inline void f() {
+    static X x;  // initializer kind had been initk_none and is now initk_zero
+  }
+
+
 1/16/13  [EDGcpfe/13584]
 Internal error on nested C-style ellipsis in variadic function template
 

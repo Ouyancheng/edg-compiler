@@ -8814,7 +8814,7 @@ do_assignment:;
       if ((static_var_init && !variable->source_corresp.is_local_to_function &&
            force_variable_definition_via_zeroing && !C_mode() &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-           (variable->decl_modifiers && DM_DLLIMPORT) == 0 &&
+           (variable->decl_modifiers & DM_DLLIMPORT) == 0 &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
            !local_static_that_requires_dynamic_init) ||
           dip->is_partially_initialized) {
