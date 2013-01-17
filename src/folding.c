@@ -8688,18 +8688,43 @@ usually be called instead.
         a_constant             aggr_con;
         a_constructor_init_ptr ctor_init;
         a_type_ptr             class_type = parent_class_of(ctor_routine);
-        a_field_ptr            last_init_field = NULL;
+        a_field_ptr            next_expected_field =
+                          next_initializable_field(
+                            class_type->variant.class_struct_union.field_list);
         clear_constant(&aggr_con, (a_constant_repr_kind)ck_aggregate);
         aggr_con.type = class_type;
         for (ctor_init =
                     scope->variant.routine.variant.constexpr_constructor_inits;
-             ctor_init != NULL;
+             ;  /* Exit test in middle of loop. */
              ctor_init = ctor_init->next) {
           a_field_ptr        field = NULL;
           a_constant         member_con;
           a_constant_ptr     member_con_ptr;
           a_type_ptr         member_type = NULL;
-          a_dynamic_init_ptr dip = ctor_init->initializer;
+          a_dynamic_init_ptr dip;
+          /* Adjust the variable for the next field we expect to be
+             initializing to account for added/removed fields. */
+          while (next_expected_field != NULL &&
+                 symbol_for(next_expected_field) == NULL) {
+            /* Skip lowering-generated fields. */
+            next_expected_field =
+                           next_initializable_field(next_expected_field->next);
+          }  /* while */
+          while (next_expected_field != NULL &&
+                 next_expected_field->is_anonymous_parent_object) {
+            /* Add an empty aggregate initializer for an anonymous union
+               containing no members. */
+            a_constant_ptr anon_union_aggr =
+                            alloc_constant((a_constant_repr_kind)ck_aggregate);
+            add_constant_to_aggregate(anon_union_aggr, &aggr_con);
+            anon_union_aggr->type = next_expected_field->type;
+            next_expected_field =
+                           next_initializable_field(next_expected_field->next);
+          }  /* while */
+          if (ctor_init == NULL) break;
+          /* Process the ctor-initializer to add a constant for the
+             member initialized. */
+          dip = ctor_init->initializer;
           if (ctor_init->kind != (a_constructor_init_kind)cik_field) {
              /* FIXME: don't handle base classes yet. */
             goto fail;
@@ -8717,28 +8742,8 @@ usually be called instead.
           if (!fold_dynamic_init(dip, member_type, ceblock, &member_con)) {
             goto fail;
           }  /* if */
-          if (field != NULL) {
-            /* See if the field being initialized immediately follows the
-               previous one we initialized. */
-            if (last_init_field == NULL) {
-              /* This is the first initialization. */
-              last_init_field = next_initializable_field(
-                            class_type->variant.class_struct_union.field_list);
-            } else {
-              last_init_field= next_initializable_field(last_init_field->next);
-            }  /* if */
-            while (last_init_field != NULL &&
-                   last_init_field->is_anonymous_parent_object) {
-              /* Add an empty aggregate initializer for any anonymous union
-                 containing no members. */
-              a_constant_ptr anon_union_aggr =
-                            alloc_constant((a_constant_repr_kind)ck_aggregate);
-              add_constant_to_aggregate(anon_union_aggr, &aggr_con);
-              anon_union_aggr->type = last_init_field->type;
-              last_init_field= next_initializable_field(last_init_field->next);
-            }  /* while */
-            check_assertion(last_init_field == field);
-          }  /* if */
+          /* See if the field being initialized is the one expected. */
+          check_assertion(next_expected_field == field || field == NULL);
           member_con_ptr = alloc_unshared_constant(&member_con);
           if (field != NULL && parent_class_of(field) != class_type) {
             /* Add extra ck_aggregate levels for an anonymous union field. */
@@ -8755,11 +8760,14 @@ usually be called instead.
               new_aggr_con->type = curr_class;
               member_con_ptr = new_aggr_con;
               curr_field = ctsp->anonymous_union_field;
-              last_init_field = curr_field;
+              next_expected_field = curr_field;
             } while (parent_class_of(curr_field) != class_type);
           }  /* if */
           /* Add the constant at the end of the aggregate. */
           add_constant_to_aggregate(member_con_ptr, &aggr_con);
+          if (field != NULL) {
+            next_expected_field = next_initializable_field(field->next);
+          }  /* if */
         }  /* for */
         folded = TRUE;
         copy_constant(&aggr_con, result_con);
