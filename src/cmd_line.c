@@ -1355,6 +1355,12 @@ Initialize the option information table.
   add_option_description(optk_implicit_noexcept, "no_implicit_noexcept",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_unrestricted_unions, "permissive_unions", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_unrestricted_unions, "no_permissive_unions",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2728,6 +2734,9 @@ handling).
   }  /* if */
   local_types_as_template_args_enabled = value;
   decls_using_types_without_linkage_allowed = value;
+  if (!option_kind_used[(int)optk_unrestricted_unions]) {
+    unrestricted_unions_enabled = value;
+  }  /* if */
   defaulted_special_members_enabled = value;
   deleted_functions_enabled = value;
   trailing_return_types_enabled = value;
@@ -8936,6 +8945,9 @@ enable_microsoft_mode:
       case optk_implicit_noexcept:
         implicit_noexcept_enabled = opt_value;
         break;
+      case optk_unrestricted_unions:
+        unrestricted_unions_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -9069,6 +9081,11 @@ enable_microsoft_mode:
       cpp11_sfinae_enabled = TRUE;
       cpp11_sfinae_ignore_access = DEFAULT_CPP11_SFINAE_IGNORE_ACCESS;
     }  /* if */
+  }  /* if */
+  if (unrestricted_unions_enabled) {
+    /* Unrestricted unions require the ability to mark special member functions
+       as "deleted". */
+    deleted_functions_enabled = TRUE;
   }  /* if */
   if (long_lifetime_temps) {
     /* Don't allow long lifetime temps with some newer language features. */
@@ -9835,6 +9852,7 @@ variables declared in cmd_line.h.
   local_types_as_template_args_enabled = FALSE;
   inexact_ptr_to_member_deduction_enabled = TRUE;
   decls_using_types_without_linkage_allowed = FALSE;
+  unrestricted_unions_enabled = FALSE;
   trailing_return_types_enabled = FALSE;
   this_in_trailing_return_types_enabled = FALSE;
   list_init_enabled = FALSE;

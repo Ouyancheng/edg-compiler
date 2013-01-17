@@ -295,6 +295,7 @@ typedef enum /*an_option_kind*/ {
 #if USE_FIXED_ADDRESS_FOR_MMAP
   optk_fixed_address_for_mmap,
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+  optk_unrestricted_unions,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1092,6 +1093,13 @@ EXTERN a_boolean
 			   used.  This is the rule used in C++11 and it must
 			   be used when local and unnamed types can be
 			   used as template arguments. */
+
+EXTERN a_boolean
+		unrestricted_unions_enabled;
+			/* TRUE if C++11-style "unrestricted unions" are
+			   accepted.  For example, nonstatic data members of
+			   unions can have nontrivial constructors and
+			   destructors if this variable is TRUE. */
 
 EXTERN a_boolean
 		trailing_return_types_enabled;

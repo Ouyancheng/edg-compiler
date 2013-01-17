@@ -958,6 +958,20 @@ typedef struct a_class_def_state {
 			   must be nontrivial because the class has virtual
 			   base classes, virtual functions, or base classes or
 			   members with nontrivial default constructors. */
+  a_bit_field	variant_member_with_nontrivial_default_ctor:1;
+			/* TRUE if this class has a variant member with a
+			   nontrivial default constructor.  (In that case,
+			   possible with unrestricted unions only, a generated
+			   default constructor is implicitly deleted.) */
+  a_bit_field	variant_member_with_nontrivial_copy_ctor:1;
+			/* TRUE if this class has a variant member with a
+			   nontrivial copy constructor. */
+  a_bit_field	variant_member_with_nontrivial_dtor:1;
+			/* TRUE if this class has a variant member with a
+			   nontrivial destructor. */
+  a_bit_field	variant_member_with_nontrivial_copy_assign:1;
+			/* TRUE if this class has a variant member with a
+			   nontrivial copy assignment operator. */
   a_bit_field	member_destruction_required:1;
 			/* TRUE if the class has a direct member requiring
 			   destruction. */
@@ -1061,6 +1075,10 @@ class being defined.
   cdsp->is_local_class = FALSE;
   cdsp->last_field_is_incomplete_array = FALSE;
   cdsp->default_ctor_is_nontrivial = FALSE;
+  cdsp->variant_member_with_nontrivial_default_ctor = FALSE;
+  cdsp->variant_member_with_nontrivial_copy_ctor = FALSE;
+  cdsp->variant_member_with_nontrivial_dtor = FALSE;
+  cdsp->variant_member_with_nontrivial_copy_assign = FALSE;
   cdsp->member_destruction_required = FALSE;
   cdsp->base_destruction_required = FALSE;
   cdsp->ms_parenthesized_member = FALSE;
@@ -14631,64 +14649,89 @@ specific information about the member declaration, respectively.
 }  /* decl_static_data_member */
 
 
-static a_boolean is_valid_union_field(a_type_ptr         field_type,
-                                      a_boolean          is_nonstd,
-                                      a_source_position  *pos)
+static a_boolean check_valid_union_field(a_type_ptr         field_type,
+                                         a_class_def_state  *cdsp,
+                                         a_boolean          is_nonstd,
+                                         a_source_position  *pos)
 /*
-Nonstatic data members of a union may not be objects with a constructor,
-a destructor, or a user-defined assignment operator.  If any such member
-functions are present, then:  in cfront mode issue a warning if there's only a
-user-defined assignment operator; otherwise, issue an error and return FALSE.
+In traditional C++, nonstatic data members of a union may not be objects with
+a constructor, a destructor, or a user-defined assignment operator.  (In C++11
+those restrictions were removed.)  If any such member functions are present
+and unrestricted_unions_enabled is FALSE, then:  in cfront mode issue a
+warning if there's only a user-defined assignment operator; otherwise, issue
+an error and return FALSE.  If any such member functions are present and
+unrestricted_unions_enabled is TRUE, record that fact in *cdsp (unless cdsp is
+NULL, which is the case for namespace-scope anonymous unions).
 */
 {
   a_type_ptr                     tp = skip_typerefs(field_type);
   a_class_symbol_supplement_ptr  cssp;
   an_error_severity              severity = es_none;
 
-  db_enter(4, "is_valid_union_field");
-  if (is_array_type(tp)) tp=f_skip_typerefs(underlying_array_element_type(tp));
-  if (is_class_struct_union_type(tp)) {
+  db_enter(4, "check_valid_union_field");
+  if (tp->kind == (a_type_kind)tk_array) {
+    tp = underlying_array_element_type(tp);
+    tp = skip_typerefs(tp);
+  }  /* if */
+  if (is_immediate_class_type(tp)) {
     cssp = symbol_supplement_for_class(tp);
     if (tp->variant.class_struct_union.is_nonreal_class) {
       /* Suppress these checks for union members that are nonreal.  The test
-         will be repeated when a real instantiation of the enclosing
-         union is performed. */
-    } else if (has_nontrivial_constructor(cssp) ||
-               has_nontrivial_destructor(cssp)) {
-      /* A union member's (underlying) type cannot be a class with a
-         nontrivial constructor or destructor. */
-      severity = es_error;
-    } else if (!cssp->assignment_by_bitwise_copy_allowed) {
-      /* When this flag is false, memberwise assignment of the union would
-         require calling an assignment operator, but that involves knowing
-         which variant in the union is active.  This means, even if there
-         is no user-defined copy assignment operator the compiler generated
-         one is not trivial.  (This goes beyond what is literally required
-         in WP 9.6 at this time.) */
-      /* There is no error with cfront 2.1, but it is fixed in cfront 3.0. */
-      severity = cfront_2_1_mode ? es_warning : es_error;
-    }  /* if */
-    if (severity != es_none) {
-      an_error_code  err_code;
-      if (is_nonstd) {
-        err_code = ec_bad_nonstd_anonymous_union_field;
-        if (severity == es_error) {
-          /* The constraints for union fields are not really needed for
-             nonstandard anonymous unions (GNU C++ imposes the constraints,
-             but Microsoft C++ doesn't).  So at most a discretionary error
-             should be issued. */
-          severity = es_discretionary_error;
+         will be repeated when a real instantiation of the enclosing union is
+         performed. */
+    } else if (unrestricted_unions_enabled) {
+      if (cdsp != NULL) {
+        if (cssp->has_nontrivial_default_constructor) {
+          cdsp->variant_member_with_nontrivial_default_ctor = TRUE;
         }  /* if */
-      } else {
-        err_code = ec_bad_union_field;
+        if (!cssp->construction_by_bitwise_copy_allowed) {
+          cdsp->variant_member_with_nontrivial_copy_ctor = TRUE;
+        }  /* if */
+        if (has_nontrivial_destructor(cssp)) {
+          cdsp->variant_member_with_nontrivial_dtor = TRUE;
+        }  /* if */
+        if (!cssp->assignment_by_bitwise_copy_allowed) {
+          cdsp->variant_member_with_nontrivial_copy_assign = TRUE;
+        }  /* if */
       }  /* if */
-      pos_ty_diagnostic(severity, err_code, pos, tp);
+    } else {
+      if (has_nontrivial_constructor(cssp) ||
+          has_nontrivial_destructor(cssp)) {
+        /* A union member's (underlying) type cannot be a class with a
+           nontrivial constructor or destructor. */
+        severity = es_error;
+      } else if (!cssp->assignment_by_bitwise_copy_allowed) {
+        /* When this flag is false, memberwise assignment of the union would
+           require calling an assignment operator, but that involves knowing
+           which variant in the union is active.  This means, even if there
+           is no user-defined copy assignment operator the compiler generated
+           one is not trivial.  (This goes beyond what is literally required
+           in WP 9.6 at this time.) */
+        /* There is no error with cfront 2.1, but it is fixed in cfront 3.0. */
+        severity = cfront_2_1_mode ? es_warning : es_error;
+      }  /* if */
+      if (severity != es_none) {
+        an_error_code  err_code;
+        if (is_nonstd) {
+          err_code = ec_bad_nonstd_anonymous_union_field;
+          if (severity == es_error) {
+            /* The constraints for union fields are not really needed for
+               nonstandard anonymous unions (GNU C++ imposes the constraints,
+               but Microsoft C++ doesn't).  So at most a discretionary error
+               should be issued. */
+            severity = es_discretionary_error;
+          }  /* if */
+        } else {
+          err_code = ec_bad_union_field;
+        }  /* if */
+        pos_ty_diagnostic(severity, err_code, pos, tp);
+      }  /* if */
     }  /* if */
   }  /* if */
 
   db_exit();
   return (severity != es_error);
-}  /* is_valid_union_field */
+}  /* check_valid_union_field */
 
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 
@@ -14757,17 +14800,17 @@ be the last in the anonymous-union-parent chain.
 /*ARGSUSED*/ /* new_apo_syms is not used in some configurations. */
 #endif /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 static void promote_anonymous_union_field_symbol(
-                                         a_symbol_ptr         sym,
-                                         a_type_ptr           class_type,
-                                         a_symbol_ptr         *new_apo_syms,
-                                         a_symbol_ptr         assoc_object_sym,
-                                         an_access_specifier  new_access,
-                                         a_boolean            reuse_symbol,
-                                         a_boolean            is_nonstd)
+                                       a_symbol_ptr           sym,
+                                       a_class_def_state_ptr  cdsp,
+                                       a_symbol_ptr           *new_apo_syms,
+                                       a_symbol_ptr           assoc_object_sym,
+                                       an_access_specifier    new_access,
+                                       a_boolean              reuse_symbol,
+                                       a_boolean              is_nonstd)
 /*
 sym represents a field in an anonymous union.  This procedure promotes it to
-the surrounding (class or namespace) scope.  class_type is the class into which
-the field is being promoted (or NULL if the promotion is into a namespace
+the surrounding (class or namespace) scope.  cdsp describes the class into
+which the field is being promoted (or NULL if the promotion is into a namespace
 scope).  *new_apo_syms is a list of newly created anonymous union parent
 symbols that may need to be fixed up later on.  assoc_object_sym represents the
 anonymous union object (field or variable) and new_access is the access that
@@ -14778,13 +14821,15 @@ promotion is for a nonstandard anonymous union.
 {
   a_symbol_ptr  apo_sym = sym->variant.field.anonymous_parent_object;
   a_field_ptr   field = sym->variant.field.ptr;
- 
+  a_type_ptr    class_type = NULL;
+
+  if (cdsp != NULL) class_type = cdsp->class_type;
   if (is_nonstd && gpp_mode &&
-      !is_valid_union_field(field->type, /*is_nonstd=*/TRUE,
-                            &field->source_corresp.decl_position)) {
+      !check_valid_union_field(field->type, cdsp, /*is_nonstd=*/TRUE,
+                               &field->source_corresp.decl_position)) {
     /* GNU C++ compilers apply the same constraints to nonstandard anonymous
        unions (which aren't really unions) as to ordinary unions.  There is
-       nothing to do because is_valid_union_field already issued the
+       nothing to do because check_valid_union_field already issued the
        diagnostic.  This test was already done for standard anonymous (and
        named) unions, but for nonstandard anonymous unions it had to wait
        until the lack of a declarator determined that this is in fact a
@@ -14881,16 +14926,17 @@ promotion is for a nonstandard anonymous union.
 }  /* promote_anonymous_union_field_symbol */
 
 
-void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
-                                   a_type_ptr    class_type,
-                                   a_boolean     is_nonstd)
+void check_anonymous_union_symbols(a_symbol_ptr           assoc_object_sym,
+                                   a_class_def_state_ptr  cdsp,
+                                   a_boolean              is_nonstd)
 /*
 assoc_object_sym is a symbol for an unnamed field or variable that is the
-object associated with an anonymous union.  The type of the field or
-variable is an anonymous union type.  Process the member symbols of the
-anonymous union: make a pass over all its members, perform some error
-checking, and promote each field from the anonymous union to its containing
-scope.  The scope to which the symbols are promoted is decl_scope_level.
+object associated with an anonymous union (the definition of which is
+described by cdsp).  The type of the field or variable is an anonymous union
+type.  Process the member symbols of the anonymous union: make a pass over all
+its members, perform some error checking, and promote each field from the
+anonymous union to its containing scope.  The scope to which the symbols are
+promoted is decl_scope_level.
 
 If ALLOW_NONSTANDARD_ANONYMOUS_UNIONS, then, when assoc_object_sym refers
 to a field, its type may also be an unnamed struct or class, or a typedef
@@ -14907,12 +14953,14 @@ nonstandard anonymous unions is_nonstd is TRUE.
   a_boolean                      access_error_already_issued = FALSE;
   a_boolean                      member_function_error_already_issued = FALSE;
   a_boolean                      is_overloaded;
+  a_type_ptr                     class_type = NULL;
   a_type_ptr                     assoc_object_type, tp;
   a_boolean                      reuse_symbol = TRUE;
   a_field_ptr                    au_field;
   a_symbol_ptr                   new_apo_sym_list = NULL;
 
   db_enter(4, "check_anonymous_union_symbols");
+  if (cdsp != NULL) class_type = cdsp->class_type;
   switch (assoc_object_sym->kind) {
     case sk_variable:
       assoc_object_type = assoc_object_sym->variant.variable.ptr->type;
@@ -15079,7 +15127,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
     switch (sym->kind) {
       case sk_field:
         promote_anonymous_union_field_symbol(
-                         sym, class_type, &new_apo_sym_list, assoc_object_sym,
+                         sym, cdsp, &new_apo_sym_list, assoc_object_sym,
                          assoc_object_access, reuse_symbol, is_nonstd);
         break;
       case sk_member_function:
@@ -16201,8 +16249,8 @@ be entered.
       !decl_info->is_anonymous_union) {
     /* An object of a class with a constructor, a destructor, or a user-
        defined assignment operator cannot be a member of a union. */
-    if (!is_valid_union_field(member_type, /*is_nonstd=*/FALSE,
-                              &locator->source_position)) {
+    if (!check_valid_union_field(member_type, class_state, /*is_nonstd=*/FALSE,
+                                 &locator->source_position)) {
       member_type = error_type();
     }  /* if */
   }  /* if */
@@ -16440,7 +16488,7 @@ be entered.
   }  /* if */
   if (decl_info->is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
-    check_anonymous_union_symbols(member_sym, class_type,
+    check_anonymous_union_symbols(member_sym, class_state,
                                   (a_boolean)decl_info->
                                                is_nonstd_anonymous_union);
   }  /* if */
@@ -18450,6 +18498,22 @@ The routine body is not generated until it is known to be needed.
   ctsp = class_type_supp(class_type);
   pos = &class_type->source_corresp.decl_position;
   init_generated_special_function_descr(&gsfd);
+  if (unrestricted_unions_enabled) {
+    /* Variant members with special member functions suppress the corresponding
+       special member in the parent type by default. */
+    if (class_state->variant_member_with_nontrivial_default_ctor) {
+      gsfd.suppress_default_ctor = TRUE;
+    }  /* if */
+    if (class_state->variant_member_with_nontrivial_copy_ctor) {
+      gsfd.suppress_copy_ctor = TRUE;
+    }  /* if */
+    if (class_state->variant_member_with_nontrivial_dtor) {
+      gsfd.suppress_dtor = TRUE;
+    }  /* if */
+    if (class_state->variant_member_with_nontrivial_copy_assign) {
+      gsfd.suppress_copy_assign = TRUE;
+    }  /* if */
+  }  /* if */
   /* Check for a user-declared copy assignment or move assignment operator.
      (We count on the fact that any special member found at this time is a
      user-declared member.  That is not TRUE for closure types, however: Some
@@ -23340,9 +23404,8 @@ passed via template_decl.
           a_symbol_ptr  prototype_sym = class_state->corresp_prototype_tag_sym;
           a_type_ptr    tp = prototype_sym->variant.class_struct_union.type;
           if (tp->kind == (a_type_kind)tk_union &&
-              tp->variant.class_struct_union.
-                    extra_info->anonymous_union_kind !=
-                                   (an_anonymous_union_kind)auk_none) {
+              class_type_supp(tp)->anonymous_union_kind !=
+                                          (an_anonymous_union_kind)auk_none) {
             /* A member function of an anonymous union is an error (to be
                issued later, in check_anonymous_union_symbols).
                find_member_function_template should not be called, since it
@@ -24798,6 +24861,7 @@ bits of information that were acquired while parsing.
   a_symbol_ptr                   tag_sym = symbol_for(class_type);
   a_class_symbol_supplement_ptr  cssp
                               = tag_sym->variant.class_struct_union.extra_info;
+  a_class_type_supplement_ptr    ctsp = class_type_supp(class_type);
 
   if (class_state->last_field_is_incomplete_array) {
     /* The last field that was recorded was an incomplete array.  This is
@@ -24896,9 +24960,11 @@ bits of information that were acquired while parsing.
     /* Check to see if a remark should be issued on direct base classes
        with nonvirtual destructors. */
     check_base_class_destructors(class_state);
-    /* Create compiler-generated default constructor, copy constructor,
-       destructor, and assignment operator, if any is needed. */
-    check_special_member_functions(class_type, class_state);
+    if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_none) {
+      /* Create compiler-generated default constructor, copy constructor,
+         destructor, and assignment operator, if any is needed. */
+      check_special_member_functions(class_type, class_state);
+    }  /* if */
     if (cssp->is_class_aggregate && !class_state->POD_ruled_out) {
       /* It was intentional to wait until check_special_member_functions
          was called to set the is_POD flag -- the check for copy
@@ -24975,7 +25041,7 @@ bits of information that were acquired while parsing.
       }  /* if */
       check_names_reserved_by_cli_operators(class_type);
     }  /* if */
-    if (class_type_supp(class_type)->decl_modifiers & DM_DLLEXPORT) {
+    if (ctsp->decl_modifiers & DM_DLLEXPORT) {
       force_definition_of_generated_exported_members(class_type);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
