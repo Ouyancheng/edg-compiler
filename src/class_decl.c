@@ -2888,8 +2888,8 @@ prototype instantiations).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     a_boolean               class_reactivated = FALSE;
     push_lexical_state_stack();
-    if (!scope_is(&scope_stack_top(), sck_class_struct_union) &&
-        same_entities(scope_stack_top().assoc_type, parent_type)) {
+    if (!(scope_is(&scope_stack_top(), sck_class_struct_union) &&
+          same_entities(scope_stack_top().assoc_type, parent_type))) {
       /* Reactivate the class scope and parse the initializer. */
       push_class_and_template_reactivation_scope(parent_type,
                                                  is_template_based,
