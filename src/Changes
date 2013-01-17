@@ -1,5 +1,26 @@
 Version 4.6
 
+1/17/13  [EDGcpfe/9165,EDGcpfe12833]
+C++11: Unrestricted unions
+
+In traditional C++, unions cannot contain fields with nontrivial construction,
+assignment, or destruction semantics.  C++11, however, does permit such fields
+but if a corresponding constructor, destructor, or copy assignment operator is
+generated, it is implicitly "deleted".  The front end now implements the new
+rules in C++11 mode or when the option --unrestricted_unions is specified on
+the command line.  For example:
+
+  struct S { S(); };
+  union U {
+    S s;  // Previously an error; now accepted in C++11 mode.
+    int i;
+  };
+  U u;  // Error: The generated default constructor of U is deleted.
+
+Furthermore, when unrestricted unions are enabled, unions can also contain
+static data members.
+
+
 1/17/13  [EDGcpfe/13585]
 Microsoft mode: initialization of local static variable
 

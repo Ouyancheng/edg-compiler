@@ -14316,8 +14316,10 @@ specific information about the member declaration, respectively.
        encountered.  It also eliminates semi-spurious error messages if there
        are references to it. */
     member_type = error_type();
-  } else if (is_union_type(class_type)) {
-    /* Unions are not allowed to have static data members. */
+  } else if (!unrestricted_unions_enabled &&
+             class_type->kind == (a_type_kind)tk_union) {
+    /* Unions are not allowed to have static data members in traditional C++,
+       but C++11 permits it. */
     pos_error(ec_static_data_member_not_allowed, start_pos);
   } else if (!any_cfront_mode() && !microsoft_mode && !gpp_mode &&
              is_or_is_nested_within_unnamed_class(class_type)) {
