@@ -3820,7 +3820,7 @@ local) memory region.
     default:
       (void)printf("**BAD LOCAL-EXPR-NODE-REF KIND**");
   }  /* switch */
-  disp_ptr("referrer", (char*)ptr->referrer.ptr,
+  disp_ptr(" referrer", (char*)ptr->referrer.ptr,
            (an_il_entry_kind)ptr->referrer.kind);
 }  /* disp_local_expr_node_ref */
 
