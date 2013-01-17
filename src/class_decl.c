@@ -2886,10 +2886,16 @@ prototype instantiations).
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean               incomplete_type_error_reported = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    a_boolean               class_reactivated = FALSE;
     push_lexical_state_stack();
-    /* Reactivate the class scope and parse the initializer. */
-    push_class_and_template_reactivation_scope(parent_type, is_template_based,
-                                               /*extend_namespace=*/TRUE);
+    if (!scope_is(&scope_stack_top(), sck_class_struct_union) &&
+        same_entities(scope_stack_top().assoc_type, parent_type)) {
+      /* Reactivate the class scope and parse the initializer. */
+      push_class_and_template_reactivation_scope(parent_type,
+                                                 is_template_based,
+                                                 /*extend_namespace=*/TRUE);
+      class_reactivated = TRUE;
+    }  /* if */
     /* Class reactivation doesn't automatically switch the current memory
        region to file scope memory.  So we do it manually here.  (Ordinarily
        this shouldn't be needed, but error recovery can cause to get here
@@ -2931,11 +2937,14 @@ prototype instantiations).
     }  /* if */
     flush_past_token_cache_terminator();
     switch_back_to_original_region(region_to_switch_back_to);
-    pop_class_reactivation_scope();
+    if (class_reactivated) {
+      pop_class_reactivation_scope();
+    }  /* if */
     next_ifp = ifp->next;
     free_initializer_fixup(ifp);
     pop_lexical_state_stack();
   }  /* for */
+  cssp->initializer_fixup_list = NULL;
 }  /* inclass_initializer_fixup_for_class */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -17415,18 +17424,28 @@ static a_boolean fields_initialized_for_constexpr_constructor(
 /*
 Return TRUE if the field initialization constraints for a constexpr constructor
 are satisfied by the given class type.  For non-union types, all fields must be
-initialized, and for union types exactly one field must be initialized.
+initialized, and for union types exactly one field must be initialized.  In all
+cases, the initializers must also be constants.
 */
 {
   a_boolean    okay = TRUE, initializer_seen = FALSE;
   a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
 
+  /* Ensure all field initializers have been scanned. */
+  inclass_initializer_fixup_for_class(
+               class_type,
+               class_type->variant.class_struct_union.is_template_class &&
+                 !class_type->variant.class_struct_union.is_specialized);
   fp = next_initializable_field(fp);
   if (fp != NULL) {
     a_boolean  is_union = class_type->kind == (a_type_kind)tk_union;
     for (; fp != NULL; fp = next_initializable_field(fp->next)) {
       a_boolean  member_initialized;
-      if (fp->compiler_generated) {
+      if (fp->has_nonconstant_initializer) {
+        /* A nonconstant initializer is never okay. */
+        okay = FALSE;
+        break;
+      } else if (fp->compiler_generated) {
         if (fp->is_anonymous_parent_object) {
           /* If this field represents an anonymous union, apply the
              requirement recursively. */
@@ -17497,13 +17516,9 @@ in some Microsoft modes, record that its body cannot be generated).
       !class_state->has_subobject_of_nonliteral_type) {
     /* A generated default constructor is implicitly "constexpr" if (a) the
        parent class has no virtual bases, (b) all subobjects have literal
-       class type (FIXME: incorrect), and (c) every field has a
+       class type (FIXME: incorrect), and (c) every field has a constant
        field-initializer. */
     if (fields_initialized_for_constexpr_constructor(class_type)) {
-      /* Various parts of the front end aren't ready to deal with constexpr
-         default constructors, and this affects many tests that don't
-         mention "constexpr" at all.  Re-enable when we're closer to a full
-         implementation of constexpr. */
       sym->variant.routine.ptr->is_constexpr = TRUE;
       class_state->has_constexpr_nonstatic_member_function = TRUE;
     }  /* if */
