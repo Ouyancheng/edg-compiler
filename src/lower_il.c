@@ -2834,8 +2834,18 @@ not to contain any top level base class casts.
        be reattached to the new expression below. */
     /* This test (for base class casts) only works on unlowered IL. */
     expr = strip_rvalue_base_class_casts(expr, &top_cast, &bottom_cast);
-    temp = assign_expr_to_temp(expr);
-    expr = make_comma_node(expr, var_addr_expr(temp));
+    if (is_constant_node(expr) &&
+        check_for_troublesome_aggregate_constant(expr->variant.constant,
+                                                 /*const_okay=*/TRUE,
+                                                 &temp)) {
+      /* ck_aggregate constants can appear in cases where a constexpr
+         constructor or function returns an class value.  Return the
+         temporary that has been created for this constant. */
+      expr = var_addr_expr(temp);
+    } else {
+      temp = assign_expr_to_temp(expr);
+      expr = make_comma_node(expr, var_addr_expr(temp));
+    }  /* if */
     if (top_cast != NULL) {
       /* Restore the base class casts on top of the initialization of the
          temporary. */
