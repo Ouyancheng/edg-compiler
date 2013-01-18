@@ -15807,9 +15807,9 @@ no_applicable_operator_function:
                 conv_to_error_operand(result);
               }  /* if */
             } else {
-              a_routine_ptr rp = NULL;
-              a_constant    result_con;
-              a_boolean     returns_reference;
+              an_expr_node_ptr func_call_node;
+              a_constant       result_con;
+              a_boolean        returns_reference;
               /* Not the builtin bitwise operator=. */
               /* Build an expression-form argument list.  Convert the arguments
                  on the argument list to the right types.  Note that for the
@@ -15849,12 +15849,20 @@ no_applicable_operator_function:
                                           /*is_property=*/FALSE,
                                           /*compiler_generated=*/TRUE,
                                           &function_operand);
+              /* Make the call node and an operand for it. */
+              assemble_function_call(&function_operand,
+                                     bound_function_selector,
+                                     arg_expr_list,
+                                     /*compiler_generated=*/TRUE,
+                                     /*arg_dep_lookup_suppressed=*/FALSE,
+                                     /*qualified_function_name=*/FALSE,
+                                     found_through_adl,
+                                     /*uses_operator_syntax=*/TRUE,
+                                     operator_position, result,
+                                     &func_call_node);
               if (constexpr_enabled &&
-                  (rp = routine_from_function_operand(&function_operand))
-                                                                     != NULL &&
-                  rp->is_constexpr &&
-                  fold_constexpr_call(rp, arg_expr_list,
-                                      selector_is_object_pointer,
+                  func_call_node != NULL &&
+                  fold_constexpr_call(func_call_node,
                                       operator_position,
                                       &result_con,
                                       &returns_reference)) {
@@ -15867,17 +15875,8 @@ no_applicable_operator_function:
                   add_reference_indirection(result);
                 }  /* if */
               } else {
-                /* Make the call node and an operand for it. */
-                assemble_function_call(&function_operand,
-                                       bound_function_selector,
-                                       arg_expr_list,
-                                       /*compiler_generated=*/TRUE,
-                                       /*arg_dep_lookup_suppressed=*/FALSE,
-                                       /*qualified_function_name=*/FALSE,
-                                       found_through_adl,
-                                       /*uses_operator_syntax=*/TRUE,
-                                       operator_position, result,
-                                       (an_expr_node_ptr *)NULL);
+                a_routine_ptr rp =
+                              routine_from_function_operand(&function_operand);
                 call_did_not_fold_to_constant(ec_expr_not_constant,
                                               rp, result);
               }  /* if */
@@ -17628,9 +17627,25 @@ the temporary.
     set_up_for_conversion_function_call(operand, conversion_routine,
                                         conversion->routine_symbol,
                                         &arg_expr_list);
+    /* Make a node for the function. */
+    rout_node = function_rvalue_expr(conversion_routine);
+    rout_node->next = arg_expr_list;
+    /* Make an operand for the call. */
+    make_function_call(rout_node, conversion_routine->type,
+                       (a_boolean)conversion_routine->is_virtual,
+                       /*virtual_suppressed=*/FALSE,
+                       operand->selector_is_object_pointer,
+                       /*compiler_generated=*/!is_explicit_cast,
+                       /*is_conversion=*/TRUE,
+                       /*arg_dep_lookup_suppressed=*/FALSE,
+                       /*qualified_function_name=*/FALSE,
+                       /*found_through_adl=*/FALSE,
+                       /*uses_operator_syntax=*/FALSE,
+                       &orig_operand.position, operand,
+                       &conv_function_call_node);
     if (conversion_routine->is_constexpr &&
-        fold_constexpr_call(conversion_routine, arg_expr_list,
-                            operand->selector_is_object_pointer,
+        conv_function_call_node != NULL &&
+        fold_constexpr_call(conv_function_call_node,
                             &orig_operand.position, &result_con,
                             &returns_reference)) {
       /* The conversion function is constexpr and the call was folded to a
@@ -17641,22 +17656,6 @@ the temporary.
         add_reference_indirection(operand);
       }  /* if */
     } else {
-      /* Make a node for the function. */
-      rout_node = function_rvalue_expr(conversion_routine);
-      rout_node->next = arg_expr_list;
-      /* Make an operand for the call. */
-      make_function_call(rout_node, conversion_routine->type,
-                         (a_boolean)conversion_routine->is_virtual,
-                         /*virtual_suppressed=*/FALSE,
-                         operand->selector_is_object_pointer,
-                         /*compiler_generated=*/!is_explicit_cast,
-                         /*is_conversion=*/TRUE,
-                         /*arg_dep_lookup_suppressed=*/FALSE,
-                         /*qualified_function_name=*/FALSE,
-                         /*found_through_adl=*/FALSE,
-                         /*uses_operator_syntax=*/FALSE,
-                         &orig_operand.position, operand,
-                         &conv_function_call_node);
       call_did_not_fold_to_constant(ec_expr_not_constant,
                                     conversion_routine,
                                     operand);

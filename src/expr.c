@@ -4010,21 +4010,10 @@ Also folds calls to constexpr functions.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (!folded) {
-    an_expr_operator_kind opkind = call->variant.operation.kind;
-    args = call->variant.operation.operands;
-    if ((opkind == (an_expr_operator_kind)eok_call ||
-         opkind == (an_expr_operator_kind)eok_dot_member_call ||
-         opkind == (an_expr_operator_kind)eok_points_to_member_call) &&
-        (rp = routine_from_function_expr(args)) != NULL &&
-        rp->is_constexpr) {
-      /* Try to fold a call to a constexpr function. */
-      a_boolean points_to = 
-                  (opkind == (an_expr_operator_kind)eok_points_to_member_call);
-      folded = fold_constexpr_call(rp, args->next, points_to,
-                                   &op->position, &result,
-                                   &returns_constant_reference);
-    }  /* if */
+  if (!folded && constexpr_enabled) {
+    /* Try to fold a call to a constexpr function. */
+    folded = fold_constexpr_call(call, &op->position, &result,
+                                 &returns_constant_reference);
   }  /* if */
   if (folded) {
     /* Replace the call with a constant result. */

@@ -7956,9 +7956,7 @@ end_of_routine:
 
 
 static a_boolean i_fold_constexpr_call(
-                              a_routine_ptr                routine,
-                              an_expr_node_ptr             args,
-                              a_boolean                    this_arg_is_pointer,
+                              an_expr_node_ptr             call_expr,
                               a_constexpr_evaluation_block *ceblock,
                               a_constant                   *result_con,
                               a_boolean                    *returns_reference);
@@ -8192,16 +8190,10 @@ ceblock gives context information for the evaluation.
       case eok_dot_member_call:
       case eok_points_to_member_call:
         /* Try to fold a call if it's to a constexpr function. */
-        { a_routine_ptr rp = routine_from_function_expr(op1);
-          if (rp != NULL && rp->is_constexpr) {
-            a_boolean points_to =
-                      (op == (an_expr_operator_kind)eok_points_to_member_call);
-            folded = i_fold_constexpr_call(rp, op2, points_to,
-                                           ceblock,
-                                           result_con,
-                                           (a_boolean *)NULL);
-          }  /* if */
-        }
+        folded = i_fold_constexpr_call(expr,
+                                       ceblock,
+                                       result_con,
+                                       (a_boolean *)NULL);
         break;
       case eok_dot_field:
         /* a.field. */
@@ -8377,7 +8369,6 @@ ceblock gives context information for the evaluation.
   } else if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
     an_expr_node_ptr      op1 = expr->variant.operation.operands;
-    an_expr_node_ptr      op2 = op1->next;
     switch (op) {
       case eok_call:
       case eok_dot_member_call:
@@ -8388,9 +8379,7 @@ ceblock gives context information for the evaluation.
           if (rp != NULL && rp->is_constexpr &&
               is_reference_type(il_return_type_of(rp->type))) {
             a_boolean returns_reference;
-            a_boolean points_to =
-                      (op == (an_expr_operator_kind)eok_points_to_member_call);
-            folded = i_fold_constexpr_call(rp, op2, points_to,
+            folded = i_fold_constexpr_call(expr,
                                            ceblock,
                                            result_con,
                                            &returns_reference);
@@ -8538,39 +8527,59 @@ there is some kind of failure.
 
 
 static a_boolean i_fold_constexpr_call(
-                              a_routine_ptr                routine,
-                              an_expr_node_ptr             args,
-                              a_boolean                    this_arg_is_pointer,
+                              an_expr_node_ptr             call_expr,
                               a_constexpr_evaluation_block *ceblock,
                               a_constant                   *result_con,
                               a_boolean                    *returns_reference)
 /*
-The routine "routine" is being called with the argument list "args", and the
-routine is declared constexpr.  If the routine is a nonstatic member
-function and the argument for "this" is provided in pointer form,
-this_arg_is_pointer is TRUE.  Try to fold the call to a constant.  If that's
-possible, place the constant in *result_con and return TRUE; otherwise,
-return FALSE.  If returns_reference is non-NULL, *returns_reference is
-returned TRUE if the result is a reference, and result_con is the
-constant address for the reference.  If returns_reference is NULL, the
-caller requires an rvalue result and the reference return case
-will be converted to an rvalue if possible.  ceblock gives context
-information for the evaluation.  This is the internal version of the
-routine, as indicated by the "i_" prefix; fold_constexpr_call should
-usually be called instead.
+call_expr is a call expression.  If it's calling a constexpr function,
+try to fold the call to a constant.  If that's possible, place the
+constant in *result_con and return TRUE; otherwise, return FALSE.  If
+returns_reference is non-NULL, *returns_reference is returned TRUE if
+the result is a reference, and result_con is the constant address for
+the reference.  If returns_reference is NULL, the caller requires an
+rvalue result and the reference return case will be converted to an
+rvalue if possible.  ceblock gives context information for the
+evaluation.  This is the internal version of the routine, as indicated
+by the "i_" prefix; fold_constexpr_call should usually be called
+instead.
 */
 {
-  a_boolean folded = FALSE;
+  a_boolean             folded = FALSE;
+  a_routine_ptr         routine;
+  an_expr_node_ptr      args;
+  an_expr_operator_kind opkind;
+  a_boolean             this_arg_is_pointer;
 
   if (returns_reference != NULL) *returns_reference = FALSE;
-  check_assertion(routine->is_constexpr);
-  if (routine->assoc_scope != NULL_region_number) {
+  check_assertion(is_call_node(call_expr));
+  args = call_expr->variant.operation.operands;
+  opkind = call_expr->variant.operation.kind;
+  this_arg_is_pointer = (opkind ==
+                             (an_expr_operator_kind)eok_points_to_member_call);
+  routine = routine_from_function_expr(args);
+  if (routine == NULL) {
+    /* Don't know the called routine, so can't fold. */
+  } else if (!routine->is_constexpr) {
+    /* The routine is not constexpr, so can't fold. */
+  } else if (routine->assoc_scope == NULL_region_number) {
+    /* The routine has no definition, so can't fold. */
+  } else if (!(opkind == (an_expr_operator_kind)eok_call ||
+               opkind == (an_expr_operator_kind)eok_dot_member_call ||
+               this_arg_is_pointer)) {
+    /* Non-foldable kind of call, e.g., a pointer-to-member call. */
+  } else {
+    a_type_ptr       return_type = return_type_of(routine->type);
     a_scope_ptr      scope = scope_for_routine(routine);
-    an_expr_node_ptr expr;
     check_assertion(scope->kind == (a_scope_kind)sck_function &&
                     !special_kind_is(routine, sfk_constructor));
-    if (scope->has_constexpr_return_expr) {
-      expr = scope->variant.routine.variant.constexpr_return_expr;
+    args = args->next;
+    if (is_incomplete_type(return_type)) {
+      /* The return type is incomplete, so can't fold. */
+    } else if (scope->has_constexpr_return_expr) {
+      /* Function returns an expression. */
+      an_expr_node_ptr expr =
+                          scope->variant.routine.variant.constexpr_return_expr;
       if (expr != NULL) {
         /* Set up remapping of parameter variables to the argument values. */
         a_boolean             not_foldable;
@@ -8617,30 +8626,26 @@ usually be called instead.
 }  /* i_fold_constexpr_call */
 
 
-a_boolean fold_constexpr_call(a_routine_ptr     routine,
-                              an_expr_node_ptr  args,
-                              a_boolean         this_arg_is_pointer,
+a_boolean fold_constexpr_call(an_expr_node_ptr  call_expr,
                               a_source_position *pos,
                               a_constant        *result_con,
                               a_boolean         *returns_reference)
 /*
-The routine "routine" is being called with the argument list "args", and the
-routine is declared constexpr.  If the routine is a nonstatic member
-function and the argument for "this" is provided in pointer form,
-this_arg_is_pointer is TRUE.  Try to fold the call to a constant.  If that's
-possible, place the constant in *result_con and return TRUE; otherwise,
-return FALSE.  If returns_reference is non-NULL, *returns_reference is
-returned TRUE if the result is a reference, and result_con is the
-constant address for the reference.  If returns_reference is NULL, the
-caller requires an rvalue result and the reference return case will be
-converted to an rvalue if possible.
+call_expr is a call to a function declared constexpr.  Try to fold the
+call to a constant.  If that's possible, place the constant in
+*result_con and return TRUE; otherwise, return FALSE.  If
+returns_reference is non-NULL, *returns_reference is returned TRUE if
+the result is a reference, and result_con is the constant address for
+the reference.  If returns_reference is NULL, the caller requires an
+rvalue result and the reference return case will be converted to an
+rvalue if possible.
 */
 {
   a_boolean                    folded;
   a_constexpr_evaluation_block ceblock;
 
   clear_constexpr_evaluation_block(&ceblock, pos);
-  folded = i_fold_constexpr_call(routine, args, this_arg_is_pointer,
+  folded = i_fold_constexpr_call(call_expr,
                                  &ceblock,
                                  result_con,
                                  returns_reference);
