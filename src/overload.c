@@ -20271,6 +20271,14 @@ issued, and *error_detected is returned TRUE if there are any errors
       if (trivial_ctor) {
         /* For a class with a trivial constructor, just zero the object. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+      } else if (ctor_routine->is_constexpr &&
+                 curr_expr_is_evaluated() &&
+                 fold_constexpr_ctor(ctor_routine, (an_expr_node_ptr)NULL,
+                                     pos, &con)) {
+        /* The constructor is declared constexpr and the construction has been
+           folded to a constant. */
+        /* FIXME: value_init TRUE. */
+        con.type = dest_type;
       } else {
         /* Otherwise, use a dik_constructor entry.  For a nonreal class,
            ctor_routine is NULL to indicate the constructor is unknown. */

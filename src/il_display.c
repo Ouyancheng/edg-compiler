@@ -1070,6 +1070,9 @@ Display the indicated constant entry.
   if (ptr->is_compound_literal) {
     disp_boolean("is_compound_literal", TRUE);
   }  /* if */
+  if (ptr->is_result_of_constexpr_call) {
+    disp_boolean("is_result_of_constexpr_call", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:

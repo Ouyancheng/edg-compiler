@@ -8576,50 +8576,61 @@ instead.
     args = args->next;
     if (is_incomplete_type(return_type)) {
       /* The return type is incomplete, so can't fold. */
-    } else if (scope->has_constexpr_return_expr) {
-      /* Function returns an expression. */
-      an_expr_node_ptr expr =
-                          scope->variant.routine.variant.constexpr_return_expr;
-      if (expr != NULL) {
-        /* Set up remapping of parameter variables to the argument values. */
-        a_boolean             not_foldable;
-        a_constexpr_remap_ptr saved_remap_list = ceblock->remap_list;
-        ceblock->remap_list = constexpr_remap_list_for_args(
-                                                          scope, args,
+    } else {
+      /* Set up remapping of parameter variables to the argument values. */
+      a_boolean             not_foldable;
+      a_constexpr_remap_ptr saved_remap_list = ceblock->remap_list;
+      ceblock->remap_list = constexpr_remap_list_for_args(scope, args,
                                                           this_arg_is_pointer,
                                                           ceblock,
                                                           &not_foldable);
-        if (not_foldable) {
-          /* Some problem that prevents folding. */
-        } else {
-          /* Substitute values for parameters and attempt to fold the call to
-             a constant. */
-          if (is_reference_type(il_return_type_of(routine->type))) {
-            folded = fold_lvalue_expr(expr, ceblock, result_con);
-            if (returns_reference != NULL) {
-              *returns_reference = TRUE;
-            } else {
-              /* The caller is not expecting a reference result, so try
-                 to convert to an underlying constant value.  If we can't,
-                 the folding fails. */
-              a_constant copy;
-              copy_constant(result_con, &copy);
-              if (points_to_constant(&copy, ceblock, result_con)) {
-                /* Okay. */
-              } else {
-                folded = FALSE;
-              }  /* if */
-            }  /* if */
+      if (not_foldable) {
+        /* Some problem that prevents folding. */
+      } else if (scope->has_constexpr_return_expr) {
+        /* The function returns an expression. */
+        an_expr_node_ptr expr =
+                          scope->variant.routine.variant.constexpr_return_expr;
+        check_assertion(expr != NULL);
+        /* Substitute values for parameters and attempt to fold the call to
+           a constant. */
+        if (is_reference_type(il_return_type_of(routine->type))) {
+          folded = fold_lvalue_expr(expr, ceblock, result_con);
+          if (returns_reference != NULL) {
+            *returns_reference = TRUE;
           } else {
-            folded = fold_expr(expr, ceblock, result_con);
-          } /* if */
+            /* The caller is not expecting a reference result, so try
+               to convert to an underlying constant value.  If we can't,
+               the folding fails. */
+            a_constant copy;
+            copy_constant(result_con, &copy);
+            if (points_to_constant(&copy, ceblock, result_con)) {
+              /* Okay. */
+            } else {
+              folded = FALSE;
+            }  /* if */
+          }  /* if */
+        } else {
+          /* The function does not return a reference. */
+          folded = fold_expr(expr, ceblock, result_con);
         }  /* if */
-        free_constexpr_remap_list(ceblock->remap_list);
-        ceblock->remap_list = saved_remap_list;
+      } else {
+        /* The function returns a value via a dynamic init. */
+        a_dynamic_init_ptr dip = 
+                  scope->variant.routine.variant.constexpr_return_dynamic_init;
+        /* dip can be NULL on the error case of a "return;" in a constexpr
+           function. */
+        if (dip != NULL) {
+          folded = fold_dynamic_init(dip,
+                                     il_return_type_of(routine->type),
+                                     ceblock,
+                                     result_con);
+        }  /* if */
       }  /* if */
-    } else {
-      /* FIXME: Need to handle the case where the constexpr routine returns
-         a dynamic init rather than an expression. */
+      free_constexpr_remap_list(ceblock->remap_list);
+      ceblock->remap_list = saved_remap_list;
+      if (folded) {
+        result_con->is_result_of_constexpr_call = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return folded;
@@ -8702,7 +8713,7 @@ usually be called instead.
                     scope->variant.routine.variant.constexpr_constructor_inits;
              ;  /* Exit test in middle of loop. */
              ctor_init = ctor_init->next) {
-          a_field_ptr        field = NULL;
+          a_field_ptr        field;
           a_constant         member_con;
           a_constant_ptr     member_con_ptr;
           a_type_ptr         member_type = NULL;
@@ -8730,10 +8741,19 @@ usually be called instead.
           /* Process the ctor-initializer to add a constant for the
              member initialized. */
           dip = ctor_init->initializer;
-          if (ctor_init->kind != (a_constructor_init_kind)cik_field) {
-             /* FIXME: don't handle base classes yet. */
-            goto fail;
+          if (ctor_init->kind ==
+                             (a_constructor_init_kind)cik_virtual_base_class ||
+              ctor_init->kind ==
+                             (a_constructor_init_kind)cik_direct_base_class) {
+            /* A base class.  Virtual base classes are not actually possible
+               in literal types, but it's easy enough to handle them in
+               case they come up in error cases. */
+            field = NULL;
+            member_type = ctor_init->variant.base_class->type;
           } else {
+            /* A field. */
+            check_assertion(ctor_init->kind ==
+                                           (a_constructor_init_kind)cik_field);
             field = ctor_init->variant.field;
             member_type = field->type;
             if (ctor_init->use_field_initializer) {
@@ -8783,6 +8803,7 @@ usually be called instead.
         }  /* for */
         folded = TRUE;
         copy_constant(&aggr_con, result_con);
+        result_con->is_result_of_constexpr_call = TRUE;
 fail:;
       }  /* if */
       free_constexpr_remap_list(ceblock->remap_list);

@@ -871,6 +871,7 @@ associated variant fields to default values.
   cp->partial_aggr_value = FALSE;
   cp->implicit_aggr_element = FALSE;
   cp->is_compound_literal = FALSE;
+  cp->is_result_of_constexpr_call = FALSE;
 #if CENTERLINE_CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

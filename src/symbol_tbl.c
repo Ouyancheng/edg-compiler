@@ -973,6 +973,7 @@ do_variable:
             put_string(db_special_function_kinds[rp->special_kind]);
           }  /* if */
         }  /* if */
+        if (rp->is_constexpr) put_string("constexpr");
         if (rp->is_inline) put_string("inline");
         if (rp->definition_for_inlining_only) {
           put_string("def. for inlining only");

@@ -3793,6 +3793,12 @@ typedef struct a_constant {
   a_bit_field	is_compound_literal:1;
 			/* TRUE if this is an aggregate constant resulting
 			   from a compound literal construct. */
+  a_bit_field	is_result_of_constexpr_call:1;
+			/* TRUE if this constant is the result of calling
+			   a constexpr function or constexpr constructor.
+			   The interesting case is when the constant is
+			   a ck_aggregate, but this flag can be set in
+			   any kind of constant. */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;
