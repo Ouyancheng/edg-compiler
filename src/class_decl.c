@@ -14643,7 +14643,7 @@ specific information about the member declaration, respectively.
 
 
 static a_boolean check_valid_union_field(a_type_ptr         field_type,
-                                         a_class_def_state  *cdsp,
+                                         a_type_ptr         class_type,
                                          a_boolean          is_nonstd,
                                          a_source_position  *pos)
 /*
@@ -14653,8 +14653,8 @@ those restrictions were removed.)  If any such member functions are present
 and unrestricted_unions_enabled is FALSE, then:  in cfront mode issue a
 warning if there's only a user-defined assignment operator; otherwise, issue
 an error and return FALSE.  If any such member functions are present and
-unrestricted_unions_enabled is TRUE, record that fact in *cdsp (unless cdsp is
-NULL, which is the case for namespace-scope anonymous unions).
+unrestricted_unions_enabled is TRUE, record that fact in the symbol supplement
+for the union type (class_type).
 */
 {
   a_type_ptr                     tp = skip_typerefs(field_type);
@@ -14673,8 +14673,8 @@ NULL, which is the case for namespace-scope anonymous unions).
          will be repeated when a real instantiation of the enclosing union is
          performed. */
     } else if (unrestricted_unions_enabled) {
-      if (cdsp != NULL) {
-        parent_cssp = symbol_supplement_for_class(cdsp->class_type);
+      if (class_type != NULL) {
+        parent_cssp = symbol_supplement_for_class(class_type);
         if (cssp->has_nontrivial_default_constructor) {
           parent_cssp->variant_member_with_nontrivial_default_ctor = TRUE;
         }  /* if */
@@ -14794,17 +14794,17 @@ be the last in the anonymous-union-parent chain.
 /*ARGSUSED*/ /* new_apo_syms is not used in some configurations. */
 #endif /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 static void promote_anonymous_union_field_symbol(
-                                       a_symbol_ptr           sym,
-                                       a_class_def_state_ptr  cdsp,
-                                       a_symbol_ptr           *new_apo_syms,
-                                       a_symbol_ptr           assoc_object_sym,
-                                       an_access_specifier    new_access,
-                                       a_boolean              reuse_symbol,
-                                       a_boolean              is_nonstd)
+                                         a_symbol_ptr         sym,
+                                         a_type_ptr           class_type,
+                                         a_symbol_ptr         *new_apo_syms,
+                                         a_symbol_ptr         assoc_object_sym,
+                                         an_access_specifier  new_access,
+                                         a_boolean            reuse_symbol,
+                                         a_boolean            is_nonstd)
 /*
 sym represents a field in an anonymous union.  This procedure promotes it to
-the surrounding (class or namespace) scope.  cdsp describes the class into
-which the field is being promoted (or NULL if the promotion is into a namespace
+the surrounding (class or namespace) scope.  class_type is the class into which
+the field is being promoted (or NULL if the promotion is into a namespace
 scope).  *new_apo_syms is a list of newly created anonymous union parent
 symbols that may need to be fixed up later on.  assoc_object_sym represents the
 anonymous union object (field or variable) and new_access is the access that
@@ -14815,11 +14815,9 @@ promotion is for a nonstandard anonymous union.
 {
   a_symbol_ptr  apo_sym = sym->variant.field.anonymous_parent_object;
   a_field_ptr   field = sym->variant.field.ptr;
-  a_type_ptr    class_type = NULL;
-
-  if (cdsp != NULL) class_type = cdsp->class_type;
+ 
   if (is_nonstd && gpp_mode &&
-      !check_valid_union_field(field->type, cdsp, /*is_nonstd=*/TRUE,
+      !check_valid_union_field(field->type, class_type, /*is_nonstd=*/TRUE,
                                &field->source_corresp.decl_position)) {
     /* GNU C++ compilers apply the same constraints to nonstandard anonymous
        unions (which aren't really unions) as to ordinary unions.  There is
@@ -14920,17 +14918,16 @@ promotion is for a nonstandard anonymous union.
 }  /* promote_anonymous_union_field_symbol */
 
 
-void check_anonymous_union_symbols(a_symbol_ptr           assoc_object_sym,
-                                   a_class_def_state_ptr  cdsp,
-                                   a_boolean              is_nonstd)
+void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
+                                   a_type_ptr    class_type,
+                                   a_boolean     is_nonstd)
 /*
 assoc_object_sym is a symbol for an unnamed field or variable that is the
-object associated with an anonymous union (the definition of which is
-described by cdsp).  The type of the field or variable is an anonymous union
-type.  Process the member symbols of the anonymous union: make a pass over all
-its members, perform some error checking, and promote each field from the
-anonymous union to its containing scope.  The scope to which the symbols are
-promoted is decl_scope_level.
+object associated with an anonymous union.  The type of the field or
+variable is an anonymous union type.  Process the member symbols of the
+anonymous union: make a pass over all its members, perform some error
+checking, and promote each field from the anonymous union to its containing
+scope.  The scope to which the symbols are promoted is decl_scope_level.
 
 If ALLOW_NONSTANDARD_ANONYMOUS_UNIONS, then, when assoc_object_sym refers
 to a field, its type may also be an unnamed struct or class, or a typedef
@@ -14947,14 +14944,12 @@ nonstandard anonymous unions is_nonstd is TRUE.
   a_boolean                      access_error_already_issued = FALSE;
   a_boolean                      member_function_error_already_issued = FALSE;
   a_boolean                      is_overloaded;
-  a_type_ptr                     class_type = NULL;
   a_type_ptr                     assoc_object_type, tp;
   a_boolean                      reuse_symbol = TRUE;
   a_field_ptr                    au_field;
   a_symbol_ptr                   new_apo_sym_list = NULL;
 
   db_enter(4, "check_anonymous_union_symbols");
-  if (cdsp != NULL) class_type = cdsp->class_type;
   switch (assoc_object_sym->kind) {
     case sk_variable:
       assoc_object_type = assoc_object_sym->variant.variable.ptr->type;
@@ -15121,7 +15116,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
     switch (sym->kind) {
       case sk_field:
         promote_anonymous_union_field_symbol(
-                         sym, cdsp, &new_apo_sym_list, assoc_object_sym,
+                         sym, class_type, &new_apo_sym_list, assoc_object_sym,
                          assoc_object_access, reuse_symbol, is_nonstd);
         break;
       case sk_member_function:
@@ -16260,7 +16255,7 @@ be entered.
       !decl_info->is_anonymous_union) {
     /* An object of a class with a constructor, a destructor, or a user-
        defined assignment operator cannot be a member of a union. */
-    if (!check_valid_union_field(member_type, class_state, /*is_nonstd=*/FALSE,
+    if (!check_valid_union_field(member_type, class_type, /*is_nonstd=*/FALSE,
                                  &locator->source_position)) {
       member_type = error_type();
     }  /* if */
@@ -16499,8 +16494,9 @@ be entered.
   }  /* if */
   if (decl_info->is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
-    check_anonymous_union_symbols(member_sym, class_state,
-                                  decl_info->is_nonstd_anonymous_union);
+    check_anonymous_union_symbols(member_sym, class_type,
+                                  (a_boolean)decl_info->
+                                               is_nonstd_anonymous_union);
   }  /* if */
   if (is_aggregate_or_union_type(member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,

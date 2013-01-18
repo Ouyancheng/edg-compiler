@@ -31,12 +31,6 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 #include "decls.h"
 #endif /* ifndef DECLS_H */
 
-/*
-Forward declarations needed:
-(A dummy typedef is used to avoid spurious warnings in CodeCenter.)
-*/
-typedef struct a_class_def_state a_class_def_state_class_decl_dummy_typedef;
-
 extern a_symbol_ptr find_corresp_prototype_tag_sym(a_symbol_ptr  curr_sym);
 
 extern a_boolean conflicts_with_previous_function_decl(
@@ -189,10 +183,9 @@ extern void abstract_class_diagnostic(an_error_severity  severity,
                                       a_type_ptr         class_type,
                                       a_source_position  *error_pos);
 
-extern void check_anonymous_union_symbols(
-                                   a_symbol_ptr              assoc_object_sym,
-                                   struct a_class_def_state  *cdsp,
-                                   a_boolean                 is_nonstd);
+extern void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
+                                          a_type_ptr    class_type,
+                                          a_boolean     is_nonstd);
 
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
 extern void set_class_assoc_operator_new_routine(a_type_ptr     class_type);
