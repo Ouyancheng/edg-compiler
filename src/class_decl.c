@@ -958,20 +958,6 @@ typedef struct a_class_def_state {
 			   must be nontrivial because the class has virtual
 			   base classes, virtual functions, or base classes or
 			   members with nontrivial default constructors. */
-  a_bit_field	variant_member_with_nontrivial_default_ctor:1;
-			/* TRUE if this class has a variant member with a
-			   nontrivial default constructor.  (In that case,
-			   possible with unrestricted unions only, a generated
-			   default constructor is implicitly deleted.) */
-  a_bit_field	variant_member_with_nontrivial_copy_ctor:1;
-			/* TRUE if this class has a variant member with a
-			   nontrivial copy constructor. */
-  a_bit_field	variant_member_with_nontrivial_dtor:1;
-			/* TRUE if this class has a variant member with a
-			   nontrivial destructor. */
-  a_bit_field	variant_member_with_nontrivial_copy_assign:1;
-			/* TRUE if this class has a variant member with a
-			   nontrivial copy assignment operator. */
   a_bit_field	member_destruction_required:1;
 			/* TRUE if the class has a direct member requiring
 			   destruction. */
@@ -1075,10 +1061,6 @@ class being defined.
   cdsp->is_local_class = FALSE;
   cdsp->last_field_is_incomplete_array = FALSE;
   cdsp->default_ctor_is_nontrivial = FALSE;
-  cdsp->variant_member_with_nontrivial_default_ctor = FALSE;
-  cdsp->variant_member_with_nontrivial_copy_ctor = FALSE;
-  cdsp->variant_member_with_nontrivial_dtor = FALSE;
-  cdsp->variant_member_with_nontrivial_copy_assign = FALSE;
   cdsp->member_destruction_required = FALSE;
   cdsp->base_destruction_required = FALSE;
   cdsp->ms_parenthesized_member = FALSE;
@@ -14676,7 +14658,7 @@ NULL, which is the case for namespace-scope anonymous unions).
 */
 {
   a_type_ptr                     tp = skip_typerefs(field_type);
-  a_class_symbol_supplement_ptr  cssp;
+  a_class_symbol_supplement_ptr  cssp, parent_cssp;
   an_error_severity              severity = es_none;
 
   db_enter(4, "check_valid_union_field");
@@ -14692,17 +14674,18 @@ NULL, which is the case for namespace-scope anonymous unions).
          performed. */
     } else if (unrestricted_unions_enabled) {
       if (cdsp != NULL) {
+        parent_cssp = symbol_supplement_for_class(cdsp->class_type);
         if (cssp->has_nontrivial_default_constructor) {
-          cdsp->variant_member_with_nontrivial_default_ctor = TRUE;
+          parent_cssp->variant_member_with_nontrivial_default_ctor = TRUE;
         }  /* if */
         if (!cssp->construction_by_bitwise_copy_allowed) {
-          cdsp->variant_member_with_nontrivial_copy_ctor = TRUE;
+          parent_cssp->variant_member_with_nontrivial_copy_ctor = TRUE;
         }  /* if */
         if (has_nontrivial_destructor(cssp)) {
-          cdsp->variant_member_with_nontrivial_dtor = TRUE;
+          parent_cssp->variant_member_with_nontrivial_dtor = TRUE;
         }  /* if */
         if (!cssp->assignment_by_bitwise_copy_allowed) {
-          cdsp->variant_member_with_nontrivial_copy_assign = TRUE;
+          parent_cssp->variant_member_with_nontrivial_copy_assign = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -14958,7 +14941,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
 */
 {
   a_symbol_ptr                   sym, next_sym, mf_sym;
-  a_class_symbol_supplement_ptr  cssp;
+  a_class_symbol_supplement_ptr  cssp, parent_cssp;
   a_class_type_supplement_ptr    ctsp;
   an_access_specifier            access, assoc_object_access;
   a_boolean                      access_error_already_issued = FALSE;
@@ -15277,6 +15260,23 @@ nonstandard anonymous unions is_nonstd is TRUE.
                          &nested_type->source_corresp.decl_position);
         }  /* if */
       }  /* for */
+    }  /* if */
+  }  /* if */
+  if (class_type != NULL) {
+    /* If the anonymous union included members with nontrivial special member
+       functions propagate that information to the parent class. */
+    parent_cssp = symbol_supplement_for_class(class_type);
+    if (cssp->variant_member_with_nontrivial_default_ctor) {
+      parent_cssp->variant_member_with_nontrivial_default_ctor = TRUE;
+    }  /* if */
+    if (cssp->variant_member_with_nontrivial_copy_ctor) {
+      parent_cssp->variant_member_with_nontrivial_copy_ctor = TRUE;
+    }  /* if */
+    if (cssp->variant_member_with_nontrivial_dtor) {
+      parent_cssp->variant_member_with_nontrivial_dtor = TRUE;
+    }  /* if */
+    if (cssp->variant_member_with_nontrivial_copy_assign) {
+      parent_cssp->variant_member_with_nontrivial_copy_assign = TRUE;
     }  /* if */
   }  /* if */
   db_exit();
@@ -16500,8 +16500,7 @@ be entered.
   if (decl_info->is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
     check_anonymous_union_symbols(member_sym, class_state,
-                                  (a_boolean)decl_info->
-                                               is_nonstd_anonymous_union);
+                                  decl_info->is_nonstd_anonymous_union);
   }  /* if */
   if (is_aggregate_or_union_type(member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,
@@ -18518,17 +18517,18 @@ The routine body is not generated until it is known to be needed.
   if (unrestricted_unions_enabled) {
     /* Variant members with special member functions suppress the corresponding
        special member in the parent type by default. */
-    if (class_state->variant_member_with_nontrivial_default_ctor) {
+    if (cssp->variant_member_with_nontrivial_default_ctor) {
       gsfd.suppress_default_ctor = TRUE;
     }  /* if */
-    if (class_state->variant_member_with_nontrivial_copy_ctor) {
+    if (cssp->variant_member_with_nontrivial_copy_ctor) {
       gsfd.suppress_copy_ctor = TRUE;
     }  /* if */
-    if (class_state->variant_member_with_nontrivial_dtor) {
+    if (cssp->variant_member_with_nontrivial_dtor) {
       gsfd.suppress_dtor = TRUE;
     }  /* if */
-    if (class_state->variant_member_with_nontrivial_copy_assign) {
+    if (cssp->variant_member_with_nontrivial_copy_assign) {
       gsfd.suppress_copy_assign = TRUE;
+      gsfd.suppress_move_assign = TRUE;
     }  /* if */
   }  /* if */
   /* Check for a user-declared copy assignment or move assignment operator.

@@ -1267,6 +1267,20 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE during the call of scan_class_definition for
 			   this class.  This is used to detect certain problems
 			   in code generated from metadata. */
+  a_bit_field	variant_member_with_nontrivial_default_ctor:1;
+			/* TRUE if this class has a variant member with a
+			   nontrivial default constructor.  (In that case,
+			   possible with unrestricted unions only, a generated
+			   default constructor is implicitly deleted.) */
+  a_bit_field	variant_member_with_nontrivial_copy_ctor:1;
+			/* TRUE if this class has a variant member with a
+			   nontrivial copy constructor. */
+  a_bit_field	variant_member_with_nontrivial_dtor:1;
+			/* TRUE if this class has a variant member with a
+			   nontrivial destructor. */
+  a_bit_field	variant_member_with_nontrivial_copy_assign:1;
+			/* TRUE if this class has a variant member with a
+			   nontrivial copy assignment operator. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block
 		pointers_block;

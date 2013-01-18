@@ -3582,6 +3582,10 @@ state.
         cssp->needs_new_idisposable_dispose = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cssp->being_defined = FALSE;
+        cssp->variant_member_with_nontrivial_default_ctor = FALSE;
+        cssp->variant_member_with_nontrivial_copy_ctor = FALSE;
+        cssp->variant_member_with_nontrivial_dtor = FALSE;
+        cssp->variant_member_with_nontrivial_copy_assign = FALSE;
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
         cssp->conversion_template_list = NULL;
