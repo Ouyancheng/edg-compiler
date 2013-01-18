@@ -1,5 +1,24 @@
 Version 4.6
 
+1/18/13  [EDGcpfe/13580]
+Ambiguity on partial ordering of variadic templates
+
+The front end considered two variadic function templates as unordered
+even if the variadic template parameter was not actually used in the
+signature of the function template.  The precise rules for such cases
+are incorrect in the standard and are in the process of being worked
+out by WG21.  The likely outcome is that #2 should be preferred over
+#1 because the variadic parameter is not used by the call.  We have
+now implemented this behavior (which matches g++) pending clarification
+of the standard.
+
+  template<typename T, typename... Args> void f(const T&, Args...);  // #1
+  template<typename T, typename ... Args> void f(const T&){}  // #2
+  int main() {
+   f(1);
+  }
+
+
 1/17/13  [EDGcpfe/9165,EDGcpfe12833]
 C++11: Unrestricted unions
 

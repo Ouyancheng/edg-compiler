@@ -2361,8 +2361,8 @@ the count of parameters to be compared when entire_type is FALSE.
   a_type_ptr				rout_type2;
   a_routine_type_supplement_ptr		rtsp1;
   a_routine_type_supplement_ptr		rtsp2;
-  a_param_type_ptr			ptp1;
-  a_param_type_ptr			ptp2;
+  a_param_type_ptr			ptp1 = NULL;
+  a_param_type_ptr			ptp2 = NULL;
   a_template_param_ptr			templ_param_list1;
   a_template_param_ptr			templ_param_list2;
   a_template_arg_ptr			dummy_arg_list1 = NULL;
@@ -2456,6 +2456,14 @@ the count of parameters to be compared when entire_type is FALSE.
     result = -1;
   } else if (!match1 && !match2) {
     result = 0;
+  } else if (ptp1 == NULL && ptp2 != NULL) {
+    /* If the first function has fewer parameters, it is more specialized.
+       This, and the similar case below, should only occur for variadic
+       templates. */
+    result = 1;
+  } else if (ptp1 != NULL && ptp2 == NULL) {
+    /* If the second function has fewer parameters, it is more specialized. */
+    result = -1;
   } else {
     if (tssp1->is_variadic && tssp2->is_variadic) {
       result = compare_variadic_template_arg_lists(dummy_arg_list1,
