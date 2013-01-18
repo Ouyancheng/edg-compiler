@@ -8748,7 +8748,14 @@ usually be called instead.
             goto fail;
           }  /* if */
           /* See if the field being initialized is the one expected. */
-          check_assertion(next_expected_field == field || field == NULL);
+          if (field != NULL) {
+            if (next_expected_field != field) {
+              /* The constructor must fail to initialize a field.  An error
+                 should have been issued. */
+              if (expr_error_should_be_issued()) expect_error();
+              break;
+            } /* if */
+          }  /* if */
           member_con_ptr = alloc_unshared_constant(&member_con);
           if (field != NULL && parent_class_of(field) != class_type) {
             /* Add extra ck_aggregate levels for an anonymous union field. */
