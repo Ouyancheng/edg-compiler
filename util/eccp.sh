@@ -784,6 +784,7 @@ check_abbreviation()
 --no_type_traits_helpers
 --no_typename
 --no_uliterals
+--no_unrestricted_unions
 --no_upc
 --no_use_before_set_warnings
 --no_using_framework_directory
@@ -871,6 +872,7 @@ check_abbreviation()
 --uliterals
 --undefine_macro
 --unicode_source_kind
+--unrestricted_unions
 --unsigned_bit_fields
 --unsigned_chars
 --upc
@@ -1437,6 +1439,8 @@ process_option()
          --no_func_prototype_tags | \
          --implicit_noexcept | \
          --no_implicit_noexcept | \
+         --unrestricted_unions | \
+         --no_unrestricted_unions | \
          --using_framework_directory | \
          --no_using_framework_directory | \
          --force_vtbl)

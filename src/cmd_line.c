@@ -1355,10 +1355,10 @@ Initialize the option information table.
   add_option_description(optk_implicit_noexcept, "no_implicit_noexcept",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_unrestricted_unions, "permissive_unions", '\0',
+  add_option_description(optk_unrestricted_unions, "unrestricted_unions", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_unrestricted_unions, "no_permissive_unions",
+  add_option_description(optk_unrestricted_unions, "no_unrestricted_unions",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 }  /* initialize_option_descriptions */
