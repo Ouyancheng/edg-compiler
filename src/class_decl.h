@@ -33,8 +33,9 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 
 /*
 Forward declarations needed:
+(A dummy typedef is used to avoid spurious warnings in CodeCenter.)
 */
-struct a_class_def_state;
+typedef struct a_class_def_state class_def_state_typedef_for_class_decl_header;
 
 extern a_symbol_ptr find_corresp_prototype_tag_sym(a_symbol_ptr  curr_sym);
 
