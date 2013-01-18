@@ -3744,10 +3744,12 @@ Also folds calls to constexpr functions.
 */
 {
   a_boolean         folded = FALSE;
-  an_expr_node_ptr  args;
   a_constant        result;
-  a_routine_ptr     rp;
   a_boolean         returns_constant_reference = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+  a_routine_ptr     rp;
+  an_expr_node_ptr  args;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   check_assertion(is_expression_operand(op));
   check_assertion(call != NULL &&
