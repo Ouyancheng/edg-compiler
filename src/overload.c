@@ -15862,6 +15862,7 @@ no_applicable_operator_function:
                                      &func_call_node);
               if (constexpr_enabled &&
                   func_call_node != NULL &&
+                  curr_expr_is_evaluated() &&
                   fold_constexpr_call(func_call_node,
                                       operator_position,
                                       &result_con,
@@ -17645,6 +17646,7 @@ the temporary.
                        &conv_function_call_node);
     if (conversion_routine->is_constexpr &&
         conv_function_call_node != NULL &&
+        curr_expr_is_evaluated() &&
         fold_constexpr_call(conv_function_call_node,
                             &orig_operand.position, &result_con,
                             &returns_reference)) {

@@ -2850,6 +2850,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
           dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
         }  /* if */
       } else if (routine != NULL && routine->is_constexpr &&
+                 curr_expr_is_evaluated() &&
                  fold_constexpr_ctor(routine, arg_expr_list,
                                      source_pos, &folded_con)) {
         /* The constructor is declared constexpr and the construction has been
@@ -4012,7 +4013,7 @@ Also folds calls to constexpr functions.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (!folded && constexpr_enabled) {
+  if (!folded && constexpr_enabled && curr_expr_is_evaluated()) {
     /* Try to fold a call to a constexpr function. */
     folded = fold_constexpr_call(call, &op->position, &result,
                                  &returns_constant_reference);
