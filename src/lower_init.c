@@ -1472,16 +1472,34 @@ NULL pointer-to-data member in the IA-64 ABI.
 }  /* make_lowered_zero_of_proper_type */
 
 
-void initialize_vptr_in_aggregate_constant(a_constant_ptr constant)
+void initialize_vptr_in_aggregate_constant(
+                             a_constant_ptr   constant,
+                             a_base_class_ptr virtual_function_info_base_class,
+                             a_constant_ptr   vptr_con)
 /*
 An aggregate constant is being lowered; if the constant is initializing
-a class that has a virtual function table, add an entry to the
-initializer to set the virtual function table to the primary virtual
-function table for the class.  This situation arises when a default
-constexpr constructor is created for a class.  There is no need to deal with
-construction vtables because a constexpr constructor can't have virtual
-base classes.  There is no need for the constant to have been previously
-lowered.
+a class that has a virtual function table pointer, add an entry to the
+aggregate constant to set the virtual function table pointer as appropriate.
+The caller has already invoked this routine for any subobjects in the
+aggregate, so this routine generally does not recurse except in the
+case where an object shares a virtual function table pointer with a
+subobject, for example:
+
+  struct B { virtual void g() { printf("B.g\n"); } };
+  struct A : B { virtual void f() { printf("A.f\n"); } };
+
+In this case, when the subobject for B is visited, it doesn't know that
+it shares a vptr with A, so it inserts a pointer to B's vtable.  Later,
+when the constant with type A is visited, a pointer to A's vtable is
+created and the routine is recursively invoked to overwrite B's vptr
+with the correct value (i.e., it should point to A's vtable, not B's).
+Typically, virtual_function_info_base_class and vptr_con are NULL, but
+when invoked recursively (i.e., in the shared vptr case),
+virtual_function_info_base_class is set to the base class pointer that
+identifies the base class that contains the shared vptr and vptr_con
+is a constant that points to the shared vtable.  There is no need to deal with
+construction vtables because a constexpr constructor can't have virtual base
+classes.  The constants in the aggregate have been previously lowered.
 */
 {
   a_type_ptr class_type = skip_typerefs(constant->type);
@@ -1489,52 +1507,83 @@ lowered.
   if (is_class_struct_union_type(class_type) &&
       needs_virtual_function_table(class_type)) {
     a_constant                  addr_constant;
-    a_constant_ptr              vptr_con, aggr_con, prev_con = NULL;
+    a_constant_ptr              aggr_con, prev_con = NULL;
     a_field_ptr                 field;
-    a_class_type_supplement_ptr ctsp =
-                             class_type->variant.class_struct_union.extra_info;
+    a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
+
     check_assertion(!class_type->
-                          variant.class_struct_union.any_virtual_base_classes);
+                         variant.class_struct_union.any_virtual_base_classes &&
+                    !constant->partial_aggr_value);
     /* Make sure the class type has been lowered. */
     prelower_class_type(class_type);
-    check_assertion(ctsp->virtual_function_table_var != NULL);
-    /* Create the address constant that points to the primary vtable for
-       the class. */
-    make_vtbl_address_constant(ctsp->virtual_function_table_var,
-                               class_type,
-                               (a_base_class_ptr)NULL,
-                               &addr_constant);
-    vptr_con = alloc_unshared_constant_in_region(&addr_constant,
-                                                 in_file_scope(constant));
-    /* Iterate over the field list for the class and find the __vptr
-       field (recurse for any nested subobjects). */
+    if (vptr_con == NULL) {
+      /* We're not aware that we're sharing this vptr with any other class
+         (though we may end up sharing), so create an address constant that
+         points to the primary vtable for the class. */
+      check_assertion(ctsp->virtual_function_table_var != NULL &&
+                      virtual_function_info_base_class == NULL);
+      make_vtbl_address_constant(ctsp->virtual_function_table_var,
+                                 class_type,
+                                 (a_base_class_ptr)NULL,
+                                 &addr_constant);
+      vptr_con = alloc_unshared_constant_in_region(&addr_constant,
+                                                   in_file_scope(constant));
+    }  /* if */
+    /* Iterate over the field list for the class and find the vptr
+       field or the subobject class that contains the vptr. */
     check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
     aggr_con = constant->variant.aggregate.first_constant;
     for (field = next_initializable_field(
                             class_type->variant.class_struct_union.field_list);
          field != NULL;
          field = next_initializable_field(field->next)) {
-      if (field->offset == ctsp->virtual_function_info_offset) {
-        /* We've found the proper field; insert an initial value for the
-           __vptr field into the aggregate constant. */
-        if (prev_con == NULL) {
-          /* Insert at beginning of list. */
-          vptr_con->next = constant->variant.aggregate.first_constant;
-          constant->variant.aggregate.first_constant = vptr_con;
+      if (field->offset == ctsp->virtual_function_info_offset &&
+          ctsp->virtual_function_info_base_class == NULL) {
+        /* We've found the vptr field; either insert the vptr into the
+           aggregate constant, or in the case where we're sharing vptrs,
+           overwrite the vptr value that had previously pointed to the
+           subobject. */
+        if (virtual_function_info_base_class == NULL) {
+          if (prev_con == NULL) {
+            vptr_con->next = constant->variant.aggregate.first_constant;
+            constant->variant.aggregate.first_constant = vptr_con;
+          } else {
+            vptr_con->next = prev_con->next;
+            prev_con->next = vptr_con;
+          }  /* if */
+          if (constant->variant.aggregate.last_constant == prev_con) {
+            constant->variant.aggregate.last_constant = vptr_con;
+          }  /* if */
         } else {
-          vptr_con->next = prev_con->next;
-          prev_con->next = vptr_con;
+          /* Overwrite the existing vptr constant. */
+          check_assertion(aggr_con != NULL);
+          if (prev_con == NULL) {
+            constant->variant.aggregate.first_constant = vptr_con;
+          } else {
+            prev_con->next = vptr_con;
+          }  /* if */
+          if (constant->variant.aggregate.last_constant == aggr_con) {
+            constant->variant.aggregate.last_constant = vptr_con;
+          }  /* if */
+          vptr_con->next = aggr_con->next;
         }  /* if */
-        if (constant->variant.aggregate.last_constant == prev_con) {
-          constant->variant.aggregate.last_constant = vptr_con;
-        }  /* if */
+        /* Once we've found the vptr for this class, we're done. */
+        break;
+      } else if (ctsp->virtual_function_info_base_class != NULL &&
+                 identical_types(field->type,
+                  class_type_supp(ctsp->virtual_function_info_base_class->type)
+                                                        ->type_as_subobject)) {
+        /* The class we're processing shares a vptr with a subobject class;
+           recurse to re-set the subobject's vptr to point to the object's
+           vtable. */
+        initialize_vptr_in_aggregate_constant(aggr_con,
+                                        ctsp->virtual_function_info_base_class,
+                                        vptr_con);
+        break;
       } else {
-        /* Advance to the next constant in the aggregate. */
+        /* Advance to the next constant in the aggregate (which is fully
+           initialized). */
         check_assertion(aggr_con != NULL);
-        /* Check any nested subobjects. */
-        if (is_class_struct_union_type(aggr_con->type)) {
-          initialize_vptr_in_aggregate_constant(aggr_con);
-        }  /* if */
         prev_con = aggr_con;
         aggr_con = aggr_con->next;
       }  /* if */

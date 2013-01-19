@@ -2841,6 +2841,7 @@ not to contain any top level base class casts.
       /* ck_aggregate constants can appear in cases where a constexpr
          constructor or function returns an class value.  Return the
          temporary that has been created for this constant. */
+      check_assertion(expr->variant.constant->is_result_of_constexpr_call);
       expr = var_addr_expr(temp);
     } else {
       temp = assign_expr_to_temp(expr);
@@ -4752,7 +4753,11 @@ Do IL lowering of the indicated constant and everything under it.
         }  /* if */
 #endif /* LOWER_COMPLEX */
         lower_constant_list(constant->variant.aggregate.first_constant);
-        initialize_vptr_in_aggregate_constant(constant);
+        /* Only do the vptr processing (if necessary) after constants in
+           the aggregate have been lowered (possibly inserting vptr values
+           in any subobjects). */
+        initialize_vptr_in_aggregate_constant(constant, (a_base_class_ptr)NULL,
+                                              (a_constant_ptr)NULL);
 #if IA64_ABI
         fill_out_aggregate_ptr_to_data_member_initialization(constant);
 #endif /* IA64_ABI */
