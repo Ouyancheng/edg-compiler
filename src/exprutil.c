@@ -5384,6 +5384,50 @@ construct).
 }  /* call_did_not_fold_to_constant */
 
 
+a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
+                                   a_source_position *pos,
+                                   a_constant        *result_con,
+                                   a_boolean         *returns_reference)
+/*
+Interface to fold_constexpr_call for use within the expression-processing
+routines.  See fold_constexpr_call for the description of the parameters.
+*/
+{
+  a_boolean folded = FALSE;
+
+  if (constexpr_enabled && curr_expr_is_evaluated()) {
+    a_boolean need_backing_expr =
+                     curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
+    if (fold_constexpr_call(call_expr, need_backing_expr, pos,
+                            result_con, returns_reference)) {
+      folded = TRUE;
+    }  /* if */
+  }  /* if */
+  return folded;
+}  /* expr_fold_constexpr_call */
+
+
+a_boolean expr_fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
+                                   a_source_position  *pos,
+                                   a_constant         *result_con)
+/*
+Interface to fold_constexpr_ctor for use within the expression-processing
+routines.  See fold_constexpr_ctor for the description of the parameters.
+*/
+{
+  a_boolean folded = FALSE;
+
+  if (constexpr_enabled && curr_expr_is_evaluated()) {
+    a_boolean need_backing_expr =
+                     curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
+    if (fold_constexpr_ctor(ctor_dip, need_backing_expr, pos, result_con)) {
+      folded = TRUE;
+    }  /* if */
+  }  /* if */
+  return folded;
+}  /* expr_fold_constexpr_ctor */
+
+
 static a_boolean operand_allows_is_operand_of_address_of(an_operand *operand)
 /*
 Return TRUE if the given operand is one on which the is_operand_of_address_of

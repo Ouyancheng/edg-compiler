@@ -2161,6 +2161,17 @@ extern void call_did_not_fold_to_constant(an_error_code err_code,
                                           a_routine_ptr routine,
                                           an_operand    *operand);
 
+extern
+a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
+                                   a_source_position *pos,
+                                   a_constant        *result_con,
+                                   a_boolean         *returns_reference);
+
+extern
+a_boolean expr_fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
+                                   a_source_position  *pos,
+                                   a_constant         *result_con);
+
 extern void prep_generic_nontype_template_argument(an_operand *operand);
 
 extern void prep_generic_template_argument_list(

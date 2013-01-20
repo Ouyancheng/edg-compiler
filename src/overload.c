@@ -15862,11 +15862,10 @@ no_applicable_operator_function:
                                      &func_call_node);
               if (constexpr_enabled &&
                   func_call_node != NULL &&
-                  curr_expr_is_evaluated() &&
-                  fold_constexpr_call(func_call_node,
-                                      operator_position,
-                                      &result_con,
-                                      &returns_reference)) {
+                  expr_fold_constexpr_call(func_call_node,
+                                           operator_position,
+                                           &result_con,
+                                           &returns_reference)) {
                 /* The operator function is constexpr and the call was folded
                    to a constant result. */
                 make_constant_operand(&result_con, result);
@@ -17646,10 +17645,9 @@ the temporary.
                        &conv_function_call_node);
     if (conversion_routine->is_constexpr &&
         conv_function_call_node != NULL &&
-        curr_expr_is_evaluated() &&
-        fold_constexpr_call(conv_function_call_node,
-                            &orig_operand.position, &result_con,
-                            &returns_reference)) {
+        expr_fold_constexpr_call(conv_function_call_node,
+                                 &orig_operand.position, &result_con,
+                                 &returns_reference)) {
       /* The conversion function is constexpr and the call was folded to a
          constant result. */
       make_constant_operand(&result_con, operand);
@@ -20271,14 +20269,6 @@ issued, and *error_detected is returned TRUE if there are any errors
       if (trivial_ctor) {
         /* For a class with a trivial constructor, just zero the object. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
-      } else if (ctor_routine->is_constexpr &&
-                 curr_expr_is_evaluated() &&
-                 fold_constexpr_ctor(ctor_routine, (an_expr_node_ptr)NULL,
-                                     pos, &con)) {
-        /* The constructor is declared constexpr and the construction has been
-           folded to a constant. */
-        /* FIXME: value_init TRUE. */
-        con.type = dest_type;
       } else {
         /* Otherwise, use a dik_constructor entry.  For a nonreal class,
            ctor_routine is NULL to indicate the constructor is unknown. */
@@ -20290,6 +20280,13 @@ issued, and *error_detected is returned TRUE if there are any errors
            storage before calling the constructor if it is not
            user-provided. */
         dip->variant.constructor.value_initialization = TRUE;
+        if (ctor_routine->is_constexpr &&
+            expr_fold_constexpr_ctor(dip, pos, &con)) {
+          /* The constructor is declared constexpr and the construction has
+             been folded to a constant. */
+          con.type = dest_type;
+          dip = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (is_error_type(dest_type)) {

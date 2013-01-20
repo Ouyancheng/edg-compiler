@@ -546,7 +546,13 @@ at the given position and return an error constant.
   a_constant_ptr  result = alloc_constant((a_constant_repr_kind)ck_error);
 
   if (ctor->is_constexpr) {
-    if (!fold_constexpr_ctor(ctor, (an_expr_node_ptr)NULL, diag_pos, result)) {
+    /* FIXME -- pass in dip from caller. */
+    a_dynamic_init_ptr dip =
+                      alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+    dip->variant.constructor.ptr = ctor;
+    dip->variant.constructor.args = NULL;
+    if (!fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,
+                             diag_pos, result)) {
       /* The call to the default constructor could not be folded. */
       pos_ty_error(ec_default_ctor_call_not_constant, diag_pos, tp);
       set_error_constant(result);

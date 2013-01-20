@@ -13366,6 +13366,29 @@ tk_unknown is returned.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+a_dynamic_init_ptr skip_constexpr_ctor_eval(a_dynamic_init_ptr dip)
+/*
+If dip is an initialization to the result of a constexpr constructor
+evaluation, return the dynamic init for the unfolded constructor call;
+otherwise, return the original dip.
+*/
+{
+  if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+    a_constant_ptr con = dip->variant.constant;
+    if (con->is_result_of_constexpr_call) {
+      /* The original form of the constructor call is stored as a backing
+         expression under the constant. */
+      an_expr_node_ptr expr = con->expr;
+      if (expr != NULL &&
+          expr->kind == (an_expr_node_kind)enk_temp_init) {
+        dip = expr->variant.init.dynamic_init;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return dip;
+}  /* skip_constexpr_ctor_eval */
+
+
 a_dynamic_init_ptr effective_dynamic_init_for_initializer_list_object(
                                           a_dynamic_init_ptr dip,
                                           a_type_ptr         *init_entity_type)

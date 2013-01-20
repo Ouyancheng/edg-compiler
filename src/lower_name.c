@@ -5466,6 +5466,7 @@ the dynamic initialization is the result of a static_cast.
   char                *str;
 
   check_assertion(dip != NULL);
+  dip = skip_constexpr_ctor_eval(dip);
   if (dip->is_creation_of_initializer_list_object) {
     /* Skip over compiler-generated construction of std::initializer_list<X>
        for mangling purposes. */

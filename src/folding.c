@@ -7848,11 +7848,9 @@ TRUE.
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
 static a_boolean i_fold_constexpr_ctor(
-                                     a_routine_ptr                ctor_routine,
-                                     an_expr_node_ptr             args,
+                                     a_dynamic_init_ptr           ctor_dip,
                                      a_constexpr_evaluation_block *ceblock,
                                      a_constant                   *result_con);
-
 
 static a_boolean fold_dynamic_init(a_dynamic_init_ptr           dip,
                                    a_type_ptr                   dest_type,
@@ -7888,14 +7886,7 @@ evaluation.
       break;
     case dik_constructor:
       check_assertion(!ref_case);
-      { a_routine_ptr ctor_routine = dip->variant.constructor.ptr;
-        if (ctor_routine != NULL && ctor_routine->is_constexpr) {
-          folded = i_fold_constexpr_ctor(ctor_routine,
-                                         dip->variant.constructor.args,
-                                         ceblock,
-                                         result_con);
-        }  /* if */
-      }
+      folded = i_fold_constexpr_ctor(dip, ceblock, result_con);
       break;
     case dik_nonconstant_aggregate:
       { a_constant_ptr new_aggr;
@@ -8638,18 +8629,21 @@ instead.
 
 
 a_boolean fold_constexpr_call(an_expr_node_ptr  call_expr,
+                              a_boolean         record_backing_expr,
                               a_source_position *pos,
                               a_constant        *result_con,
                               a_boolean         *returns_reference)
 /*
-call_expr is a call to a function declared constexpr.  Try to fold the
-call to a constant.  If that's possible, place the constant in
-*result_con and return TRUE; otherwise, return FALSE.  If
+call_expr is a call expression.  If it's calling a constexpr function,
+try to fold the call to a constant.  If that's possible, place the
+constant in *result_con and return TRUE; otherwise, return FALSE.  If
 returns_reference is non-NULL, *returns_reference is returned TRUE if
 the result is a reference, and result_con is the constant address for
 the reference.  If returns_reference is NULL, the caller requires an
 rvalue result and the reference return case will be converted to an
-rvalue if possible.
+rvalue if possible.  pos gives the source position for the call.
+If record_backing_expr is TRUE, record call_expr as a backing
+expression for the resulting constant.
 */
 {
   a_boolean                    folded;
@@ -8660,32 +8654,44 @@ rvalue if possible.
                                  &ceblock,
                                  result_con,
                                  returns_reference);
+  if (folded && record_backing_expr) result_con->expr = call_expr;
   return folded;
 }  /* fold_constexpr_call */
 
 
 static a_boolean i_fold_constexpr_ctor(
-                                     a_routine_ptr                ctor_routine,
-                                     an_expr_node_ptr             args,
+                                     a_dynamic_init_ptr           ctor_dip,
                                      a_constexpr_evaluation_block *ceblock,
                                      a_constant                   *result_con)
 /*
-The constructor "ctor_routine" is being called with the argument list
-"args", and it is declared constexpr.  Try to fold the construction to a
-constant.  If that's possible, place the constant in *result_con and
-return TRUE; otherwise, return FALSE.  ceblock gives context
-information for the evaluation.  This is the internal version of the
-routine, as indicated by the "i_" prefix; fold_constexpr_ctor should
-usually be called instead.
+ctor_dip is a dik_constructor dynamic initialization.  If the
+constructor invoked is declared constexpr, try to fold the
+construction to a constant class object.  If that's possible, place
+the constant in *result_con and return TRUE; otherwise, return FALSE.
+ceblock gives context information for the evaluation.  This is the
+internal version of the routine, as indicated by the "i_" prefix;
+fold_constexpr_ctor should usually be called instead.
 */
 {
-  a_boolean folded = FALSE;
+  a_boolean        folded = FALSE;
+  a_routine_ptr    ctor_routine;
+  an_expr_node_ptr args;
 
-  check_assertion(ctor_routine->is_constexpr &&
-                  special_kind_is(ctor_routine, sfk_constructor));
-  if (ctor_routine->assoc_scope != NULL_region_number) {
+  check_assertion(ctor_dip != NULL &&
+                  ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
+  ctor_routine = ctor_dip->variant.constructor.ptr;
+  args = ctor_dip->variant.constructor.args;
+  if (ctor_routine == NULL) {
+    /* Don't know the called constructor (e.g., a dependent case), so can't
+       fold. */
+  } else if (!ctor_routine->is_constexpr) {
+    /* The constructor is not constexpr, so can't fold. */
+  } else if (ctor_routine->assoc_scope == NULL_region_number) {
+    /* The constructor has no definition, so can't fold. */
+  } else {
     a_scope_ptr scope = scope_for_routine(ctor_routine);
-    check_assertion(scope->kind == (a_scope_kind)sck_function);
+    check_assertion(special_kind_is(ctor_routine, sfk_constructor) &&
+                    scope->kind == (a_scope_kind)sck_function);
     if (scope->is_constexpr_routine) {
       a_boolean             not_foldable;
       a_constexpr_remap_ptr saved_remap_list = ceblock->remap_list;
@@ -8814,24 +8820,33 @@ fail:;
 }  /* i_fold_constexpr_ctor */
 
 
-a_boolean fold_constexpr_ctor(a_routine_ptr     ctor_routine,
-                              an_expr_node_ptr  args,
-                              a_source_position *pos,
-                              a_constant        *result_con)
+a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
+                              a_boolean          record_backing_expr,
+                              a_source_position  *pos,
+                              a_constant         *result_con)
 /*
-The constructor "ctor_routine" is being called with the argument list
-"args", and it is declared constexpr.  Try to fold the construction to
-a constant.  If that's possible, place the constant in *result_con and
-return TRUE; otherwise, return FALSE.
+ctor_dip is a dik_constructor dynamic initialization.  If the
+constructor invoked is declared constexpr, try to fold the
+construction to a constant class object.  If that's possible, place
+the constant in *result_con and return TRUE; otherwise, return FALSE.
+pos gives the source position of the initialization.  If
+record_backing_expr is TRUE, record a temp-init over ctor_dip as a
+backing expression for the resulting constant.
 */
 {
   a_boolean                    folded;
   a_constexpr_evaluation_block ceblock;
 
+  check_assertion(ctor_dip != NULL &&
+                  ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
   clear_constexpr_evaluation_block(&ceblock, pos);
-  folded = i_fold_constexpr_ctor(ctor_routine, args,
-                                 &ceblock,
-                                 result_con);
+  folded = i_fold_constexpr_ctor(ctor_dip, &ceblock, result_con);
+  if (folded && record_backing_expr) {
+    an_expr_node_ptr expr = alloc_expr_node((an_expr_node_kind)enk_temp_init);
+    expr->variant.init.dynamic_init = ctor_dip;
+    expr->type = result_con->type;
+    result_con->expr = expr;
+  }  /* if */
   return folded;
 }  /* fold_constexpr_ctor */
 

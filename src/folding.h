@@ -245,14 +245,16 @@ extern a_boolean fold_lock_free_query_if_possible(
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
 extern a_boolean fold_constexpr_call(an_expr_node_ptr  call_expr,
+                                     a_boolean         record_backing_expr,
                                      a_source_position *pos,
                                      a_constant        *result_con,
                                      a_boolean         *returns_reference);
 
-extern a_boolean fold_constexpr_ctor(a_routine_ptr     ctor_routine,
-                                     an_expr_node_ptr  args,
-                                     a_source_position *pos,
-                                     a_constant        *result_con);
+extern a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
+                                     a_boolean          record_backing_expr,
+                                     a_source_position  *pos,
+                                     a_constant         *result_con);
+
 extern
 a_boolean fold_constexpr_member_selection(an_expr_node_ptr expr,
                                           a_constant       *result_con);

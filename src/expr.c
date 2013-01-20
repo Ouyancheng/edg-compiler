@@ -2849,16 +2849,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         } else {
           dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
         }  /* if */
-      } else if (routine != NULL && routine->is_constexpr &&
-                 curr_expr_is_evaluated() &&
-                 fold_constexpr_ctor(routine, arg_expr_list,
-                                     source_pos, &folded_con)) {
-        /* The constructor is declared constexpr and the construction has been
-           folded to a constant. */
-        /* FIXME: value_init TRUE. */
-        if (dest_type != NULL) folded_con.type = dest_type;
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
-        dip->variant.constant = alloc_unshared_constant(&folded_con);
       } else {
         /* Constructor call. */
         dip = alloc_expr_ctor_dynamic_init(routine,
@@ -2871,10 +2861,20 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
              must have its arguments evaluated in order. */
           dip->variant.constructor.has_sequenced_arguments = TRUE;
         }  /* if */
-        if (!in_potential_constant_constexpr_context() &&
+        if (routine != NULL && routine->is_constexpr &&
+            expr_fold_constexpr_ctor(dip, source_pos, &folded_con)) {
+          /* The constructor is declared constexpr and the construction has
+             been folded to a constant. */
+          if (dest_type != NULL) folded_con.type = dest_type;
+          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
+          dip->variant.constant = alloc_unshared_constant(&folded_con);
+        } else {
+          /* Construction was not folded to a constant. */
+          if (!in_potential_constant_constexpr_context() &&
             construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
                                                          source_pos)) {
-          dip = NULL;
+            dip = NULL;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (fill_in_dtor && dip != NULL) {
@@ -4013,10 +4013,10 @@ Also folds calls to constexpr functions.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (!folded && constexpr_enabled && curr_expr_is_evaluated()) {
+  if (!folded && constexpr_enabled) {
     /* Try to fold a call to a constexpr function. */
-    folded = fold_constexpr_call(call, &op->position, &result,
-                                 &returns_constant_reference);
+    folded = expr_fold_constexpr_call(call, &op->position, &result,
+                                      &returns_constant_reference);
   }  /* if */
   if (folded) {
     /* Replace the call with a constant result. */
@@ -20917,6 +20917,7 @@ freed by this routine.
     } else {
       a_routine_ptr routine = NULL;
       dip->is_explicit_cast = TRUE;
+      skip_constexpr_ctor_eval(dip)->is_explicit_cast = TRUE;
       make_expression_operand(temp_init_node, result);
       result->position = *start_position;
       if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
