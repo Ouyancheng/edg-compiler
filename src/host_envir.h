@@ -799,6 +799,17 @@ of tim_all mode.
 #endif /* ifndef MAX_UNUSED_INSTANTIATIONS */
 
 /*
+The maximum depth of constexpr function and constructor call nesting.
+If we reach the maximum, the next call is considered non-foldable,
+which probably makes the overall expression non-constant.
+The C++11 standard requires at least 512.
+Initial value for the global variable max_constexpr_call_nesting.
+*/
+#ifndef DEFAULT_MAX_CONSTEXPR_CALL_NESTING
+#define DEFAULT_MAX_CONSTEXPR_CALL_NESTING 1000
+#endif /* ifndef DEFAULT_MAX_CONSTEXPR_CALL_NESTING */
+
+/*
 Flag that is TRUE if "#pragma define_type_info" is required by default before
 a declaration of class "type_info" to identify it as an explicit declaration
 of the predeclared class "type_info".  This is the initial value of the global

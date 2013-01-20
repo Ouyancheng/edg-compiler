@@ -5522,6 +5522,7 @@ pos gives a default source position.
   ceblock->remap_list = NULL;
   ceblock->source_position = *pos;
   ceblock->do_not_call_back = FALSE;
+  ceblock->call_depth = 0;
 }  /* clear_constexpr_evaluation_block */
 
 
@@ -7847,6 +7848,31 @@ TRUE.
 
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
+static a_boolean incr_constexpr_call_depth(
+                                        a_constexpr_evaluation_block *ceblock)
+/*
+Increment the call depth in the given constexpr evaluation block.
+Return TRUE if the depth is too large, which may indicate infinite
+recursion.
+*/
+{
+  a_boolean ovflo = FALSE;
+
+  ceblock->call_depth++;
+  if (ceblock->call_depth > max_constexpr_call_nesting) ovflo = TRUE;
+  return ovflo;
+}  /* incr_constexpr_call_depth */
+
+
+static void decr_constexpr_call_depth(a_constexpr_evaluation_block *ceblock)
+/*
+Decrement the call depth in the given constexpr evaluation block.
+*/
+{
+  ceblock->call_depth--;
+}  /* decr_constexpr_call_depth */
+
+
 static a_boolean i_fold_constexpr_ctor(
                                      a_dynamic_init_ptr           ctor_dip,
                                      a_constexpr_evaluation_block *ceblock,
@@ -8549,7 +8575,9 @@ instead.
   this_arg_is_pointer = (opkind ==
                              (an_expr_operator_kind)eok_points_to_member_call);
   routine = routine_from_function_expr(args);
-  if (routine == NULL) {
+  if (incr_constexpr_call_depth(ceblock)) {
+    /* Calls too deep -- possible infinite recursion. */
+  } else if (routine == NULL) {
     /* Don't know the called routine, so can't fold. */
   } else if (!routine->is_constexpr) {
     /* The routine is not constexpr, so can't fold. */
@@ -8624,6 +8652,7 @@ instead.
       }  /* if */
     }  /* if */
   }  /* if */
+  decr_constexpr_call_depth(ceblock);
   return folded;
 }  /* i_fold_constexpr_call */
 
@@ -8681,7 +8710,9 @@ fold_constexpr_ctor should usually be called instead.
                   ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
   ctor_routine = ctor_dip->variant.constructor.ptr;
   args = ctor_dip->variant.constructor.args;
-  if (ctor_routine == NULL) {
+  if (incr_constexpr_call_depth(ceblock)) {
+    /* Calls too deep -- possible infinite recursion. */
+  } else if (ctor_routine == NULL) {
     /* Don't know the called constructor (e.g., a dependent case), so can't
        fold. */
   } else if (!ctor_routine->is_constexpr) {
@@ -8816,6 +8847,7 @@ fail:;
       ceblock->remap_list = saved_remap_list;
     }  /* if */
   }  /* if */
+  decr_constexpr_call_depth(ceblock);
   return folded;
 }  /* i_fold_constexpr_ctor */
 

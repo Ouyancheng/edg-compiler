@@ -174,6 +174,10 @@ typedef struct a_constexpr_evaluation_block {
 			   prevent a call back (and infinite recursion) on
 			   the current expression node (but not its
 			   subtree). */
+  unsigned long
+		call_depth;
+			/* Depth of constexpr calls, used to check for
+			   recursion overflow. */
 } a_constexpr_evaluation_block;
 
 /*

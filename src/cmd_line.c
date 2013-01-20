@@ -5046,6 +5046,11 @@ file.
 #else /* !defined(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS) */
   comment_undefined_macro_name(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS);
 #endif /* defined(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS) */
+#if defined(DEFAULT_MAX_CONSTEXPR_CALL_NESTING)
+  define_numeric_valued_macro(DEFAULT_MAX_CONSTEXPR_CALL_NESTING);
+#else /* !defined(DEFAULT_MAX_CONSTEXPR_CALL_NESTING) */
+  comment_undefined_macro_name(DEFAULT_MAX_CONSTEXPR_CALL_NESTING);
+#endif /* defined(DEFAULT_MAX_CONSTEXPR_CALL_NESTING) */
 #if defined(DEFAULT_MAX_MANGLED_NAME_LENGTH)
   define_numeric_valued_macro(DEFAULT_MAX_MANGLED_NAME_LENGTH);
 #else /* !defined(DEFAULT_MAX_MANGLED_NAME_LENGTH) */
@@ -9943,6 +9948,7 @@ variables declared in cmd_line.h.
   stdc_zero_in_nonstrict_mode = STDC_ZERO_IN_NONSTRICT_MODE;
   stdc_zero_in_system_headers = DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS;
   max_pending_instantiations = DEFAULT_MAX_PENDING_INSTANTIATIONS;
+  max_constexpr_call_nesting = DEFAULT_MAX_CONSTEXPR_CALL_NESTING;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   import_dir_name = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

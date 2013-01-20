@@ -1548,6 +1548,11 @@ EXTERN unsigned long
 			   at a given time.  This is used to detect
 			   runaway recursive instantiations. */
 
+EXTERN unsigned long
+		max_constexpr_call_nesting;
+			/* The maximum depth of constexpr function and
+			   constructor call nesting permitted. */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN char	*import_dir_name;
 			/* The name of the directory in which files should be
