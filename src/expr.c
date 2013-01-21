@@ -20918,6 +20918,7 @@ freed by this routine.
                dip->kind == (a_dynamic_init_kind)dik_constant &&
                dip->variant.constant->is_result_of_constexpr_call) {
       /* The construction was folded to a constant result. */
+      skip_constexpr_ctor_eval(dip)->is_explicit_cast = TRUE;
       make_constant_operand(dip->variant.constant, result);
       result->position = *start_position;
     } else {

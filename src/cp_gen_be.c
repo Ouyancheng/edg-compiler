@@ -14136,6 +14136,7 @@ source.
 {
   a_boolean is_default_init = FALSE, is_value_init;
 
+  dip = skip_constexpr_ctor_eval(dip);
   if (dip->is_explicit_cast) {
     /* An explicit cast is not a default initialization. */
   } else if (dip->kind == (a_dynamic_init_kind)dik_none) {
