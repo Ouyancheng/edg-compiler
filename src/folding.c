@@ -8234,10 +8234,17 @@ field_selection:
         }  /* if */
         break;
       case eok_address_of:
+        /* &x.  If the underlying lvalue has a constant address, the result
+           is that address. */
+        folded = fold_lvalue_expr(op1, ceblock, result_con);
+        break;
       case eok_reference_to:
-        /* &x or the reference equivalent.  If the underlying lvalue has a
+        /* The reference equivalent of &x.  If the underlying lvalue has a
            constant address, the result is that address. */
         folded = fold_lvalue_expr(op1, ceblock, result_con);
+        if (folded && is_pointer_type(result_con->type)) {
+          result_con->type = make_reference_type(op1->type);
+        }  /* if */
         break;
       default:
         /* "Normal" operators.  For these, the operands have to be constant
@@ -8612,8 +8619,8 @@ instead.
         check_assertion(expr != NULL);
         /* Substitute values for parameters and attempt to fold the call to
            a constant. */
+        folded = fold_expr(expr, ceblock, result_con);
         if (is_reference_type(il_return_type_of(routine->type))) {
-          folded = fold_lvalue_expr(expr, ceblock, result_con);
           if (returns_reference != NULL) {
             *returns_reference = TRUE;
           } else {
@@ -8628,9 +8635,6 @@ instead.
               folded = FALSE;
             }  /* if */
           }  /* if */
-        } else {
-          /* The function does not return a reference. */
-          folded = fold_expr(expr, ceblock, result_con);
         }  /* if */
       } else {
         /* The function returns a value via a dynamic init. */

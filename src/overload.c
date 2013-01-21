@@ -22556,7 +22556,7 @@ can convert to or from handles.
       possible = TRUE;
       conv->class_object_adjustment_required = TRUE;
       conv->result_is_an_lvalue = TRUE;
-    } else if (!curr_expr_kind_is_const() &&
+    } else if ((!curr_expr_kind_is_const() || constexpr_enabled) &&
                is_potential_conv_function_source(op1_type)) {
       /* It might be possible to convert the source operand to an lvalue
          via a conversion function, and then bind the reference directly to

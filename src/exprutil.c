@@ -13084,7 +13084,7 @@ question_position and colon_position give the position of the "?" and ":".
          the expression will be placed under a ck_template_param constant
          below. */
       do_folding = FALSE;
-    } else if (result_is_an_lvalue) {
+    } else if (result_is_an_lvalue && !constexpr_enabled) {
       /* Don't fold when the result is an lvalue. */
       do_folding = FALSE;
     } else if (!identical_types(operand_2->type, operand_3->type)) {
@@ -13334,34 +13334,47 @@ on output it will be an lvalue.
        result of the constant expression is constant. */
     error_in_operand(ec_expr_not_constant, result);
   } else {
-    a_boolean err = FALSE;
+    a_variable_ptr var;
+    a_boolean      err = FALSE;
     orig_result = *result;
-    node = make_node_from_operand(result);
-    if (is_an_lvalue(result)) {
-      /* Convert from an lvalue for the reference to an rvalue for the value
-         of the reference (in effect, loading the reference pointer value from
-         the location that contains it). */
-      node = conv_lvalue_expr_to_rvalue(node, (a_boolean *)NULL,
-                                        (a_constant_ptr *)NULL,
-                                        &result->position);
-      if (!in_potential_constant_constexpr_context() &&
-          construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
-                                                          &result->position)) {
-        /* Reference indirection is not allowed in C++11 constant
-           expressions if you actually have to load the reference variable. */
-        err = TRUE;
-      } else {
-        /* Change the references to "use". */
-        change_some_ref_kinds(result->ref_entries_list,
-                              SRK_REFERENCE, SRK_USE);
+    if (is_constant_operand(result) &&
+        con_is_exact_addr_of_variable(&result->variant.constant,
+                                      &var,
+                                      /*array_decay_allowed=*/FALSE)) {
+      /* The original operand is the exact address of a variable, so the
+         result is an lvalue for that variable. */
+      node = var_lvalue_expr(var);
+    } else {
+      node = make_node_from_operand(result);
+      if (is_an_lvalue(result)) {
+        /* Convert from an lvalue for the reference to an rvalue for the value
+           of the reference (in effect, loading the reference pointer value
+           from the location that contains it). */
+        node = conv_lvalue_expr_to_rvalue(node, (a_boolean *)NULL,
+                                          (a_constant_ptr *)NULL,
+                                          &result->position);
+        if (!in_potential_constant_constexpr_context() &&
+            construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+                                                         &result->position)) {
+          /* Reference indirection is not allowed in C++11 constant
+             expressions if you actually have to load the reference
+             variable. */
+          err = TRUE;
+        } else {
+          /* Change the references to "use". */
+          change_some_ref_kinds(result->ref_entries_list,
+                                SRK_REFERENCE, SRK_USE);
+        }  /* if */
+      }  /* if */
+      if (!err) {
+        /* Add a reference indirection to make an lvalue.  This is similar to
+           adding a "*" operator on top of a pointer rvalue. */
+        node = add_ref_indirection_to_node(node);
       }  /* if */
     }  /* if */
     if (err) {
       conv_to_error_operand(result);
     } else {
-      /* Add a reference indirection to make an lvalue.  This is similar to
-         adding a "*" operator on top of a pointer rvalue. */
-      node = add_ref_indirection_to_node(node);
       make_lvalue_expression_operand(node, result);
       /* Restore the original source position, etc.  Note that the reference
          entries are NOT restored, on purpose. */
