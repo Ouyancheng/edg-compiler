@@ -14980,7 +14980,7 @@ operand when initializer lists are enabled.
                                    operator_tok_seq_number,
                                    operator_position_2);
     *processed = TRUE;
-  } else if ((!curr_expr_kind_is_const() || constexpr_enabled)) {
+  } else if (!curr_expr_kind_is_const() || constexpr_enabled) {
     /* Check for operator overloading (but not in constant expressions). */
     eff_operand_1_type = operand_1->type;
 #if MICROSOFT_EXTENSIONS_ALLOWED

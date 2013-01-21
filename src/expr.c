@@ -17863,7 +17863,7 @@ called only in C++ mode.
   cast_to_rvalue_reference = is_rvalue_reference_type(type_cast_to);
   if (source_form == csf_functional) conv_context |= CCO_FUNC_NOTATION_CAST;
   /* Don't check for user-defined conversions in constant expressions. */
-  if (!curr_expr_kind_is_const()) {
+  if (!curr_expr_kind_is_const() || constexpr_enabled) {
     if (cast_to_reference) {
       a_boolean    possible = FALSE;
       a_conv_descr *determined_conversion = NULL;
@@ -20914,6 +20914,12 @@ freed by this routine.
     } else if (err || dip == NULL) {
       /* Error of some sort. */
       make_error_operand(result);
+    } else if (constexpr_enabled &&
+               dip->kind == (a_dynamic_init_kind)dik_constant &&
+               dip->variant.constant->is_result_of_constexpr_call) {
+      /* The construction was folded to a constant result. */
+      make_constant_operand(dip->variant.constant, result);
+      result->position = *start_position;
     } else {
       a_routine_ptr routine = NULL;
       dip->is_explicit_cast = TRUE;

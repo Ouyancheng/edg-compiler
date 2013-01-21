@@ -16113,16 +16113,26 @@ is an rvalue reference.
                      is_template_param_type(operand->type) ||
                      is_error_type(operand->type)));
     orig_operand = *operand;
-    if (is_expression_operand(operand)) {
-      expr = make_node_from_operand(operand);
-    } else if (is_template_param_expression_constant_operand(operand)) {
-      expr = expr_node_from_operand(operand);
-      check_assertion(expr != NULL);
+    if (is_constant_operand(operand)) {
+      /* With constexpr, a class value can be a constant. */
+      a_constant_ptr con = &operand->variant.constant;
+      a_constant     addr_con;
+      check_assertion(con->is_result_of_constexpr_call);
+      set_constant_address_constant(alloc_unshared_constant(con), &addr_con);
+      addr_con.type = make_reference_type(operand->type);
+      make_constant_operand(&addr_con, operand);
     } else {
-      unexpected_condition();
+      if (is_expression_operand(operand)) {
+        expr = make_node_from_operand(operand);
+      } else if (is_template_param_expression_constant_operand(operand)) {
+        expr = expr_node_from_operand(operand);
+        check_assertion(expr != NULL);
+      } else {
+        unexpected_condition();
+      }  /* if */
+      expr = add_reference_to_to_node(expr);
+      make_expression_operand(expr, operand);
     }  /* if */
-    expr = add_reference_to_to_node(expr);
-    make_expression_operand(expr, operand);
     restore_operand_details(operand, &orig_operand);
   }  /* if */
 }  /* take_reference_to_operand */
