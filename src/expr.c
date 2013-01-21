@@ -19679,6 +19679,10 @@ investigate whether a safe_cast can be done, only to actually do one
   if (process_runtime_checked_safe_cast(type_cast_to, operand,
                                         start_position, csf_safe_cast)) {
     /* The cast requires a runtime check and has been processed that way. */
+    if (construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+                                                     start_position)) {
+      conv_to_error_operand(operand);
+    }  /* if */
     *ruled_out_expr_kinds |= (ROEK_INTEGRAL_CONSTANT | ROEK_CONSTANT);
   } else {
     /* Process as an unchecked static_cast. */
