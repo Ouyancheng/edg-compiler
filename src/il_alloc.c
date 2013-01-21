@@ -1473,7 +1473,6 @@ incomplete (which affects the recorded size and alignment).
   class_type->alignment = 1;
   class_type->incomplete = TRUE;
   class_type->variant.class_struct_union.field_list = NULL;
-  class_type->variant.class_struct_union.is_literal_type = FALSE;
   class_type->variant.class_struct_union.any_const_member = FALSE;
   class_type->variant.class_struct_union.any_virtual_base_classes = FALSE;
   class_type->variant.class_struct_union.abstract = FALSE;
@@ -1656,7 +1655,6 @@ to default values.
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pte->variant.class_struct_union.final = FALSE;
-      pte->variant.class_struct_union.is_literal_type = FALSE;
       pte->variant.class_struct_union.any_const_member = FALSE;
       pte->variant.class_struct_union.any_volatile_member = FALSE;
       pte->variant.class_struct_union.any_mutable_member = FALSE;

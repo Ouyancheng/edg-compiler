@@ -7172,12 +7172,13 @@ C++ mode, even exception specifications on definitions are ignored.)
 }  /* issue_no_exception_support_diag_on_throw_spec */
 
 
-a_boolean check_constexpr_routine_type(a_routine_ptr      rp,
-                                       a_source_position  *diag_pos)
+a_boolean check_constexpr_routine_def_type(a_routine_ptr      rp,
+                                           a_source_position  *diag_pos)
 /*
 Return TRUE if and only if the given function type is a valid type for a
-constexpr function.  Otherwise, return FALSE and issue a diagnostic at the
-given position.
+constexpr function definition (these checks are not performed for a
+declaration that isn't a definition).  Otherwise, return FALSE and issue a
+diagnostic at the given position.
 */
 {
   a_boolean   okay = TRUE;
@@ -7212,7 +7213,7 @@ given position.
     }  /* if */
   }  /* if */
   return okay;
-}  /* check_constexpr_routine_type */
+}  /* check_constexpr_routine_def_type */
 
 
 #if !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS)
@@ -8498,8 +8499,7 @@ skip_overloading:;
       pop_namespace_extension_scope();
     }  /* if */
   }  /* if */
-  if (!redeclaration && (dps->dso_flags & DSO_CONSTEXPR) != 0 &&
-      check_constexpr_routine_type(routine_ptr, &dps->constexpr_pos)) {
+  if (!redeclaration && (dps->dso_flags & DSO_CONSTEXPR) != 0) {
     routine_ptr->is_constexpr = TRUE;
   }  /* if */
   attach_decl_attributes(dps, is_function_def);
@@ -9161,8 +9161,7 @@ definition of a member function of a class template.
       rout_ptr->declared_storage_class = dps->declared_storage_class;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    if (dps->dso_flags & DSO_CONSTEXPR &&
-        check_constexpr_routine_type(rout_ptr, &dps->constexpr_pos)) {
+    if (dps->dso_flags & DSO_CONSTEXPR) {
       rout_ptr->is_constexpr = TRUE;
     }  /* if */
     if (func_info->is_inline) {

@@ -903,12 +903,6 @@ typedef struct a_class_def_state {
   a_bit_field   POD_ruled_out:1;
 			/* TRUE if a property of the class disqualifies it as
 			   a "POD". */
-  a_bit_field	has_subobject_of_nonliteral_type:1;
-			/* TRUE if the class has a field or base class of
-			   nonliteral type. */
-  a_bit_field	has_constexpr_nonstatic_member_function:1;
-			/* TRUE if the class has a nonstatic member function
-			   that is constexpr. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field   potentially_interface_like:1;
 			/* TRUE if we haven't ruled out this type from being
@@ -1044,8 +1038,6 @@ class being defined.
   cdsp->is_first_field = TRUE;
   cdsp->class_aggregate_ruled_out = FALSE;
   cdsp->POD_ruled_out = FALSE;
-  cdsp->has_subobject_of_nonliteral_type = FALSE;
-  cdsp->has_constexpr_nonstatic_member_function = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->potentially_interface_like = FALSE;
   cdsp->current_decl_valid_in_property_or_event_def = FALSE;
@@ -2849,6 +2841,10 @@ nested class.
 }  /* inline_function_fixup_for_class */
 
 
+/* Forward declaration. */
+static void check_if_constexpr_generated_default_constructor(
+                                                       a_type_ptr  class_type);
+
 static void inclass_initializer_fixup_for_class(a_type_ptr  class_type,
                                                 a_boolean   is_template_based)
 /*
@@ -2859,8 +2855,10 @@ prototype instantiations).
 {
   a_class_symbol_supplement_ptr  cssp;
   an_initializer_fixup_ptr       ifp, next_ifp;
+  a_boolean                      has_fixups;
 
   cssp = symbol_supplement_for_class(class_type);
+  has_fixups = cssp->initializer_fixup_list != NULL;
   for (ifp = cssp->initializer_fixup_list; ifp != NULL; ifp = next_ifp) {
     a_type_ptr              parent_type = sym_parent_class(ifp->symbol);
     a_decl_parse_state      dps;
@@ -2926,7 +2924,17 @@ prototype instantiations).
     free_initializer_fixup(ifp);
     pop_lexical_state_stack();
   }  /* for */
-  cssp->initializer_fixup_list = NULL;
+  if (has_fixups) {
+    /* If actual initializer fixups were processed, check to see if the
+       class has a generated defaulted constructor that should be "constexpr",
+       and determine whether the class is a "literal type".  If there were no
+       fixups, this was already done previously. */
+    cssp->initializer_fixup_list = NULL;
+    if (constexpr_enabled) {
+      check_if_constexpr_generated_default_constructor(class_type);
+      set_literal_type_flag(class_type);
+    }  /* if */
+  }  /* if */
 }  /* inclass_initializer_fixup_for_class */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3124,8 +3132,8 @@ after a class instantiation.
     cfhp->defer_inline_function_fixups--;
     defer_instantiations--;
     if (cfhp->defer_inline_function_fixups == 0) {
+      /* Fix up in-class initializers and in-class inline function bodies. */
       if (field_initializers_enabled || cppcli_enabled) {
-        /* Fix up in-class initializers and in-class inline function bodies. */
         for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
           /* Make sure we are in the right translation unit. */
           check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
@@ -7964,9 +7972,6 @@ to FALSE before returning).
     class_state->class_aggregate_ruled_out = TRUE;
     class_state->POD_ruled_out = TRUE;
   }  /* if */
-  if (!bcp_type->variant.class_struct_union.is_literal_type) {
-    class_state->has_subobject_of_nonliteral_type = TRUE;
-  }  /* if */
   /* The implied default constructor of the current class will be
      nontrivial if any of its base classes is virtual or has a nontrivial
      default constructor itself.  The current class requires a destructor
@@ -8014,6 +8019,7 @@ to FALSE before returning).
       bcp_type->variant.class_struct_union.any_virtual_base_classes) {
     class_type->variant.class_struct_union.any_virtual_base_classes = TRUE;
     cssp->standard_layout = FALSE;
+    cssp->known_not_to_be_a_literal_type = TRUE;
   }  /* if */
   if (bcp_type->variant.class_struct_union
                            .any_virtual_functions_including_in_base_classes) {
@@ -8031,6 +8037,7 @@ to FALSE before returning).
   }  /* if */
   if (bcp_type->variant.class_struct_union.any_volatile_member) {
     class_type->variant.class_struct_union.any_volatile_member = TRUE;
+    cssp->known_not_to_be_a_literal_type = TRUE;
   }  /* if */
   if (bcp_type->variant.class_struct_union.any_mutable_member) {
     class_type->variant.class_struct_union.any_mutable_member = TRUE;
@@ -12785,11 +12792,10 @@ implicitly declared member functions.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0 &&
-      check_constexpr_routine_type(rtn, &decl_state->constexpr_pos)) {
+  if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
     rtn->is_constexpr = TRUE;
     if (!is_static_member) {
-      class_state->has_constexpr_nonstatic_member_function = TRUE;
+      cssp->has_constexpr_nonstatic_member_function = TRUE;
     }  /* if */
   }  /* if */
   check_defaulted_or_deleted_function(&decl_info->decl_state, func_info,
@@ -13679,8 +13685,7 @@ decl_member_function, which handles in-class member function declarations.)
                       il_template_entry->source_corresp.source_sequence_entry;
     wrapup_sse_for_simple_decl(dps);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
-        check_constexpr_routine_type(rtn, &dps->constexpr_pos)) {
+    if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
       rtn->is_constexpr = TRUE;
     }  /* if */
   }  /* if */
@@ -16491,6 +16496,7 @@ be entered.
      correctly. */
   if (is_or_has_volatile_qualified_type(member_type)) {
     class_type->variant.class_struct_union.any_volatile_member = TRUE;
+    cssp->known_not_to_be_a_literal_type = TRUE;
   }  /* if */
   if (decl_info->is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
@@ -16569,9 +16575,6 @@ be entered.
         /* A POD may not have a field with a type that is a non-POD class
            (or array thereof). */
         if (!member_cssp->is_POD) class_state->POD_ruled_out = TRUE;
-        if (!tp->variant.class_struct_union.is_literal_type) {
-          class_state->has_subobject_of_nonliteral_type = TRUE;
-        }  /* if */
       }  /* if */
     } else {
       /* The field's type is an array of nonclass elements. */
@@ -17507,20 +17510,44 @@ in some Microsoft modes, record that its body cannot be generated).
   if (suppressed) {
     mark_special_member_suppressed(sym);
   }  /* if */
-  /* Check if the generated default constructor is "constexpr". */
-  if (constexpr_enabled &&
-      !class_type->variant.class_struct_union.any_virtual_base_classes &&
-      !class_state->has_subobject_of_nonliteral_type) {
+}  /* generate_default_constructor */
+
+
+static void check_if_constexpr_generated_default_constructor(
+                                                       a_type_ptr  class_type)
+/*
+If the given class type has a generated default constructor, determine if that
+constructor is "constexpr" (this in turn may require parsing the field
+initializers).
+*/
+{
+  a_class_symbol_supplement_ptr
+                cssp = symbol_supplement_for_class(class_type);
+  a_symbol_ptr  ctor = cssp->constructor;
+
+  check_assertion(constexpr_enabled);
+  /* Look for a generated default constructor (if any). */
+  if (ctor != NULL) {
+    a_boolean  is_list = symbol_is(ctor, sk_overloaded_function);
+    if (is_list) ctor = ctor->variant.overloaded_function.symbols;
+    for (; ctor != NULL; ctor = is_list ? ctor->next : NULL) {
+      if (ctor->variant.routine.ptr->compiler_generated &&
+          is_simple_default_constructor(ctor->variant.routine.ptr)) {
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (ctor != NULL &&
+      !class_type->variant.class_struct_union.any_virtual_base_classes) {
     /* A generated default constructor is implicitly "constexpr" if (a) the
-       parent class has no virtual bases, (b) all subobjects have literal
-       class type (FIXME: incorrect), and (c) every field has a constant
+       parent class has no virtual bases, and (b) every field has a constant
        field-initializer. */
     if (fields_initialized_for_constexpr_constructor(class_type)) {
-      sym->variant.routine.ptr->is_constexpr = TRUE;
-      class_state->has_constexpr_nonstatic_member_function = TRUE;
+      ctor->variant.routine.ptr->is_constexpr = TRUE;
+      cssp->has_constexpr_nonstatic_member_function = TRUE;
     }  /* if */
   }  /* if */
-}  /* generate_default_constructor */
+}  /* check_if_constexpr_generated_default_constructor */
 
 
 static a_param_type_ptr make_copy_function_param(
@@ -18731,6 +18758,9 @@ The routine body is not generated until it is known to be needed.
        !class_state->member_destruction_required &&
        !class_state->base_destruction_required)) {
     cssp->has_trivial_destructor = TRUE;
+  } else {
+    /* Class types with nontrivial destructors cannot be literal types. */
+    cssp->known_not_to_be_a_literal_type = TRUE;
   }  /* if */
   /* Create a default assignment operator to copy an object of the current
      class if one doesn't already exist.  Note that in cfront mode, the
@@ -24776,60 +24806,108 @@ cached for later "prototype instantiation".  Perform these instantiations now
 }  /* instantiate_delayed_exception_spec_args_if_needed */
 
 
-static void set_literal_type_flag(a_class_def_state  *cdsp)
+static a_boolean has_nonliteral_type_subobject(a_type_ptr  class_type)
 /*
-cdsp describes a class definition that has been completely parsed.  Set the
-is_literal_type flag in the associated class type entry to TRUE if the class is
-indeed a literal type.
+Return TRUE if the given class type has a field or direct base class that is
+not a literal type.
 */
 {
-  a_type_ptr  type = cdsp->class_type;
+  a_boolean         result = FALSE;
+  a_field_ptr       fp;
+  a_base_class_ptr  bcp;
+
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct && !is_literal_type(bcp->type)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (!result) {
+    fp = class_type->variant.class_struct_union.field_list;
+    for (; fp != NULL; fp = fp->next) {
+      if (!is_literal_type(fp->type)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* has_nonliteral_type_subobject */
+
+
+void set_literal_type_flag(a_type_ptr  type)
+/*
+Ensure either the known_to_be_a_literal_type or known_not_to_be_a_literal_type
+flag is set in the class symbol supplement of the given type.
+*/
+{
   a_class_symbol_supplement_ptr
               cssp = symbol_for(type)->variant.class_struct_union.extra_info;
 
-  if (!cdsp->has_subobject_of_nonliteral_type &&
-      !type->variant.class_struct_union.any_volatile_member &&
-      !has_nontrivial_destructor(cssp)) {
+  if (cssp->known_not_to_be_a_literal_type ||
+      cssp->known_to_be_a_literal_type) {
+    /* We already known whether this type is a literal type. */
+  } else {
     /* All the members and bases are of literal type, and the destructor is
        trivial.  To be a literal type, the class should additionally be an
        aggregate, or it should have at least one constexpr constructor that
        is not a copy or move constructor. */
-    if (cssp->is_class_aggregate) {
+    if (is_immediate_managed_class_type(type)) {
+      /* Don't treat managed class types as literal types. */
+      cssp->known_not_to_be_a_literal_type = TRUE;
+    } else if (has_nonliteral_type_subobject(type)) {
+      cssp->known_not_to_be_a_literal_type = TRUE;
+    } else if (cssp->is_class_aggregate) {
       /* Aggregate class types are literal types. */
-      type->variant.class_struct_union.is_literal_type = TRUE;
+      cssp->known_to_be_a_literal_type = TRUE;
     } else if (cssp->trivial_default_constructor != NULL &&
                cssp->trivial_default_constructor
                    ->variant.routine.ptr->is_constexpr) {
       /* A constexpr trivial default constructor makes the class a literal
          type. */
-      type->variant.class_struct_union.is_literal_type = TRUE;
-    } else if (cssp->constructor != NULL &&
-               cdsp->has_constexpr_nonstatic_member_function) {
-      /* Look for a constexpr constructor that is not a copy or move
-         constructor. */
-      a_symbol_ptr  sym = cssp->constructor;
-      a_boolean     is_list = FALSE;
-      if (symbol_is(sym, sk_overloaded_function)) {
-        is_list = TRUE;
-        sym = sym->variant.overloaded_function.symbols;
-      }  /* if */
-      for (; sym != NULL; sym = is_list ? sym->next : (a_symbol_ptr)NULL) {
-        if (symbol_is(sym, sk_member_function)) {
-          a_routine_ptr         rp = sym->variant.routine.ptr;
-          a_type_qualifier_set  qualifiers;
-          if (rp->is_constexpr &&
-              !is_copy_constructor_type(rp->type, type, &qualifiers,
-                                        /*include_move_ctors=*/TRUE,
-                                        /*is_declarative_context=*/TRUE)) {
-            type->variant.class_struct_union.is_literal_type = TRUE;
-            break;
-          }  /* if */
+      cssp->known_to_be_a_literal_type = TRUE;
+    } else {
+      /* Ensure all field initializers are parsed: Any initializers that aren't
+         constant-expressions will cause cssp->known_not_to_be_a_literal_type
+         to become TRUE. */
+      inclass_initializer_fixup_for_class(
+                        type,
+                        type->variant.class_struct_union.is_template_class &&
+                          !type->variant.class_struct_union.is_specialized);
+      if (!cssp->known_not_to_be_a_literal_type &&
+          cssp->constructor != NULL &&
+          cssp->has_constexpr_nonstatic_member_function) {
+        /* Look for a constexpr constructor that is not a copy or move
+           constructor. */
+        a_symbol_ptr  sym = cssp->constructor;
+        a_boolean     is_list = FALSE;
+        if (symbol_is(sym, sk_overloaded_function)) {
+          is_list = TRUE;
+          sym = sym->variant.overloaded_function.symbols;
         }  /* if */
-      }  /* for */
+        for (; sym != NULL; sym = is_list ? sym->next : (a_symbol_ptr)NULL) {
+          if (symbol_is(sym, sk_member_function)) {
+            a_routine_ptr         rp = sym->variant.routine.ptr;
+            a_type_qualifier_set  qualifiers;
+            if (rp->is_constexpr &&
+                !is_copy_constructor_type(rp->type, type, &qualifiers,
+                                          /*include_move_ctors=*/TRUE,
+                                          /*is_declarative_context=*/TRUE)) {
+              cssp->known_to_be_a_literal_type = TRUE;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      if (!cssp->known_to_be_a_literal_type) {
+        /* If we haven't concluded that the type is a literal type by now, it
+           isn't a literal type. */
+        cssp->known_not_to_be_a_literal_type = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
-  if (!type->variant.class_struct_union.is_literal_type &&
-      cdsp->has_constexpr_nonstatic_member_function) {
+  if (cssp->known_not_to_be_a_literal_type &&
+      cssp->has_constexpr_nonstatic_member_function) {
     /* If there were any nonstatic constexpr member functions in the class
        issue an error (nonstatic non-constructor member functions can be
        constexpr only if their parent class is a literal type). */
@@ -24984,7 +25062,6 @@ bits of information that were acquired while parsing.
          assignment operator was needed first. */
       cssp->is_POD = TRUE;
     }  /* if */
-    set_literal_type_flag(class_state);
     /* Set shares_virtual_function_info for a base class of class_type, if
        appropriate. */
     set_shares_virtual_function_info_flag(class_type,
@@ -25004,10 +25081,10 @@ bits of information that were acquired while parsing.
       project_base_class_conversion_functions(class_type);
     }  /* if */
     instantiate_delayed_exception_spec_args_if_needed(class_state);
-    /* Report errors in virtual function declarations that result from
-       the failure to redeclare a virtual function originally declared in
-       a virtual base class. */
     if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+      /* Report errors in virtual function declarations that result from
+         the failure to redeclare a virtual function originally declared in
+         a virtual base class. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (is_immediate_managed_class_type(class_type)) {
         /* Since there is no true multiple inheritance in managed classes,
@@ -25019,6 +25096,15 @@ bits of information that were acquired while parsing.
       /* Do not insert code here. */
       {
         report_virtual_function_ambiguities(class_type);
+      }  /* if */
+    } else {
+      if (constexpr_enabled && cssp->initializer_fixup_list == NULL) {
+        /* If there are no virtual base classes, a generated default
+           constructor may be constexpr.  If there are no pending fixups for
+           field initializers, we can determine this now.  Otherwise, we'll
+           check it after those fixups are processed. */
+        check_if_constexpr_generated_default_constructor(class_type);
+        set_literal_type_flag(class_type);
       }  /* if */
     }  /* if */
     /* If necessary, run through the base classes to determine (a) if the

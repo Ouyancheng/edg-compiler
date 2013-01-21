@@ -3587,6 +3587,9 @@ state.
         cssp->variant_member_with_nontrivial_copy_ctor = FALSE;
         cssp->variant_member_with_nontrivial_dtor = FALSE;
         cssp->variant_member_with_nontrivial_copy_assign = FALSE;
+        cssp->known_to_be_a_literal_type = FALSE;
+        cssp->known_not_to_be_a_literal_type = FALSE;
+        cssp->has_constexpr_nonstatic_member_function = FALSE;
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
         cssp->conversion_template_list = NULL;

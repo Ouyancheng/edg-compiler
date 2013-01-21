@@ -2019,9 +2019,6 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.final) {
         disp_boolean("final", TRUE);
       }  /* if */
-      if (ptr->variant.class_struct_union.is_literal_type) {
-        disp_boolean("is_literal_type", TRUE);
-      }  /* if */
       if (ptr->variant.class_struct_union.any_const_member) {
         disp_boolean("any_const_member", TRUE);
       }  /* if */

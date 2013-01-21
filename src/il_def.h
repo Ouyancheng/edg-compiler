@@ -8145,9 +8145,6 @@ typedef struct a_type {
 			   Microsoft-mode context-sensitive keyword "sealed".
 			   Such a class type cannot be used as a base class. */
       a_bit_field
-		is_literal_type:1;
-			/* TRUE if this class type is a literal type. */
-      a_bit_field
                 any_const_member:1;
                         /* TRUE if any member of the class, struct, or union
                            is const-qualified. */

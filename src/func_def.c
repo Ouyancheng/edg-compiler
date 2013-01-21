@@ -1385,7 +1385,9 @@ of lambda expressions.
                                                   explicit_return_type,
                                                   /*is_catch_clause=*/FALSE,
                                                   /*is_statement_expr=*/FALSE);
-      if (rout_ptr->is_constexpr) {
+      if (rout_ptr->is_constexpr &&
+          check_constexpr_routine_def_type(
+                         rout_ptr, &rout_ptr->source_corresp.decl_position)) {
         set_routine_constexpr_info(
               scope_ptr,
               scope_stack[depth_innermost_function_scope].constexpr_ruled_out);
@@ -2866,7 +2868,9 @@ empty statement block.
     check_assertion(scope->assoc_block->kind == (a_statement_kind)stmk_block);
     scope->assoc_block->
                    variant.block.extra_info->end_of_block_reachable = FALSE;
-    if (rout_ptr->is_constexpr) {
+    if (rout_ptr->is_constexpr &&
+        check_constexpr_routine_def_type(
+                         rout_ptr, &rout_ptr->source_corresp.decl_position)) {
       /* A default constructor satisfies the rules for a constexpr
          constructor function body. */
       set_routine_constexpr_info(scope, /*constexpr_ruled_out=*/FALSE);

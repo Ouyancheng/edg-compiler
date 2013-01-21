@@ -1609,7 +1609,16 @@ Return TRUE if the given type is a literal type.
   if (is_scalar(tp) || is_any_reference(tp)) {
     result = TRUE;
   } else if (is_immediate_class_type(tp)) {
-    result = tp->variant.class_struct_union.is_literal_type;
+    a_class_symbol_supplement_ptr
+                 cssp = symbol_for(tp)->variant.class_struct_union.extra_info;
+    if (cssp->known_to_be_a_literal_type) {
+      result = TRUE;
+    } else if (cssp->known_not_to_be_a_literal_type) {
+      result = FALSE;
+    } else {
+      set_literal_type_flag(tp);
+      result = cssp->known_to_be_a_literal_type;
+    }  /* if */
   } else {
     result = FALSE;
   }  /* if */

@@ -1281,6 +1281,14 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	variant_member_with_nontrivial_copy_assign:1;
 			/* TRUE if this class has a variant member with a
 			   nontrivial copy assignment operator. */
+  a_bit_field	known_to_be_a_literal_type:1;
+			/* TRUE if this class is known to be a literal type. */
+  a_bit_field	known_not_to_be_a_literal_type:1;
+			/* TRUE if this class is known not to be a literal
+			   type. */
+  a_bit_field	has_constexpr_nonstatic_member_function:1;
+			/* TRUE if the class has a nonstatic member function
+			   that is constexpr. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block
 		pointers_block;
