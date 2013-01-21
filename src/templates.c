@@ -2456,13 +2456,13 @@ the count of parameters to be compared when entire_type is FALSE.
     result = -1;
   } else if (!match1 && !match2) {
     result = 0;
-  } else if (ptp1 == NULL && ptp2 != NULL) {
-    /* If the first function has fewer parameters, it is more specialized.
-       This, and the similar case below, should only occur for variadic
-       templates. */
+  } else if (ptp1 == NULL && ptp2 != NULL && ptp2->is_parameter_pack) {
+    /* If the first function has fewer parameters, it is more specialized
+       if the second is a pack. */
     result = 1;
-  } else if (ptp1 != NULL && ptp2 == NULL) {
-    /* If the second function has fewer parameters, it is more specialized. */
+  } else if (ptp1 != NULL && ptp2 == NULL && ptp1->is_parameter_pack) {
+    /* If the second function has fewer parameters, it is more specialized
+       if the first is a pack. */
     result = -1;
   } else {
     if (tssp1->is_variadic && tssp2->is_variadic) {
