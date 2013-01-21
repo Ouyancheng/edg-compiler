@@ -17482,6 +17482,36 @@ cases, the initializers must also be constants.
 }  /* fields_initialized_for_constexpr_constructor */
 
 
+static a_boolean bases_initialized_for_constexpr_constructor(
+                                                        a_type_ptr class_type)
+/*
+Return TRUE if the default construction for every direct base of the given
+class type is constexpr (and unambiguous).
+*/
+{
+  a_boolean         result = TRUE;
+  a_base_class_ptr  bcp;
+
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct) {
+      a_boolean      error_detected, err;
+      a_routine_ptr  default_ctor =
+                      select_default_constructor_full(bcp->type,
+                                                      &error_position,
+                                                      bcp->type,
+                                                      /*evaluated=*/TRUE,
+                                                      /*check_access=*/TRUE,
+                                                      &error_detected, &err);
+      if (default_ctor == NULL || !default_ctor->is_constexpr) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* bases_initialized_for_constexpr_constructor */
+
+
 static void generate_default_constructor(a_class_def_state_ptr  class_state,
                                          a_boolean              suppressed)
 /*
@@ -17540,9 +17570,11 @@ initializers).
   if (ctor != NULL &&
       !class_type->variant.class_struct_union.any_virtual_base_classes) {
     /* A generated default constructor is implicitly "constexpr" if (a) the
-       parent class has no virtual bases, and (b) every field has a constant
-       field-initializer. */
-    if (fields_initialized_for_constexpr_constructor(class_type)) {
+       parent class has no virtual bases, (b) every field has a constant field
+       initializer, and (c) every direct base class has an unambiguous
+       constexpr default constructor. */
+    if (fields_initialized_for_constexpr_constructor(class_type) &&
+        bases_initialized_for_constexpr_constructor(class_type)) {
       ctor->variant.routine.ptr->is_constexpr = TRUE;
       cssp->has_constexpr_nonstatic_member_function = TRUE;
     }  /* if */
