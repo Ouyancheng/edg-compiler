@@ -14768,7 +14768,14 @@ of get_variable_initializer already.
   } else if (init_kind == (an_init_kind)initk_none) {
     result = FALSE;
   } else if (init_kind == (an_init_kind)initk_static) {
-    result = TRUE;
+    a_constant_ptr con = initializer->constant;
+    if (con->is_result_of_constexpr_call &&
+        con->expr != NULL &&
+        con->expr->kind == (an_expr_node_kind)enk_temp_init) {
+      result = !is_default_dynamic_init(con->expr->variant.init.dynamic_init);
+    } else {
+      result = TRUE;
+    }  /* if */
   } else if (init_kind == (an_init_kind)initk_dynamic) {
     result = !is_default_dynamic_init(initializer->dynamic);
   } else if (init_kind == (an_init_kind)initk_zero) {
