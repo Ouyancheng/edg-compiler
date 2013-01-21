@@ -13084,9 +13084,6 @@ question_position and colon_position give the position of the "?" and ":".
          the expression will be placed under a ck_template_param constant
          below. */
       do_folding = FALSE;
-    } else if (result_is_an_lvalue && !constexpr_enabled) {
-      /* Don't fold when the result is an lvalue. */
-      do_folding = FALSE;
     } else if (!identical_types(operand_2->type, operand_3->type)) {
       /* Can't fold cases where the operand types do not match (e.g.,
          because one is a throw and the other is not). */
