@@ -4127,6 +4127,33 @@ constant.
 
 #endif /* IA64_ABI */
 
+static a_dynamic_init_ptr skip_compiler_generated_initialization(
+                                                        a_dynamic_init_ptr dip)
+/*
+Skip over any compiler-generated initialization that should be ignored by
+mangling (the intent is to provide mangling that describes the original
+source code, not what the front end has distilled it into).
+*/
+{
+  a_dynamic_init_ptr prev_dip = NULL;
+
+  while (dip != prev_dip) {
+    prev_dip = dip;
+    /* For constexpr constructors, skip the constant form to retrieve the
+       underlying dik_constructor. */
+    dip = skip_constexpr_ctor_eval(dip);
+    if (dip->is_creation_of_initializer_list_object) {
+      /* Get the dynamic initialization entry for the underlying temporary
+         array for this std::initializer_list object. */
+      dip = effective_dynamic_init_for_initializer_list_object(dip,
+                                                              (a_type **)NULL);
+    }  /* if */
+    check_assertion(dip != NULL);
+  }  /* while */
+  return dip;
+}  /* skip_compiler_generated_initialization */
+
+
 #if !IA64_ABI
 /*ARGSUSED*/  /*  <-- suppress_address_of is not used in some configurations.*/
 #endif /* !IA64_ABI */
@@ -4248,11 +4275,7 @@ explicitly dealt with later in expression mangling.
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
-      if (dip->is_creation_of_initializer_list_object) {
-        dip = effective_dynamic_init_for_initializer_list_object(dip,
-                                                              (a_type **)NULL);
-        check_assertion(dip != NULL);
-      }  /* if */
+      dip = skip_compiler_generated_initialization(dip);
       if (is_generated_dynamic_init(dip)) {
         /* Remove implicit operations. */
         expr = arg_list_from_dyn_init(dip);
@@ -5466,15 +5489,7 @@ the dynamic initialization is the result of a static_cast.
   char                *str;
 
   check_assertion(dip != NULL);
-  dip = skip_constexpr_ctor_eval(dip);
-  if (dip->is_creation_of_initializer_list_object) {
-    /* Skip over compiler-generated construction of std::initializer_list<X>
-       for mangling purposes. */
-    a_type_ptr init_entity_type;
-    dip = effective_dynamic_init_for_initializer_list_object(dip,
-                                                            &init_entity_type);
-    check_assertion(dip != NULL);
-  }  /* if */
+  dip = skip_compiler_generated_initialization(dip);
   if (dip->is_braced_initializer) {
     /* Mangle as an initializer-list (even if is_explicit_cast is also set). */
     get_expr_or_constant_list_from_dip(dip, &expr_list, &con_list);
@@ -5568,11 +5583,7 @@ in the Cfront ABI a "bi" flag is used instead).
 
   if (dip != NULL) {
     /* We need to include an initializer expression list. */
-    if (dip->is_creation_of_initializer_list_object) {
-      dip = effective_dynamic_init_for_initializer_list_object(dip,
-                                                              (a_type **)NULL);
-      check_assertion(dip != NULL);
-    }  /* if */
+    dip = skip_compiler_generated_initialization(dip);
 #if IA64_ABI
     if (dip->is_braced_initializer) {
       /* Use braced-enclosed initializer list mangling. */
