@@ -1596,6 +1596,7 @@ Return TRUE if the given type is trivially copyable.
   return result;
 }  /* is_trivially_copyable_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_literal_type(a_type_ptr tp)
 /*
@@ -1640,6 +1641,7 @@ an error type (or an array thereof).
   return result;
 }  /* could_be_literal_type */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_array_type(a_type_ptr tp)
 /*

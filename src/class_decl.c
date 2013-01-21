@@ -12313,7 +12313,6 @@ function.
                                           rout_type, /*is_reverse_fn=*/FALSE);
 }  /* is_implicitly_callable_conversion_function */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean is_simple_default_constructor(a_routine_ptr  rp)
 /*
@@ -12325,6 +12324,7 @@ parameters, except perhaps for an ellipsis parameter.
          function_type_params(skip_typerefs(rp->type)) == NULL;
 }  /* is_simple_default_constructor */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void exclude_special_members_from_value_class_type(
                                                 a_routine_ptr      rtn,
