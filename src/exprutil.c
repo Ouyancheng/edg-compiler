@@ -13108,7 +13108,7 @@ question_position and colon_position give the position of the "?" and ":".
     } else if (!(operand_2->ruled_out_expr_kinds & ROEK_CONSTANT) &&
                !(operand_3->ruled_out_expr_kinds & ROEK_CONSTANT)) {
       /* Fold if all the operands have the form of a constant expression.
-         This deals with cases like 0 ? 1 : 1/0, in which the last operand
+         This deals with cases like 1 ? 1 : 1/0, in which the last operand
          would not be in constant form because it couldn't be folded. */
       do_folding = TRUE;
     } else if (class_rvalue_case) {
