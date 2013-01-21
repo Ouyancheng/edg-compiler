@@ -2854,12 +2854,15 @@ prototype instantiations).
 */
 {
   a_class_symbol_supplement_ptr  cssp;
-  an_initializer_fixup_ptr       ifp, next_ifp;
+  an_initializer_fixup_ptr       fixup_list, ifp, next_ifp;
   a_boolean                      has_fixups;
 
   cssp = symbol_supplement_for_class(class_type);
-  has_fixups = cssp->initializer_fixup_list != NULL;
-  for (ifp = cssp->initializer_fixup_list; ifp != NULL; ifp = next_ifp) {
+  fixup_list = cssp->initializer_fixup_list;
+  /* Clear the list early to avoid recursion. */
+  cssp->initializer_fixup_list = NULL;
+  has_fixups = fixup_list != NULL;
+  for (ifp = fixup_list; ifp != NULL; ifp = next_ifp) {
     a_type_ptr              parent_type = sym_parent_class(ifp->symbol);
     a_decl_parse_state      dps;
     a_memory_region_number  region_to_switch_back_to;
@@ -2929,7 +2932,6 @@ prototype instantiations).
        class has a generated defaulted constructor that should be "constexpr",
        and determine whether the class is a "literal type".  If there were no
        fixups, this was already done previously. */
-    cssp->initializer_fixup_list = NULL;
     if (constexpr_enabled) {
       check_if_constexpr_generated_default_constructor(class_type);
       set_literal_type_flag(class_type);
