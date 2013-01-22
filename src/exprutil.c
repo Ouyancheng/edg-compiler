@@ -7957,7 +7957,8 @@ used only in C++ mode.
   } else {
     did_not_fold = TRUE;
     if (curr_expr_is_evaluated() && expr_stack->favor_constant_result &&
-        is_constant_operand(operand)) {
+        is_constant_operand(operand) &&
+        /*FIXME*/!operand->variant.constant.is_result_of_constexpr_call) {
       /* Fold a cast of a constant address into another constant address.
          This folding is always done in constant expressions, but in some
          nonconstant expressions it's not done because it's clearer to
@@ -8733,13 +8734,15 @@ static void build_question_result_operand(an_operand *operand_1,
                                           an_operand *operand_2,
                                           an_operand *operand_3,
                                           a_type_ptr result_type,
+                                          a_boolean  result_is_an_lvalue,
                                           a_boolean  is_gnu_two_operand_form,
                                           an_operand *result)
 /*
 Build an operand for the expression that is the operator "?" operating on
-operand_1, operand_2, and operand_3, with result type result_type.
-is_gnu_two_operand_form is TRUE if this is a GNU two-operand "?"
-(a synthesized operand_2 is still provided).
+operand_1, operand_2, and operand_3, with result type result_type,
+and an lvalue if result_is_an_lvalue is TRUE.  is_gnu_two_operand_form
+is TRUE if this is a GNU two-operand "?"  (a synthesized operand_2 is
+still provided).
 */
 {
   an_expr_node_ptr expr;
@@ -8754,7 +8757,11 @@ is_gnu_two_operand_form is TRUE if this is a GNU two-operand "?"
   expr->variant.operation.operands->next = make_node_from_operand(operand_2);
   expr->variant.operation.operands->next->next =
                                            make_node_from_operand(operand_3);
-  make_expression_operand(expr, result);
+  if (result_is_an_lvalue) {
+    expr->is_lvalue = TRUE;
+    expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+  }  /* if */
+  make_lvalue_or_rvalue_expression_operand(expr, result);
 }  /* build_question_result_operand */
 
 
@@ -13084,9 +13091,6 @@ question_position and colon_position give the position of the "?" and ":".
          the expression will be placed under a ck_template_param constant
          below. */
       do_folding = FALSE;
-    } else if (result_is_an_lvalue && !constexpr_enabled) {
-      /* Don't fold when the result is an lvalue. */
-      do_folding = FALSE;
     } else if (!identical_types(operand_2->type, operand_3->type)) {
       /* Can't fold cases where the operand types do not match (e.g.,
          because one is a throw and the other is not). */
@@ -13137,10 +13141,11 @@ question_position and colon_position give the position of the "?" and ":".
         /* Create an expression to be recorded in the constant. */
         an_operand result_expr;
         build_question_result_operand(operand_1, operand_2, operand_3,
-                                      operation_type, is_gnu_two_operand_form,
+                                      operation_type, result_is_an_lvalue,
+                                      is_gnu_two_operand_form,
                                       &result_expr);
-        check_assertion(!result_is_an_lvalue);
-        check_assertion(is_expression_operand(&result_expr));
+        check_assertion(is_expression_operand(&result_expr) &&
+                        is_an_lvalue(&result_expr) == is_an_lvalue(result));
         result->variant.constant.expr = result_expr.variant.expression;
       }  /* if */
 #if BACK_END_IS_CP_GEN_BE
@@ -13212,16 +13217,11 @@ question_position and colon_position give the position of the "?" and ":".
     }  /* if */
     /* Build the expression tree for the operation. */
     build_question_result_operand(operand_1, operand_2, operand_3,
-                                  operation_type, is_gnu_two_operand_form,
-                                  result);
+                                  operation_type,
+                                  (result_is_an_lvalue ||
+                                    class_rvalue_cctor_case),
+                                  is_gnu_two_operand_form, result);
     if (!C_mode()) {
-      if (result_is_an_lvalue || class_rvalue_cctor_case) {
-        check_assertion(is_expression_operand(result) &&
-                        is_operation_node(result->variant.expression));
-        result->variant.expression->is_lvalue = TRUE;
-        result->variant.expression->variant.operation.
-                                 returns_lvalue_instead_of_usual_rvalue = TRUE;
-      }  /* if */
       if (class_rvalue_case) {
         /* Give the operand a position so it can be used as an error position
            if necessary. */
@@ -13232,13 +13232,6 @@ question_position and colon_position give the position of the "?" and ":".
         } else {
           /* For the unoptimized class rvalue case, make an extra copy,
              producing a single temporary result for the whole operation. */
-          if (class_rvalue_cctor_case) {
-            /* Copy constructor call needed.  The operands were converted to
-               lvalues above, so the result of the "?" is an lvalue.  This
-               will become an rvalue immediately below when it's copied to a
-               temporary. */
-            set_lvalue_operand_state(result);
-          }  /* if */
           temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
         }  /* if */
         if (!is_error_operand(result)) {
