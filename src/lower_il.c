@@ -2836,8 +2836,8 @@ not to contain any top level base class casts.
     expr = strip_rvalue_base_class_casts(expr, &top_cast, &bottom_cast);
     if (is_constant_node(expr) &&
         check_for_troublesome_aggregate_constant(expr->variant.constant,
-                                                 /*const_okay=*/TRUE,
-                                                 &temp)) {
+                                           is_const_qualified_type(expr->type),
+                                           &temp)) {
       /* ck_aggregate constants can appear in cases where a constexpr
          constructor or function returns an class value.  Return the
          temporary that has been created for this constant. */
