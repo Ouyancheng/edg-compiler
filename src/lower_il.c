@@ -19607,7 +19607,6 @@ Do IL lowering of the indicated scope and everything under it.
     }  /* if */
   }  /* if */
   lower_variable_list(scope->nonstatic_variables);
-  lower_local_static_variable_init_list(scope->local_static_variable_inits);
   lower_label_list(scope->labels);
   lower_routine_list(scope->routines);
   lower_asm_entry_list(scope->asm_entries);
@@ -19713,6 +19712,12 @@ Do IL lowering of the indicated scope and everything under it.
     /* Discard the VLA dimensions list since the VLAs have all been lowered. */
     scope->vla_dimensions = NULL;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+  }  /* if */
+  /* Lowering of a function body may generate local static variable entries,
+     which point to constants that have not yet been lowered; lower these after
+     the function body lowering has taken place. */
+  lower_local_static_variable_init_list(scope->local_static_variable_inits);
+  if (scope_kind == (a_scope_kind)sck_function) {
     /* Unlink any local static variable initialization entries that
        no longer do anything. */
     unlink_pointless_local_static_variable_inits(scope);
