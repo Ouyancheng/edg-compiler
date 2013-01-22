@@ -17421,13 +17421,37 @@ of dllexported class types).
 }  /* mark_special_member_suppressed */
 
 
+static a_boolean type_is_constexpr_default_constructible(a_type_ptr  type)
+/*
+Return TRUE if the given type is a class type with an unambiguous constexpr
+default constructor, or an array thereof.
+*/
+{
+  a_boolean      result = FALSE, error_detected, err;
+  a_routine_ptr  default_ctor;
+
+  if (is_array_type(type)) {
+    type = underlying_array_element_type(type);
+  }  /* if */
+  type = skip_typerefs(type);
+  if (is_immediate_class_type(type)) {
+    default_ctor = select_default_constructor_full(type, &error_position, type,
+                                                   /*evaluated=*/TRUE,
+                                                   /*check_access=*/TRUE,
+                                                   &error_detected, &err);
+    result = default_ctor != NULL && default_ctor->is_constexpr;
+  }  /* if */
+  return result;
+}  /* type_is_constexpr_default_constructible */
+
+
 static a_boolean fields_initialized_for_constexpr_constructor(
                                                        a_type_ptr  class_type)
 /*
-Return TRUE if the field initialization constraints for a constexpr constructor
-are satisfied by the given class type.  For non-union types, all fields must be
-initialized, and for union types exactly one field must be initialized.  In all
-cases, the initializers must also be constants.
+Return TRUE if the field initialization constraints for a generated constexpr
+default constructor are satisfied by the given class type.  For non-union
+types, all fields must be initialized, and for union types exactly one field
+must be initialized.  In all cases, the initializers must also be constants.
 */
 {
   a_boolean    okay = TRUE, initializer_seen = FALSE;
@@ -17457,7 +17481,8 @@ cases, the initializers must also be constants.
           continue;
         }  /* if */
       } else {
-        member_initialized = fp->has_initializer;
+        member_initialized = fp->has_initializer ||
+                             type_is_constexpr_default_constructible(fp->type);
       }  /* if */
       if (is_union) {
         /* Unions must have exactly one initialized member. */
@@ -17495,19 +17520,9 @@ class type is constexpr (and unambiguous).
   a_base_class_ptr  bcp;
 
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct) {
-      a_boolean      error_detected, err;
-      a_routine_ptr  default_ctor =
-                      select_default_constructor_full(bcp->type,
-                                                      &error_position,
-                                                      bcp->type,
-                                                      /*evaluated=*/TRUE,
-                                                      /*check_access=*/TRUE,
-                                                      &error_detected, &err);
-      if (default_ctor == NULL || !default_ctor->is_constexpr) {
-        result = FALSE;
-        break;
-      }  /* if */
+    if (bcp->direct && !type_is_constexpr_default_constructible(bcp->type)) {
+      result = FALSE;
+      break;
     }  /* if */
   }  /* for */
   return result;
@@ -24940,11 +24955,14 @@ flag is set in the class symbol supplement of the given type.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (cssp->known_not_to_be_a_literal_type &&
+  if (!type->variant.class_struct_union.is_nonreal_class &&
+      cssp->known_not_to_be_a_literal_type &&
       cssp->has_constexpr_nonstatic_member_function) {
     /* If there were any nonstatic constexpr member functions in the class
        issue an error (nonstatic non-constructor member functions can be
-       constexpr only if their parent class is a literal type). */
+       constexpr only if their parent class is a literal type).  Since we
+       cannot reliably tell whether a nonreal class is a literal type, this
+       check is not performed for nonreal class types. */
     a_symbol_ptr  sym = cssp->symbols;
     for (; sym != NULL; sym = sym->next_in_scope) {
       a_symbol_ptr  member_sym = sym;
