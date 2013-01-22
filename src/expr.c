@@ -542,6 +542,11 @@ C++).  Other transformations are done in all cases.
        constants. */
     if (is_error_operand(operand)) {
       suppress_warning = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (operand->is_microsoft_noop) {
+      /* No warning for __noop(...), which does nothing by definition. */
+      suppress_warning = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_constant_operand(operand)) {
       a_constant_ptr con = &operand->variant.constant;
       if (con->kind == (a_constant_repr_kind)ck_template_param) {
@@ -549,11 +554,6 @@ C++).  Other transformations are done in all cases.
       } else if (con->is_result_of_constexpr_call) {
         suppress_warning = TRUE;
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (operand->is_microsoft_noop) {
-      /* No warning for __noop(...), which does nothing by definition. */
-      suppress_warning = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   } else {
     /* For an expression, traverse the tree to see if it has side
