@@ -534,25 +534,22 @@ is not needed.
 
 
 static a_constant_ptr get_default_constructed_constant(
-                                                 a_routine_ptr      ctor,
-                                                 a_type_ptr         tp,
-                                                 a_source_position  *diag_pos)
+                                                a_dynamic_init_ptr  dip,
+                                                a_type_ptr          tp,
+                                                a_source_position   *diag_pos)
 /*
-If the given default constructor (for the given type) is constexpr and a call
-to it folds to a constant, return that constant.  Otherwise, issue an error
-at the given position and return an error constant.
+dip is a dynamic init entry representing a call to the default constructor for
+the given type.  If that default constructor is constexpr and a call to it
+folds to a constant, return that constant.  Otherwise, issue an error at the
+given position and return an error constant.
 */
 {
   a_constant_ptr  result = alloc_constant((a_constant_repr_kind)ck_error);
+  a_routine_ptr   ctor = dip->variant.constructor.ptr;
 
   if (ctor->is_constexpr) {
-    /* FIXME -- pass in dip from caller. */
-    a_dynamic_init_ptr dip =
-                      alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-    dip->variant.constructor.ptr = ctor;
-    dip->variant.constructor.args = NULL;
-    if (!fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,
-                             diag_pos, result)) {
+    if (!fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE, diag_pos,
+                             result)) {
       /* The call to the default constructor could not be folded. */
       pos_ty_error(ec_default_ctor_call_not_constant, diag_pos, tp);
       set_error_constant(result);
@@ -1094,11 +1091,12 @@ given position, unless is->no_diagnostics is TRUE.
     if (!is->check_validity_only) {
       /* For a non-trivial constructor, create a dik_constructor dynamic init
          entry or, if a constant result is needed, a constant representing
-         the folded constructor. */
+         the folded constructor call. */
+      dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
+      dip->variant.constructor.value_initialization = TRUE;
       if (is->initializer_must_be_constant) {
-        result = get_default_constructed_constant(ctor_rp, tp, diag_pos);
+        result = get_default_constructed_constant(dip, tp, diag_pos);
       } else {
-        dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
         is->has_dynamic_init_component = TRUE;
       }  /* if */
     }  /* if */
@@ -4474,8 +4472,9 @@ FALSE is returned) for non-class objects.
         } else {
           /* Fold the default constructor call to obtain a constant
              initializer. */
-          a_constant_ptr  cp =
-                          get_default_constructed_constant(ctor, tp, err_pos);
+          a_constant_ptr  cp;
+          init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE);
+          cp = get_default_constructed_constant(init_dip, tp, err_pos);
           if (!same_entities(var_type, tp)) {
             /* The object has an array type.  We need to build an aggregate
                initialization on top of the constant. */
@@ -4487,6 +4486,7 @@ FALSE is returned) for non-class objects.
                value. */
             var->init_kind = (an_init_kind)initk_static;
             var->initializer.constant = cp;
+            init_dip = NULL;
           } else {
             /* A local variable with automatic storage duration; use a
                dynamic init entry. */
