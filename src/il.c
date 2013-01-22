@@ -18598,6 +18598,10 @@ doing nothing should be suppressed.
         /* An error constant might have been anything -- it might have
            had side effects. */
         has_side_effects = TRUE;
+      } else if (node->variant.constant->is_result_of_constexpr_call) {
+        /* No warning for a constexpr function or constructor call result
+           that is a constant. */
+        tblock->suppress_warning = TRUE;
       }  /* if */
       break;
     case enk_operation:
