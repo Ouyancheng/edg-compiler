@@ -19370,7 +19370,7 @@ direct binding is "possible" and not whether it is "valid".
       source_operand != NULL && is_an_rvalue(source_operand) &&
       /* With template-dependent cases, we can only be sure about
          lvalue-ness in constant expressions. */
-      (!template_case || curr_expr_kind_is_const())) {
+      (!template_case || curr_expr_kind_is_traditional_const())) {
     /* The reference may not be bound to an rvalue, and the source_operand
        is an rvalue.  The binding is still possible, though not allowed,
        if the operand has a class type, and using that interpretation
@@ -19641,7 +19641,7 @@ the conversion.
       }  /* if */
     } else {
       /* Direct binding is not possible. */
-      if (!curr_expr_kind_is_const() &&
+      if ((!curr_expr_kind_is_const() || constexpr_enabled) &&
           is_potential_conv_function_source(source_operand->type)) {
         /* It might be possible to convert the source operand to an lvalue
            via a conversion function, and then bind the reference directly to
@@ -19711,7 +19711,7 @@ the conversion.
   } else if (template_case) {
     /* Some unknown types in a prototype instantiation.  Assume the binding
        can be done. */
-    if (curr_expr_kind_is_const()) {
+    if (curr_expr_kind_is_traditional_const()) {
       /* In a constant expression (i.e., nontype template argument),
          we can check that the source operand is an lvalue.  Elsewhere,
          the lvalue-ness of some operands is not knowable. */
@@ -19789,6 +19789,7 @@ the conversion.
         error_in_operand(ec_null_reference, source_operand);
       }  /* if */
     } else if (curr_expr_kind_is(ek_template_arg) &&
+               curr_expr_kind_is_traditional_const() &&
                is_class_struct_union_type(base_dest_type) &&
                find_base_class_of(orig_source_type, base_dest_type) != NULL) {
       /* A derived-base binding is not allowed in a nontype template
@@ -20572,7 +20573,7 @@ mode).
   if (p_dip != NULL) *p_dip = NULL;
   if (arg_match != NULL) clear_arg_match_summary(arg_match);
   complete_type_is_needed(element_type);
-  if (curr_expr_kind_is_const()) {
+  if (curr_expr_kind_is_traditional_const()) {
     /* Not allowed in a constant expression.  Note that taking this branch
        precludes setting dtor to non-NULL below, appropriately. */
     if (arg_match != NULL) {
@@ -20593,6 +20594,13 @@ mode).
       if (local_error_detected) arg_match_err = TRUE;
     } else if (!issue_errors) {
       if (local_error_detected) record_suppressed_error();
+    }  /* if */
+    if (!local_error_detected && dtor != NULL &&
+        construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+                                                     pos)) {
+      /* Initializer list with a destructor not allowed in a C++11
+         constant expression. */
+      dtor = NULL;
     }  /* if */
   }  /* if */
   if (!is_complete_object_type(element_type)) {
@@ -20636,7 +20644,7 @@ mode).
       /* Count the number of elements in the array. */
       num_elements++;
     }  /* if */
-    if (exceptions_enabled && dtor != NULL) {
+    if (exceptions_enabled && dtor != NULL && curr_expr_is_evaluated()) {
       /* This element will need a destructor in case an exception is
          thrown when part of the aggregate is constructed. */
       check_assertion(!curr_expr_kind_is_const());
