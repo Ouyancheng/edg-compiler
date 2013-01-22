@@ -17780,6 +17780,16 @@ cases so we don't do it here.
                issue an error on a constexpr function whose return can
                never be constant. */
             possibly_constant_with_constexpr = TRUE;
+            if (is_operation_node(node)) {
+              an_expr_node_ptr op1 = node->variant.operation.operands;
+              if (node_operator_is(node, eok_ref_indirect)) {
+                if (is_variable_node(op1) &&
+                    !op1->variant.variable->is_parameter &&
+                    !op1->variant.variable->is_constexpr) {
+                  possibly_constant_with_constexpr = FALSE;
+                }  /* if */
+              }  /* if */
+            }  /* if */
           }  /* if */
         }  /* if */
         /* Convert the expression to an rvalue. */

@@ -33489,20 +33489,6 @@ handle_implicit_lambda_return_type:
       }  /* if */
     }  /* if */
   }  /* if */
-  if (curr_routine->is_constexpr &&
-      expr_stack->constant_expr_ruled_out) {
-    /* If the return of a constexpr function can't be a constant, issue
-       an error. */
-    a_boolean use_icp = (icp != NULL && !return_by_cctor_case);
-    if (use_icp ? init_state.init_error : is_error_operand(&result)) {
-      /* There was a previous error. */
-    } else {
-      expr_pos_diagnostic(es_discretionary_error,
-                          ec_constexpr_return_not_constant,
-                          use_icp ? init_component_pos(icp) :
-                                    &result.position);
-    }  /* if */
-  }  /* if */
   if (return_by_cctor_case) {
     /* The current routine returns its value via a copy constructor. */
     /* Check for the possibility of the return value optimization. */
@@ -33589,6 +33575,20 @@ handle_implicit_lambda_return_type:
     }  /* if */
     expression = wrap_up_full_expression(expression);
     if (void_return_case) set_expr_result_not_used(expression);
+  }  /* if */
+  if (curr_routine->is_constexpr &&
+      expr_stack->constant_expr_ruled_out) {
+    /* If the return of a constexpr function can't be a constant, issue
+       an error. */
+    a_boolean use_icp = (icp != NULL && !return_by_cctor_case);
+    if (use_icp ? init_state.init_error : is_error_operand(&result)) {
+      /* There was a previous error. */
+    } else {
+      expr_pos_diagnostic(es_discretionary_error,
+                          ec_constexpr_return_not_constant,
+                          use_icp ? init_component_pos(icp) :
+                                    &result.position);
+    }  /* if */
   }  /* if */
   free_init_component_list(icp);
   pop_expr_stack();
