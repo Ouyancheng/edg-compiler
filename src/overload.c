@@ -20541,7 +20541,9 @@ arg_match is non-NULL, do an evaluation of whether the initialization
 is valid, without issuing errors or building IL, and return *arg_match
 set to indicate how good a match the initialization is, in overload
 resolution terms (e.g., is it an exact match or a user-defined
-conversion, etc.)
+conversion, etc.)  If arg_match is NULL, expr_stack->suppress_diagnostics
+indicates whether whether errors should be suppressed (i.e., SFINAE
+mode).
 */
 {
   a_routine_ptr      dtor = NULL, ctor;
@@ -20563,6 +20565,8 @@ conversion, etc.)
                                          CCO_INITIALIZING_VARIABLE) != 0;
   a_boolean          is_new_expr = (conv_context & CCO_NEW_INITIALIZER) != 0;
   a_boolean          is_partially_initialized = FALSE;
+  a_boolean          issue_errors = (arg_match == NULL &&
+                                     !expr_stack->suppress_diagnostics);
 
   check_assertion(is_braced_init_component(list_icp));
   if (p_dip != NULL) *p_dip = NULL;
@@ -20577,9 +20581,9 @@ conversion, etc.)
       expr_pos_error(ec_expr_not_constant, pos);
     }  /* if */
   } else if (is_class_struct_union_type(element_type)) {
-    a_boolean local_error_detected;
+    a_boolean local_error_detected = FALSE;
     a_boolean *p_error_detected = NULL;
-    if (arg_match != NULL) p_error_detected = &local_error_detected;
+    if (!issue_errors) p_error_detected = &local_error_detected;
     dtor = expr_select_destructor_b(element_type,
                                     element_type,
                                     pos,
@@ -20587,6 +20591,8 @@ conversion, etc.)
                                     p_error_detected);
     if (arg_match != NULL) {
       if (local_error_detected) arg_match_err = TRUE;
+    } else if (!issue_errors) {
+      if (local_error_detected) record_suppressed_error();
     }  /* if */
   }  /* if */
   if (!is_complete_object_type(element_type)) {
@@ -20637,14 +20643,16 @@ conversion, etc.)
       will_need_partial_aggregate_destructor = TRUE;
     }  /* if */
     expr_clear_init_state(&init_state);
-    /* Convert the list element to the element type. */
     if (arg_match != NULL) {
       /* In overload resolution narrowing conversions are not disallowed (see
          [over.ics.list]p2 in the C++11 standard, which does not mention
          narrowing conversions as precluding a match). */
       saved_check_narrowing = elem_icp->check_narrowing;
       check_narrowing = elem_icp->check_narrowing = FALSE;
+    } else {
+      if (!issue_errors) init_state.no_diagnostics = TRUE;
     }  /* if */
+    /* Convert the list element to the element type. */
     prep_list_initializer(elem_icp, element_type,
                           /*is_direct_init=*/FALSE,
                           check_narrowing,
@@ -20670,7 +20678,7 @@ conversion, etc.)
       }  /* if */
     } else {
       /* Not checking for overload resolution. */
-      if (init_state.init_dip != NULL) {
+      if (!init_state.init_error && init_state.init_dip != NULL) {
         /* The initialization is dynamic. */
         dip = init_state.init_dip;
       } else {
@@ -20679,6 +20687,7 @@ conversion, etc.)
           a_constant constant;
           set_error_constant(&constant);
           con = alloc_unshared_constant(&constant);
+          if (!issue_errors) record_suppressed_error();
         } else {
           /* The initialization is to a constant. */
           con = init_state.init_con;
@@ -20740,7 +20749,7 @@ conversion, etc.)
     if (initializing_var) {
       extend_temporary_lifetime(dip, static_lifetime);
     } else if (is_new_expr) {
-      if (arg_match == NULL && curr_expr_is_evaluated()) {
+      if (issue_errors && curr_expr_is_evaluated()) {
         expr_pos_warning(ec_new_of_initializer_list, pos);
       }  /* if */
     }  /* if */
@@ -21047,7 +21056,7 @@ controls).
       saved_any_suppressed_error = expr_stack->any_suppressed_error;
       expr_stack->any_suppressed_error = FALSE;
     } else if (is->check_validity_only) {
-      /* Unexpected mode: check validity only, but do not issue errors. */
+      /* Unexpected mode: check validity only, but issue errors. */
       unexpected_condition();
     }  /* if */
   } else {

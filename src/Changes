@@ -1,5 +1,26 @@
 Version 4.6
 
+1/22/13  [EDGcpfe/13590]
+Spurious error on inaccessible destructor in SFINAE initializer_list creation
+
+A creation of a std::initializer_list object within a SFINAE context
+issued a spurious error if the destructor for the member type is
+inaccessible.  In a SFINAE context, an error like that is supposed to
+merely cause the deduction to fail.  Now, it does.
+
+  #include <initializer_list>
+  struct A {
+    A(int);
+  private:
+    ~A();
+  };
+  template <class T> auto f(T p) -> decltype(std::initializer_list<A>{p});
+  void f(...);
+  int main() {
+    f(1);
+  }
+
+
 1/18/13  [EDGcpfe/13580]
 Ambiguity on partial ordering of variadic templates
 
