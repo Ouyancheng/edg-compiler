@@ -5659,6 +5659,12 @@ in which such a return is undefined.
                          ec_implicit_return_from_non_void_function :
                          ec_no_value_returned_in_non_void_function,
                        function_name_symbol);
+        if (current_routine_entry()->is_constexpr &&
+            !special_kind_is(current_routine_entry(), sfk_constructor)) {
+          /* Can't be a constexpr function. */
+          scope_stack[depth_innermost_function_scope].constexpr_ruled_out =
+                                                                          TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7145,6 +7151,7 @@ e.g., ({ ... }).
   remove_stop_token(tok_rbrace);
   if (at_function_level &&
       current_routine_entry()->is_constexpr &&
+      !scope_stack[depth_innermost_function_scope].constexpr_ruled_out &&
       !special_kind_is(current_routine_entry(), sfk_constructor) &&
       !scope_stack[depth_innermost_function_scope].has_at_least_one_return) {
     /* Check that there is exactly one return statement in a constexpr
