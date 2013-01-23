@@ -8150,7 +8150,8 @@ a new unshared constant will be allocated and returned.
              continue scanning for the matching offset. */
           check_assertion(result_con->kind ==
                                         (a_constant_repr_kind)ck_aggregate &&
-                          cum_offset + curr_type->size > offset);
+                          cum_offset + (a_targ_ptrdiff_t)curr_type->size >
+                                                                       offset);
           result_con = result_con->variant.aggregate.first_constant;
           if (is_array_type(curr_type)) {
             /* Find the element of the array that is at or contains the
@@ -8158,7 +8159,7 @@ a new unshared constant will be allocated and returned.
                again looking at that element. */
             curr_type = skip_typerefs(curr_type->variant.array.element_type);
             most_derived_type = curr_type;
-            while (cum_offset + curr_type->size <= offset &&
+            while (cum_offset + (a_targ_ptrdiff_t)curr_type->size <= offset &&
                    result_con != NULL) {
               cum_offset += curr_type->size;
               result_con = result_con->next;
@@ -8173,7 +8174,8 @@ a new unshared constant will be allocated and returned.
             for (bp = curr_type->variant.class_struct_union.extra_info->
                                                                 base_classes;
                  bp != NULL && result_con != NULL &&
-                          cum_offset + bp->offset + bp->type->size <= offset;
+                                    cum_offset + bp->offset +
+                                    (a_targ_ptrdiff_t)bp->type->size <= offset;
                  bp = bp->next) {
               if (bp->direct ||
                   (bp->is_virtual &&
@@ -8197,8 +8199,8 @@ a new unshared constant will be allocated and returned.
               curr_field = next_initializable_field(curr_type->
                                       variant.class_struct_union.field_list);
               while (curr_field != NULL && result_con != NULL &&
-                     cum_offset + curr_field->offset + curr_field->type->size
-                                                                 <= offset) {
+                     cum_offset + curr_field->offset +
+                          (a_targ_ptrdiff_t)curr_field->type->size <= offset) {
                 curr_field = next_initializable_field(curr_field->next);
                 result_con = result_con->next;
               }  /* while */
