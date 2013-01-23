@@ -5116,11 +5116,12 @@ scan_paren:
 }  /* scan_mem_initializer_id */
 
 
-static void braced_mem_initializer(a_type_ptr              dtype,
+static void braced_mem_initializer(a_routine_ptr           ctor,
+                                   a_type_ptr              dtype,
                                    a_constructor_init_ptr  cip)
 /*
-Scan a braced mem-initializer for a member of the given type, and record the
-initializer in *cip if cip is non-NULL.
+Scan a braced mem-initializer (of the given constructor) for a member of the
+given type, and record the initializer in *cip if cip is non-NULL.
 */
 {
   an_init_state      is;
@@ -5140,6 +5141,9 @@ initializer in *cip if cip is non-NULL.
   braced_initializer(dtype, (an_init_component*)NULL, &is,
                      (a_decl_parse_state*)NULL, (an_init_component**)NULL,
                      &lbrace_pos);
+  if (ctor->is_constexpr && is.constant_expr_ruled_out) {
+    pos_error(ec_nonconstant_mem_init_for_constexpr_ctor, &lbrace_pos);
+  }  /* if */
   if (cip != NULL) {
     /* A dynamic init entry has been produced: Record it in the
        constructor init entry. */
@@ -5312,7 +5316,7 @@ cases, array_type is NULL).
            parenthesized initializer for an array member is not actually valid
            per the C++11 standard, but GCC accepts it. */
         pos_warning(ec_braced_init_in_paren_init, &pos_curr_token);
-        braced_mem_initializer(array_type, cip);
+        braced_mem_initializer(ctor, array_type, cip);
         dip = cip->initializer;
       } else if (array_type != NULL && !is_string_type(array_type)) {
         /* Arrays can only be default- or value-initialized -- i.e., the
@@ -5442,7 +5446,7 @@ entries are replaced as needed for each mem-initializer that is encountered.
     } else if (list_init_enabled && curr_token == tok_lbrace) {
       /* A braced (i.e., C++11-style) mem-initializer argument. */
       a_type_ptr         dtype = (array_type != NULL) ? array_type : init_type;
-      braced_mem_initializer(dtype, new_cip);
+      braced_mem_initializer(ctor, dtype, new_cip);
     } else {
       /* Neither brace nor parenthesis: A syntax error. */
       set_err_pos_to_curr_token();
