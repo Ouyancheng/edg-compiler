@@ -174,6 +174,12 @@ typedef struct a_constexpr_evaluation_block {
 			   prevent a call back (and infinite recursion) on
 			   the current expression node (but not its
 			   subtree). */
+  a_byte_boolean
+		is_partially_initialized;
+			/* TRUE if the aggregate constant generated for
+			   a constexpr call or construction does not
+			   explicitly initialize some member (probably
+			   not at the top level). */
   unsigned long
 		call_depth;
 			/* Depth of constexpr calls, used to check for
@@ -255,11 +261,12 @@ extern a_boolean fold_constexpr_call(an_expr_node_ptr  call_expr,
                                      a_source_position *pos,
                                      a_constant        *result_con,
                                      a_boolean         *returns_reference);
-
-extern a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
-                                     a_boolean          record_backing_expr,
-                                     a_source_position  *pos,
-                                     a_constant         *result_con);
+extern
+a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
+                              a_boolean          record_backing_expr,
+                              a_source_position  *pos,
+                              a_constant         *result_con,
+                              a_boolean          *partially_initialized);
 
 extern
 a_boolean fold_constexpr_member_selection(an_expr_node_ptr expr,

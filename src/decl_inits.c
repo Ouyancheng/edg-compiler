@@ -548,8 +548,9 @@ given position and return an error constant.
   a_routine_ptr   ctor = dip->variant.constructor.ptr;
 
   if (ctor->is_constexpr) {
+    a_boolean partially_initialized;
     if (!fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE, diag_pos,
-                             result)) {
+                             result, &partially_initialized)) {
       /* The call to the default constructor could not be folded. */
       pos_ty_error(ec_default_ctor_call_not_constant, diag_pos, tp);
       set_error_constant(result);

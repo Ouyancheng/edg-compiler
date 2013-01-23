@@ -5522,6 +5522,7 @@ pos gives a default source position.
   ceblock->remap_list = NULL;
   ceblock->source_position = *pos;
   ceblock->do_not_call_back = FALSE;
+  ceblock->is_partially_initialized = FALSE;
   ceblock->call_depth = 0;
 }  /* clear_constexpr_evaluation_block */
 
@@ -7959,8 +7960,14 @@ evaluation.
         }  /* if */
       }
       break;
-    case dik_none:
     case dik_zero:
+      make_value_initialized_constant(dest_type, result_con);
+      if (result_con->partial_aggr_value) {
+        ceblock->is_partially_initialized = TRUE;
+      }  /* if */
+      folded = TRUE;
+      break;
+    case dik_none:
     case dik_call_returning_class_via_cctor:
     case dik_bitwise_copy:
     default:
@@ -9039,7 +9046,8 @@ fail:;
 a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
                               a_boolean          record_backing_expr,
                               a_source_position  *pos,
-                              a_constant         *result_con)
+                              a_constant         *result_con,
+                              a_boolean          *partially_initialized)
 /*
 ctor_dip is a dik_constructor dynamic initialization.  If the
 constructor invoked is declared constexpr, try to fold the
@@ -9047,7 +9055,9 @@ construction to a constant class object.  If that's possible, place
 the constant in *result_con and return TRUE; otherwise, return FALSE.
 pos gives the source position of the initialization.  If
 record_backing_expr is TRUE, record a temp-init over ctor_dip as a
-backing expression for the resulting constant.
+backing expression for the resulting constant.  *partially_initialized
+is returned TRUE if the construction was folded and the result constant
+does not initialize every member of the class.
 */
 {
   a_boolean                    folded;
@@ -9063,6 +9073,7 @@ backing expression for the resulting constant.
     expr->type = result_con->type;
     result_con->expr = expr;
   }  /* if */
+  *partially_initialized = ceblock.is_partially_initialized;
   return folded;
 }  /* fold_constexpr_ctor */
 

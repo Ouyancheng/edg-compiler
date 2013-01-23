@@ -7440,6 +7440,12 @@ aggregate, in which case the resulting constant is an empty aggregate.
   } else {
     clear_constant(con, (a_constant_repr_kind)ck_aggregate);
     con->type = type;
+    type = skip_typerefs(type);
+    if (!is_immediate_class_type(type) ||
+        next_initializable_field(type->variant.class_struct_union.field_list)
+                                                                     != NULL) {
+      con->partial_aggr_value = TRUE;
+    }  /* if */
   }  /* if */
 }  /* make_value_initialized_constant */
 

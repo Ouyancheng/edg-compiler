@@ -20179,6 +20179,7 @@ end_of_routine:
 void value_initialization(a_type_ptr            dest_type,
                           a_source_position     *pos,
                           a_routine_ptr         *ctor_called,
+                          an_init_state         *is,
                           a_boolean             *is_constant,
                           a_dynamic_init_ptr    *p_dip,
                           a_constant_ptr        *p_constant,
@@ -20195,7 +20196,8 @@ marked as a cast; the caller must do that if that's necessary.
 If ctor_called is non-NULL and a default constructor is called to
 perform the value initialization, a pointer to it is returned in
 *ctor_called.  Some cases can cause errors, which are reported at the
-source position given by pos.  If error_detected is non-NULL, the
+source position given by pos.  If "is" is non-NULL, it points to
+the current init_state block.  If error_detected is non-NULL, the
 result *p_dip and *p_constant are not constructed, no diagnostics are
 issued, and *error_detected is returned TRUE if there are any errors
 (that's used for overload resolution).
@@ -20313,6 +20315,9 @@ issued, and *error_detected is returned TRUE if there are any errors
           /* The constructor is declared constexpr and the construction has
              been folded to a constant. */
           copy_constant(dip->variant.constant, &con);
+          if (dip->is_partially_initialized && is != NULL) {
+            is->partial_initializer = TRUE;
+          }  /* if */
           dip = NULL;
         }  /* if */
       }  /* if */
@@ -21475,7 +21480,7 @@ controls).
         p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
         value_initialization(dest_type,
                              &icp->variant.braced.start_pos,
-                             &ctor_called,
+                             &ctor_called, is,
                              &is_constant, &dip, &constant,
                              p_error_detected);
         if (arg_match != NULL) {
@@ -21728,7 +21733,7 @@ controls).
       p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
-                           (a_routine **)NULL,
+                           (a_routine **)NULL, is,
                            &is_constant, &dip, &constant,
                            p_error_detected);
       if (arg_match != NULL) {
