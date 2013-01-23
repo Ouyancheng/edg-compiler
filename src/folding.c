@@ -8102,7 +8102,7 @@ a new unshared constant will be allocated and returned.
   if (is_error_constant(addr_con)) {
     /* There was an error upstream.  Return an error constant. */
     if (target_con != NULL) {
-      set_error_constant(result_con);
+      set_error_constant(target_con);
       result_con = target_con;
     } else {
       result_con = alloc_error_constant();
@@ -8125,7 +8125,7 @@ a new unshared constant will be allocated and returned.
     } else if (is_error_constant(result_con)) {
       /* There was an error upstream.  Return an error constant. */
       if (target_con != NULL) {
-        set_error_constant(result_con);
+        set_error_constant(target_con);
         result_con = target_con;
       } else {
         result_con = alloc_error_constant();
