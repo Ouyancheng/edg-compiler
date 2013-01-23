@@ -8334,6 +8334,13 @@ ceblock gives context information for the evaluation.
           folded = TRUE;
         }  /* if */
         break;
+      case eok_array_to_pointer:
+        /* Array decay.  The array can be an lvalue or rvalue. */
+        if (fold_object_expr(op1, ceblock, /*want_addr=*/TRUE, result_con)) {
+          folded = TRUE;
+          implicit_cast(result_con, expr->type);
+        }  /* if */
+        break;
       case eok_question:
         /* "?" operator. */
         op1_folded = fold_expr(op1, ceblock, &op1_constant);
@@ -8616,19 +8623,21 @@ static a_boolean fold_object_expr(an_expr_node_ptr             expr,
                                   a_boolean                    want_addr,
                                   a_constant                   *result_con)
 /*
-Attempt to fold the expression "expr", a class object that might be in
-lvalue or rvalue form, to either a constant value for the class object
-(want_addr == FALSE) or a constant address for the object (want_addr == TRUE),
-by substituting argument constant values for parameters.  If a constant
-result is possible, place the constant value in *result_con and return
-TRUE; otherwise, return FALSE.  ceblock gives context information for
-the evaluation.  This is used, for example, for the non-pointer object
-expression of a nonstatic member function call.
+Attempt to fold the expression "expr", a class or array object that
+might be in lvalue or rvalue form, to either a constant value for the
+object (want_addr == FALSE) or a constant address for the object
+(want_addr == TRUE), by substituting argument constant values for
+parameters.  If a constant result is possible, place the constant
+value in *result_con and return TRUE; otherwise, return FALSE.
+ceblock gives context information for the evaluation.  This is used,
+for example, for the non-pointer object expression of a nonstatic
+member function call.
 */
 {
   a_boolean  folded = FALSE;
 
   check_assertion(is_class_struct_union_type(expr->type) ||
+                  is_array_type(expr->type) ||
                   is_error_type(expr->type));
   if (!expr->is_lvalue) {
     if (fold_expr(expr, ceblock, result_con)) {
@@ -8656,13 +8665,20 @@ expression of a nonstatic member function call.
       /* An lvalue variable node for a parameter or constexpr variable
          can be replaced by the value of the variable. */
       folded = fold_variable_reference(expr, ceblock, result_con);
-    } else if (!want_addr && expr->kind == (an_expr_node_kind)enk_temp_init) {
+    } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       /* A dynamic initialization.  Try folding it to a constant.  This
          comes up when passing class values via copy constructor. */
-      folded = fold_dynamic_init(expr->variant.init.dynamic_init,
-                                 expr->type,
-                                 ceblock,
-                                 result_con);
+      if (fold_dynamic_init(expr->variant.init.dynamic_init,
+                            expr->type,
+                            ceblock,
+                            result_con)) {
+        folded = TRUE;
+        if (want_addr) {
+          /* Return the address of that constant. */
+          a_constant_ptr con = alloc_shareable_constant(result_con);
+          set_constant_address_constant(con, result_con);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return folded;

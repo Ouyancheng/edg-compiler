@@ -20817,6 +20817,7 @@ mode).
       arg2 = node_for_host_large_integer((a_host_large_integer)num_elements,
                                         param2_type->variant.integer.int_kind);
       arg1->next = arg2;
+      if_evaluating_mark_routine_referenced(ctor);
       dip = alloc_expr_ctor_dynamic_init(ctor,
                                          arg1,
                                          list_type,
@@ -20827,20 +20828,26 @@ mode).
                                          /*fold_constexpr=*/TRUE,
                                          pos);
       dip->is_creation_of_initializer_list_object = TRUE;
-      if_evaluating_mark_routine_referenced(ctor);
       if (symbol_supplement_for_class(list_type)->destructor != NULL) {
         /* std::initializer_list is not supposed to have a destructor. */
         expr_pos_error(ec_std_initializer_list_has_dtor, pos);
       }  /* if */
       if (p_dip != NULL) *p_dip = dip;
       if (operand != NULL) {
-        expr = alloc_temp_init_node(list_type, dip,
-                                    /*is_lvalue=*/FALSE,
-                                    /*is_explicit_cast=*/FALSE);
-        if (initializing_var) {
-          extend_temporary_lifetime(dip, static_lifetime);
+        if (dip->kind == (a_dynamic_init_kind)dik_constant &&
+            dip->variant.constant->is_result_of_constexpr_call) {
+          /* The constructor for std::initializer_list is constexpr,
+             and the call was folded to a constant. */
+          make_constant_operand(dip->variant.constant, operand);
+        } else {
+          expr = alloc_temp_init_node(list_type, dip,
+                                      /*is_lvalue=*/FALSE,
+                                      /*is_explicit_cast=*/FALSE);
+          if (initializing_var) {
+            extend_temporary_lifetime(dip, static_lifetime);
+          }  /* if */
+          make_expression_operand(expr, operand);
         }  /* if */
-        make_expression_operand(expr, operand);
       }  /* if */
     }  /* if */
     if (operand != NULL) {
@@ -21827,7 +21834,9 @@ controls).
     /* The caller wants the result in an_operand form in *result. */
     check_assertion(is == NULL);
     if (dip == NULL && constant != NULL &&
-        (force_temp || constant->kind == (a_constant_repr_kind)ck_aggregate)) {
+        (force_temp ||
+         (constant->kind == (a_constant_repr_kind)ck_aggregate &&
+          !constant->is_result_of_constexpr_call))) {
       /* We've been asked to force a temporary, so force a constant case
          to use a dynamic init.  Also force use of a dynamic init for an
          aggregate constant. */

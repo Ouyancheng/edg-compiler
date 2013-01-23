@@ -4715,8 +4715,10 @@ Do IL lowering of the indicated constant and everything under it.
                  ck_aggregate constant is not allowed here, use the address
                  of a temporary variable initialized with the ck_aggregate
                  constant. */
+              a_constant_ptr saved_next = constant->next;
               set_variable_address_constant(temp_var, constant,
                                             /*set_address_taken_flag=*/TRUE);
+              constant->next = saved_next;
             }  /* if */
             break;
           case abk_uuidof:
