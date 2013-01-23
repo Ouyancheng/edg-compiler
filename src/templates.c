@@ -11161,7 +11161,7 @@ accordingly.
 }  /* instantiate_exception_spec_if_needed */
 
 
-extern void instantiate_field_initializer_if_needed(a_field_ptr  field)
+void instantiate_field_initializer_if_needed(a_field_ptr  field)
 /*
 If the given field is a member of a class template instance (or a nested class
 thereof), and its initializer has not yet been instantiated, instantiate it
