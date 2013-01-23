@@ -2465,6 +2465,7 @@ ec_bases_not_in_template;;"%s can only be used in template contexts"
 ec_constexpr_return_not_constant;;"constexpr function return is non-constant"
 ec_nonconstexpr_call_in_mem_initializer;;"constexpr constructor calls non-constexpr %n"
 ec_nonconstant_field_initializer_in_mem_initializer;;"constructor cannot be constexpr because the initializer of %n is not a constant expression"
+ec_nonconstant_mem_init_for_constexpr_ctor;;"non-constant initializer for constexpr constructor"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

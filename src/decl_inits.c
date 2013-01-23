@@ -5155,18 +5155,19 @@ initializer in *cip if cip is non-NULL.
 
 
 static void scan_parenthesized_mem_init_args(
+                                           a_routine_ptr           ctor,
                                            a_constructor_init_ptr  cip,
-                                           a_type_ptr              class_type,
                                            a_type_ptr              init_type,
                                            a_type_ptr              array_type)
 /*
 Scan the arguments for a mem-initializer enclosed in parentheses, and update
-*cip accordingly.  class_type is the parent type of the constructor.
+*cip accordingly.  ctor is the constructor being defined.
 init_type is the type to be initialized; in the case of an array, it is the
 underlying element type and the array type itself is array_type (in non-array
 cases, array_type is NULL).
 */
 {
+  a_type_ptr                     class_type = parent_class_of(ctor);
   a_source_position              lparen_pos;
   a_class_symbol_supplement_ptr  cssp;
   a_boolean                      dependent_class_init;
@@ -5327,6 +5328,9 @@ cases, array_type is NULL).
         dps.init_state.force_dynamic_init = TRUE;
         expr_direct_init_object(&dps, (an_id_linkage_kind)idl_none,
                                 &lparen_pos);
+        if (ctor->is_constexpr && dps.init_state.constant_expr_ruled_out) {
+          pos_error(ec_nonconstant_mem_init_for_constexpr_ctor, &lparen_pos);
+        }  /* if */
         dip = dps.init_state.init_dip;
         check_assertion(dip != NULL);
         /* If the initializer produced an object lifetime for the full
@@ -5364,12 +5368,14 @@ cases, array_type is NULL).
 
 
 static a_constructor_init_ptr scan_mem_initializer(
+                                                a_routine_ptr      ctor,
                                                 a_type_ptr         class_type,
                                                 a_ctor_init_block  *cibp)
 /*
-Scan a mem-initializer, i.e., the explicit initializer for one member in a
-ctor-initializer list for a constructor being defined.  Return a pointer to
-the constructor-init entry for the member, or NULL in some error cases.
+Scan a mem-initializer, i.e., the explicit initializer for one subobject in a
+ctor-initializer list for the given constructor (which is being defined).
+Return a pointer to the constructor-init entry for the member, or NULL in some
+error cases.
 The current token is the identifier naming the member (or an open parenthesis
 for an old-style initializer case).  class_type identifies the class whose
 constructor is being defined.  cibp records the state of the constructor init
@@ -5431,8 +5437,7 @@ entries are replaced as needed for each mem-initializer that is encountered.
     }  /* if */
     if (curr_token == tok_lparen) {
       /* A classic (i.e., parenthesized) mem-initializer argument. */
-      scan_parenthesized_mem_init_args(new_cip, class_type, init_type,
-                                       array_type);
+      scan_parenthesized_mem_init_args(ctor, new_cip, init_type, array_type);
     } else if (list_init_enabled && curr_token == tok_lbrace) {
       /* A braced (i.e., C++11-style) mem-initializer argument. */
       a_type_ptr         dtype = (array_type != NULL) ? array_type : init_type;
@@ -5740,7 +5745,7 @@ initialized.  These are addressed in the course of the processing.
          pack expansion. */
       while (any_more) {
         a_pack_expansion_descr_ptr pedep;
-        cip = scan_mem_initializer(class_type, &cib);
+        cip = scan_mem_initializer(ctor_rout, class_type, &cib);
         pedep = end_potential_pack_expansion_context(pesep,
                                                      /*is_declarator=*/FALSE);
         if (pedep != NULL && cip != NULL) {
