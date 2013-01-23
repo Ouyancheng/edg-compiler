@@ -216,6 +216,8 @@ extern a_boolean constant_is_pointer_to_string_literal(a_constant *con,
 extern a_boolean expr_is_pointer_to_string_literal(an_expr_node_ptr expr,
                                                    a_constant       **scon);
 
+extern a_constant_ptr constant_value_addressed_by_node(an_expr_node_ptr expr);
+
 extern void fold_builtin_operation_if_possible(
                                         an_expr_node_ptr   expr,
                                         a_constant_ptr     constant,

@@ -8087,6 +8087,173 @@ parameter values).
 }  /* points_to_constant */
 
 
+a_constant_ptr constant_value_at_address(a_constant_ptr addr_con,
+                                         a_constant_ptr target_con)
+/*
+If addr_con is a ck_address constant designating a variable with a constant
+value or a subobject thereof, return the value of that variable or
+subobject; otherwise, return NULL.  If target_con is non-NULL, the value is
+copied into the designated constant and target_con is returned; otherwise,
+a new unshared constant will be allocated and returned.
+*/
+{
+  a_constant_ptr result_con = NULL;
+
+  if (is_error_constant(addr_con)) {
+    /* There was an error upstream.  Return an error constant. */
+    if (target_con != NULL) {
+      set_error_constant(result_con);
+      result_con = target_con;
+    } else {
+      result_con = alloc_error_constant();
+    }  /* if */
+  } else if (addr_con->kind == (a_constant_repr_kind)ck_address &&
+             addr_con->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+    /* The constant is the address of a variable, possibly with an offset
+       designating a subobject. */
+    a_type_ptr       target_type = type_pointed_to(addr_con->type);
+    a_type_ptr       curr_type;
+    a_targ_ptrdiff_t offset = addr_con->variant.address.offset;
+    a_variable_ptr   var = addr_con->variant.address.variant.variable;
+    target_type = skip_typerefs(target_type);
+    curr_type = skip_typerefs(var->type);
+    result_con = var_constant_value(var);
+    if (result_con == NULL) {
+      /* The variable does not have a constant value -- just return
+         NULL. */
+    } else if (is_error_constant(result_con)) {
+      /* There was an error upstream.  Return an error constant. */
+      if (target_con != NULL) {
+        set_error_constant(result_con);
+        result_con = target_con;
+      } else {
+        result_con = alloc_error_constant();
+      }  /* if */
+    } else {
+      /* Either the value is part of result_con or it's a zero value
+         resulting from an aggregate initializer with fewer elements than
+         the object being initialized.  Scan through the type of the
+         variable and the constant in parallel to match the initial value
+         with the offset. */
+      a_boolean        found_value = FALSE;
+      a_targ_ptrdiff_t cum_offset = 0;
+      a_type_ptr       most_derived_type = curr_type;
+      while (!found_value && result_con != NULL) {
+        if (cum_offset == offset &&
+            identical_types(target_type, curr_type)) {
+          /* result_con is the value we're looking for. */
+          found_value = TRUE;
+        } else {
+          /* curr_type is either an array or a class type, and offset
+             represents one of its subobjects.  Step into curr_type and
+             continue scanning for the matching offset. */
+          check_assertion(result_con->kind ==
+                                        (a_constant_repr_kind)ck_aggregate &&
+                          cum_offset + curr_type->size > offset);
+          result_con = result_con->variant.aggregate.first_constant;
+          if (is_array_type(curr_type)) {
+            /* Find the element of the array that is at or contains the
+               specified offset.  We'll then go back through the main loop
+               again looking at that element. */
+            curr_type = skip_typerefs(curr_type->variant.array.element_type);
+            most_derived_type = curr_type;
+            while (cum_offset + curr_type->size <= offset &&
+                   result_con != NULL) {
+              cum_offset += curr_type->size;
+              result_con = result_con->next;
+            }  /* while */
+          } else {
+            /* A class type.  Scan through its subobjects (base classes and
+               members) to find which is at or contains the specified
+               offset. */
+            a_base_class_ptr bp;
+            check_assertion(is_immediate_class_type(curr_type));
+            /* First examine the base class subobjects, if any. */
+            for (bp = curr_type->variant.class_struct_union.extra_info->
+                                                                base_classes;
+                 bp != NULL && result_con != NULL &&
+                          cum_offset + bp->offset + bp->type->size <= offset;
+                 bp = bp->next) {
+              if (bp->direct ||
+                  (bp->is_virtual &&
+                   identical_types(curr_type, most_derived_type))) {
+                /* Only direct base classes (and virtual base classes, if
+                   this is the most-derived class) are represented at this
+                   level in the constant; indirect base classes are in
+                   nested elements of the aggregate. */
+                result_con = result_con->next;
+              }  /* if */
+            }  /* for */
+            if (bp != NULL) {
+              /* The offset is in a base class subobject.  Go back through
+                 the main loop to examine that class. */
+              cum_offset += bp->offset;
+              curr_type = bp->type;
+            } else {
+              /* The offset is in a member subobject.  Scan for it and then
+                 go back through the main loop. */
+              a_field_ptr curr_field;
+              curr_field = next_initializable_field(curr_type->
+                                      variant.class_struct_union.field_list);
+              while (curr_field != NULL && result_con != NULL &&
+                     cum_offset + curr_field->offset + curr_field->type->size
+                                                                 <= offset) {
+                curr_field = next_initializable_field(curr_field->next);
+                result_con = result_con->next;
+              }  /* while */
+              check_assertion(curr_field != NULL);
+              curr_type = skip_typerefs(curr_field->type);
+              most_derived_type = curr_type;
+              cum_offset += curr_field->offset;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* while */
+      if (result_con != NULL) {
+        /* result_con points to the requested value. */
+        if (target_con != NULL) {
+          copy_constant_full(result_con, target_con, CE_NO_OPTIONS);
+          result_con = target_con;
+        }  /* if */
+      } else {
+        /* We ran off the end of the aggregate initializer, so the
+           subobject was implicitly value-initialized.  Make a constant of
+           the requisite type and use that. */
+        if (target_con != NULL) {
+          make_value_initialized_constant(target_type, target_con);
+          result_con = target_con;
+        } else {
+          a_constant zero_con;
+          make_value_initialized_constant(target_type, &zero_con);
+          result_con = copy_unshared_constant(&zero_con);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result_con;
+}  /* constant_value_at_address */
+
+
+a_constant_ptr constant_value_addressed_by_node(an_expr_node_ptr expr)
+/*
+If expr is an lvalue that is a constant address of a constant value, return
+that value; otherwise, return NULL.  For example, if the expression is
+something like *p, the value of p is an address constant, and the variable
+to which p points has a constant value, return that value.
+*/
+{
+  a_constant_ptr result_con = NULL;
+  a_constant     addr_con;
+
+  if (constexpr_enabled &&
+      constant_lvalue_address(expr, &addr_con, /*address_escapes=*/FALSE)) {
+    result_con = constant_value_at_address(&addr_con, (a_constant_ptr)NULL);
+  }  /* if */
+  return result_con;
+}  /* constant_value_addressed_by_node */
+
+
 static a_boolean fold_expr(an_expr_node_ptr             expr,
                            a_constexpr_evaluation_block *ceblock,
                            a_constant                   *result_con)
@@ -8147,6 +8314,16 @@ ceblock gives context information for the evaluation.
     a_constant            op1_constant, op2_constant;
     a_boolean             op1_folded = FALSE, op2_folded = FALSE;
     switch (op) {
+      case eok_indirect:
+      case eok_ref_indirect:
+        /* Indirection through a pointer or reference.  If the operand
+           folds to a constant that addresses a constant value, the
+           expression can be folded. */
+        if (fold_expr(op1, ceblock, &op1_constant) &&
+            constant_value_at_address(&op1_constant, result_con) != NULL) {
+          folded = TRUE;
+        }  /* if */
+        break;
       case eok_question:
         /* "?" operator. */
         op1_folded = fold_expr(op1, ceblock, &op1_constant);

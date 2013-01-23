@@ -13340,18 +13340,18 @@ on output it will be an lvalue.
     } else {
       node = make_node_from_operand(result);
       if (is_an_lvalue(result)) {
+        a_boolean  constant_addr;
         /* Convert from an lvalue for the reference to an rvalue for the value
            of the reference (in effect, loading the reference pointer value
            from the location that contains it). */
-        node = conv_lvalue_expr_to_rvalue(node, (a_boolean *)NULL,
+        node = conv_lvalue_expr_to_rvalue(node, &constant_addr,
                                           (a_constant_ptr *)NULL,
                                           &result->position);
-        if (!in_potential_constant_constexpr_context() &&
+        if (!in_potential_constant_constexpr_context() && !constant_addr &&
             construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
                                                          &result->position)) {
           /* Reference indirection is not allowed in C++11 constant
-             expressions if you actually have to load the reference
-             variable. */
+             expressions unless the address is constant. */
           err = TRUE;
         } else {
           /* Change the references to "use". */
@@ -13778,7 +13778,6 @@ returned should only be used locally and not linked into the IL tree.
                                              /*allow_C_mode_const_var=*/FALSE);
   return con_val;
 }  /* var_constant_value */
-
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- allow_on_managed is not used in that case. */
@@ -17379,7 +17378,16 @@ it might produce an error).
           break;
         case eok_indirect:
           op1 = skip_parens(op1);
-          if (allow_folding != NULL && gnu_mode && is_constant_node(op1)) {
+          if ((con_expr_value = constant_value_addressed_by_node(node)) !=
+                                                                        NULL) {
+            /* Indirection through a constexpr pointer that points to an
+               object with a constant value.  Use that value as the result
+               of the expression. */
+            node->is_lvalue = FALSE;
+            node->type = rvalue_node_type;
+            processed = TRUE;
+          } else if (allow_folding != NULL && gnu_mode &&
+                     is_constant_node(op1)) {
             /* The GNU compilers accept an expression like *&(S){{0}} as
                a constant. */
             a_constant_ptr cp = op1->variant.constant;
@@ -17395,6 +17403,17 @@ it might produce an error).
                 }  /* if */
               }  /* if */
             }  /* if */
+          }  /* if */
+          break;
+        case eok_ref_indirect:
+          if ((con_expr_value = constant_value_addressed_by_node(node)) !=
+                                                                        NULL) {
+            /* Indirection through a constexpr reference that refers to an
+               object with a constant value.  Use that value as the result
+               of the expression. */
+            node->is_lvalue = FALSE;
+            node->type = rvalue_node_type;
+            processed = TRUE;
           }  /* if */
           break;
         case eok_subscript:
