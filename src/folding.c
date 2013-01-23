@@ -8428,7 +8428,12 @@ field_selection:
       case eok_reference_to:
         /* The reference equivalent of &x.  If the underlying lvalue has a
            constant address, the result is that address. */
-        folded = fold_lvalue_expr(op1, ceblock, result_con);
+        if (op1->is_lvalue) {
+          folded = fold_lvalue_expr(op1, ceblock, result_con);
+        } else {
+          folded = fold_object_expr(op1, ceblock, /*want_addr=*/TRUE,
+                                    result_con);
+        } /* if */
         if (folded && is_pointer_type(result_con->type)) {
           result_con->type = make_reference_type(op1->type);
         }  /* if */

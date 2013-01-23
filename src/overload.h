@@ -1055,6 +1055,7 @@ void prep_reference_initializer_operand(an_operand         *source_operand,
                                         a_conv_context_set conv_context,
                                         an_error_code      incompatible_err);
 
+#if !STANDALONE_UTILITY_PROGRAM
 extern void value_initialization(a_type_ptr            dest_type,
                                  a_source_position     *pos,
                                  a_routine_ptr         *ctor_called,
@@ -1064,7 +1065,6 @@ extern void value_initialization(a_type_ptr            dest_type,
                                  a_constant_ptr        *p_constant,
                                  a_boolean             *error_detected);
 
-#if !STANDALONE_UTILITY_PROGRAM
 extern void unbundle_init_component_expressions(an_init_component_ptr icp);
 
 extern void keep_worst_match(an_arg_match_summary *new_arg_match,
