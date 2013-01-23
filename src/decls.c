@@ -15572,6 +15572,7 @@ if one is present.
     if (gpp_mode) state->sym->is_invisible = sym_invisible;
     if (def_init_okay) {
       /* Default initialization was successful. */
+      check_constant_valued_variable(state);
       if (state->sym->kind == (a_symbol_kind)sk_variable) {
         /* Unless this variable has non-static storage duration and is
            default-initialized by a trivial default constructor (which is a
