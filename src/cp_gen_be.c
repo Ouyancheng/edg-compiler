@@ -11227,7 +11227,8 @@ gen_expr that might end up generating this expr as a temporary.
           }  /* if */
           goto done_with_operation;
         case eok_lvalue_cast:
-          if (!expr->variant.operation.compiler_generated) {
+          if (!expr->variant.operation.compiler_generated ||
+              expr->variant.operation.keep_cast_for_cp_gen_be) {
             gen_cast(expr->type);
           }  /* if */
           gen_expr(operand_1, /*need_parens=*/TRUE,
