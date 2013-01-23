@@ -8087,8 +8087,8 @@ parameter values).
 }  /* points_to_constant */
 
 
-a_constant_ptr constant_value_at_address(a_constant_ptr addr_con,
-                                         a_constant_ptr target_con)
+static a_constant_ptr constant_value_at_address(a_constant_ptr addr_con,
+                                                a_constant_ptr target_con)
 /*
 If addr_con is a ck_address constant designating a variable with a constant
 value or a subobject thereof, return the value of that variable or
