@@ -1657,6 +1657,28 @@ pack expansion description block.
 }  /* mark_arg_list_elem_as_pack_expansion */
 
 
+static an_init_component_ptr scan_expr_into_new_init_component(
+                                              a_local_expr_options_set options)
+/*
+Allocate an ick_expression init-component, scan an expression into it
+(with precedence PREC_LOWEST and options as given by "options"), and
+return a pointer to the init_component.
+*/
+{
+  an_init_component_ptr icp =
+                  alloc_init_component((an_init_component_kind)ick_expression);
+  a_boolean saved_constant_expr_ruled_out= expr_stack->constant_expr_ruled_out;
+
+  expr_stack->constant_expr_ruled_out = FALSE;
+  scan_expr(operand_of_arg_list_elem(icp), PREC_LOWEST, options);
+  if (expr_stack->constant_expr_ruled_out) {
+    icp->constant_expr_ruled_out = TRUE;
+  }  /* if */
+  expr_stack->constant_expr_ruled_out |= saved_constant_expr_ruled_out;
+  return icp;
+}  /* scan_expr_into_new_init_component */
+
+
 static an_arg_list_elem_ptr scan_expr_list(a_token_kind closing_token,
                                            a_boolean    is_delegate_init,
                                            a_boolean    empty_list_okay,
@@ -1721,8 +1743,7 @@ list is returned.
           alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
         } else {
           /* An expression. */
-          alep = alloc_init_component((an_init_component_kind)ick_expression);
-          scan_expr(operand_of_arg_list_elem(alep), PREC_LOWEST, options);
+          alep = scan_expr_into_new_init_component(options);
         }  /* if */
         /* Add the expression or braced-init-list to the list. */
         if (expr_list == NULL) {
@@ -29614,7 +29635,6 @@ later restoration and further processing.
 */
 {
   an_init_component_ptr  icp;
-  an_arg_operand         *arg_op;
   an_object_lifetime_ptr wrap_lifetime = NULL;
   an_object_lifetime_ptr saved_stack_lifetime = NULL;
   an_object_lifetime_ptr saved_curr_lifetime = NULL;
@@ -29639,9 +29659,7 @@ later restoration and further processing.
     expr_stack->lifetime = wrap_lifetime;
   }  /* if */
   /* Scan the initializer expression and put it into an init-component. */
-  icp = alloc_init_component((an_init_component_kind)ick_expression);
-  arg_op = icp->variant.expr.arg_op;
-  scan_expr(&arg_op->operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  icp = scan_expr_into_new_init_component(EOPT_DISALLOW_COMMA_OPERATOR);
   if (wrap_lifetime != NULL) {
     /* Save the lifetime created for this expression for use later
        when convert_initializer is called to convert it.  Don't save
@@ -29656,7 +29674,7 @@ later restoration and further processing.
   }  /* if */
   icp->bundled = bundle;
   /* Save any reference entries separately from the current expression. */
-  detach_ref_entries_from_curr_expr(&arg_op->operand);
+  detach_ref_entries_from_curr_expr(operand_of_arg_list_elem(icp));
   icp->detached_ref_entries = TRUE;
   return icp;
 }  /* scan_expr_as_init_component */
@@ -30272,8 +30290,9 @@ empty pack expansion, this routine returns NULL.
                                  (allow_empty_expansion ? &expr_not_present :
                                                           NULL));
   if (icp != NULL && !parenthesized) check_arg_list_elem_is_expression(icp);
-  if (icp != NULL && is_expression_component(icp)) {
-    icp->constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
+  if (icp != NULL && is_expression_component(icp) &&
+      expr_stack->constant_expr_ruled_out) {
+    icp->constant_expr_ruled_out = TRUE;
   }  /* if */
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
