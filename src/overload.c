@@ -17512,6 +17512,7 @@ an explicit cast.  *position gives the source position.
                                        /*implied_source=*/FALSE,
                                        /*value_init=*/FALSE,
                                        /*sequenced_args=*/FALSE,
+                                       /*fold_constexpr=*/TRUE,
                                        position);
     if (!error_on_abstract_class_object(temp_type, position)) {
       add_dtor_to_dynamic_init(dip, temp_type, temp_type, position);
@@ -18465,6 +18466,7 @@ happen only in C++ mode.
                                        /*implied_source=*/FALSE,
                                        /*value_init=*/FALSE,
                                        /*sequenced_args=*/FALSE,
+                                       /*fold_constexpr=*/FALSE,
                                        &source_operand->position);
   } else if (conversion_routine != NULL) {
     /* conversion_routine is a constructor (copy or other). */
@@ -18489,6 +18491,7 @@ happen only in C++ mode.
                                          /*implied_source=*/FALSE,
                                          /*value_init=*/FALSE,
                                          /*sequenced_args=*/FALSE,
+                                         /*fold_constexpr=*/TRUE,
                                          &source_operand->position);
       if (fill_in_dtor) {
         add_dtor_to_dynamic_init(dip, class_type, class_type,
@@ -20303,6 +20306,7 @@ issued, and *error_detected is returned TRUE if there are any errors
                                            /*implied_source=*/FALSE,
                                            /*value_init=*/TRUE,
                                            /*sequenced_args=*/FALSE,
+                                           /*fold_constexpr=*/TRUE,
                                            pos);
         if (dip->kind == (a_dynamic_init_kind)dik_constant &&
             dip->variant.constant->is_result_of_constexpr_call) {
@@ -20815,6 +20819,7 @@ mode).
                                          /*implied_source=*/FALSE,
                                          /*value_init=*/FALSE,
                                          /*sequenced_args=*/FALSE,
+                                         /*fold_constexpr=*/TRUE,
                                          pos);
       dip->is_creation_of_initializer_list_object = TRUE;
       if_evaluating_mark_routine_referenced(ctor);

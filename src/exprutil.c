@@ -14110,6 +14110,7 @@ a_dynamic_init_ptr alloc_expr_ctor_dynamic_init(
                                             a_boolean         implied_source,
                                             a_boolean         value_init,
                                             a_boolean         sequenced_args,
+                                            a_boolean         fold_constexpr,
                                             a_source_position *pos)
 /*
 Allocate a dynamic initialization entry for a constructor call
@@ -14124,8 +14125,9 @@ TRUE if value-initialization is required; and sequenced_args is TRUE
 if the arguments must be evaluated left-to-right.  pos is the source
 position of the call (may be omitted if ctor_routine is NULL).
 Does not fill in the destructor information, if any.
-If C++11 constexpr is enabled, the construction may be folded to a
-constant (a dik_constant dynamic init entry is returned).
+If C++11 constexpr is enabled, and fold_constexpr is TRUE, the
+construction may be folded to a constant (a dik_constant dynamic init
+entry is returned).
 */
 {
   a_boolean          folded = FALSE;
@@ -14165,7 +14167,7 @@ constant (a dik_constant dynamic init entry is returned).
     }  /* if */
   }  /* if */
   dip->variant.constructor.args = args;
-  if (ctor_routine != NULL && ctor_routine->is_constexpr) {
+  if (fold_constexpr && ctor_routine != NULL && ctor_routine->is_constexpr) {
     a_constant folded_con;
     check_assertion(pos != NULL);
     if (expr_fold_constexpr_ctor(dip, pos, &folded_con)) {

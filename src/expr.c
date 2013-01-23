@@ -2216,6 +2216,7 @@ specified, and return *dip set to NULL.
                                         /*implied_source=*/FALSE,
                                         /*value_init=*/FALSE,
                                         /*sequenced_args=*/FALSE,
+                                        /*fold_constexpr=*/FALSE,
                                         (a_source_position *)NULL);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -2865,6 +2866,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                                            value_init,
                                            /*sequenced_args=*/
                                              (init_list_ctor_arg_list != NULL),
+                                           /*fold_constexpr=*/TRUE,
                                            source_pos);
         if (dip->kind == (a_dynamic_init_kind)dik_constant &&
             is_error_constant(dip->variant.constant)) {
@@ -15102,6 +15104,7 @@ delegate initializer, given by rcblock->argument_list.
                                         /*implied_source=*/FALSE,
                                         /*value_init=*/FALSE,
                                         /*sequenced_args=*/FALSE,
+                                        /*fold_constexpr=*/FALSE,
                                         (a_source_position *)NULL);
   }  /* if */
   free_arg_list(operand_list);
@@ -16166,7 +16169,8 @@ expression, and return the result in *result (or an error indication in
             needs_initialization = TRUE;
             warn_about_missing_delete_if(TRUE);
             /* Make the dynamic initialization entry (possibly folded
-               to a constant if constexpr). */
+               to a constant if constexpr, but not if we've folded the
+               "new" into the constructor call). */
             dip = alloc_expr_ctor_dynamic_init(ctor_routine,
                                                (an_expr_node_ptr)NULL,
                                                base_new_type,
@@ -16174,6 +16178,8 @@ expression, and return the result in *result (or an error indication in
                                                /*implied_source=*/FALSE,
                                                /*value_init=*/FALSE,
                                                /*sequenced_args=*/FALSE,
+                                               /*fold_constexpr=*/
+                                                         (new_routine != NULL),
                                                &type_position);
           }  /* if */
         }  /* if */
@@ -16640,6 +16646,7 @@ handle_empty_parens_new_initializer:
                                        /*implied_source=*/FALSE,
                                        /*value_init=*/FALSE,
                                        /*sequenced_args=*/FALSE,
+                                       /*fold_constexpr=*/FALSE,
                                        &start_position);
   }  /* if */
   expr_stack->inside_conditional_expression =
@@ -27912,6 +27919,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
                                          /*implied_source=*/TRUE,
                                          /*value_init=*/FALSE,
                                          /*sequenced_args=*/FALSE,
+                                         /*fold_constexpr=*/TRUE,
                                          capture_pos);
     } else {
       /* Other cases, including when dest_type is a reference (which happens
@@ -35543,6 +35551,7 @@ and the array repetition.
                                            /*implied_source=*/TRUE,
                                            /*value_init=*/FALSE,
                                            /*sequenced_args=*/FALSE,
+                                           /*fold_constexpr=*/TRUE,
                                            &operand.position);
         cip->source_expr = make_node_from_operand(&operand);
       }  /* if */
