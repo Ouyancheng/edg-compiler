@@ -11161,6 +11161,20 @@ accordingly.
 }  /* instantiate_exception_spec_if_needed */
 
 
+extern void instantiate_field_initializer_if_needed(a_field_ptr  field)
+/*
+If the given field is a member of a class template instance (or a nested class
+thereof), and its initializer has not yet been instantiated, instantiate it
+now.
+*/
+{
+  check_assertion(field->has_initializer);
+  if (field->initializer == NULL) {
+    /* FIXME */
+  }  /* if */
+}  /* instantiate_field_initializer_if_needed */
+
+
 void instantiate_default_argument(a_symbol_ptr		rout_sym,
 				  a_param_type_ptr	param)
 /*

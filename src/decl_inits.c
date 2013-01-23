@@ -5944,10 +5944,11 @@ initialized.  These are addressed in the course of the processing.
         /* An implicit constructor-init entry for a field that has an
            initializer associated with it.  Set the flag indicating that the
            field initializer should be used, and move on to the next entry. */
+        a_field_ptr  field = cip->variant.field;
         cip->use_field_initializer = TRUE;
+        /* Ensure the field initializer is instantiated if necessary. */
+        instantiate_field_initializer_if_needed(field);
         if (ctor_rout->is_constexpr) {
-          a_field_ptr  field = cip->variant.field;
-          /* FIXME Ensure the field initializer is scanned if necessary. */
           if (field->has_nonconstant_initializer) {
             /* If the field initializer is known not to be a constant, it
                cannot be used for constexpr construction. */
