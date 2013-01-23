@@ -2211,8 +2211,12 @@ specified, and return *dip set to NULL.
        leaving the constructor pointer NULL. */
     *dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
                                         expr_arg_list,
+                                        (a_type_ptr)NULL,
                                         /*add_default_args=*/FALSE,
-                                        /*implied_source=*/FALSE);
+                                        /*implied_source=*/FALSE,
+                                        /*value_init=*/FALSE,
+                                        /*sequenced_args=*/FALSE,
+                                        (a_source_position *)NULL);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (scanning_source) curr_construct_end_position = end_position;
@@ -2832,7 +2836,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
       /* Error. */
       /* dip = NULL; -- already set. */
     } else {
-      a_constant folded_con;
       if (is_bitwise_copy) {
         /* Bitwise copy construction of a class. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
@@ -2853,31 +2856,20 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
           dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
         }  /* if */
       } else {
-        /* Constructor call. */
+        /* Constructor call (possibly folded to constant if constexpr). */
         dip = alloc_expr_ctor_dynamic_init(routine,
                                            arg_expr_list,
+                                           dest_type,
                                            /*add_default_args=*/FALSE,
-                                           /*implied_source=*/FALSE);
-        dip->variant.constructor.value_initialization = value_init;
-        if (init_list_ctor_arg_list != NULL) {
-          /* A constructor call whose arguments come from a braced-init-list
-             must have its arguments evaluated in order. */
-          dip->variant.constructor.has_sequenced_arguments = TRUE;
-        }  /* if */
-        if (routine != NULL && routine->is_constexpr &&
-            expr_fold_constexpr_ctor(dip, source_pos, &folded_con)) {
-          /* The constructor is declared constexpr and the construction has
-             been folded to a constant. */
-          if (dest_type != NULL) folded_con.type = dest_type;
-          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
-          dip->variant.constant = alloc_unshared_constant(&folded_con);
-        } else {
-          /* Construction was not folded to a constant. */
-          if (!in_potential_constant_constexpr_context() &&
-            construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
-                                                         source_pos)) {
-            dip = NULL;
-          }  /* if */
+                                           /*implied_source=*/FALSE,
+                                           value_init,
+                                           /*sequenced_args=*/
+                                             (init_list_ctor_arg_list != NULL),
+                                           source_pos);
+        if (dip->kind == (a_dynamic_init_kind)dik_constant &&
+            is_error_constant(dip->variant.constant)) {
+          /* Some error. */
+          dip = NULL;
         }  /* if */
       }  /* if */
       if (fill_in_dtor && dip != NULL) {
@@ -15105,8 +15097,12 @@ delegate initializer, given by rcblock->argument_list.
     }  /* if */
     *dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
                                         arg1,
+                                        (a_type_ptr)NULL,
                                         /*add_default_args=*/FALSE,
-                                        /*implied_source=*/FALSE);
+                                        /*implied_source=*/FALSE,
+                                        /*value_init=*/FALSE,
+                                        /*sequenced_args=*/FALSE,
+                                        (a_source_position *)NULL);
   }  /* if */
   free_arg_list(operand_list);
   if (rcblock == NULL) {
@@ -16169,11 +16165,16 @@ expression, and return the result in *result (or an error indication in
             is_generated_ctor = ctor_routine->compiler_generated;
             needs_initialization = TRUE;
             warn_about_missing_delete_if(TRUE);
-            /* Make the dynamic initialization entry. */
+            /* Make the dynamic initialization entry (possibly folded
+               to a constant if constexpr). */
             dip = alloc_expr_ctor_dynamic_init(ctor_routine,
                                                (an_expr_node_ptr)NULL,
+                                               base_new_type,
                                                /*add_default_args=*/TRUE,
-                                               /*implied_source=*/FALSE);
+                                               /*implied_source=*/FALSE,
+                                               /*value_init=*/FALSE,
+                                               /*sequenced_args=*/FALSE,
+                                               &type_position);
           }  /* if */
         }  /* if */
       } else if (expr_reference_to_trivial_default_constructor(base_new_type,
@@ -16634,8 +16635,12 @@ handle_empty_parens_new_initializer:
        leaving the constructor pointer NULL. */
     dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
                                        expr_list,
+                                       base_new_type,
                                        /*add_default_args=*/FALSE,
-                                       /*implied_source=*/FALSE);
+                                       /*implied_source=*/FALSE,
+                                       /*value_init=*/FALSE,
+                                       /*sequenced_args=*/FALSE,
+                                       &start_position);
   }  /* if */
   expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
@@ -27902,8 +27907,12 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
          init entry with an implied source. */
       dip = alloc_expr_ctor_dynamic_init(cctor_routine,
                                          (an_expr_node_ptr)NULL,
+                                         dest_type,
                                          /*add_default_args=*/TRUE,
-                                         /*implied_source=*/TRUE);
+                                         /*implied_source=*/TRUE,
+                                         /*value_init=*/FALSE,
+                                         /*sequenced_args=*/FALSE,
+                                         capture_pos);
     } else {
       /* Other cases, including when dest_type is a reference (which happens
          when the capture is by reference). */
@@ -35527,9 +35536,14 @@ and the array repetition.
       } else if (cctor == NULL) {
         /* An error was issued by select_copy_constructor. */
       } else {
-        dip = alloc_expr_ctor_dynamic_init(cctor, (an_expr_node_ptr)NULL,
+        dip = alloc_expr_ctor_dynamic_init(cctor,
+                                           (an_expr_node_ptr)NULL,
+                                           el_type,
                                            /*add_default_args=*/TRUE,
-                                           /*implied_source=*/TRUE);
+                                           /*implied_source=*/TRUE,
+                                           /*value_init=*/FALSE,
+                                           /*sequenced_args=*/FALSE,
+                                           &operand.position);
         cip->source_expr = make_node_from_operand(&operand);
       }  /* if */
     } else if (could_be_dependent_class_type(el_type) ||

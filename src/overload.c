@@ -17475,7 +17475,6 @@ an explicit cast.  *position gives the source position.
 {
   a_dynamic_init_ptr  dip;
   an_expr_node_ptr    temp_init_node;
-  a_dynamic_init_kind kind;
 
   if (ctor_routine == NULL) {
     check_assertion(temp_type != NULL);
@@ -17494,23 +17493,31 @@ an explicit cast.  *position gives the source position.
     }  /* if */
   }  /* if */
   /* Create the dynamic initialization entry and the enk_temp_init node. */
-  kind = (class_bitwise_copy ? (a_dynamic_init_kind)dik_expression :
-                               (a_dynamic_init_kind)dik_constructor);
-  temp_init_node = create_expr_temporary(temp_type,
-                                         result_is_lvalue,
-                                         is_explicit_cast,
-                                         /*suppress_abstract_test=*/FALSE,
-                                         kind,
-                                         position,
-                                         &dip);
   if (class_bitwise_copy) {
     /* Use a dik_expression to do a bitwise copy. */
+    temp_init_node = create_expr_temporary(temp_type,
+                                           result_is_lvalue,
+                                           is_explicit_cast,
+                                           /*suppress_abstract_test=*/FALSE,
+                                           (a_dynamic_init_kind)dik_expression,
+                                           position,
+                                           &dip);
     dip->variant.expression = arg_expr_list;
   } else {
-    /* Use a dik_constructor to call the constructor routine. */
-    dip->variant.constructor.ptr = ctor_routine;
-    dip->variant.constructor.args = arg_expr_list;
-    dip->variant.constructor.value_initialization = FALSE;
+    /* Call a constructor.  Possibly fold to a constant if constexpr. */
+    dip = alloc_expr_ctor_dynamic_init(ctor_routine,
+                                       arg_expr_list,
+                                       temp_type,
+                                       /*add_default_args=*/FALSE,
+                                       /*implied_source=*/FALSE,
+                                       /*value_init=*/FALSE,
+                                       /*sequenced_args=*/FALSE,
+                                       position);
+    if (!error_on_abstract_class_object(temp_type, position)) {
+      add_dtor_to_dynamic_init(dip, temp_type, temp_type, position);
+    }  /* if */
+    temp_init_node = alloc_temp_init_node(temp_type, dip, result_is_lvalue,
+                                          is_explicit_cast);
   }  /* if */
   /* Make an operand for the overall expression. */
   make_lvalue_or_rvalue_expression_operand(temp_init_node, result);
@@ -18222,6 +18229,8 @@ Allocate a dynamic initialization entry of type kind and return a pointer
 to it.  The entity to be initialized is of type temp_type.  *position
 indicates the source position of the initialization.  fill_in_dtor
 is TRUE if the dynamic initialization should indicate destruction.
+When kind == dik_constructor, does not expand constexpr calls
+(it doesn't have the argument list and other info to do so).
 */
 {
   a_dynamic_init_ptr dip;
@@ -18451,27 +18460,40 @@ happen only in C++ mode.
        leaving the constructor pointer NULL. */
     dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
                                        make_node_from_operand(source_operand),
+                                       dest_type,
                                        /*add_default_args=*/FALSE,
-                                       /*implied_source=*/FALSE);
+                                       /*implied_source=*/FALSE,
+                                       /*value_init=*/FALSE,
+                                       /*sequenced_args=*/FALSE,
+                                       &source_operand->position);
   } else if (conversion_routine != NULL) {
     /* conversion_routine is a constructor (copy or other). */
-    a_dynamic_init_kind kind;
     set_up_for_constructor_call(source_operand, conversion_routine,
                                 ctor_arg_conversion, &arg_expr_list,
                                 &class_bitwise_copy);
-    kind = (class_bitwise_copy ? (a_dynamic_init_kind)dik_expression :
-                                 (a_dynamic_init_kind)dik_constructor);
-    dip = alloc_dynamic_init_possibly_with_dtor(kind,
-                                                fill_in_dtor,
-                                                class_type,
-                                                &source_operand->position);
     if (class_bitwise_copy) {
       /* Use a dik_expression entry to do a bitwise copy. */
+      dip = alloc_dynamic_init_possibly_with_dtor(
+                                           (a_dynamic_init_kind)dik_expression,
+                                           fill_in_dtor,
+                                           class_type,
+                                           &source_operand->position);
       dip->variant.expression = arg_expr_list;
     } else {
-      /* Use a dik_constructor entry to call the constructor. */
-      dip->variant.constructor.ptr = conversion_routine;
-      dip->variant.constructor.args = arg_expr_list;
+      /* Use a dik_constructor entry to call the constructor, possibly
+         folding to a constant if it is constexpr. */
+      dip = alloc_expr_ctor_dynamic_init(conversion_routine,
+                                         arg_expr_list,
+                                         dest_type,
+                                         /*add_default_args=*/FALSE,
+                                         /*implied_source=*/FALSE,
+                                         /*value_init=*/FALSE,
+                                         /*sequenced_args=*/FALSE,
+                                         &source_operand->position);
+      if (fill_in_dtor) {
+        add_dtor_to_dynamic_init(dip, class_type, class_type,
+                                 &source_operand->position);
+      }  /* if */
     }  /* if */
   } else {
     /* Some error. */
@@ -20272,20 +20294,21 @@ issued, and *error_detected is returned TRUE if there are any errors
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
       } else {
         /* Otherwise, use a dik_constructor entry.  For a nonreal class,
-           ctor_routine is NULL to indicate the constructor is unknown. */
+           ctor_routine is NULL to indicate the constructor is unknown.
+           If the constructor is constexpr, fold to a constant if possible. */
         dip = alloc_expr_ctor_dynamic_init(ctor_routine,
                                            (an_expr_node_ptr)NULL,
+                                           dest_type,
                                            /*add_default_args=*/TRUE,
-                                           /*implied_source=*/FALSE);
-        /* The value_initialization flag tells back ends to zero the
-           storage before calling the constructor if it is not
-           user-provided. */
-        dip->variant.constructor.value_initialization = TRUE;
-        if (ctor_routine->is_constexpr &&
-            expr_fold_constexpr_ctor(dip, pos, &con)) {
+                                           /*implied_source=*/FALSE,
+                                           /*value_init=*/TRUE,
+                                           /*sequenced_args=*/FALSE,
+                                           pos);
+        if (dip->kind == (a_dynamic_init_kind)dik_constant &&
+            dip->variant.constant->is_result_of_constexpr_call) {
           /* The constructor is declared constexpr and the construction has
              been folded to a constant. */
-          con.type = dest_type;
+          copy_constant(dip->variant.constant, &con);
           dip = NULL;
         }  /* if */
       }  /* if */
@@ -20573,7 +20596,7 @@ mode).
   if (p_dip != NULL) *p_dip = NULL;
   if (arg_match != NULL) clear_arg_match_summary(arg_match);
   complete_type_is_needed(element_type);
-  if (curr_expr_kind_is_traditional_const()) {
+  if (curr_expr_kind_is_const() && !constexpr_enabled) {
     /* Not allowed in a constant expression.  Note that taking this branch
        precludes setting dtor to non-NULL below, appropriately. */
     if (arg_match != NULL) {
@@ -20778,10 +20801,6 @@ mode).
     if (ctor == NULL) {
       if (operand != NULL) make_error_operand(operand);
     } else {
-      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
-      dip->is_creation_of_initializer_list_object = TRUE;
-      dip->variant.constructor.ptr = ctor;
-      if_evaluating_mark_routine_referenced(ctor);
       check_assertion(is_pointer_type(param1_type));
       arg1 = add_cast_if_necessary(expr, param1_type);
       param2_type = skip_typerefs(param2_type);
@@ -20789,7 +20808,16 @@ mode).
       arg2 = node_for_host_large_integer((a_host_large_integer)num_elements,
                                         param2_type->variant.integer.int_kind);
       arg1->next = arg2;
-      dip->variant.constructor.args = arg1;
+      dip = alloc_expr_ctor_dynamic_init(ctor,
+                                         arg1,
+                                         list_type,
+                                         /*add_default_args=*/TRUE,
+                                         /*implied_source=*/FALSE,
+                                         /*value_init=*/FALSE,
+                                         /*sequenced_args=*/FALSE,
+                                         pos);
+      dip->is_creation_of_initializer_list_object = TRUE;
+      if_evaluating_mark_routine_referenced(ctor);
       if (symbol_supplement_for_class(list_type)->destructor != NULL) {
         /* std::initializer_list is not supposed to have a destructor. */
         expr_pos_error(ec_std_initializer_list_has_dtor, pos);

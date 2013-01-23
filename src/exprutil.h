@@ -1811,10 +1811,14 @@ extern void make_field_operand(a_symbol_locator  *locator,
 extern a_dynamic_init_ptr alloc_expr_dynamic_init(a_dynamic_init_kind kind);
 
 extern a_dynamic_init_ptr alloc_expr_ctor_dynamic_init(
-                                             a_routine_ptr    ctor_routine,
-                                             an_expr_node_ptr args,
-                                             a_boolean        add_default_args,
-                                             a_boolean        implied_source);
+                                            a_routine_ptr     ctor_routine,
+                                            an_expr_node_ptr  args,
+                                            a_type_ptr        dest_type,
+                                            a_boolean         add_default_args,
+                                            a_boolean         implied_source,
+                                            a_boolean         value_init,
+                                            a_boolean         sequenced_args,
+                                            a_source_position *pos);
 
 extern a_routine_ptr expr_select_default_constructor(
                                          a_type_ptr        class_type,
@@ -1862,6 +1866,9 @@ extern an_expr_node_ptr alloc_temp_init_node(
                                       a_dynamic_init_ptr dip,
                                       a_boolean          is_lvalue,
                                       a_boolean          is_explicit_cast);
+
+extern a_boolean error_on_abstract_class_object(a_type_ptr        object_type,
+                                                a_source_position *position);
 
 extern an_expr_node_ptr create_expr_temporary(
                                     a_type_ptr          temp_type,
@@ -2166,11 +2173,6 @@ a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
                                    a_source_position *pos,
                                    a_constant        *result_con,
                                    a_boolean         *returns_reference);
-
-extern
-a_boolean expr_fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
-                                   a_source_position  *pos,
-                                   a_constant         *result_con);
 
 extern void prep_generic_nontype_template_argument(an_operand *operand);
 

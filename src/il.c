@@ -13404,8 +13404,9 @@ init_entity_type can be NULL if the caller does not need that information.
 {
   an_expr_node_ptr arg1;
 
-  check_assertion(dip->is_creation_of_initializer_list_object &&
-                  dip->kind == (a_dynamic_init_kind)dik_constructor);
+  check_assertion(dip->is_creation_of_initializer_list_object);
+  dip = skip_constexpr_ctor_eval(dip);
+  check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor);
   arg1 = dip->variant.constructor.args;
   check_assertion(arg1 != NULL);
   while (is_cast_operation_node(arg1) &&

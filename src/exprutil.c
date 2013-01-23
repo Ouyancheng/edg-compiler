@@ -5407,9 +5407,9 @@ routines.  See fold_constexpr_call for the description of the parameters.
 }  /* expr_fold_constexpr_call */
 
 
-a_boolean expr_fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
-                                   a_source_position  *pos,
-                                   a_constant         *result_con)
+static a_boolean expr_fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
+                                          a_source_position  *pos,
+                                          a_constant         *result_con)
 /*
 Interface to fold_constexpr_ctor for use within the expression-processing
 routines.  See fold_constexpr_ctor for the description of the parameters.
@@ -14103,26 +14103,40 @@ an expression.
 
 
 a_dynamic_init_ptr alloc_expr_ctor_dynamic_init(
-                                             a_routine_ptr    ctor_routine,
-                                             an_expr_node_ptr args,
-                                             a_boolean        add_default_args,
-                                             a_boolean        implied_source)
+                                            a_routine_ptr     ctor_routine,
+                                            an_expr_node_ptr  args,
+                                            a_type_ptr        dest_type,
+                                            a_boolean         add_default_args,
+                                            a_boolean         implied_source,
+                                            a_boolean         value_init,
+                                            a_boolean         sequenced_args,
+                                            a_source_position *pos)
 /*
 Allocate a dynamic initialization entry for a constructor call
-(dik_constructor), and return a call to it.  ctor_routine gives the
+(dik_constructor), and return a pointer to it.  ctor_routine gives the
 constructor (NULL for a dependent case); args gives the constructor
-argument list; add_default_args is TRUE if the expressions for any
-default arguments should be added to the end of the argument list;
-and implied_source is TRUE if the call is a copy constructor call
-and the source for the copy is implied.
+argument list; dest_type is the destination type, if there is one
+(e.g., for a cast), or NULL otherwise; add_default_args is TRUE if the
+expressions for any default arguments should be added to the end of
+the argument list; implied_source is TRUE if the call is a copy
+constructor call and the source for the copy is implied; value_init is
+TRUE if value-initialization is required; and sequenced_args is TRUE
+if the arguments must be evaluated left-to-right.  pos is the source
+position of the call (may be omitted if ctor_routine is NULL).
+Does not fill in the destructor information, if any.
+If C++11 constexpr is enabled, the construction may be folded to a
+constant (a dik_constant dynamic init entry is returned).
 */
 {
+  a_boolean          folded = FALSE;
   a_dynamic_init_ptr dip =
                  alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
 
   dip->variant.constructor.ptr = ctor_routine;
   dip->variant.constructor.is_copy_constructor_with_implied_source =
                                                                 implied_source;
+  dip->variant.constructor.value_initialization = value_init;
+  dip->variant.constructor.has_sequenced_arguments = sequenced_args;
   /* Add default arguments if any. */
   if (add_default_args) {
     a_param_type_ptr ptp;
@@ -14131,6 +14145,13 @@ and the source for the copy is implied.
     ptp = skip_typerefs(ctor_routine->type)->variant.routine.extra_info->
                                                                param_type_list;
     if (implied_source) ptp = ptp->next;
+    { an_expr_node_ptr arg;
+      /* Advance over the parameters for the arguments supplied. */
+      for (arg = args; arg != NULL; arg = arg->next) {
+        if (ptp == NULL || ptp->is_parameter_pack) break;
+        ptp = ptp->next;
+      }  /* for */
+    }
     def_args = expr_copy_default_arg_expr_list(ctor_routine, ptp);
     if (def_args != NULL) {
       /* Append the default argument list to the end of the arguments list. */
@@ -14144,6 +14165,29 @@ and the source for the copy is implied.
     }  /* if */
   }  /* if */
   dip->variant.constructor.args = args;
+  if (ctor_routine != NULL && ctor_routine->is_constexpr) {
+    a_constant folded_con;
+    check_assertion(pos != NULL);
+    if (expr_fold_constexpr_ctor(dip, pos, &folded_con)) {
+      /* The constructor is declared constexpr and the construction has
+         been folded to a constant. */
+      folded = TRUE;
+      if (dest_type != NULL) folded_con.type = dest_type;
+      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
+      dip->variant.constant = alloc_unshared_constant(&folded_con);
+    }  /* if */
+  }  /* if */
+  if (constexpr_enabled && ctor_routine != NULL && !folded) {
+    /* Construction was not folded to a constant.  In a constant expression,
+       that's an error.  Pre-C++11 cases should be detected earlier. */
+    check_assertion(pos != NULL);
+    if (!in_potential_constant_constexpr_context() &&
+        construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+                                                     pos)) {
+      set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
+      dip->variant.constant = alloc_error_constant();
+    }  /* if */
+  }  /* if */
   return dip;
 }  /* alloc_expr_ctor_dynamic_init */
 
@@ -14417,6 +14461,27 @@ represents an explicit cast.
 }  /* alloc_temp_init_node */
 
 
+a_boolean error_on_abstract_class_object(a_type_ptr        object_type,
+                                         a_source_position *position)
+/*
+An object of the type object_type is being created.  If it has an
+abstract class type, issue an error and return TRUE.  Otherwise, return
+FALSE.
+*/
+{
+  a_boolean err = FALSE;
+
+  if (is_abstract_class_type(object_type)) {
+    err = TRUE;
+    if (expr_error_should_be_issued()) {
+      abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
+                                object_type, position);
+    }  /* if */
+  }  /* if */
+  return err;
+}  /* error_on_abstract_class */
+
+
 an_expr_node_ptr create_expr_temporary(
                                     a_type_ptr          temp_type,
                                     a_boolean           is_lvalue,
@@ -14435,6 +14500,8 @@ the temporary if is_lvalue is TRUE.  is_explicit_cast is TRUE if
 this node represents an explicit cast.  An error is issued if the
 temporary has an abstract class type unless suppress_abstract_test is
 TRUE.  *position is the position of the reference.  Used only in C++.
+When init_kind == dik_constructor, does not expand constexpr calls
+(it doesn't have the argument list and other info to do so).
 */
 {
   an_expr_node_ptr temp_init_node;
@@ -14451,13 +14518,9 @@ TRUE.  *position is the position of the reference.  Used only in C++.
   /* Make an enk_temp_init node that points at the dynamic init entry. */
   temp_init_node = alloc_temp_init_node(temp_type, *dip, is_lvalue,
                                         is_explicit_cast);
-  if (!suppress_abstract_test && !microsoft_bugs &&
-      is_abstract_class_type(temp_type)) {
+  if (!suppress_abstract_test && !microsoft_bugs) {
     /* It's an error to create a temporary of an abstract class type. */
-    if (expr_error_should_be_issued()) {
-      abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
-                                temp_type, position);
-    }  /* if */
+    (void)error_on_abstract_class_object(temp_type, position);
   }  /* if */
   return temp_init_node;
 }  /* create_expr_temporary */
