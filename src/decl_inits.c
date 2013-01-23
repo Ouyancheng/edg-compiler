@@ -5961,7 +5961,8 @@ initialized.  These are addressed in the course of the processing.
                const and non-const members are mixed, */
           } else if (!is_ref && 
                      ((cssp != NULL &&
-                       cssp->has_user_provided_default_constructor) ||
+                       (cssp->has_nontrivial_default_constructor ||
+                        has_trivial_default_constructor(cssp))) ||
                       is_template_dependent_type(tp)
                       if_microsoft_extensions(|| is_value_class_type(tp)))) {
             /* A non-reference field may be initialized without an explicit
