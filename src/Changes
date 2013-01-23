@@ -1,5 +1,18 @@
 Version 4.6
 
+1/23/13  [EDGcpfe/13598]
+Spurious error on opaque enum declaration following its definition
+
+The front end previously incorrectly issued an error when an enumeration was
+first defined and then declared using an opaque enum declaration.
+For example:
+
+  enum E: int { e, g };
+  enum E: int;  // Previously triggered a spurious error; now okay.
+
+This is now fixed.
+
+
 1/22/13  [EDGcpfe/13590]
 Spurious error on inaccessible destructor in SFINAE initializer_list creation
 

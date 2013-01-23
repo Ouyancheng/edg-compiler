@@ -1614,9 +1614,11 @@ caution when modifying this routine.
              sure that an incomplete type is not in the process of being
              defined. */
           *tag_resolution = TRUE;
-        } else {
-          /* Redeclaration of a tag that has already been defined.  Set
-             tag_sym to NULL and let enter_symbol issue an error. */
+        } else if (tag_kind != (a_symbol_kind)sk_enum_tag) {
+          /* Redefinition of a class tag that has already been defined.  Set
+             tag_sym to NULL and let enter_symbol issue an error.  (Don't do
+             this for enum types since we may be dealing with an opaque enum
+             declaration.) */
           tag_sym = NULL;
         }  /* if */
       }  /* if */
