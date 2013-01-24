@@ -1500,7 +1500,7 @@ in the aggregate have not been lowered (and aren't lowered here).
     a_base_class_ptr            bcp;
     a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
     a_class_type_supplement_ptr cot_ctsp=class_type_supp(complete_object_type);
-    a_boolean                   any_more_base_classes = TRUE;
+    a_boolean                   any_more_base_classes;
     a_boolean                   modify_vptr_in_this_class = TRUE;
 
     check_assertion(!class_type->
@@ -1535,6 +1535,7 @@ in the aggregate have not been lowered (and aren't lowered here).
       vptr_con = alloc_unshared_constant_in_region(&addr_constant,
                                                    in_file_scope(constant));
     }  /* if */
+    any_more_base_classes = (ctsp->base_classes != NULL);
     /* Iterate over the field list for the class, keeping track of which
        items in the aggregate constant initialize each field. */
     check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
