@@ -9852,7 +9852,7 @@ implicit "this" is available, e.g., during overload resolution.
           break;
         }  /* if */
       }  /* if */
-    }  /* if */
+    }  /* for */
   } else if (scope_stack_top().in_field_initializer) {
     /* We're inside a C++11 non-static-data-member-initializer (NSDMI),
        so "this" is available. */

@@ -1,5 +1,28 @@
 Version 4.6
 
+1/24/13  [EDGcpfe/13600]
+Incomplete aggregate initializer produces bad IL/bad generated C code
+
+Initializing an aggregate class containing a field of array-of-scalar type
+followed by a field requiring a nontrivial constructor call could lead to
+invalid IL if the initializer was a braced list that did not specify an
+actual value for the array field (and the subsequent fields).  This invalid
+IL in turn resulted in invalid C code when processed through the C-generating
+back end.  For example (using C++11 mode):
+
+  struct X { X() {} };
+  struct A {
+    char a[3];  // Array-of-scalar-type field.
+    X x;        // Field requiring a call to a nontrivial constructor.
+  };
+  int main() {
+    return A{}.a[0];  // The initialization represented by "A{}" previously
+  }                   // resulted in invalid IL and erroneous generated C
+                      // code.
+
+This is now fixed.
+
+
 1/23/13  [EDGcpfe/13598]
 Spurious error on opaque enum declaration following its definition
 

@@ -2032,14 +2032,13 @@ position for which diagnostics should be issued.
              call.  Use a zero-valued constant for scalar types, and an empty
              aggregate for aggregate types. */
           init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-          if (is_scalar_type(ftp)) {
+          if (is_scalar_type(ftp) && atp == NULL) {
             make_zero_of_proper_type(ftp, init_con);
           } else {
             init_con->type = ftp;
             if (!(is_immediate_class_type(ftp) &&
                   has_initializable_field(ftp)) &&
-                !(ftp->kind == (a_type_kind)tk_array &&
-                  ftp->variant.array.bound_is_zero)) {
+                !(atp != NULL && has_any_zero_bound(atp))) {
               /* Other than for empty classes and zero-length arrays, an empty
                  aggregate constant does not cover all the elements of the
                  destination type. */
