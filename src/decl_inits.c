@@ -5972,17 +5972,19 @@ initialized.  These are addressed in the course of the processing.
                const and non-const members are mixed, */
           } else if (!is_ref && 
                      ((cssp != NULL &&
-                       (cssp->has_nontrivial_default_constructor ||
-                        has_trivial_default_constructor(cssp))) ||
+                       (is_const_qualified ?
+                            cssp->has_user_provided_default_constructor
+                          : has_any_default_constructor(cssp))) ||
                       is_template_dependent_type(tp)
                       if_microsoft_extensions(|| is_value_class_type(tp)))) {
             /* A non-reference field may be initialized without an explicit
                initializer if it is of class type and there is a default
-               constructor for the class.  Microsoft also treats value class
-               types as initialized in this context.  Note that value class
-               types -- like System::Int32 -- that map to fundamental types
-               are treated like fundamental types (this matches Microsoft
-               behavior). */
+               constructor for the class (for a const-qualified field, it
+               must be a user-provided default constructor).  Microsoft also
+               treats value class types as initialized in this context.  Note
+               that value class types that map to fundamental types -- like
+               System::Int32 -- are treated like fundamental types (this
+               matches Microsoft behavior). */
           } else {
              /* There may be more than one uninitialized const or ref field,
                 so we wait to collect them all before issuing the error. */

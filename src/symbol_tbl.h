@@ -5552,10 +5552,15 @@ extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
    or more nontrivial default constructors that have parameters with default
    arguments.  This macro returns FALSE for such classes; default
    initialization is ambiguous in such cases. */
-#define has_trivial_default_constructor(cssp)                         \
+#define has_trivial_default_constructor(cssp)                        \
   (!(cssp)->has_nontrivial_default_constructor &&                    \
    ((cssp)->trivial_default_constructor != NULL ||                   \
     (cssp)->constructor == NULL))
+
+#define has_any_default_constructor(cssp)                            \
+    ((cssp)->has_nontrivial_default_constructor ||                   \
+     (cssp)->trivial_default_constructor != NULL ||                  \
+     (cssp)->constructor == NULL)
 
 /* Return TRUE if a symbol is a destructor symbol. */
 #define is_destructor_symbol(sym)                                     \
