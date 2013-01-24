@@ -2889,8 +2889,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                                              (init_list_ctor_arg_list != NULL),
                                            /*fold_constexpr=*/TRUE,
                                            source_pos);
-        if (dip->kind == (a_dynamic_init_kind)dik_constant &&
-            is_error_constant(dip->variant.constant)) {
+        if (is_error_dynamic_init(dip)) {
           /* Some error. */
           dip = NULL;
         }  /* if */

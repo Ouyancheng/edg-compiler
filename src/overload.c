@@ -21965,6 +21965,13 @@ controls).
                                                  /*honor_virtual=*/FALSE);
       }  /* if */
     }  /* if */
+    /* Set init_error if appropriate. */
+    if (is->init_con != NULL) {
+      if (is_error_constant(is->init_con)) is->init_error = TRUE;
+    } else {
+      check_assertion(is->init_dip != NULL);
+      if (is_error_dynamic_init(is->init_dip)) is->init_error = TRUE;
+    }  /* if */
   }  /* if */
   if (dip == NULL && dependent_constant_dip != NULL) {
     /* Set up the underlying dynamic init from a ck_template_param

@@ -14610,6 +14610,27 @@ not the result of an explicit source operation like a cast.
   return is_generated;
 }  /* is_generated_dynamic_init */
 
+
+a_boolean is_error_dynamic_init(a_dynamic_init_ptr dip)
+/*
+Return TRUE if the given dynamic init entry represents an error.
+*/
+{
+  a_boolean err = FALSE;
+
+  switch (dip->kind) {
+    case dik_constant:
+      err = is_error_constant(dip->variant.constant);
+      break;
+    case dik_expression:
+      err = is_error_node(dip->variant.expression);
+      break;
+    default:
+      break;
+  }  /* switch */
+  return err;
+}  /* is_error_dynamic_init */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 static an_expr_node_ptr copy_template_param_expr_as_lvalue(
