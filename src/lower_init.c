@@ -1505,7 +1505,9 @@ in the aggregate have not been lowered (and aren't lowered here).
 
     check_assertion(!class_type->
                          variant.class_struct_union.any_virtual_base_classes &&
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
                     ctsp->construction_vtbls == NULL &&
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
                     !constant->partial_aggr_value);
     /* Make sure we only do this processing once. */
     constant->vptr_has_been_lowered = TRUE;
