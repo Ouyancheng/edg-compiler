@@ -16065,7 +16065,8 @@ explicit "&" operator in the source and *operator_position gives its position.
         }  /* if */
       }  /* if */
       if (did_not_fold && !template_constant &&
-          curr_expr_kind_is_evaluated_const() &&
+          curr_expr_kind_is_traditional_const() &&
+          curr_expr_is_evaluated() &&
           !(gcc_mode && is_expression_operand(operand) &&
             is_lvalue_for_auto_object(operand->variant.expression,
                                       (a_boolean *)NULL))) {
