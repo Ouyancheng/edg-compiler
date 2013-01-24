@@ -20829,6 +20829,8 @@ errors should be suppressed (i.e., SFINAE mode).
                                          /*fold_constexpr=*/TRUE,
                                          pos);
       dip->is_creation_of_initializer_list_object = TRUE;
+      skip_constexpr_ctor_eval(dip)->is_creation_of_initializer_list_object
+                                                  = TRUE;
       dip->is_explicit_cast = is_cast;
       skip_constexpr_ctor_eval(dip)->is_explicit_cast = is_cast;
       if (symbol_supplement_for_class(list_type)->destructor != NULL) {
