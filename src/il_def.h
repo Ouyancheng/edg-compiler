@@ -3799,6 +3799,13 @@ typedef struct a_constant {
 			   The interesting case is when the constant is
 			   a ck_aggregate, but this flag can be set in
 			   any kind of constant. */
+#if DO_IL_LOWERING
+  a_bit_field	vptr_has_been_lowered:1;
+			/* Flag that is used during lowering to ensure that
+			   ck_aggregate constants are only visited one time.
+			   TRUE for ck_aggregate constants that have had
+			   a vptr field inserted. */
+#endif /* DO_IL_LOWERING */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;

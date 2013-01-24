@@ -4754,12 +4754,13 @@ Do IL lowering of the indicated constant and everything under it.
           lower_c99_complex_aggregate_constant(constant);
         }  /* if */
 #endif /* LOWER_COMPLEX */
+        /* Initialize any vptr fields if they exist in the aggregate.  This
+           must be completed before the individual pieces of the aggregate
+           are themselves lowered. */
+        initialize_vptr_in_aggregate_constant(constant,
+                                              skip_typerefs(constant->type),
+                                              (a_base_class_ptr)NULL);
         lower_constant_list(constant->variant.aggregate.first_constant);
-        /* Only do the vptr processing (if necessary) after constants in
-           the aggregate have been lowered (possibly inserting vptr values
-           in any subobjects). */
-        initialize_vptr_in_aggregate_constant(constant, (a_base_class_ptr)NULL,
-                                              (a_constant_ptr)NULL);
 #if IA64_ABI
         fill_out_aggregate_ptr_to_data_member_initialization(constant);
 #endif /* IA64_ABI */
