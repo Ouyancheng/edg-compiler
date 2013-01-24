@@ -20556,6 +20556,7 @@ overwrite *worst_arg_match with that new worst match.
 static void make_initializer_list_object(an_init_component_ptr list_icp,
                                          a_type_ptr            element_type,
                                          a_type_ptr            list_type,
+                                         a_boolean             is_cast,
                                          a_conv_context_set    conv_context,
                                          a_dynamic_init_ptr    *p_dip,
                                          an_operand            *operand,
@@ -20566,17 +20567,17 @@ object from the braced-init-list given by list_icp.  list_type is the
 initializer_list<element_type> type, which is the type of the operand
 returned in *operand.  A temporary of array type is created and
 initialized with the contents of the braced-init-list, and that temporary
-is passed to a constructor for std::initializer_list.  conv_context
-describes the context of the conversion.  If p_dip is non-NULL, a
-pointer to the top dynamic initialization is returned in *p_dip.  If
-operand is NULL, the operand on top of that is not created.  If
-arg_match is non-NULL, do an evaluation of whether the initialization
-is valid, without issuing errors or building IL, and return *arg_match
-set to indicate how good a match the initialization is, in overload
-resolution terms (e.g., is it an exact match or a user-defined
-conversion, etc.)  If arg_match is NULL, expr_stack->suppress_diagnostics
-indicates whether whether errors should be suppressed (i.e., SFINAE
-mode).
+is passed to a constructor for std::initializer_list.  is_cast is
+TRUE if the operation is an explicit cast.  conv_context describes the
+context of the conversion.  If p_dip is non-NULL, a pointer to the top
+dynamic initialization is returned in *p_dip.  If operand is NULL, the
+operand on top of that is not created.  If arg_match is non-NULL, do
+an evaluation of whether the initialization is valid, without issuing
+errors or building IL, and return *arg_match set to indicate how good
+a match the initialization is, in overload resolution terms (e.g., is
+it an exact match or a user-defined conversion, etc.)  If arg_match is
+NULL, expr_stack->suppress_diagnostics indicates whether whether
+errors should be suppressed (i.e., SFINAE mode).
 */
 {
   a_routine_ptr      dtor = NULL, ctor;
@@ -20828,6 +20829,8 @@ mode).
                                          /*fold_constexpr=*/TRUE,
                                          pos);
       dip->is_creation_of_initializer_list_object = TRUE;
+      dip->is_explicit_cast = is_cast;
+      skip_constexpr_ctor_eval(dip)->is_explicit_cast = is_cast;
       if (symbol_supplement_for_class(list_type)->destructor != NULL) {
         /* std::initializer_list is not supposed to have a destructor. */
         expr_pos_error(ec_std_initializer_list_has_dtor, pos);
@@ -21524,6 +21527,7 @@ controls).
         make_initializer_list_object(icp,
                                      element_type,
                                      dest_type,
+                                     is_cast,
                                      iconv_context,
                                      &dip,
                                      (an_operand *)NULL,
@@ -21535,6 +21539,7 @@ controls).
         make_initializer_list_object(icp,
                                      element_type,
                                      dest_type,
+                                     is_cast,
                                      iconv_context,
                                      (a_dynamic_init_ptr *)NULL,
                                      &operand,
