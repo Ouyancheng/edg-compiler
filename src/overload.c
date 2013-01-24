@@ -21092,6 +21092,7 @@ controls).
     generate_il = FALSE;
     clear_arg_match_summary(arg_match);
   } else if (is != NULL) {
+    /* Interface using an init_state. */
     /* If we're only doing an exploratory evaluation, turn off some
        error output etc. */
     if (is->check_validity_only && is->no_diagnostics) {
@@ -21118,6 +21119,8 @@ controls).
       unexpected_condition();
     }  /* if */
   } else {
+    /* Normal inside-expression-processing interface, using an_operand. */
+    if (expr_stack->suppress_diagnostics) issue_errors = FALSE;
     /* When a temporary is forced when an operand is returned, the destructor
        is always filled in. */
     if (force_temp) fill_in_dtor = TRUE;
