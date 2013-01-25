@@ -1,5 +1,20 @@
 Version 4.6
 
+1/25/13  [EDGcpfe/13601]
+Wrong cv-qualifiers on type of non-class temporary for reference binding
+
+In some case, the temporary created as part of binding a reference to
+const to a non-class expression did not have the cv-qualifiers
+specified by the C++ standard.  For example, in
+
+  const int &r = 5;
+
+the temporary had type "int" instead of "const int".  This made no
+significant difference, but may have precluded some optimizations
+(e.g., knowing that the above temporary's value could never change).
+The cv-qualifiers are now correct.
+
+
 1/24/13  [EDGcpfe/13600]
 Incomplete aggregate initializer produces bad IL/bad generated C code
 

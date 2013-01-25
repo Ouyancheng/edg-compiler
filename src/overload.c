@@ -17527,21 +17527,24 @@ an explicit cast.  *position gives the source position.
 
 
 static void temp_init_by_bitwise_copy_from_operand(an_operand *operand,
+                                                   a_type_ptr temp_type,
                                                    a_boolean  result_is_lvalue,
                                                    a_boolean  is_explicit_cast)
 /*
-Create a temporary and initialize it by bitwise copy from the given operand.
-Create an enk_temp_init node for the initialization, and update *operand
-to refer to that node.  The result is an lvalue for the temporary if
-result_is_lvalue is TRUE, an rvalue otherwise.  is_explicit_cast is TRUE
-if this node represents an explicit cast.
+Create a temporary of type temp_type and initialize it by bitwise copy from
+the given operand.  If temp_type is NULL, use the current type of the
+operand.  Create an enk_temp_init node for the initialization, and
+update *operand to refer to that node.  The result is an lvalue for
+the temporary if result_is_lvalue is TRUE, an rvalue otherwise.
+is_explicit_cast is TRUE if this node represents an explicit cast.
 */
 {
   a_dynamic_init_ptr dip;
   an_expr_node_ptr   temp_init_node;
 
+  if (temp_type == NULL) temp_type = operand->type;
   /* Allocate the dynamic initialization entry and the enk_temp_init node. */
-  temp_init_node = create_expr_temporary(operand->type,
+  temp_init_node = create_expr_temporary(temp_type,
                                          result_is_lvalue,
                                          is_explicit_cast,
                                          /*suppress_abstract_test=*/FALSE,
@@ -17607,6 +17610,7 @@ the temporary.
                                                  &operand->position,
                                                  /*elided_reference=*/FALSE);
       temp_init_by_bitwise_copy_from_operand(operand,
+                                             (a_type_ptr)NULL,
                                              /*result_is_lvalue=*/FALSE,
                                              is_explicit_cast);
     }  /* if */
@@ -18782,24 +18786,30 @@ conversion_determined:
 }  /* prep_elision_initializer_operand */
 
 
-void temp_init_from_operand(an_operand *operand,
-                            a_boolean  result_is_lvalue)
+static void temp_init_from_operand_full(an_operand *operand,
+                                        a_type_ptr temp_type,
+                                        a_boolean  result_is_lvalue)
 /*
-Create an enk_temp_init node that initializes a temporary to a copy of
-the indicated operand.  The source operand can be an rvalue or an
-lvalue.  On return, *operand will have been changed to an lvalue for
-the temporary if result_is_lvalue is TRUE, or an rvalue for the
-temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
+Create an enk_temp_init node that initializes a temporary of type
+temp_type to a copy of the indicated operand.  temp_type should be
+the same as the operand type or differ only in cv-qualification.
+The source operand can be an rvalue or an lvalue.  On return, *operand
+will have been changed to an lvalue for the temporary if
+result_is_lvalue is TRUE, or an rvalue for the temporary if
+result_is_lvalue is FALSE.  Used only in C++ mode.
 */
 {
   a_boolean          cctor_case, class_bitwise_copy;
-  a_type_ptr         temp_type, unqual_temp_type;
+  a_type_ptr         unqual_temp_type;
   a_routine_ptr      cctor_routine;
   an_expr_node_ptr   cctor_arg;
   an_operand         orig_operand;
 
   orig_operand = *operand;
-  temp_type = operand->type;
+  check_assertion(identical_types_ignoring_qualifiers(temp_type,
+                                                      operand->type) ||
+                  is_error_operand(operand) ||
+                  is_error_type(temp_type));
   unqual_temp_type = skip_typerefs(temp_type);
   complete_type_is_needed(temp_type);
   check_assertion(!is_incomplete_type(temp_type));
@@ -18848,11 +18858,26 @@ temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
   if (!cctor_case) {
     /* Normal case -- use a dik_expression initialization to copy the
        operand into the temporary. */
-    temp_init_by_bitwise_copy_from_operand(operand, result_is_lvalue,
+    temp_init_by_bitwise_copy_from_operand(operand, temp_type,
+                                           result_is_lvalue,
                                            /*is_explicit_cast=*/FALSE);
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(operand, &orig_operand);
+}  /* temp_init_from_operand_full */
+
+
+void temp_init_from_operand(an_operand *operand,
+                            a_boolean  result_is_lvalue)
+/*
+Create an enk_temp_init node that initializes a temporary to a copy of
+the indicated operand.  The source operand can be an rvalue or an
+lvalue.  On return, *operand will have been changed to an lvalue for
+the temporary if result_is_lvalue is TRUE, or an rvalue for the
+temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
+*/
+{
+  temp_init_from_operand_full(operand, operand->type, result_is_lvalue);
 }  /* temp_init_from_operand */
 
 
@@ -18921,7 +18946,7 @@ be a reference type.  Only used in C++.  This is copy-initialization.
                                     &source_operand->position,
                                     &conversion,
                                     &local_conversion)) {
-    a_type_ptr cv_qual_adjusted_type = NULL;
+    a_type_ptr temp_type = dest_type;
     /* Yes, the conversion is possible.  Do it. */
     if (conversion->class_object_adjustment_required) {
       /* The result of the conversion function is a class rvalue that can
@@ -18945,9 +18970,13 @@ be a reference type.  Only used in C++.  This is copy-initialization.
            the conversion function.  Determine the type we'd like the
            temporary to have, with the same cv-qualifiers as the
            final result type. */
-        cv_qual_adjusted_type = type_plus_qualifiers_from_second_type(
+        temp_type = type_plus_qualifiers_from_second_type(
                                            skip_typerefs(source_operand->type),
                                            dest_type);
+      } else {
+        /* Old behavior -- the temporary has the type of the result of
+           the conversion function. */
+        temp_type = source_operand->type;
       }  /* if */
     } else {
       /* Normal case. */
@@ -18966,9 +18995,9 @@ be a reference type.  Only used in C++.  This is copy-initialization.
       /* Adjust the cv-qualifiers on the temp-init if necessary, which
          changes the cv-qualifiers of the temporary.  Base class differences,
          if any, are handled later. */
-      if (cv_qual_adjusted_type != NULL) {
-        source_operand->variant.expression->type = cv_qual_adjusted_type;
-        source_operand->type = cv_qual_adjusted_type;
+      if (temp_type != source_operand->type) {
+        source_operand->variant.expression->type = temp_type;
+        source_operand->type = temp_type;
       }  /* if */
     } else if (have_temp && is_class_struct_union_type(source_operand->type) &&
                is_an_rvalue(source_operand)) {
@@ -18978,22 +19007,24 @@ be a reference type.  Only used in C++.  This is copy-initialization.
       /* Adjust the cv-qualifiers on the temp-init if necessary, which
          changes the cv-qualifiers of the temporary.  Base class differences,
          if any, are handled later. */
-      if (cv_qual_adjusted_type != NULL &&
+      if (temp_type != source_operand->type &&
           operand_is_temp_init(source_operand)) {
-        source_operand->variant.expression->type = cv_qual_adjusted_type;
-        source_operand->type = cv_qual_adjusted_type;
+        source_operand->variant.expression->type = temp_type;
+        source_operand->type = temp_type;
       }  /* if */
     } else {
       /* Initialize a temporary with the converted value. */
-      if (cv_qual_adjusted_type != NULL) {
+      if (conversion->class_object_adjustment_required) {
         /* Adjust the cv-qualifiers before we create the temporary. */
         if (is_an_lvalue(source_operand)) {
-          adjust_lvalue_type(source_operand, cv_qual_adjusted_type);
+          adjust_lvalue_type(source_operand, temp_type);
         } else if (is_an_rvalue(source_operand)) {
-          adjust_class_rvalue_type(source_operand, cv_qual_adjusted_type);
+          adjust_class_rvalue_type(source_operand, temp_type);
         }  /* if */
       }  /* if */
-      temp_init_from_operand(source_operand, /*result_is_lvalue=*/TRUE);
+      temp_init_from_operand_full(source_operand,
+                                  temp_type,
+                                  /*result_is_lvalue=*/TRUE);
     }  /* if */
     if (is_explicit_cast) {
       an_expr_node_ptr temp_init_node;
