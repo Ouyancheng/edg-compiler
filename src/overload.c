@@ -21263,6 +21263,7 @@ controls).
                                      &force_narrowing_warning_check)) {
         /* This requires a narrowing conversion, which is an error
            in this context. */
+        if (!issue_errors) record_suppressed_error();
         conv_to_error_operand(&operand);
       } else if (dest_type_is_class && !is_direct_init) {
         /* See if we can elide the copy for copy-initialization of
