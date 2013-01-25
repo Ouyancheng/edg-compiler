@@ -8566,8 +8566,9 @@ the expression is not an lvalue, do not fold (see fold_expr instead).
 ceblock gives context information for the evaluation.
 */
 {
-  a_boolean folded = FALSE;
-  a_boolean do_not_call_back = ceblock->do_not_call_back;
+  a_boolean  folded = FALSE;
+  a_constant local_constant;
+  a_boolean  do_not_call_back = ceblock->do_not_call_back;
 
   ceblock->do_not_call_back = FALSE;
   expr = skip_parens(expr);
@@ -8583,7 +8584,6 @@ ceblock gives context information for the evaluation.
   } else if (is_variable_node(expr)) {
     /* An lvalue variable node for a parameter can be replaced by the
        address of the constant argument value. */
-    a_constant local_constant;
     if (fold_variable_reference(expr, ceblock, &local_constant)) {
       folded = TRUE;
       set_constant_address_constant(alloc_shareable_constant(&local_constant),
@@ -8613,6 +8613,18 @@ ceblock gives context information for the evaluation.
       default:
         break;
     }  /* switch */
+  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    /* A temp-init with a const type and a constant value can be considered
+       a constant, and the address of the constant returned. */
+    if (is_const_qualified_type(expr->type) &&
+        fold_dynamic_init(expr->variant.init.dynamic_init,
+                          expr->type,
+                          ceblock,
+                          &local_constant)) {
+      folded = TRUE;
+      set_constant_address_constant(alloc_shareable_constant(&local_constant),
+                                    result_con);
+    }  /* if */
   }  /* if */
   return folded;
 }  /* fold_lvalue_expr */
