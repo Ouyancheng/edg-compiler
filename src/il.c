@@ -19587,7 +19587,7 @@ reference has been elided by copy constructor elision; force instantiation
 but do not mark the routine as actually referenced.
 */
 {
-  a_symbol_ptr             assoc_sym;
+  a_symbol_ptr  assoc_sym;
 
   if (!elided_reference) {
     /* Set the referenced flag.  This is only necessary for virtual

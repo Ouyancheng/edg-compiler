@@ -2613,6 +2613,36 @@ there was an error, and do not issue any diagnostics (including warnings).
     record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT), base_sym, pos,
                             /*update_il_entry=*/FALSE);
   }  /* if */
+  if (scope_stack_top().in_field_initializer &&
+      special_kind_is(rp, sfk_constructor) &&
+      (rp->compiler_generated || rp->is_defaulted) &&
+      is_default_constructor(rp, /*is_declarative_context=*/FALSE)) {
+    /* A reference to a defaulted default constructor in a field initializer.
+       If the constructor is for a class whose field initializer is being
+       parsed, issue an error. */
+    a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+    a_type_ptr               parent_class = parent_class_of(rp);
+    /* Look through the scopes associated with the field initializer to see
+       if any corresponds to the class type of the defaulted constructor. */
+    do {
+      if (scope_is(ssep, sck_class_reactivation) &&
+          same_entities(ssep->assoc_type, parent_class)) {
+        if (error_detected != NULL) {
+          *error_detected = TRUE;
+        } else {
+          pos_ty_error(
+                   ec_generated_default_constructor_used_in_field_initializer,
+                   pos, parent_class);
+        }  /* if */
+        /* Generating the definition of the default constructor is not possible
+           since it would be self-referential.  Treat the call as not evaluated
+           to avoid problems below. */
+        evaluated = FALSE;
+        break;
+      }  /* if */
+      ssep = &scope_stack[ssep->previous_scope];
+    } while (ssep->in_field_initializer);
+  }  /* if */
   if (!evaluated || error_detected != NULL) {
     /* Unevaluated expression.  Do not set the IL referenced flag. */
   } else if (rp->is_virtual && honor_virtual) {

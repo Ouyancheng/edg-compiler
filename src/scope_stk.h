@@ -895,7 +895,13 @@ typedef struct a_scope_stack_entry {
 			   C++, including trailing return types and exception
 			   specifications.) */
   a_bit_field	in_field_initializer:1;
-			/* TRUE while scanning a field initializer. */
+			/* TRUE while scanning a field initializer.  This flag
+			   is set to TRUE in the class (reactivation) scope for
+			   the field initializer, and is "sticky" for scopes
+			   that appear in the field initializer (e.g., scopes
+			   created for lambda expressions, but not template
+			   instantiation scopes kicked of by the field
+			   initializer expression). */
   a_bit_field	in_template_arg_list:1;
 			/* TRUE while scanning a template argument list.  This
 			   flag is inherited by most scopes pushed on the

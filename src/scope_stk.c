@@ -2623,7 +2623,6 @@ the scope being pushed.
   ssep->ignore_during_normal_lookup = FALSE;
   ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;
   ssep->outside_parameter_list = FALSE;
-  ssep->in_field_initializer = FALSE;
   /* The in_template_arg_list flag indicates whether we're currently scanning
      tokens inside angle brackets.  If we push a scope that implies a new
      source of tokens (e.g., a template instantiation), clear the flag.
@@ -2636,10 +2635,12 @@ the scope being pushed.
     ssep->in_template_arg_list = FALSE;
     ssep->implicit_typename = implicit_typename_enabled;
     ssep->in_disambiguation = FALSE;
+    ssep->in_field_initializer = FALSE;
   } else {
     ssep->in_template_arg_list = (ssep-1)->in_template_arg_list;
     ssep->implicit_typename = (ssep-1)->implicit_typename;
     ssep->in_disambiguation= (ssep-1)->in_disambiguation;
+    ssep->in_field_initializer = (ssep-1)->in_field_initializer;
   }  /* if */
   ssep->is_rescan = (options & PS_IS_RESCAN) != 0;
   ssep->in_decltype_context = FALSE;
