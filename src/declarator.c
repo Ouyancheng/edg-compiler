@@ -1624,6 +1624,7 @@ actually declares a function, member function, or function template).
       }
       any_types = advance_to_next_pack_element(pesep);
     }  /* while */
+    pesep = NULL;
     remove_stop_token(tok_comma);
     /* If the next token is not a comma, it should be a right paren -- but
        check for a few other tokens that (in error cases) should also force
@@ -3061,6 +3062,7 @@ an error if a default argument expression is encountered.
           last_param_id->is_parameter_pack = ptp->is_parameter_pack;
         }  /* if */
         any_variadic_params = advance_to_next_pack_element(pesep);
+        if (!any_variadic_params) pesep = NULL;
         if (!any_variadic_params && !done) {
           any_variadic_params = begin_potential_pack_expansion_context(&pesep);
           if (!any_variadic_params) done = TRUE;
