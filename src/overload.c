@@ -9778,33 +9778,54 @@ implicit "this" is available, e.g., during overload resolution.
                  innermost_function_scope->variant.routine.this_param_variable;
       this_exists = (local_this_var != NULL);
     }  /* if */
-  } else if (this_in_trailing_return_types_enabled &&
-             scope_stack_top().kind == (a_scope_kind)sck_func_prototype) {
-    /* In C++11, "this" can be referenced in a late-specified return type.
-       There's no "this" variable yet in that case, because there's no
-       function memory region yet. */
+  } else if ((this_in_trailing_return_types_enabled &&
+              scope_stack_top().kind == (a_scope_kind)sck_func_prototype) ||
+             scope_stack_top().in_field_initializer) {
+    /* In C++11, "this" can be referenced in a late-specified return type,
+       and "this" can be referenced inside a non-static-data-member-initializer
+       (NSDMI).  In both those cases, there's no "this" variable yet. */
     a_scope_stack_entry_ptr ssep;
     /* Loop through all the function prototype scopes, because there may be
        nested function declarators, and the "this" from the enclosing
        member function declarator should be visible in the nested
-       declarators. */
+       declarators.  Also class scopes for NSDMIs. */
     for (ssep = &scope_stack_top();
-         ssep->kind == (a_scope_kind)sck_func_prototype;
+         ssep != NULL &&
+           (ssep->kind == (a_scope_kind)sck_func_prototype ||
+            ssep->in_field_initializer);
          ssep = previous_scope_of(ssep)) {
-      check_assertion(ssep != NULL);
-      /* "this" is visible after the closing parenthesis of certain
-         function declarators. */
-      if (ssep->outside_parameter_list) {
+      if (ssep->kind == (a_scope_kind)sck_class_struct_union ||
+          ssep->kind == (a_scope_kind)sck_class_reactivation) {
+        /* We're inside a C++11 non-static-data-member-initializer (NSDMI),
+           so "this" is available. */
+        this_exists = TRUE;
+        local_this_type = ssep->assoc_type;
+        check_assertion(local_this_type != NULL &&
+                        is_immediate_class_type(local_this_type));
+        local_this_type = add_right_pointer_type_to_this(local_this_type,
+                                                         local_this_type);
+        break;
+      } else if (ssep->kind == (a_scope_kind)sck_func_prototype &&
+                 ssep->outside_parameter_list) {
+        /* "this" is visible after the closing parenthesis of certain
+           function declarators. */
         a_decl_parse_state_ptr dps = ssep->decl_parse_state;
         a_type_ptr             rout_type = ssep->assoc_type;
+        a_type_ptr             this_class;
         check_assertion(dps != NULL &&
                         rout_type != NULL &&
                         rout_type->kind == (a_type_kind)tk_routine);
-        if (dps->is_inclass_member_function_decl) {
+        this_class = rout_type->variant.routine.extra_info->this_class;
+        if (this_class != NULL &&
+            class_type_supp(this_class)->is_lambda_closure_class) {
+          /* "this" in the trailing return type of a lambda refers to
+             the surrounding context, not the "this" of the lambda. */
+          continue;
+        } else if (dps->is_inclass_member_function_decl) {
           /* For an in-class member function declaration, we know whether or
              not the function is static and therefore whether or not "this"
              can be referenced. */
-          if (rout_type->variant.routine.extra_info->this_class != NULL) {
+          if (this_class != NULL) {
             this_exists = TRUE;
             if (this_type != NULL) {
               local_this_type = f_implicit_this_param_type_of(rout_type);
@@ -9817,7 +9838,7 @@ implicit "this" is available, e.g., during overload resolution.
              have to allow the reference to "this" and issue an error later if
              it turns out the function matched is static. */
           this_exists = TRUE;
-          if (rout_type->variant.routine.extra_info->this_class != NULL) {
+          if (this_class != NULL) {
             /* When the declaration has explicit cv-qualifiers, we know
                the function will be nonstatic even though we don't know which
                function it will be, so "this" is permitted and no error
@@ -9853,18 +9874,6 @@ implicit "this" is available, e.g., during overload resolution.
         }  /* if */
       }  /* if */
     }  /* for */
-  } else if (scope_stack_top().in_field_initializer) {
-    /* We're inside a C++11 non-static-data-member-initializer (NSDMI),
-       so "this" is available. */
-    a_scope_stack_entry_ptr ssep = &scope_stack_top();
-    this_exists = TRUE;
-    check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union ||
-                    ssep->kind == (a_scope_kind)sck_class_reactivation);
-    local_this_type = ssep->assoc_type;
-    check_assertion(local_this_type != NULL &&
-                    is_immediate_class_type(local_this_type));
-    local_this_type = add_right_pointer_type_to_this(local_this_type,
-                                                     local_this_type);
   }  /* if */
   if (local_this_var != NULL) local_this_type = local_this_var->type;
   if (this_var != NULL) *this_var = local_this_var;

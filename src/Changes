@@ -1,5 +1,19 @@
 Version 4.6
 
+1/25/13  [EDGcpfe/13602]
+Abort during determination of "this" in lambda return type
+
+The front end aborted in lambda_body_for_closure after incorrectly
+determining the meaning of "this" in the return type of a lambda.
+"this" in that case should refer to the "this" of the enclosing
+context.  Fixed.
+
+  struct A {
+    int j;
+    int i = []()->decltype(this->j) { return 0; }();
+  };
+
+
 1/25/13  [EDGcpfe/13601]
 Wrong cv-qualifiers on type of non-class temporary for reference binding
 

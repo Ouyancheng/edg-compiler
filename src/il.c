@@ -10858,12 +10858,15 @@ Return a pointer to the lambda body routine for the closure class specified by
 type, or NULL if the lambda body routine does not exist yet.
 */
 {
-  a_routine_ptr	rp;
+  a_routine_ptr	rp = NULL;
+  a_scope_ptr   scope = class_type_supp(type)->assoc_scope;
 
-  for (rp = class_type_supp(type)->assoc_scope->routines;
-       rp != NULL; rp = rp->next) {
-    if (rp->is_lambda_body) break;
-  }  /* for */
+  if (scope != NULL) {
+    for (rp = scope->routines;
+         rp != NULL; rp = rp->next) {
+      if (rp->is_lambda_body) break;
+    }  /* for */
+  }  /* if */
   return rp;
 }  /* lambda_body_for_closure */
 
