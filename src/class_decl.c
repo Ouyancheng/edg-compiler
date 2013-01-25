@@ -24873,7 +24873,8 @@ not a literal type.
   }  /* for */
   if (!result) {
     fp = class_type->variant.class_struct_union.field_list;
-    for (; fp != NULL; fp = fp->next) {
+    fp = next_initializable_field(fp);
+    for (; fp != NULL; fp = next_initializable_field(fp->next)) {
       if (!is_literal_type(fp->type)) {
         result = TRUE;
         break;
@@ -24895,7 +24896,7 @@ flag is set in the class symbol supplement of the given type.
 
   if (cssp->known_not_to_be_a_literal_type ||
       cssp->known_to_be_a_literal_type) {
-    /* We already known whether this type is a literal type. */
+    /* We already know whether this type is a literal type. */
   } else {
     /* All the members and bases are of literal type, and the destructor is
        trivial.  To be a literal type, the class should additionally be an
