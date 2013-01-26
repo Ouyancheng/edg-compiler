@@ -591,9 +591,7 @@ void scan_constant_initializer_expression(a_type_ptr         required_type,
 extern void scan_dependent_type_parenthesized_initializer(an_init_state  *is);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-void scan_microsoft_case_label_constant_expression(a_constant *constant);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+extern a_constant_ptr scan_case_label_constant(a_type_ptr switch_type);
 
 extern an_expr_node_ptr scan_boolean_controlling_expression(void);
 

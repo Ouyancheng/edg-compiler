@@ -6111,67 +6111,6 @@ Finally, this routine also updates the control flow data structures as needed.
 }  /* record_switch_case_entry */
 
 
-static a_constant_ptr scan_case_label_constant(
-                                         a_struct_stmt_stack_entry_ptr  sssep)
-/*
-Scan the constant in a case label.  Sssep should point to the enclosing switch
-entry on the statement stack; NULL indicates an error.  This routine is also
-called to scan the second constant in a GNU C case range.
-*/
-{
-  a_constant_ptr     constant_ptr = NULL;
-  a_constant         constant;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position  label_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_boolean          did_not_fold;
-
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  label_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Scan the constant expression. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    /* MSVC++ allows things like (void *)1 as case label constants. */
-    scan_microsoft_case_label_constant_expression(&constant);
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
-    scan_integral_constant_expression(&constant);
-  }  /* if */
-  if (is_error_constant(&constant)) {
-    /* Error; constant_ptr is left NULL. */
-  } else {
-    /* Change the constant to the type of the selector expression.  This
-       can cause an error if the selector type is "int" and the case
-       label value is in the "long" range. */
-    if (sssep != NULL) {
-      an_expr_node_ptr expr = constant.expr;
-      if (expr == NULL &&
-          !cast_identical_types(constant.type, sssep->switch_selector_type)) {
-        /* Record the original constant as the expression the converted
-           constant came from. */
-        expr = alloc_node_for_constant(&constant);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        expr->expr_range.start = label_position;
-        expr->expr_range.end   = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      }  /* if */
-      type_change_constant(&constant, sssep->switch_selector_type,
-                           /*is_implicit_cast=*/TRUE,
-                           /*maintain_expression=*/TRUE,
-                           &did_not_fold, &error_position);
-      check_assertion(!did_not_fold);
-      constant.expr = expr;
-    }  /* if */
-    /* Allocate the case constant in IL memory. */
-    constant_ptr = alloc_shareable_constant(&constant);
-  }  /* if */
-  return constant_ptr;
-}  /* scan_case_label_constant */
-
-
 static void case_label(void)
 /*
 Scan a case label definition.  The syntax is:
@@ -6184,6 +6123,7 @@ GNU also allows the "case range" form:
 */
 {
   a_struct_stmt_stack_entry_ptr sssep;
+  a_type_ptr                    switch_type;
   a_constant_ptr                constant_ptr;
   a_constant_ptr                range_end = NULL;
   a_source_position             case_position, constant_position;
@@ -6201,22 +6141,24 @@ GNU also allows the "case range" form:
   if (sssep != NULL) {
     /* Assume the case is reachable if the switch is reachable. */
     merge_reachability(&sssep->start_reachable, &curr_reachability);
+    switch_type = sssep->switch_selector_type;
   } else {
     /* We are not inside a switch statement. */
     error(ec_case_label_must_be_in_switch);
     set_reachable(curr_reachability);
+    switch_type = error_type();
   }  /* if */
   /* Ignore the initial "case". */
   check_assertion_str(curr_token == tok_case, "case_label: expected case");
   case_position = pos_curr_token;
   (void)get_token();
   constant_position = pos_curr_token;
-  constant_ptr = scan_case_label_constant(sssep);
+  constant_ptr = scan_case_label_constant(switch_type);
   if (gnu_mode && curr_token == tok_ellipsis) {
     /* This is a GNU C case range. E.g.: case 'a' ... 'z': */
     /* Skip the ellipsis. */
     (void)get_token();
-    range_end = scan_case_label_constant(sssep);
+    range_end = scan_case_label_constant(switch_type);
     /* Check that *range_end > *constant_ptr. */
     if (range_end != NULL &&
         constant_ptr != NULL &&

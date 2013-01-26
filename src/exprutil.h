@@ -106,7 +106,8 @@ enum an_expression_kind_tag {
   ek_integral_constant,	/* Integral constant expression (see 3.4). */
   ek_template_arg,	/* Nontype template argument (C++). */
   ek_init_constant,	/* Constant expression allowed in initializers (see
-			   3.4).  Limited use in C++. */
+			   3.4).  Limited use in C++, except that in C++11
+			   this implements "core constant expression". */
   /* Non-constant expression kinds: */
   ek_normal,		/* Normal expression, no restrictions. */
   ek_sizeof		/* The operand of sizeof.  This is almost the same

@@ -17036,7 +17036,8 @@ in *rcblock).
   } else if (is_class_struct_union_type(operand.type)) {
     /* Convert from a class type to a pointer type or a handle type (in
        C++/CLI mode) if necessary. */
-    a_builtin_type_kind_set builtin_type_kinds = BTK_POINTER;
+    a_builtin_type_kind_set builtin_type_kinds;
+    builtin_type_kinds = cpp11_mode ? BTK_POINTER_TO_OBJECT : BTK_POINTER;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled) {
       builtin_type_kinds |= BTK_HANDLE;
@@ -29292,7 +29293,8 @@ static void process_integer_expression(an_operand *operand,
 /*
 *operand represents an expression just scanned.  Check that it is integral,
 converting from class to integral if necessary.  The expression is the one
-in a switch statement if is_switch_expr is TRUE.
+in a switch statement if is_switch_expr is TRUE.  Note that this is not
+used for constant expressions.
 */
 {
   a_boolean processed = FALSE;
@@ -29300,6 +29302,7 @@ in a switch statement if is_switch_expr is TRUE.
   /* Convert from a class type to an integer if necessary. */
   if (!C_mode() && is_class_struct_union_type(operand->type)) {
     a_builtin_type_kind_set type_kind_set = BTK_INTEGRAL;
+    /* Switch statements allow enums, including scoped enums. */
     if (is_switch_expr) type_kind_set |= BTK_ENUM;
     try_to_convert_class_operand_to_builtin_type(operand, type_kind_set,
                                                  &processed);
@@ -29342,7 +29345,9 @@ an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr)
 /*
 Scan an integral expression, e.g., the selector expression for a switch
 statement, and return a pointer to the expression tree.  is_switch_expr
-is TRUE if this is the expression in a switch statement.
+is TRUE if this is the expression in a switch statement.  Note that
+this is not used for constant expressions (e.g., integral constant
+expressions).
 */
 {
   an_expr_node_ptr    expression;
@@ -35970,7 +35975,7 @@ one following the closing parenthesis.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-void scan_microsoft_case_label_constant_expression(a_constant *constant)
+static void scan_microsoft_case_label_constant_expression(a_constant *constant)
 /*
 Scan an integral constant expression for a Microsoft case label constant,
 and return the value of the constant in *constant.  MSVC++ allows
@@ -35983,7 +35988,7 @@ things like (void *)1 as case constants.
   scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
                                              /*is_expr_list=*/FALSE,
                                              /*will_cast=*/TRUE,
-                                             /*top_level=*/TRUE,
+                                             /*top_level=*/FALSE,
                                              PREC_LOWEST,
                                              &result, constant,
                                              (a_boolean *)NULL);
@@ -36002,6 +36007,79 @@ things like (void *)1 as case constants.
 }  /* scan_microsoft_case_label_constant_expression */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+a_constant_ptr scan_case_label_constant(a_type_ptr switch_type)
+/*
+Scan the constant in a case label and return a pointer to an unshared
+constant for it.  Return NULL for an error.  switch_type gives the switch
+selector type.
+*/
+{
+  a_constant_ptr      constant_ptr = NULL;
+  an_operand          operand;
+  a_constant          constant;
+  a_source_position   label_position;
+  an_expr_stack_entry expr_stack_entry;
+  an_expr_stack_entry *saved_expr_stack;
+
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack(constexpr_enabled ? (an_expression_kind)ek_init_constant :
+                                      (an_expression_kind)ek_integral_constant,
+                  &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
+  label_position = pos_curr_token;
+  /* Scan the constant expression. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && !constexpr_enabled) {
+    /* MSVC++ allows things like (void *)1 as case label constants. */
+    a_boolean did_not_fold;
+    scan_microsoft_case_label_constant_expression(&constant);
+    type_change_constant(&constant, switch_type,
+                         /*is_implicit_cast=*/TRUE,
+                         /*maintain_expression=*/TRUE,
+                         &did_not_fold, &label_position);
+    check_assertion(!did_not_fold);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    /* Scan the constant expression. */
+    if (gnu_mode && !constexpr_enabled) {
+      /* Older gnu versions allow some extensions beyond standard
+         integral constant expressions. */
+      scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
+                                                 /*is_expr_list=*/FALSE,
+                                                 /*will_cast=*/TRUE,
+                                                 /*top_level=*/FALSE,
+                                                 PREC_LOWEST,
+                                                 &operand,
+                                                 (a_constant *)NULL,
+                                                 (a_boolean *)NULL);
+    } else {
+      scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    }  /* if */
+    /* Convert the expression to the switch type. */
+    process_converted_constant_expression(&operand,
+                                          is_error_type(switch_type) ?
+                                            NULL :
+                                            switch_type,
+                                          (a_builtin_type_kind_set)
+                                                     (BTK_INTEGRAL | BTK_ENUM),
+                                          &constant);
+  }  /* if */
+  if (is_error_constant(&constant)) {
+    /* Error; constant_ptr is left NULL. */
+  } else {
+    constant_ptr = alloc_unshared_constant(&constant);
+    constant_ptr->source_corresp.decl_position = label_position;
+  }  /* if */
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return constant_ptr;
+}  /* scan_case_label_constant */
+
 
 an_expr_node_ptr scan_boolean_controlling_expression(void)
 /*
@@ -36206,7 +36284,7 @@ to the expression created.  The variable var must have an associated symbol.
                                &operand, ref);
   do_operand_transformations(&operand, TOPT_NO_OPTIONS);
   if (is_switch_expr) {
-    /* A switch condition (must be integral). */
+    /* A switch condition (must be integral or enum). */
     process_integer_expression(&operand, /*is_switch_expr=*/TRUE);
   } else {
     /* Other cases are boolean controlling expressions. */
