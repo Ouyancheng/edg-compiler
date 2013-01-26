@@ -11243,7 +11243,17 @@ instantiation of a class template or member of class template.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     a_type_ptr			parent_type = sym_parent_class(field_sym);
     a_decl_parse_state		dps;
+    /* The instantiation process may rescan various things and invalidate the
+       current token positions as a result.  Save these positions so that they
+       may be restored when we are done. */
+    a_source_position		saved_pos_curr_token;
+    a_source_position		saved_error_position;
 
+    saved_pos_curr_token = pos_curr_token;
+    saved_error_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    saved_curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Switch to the translation unit containing the template, if needed. */
     trans_unit_pushed = push_translation_unit_if_needed(field_sym);
     /* Indicate that an instantiation of this initializer is pending. */
@@ -11271,6 +11281,9 @@ instantiation of a class template or member of class template.
     /* Clear the token cache pointer, but don't discard it because the
        cache is shared with other instances of the field. */
     fssp->token_cache = NULL;
+    /* Restore the saved position information. */
+    error_position = saved_error_position;
+    pos_curr_token = saved_pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
