@@ -4209,6 +4209,7 @@ IL entry for that field.
   if (symbol_is(dps->sym, sk_field)) {
     field = dps->sym->variant.field.ptr;
     dtype = field->type;
+    check_assertion(field->initializer == NULL);
   } else {
     field = NULL;
     dtype = error_type();
@@ -4250,9 +4251,19 @@ IL entry for that field.
     unexpected_condition();
   }  /* if */
   if (field != NULL && is->init_dip != NULL) {
-    field->has_direct_braced_initializer = is->direct_init;
-    field->initializer = is->init_dip;
-    field->has_nonconstant_initializer = is->constant_expr_ruled_out;
+    if (field->initializer != NULL) {
+      /* If the field already has an initializer, that means that the
+         evaluation of the initializer resulted in a recursive instantiation.
+         The initializer will have been filled-in with an error constant. */
+      check_assertion(field->initializer->kind ==
+                                           (a_dynamic_init_kind)dik_constant &&
+                      field->initializer->variant.constant->type->kind ==
+                                                        (a_type_kind)tk_error);
+    } else {
+      field->has_direct_braced_initializer = is->direct_init;
+      field->initializer = is->init_dip;
+      field->has_nonconstant_initializer = is->constant_expr_ruled_out;
+    }  /* if */
   } else {
     expect_error();
     field->has_initializer = FALSE;

@@ -1361,7 +1361,7 @@ is TRUE, cache the argument tokens if this is a template-dependent context.
          last. */
       tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
       /* Check for the case where the cache is empty. */
-      tcsp->default_arg_or_exception_spec_missing =
+      tcsp->expression_missing =
                                  esp->variant.token_cache->first_token == NULL;
     }  /* if */
     terminate_token_cache(esp->variant.token_cache);

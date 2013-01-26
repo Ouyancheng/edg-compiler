@@ -200,8 +200,7 @@ when either is_function_template or is_template_param are FALSE.
     tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
     tcsp->is_default_arg = TRUE;
     /* Check for the case where the cache is empty. */
-    tcsp->default_arg_or_exception_spec_missing =
-                                              token_cache->first_token == NULL;
+    tcsp->expression_missing = token_cache->first_token == NULL;
   }  /* if */
   /* Note that the terminating token (comma, rparen, etc.) is not added to
      the cache. */

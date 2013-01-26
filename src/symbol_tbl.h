@@ -1342,6 +1342,36 @@ typedef struct an_enum_symbol_supplement {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } an_enum_symbol_supplement;
 
+
+typedef struct a_field_symbol_supplement *a_field_symbol_supplement_ptr;
+typedef struct a_field_symbol_supplement {
+  /* Additional information about an field, supplementing the information
+     residing in the type's symbol entry. */
+  a_token_sequence_number
+		token_sequence_number;
+			/* This is used to match find the initializer from
+			   a prototype instantiation for a field in a
+			   real instantiation. */
+  a_token_cache_ptr
+		token_cache;
+			/* For a field that is a member of a template class
+			   (including prototype and real instantiations)
+			   this points to the cache containing the
+			   initializer, if any.  For real instantiations,
+			   this is copied from the entry from the prototype
+			   instantiation to the entry for the real
+			   instantiation when the real instantiation of the
+			   enclosing class is done.  NULL if their is no
+			   initializer, for fields of non-template classes,
+			   and for fields of template classes if an
+			   instantiation has been done. */
+  a_byte_boolean
+		being_instantiated;
+			/* TRUE for a field of a template class that is in
+			   the process of being instantiated. */
+} a_field_symbol_supplement;
+
+
 /*
 Data structure used to pass information about function declarations back
 from the scanning of the function declarator.
@@ -2177,9 +2207,9 @@ typedef struct a_template_cache_segment {
 			/* TRUE if this entry represents a default argument
 			   expression. */
   a_byte_boolean
-		default_arg_or_exception_spec_missing;
-			/* TRUE if the default argument or exception
-			   specification expression is empty.  (e.g.,
+		expression_missing;
+			/* TRUE if default argument, exception specification,
+			   or initializer expression is missing (e.g.,
 			   "void f(int=)"). */
   a_byte_boolean
 		is_exception_specification_arg;
@@ -3264,6 +3294,10 @@ typedef struct a_symbol {
 			   class type for certain nonstandard anonymous
 			   unions); in some modes, that type may be
 			   cv-qualified. */
+      a_field_symbol_supplement_ptr
+		extra_info;
+			/* Pointer to an entry providing additional info about
+			   a field. */
     } field;
     /* When kind == sk_routine or sk_member_function: */
     struct {

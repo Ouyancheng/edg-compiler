@@ -1482,6 +1482,49 @@ is the token sequence number to be used as the identifier for this template.
 }  /* find_class_template_member */
 
 
+void find_inclass_initializer_for_instance(
+				a_symbol_ptr	field_sym,
+				a_symbol_ptr	corresp_prototype_tag_sym)
+/*
+Find the field in the class specified by corresp_prototype_tag_sym that
+corresponds to field_sym in an actual instantiation.
+*/
+{
+  a_symbol_ptr				sym;
+  a_field_symbol_supplement_ptr		fssp =
+                                           field_sym->variant.field.extra_info;
+  a_field_symbol_supplement_ptr		orig_fssp;
+  a_class_symbol_supplement_ptr		cssp;
+  a_type_ptr				parent_type;
+
+  check_assertion(corresp_prototype_tag_sym != NULL);
+  /* Skip over any anonymous union parent types. */
+  parent_type = corresp_prototype_tag_sym->variant.class_struct_union.type;
+  while (parent_type->variant.class_struct_union.extra_info->
+                                            anonymous_union_kind != auk_none) {
+    parent_type = parent_class_of(parent_type);
+    check_assertion(parent_type != NULL);
+  }  /* while */
+  cssp = symbol_supplement_for_class(parent_type);
+  for (sym = find_symbol_list_in_table(&cssp->pointers_block,
+                                       field_sym->header);
+       sym != NULL;
+       sym = sym->next_in_lookup_table) {
+    if (symbol_is(sym, sk_field)) {
+      break;
+    }  /* if */
+  }  /* for */
+  check_assertion_or_expect_error(sym != NULL);
+  if (sym != NULL) {
+    orig_fssp = sym->variant.field.extra_info;
+    check_assertion(orig_fssp->token_sequence_number ==
+                                                   curr_token_sequence_number);
+    fssp->token_cache = orig_fssp->token_cache;
+    check_assertion(fssp->token_cache != NULL);
+  }  /* if */
+}  /* find_inclass_initializer_for_instance */
+
+
 static a_boolean template_arg_has_value(a_template_arg_ptr	tap)
 /*
 Return TRUE if the template argument specified by "tap" has been given a value.
@@ -4069,14 +4112,14 @@ repl_token_kind, add repl_token_kind to the cache.
 }  /* remove_body_from_cache */
 
 
-static void remove_default_arg_or_exception_spec(
+static void remove_expression_from_cache(
 					a_template_cache_segment_ptr tcsp)
 /*
-Remove a default argument or exception specification from a token cache.
-Replace it with a special placeholder token.  Then tokens are removed
-from the list linked by the "next" pointer in the token cache, but
-are still pointed to by the "next_in_token_string" link so that they
-can still be put in the token string that is generated.
+Remove a default argument, exception specification, or initializer expression
+from a token cache.  Replace it with a special placeholder token.  The
+tokens are removed from the list linked by the "next" pointer in the
+token cache, but are still pointed to by the "next_in_token_string" link
+so that they can still be put in the token string that is generated.
 */
 {
   a_cached_token_ptr	before_first_token = tcsp->before_first_token;
@@ -4091,7 +4134,7 @@ can still be put in the token string that is generated.
   replacement_token = build_cached_token(tok_removed_expr,
                                          tcsp->first_token_number,
                                          &first_token->source_position);
-  if (tcsp->default_arg_or_exception_spec_missing) {
+  if (tcsp->expression_missing) {
     /* The default argument was empty.  Insert the replacement token. */
     replacement_token->next = before_first_token->next;
     before_first_token->next = replacement_token;
@@ -4112,7 +4155,7 @@ can still be put in the token string that is generated.
   replacement_token->variant.extracted_template.semicolon_inserted = FALSE;
   replacement_token->variant.extracted_template.next_in_token_string =
                                                                    first_token;
-}  /* remove_default_arg_or_exception_spec */
+}  /* remove_expression_from_cache */
 
 
 static a_template_cache_segment_ptr extract_member_bodies(
@@ -4158,12 +4201,12 @@ and a list of the unprocessed entries is returned to the caller.
       } else {
         /* A default argument.  Remove the default argument and replace it
            with a "removed default argument" token. */
-        remove_default_arg_or_exception_spec(tcsp);
+        remove_expression_from_cache(tcsp);
       }  /* if */
     } else if (tcsp->is_exception_specification_arg) {
       /* Remove exception specification argument(s), and replace it (or
          them) by a placeholder token. */
-      remove_default_arg_or_exception_spec(tcsp);
+      remove_expression_from_cache(tcsp);
     } else {
 #if DEBUG
       a_boolean	removed = FALSE;
@@ -4174,8 +4217,7 @@ and a list of the unprocessed entries is returned to the caller.
         case sk_function_template:
           /* A separate copy of the token cache is already maintained for
              member functions and member templates.  Just free the
-             tokens that were removed from
-             the original cache. */
+             tokens that were removed from the original cache. */
           { a_cached_token_ptr	first_token = tcsp->before_first_token->next;
             remove_body_from_cache(tcsp, tok_semicolon);
             free_tokens_from_reusable_cache(first_token, &tcp->tokens);
@@ -4201,6 +4243,13 @@ and a list of the unprocessed entries is returned to the caller.
             removed = TRUE;
 #endif /* DEBUG */
           }  /* if */
+          break;
+        case sk_field:
+          /* Remove the field initializer expression. */
+          remove_expression_from_cache(tcsp);
+#if DEBUG
+          removed = TRUE;
+#endif /* DEBUG */
           break;
         default:
           unexpected_condition();
@@ -11161,6 +11210,81 @@ accordingly.
 }  /* instantiate_exception_spec_if_needed */
 
 
+static void instantiate_field_initializer(a_field_ptr	field)
+/*
+Instantiate the initializer of field, which must be a field of an
+instantiation of a class template or member of class template.
+*/
+{
+  a_symbol_ptr			field_sym = symbol_for(field);
+  a_field_symbol_supplement_ptr	fssp;
+  a_boolean			instantiate = TRUE;
+
+  check_assertion(field_sym != NULL);
+  fssp = field_sym->variant.field.extra_info;
+  check_assertion(fssp->token_cache != NULL);
+  if (fssp->being_instantiated) {
+    /* This default argument (for this instance) is already being instantiated.
+       Don't attempt another instantiation. */
+    pos_sy_error(ec_recursive_initializer_instantiation, &error_position,
+                 field_sym);
+    /* The field is expected to have an initializer upon return from this
+       routine.  Create an error constant initializer. */
+    field->initializer = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+    field->initializer->variant.constant = alloc_error_constant();
+    instantiate = FALSE;
+  }  /* if */
+  if (instantiate) {
+    a_boolean			trans_unit_pushed;
+    a_boolean			class_reactivated = FALSE;
+    a_memory_region_number	region_to_switch_back_to;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    a_source_position		saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    a_type_ptr			parent_type = sym_parent_class(field_sym);
+    a_decl_parse_state		dps;
+
+    /* Switch to the translation unit containing the template, if needed. */
+    trans_unit_pushed = push_translation_unit_if_needed(field_sym);
+    /* Indicate that an instantiation of this initializer is pending. */
+    fssp->being_instantiated = TRUE;
+    push_lexical_state_stack();
+    if (!(scope_is(&scope_stack_top(), sck_class_struct_union) &&
+          same_entities(scope_stack_top().assoc_type, parent_type))) {
+      /* Reactivate the class scope and parse the initializer. */
+      push_class_and_template_reactivation_scope(parent_type,
+                                                 /*is_template_based=*/TRUE,
+                                                 /*extend_namespace=*/TRUE);
+      class_reactivated = TRUE;
+    }  /* if */
+    /* Class reactivation doesn't automatically switch the current memory
+       region to file scope memory.  So we do it manually here.  (Ordinarily
+       this shouldn't be needed, but error recovery can cause to get here
+       with a local scope active.) */
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    rescan_reusable_cache(fssp->token_cache);
+    /* Re-create a declaration parsing state before parsing the initializer. */
+    init_decl_parse_state(&dps);
+    dps.sym = field_sym;
+    field_initializer(&dps);
+    flush_past_token_cache_terminator();
+    /* Clear the token cache pointer, but don't discard it because the
+       cache is shared with other instances of the field. */
+    fssp->token_cache = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (class_reactivated) {
+      pop_class_reactivation_scope();
+    }  /* if */
+    pop_lexical_state_stack();
+    /* If the translation unit stack was pushed above, pop it now. */
+    if (trans_unit_pushed) pop_translation_unit_stack();
+    fssp->being_instantiated = FALSE;
+  }  /* if */
+}  /* instantiate_field_initializer */
+
+
 void instantiate_field_initializer_if_needed(a_field_ptr  field)
 /*
 If the given field is a member of a class template instance (or a nested class
@@ -11170,7 +11294,7 @@ now.
 {
   check_assertion(field->has_initializer);
   if (field->initializer == NULL) {
-    /* FIXME */
+    instantiate_field_initializer(field);
   }  /* if */
 }  /* instantiate_field_initializer_if_needed */
 

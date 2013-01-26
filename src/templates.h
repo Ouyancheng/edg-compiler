@@ -602,6 +602,10 @@ extern void find_static_data_member_template(
                                     a_symbol_ptr  static_data_member_sym,
                                     a_symbol_ptr  corresp_prototype_tag_sym);
 
+extern void find_inclass_initializer_for_instance(
+				a_symbol_ptr	field_sym,
+				a_symbol_ptr	corresp_prototype_tag_sym);
+
 extern void check_for_uninstantiated_template_class(a_type_ptr  type);
 
 extern

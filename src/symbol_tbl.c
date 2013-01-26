@@ -104,6 +104,7 @@ static unsigned long
 		num_conversion_headers_allocated,
 		symbol_name_string_space,
 		num_symbol_header_lookup_entries_allocated,
+		num_field_symbol_supplements_allocated,
 		num_enum_symbol_supplements_allocated,
 		num_class_symbol_supplements_allocated,
 		num_template_symbol_supplements_allocated,
@@ -2948,7 +2949,7 @@ to the symbol supplement associated with sym.
   tcsp->last_token = NULL;
   tcsp->is_friend = FALSE;
   tcsp->is_default_arg = FALSE;
-  tcsp->default_arg_or_exception_spec_missing = FALSE;
+  tcsp->expression_missing = FALSE;
   tcsp->is_exception_specification_arg = FALSE;
   /* Add the new entry to the list of template cache segments associated
      with the current instantiation.  If there is no current instantiation,
@@ -3685,6 +3686,16 @@ state.
     case sk_field:
       sym_ptr->variant.field.ptr = NULL;
       sym_ptr->variant.field.anonymous_parent_object = NULL;
+      { a_field_symbol_supplement  *fssp;
+        fssp = alloc_fe_of_type(a_field_symbol_supplement);
+        fssp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+        fssp->token_cache = NULL;
+        fssp->being_instantiated = FALSE;
+#if DEBUG
+        num_field_symbol_supplements_allocated++;
+#endif /* DEBUG */
+        sym_ptr->variant.field.extra_info = fssp;
+      }
       break;
     case sk_routine:
     case sk_member_function:
@@ -14716,6 +14727,9 @@ for space tracking purposes.
                 an_extern_symbol_descr);
   db_space_used("extern type fixup", num_extern_type_fixups_allocated,
                 an_extern_type_fixup);
+  db_space_used("field symbol supplement",
+                num_field_symbol_supplements_allocated,
+                a_field_symbol_supplement);
   db_space_used("enum symbol supplement",
                 num_enum_symbol_supplements_allocated,
                 an_enum_symbol_supplement);
@@ -15081,6 +15095,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_access_error_descrs_allocated),
       pch_saved_var_array_elem(num_active_using_directives_allocated),
       pch_saved_var_array_elem(num_generated_entity_blocks_allocated),
+      pch_saved_var_array_elem(num_field_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_enum_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_class_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_compares_for_symbols),
@@ -15267,6 +15282,7 @@ of the front end.
   num_conversion_headers_allocated              = 0;
   symbol_name_string_space                      = 0;
   num_symbol_header_lookup_entries_allocated    = 0;
+  num_field_symbol_supplements_allocated        = 0;
   num_enum_symbol_supplements_allocated         = 0;
   num_class_symbol_supplements_allocated        = 0;
   num_template_symbol_supplements_allocated     = 0;

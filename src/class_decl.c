@@ -522,7 +522,8 @@ typedef struct an_initializer_fixup {
 			/* Pointer to a symbol entry with which the fixup is
 			   associated (always an sk_static_data_member symbol
 			   at this time). */
-  a_token_cache initializer_token_cache;
+  a_token_cache_ptr
+		token_cache;
 			/* A pointer to the token cache that describes the
 			   member initializer. */
 } an_initializer_fixup;
@@ -577,7 +578,7 @@ initialize it.
   /* Clear the entity. */
   ifp->next = NULL;
   ifp->symbol = NULL;
-  clear_token_cache(&ifp->initializer_token_cache, /*reusable=*/FALSE);
+  ifp->token_cache = NULL;
   return ifp;
 }  /* alloc_initializer_fixup */
 
@@ -588,6 +589,9 @@ Return the given initializer fixup entry to the list of entries available for
 reuse.
 */
 {
+  if (ifp->token_cache != NULL) {
+    discard_token_cache(ifp->token_cache);
+  }  /* if */
   ifp->next = avail_initializer_fixup;
   avail_initializer_fixup = ifp;
 }  /* free_initializer_fixup */
@@ -2884,14 +2888,22 @@ prototype instantiations).
        this shouldn't be needed, but error recovery can cause to get here
        with a local scope active.) */
     switch_to_file_scope_region(&region_to_switch_back_to);
-    rescan_cached_tokens(&ifp->initializer_token_cache);
+    rescan_reusable_cache(ifp->token_cache);
     /* Re-create a declaration parsing state before parsing the initializer. */
     init_decl_parse_state(&dps);
     dps.sym = ifp->symbol;
     if (symbol_is(dps.sym, sk_field)) {
       /* A C++11-style field initializer. */
+      a_field_symbol_supplement_ptr	fssp;
       check_assertion(field_initializers_enabled);
+      fssp = dps.sym->variant.field.extra_info;
       field_initializer(&dps);
+      if (fssp->token_cache != NULL) {
+        /* The field entry will contain a token cache pointer for fields of
+           prototype instantiations.  In that case, clear the token_cache
+           field of the initializer fixup to prevent it from being freed. */
+        ifp->token_cache = NULL;
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (symbol_is(dps.sym, sk_static_data_member)) {
       /* Static data member initializer.  Only in managed classes is
@@ -2986,7 +2998,7 @@ of a constant-expression.
       push_class_and_template_reactivation_scope(class_type,
                                                  /*is_template_based=*/FALSE,
                                                  /*extend_namespace=*/TRUE);
-      rescan_cached_tokens(&ifp->initializer_token_cache);
+      rescan_reusable_cache(ifp->token_cache);
       scan_member_constant_initializer_expression(&dps, &constant);
       var->init_kind = (an_init_kind)initk_static;
       var->initializer.constant = alloc_unshared_constant(&constant);
@@ -14136,42 +14148,131 @@ remove those projections (silently).
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void record_inclass_initializer_fixup(a_decl_parse_state  *dps)
+static a_boolean in_class_template_definition(
+					a_class_def_state_ptr	class_state)
 /*
-The next tokens must be an in-class initializer for a data member.  Cache
-those tokens and create a fixup record so the initializer can be parsed in the
-context of the completed class later on.
-(See also inclass_initializer_fixup_for_class.)
+Return TRUE if we are in the context of a class template definition or
+a nested class of a class template.  Also TRUE for C++/CLI generic
+definitions.  class_state points to a block of information tracking
+general information about the class.
 */
 {
-  a_scope_stack_entry       *ssep = &scope_stack_top();
-  a_token_set_array         stop_tokens;
-  an_initializer_fixup_ptr  ifp = alloc_initializer_fixup();
+  a_boolean	result = FALSE;
+  a_type_ptr	type = class_state->class_type;
 
-  ifp->symbol = dps->sym;
+  if ((class_state->is_nonreal_instantiation ||
+       class_state->is_generic_definition) &&
+      !type->variant.class_struct_union.is_ms_instantiated_nonreal_class &&
+      !type->variant.class_struct_union.is_in_class_specialization) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* in_class_template_definition */
+
+
+static a_boolean in_class_instantiation(
+					a_class_def_state_ptr	class_state)
+/*
+Return TRUE if we are in the instantiation of a class template or
+nested class of a class template.  Also TRUE for instantiations of C++/CLI
+generics.  class_state points to a block of information tracking
+general information about the class.
+*/
+{
+  a_boolean	result;
+
+  result = class_state->corresp_prototype_tag_sym != NULL;
+  return result;
+}  /* in_class_instantiation */
+
+
+static a_token_cache_ptr cache_inclass_initializer(a_symbol_ptr	sym)
+/*
+Cache the tokens that make up an in-class initializer for the static or
+nonstatic data member specified by sym.  Return a pointer to the
+token cache that was created.
+*/
+{
+  a_token_cache_ptr		token_cache = alloc_token_cache();
+  a_token_sequence_number	first_tsn;
+  a_token_sequence_number	last_tsn;
+  a_token_set_array		stop_tokens;
+
   /* Initialize a local stop token set to cache everything up to a semicolon
      or a comma (outside braces, etc.). */
+  clear_token_cache(token_cache, /*reusable=*/TRUE);
   clear_token_set_array(stop_tokens);
   incr_token_set_array_element(stop_tokens, tok_comma);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
   incr_token_set_array_element(stop_tokens, tok_rbrace);
+  first_tsn = curr_token_sequence_number;
   /* Cache the initializer tokens. */
-  cache_token_stream_coalesce_identifiers(&ifp->initializer_token_cache,
-                                          stop_tokens);
-  terminate_token_cache(&ifp->initializer_token_cache);
-  /* Record the fixup in the scope stack. */
-  check_assertion(scope_is(ssep, sck_class_struct_union));
-  /* There's only one fixup-list for a class and its nested classes, and it's
-     associated with the outermost enclosing class.  If this is a nested class,
-     move up the scope stack to find the appropriate entry. */
-  while (scope_is(ssep-1, sck_class_struct_union)) --ssep;
-  if (ssep->last_initializer_fixup == NULL) {
-    symbol_supplement_for_class(ssep->assoc_type)
-                                               ->initializer_fixup_list = ifp;
-  } else {
-    ssep->last_initializer_fixup->next = ifp;
+  cache_token_stream_coalesce_identifiers(token_cache, stop_tokens);
+  terminate_token_cache(token_cache);
+  /* The -1 is to exclude the final token from the cache that is created. */
+  last_tsn = curr_token_sequence_number - 1;
+  if (is_prototype_instantiation_context() &&
+      symbol_is(sym, sk_field)) {
+    /* This is an initializer in the prototype instantiation of a class
+       template or nested class of a class template.  Save the token numbers
+       associated with this default initializer so that it can be removed
+       from the cache later. */
+    a_template_cache_segment_ptr	tcsp;
+    a_field_symbol_supplement_ptr	fssp;
+    tcsp = alloc_template_cache_segment(
+                                  sym, (a_template_symbol_supplement_ptr)NULL);
+    tcsp->first_token_number = first_tsn;
+    /* When there is no default, the computed last token number could be
+       less that the first.  In that case, use the first token number as
+       the last. */
+    tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
+    /* Check for the case where the cache is empty. */
+    tcsp->expression_missing = token_cache->first_token == NULL;
+    fssp = sym->variant.field.extra_info;
+    fssp->token_cache = token_cache;
   }  /* if */
-  ssep->last_initializer_fixup = ifp;
+  return token_cache;
+}  /* cache_inclass_initializer */
+
+
+static void record_inclass_initializer_fixup(
+				a_class_def_state_ptr   class_state,
+				a_decl_parse_state	*dps)
+/*
+The next tokens must be an in-class initializer for a data member.
+Cache those tokens and create a fixup record so the initializer can
+be parsed in the context of the completed class later on.
+(See also inclass_initializer_fixup_for_class.)
+*/
+{
+  a_token_cache_ptr		token_cache;
+  a_scope_stack_entry		*ssep = &scope_stack_top();
+
+  check_assertion(scope_is(ssep, sck_class_struct_union));
+  /* Cache the initializer. */
+  token_cache = cache_inclass_initializer(dps->sym);
+  if (microsoft_mode && symbol_is(dps->sym, sk_field) &&
+      !nonclass_prototype_instantiations &&
+      in_class_template_definition(class_state)) {
+    /* Field symbols in prototype instantiations do not have their fixup
+       entries recorded because Microsoft does not evaluate them. */
+  } else {
+    /* Record the fixup in the scope stack. */
+    an_initializer_fixup_ptr	ifp = alloc_initializer_fixup();
+    ifp->symbol = dps->sym;
+    ifp->token_cache = token_cache;
+    /* There's only one fixup-list for a class and its nested classes, and
+       it's associated with the outermost enclosing class.  If this is a
+       nested class, move up the scope stack to find the appropriate entry. */
+    while (scope_is(ssep-1, sck_class_struct_union)) --ssep;
+    if (ssep->last_initializer_fixup == NULL) {
+      symbol_supplement_for_class(ssep->assoc_type)
+                                               ->initializer_fixup_list = ifp;
+    } else {
+      ssep->last_initializer_fixup->next = ifp;
+    }  /* if */
+    ssep->last_initializer_fixup = ifp;
+  }  /* if */
 }  /* record_inclass_initializer_fixup */
 
 
@@ -14452,7 +14553,7 @@ specific information about the member declaration, respectively.
     }  /* if */
     if (delay_initializer_scan) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      record_inclass_initializer_fixup(decl_state);
+      record_inclass_initializer_fixup(class_state, decl_state);
       var->storage_class = (a_storage_class)sc_unspecified;
       srk_flags |= SRK_DEFINITION;
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -16692,15 +16793,36 @@ information about the member declaration, respectively.
        can sometimes get us here with a different scope on top of the stack. */
     expect_error();
   } else if (field_initializers_enabled && !decl_info->is_bit_field &&
-             (curr_token == tok_assign || curr_token == tok_lbrace)) {
+             (curr_token == tok_assign || curr_token == tok_lbrace ||
+              curr_token == tok_removed_expr)) {
     /* A field initializer.  It must be parsed in the context of the completed
        class definition.  We therefore create a fixup entry holding the cached
        tokens of the initializer until we are ready to parse them. */
+    a_boolean				record_fixup = TRUE;
+    a_field_symbol_supplement_ptr	fssp;
+    check_assertion(symbol_is(dps->sym, sk_field));
+    fssp = dps->sym->variant.field.extra_info;
     dps->auto_type_allowed = FALSE;
-    record_inclass_initializer_fixup(dps);
-    if (symbol_is(dps->sym, sk_field)) {
-      dps->sym->variant.field.ptr->has_initializer = TRUE;
+    if (in_class_template_definition(class_state)) {
+      /* During the prototype instantiation, save the token sequence
+         number associated with this declaration so that it can be used
+         for matching purposes during real instantiations. */
+      fssp->token_sequence_number = curr_token_sequence_number;
+    } else if (in_class_instantiation(class_state)) {
+      /* During a real instantiation, the token cache information is copied
+         from the field of the prototype instantiation. */
+      find_inclass_initializer_for_instance(
+                             dps->sym, class_state->corresp_prototype_tag_sym);
+      /* No fixup is done because field initializers in templates are only
+         instantiated if used. */
+      record_fixup = FALSE;
+      check_assertion(curr_token == tok_removed_expr);
+      (void)get_token();
     }  /* if */
+    if (record_fixup) {
+      record_inclass_initializer_fixup(class_state, dps);
+    }  /* if */
+    dps->sym->variant.field.ptr->has_initializer = TRUE;
     /* Field initializers make the class a non-POD and a non-aggregate.  Also,
        it makes the default constructor nontrivial. */
     class_state->POD_ruled_out = TRUE;
@@ -23472,12 +23594,7 @@ passed via template_decl.
         decl_member_function(&locator, &func_info, class_state, &decl_info,
                              /*compiler_generated=*/FALSE);
         rout_sym = decl_info.decl_state.sym;
-        if ((class_state->is_nonreal_instantiation ||
-             class_state->is_generic_definition) &&
-            !class_type->variant.class_struct_union.
-                                            is_ms_instantiated_nonreal_class &&
-            !class_type->
-                       variant.class_struct_union.is_in_class_specialization) {
+        if (in_class_template_definition(class_state)) {
           /* During the prototype instantiation, save the token sequence
              number associated with this declaration so that it can be used
              for matching purposes during real instantiations. */
@@ -23488,7 +23605,7 @@ passed via template_decl.
                cases). */
             tssp->token_sequence_number = curr_token_sequence_number;
           }  /* if */
-        } else if (class_state->corresp_prototype_tag_sym != NULL) {
+        } else if (in_class_instantiation(class_state)) {
           /* The class must be the instantiation of a class template (or a
              class nested within such an instantiation). Bind the current
              member function symbol to the function template symbol
