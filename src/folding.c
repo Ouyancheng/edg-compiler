@@ -7904,12 +7904,7 @@ evaluation.
       folded = TRUE;
       break;
     case dik_expression:
-      if (ref_case) {
-        folded = fold_lvalue_expr(dip->variant.expression, ceblock,
-                                  result_con);
-      } else {
-        folded = fold_expr(dip->variant.expression, ceblock, result_con);
-      }  /* if */
+      folded = fold_expr(dip->variant.expression, ceblock, result_con);
       break;
     case dik_constructor:
       check_assertion(!ref_case);
