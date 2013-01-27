@@ -9376,7 +9376,6 @@ TRUE if the operator is "->", FALSE if it is ".".
   an_operand_state      saved_operand_state = operand->state;
   an_expr_operator_kind op;
   a_boolean             need_expr = FALSE, need_expr_for_constant = FALSE;
-  a_boolean             discard_selector_in_expr = FALSE;
   a_boolean             template_constant = FALSE;
 
   orig_operand = *operand;
@@ -9425,34 +9424,27 @@ TRUE if the operator is "->", FALSE if it is ".".
     if (curr_il_region_number == file_scope_region_number &&
         innermost_function_scope != NULL) {
       /* For an expression scanned within a function body whose constant will
-         be at file scope, like an array bound, discard the selector expression
-         because it might reference "this" or local variables in the first
-         operand. */
-      discard_selector_in_expr = TRUE;
+         be at file scope, like an array bound, don't create a backing
+         expression because the selector expression might reference "this"
+         or local variables in the first operand. */
+      need_expr_for_constant = need_expr = FALSE;
     }  /* if */
   } else {
     /* In all other cases, the result will be an expression. */
     need_expr = TRUE;
   }  /* if */
   if (need_expr) {
-    /* Make an expression for the selection. */
-    if (discard_selector_in_expr) {
-      /* For the reasons given above, discard the selector and use just the
-         second operand as the expression. */
-      expr = orig_expr;
+    /* Make an expression for a static selection. */
+    selector_expr->next = orig_expr;
+    /* Determine the operator to use. */
+    if (is_arrow_operator) {
+      op = (an_expr_operator_kind)eok_points_to_static;
     } else {
-      /* Make an expression for a static selection. */
-      selector_expr->next = orig_expr;
-      /* Determine the operator to use. */
-      if (is_arrow_operator) {
-        op = (an_expr_operator_kind)eok_points_to_static;
-      } else {
-        op = (an_expr_operator_kind)eok_dot_static;
-      }  /* if */
-      /* Make a node for the selector and the operand. */
-      expr = make_operator_node(op, orig_expr->type, selector_expr);
-      if (orig_expr->is_lvalue) expr->is_lvalue = TRUE;
+      op = (an_expr_operator_kind)eok_dot_static;
     }  /* if */
+    /* Make a node for the selector and the operand. */
+    expr = make_operator_node(op, orig_expr->type, selector_expr);
+    if (orig_expr->is_lvalue) expr->is_lvalue = TRUE;
     /* Save the expression as either the overall result or as the backing
        expression for a constant result. */
     if (need_expr_for_constant) {
