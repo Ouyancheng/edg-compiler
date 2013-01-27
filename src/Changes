@@ -1,5 +1,23 @@
 Version 4.6
 
+1/17/13  [EDGcpfe/13605]
+Incorrect backing expression on static selection of named constant
+
+A static selection in which the right operand is a named constant yielded
+a constant result with a backing expression for the static selection, but
+with is_named_constant_definition still (incorrectly) set. 
+If there is a subsequent type change, the backing expression was changed
+to an incorrect one, which caused incorrect cp_gen_be output.  Now fixed.
+
+  struct {
+    enum E { e0, e1 };
+  } a;
+  struct B {
+    int bitfield : a.e1; // a.e1 allowed in Microsoft mode
+                         // cp_gen_be output was like __T3328184::e1
+  } b;
+
+
 1/25/13  [EDGcpfe/13602]
 Abort during determination of "this" in lambda return type
 

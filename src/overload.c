@@ -9457,6 +9457,7 @@ TRUE if the operator is "->", FALSE if it is ".".
        expression for a constant result. */
     if (need_expr_for_constant) {
       operand->variant.constant.expr = expr;
+      operand->variant.constant.is_named_constant_definition = FALSE;
     } else {
       make_expression_operand(expr, operand);
       operand->state = saved_operand_state;
