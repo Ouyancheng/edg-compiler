@@ -8143,14 +8143,13 @@ a new unshared constant will be allocated and returned.
          of the constant and its value in parallel to match the initial
          value with the specified offset. */
       a_type_ptr       target_type = type_pointed_to(addr_con->type);
-      a_type_ptr       curr_type;
+      a_type_ptr       curr_type = skip_typerefs(result_con->type);
       a_targ_ptrdiff_t offset = addr_con->variant.address.offset;
       a_boolean        found_value = FALSE;
       a_targ_ptrdiff_t cum_offset = 0;
       a_type_ptr       most_derived_type = curr_type;
 
       target_type = skip_typerefs(target_type);
-      curr_type = skip_typerefs(result_con->type);
       while (!found_value && result_con != NULL) {
         if (cum_offset == offset &&
             identical_types(target_type, curr_type)) {
