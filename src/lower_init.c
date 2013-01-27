@@ -1515,7 +1515,7 @@ in the aggregate have not been lowered (and aren't lowered here).
     prelower_class_type(class_type);
     check_assertion(ctsp->virtual_function_table_var != NULL);
     if (ctsp->virtual_function_info_base_class != NULL) {
-      /* This class shares it's vptr with a base class, so there's no
+      /* This class shares its vptr with a base class, so there's no
          need to look for a vptr in this aggregate (it'll be set when
          we visit the base class). */
       modify_vptr_in_this_class = FALSE;
@@ -1537,7 +1537,9 @@ in the aggregate have not been lowered (and aren't lowered here).
     }  /* if */
     any_more_base_classes = (ctsp->base_classes != NULL);
     /* Iterate over the field list for the class, keeping track of which
-       items in the aggregate constant initialize each field. */
+       items in the aggregate constant initialize each field (at least
+       until we've processed the vptr field and any applicable base
+       classes). */
     check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
     aggr_con = constant->variant.aggregate.first_constant;
     for (field = next_initializable_field(
