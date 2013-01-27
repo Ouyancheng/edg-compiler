@@ -8246,7 +8246,8 @@ a new unshared constant will be allocated and returned.
           start_of_char_within_string =
                       result_con->variant.string.value + (offset - cum_offset);
           char_val = (a_host_large_integer)extract_character_from_string(
-                               start_of_char_within_string, target_type->size);
+                                            start_of_char_within_string,
+                                            (unsigned int)(target_type->size));
           set_integer_constant(&char_con, char_val,
                                target_type->variant.integer.int_kind);
           result_con = &char_con;
@@ -8556,7 +8557,8 @@ field_selection:
                                &pos);
               if (error_detected == ec_no_error && !did_not_fold) {
                 folded = TRUE;
-                if (op == eok_subscript && !expr->is_lvalue) {
+                if (op == (an_expr_operator_kind)eok_subscript &&
+                    !expr->is_lvalue) {
                   /* The value, not the address, of the element is
                      desired. */
                   a_constant value_con;
