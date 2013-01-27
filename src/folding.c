@@ -5404,9 +5404,11 @@ error.  *err_pos is used as the position for any diagnostics issued.
                    &err_severity);
           break;
         case eok_padd:
+        case eok_subscript:
           { a_constant_ptr ptr_con = constant_1;
             a_constant_ptr int_con = constant_2;
-            /* The operands of pointer "+" can be in either order. */
+            /* The operands of pointer "+" and subscript can be in either
+               order. */
             if (is_pointer_type(constant_2->type)) {
               ptr_con = constant_2;
               int_con = constant_1;
@@ -8100,6 +8102,7 @@ a new unshared constant will be allocated and returned.
 */
 {
   a_constant_ptr result_con = NULL;
+  a_constant     char_con;
 
   if (is_error_constant(addr_con)) {
     /* There was an error upstream.  Return an error constant. */
@@ -8109,21 +8112,22 @@ a new unshared constant will be allocated and returned.
     } else {
       result_con = alloc_error_constant();
     }  /* if */
-  } else if (addr_con->kind == (a_constant_repr_kind)ck_address &&
-             addr_con->variant.address.kind ==
-                                          (an_address_base_kind)abk_variable) {
-    /* The constant is the address of a variable, possibly with an offset
-       designating a subobject. */
-    a_type_ptr       target_type = type_pointed_to(addr_con->type);
-    a_type_ptr       curr_type;
-    a_targ_ptrdiff_t offset = addr_con->variant.address.offset;
-    a_variable_ptr   var = addr_con->variant.address.variant.variable;
-    target_type = skip_typerefs(target_type);
-    curr_type = skip_typerefs(var->type);
-    result_con = var_constant_value(var);
+  } else if (addr_con->kind == (a_constant_repr_kind)ck_address) {
+    if (addr_con->variant.address.kind == (an_address_base_kind)abk_variable) {
+      /* The constant is the address of a variable, possibly with an offset
+         designating a subobject.  See if it has a constant value and, if
+         so, use it. */
+      result_con =
+                var_constant_value(addr_con->variant.address.variant.variable);
+    } else if (addr_con->variant.address.kind ==
+                                          (an_address_base_kind)abk_constant) {
+      /* The constant is the address of a constant, possibly with an offset
+         designating a subobject.  Use it. */
+      result_con = addr_con->variant.address.variant.constant;
+    }  /* if */
     if (result_con == NULL) {
-      /* The variable does not have a constant value -- just return
-         NULL. */
+      /* The address constant does not designate a constant value -- just
+         return NULL. */
     } else if (is_error_constant(result_con)) {
       /* There was an error upstream.  Return an error constant. */
       if (target_con != NULL) {
@@ -8133,18 +8137,29 @@ a new unshared constant will be allocated and returned.
         result_con = alloc_error_constant();
       }  /* if */
     } else {
-      /* Either the value is part of result_con or it's a zero value
-         resulting from an aggregate initializer with fewer elements than
-         the object being initialized.  Scan through the type of the
-         variable and the constant in parallel to match the initial value
-         with the offset. */
+      /* Either the value is result_con or some subobject thereof or it's a
+         zero value resulting from an aggregate initializer with fewer
+         elements than the object being initialized.  Scan through the type
+         of the constant and its value in parallel to match the initial
+         value with the specified offset. */
+      a_type_ptr       target_type = type_pointed_to(addr_con->type);
+      a_type_ptr       curr_type;
+      a_targ_ptrdiff_t offset = addr_con->variant.address.offset;
       a_boolean        found_value = FALSE;
       a_targ_ptrdiff_t cum_offset = 0;
       a_type_ptr       most_derived_type = curr_type;
+
+      target_type = skip_typerefs(target_type);
+      curr_type = skip_typerefs(result_con->type);
       while (!found_value && result_con != NULL) {
         if (cum_offset == offset &&
             identical_types(target_type, curr_type)) {
           /* result_con is the value we're looking for. */
+          found_value = TRUE;
+        } else if (result_con->kind == (a_constant_repr_kind)ck_string &&
+                   (a_targ_ptrdiff_t)(cum_offset + curr_type->size) > offset) {
+          /* result_con is a string and offset designates a character within
+             that string. */
           found_value = TRUE;
         } else {
           /* curr_type is either an array or a class type, and offset
@@ -8215,11 +8230,36 @@ a new unshared constant will be allocated and returned.
           }  /* if */
         }  /* if */
       }  /* while */
+      if (result_con != NULL && !identical_types(target_type, curr_type)) {
+        /* The requested offset designates a character within a string. */
+        check_assertion(result_con->kind == (a_constant_repr_kind)ck_string);
+        if (offset > (a_targ_ptrdiff_t)(cum_offset +
+                                        result_con->variant.string.length)) {
+          /* The requested character is beyond the length of the constant,
+             i.e., was implicitly value-initialized.  set result_con to NULL
+             so that a zero constant will be synthesized, */
+          result_con = NULL;
+        } else {
+          /* Copy the character into char_con and use that as the result. */
+          a_host_large_integer char_val;
+          char                 *start_of_char_within_string;
+          check_assertion(target_type->kind == (a_type_kind)tk_integer);
+          start_of_char_within_string =
+                      result_con->variant.string.value + (offset - cum_offset);
+          char_val = (a_host_large_integer)extract_character_from_string(
+                               start_of_char_within_string, target_type->size);
+          set_integer_constant(&char_con, char_val,
+                               target_type->variant.integer.int_kind);
+          result_con = &char_con;
+        }  /* if */
+      }  /* if */
       if (result_con != NULL) {
         /* result_con points to the requested value. */
         if (target_con != NULL) {
           (void)copy_constant_full(result_con, target_con, CE_NO_OPTIONS);
           result_con = target_con;
+        } else {
+          result_con = copy_unshared_constant(result_con);
         }  /* if */
       } else {
         /* We ran off the end of the aggregate initializer, so the
@@ -8242,10 +8282,10 @@ a new unshared constant will be allocated and returned.
 
 a_constant_ptr constant_value_addressed_by_node(an_expr_node_ptr expr)
 /*
-If expr is an lvalue that is a constant address of a constant value, return
-that value; otherwise, return NULL.  For example, if the expression is
-something like *p, the value of p is an address constant, and the variable
-to which p points has a constant value, return that value.
+If expr (which must be an lvalue) is a constant address of a constant
+value, return that value; otherwise, return NULL.  For example, if the
+expression is something like *p, the value of p is an address constant, and
+the variable to which p points has a constant value, return that value.
 */
 {
   a_constant_ptr result_con = NULL;
@@ -8505,6 +8545,7 @@ field_selection:
             case eok_pdiff:
             case eok_padd:
             case eok_psubtract:
+            case eok_subscript:
               /* Foldable binary (two-operand) operators. */
               binary_operation(op, &op1_constant, &op2_constant, expr->type,
                                result_con,
@@ -8516,6 +8557,17 @@ field_selection:
                                &pos);
               if (error_detected == ec_no_error && !did_not_fold) {
                 folded = TRUE;
+                if (op == eok_subscript && !expr->is_lvalue) {
+                  /* The value, not the address, of the element is
+                     desired. */
+                  a_constant value_con;
+                  if (constant_value_at_address(result_con, &value_con) !=
+                                                                        NULL) {
+                    copy_constant(&value_con, result_con);
+                  } else {
+                    unexpected_condition();
+                  }  /* if */
+                }  /* if */
               }  /* if */
               break;
             case eok_cast:
@@ -8544,6 +8596,11 @@ field_selection:
                                expr->type,
                                ceblock,
                                result_con);
+  }  /* if */
+  if (folded && result_con->kind == (a_constant_repr_kind)ck_address &&
+      !valid_address_constant(result_con)) {
+    /* Invalid addresses make an expression non-constant. */
+    folded = FALSE;
   }  /* if */
   return folded;
 }  /* fold_expr */
