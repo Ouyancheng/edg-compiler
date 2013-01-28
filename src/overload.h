@@ -911,6 +911,7 @@ extern a_boolean conversion_from_class_possible(
 
 extern void try_to_convert_class_operand_to_builtin_type(
                                  an_operand              *operand,
+                                 a_type_ptr              specific_type,
                                  a_builtin_type_kind_set builtin_types_allowed,
                                  a_boolean               *processed);
 

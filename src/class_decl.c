@@ -16772,7 +16772,8 @@ information about the member declaration, respectively.
     /* Advance past the colon. */
     (void)get_token();
     /* Scan the integral size in bits of the bit-field. */
-    scan_fs_integral_constant_expression(&decl_info->bit_field_size);
+    scan_fs_integral_constant_expression((a_type_ptr)NULL,
+                                          &decl_info->bit_field_size);
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_attributes_enabled) {
       scan_gnu_declarator_attributes(dps);

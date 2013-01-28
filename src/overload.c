@@ -16533,13 +16533,15 @@ conv_context describes the context of the conversion.
 
 void try_to_convert_class_operand_to_builtin_type(
                                  an_operand              *operand,
+                                 a_type_ptr              specific_type,
                                  a_builtin_type_kind_set builtin_types_allowed,
                                  a_boolean               *processed)
 /*
 If *operand has a class type, see if it can be converted (via a conversion
-function) to a built-in type of the set allowed by builtin_types_allowed.
-If so, convert it and set *processed to TRUE.  The result is always an rvalue.
-Issue an error and set *processed to TRUE if the conversion is ambiguous.
+function) to a built-in type of the set allowed by builtin_types_allowed,
+or, if specific_type is non-NULL, to specific_type.  If so, convert it
+and set *processed to TRUE.  The result is always an rvalue.  Issue an
+error and set *processed to TRUE if the conversion is ambiguous.
 */
 {
   a_conv_descr             conversion;
@@ -16550,7 +16552,7 @@ Issue an error and set *processed to TRUE if the conversion is ambiguous.
   if (is_class_struct_union_type(operand->type)) {
     /* See if the class type can be converted to an acceptable built-in
        type. */
-    if (conversion_from_class_possible(operand, (a_type_ptr)NULL,
+    if (conversion_from_class_possible(operand, specific_type,
                                        builtin_types_allowed,
                                        /*need_lvalue_result=*/FALSE,
                                        /*is_copy_initialization=*/TRUE,

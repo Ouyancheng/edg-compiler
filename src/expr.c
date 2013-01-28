@@ -9230,6 +9230,7 @@ are TRUE, the operand is first read from and then written to.
   /* Convert from a class type to an integer if necessary. */
   if (!C_mode() && is_class_struct_union_type(result.type)) {
     try_to_convert_class_operand_to_builtin_type(&result, 
+                                                 (a_type_ptr)NULL,
                                                  BTK_INTEGRAL |
                                                  BTK_ENUM |
                                                  BTK_FLOATING |
@@ -17043,7 +17044,9 @@ in *rcblock).
       builtin_type_kinds |= BTK_HANDLE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    try_to_convert_class_operand_to_builtin_type(&operand, builtin_type_kinds,
+    try_to_convert_class_operand_to_builtin_type(&operand,
+                                                 (a_type_ptr)NULL,
+                                                 builtin_type_kinds,
                                                  &processed);
   }  /* if */
   if (!processed) {
@@ -23094,7 +23097,9 @@ class type if necessary.  In modern C++ modes, this routine implements
                                                 BTK_POINTER |
                                                 BTK_PTR_TO_MEMBER);
     }  /* if */
-    try_to_convert_class_operand_to_builtin_type(result, type_kind_set,
+    try_to_convert_class_operand_to_builtin_type(result,
+                                                 (a_type_ptr)NULL,
+                                                 type_kind_set,
                                                  &processed);
   }  /* if */
   if (!processed) {
@@ -29304,7 +29309,9 @@ used for constant expressions.
     a_builtin_type_kind_set type_kind_set = BTK_INTEGRAL;
     /* Switch statements allow enums, including scoped enums. */
     if (is_switch_expr) type_kind_set |= BTK_ENUM;
-    try_to_convert_class_operand_to_builtin_type(operand, type_kind_set,
+    try_to_convert_class_operand_to_builtin_type(operand,
+                                                 (a_type_ptr)NULL,
+                                                 type_kind_set,
                                                  &processed);
   }  /* if */
   if (!processed) {
@@ -29528,12 +29535,13 @@ error constant is returned.
 {
   a_boolean processed = FALSE;
 
-  if (dest_type == NULL && constexpr_enabled &&
+  if (constexpr_enabled &&
       is_class_struct_union_type(operand->type) &&
       is_literal_type(operand->type)) {
     /* Try to convert a class operand to one of the built-in types
-       in the set given. */
+       in the set given, or to dest_type if that's non-NULL. */
     try_to_convert_class_operand_to_builtin_type(operand,
+                                                 dest_type,
                                                  builtin_types,
                                                  &processed);
   }  /* if */
@@ -33684,15 +33692,17 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
 }  /* scan_pp_expression */
 
 
-void scan_integral_constant_expression(a_constant *constant)
+static void scan_integral_constant_expression_full(a_type_ptr specific_type,
+                                                   a_constant *constant)
 /*
-Scan an integral constant expression.  See section 6.4 in the ISO C89 standard,
-and [expr.const] in the ISO C++98 standard.
+Scan an integral constant expression.  If specific_type is non-NULL,
+the constant will be converted to specific_type in C++11 mode.
+The value of the constant is returned in *constant.
 */
 {
   an_operand result;
 
-  db_enter(3, "scan_integral_constant_expression");
+  db_enter(3, "scan_integral_constant_expression_full");
   if ((gcc_mode ||
        (gpp_mode && gnu_version < 40000) ||
        sun_mode ||
@@ -33722,7 +33732,7 @@ and [expr.const] in the ISO C++98 standard.
       /* C++11 allows user-defined conversions and limits certain
          implicit conversions. */
       process_converted_constant_expression(&result,
-                                            (a_type_ptr)NULL,
+                                            specific_type,
                                             (a_builtin_type_kind_set)
                                                      (BTK_INTEGRAL | BTK_ENUM),
                                             constant);
@@ -33755,24 +33765,36 @@ and [expr.const] in the ISO C++98 standard.
   }  /* if */
 #endif /* DEBUG */
   db_exit();
+}  /* scan_integral_constant_expression_full */
+
+
+void scan_integral_constant_expression(a_constant *constant)
+/*
+Scan an integral constant expression, and return its value in *constant.
+*/
+{
+  scan_integral_constant_expression_full((a_type_ptr)NULL, constant);
 }  /* scan_integral_constant_expression */
 
 
-void scan_fs_integral_constant_expression(a_constant *constant)
+void scan_fs_integral_constant_expression(a_type_ptr specific_type,
+                                          a_constant *constant)
 /*
-Scan an integral constant expression.  The constant will be allocated
-(by the caller) in the file scope memory region, so switch to the file
-scope while scanning the constant, so that anything allocated during
-the scan will be allocated in the file scope memory region.  (This is
-significant for expressions that represent the original form in which a
-constant expression was specified; we want the expression for the constant
-to be in the file scope memory region so that the constant can point to it).
+Scan an integral constant expression.  If specific_type is non-NULL,
+the constant will be converted to specific_type in C++11 mode.  The
+constant will be allocated (by the caller) in the file scope memory
+region, so switch to the file scope while scanning the constant, so
+that anything allocated during the scan will be allocated in the file
+scope memory region.  (This is significant for expressions that
+represent the original form in which a constant expression was
+specified; we want the expression for the constant to be in the file
+scope memory region so that the constant can point to it).
 */
 {
   a_memory_region_number  region_to_switch_back_to;
 
   switch_to_file_scope_region(&region_to_switch_back_to);
-  scan_integral_constant_expression(constant);
+  scan_integral_constant_expression_full(specific_type, constant);
   switch_back_to_original_region(region_to_switch_back_to);
 }  /* scan_fs_integral_constant_expression */
 
@@ -33845,7 +33867,10 @@ expression context.  Return either *is_constant TRUE and a constant value in
   /* Convert from a class type to integral if necessary. */
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(result.type)) {
+    a_type_ptr specific_type = cpp11_mode ? integer_type(targ_size_t_int_kind):
+                                            (a_type_ptr)NULL;
     try_to_convert_class_operand_to_builtin_type(&result,
+                                                 specific_type,
                                                  (a_builtin_type_kind_set)
                                                      (BTK_INTEGRAL | BTK_ENUM),
                                                  &processed);
