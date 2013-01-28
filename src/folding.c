@@ -5544,6 +5544,7 @@ pos gives a default source position.
   ceblock->do_not_call_back = FALSE;
   ceblock->is_partially_initialized = FALSE;
   ceblock->call_depth = 0;
+  ceblock->failure_warning = ec_no_error;
 }  /* clear_constexpr_evaluation_block */
 
 
@@ -7865,7 +7866,10 @@ recursion.
   a_boolean ovflo = FALSE;
 
   ceblock->call_depth++;
-  if (ceblock->call_depth > max_constexpr_call_nesting) ovflo = TRUE;
+  if (ceblock->call_depth > max_constexpr_call_nesting) {
+    ovflo = TRUE;
+    ceblock->failure_warning = ec_excessive_constexpr_recursion;
+  }  /* if */
   return ovflo;
 }  /* incr_constexpr_call_depth */
 
@@ -8941,7 +8945,8 @@ a_boolean fold_constexpr_call(an_expr_node_ptr  call_expr,
                               a_boolean         record_backing_expr,
                               a_source_position *pos,
                               a_constant        *result_con,
-                              a_boolean         *returns_reference)
+                              a_boolean         *returns_reference,
+                              an_error_code     *failure_warning)
 /*
 call_expr is a call expression.  If it's calling a constexpr function,
 try to fold the call to a constant.  If that's possible, place the
@@ -8951,8 +8956,10 @@ the result is a reference, and result_con is the constant address for
 the reference.  If returns_reference is NULL, the caller requires an
 rvalue result and the reference return case will be converted to an
 rvalue if possible.  pos gives the source position for the call.
-If record_backing_expr is TRUE, record call_expr as a backing
-expression for the resulting constant.
+If failure_warning is non-NULL, *failure_warning will be set to
+the error code for a reason why folding failed, or ec_no_error
+if no specific reason is available.  If record_backing_expr is
+TRUE, record call_expr as a backing expression for the resulting constant.
 */
 {
   a_boolean                    folded;
@@ -8964,6 +8971,13 @@ expression for the resulting constant.
                                  result_con,
                                  returns_reference);
   if (folded && record_backing_expr) result_con->expr = call_expr;
+  if (failure_warning != NULL) {
+    if (folded) {
+      *failure_warning = ec_no_error;
+    } else {
+      *failure_warning = ceblock.failure_warning;
+    }  /* if */
+  }  /* if */
   return folded;
 }  /* fold_constexpr_call */
 

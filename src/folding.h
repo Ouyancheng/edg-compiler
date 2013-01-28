@@ -184,6 +184,10 @@ typedef struct a_constexpr_evaluation_block {
 		call_depth;
 			/* Depth of constexpr calls, used to check for
 			   recursion overflow. */
+  an_error_code
+		failure_warning;
+			/* If not ec_no_error, gives the reason for a folding
+			   failure.  The error code must have no fill-ins. */
 } a_constexpr_evaluation_block;
 
 /*
@@ -260,7 +264,8 @@ extern a_boolean fold_constexpr_call(an_expr_node_ptr  call_expr,
                                      a_boolean         record_backing_expr,
                                      a_source_position *pos,
                                      a_constant        *result_con,
-                                     a_boolean         *returns_reference);
+                                     a_boolean         *returns_reference,
+                                     an_error_code     *failure_warning);
 extern
 a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
                               a_boolean          record_backing_expr,

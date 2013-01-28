@@ -5396,11 +5396,14 @@ routines.  See fold_constexpr_call for the description of the parameters.
   a_boolean folded = FALSE;
 
   if (constexpr_enabled && curr_expr_is_evaluated()) {
-    a_boolean need_backing_expr =
+    an_error_code failure_warning;
+    a_boolean     need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     if (fold_constexpr_call(call_expr, need_backing_expr, pos,
-                            result_con, returns_reference)) {
+                            result_con, returns_reference, &failure_warning)) {
       folded = TRUE;
+    } else if (failure_warning != ec_no_error) {
+      expr_pos_warning(failure_warning, pos);
     }  /* if */
   }  /* if */
   return folded;
