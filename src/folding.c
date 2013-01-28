@@ -36,6 +36,9 @@ static a_boolean fold_constant_field_selection(a_constant   *object_con,
                                                a_field_ptr  field,
                                                a_constant   *result_con);
 
+static a_constant_ptr constant_value_at_address(a_constant_ptr addr_con,
+                                                a_constant_ptr target_con);
+
 /*
 Determine the severity (error or warning) to be used for integer
 operation overflows.
@@ -885,21 +888,23 @@ void fold_base_class_cast(a_constant        *constant_1,
                           a_source_position *err_pos,
                           an_error_code     *error_detected)
 /*
-Fold a C++ cast of a class pointer to a base class pointer.  constant_1 is
-an address of a class object.  It is converted to a pointer to the base
-class indicated by bcp and the new constant is returned in *result.
-qualifiers_model is a class type whose cv-qualification indicates
-the cv-qualification desired on the result (i.e., the result type is
-the base class type of bcp and the cv-qualifiers of qualifiers_model).
-result->type need not be set on entry.  Do access control on the cast
-if check_cast_access is TRUE.  Check for ambiguity on the cast if
-check_ambiguity is TRUE.  The cast is implicit if is_implicit_cast is
-TRUE.  The pointer is known to point to an object if is_object_pointer
-is TRUE.  If the operation cannot be folded, *did_not_fold is returned
-TRUE.  If there is an error, issue it at *err_pos.  If error_detected
-is non-NULL, set *error_detected to the code for any error detected,
-and do not issue the diagnostic, or set it to ec_no_error if there was
-no error.
+Fold a C++ cast of a class pointer to a base class pointer or of a class
+(ck_aggregate) constant to a base class subobject.  If constant_1 is an
+address of a class object, it is converted to a pointer to the base class
+indicated by bcp and the new constant is returned in *result; otherwise,
+the value of the base class subobject designated by bcp is copied to
+*result.  qualifiers_model is a class type whose cv-qualification indicates
+the cv-qualification desired on the result (i.e., the result type is the
+base class type of bcp and the cv-qualifiers of qualifiers_model).
+result->type need not be set on entry.  For pointer casts, do access
+control on the cast if check_cast_access is TRUE and check for ambiguity on
+the cast if check_ambiguity is TRUE.  The cast is implicit if
+is_implicit_cast is TRUE.  The pointer is known to point to an object if
+is_object_pointer is TRUE.  If the operation cannot be folded,
+*did_not_fold is returned TRUE.  If there is an error, issue it at
+*err_pos.  If error_detected is non-NULL, set *error_detected to the code
+for any error detected, and do not issue the diagnostic, or set it to
+ec_no_error if there was no error.
 */
 {
   a_boolean             err;
@@ -928,6 +933,19 @@ no error.
   } else if (constant_1->kind == (a_constant_repr_kind)ck_template_param) {
     /* Can't fold a dependent case. */
     *did_not_fold = TRUE;
+  } else if (constant_1->kind == (a_constant_repr_kind)ck_aggregate) {
+    /* This is a class constant.  Create an abk_constant address constant
+       referring to the class constant with the offset specified by bcp and
+       use that to extract the subobject value. */
+    a_constant addr_con;
+    set_constant_address_constant(constant_1, &addr_con);
+    addr_con.variant.address.offset = bcp->offset;
+    addr_con.type = make_pointer_type(bcp->type);
+    if (constant_value_at_address(&addr_con, result) == NULL) {
+      unexpected_condition();
+    }  /* if */
+    result->type =
+                  make_identically_qualified_type(bcp->type, qualifiers_model);
   } else {
     an_expr_node_ptr expr = constant_1->expr;
     constant_1->expr = NULL;

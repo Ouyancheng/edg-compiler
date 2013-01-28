@@ -7960,13 +7960,13 @@ used only in C++ mode.
   } else {
     did_not_fold = TRUE;
     if (curr_expr_is_evaluated() && expr_stack->favor_constant_result &&
-        is_constant_operand(operand) &&
-        /*FIXME*/!operand->variant.constant.is_result_of_constexpr_call) {
-      /* Fold a cast of a constant address into another constant address.
-         This folding is always done in constant expressions, but in some
-         nonconstant expressions it's not done because it's clearer to
-         have the cast in the IL (the constant form has only an offset,
-         and loses the sequence of casts). */
+        is_constant_operand(operand)) {
+      /* Fold a cast of a constant address into another constant address or
+         of a class (ck_aggregate) constant into the value of the specified
+         base class subobject.  This folding is always done in constant
+         expressions, but in some nonconstant expressions it's not done
+         because it's clearer to have the cast in the IL (the constant form
+         has only an offset, and loses the sequence of casts). */
       an_error_code error_detected = ec_no_error;
       an_error_code *p_error_detected = NULL;
       if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
@@ -16194,7 +16194,6 @@ is an rvalue reference.
       /* With constexpr, a class value can be a constant. */
       a_constant_ptr con = &operand->variant.constant;
       a_constant     addr_con;
-      check_assertion(con->is_result_of_constexpr_call);
       set_constant_address_constant(alloc_unshared_constant(con), &addr_con);
       addr_con.type = make_reference_type(operand->type);
       make_constant_operand(&addr_con, operand);
