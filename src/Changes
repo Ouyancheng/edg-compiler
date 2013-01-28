@@ -14,7 +14,7 @@ Now fixed.
   }
 
 
-1/17/13  [EDGcpfe/13605]
+1/27/13  [EDGcpfe/13605]
 Incorrect backing expression on static selection of named constant
 
 A static selection in which the right operand is a named constant yielded
