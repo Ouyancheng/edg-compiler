@@ -1,5 +1,14 @@
 Version 4.6
 
+1/28/13  [EDGcpfe/9569, EDGcpfe/9603, EDGcpfe/12396, EDGcpfe/12911,
+          EDGcpfe/13595]
+GNU compatibility: binary literals
+
+Binary literals are now supported in GNU mode when gnu_version >= 40300.
+
+  int i = 0b01;
+
+
 1/28/13  [EDGcpfe/13603]
 Lowering of array variable in nested lambdas
 

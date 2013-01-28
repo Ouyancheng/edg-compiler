@@ -7865,7 +7865,7 @@ the kind of token.
 */
 {
   register char	ch;
-  register enum {k_decimal, k_octal, k_hex,
+  register enum {k_decimal, k_octal, k_hex, k_binary,
 #if FIXED_POINT_ALLOWED
                  k_fixed_point,
 #endif /* FIXED_POINT_ALLOWED */
@@ -7927,6 +7927,21 @@ the kind of token.
         } else {
           warning_at_line_pos(ec_bad_hex_digit, start_of_curr_token);
         }  /* if */
+      }  /* if */
+    } else if (binary_literals_allowed && (ch == 'b' || ch == 'B')) {
+      /* A binary literal. */
+      a_boolean	any_digits = FALSE;
+      kind = k_binary;
+      curr_char_loc++;
+      /* Scan any digits.  If a digit is not "0" or "1", an error will
+         be issued later. */
+      while (isdigit((unsigned char)*(++curr_char_loc))) {
+        any_digits = TRUE;
+      }  /* while */
+      if (!any_digits && !fetch_pp_tokens) {
+        /* No digits were found after the "0b" or "0B". */
+        error_at_line_pos(ec_bad_binary_digit, start_of_curr_token);
+        err = TRUE;
       }  /* if */
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
     } else if (gnu_mode &&
@@ -8193,6 +8208,7 @@ fixed_point_suffix:
       case k_decimal:     ks = "decimal";     break;
       case k_octal:       ks = "octal";       break;
       case k_hex:         ks = "hex";         break;
+      case k_binary:      ks = "binary";      break;
 #if FIXED_POINT_ALLOWED
       case k_fixed_point: ks = "fixed-point"; break;
 #endif /* FIXED_POINT_ALLOWED */
@@ -8293,6 +8309,10 @@ fixed_point_suffix:
         break;
       case k_hex:
         conv_integer_literal(16, &err_code, &err_pos);
+        ctoken = tok_int_constant;
+        break;
+      case k_binary:
+        conv_integer_literal(2, &err_code, &err_pos);
         ctoken = tok_int_constant;
         break;
 #if FIXED_POINT_ALLOWED

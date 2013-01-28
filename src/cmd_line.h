@@ -1693,6 +1693,11 @@ EXTERN a_boolean
 			   C99 mode. */
 
 EXTERN a_boolean
+		binary_literals_allowed;
+			/* TRUE if binary literals (e.g., 0b01010)
+			   are allowed. */
+
+EXTERN a_boolean
 		export_template_allowed;
 			/* TRUE if the use of exported templates
 			   is permitted. */

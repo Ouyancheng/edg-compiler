@@ -31,7 +31,7 @@ void conv_integer_literal(int           radix,
                           an_error_code *err_code,
                           char          **err_pos)
 /*
-Convert an integer of base indicated by radix (8, 10, or 16) from
+Convert an integer of base indicated by radix (2, 8, 10, or 16) from
 external form to internal form.  start_of_curr_token and
 end_of_curr_token point to the two ends of the external form.  The
 internal form is placed in const_for_curr_token.  If there is no error,
@@ -40,9 +40,9 @@ set to an appropriate error code and *err_pos is set to the character
 position of the error.  A zero-length number is converted as zero.
 Other than the zero-length pathology, the input number is guaranteed
 to be syntactically correct (except for digits 8 and 9 in octal 
-constants).  The number may have a "u" or "l" suffix, or both.
-(Or a "ll" or "ull" suffix, if long long is allowed.)
-(Or a suffix like "i32", if Microsoft extensions are enabled.)
+constants or digits above 1 for binary constants).  The number may have
+a "u" or "l" suffix, or both. (Or a "ll" or "ull" suffix, if long long
+is allowed.) (Or a suffix like "i32", if Microsoft extensions are enabled.)
 */
 {
   an_integer_value number, ten, digit, mask;
@@ -188,6 +188,25 @@ constants).  The number may have a "u" or "l" suffix, or both.
       }  /* if */
       /* Multiply previous value by 8, checking for overflow. */
       shift_left_integer_value(&number, 3, &err);
+      if (err) ovflo = TRUE;
+      /* Or in digit. */
+      set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
+      or_integer_values(&number, &digit);
+    }  /* for */
+  } else if (radix == 2) {
+    /* Binary.*/
+    set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
+    for (temp_ptr = start_of_curr_token+2;
+         temp_ptr <= real_end_pos; temp_ptr++) {
+      intdigit = *temp_ptr - '0';
+      if (intdigit >= 2) {
+        /* Digits over 1 are not allowed. */
+        *err_pos = temp_ptr;
+        *err_code = ec_bad_binary_digit;
+        goto wrapup;
+      }  /* if */
+      /* Multiply previous value by 2, checking for overflow. */
+      shift_left_integer_value(&number, 1, &err);
       if (err) ovflo = TRUE;
       /* Or in digit. */
       set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);

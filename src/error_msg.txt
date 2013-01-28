@@ -2470,6 +2470,7 @@ ec_generated_default_constructor_used_in_field_initializer;;"the generated defau
 ec_recursive_initializer_instantiation;;"instantiation of initializer of %n depends on its own value"
 ec_defaulted_default_ctor_cannot_be_constexpr;;"defaulted default constructor cannot be constexpr because the corresponding implicitly declared default constructor would not be constexpr"
 ec_excessive_constexpr_recursion;;"expression not folded to a constant due to excessive constexpr function call nesting (possible infinite recursion)"
+ec_bad_binary_digit;;"invalid binary number"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

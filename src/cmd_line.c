@@ -3665,6 +3665,8 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   }  /* if */
   /* Hexadecimal floating point constants are permitted. */
   hex_floating_point_constants_allowed = TRUE;
+  /* Binary literals are allowed for gnu_version 40300 and above. */
+  binary_literals_allowed = gnu_version >= 40300;
   null_chars_allowed_in_source = TRUE;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   allow_nonstandard_anonymous_unions = TRUE;
@@ -9988,6 +9990,7 @@ variables declared in cmd_line.h.
   int128_extensions_enabled = FALSE;
 #endif /* INT128_EXTENSIONS_ALLOWED */
   hex_floating_point_constants_allowed = FALSE;
+  binary_literals_allowed = FALSE;
 #if EXPORT_ENABLING_POSSIBLE
   export_template_allowed = DEFAULT_EXPORT_TEMPLATE_ALLOWED &&
                             !DEFAULT_CPP11_MODE; /*lint !e506*/
