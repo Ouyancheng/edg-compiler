@@ -9035,25 +9035,29 @@ fold_constexpr_ctor should usually be called instead.
           a_constant_ptr     member_con_ptr;
           a_type_ptr         member_type = NULL;
           a_dynamic_init_ptr dip;
-          /* Adjust the variable for the next field we expect to be
-             initializing to account for added/removed fields. */
-          while (next_expected_field != NULL &&
-                 symbol_for(next_expected_field) == NULL) {
-            /* Skip lowering-generated fields. */
-            next_expected_field =
+          if (ctor_init == NULL ||
+              ctor_init->kind == (a_constructor_init_kind)cik_field) {
+            /* Adjust the variable for the next field we expect to be
+               initializing to account for added/removed fields.  Do this
+               also after the last field. */
+            while (next_expected_field != NULL &&
+                   symbol_for(next_expected_field) == NULL) {
+              /* Skip lowering-generated fields. */
+              next_expected_field =
                            next_initializable_field(next_expected_field->next);
-          }  /* while */
-          while (next_expected_field != NULL &&
-                 next_expected_field->is_anonymous_parent_object) {
-            /* Add an empty aggregate initializer for an anonymous union
-               containing no members. */
-            a_constant_ptr anon_union_aggr =
+            }  /* while */
+            while (next_expected_field != NULL &&
+                   next_expected_field->is_anonymous_parent_object) {
+              /* Add an empty aggregate initializer for an anonymous union
+                 containing no members. */
+              a_constant_ptr anon_union_aggr =
                             alloc_constant((a_constant_repr_kind)ck_aggregate);
-            add_constant_to_aggregate(anon_union_aggr, &aggr_con);
-            anon_union_aggr->type = next_expected_field->type;
-            next_expected_field =
+              add_constant_to_aggregate(anon_union_aggr, &aggr_con);
+              anon_union_aggr->type = next_expected_field->type;
+              next_expected_field =
                            next_initializable_field(next_expected_field->next);
-          }  /* while */
+            }  /* while */
+          }  /* if */
           if (ctor_init == NULL) break;
           /* Process the ctor-initializer to add a constant for the
              member initialized. */
