@@ -1841,6 +1841,7 @@ for an array initialization in GNU C++ mode).
     }  /* if */
   } else if (source_desc->capture != NULL) {
     a_boolean needs_indirection = FALSE;
+    a_boolean source_node_result_is_lvalue = result_is_lvalue;
     check_assertion(!source_desc->runtime_throw);
     if (source_desc->capture->source_closure_field == NULL) {
       a_variable_ptr  var = source_desc->capture->variable;
@@ -1872,11 +1873,12 @@ for an array initialization in GNU C++ mode).
            on top of the source description, but we don't have an appropriate
            modifier, so set a flag and add the indirection after converting
            to an expression. */
-        check_assertion(!result_is_lvalue);
         needs_indirection = TRUE;
+        source_node_result_is_lvalue = FALSE;
       }  /* if */
     }  /* if */
-    source_node = make_init_entity_node(&source_ipd, result_is_lvalue,
+    source_node = make_init_entity_node(&source_ipd,
+                                        source_node_result_is_lvalue,
                                         /*using_as_dest=*/FALSE);
     if (needs_indirection) {
       /* Add an indirection for the reference case of a variable captured
