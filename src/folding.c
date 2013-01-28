@@ -5798,21 +5798,6 @@ a constexpr expansion, and the block provides context information.
             /* The variable has a template-dependent type. */
             *template_constant = TRUE;
           }  /* if */
-        } else if (var->is_constexpr) {
-          /* For a constexpr variable that does not have a constant address,
-             return the address of the underlying constant (because we do
-             want to return a constant, but we can't return the address
-             of the variable). */
-          a_constant_ptr valcon = var_constant_value_full(
-                                             var,
-                                             /*copy_for_reuse=*/TRUE,
-                                             /*clear_backing_expr=*/TRUE,
-                                             /*allow_C_mode_const_var=*/FALSE);
-          /* valcon can be NULL in error cases. */
-          if (valcon != NULL) {
-            is_constant_addr = TRUE;
-            set_constant_address_constant(valcon, con);
-          }  /* if */
         }  /* if */
       }
       break;
