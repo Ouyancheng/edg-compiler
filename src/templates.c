@@ -17433,7 +17433,8 @@ friend_template_checks_done:
      set_template_cache_info(&tssp->cache, definition_token_cache,
                              decl_state->decl_info);
     }  /* if */
-    if (decl_state->is_partial_specialization && !is_redecl) {
+    if (decl_state->is_partial_specialization && !is_redecl &&
+        !decl_state->decl_scope_err) {
       /* Check any existing instances to see if the new partial specialization
          would have been a better match. */
       check_for_prior_use_of_partial_spec(sym, (a_symbol_ptr)NULL);
@@ -20416,7 +20417,8 @@ caller.
                         &tssp->variant.function.exception_spec_arg_cache,
                         rtsp->exception_specification->variant.token_cache,
                         decl_state->decl_info);
-        if (decl_state->class_declared_in == NULL) {
+        if (decl_state->class_declared_in == NULL &&
+            !decl_state->decl_scope_err) {
           instantiate_exception_spec_if_needed(symbol_for(rout_ptr));
         }  /* if */
       }  /* if */

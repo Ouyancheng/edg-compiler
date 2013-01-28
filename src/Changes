@@ -1,5 +1,19 @@
 Version 4.6
 
+1/28/13  [EDGcpfe/13008]
+Internal error on noexcept or partial specialization in invalid scope
+
+In general, the front end recovered successfully from a template declaration
+in an invalid scope (such as a function or block scope).  However, certain
+template constructs (noexcept specifications and partial specializations)
+could result in an internal error (in get_parent_information_for_template).
+Now fixed.
+
+  void f() {
+    template <class T> void g(T) noexcept(true);
+  }
+
+
 1/17/13  [EDGcpfe/13605]
 Incorrect backing expression on static selection of named constant
 
