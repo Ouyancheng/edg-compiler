@@ -17688,7 +17688,8 @@ static void check_if_constexpr_generated_default_constructor(
 /*
 If the given class type has a generated default constructor, determine if that
 constructor is "constexpr" (this in turn may require parsing the field
-initializers).
+initializers).  In the case of an explicitly default constexpr constructor
+issue an error if it is not actually constexpr.
 */
 {
   a_class_symbol_supplement_ptr
@@ -17701,22 +17702,35 @@ initializers).
     a_boolean  is_list = symbol_is(ctor, sk_overloaded_function);
     if (is_list) ctor = ctor->variant.overloaded_function.symbols;
     for (; ctor != NULL; ctor = is_list ? ctor->next : NULL) {
-      if (ctor->variant.routine.ptr->compiler_generated &&
+      if ((ctor->variant.routine.ptr->compiler_generated ||
+           (ctor->variant.routine.ptr->is_defaulted &&
+            ctor->variant.routine.ptr->is_constexpr)) &&
           is_simple_default_constructor(ctor->variant.routine.ptr)) {
         break;
       }  /* if */
     }  /* for */
   }  /* if */
-  if (ctor != NULL &&
-      !class_type->variant.class_struct_union.any_virtual_base_classes) {
-    /* A generated default constructor is implicitly "constexpr" if (a) the
-       parent class has no virtual bases, (b) every field has a constant field
-       initializer, and (c) every direct base class has an unambiguous
-       constexpr default constructor. */
-    if (fields_initialized_for_constexpr_constructor(class_type) &&
-        bases_initialized_for_constexpr_constructor(class_type)) {
-      ctor->variant.routine.ptr->is_constexpr = TRUE;
-      cssp->has_constexpr_nonstatic_member_function = TRUE;
+  if (ctor != NULL) {
+    a_boolean  is_constexpr = FALSE;
+    if (!class_type->variant.class_struct_union.any_virtual_base_classes) {
+      /* A generated default constructor is implicitly "constexpr" if (a) the
+         parent class has no virtual bases, (b) every field has a constant
+         field initializer, and (c) every direct base class has an unambiguous
+         constexpr default constructor. */
+      if (fields_initialized_for_constexpr_constructor(class_type) &&
+          bases_initialized_for_constexpr_constructor(class_type)) {
+        is_constexpr = TRUE;
+      }  /* if */
+    }  /* if */
+    if (is_constexpr) {
+      if (ctor->variant.routine.ptr->compiler_generated) {
+        ctor->variant.routine.ptr->is_constexpr = TRUE;
+        cssp->has_constexpr_nonstatic_member_function = TRUE;
+      }  /* if */
+    } else if (ctor->variant.routine.ptr->is_constexpr) {
+      pos_error(ec_defaulted_default_ctor_cannot_be_constexpr,
+                &ctor->decl_position);
+      ctor->variant.routine.ptr->is_constexpr = FALSE;
     }  /* if */
   }  /* if */
 }  /* check_if_constexpr_generated_default_constructor */

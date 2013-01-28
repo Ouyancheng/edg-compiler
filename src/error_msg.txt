@@ -2468,6 +2468,7 @@ ec_nonconstant_field_initializer_in_mem_initializer;;"constructor cannot be cons
 ec_nonconstant_mem_init_for_constexpr_ctor;;"non-constant initializer for constexpr constructor"
 ec_generated_default_constructor_used_in_field_initializer;;"the generated default constructor for %t cannot be used in an initializer for its own data member"
 ec_recursive_initializer_instantiation;;"instantiation of initializer of %n depends on its own value"
+ec_defaulted_default_ctor_cannot_be_constexpr;;"defaulted default constructor cannot be constexpr because the corresponding implicitly declared default constructor would not be constexpr"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
