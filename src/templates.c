@@ -7766,21 +7766,38 @@ that matches the template template parameter specified by sym_for_templ.
 }  /* class_matches_template_template_param */
 
 
-static a_boolean is_deducible_constant_param(a_constant_ptr templ_constant)
+static a_boolean is_deducible_constant_param(
+					a_constant_ptr	*p_templ_constant,
+					a_boolean	remove_impl_cast)
 /*
 Return TRUE if the specified constant is a template parameter constant
-that can be deduced from a function template call.
+that can be deduced from a function template call.  If there is an
+implicit cast over the constant it is removed and if remove_impl_cast is TRUE,
+*p_templ_constant is updated to point to the underlying template parameter.
 */
 {
-  a_boolean	result = FALSE;
+  a_boolean		result = FALSE;
+  a_constant_ptr	templ_constant = *p_templ_constant;
+
   if (templ_constant->kind == (a_constant_repr_kind)ck_template_param) {
-    /* Nontype parameters can only be deduced from simple uses of the
-       parameter, like A<I>.  Expressions are not allowed (e.g.,
-       A<I+1>) nor are references to members of a template parameter
-       (e.g., T::x).  If either of these is found, type deduction fails. */
     if (templ_constant->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_param) {
-      result = TRUE;
+                                   (a_template_param_constant_kind)tpck_cast &&
+        !templ_constant->explicit_cast_applied) {
+      templ_constant = templ_constant->variant.template_param.variant.constant;
+    }  /* if */
+    if (templ_constant->kind == (a_constant_repr_kind)ck_template_param) {
+      /* Nontype parameters can only be deduced from simple uses of the
+         parameter, like A<I> (except for implicit casts handled above).
+         Expressions are not allowed (e.g., A<I+1>) nor are references
+         to members of a template parameter (e.g., T::x).  If either of
+         these is found, type deduction fails. */
+      if (templ_constant->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_param) {
+        result = TRUE;
+        /* This will either update the pointer passed in or set it to its
+           current value. */
+        if (remove_impl_cast) *p_templ_constant = templ_constant;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -7925,7 +7942,10 @@ list of a template function.  Returns TRUE if a match is found.
                              (a_template_param_constant_kind)tpck_param ||
         nesting_depth_of_template_param(templ_param_list) ==
            templ_constant->variant.template_param.variant.coordinates.depth)) {
-    if (is_deducible_constant_param(templ_constant)) {
+    /* Note that the test below will remove an implicit cast from
+       templ_constant. */
+    if (is_deducible_constant_param(&templ_constant,
+                                   /*remove_impl_cast=*/TRUE)) {
       a_template_arg_ptr        tap;
       /* This is a template parameter from the original source program
          and not a synthesized template parameter. */
@@ -7993,7 +8013,8 @@ list of a template function.  Returns TRUE if a match is found.
          In this example, when templ_constant is (T)1 and constant is "I",
          it is important that deduction fail so that partial ordering
          produces the desired result. */
-    } else if (!is_deducible_constant_param(constant)) {
+    } else if (!is_deducible_constant_param(&constant,
+                                            /*remove_impl_cast=*/FALSE)) {
       /* A template parameter constant in an expression context.  Check
          for the special case of a constant cast to a template parameter
          type.  This is needed, for examples such as this:
@@ -8011,7 +8032,9 @@ list of a template function.  Returns TRUE if a match is found.
          cases where the constant in the template declaration may have a
          different intrinsic type (e.g., if it were specified as '\001').
          Finally, matches_template_constant is called on the converted
-         constant. */
+         constant.  We pass remove_impl_cast as FALSE so that the code below
+         will use the original constant, not the constant under an implicit
+         cast. */
       if (templ_constant->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_cast) {
         if (is_integral_type(constant->type) &&
@@ -8089,11 +8112,14 @@ of types after all of the function arguments have been processed.
 {
   a_boolean	match = FALSE;
 
-  if (!is_deducible_constant_param(templ_constant)) {
+  if (!is_deducible_constant_param(&templ_constant,
+                                   /*remove_impl_cast=*/TRUE)) {
     /* The array bound from the template is a constant (under an expression)
        but is not a simple template parameter.  This is a nondeduced context.
        Consider this a match for now.  This expression will be evaluated in
-       the deduction wrapup process and compared with the actual value. */
+       the deduction wrapup process and compared with the actual value.
+       We pass remove_impl_cast as TRUE so that the code below will use the
+       constant under an implicit cast. */
     match = TRUE;
   } else {
     a_template_arg_ptr        tap;
