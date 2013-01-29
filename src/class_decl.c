@@ -520,8 +520,8 @@ typedef struct an_initializer_fixup {
 			   member of a given class. */
   a_symbol_ptr  symbol;
 			/* Pointer to a symbol entry with which the fixup is
-			   associated (always an sk_static_data_member symbol
-			   at this time). */
+			   associated (always an sk_static_data_member or an
+			   sk_field symbol). */
   a_token_cache_ptr
 		token_cache;
 			/* A pointer to the token cache that describes the
@@ -14261,10 +14261,6 @@ be parsed in the context of the completed class later on.
     an_initializer_fixup_ptr	ifp = alloc_initializer_fixup();
     ifp->symbol = dps->sym;
     ifp->token_cache = token_cache;
-    /* There's only one fixup-list for a class and its nested classes, and
-       it's associated with the outermost enclosing class.  If this is a
-       nested class, move up the scope stack to find the appropriate entry. */
-    while (scope_is(ssep-1, sck_class_struct_union)) --ssep;
     if (ssep->last_initializer_fixup == NULL) {
       symbol_supplement_for_class(ssep->assoc_type)
                                                ->initializer_fixup_list = ifp;
@@ -26243,7 +26239,8 @@ next_declaration:
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */
       if ((!tag_sym->is_class_member || delayed_nested_class_def ||
-           is_in_class_specialization) && class_is_in_valid_scope) {
+           is_in_class_specialization) &&
+          class_is_in_valid_scope) {
         /* For non-nested classes add the class to the list of classes for
            which delayed processing for default argument declarations and
            inline member function definitions must be done.  The actual
