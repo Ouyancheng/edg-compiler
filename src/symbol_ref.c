@@ -2625,7 +2625,8 @@ there was an error, and do not issue any diagnostics (including warnings).
     /* Look through the scopes associated with the field initializer to see
        if any corresponds to the class type of the defaulted constructor. */
     do {
-      if (scope_is(ssep, sck_class_reactivation) &&
+      if ((scope_is(ssep, sck_class_reactivation) ||
+           scope_is(ssep, sck_class_struct_union)) &&
           same_entities(ssep->assoc_type, parent_class)) {
         if (error_detected != NULL) {
           *error_detected = TRUE;
