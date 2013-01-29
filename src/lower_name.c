@@ -470,6 +470,10 @@ static a_boolean
 
 static void mangled_encoding_for_type(a_type_ptr               type,
                                       a_mangling_control_block *mctl);
+static void mangled_encoding_for_type_full(
+                                a_type_ptr               type,
+                                a_boolean                suppress_substitution,
+                                a_mangling_control_block *mctl);
 static void mangled_encoding_for_type_with_pack_expansion(
                                     a_type_ptr               type,
                                     a_boolean                is_pack_expansion,
@@ -7385,9 +7389,18 @@ that fact should be put out.
       }  /* switch */
     } else {
       /* It's possible for a proxy class to be a typeref (most likely a
-         decltype), so provide an encoding for that. */
+         decltype), so provide an encoding for that.  The caller of this
+         routine has already made arrangements for a substitution for the
+         type to be recorded, so suppress that (in the IA-64 ABI) when
+         a proxy class is being used. */
       check_assertion(template_param->kind == (a_type_kind)tk_typeref);
-      mangled_encoding_for_type(template_param, mctl);
+      mangled_encoding_for_type_full(template_param,
+#if ABI_COMPATIBILITY_VERSION >= 406
+                                     /*suppress_substititions=*/TRUE,
+#else /* ABI_COMPATIBILITY_VERSION < 406 */
+                                     /*suppress_substititions=*/FALSE,
+#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
+                                     mctl);
     }  /* if */
   } else {
     /* Not a proxy for a template parameter. */
@@ -8723,10 +8736,18 @@ be used in the context of a pack expansion (as specified by is_pack_expansion).
 }  /* mangled_encoding_for_type_with_pack_expansion */
 
 
-static void mangled_encoding_for_type(a_type_ptr               type,
-                                      a_mangling_control_block *mctl)
+#if !IA64_ABI
+/*ARGSUSED*/ /* <-- suppress_substitution is unused in that case. */
+#endif /* !IA64_ABI */
+static void mangled_encoding_for_type_full(
+                                a_type_ptr               type,
+                                a_boolean                suppress_substitution,
+                                a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the type "type".
+If suppress_substitution is TRUE, no substitution is recorded for type
+(in the IA-64 ABI), relying instead on the caller to record the substitution
+as needed.
 */
 {
   a_type_ptr named_type, pm_base_type;
@@ -9380,18 +9401,29 @@ have_whole_mangled_name:;
   /* Create a substitution for the unqualified type.  No substitutions are
      created for <builtin-type>s (with the exception of vendor extended
      types). */
-  if (record_substitution_for_type(type)) {
+  if (!suppress_substitution && record_substitution_for_type(type)) {
     alloc_substitution((char *)type, iek_type, /*is_pack_expansion=*/FALSE,
                        mctl);
   }  /* if */
 add_substitution_for_qualified_type:
   /* Create a substitution for the original type, if it was qualified. */
-  if (qualifiers != TQ_NONE) {
+  if (!suppress_substitution && qualifiers != TQ_NONE) {
     alloc_substitution((char *)qualified_type, iek_type,
                        /*is_pack_expansion=*/FALSE, mctl);
   }  /* if */
 #endif /* IA64_ABI */
 end_of_routine:;
+}  /* mangled_encoding_for_type_full */
+
+
+static void mangled_encoding_for_type(a_type_ptr               type,
+                                      a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the type "type".  In the IA-64 ABI,
+a substitution is recorded for the type.
+*/
+{
+  mangled_encoding_for_type_full(type, /*suppress_substitution=*/FALSE, mctl);
 }  /* mangled_encoding_for_type */
 
 

@@ -4864,7 +4864,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
             }  /* if */
           }  /* if */
         } else {
-          class_type = skip_typerefs(class_type);
+          class_type = skip_typerefs_not_dependent_decltypes(class_type);
         }  /* if */
         if (complete_type == NULL) {
           /* We cannot create a valid pointer-to-member type yet: Create a

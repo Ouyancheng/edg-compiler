@@ -9473,6 +9473,7 @@ by the underlying class type entry in such cases.
 
   check_assertion(class_type != NULL);
   check_assertion(class_type->kind != (a_type_kind)tk_typeref ||
+                  class_type->variant.typeref.is_dependent_type_operator ||
                   gpp_mode || microsoft_mode);
   result->variant.ptr_to_member.class_of_which_a_member = class_type;
   return result;
@@ -9503,7 +9504,9 @@ and if *p_member_type is a function type, adjust it as follows:
   a_type_qualifier_set  qualifiers = TQ_NONE;
 
   check_assertion(class_type != NULL && member_type != NULL);
-  if (is_template_param_type(class_type)) {
+  if (is_template_param_type(class_type) ||
+      (class_type->kind == (a_type_kind)tk_typeref &&
+       class_type->variant.typeref.is_dependent_type_operator)) {
     /* The class type is a template parameter.  Substitute the template
        parameter's proxy class. */
     class_type = proxy_class_for_template_param(class_type);

@@ -1,5 +1,23 @@
 Version 4.6
 
+1/29/13  [EDGcpfe/13201,EDGcpfe/13202]
+Proxy class for template parameters used in pointer-to-members
+
+In cases like "int (T::*)()", where T is a template parameter, the template
+parameter T should be replaced with a proxy class, but hadn't been, leading to
+mangled names that had "?" characters.  Additionally, a change was made to the
+substitutions mechanism in the IA-64 ABI to prevent proxy classes from being
+mangled twice (leading, in some configurations to an "alloc_substitution:
+missed mangling substitution" assertion failure).  The mangling change
+is contingent on ABI_COMPATIBILITY_VERSION >= 406.  For example (with --c++11):
+
+  template <class Z> using B = int Z::X::*;
+  template <class... T> void f(B<decltype(T())>... args);
+  int main() {
+    f();
+  }
+
+
 1/28/13  [EDGcpfe/9569, EDGcpfe/9603, EDGcpfe/12396, EDGcpfe/12911,
           EDGcpfe/13595]
 GNU compatibility: binary literals
