@@ -25052,30 +25052,40 @@ flag is set in the class symbol supplement of the given type.
                         type,
                         type->variant.class_struct_union.is_template_class &&
                           !type->variant.class_struct_union.is_specialized);
-      if (!cssp->known_not_to_be_a_literal_type &&
-          cssp->constructor != NULL &&
-          cssp->has_constexpr_nonstatic_member_function) {
-        /* Look for a constexpr constructor that is not a copy or move
-           constructor. */
-        a_symbol_ptr  sym = cssp->constructor;
-        a_boolean     is_list = FALSE;
-        if (symbol_is(sym, sk_overloaded_function)) {
-          is_list = TRUE;
-          sym = sym->variant.overloaded_function.symbols;
-        }  /* if */
-        for (; sym != NULL; sym = is_list ? sym->next : (a_symbol_ptr)NULL) {
-          if (symbol_is(sym, sk_member_function)) {
-            a_routine_ptr         rp = sym->variant.routine.ptr;
-            a_type_qualifier_set  qualifiers;
-            if (rp->is_constexpr &&
-                !is_copy_constructor_type(rp->type, type, &qualifiers,
-                                          /*include_move_ctors=*/TRUE,
-                                          /*is_declarative_context=*/TRUE)) {
-              cssp->known_to_be_a_literal_type = TRUE;
-              break;
-            }  /* if */
+      if (!cssp->known_not_to_be_a_literal_type) {
+        if (class_type_supp(type)->anonymous_union_kind !=
+                                          (an_anonymous_union_kind)auk_none) {
+          /* Anonymous unions don't have constructors per se (and hence no
+             constexpr constructor will be found), but if exactly of field has
+             an initializer and it is constant, it can be considered a literal
+             type. */
+          if (fields_initialized_for_constexpr_constructor(type)) {
+            cssp->known_to_be_a_literal_type = TRUE;
           }  /* if */
-        }  /* for */
+        } else if (cssp->constructor != NULL &&
+            cssp->has_constexpr_nonstatic_member_function) {
+          /* Look for a constexpr constructor that is not a copy or move
+             constructor. */
+          a_symbol_ptr  sym = cssp->constructor;
+          a_boolean     is_list = FALSE;
+          if (symbol_is(sym, sk_overloaded_function)) {
+            is_list = TRUE;
+            sym = sym->variant.overloaded_function.symbols;
+          }  /* if */
+          for (; sym != NULL; sym = is_list ? sym->next : (a_symbol_ptr)NULL) {
+            if (symbol_is(sym, sk_member_function)) {
+              a_routine_ptr         rp = sym->variant.routine.ptr;
+              a_type_qualifier_set  qualifiers;
+              if (rp->is_constexpr &&
+                  !is_copy_constructor_type(rp->type, type, &qualifiers,
+                                            /*include_move_ctors=*/TRUE,
+                                            /*is_declarative_context=*/TRUE)) {
+                cssp->known_to_be_a_literal_type = TRUE;
+                break;
+              }  /* if */
+            }  /* if */
+          }  /* for */
+        }  /* if */
       }  /* if */
       if (!cssp->known_to_be_a_literal_type) {
         /* If we haven't concluded that the type is a literal type by now, it
