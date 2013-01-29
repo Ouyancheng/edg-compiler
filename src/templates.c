@@ -7937,6 +7937,20 @@ list of a template function.  Returns TRUE if a match is found.
       templ_constant = const_under_cast;
     }  /* if */
   }  /* if */
+  /* Do similar processing for the other constant.  This is needed for
+     partial ordering where both constants can be template-based. */
+  if (constant->kind == (a_constant_repr_kind)ck_template_param &&
+      constant->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tpck_cast &&
+      !constant->explicit_cast_applied) {
+    a_constant_ptr	const_under_cast;
+    const_under_cast = constant->variant.template_param.variant.constant;
+    if (const_under_cast->kind == (a_constant_repr_kind)ck_template_param &&
+        const_under_cast->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_param) {
+      constant = const_under_cast;
+    }  /* if */
+  }  /* if */
   if (templ_constant->kind == (a_constant_repr_kind)ck_template_param &&
       (templ_constant->variant.template_param.kind != 
                              (a_template_param_constant_kind)tpck_param ||
