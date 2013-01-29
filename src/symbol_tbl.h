@@ -2120,6 +2120,10 @@ typedef struct a_template_instance {
 			/* TRUE if an error has already been issued for this
 			   instance.  This is used to suppress duplicate
 			   messages. */
+  a_bit_field	suppress_default_arg_instantiations:1;
+			/* TRUE if a default argument recursion was detected
+			   and subsequent default argument instantiations
+			   should be suppressed. */
   a_source_position
 		explicit_instantiation_pos;
 			/* The position of the explicit instantiation directive

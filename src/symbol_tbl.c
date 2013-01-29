@@ -14019,6 +14019,8 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->can_be_instantiated	   = FALSE;
   tip->on_instantiations_list	   = FALSE;
   tip->error_issued                = FALSE;
+  tip->suppress_default_arg_instantiations
+                                   = FALSE;
   tip->explicit_instantiation_pos  = null_source_position;
   tip->pos_of_first_reference      = null_source_position;
 #if GENERATE_SOURCE_SEQUENCE_LISTS

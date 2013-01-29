@@ -11360,10 +11360,19 @@ instantiated.
   check_assertion(rout_sym->kind == (a_symbol_kind)sk_routine ||
                   rout_sym->kind == (a_symbol_kind)sk_member_function);
   rout_ptr = rout_sym->variant.routine.ptr;
+  tip = rout_sym->variant.routine.instance_ptr;
   if (param->default_being_instantiated) {
     /* This default argument (for this instance) is already being instantiated.
        Don't attempt another instantiation. */
     error(ec_recursive_def_arg_instantiation);
+    param->default_arg_expr = fs_error_node();
+    tip->suppress_default_arg_instantiations = TRUE;
+    goto done;
+  } else if (tip->suppress_default_arg_instantiations) {
+    /* Some other default argument encountered a recursive instantiation.
+       Suppress other default argument instantiations of the same routine
+       because the initial one could still be in the process of being
+       instantiated. */
     param->default_arg_expr = fs_error_node();
     goto done;
   } else if (num_pending_default_arg_instantiations ==
@@ -11376,7 +11385,6 @@ instantiated.
   }  /* if */
   /* Indicate that an instantiation of this default argument is pending. */
   param->default_being_instantiated = TRUE;
-  tip = rout_sym->variant.routine.instance_ptr;
   check_assertion(tip != NULL);
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
@@ -11480,13 +11488,13 @@ instantiated.
     /* If the translation unit stack was pushed above, pop it now. */
     if (trans_unit_pushed) pop_translation_unit_stack();
   }  /* if */
+  param->default_being_instantiated = FALSE;
+  tip->suppress_default_arg_instantiations = FALSE;
 done:
   /* Reset the flag that indicates that this default value has not yet
-     been evaluated. */
+     been evaluated.  orig_param_type_for_unevaluated_default_arg_expr is
+     not cleared on purpose. */
   param->has_unevaluated_template_default = FALSE;
-  /* orig_param_type_for_unevaluated_default_arg_expr is not cleared on
-     purpose. */
-  param->default_being_instantiated = FALSE;
 }  /* instantiate_default_argument */
 
 
