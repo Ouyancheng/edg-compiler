@@ -969,6 +969,10 @@ typedef struct a_class_def_state {
 			   anywhere in the declaration, or not at all.
 			   For example:
 			     struct S { (int a)[3]; };       */
+  a_bit_field	has_field_initializer:1;
+			/* TRUE if a field initializer has been seen.  (Used
+			   to diagnose multiple field initializers in
+			   unions.) */
   an_access_specifier
 		access;
 			/* The current access. */
@@ -1060,6 +1064,7 @@ class being defined.
   cdsp->member_destruction_required = FALSE;
   cdsp->base_destruction_required = FALSE;
   cdsp->ms_parenthesized_member = FALSE;
+  cdsp->has_field_initializer = FALSE;
   cdsp->access = (an_access_specifier)as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->assembly_access = (an_access_specifier)as_public;
@@ -16798,9 +16803,11 @@ information about the member declaration, respectively.
     /* A field initializer.  It must be parsed in the context of the completed
        class definition.  We therefore create a fixup entry holding the cached
        tokens of the initializer until we are ready to parse them. */
-    a_boolean				record_fixup = TRUE;
-    a_field_symbol_supplement_ptr	fssp;
+    a_field_ptr                    field;
+    a_boolean                      record_fixup = TRUE;
+    a_field_symbol_supplement_ptr  fssp;
     check_assertion(symbol_is(dps->sym, sk_field));
+    field = dps->sym->variant.field.ptr;
     fssp = dps->sym->variant.field.extra_info;
     dps->auto_type_allowed = FALSE;
     if (in_class_template_definition(class_state)) {
@@ -16822,7 +16829,21 @@ information about the member declaration, respectively.
     if (record_fixup) {
       record_inclass_initializer_fixup(class_state, dps);
     }  /* if */
-    dps->sym->variant.field.ptr->has_initializer = TRUE;
+    if (class_state->class_type->kind == (a_type_kind)tk_union &&
+        class_state->has_field_initializer) {
+      /* Unions can only have a single member with a field initializer. */
+      a_field_ptr  fp = class_state->class_type
+                                   ->variant.class_struct_union.field_list;
+      for (; fp != NULL; fp = fp->next) {
+        if (fp->has_initializer) break;
+      }  /* for */
+      check_assertion(fp != NULL && fp != field);
+      pos_sy_error(ec_multiple_union_field_initializers, &pos_curr_token,
+                   symbol_for(fp));
+    } else {
+      class_state->has_field_initializer = TRUE;
+    }  /* if */
+    field->has_initializer = TRUE;
     /* Field initializers make the class a non-POD and a non-aggregate.  Also,
        it makes the default constructor nontrivial. */
     class_state->POD_ruled_out = TRUE;

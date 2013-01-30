@@ -2471,6 +2471,7 @@ ec_recursive_initializer_instantiation;;"instantiation of initializer of %n depe
 ec_defaulted_default_ctor_cannot_be_constexpr;;"defaulted default constructor cannot be constexpr because the corresponding implicitly declared default constructor would not be constexpr"
 ec_excessive_constexpr_recursion;;"expression not folded to a constant due to excessive constexpr function call nesting (possible infinite recursion)"
 ec_bad_binary_digit;;"invalid binary number"
+ec_multiple_union_field_initializers;;"a union can have at most one field initializer -- %nd also has an initializer"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
