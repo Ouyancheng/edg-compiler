@@ -9354,7 +9354,7 @@ rvalue result of the field selection.
     /* Not a dependent type. */
     obj_expr_type = skip_typerefs(obj_expr_type);
     check_assertion(is_immediate_class_type(obj_expr_type));
-    if (is_literal_type(obj_expr_type)) {
+    if (!obj_expr_type->incomplete && is_literal_type(obj_expr_type)) {
       /* The object expression has a literal type.  Now check to see if it
          is a compile-time constant and, if so, set obj_expr_con to point
          to it. */
