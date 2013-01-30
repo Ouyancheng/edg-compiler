@@ -4247,6 +4247,12 @@ IL entry for that field.
     braced_initializer(dtype, (an_init_component*)NULL, is,
                        (a_decl_parse_state*)NULL, (an_init_component**)NULL,
                        &init_pos);
+  } else if (curr_token == tok_removed_expr) {
+    /* We can get here with severe syntax errors.  Use an error constant to
+       proceed. */
+    expect_error();
+    is->init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+    is->init_dip->variant.constant = alloc_error_constant();
   } else {
     unexpected_condition();
   }  /* if */
