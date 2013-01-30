@@ -14267,6 +14267,8 @@ be parsed in the context of the completed class later on.
                                                ->initializer_fixup_list = ifp;
     } else {
       ssep->last_initializer_fixup->next = ifp;
+      check_assertion(symbol_supplement_for_class(ssep->assoc_type)
+                                            ->initializer_fixup_list != NULL);
     }  /* if */
     ssep->last_initializer_fixup = ifp;
   }  /* if */
