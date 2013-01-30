@@ -5431,7 +5431,15 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                                          )) {
       /* An enumerator constant list is optional in C++ and Microsoft C. */
     } else {
-      a_boolean  cppcli_enum_init_error_issued = FALSE;
+      a_boolean   cppcli_enum_init_error_issued = FALSE;
+      a_type_ptr  fixed_type = explicit_base;
+      /* The underlying type of a C++11 enumeration type is said to be fixed
+         if it is explicitly specified or if the enumeration type is scoped.
+         This is used to scan the enumerator constant definitions as "converted
+         constant expressions". */
+      if (explicit_base == NULL && is_scoped_enum) {
+        fixed_type = integer_type((an_integer_kind)ik_int);
+      }  /* if */
       add_stop_token(tok_rbrace);
       end_of_enum_con_list = NULL;
       /* Scan the list of enumerated constants. */
@@ -5489,8 +5497,10 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           enum_value_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-          /* Scan the constant expression. */
-          scan_fs_integral_constant_expression((a_type_ptr)NULL, &constant);
+          /* Scan the constant expression.  (If fixed_type is non-NULL, scan
+             it as a "converted constant expression" for that type in C++11
+             mode.) */
+          scan_fs_integral_constant_expression(fixed_type, &constant);
           add_backing_expression_for_named_constant(&constant);
           /* Even though the constant may just be "0", that property should
              not be carried into the enumerators derived from it. */
