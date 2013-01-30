@@ -4465,107 +4465,105 @@ on every expression.
         octl->output_str("<error>", octl);
         break;
       case enk_operation:
-#if DEBUG
-        if (octl->debug_output) {
-          an_expr_node_ptr operand = expr->variant.operation.operands;
-          char *op_str = db_operator_names[expr->variant.operation.kind];
+        { an_expr_node_ptr      operand = expr->variant.operation.operands;
           an_expr_operator_kind op = expr->variant.operation.kind;
-          octl->output_str("(", octl);
-          if (is_call_node(expr)) {
-            /* Calls. */
-            form_expression(operand, octl);
+          if (op == (an_expr_operator_kind)eok_parens) {
+            /* Parentheses. */
             octl->output_str("(", octl);
-            while ((operand = operand->next) != NULL) {
-              form_expression(operand, octl);
-              if (operand->next != NULL) octl->output_str(", ", octl);
-            }  /* while */
-            octl->output_str(")", octl);
-          } else if (op == (an_expr_operator_kind)eok_subscript) {
-            /* Subscripting. */
             form_expression(operand, octl);
-            octl->output_str("[", octl);
-            form_expression(operand->next, octl);
-            octl->output_str("]", octl);
-          } else if (is_cast_operation_node(expr)) {
-            /* Casts. */
-            char       *new_style_op = NULL;
-            a_type     ref_type;
-            a_type_ptr dest_type = expr->type;
-            if (expr->variant.operation.is_reference_cast ||
-                op == (an_expr_operator_kind)eok_ref_cast ||
-                op == (an_expr_operator_kind)eok_ref_dynamic_cast) {
-              /* A cast to a reference type. */
-              destination_type_for_reference_cast(expr, &ref_type);
-              dest_type = &ref_type;
-            }  /* if */
-            if (expr->is_static_cast) {
-              new_style_op = "static_cast";
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            } else if (expr->is_safe_cast) {
-              new_style_op = "safe_cast";
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            } else if (expr->variant.operation.is_const_cast) {
-              new_style_op = "const_cast";
-            } else if (expr->variant.operation.is_reinterpret_cast) {
-              new_style_op = "reinterpret_cast";
-            }  /* if */
-            if (new_style_op != NULL) {
-              octl->output_str(new_style_op, octl);
-              octl->output_str("<", octl);
-              form_type(dest_type, octl);
-              octl->output_str(">(", octl);
+            octl->output_str(")", octl);
+#if DEBUG
+          } else if (octl->debug_output) {
+            char *op_str = db_operator_names[expr->variant.operation.kind];
+            octl->output_str("(", octl);
+            if (is_call_node(expr)) {
+              /* Calls. */
               form_expression(operand, octl);
-              octl->output_str(")", octl);
-            } else {
               octl->output_str("(", octl);
-              form_type(dest_type, octl);
+              while ((operand = operand->next) != NULL) {
+                form_expression(operand, octl);
+                if (operand->next != NULL) octl->output_str(", ", octl);
+              }  /* while */
               octl->output_str(")", octl);
+            } else if (op == (an_expr_operator_kind)eok_subscript) {
+              /* Subscripting. */
               form_expression(operand, octl);
+              octl->output_str("[", octl);
+              form_expression(operand->next, octl);
+              octl->output_str("]", octl);
+            } else if (is_cast_operation_node(expr)) {
+              /* Casts. */
+              char       *new_style_op = NULL;
+              a_type     ref_type;
+              a_type_ptr dest_type = expr->type;
+              if (expr->variant.operation.is_reference_cast ||
+                  op == (an_expr_operator_kind)eok_ref_cast ||
+                  op == (an_expr_operator_kind)eok_ref_dynamic_cast) {
+                /* A cast to a reference type. */
+                destination_type_for_reference_cast(expr, &ref_type);
+                dest_type = &ref_type;
+              }  /* if */
+              if (expr->is_static_cast) {
+                new_style_op = "static_cast";
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              } else if (expr->is_safe_cast) {
+                new_style_op = "safe_cast";
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+              } else if (expr->variant.operation.is_const_cast) {
+                new_style_op = "const_cast";
+              } else if (expr->variant.operation.is_reinterpret_cast) {
+                new_style_op = "reinterpret_cast";
+              }  /* if */
+              if (new_style_op != NULL) {
+                octl->output_str(new_style_op, octl);
+                octl->output_str("<", octl);
+                form_type(dest_type, octl);
+                octl->output_str(">(", octl);
+                form_expression(operand, octl);
+                octl->output_str(")", octl);
+              } else {
+                octl->output_str("(", octl);
+                form_type(dest_type, octl);
+                octl->output_str(")", octl);
+                form_expression(operand, octl);
+              }  /* if */
+            } else if (operand->next == NULL) {
+              /* Unary operators. */
+              octl->output_str(op_str, octl);
+              octl->output_str(" ", octl);
+              form_expression(operand, octl);
+            } else if (operand->next->next == NULL) {
+              /* Binary operators. */
+              form_expression(operand, octl);
+              octl->output_str(" ", octl);
+              octl->output_str(op_str, octl);
+              octl->output_str(" ", octl);
+              form_expression(operand->next, octl);
+            } else {
+              /* Other operators, e.g., "?".  Use generic form. */
+              octl->output_str(op_str, octl);
+              octl->output_str("(", octl);
+              while (operand != NULL) {
+                form_expression(operand, octl);
+                if (operand->next != NULL) octl->output_str(", ", octl);
+                operand = operand->next;
+              }  /* while */
+              octl->output_str(")", octl);
             }  /* if */
-          } else if (op == (an_expr_operator_kind)eok_parens) {
-            /* Parentheses.  One set is already put out, so we don't need
-               another. */
-            form_expression(operand, octl);
-          } else if (op == (an_expr_operator_kind)eok_lvalue_adjust) {
-            /* Lvalue type adjustment (always implicit, so ignore). */
-            form_expression(operand, octl);
-          } else if (op == (an_expr_operator_kind)eok_class_rvalue_adjust) {
-            /* Rvalue type adjustment (always implicit, so ignore). */
-            form_expression(operand, octl);
-          } else if (op == (an_expr_operator_kind)eok_unbox_lvalue) {
-            /* Certain C++/CLI unboxing operations (always implicit, so
-               ignore). */
-            form_expression(operand, octl);
-          } else if (operand->next == NULL) {
-            /* Unary operators. */
-            octl->output_str(op_str, octl);
-            octl->output_str(" ", octl);
-            form_expression(operand, octl);
-          } else if (operand->next->next == NULL) {
-            /* Binary operators. */
-            form_expression(operand, octl);
-            octl->output_str(" ", octl);
-            octl->output_str(op_str, octl);
-            octl->output_str(" ", octl);
-            form_expression(operand->next, octl);
-          } else {
-            /* Other operators, e.g., "?".  Use generic form. */
-            octl->output_str(op_str, octl);
-            octl->output_str("(", octl);
-            while (operand != NULL) {
-              form_expression(operand, octl);
-              if (operand->next != NULL) octl->output_str(", ", octl);
-              operand = operand->next;
-            }  /* while */
             octl->output_str(")", octl);
-          }  /* if */
-          octl->output_str(")", octl);
-        } else
 #endif /* DEBUG */
-        /* Do not insert code here. */
-        {
-          octl->output_str("<expression>", octl);
-        }  /* if */
+          } else if (op == (an_expr_operator_kind)eok_array_to_pointer ||
+                     op == (an_expr_operator_kind)eok_lvalue_adjust ||
+                     op == (an_expr_operator_kind)eok_class_rvalue_adjust ||
+                     op == (an_expr_operator_kind)eok_unbox_lvalue ||
+                     (expr->variant.operation.compiler_generated &&
+                      is_cast_operation_node(expr))) {
+            /* Elide certain implicit operations. */
+            form_expression(operand, octl);
+          } else {
+            octl->output_str("<expression>", octl);
+          }  /* if */
+        }
         break;
       case enk_constant:
         form_constant(expr->variant.constant, /*need_parens=*/TRUE, octl);
