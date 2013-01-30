@@ -2472,6 +2472,7 @@ ec_defaulted_default_ctor_cannot_be_constexpr;;"defaulted default constructor ca
 ec_excessive_constexpr_recursion;;"expression not folded to a constant due to excessive constexpr function call nesting (possible infinite recursion)"
 ec_bad_binary_digit;;"invalid binary number"
 ec_multiple_union_field_initializers;;"a union can have at most one field initializer -- %nd also has an initializer"
+ec_incomplete_type_for_constexpr_static_data_member;;"a constexpr static data member cannot be declared with an incomplete type %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -14437,7 +14437,13 @@ specific information about the member declaration, respectively.
      class will usually be set to extern (except sometimes in cfront mode). */
   var = make_variable(member_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
   if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
-    var->is_constexpr = TRUE;
+    if (is_incomplete_type(member_type)) {
+      /* A constexpr static data member cannot have an incomplete type. */
+      pos_ty_error(ec_incomplete_type_for_constexpr_static_data_member,
+                   &locator->source_position, member_type);
+    } else {
+      var->is_constexpr = TRUE;
+    }  /* if */
   }  /* if */
   if (decl_state->auto_type_specifier_seen) {
     var->declared_with_auto_type_specifier = TRUE;
