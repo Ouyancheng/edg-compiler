@@ -8224,7 +8224,8 @@ a new unshared constant will be allocated and returned.
                                       variant.class_struct_union.field_list);
               while (curr_field != NULL && result_con != NULL &&
                      (a_targ_ptrdiff_t)(cum_offset + curr_field->offset +
-                                        curr_field->type->size) <= offset) {
+                                        skip_typerefs(curr_field->type)->size)
+                                                                   <= offset) {
                 curr_field = next_initializable_field(curr_field->next);
                 result_con = result_con->next;
               }  /* while */
