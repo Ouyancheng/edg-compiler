@@ -2854,13 +2854,14 @@ static void inclass_initializer_fixup_for_class(a_type_ptr  class_type,
 /*
 Process the in-class initializers for the indicated class and its nested
 classes.  is_template_based is TRUE for template instantiations (including
-prototype instantiations).
+prototype instantiations).  The class type must be complete.
 */
 {
   a_class_symbol_supplement_ptr  cssp;
   an_initializer_fixup_ptr       fixup_list, ifp, next_ifp;
   a_boolean                      has_fixups;
 
+  check_assertion(!class_type->incomplete);
   cssp = symbol_supplement_for_class(class_type);
   fixup_list = cssp->initializer_fixup_list;
   /* Clear the list early to avoid recursion. */

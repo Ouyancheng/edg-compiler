@@ -1600,7 +1600,8 @@ Return TRUE if the given type is trivially copyable.
 
 a_boolean is_literal_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a literal type.
+Return TRUE if the given type is a literal type.  The give type cannot be an
+incomplete class type (or an array thereof).
 */
 {
   a_boolean  result;
@@ -1612,6 +1613,7 @@ Return TRUE if the given type is a literal type.
   } else if (is_immediate_class_type(tp)) {
     a_class_symbol_supplement_ptr
                  cssp = symbol_for(tp)->variant.class_struct_union.extra_info;
+    check_assertion(!tp->incomplete);
     if (cssp->known_to_be_a_literal_type) {
       result = TRUE;
     } else if (cssp->known_not_to_be_a_literal_type) {

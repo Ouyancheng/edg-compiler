@@ -8278,8 +8278,15 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
     }  /* if */
   } else if (symbol_is(sym, sk_variable) ||
              symbol_is(sym, sk_static_data_member)) {
+    /* Check that a constexpr variable (or static data member) has a reference
+       type or a literal type. */
     a_variable_ptr  vp = var_for_symbol(sym);
-    if (!is_literal_type(vp->type) && !is_any_reference_type(vp->type)) {
+    if (is_incomplete_type(vp->type)) {
+      /* We can get here in error situations, but we cannot test an incomplete
+         type with is_literal_type (it can trigger an internal error). */
+      expect_error();
+    } else if (!is_literal_type(vp->type) &&
+               !is_any_reference_type(vp->type)) {
       pos_error(ec_constexpr_variable_must_have_literal_type,
                 &dps->constexpr_pos);
     }  /* if */
