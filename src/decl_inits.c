@@ -4254,11 +4254,9 @@ IL entry for that field.
     if (field->initializer != NULL) {
       /* If the field already has an initializer, that means that the
          evaluation of the initializer resulted in a recursive instantiation.
-         The initializer will have been filled-in with an error constant. */
-      check_assertion(field->initializer->kind ==
-                                           (a_dynamic_init_kind)dik_constant &&
-                      field->initializer->variant.constant->type->kind ==
-                                                        (a_type_kind)tk_error);
+         The initializer will have been filled-in with an error node or error
+         constant. */
+      check_assertion(is_error_dynamic_init(field->initializer));
     } else {
       field->has_direct_braced_initializer = is->direct_init;
       field->initializer = is->init_dip;
