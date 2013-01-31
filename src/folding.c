@@ -8123,7 +8123,7 @@ a new unshared constant will be allocated and returned.
     a_type_ptr target_type = type_pointed_to(addr_con->type);
     target_type = skip_typerefs(target_type);
     if (addr_con->variant.address.offset < 0 ||
-        addr_con->variant.address.offset >= target_type->size) {
+        (a_targ_size_t)addr_con->variant.address.offset >= target_type->size) {
       /* The address is outside the bounds of the object, so this is not a
          constant expression.  (A warning will have been issued earlier, so
          no diagnostic is needed here.) */
