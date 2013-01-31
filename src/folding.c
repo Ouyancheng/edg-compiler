@@ -8120,7 +8120,15 @@ a new unshared constant will be allocated and returned.
       result_con = alloc_error_constant();
     }  /* if */
   } else if (addr_con->kind == (a_constant_repr_kind)ck_address) {
-    if (addr_con->variant.address.kind == (an_address_base_kind)abk_variable) {
+    a_type_ptr target_type = type_pointed_to(addr_con->type);
+    target_type = skip_typerefs(target_type);
+    if (addr_con->variant.address.offset < 0 ||
+        addr_con->variant.address.offset >= target_type->size) {
+      /* The address is outside the bounds of the object, so this is not a
+         constant expression.  (A warning will have been issued earlier, so
+         no diagnostic is needed here.) */
+    } else if (addr_con->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
       /* The constant is the address of a variable, possibly with an offset
          designating a subobject.  See if it has a constant value and, if
          so, use it. */
@@ -8149,14 +8157,12 @@ a new unshared constant will be allocated and returned.
          elements than the object being initialized.  Scan through the type
          of the constant and its value in parallel to match the initial
          value with the specified offset. */
-      a_type_ptr       target_type = type_pointed_to(addr_con->type);
       a_type_ptr       curr_type = skip_typerefs(result_con->type);
       a_targ_ptrdiff_t offset = addr_con->variant.address.offset;
       a_boolean        found_value = FALSE;
       a_targ_ptrdiff_t cum_offset = 0;
       a_type_ptr       most_derived_type = curr_type;
 
-      target_type = skip_typerefs(target_type);
       while (!found_value && result_con != NULL) {
         if (cum_offset == offset &&
             identical_types(target_type, curr_type)) {
