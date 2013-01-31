@@ -437,6 +437,8 @@ extern void scan_integral_constant_expression(a_constant *constant);
 extern void scan_fs_integral_constant_expression(a_type_ptr specific_type,
                                                  a_constant *constant);
 
+extern void scan_constant_dimension_expression(a_constant *constant);
+
 extern void scan_nonconstant_dimension_expression(
                                     a_boolean        is_new_or_delete_bound,
                                     a_boolean        is_top_level_vla_bound,
