@@ -1,5 +1,24 @@
 Version 4.6
 
+1/31/13  [EDGcpfe/13609]
+Microsoft compatibility: ambiguity on class template with virtual base classes
+
+A change made in version 4.5 (see EDGcpfe/12786 on 5/14/12) could result
+in a spurious ambiguity in Microsoft mode on a reference to a member of
+a virtual base class, when the same virtual base class was instantiated
+based on different template parameters (in the example below A is instantiated
+based on both T and T2 from D).  Now fixed.
+
+  template <typename T> struct A {
+   struct AA {};
+  };
+  template <typename T> struct B : virtual public A<T> {};
+  template <typename T> struct C : virtual public A<T> {};
+  template <typename T, typename T2> struct D : public C<T> , public B<T2> {
+    AA x;
+  };
+
+
 1/29/13  [EDGcpfe/13201,EDGcpfe/13202]
 Proxy class for template parameters used in pointer-to-members
 

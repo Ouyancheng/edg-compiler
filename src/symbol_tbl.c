@@ -12175,10 +12175,29 @@ check_rout_type:
       }  /* if */
     }  /* if */
   } else if (injected_and_equiv_noninjected_symbol(fundamental_sym1,
-                                                    fundamental_sym2)) {
+                                                   fundamental_sym2)) {
     /* One symbol is an injected class name and the other is the
        primary symbol for the same class. */
     equiv = TRUE;
+  } else if (microsoft_mode) {
+    /* If the two progenitors are from Microsoft nonreal instantiations,
+       consider them equivalent if they are based on the same template. */
+    a_type_ptr				parent_class1;
+    a_type_ptr				parent_class2;
+    parent_class1 = sym_parent_class(fundamental_sym1);
+    parent_class2 = sym_parent_class(fundamental_sym2);
+    check_assertion(is_immediate_class_type(parent_class1));
+    check_assertion(is_immediate_class_type(parent_class2));
+    if (parent_class1->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class &&
+        parent_class2->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class) {
+      a_class_symbol_supplement_ptr	cssp1;
+      a_class_symbol_supplement_ptr	cssp2;
+      cssp1 = symbol_supplement_for_class(parent_class1);
+      cssp2 = symbol_supplement_for_class(parent_class2);
+      equiv = cssp1->template_info == cssp2->template_info;
+    }  /* if */
   }  /* if */
   db_exit();
   return equiv;
