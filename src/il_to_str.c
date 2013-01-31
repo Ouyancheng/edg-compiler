@@ -2513,6 +2513,7 @@ the way described by octl.
   } else if (type->variant.array.bound_constant != NULL &&
              !type->variant.array.is_template_dependent_size_array &&
              !octl->c_generating_back_end &&
+             octl->output_expression != NULL &&
              constant_should_be_put_out_as_expr(
                                          type->variant.array.bound_constant)) {
     /* Use the recorded a_constant entry rather than a plain integer.  This
