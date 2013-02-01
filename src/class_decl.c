@@ -14998,6 +14998,12 @@ promotion is for a nonstandard anonymous union.
     } else {
       field->source_corresp.access = new_access;
     }  /* if */
+    /* If the promoted field has an initializer, the default constructor of
+       the enclosing class cannot be trivial. */
+    if (field->has_initializer) {
+      check_assertion(scope_is(&scope_stack_top(), sck_class_struct_union));
+      scope_stack_top().class_def_state->default_ctor_is_nontrivial = TRUE;
+    }  /* if */
     set_class_membership(sym, (a_source_correspondence *)NULL, class_type);
   } else {
     set_namespace_membership(sym, (a_source_correspondence *)NULL,
