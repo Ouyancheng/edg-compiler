@@ -1087,6 +1087,9 @@ extern a_boolean is_invariant_expr(an_expr_node_ptr expr,
                                    a_boolean        vars_can_change,
                                    a_boolean        treat_as_rvalue);
 
+extern a_boolean expr_has_reference_to_routine_scope_variable(
+                                                        an_expr_node_ptr expr);
+
 extern a_boolean expr_might_throw(an_expr_node_ptr expr);
 
 extern a_boolean has_statement_expression(an_expr_node_ptr expr);
@@ -1417,6 +1420,8 @@ extern a_vla_dimension_ptr make_vla_dimension(
                                        an_expr_node_ptr  expr_node,
                                        a_boolean         in_prototype_scope,
                                        a_source_position *position);
+
+extern a_boolean variable_is_from_other_function(a_variable_ptr var);
 
 extern void get_variable_initializer(a_variable_ptr     variable,
                                      a_scope_ptr        var_scope,

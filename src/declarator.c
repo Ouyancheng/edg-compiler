@@ -31,7 +31,6 @@ declarator.c -- Scanning of declarators.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#include "il_walk.h"
 
 static void scan_declarator_attributes(a_decl_parse_state  *dps,
                                        a_type_ptr          *p_type)
@@ -3407,41 +3406,6 @@ the left parenthesis introducing the declarator-like construct.
 }  /* scan_lambda_declarator */
 
 
-static void check_for_routine_scope_variable(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-Called via traverse_expr from expr_has_reference_to_routine_scope_variable;
-sets tblock->result to TRUE and terminates the traversal if expr is an
-enk_variable node that refers to a variable in a local scope.
-*/
-{
-  if (is_variable_node(expr) && !in_file_scope(expr->variant.variable)) {
-    tblock->result = TRUE;
-    tblock->terminate = TRUE;
-  }  /* if */
-}  /* check_for_routine_scope_variable */
-
-
-static a_boolean expr_has_reference_to_routine_scope_variable(
-                                                         an_expr_node_ptr expr)
-/*
-Return TRUE if any of the nodes in the expression tree rooted in expr is an
-enk_variable node that refers to a variable in a local scope.
-*/
-{
-  an_expr_or_stmt_traversal_block tblock;
-
-  clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = check_for_routine_scope_variable;
-  tblock.process_non_dynamic_constants = TRUE;
-  tblock.process_expressions_for_constants = TRUE;
-  tblock.process_template_parameter_constants_and_expressions = TRUE;
-  traverse_expr(expr, &tblock);
-  return tblock.result;
-}  /* expr_has_reference_to_routine_scope_variable */
-
-
 static void make_bound_expr_referenceable_from_file_scope(
                                                         an_expr_node_ptr *expr,
                                                         a_type_ptr       type,
@@ -3655,9 +3619,8 @@ constant.
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
-      /* In C++11, the expression is scanned with type size_t. */
-      scan_fs_integral_constant_expression(integer_type(targ_size_t_int_kind),
-                                           &constant);
+      /* Scan a bound expression expected to be a constant. */
+      scan_constant_dimension_expression(&constant);
       is_constant_bound = TRUE;
     }  /* if */
     if (dim_expr == NULL) {

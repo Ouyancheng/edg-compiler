@@ -12370,6 +12370,39 @@ end_of_routine:
 }  /* find_scope_of_variable */
 
 
+a_boolean variable_is_from_other_function(a_variable_ptr var)
+/*
+Return TRUE if the given variable is a function-local variable from a
+function other than the current one.
+*/
+{
+  a_boolean is_from_other = FALSE;
+
+  if (var->source_corresp.is_local_to_function &&
+      depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    a_scope_ptr             scope = parent_scope_of(var);
+    a_scope_stack_entry_ptr ssep;
+    for (ssep = &scope_stack_top();
+         ;
+         ssep = previous_scope_of(ssep)) {
+      check_assertion(ssep != &scope_stack[DEPTH_OF_FILE_SCOPE]);
+      if (ssep->il_scope == scope) {
+        /* Found the scope, so this variable is declared in the current
+           innermost function. */
+        break;
+      }  /* if */
+      if (ssep == &scope_stack[depth_innermost_function_scope]) {
+        /* We reached the innermost function scope, so the variable must be
+           declared further out, in another function. */
+        is_from_other = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return is_from_other;
+}  /* variable_is_from_other_function */
+
+
 static a_scope_ptr find_scope_of_type(a_type_ptr  type,
                                       a_scope_ptr scope)
 /*
@@ -18934,6 +18967,40 @@ treat_as_potential_rvalue should always be FALSE when called during lowering
   }  /* if */
   return is_invariant;
 }  /* is_invariant_expr */
+
+
+static void check_for_routine_scope_variable(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called via traverse_expr from expr_has_reference_to_routine_scope_variable;
+sets tblock->result to TRUE and terminates the traversal if expr is an
+enk_variable node that refers to a variable in a local scope.
+*/
+{
+  if (is_variable_node(expr) && !in_file_scope(expr->variant.variable)) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* check_for_routine_scope_variable */
+
+
+a_boolean expr_has_reference_to_routine_scope_variable(an_expr_node_ptr expr)
+/*
+Return TRUE if any of the nodes in the expression tree rooted in expr is an
+enk_variable node that refers to a variable in a local scope.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = check_for_routine_scope_variable;
+  tblock.process_non_dynamic_constants = TRUE;
+  tblock.process_expressions_for_constants = TRUE;
+  tblock.process_template_parameter_constants_and_expressions = TRUE;
+  traverse_expr(expr, &tblock);
+  return tblock.result;
+}  /* expr_has_reference_to_routine_scope_variable */
 
 
 static a_routine_ptr alloc_or_dealloc_routine_from_new_delete(
