@@ -3655,8 +3655,9 @@ constant.
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
-      /* Scan a bound expression expected to be a constant. */
-      scan_constant_dimension_expression(&constant);
+      /* In C++11, the expression is scanned with type size_t. */
+      scan_fs_integral_constant_expression(integer_type(targ_size_t_int_kind),
+                                           &constant);
       is_constant_bound = TRUE;
     }  /* if */
     if (dim_expr == NULL) {

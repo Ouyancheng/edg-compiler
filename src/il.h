@@ -1418,8 +1418,6 @@ extern a_vla_dimension_ptr make_vla_dimension(
                                        a_boolean         in_prototype_scope,
                                        a_source_position *position);
 
-extern a_boolean variable_is_from_other_function(a_variable_ptr var);
-
 extern void get_variable_initializer(a_variable_ptr     variable,
                                      a_scope_ptr        var_scope,
                                      an_init_kind       *init_kind,

@@ -9777,12 +9777,18 @@ indication in *rcblock).
   a_boolean                  err = FALSE;
   a_boolean                  any_more;
   an_expr_stack_entry        expr_stack_entry;
+  a_memory_region_number     region_to_switch_back_to;
   a_host_large_unsigned      result_count = 0;
   a_pack_expansion_stack_entry_ptr
                              pesep;
   a_pack_expansion_descr_ptr pedep = NULL;
 
   db_enter(4, "scan_sizeof_pack_operator");
+  /* If we're in the file-scope memory region instead of a function-scope
+     memory region because we're scanning something like an array bound,
+     switch back.  Any expression nodes allocated must be in the function-scope
+     memory region. */
+  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
@@ -9976,6 +9982,7 @@ indication in *rcblock).
     result->pack_expansion_descr = NULL;
   }  /* if */
   pop_expr_stack();
+  switch_back_to_original_region(region_to_switch_back_to);
   db_exit();
 }  /* scan_sizeof_pack_operator */
 
@@ -12851,6 +12858,8 @@ previously-scanned noexcept expression, and return the result in
   int                 noexcept_value;
   a_constant          result_constant;
   a_boolean           dependent_case;
+  a_memory_region_number
+                      region_to_switch_back_to;
 
   db_enter(4, "scan_noexcept_operator");
   check_assertion(noexcept_enabled);
@@ -12875,6 +12884,11 @@ previously-scanned noexcept expression, and return the result in
     start_position = pos_curr_token;
     (void)get_token();
   }  /* if */
+  /* If we're in the file-scope memory region instead of a function-scope
+     memory region because we're scanning something like an array bound,
+     switch back.  Any expression nodes allocated must be in the function-scope
+     memory region. */
+  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
@@ -12935,6 +12949,7 @@ previously-scanned noexcept expression, and return the result in
                                           (a_token_sequence_number)0,
                                           (a_source_position *)NULL);
   pop_expr_stack();
+  switch_back_to_original_region(region_to_switch_back_to);
   db_exit();
 }  /* scan_noexcept_operator */
 
@@ -33782,21 +33797,6 @@ scope memory region so that the constant can point to it).
   scan_integral_constant_expression_full(specific_type, constant);
   switch_back_to_original_region(region_to_switch_back_to);
 }  /* scan_fs_integral_constant_expression */
-
-
-void scan_constant_dimension_expression(a_constant *constant)
-/*
-Scan an integral constant expression that is an array dimension bound
-and return it in *constant, which is or will be allocated in the
-file scope memory region.  The caller is prepared to deal with backing
-expressions in function scope memory if necessary, so nothing special
-is done to deal with memory region issues here.
-*/
-{
-  a_type_ptr required_type = cpp11_mode ? integer_type(targ_size_t_int_kind) :
-                                          NULL;
-  scan_integral_constant_expression_full(required_type, constant);
-}  /* scan_constant_dimension_expression */
 
 
 void scan_nonconstant_dimension_expression(
