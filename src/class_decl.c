@@ -15398,12 +15398,17 @@ nonstandard anonymous unions is_nonstd is TRUE.
     if (cssp->variant_member_with_nontrivial_copy_assign) {
       parent_cssp->variant_member_with_nontrivial_copy_assign = TRUE;
     }  /* if */
-    if (assoc_object_type->kind == (a_type_kind)tk_union) {
+    if (assoc_object_type->kind == (a_type_kind)tk_union &&
+        class_type->kind != (a_type_kind)tk_union) {
       /* Mark all the promoted field symbols as variant field symbols.  Also,
-         mark the first and last variant member. */
+         mark the first and last variant member.  Note that we don't do this
+         if the enclosing class is a union, since in that case the anonymous
+         union has no real effect (i.e., the fields could be entered in the
+         enclosing union with no change in semantics). */
       a_symbol_ptr  last_field_sym = NULL;
       sym = (last_prev_sym != NULL) ? last_prev_sym->next_in_scope
-                                    : parent_cssp->symbols;
+                                    : scope_stack_top().assoc_pointers_block
+                                                       ->symbols;
       for (; sym != NULL; sym = sym->next_in_scope) {
         if (symbol_is(sym, sk_field)) {
           a_field_symbol_supplement_ptr  fssp = sym->variant.field.extra_info;

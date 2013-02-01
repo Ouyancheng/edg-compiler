@@ -6021,6 +6021,13 @@ initialized.  These are addressed in the course of the processing.
             (in_variant && variant_explicit_init)) {
           /* An explicit mem-initializer for a field supersedes variant field
              initializers.  Remove cip from the list. */
+          if (prev_cip == NULL) {
+            cib.cip_list = cip->next;
+          } else {
+            prev_cip->next = cip->next;
+          }  /* if */
+          cip->next = NULL;
+          /* prev_cip remains unchanged. */
         } else {
           a_field_ptr   field = cip->variant.field;
           cip->use_field_initializer = TRUE;

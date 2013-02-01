@@ -1370,7 +1370,7 @@ typedef struct a_field_symbol_supplement {
 			   the process of being instantiated. */
   a_bit_field	is_variant_member:1;
 			/* TRUE if this symbol represents an anonymous union
-			   member introduced in the surrounding class.
+			   member introduced in a surrounding non-union class.
 			   (Nonstandard anonymous unions that aren't actually
 			   unions don't count in this context.) */
   a_bit_field	is_first_variant_member:1;
