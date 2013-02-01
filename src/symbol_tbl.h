@@ -1365,10 +1365,20 @@ typedef struct a_field_symbol_supplement {
 			   initializer, for fields of non-template classes,
 			   and for fields of template classes if an
 			   instantiation has been done. */
-  a_byte_boolean
-		being_instantiated;
+  a_bit_field	being_instantiated;
 			/* TRUE for a field of a template class that is in
 			   the process of being instantiated. */
+  a_bit_field	is_variant_member:1;
+			/* TRUE if this symbol represents an anonymous union
+			   member introduced in the surrounding class.
+			   (Nonstandard anonymous unions that aren't actually
+			   unions don't count in this context.) */
+  a_bit_field	is_first_variant_member:1;
+			/* TRUE if this is the first variant member introduced
+			   by an anonymous union in the surrounding class. */
+  a_bit_field	is_last_variant_member:1;
+			/* TRUE if this is the last variant member introduced
+			   by an anonymous union in the surrounding class. */
 } a_field_symbol_supplement;
 
 

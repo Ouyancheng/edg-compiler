@@ -15055,7 +15055,7 @@ ones are allocated in the scope specified by decl_scope_level.  For such
 nonstandard anonymous unions is_nonstd is TRUE.
 */
 {
-  a_symbol_ptr                   sym, next_sym, mf_sym;
+  a_symbol_ptr                   sym, next_sym, mf_sym, last_prev_sym = NULL;
   a_class_symbol_supplement_ptr  cssp, parent_cssp;
   a_class_type_supplement_ptr    ctsp;
   an_access_specifier            access, assoc_object_access;
@@ -15068,6 +15068,12 @@ nonstandard anonymous unions is_nonstd is TRUE.
   a_symbol_ptr                   new_apo_sym_list = NULL;
 
   db_enter(4, "check_anonymous_union_symbols");
+  if (class_type != NULL) {
+    /* Record the last symbol in the class prior to the addition of promoted
+       fields.  This simplifies traversing the added symbols later on. */
+    check_assertion(scope_is(&scope_stack_top(), sck_class_struct_union));
+    last_prev_sym = assoc_pointers_block_of(&scope_stack_top())->last_symbol;
+  }  /* if */
   switch (assoc_object_sym->kind) {
     case sk_variable:
       assoc_object_type = assoc_object_sym->variant.variable.ptr->type;
@@ -15089,6 +15095,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
       check_assertion(is_class_struct_union_type(assoc_object_type));
       if (assoc_object_type->kind == (a_type_kind)tk_typeref ||
           has_name(assoc_object_type)) {
+        check_assertion(C_mode());
         reuse_symbol = FALSE;
       }  /* if */
 #else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
@@ -15390,6 +15397,28 @@ nonstandard anonymous unions is_nonstd is TRUE.
     }  /* if */
     if (cssp->variant_member_with_nontrivial_copy_assign) {
       parent_cssp->variant_member_with_nontrivial_copy_assign = TRUE;
+    }  /* if */
+    if (assoc_object_type->kind == (a_type_kind)tk_union) {
+      /* Mark all the promoted field symbols as variant field symbols.  Also,
+         mark the first and last variant member. */
+      a_symbol_ptr  last_field_sym = NULL;
+      sym = (last_prev_sym != NULL) ? last_prev_sym->next_in_scope
+                                    : parent_cssp->symbols;
+      for (; sym != NULL; sym = sym->next_in_scope) {
+        if (symbol_is(sym, sk_field)) {
+          a_field_symbol_supplement_ptr  fssp = sym->variant.field.extra_info;
+          fssp->is_variant_member = TRUE;
+          if (last_field_sym == NULL) {
+            /* This is the first promoted field symbol. */
+            fssp->is_first_variant_member = TRUE;
+          }  /* if */
+          last_field_sym = sym;
+        }  /* if */
+      }  /* for */
+      if (last_field_sym != NULL) {
+        last_field_sym->variant.field.extra_info
+                      ->is_last_variant_member = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();

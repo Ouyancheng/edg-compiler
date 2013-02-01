@@ -2473,6 +2473,8 @@ ec_excessive_constexpr_recursion;;"expression not folded to a constant due to ex
 ec_bad_binary_digit;;"invalid binary number"
 ec_multiple_union_field_initializers;;"a union can have at most one field initializer -- %nd also has an initializer"
 ec_incomplete_type_for_constexpr_static_data_member;;"a constexpr static data member cannot be declared with an incomplete type %t"
+ec_union_constexpr_constructor_initializes_no_field;;"constexpr constructor of a union must initialize one of its fields"
+ec_constexpr_constructor_initializes_no_variant_field;;"constexpr constructor fails to initialize an anonymous union (defined at %p)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

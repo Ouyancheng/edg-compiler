@@ -3691,6 +3691,9 @@ state.
         fssp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
         fssp->token_cache = NULL;
         fssp->being_instantiated = FALSE;
+        fssp->is_variant_member = FALSE;
+        fssp->is_first_variant_member = FALSE;
+        fssp->is_last_variant_member = FALSE;
 #if DEBUG
         num_field_symbol_supplements_allocated++;
 #endif /* DEBUG */

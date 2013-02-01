@@ -5481,39 +5481,44 @@ entries are replaced as needed for each mem-initializer that is encountered.
 }  /* scan_mem_initializer */
 
 
-static a_boolean is_variant_member_sym(a_symbol_ptr  sym)
+static void check_variant_has_initializer(
+                               a_constructor_init_ptr  cip,
+                               a_boolean               *variant_init,
+                               a_boolean               *variant_explicit_init)
 /*
-Return TRUE if the given field symbol is a variant member of a class (i.e., a 
-member of an anonymous union).  C++ mode only.
+cip points to the constructor init entry for the first variant member of an
+anonymous union.  Look through all the entries for that anonymous union to see
+if it contains an actual initialization (in which case *variant_init is set to
+TRUE).  If it contains an explicit initialization (i.e., not one implied by a
+field initializer), set *variant_explicit_init to TRUE.
 */
 {
-  a_boolean  result = FALSE;
 
-  check_assertion(!C_mode());
-  check_assertion(symbol_is(sym, sk_field));
-  while (sym->variant.field.anonymous_parent_object != NULL) {
-    /* sym is some sort of "anonymous union" member, except that with
-       nonstandard cases, the parent object may not actually be a union. */
-    sym = sym->variant.field.anonymous_parent_object;
-    /* The parent object is always either a variable or a field. */
-    if (symbol_is(sym, sk_variable)) {
-      /* If the parent object is a variable, the cannot be a higher-up
-         parent object, and the loop can be terminated. */
-      result = is_union_type(sym->variant.variable.ptr->type);
+  for (;;) {
+    a_dynamic_init_ptr  dip = cip->initializer;
+    check_assertion(cip->kind == (a_constructor_init_kind)cik_field);
+    if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_none) {
+      /* An explicit initializer. */
+      *variant_explicit_init = TRUE;
+      *variant_init = TRUE;
       break;
-    } else {
-      check_assertion(symbol_is(sym, sk_field));
-      if (is_union_type(sym->variant.field.ptr->type)) {
-        result = TRUE;
-        break;
-      } else {
-        /* The anonymous parent object was not a union, but it may itself be
-           a member of an anonymous parent. */
-      }  /* if */
+    } else if (cip->variant.field->has_initializer) {
+      /* No explicit mem-initializer, but the field has an associated
+         in-class initializer. */
+      *variant_init = TRUE;
+      /* Continue in case an explicit initializer is present (which would
+         supersede a field initializer. */
     }  /* if */
-  }  /* while */
-  return result;
-}  /* is_variant_member_sym */
+    if (symbol_for(cip->variant.field)->variant.field.extra_info
+                                      ->is_last_variant_member) {
+      /* Any subsequent members are not part of this variant.  End the search
+         here. */
+      break;
+    }  /* if */
+    cip = cip->next;
+    check_assertion(cip != NULL);
+  }  /* for */
+}  /* check_variant_has_initializer */
 
 
 a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
@@ -5563,6 +5568,8 @@ initialized.  These are addressed in the course of the processing.
 */
 {
   a_boolean                     is_union;
+  a_boolean                     has_field = FALSE, has_field_init = FALSE;
+  a_boolean                     has_explicit_field_init = FALSE;
   a_boolean                     is_generated_cctor, is_generated_mctor;
   a_type_qualifier_set          required_qualifiers, object_qualifiers;
   a_type_ptr                    class_type, tp, array_type;
@@ -5576,6 +5583,9 @@ initialized.  These are addressed in the course of the processing.
   a_dynamic_init_ptr            dip, ctor_dip;
   a_constructor_init_ptr        uninit_list = NULL, end_of_uninit_list = NULL;
   a_boolean                     any_ref_member_on_uninit_list = FALSE;
+  a_boolean                     in_variant = FALSE, variant_complete = FALSE;
+  a_boolean                     variant_init = FALSE;
+  a_boolean                     variant_explicit_init = FALSE;
 
   db_enter(3, "ctor_initializer");
   cib.cip_list = cib.end_of_cip_list = NULL;
@@ -5659,7 +5669,7 @@ initialized.  These are addressed in the course of the processing.
   /* Loop through the symbol list for the class, not the field list, since
      the symbol list contains only user-defined fields whereas the field
      list may also include compiler-generated field entries. */
-  class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  class_sym = symbol_for(class_type);
   for (sym = class_sym->variant.class_struct_union.extra_info->symbols;
        sym != NULL;
        sym = sym->next_in_scope) {
@@ -5671,14 +5681,19 @@ initialized.  These are addressed in the course of the processing.
         /* Property and event fields are not really data members and should
            not be explicitly initialized. */
         continue;
-      } else if (is_generated_cctor || is_generated_mctor) {
+      }  /* if */
+      has_field = TRUE;
+      if (is_generated_cctor || is_generated_mctor) {
         /* All fields are explicitly listed for a generated copy or move
            constructor, since even if there is no constructor at least a
            bitwise copy is required. */
-      } else if (ctor_rout->is_constexpr &&
-                 !(is_union || is_variant_member_sym(sym))) {
-        /* All non-variant fields must be initialized in a constexpr
-           constructor. */
+      } else if (ctor_rout->is_constexpr) {
+        /* All fields must be initialized in a constexpr constructor.  (For
+           variant fields only one member of the union must be initialized.
+           That is checked later.) */
+      } else if (field->has_initializer) {
+        /* Fields with an in-class initializer require corresponding
+           constructor-init entries. */
       } else {
         /* This is not a copy constructor.  See if this is a field that
            requires an initializer. */
@@ -5686,9 +5701,6 @@ initialized.  These are addressed in the course of the processing.
         if (is_any_reference_type(tp) || is_const_qualified_type(tp)) {
           /* Reference-type fields and const and array-of-const fields require
              an initializer. */
-        } else if (field->has_initializer) {
-          /* Fields with an in-class initializer requires corresponding
-             constructor-init entries. */
         } else {
           tp = skip_typerefs(tp);
           if (is_array_type(tp)) {
@@ -5765,6 +5777,10 @@ initialized.  These are addressed in the course of the processing.
       while (any_more) {
         a_pack_expansion_descr_ptr pedep;
         cip = scan_mem_initializer(ctor_rout, class_type, &cib);
+        if (cip != NULL && cip->kind == (a_constructor_init_kind)cik_field) {
+          has_field_init = TRUE;
+          has_explicit_field_init = TRUE;
+        }  /* if */
         pedep = end_potential_pack_expansion_context(pesep,
                                                      /*is_declarator=*/FALSE);
         if (pedep != NULL && cip != NULL) {
@@ -5818,8 +5834,51 @@ initialized.  These are addressed in the course of the processing.
        with the constructor being called.  For fields it will be
        the same as the field type.  This is needed to check protected
        member access. */
-    a_type_ptr            object_class_type;
+    a_type_ptr         object_class_type;
+    a_symbol_ptr       field_sym;
     next_cip = cip->next;
+    if (cip->kind == (a_constructor_init_kind)cik_field) {
+      field_sym = symbol_for(cip->variant.field);
+      if (field_sym != NULL) {
+        /* Check the initialization of anonymous unions (variants).  When we
+           see the entry for the first variant field, we look ahead to check
+           if it has an explicit initializer in this ctor-initializer, or if
+           it is initialized via a field initializer.  When we see the last
+           variant field, we set a flag to clear the variant state on the next
+           iteration (we cannot do it at the end of the loop body because it
+           is short-circuited in various ways). */
+        if (variant_complete) {
+          /* We saw the last field of a variant in the previous iteration.
+             Then reset the variant tracking variables for any other anonymous
+             union that might follow. */
+          in_variant = FALSE;
+          variant_complete = FALSE;
+          variant_init = FALSE;
+          variant_explicit_init = FALSE;
+        }  /* if */
+        if (field_sym->variant.field.extra_info->is_first_variant_member) {
+          /* The first field of an anonymous union: Look ahead through the
+             entries for this union to check if any are initialized by an
+             explicit mem-initializer or by a field initializer. */
+          check_variant_has_initializer(cip, &variant_init,
+                                        &variant_explicit_init);
+          in_variant = TRUE;
+          if (ctor_rout->is_constexpr && !variant_init) {
+            /* If this is a constexpr constructor, each variant must have
+               an initializer. */
+            pos2_diagnostic(
+                        es_error,
+                        ec_constexpr_constructor_initializes_no_variant_field,
+                        &error_position,
+                        &field_sym->variant.field.anonymous_parent_object
+                                  ->decl_position);
+          }  /* if */
+        } else if (field_sym->variant.field.extra_info
+                            ->is_last_variant_member) {
+          variant_complete = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
     dip = cip->initializer;
     /* If this was an explicit specialization, check whether an object
        lifetime needs to be restored to the IL. */
@@ -5958,19 +6017,38 @@ initialized.  These are addressed in the course of the processing.
         /* An implicit constructor-init entry for a field that has an
            initializer associated with it.  Set the flag indicating that the
            field initializer should be used, and move on to the next entry. */
-        a_field_ptr  field = cip->variant.field;
-        cip->use_field_initializer = TRUE;
-        /* Ensure the field initializer is instantiated if necessary. */
-        instantiate_field_initializer_if_needed(field);
-        if (ctor_rout->is_constexpr) {
-          if (field->has_nonconstant_initializer) {
-            /* If the field initializer is known not to be a constant, it
-               cannot be used for constexpr construction. */
-            pos_sy_error(ec_nonconstant_field_initializer_in_mem_initializer,
-                         &err_pos, symbol_for(field));
+        if ((is_union && has_explicit_field_init) ||
+            (in_variant && variant_explicit_init)) {
+          /* An explicit mem-initializer for a field supersedes variant field
+             initializers.  Remove cip from the list. */
+        } else {
+          a_field_ptr   field = cip->variant.field;
+          cip->use_field_initializer = TRUE;
+          has_field_init = TRUE;
+          /* Ensure the field initializer is instantiated if necessary. */
+          instantiate_field_initializer_if_needed(field);
+          if (ctor_rout->is_constexpr) {
+            if (field->has_nonconstant_initializer) {
+              /* If the field initializer is known not to be a constant, it
+                 cannot be used for constexpr construction. */
+              pos_sy_error(ec_nonconstant_field_initializer_in_mem_initializer,
+                           &err_pos, field_sym);
+            }  /* if */
           }  /* if */
+          prev_cip = cip;
         }  /* if */
-        prev_cip = cip;
+        continue;
+      } else if (in_variant) {
+        /* An entry for an uninitialized anonymous union member: Remove it
+           (we only keep the entry for the initialized variant fields). */
+        check_assertion(cip->kind == (a_constructor_init_kind)cik_field);
+        if (prev_cip == NULL) {
+          cib.cip_list = cip->next;
+        } else {
+          prev_cip->next = cip->next;
+        }  /* if */
+        cip->next = NULL;
+        /* prev_cip remains unchanged. */
         continue;
       } else {
         /* No copy/move constructor is required.  If any constructor exists,
@@ -6028,7 +6106,7 @@ initialized.  These are addressed in the course of the processing.
             if (tp->variant.class_struct_union.any_const_member) {
               if (cip->kind == (a_constructor_init_kind)cik_field) {
                 pos_sy_error(ec_uninitialized_field_with_const_member,
-                             &err_pos, symbol_for(cip->variant.field));
+                             &err_pos, field_sym);
               } else {
                 pos_ty_error(ec_uninitialized_base_class_with_const_member,
                              &err_pos, tp);
@@ -6151,7 +6229,6 @@ initialized.  These are addressed in the course of the processing.
   if (uninit_list != NULL) {
     /* Issue a diagnostic for uninitialized const and ref members. */
     an_error_severity  severity = es_error;
-
     if (ctor_rout->compiler_generated) {
       /* Error by 12.1 [class.ctor]. */
       pos_ty_start_diagnostic(severity, ec_cannot_initialize_fields,
@@ -6192,6 +6269,12 @@ initialized.  These are addressed in the course of the processing.
       }  /* if */
     }  /* for */
     end_error();
+  } else if (is_union && ctor_rout->is_constexpr && has_field &&
+             !has_field_init) {
+    /* A constexpr constructor for a union must initialize a field
+       explicitly. */
+    pos_error(ec_union_constexpr_constructor_initializes_no_field,
+              &error_position);
   }  /* if */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   if (ctor_rout->is_trivial_default_constructor && !ctor_rout->is_defaulted) {

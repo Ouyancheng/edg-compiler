@@ -939,8 +939,9 @@ typedef struct a_scope_stack_entry {
 			   used (in place of the one that is embedded in
 			   this scope stack entry); NULL when the embedded
 			   scope-pointer-block should be used.  This pointer
-			   will be non-NULL when kind is sck_namespace or
-			   sck_namespace_extension; otherwise it is NULL. */
+			   will be non-NULL when kind is sck_namespace,
+			   sck_namespace_extension, or sck_class_struct_union;
+			   otherwise it is NULL. */
   a_scope_pointers_block
 		pointers_block;
 			/* A block of pointers associated with this scope,
