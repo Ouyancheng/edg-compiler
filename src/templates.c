@@ -7779,25 +7779,20 @@ implicit cast over the constant it is removed and if remove_impl_cast is TRUE,
   a_boolean		result = FALSE;
   a_constant_ptr	templ_constant = *p_templ_constant;
 
+  templ_constant =
+               strip_implicit_casts_if_template_param_constant(templ_constant);
   if (templ_constant->kind == (a_constant_repr_kind)ck_template_param) {
+    /* Nontype parameters can only be deduced from simple uses of the
+       parameter, like A<I> (except for implicit casts handled above).
+       Expressions are not allowed (e.g., A<I+1>) nor are references
+       to members of a template parameter (e.g., T::x).  If either of
+       these is found, type deduction fails. */
     if (templ_constant->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast &&
-        !templ_constant->explicit_cast_applied) {
-      templ_constant = templ_constant->variant.template_param.variant.constant;
-    }  /* if */
-    if (templ_constant->kind == (a_constant_repr_kind)ck_template_param) {
-      /* Nontype parameters can only be deduced from simple uses of the
-         parameter, like A<I> (except for implicit casts handled above).
-         Expressions are not allowed (e.g., A<I+1>) nor are references
-         to members of a template parameter (e.g., T::x).  If either of
-         these is found, type deduction fails. */
-      if (templ_constant->variant.template_param.kind ==
                                   (a_template_param_constant_kind)tpck_param) {
-        result = TRUE;
-        /* This will either update the pointer passed in or set it to its
-           current value. */
-        if (remove_impl_cast) *p_templ_constant = templ_constant;
-      }  /* if */
+      result = TRUE;
+      /* This will either update the pointer passed in or set it to its
+         current value. */
+      if (remove_impl_cast) *p_templ_constant = templ_constant;
     }  /* if */
   }  /* if */
   return result;
@@ -7880,10 +7875,11 @@ list of a template function.  Returns TRUE if a match is found.
      declared template parameters (i.e., of kind tpck_param).  Other
      template parameters do not have nesting depths. */
   if (microsoft_mode) {
-    if (templ_constant->kind == (a_constant_repr_kind)ck_template_param &&
-        templ_constant->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast) {
-      /* In Microsoft mode, remove a tpck_cast that may have been applied and
+    a_constant_ptr	new_templ_constant;
+    new_templ_constant =
+               strip_implicit_casts_if_template_param_constant(templ_constant);
+    if (templ_constant != new_templ_constant) {
+      /* In Microsoft mode, remove a cast that may have been applied and
          attempt to convert the constant to the required type.  This comes up
          in case like:
            template <int c> class A {};
@@ -7897,10 +7893,7 @@ list of a template function.  Returns TRUE if a match is found.
          to long).  This kind of conversion is only accepted for integral
          types. */
       a_constant	temp_constant;
-      a_constant_ptr	new_templ_constant;
       a_constant_ptr	new_constant;
-      new_templ_constant = templ_constant->
-                                       variant.template_param.variant.constant;
       if (is_integral_type(new_templ_constant->type) &&
           convert_constant_for_deduction(constant, &temp_constant,
                                          new_templ_constant->type)) {
@@ -7925,32 +7918,11 @@ list of a template function.  Returns TRUE if a match is found.
        }
      After the explicit argument list is substituted, "B<T,v>" becomes
      "B<A, (int A::*)v>".  Drop the cast in such cases. */
-  if (templ_constant->kind == (a_constant_repr_kind)ck_template_param &&
-      templ_constant->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast &&
-      !templ_constant->explicit_cast_applied) {
-    a_constant_ptr	const_under_cast;
-    const_under_cast = templ_constant->variant.template_param.variant.constant;
-    if (const_under_cast->kind == (a_constant_repr_kind)ck_template_param &&
-        const_under_cast->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_param) {
-      templ_constant = const_under_cast;
-    }  /* if */
-  }  /* if */
+  templ_constant =
+               strip_implicit_casts_if_template_param_constant(templ_constant);
   /* Do similar processing for the other constant.  This is needed for
      partial ordering where both constants can be template-based. */
-  if (constant->kind == (a_constant_repr_kind)ck_template_param &&
-      constant->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast &&
-      !constant->explicit_cast_applied) {
-    a_constant_ptr	const_under_cast;
-    const_under_cast = constant->variant.template_param.variant.constant;
-    if (const_under_cast->kind == (a_constant_repr_kind)ck_template_param &&
-        const_under_cast->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_param) {
-      constant = const_under_cast;
-    }  /* if */
-  }  /* if */
+  constant = strip_implicit_casts_if_template_param_constant(constant);
   if (templ_constant->kind == (a_constant_repr_kind)ck_template_param &&
       (templ_constant->variant.template_param.kind != 
                              (a_template_param_constant_kind)tpck_param ||
@@ -15420,15 +15392,7 @@ list and template argument list of a partial specialization are valid.
         a_constant_ptr	cp = tap->variant.constant;
         /* If this is a cast of a template parameter constant, use the constant
            under the cast. */
-        if (cp->kind == (a_constant_repr_kind)ck_template_param &&
-            cp->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast) {
-          a_constant_ptr	cp2;
-          cp2 = cp->variant.template_param.variant.constant;
-          if (cp2->kind == (a_constant_repr_kind)ck_template_param) {
-            cp = cp2;
-          }  /* if */
-        }  /* if */
+        cp = strip_implicit_casts_if_template_param_constant(cp);
         if (cp->kind == (a_constant_repr_kind)ck_template_param &&
             cp->variant.template_param.kind !=
                                   (a_template_param_constant_kind)tpck_param) {

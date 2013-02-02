@@ -15280,7 +15280,8 @@ options is a set of name lookup options.
           if (alloc_con_3 != NULL) copy_constant(alloc_con_3, &constant_3);
           /* Do not fold if any of the constants is still a
              template parameter constant. */
-          if (constant_1.kind != (a_constant_repr_kind)ck_template_param &&
+          if ((constant_1.kind != (a_constant_repr_kind)ck_template_param ||
+               op == (an_expr_operator_kind)eok_cast) &&
               (operand_2 == NULL ||
                constant_2.kind != (a_constant_repr_kind)ck_template_param) &&
               (operand_3 == NULL ||
@@ -15638,6 +15639,52 @@ for the copy/substitution.
   if (copy_error) sym = NULL;
   return sym;
 }  /* symbol_for_template_param_unknown_entity_con_after_substitution */
+
+
+a_constant_ptr strip_implicit_casts_if_template_param_constant(
+						a_constant_ptr	constant)
+/*
+If constant is a template parameter constant (i.e., a ck_template_param),
+check for the case of an underlying template parameter constant to
+which implicit cast(s) have been added.  An implicit cast can be added as
+an eok_cast expression node and can also be added as a tpck_cast either
+in place of or in addition to the eok_cast.  If this is such a case,
+return the underlying template parameter constant, otherwise return the
+original constant.
+*/
+{
+  a_constant_ptr	result = constant;
+
+  /* Remove an implicit tpck_cast. */
+  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+    if (constant->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tpck_cast &&
+        !constant->explicit_cast_applied) {
+      constant = constant->variant.template_param.variant.constant;
+    }  /* if */
+  }  /* if */
+  /* Remove an implicit eok_cast. */
+  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+    if (constant->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+      an_expr_node_ptr	expr = constant->variant.template_param.variant.expr;
+      if (expr->kind == (an_expr_node_kind)enk_operation &&
+          expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
+          expr->variant.operation.compiler_generated) {
+        an_expr_node_ptr	operand = expr->variant.operation.operands;
+        if (operand->kind == (an_expr_node_kind)enk_constant) {
+          constant = operand->variant.constant;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* If, after possibly removing the casts above, the underlying constant is
+     a template parameter constant, use that constant. */
+  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+    result = constant;
+  }  /* if */
+  return result;
+}  /* strip_implicit_casts_if_template_param_constant */
 
 
 static a_constant_ptr copy_template_param_unknown_entity_con(

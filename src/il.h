@@ -1653,6 +1653,9 @@ typedef struct a_ctws_state {
 } a_ctws_state;
 
 
+extern a_constant_ptr strip_implicit_casts_if_template_param_constant(
+						a_constant_ptr	constant);
+
 extern an_expr_node_ptr copy_template_param_expr(
                                  an_expr_node_ptr         expr,
                                  a_template_arg_ptr       template_arg_list,
