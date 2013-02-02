@@ -17532,7 +17532,7 @@ it might produce an error).
           op1 = conv_lvalue_expr_to_rvalue(op1, allow_folding,
                                            (a_constant_ptr *)NULL,
                                            err_pos);
-          if (op = (an_expr_operator_kind)eok_base_class_cast &&
+          if (op == (an_expr_operator_kind)eok_base_class_cast &&
               is_constant_node(op1) && constexpr_enabled &&
               allow_folding != NULL) {
             /* This is a cast of a class constant to a base class.
