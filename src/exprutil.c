@@ -7963,13 +7963,13 @@ used only in C++ mode.
   } else {
     did_not_fold = TRUE;
     if (curr_expr_is_evaluated() && expr_stack->favor_constant_result &&
-        is_constant_operand(operand)) {
-      /* Fold a cast of a constant address into another constant address or
-         of a class (ck_aggregate) constant into the value of the specified
-         base class subobject.  This folding is always done in constant
-         expressions, but in some nonconstant expressions it's not done
-         because it's clearer to have the cast in the IL (the constant form
-         has only an offset, and loses the sequence of casts). */
+        is_constant_operand(operand) &&
+        operand->variant.constant.kind == (a_constant_repr_kind)ck_address) {
+      /* Fold a cast of a constant address into another constant address.
+         This folding is always done in constant expressions, but in some
+         nonconstant expressions it's not done because it's clearer to
+         have the cast in the IL (the constant form has only an offset,
+         and loses the sequence of casts). */
       an_error_code error_detected = ec_no_error;
       an_error_code *p_error_detected = NULL;
       if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
@@ -16200,6 +16200,7 @@ is an rvalue reference.
       /* With constexpr, a class value can be a constant. */
       a_constant_ptr con = &operand->variant.constant;
       a_constant     addr_con;
+      check_assertion(con->is_result_of_constexpr_call);
       set_constant_address_constant(alloc_unshared_constant(con), &addr_con);
       addr_con.type = make_reference_type(operand->type);
       make_constant_operand(&addr_con, operand);
@@ -17531,7 +17532,26 @@ it might produce an error).
           op1 = conv_lvalue_expr_to_rvalue(op1, allow_folding,
                                            (a_constant_ptr *)NULL,
                                            err_pos);
-          node->variant.operation.operands = op1;
+          if (op = (an_expr_operator_kind)eok_base_class_cast &&
+              is_constant_node(op1) && constexpr_enabled &&
+              allow_folding != NULL) {
+            /* This is a cast of a class constant to a base class.
+               Extract the required base class subobject from the class
+               object by setting up an address constant pointing to the
+               subobject and getting the value at that address and use
+               that base class object constant as the result. */
+            a_base_class_ptr bcp;
+            a_constant       addr_con;
+            bcp = find_base_class_of(op1->type, node->type);
+            check_assertion(bcp != NULL);
+            set_constant_address_constant(op1->variant.constant, &addr_con);
+            addr_con.variant.address.offset = bcp->offset;
+            addr_con.type = make_pointer_type(node->type);
+            con_expr_value = constant_value_at_address(&addr_con,
+                                                       (a_constant_ptr)NULL);
+          } else {
+            node->variant.operation.operands = op1;
+          }  /* if */
           node->is_lvalue = FALSE;
           node->type = rvalue_node_type;
           processed = TRUE;
@@ -17584,11 +17604,7 @@ it might produce an error).
              constant, the result is the type-adjusted constant.
              Otherwise, it's rvalueable so we go to the general case. */
           if (allow_folding != NULL && op1->is_lvalue) {
-            a_variable_ptr variable;
-            con_expr_value = value_of_constant_var_lvalue_expr(
-                                                       op1,
-                                                       /*copy_for_reuse=*/TRUE,
-                                                       &variable);
+            con_expr_value = constant_value_addressed_by_node(op1);
             if (con_expr_value != NULL) {
               a_boolean did_not_fold;
               copy_constant(con_expr_value, &result_con);
