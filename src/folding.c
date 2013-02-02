@@ -7965,11 +7965,10 @@ evaluation.
       }
       break;
     case dik_zero:
-      make_value_initialized_constant(dest_type, result_con);
-      if (result_con->partial_aggr_value) {
+      folded = make_value_initialized_constant(dest_type, result_con);
+      if (folded && result_con->partial_aggr_value) {
         ceblock->is_partially_initialized = TRUE;
       }  /* if */
-      folded = TRUE;
       break;
     case dik_none:
     case dik_call_returning_class_via_cctor:
@@ -8280,12 +8279,14 @@ a new unshared constant will be allocated and returned.
            subobject was implicitly value-initialized.  Make a constant of
            the requisite type and use that. */
         if (target_con != NULL) {
-          make_value_initialized_constant(target_type, target_con);
-          result_con = target_con;
+          if (make_value_initialized_constant(target_type, target_con)) {
+            result_con = target_con;
+          }  /* if */
         } else {
           a_constant zero_con;
-          make_value_initialized_constant(target_type, &zero_con);
-          result_con = copy_unshared_constant(&zero_con);
+          if (make_value_initialized_constant(target_type, &zero_con)) {
+            result_con = copy_unshared_constant(&zero_con);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -9271,8 +9272,7 @@ otherwise, return FALSE.
          implicitly value-initialized.  Make a constant of the requisite
          type and use that. */
       check_assertion(eff_obj_con->partial_aggr_value);
-      make_value_initialized_constant(curr_field->type, result_con);
-      folded = TRUE;
+      folded = make_value_initialized_constant(curr_field->type, result_con);
     } else {
       check_assertion(curr_field != NULL);
       /* If the field is a member of an anonymous union, scan through

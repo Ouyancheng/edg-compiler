@@ -7427,17 +7427,24 @@ for making NULL pointer constants.
 }  /* make_zero_of_proper_type */
 
 
-void make_value_initialized_constant(a_type_ptr type,
-                                     a_constant *con)
+a_boolean make_value_initialized_constant(a_type_ptr type,
+                                          a_constant *con)
 /*
-Make a constant of the specified type in *con.  The type can be a scalar,
-in which case this routine is a wrapper for make_zero_of_proper_type, or an
-aggregate, in which case the resulting constant is an empty aggregate.
+If possible, make a constant of the specified type in *con and return TRUE
+if the constant was successfully created.  If type is a reference type, no
+constant is created.  Otherwise, the type can be a scalar, in which case
+this routine is a wrapper for make_zero_of_proper_type, or an aggregate, in
+which case the resulting constant is an empty aggregate.
 */
 {
-  if (is_scalar_type(type)) {
+  a_boolean return_value = TRUE;
+
+  if (is_any_reference_type(type)) {
+    return_value = FALSE;
+  } else if (is_scalar_type(type)) {
     make_zero_of_proper_type(type, con);
   } else {
+    check_assertion(is_aggregate_type(type));
     clear_constant(con, (a_constant_repr_kind)ck_aggregate);
     con->type = type;
     type = skip_typerefs(type);
@@ -7447,6 +7454,7 @@ aggregate, in which case the resulting constant is an empty aggregate.
       con->partial_aggr_value = TRUE;
     }  /* if */
   }  /* if */
+  return return_value;
 }  /* make_value_initialized_constant */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
