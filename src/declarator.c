@@ -3434,11 +3434,11 @@ bound case, FALSE for the "expr" field of the constant itself.
            memory.  Make a copy in the innermost function scope and use
            that for the local expr node reference. */
         check_assertion(innermost_function_scope != NULL &&
-                        curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
+                        curr_il_region_number == file_scope_region_number);
         switch_il_region(
                    innermost_function_scope->variant.routine.ptr->assoc_scope);
-        *expr = copy_expr_tree(*expr, CE_COPYING_EXPRESSION_FOR_CONSTANT);
-        switch_il_region(FILE_SCOPE_REGION_NUMBER);
+        *expr = copy_expr_tree(*expr, CE_NO_OPTIONS);
+        switch_il_region(file_scope_region_number);
       }  /* if */
       make_local_expr_node_ref(
                       *expr,
@@ -3448,7 +3448,7 @@ bound case, FALSE for the "expr" field of the constant itself.
       *expr = NULL;
     } else if (!in_file_scope(*expr)) {
       /* Copy the expression to file-scope memory. */
-      *expr = copy_expr_tree(*expr, CE_COPYING_EXPRESSION_FOR_CONSTANT);
+      *expr = copy_expr_tree(*expr, CE_NO_OPTIONS);
     }  /* if */
   }  /* if */
 }  /* make_bound_expr_referenceable_from_file_scope */
@@ -3746,26 +3746,27 @@ constant.
         if (constant_is_shareable(&constant)) {
           il_constant = alloc_shareable_constant(&constant);
         } else {
-          a_template_param_constant_kind tkind;
+          a_template_param_constant_kind tkind =
+                                          constant.variant.template_param.kind;
+          a_boolean expr_case = 
+                    (tkind == (a_template_param_constant_kind)tpck_expression);
+          a_boolean sizeof_case = 
+                    (tkind == (a_template_param_constant_kind)tpck_sizeof ||
+                     tkind == (a_template_param_constant_kind)tpck_alignof ||
+                     tkind == (a_template_param_constant_kind)tpck_uuidof ||
+                     tkind == (a_template_param_constant_kind)tpck_typeid);
           il_constant = alloc_unshared_constant_full(&constant,
                                                      /*source_in_il=*/FALSE,
-                                                     /*suppress_copy=*/TRUE);
-          tkind = il_constant->variant.template_param.kind;
-          if (tkind == (a_template_param_constant_kind)tpck_expression) {
+                                                     /*suppress_copy=*/
+                                                     (expr_case||sizeof_case));
+          /* In a couple of cases, we can record a local expr ref and
+             keep a function-scope expression. */
+          if (expr_case) {
             make_bound_expr_referenceable_from_file_scope(
                              &il_constant->variant.template_param.variant.expr,
                              *new_type_ptr,
                              /*dep=*/TRUE);
-          } else if (tkind == (a_template_param_constant_kind)tpck_cast ||
-                     tkind == (a_template_param_constant_kind)tpck_address) {
-            make_bound_expr_referenceable_from_file_scope(
-                   &il_constant->variant.template_param.variant.constant->expr,
-                   *new_type_ptr,
-                   /*dep=*/TRUE);
-          } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
-                     tkind == (a_template_param_constant_kind)tpck_alignof ||
-                     tkind == (a_template_param_constant_kind)tpck_uuidof ||
-                     tkind == (a_template_param_constant_kind)tpck_typeid) {
+          } else if (sizeof_case) {
             make_bound_expr_referenceable_from_file_scope(
                 &il_constant->variant.template_param.variant.templ_sizeof.expr,
                 *new_type_ptr,

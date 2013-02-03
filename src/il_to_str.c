@@ -2538,9 +2538,6 @@ the way described by octl.
         tkind = constant->variant.template_param.kind;
         if (tkind == (a_template_param_constant_kind)tpck_expression) {
           expr_ptr = &constant->variant.template_param.variant.expr;
-        } else if (tkind == (a_template_param_constant_kind)tpck_cast ||
-                   tkind == (a_template_param_constant_kind)tpck_address) {
-          expr_ptr = &constant->variant.template_param.variant.constant->expr;
         } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
                    tkind == (a_template_param_constant_kind)tpck_alignof ||
                    tkind == (a_template_param_constant_kind)tpck_uuidof ||

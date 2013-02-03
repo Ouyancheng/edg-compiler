@@ -1268,15 +1268,12 @@ typedef int an_expr_copy_options_set;
 			/* TRUE if the copy is in an unevaluated context. */
 #define CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL 0x100
 			/* TRUE if the destination address provided to
-			   copy_constant_full is not an IL address (e.g.,
+			   copy_constant_full might not be an IL address (e.g.,
 			   it's the address of a stack variable). */
-#define CE_COPYING_EXPRESSION_FOR_CONSTANT 0x200
-			/* TRUE if the constant being copied is a backing
-			   expression attached to a constant. */
-#define CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER 0x400
+#define CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER 0x200
 			/* TRUE if the copy is from one function scope
 			   memory region into another. */
-#define CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL 0x800
+#define CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL 0x400
 			/* TRUE if the source address provided to
 			   copy_constant_full might not be an IL address (e.g.,
 			   it's the address of a stack variable). */

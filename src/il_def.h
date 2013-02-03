@@ -8012,9 +8012,9 @@ typedef struct a_type {
 			/* Like constant_bound_expr_in_local_expr_node_ref,
 			   but for the expressions inside the
 			   element_count_constant ck_template_param
-			   constant, i.e., the expr, templ_sizeof.expr, and
-			   constant->expr fields of element_count_constant->
-			   variant.template_param.variant. */
+			   constant, i.e., the expr and templ_sizeof.expr
+			   fields of element_count_constant->variant
+			   .template_param.variant. */
       a_bit_field
 		has_assoc_vla_dimension:1;
 			/* TRUE if the variable length array has an associated

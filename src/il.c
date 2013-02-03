@@ -5409,6 +5409,7 @@ copy_constant_full should be called to start a copy.
           old_expr = old_constant->variant.template_param.variant.
                                                              templ_sizeof.expr;
           if (old_expr != NULL) {
+            /* Make a copy of the expression tree. */
             if (!in_file_scope(old_expr) &&
                 curr_il_region_number == file_scope_region_number) {
               /* There's a memory region problem, so drop the expression
@@ -5444,19 +5445,21 @@ copy_constant_full should be called to start a copy.
         unexpected_condition_str("i_copy_constant_full: bad templ param kind");
     }  /* if */
   }  /* if */
-  if (options & (CE_DOING_INLINING_OF_FUNCTION_CALL |
-                 CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER)) {
+  if (old_constant->expr == NULL) {
+    /* Skip some processing of backing expressions if there isn't one. */
+  } else if (options & (CE_DOING_INLINING_OF_FUNCTION_CALL |
+                        CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER)) {
     /* When copying for inlining, the expression pointed to is in a
        function scope memory region and can't be used in the new function
-       scope memory region.  (The expression tree can't even be copied,
-       because it may refer to local variables.) */
+       scope memory region.  The expression might be copyable in some cases,
+       but there's no point in trying too hard since the copy does not
+       correspond to anything in the source. */
     new_constant->expr = NULL;
-  } else if (old_constant_in_il && in_file_scope(old_constant) &&
-             new_constant_in_il && !in_file_scope(new_constant) &&
-             old_constant->expr != NULL) {
+  } else if (old_constant_in_il && new_constant_in_il &&
+             in_file_scope(old_constant) && !in_file_scope(new_constant)) {
     /* If we're copying the constant from the file scope memory region to the
        function scope memory region, remove the backing expression to
-       prevent memory issues. */
+       prevent memory region issues. */
     new_constant->expr = NULL;
   }  /* if */
   if (may_be_shared) {
@@ -16711,13 +16714,7 @@ be called to start a copy.
            for inlining, because the constants are in a different
            function-scope memory region. */
         an_expr_copy_options_set subcopy_options = options;
-        if (!(options & CE_COPYING_EXPRESSION_FOR_CONSTANT)) {
-          /* Constants with associated expressions cannot be shared, so
-             constants appearing in such expressions should not be shared
-             either; otherwise, request that the copied constant be
-             shared. */
-          subcopy_options |= CE_COPIED_CONSTANTS_MAY_BE_SHARED;
-        }  /* if */
+        subcopy_options |= CE_COPIED_CONSTANTS_MAY_BE_SHARED;
         expr_copy->variant.constant =
                        i_copy_constant_full(expr->variant.constant,
                                             (a_constant *)NULL,

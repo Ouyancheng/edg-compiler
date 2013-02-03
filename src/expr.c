@@ -10020,6 +10020,8 @@ previously-scanned sizeof expression, and return the result in *result
   a_boolean             err = FALSE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
   a_boolean             operand_was_created = FALSE, operand_was_used = FALSE;
+  a_memory_region_number
+                        region_to_switch_back_to;
   a_boolean             sizeof_itself_is_potentially_evaluated =
                                           curr_expr_is_potentially_evaluated();
 
@@ -10075,6 +10077,11 @@ previously-scanned sizeof expression, and return the result in *result
     internal_error("scan_sizeof_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
+  /* If we're in the file-scope memory region instead of a function-scope
+     memory region because we're scanning something like an array bound,
+     switch back.  Any expression nodes allocated must be in the function-scope
+     memory region. */
+  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
@@ -10440,6 +10447,7 @@ previously-scanned sizeof expression, and return the result in *result
         /* Make a sizeof expression that sits behind the constant and
            gives the original expression. */
         if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+          switch_back_to_original_region(region_to_switch_back_to);
           if (!is_type &&
               curr_il_region_number == file_scope_region_number &&
               (innermost_function_scope != NULL || inside_local_class)) {
@@ -10447,10 +10455,8 @@ previously-scanned sizeof expression, and return the result in *result
                variable, which is in the function scope memory region.
                Therefore it cannot be attached to a file-scope constant.
                This comes up when a sizeof in an array bound uses a local
-               variable in its expression.  We have no good way of
-               checking whether the expression contains a local variable,
-               so we suppress the recording of the expression in all
-               cases, and just record the type. */
+               variable in its expression.  We suppress the recording of
+               the expression in all cases, and just record the type. */
             is_type = TRUE;
           }  /* if */
           constant.expr = make_sizeof_expr(/*is_alignof=*/FALSE,
@@ -10458,6 +10464,7 @@ previously-scanned sizeof expression, and return the result in *result
                                            &operand,
                                            (an_operand *)NULL);
           operand_was_used = !is_type;
+          switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -10485,6 +10492,7 @@ previously-scanned sizeof expression, and return the result in *result
                                           NO_TOKEN_SEQUENCE_NUMBER,
                                           &type_position);
   pop_expr_stack();
+  switch_back_to_original_region(region_to_switch_back_to);
 end_of_routine:
   db_exit();
 }  /* scan_sizeof_operator */
@@ -10781,10 +10789,8 @@ result in *result (or an error indication in *rcblock).
            variable, which is in the function scope memory region.
            Therefore it cannot be attached to a file-scope constant.
            This comes up when an alignof in an array bound uses a local
-           variable in its expression.  We have no good way of
-           checking whether the expression contains a local variable,
-           so we suppress the recording of the expression in all
-           cases, and just record the type. */
+           variable in its expression.  We suppress the recording of
+           the expression in all cases, and just record the type. */
         is_type = TRUE;
       }  /* if */
       constant.expr = make_sizeof_expr(/*is_alignof=*/TRUE,
@@ -12841,6 +12847,8 @@ previously-scanned noexcept expression, and return the result in
   int                 noexcept_value;
   a_constant          result_constant;
   a_boolean           dependent_case;
+  a_memory_region_number
+                      region_to_switch_back_to;
 
   db_enter(4, "scan_noexcept_operator");
   check_assertion(noexcept_enabled);
@@ -12865,6 +12873,11 @@ previously-scanned noexcept expression, and return the result in
     start_position = pos_curr_token;
     (void)get_token();
   }  /* if */
+  /* If we're in the file-scope memory region instead of a function-scope
+     memory region because we're scanning something like an array bound,
+     switch back.  Any expression nodes allocated must be in the function-scope
+     memory region. */
+  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
@@ -12925,6 +12938,7 @@ previously-scanned noexcept expression, and return the result in
                                           (a_token_sequence_number)0,
                                           (a_source_position *)NULL);
   pop_expr_stack();
+  switch_back_to_original_region(region_to_switch_back_to);
   db_exit();
 }  /* scan_noexcept_operator */
 
@@ -33773,13 +33787,8 @@ void scan_fs_integral_constant_expression(a_type_ptr specific_type,
 /*
 Scan an integral constant expression.  If specific_type is non-NULL,
 the constant will be converted to specific_type in C++11 mode.  The
-constant will be allocated (by the caller) in the file scope memory
-region, so switch to the file scope while scanning the constant, so
-that anything allocated during the scan will be allocated in the file
-scope memory region.  (This is significant for expressions that
-represent the original form in which a constant expression was
-specified; we want the expression for the constant to be in the file
-scope memory region so that the constant can point to it).
+constant will be returned in *constant, which will be subsequently
+allocated in the file scope memory region.
 */
 {
   a_memory_region_number  region_to_switch_back_to;
@@ -33795,17 +33804,19 @@ scope memory region so that the constant can point to it).
 void scan_constant_dimension_expression(a_constant *constant)
 /*
 Scan an integral constant expression that is an array dimension bound
-and return it in *constant, which is or will be allocated in the
-file scope memory region.  The caller is prepared to deal with backing
-expressions in function scope memory if necessary, so nothing special
-is done to deal with memory region issues here.
+and return it in *constant, which will be subsequently allocated in the
+file scope memory region.
 */
 {
+  a_memory_region_number region_to_switch_back_to;
   a_type_ptr required_type = cpp11_mode ? integer_type(targ_size_t_int_kind) :
                                           NULL;
+
+  switch_to_file_scope_region(&region_to_switch_back_to);
   scan_integral_constant_expression_full(required_type,
                                          /*is_array_bound=*/TRUE,
                                          constant);
+  switch_back_to_original_region(region_to_switch_back_to);
 }  /* scan_constant_dimension_expression */
 
 
