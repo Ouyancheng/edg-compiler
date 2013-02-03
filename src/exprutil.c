@@ -7964,7 +7964,7 @@ used only in C++ mode.
     did_not_fold = TRUE;
     if (curr_expr_is_evaluated() && expr_stack->favor_constant_result &&
         is_constant_operand(operand) &&
-        operand->variant.constant.kind == (a_constant_repr_kind)ck_address) {
+        operand->variant.constant.kind != (a_constant_repr_kind)ck_aggregate) {
       /* Fold a cast of a constant address into another constant address.
          This folding is always done in constant expressions, but in some
          nonconstant expressions it's not done because it's clearer to

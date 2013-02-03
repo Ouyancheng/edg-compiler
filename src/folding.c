@@ -8292,7 +8292,10 @@ the variable to which p points has a constant value, return that value.
   a_constant     addr_con;
 
   if (constexpr_enabled &&
-      constant_lvalue_address(expr, &addr_con, /*address_escapes=*/FALSE)) {
+      constant_lvalue_address_full(expr, (a_constexpr_evaluation_block *)NULL,
+                                   &addr_con, /*address_escapes=*/FALSE,
+                                   CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
+                                   (a_boolean *)NULL)) {
     result_con = constant_value_at_address(&addr_con, (a_constant_ptr)NULL);
   }  /* if */
   return result_con;
