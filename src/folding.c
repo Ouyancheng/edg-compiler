@@ -5526,6 +5526,7 @@ pos gives a default source position.
   ceblock->do_not_call_back = FALSE;
   ceblock->is_partially_initialized = FALSE;
   ceblock->call_depth = 0;
+  ceblock->call_count = 0;
   ceblock->failure_warning = ec_no_error;
 }  /* clear_constexpr_evaluation_block */
 
@@ -7848,7 +7849,9 @@ recursion.
   a_boolean ovflo = FALSE;
 
   ceblock->call_depth++;
-  if (ceblock->call_depth > max_constexpr_call_nesting) {
+  ceblock->call_count++;
+  if (ceblock->call_depth > max_constexpr_call_nesting ||
+      ceblock->call_count > max_constexpr_call_nesting*10) {
     ovflo = TRUE;
     ceblock->failure_warning = ec_excessive_constexpr_recursion;
   }  /* if */

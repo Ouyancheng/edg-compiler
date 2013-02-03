@@ -184,6 +184,10 @@ typedef struct a_constexpr_evaluation_block {
 		call_depth;
 			/* Depth of constexpr calls, used to check for
 			   recursion overflow. */
+  unsigned long
+		call_count;
+			/* Count of constexpr calls, used to check for
+			   recursion overflow. */
   an_error_code
 		failure_warning;
 			/* If not ec_no_error, gives the reason for a folding
