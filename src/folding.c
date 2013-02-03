@@ -9051,7 +9051,9 @@ fold_constexpr_ctor should usually be called instead.
                            next_initializable_field(next_expected_field->next);
             }  /* while */
             while (next_expected_field != NULL &&
-                   next_expected_field->is_anonymous_parent_object) {
+                   next_expected_field->is_anonymous_parent_object &&
+                   next_initializable_field(next_expected_field->type
+                            ->variant.class_struct_union.field_list) == NULL) {
               /* Add an empty aggregate initializer for an anonymous union
                  containing no members. */
               a_constant_ptr anon_union_aggr =
@@ -9092,22 +9094,12 @@ fold_constexpr_ctor should usually be called instead.
           if (!fold_dynamic_init(dip, member_type, ceblock, &member_con)) {
             goto fail;
           }  /* if */
-          /* See if the field being initialized is the one expected. */
-          if (field != NULL) {
-            if (next_expected_field != field) {
-              /* The constructor must fail to initialize a field.  An error
-                 should have been issued. */
-              if (expr_error_should_be_issued()) expect_error();
-              break;
-            } /* if */
-          }  /* if */
           member_con_ptr = alloc_unshared_constant(&member_con);
-          if (field != NULL && parent_class_of(field) != class_type) {
+          if (field != NULL) {
             /* Add extra ck_aggregate levels for an anonymous union field. */
-            a_field_ptr curr_field = field;
-            do {
+            while (parent_class_of(field) != class_type) {
               a_constant_ptr new_aggr_con;
-              a_type_ptr     curr_class = parent_class_of(curr_field);
+              a_type_ptr     curr_class = parent_class_of(field);
               a_class_type_supplement_ptr
                              ctsp = class_type_supp(curr_class);
               check_assertion(ctsp->anonymous_union_kind ==
@@ -9116,9 +9108,15 @@ fold_constexpr_ctor should usually be called instead.
               add_constant_to_aggregate(member_con_ptr, new_aggr_con);
               new_aggr_con->type = curr_class;
               member_con_ptr = new_aggr_con;
-              curr_field = ctsp->anonymous_union_field;
-              next_expected_field = curr_field;
-            } while (parent_class_of(curr_field) != class_type);
+              field = ctsp->anonymous_union_field;
+            }  /* while */
+            /* See if the field being initialized is the one expected. */
+            if (next_expected_field != field) {
+              /* The constructor must fail to initialize a field.  An error
+                 should have been issued. */
+              if (expr_error_should_be_issued()) expect_error();
+              break;
+            } /* if */
           }  /* if */
           /* Add the constant at the end of the aggregate. */
           add_constant_to_aggregate(member_con_ptr, &aggr_con);
