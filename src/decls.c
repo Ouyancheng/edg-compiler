@@ -9645,6 +9645,11 @@ the symbol through dps->sym and its linkage (which is always "none") through
       if (var->storage_class == (a_storage_class)sc_extern) {
         var->storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
+      if (!var->is_constexpr && (dps->dso_flags & DSO_CONSTEXPR) != 0) {
+        pos_sy_error(ec_previous_nonconstexpr_decl_conflict,
+                     &dps->specifiers_pos, sym);
+        dps->dso_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
+      }  /* if */
       /* Set the IL referenced flag since, as an externally visible variable,
          it could be referenced from another translation unit. */
       var->source_corresp.referenced = TRUE;

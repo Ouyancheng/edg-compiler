@@ -14617,6 +14617,13 @@ specific information about the member declaration, respectively.
       /* Restore the member's visibility. */
       decl_state->sym->is_invisible = FALSE;
     }  /* if */
+  } else if (var->is_constexpr) {
+    /* A constexpr static data member declaration must have an initializer:
+       Issue an error. */
+    pos_error(ec_constexpr_static_data_member_without_initializer,
+              &pos_curr_token);
+    var->init_kind = (an_init_kind)initk_static;
+    var->initializer.constant = alloc_error_constant();
   }  /* if */
   /* Record the symbol declaration.  Usually it is a pure declaration (and the
      definition must appear outside the class definition), but in C++/CLI an

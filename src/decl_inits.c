@@ -3653,8 +3653,14 @@ returned set to TRUE.
          again, and we have the variable from the earlier declaration).
          Sun compilers mostly ignore (but do check for errors) an out-of-class
          initializer for a member constant of a class template instance. */
-      if (sun_mode && vp->is_member_constant &&
-          vp->is_template_static_data_member) {
+      if (vp->init_kind == (an_init_kind)initk_static &&
+          is_error_constant(vp->initializer.constant)) {
+        /* The previous constant may have been generated for error recovery
+           purposes (e.g., for a constexpr variable).  An additional
+           diagnostic is unlikely to be helpful. */
+        expect_error();
+      } else if (sun_mode && vp->is_member_constant &&
+                 vp->is_template_static_data_member) {
         pos_sy_warning(ec_out_of_class_initializer_ignored, source_pos,
                        symbol_ptr);
       } else {
