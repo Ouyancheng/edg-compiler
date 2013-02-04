@@ -5494,7 +5494,7 @@ field initializer), set *variant_explicit_init to TRUE.
 */
 {
 
-  for (;;) {
+  for (; cip != NULL;) {
     a_dynamic_init_ptr  dip = cip->initializer;
     check_assertion(cip->kind == (a_constructor_init_kind)cik_field);
     if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_none) {
@@ -5516,7 +5516,6 @@ field initializer), set *variant_explicit_init to TRUE.
       break;
     }  /* if */
     cip = cip->next;
-    check_assertion(cip != NULL);
   }  /* for */
 }  /* check_variant_has_initializer */
 
@@ -5687,6 +5686,10 @@ initialized.  These are addressed in the course of the processing.
         /* All fields are explicitly listed for a generated copy or move
            constructor, since even if there is no constructor at least a
            bitwise copy is required. */
+      } else if (sym->variant.field.extra_info->is_first_variant_member ||
+                 sym->variant.field.extra_info->is_last_variant_member) {
+        /* The first and last variant field of an anonymous union must be
+           listed so we can detect the presence of the variant part below. */
       } else if (ctor_rout->is_constexpr) {
         /* All fields must be initialized in a constexpr constructor.  (For
            variant fields only one member of the union must be initialized.

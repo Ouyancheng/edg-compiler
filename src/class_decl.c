@@ -15098,12 +15098,18 @@ nonstandard anonymous unions is_nonstd is TRUE.
                   &assoc_object_sym->decl_position);
       }  /* if */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-      check_assertion(is_class_struct_union_type(assoc_object_type));
-      if (assoc_object_type->kind == (a_type_kind)tk_typeref ||
-          has_name(assoc_object_type)) {
-        check_assertion(C_mode());
-        reuse_symbol = FALSE;
-      }  /* if */
+      { a_type_ptr  au_type = skip_type_qualifiers(assoc_object_type);
+        check_assertion(is_class_struct_union_type(au_type));
+        if (au_type->kind == (a_type_kind)tk_typeref ||
+            has_name(au_type)) {
+          /* In some C modes, the type of the anonymous union isn't anonymous
+             (only the parent field is).  In such cases we cannot promote the
+             symbols to the enclosing class since the type must stand on its
+             own in other contexts. */
+          check_assertion(C_mode());
+          reuse_symbol = FALSE;
+        }  /* if */
+      }
 #else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       check_assertion(assoc_object_type->kind == (a_type_kind)tk_union);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
