@@ -1,5 +1,42 @@
 Version 4.6
 
+2/4/13   [EDGcpfe/13606]
+GCC compatibility: extern __inline function definition replacement
+
+GNU C and C++ mode allow a function definition to be provided "for inlining
+purposes only" (using "__attribute((gnu_inline))" in GNU C++ mode or
+"extern __inline" in GNU C mode).  Previously, such declarations were
+displaced (with a warning) only when another matching definition appeared
+(see Changes entries of 7/13/11 and 6/18/02).  Now, they are displaced by
+any matching declaration that doesn't imply "for inlining only" semantics,
+and warning is no longer issued.  For example:
+
+  extern __inline void f() {}  // For inlining only.
+  extern void f();             // Now displaces the prior definition.
+  int main() {
+    f();                       // Not inlined.
+  }
+
+If this example is compiled and linked by itself, a linker error ensues
+because no ordinary definition is provided (the original "for inlining only"
+definition has been discarded by the subsequent declaration.
+
+This new behavior interacts with "asm name" specifiers.  For example:
+
+  extern __inline void g() {}  // For inlining only.
+  extern void g() __asm("gg");
+  int main() {
+    g();
+  }
+
+Previously, the second declaration of g in this example was treated as an
+ordinary redeclaration of the for-inlining-only definition, and the asm name
+was discarded with a warning (because the "asm name" cannot be changed after
+the definition has been seen).  Now, since the second declaration displaces
+the prior definition, the asm name is recorded normally and the call to g in
+main requires a definition of the symbol "gg" rather than a function "g".
+
+
 2/1/13   [EDGcpfe/13610]
 Internal error on use of Microsoft __w64-annotated type
 

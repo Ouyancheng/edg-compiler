@@ -7588,22 +7588,21 @@ for use in generating cross-reference output describing this declaration.
         old_decl_has_body = TRUE;
       }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-      if (use_gnu_c89_inlining && old_decl_has_body && is_function_def &&
-          routine_ptr->is_inline &&
-          ((gcc_mode && routine_ptr->definition_for_inlining_only) ||
-           (gpp_mode && !func_info->is_inline))) {
-        /* We are either
-             - in GNU C mode and this routine was previously defined with
-               "extern __inline__", or
-             - in GNU C++ mode and the routine was previously defined
-               with attribute "gnu_inline" but the current definition is
-               not inline,
-           The new definition simply replaces the previous one (but we keep
-           the old one in the IL, which allows us to render it with the
-           C++-generating back end for example). */
+      if (use_gnu_c89_inlining && old_decl_has_body &&
+          routine_ptr->definition_for_inlining_only &&
+          ((gpp_mode && !func_info->is_inline) ||
+           (gcc_mode && 
+            (!func_info->is_inline ||
+             dps->declared_storage_class != (a_storage_class)sc_extern)))) {
+        /* In GNU mode a function can be defined "for inlining purposes only"
+           ("extern __inline" in GNU C mode, or "__attribute((gnu_inline))" in
+            GNU C++ mode).  Such a definition is superseded by the current
+           declaration if the current declaration does not imply the "for
+           inlining purposes only" semantics.
+           To emulate this, we create a new routine entry (the old one remains
+           in the IL tree to satisfy any existing references to it). */
         a_routine_ptr  new_rp = make_routine(type_ptr, storage_class,
                                              decl_scope_level);
-        pos_sy_warning(ec_already_defined, &locator->source_position, sym);
         *new_rp = *routine_ptr;
         new_rp->next = NULL;
         new_rp->type = type_ptr;
@@ -7611,6 +7610,8 @@ for use in generating cross-reference output describing this declaration.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         new_rp->source_corresp.decl_pos_info = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        new_rp->defined = FALSE;
+        new_rp->assoc_scope = NULL_region_number;
         routine_ptr = new_rp;
         routine_ptr->gnu_c89_inline = FALSE;
         old_decl_has_body = FALSE;
