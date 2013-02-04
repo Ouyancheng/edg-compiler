@@ -7773,12 +7773,27 @@ user-defined conversions.
                  "plain" named constant: Break any direct connection to such a
                  named constant. */
               break_constant_source_corresp(&local_constant);
-              add_cast_to_node(&local_constant.expr, new_type,
-                               /*check_cast_access=*/FALSE,
-                               /*check_ambiguity=*/FALSE,
-                               is_implicit_cast,
-                               is_reinterpret_cast, reinterpret_semantics,
-                               err_pos);
+              { a_memory_region_number region_to_switch_back_to =
+                                                            NULL_region_number;
+                if (!in_file_scope(local_constant.expr) &&
+                    curr_il_region_number == file_scope_region_number) {
+                  /* The expression so far is in function scope memory, so
+                     put the cast there too.  The constant hasn't been
+                     allocated in IL yet, so it's okay that it has
+                     a backing expression that may have a memory region
+                     problem.  We'll decide about that when the allocation
+                     is done. */
+                  switch_to_scope_region(depth_scope_stack,
+                                         &region_to_switch_back_to);
+                }  /* if */
+                add_cast_to_node(&local_constant.expr, new_type,
+                                 /*check_cast_access=*/FALSE,
+                                 /*check_ambiguity=*/FALSE,
+                                 is_implicit_cast,
+                                 is_reinterpret_cast, reinterpret_semantics,
+                                 err_pos);
+                switch_back_to_original_region(region_to_switch_back_to);
+              }
               expr_stack->suppress_diagnostics = saved_suppress;
               expr_stack->any_suppressed_error = saved_any_error;
             }  /* if */
