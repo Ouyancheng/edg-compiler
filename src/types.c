@@ -355,6 +355,7 @@ type, without changing the type represented, for deduction purposes."
   return type_ptr;
 }  /* skip_typedefs_not_dependent_decltypes */
 
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 
 a_type_ptr skip_type_qualifiers(a_type_ptr  type_ptr)
 /*
@@ -371,6 +372,7 @@ still be qualified if, e.g., a typedef for a qualified type is involved.)
   return type_ptr;
 }  /* skip_type_qualifiers */
 
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 a_boolean is_error_type(a_type_ptr tp)
 /*
