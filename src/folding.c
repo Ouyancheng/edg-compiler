@@ -7954,13 +7954,13 @@ evaluation.
         }  /* if */
       }
       break;
+    case dik_none:
     case dik_zero:
       folded = make_value_initialized_constant(dest_type, result_con);
       if (folded && result_con->partial_aggr_value) {
         ceblock->is_partially_initialized = TRUE;
       }  /* if */
       break;
-    case dik_none:
     case dik_call_returning_class_via_cctor:
     case dik_bitwise_copy:
     default:
