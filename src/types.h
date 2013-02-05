@@ -59,9 +59,6 @@ extern a_type_ptr skip_typedefs(a_type_ptr type_ptr);
 extern a_type_ptr skip_typerefs_not_typedefs(a_type_ptr type_ptr);
 extern a_type_ptr skip_typerefs_not_dependent_decltypes(a_type_ptr type_ptr);
 extern a_type_ptr skip_typedefs_not_dependent_decltypes(a_type_ptr type_ptr);
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-extern a_type_ptr skip_type_qualifiers(a_type_ptr type_ptr);
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 extern a_boolean is_error_type(a_type_ptr tp);
 extern a_boolean is_function_type(a_type_ptr tp);

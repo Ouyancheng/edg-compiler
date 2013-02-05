@@ -355,24 +355,6 @@ type, without changing the type represented, for deduction purposes."
   return type_ptr;
 }  /* skip_typedefs_not_dependent_decltypes */
 
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-
-a_type_ptr skip_type_qualifiers(a_type_ptr  type_ptr)
-/*
-Strip any typeref entries that represent type qualifiers off the given type
-and return the underlying type, but stop the process at typeref entries that
-don't represent simple type qualifiers.  (Note that the resulting type may
-still be qualified if, e.g., a typedef for a qualified type is involved.)
-*/
-{
-  while (type_ptr->kind == (a_type_kind)tk_typeref &&
-         typeref_is_qualified(type_ptr)) {
-    type_ptr = type_ptr->variant.typeref.type;
-  }  /* while */
-  return type_ptr;
-}  /* skip_type_qualifiers */
-
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 a_boolean is_error_type(a_type_ptr tp)
 /*

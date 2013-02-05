@@ -15105,18 +15105,12 @@ nonstandard anonymous unions is_nonstd is TRUE.
                   &assoc_object_sym->decl_position);
       }  /* if */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-      { a_type_ptr  au_type = skip_type_qualifiers(assoc_object_type);
-        check_assertion(is_class_struct_union_type(au_type));
-        if (au_type->kind == (a_type_kind)tk_typeref ||
-            has_name(au_type)) {
-          /* In some C modes, the type of the anonymous union isn't anonymous
-             (only the parent field is).  In such cases we cannot promote the
-             symbols to the enclosing class since the type must stand on its
-             own in other contexts. */
-          check_assertion(C_mode());
-          reuse_symbol = FALSE;
-        }  /* if */
-      }
+      check_assertion(is_class_struct_union_type(assoc_object_type));
+      if (assoc_object_type->kind == (a_type_kind)tk_typeref ||
+          has_name(assoc_object_type)) {
+        check_assertion(C_mode() || (gpp_mode && gnu_version < 30400));
+        reuse_symbol = FALSE;
+      }  /* if */
 #else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       check_assertion(assoc_object_type->kind == (a_type_kind)tk_union);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
@@ -15234,16 +15228,18 @@ nonstandard anonymous unions is_nonstd is TRUE.
 #endif /* DEBUG */
       /* Creation of a new symbol is only implemented for fields, because it
          can only happen in C mode or with C++ classes that have no C++
-         features.  (A compiler-generated assignment operator is fine.  If
-         "near" and "far" qualifiers are enabled, that operator may be an
-         overload set; see check_special_member_functions.) */
+         features.  (Compiler-generated special members are fine.) */
       check_assertion_str(
-        sym->kind == (a_symbol_kind)sk_field ||
-        (sym->kind == (a_symbol_kind)sk_member_function &&
-         sym->variant.routine.ptr->compiler_generated) ||
-        (near_and_far_enabled() && sym->is_class_member &&
-         sym->kind == (a_symbol_kind)sk_overloaded_function),
-        "check_anonymous_union_symbols: unexpected symbol kind");
+                     symbol_is(sym, sk_field) ||
+                     (symbol_is(sym, sk_member_function) &&
+                      sym->variant.routine.ptr->compiler_generated) ||
+                     (sym->is_class_member &&
+                      symbol_is(sym, sk_overloaded_function) &&
+                      symbol_is(sym->variant.overloaded_function.symbols,
+                                sk_member_function) &&
+                      sym->variant.overloaded_function.symbols
+                         ->variant.routine.ptr->compiler_generated),
+                     "check_anonymous_union_symbols: unexpected symbol kind");
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     }  /* if */
     /* Private and protected members are not allowed in an anonymous union
