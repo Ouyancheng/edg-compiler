@@ -16548,6 +16548,14 @@ error and set *processed to TRUE if the conversion is ambiguous.
   a_boolean                ambiguous;
   a_candidate_function_ptr ambiguity_list;
 
+  if (specific_type != NULL) {
+    /* The convention below this routine is that the built-in types set
+       is the dominant argument, with the specific type being a guiding type
+       if both are specified.  For this routine, however, specific_type
+       being non-NULL overrides builtin_types_allowed.  Convert to
+       the other interface specification. */
+    builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
+  }  /* if */
   /* Only look at this operand if it has a class type. */
   if (is_class_struct_union_type(operand->type)) {
     /* See if the class type can be converted to an acceptable built-in
