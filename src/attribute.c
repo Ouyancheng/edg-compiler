@@ -4212,21 +4212,6 @@ return the routine or variable.  This function may also be called for the
                      ap->name);
     } else {
       a_routine_ptr  rp = (a_routine_ptr)entity;
-      if (gcc_mode && rp->is_inline &&
-          rp->assoc_scope != NULL_region_number &&
-          rp->definition_for_inlining_only) {
-        /* GNU C accepts the alias attribute on a function that was previously
-           defined as an extern inline function, and ignores that previous
-           declaration. */
-        a_symbol_ptr  sym = symbol_for(rp);
-        pos_warning(ec_ignoring_inline_definition_because_of_alias,
-                    &rp->source_corresp.decl_position);
-        clear_function_body(scope_for_routine(rp));
-        /* clear_function_body clears rp->defined, but not the defined flag
-           on the associated symbol. */
-        sym->defined = FALSE;
-        set_inline_flag(rp, FALSE);
-      }  /* if */
       rp->implicit_alias = FALSE;
       /* A separate copy of the string value is needed because the string
          may become an asm_name, which is traversed as iek_other_text, not
