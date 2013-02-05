@@ -6137,10 +6137,13 @@ initialized.  These are addressed in the course of the processing.
           }  /* if */
         }  /* if */
         /* Consider dropping the ctor-initializer entry if it isn't needed. */
-        if (cssp == NULL ||
-            is_template_param_or_nonreal_class_type(tp) ||
-            (has_trivial_default_constructor(cssp) &&
-             (!exceptions_enabled || cssp->has_trivial_destructor))) {
+        if (ctor_rout->is_constexpr) {
+          /* Every direct base class in a constexpr constructor must be
+             initialized, and we want that to be explicitly represented. */
+        } else if (cssp == NULL ||
+                   is_template_param_or_nonreal_class_type(tp) ||
+                   (has_trivial_default_constructor(cssp) &&
+                    (!exceptions_enabled || cssp->has_trivial_destructor))) {
           /* This constructor initializer entry is likely not really needed.
              It may be the result of an empty initializer on a field or it may
              be associated with a base class without a constructor. */
