@@ -4646,6 +4646,11 @@ have_result:
   } else {
     /* Check that the offset lies within the base object. */
     if (!integer_case && !valid_address_constant(result)) {
+      if (cpp11_mode && !gnu_mode && !microsoft_mode) {
+        /* An out-of-bound address should not be folded to a constant in
+           C++11 (although g++ and MSVC do). */
+        *did_not_fold = TRUE;
+      }  /* if */
       /* Use a different error message for cases where the original pointer
          addition was coded in [] form. */
       if (op == (an_expr_operator_kind)eok_subscript) {
@@ -8103,11 +8108,23 @@ a new unshared constant will be allocated and returned.
     } else {
       result_con = alloc_error_constant();
     }  /* if */
-  } else if (addr_con->kind == (a_constant_repr_kind)ck_address) {
+  } else if (addr_con->kind == (a_constant_repr_kind)ck_address &&
+             (addr_con->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable ||
+              addr_con->variant.address.kind ==
+                                         (an_address_base_kind)abk_constant)) {
     a_type_ptr target_type = type_pointed_to(addr_con->type);
+    a_type_ptr base_type;
     target_type = skip_typerefs(target_type);
+    if (addr_con->variant.address.kind == (an_address_base_kind)abk_variable) {
+      base_type =
+               skip_typerefs(addr_con->variant.address.variant.variable->type);
+    } else {
+      base_type =
+               skip_typerefs(addr_con->variant.address.variant.constant->type);
+    }  /* if */
     if (addr_con->variant.address.offset < 0 ||
-        (a_targ_size_t)addr_con->variant.address.offset >= target_type->size) {
+        (a_targ_size_t)addr_con->variant.address.offset >= base_type->size) {
       /* The address is outside the bounds of the object, so this is not a
          constant expression.  (A warning will have been issued earlier, so
          no diagnostic is needed here.) */
@@ -8254,7 +8271,8 @@ a new unshared constant will be allocated and returned.
       if (result_con != NULL) {
         /* result_con points to the requested value. */
         if (target_con != NULL) {
-          (void)copy_constant_full(result_con, target_con, CE_NO_OPTIONS);
+          (void)copy_constant_full(result_con, target_con,
+                                   CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL);
           result_con = target_con;
         } else {
           result_con = copy_unshared_constant(result_con);
@@ -8600,11 +8618,6 @@ field_selection:
                                expr->type,
                                ceblock,
                                result_con);
-  }  /* if */
-  if (folded && result_con->kind == (a_constant_repr_kind)ck_address &&
-      !valid_address_constant(result_con)) {
-    /* Invalid addresses make an expression non-constant. */
-    folded = FALSE;
   }  /* if */
   return folded;
 }  /* fold_expr */

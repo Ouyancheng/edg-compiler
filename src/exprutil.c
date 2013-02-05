@@ -17435,7 +17435,7 @@ it might produce an error).
           }  /* if */
           break;
         case eok_ref_indirect:
-          if (allow_folding &&
+          if (allow_folding != NULL &&
               (con_expr_value = constant_value_addressed_by_node(node)) !=
                                                                         NULL) {
             /* Indirection through a constexpr reference that refers to an
