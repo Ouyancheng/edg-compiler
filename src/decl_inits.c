@@ -3654,10 +3654,10 @@ returned set to TRUE.
          Sun compilers mostly ignore (but do check for errors) an out-of-class
          initializer for a member constant of a class template instance. */
       if (vp->init_kind == (an_init_kind)initk_static &&
+          vp->is_constexpr &&
           is_error_constant(vp->initializer.constant)) {
-        /* The previous constant may have been generated for error recovery
-           purposes (e.g., for a constexpr variable).  An additional
-           diagnostic is unlikely to be helpful. */
+        /* The previous constant was generated for error recovery purposes.
+           An additional diagnostic is unlikely to be helpful. */
         expect_error();
       } else if (sun_mode && vp->is_member_constant &&
                  vp->is_template_static_data_member) {
