@@ -7619,9 +7619,10 @@ for use in generating cross-reference output describing this declaration.
         sym->defined = FALSE;
         sym->variant.routine.ptr = routine_ptr;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        /* The declared type will be reset to the type of the new
-           definition. */
+        /* A new source sequence entry is needed for the new declaration, and
+           the declared type will be reset as well. */
         routine_ptr->declared_type = NULL;
+        routine_ptr->source_corresp.source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
