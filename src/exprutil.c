@@ -5386,22 +5386,32 @@ construct).
 
 a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
                                    a_source_position *pos,
-                                   a_constant        *result_con,
-                                   a_boolean         *returns_reference)
+                                   an_operand        *result)
 /*
 Interface to fold_constexpr_call for use within the expression-processing
-routines.  See fold_constexpr_call for the description of the parameters.
+routines.  Attempts to fold the call call_expr to a constant; if it
+can, sets result to an operand for the result and returns TRUE.  Otherwise,
+leaves result unchanged and returns FALSE.  pos is the source position
+of the call.
 */
 {
   a_boolean folded = FALSE;
 
   if (constexpr_enabled && curr_expr_is_evaluated()) {
     an_error_code failure_warning;
+    a_constant    result_con;
+    a_boolean     returns_reference;
     a_boolean     need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     if (fold_constexpr_call(call_expr, need_backing_expr, pos,
-                            result_con, returns_reference, &failure_warning)) {
+                            &result_con, &returns_reference,
+                            &failure_warning)) {
       folded = TRUE;
+      make_constant_operand(&result_con, result);
+      result->position = *pos;
+      if (returns_reference) {
+        add_reference_indirection(result);
+      }  /* if */
     } else if (failure_warning != ec_no_error) {
       expr_pos_warning(failure_warning, pos);
     }  /* if */

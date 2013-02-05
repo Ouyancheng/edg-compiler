@@ -3758,12 +3758,10 @@ functions require special compile-time checks and can sometimes be constant-
 folded.  This routine does so and returns TRUE if the call is folded (in which
 case *op is replaced by a constant operand).  A diagnostic may be issued if the
 arguments are invalid (and *op is replaced by an error operand in such cases).
-Also folds calls to constexpr functions.
 */
 {
   a_boolean         folded = FALSE;
   a_constant        result;
-  a_boolean         returns_constant_reference = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   a_routine_ptr     rp;
   an_expr_node_ptr  args;
@@ -4030,11 +4028,6 @@ Also folds calls to constexpr functions.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (!folded && constexpr_enabled) {
-    /* Try to fold a call to a constexpr function. */
-    folded = expr_fold_constexpr_call(call, &op->position, &result,
-                                      &returns_constant_reference);
-  }  /* if */
   if (folded) {
     /* Replace the call with a constant result. */
     an_operand  orig_op;
@@ -4043,9 +4036,6 @@ Also folds calls to constexpr functions.
     restore_operand_details(op, &orig_op);
     if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
       op->variant.constant.expr = call;
-    }  /* if */
-    if (returns_constant_reference) {
-      add_reference_indirection(op);
     }  /* if */
   }  /* if */
   return folded;
@@ -5407,24 +5397,27 @@ are expected to be NULL in that case.
                            found_through_adl, uses_operator_syntax,
                            &call_position, result, &function_call_node);
     result_operand_is_call = TRUE;
-    if (!call_may_be_folded && constexpr_enabled &&
-        routine != NULL && routine->is_constexpr) {
-      /* constexpr function calls can sometimes be folded to a constant. */
-      call_may_be_folded = TRUE;
-    }  /* if */
-    if (call_may_be_folded && !is_error_operand(result)) {
-      /* Some __builtin_xxx functions act as constant-expressions. */
-      call_folded_to_constant = check_call_and_fold_if_possible(
+    if (!is_error_operand(result) && function_call_node != NULL) {
+      if (constexpr_enabled && routine != NULL && routine->is_constexpr &&
+          expr_fold_constexpr_call(function_call_node, &call_position,
+                                   result)) {
+        /* The call is to a constexpr function and it has been folded to
+           a constant result. */
+        call_folded_to_constant = TRUE;
+      } else if (call_may_be_folded) {
+        /* Some __builtin_xxx functions act as constant-expressions. */
+        call_folded_to_constant = check_call_and_fold_if_possible(
                                                            result,
                                                            function_call_node);
-    }  /* if */
-    if (!call_folded_to_constant) {
-      /* Unfolded routine calls are not allowed in constant expressions. */
-      call_did_not_fold_to_constant(constexpr_enabled ?
-                                      ec_bad_cpp11_constant_function_call :
-                                      ec_bad_constant_function_call,
-                                    routine,
-                                    result);
+      }  /* if */
+      if (!call_folded_to_constant) {
+        /* Unfolded routine calls are not allowed in constant expressions. */
+        call_did_not_fold_to_constant(constexpr_enabled ?
+                                        ec_bad_cpp11_constant_function_call :
+                                        ec_bad_constant_function_call,
+                                      routine,
+                                      result);
+      }  /* if */
     }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &closing_paren_position,
