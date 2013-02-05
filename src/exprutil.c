@@ -17416,7 +17416,7 @@ it might produce an error).
           break;
         case eok_indirect:
           op1 = skip_parens(op1);
-          if (allow_folding &&
+          if (allow_folding != NULL &&
               (con_expr_value = constant_value_addressed_by_node(node)) !=
                                                                         NULL) {
             /* Indirection through a constexpr pointer that points to an
