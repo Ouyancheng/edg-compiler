@@ -17406,7 +17406,8 @@ it might produce an error).
           break;
         case eok_indirect:
           op1 = skip_parens(op1);
-          if ((con_expr_value = constant_value_addressed_by_node(node)) !=
+          if (allow_folding &&
+              (con_expr_value = constant_value_addressed_by_node(node)) !=
                                                                         NULL) {
             /* Indirection through a constexpr pointer that points to an
                object with a constant value.  Use that value as the result
@@ -17434,7 +17435,8 @@ it might produce an error).
           }  /* if */
           break;
         case eok_ref_indirect:
-          if ((con_expr_value = constant_value_addressed_by_node(node)) !=
+          if (allow_folding &&
+              (con_expr_value = constant_value_addressed_by_node(node)) !=
                                                                         NULL) {
             /* Indirection through a constexpr reference that refers to an
                object with a constant value.  Use that value as the result
