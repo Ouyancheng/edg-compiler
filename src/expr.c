@@ -10015,8 +10015,11 @@ previously-scanned sizeof expression, and return the result in *result
   a_boolean             operand_was_created = FALSE, operand_was_used = FALSE;
   a_memory_region_number
                         region_to_switch_back_to;
+  a_boolean             nonconstant_case = FALSE;
+  a_boolean             sizeof_itself_is_in_const_expr =
+                                         curr_expr_kind_is_traditional_const();
   a_boolean             sizeof_itself_is_potentially_evaluated =
-                                          curr_expr_is_potentially_evaluated();
+                                         curr_expr_is_potentially_evaluated();
 
   db_enter(4, "scan_sizeof_operator");
   if (variadic_templates_enabled) {
@@ -10316,7 +10319,7 @@ previously-scanned sizeof expression, and return the result in *result
           break;
       }  /* switch */
     }  /* if */
-    if (multiply_by_threads_needed && curr_expr_kind_is_const()) {
+    if (multiply_by_threads_needed && sizeof_itself_is_in_const_expr) {
       /* Not allowed in a constant expression. */
       expr_pos_error(ec_expr_not_constant, &start_position);
       make_error_operand(result);
@@ -10343,14 +10346,9 @@ previously-scanned sizeof expression, and return the result in *result
   /* Do not add code here. */
   if (vla_enabled && is_vla_type(sizeof_type) && !template_case) {
     /* One or more of the top array types is a variable-length array. */
-    if (curr_expr_kind_is_traditional_const()) {
+    if (sizeof_itself_is_in_const_expr) {
       /* Not allowed in a constant expression. */
       expr_pos_error(ec_expr_not_constant, &start_position);
-      make_error_operand(result);
-    } else if (construct_not_allowed_in_cpp11_constant_expr(
-                                                          ec_expr_not_constant,
-                                                          &start_position)) {
-      /* sizeof(vla) not allowed in a C++11 constant expression. */
       make_error_operand(result);
     } else {
       /* Make an expression node to represent a sizeof that cannot be
@@ -10358,6 +10356,7 @@ previously-scanned sizeof expression, and return the result in *result
       (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, sizeof_type,
                              &operand, result);
       operand_was_used = !is_type;
+      nonconstant_case = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled && !template_case &&
@@ -10372,12 +10371,8 @@ previously-scanned sizeof expression, and return the result in *result
          cli_class_type_kind_is(tp, cctk_interface))) {
       expr_pos_error(ec_sizeof_ref_or_interface_class, &start_position);
       make_error_operand(result);
-    } else if (curr_expr_kind_is_traditional_const()) {
+    } else if (sizeof_itself_is_in_const_expr) {
       expr_pos_error(ec_expr_not_constant, &start_position);
-      make_error_operand(result);
-    } else if (construct_not_allowed_in_cpp11_constant_expr(
-                                                          ec_expr_not_constant,
-                                                          &start_position)) {
       make_error_operand(result);
     } else {
       /* Make an expression node to represent a sizeof that cannot be
@@ -10385,6 +10380,7 @@ previously-scanned sizeof expression, and return the result in *result
       (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, sizeof_type,
                              &operand, result);
       operand_was_used = !is_type;
+      nonconstant_case = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef SIZEOF_TYPE_IS_UNKNOWN
@@ -10396,19 +10392,16 @@ previously-scanned sizeof expression, and return the result in *result
        some (e.g., non-POD classes) might not be.  SIZEOF_TYPE_IS_UNKNOWN
        is a function-like macro that returns TRUE for the complicated
        cases. */
-    if (curr_expr_kind_is_traditional_const()) {
+    if (sizeof_itself_is_in_const_expr) {
       /* Not allowed in a constant expression. */
       expr_pos_error(ec_expr_not_constant, &start_position);
-      make_error_operand(result);
-    } else if (construct_not_allowed_in_cpp11_constant_expr(
-                                                          ec_expr_not_constant,
-                                                          &start_position)) {
       make_error_operand(result);
     } else {
       /* Make an expression node to represent the sizeof. */
       (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, sizeof_type,
                              &operand, result);
       operand_was_used = !is_type;
+      nonconstant_case = TRUE;
     }  /* if */
 #endif /* defined(SIZEOF_TYPE_IS_UNKNOWN) */
   } else {
@@ -10485,6 +10478,13 @@ previously-scanned sizeof expression, and return the result in *result
                                           NO_TOKEN_SEQUENCE_NUMBER,
                                           &type_position);
   pop_expr_stack();
+  if (cpp11_mode && curr_expr_kind_is_const() &&
+      nonconstant_case &&
+      construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+                                                   &start_position)) {
+    /* Non-constant sizeof not allowed in a C++11 constant expression. */
+    conv_to_error_operand(result);
+  }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
 end_of_routine:
   db_exit();
