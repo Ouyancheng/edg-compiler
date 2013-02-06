@@ -72,7 +72,7 @@ purposes only" (using "__attribute((gnu_inline))" in GNU C++ mode or
 displaced (with a warning) only when another matching definition appeared
 (see Changes entries of 7/13/11 and 6/18/02).  Now, they are displaced by
 any matching declaration that doesn't imply "for inlining only" semantics,
-and warning is no longer issued.  For example:
+and a warning is no longer issued.  For example:
 
   extern __inline void f() {}  // For inlining only.
   extern void f();             // Now displaces the prior definition.
@@ -82,7 +82,7 @@ and warning is no longer issued.  For example:
 
 If this example is compiled and linked by itself, a linker error ensues
 because no ordinary definition is provided (the original "for inlining only"
-definition has been discarded by the subsequent declaration.
+definition has been discarded by the subsequent declaration).
 
 This new behavior interacts with "asm name" specifiers.  For example:
 
