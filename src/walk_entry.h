@@ -865,6 +865,7 @@ the file scope, do not process it (but record an orphan in the latter case).
               case tpck_alignof:
               case tpck_uuidof:
               case tpck_typeid:
+              case tpck_noexcept:
                 walk_ptr(ptr->variant.template_param.variant.templ_sizeof.type,
                          a_type_ptr, iek_type);
                 walk_ptr(ptr->variant.template_param.variant.templ_sizeof.expr,

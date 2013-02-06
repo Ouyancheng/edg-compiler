@@ -2541,7 +2541,8 @@ the way described by octl.
         } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
                    tkind == (a_template_param_constant_kind)tpck_alignof ||
                    tkind == (a_template_param_constant_kind)tpck_uuidof ||
-                   tkind == (a_template_param_constant_kind)tpck_typeid) {
+                   tkind == (a_template_param_constant_kind)tpck_typeid ||
+                   tkind == (a_template_param_constant_kind)tpck_noexcept) {
           expr_ptr=&constant->variant.template_param.variant.templ_sizeof.expr;
         }  /* if */
         check_assertion(expr_ptr != NULL && *expr_ptr == NULL);
@@ -5256,6 +5257,9 @@ precedence confusion.  Do the output in the way described by octl.
           } else {
             octl->output_str("__ALIGNOF__(", octl);
           }  /* if */
+          goto do_sizeof_cases;
+        case tpck_noexcept:
+          octl->output_str("noexcept(", octl);
 do_sizeof_cases:
           { an_expr_node_ptr  expr = generic_sizeof_arg_expr(constant);
             if (expr != NULL) {

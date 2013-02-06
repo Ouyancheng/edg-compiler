@@ -957,6 +957,9 @@ Display a ck_template_param constant.
       goto do_sizeof_cases;
     case tpck_typeid:
       (void)printf("tpck_typeid\n");
+      goto do_sizeof_cases;
+    case tpck_noexcept:
+      (void)printf("tpck_noexcept\n");
 do_sizeof_cases:
       disp_ptr("type",
                (char *)ptr->variant.template_param.variant.templ_sizeof.type,

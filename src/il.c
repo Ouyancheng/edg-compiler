@@ -4546,7 +4546,8 @@ fix them.
       if (kind == (a_template_param_constant_kind)tpck_sizeof ||
           kind == (a_template_param_constant_kind)tpck_alignof ||
           kind == (a_template_param_constant_kind)tpck_uuidof ||
-          kind == (a_template_param_constant_kind)tpck_typeid) {
+          kind == (a_template_param_constant_kind)tpck_typeid ||
+          kind == (a_template_param_constant_kind)tpck_noexcept) {
         /* If a constant in the file scope memory region has an attached
            expression in a function scope memory region, break the link to the
            expression.  In configurations that record prototype instantiations
@@ -5385,6 +5386,9 @@ copy_constant_full should be called to start a copy.
         /* No subtree to copy. */
         break;
       case tpck_expression:
+        /* Note that this copy ignores any memory region issues.  See
+           tpck_sizeof et al. below for cases where memory region issues are
+           handled properly. */
         new_constant->variant.template_param.variant.expr =
             i_copy_expr_tree(old_constant->variant.template_param.variant.expr,
                              options, cblock);
@@ -5401,6 +5405,7 @@ copy_constant_full should be called to start a copy.
       case tpck_alignof:
       case tpck_uuidof:
       case tpck_typeid:
+      case tpck_noexcept:
         { an_expr_node_ptr old_expr, new_expr;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
           new_constant->variant.template_param.variant.templ_sizeof.
@@ -6603,6 +6608,7 @@ definition of the CC flags in il.h for more information.
             case tpck_alignof:
             case tpck_uuidof:
             case tpck_typeid:
+            case tpck_noexcept:
               eq = identical_types(
                       cp1->variant.template_param.variant.templ_sizeof.type,
                       cp2->variant.template_param.variant.templ_sizeof.type);
@@ -6889,6 +6895,7 @@ at the file scope (it would contain a pointer down into a function scope).
         case tpck_alignof:
         case tpck_uuidof:
         case tpck_typeid:
+        case tpck_noexcept:
           { an_expr_node_ptr expr =
                           cp->variant.template_param.variant.templ_sizeof.expr;
             if (expr != NULL) has_nfs_ref = !in_file_scope(expr);
@@ -10911,8 +10918,8 @@ a lambda body, return the associated lambda entry.  Otherwise, return NULL.
 an_expr_node_ptr generic_sizeof_arg_expr(a_constant_ptr  con)
 /*
 The given constant is a ck_template_param of kind tpck_sizeof representing
-a sizeof, alignof, uuidof, or typeid construct.  If the construct had an
-expression argument return that expression, otherwise, return NULL.  The
+a sizeof, alignof, uuidof, typeid, or noexcept construct.  If the construct had
+an expression argument return that expression, otherwise, return NULL.  The
 expression may be referred to indirectly through an entry of type
 a_local_expr_node_ref.
 */
@@ -10927,7 +10934,9 @@ a_local_expr_node_ref.
                    con->variant.template_param.kind ==
                                (a_template_param_constant_kind)tpck_uuidof ||
                    con->variant.template_param.kind ==
-                               (a_template_param_constant_kind)tpck_typeid));
+                               (a_template_param_constant_kind)tpck_typeid ||
+                   con->variant.template_param.kind ==
+                               (a_template_param_constant_kind)tpck_noexcept));
   result = con->variant.template_param.variant.templ_sizeof.expr;
   if (result == NULL && innermost_function_scope != NULL &&
       con->variant.template_param.variant.templ_sizeof.local_expr_ref) {
@@ -16012,9 +16021,11 @@ name lookup options.
       case tpck_alignof:
       case tpck_uuidof:
       case tpck_typeid:
+      case tpck_noexcept:
         /* The template param represents sizeof(T), __ALIGNOF__(T), 
-           __uuidof(T), or typeid(T), where T is a type containing a template
-           parameter.  Determine the type of T after substitution. */
+           __uuidof(T), typeid(T), or noexcept(T) where T is a type containing
+           a template parameter.  Determine the type of T after
+           substitution. */
         { an_expr_node_ptr expr = generic_sizeof_arg_expr(con);
           if (expr != NULL) {
             /* There's an associated expression.  Do substitution on it. */
@@ -16062,7 +16073,7 @@ name lookup options.
                constant is still okay. */
           } else if (is_template_dependent_type(new_type)) {
             /* Still a template dependent type, so still need a
-               tpck_sizeof/alignof/uuidof/typeid constant. */
+               tpck_sizeof/alignof/uuidof/typeid/noexcept constant. */
             *constant = *con;
             constant->variant.template_param.variant.templ_sizeof.type =
                                                                       new_type;
@@ -16070,7 +16081,7 @@ name lookup options.
             con_copy = NULL;
           } else {
             /* No longer a template parameter type, so the sizeof, alignof,
-               uuidof, or typeid result is known. */
+               uuidof, typeid, or noexcept result is known. */
             a_targ_alignment  new_alignment = alignment_of_type(new_type);
             new_type = skip_typerefs(new_type);
             complete_type_is_needed(new_type);
@@ -16086,6 +16097,14 @@ name lookup options.
                                  (a_template_param_constant_kind)tpck_typeid) {
               /* typeid(...). */
               make_typeid_constant(new_type, constant);
+            } else if (con->variant.template_param.kind ==
+                               (a_template_param_constant_kind)tpck_noexcept) {
+              /* noexcept(...). */
+              check_assertion(expr != NULL);
+              set_unsigned_integer_constant(
+                                constant,
+                                (a_host_large_unsigned)!expr_might_throw(expr),
+                                bool_type()->variant.integer.int_kind);
             } else {
               /* sizeof/alignof. */
               a_boolean is_sizeof = (con->variant.template_param.kind ==
@@ -18121,8 +18140,9 @@ initialization doing nothing should be suppressed.
           tblock->suppress_subtree_walk = TRUE;
         }  /* if */
         break;
+      case tpck_noexcept:
       case tpck_alignof:
-        /* Alignof doesn't ever evaluate its operands. */
+        /* These doesn't evaluate their operands. */
         tblock->suppress_subtree_walk = TRUE;
         break;
       default:

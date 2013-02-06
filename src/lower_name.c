@@ -2142,10 +2142,10 @@ static void mangled_encoding_for_sizeof(
                                       a_mangling_control_block       *mctl)
 /*
 Add to the mangled name the encoding of sizeof(type), __ALIGNOF__(type),
-__uuidof(type), or typeid(type); kind indicates which.  If expr is non-NULL,
-the original form used an expression, which expr points to.  "type" is
-ignored if expr != NULL.  orig_expr is the "original" expression (where
-"type" and "expr" most likely originated); it is used in cases where
+__uuidof(type), typeid(type), or noexcept(expr); kind indicates which.  If expr
+is non-NULL, the original form used an expression, which expr points to.
+"type" is ignored if expr != NULL.  orig_expr is the "original" expression
+(where "type" and "expr" most likely originated); it is used in cases where
 the original expression may have additional flags that might affect mangling
 (i.e., is_cli_typeid).  orig_expr can be NULL.
 */
@@ -2154,7 +2154,7 @@ the original expression may have additional flags that might affect mangling
   if ((kind == (a_template_param_constant_kind)tpck_sizeof ||
        kind == (a_template_param_constant_kind)tpck_alignof) &&
 #if IA64_ABI
-      !(emulate_gnu_abi_bugs && gnu_version < 40000) &&
+      (!emulate_gnu_abi_bugs || gnu_version >= 40000) &&
 #endif /* IA64_ABI */
       (expr == NULL ? !is_instantiation_dependent_type(type) :
                       !expr_is_instantiation_dependent(expr))) {
@@ -2164,6 +2164,9 @@ the original expression may have additional flags that might affect mangling
        the front end, but this can still occur in cases where the
        sizeof/alignof is a subexpression in a dependent backing expression.
        Early versions of GNU don't do this. */
+    /* This case may need to be expanded for noexcept, but recent versions
+       of GNU don't yet mangle noexcept, so there's nothing to compare it
+       against. */
     a_constant           con;
     a_host_large_integer value;
     if (kind == (a_template_param_constant_kind)tpck_sizeof) {
@@ -2294,6 +2297,10 @@ the original expression may have additional flags that might affect mangling
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
       }  /* if */
 #endif /* IA64_ABI */
+      break;
+    case tpck_noexcept:
+      check_assertion(expr != NULL);
+      add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_NOEXCEPT, mctl);
       break;
     default:
       unexpected_condition();
@@ -3899,6 +3906,7 @@ do_unknown_function:
         case tpck_alignof:
         case tpck_uuidof:
         case tpck_typeid:
+        case tpck_noexcept:
           mangled_encoding_for_sizeof(
                          con->variant.template_param.variant.templ_sizeof.type,
                          con->variant.template_param.variant.templ_sizeof.expr,
@@ -4437,8 +4445,11 @@ dependent.
        con->variant.template_param.kind ==
                                 (a_template_param_constant_kind)tpck_alignof ||
        con->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_typeid)) {
-    /* Don't look under a sizeof, alignof, or typeid. */
+                                (a_template_param_constant_kind)tpck_typeid ||
+       con->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_noexcept)
+                                                                            ) {
+    /* Don't look under a sizeof, alignof, typeid, or noexcept. */
     tblock->suppress_subtree_walk = TRUE;
   } else if (is_template_dependent_type(con->type)) {
     /* Found a dependent type, terminate the search and return TRUE. */

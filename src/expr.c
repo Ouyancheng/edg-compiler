@@ -12847,13 +12847,20 @@ previously-scanned noexcept expression, and return the result in
   check_assertion(noexcept_enabled);
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
-    an_expr_rescan_info_entry_ptr eriep;
+    a_token_sequence_number operator_tok_seq_number;
+    a_boolean               is_type;
+    a_type_ptr              dummy_type;
+    a_source_position       dummy_position;
+    make_sizeof_et_al_rescan_operands(rcblock,
+                                      &is_type, &operand, &dummy_type,
+                                      &start_position,
+                                      &operator_tok_seq_number,
+                                      &dummy_position);
+    check_assertion(!is_type);
     check_assertion(rcblock->operator_token == tok_noexcept);
     expr = rcblock->expr;
     check_assertion(is_operation_node(expr) &&
                     node_operator_is(expr, eok_noexcept));
-    eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
-    start_position = eriep->saved_operand.position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -12892,16 +12899,15 @@ previously-scanned noexcept expression, and return the result in
   operand_expr = wrap_up_full_expression(operand_expr);
   dependent_case = (is_template_dependent_context() &&
                     expr_is_instantiation_dependent(operand_expr));
-  if (dependent_case ||
-      curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-    expr = make_operator_node((an_expr_operator_kind)eok_noexcept,
-                              bool_type(),
-                              operand_expr);
-  }  /* if */
   if (dependent_case) {
     /* The result value is dependent, or at least it needs to be reanalyzed
        on a rescan.  The result is a template-dependent constant. */
-    make_template_param_expr_constant(expr, &result_constant);
+    clear_constant(&result_constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(&result_constant,
+                              (a_template_param_constant_kind)tpck_noexcept);
+    result_constant.variant.template_param.variant.templ_sizeof.expr =
+                                                                  operand_expr;
+    result_constant.type = bool_type();
   } else {
     /* Not a dependent case. */
     /* See if the expression contains something that might throw. */
@@ -12912,7 +12918,10 @@ previously-scanned noexcept expression, and return the result in
                          bool_type()->variant.integer.int_kind);
     result_constant.type = bool_type();
     if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-      result_constant.expr = expr;
+      result_constant.expr = make_operator_node(
+                                           (an_expr_operator_kind)eok_noexcept,
+                                           bool_type(),
+                                           operand_expr);
     }  /* if */
   }  /* if */
   make_constant_operand(&result_constant, result);
@@ -34766,6 +34775,10 @@ set accordingly.
           break;
         case tpck_typeid:
           operator_token = tok_typeid;
+          *unary = TRUE;
+          break;
+        case tpck_noexcept:
+          operator_token = tok_noexcept;
           *unary = TRUE;
           break;
         case tpck_uuidof: /* Not handled at this level; see "*" operator. */

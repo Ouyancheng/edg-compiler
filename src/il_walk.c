@@ -2715,6 +2715,7 @@ it's the initializer for an aggregate.
           case tpck_alignof:
           case tpck_uuidof:
           case tpck_typeid:
+          case tpck_noexcept:
             if (constant->variant.template_param.variant.templ_sizeof.expr !=
                                                                         NULL) {
               traverse_expr(constant->

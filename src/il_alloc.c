@@ -698,6 +698,7 @@ ck_template_param constant.
     case tpck_alignof:
     case tpck_uuidof:
     case tpck_typeid:
+    case tpck_noexcept:
       cp->variant.template_param.variant.templ_sizeof.type = NULL;
       cp->variant.template_param.variant.templ_sizeof.expr = NULL;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL

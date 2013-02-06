@@ -3479,6 +3479,9 @@ enum a_template_param_constant_kind_tag {
 			   the address of the implied std::type_info
 			   structure.  (Only used when typeid is used for a
 			   nontype template argument; e.g. "X<&typeid(Y)>".)*/
+  tpck_noexcept,	/* The template param constant represents the noexcept
+			   operator applied to an expression that
+			   contains a template parameter type. */
   tpck_template_ref	/* The template param constant provides the address
 			   of an unknown function template, and a set of
 			   explicit template arguments for that template.
@@ -4109,11 +4112,12 @@ typedef struct a_constant {
 			   address is being taken by the tpck_address
 			   constant. */
         /* When template param constant kind == tpck_sizeof, tpck_alignof,
-           tpck_uuidof, or tpck_typeid: */
+           tpck_uuidof, tpck_typeid, or tpck_noexcept: */
         struct {
           a_type_ptr
 		type;	/* The type whose sizeof, __ALIGNOF__, __uuidof, or
-			   typeid is represented.  NULL for __uuidof(0). */
+			   typeid is represented.  NULL for __uuidof(0)
+			   and noexcept cases. */
           an_expr_node_ptr
 		expr;	/* If the sizeof etc. was applied to an expression,
 			   stored in the same memory region as this constant,

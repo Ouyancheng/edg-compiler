@@ -1,5 +1,29 @@
 Version 4.6
 
+2/5/13   [EDGcpfe/13611]
+Addition of tpck_noexcept template parameter constant kind (IL CHANGE)
+
+When the noexcept operator was first introduced (see the Changes entry
+of 9/3/12), dependent noexcept operators were represented by
+tpck_expressions on top of eok_noexcept operations.  This represented
+a departure from the typical representation for operators like this
+(i.e., sizeof, alignof, typeid, uuid), but we felt the IL was cleaner.
+However, due to memory region issues in cases where a noexcept operation
+is used as an array bound, we've reversed our decision and have now
+added a tpck_noexcept template parameter constant kind (similar to
+tpck_sizeof, et al.).  For example (with --c++11):
+
+  struct A { };
+  void f(int) noexcept;
+  void f(float) throw (A);
+  template <class T> void g(T p) {
+    int arr[noexcept( f(p) )];
+  }
+  int main() {
+    g(1);
+  }
+
+
 2/4/13   [EDGcpfe/13606]
 GCC compatibility: extern __inline function definition replacement
 

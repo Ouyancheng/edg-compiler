@@ -3754,7 +3754,8 @@ constant.
                     (tkind == (a_template_param_constant_kind)tpck_sizeof ||
                      tkind == (a_template_param_constant_kind)tpck_alignof ||
                      tkind == (a_template_param_constant_kind)tpck_uuidof ||
-                     tkind == (a_template_param_constant_kind)tpck_typeid);
+                     tkind == (a_template_param_constant_kind)tpck_typeid ||
+                     tkind == (a_template_param_constant_kind)tpck_noexcept);
           il_constant = alloc_unshared_constant_full(&constant,
                                                      /*source_in_il=*/FALSE,
                                                      /*suppress_copy=*/
