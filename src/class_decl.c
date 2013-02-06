@@ -12812,15 +12812,17 @@ implicitly declared member functions.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+  check_defaulted_or_deleted_function(&decl_info->decl_state, func_info,
+                                      &locator->source_position);
   if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
     rtn->is_constexpr = TRUE;
     if (!is_static_member) {
       cssp->has_constexpr_nonstatic_member_function = TRUE;
     }  /* if */
+    /* constexpr functions are implicitly inline. */
+    set_inline_flag(rtn, TRUE);
   }  /* if */
-  check_defaulted_or_deleted_function(&decl_info->decl_state, func_info,
-                                      &locator->source_position);
-  if (func_info->is_inline) {
+  if (!rtn->is_inline && func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
     set_inline_flag(rtn, TRUE);
@@ -13557,7 +13559,12 @@ decl_member_function, which handles in-class member function declarations.)
   prototype_sym->variant.routine.instance_ptr->prototype_scope_symbols =
                                             func_info->prototype_scope_symbols;
   func_info->keep_param_id_list = TRUE;
-  if (func_info->is_inline) {
+  if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
+    rtn->is_constexpr = TRUE;
+    /* constexpr functions are implicitly inline. */
+    set_inline_flag(rtn, TRUE);
+  }  /* if */
+  if (!rtn->is_inline && func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
     set_inline_flag(rtn, TRUE);
@@ -13705,9 +13712,6 @@ decl_member_function, which handles in-class member function declarations.)
                       il_template_entry->source_corresp.source_sequence_entry;
     wrapup_sse_for_simple_decl(dps);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
-      rtn->is_constexpr = TRUE;
-    }  /* if */
   }  /* if */
   db_exit();
 }  /* decl_member_function_template */

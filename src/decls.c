@@ -8503,6 +8503,8 @@ skip_overloading:;
   }  /* if */
   if (!redeclaration && (dps->dso_flags & DSO_CONSTEXPR) != 0) {
     routine_ptr->is_constexpr = TRUE;
+    /* constexpr implies inline. */
+    if (!routine_ptr->is_inline) set_inline_flag(routine_ptr, TRUE);
   }  /* if */
   attach_decl_attributes(dps, is_function_def);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -9163,11 +9165,11 @@ definition of a member function of a class template.
       rout_ptr->declared_storage_class = dps->declared_storage_class;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (func_info->is_inline) set_inline_flag(rout_ptr, TRUE);
     if (dps->dso_flags & DSO_CONSTEXPR) {
       rout_ptr->is_constexpr = TRUE;
-    }  /* if */
-    if (func_info->is_inline) {
-      set_inline_flag(rout_ptr, TRUE);
+      /* constexpr implies inline. */
+      if (!rout_ptr->is_inline) set_inline_flag(rout_ptr, TRUE);
     }  /* if */
     if (locator->is_operator_name) {
       set_routine_special_kind(rout_ptr,
@@ -9232,8 +9234,8 @@ definition of a member function of a class template.
         rout_ptr->is_constexpr = TRUE;
       }  /* if */
     }  /* if */
-    if (func_info->is_inline) {
-      if (!rout_ptr->is_inline) {
+    if (!rout_ptr->is_inline) {
+      if (func_info->is_inline || rout_ptr->is_constexpr) {
         set_inline_flag(rout_ptr, TRUE);
         changed_to_inline = TRUE;
       }  /* if */
