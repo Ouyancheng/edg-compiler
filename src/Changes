@@ -1,5 +1,28 @@
 Version 4.6
 
+2/6/13   [EDGcpfe/13627]
+C-generating back end: tail padding-reuse and initialization as assignment
+
+In configurations in which tail-padding reuse is enabled (see the entry for
+EDGcpfe/11008 below), when IL lowering rewrites initialization as
+assignments the C-generating back end could generate incorrect code: the
+base class members were correctly promoted into the derived class, but the
+initialization code referred to the base class members as if they appeared
+in a nested struct member representing the base class.  This is now fixed.
+For example:
+
+  struct A {
+    virtual void f();
+    int y = 37;
+  };
+  struct B : A {
+    int x = 47;
+  };
+  int main() {
+    B{};   // Initialization of B::A members used incorrect names
+  }
+
+
 2/6/13   [EDGcpfe/13623]
 Type "auto" replaced by an error type during lowering
 
