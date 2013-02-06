@@ -1,5 +1,21 @@
 Version 4.6
 
+2/6/13   [EDGcpfe/13623]
+Type "auto" replaced by an error type during lowering
+
+Under some circumstances, the representation of the "auto" type specifier
+(which is a special tk_template_param entry) in a declared_type field could
+previously be erroneously replaced by an error type during IL lowering.
+For example:
+
+  int main() {
+    auto *p = new int(4);  // Previously "auto" in the declared_type of the
+  }                        // variable entry representing p was replaced by
+                           // an error type during IL lowering.
+
+This is now fixed.
+
+
 2/5/13   [EDGcpfe/13611]
 Addition of tpck_noexcept template parameter constant kind (IL CHANGE)
 

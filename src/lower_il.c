@@ -8995,9 +8995,12 @@ Do IL lowering of the indicated type and everything under it.
            sometimes get onto a based types list, so turn them into something
            mostly harmless.  (In addition to setting the type to an error
            type, also clear the parent scope since it might point to a class
-           template prototype instantiation.) */
-        clear_parent(&type->source_corresp);
-        set_type_kind(type, (a_type_kind)tk_error);
+           template prototype instantiation.)  The "auto" type is an exception
+           since it can reasonably appear in a "declared_type" field. */
+        if (!is_auto_type(type)) {
+          clear_parent(&type->source_corresp);
+          set_type_kind(type, (a_type_kind)tk_error);
+        }  /* if */
         break;
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
