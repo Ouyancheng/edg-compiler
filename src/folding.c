@@ -8791,6 +8791,7 @@ there is some kind of failure.
 */
 {
   a_routine_ptr         routine;
+  a_type_ptr            routine_type;
   a_constexpr_remap_ptr new_remap_list = NULL, *last_ptr = &new_remap_list;
   an_expr_node_ptr      arg;
   a_variable_ptr        param_var, this_param_var, first_real_param = NULL;
@@ -8798,6 +8799,8 @@ there is some kind of failure.
   *not_foldable = FALSE;
   check_assertion(routine_scope->kind == (a_scope_kind)sck_function);
   routine = routine_scope->variant.routine.ptr;
+  routine_type = skip_typerefs(routine->type);
+  check_assertion(routine_type->kind == (a_type_kind)tk_routine);
   param_var = routine_scope->variant.routine.parameters;
   /* Skip lowering-generated parameters and the lowered "this" parameter. */
   while (param_var != NULL && param_var->assoc_param_type == NULL) {
@@ -8816,7 +8819,12 @@ there is some kind of failure.
     a_constexpr_remap_ptr crp;
     a_param_type_ptr      ptp;
     if (param_var == NULL) {
-      *not_foldable = TRUE;
+      /* Still have arguments, ran out of parameters. */
+      if (routine_type->variant.routine.extra_info->has_ellipsis) {
+        /* Extra arguments are okay with an ellipsis. */
+      } else {
+        *not_foldable = TRUE;
+      }  /* if */
       break;
     }  /* if */
     ptp = param_var->assoc_param_type;  /* Might be NULL. */
@@ -8869,6 +8877,7 @@ instead.
 {
   a_boolean             folded = FALSE;
   a_routine_ptr         routine;
+  a_type_ptr            routine_type;
   an_expr_node_ptr      args;
   an_expr_operator_kind opkind;
   a_boolean             this_arg_is_pointer;
@@ -8880,6 +8889,7 @@ instead.
   this_arg_is_pointer = (opkind ==
                              (an_expr_operator_kind)eok_points_to_member_call);
   routine = routine_from_function_expr(args);
+  routine_type = skip_typerefs(routine->type);
   if (incr_constexpr_call_depth(ceblock)) {
     /* Calls too deep -- possible infinite recursion. */
   } else if (routine == NULL) {
@@ -8893,7 +8903,7 @@ instead.
                this_arg_is_pointer)) {
     /* Non-foldable kind of call, e.g., a pointer-to-member call. */
   } else {
-    a_type_ptr       return_type = return_type_of(routine->type);
+    a_type_ptr       return_type = return_type_of(routine_type);
     a_scope_ptr      scope = scope_for_routine(routine);
     check_assertion(scope->kind == (a_scope_kind)sck_function &&
                     !special_kind_is(routine, sfk_constructor));
@@ -8918,7 +8928,7 @@ instead.
         /* Substitute values for parameters and attempt to fold the call to
            a constant. */
         folded = fold_expr(expr, ceblock, result_con);
-        if (is_reference_type(il_return_type_of(routine->type))) {
+        if (is_reference_type(il_return_type_of(routine_type))) {
           if (returns_reference != NULL) {
             *returns_reference = TRUE;
           } else {
@@ -8942,7 +8952,7 @@ instead.
            function. */
         if (dip != NULL) {
           folded = fold_dynamic_init(dip,
-                                     il_return_type_of(routine->type),
+                                     il_return_type_of(routine_type),
                                      ceblock,
                                      result_con);
         }  /* if */
