@@ -20939,7 +20939,7 @@ freed by this routine.
     } else if (err || dip == NULL) {
       /* Error of some sort. */
       make_error_operand(result);
-    } else if (constexpr_enabled &&
+    } else if (constexpr_enabled && curr_expr_kind_is_const() &&
                dip->kind == (a_dynamic_init_kind)dik_constant &&
                dip->variant.constant->is_result_of_constexpr_call) {
       /* The construction was folded to a constant result. */

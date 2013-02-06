@@ -5411,6 +5411,8 @@ of the call.
       result->position = *pos;
       if (returns_reference) {
         add_reference_indirection(result);
+      } else if (!curr_expr_kind_is_const()) {
+        temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
       }  /* if */
     } else if (failure_warning != ec_no_error) {
       expr_pos_warning(failure_warning, pos);
