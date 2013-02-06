@@ -1277,6 +1277,10 @@ typedef int an_expr_copy_options_set;
 			/* TRUE if the source address provided to
 			   copy_constant_full might not be an IL address (e.g.,
 			   it's the address of a stack variable). */
+#define CE_COPY_CONSTANTS_UNCONDITIONALLY 0x800
+			/* When TRUE, constants in the source are
+                           unconditionally copied (typically they're only
+                           copied when needed). */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,

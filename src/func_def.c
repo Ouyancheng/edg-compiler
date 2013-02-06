@@ -877,17 +877,20 @@ constructor.
     } else {
       /* constexpr function.  A copy of the return expression or dynamic
          init is made (so that an unlowered version of the expression or
-         dynamic init is preserved). */
+         dynamic init is preserved).  Use CE_COPY_CONSTANTS_UNCONDITIONALLY
+         as an option to ensure that constants are copied as well (otherwise
+         the constants will be lowered and that can cause problems if they
+         are later copied). */
       scope->is_constexpr_routine = TRUE;
       if (scope->has_constexpr_return_expr) {
         scope->variant.routine.variant.constexpr_return_expr = copy_expr_tree(
                           scope->variant.routine.variant.constexpr_return_expr,
-                          CE_NO_OPTIONS);
+                          CE_COPY_CONSTANTS_UNCONDITIONALLY);
       } else {
         scope->variant.routine.variant.constexpr_return_dynamic_init =
               copy_dynamic_init(
                   scope->variant.routine.variant.constexpr_return_dynamic_init,
-                  CE_NO_OPTIONS);
+                  CE_COPY_CONSTANTS_UNCONDITIONALLY);
       }  /* if */
     }  /* if */
   }  /* if */

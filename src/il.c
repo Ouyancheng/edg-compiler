@@ -16723,15 +16723,16 @@ be called to start a copy.
       /* Nothing more to copy. */
       break;
     case enk_constant:
-      if (!in_file_scope(expr->variant.constant) &&
-          (in_file_scope(expr_copy) ||
-           (options & (CE_DOING_INLINING_OF_FUNCTION_CALL |
-                       CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER)))) {
+      if ((options & CE_COPY_CONSTANTS_UNCONDITIONALLY) ||
+          (!in_file_scope(expr->variant.constant) &&
+           (in_file_scope(expr_copy) ||
+            (options & (CE_DOING_INLINING_OF_FUNCTION_CALL |
+                        CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER))))) {
         /* Copy a constant to avoid having an expression in the file-scope
            memory region pointing to a constant in a function scope
            memory region.  Also copy function-scope constants when copying
            for inlining, because the constants are in a different
-           function-scope memory region. */
+           function-scope memory region, or when explicitly requested. */
         an_expr_copy_options_set subcopy_options = options;
         subcopy_options |= CE_COPIED_CONSTANTS_MAY_BE_SHARED;
         expr_copy->variant.constant =
