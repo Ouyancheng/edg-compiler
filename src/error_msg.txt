@@ -2478,6 +2478,7 @@ ec_constexpr_constructor_initializes_no_variant_field;;"constexpr constructor fa
 ec_constexpr_static_data_member_without_initializer;;"a constexpr static data member declaration requires an in-class initializer"
 ec_cl_max_constexpr_option_only_in_cplusplus;;"maximum constexpr depth/count options can be used only when compiling C++"
 ec_excessive_constexpr_complexity;;"expression not folded to a constant due to excessive constexpr function call complexity"
+ec_cl_unrestricted_unions_option_only_in_cplusplus;;"unrestricted union options can be used only when compiling C++"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

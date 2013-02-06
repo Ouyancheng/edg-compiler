@@ -2660,6 +2660,9 @@ setting is used, and to set various unmentioned settings as needed.
       option_kind_used[(int)optk_max_constexpr_call_count]) {
     command_line_error(ec_cl_max_constexpr_option_only_in_cplusplus);
   }  /* if */
+  if (option_kind_used[(int)optk_unrestricted_unions]) {
+    command_line_error(ec_cl_unrestricted_unions_option_only_in_cplusplus);
+  }  /* if */
 #if SUN_EXTENSIONS_ALLOWED
   if (!(option_kind_used[(int)optk_sun_linker_scope]) &&
       !microsoft_mode && !strict_ansi_mode) {
