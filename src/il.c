@@ -5388,7 +5388,9 @@ copy_constant_full should be called to start a copy.
       case tpck_expression:
         /* Note that this copy ignores any memory region issues.  See
            tpck_sizeof et al. below for cases where memory region issues are
-           handled properly. */
+           handled properly.  To handle this properly, we'd need to do a
+           local-expr-ref fixup on a tpck_expression (which we hope to get
+           to some day -- unless memory regions are removed first). */
         new_constant->variant.template_param.variant.expr =
             i_copy_expr_tree(old_constant->variant.template_param.variant.expr,
                              options, cblock);
@@ -18143,7 +18145,7 @@ initialization doing nothing should be suppressed.
         break;
       case tpck_noexcept:
       case tpck_alignof:
-        /* These doesn't evaluate their operands. */
+        /* These don't evaluate their operands. */
         tblock->suppress_subtree_walk = TRUE;
         break;
       default:
