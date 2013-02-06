@@ -6576,6 +6576,7 @@ derived class, in which case variable will be NULL.
       write_tok_ch('[');
       write_unsigned_num((a_host_large_unsigned)ipdp->curr_elem);
       write_tok_ch(']');
+      ipdp = ipdp->next;
     } else {
       if (variable != NULL) {
         write_tok_ch('.');
