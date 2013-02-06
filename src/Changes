@@ -1,5 +1,19 @@
 Version 4.6
 
+2/6/13   [EDGcpfe/13573]
+Spurious errors on some array designators in some GNU C modes
+
+Version 4.5 introduced a regression in GNU C modes with gnu_version < 40000
+causing the front end not to accept an array designator chained after a
+C99-style field designator.  For example:
+
+  struct S { int b[2]; } s = { .b[1] = 2 };
+    // Previously the "[1]" designator was not recognized in some
+    // GNU C modes.
+
+This is now fixed.
+
+
 2/6/13   [EDGcpfe/13627]
 C-generating back end: tail padding-reuse and initialization as assignment
 

@@ -29851,7 +29851,8 @@ Both C99-style and GNU-style designators are handled here.
           (void)get_token();
           gnu_designator_seen = TRUE;
         } else if (gcc_mode && gnu_version < 40000 &&
-                   curr_token != tok_assign && curr_token != tok_period) {
+                   curr_token != tok_assign && curr_token != tok_period &&
+                   curr_token != tok_lbracket) {
           /* Early versions of GCC treated ".x 20" like "x: 20". */
           gnu_designator_seen = TRUE;
         } else {
