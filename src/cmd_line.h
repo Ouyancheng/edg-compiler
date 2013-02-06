@@ -296,6 +296,8 @@ typedef enum /*an_option_kind*/ {
   optk_fixed_address_for_mmap,
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
   optk_unrestricted_unions,
+  optk_max_constexpr_call_depth,
+  optk_max_constexpr_call_count,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1549,9 +1551,15 @@ EXTERN unsigned long
 			   runaway recursive instantiations. */
 
 EXTERN unsigned long
-		max_constexpr_call_nesting;
+		max_constexpr_call_depth;
 			/* The maximum depth of constexpr function and
 			   constructor call nesting permitted. */
+
+EXTERN unsigned long
+		max_constexpr_call_count;
+			/* The maximum number of constexpr function and
+			   constructor calls allowed in the expansion of one
+			   top-level call. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN char	*import_dir_name;

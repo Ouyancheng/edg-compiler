@@ -803,11 +803,23 @@ The maximum depth of constexpr function and constructor call nesting.
 If we reach the maximum, the next call is considered non-foldable,
 which probably makes the overall expression non-constant.
 The C++11 standard requires at least 512.
-Initial value for the global variable max_constexpr_call_nesting.
+Initial value for the global variable max_constexpr_call_depth.
 */
-#ifndef DEFAULT_MAX_CONSTEXPR_CALL_NESTING
-#define DEFAULT_MAX_CONSTEXPR_CALL_NESTING 1000
-#endif /* ifndef DEFAULT_MAX_CONSTEXPR_CALL_NESTING */
+#ifndef DEFAULT_MAX_CONSTEXPR_CALL_DEPTH
+#define DEFAULT_MAX_CONSTEXPR_CALL_DEPTH 1000
+#endif /* ifndef DEFAULT_MAX_CONSTEXPR_CALL_DEPTH */
+
+/*
+The maximum number of constexpr function and constructor call
+expansions from a single top-level call.  If we reach the maximum, the
+next call is considered non-foldable, which probably makes the overall
+expression non-constant.  The C++11 standard has no specific minimum
+value.  Initial value for the global variable
+max_constexpr_call_count.
+*/
+#ifndef DEFAULT_MAX_CONSTEXPR_CALL_COUNT
+#define DEFAULT_MAX_CONSTEXPR_CALL_COUNT 50000
+#endif /* ifndef DEFAULT_MAX_CONSTEXPR_CALL_COUNT */
 
 /*
 Flag that is TRUE if "#pragma define_type_info" is required by default before

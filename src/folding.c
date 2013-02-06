@@ -7854,11 +7854,14 @@ recursion.
   a_boolean ovflo = FALSE;
 
   ceblock->call_depth++;
-  ceblock->call_count++;
-  if (ceblock->call_depth > max_constexpr_call_nesting ||
-      ceblock->call_count > max_constexpr_call_nesting*10) {
+  if (ceblock->call_depth > max_constexpr_call_depth) {
     ovflo = TRUE;
     ceblock->failure_warning = ec_excessive_constexpr_recursion;
+  } else if (ceblock->call_count >= max_constexpr_call_count) {
+    ovflo = TRUE;
+    ceblock->failure_warning = ec_excessive_constexpr_complexity;
+  } else {
+    ceblock->call_count++;
   }  /* if */
   return ovflo;
 }  /* incr_constexpr_call_depth */

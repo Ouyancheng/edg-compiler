@@ -1361,6 +1361,14 @@ Initialize the option information table.
   add_option_description(optk_unrestricted_unions, "no_unrestricted_unions",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_max_constexpr_call_depth,
+                         "max_constexpr_call_depth",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
+  add_option_description(optk_max_constexpr_call_count,
+                         "max_constexpr_call_count",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -2647,6 +2655,10 @@ setting is used, and to set various unmentioned settings as needed.
   }  /* if */
   if (option_kind_used[(int)optk_variadic_templates]) {
     command_line_error(ec_cl_variadic_templates_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_max_constexpr_call_depth] ||
+      option_kind_used[(int)optk_max_constexpr_call_count]) {
+    command_line_error(ec_cl_max_constexpr_option_only_in_cplusplus);
   }  /* if */
 #if SUN_EXTENSIONS_ALLOWED
   if (!(option_kind_used[(int)optk_sun_linker_scope]) &&
@@ -5048,11 +5060,16 @@ file.
 #else /* !defined(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS) */
   comment_undefined_macro_name(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS);
 #endif /* defined(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS) */
-#if defined(DEFAULT_MAX_CONSTEXPR_CALL_NESTING)
-  define_numeric_valued_macro(DEFAULT_MAX_CONSTEXPR_CALL_NESTING);
-#else /* !defined(DEFAULT_MAX_CONSTEXPR_CALL_NESTING) */
-  comment_undefined_macro_name(DEFAULT_MAX_CONSTEXPR_CALL_NESTING);
-#endif /* defined(DEFAULT_MAX_CONSTEXPR_CALL_NESTING) */
+#if defined(DEFAULT_MAX_CONSTEXPR_CALL_COUNT)
+  define_numeric_valued_macro(DEFAULT_MAX_CONSTEXPR_CALL_COUNT);
+#else /* !defined(DEFAULT_MAX_CONSTEXPR_CALL_COUNT) */
+  comment_undefined_macro_name(DEFAULT_MAX_CONSTEXPR_CALL_COUNT);
+#endif /* defined(DEFAULT_MAX_CONSTEXPR_CALL_COUNT) */
+#if defined(DEFAULT_MAX_CONSTEXPR_CALL_DEPTH)
+  define_numeric_valued_macro(DEFAULT_MAX_CONSTEXPR_CALL_DEPTH);
+#else /* !defined(DEFAULT_MAX_CONSTEXPR_CALL_DEPTH) */
+  comment_undefined_macro_name(DEFAULT_MAX_CONSTEXPR_CALL_DEPTH);
+#endif /* defined(DEFAULT_MAX_CONSTEXPR_CALL_DEPTH) */
 #if defined(DEFAULT_MAX_MANGLED_NAME_LENGTH)
   define_numeric_valued_macro(DEFAULT_MAX_MANGLED_NAME_LENGTH);
 #else /* !defined(DEFAULT_MAX_MANGLED_NAME_LENGTH) */
@@ -8955,6 +8972,12 @@ enable_microsoft_mode:
       case optk_unrestricted_unions:
         unrestricted_unions_enabled = opt_value;
         break;
+      case optk_max_constexpr_call_depth:
+        max_constexpr_call_depth = scan_opt_arg_number(opt_arg);
+        break;
+      case optk_max_constexpr_call_count:
+        max_constexpr_call_count = scan_opt_arg_number(opt_arg);
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -9950,7 +9973,8 @@ variables declared in cmd_line.h.
   stdc_zero_in_nonstrict_mode = STDC_ZERO_IN_NONSTRICT_MODE;
   stdc_zero_in_system_headers = DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS;
   max_pending_instantiations = DEFAULT_MAX_PENDING_INSTANTIATIONS;
-  max_constexpr_call_nesting = DEFAULT_MAX_CONSTEXPR_CALL_NESTING;
+  max_constexpr_call_depth = DEFAULT_MAX_CONSTEXPR_CALL_DEPTH;
+  max_constexpr_call_count = DEFAULT_MAX_CONSTEXPR_CALL_COUNT;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   import_dir_name = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
