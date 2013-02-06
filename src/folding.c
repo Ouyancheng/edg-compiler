@@ -8503,9 +8503,7 @@ field_selection:
           folded = fold_object_expr(op1, ceblock, /*want_addr=*/TRUE,
                                     result_con);
         } /* if */
-        if (folded && is_pointer_type(result_con->type)) {
-          result_con->type = make_reference_type(op1->type);
-        }  /* if */
+        if (folded) result_con->type = expr->type;
         break;
       default:
         /* "Normal" operators.  For these, the operands have to be constant
