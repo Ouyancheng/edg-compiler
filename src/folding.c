@@ -8585,9 +8585,12 @@ field_selection:
                   a_constant value_con;
                   if (constant_value_at_address(result_con, &value_con) !=
                                                                         NULL) {
+                    /* The addressed element is a constant; use it. */
                     copy_constant(&value_con, result_con);
                   } else {
-                    unexpected_condition();
+                    /* The addressed element is not a constant, so the
+                       operation cannot be folded. */
+                    folded = FALSE;
                   }  /* if */
                 }  /* if */
               }  /* if */
