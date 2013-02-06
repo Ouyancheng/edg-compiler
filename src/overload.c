@@ -20206,10 +20206,10 @@ end_of_routine:
 void value_initialization(a_type_ptr            dest_type,
                           a_source_position     *pos,
                           a_routine_ptr         *ctor_called,
-                          an_init_state         *is,
                           a_boolean             *is_constant,
                           a_dynamic_init_ptr    *p_dip,
                           a_constant_ptr        *p_constant,
+                          a_boolean             *partially_initialized,
                           a_boolean             *error_detected)
 /*
 Create IL to perform a value-initialization (C++ standard [dcl.init])
@@ -20223,11 +20223,12 @@ marked as a cast; the caller must do that if that's necessary.
 If ctor_called is non-NULL and a default constructor is called to
 perform the value initialization, a pointer to it is returned in
 *ctor_called.  Some cases can cause errors, which are reported at the
-source position given by pos.  If "is" is non-NULL, it points to
-the current init_state block.  If error_detected is non-NULL, the
-result *p_dip and *p_constant are not constructed, no diagnostics are
-issued, and *error_detected is returned TRUE if there are any errors
-(that's used for overload resolution).
+source position given by pos.  *partially_initialized is returned TRUE
+if a constant result only partially initializes the entity.
+If error_detected is non-NULL, the result *p_dip and *p_constant are
+not constructed, no diagnostics are issued, and *error_detected is
+returned TRUE if there are any errors (that's used for overload
+resolution).
 */
 {
   a_type_ptr         orig_dest_type = dest_type;
@@ -20241,6 +20242,7 @@ issued, and *error_detected is returned TRUE if there are any errors
   a_dynamic_init_ptr dip = NULL;
 
   if (ctor_called != NULL) *ctor_called = NULL;
+  *partially_initialized = FALSE;
   if (is_array_type(dest_type)) {
     /* For an array type, strip off all the array levels and generate
        the initialization for the underlying element type. */
@@ -20342,8 +20344,8 @@ issued, and *error_detected is returned TRUE if there are any errors
           /* The constructor is declared constexpr and the construction has
              been folded to a constant. */
           copy_constant(dip->variant.constant, &con);
-          if (dip->is_partially_initialized && is != NULL) {
-            is->partial_initializer = TRUE;
+          if (dip->is_partially_initialized) {
+            *partially_initialized = TRUE;
           }  /* if */
           dip = NULL;
         }  /* if */
@@ -21523,9 +21525,11 @@ controls).
         p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
         value_initialization(dest_type,
                              &icp->variant.braced.start_pos,
-                             &ctor_called, is,
+                             &ctor_called,
                              &is_constant, &dip, &constant,
+                             &partial_initializer,
                              p_error_detected);
+        if (is != NULL) is->partial_initializer = partial_initializer;
         if (arg_match != NULL) {
           if (error_detected) {
             arg_match_err = TRUE;
@@ -21778,9 +21782,11 @@ controls).
       p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
       value_initialization(dest_type,
                            &icp->variant.braced.start_pos,
-                           (a_routine **)NULL, is,
+                           (a_routine **)NULL,
                            &is_constant, &dip, &constant,
+                           &partial_initializer,
                            p_error_detected);
+      if (is != NULL) is->partial_initializer = partial_initializer;
       if (arg_match != NULL) {
         if (error_detected) {
           arg_match_err = TRUE;

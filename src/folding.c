@@ -7900,6 +7900,9 @@ evaluation.
   switch(dip->kind) {
     case dik_constant:
       copy_constant(dip->variant.constant, result_con);
+      if (result_con->partial_aggr_value) {
+        ceblock->is_partially_initialized = TRUE;
+      }  /* if */
       folded = TRUE;
       break;
     case dik_expression:
