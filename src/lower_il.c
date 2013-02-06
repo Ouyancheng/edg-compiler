@@ -4663,8 +4663,7 @@ constants in the aggregate will work properly).
             /* The type of the constant matches that of the optimized
                empty base class; remove the constant from the aggregate
                list. */
-            check_assertion(cp->kind == (a_constant_repr_kind)ck_aggregate &&
-                            cp->variant.aggregate.first_constant == NULL);
+            check_assertion(cp->kind == (a_constant_repr_kind)ck_aggregate);
 #if CHECKING
             found = TRUE;
 #endif /* CHECKING */
