@@ -25139,7 +25139,7 @@ flag is set in the class symbol supplement of the given type.
         if (class_type_supp(type)->anonymous_union_kind !=
                                           (an_anonymous_union_kind)auk_none) {
           /* Anonymous unions don't have constructors per se (and hence no
-             constexpr constructor will be found), but if exactly of field has
+             constexpr constructor will be found), but if exactly one field has
              an initializer and it is constant, it can be considered a literal
              type. */
           if (fields_initialized_for_constexpr_constructor(type)) {
