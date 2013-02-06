@@ -7874,7 +7874,12 @@ statement/expression lowering process (mostly by lower_dynamic_init).
     for (ctor_init = scope->variant.routine.constructor_inits;
          ctor_init != NULL;
          ctor_init = ctor_init->next) {
-      dip = ctor_init->initializer;
+      /* Nonstatic data member initializers use a field initializer. */
+      if (ctor_init->use_field_initializer) {
+        dip = ctor_init->variant.field->initializer;
+      } else {
+        dip = ctor_init->initializer;
+      }  /* if */
       check_assertion(dip != NULL);
       if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
           call_to_ctor_or_dtor_has_no_effect(dip->variant.constructor.ptr,
