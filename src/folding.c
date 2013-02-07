@@ -8603,14 +8603,17 @@ field_selection:
             case eok_bool_cast:
             case eok_class_rvalue_adjust:
               /* Cast. */
-              type_change_constant(&op1_constant, expr->type,
-                                  expr->variant.operation.compiler_generated,
-                                   /*maintain_expression=*/FALSE,
-                                   &did_not_fold,
-                                   &pos);
-              if (!did_not_fold) {
-                folded = TRUE;
-                copy_constant(&op1_constant, result_con);
+              /* Can't fold something like a cast to void. */
+              if (!is_incomplete_type(expr->type)) {
+                type_change_constant(&op1_constant, expr->type,
+                                    expr->variant.operation.compiler_generated,
+                                     /*maintain_expression=*/FALSE,
+                                     &did_not_fold,
+                                     &pos);
+                if (!did_not_fold) {
+                  folded = TRUE;
+                  copy_constant(&op1_constant, result_con);
+                }  /* if */
               }  /* if */
               break;
             default:
