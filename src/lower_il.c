@@ -2841,7 +2841,8 @@ not to contain any top level base class casts.
       /* ck_aggregate constants can appear in cases where a constexpr
          constructor or function returns an class value.  Return the
          temporary that has been created for this constant. */
-      check_assertion(expr->variant.constant->is_result_of_constexpr_call);
+      check_assertion(expr->variant.constant->is_result_of_constexpr_call ||
+                      expr->variant.constant->is_compound_literal);
       expr = var_addr_expr(temp);
     } else {
       temp = assign_expr_to_temp(expr);
