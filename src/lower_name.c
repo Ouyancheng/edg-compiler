@@ -2150,6 +2150,10 @@ the original expression may have additional flags that might affect mangling
 (i.e., is_cli_typeid).  orig_expr can be NULL.
 */
 {
+#if !IA64_ABI
+  a_boolean     suppress_X = FALSE;
+#endif /* IA64_ABI */
+
 #if ABI_COMPATIBILITY_VERSION >= 402
   if ((kind == (a_template_param_constant_kind)tpck_sizeof ||
        kind == (a_template_param_constant_kind)tpck_alignof) &&
@@ -2301,6 +2305,11 @@ the original expression may have additional flags that might affect mangling
     case tpck_noexcept:
       check_assertion(expr != NULL);
       add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_NOEXCEPT, mctl);
+#if !IA64_ABI
+      /* Noexcept can never have a type operand, so there's no need to
+         differentiate type and expression cases. */
+      suppress_X = TRUE;
+#endif /* !IA64_ABI */
       break;
     default:
       unexpected_condition();
@@ -2314,7 +2323,7 @@ the original expression may have additional flags that might affect mangling
        4.2 and later, put an "X" to indicate that an expression follows
        the operand count. */
 #if ABI_COMPATIBILITY_VERSION >= 402
-    add_to_mangled_name('X', mctl);
+    if (!suppress_X) add_to_mangled_name('X', mctl);
     /* One argument for the new sizeof(expr) variant. */
     store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);
 #else /* ABI_COMPATIBILITY_VERSION < 402 */
