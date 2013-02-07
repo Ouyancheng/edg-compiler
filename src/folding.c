@@ -8406,7 +8406,8 @@ ceblock gives context information for the evaluation.
       case eok_question:
         /* "?" operator. */
         op1_folded = fold_expr(op1, ceblock, &op1_constant);
-        if (op1_folded) {
+        if (op1_folded &&
+            constant_bool_value_known_at_compile_time(&op1_constant)) {
           if (is_false_constant(&op1_constant)) {
             /* First operand is false, so result is op3. */
             folded = fold_expr(op2->next, ceblock, result_con);
@@ -8420,7 +8421,8 @@ ceblock gives context information for the evaluation.
       case eok_lor:
         /* && or || operator. */
         op1_folded = fold_expr(op1, ceblock, &op1_constant);
-        if (op1_folded) {
+        if (op1_folded &&
+            constant_bool_value_known_at_compile_time(&op1_constant)) {
           a_boolean result;
           if (op == (an_expr_operator_kind)eok_land) {
             /* && operator. */
@@ -8430,7 +8432,8 @@ ceblock gives context information for the evaluation.
               result = FALSE;
             } else {
               /* First operand is true, so result is true if op2 is true. */
-              if (fold_expr(op2, ceblock, &op2_constant)) {
+              if (fold_expr(op2, ceblock, &op2_constant) &&
+                  constant_bool_value_known_at_compile_time(&op2_constant)) {
                 folded = TRUE;
                 result = !is_false_constant(&op2_constant);
               }  /* if */
@@ -8443,7 +8446,8 @@ ceblock gives context information for the evaluation.
               result = TRUE;
             } else {
               /* First operand is false, so result is true if op2 is true. */
-              if (fold_expr(op2, ceblock, &op2_constant)) {
+              if (fold_expr(op2, ceblock, &op2_constant) &&
+                  constant_bool_value_known_at_compile_time(&op2_constant)) {
                 folded = TRUE;
                 result = !is_false_constant(&op2_constant);
               }  /* if */
