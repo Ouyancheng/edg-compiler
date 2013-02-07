@@ -17518,7 +17518,8 @@ an explicit cast.  *position gives the source position.
                                        /*sequenced_args=*/FALSE,
                                        /*fold_constexpr=*/TRUE,
                                        position);
-    if (!error_on_abstract_class_object(temp_type, position)) {
+    if (!is_error_type(temp_type) &&
+        !error_on_abstract_class_object(temp_type, position)) {
       add_dtor_to_dynamic_init(dip, temp_type, temp_type, position);
     }  /* if */
     temp_init_node = alloc_temp_init_node(temp_type, dip, result_is_lvalue,
