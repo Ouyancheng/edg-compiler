@@ -5513,7 +5513,7 @@ field initializer), set *variant_explicit_init to TRUE.
          in-class initializer. */
       *variant_init = TRUE;
       /* Continue in case an explicit initializer is present (which would
-         supersede a field initializer. */
+         supersede a field initializer). */
     }  /* if */
     if (symbol_for(cip->variant.field)->variant.field.extra_info
                                       ->is_last_variant_member) {
