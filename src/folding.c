@@ -8912,6 +8912,7 @@ instead.
        fold it. */
   } else {
     a_type_ptr       return_type = return_type_of(routine_type);
+    a_type_ptr       il_return_type = il_return_type_of(routine_type);
     a_scope_ptr      scope = scope_for_routine(routine);
     check_assertion(scope->kind == (a_scope_kind)sck_function);
     args = args->next;
@@ -8935,9 +8936,11 @@ instead.
         /* Substitute values for parameters and attempt to fold the call to
            a constant. */
         folded = fold_expr(expr, ceblock, result_con);
-        if (is_reference_type(il_return_type_of(routine_type))) {
+        if (is_reference_type(il_return_type)) {
           if (returns_reference != NULL) {
             *returns_reference = TRUE;
+            /* Adjust lvalue reference to rvalue reference if necessary. */
+            result_con->type = il_return_type;
           } else {
             /* The caller is not expecting a reference result, so try
                to convert to an underlying constant value.  If we can't,
@@ -8959,7 +8962,7 @@ instead.
            function. */
         if (dip != NULL) {
           folded = fold_dynamic_init(dip,
-                                     il_return_type_of(routine_type),
+                                     il_return_type,
                                      ceblock,
                                      result_con);
         }  /* if */

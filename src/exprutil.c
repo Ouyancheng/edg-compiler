@@ -5417,7 +5417,13 @@ of the call.
       make_constant_operand(&result_con, result);
       result->position = *pos;
       if (returns_reference) {
+        a_boolean is_rvalue_ref = is_rvalue_reference_type(result->type);
         add_reference_indirection(result);
+        if (is_rvalue_ref) {
+          /* A call of a function that returns an rvalue reference is an
+             rvalue. */
+          conv_rvalue_reference_result_to_rvalue(result);
+        }  /* if */
       } else if (!curr_expr_kind_is_const()) {
         temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
       }  /* if */
