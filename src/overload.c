@@ -21902,12 +21902,14 @@ controls).
       if (dest_type_is_class && fill_in_dtor) {
         add_dtor_to_dynamic_init(dip, dest_type, dest_type, start_position);
       }  /* if */
-      if (preserved_temp_init != NULL) {
+      if (preserved_temp_init != NULL &&
+          (check_assertion(preserved_temp_init->kind ==
+                           (an_expr_node_kind)enk_temp_init),
+           preserved_temp_init->variant.init.dynamic_init == dip)) {
         /* We saved a pointer to a temp init we already had above the dynamic
-           init. */
+           init.  If dip has changed since we saved the temp init, don't
+           use it. */
         expr = preserved_temp_init;
-        check_assertion(expr->kind == (an_expr_node_kind)enk_temp_init &&
-                        expr->variant.init.dynamic_init == dip);
         /* Put the dynamic initialization on a destruction list if
            appropriate. */
         set_temp_init_dynamic_init_lifetime(expr);
