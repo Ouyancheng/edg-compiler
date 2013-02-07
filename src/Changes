@@ -1,5 +1,25 @@
 Version 4.6
 
+2/7/13   [EDGcpfe/13631
+C-generating back end: line break in name of promoted base class member
+
+In configurations in which tail-padding reuse is enabled (see the entry for
+EDGcpfe/11008 below), the name of a very deeply-nested promoted base class
+member could be split over two lines.  This is now fixed.  For example:
+
+  struct A1 { virtual A1* f(); };
+  struct A2 : A1 { virtual A2* f(); };
+  struct A3 : A2 { virtual A3* f(); };
+  struct A4 : A3 { union {}; virtual A4* f(); };
+  struct A5 : A4 { virtual A5* f(); };
+  // ...
+  struct A37 : A36 { virtual A37* f(); };
+
+In the generated code, the temporary (__T12345678) name given to the
+unnamed union in class A4, promoted into the declaration of class A37,
+was previously broken over two lines.
+
+
 2/6/13   [EDGcpfe/13573]
 Spurious errors on some array designators in some GNU C modes
 

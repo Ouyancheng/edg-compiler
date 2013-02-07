@@ -1336,13 +1336,27 @@ Return TRUE if "name" is a C reserved word.
 
 static void dump_temp_name(char *ptr)
 /*
-Write a temporary name generated from the given IL pointer.
+Write a temporary name generated from the given IL pointer as a separate
+token.
 */
 {
   char buffer[50];
 
   (void)sprintf(buffer, "__T%lu", unique_id_for_il_pointer(ptr));
   m_write_tok_str(buffer);
+}  /* dump_temp_name */
+
+
+static void add_temp_name(char *ptr)
+/*
+Write a temporary name generated from the given IL pointer as part of a
+longer string (i.e., not as a separate token).
+*/
+{
+  char buffer[50];
+
+  (void)sprintf(buffer, "__T%lu", unique_id_for_il_pointer(ptr));
+  m_write_str(buffer);
 }  /* dump_temp_name */
 
 
@@ -1630,7 +1644,11 @@ name generated from the field pointer will be used.
       write_str("__");
       write_unsigned_num(count);
     }  /* if */
+  } else if (name_prefix_components != NULL) {
+    /* Add a temporary name as the last component of the name. */
+    add_temp_name((char *)field);
   } else {
+    /* Put out a temporary name as a separate token. */
     dump_temp_name((char *)field);
   }  /* if */
 }  /* dump_field_name_with_prefix */
