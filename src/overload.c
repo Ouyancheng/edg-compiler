@@ -22025,8 +22025,14 @@ controls).
        already set.  An explicitly-cast operand implicitly converted to
        the same type is still marked as an explicit cast.  Likewise for
        the is_braced_initializer flag. */
-    if (is_cast) dip->is_explicit_cast = TRUE;
-    if (braced_init) dip->is_braced_initializer = TRUE;
+    if (is_cast) {
+      dip->is_explicit_cast = TRUE;
+      skip_constexpr_ctor_eval(dip)->is_explicit_cast = TRUE;
+    }  /* if */
+    if (braced_init) {
+      dip->is_braced_initializer = TRUE;
+      skip_constexpr_ctor_eval(dip)->is_braced_initializer = TRUE;
+    }  /* if */
     if (braced_init && expr_stack->possible_rescan_context) {
       /* For brace-initialized cases, save the original braced-init-list as
          rescan info on the dynamic init. */
