@@ -7455,6 +7455,8 @@ which case the resulting constant is an empty aggregate.
     return_value = FALSE;
   } else if (is_scalar_type(type)) {
     make_zero_of_proper_type(type, con);
+  } else if (is_error_type(type)) {
+    set_error_constant(con);
   } else {
     check_assertion(is_aggregate_type(type));
     clear_constant(con, (a_constant_repr_kind)ck_aggregate);
