@@ -1502,6 +1502,7 @@ in the aggregate have not been lowered (and aren't lowered here).
     a_class_type_supplement_ptr cot_ctsp=class_type_supp(complete_object_type);
     a_boolean                   any_more_base_classes;
     a_boolean                   modify_vptr_in_this_class = TRUE;
+    a_variable_ptr              vtbl_var;
 
     check_assertion(!class_type->
                          variant.class_struct_union.any_virtual_base_classes &&
@@ -1528,7 +1529,13 @@ in the aggregate have not been lowered (and aren't lowered here).
         subobject_bcp = NULL;
       }  /* if */
       /* Make an address constant pointer to the appropriate vtable. */
-      make_vtbl_address_constant(cot_ctsp->virtual_function_table_var,
+      vtbl_var = cot_ctsp->virtual_function_table_var;
+#if !IA64_ABI
+      if (subobject_bcp != NULL) {
+        vtbl_var = subobject_bcp->virtual_function_table_var;
+      }  /* if */
+#endif /* IA64_ABI */
+      make_vtbl_address_constant(vtbl_var,
                                  complete_object_type,
                                  subobject_bcp,
                                  &addr_constant);
