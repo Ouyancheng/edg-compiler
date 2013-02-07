@@ -8381,18 +8381,22 @@ reference) and not something explicit like a cast.
   } else {
     a_type_ptr operand_type = operand->type;
     if (!cast_identical_types(operand_type, dest_type)) {
-      /* If you change this, see expr_before_type_adjustment. */
-      an_expr_node_ptr node;
-      an_operand       orig_operand;
-      orig_operand = *operand;
-      check_assertion(is_an_rvalue(operand) &&
-                      is_class_struct_union_type(operand_type) &&
-                      types_are_compatible_ignoring_qualifiers(operand_type,
-                                                               dest_type));
-      node = make_node_from_operand(operand);
-      node = add_rvalue_class_adjust_node(node, dest_type);
-      make_expression_operand(node, operand);
-      restore_operand_details(operand, &orig_operand);
+      if (is_constant_operand(operand)) {
+        operand->variant.constant.type = operand->type = dest_type;
+      } else {
+        /* If you change this, see expr_before_type_adjustment. */
+        an_expr_node_ptr node;
+        an_operand       orig_operand;
+        orig_operand = *operand;
+        check_assertion(is_an_rvalue(operand) &&
+                        is_class_struct_union_type(operand_type) &&
+                        types_are_compatible_ignoring_qualifiers(operand_type,
+                                                                 dest_type));
+        node = make_node_from_operand(operand);
+        node = add_rvalue_class_adjust_node(node, dest_type);
+        make_expression_operand(node, operand);
+        restore_operand_details(operand, &orig_operand);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* adjust_class_rvalue_type */
