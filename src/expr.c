@@ -2808,7 +2808,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                              &arg_match->conversion,
                              (a_conv_descr *)NULL,
                              /*force_copy_to_temp=*/FALSE);
-        if (is_temp_after_conv) {
+        if (is_temp_after_conv && !is_error_operand(operand)) {
           /* We determined previously that the result after the conversion
              would be a temp we could reuse. */
           (void)is_temp_init_usable_in_optimization(
