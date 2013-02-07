@@ -9297,7 +9297,7 @@ otherwise, return FALSE.
          implicitly value-initialized.  Make a constant of the requisite
          type and use that. */
       check_assertion(eff_obj_con->partial_aggr_value);
-      folded = make_value_initialized_constant(curr_field->type, result_con);
+      folded = make_value_initialized_constant(field->type, result_con);
     } else {
       check_assertion(curr_field != NULL);
       /* If the field is a member of an anonymous union, scan through
