@@ -8900,11 +8900,13 @@ instead.
                opkind == (an_expr_operator_kind)eok_dot_member_call ||
                this_arg_is_pointer)) {
     /* Non-foldable kind of call, e.g., a pointer-to-member call. */
+  } else if (special_kind_is(routine, sfk_constructor)) {
+    /* When a constructor is called like a member function, we can't
+       fold it. */
   } else {
     a_type_ptr       return_type = return_type_of(routine_type);
     a_scope_ptr      scope = scope_for_routine(routine);
-    check_assertion(scope->kind == (a_scope_kind)sck_function &&
-                    !special_kind_is(routine, sfk_constructor));
+    check_assertion(scope->kind == (a_scope_kind)sck_function);
     args = args->next;
     if (is_incomplete_type(return_type)) {
       /* The return type is incomplete, so can't fold. */
