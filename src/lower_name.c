@@ -2306,7 +2306,7 @@ the original expression may have additional flags that might affect mangling
       check_assertion(expr != NULL);
       add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_NOEXCEPT, mctl);
 #if !IA64_ABI
-      /* Noexcept can never have a type operand, so there's no need to
+      /* noexcept can never have a type operand, so there's no need to
          differentiate type and expression cases. */
       suppress_X = TRUE;
 #endif /* !IA64_ABI */
