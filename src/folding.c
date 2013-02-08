@@ -8847,6 +8847,15 @@ there is some kind of failure.
     } else {
       crp->is_constant = fold_expr(arg, ceblock, &crp->constant_value);
     }  /* if */
+    if (!crp->is_constant) {
+      /* It's okay to have an argument that's non-constant, if it isn't used,
+         but it's not okay if the argument has a side effect, because the
+         folded version wouldn't perform the side effect. */
+      if (node_has_side_effects(arg, (a_boolean *)NULL)) {
+        *not_foldable = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
     *last_ptr = crp;
     last_ptr = &crp->next;
     /* Advance to the next parameter.  If we processed the "this" parameter
