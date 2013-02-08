@@ -234,9 +234,6 @@ typedef int a_conv_context_set;
 			/* Explicit conversion functions should be allowed in
 			   this context.  This is in addition to other normal
 			   reasons why they might be allowed. */
-#define CCO_MAKE_LVALUE_TEMP_FOR_LIST_INIT ((a_conv_context_set)0x1000)
-			/* Force generation of an lvalue temporary (instead
-			   of the usual rvalue) for a list initialization. */
 #define CCO_SUPPRESS_USER_CONVERSIONS_IN_OVL_RES ((a_conv_context_set)0x2000)
 			/* Suppress user-defined conversions in overload
 			   resolution for some specific reason related to
@@ -1080,6 +1077,7 @@ void prep_list_initializer(an_init_component_ptr icp,
                            a_conv_context_set    conv_context,
                            a_boolean             fill_in_dtor,
                            a_boolean             force_temp,
+                           a_boolean             make_lvalue_temp,
                            an_operand            *result,
                            an_init_state         *is,
                            an_arg_match_summary  *arg_match);

@@ -3421,6 +3421,7 @@ handle_braced_init_list:
                           conv_context,
                           /*fill_in_dtor=*/FALSE,
                           /*force_temp=*/FALSE,
+                          /*make_lvalue_temp=*/FALSE,
                           (an_operand *)NULL,
                           (an_init_state *)NULL,
                           arg_summary);
@@ -15782,6 +15783,7 @@ no_applicable_operator_function:
                                         CCO_DEFAULT,
                                         /*fill_in_dtor=*/TRUE,
                                         /*force_temp=*/FALSE,
+                                        /*make_lvalue_temp=*/FALSE,
                                         &source, (an_init_state *)NULL,
                                         (an_arg_match_summary *)NULL);
                   source_op = &source;
@@ -17280,6 +17282,7 @@ directly after elision of the copy).
                         CCO_DEFAULT,
                         /*fill_in_dtor=*/TRUE,
                         /*force_temp=*/FALSE,
+                        /*make_lvalue_temp=*/FALSE,
                         operand,
                         (an_init_state *)NULL,
                         (an_arg_match_summary *)NULL);
@@ -19648,8 +19651,7 @@ the conversion.
       /* Note that prep_reference_initializer_operand returns an lvalue
          temporary when a temporary must be created in the normal code
          below, so do that also here. */
-      rconv_context |= (CCO_LEAVE_AS_OBJECT |
-                        CCO_MAKE_LVALUE_TEMP_FOR_LIST_INIT);
+      rconv_context |= CCO_LEAVE_AS_OBJECT;
     }  /* if */
     prep_list_initializer(source_operand->variant.braced_init_list,
                           dest_type,
@@ -19659,6 +19661,7 @@ the conversion.
                           rconv_context,
                           /*fill_in_dtor=*/TRUE,  /* unused */
                           /*force_temp=*/TRUE,
+                          /*make_lvalue_temp=*/leave_as_object,
                           source_operand, (an_init_state *)NULL,
                           (an_arg_match_summary *)NULL);
     goto end_of_routine;
@@ -20731,6 +20734,7 @@ errors should be suppressed (i.e., SFINAE mode).
                           econv_context,
                           /*fill_in_dtor=*/FALSE,
                           /*force_temp=*/FALSE,
+                          /*make_lvalue_temp=*/FALSE,
                           (an_operand *)NULL,
                           (arg_match != NULL) ? NULL : &init_state,
                           (arg_match != NULL) ? &local_arg_match : NULL);
@@ -21019,6 +21023,7 @@ void prep_list_initializer(an_init_component_ptr icp,
                            a_conv_context_set    conv_context,
                            a_boolean             fill_in_dtor,
                            a_boolean             force_temp,
+                           a_boolean             make_lvalue_temp,
                            an_operand            *result,
                            an_init_state         *is,
                            an_arg_match_summary  *arg_match)
@@ -21069,6 +21074,9 @@ described above).  When warning_on_narrowing or is->warning_on_narrowing
 is TRUE (and none of the above flags is TRUE), the checks are done but
 only warnings are issued (again, subject to the error-suppression
 controls).
+
+If make_lvalue_temp is TRUE, the temporary created for a list initialization
+will be an lvalue instead of the usual rvalue.
 */
 {
   a_dynamic_init_ptr   dip = NULL;
@@ -21081,8 +21089,6 @@ controls).
   a_boolean            try_user_conversions_in_ovl_res =
                                  !(conv_context &
                                      CCO_SUPPRESS_USER_CONVERSIONS_IN_OVL_RES);
-  a_boolean            make_lvalue_temp = (conv_context &
-                                       CCO_MAKE_LVALUE_TEMP_FOR_LIST_INIT) !=0;
   a_symbol_ptr         ctor_sym;
   an_operand           operand;
   a_boolean            dest_type_is_class =
@@ -21402,6 +21408,7 @@ controls).
                             check_narrowing,
                             warning_on_narrowing,
                             conv_context, fill_in_dtor, force_temp,
+                            make_lvalue_temp,
                             ((result != NULL) ? &operand : (an_operand *)NULL),
                             is,
                             arg_match);
@@ -21698,6 +21705,7 @@ controls).
                             check_narrowing,
                             warning_on_narrowing,
                             conv_context, fill_in_dtor, force_temp,
+                            make_lvalue_temp,
                             ((result != NULL) ? &operand : (an_operand *)NULL),
                             is,
                             arg_match);
@@ -21714,6 +21722,7 @@ controls).
       a_conv_context_set rconv_context = conv_context &
                                     (CCO_CAST | CCO_FUNC_NOTATION_CAST |
                                      CCO_SUPPRESS_USER_CONVERSIONS_IN_OVL_RES);
+      a_boolean          rmake_lvalue_temp = FALSE;
       a_type_ptr         underlying_type = type_pointed_to(dest_type);
       if (!is_class_struct_union_type(underlying_type) &&
           is_lvalue_reference_type(dest_type) &&
@@ -21723,7 +21732,7 @@ controls).
            This doesn't match the letter of the standard, but it makes
            sense and is probably unobservable, and it avoids a problem
            in reproducing the source when the cp_gen_be is used. */
-        rconv_context |= CCO_MAKE_LVALUE_TEMP_FOR_LIST_INIT;
+        rmake_lvalue_temp = TRUE;
       }  /* if */
       /* The cost of a reference initialization in overload resolution is the
          cost of the underlying initialization of the temporary, so pass
@@ -21736,6 +21745,7 @@ controls).
                             rconv_context,
                             /*fill_in_dtor=*/TRUE,
                             /*force_temp=*/TRUE,
+                            rmake_lvalue_temp,
                             (arg_match == NULL) ? &operand : NULL,
                             (an_init_state *)NULL,
                             arg_match);
@@ -21821,6 +21831,7 @@ controls).
                               conv_context,
                               fill_in_dtor,
                               force_temp,
+                              /*make_lvalue_temp=*/FALSE,
                               ((result != NULL) ? &operand :
                                                   (an_operand *)NULL),
                               is,
@@ -22380,6 +22391,7 @@ checks that), and *conversion describes it.
                           /*fill_in_dtor=*/TRUE,
                           /*force_temp=*/
                                      formal_param->passed_via_copy_constructor,
+                          /*make_lvalue_temp=*/FALSE,
                           result,
                           (an_init_state *)NULL,
                           (an_arg_match_summary *)NULL);

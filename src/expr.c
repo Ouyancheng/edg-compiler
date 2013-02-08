@@ -2378,6 +2378,7 @@ indication in *rcblock).
                             CCO_DEFAULT,
                             /*fill_in_dtor=*/TRUE,
                             /*force_temp=*/FALSE,
+                            /*make_lvalue_temp=*/FALSE,
                             &result, (an_init_state *)NULL,
                             (an_arg_match_summary *)NULL);
       free_init_component_list(icp);
@@ -2786,6 +2787,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                               CCO_DEFAULT,
                               fill_in_dtor,
                               /*force_temp=*/TRUE,
+                              /*make_lvalue_temp=*/FALSE,
                               (an_operand *)NULL, &init_state,
                               (an_arg_match_summary *)NULL);
         dip = init_state.init_dip;
@@ -16296,6 +16298,7 @@ expression, and return the result in *result (or an error indication in
                           CCO_NEW_INITIALIZER,
                           /*fill_in_dtor=*/FALSE,
                           /*force_temp=*/FALSE,
+                          /*make_lvalue_temp=*/FALSE,
                           (an_operand *)NULL, &init_state,
                           (an_arg_match_summary *)NULL);
     if (init_state.init_error) {
@@ -20758,6 +20761,7 @@ previously-scanned braced initializer.
                         /*force_temp=*/
                                     is_class_struct_union_type(type_cast_to) &&
                                     !curr_expr_kind_is_const(),
+                        /*make_lvalue_temp=*/FALSE,
                         result, (an_init_state *)NULL,
                         (an_arg_match_summary *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -24197,6 +24201,7 @@ number.
                             CCO_DEFAULT,
                             /*fill_in_dtor=*/TRUE,
                             /*force_temp=*/FALSE,
+                            /*make_lvalue_temp=*/FALSE,
                             operand_2, (an_init_state *)NULL,
                             (an_arg_match_summary *)NULL);
       free_init_component_list(icp);
@@ -30378,6 +30383,7 @@ dynamic init entry if one is created to represent this initializer
                         /*warning_on_narrowing=*/FALSE,  /* Ditto */
                         conv_context, fill_in_dtor,
                         /*force_temp=*/FALSE,
+                        /*make_lvalue_temp=*/FALSE,
                         (an_operand *)NULL,
                         is, eff_arg_match);
   if (is->arg_match != NULL) {
@@ -32966,6 +32972,7 @@ Sets *expr_position to the beginning position of the range expression.
                             CCO_DEFAULT,
                             /*fill_in_dtor=*/TRUE,
                             /*force_temp=*/TRUE,  /* For error cases. */
+                            /*make_lvalue_temp=*/FALSE,
                             &result, (an_init_state *)NULL,
                             (an_arg_match_summary *)NULL);
     }  /* if */
@@ -33520,6 +33527,7 @@ required_type will be void if the expression should have void type
                           conv_context,
                           /*fill_in_dtor=*/return_by_cctor_case,
                           /*force_temp=*/return_by_cctor_case,
+                          /*make_lvalue_temp=*/FALSE,
                           return_by_cctor_case ? &result : (an_operand *)NULL,
                           return_by_cctor_case ? (an_init_state *)NULL :
                                                  &init_state,
