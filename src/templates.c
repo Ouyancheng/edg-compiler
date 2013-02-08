@@ -11281,7 +11281,7 @@ instantiation of a class template or member of class template.
     }  /* if */
     /* Class reactivation doesn't automatically switch the current memory
        region to file scope memory.  So we do it manually here.  (Ordinarily
-       this shouldn't be needed, but error recovery can cause to get here
+       this shouldn't be needed, but error recovery can cause us to get here
        with a local scope active.) */
     switch_to_file_scope_region(&region_to_switch_back_to);
     rescan_reusable_cache(fssp->token_cache);
@@ -11299,6 +11299,7 @@ instantiation of a class template or member of class template.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    switch_back_to_original_region(region_to_switch_back_to);
     if (class_reactivated) {
       pop_class_reactivation_scope();
     }  /* if */

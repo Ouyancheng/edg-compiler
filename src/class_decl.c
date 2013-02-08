@@ -2891,7 +2891,7 @@ prototype instantiations).  The class type must be complete.
     }  /* if */
     /* Class reactivation doesn't automatically switch the current memory
        region to file scope memory.  So we do it manually here.  (Ordinarily
-       this shouldn't be needed, but error recovery can cause to get here
+       this shouldn't be needed, but error recovery can cause us to get here
        with a local scope active.) */
     switch_to_file_scope_region(&region_to_switch_back_to);
     rescan_reusable_cache(ifp->token_cache);
@@ -2900,7 +2900,7 @@ prototype instantiations).  The class type must be complete.
     dps.sym = ifp->symbol;
     if (symbol_is(dps.sym, sk_field)) {
       /* A C++11-style field initializer. */
-      a_field_symbol_supplement_ptr	fssp;
+      a_field_symbol_supplement_ptr  fssp;
       check_assertion(field_initializers_enabled);
       fssp = dps.sym->variant.field.extra_info;
       field_initializer(&dps);
