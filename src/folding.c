@@ -9344,17 +9344,26 @@ otherwise, return FALSE.
            cv-qualifiers. */
         a_type_ptr con_type = result_con->type;
         a_type_ptr field_type = field->type;
+        a_boolean  reference_case = FALSE;
         if (is_any_reference_type(con_type) &&
             is_any_reference_type(field_type)) {
           /* An rvalue reference field can have an lvalue reference
              initial value. */
           con_type = type_pointed_to(con_type);
           field_type = type_pointed_to(field_type);
+          reference_case = TRUE;
         }  /* if */
         check_assertion(identical_types_ignoring_qualifiers(con_type,
                                                             field_type));
 #endif /* CHECKING */
-        folded = TRUE;
+        if (reference_case &&
+            result_con->kind == (a_constant_repr_kind)ck_aggregate) {
+          /* A reference cannot be initialized by an aggregate.  This can
+             occur as a result of upstream errors. */
+          folded = FALSE;
+        } else {
+          folded = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (eff_obj_con != NULL &&
