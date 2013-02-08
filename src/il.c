@@ -6832,15 +6832,11 @@ at the file scope (it would contain a pointer down into a function scope).
           /* Routines are always in the file scope. */
           break;
         case abk_variable:
-          /* Static variables are always allocated in the file scope, and
-             they are the only kind of variables whose address can be used
-             in a constant address. */
-#if CHECKING
-          if (!has_static_storage_duration(
-                        cp->variant.address.variant.variable->storage_class)) {
-            internal_error("has_non_file_scope_ref: non-static var");
-          }  /* if */
-#endif /* CHECKING */
+          /* Usually one will only see static variables here, and they are
+             allocated in the file scope.  However, under control of the
+             CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT flag, local variables
+             might make it here. */
+          has_nfs_ref = !in_file_scope(cp->variant.address.variant.variable);
           break;
         case abk_constant:
           has_nfs_ref = !in_file_scope(cp->variant.address.variant.constant);
