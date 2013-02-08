@@ -4384,15 +4384,18 @@ FALSE is returned) for non-class objects.
       is_nonreal_class = tp->variant.class_struct_union.is_nonreal_class;
       cssp = symbol_supplement_for_class(tp);
     }  /* if */
-    /* Default initialization is done only for non-POD class objects that
-       are defined in the current translation unit (i.e., storage class
-       other than "extern"). */
+    /* Default initialization is done only for non-POD class objects that are
+       defined in the current translation unit (i.e., storage class other than
+       "extern").  It is also done for constexpr variables of POD class types
+       (only possible for essentially empty POD classes). */
     /* We don't test just is_POD because we want to catch cases where there
        is a user-declared defaulted constructor or destructor that's not
        accessible. */
     if (cssp != NULL &&
         (!cssp->is_POD ||
-         cssp->constructor != NULL || cssp->destructor != NULL) &&
+         cssp->constructor != NULL || cssp->destructor != NULL ||
+         (var->is_constexpr &&
+          !tp->variant.class_struct_union.has_zero_init_component)) &&
         var->storage_class != (a_storage_class)sc_extern &&
         !is_incomplete_type(var_type)) {
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -4488,6 +4491,27 @@ FALSE is returned) for non-class objects.
           /* Although no init statement is needed, we still need to track
              attempts to branch past the trivial initialization. */
           record_trivial_init_control_flow(var);
+        }  /* if */
+        if (var->is_constexpr) {
+          /* A constexpr variable requires an initializer representation.  We
+             use an empty aggregate in this case. */
+          a_constant_ptr  cp;
+          if (static_lifetime) {
+            /* A static-lifetime variable: Use static initialization. */
+            cp = fs_constant((a_constant_repr_kind)ck_aggregate);
+            var->init_kind = (an_init_kind)initk_static;
+            var->initializer.constant = cp;
+          } else {
+            /* A local variable with automatic storage duration; use a
+               dynamic init entry. */
+            cp = alloc_constant((a_constant_repr_kind)ck_aggregate);
+            init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+            init_dip->variant.constant = cp;
+          }  /* if */
+          cp->type = tp;
+          if (tp->variant.class_struct_union.has_zero_init_component) {
+            cp->partial_aggr_value = TRUE;
+          }  /* if */
         }  /* if */
       } else if (var->is_constexpr) {
         check_assertion_or_expect_error(!has_nontrivial_destructor(cssp));
@@ -4613,6 +4637,11 @@ FALSE is returned) for non-class objects.
          TRUE to avoid spurious diagnostics about uninitialized variables. */
       def_init_performed = TRUE;
     }  /* if */
+#if CHECKING
+    if (var->is_constexpr) {
+      check_assertion_or_expect_error(initializer_constant(var) != NULL);
+    }  /* if */
+#endif /* CHECKING */
   }  /* if */
   db_exit();
   return def_init_performed;
