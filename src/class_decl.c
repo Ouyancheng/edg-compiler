@@ -9080,7 +9080,7 @@ have a non-NULL this_class and the type match must be done without it.
 When templates_only is TRUE, only function templates members are considered.
 */
 {
-  a_boolean                      is_overloaded_function, match;
+  a_boolean                      is_overloaded_function, match = FALSE;
   a_type_ptr                     new_type = dps->type;
   a_type_ptr                     orig_type, orig_this_class, new_this_class;
   a_type_ptr                     parent_class = sym_parent_class(sym);
@@ -9109,8 +9109,9 @@ When templates_only is TRUE, only function templates members are considered.
      considered a const member if it matches a nonstatic member function
      declaration. */
   new_may_be_implicitly_const = !(new_quals & TQ_CONST) &&
-                                dps->dso_flags & DSO_CONSTEXPR &&
-                                !is_constructor_symbol(sym);
+                                (dps->dso_flags & DSO_CONSTEXPR) &&
+                                !is_constructor_symbol(sym) &&
+                                !is_destructor_symbol(sym);
   /* Go through the symbol list and look for an instance in which the
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
