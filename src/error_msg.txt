@@ -2481,6 +2481,7 @@ ec_excessive_constexpr_complexity;;"expression not folded to a constant due to e
 ec_cl_unrestricted_unions_option_only_in_cplusplus;;"unrestricted union options can be used only when compiling C++"
 ec_constexpr_ctor_does_not_initialize_base;;"constexpr constructor must initialize direct base class %t"
 ec_field_initializer_list;;"creation of an std::initializer_list object in a field initializer is unlikely to work as expected because the underlying array will be destroyed at the end of the full expression"
+ec_this_not_constant;;"\"this\" cannot be used in a constant expression"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

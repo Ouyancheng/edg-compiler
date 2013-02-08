@@ -10077,12 +10077,6 @@ wondering if it's available.
     expr_pos_error(ec_expr_not_constant, member_pos);
     make_error_operand(result);
     okay = FALSE;
-  } else if (!in_potential_constant_constexpr_context() &&
-             construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
-                                                          member_pos)) {
-    /* Use of "this" not allowed in C++11 constant expressions. */
-    make_error_operand(result);
-    okay = FALSE;
   } else {
     /* See if a "this" pointer exists and can be used. */
     if (!variable_this_exists(&this_var, &this_type)) {
@@ -10159,7 +10153,16 @@ wondering if it's available.
                                          member_pos);
       }  /* if */
       /* Check for errors on the casts. */
-      if (is_error_operand(result)) okay = FALSE;
+      if (is_error_operand(result)) {
+        okay = FALSE;
+      } else if (!in_potential_constant_constexpr_context() &&
+                 construct_not_allowed_in_cpp11_constant_expr(
+                                                       ec_this_not_constant,
+                                                       member_pos)) {
+        /* Use of "this" not allowed in C++11 constant expressions. */
+        conv_to_error_operand(result);
+        okay = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   result->position = *member_pos;
