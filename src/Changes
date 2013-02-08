@@ -1,5 +1,19 @@
 Version 4.6
 
+2/8/13   [EDGcpfe/13635]
+Abort on noexcept applied to overloaded function
+
+The front end aborted ("extract_node_from_operand: converting unexpected
+operand kind") on a noexcept operator applied to the name of an overloaded
+function.  Now fixed (an error is issued).
+
+  void f();
+  void f(int);
+  int main() {
+    noexcept(f);
+  }
+
+
 2/7/13   [EDGcpfe/13631
 C-generating back end: line break in name of promoted base class member
 

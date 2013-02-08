@@ -12895,6 +12895,8 @@ previously-scanned noexcept expression, and return the result in
     /* Scan the expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
   }  /* if */
+  /* Rule out indefinite functions. */
+  eliminate_unusual_operand_kinds(&operand);
   operand_expr = make_node_from_operand(&operand);
   operand_expr = wrap_up_full_expression(operand_expr);
   dependent_case = (is_template_dependent_context() &&
