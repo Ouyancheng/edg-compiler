@@ -8882,7 +8882,6 @@ instead.
 {
   a_boolean             folded = FALSE;
   a_routine_ptr         routine;
-  a_type_ptr            routine_type;
   an_expr_node_ptr      args;
   an_expr_operator_kind opkind;
   a_boolean             this_arg_is_pointer;
@@ -8894,7 +8893,6 @@ instead.
   this_arg_is_pointer = (opkind ==
                              (an_expr_operator_kind)eok_points_to_member_call);
   routine = routine_from_function_expr(args);
-  routine_type = skip_typerefs(routine->type);
   if (incr_constexpr_call_depth(ceblock)) {
     /* Calls too deep -- possible infinite recursion. */
   } else if (routine == NULL) {
@@ -8911,6 +8909,7 @@ instead.
     /* When a constructor is called like a member function, we can't
        fold it. */
   } else {
+    a_type_ptr       routine_type = skip_typerefs(routine->type);
     a_type_ptr       return_type = return_type_of(routine_type);
     a_type_ptr       il_return_type = il_return_type_of(routine_type);
     a_scope_ptr      scope = scope_for_routine(routine);
