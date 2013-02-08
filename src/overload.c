@@ -20631,6 +20631,8 @@ errors should be suppressed (i.e., SFINAE mode).
   a_boolean          initializing_var = (conv_context &
                                          CCO_INITIALIZING_VARIABLE) != 0;
   a_boolean          is_new_expr = (conv_context & CCO_NEW_INITIALIZER) != 0;
+  a_boolean          initializing_field =
+                                  (conv_context & CCO_INITIALIZING_FIELD) != 0;
   a_boolean          is_partially_initialized = FALSE;
   a_boolean          issue_errors = (arg_match == NULL &&
                                      !expr_stack->suppress_diagnostics);
@@ -20826,6 +20828,10 @@ errors should be suppressed (i.e., SFINAE mode).
     } else if (is_new_expr) {
       if (issue_errors && curr_expr_is_evaluated()) {
         expr_pos_warning(ec_new_of_initializer_list, pos);
+      }  /* if */
+    } else if (initializing_field) {
+      if (issue_errors && curr_expr_is_evaluated()) {
+        expr_pos_warning(ec_field_initializer_list, pos);
       }  /* if */
     }  /* if */
     /* Add the decay from array to pointer. */
@@ -21565,7 +21571,7 @@ will be an lvalue instead of the usual rvalue.
          an initializer_list object from the braced-init-list. */
       a_conv_context_set iconv_context = conv_context &
                              (CCO_STATIC_LIFETIME | CCO_INITIALIZING_VARIABLE |
-                              CCO_NEW_INITIALIZER);
+                              CCO_NEW_INITIALIZER | CCO_INITIALIZING_FIELD);
       if (generate_il) unbundle_init_component_list_expressions(list);
       if (is != NULL) {
         if (is->static_lifetime_init) iconv_context |= CCO_STATIC_LIFETIME;

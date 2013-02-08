@@ -30367,10 +30367,15 @@ dynamic init entry if one is created to represent this initializer
                                   (an_expression_kind)ek_normal,
                                   is_full_expr,
                                   dps, is);
-  if (dps != NULL && (dps->sym == NULL || !symbol_is(dps->sym, sk_field))) {
-    /* We're initializing a variable or part of a variable. */
-    conv_context |= CCO_INITIALIZING_VARIABLE;
-    if (is->static_lifetime_init) conv_context |= CCO_STATIC_LIFETIME;
+  if (dps != NULL) {
+    if (dps->sym != NULL && symbol_is(dps->sym, sk_field)) {
+      /* We're initializing a field (C++11 NSDMI). */
+      conv_context |= CCO_INITIALIZING_FIELD;
+    } else {
+      /* We're initializing a variable or part of a variable. */
+      conv_context |= CCO_INITIALIZING_VARIABLE;
+      if (is->static_lifetime_init) conv_context |= CCO_STATIC_LIFETIME;
+    }  /* if */
   }  /* if */
   if (is->arg_match != NULL) {
     /* Keep track of the worst conversion on members of a given aggregate. */

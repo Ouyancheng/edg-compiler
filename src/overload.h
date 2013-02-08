@@ -234,6 +234,10 @@ typedef int a_conv_context_set;
 			/* Explicit conversion functions should be allowed in
 			   this context.  This is in addition to other normal
 			   reasons why they might be allowed. */
+#define CCO_INITIALIZING_FIELD ((a_conv_context_set)0x1000)
+			/* The result of the conversion initializes a
+			   field of a class (C++11 nonstatic data member
+			   initializer, or NSDMI). */
 #define CCO_SUPPRESS_USER_CONVERSIONS_IN_OVL_RES ((a_conv_context_set)0x2000)
 			/* Suppress user-defined conversions in overload
 			   resolution for some specific reason related to
