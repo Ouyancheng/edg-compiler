@@ -4214,8 +4214,15 @@ IL entry for that field.
   a_source_position  init_pos;
   a_boolean          saved_in_field_initializer = 
                                        scope_stack_top().in_field_initializer;
+  an_object_lifetime_ptr
+                     saved_curr_object_lifetime = curr_object_lifetime;
 
+  /* Indicate in the scope stack that we are parsing a field initializer.
+     (E.g., so that the expression routines know that the keyword "this" is
+     meaningful.)  Also temporarily set the current object lifetime to file
+     scope life time. */
   scope_stack_top().in_field_initializer = TRUE;
+  curr_object_lifetime = il_header.primary_scope->lifetime;
   is->force_dynamic_init = TRUE;
   if (symbol_is(dps->sym, sk_field)) {
     field = dps->sym->variant.field.ptr;
@@ -4294,6 +4301,7 @@ IL entry for that field.
                              field->entities_defined_in_initializer, dps->sym,
                              /*subject_to_trans_unit_corresp=*/TRUE);
 #endif /* NEED_NAME_MANGLING */
+  curr_object_lifetime = saved_curr_object_lifetime;
   scope_stack_top().in_field_initializer = saved_in_field_initializer;
 }  /* field_initializer */
 
