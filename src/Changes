@@ -1,5 +1,18 @@
 Version 4.6
 
+2/8/13   [EDGcpfe/13638]
+Abort on noexcept applied to ambiguous delete
+
+The front end aborted (in il.c, alloc_or_dealloc_routine_from_new_delete)
+on a noexcept operator applied to a delete operation where the delete
+routine to be called was ambiguous.  Now fixed.
+
+  void operator delete (error);
+  int main() {
+    noexcept(delete (char*)0);
+  }
+
+
 2/8/13   [EDGcpfe/13635]
 Abort on noexcept applied to overloaded function
 

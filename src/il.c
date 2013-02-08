@@ -19084,10 +19084,10 @@ static a_routine_ptr alloc_or_dealloc_routine_from_new_delete(
                                                          an_expr_node_ptr expr)
 /*
 Return the allocation or deallocation routine that will be called for the
-indicated new or delete.
+indicated new or delete, or NULL if the routine cannot be determined.
 */
 {
-  a_routine_ptr               rout;
+  a_routine_ptr               rout = NULL;
   a_new_delete_supplement_ptr ndsp;
 
   check_assertion(expr->kind == (an_expression_kind)enk_new_delete);
@@ -19119,12 +19119,9 @@ indicated new or delete.
 #endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
       } else {
         /* Non-array new. */
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
-        check_assertion(is_class_struct_union_type(base_type));
-        rout = class_type_supp(base_type)->assoc_operator_new_routine;
-#else /* !NEW_CAN_BE_FOLDED_INTO_CTOR */
-        unexpected_condition();
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+        if (is_class_struct_union_type(base_type)) {
+          rout = class_type_supp(base_type)->assoc_operator_new_routine;
+        }  /* if */
       }  /* if */
     } else {
       /* Deallocation routine. */
@@ -19154,16 +19151,12 @@ indicated new or delete.
 #endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
       } else {
         /* Non-array delete. */
-#if DELETE_CAN_BE_FOLDED_INTO_DTOR
-        check_assertion(is_class_struct_union_type(base_type));
-        rout = class_type_supp(base_type)->assoc_operator_delete_routine;
-#else /* !DELETE_CAN_BE_FOLDED_INTO_DTOR */
-        unexpected_condition();
-#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
+        if (is_class_struct_union_type(base_type)) {
+          rout = class_type_supp(base_type)->assoc_operator_delete_routine;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-  check_assertion(rout != NULL);
   return rout;
 }  /* alloc_or_dealloc_routine_from_new_delete */
 
@@ -19275,7 +19268,7 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
          throws.  The freeing_of_storage_on_exception dynamic init on a new,
          if present, will be processed by the normal tree scan. */
       { a_routine_ptr rout = alloc_or_dealloc_routine_from_new_delete(node);
-        if (!is_non_throwing_routine(rout)) might_throw = TRUE;
+        if (rout != NULL && !is_non_throwing_routine(rout)) might_throw = TRUE;
       }
       break;
     case enk_lambda:
