@@ -21881,7 +21881,8 @@ controls).
     if (dip == NULL && constant != NULL &&
         (force_temp ||
          (constant->kind == (a_constant_repr_kind)ck_aggregate &&
-          !constant->is_result_of_constexpr_call))) {
+          !constant->is_result_of_constexpr_call &&
+          !curr_expr_kind_is_const()))) {
       /* We've been asked to force a temporary, so force a constant case
          to use a dynamic init.  Also force use of a dynamic init for an
          aggregate constant. */
