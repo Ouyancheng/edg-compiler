@@ -4161,7 +4161,7 @@ returned set to TRUE.
   }  /* if */
 #if CHECKING
   if (vp != NULL && vp->is_constexpr) {
-    check_assertion(initializer_constant(vp) != NULL);
+    check_assertion_or_expect_error(initializer_constant(vp) != NULL);
   }  /* if */
 #endif /* CHECKING */
 #if DEBUG

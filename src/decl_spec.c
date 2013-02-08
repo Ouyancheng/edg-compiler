@@ -8285,10 +8285,12 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
       /* We can get here in error situations, but we cannot test an incomplete
          type with is_literal_type (it can trigger an internal error). */
       expect_error();
+      vp->is_constexpr = FALSE;
     } else if (!is_literal_type(vp->type) &&
                !is_any_reference_type(vp->type)) {
       pos_error(ec_constexpr_variable_must_have_literal_type,
                 &dps->constexpr_pos);
+      vp->is_constexpr = FALSE;
     }  /* if */
   } else if (symbol_is(sym, sk_routine) ||
              symbol_is(sym, sk_function_template)) {
