@@ -9235,6 +9235,7 @@ otherwise, return FALSE.
 {
   a_boolean      folded = FALSE;
   a_constant_ptr eff_obj_con = NULL;
+  a_boolean      empty_anonymous_union_initializer = FALSE;
 
   if (object_is_pointer) {
     /* eok_points_to_field case.  See if the pointer value points to
@@ -9295,17 +9296,11 @@ otherwise, return FALSE.
       member_con = member_con->next;
       curr_field = next_initializable_field(curr_field->next);
     }  /* while */
-    if (member_con == NULL) {
-      /* We ran off the end of the aggregate initializer, so the field was
-         implicitly value-initialized.  Make a constant of the requisite
-         type and use that. */
-      check_assertion(eff_obj_con->partial_aggr_value);
-      folded = make_value_initialized_constant(field->type, result_con);
-    } else {
+    if (member_con != NULL) {
       check_assertion(curr_field != NULL);
       /* If the field is a member of an anonymous union, scan through
          the aggregates in which the value is nested. */
-      while (anon_union_member_depth-- > 0) {
+      while (member_con != NULL && anon_union_member_depth-- > 0) {
         if (is_error_constant(member_con)) {
           /* There was an error in the initializer, so this access cannot
              be folded. */
@@ -9313,12 +9308,24 @@ otherwise, return FALSE.
         }  /* if */
         check_assertion(member_con->kind ==
                                           (a_constant_repr_kind)ck_aggregate &&
-                        member_con->variant.aggregate.first_constant != NULL &&
                         member_con->variant.aggregate.first_constant ==
                                   member_con->variant.aggregate.last_constant);
         member_con = member_con->variant.aggregate.first_constant;
+        if (member_con == NULL) {
+          empty_anonymous_union_initializer = TRUE;
+        }  /* if */
       }  /* while */
-      copy_constant(member_con, result_con);
+      if (member_con == NULL) {
+        /* We don't have an explicit constant, so the field was
+           value-initialized, either explicitly or because of a short
+           initializer.  Make a zero constant of the requisite type and use
+           that. */
+        check_assertion(eff_obj_con->partial_aggr_value ||
+                        empty_anonymous_union_initializer);
+        folded = make_value_initialized_constant(field->type, result_con);
+      } else {
+        copy_constant(member_con, result_con);
+      }  /* if */
       if (is_error_type(result_con->type)) {
         /* There was an error in the initializer. */
         folded = TRUE;
