@@ -8606,7 +8606,7 @@ points to the template parameter list.
        this a match for now. */
     match = TRUE;
   } else if (templ_type->kind == (a_type_kind)tk_typeref &&
-             type->variant.typeref.is_bases) {
+             templ_type->variant.typeref.is_bases) {
     /* Deduction and substitution of __bases and __direct_bases is not
        supported. */
   } else if (is_template_param_type(templ_type)) {
