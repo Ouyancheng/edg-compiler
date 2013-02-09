@@ -9194,6 +9194,21 @@ fail:;
 }  /* i_fold_constexpr_ctor */
 
 
+void add_temp_init_backing_expression(a_constant         *con,
+                                      a_dynamic_init_ptr dip)
+/*
+Add a backing expression to the constant "con" that points to a temp init
+node pointing to the dynamic init "dip".
+*/
+{
+  an_expr_node_ptr expr = alloc_expr_node((an_expr_node_kind)enk_temp_init);
+
+  expr->variant.init.dynamic_init = dip;
+  expr->type = con->type;
+  con->expr = expr;
+}  /* add_temp_init_backing_expression */
+
+
 a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
                               a_boolean          record_backing_expr,
                               a_source_position  *pos,
@@ -9219,10 +9234,7 @@ does not initialize every member of the class.
   clear_constexpr_evaluation_block(&ceblock, pos);
   folded = i_fold_constexpr_ctor(ctor_dip, &ceblock, result_con);
   if (folded && record_backing_expr) {
-    an_expr_node_ptr expr = alloc_expr_node((an_expr_node_kind)enk_temp_init);
-    expr->variant.init.dynamic_init = ctor_dip;
-    expr->type = result_con->type;
-    result_con->expr = expr;
+    add_temp_init_backing_expression(result_con, ctor_dip);
   }  /* if */
   *partially_initialized = ceblock.is_partially_initialized;
   return folded;

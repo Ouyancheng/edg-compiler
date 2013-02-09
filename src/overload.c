@@ -21116,7 +21116,8 @@ will be an lvalue instead of the usual rvalue.
   a_boolean            init_handled_at_this_level = TRUE;
   a_boolean            elision_done;
   a_source_position    *start_position = init_component_pos(icp);
-  a_dynamic_init_ptr   dependent_constant_dip = NULL;
+  a_dynamic_init_ptr   dip_to_reuse = NULL;
+  a_dynamic_init_ptr   dip_to_mark = NULL;
   an_expr_node_ptr     preserved_temp_init = NULL;
 
   /* The basic modes are:
@@ -21519,7 +21520,7 @@ will be an lvalue instead of the usual rvalue.
                if we need the result in dynamic init form. */
             an_expr_node_ptr expr;
             a_constant       con;
-            dependent_constant_dip = dip;
+            dip_to_reuse = dip_to_mark = dip;
             expr = alloc_temp_init_node(dest_type, dip, make_lvalue_temp,
                                         /*is_explicit_cast=*/is_cast);
             make_template_param_expr_constant(expr, &con);
@@ -21873,6 +21874,16 @@ will be an lvalue instead of the usual rvalue.
     if (dip != NULL) {
       if (dip->kind == (a_dynamic_init_kind)dik_constant) {
         constant = dip->variant.constant;
+        if (!is_generated_dynamic_init(dip) &&
+            curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+          /* Save the dynamic init as a backing expression for the
+             constant.  We have to make a second copy of the constant. */
+          dip->variant.constant = copy_constant_full(constant,
+                                                     (a_constant *)NULL,
+                                                     CE_NO_OPTIONS);
+          add_temp_init_backing_expression(constant, dip);
+          dip_to_mark = dip;
+        }  /* if */
       } else {
         expr_pos_error(ec_expr_not_constant, start_position);
         constant = alloc_error_constant();
@@ -21906,10 +21917,9 @@ will be an lvalue instead of the usual rvalue.
       /* We've been asked to force a temporary, so force a constant case
          to use a dynamic init.  Also force use of a dynamic init for an
          aggregate constant. */
-      if (dependent_constant_dip != NULL) {
-        /* There's already a dynamic init we can use under a template
-           parameter constant. */
-        dip = dependent_constant_dip;
+      if (dip_to_reuse != NULL) {
+        /* There's already a dynamic init we can reuse. */
+        dip = dip_to_reuse;
       } else {
         /* Create a dynamic init. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
@@ -22001,10 +22011,9 @@ will be an lvalue instead of the usual rvalue.
                                                 &dip)) {
           /* We already have a dynamic init in the operand that we can just
              use. */
-        } else if (dependent_constant_dip != NULL) {
-          /* We already have a dynamic init under a ck_template_param
-             constant. */
-          dip = dependent_constant_dip;
+        } else if (dip_to_reuse != NULL) {
+          /* We already have a dynamic init we can reuse. */
+          dip = dip_to_reuse;
         } else {
           /* Make a dynamic init for the expression. */
           an_expr_node_ptr expr;
@@ -22034,10 +22043,9 @@ will be an lvalue instead of the usual rvalue.
       if (is_error_dynamic_init(is->init_dip)) is->init_error = TRUE;
     }  /* if */
   }  /* if */
-  if (dip == NULL && dependent_constant_dip != NULL) {
-    /* Set up the underlying dynamic init from a ck_template_param
-       constant for marking below. */
-    dip = dependent_constant_dip;
+  if (dip == NULL && dip_to_mark != NULL) {
+    /* If we saved a related dynamic init entry to be marked, use it. */
+    dip = dip_to_mark;
   }  /* if */
   if (init_handled_at_this_level && dip != NULL) {
     /* The initialization has a primary dynamic init entry, and the
