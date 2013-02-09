@@ -12836,7 +12836,7 @@ previously-scanned noexcept expression, and return the result in
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position   end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  an_expr_node_ptr    expr, operand_expr;
+  an_expr_node_ptr    operand_expr;
   an_expr_stack_entry expr_stack_entry;
   an_operand          operand;
   int                 noexcept_value;
@@ -12853,16 +12853,13 @@ previously-scanned noexcept expression, and return the result in
     a_boolean               is_type;
     a_type_ptr              dummy_type;
     a_source_position       dummy_position;
+    check_assertion(rcblock->operator_token == tok_noexcept);
     make_sizeof_et_al_rescan_operands(rcblock,
                                       &is_type, &operand, &dummy_type,
                                       &start_position,
                                       &operator_tok_seq_number,
                                       &dummy_position);
     check_assertion(!is_type);
-    check_assertion(rcblock->operator_token == tok_noexcept);
-    expr = rcblock->expr;
-    check_assertion(is_operation_node(expr) &&
-                    node_operator_is(expr, eok_noexcept));
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -12886,11 +12883,7 @@ previously-scanned noexcept expression, and return the result in
                                /*suppress_object_lifetime=*/FALSE,
                                rcblock);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
-  if (rcblock != NULL) {
-    /* Substitute template parameters and redo semantic analysis on the
-       previously-scanned expression. */
-    make_rescan_operand(expr->variant.operation.operands, rcblock, &operand);
-  } else {
+  if (rcblock == NULL) {
     /* Check for and pass over the left parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_matching_stop_token(tok_rparen);
