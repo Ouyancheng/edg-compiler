@@ -20752,8 +20752,7 @@ previously-scanned braced initializer.
                         conv_context,
                         /*fill_in_dtor=*/TRUE,
                         /*force_temp=*/
-                                    is_class_struct_union_type(type_cast_to) &&
-                                    !curr_expr_kind_is_const(),
+                                      is_class_struct_union_type(type_cast_to),
                         /*make_lvalue_temp=*/FALSE,
                         result, (an_init_state *)NULL,
                         (an_arg_match_summary *)NULL);
