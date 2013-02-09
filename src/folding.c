@@ -9346,7 +9346,6 @@ otherwise, return FALSE.
            expression not to be constant. */
         folded = types_are_compatible(result_con->type, field->type);
       } else {
-#if CHECKING
         /* Make sure we found the right constant for the field: at a
            minimum, the types should be the same except for
            cv-qualifiers. */
@@ -9363,7 +9362,6 @@ otherwise, return FALSE.
         }  /* if */
         check_assertion(identical_types_ignoring_qualifiers(con_type,
                                                             field_type));
-#endif /* CHECKING */
         if (reference_case &&
             result_con->kind == (a_constant_repr_kind)ck_aggregate) {
           /* A reference cannot be initialized by an aggregate.  This can
