@@ -6367,8 +6367,9 @@ apply that would make one better than the other, and return
              is_ptr_or_ref_type(param_type2) &&
              is_pointer_type(param_type1) != is_pointer_type(param_type2) &&
              is_function_type(type_pointed_to(param_type1)) &&
-             identical_types(type_pointed_to(param_type1),
-                             type_pointed_to(param_type2))) {
+             f_identical_types(type_pointed_to(param_type1),
+                               type_pointed_to(param_type2),
+                               ITF_NO_FLAGS)) {
     /* The Microsoft compiler distinguishes a pointer to function and a
        reference to function on the basis of the lvalue transformation
        difference.  */
