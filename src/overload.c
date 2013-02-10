@@ -9223,8 +9223,10 @@ compiler_generated is TRUE if the function reference is compiler-generated.
     /* In a SFINAE context, reference to a deleted function causes a
        deduction failure. */
     record_suppressed_error();
-    make_error_operand(operand);
-    operand->position = *function_position;
+    if (operand != NULL) {
+      make_error_operand(operand);
+      operand->position = *function_position;
+    }  /* if */
   } else {
     if (elided_reference) {
       /* The reference to the routine was elided (e.g., in a "new" where the
