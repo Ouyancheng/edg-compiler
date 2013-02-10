@@ -6129,7 +6129,8 @@ apply that would make one better than the other, and return
 
 */
 {
-  int cmp = 0;
+  int        cmp = 0;
+  a_type_ptr param_type1, param_type2;
 
   /* We're looking for cases like
        void f(const int *);
@@ -6141,6 +6142,8 @@ apply that would make one better than the other, and return
        }
   */
   check_assertion(arg_match1 != NULL && arg_match2 != NULL);
+  param_type1 = arg_match1->param_type;
+  param_type2 = arg_match2->param_type;
   /* Use of the deprecated conversion of a string literal to a pointer to
      nonconst can break a tie. */
   if (arg_match1->conversion.std.conv_of_string_literal_to_ptr_to_nonconst !=
@@ -6162,10 +6165,6 @@ apply that would make one better than the other, and return
        arg_match2->conversion.std.secondary_type_qualifiers_added)) {
     /* There is the possibility of a tie-breaker because of a difference
        in adding cv-qualifiers. */
-    /* Get the corresponding parameter types. */
-    a_type_ptr param_type1 = arg_match1->param_type;
-    a_type_ptr param_type2 = arg_match2->param_type;
-
     /* Some arguments have no parameter type (e.g., an ellipsis match). */
     if (param_type1 != NULL && param_type2 != NULL) {
       if (any_cfront_mode()) {
@@ -6361,6 +6360,24 @@ apply that would make one better than the other, and return
             }  /* if */
           }  /* if */
         }  /* if */
+      }  /* if */
+    }  /* if */
+  } else if (microsoft_mode && param_type1 != NULL && param_type2 != NULL &&
+             is_ptr_or_ref_type(param_type1) &&
+             is_ptr_or_ref_type(param_type2) &&
+             is_pointer_type(param_type1) != is_pointer_type(param_type2) &&
+             is_function_type(type_pointed_to(param_type1)) &&
+             identical_types(type_pointed_to(param_type1),
+                             type_pointed_to(param_type2))) {
+    /* The Microsoft compiler distinguishes a pointer to function and a
+       reference to function on the basis of the lvalue transformation
+       difference.  */
+    if (arg_match1->lvalue_to_rvalue_conversion_used !=
+        arg_match2->lvalue_to_rvalue_conversion_used) {
+      if (arg_match1->lvalue_to_rvalue_conversion_used) {
+        cmp = -1;
+      } else {
+        cmp = 1;
       }  /* if */
     }  /* if */
   }  /* if */
