@@ -1,5 +1,25 @@
 Version 4.6
 
+2/9/13   [EDGcpfe/13123]
+Reference to deleted function causes SFINAE failure
+
+Selection of a deleted function (i.e., marked "= delete") in overload
+resolution now causes a deduction failure in a SFINAE context.
+This is similar to what happens when an inaccessible function is
+referenced in a SFINAE context.
+
+  struct A {
+    operator int();
+  };
+  A operator+ (A, A) = delete;
+  template <class T> auto f(T p) -> decltype(T() + T());
+  int f(int);
+  int main() {
+    A a;
+    int i = f(a);  // Now accepted, template "f" fails SFINAE with no error
+  }
+
+
 2/8/13   [EDGcpfe/13638]
 Abort on noexcept applied to ambiguous delete
 
