@@ -8105,6 +8105,7 @@ a new unshared constant will be allocated and returned.
 {
   a_constant_ptr result_con = NULL;
   a_constant     char_con;
+  a_boolean      char_type_mismatch = FALSE;
 
   if (is_error_constant(addr_con)) {
     /* There was an error upstream.  Return an error constant. */
@@ -8252,8 +8253,14 @@ a new unshared constant will be allocated and returned.
       }  /* while */
       if (result_con != NULL && !identical_types(target_type, curr_type)) {
         /* The requested offset designates a character within a string. */
+        a_type_ptr elem_type;
         check_assertion(result_con->kind == (a_constant_repr_kind)ck_string);
-        if (offset > (a_targ_ptrdiff_t)(cum_offset +
+        elem_type = array_element_type(result_con->type);
+        if (!identical_types_ignoring_qualifiers(target_type, elem_type)) {
+          /* The requested type is not the string element type, probably
+             as the result of a cast to reference type or the like. */
+          char_type_mismatch = TRUE;
+        } else if (offset > (a_targ_ptrdiff_t)(cum_offset +
                                         result_con->variant.string.length)) {
           /* The requested character is beyond the length of the constant,
              i.e., was implicitly value-initialized.  set result_con to NULL
@@ -8274,7 +8281,11 @@ a new unshared constant will be allocated and returned.
           result_con = &char_con;
         }  /* if */
       }  /* if */
-      if (result_con != NULL) {
+      if (char_type_mismatch) {
+        /* Cannot fold -- type punning is not allowed in constant
+           expressions. */
+        result_con = NULL;
+      } else if (result_con != NULL) {
         /* result_con points to the requested value. */
         if (target_con != NULL) {
           (void)copy_constant_full(result_con, target_con,
