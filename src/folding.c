@@ -8093,6 +8093,22 @@ parameter values).
 }  /* points_to_constant */
 
 
+static a_field_ptr next_non_generated_initializable_field(a_field_ptr field)
+/*
+Return a pointer to the first field at or after field that is
+initializable, skipping compiler-generated fields like virtual function
+table pointers.  This is a wrapper for next_initializable_field; see that
+function for additional information.
+*/
+{
+  field = next_initializable_field(field);
+  while (field != NULL && field->compiler_generated) {
+    field = next_initializable_field(field->next);
+  }  /* while */
+  return field;
+}  /* next_non_generated_initializable_field */
+
+
 a_constant_ptr constant_value_at_address(a_constant_ptr addr_con,
                                          a_constant_ptr target_con)
 /*
@@ -8234,13 +8250,14 @@ a new unshared constant will be allocated and returned.
               /* The offset is in a member subobject.  Scan for it and then
                  go back through the main loop. */
               a_field_ptr curr_field;
-              curr_field = next_initializable_field(curr_type->
-                                      variant.class_struct_union.field_list);
+              curr_field = next_non_generated_initializable_field(
+                             curr_type->variant.class_struct_union.field_list);
               while (curr_field != NULL && result_con != NULL &&
                      (a_targ_ptrdiff_t)(cum_offset + curr_field->offset +
                                         skip_typerefs(curr_field->type)->size)
                                                                    <= offset) {
-                curr_field = next_initializable_field(curr_field->next);
+                curr_field =
+                      next_non_generated_initializable_field(curr_field->next);
                 result_con = result_con->next;
               }  /* while */
               check_assertion(curr_field != NULL);
@@ -9293,7 +9310,7 @@ otherwise, return FALSE.
        result_con to it. */
     a_constant_ptr member_con = eff_obj_con->variant.aggregate.first_constant;
     a_type_ptr     class_type = skip_typerefs(eff_obj_con->type);
-    a_field_ptr    curr_field = next_initializable_field(
+    a_field_ptr    curr_field = next_non_generated_initializable_field(
                             class_type->variant.class_struct_union.field_list);
     a_type_ptr     parent_of_field = parent_class_of(field);
     a_type_ptr     anon_union_member_type = NULL;
@@ -9325,7 +9342,7 @@ otherwise, return FALSE.
         break;
       }  /* if */
       member_con = member_con->next;
-      curr_field = next_initializable_field(curr_field->next);
+      curr_field = next_non_generated_initializable_field(curr_field->next);
     }  /* while */
     if (member_con != NULL) {
       check_assertion(curr_field != NULL);
