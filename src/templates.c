@@ -3763,7 +3763,8 @@ be completed here.
       begin_deferral_of_access_checks();
       /* Scan the base specifiers list, if any, and the body of the class. */
       (void)scan_class_definition(
-                    class_type, depth_innermost_namespace_scope,
+                    class_type, (a_decl_parse_state*)NULL,
+                    depth_innermost_namespace_scope,
                     /*is_local_class=*/FALSE,
                     /*delayed_nested_class_def=*/is_class_member,
                     /*is_template_instantiation=*/TRUE,
@@ -4373,7 +4374,8 @@ A pointer to the head of the list is returned in tcsp.
      will not be done until the instantiation scope has been popped. */
   curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                                    pending_class_definitions++;
-  (void)scan_class_definition(prototype_type, depth_innermost_namespace_scope,
+  (void)scan_class_definition(prototype_type, &decl_state->decl_parse,
+                              depth_innermost_namespace_scope,
                               /*is_local_class=*/FALSE,
                               /*delayed_nested_class_def=*/is_class_member,
                               /*is_template_instantiation=*/TRUE,
@@ -6896,6 +6898,7 @@ error type is used.
         ps_options |= PS_NONREAL_INSTANTIATION;
       }  /* if */
       init_decl_parse_state(&dps);
+      dps.is_alias_template_type = TRUE;
       ++(tssp_of_prototype->pending_instantiations);
       /* Push the template instantiation scope for the instantiation. */
       (void)push_template_instantiation_scope(body_cache->decl_info,
@@ -21110,6 +21113,7 @@ can be diagnosed at template definition time.
                                                                 pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   init_decl_parse_state(&dps);
+  dps.is_alias_template_type = TRUE;
   /* Scan the type. */
   type_name_full(&dps);
   check_type_definition_in_type_name(&dps);

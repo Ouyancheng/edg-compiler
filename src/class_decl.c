@@ -25488,18 +25488,22 @@ be a syntax error showing up in the next file.  I.e., something like:
                 il_template_entry is not used unless source sequence entries
                 are being generated. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GENERATE_SOURCE_SEQUENCE_LISTS */
-a_boolean scan_class_definition(a_type_ptr       class_type,
-                                a_scope_depth    effective_decl_level,
-                                a_boolean        is_local_class,
-                                a_boolean        delayed_nested_class_def,
-                                a_boolean        is_template_instantiation,
-                                a_boolean        is_template_specialization,
-                                a_template_ptr   il_template_entry,
-                                a_decl_pos_block *decl_pos_block)
+a_boolean scan_class_definition(a_type_ptr          class_type,
+                                a_decl_parse_state  *dps,
+                                a_scope_depth       effective_decl_level,
+                                a_boolean           is_local_class,
+                                a_boolean           delayed_nested_class_def,
+                                a_boolean           is_template_instantiation,
+                                a_boolean           is_template_specialization,
+                                a_template_ptr      il_template_entry,
+                                a_decl_pos_block    *decl_pos_block)
 /*
 Scan the body of a class definition, including the base classes list.
 class_type points to the type entry of the class, struct, or union whose
-definition is to be scanned.  effective_decl_level indicates the name scope
+definition is to be scanned.  *dps describes the declaration that the
+definition is part of (NULL for a class template instantiation other than
+a prototype instantiation, as well as for a class definition processed by
+get_definition_of_class).  effective_decl_level indicates the name scope
 to which the class declaration belongs.  is_local_class is TRUE if the class
 definition appears inside a function body.  delayed_nested_class_def is TRUE
 if the class is a nested class whose parent class definition has already been
@@ -26332,15 +26336,19 @@ next_declaration:
     if (C_dialect == C_dialect_cplusplus) {
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */
-      if ((!tag_sym->is_class_member || delayed_nested_class_def ||
-           is_in_class_specialization) &&
-          class_is_in_valid_scope) {
+      if (!class_is_in_valid_scope ||
+          (dps != NULL && dps->is_alias_template_type)) {
+        /* For class definitions appearing in invalid contexts, don't add any
+           fixups because we cannot be sure to be able to create a reasonable
+           context for the fixups to be processed. */
+        expect_error();
+      } else if (!tag_sym->is_class_member || delayed_nested_class_def ||
+                 is_in_class_specialization) {
         /* For non-nested classes add the class to the list of classes for
            which delayed processing for default argument declarations and
            inline member function definitions must be done.  The actual
            processing will be done when all pending class definitions have
-           been completed.  Don't add the fixup entries if this class appeared
-           in an invalid location. */
+           been completed. */
         add_to_class_fixup_list(class_type, is_template_instantiation);
       }  /* if */
       curr_routine_fixup = saved_routine_fixup;

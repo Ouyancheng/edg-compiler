@@ -115,14 +115,15 @@ extern void set_target_of_conversion_function_flag_if_needed(
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean scan_class_definition(
-                                   a_type_ptr       class_type,
-                                   a_scope_depth    effective_decl_level,
-                                   a_boolean        is_local_class,
-                                   a_boolean        delayed_nested_class_def,
-                                   a_boolean        is_template_instantiation,
-				   a_boolean	    is_template_specialization,
-                                   a_template_ptr   il_template_entry,
-                                   a_decl_pos_block *decl_pos_block);
+                                a_type_ptr          class_type,
+                                a_decl_parse_state  *dps,
+                                a_scope_depth       effective_decl_level,
+                                a_boolean           is_local_class,
+                                a_boolean           delayed_nested_class_def,
+                                a_boolean           is_template_instantiation,
+                                a_boolean           is_template_specialization,
+                                a_template_ptr      il_template_entry,
+                                a_decl_pos_block    *decl_pos_block);
 
 extern void set_literal_type_flag(a_type_ptr  type);
 

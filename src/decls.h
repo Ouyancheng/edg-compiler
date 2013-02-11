@@ -606,6 +606,11 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this information block is one created for a
 			   call to type_name_full. */
   a_bit_field
+		is_alias_template_type:1;
+			/* TRUE if this information block is one created for a
+			   call to type_name_full for the (real or prototype)
+			   instantiation of an alias template. */
+  a_bit_field
 		is_template_type_argument:1;
 			/* TRUE if this information block is one created for a
 			   call to scan_template_type_argument (which in turn

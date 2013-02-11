@@ -19224,7 +19224,8 @@ C++/CLI delegate class types.)
     (void)get_token();
   } else {
     (void)scan_class_definition(
-                    class_type, depth_innermost_namespace_scope,
+                    class_type, (a_decl_parse_state*)NULL,
+                    depth_innermost_namespace_scope,
                     /*is_local_class=*/FALSE,
                     /*delayed_nested_class_def=*/
                                     class_type->source_corresp.is_class_member,

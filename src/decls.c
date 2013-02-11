@@ -146,6 +146,7 @@ be restored).
     dps->secondary_declarator = FALSE;
     dps->is_trailing_return_type = FALSE;
     dps->is_type_name = FALSE;
+    dps->is_alias_template_type = FALSE;
     dps->is_template_type_argument = FALSE;
     dps->trailing_return_type_allowed = FALSE;
     dps->has_trailing_return_type = FALSE;

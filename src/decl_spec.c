@@ -4294,8 +4294,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
   if (is_class_definition) {
-    if (scan_class_definition(class_type, effective_decl_level, is_local_class,
-                              delayed_nested_class_def,
+    if (scan_class_definition(class_type, dps, effective_decl_level,
+                              is_local_class, delayed_nested_class_def,
                               /*is_template_instantiation=*/FALSE,
                               is_template_specialization,
                               (a_template_ptr)NULL,
