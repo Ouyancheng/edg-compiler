@@ -1,5 +1,29 @@
 Version 4.6
 
+2/11/13  [EDGcpfe/13575]
+GNU C++ compatibility: error on injected class as template template argument
+
+A change in version 4.5 caused an injected class name of a class template
+to be rejected as a template template argument when gnu_version >= 40500
+(note that such usage is a g++ extension).  Now fixed.
+
+  template <class T> struct A {
+    int f();
+  };
+  template <template <class> class TT, class T> struct B : TT<T> {
+    int f();
+  };
+  struct C : B<A,int> {  // okay -- refers to ::A
+    int f() {
+      return B<A,int>::f();  // error on this use of A<int>::A
+    }
+  };
+  int main() {
+    C c;
+    c.f();
+  }
+
+
 2/10/13  [EDGcpfe/13194]
 Microsoft C++: ref-to-function better than ptr-to-function in overloading
 

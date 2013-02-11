@@ -13387,9 +13387,11 @@ when scanning the default argument of the template template parameter.
   if (is_generalized_identifier_start(options)) {
     sym = coalesce_and_lookup_generalized_identifier(options, ilm_normal,
                                                      &err);
-    /* In early g++ mode, if the symbol found is an injected template symbol,
-       replace it with the template that it represents. */
-    if (gpp_mode && gnu_version < 30400 && sym != NULL) {
+    /* In g++ mode, if the symbol found is an injected template symbol,
+       replace it with the template that it represents.  Note that in
+       g++ versions before 4.5, there is no symbol for injected templates
+       (unless class name injection is explicitly enabled). */
+    if (gpp_mode && sym != NULL) {
       if (class_name_injection_enabled) {
         if (is_injected_template_symbol(sym)) {
           sym = class_template_for_injected_template_symbol(sym);
