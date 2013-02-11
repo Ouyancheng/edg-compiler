@@ -8102,7 +8102,8 @@ function for additional information.
 */
 {
   field = next_initializable_field(field);
-  while (field != NULL && field->compiler_generated) {
+  while (field != NULL && field->compiler_generated &&
+         !field->is_anonymous_parent_object) {
     field = next_initializable_field(field->next);
   }  /* while */
   return field;
@@ -8121,7 +8122,7 @@ a new unshared constant will be allocated and returned.
 {
   a_constant_ptr result_con = NULL;
   a_constant     char_con;
-  a_boolean      char_type_mismatch = FALSE;
+  a_boolean      type_mismatch = FALSE;
 
   if (is_error_constant(addr_con)) {
     /* There was an error upstream.  Return an error constant. */
@@ -8192,6 +8193,13 @@ a new unshared constant will be allocated and returned.
             identical_types(target_type, curr_type)) {
           /* result_con is the value we're looking for. */
           found_value = TRUE;
+        } else if (cum_offset == offset &&
+                   result_con->kind != (a_constant_repr_kind)ck_aggregate) {
+          /* We've found the desired offset, but there's a type mismatch,
+             possibly because of selecting the non-active member of a
+             union. */
+          found_value = TRUE;
+          type_mismatch = TRUE;
         } else if (result_con->kind == (a_constant_repr_kind)ck_string &&
                    (a_targ_ptrdiff_t)(cum_offset + curr_type->size) > offset) {
           /* result_con is a string and offset designates a character within
@@ -8268,7 +8276,8 @@ a new unshared constant will be allocated and returned.
           }  /* if */
         }  /* if */
       }  /* while */
-      if (result_con != NULL && !identical_types(target_type, curr_type)) {
+      if (result_con != NULL && !type_mismatch &&
+          !identical_types(target_type, curr_type)) {
         /* The requested offset designates a character within a string. */
         a_type_ptr elem_type;
         check_assertion(result_con->kind == (a_constant_repr_kind)ck_string);
@@ -8276,7 +8285,7 @@ a new unshared constant will be allocated and returned.
         if (!identical_types_ignoring_qualifiers(target_type, elem_type)) {
           /* The requested type is not the string element type, probably
              as the result of a cast to reference type or the like. */
-          char_type_mismatch = TRUE;
+          type_mismatch = TRUE;
         } else if (offset > (a_targ_ptrdiff_t)(cum_offset +
                                         result_con->variant.string.length)) {
           /* The requested character is beyond the length of the constant,
@@ -8298,7 +8307,7 @@ a new unshared constant will be allocated and returned.
           result_con = &char_con;
         }  /* if */
       }  /* if */
-      if (char_type_mismatch) {
+      if (type_mismatch) {
         /* Cannot fold -- type punning is not allowed in constant
            expressions. */
         result_con = NULL;
