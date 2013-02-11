@@ -4659,8 +4659,7 @@ constants in the aggregate will work properly).
         a_boolean found = FALSE;
 #endif /* CHECKING */
         for (; cp != NULL; cp = cp->next) {
-          if (identical_types(cp->type,
-                              class_type_supp(bcp->type)->type_as_subobject)) {
+          if (identical_types(cp->type, bcp->type)) {
             /* The type of the constant matches that of the optimized
                empty base class; remove the constant from the aggregate
                list. */
