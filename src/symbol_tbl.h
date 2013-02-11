@@ -1289,6 +1289,9 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	has_constexpr_nonstatic_member_function:1;
 			/* TRUE if the class has a nonstatic member function
 			   that is constexpr. */
+  a_bit_field	scanning_field_initializer:1;
+			/* TRUE while scanning a field initializer of this
+			   class. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block
 		pointers_block;

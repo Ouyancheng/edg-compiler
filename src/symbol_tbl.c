@@ -3591,6 +3591,7 @@ state.
         cssp->known_to_be_a_literal_type = FALSE;
         cssp->known_not_to_be_a_literal_type = FALSE;
         cssp->has_constexpr_nonstatic_member_function = FALSE;
+        cssp->scanning_field_initializer = FALSE;
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
         cssp->conversion_template_list = NULL;

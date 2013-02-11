@@ -2851,7 +2851,7 @@ nested class.
 
 
 /* Forward declaration. */
-static void check_if_constexpr_generated_default_constructor(
+static a_boolean check_if_constexpr_generated_default_constructor(
                                                        a_type_ptr  class_type);
 
 static void inclass_initializer_fixup_for_class(a_type_ptr  class_type,
@@ -2951,7 +2951,7 @@ prototype instantiations).  The class type must be complete.
        and determine whether the class is a "literal type".  If there were no
        fixups, this was already done previously. */
     if (constexpr_enabled) {
-      check_if_constexpr_generated_default_constructor(class_type);
+      (void)check_if_constexpr_generated_default_constructor(class_type);
       set_literal_type_flag(class_type);
     }  /* if */
   }  /* if */
@@ -17763,7 +17763,7 @@ in some Microsoft modes, record that its body cannot be generated).
 }  /* generate_default_constructor */
 
 
-static void check_if_constexpr_generated_default_constructor(
+static a_boolean check_if_constexpr_generated_default_constructor(
                                                        a_type_ptr  class_type)
 /*
 If the given class type has a generated default constructor, determine if that
@@ -17773,25 +17773,27 @@ issue an error if it is not actually constexpr.
 */
 {
   a_class_symbol_supplement_ptr
-                cssp = symbol_supplement_for_class(class_type);
-  a_symbol_ptr  ctor = cssp->constructor;
+                 cssp = symbol_supplement_for_class(class_type);
+  a_symbol_ptr   ctor = cssp->constructor;
+  a_routine_ptr  ctor_rp;
+  a_boolean      is_constexpr = FALSE;
 
   check_assertion(constexpr_enabled);
-  /* Look for a generated default constructor (if any). */
+  /* Look for a generated default constructor that could be constexpr
+     (if any). */
   if (ctor != NULL) {
     a_boolean  is_list = symbol_is(ctor, sk_overloaded_function);
     if (is_list) ctor = ctor->variant.overloaded_function.symbols;
     for (; ctor != NULL; ctor = is_list ? ctor->next : NULL) {
-      if ((ctor->variant.routine.ptr->compiler_generated ||
-           (ctor->variant.routine.ptr->is_defaulted &&
-            ctor->variant.routine.ptr->is_constexpr)) &&
-          is_simple_default_constructor(ctor->variant.routine.ptr)) {
+      ctor_rp = ctor->variant.routine.ptr;
+      if ((ctor_rp->compiler_generated ||
+           (ctor_rp->is_defaulted && ctor_rp->is_constexpr)) &&
+          is_simple_default_constructor(ctor_rp)) {
         break;
       }  /* if */
     }  /* for */
   }  /* if */
   if (ctor != NULL) {
-    a_boolean  is_constexpr = FALSE;
     if (!class_type->variant.class_struct_union.any_virtual_base_classes) {
       /* A generated default constructor is implicitly "constexpr" if (a) the
          parent class has no virtual bases, (b) every field has a constant
@@ -17803,16 +17805,17 @@ issue an error if it is not actually constexpr.
       }  /* if */
     }  /* if */
     if (is_constexpr) {
-      if (ctor->variant.routine.ptr->compiler_generated) {
-        ctor->variant.routine.ptr->is_constexpr = TRUE;
+      if (ctor_rp->compiler_generated) {
+        ctor_rp->is_constexpr = TRUE;
         cssp->has_constexpr_nonstatic_member_function = TRUE;
       }  /* if */
-    } else if (ctor->variant.routine.ptr->is_constexpr) {
+    } else if (ctor_rp->is_defaulted && ctor_rp->is_constexpr) {
       pos_error(ec_defaulted_default_ctor_cannot_be_constexpr,
                 &ctor->decl_position);
-      ctor->variant.routine.ptr->is_constexpr = FALSE;
+      ctor_rp->is_constexpr = FALSE;
     }  /* if */
   }  /* if */
+  return is_constexpr;
 }  /* check_if_constexpr_generated_default_constructor */
 
 
@@ -25122,54 +25125,64 @@ flag is set in the class symbol supplement of the given type.
     } else if (cssp->is_class_aggregate) {
       /* Aggregate class types are literal types. */
       cssp->known_to_be_a_literal_type = TRUE;
-    } else if (cssp->trivial_default_constructor != NULL &&
-               cssp->trivial_default_constructor
-                   ->variant.routine.ptr->is_constexpr) {
+    } else if ((cssp->trivial_default_constructor != NULL &&
+                cssp->trivial_default_constructor
+                    ->variant.routine.ptr->is_constexpr) ||
+               (cssp->constructor == NULL &&
+                !type->variant.class_struct_union.has_zero_init_component)) {
       /* A constexpr trivial default constructor makes the class a literal
          type. */
       cssp->known_to_be_a_literal_type = TRUE;
-    } else {
-      /* Ensure all field initializers are parsed: Any initializers that aren't
-         constant-expressions will cause cssp->known_not_to_be_a_literal_type
-         to become TRUE. */
-      inclass_initializer_fixup_for_class(
-                        type,
-                        type->variant.class_struct_union.is_template_class &&
-                          !type->variant.class_struct_union.is_specialized);
-      if (!cssp->known_not_to_be_a_literal_type) {
-        if (class_type_supp(type)->anonymous_union_kind !=
+    } else if (class_type_supp(type)->anonymous_union_kind !=
                                           (an_anonymous_union_kind)auk_none) {
-          /* Anonymous unions don't have constructors per se (and hence no
-             constexpr constructor will be found), but if exactly one field has
-             an initializer and it is constant, it can be considered a literal
-             type. */
-          if (fields_initialized_for_constexpr_constructor(type)) {
-            cssp->known_to_be_a_literal_type = TRUE;
-          }  /* if */
-        } else if (cssp->constructor != NULL &&
-            cssp->has_constexpr_nonstatic_member_function) {
-          /* Look for a constexpr constructor that is not a copy or move
-             constructor. */
-          a_symbol_ptr  sym = cssp->constructor;
-          a_boolean     is_list = FALSE;
-          if (symbol_is(sym, sk_overloaded_function)) {
-            is_list = TRUE;
-            sym = sym->variant.overloaded_function.symbols;
-          }  /* if */
-          for (; sym != NULL; sym = is_list ? sym->next : (a_symbol_ptr)NULL) {
-            if (symbol_is(sym, sk_member_function)) {
-              a_routine_ptr         rp = sym->variant.routine.ptr;
-              a_type_qualifier_set  qualifiers;
-              if (rp->is_constexpr &&
-                  !is_copy_constructor_type(rp->type, type, &qualifiers,
-                                            /*include_move_ctors=*/TRUE,
-                                            /*is_declarative_context=*/TRUE)) {
-                cssp->known_to_be_a_literal_type = TRUE;
-                break;
-              }  /* if */
-            }  /* if */
-          }  /* for */
+      /* Anonymous unions don't have constructors per se (and hence no
+         constexpr constructor will be found), but we can treat them like
+         aggregates in this context. */
+      cssp->known_to_be_a_literal_type = TRUE;
+    } else {
+      /* Check if the type has a constexpr constructor or constructor template
+         that isn't a move/copy constructor.  The standard also requires that
+         all field initializers be constant-expressions, but that is likely a
+         defect in the standard (leading to difficult ordering problems when
+         a generated default constructor is involved). */
+      if (cssp->constructor != NULL &&
+          cssp->has_constexpr_nonstatic_member_function) {
+        /* Look for a constexpr constructor that is not a copy or move
+           constructor. */
+        a_symbol_ptr  sym = cssp->constructor;
+        a_boolean     is_list = FALSE;
+        if (symbol_is(sym, sk_overloaded_function)) {
+          is_list = TRUE;
+          sym = sym->variant.overloaded_function.symbols;
         }  /* if */
+        for (; sym != NULL; sym = is_list ? sym->next : (a_symbol_ptr)NULL) {
+          if (symbol_is(sym, sk_member_function)) {
+            a_routine_ptr         rp = sym->variant.routine.ptr;
+            a_type_qualifier_set  qualifiers;
+            if (rp->is_constexpr &&
+                !is_copy_constructor_type(rp->type, type, &qualifiers,
+                                          /*include_move_ctors=*/TRUE,
+                                          /*is_declarative_context=*/TRUE)) {
+              cssp->known_to_be_a_literal_type = TRUE;
+              break;
+            }  /* if */
+          } else if (symbol_is(sym, sk_function_template) &&
+                     sym->variant.template_info->variant.function.routine
+                                               ->is_constexpr) {
+            cssp->known_to_be_a_literal_type = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      if (!cssp->known_not_to_be_a_literal_type &&
+          !cssp->scanning_field_initializer &&
+          check_if_constexpr_generated_default_constructor(type)) {
+        /* The generated default constructor will be constexpr, so the type
+           can be treated as a literal type.  Note we don't try to test for
+           a constexpr generated default constructor if we are already in
+           the process of scanning field initializer, since that might yield
+           an incorrect result. */
+        cssp->known_to_be_a_literal_type = TRUE;
       }  /* if */
       if (!cssp->known_to_be_a_literal_type) {
         /* If we haven't concluded that the type is a literal type by now, it
@@ -25378,7 +25391,7 @@ bits of information that were acquired while parsing.
            constructor may be constexpr.  If there are no pending fixups for
            field initializers, we can determine this now.  Otherwise, we'll
            check it after those fixups are processed. */
-        check_if_constexpr_generated_default_constructor(class_type);
+        (void)check_if_constexpr_generated_default_constructor(class_type);
         set_literal_type_flag(class_type);
       }  /* if */
     }  /* if */

@@ -4216,12 +4216,26 @@ IL entry for that field.
                                        scope_stack_top().in_field_initializer;
   an_object_lifetime_ptr
                      saved_curr_object_lifetime = curr_object_lifetime;
+  a_class_symbol_supplement_ptr
+                     parent_cssp;
+  a_boolean          saved_scanning_field_initializer = FALSE;
 
+  check_assertion(scope_is(&scope_stack_top(), sck_class_struct_union) ||
+                  scope_is(&scope_stack_top(), sck_class_reactivation));
   /* Indicate in the scope stack that we are parsing a field initializer.
      (E.g., so that the expression routines know that the keyword "this" is
      meaningful.)  Also temporarily set the current object lifetime to file
      scope life time. */
   scope_stack_top().in_field_initializer = TRUE;
+  /* Record that a field initializer is being scanned for this class.  This
+     is needed to break an ordering issue when determining whether a class is
+     literal.  (The literalness may depend on whether all field initializers
+     are constants, but folding the field initializers may require knowing if
+     this class is literal.  If this occurs, the type is considered not to be
+     a literal type; see set_literal_type_flag. */
+  parent_cssp = symbol_supplement_for_class(scope_stack_top().assoc_type);
+  saved_scanning_field_initializer = parent_cssp->scanning_field_initializer;
+  parent_cssp->scanning_field_initializer = TRUE;
   curr_object_lifetime = il_header.primary_scope->lifetime;
   is->force_dynamic_init = TRUE;
   if (symbol_is(dps->sym, sk_field)) {
@@ -4303,6 +4317,7 @@ IL entry for that field.
 #endif /* NEED_NAME_MANGLING */
   curr_object_lifetime = saved_curr_object_lifetime;
   scope_stack_top().in_field_initializer = saved_in_field_initializer;
+  parent_cssp->scanning_field_initializer = saved_scanning_field_initializer;
 }  /* field_initializer */
 
 
