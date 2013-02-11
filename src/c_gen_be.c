@@ -3449,9 +3449,8 @@ padding in the generated code.
                                        (prev_field->offset_bit_remainder +
                                         prev_field->bit_size)) % targ_char_bit;
       if (dummy_bits != 0) {
-        write_tok_str("unsigned int ");
-        dump_field_name_with_prefix("__dummy_bits", (a_field_ptr)NULL);
-        write_tok_ch(':');
+        /* Make an unnamed bit field to provide the required padding. */
+        write_tok_str("unsigned int:");
         write_unsigned_num((a_host_large_unsigned)dummy_bits);
         write_tok_ch(';');
       }  /* if */
