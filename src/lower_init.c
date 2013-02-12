@@ -10672,7 +10672,8 @@ Do IL lowering of an enk_temp_init expression node.
       dip->destructor == NULL &&
       !dip->is_reused_value &&
       !dip->is_optimized_class_rvalue_question_mark &&
-      dip->master_entry == NULL) {
+      dip->master_entry == NULL &&
+      !is_constant_node(dip->variant.expression)) {
     /* For a simple expression temporary case where the temporary is used
        directly as an rvalue, just lower the expression and create no
        temporary.  This is a useful for cases where a function returns a class
