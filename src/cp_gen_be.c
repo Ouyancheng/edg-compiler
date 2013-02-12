@@ -543,6 +543,7 @@ static void gen_variable_decl(a_boolean is_condition,
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       is_stmt_expression);
 static void gen_cast(a_type_ptr type);
+static a_boolean is_expl_ctor_or_value_init(an_expr_node_ptr expr);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens,
                      a_boolean        obj_expr_of_mfunc_operator);
@@ -4764,7 +4765,8 @@ field designator.
   if (constant_should_be_put_out_as_expr(constant)) {
     /* The constant resulted from a recorded constant-expression: Render it in
        its original form. */
-    gen_expr_with_parens(constant->expr);
+    gen_expr(constant->expr, !is_expl_ctor_or_value_init(constant->expr),
+             /*obj_expr_of_mfunc_operator=*/FALSE);
   } else if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     a_boolean      array_case = FALSE, template_dependent_case = FALSE;
     /* Aggregate constant (e.g., "{1, 2, 3}"). */

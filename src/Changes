@@ -1,5 +1,21 @@
 Version 4.6
 
+2/12/13  [EDGcpfe/13574]
+C++-generating back end: unnecessary parentheses with explicit temporaries in
+initializer constants
+
+In addition to the cases described below for EDGcpfe/13355, EDGcpfe/13375,
+EDGcpfe/13423, and EDGcpfe/13523, early versions of g++ are also confused
+by redundant parentheses around an explicit temporary appearing in an
+initializer.  When such initializers are represented in the IL as
+constants, the C++-generating back end previously unnecessarily enclosed
+them in parentheses.  These parentheses are now suppressed.  For example:
+
+  struct A {};
+  typedef int A::* P;
+  P a = P();    // Previously generated as (P())
+
+
 2/12/13  [EDGcpfe/13625]
 Microsoft C++: __is_convertible_to with reference type as second argument
 
