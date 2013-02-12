@@ -17701,6 +17701,38 @@ default constructor, or an array thereof.
 }  /* type_is_constexpr_default_constructible */
 
 
+static void ensure_all_field_initializers_scanned(a_type_ptr  class_type)
+/*
+Scan any field initializers of the given class type that haven't yet been
+scanned.
+*/
+{
+  if (!class_type->variant.class_struct_union.is_template_class ||
+      class_type->variant.class_struct_union.is_prototype_instantiation ||
+      class_type->variant.class_struct_union.is_specialized) {
+    /* Not a template instance (or a prototype instantiation): Make sure no
+       field initializer fixups are pending. */
+    inclass_initializer_fixup_for_class(
+               class_type,
+               class_type->variant.class_struct_union.is_template_class &&
+                 !class_type->variant.class_struct_union.is_specialized);
+  } else {
+    /* For non-prototype template instances the fields are initialized as
+       needed (i.e., not through fixup processing).  Traverse the field
+       symbols and instantiate them if needed. */
+    a_symbol_ptr  sym;
+    a_class_symbol_supplement_ptr
+                  cssp = symbol_supplement_for_class(class_type);
+    for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
+      if (symbol_is(sym, sk_field) &&
+          sym->variant.field.ptr->has_initializer) {
+        instantiate_field_initializer_if_needed(sym->variant.field.ptr);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* ensure_all_field_initializers_scanned */
+
+
 static a_boolean fields_initialized_for_constexpr_constructor(
                                                        a_type_ptr  class_type)
 /*
@@ -17713,11 +17745,7 @@ must be initialized.  In all cases, the initializers must also be constants.
   a_boolean    okay = TRUE, initializer_seen = FALSE;
   a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
 
-  /* Ensure all field initializers have been scanned. */
-  inclass_initializer_fixup_for_class(
-               class_type,
-               class_type->variant.class_struct_union.is_template_class &&
-                 !class_type->variant.class_struct_union.is_specialized);
+  ensure_all_field_initializers_scanned(class_type);
   fp = next_initializable_field(fp);
   if (fp != NULL) {
     a_boolean  is_union = class_type->kind == (a_type_kind)tk_union;
@@ -25439,7 +25467,7 @@ bits of information that were acquired while parsing.
         report_virtual_function_ambiguities(class_type);
       }  /* if */
     } else {
-      if (constexpr_enabled && cssp->initializer_fixup_list == NULL) {
+      if (constexpr_enabled && !class_state->has_field_initializer) {
         /* If there are no virtual base classes, a generated default
            constructor may be constexpr.  If there are no pending fixups for
            field initializers, we can determine this now.  Otherwise, we'll
