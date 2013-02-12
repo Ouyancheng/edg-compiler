@@ -6291,6 +6291,9 @@ Display the indicated class type supplement entry.
     disp_boolean("is_va_list_tag", TRUE);
   }  /* if */
 #endif /* USE_X86_64 */
+  if (ptr->defined_in_parent_class) {
+    disp_boolean("defined_in_parent_class", TRUE);
+  }  /* if */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */

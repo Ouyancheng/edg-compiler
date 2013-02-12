@@ -3237,7 +3237,7 @@ typedef struct a_dynamic_init {
 			   initialization is a brace-enclosed initializer. */
   a_bit_field	is_partially_initialized:1;
 			/* TRUE if the initialized entity is an array or class
-			   aggregate is not completely initialized by the
+			   aggregate not completely initialized by the
 			   associated aggregate constant.  This can also
 			   indicate that trailing elements not covered by an
 			   aggregate initializer need to be zeroed prior to
@@ -7059,6 +7059,9 @@ typedef struct a_class_type_supplement {
 			   argument-dependent name lookup) and in the
 			   C-generating back end. */
 #endif /* USE_X86_64 */
+  a_bit_field	defined_in_parent_class:1;
+			/* TRUE for nested classes defined in their parent
+			   class. */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous

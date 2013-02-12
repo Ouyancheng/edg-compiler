@@ -1364,7 +1364,7 @@ typedef struct a_field_symbol_supplement {
 			   this is copied from the entry from the prototype
 			   instantiation to the entry for the real
 			   instantiation when the real instantiation of the
-			   enclosing class is done.  NULL if their is no
+			   enclosing class is done.  NULL if there is no
 			   initializer, for fields of non-template classes,
 			   and for fields of template classes if an
 			   instantiation has been done. */

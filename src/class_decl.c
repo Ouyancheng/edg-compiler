@@ -2850,6 +2850,23 @@ nested class.
 }  /* inline_function_fixup_for_class */
 
 
+static void ensure_type_is_in_type_list(a_type_ptr             type,
+                                        a_type_list_entry_ptr  *p_list)
+/*
+If the given type is not yet in the given list of types, add it to that list.
+*/
+{
+  for (; *p_list != NULL; p_list = &(*p_list)->next) {
+    if (same_entities(type, (*p_list)->type)) break;
+  }  /* for */
+  if (*p_list == NULL) {
+    /* The type was not yet in the list.  Add it now. */
+    *p_list = alloc_type_list_entry();
+    (*p_list)->type = type;
+  }  /* if */
+}  /* ensure_type_is_in_type_list */
+
+
 /* Forward declaration. */
 static a_boolean check_if_constexpr_generated_default_constructor(
                                                        a_type_ptr  class_type);
@@ -2858,20 +2875,33 @@ static void inclass_initializer_fixup_for_class(a_type_ptr  class_type,
                                                 a_boolean   is_template_based)
 /*
 Process the in-class initializers for the indicated class and its nested
-classes.  is_template_based is TRUE for template instantiations (including
-prototype instantiations).  The class type must be complete.
+classes.  If the indicated class is a nested class defined in its parent,
+start the process in the lexically outermost class.  is_template_based is TRUE
+for template instantiations (including prototype instantiations).  The class
+type must be complete.
 */
 {
+  a_type_list_entry_ptr          type_list = NULL, tlep;
   a_class_symbol_supplement_ptr  cssp;
   an_initializer_fixup_ptr       fixup_list, ifp, next_ifp;
-  a_boolean                      has_fixups;
 
   check_assertion(!class_type->incomplete);
+  while (class_type_supp(class_type)->defined_in_parent_class) {
+    /* For nested classes defined inside their parent class, the fixups are
+       actually recorded in the outermost enclosing class. */
+    class_type = parent_class_of(class_type);
+  }  /* if */
   cssp = symbol_supplement_for_class(class_type);
   fixup_list = cssp->initializer_fixup_list;
-  /* Clear the list early to avoid recursion. */
-  cssp->initializer_fixup_list = NULL;
-  has_fixups = fixup_list != NULL;
+  if (fixup_list != NULL) {
+    /* Clear the list early to avoid recursion. */
+    a_scope_depth  depth = class_type_supp(class_type)->assoc_scope
+                                                      ->depth_in_scope_stack;
+    if (depth != NO_SCOPE_DEPTH) {
+      scope_stack[depth].last_initializer_fixup = NULL;
+    }  /* if */
+    cssp->initializer_fixup_list = NULL;
+  }  /* if */
   for (ifp = fixup_list; ifp != NULL; ifp = next_ifp) {
     a_type_ptr              parent_type = sym_parent_class(ifp->symbol);
     a_decl_parse_state      dps;
@@ -2881,6 +2911,9 @@ prototype instantiations).  The class type must be complete.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     a_boolean               class_reactivated = FALSE;
     push_lexical_state_stack();
+    if (!parent_type->incomplete) {
+      ensure_type_is_in_type_list(parent_type, &type_list);
+    }  /* if */
     if (!(scope_is(&scope_stack_top(), sck_class_struct_union) &&
           same_entities(scope_stack_top().assoc_type, parent_type))) {
       /* Reactivate the class scope and parse the initializer. */
@@ -2945,16 +2978,17 @@ prototype instantiations).  The class type must be complete.
     free_initializer_fixup(ifp);
     pop_lexical_state_stack();
   }  /* for */
-  if (has_fixups) {
+  for (tlep = type_list; tlep != NULL; tlep = tlep->next) {
     /* If actual initializer fixups were processed, check to see if the
-       class has a generated defaulted constructor that should be "constexpr",
-       and determine whether the class is a "literal type".  If there were no
-       fixups, this was already done previously. */
+       associated classes have a generated defaulted constructor that should
+       be "constexpr", and determine whether those classes are "literal types".
+       If there were no fixups, this is done when the type is completed. */
     if (constexpr_enabled) {
-      (void)check_if_constexpr_generated_default_constructor(class_type);
-      set_literal_type_flag(class_type);
+      (void)check_if_constexpr_generated_default_constructor(tlep->type);
+      set_literal_type_flag(tlep->type);
     }  /* if */
-  }  /* if */
+  }  /* for */
+  free_list_of_type_list_entries(type_list);
 }  /* inclass_initializer_fixup_for_class */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -14251,15 +14285,12 @@ static void record_inclass_initializer_fixup(
 				a_decl_parse_state	*dps)
 /*
 The next tokens must be an in-class initializer for a data member.
-Cache those tokens and create a fixup record so the initializer can
-be parsed in the context of the completed class later on.
+Cache those tokens and create a fixup record so the initializer can be parsed
+in the context of the completed class later on.
 (See also inclass_initializer_fixup_for_class.)
 */
 {
   a_token_cache_ptr		token_cache;
-  a_scope_stack_entry		*ssep = &scope_stack_top();
-
-  check_assertion(scope_is(ssep, sck_class_struct_union));
   /* Cache the initializer. */
   token_cache = cache_inclass_initializer(dps->sym);
   if (microsoft_mode && symbol_is(dps->sym, sk_field) &&
@@ -14268,10 +14299,16 @@ be parsed in the context of the completed class later on.
     /* Field symbols in prototype instantiations do not have their fixup
        entries recorded because Microsoft does not evaluate them. */
   } else {
-    /* Record the fixup in the scope stack. */
-    an_initializer_fixup_ptr	ifp = alloc_initializer_fixup();
+    /* Record the fixup in the class symbol supplement. */
+    a_scope_stack_entry       *ssep = &scope_stack_top();
+    an_initializer_fixup_ptr  ifp = alloc_initializer_fixup();
     ifp->symbol = dps->sym;
     ifp->token_cache = token_cache;
+    check_assertion(scope_is(ssep, sck_class_struct_union));
+    /* There's only one class-fixup-list, and it's associated with the
+       outermost enclosing class.  If this is a nested class, move up the
+       scope stack to find the appropriate entry. */
+    while (scope_is(ssep-1, sck_class_struct_union)) --ssep;
     if (ssep->last_initializer_fixup == NULL) {
       symbol_supplement_for_class(ssep->assoc_type)
                                                ->initializer_fixup_list = ifp;
@@ -14464,8 +14501,8 @@ specific information about the member declaration, respectively.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  effective_decl_level = class_type->variant.class_struct_union.extra_info->
-                                           assoc_scope->depth_in_scope_stack;
+  effective_decl_level = class_type_supp(class_type)->assoc_scope
+                                                    ->depth_in_scope_stack;
   check_assertion(effective_decl_level != NO_SCOPE_DEPTH);
   /* If this is a member template declaration, don't add it to the variables
      list (in part to avoid problems caused by an invalid scope). */
@@ -15444,6 +15481,22 @@ nonstandard anonymous unions is_nonstd is TRUE.
         last_field_sym->variant.field.extra_info
                       ->is_last_variant_member = TRUE;
       }  /* if */
+    }  /* if */
+    if (cssp->initializer_fixup_list != NULL) {
+      /* Move the fixup list for in-class initializers to the parent class'
+         symbol supplement. */
+      an_initializer_fixup_ptr  ifp = cssp->initializer_fixup_list;
+      a_scope_stack_entry_ptr   parent_ssep = &scope_stack_top();
+      check_assertion(scope_is(parent_ssep, sck_class_struct_union));
+      if (parent_ssep->last_initializer_fixup != NULL) {
+        parent_ssep->last_initializer_fixup->next = ifp;
+      } else {
+        parent_cssp->initializer_fixup_list = ifp;
+      }  /* if */
+      cssp->initializer_fixup_list = NULL;
+      /* Update the scope stack entry to point to the last fixup. */
+      for (; ifp->next != NULL; ifp = ifp->next) /* No action. */;
+      parent_ssep->last_initializer_fixup = ifp;
     }  /* if */
   }  /* if */
   db_exit();
@@ -16898,8 +16951,8 @@ information about the member declaration, respectively.
         if (fp->has_initializer) break;
       }  /* for */
       check_assertion(fp != NULL && fp != field);
-      pos_sy_error(ec_multiple_union_field_initializers, &pos_curr_token,
-                   symbol_for(fp));
+      pos_sy_error(ec_multiple_union_field_initializers,
+                   &dps->declarator_pos, symbol_for(fp));
     } else {
       class_state->has_field_initializer = TRUE;
     }  /* if */
@@ -25607,6 +25660,12 @@ classes.
   class_type->variant.class_struct_union.is_in_class_specialization =
                                                     is_in_class_specialization;
   if (C_dialect == C_dialect_cplusplus) {
+    if (scope_is(&scope_stack_top(), sck_class_struct_union) &&
+        class_type->source_corresp.is_class_member &&
+        same_entities(scope_stack_top().assoc_type,
+                      parent_class_of(class_type))) {
+      ctsp->defined_in_parent_class = TRUE;
+    }  /* if */
 #if BACK_END_IS_CP_GEN_BE
     /* Set the "name linkage environment" for this class type.  This is used
        by the C++-generating back end to decide when to emit extern "C"; this
