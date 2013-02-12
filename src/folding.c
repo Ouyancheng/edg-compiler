@@ -8190,7 +8190,8 @@ a new unshared constant will be allocated and returned.
           /* result_con is the value we're looking for. */
           found_value = TRUE;
         } else if (cum_offset == offset &&
-                   result_con->kind != (a_constant_repr_kind)ck_aggregate) {
+                   result_con->kind != (a_constant_repr_kind)ck_aggregate &&
+                   result_con->kind != (a_constant_repr_kind)ck_string) {
           /* We've found the desired offset, but there's a type mismatch,
              possibly because of selecting the non-active member of a
              union. */
