@@ -1,5 +1,21 @@
 Version 4.6
 
+2/12/13  [EDGcpfe/13558]
+Abort on invalid attempt to use default argument of template
+
+The front end aborted ("copy_default_arg_expr: rout NULL, no error")
+on an attempt to use a default argument of a function type that
+came from a template but now refers to no specific function.
+Now fixed (the case below gets an error).
+
+  template <class T> struct A {
+    void f(int dummy = 0)  { }
+  };
+  int main() {
+    (A<short>().*(&A<short>::f))();
+  }
+
+
 2/12/13  [EDGcpfe/13194]
 Microsoft compatibility: partial ordering and references to functions
 

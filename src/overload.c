@@ -11640,7 +11640,8 @@ list checking (e.g., for the presence of too few arguments).
       /* Not enough arguments? */
       /* If there is a default argument value, or several, use them. */
       if (ptp->default_arg_expr != NULL ||
-          ptp->has_unevaluated_template_default) {
+          (ptp->has_unevaluated_template_default &&
+           arg_block->routine != NULL)) {
         an_expr_node_ptr curr_node =
                    expr_copy_default_arg_expr_list(arg_block->routine, ptp);
         if (arg_block->argument_head == NULL) {
