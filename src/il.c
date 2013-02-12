@@ -12398,26 +12398,28 @@ function other than the current one.
 {
   a_boolean is_from_other = FALSE;
 
-  if (var->source_corresp.is_local_to_function &&
-      depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-    a_scope_ptr             scope = parent_scope_of(var);
-    a_scope_stack_entry_ptr ssep;
-    for (ssep = &scope_stack_top();
-         ;
-         ssep = previous_scope_of(ssep)) {
-      check_assertion(ssep != &scope_stack[DEPTH_OF_FILE_SCOPE]);
-      if (ssep->il_scope == scope) {
-        /* Found the scope, so this variable is declared in the current
-           innermost function. */
-        break;
-      }  /* if */
-      if (ssep == &scope_stack[depth_innermost_function_scope]) {
-        /* We reached the innermost function scope, so the variable must be
-           declared further out, in another function. */
-        is_from_other = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
+  if (innermost_function_scope != NULL || inside_local_class) {
+    if (var->source_corresp.is_local_to_function &&
+        depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      a_scope_ptr             scope = parent_scope_of(var);
+      a_scope_stack_entry_ptr ssep;
+      for (ssep = &scope_stack_top();
+           ;
+           ssep = previous_scope_of(ssep)) {
+        check_assertion(ssep != &scope_stack[DEPTH_OF_FILE_SCOPE]);
+        if (ssep->il_scope == scope) {
+          /* Found the scope, so this variable is declared in the current
+             innermost function. */
+          break;
+        }  /* if */
+        if (ssep == &scope_stack[depth_innermost_function_scope]) {
+          /* We reached the innermost function scope, so the variable must be
+             declared further out, in another function. */
+          is_from_other = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   return is_from_other;
 }  /* variable_is_from_other_function */

@@ -3427,16 +3427,19 @@ bound case, FALSE for the "expr" field of the constant itself.
     if (expr_has_reference_to_routine_scope_variable(*expr)) {
       /* The expression refers to a function-scope variable, so it can't be
          referenced from file scope.  Create a local expr node reference to
-         it instead. */
+         it instead.  Use get_innermost_function_scope because we could be
+         in a local class here. */
+      a_scope_ptr function_scope = get_innermost_function_scope();
+      check_assertion(function_scope != NULL);
       if (in_file_scope(*expr)) {
         /* Even though there is a reference to a local variable somewhere
            in the expression tree, the top-level node is in file-scope
            memory.  Make a copy in the innermost function scope and use
            that for the local expr node reference. */
-        check_assertion(innermost_function_scope != NULL &&
+
+        check_assertion(function_scope != NULL &&
                         curr_il_region_number == file_scope_region_number);
-        switch_il_region(
-                   innermost_function_scope->variant.routine.ptr->assoc_scope);
+        switch_il_region(function_scope->variant.routine.ptr->assoc_scope);
         *expr = copy_expr_tree(*expr, CE_NO_OPTIONS);
         switch_il_region(file_scope_region_number);
       }  /* if */
@@ -3444,7 +3447,7 @@ bound case, FALSE for the "expr" field of the constant itself.
                       *expr,
                       (dep ? (a_local_expr_node_ref_kind)lerk_dep_array_bound :
                              (a_local_expr_node_ref_kind)lerk_array_bound),
-                      (char *)type, innermost_function_scope);
+                      (char *)type, function_scope);
       *expr = NULL;
     } else if (!in_file_scope(*expr)) {
       /* Copy the expression to file-scope memory. */

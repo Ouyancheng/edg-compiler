@@ -11184,6 +11184,28 @@ done:
 
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
+a_scope_ptr get_innermost_function_scope(void)
+/*
+Returns the innermost function scope (or NULL if there is none).  Typically
+the same as innermost_function_scope, but not in all cases (say, when scanning
+a local class).
+*/
+{
+  a_scope_ptr             result = NULL;
+  a_scope_stack_entry_ptr ssep;
+
+  for (ssep = &scope_stack_top();
+       ssep != &scope_stack[DEPTH_OF_FILE_SCOPE];
+       ssep = previous_scope_of(ssep)) {
+    if (ssep->il_scope != NULL &&
+        ssep->il_scope->kind == (a_scope_kind)sck_function) {
+      result = ssep->il_scope;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* get_innermost_function_scope */
+
 #if DEBUG
 
 unsigned long db_show_scope_stack_space_used(unsigned long grand_total)

@@ -2124,6 +2124,8 @@ extern a_boolean should_delay_lowering_on_function(
 
 #endif /* DO_IL_LOWERING */
 
+extern a_scope_ptr get_innermost_function_scope(void);
+
 #endif /* ifndef SCOPE_STK_H */
 
 /******************************************************************************
