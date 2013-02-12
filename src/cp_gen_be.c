@@ -8787,11 +8787,12 @@ case, is passed along to gen_expr.
        implicit in the constant value, we need to short-circuit the
        normal processing and call form_lvalue_address_constant directly. */
     form_lvalue_address_constant(expr->variant.constant,
-                                 !obj_expr_of_mfunc_operator, &octl);
+                                 /*need_parens=*/!obj_expr_of_mfunc_operator,
+                                 &octl);
   } else {
     a_boolean need_parens;
     expr = assoc_expr_if_constant(expr);
-    if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    if (is_expl_ctor_or_value_init(expr)) {
       /* Do not add parentheses in order to avoid syntactic ambiguity; for
          example, (X()) is a cast to a function type, not an explicit
          temporary. */
@@ -9771,7 +9772,8 @@ return FALSE and let the caller generate the code normally.
         /* The first operand is the member function's "this" pointer:
            generate it as an lvalue. */
         a_boolean obj_expr_of_mfunc_operator = TRUE;
-        if (sun_mode && op == (an_opname_kind)onk_function_call &&
+        if (sun_is_generated_code_target &&
+            op == (an_opname_kind)onk_function_call &&
             is_expl_ctor_or_value_init(arg)) {
           /* The Sun compiler has a bug that requires parentheses around
              an explicit temporary when used with overloaded operators, and
