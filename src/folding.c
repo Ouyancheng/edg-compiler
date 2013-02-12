@@ -6653,7 +6653,7 @@ constant will be set as well.
                    constant, (a_template_param_constant_kind)tpck_expression);
     constant->variant.template_param.variant.expr = expr;
   } else {
-    a_boolean  from_rvalue = FALSE, ref_init = FALSE, result;
+    a_boolean  from_rvalue = FALSE, result;
     /* The Microsoft version of this test considers the source as an rvalue
        in some cases. */
     if (microsoft_mode) {
@@ -6679,8 +6679,6 @@ constant will be set as well.
            /* A reference on the destination type appears to be ignored only if
              it is a reference to a class, array, or function type. */
           type2 = under_type2;
-        } else {
-          ref_init = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
