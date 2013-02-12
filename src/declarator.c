@@ -3435,7 +3435,13 @@ bound case, FALSE for the "expr" field of the constant itself.
         /* Even though there is a reference to a local variable somewhere
            in the expression tree, the top-level node is in file-scope
            memory.  Make a copy in the innermost function scope and use
-           that for the local expr node reference. */
+           that for the local expr node reference.  This copy is necessary
+           because of code in i_copy_constant_full that copies the expression
+           under tpck_expression constants unconditionally, which might mean
+           a copy from the function scope to the file scope there that would
+           have to be reversed here.  That's wrong, but for the reasons given
+           there it can't be fixed immediately, and this undoes most of the
+           damage.*/
 
         check_assertion(function_scope != NULL &&
                         curr_il_region_number == file_scope_region_number);
