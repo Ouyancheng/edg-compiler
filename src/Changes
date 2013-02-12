@@ -38,23 +38,6 @@ to be rejected as a template template argument when gnu_version >= 40500
   }
 
 
-2/10/13  [EDGcpfe/13194]
-Microsoft C++: ref-to-function better than ptr-to-function in overloading
-
-The MSVC compiler considers an argument that binds a reference to
-function to a function argument better than one that uses a pointer
-to function.  That's not in accordance with the standard, which says
-the subsequence check ignores Lvalue Transformations.  However, this
-quirk is used in Boost.  Now emulated in Microsoft mode.
-
-  void f();
-  int g(void (&)());
-  void g(void (*)());
-  int main() {
-    int i = g(f);  // Should be ambiguous; now accepted in Microsoft mode.
-  }
-
-
 2/9/13   [EDGcpfe/13123]
 Reference to deleted function causes SFINAE failure
 
