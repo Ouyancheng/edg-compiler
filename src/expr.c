@@ -23248,6 +23248,7 @@ that case.
   a_boolean             operand_2_is_ptr_to_member = FALSE;
   a_boolean             operand_3_is_ptr_to_member = FALSE;
   a_boolean             saved_cpp11_constant_expr_ruled_out;
+  a_boolean             cpp11_constant_expr_ruled_out_in_operand_2 = FALSE;
   a_boolean             saved_evaluated = curr_expr_is_evaluated();
   a_boolean             expr2_evaluated, expr3_evaluated;
   a_boolean             types_are_the_same = FALSE;
@@ -23338,13 +23339,18 @@ that case.
        evaluating expressions. */
     expr_stack->nested_construct_depth++;
     expr_stack->evaluated = expr2_evaluated;
-    saved_cpp11_constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
+    if (constexpr_enabled) {
+      saved_cpp11_constant_expr_ruled_out=expr_stack->constant_expr_ruled_out;
+      expr_stack->constant_expr_ruled_out = FALSE;
+    }  /* if */
     expr_stack->inside_conditional_expression = TRUE;
     scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
     expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
     expr_stack->evaluated = saved_evaluated;
     if (constexpr_enabled) {
+      cpp11_constant_expr_ruled_out_in_operand_2 =
+                                           expr_stack->constant_expr_ruled_out;
       expr_stack->constant_expr_ruled_out= saved_cpp11_constant_expr_ruled_out;
     }  /* if */
     expr_stack->nested_construct_depth--;
@@ -23367,7 +23373,10 @@ that case.
        is non-constant or a zero constant, and if we are currently evaluating
        expressions. */
     expr_stack->evaluated = expr3_evaluated;
-    saved_cpp11_constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
+    if (constexpr_enabled) {
+      saved_cpp11_constant_expr_ruled_out=expr_stack->constant_expr_ruled_out;
+      expr_stack->constant_expr_ruled_out = FALSE;
+    }  /* if */
     expr_stack->inside_conditional_expression = TRUE;
     /* In C++, the 3rd operand is an assignment-expression (this was changed
        after the ARM) to allow things like "a ? i=1 : j=2". */
@@ -23379,7 +23388,15 @@ that case.
                                            saved_inside_conditional_expression;
     expr_stack->evaluated = saved_evaluated;
     if (constexpr_enabled) {
-      expr_stack->constant_expr_ruled_out= saved_cpp11_constant_expr_ruled_out;
+      if (expr_stack->constant_expr_ruled_out &&
+          cpp11_constant_expr_ruled_out_in_operand_2) {
+        /* Both branches of the "?" have something non-constant, so the
+           overall expression is known to be non-constant. */
+        expr_stack->constant_expr_ruled_out = TRUE;
+      } else {
+        expr_stack->constant_expr_ruled_out =
+                                           saved_cpp11_constant_expr_ruled_out;
+      }  /* if */
     }  /* if */
   }  /* if */
 
