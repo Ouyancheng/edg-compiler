@@ -2213,7 +2213,8 @@ static void parameter_is_more_specialized(
 				a_boolean		is_pack2,
 				a_boolean		entire_type,
 				a_boolean	        *match1,
-				a_boolean	        *match2)
+				a_boolean	        *match2,
+				uint32_t		param_count)
 /*
 This routine is used by compare_function_templates to call
 matches_template_type for each parameter of a function template.
@@ -2229,6 +2230,9 @@ and is_pack2 indicate whether the parameters are parameter packs.
 entire_type is TRUE if this call is part of a check of the entire routine
 type (as is done in declarative contexts and when taking the address of an
 overloaded function).
+
+param_count provides the count of parameters to be compared when
+entire_type is FALSE.
 */
 {
   a_boolean	type_1_is_reference;
@@ -2241,6 +2245,8 @@ overloaded function).
   a_boolean	do_ref_vs_ptr_check;
   a_boolean	local_match1;
   a_boolean	local_match2;
+  a_boolean	type_1_function_pointer_dropped = FALSE;
+  a_boolean	type_2_function_pointer_dropped = FALSE;
 
   /* Microsoft and g++ consider a reference to function to match a
      pointer to function for partial ordering. */
@@ -2284,12 +2290,18 @@ overloaded function).
     if (type_1_is_reference) {
       if (is_pointer_type(param_type2)) {
         a_type_ptr	tp = type_pointed_to(param_type2);
-        if (is_function_type(tp)) param_type2 = tp;
+        if (is_function_type(tp)) {
+          param_type2 = tp;
+          type_2_function_pointer_dropped = TRUE;
+        }  /* if */
       }  /* if */
     } else {
       if (is_pointer_type(param_type1)) {
         a_type_ptr	tp = type_pointed_to(param_type1);
-        if (is_function_type(tp)) param_type1 = tp;
+        if (is_function_type(tp)) {
+          param_type1 = tp;
+          type_1_function_pointer_dropped = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2355,6 +2367,17 @@ overloaded function).
       *match1 = FALSE;
     } else if (is_pack2 && !is_pack1) {
       *match2 = FALSE;
+    } else if (microsoft_mode && param_count == 1) {
+      /* The Microsoft compiler prefers a reference to function over a pointer
+         to function if it is the only parameter considered in ordering.
+           template <class T> void f(T (&)()){}  // this one is preferred
+           template <class T> void f(T (*)()){}
+      */
+      if (type_1_function_pointer_dropped) {
+        *match1 = FALSE;
+      } else if (type_2_function_pointer_dropped) {
+       *match2 = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* If both comparisons still match and the comparison is of the
@@ -2443,7 +2466,7 @@ the count of parameters to be compared when entire_type is FALSE.
                                   templ_param_list1, templ_param_list2,
                                   /*is_pack1=*/FALSE, /*is_pack2=*/FALSE,
                                   entire_type,
-                                  &match1, &match2);
+                                  &match1, &match2, param_count);
   }  /* if */
   if (!is_conversion_operator) {
     /* For normal functions, the processing is done for each parameter, but
@@ -2465,7 +2488,7 @@ the count of parameters to be compared when entire_type is FALSE.
                                     ptp1->is_parameter_pack,
                                     ptp2->is_parameter_pack,
                                     entire_type,
-                                    &match1, &match2);
+                                    &match1, &match2, param_count);
       if (!match1 && !match2) {
         /* Stop when a mismatch is found. */
         break;

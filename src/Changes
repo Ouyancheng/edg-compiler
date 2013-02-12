@@ -1,5 +1,26 @@
 Version 4.6
 
+2/12/13  [EDGcpfe/13194]
+Microsoft compatibility: partial ordering and references to functions
+
+The Microsoft compiler considers a reference to function to be more
+specialized than a pointer to function for partial ordering purposes.
+This is only the case when the reference/pointer parameter is the only
+parameter considered by partial ordering.  We now emulate this in
+Microsoft mode.
+
+  template <class T> void f(T (&)()){}  // #1
+  template <class T> void f(T (*)()){}  // #2
+  template <typename T> void f(T** p, void (*)()) {}  // #3
+  template <typename T> void f(T* p, void (&)()) {}  // #4
+  void g() {}
+  int main() {
+    int **p = 0;
+    f(g);  // calls #1
+    f(p, g); // calls #3
+  }
+
+
 2/12/13  [EDGcpfe/13640]
 Invalid code from inlining
 
