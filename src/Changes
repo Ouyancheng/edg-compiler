@@ -1,5 +1,32 @@
 Version 4.6
 
+2/12/13  [EDGcpfe/13640]
+Invalid code from inlining
+
+Inlining produced invalid code for the following test case.  The
+actual problem was that the type of an lvalue intermediate result
+was not adjusted, which might also have caused some other problems,
+also presumably now fixed.  The cases which had the problem all
+involve a conversion function that returns a (non-const) reference
+to a non-class object.
+
+  struct A {
+    int m;
+    operator int&() { return m; }
+  };
+  struct B {
+    A a;
+    int const& f() { return a; }  // Was missing type adjustment on result of
+                                  // conversion function call (int->const int);
+                                  // inlined code aborted at runtime
+  };
+  int main() {
+    B b;
+    b.a.m = 99;
+    return b.f() != 99;
+  }
+
+
 2/12/13  [EDGcpfe/13562]
 noexcept operator applied to call of via pointer-to-member-function
 

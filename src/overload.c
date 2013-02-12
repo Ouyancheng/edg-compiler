@@ -17710,7 +17710,9 @@ the temporary.
         do_operand_transformations(operand, TOPT_NO_OPTIONS);
       }  /* if */
       /* Do any necessary standard or trivial conversion. */
-      if (is_an_rvalue(operand) && !is_error_operand(operand)) {
+      if (is_error_operand(operand)) {
+        /* Do nothing. */
+      } else if (is_an_rvalue(operand)) {
         an_expr_node_ptr before_cast = (is_expression_operand(operand)) ?
                                             operand->variant.expression : NULL;
         cast_operand(dest_type, operand,
@@ -17724,6 +17726,8 @@ the temporary.
              compiler-generated. */
           conv_function_call_node->variant.operation.compiler_generated = TRUE;
         }  /* if */
+      } else if (is_an_lvalue(operand)) {
+        adjust_lvalue_type(operand, dest_type);
       }  /* if */
     }  /* if */
   } else {
