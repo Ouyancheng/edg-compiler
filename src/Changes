@@ -1,5 +1,21 @@
 Version 4.6
 
+2/12/13  [EDGcpfe/13582]
+C++-generating back end: incorrect parentheses for explicit temporary with
+operator() in Sun mode
+
+In Sun mode, the C++-generating back end incorrectly parenthesized an
+explicit temporary that was used as the object expression in a call to an
+overloaded function call operator (operator()), transforming the object
+expression into a cast to a function type.  This is now fixed.  For
+example:
+
+  struct S {
+    int operator()(int);
+  };
+  int i = S()(3);    // Previously generated as (S())(3)
+
+
 2/12/13  [EDGcpfe/13574]
 C++-generating back end: unnecessary parentheses with explicit temporaries in
 initializer constants

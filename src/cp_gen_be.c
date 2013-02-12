@@ -9770,8 +9770,21 @@ return FALSE and let the caller generate the code normally.
       if (routine_type_is_nonstatic_member_function(rp->type)) {
         /* The first operand is the member function's "this" pointer:
            generate it as an lvalue. */
-        gen_object_expr_for_implicit_call(arg,
-                                          /*obj_expr_of_mfunc_operator=*/TRUE);
+        a_boolean obj_expr_of_mfunc_operator = TRUE;
+        if (sun_mode && op == (an_opname_kind)onk_function_call &&
+            is_expl_ctor_or_value_init(arg)) {
+          /* The Sun compiler has a bug that requires parentheses around
+             an explicit temporary when used with overloaded operators, and
+             gen_dynamic_init uses the obj_expr_of_mfunc_operator flag in
+             detecting that situation.  However, the extra parentheses are
+             incorrect in the case of overloaded operator(), because the
+             resulting expression looks like a cast instead of an explicit
+             temporary, e.g., (T())(x) is a cast of x to a function type,
+             while T()(x) is a call of T::operator() with x as the
+             argument. */
+          obj_expr_of_mfunc_operator = FALSE;
+        }  /* if */
+        gen_object_expr_for_implicit_call(arg, obj_expr_of_mfunc_operator);
         arg = arg->next;
       } else {
         /* For non-member functions, there's a parameter declaration to
