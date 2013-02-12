@@ -1,5 +1,19 @@
 Version 4.6
 
+2/12/13  [EDGcpfe/13625]
+Microsoft C++: __is_convertible_to with reference type as second argument
+
+The implementation of __is_convertible_to in Microsoft mode has been
+corrected so that rvalue reference cases like __is_convertible_to(int, int&&)
+and lvalue reference to const cases like __is_convertible_to(int, const int &)
+now correctly return true.
+
+  const bool b = __is_convertible_to(int, int&&);
+  static_assert(b, "int should be convertible to int&&");
+  const bool b2 = __is_convertible_to(int, const int &);
+  static_assert(b2, "int should be convertible to const int &");
+
+
 2/11/13  [EDGcpfe/13575]
 GNU C++ compatibility: error on injected class as template template argument
 

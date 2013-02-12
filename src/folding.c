@@ -6684,9 +6684,7 @@ constant will be set as well.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (microsoft_mode && from_rvalue && ref_init) {
-      result = FALSE;
-    } else if (microsoft_mode && identical_types(type1, type2)) {
+    if (microsoft_mode && identical_types(type1, type2)) {
       /* Microsoft returns TRUE when the types are the same, even
          if they are (e.g.) both arrays. */
       result = TRUE;
