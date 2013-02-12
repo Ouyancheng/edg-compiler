@@ -19248,10 +19248,15 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
         if (rout != NULL) {
           if (!is_non_throwing_routine(rout)) might_throw = TRUE;
         } else {
-          a_type_ptr func_type = node->variant.operation.operands->type;
+          a_type_ptr ptr_type = node->variant.operation.operands->type;
+          a_type_ptr func_type = NULL;
           might_throw = TRUE;
-          if (is_pointer_type(func_type)) {
-            func_type = f_skip_typerefs(type_pointed_to(func_type));
+          if (is_pointer_type(ptr_type)) {
+            func_type = f_skip_typerefs(type_pointed_to(ptr_type));
+          } else if (is_ptr_to_member_type(ptr_type)) {
+            func_type = pm_member_type(ptr_type);
+          }  /* if */
+          if (func_type != NULL) {
             if (is_function_type(func_type) &&
                 is_nothrow_type(func_type)) {
               might_throw = FALSE;

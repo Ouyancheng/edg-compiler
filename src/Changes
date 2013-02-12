@@ -1,5 +1,19 @@
 Version 4.6
 
+2/12/13  [EDGcpfe/13562]
+noexcept operator applied to call of via pointer-to-member-function
+
+The determination of the value of a noexcept operator failed to
+handle a pointer-to-member call properly, always concluding that the
+call might throw an exception.  Now fixed; the exception specification
+of the called function type is considered.
+
+  struct A {
+    void g() noexcept(true) {}
+  };
+  static_assert(noexcept((A().*(&A::g))()), "pm call can't throw");
+
+
 2/12/13  [EDGcpfe/13577]
 C++-generating back end: GNU vector typedefs as template arguments
 
