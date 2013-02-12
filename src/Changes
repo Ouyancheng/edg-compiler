@@ -1,5 +1,17 @@
 Version 4.6
 
+2/12/13  [EDGcpfe/13577]
+C++-generating back end: GNU vector typedefs as template arguments
+
+When a typedef for a GNU vector type is used as a template argument, the
+C++-generating back end previously replaced the typedef with the vector
+base type, resulting in incorrect code.  This is now fixed.  For example:
+
+  template <typename T> struct S { };
+  typedef float v4f __attribute__((vector_size(16)));
+  S<v4f> s;    // Previous generated as S<float>
+
+
 2/12/13  [EDGcpfe/13582]
 C++-generating back end: incorrect parentheses for explicit temporary with
 operator() in Sun mode

@@ -3285,6 +3285,11 @@ is called.
       /* The underlying type may be inaccessible, so we have to use the
          typedef. */
       invisible = FALSE;
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (underlying_type->kind == (a_type_kind)tk_vector) {
+      /* The typedef refers to a vector type and should be used. */
+      invisible = FALSE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else {
       for (underlying_type = type->variant.typeref.type;
            underlying_type != NULL &&
