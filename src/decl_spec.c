@@ -8287,7 +8287,9 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
       expect_error();
       vp->is_constexpr = FALSE;
     } else if (!is_literal_type(vp->type) &&
-               !is_any_reference_type(vp->type)) {
+               !is_any_reference_type(vp->type) &&
+               !is_template_param_type(vp->type) &&
+               !is_error_type(vp->type)) {
       pos_error(ec_constexpr_variable_must_have_literal_type,
                 &dps->constexpr_pos);
       vp->is_constexpr = FALSE;
