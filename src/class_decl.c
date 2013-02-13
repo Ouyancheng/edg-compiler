@@ -16932,17 +16932,22 @@ information about the member declaration, respectively.
          for matching purposes during real instantiations. */
       fssp->token_sequence_number = curr_token_sequence_number;
     } else if (in_class_instantiation(class_state)) {
-      /* During a real instantiation, the token cache information is copied
-         from the field of the prototype instantiation. */
-      find_inclass_initializer_for_instance(
+      if (curr_token != tok_removed_expr) {
+        /* In error cases, the declaration might not look like a nonstatic
+           data member in the prototype instantiation. */
+        expect_error();
+      } else {
+        /* During a real instantiation, the token cache information is copied
+           from the field of the prototype instantiation. */
+        find_inclass_initializer_for_instance(
                              dps->sym, class_state->corresp_prototype_tag_sym);
-      /* No fixup is done because field initializers in templates are only
-         instantiated if used. */
-      record_fixup = FALSE;
-      symbol_supplement_for_class(class_state->class_type)
+        /* No fixup is done because field initializers in templates are only
+           instantiated if used. */
+        record_fixup = FALSE;
+        symbol_supplement_for_class(class_state->class_type)
                                ->has_instantiatable_field_initializers = TRUE;
-      check_assertion(curr_token == tok_removed_expr);
-      (void)get_token();
+        (void)get_token();
+      }  /* if */
     }  /* if */
     if (record_fixup) {
       record_inclass_initializer_fixup(class_state, dps);
