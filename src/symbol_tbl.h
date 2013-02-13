@@ -1292,6 +1292,10 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	scanning_field_initializer:1;
 			/* TRUE while scanning a field initializer of this
 			   class. */
+  a_bit_field	has_instantiatable_field_initializers:1;
+			/* TRUE if this class has field initializers that are
+			   instantiated "on-demand" (normally this is the case
+			   for field initializers of template instances). */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block
 		pointers_block;

@@ -16913,9 +16913,12 @@ information about the member declaration, respectively.
   } else if (field_initializers_enabled && !decl_info->is_bit_field &&
              (curr_token == tok_assign || curr_token == tok_lbrace ||
               curr_token == tok_removed_expr)) {
-    /* A field initializer.  It must be parsed in the context of the completed
-       class definition.  We therefore create a fixup entry holding the cached
-       tokens of the initializer until we are ready to parse them. */
+    /* A field initializer.  For nontemplate classes (and prototype
+       instantiations) it must be parsed in the context of the completed class
+       definition.  This is handled by creating a fixup entry holding the
+       cached tokens of the initializer until we are ready to parse them.
+       For template instances, the cache is held in the field symbol
+       supplement instead so the initializer can be instantiate "on-demand". */
     a_field_ptr                    field;
     a_boolean                      record_fixup = TRUE;
     a_field_symbol_supplement_ptr  fssp;
@@ -16936,6 +16939,8 @@ information about the member declaration, respectively.
       /* No fixup is done because field initializers in templates are only
          instantiated if used. */
       record_fixup = FALSE;
+      symbol_supplement_for_class(class_state->class_type)
+                               ->has_instantiatable_field_initializers = TRUE;
       check_assertion(curr_token == tok_removed_expr);
       (void)get_token();
     }  /* if */
@@ -17709,17 +17714,18 @@ scanned.  (It has already been established that the field has an initializer.)
 */
 {
   check_assertion(field->has_initializer);
-  if (!class_type->variant.class_struct_union.is_template_class ||
-      class_type->variant.class_struct_union.is_prototype_instantiation ||
-      class_type->variant.class_struct_union.is_specialized) {
+  if (symbol_supplement_for_class(class_type)
+                                    ->has_instantiatable_field_initializers) {
+    /* A class whose fields are instantiated on demand (normally a class
+       template instance). */
+    instantiate_field_initializer_if_needed(field);
+  } else {
     /* Not a template instance (or a prototype instantiation): Make sure no
        field initializer fixups are pending. */
     inclass_initializer_fixup_for_class(
                class_type,
                class_type->variant.class_struct_union.is_template_class &&
                  !class_type->variant.class_struct_union.is_specialized);
-  } else {
-    instantiate_field_initializer_if_needed(field);
   }  /* if */
 }  /* scan_field_initializer_if_needed */
 
@@ -17730,19 +17736,11 @@ Scan any field initializers of the given class type that haven't yet been
 scanned.
 */
 {
-  if (!class_type->variant.class_struct_union.is_template_class ||
-      class_type->variant.class_struct_union.is_prototype_instantiation ||
-      class_type->variant.class_struct_union.is_specialized) {
-    /* Not a template instance (or a prototype instantiation): Make sure no
-       field initializer fixups are pending. */
-    inclass_initializer_fixup_for_class(
-               class_type,
-               class_type->variant.class_struct_union.is_template_class &&
-                 !class_type->variant.class_struct_union.is_specialized);
-  } else {
-    /* For non-prototype template instances the fields are initialized as
-       needed (i.e., not through fixup processing).  Traverse the field
-       symbols and instantiate them if needed. */
+  if (symbol_supplement_for_class(class_type)
+                                    ->has_instantiatable_field_initializers) {
+    /* A class whose fields are instantiated on demand (normally a class
+       template instance).  Traverse the field symbols and instantiate them
+       if needed. */
     a_symbol_ptr  sym;
     a_class_symbol_supplement_ptr
                   cssp = symbol_supplement_for_class(class_type);
@@ -17752,6 +17750,13 @@ scanned.
         instantiate_field_initializer_if_needed(sym->variant.field.ptr);
       }  /* if */
     }  /* for */
+  } else {
+    /* Not a template instance (or a prototype instantiation): Make sure no
+       field initializer fixups are pending. */
+    inclass_initializer_fixup_for_class(
+               class_type,
+               class_type->variant.class_struct_union.is_template_class &&
+                 !class_type->variant.class_struct_union.is_specialized);
   }  /* if */
 }  /* ensure_all_field_initializers_scanned */
 
