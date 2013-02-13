@@ -25200,7 +25200,7 @@ not a literal type.
     fp = class_type->variant.class_struct_union.field_list;
     fp = next_initializable_field(fp);
     for (; fp != NULL; fp = next_initializable_field(fp->next)) {
-      if (!is_literal_type(fp->type)) {
+      if (!fp->compiler_generated && !is_literal_type(fp->type)) {
         result = TRUE;
         break;
       }  /* if */
