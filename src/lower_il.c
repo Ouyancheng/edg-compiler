@@ -4673,7 +4673,7 @@ constants in the aggregate will work properly).
               prev->next = cp->next;
             }  /* if */
             if (constant->variant.aggregate.last_constant == cp) {
-              constant->variant.aggregate.last_constant = NULL;
+              constant->variant.aggregate.last_constant = prev;
             }  /* if */
             cp = cp->next;
             break;
