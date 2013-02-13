@@ -1348,7 +1348,7 @@ typedef struct an_enum_symbol_supplement {
 
 typedef struct a_field_symbol_supplement *a_field_symbol_supplement_ptr;
 typedef struct a_field_symbol_supplement {
-  /* Additional information about an field, supplementing the information
+  /* Additional information about a field, supplementing the information
      residing in the type's symbol entry. */
   a_token_sequence_number
 		token_sequence_number;
