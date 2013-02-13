@@ -6343,6 +6343,9 @@ Display the indicated class type supplement entry.
   if (ptr->defined_in_static_data_member_initializer) {
     disp_ptr("lambda_parent.variable", (char*)ptr->lambda_parent.variable,
              iek_variable);
+  } else if (ptr->defined_in_field_initializer) {
+    disp_ptr("lambda_parent.field", (char*)ptr->lambda_parent.field,
+             iek_field);
   } else if (ptr->lambda_parent.routine != NULL) {
     disp_ptr("lambda_parent.routine", (char*)ptr->lambda_parent.routine,
              iek_routine);
