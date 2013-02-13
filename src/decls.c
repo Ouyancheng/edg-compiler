@@ -317,6 +317,32 @@ Execute the end-of-parse callbacks registered for the declaration described by
 }  /* run_end_of_parse_actions */
 
 
+void discard_end_of_parse_actions(a_decl_parse_state  *dps)
+/*
+Discard the end-of-parse callbacks registered for the declaration described by
+*dps without executing them.
+*/
+{
+  a_decl_parse_callback_ptr  action = dps->end_of_parse_actions;
+
+  /* Loop through the list of actions to clear the callback pointers and
+     find the last element. */
+  if (action != NULL) {
+    for (;; action = action->next) {
+      action->callback_fn = NULL;
+      if (action->next == NULL) {
+        /* Last element found: Move the actions to the available list and
+           we're done. */
+        action->next = avail_decl_parse_callbacks;
+        avail_decl_parse_callbacks = dps->end_of_parse_actions;
+        dps->end_of_parse_actions = NULL;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* discard_end_of_parse_actions */
+
+
 static void disallow_attributes(an_attribute_ptr  *p_attributes)
 /*
 If *p_attributes is non-NULL, issue an error message indicating that

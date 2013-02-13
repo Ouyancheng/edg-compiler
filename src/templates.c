@@ -19750,6 +19750,11 @@ template symbol supplement for this template should be returned to the caller.
   sym = locator->specific_symbol;
   has_parenthesized_initializer = 
                           (dps->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
+  if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
+      !is_const_qualified_type(dps->type)) {
+    /* constexpr variables are implicitly const. */
+    dps->type = make_qualified_type(dps->type, (a_type_qualifier_set)TQ_CONST);
+  }  /* if */
   if (is_error_locator(*locator)) {
     /* An error occurred while scanning the declarator of what we assume
        is a static data member.  We make this assumption because the

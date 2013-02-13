@@ -23756,6 +23756,7 @@ passed via template_decl.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         instance->prototype_scope_symbols = func_info.prototype_scope_symbols;
         func_info.keep_param_id_list = TRUE;
+        discard_end_of_parse_actions(decl_state);
         goto next_declaration;
       } else if (is_member_template) {
         /* An "= 0" is not valid for a member template, but in some modes

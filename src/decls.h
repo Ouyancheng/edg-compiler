@@ -1004,6 +1004,8 @@ extern void add_end_of_parse_action(a_decl_parse_callback_function  *fn,
 
 extern void run_end_of_parse_actions(a_decl_parse_state  *dps);
 
+extern void discard_end_of_parse_actions(a_decl_parse_state  *dps);
+
 extern void attach_parse_state_to_attributes(a_decl_parse_state  *dps);
 
 extern void detach_parse_state_from_attributes(a_decl_parse_state  *dps);
