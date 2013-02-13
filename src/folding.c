@@ -2130,8 +2130,7 @@ for any diagnostics issued.
       } else if (new_type->kind == (a_constant_repr_kind)tk_ptr_to_member) {
         conv_integer_to_ptr_to_member(constant, &new_constant,
                                       is_implicit_cast);
-      } else if (new_type->kind == (a_constant_repr_kind)tk_integer &&
-                 is_reinterpret_cast) {
+      } else if (new_type->kind == (a_constant_repr_kind)tk_integer) {
         conv_integer_to_integer(constant, &new_constant, is_implicit_cast,
                                 &err_code, &err_severity);
       } else {
