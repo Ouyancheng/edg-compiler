@@ -1,5 +1,30 @@
 Version 4.6
 
+2/12/13  [EDGcpfe/13578]
+C++-generating back end: #pragma pack for union defined in typedef
+
+In configurations with USER_CONTROL_OF_STRUCT_PACKING set to TRUE, the
+C++-generating back end sometimes put out a #pragma pack directive
+following the typedef keyword in a typedef declaration that defines a
+union.  This is now fixed.  For example, with
+
+  template<typename T> const int &f();
+  #pragma pack(push,8)
+  template<typename T> const int &f();
+  typedef union U {
+    int i;
+  } U;
+
+compiled with --no_parse_templates, the typedef declaration was previously
+generated as
+
+  typedef
+  #pragma pack(8)
+  union U {
+    int i;
+  };
+
+
 2/12/13  [EDGcpfe/13558]
 Abort on invalid attempt to use default argument of template
 

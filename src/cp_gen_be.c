@@ -7389,7 +7389,7 @@ declaration following this one is such a continuation.
 #if USER_CONTROL_OF_STRUCT_PACKING
     a_type_ptr specifier_type = type_specifier_of_type(under_type);
     specifier_type = orig_type_if_nonreal_prototype_type(specifier_type);
-    if (is_class_or_struct(specifier_type) &&
+    if (is_immediate_class_type(specifier_type) &&
         specifier_type->definition_delayed) {
       /* The typedef contains a class definition: issue a #pragma pack before
          the "typedef" keyword if one is required. */
