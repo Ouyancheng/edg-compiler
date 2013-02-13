@@ -15498,6 +15498,12 @@ nonstandard anonymous unions is_nonstd is TRUE.
       for (; ifp->next != NULL; ifp = ifp->next) /* No action. */;
       parent_ssep->last_initializer_fixup = ifp;
     }  /* if */
+    if (cssp->has_instantiatable_field_initializers) {
+      /* If any of the promoted fields had instantiatable field initializers,
+         the associated flag should be promoted too. */
+      cssp->has_instantiatable_field_initializers = FALSE;
+      parent_cssp->has_instantiatable_field_initializers = TRUE;
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* check_anonymous_union_symbols */
