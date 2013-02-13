@@ -19245,20 +19245,24 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
     case enk_operation:
       if (is_call_node(node)) {
         /* For a call, see if the called routine might throw. */
-        a_routine_ptr rout = routine_from_function_expr(
-                                            node->variant.operation.operands);
+        an_expr_node_ptr op1 = node->variant.operation.operands;
+        a_routine_ptr    rout = routine_from_function_expr(op1);
+        if (rout == NULL && is_constant_node(op1)) {
+          a_constant_ptr con = op1->variant.constant;
+          if (con->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+              con->variant.ptr_to_member.is_function_ptr) {
+            /* Handle pointer-to-member calls. */
+            rout = con->variant.ptr_to_member.variant.routine;
+          }  /* if */
+        }  /* if */
         if (rout != NULL) {
           if (!is_non_throwing_routine(rout)) might_throw = TRUE;
         } else {
-          a_type_ptr ptr_type = node->variant.operation.operands->type;
+          a_type_ptr ptr_type = op1->type;
           a_type_ptr func_type = NULL;
           might_throw = TRUE;
           if (is_pointer_type(ptr_type)) {
             func_type = f_skip_typerefs(type_pointed_to(ptr_type));
-          } else if (is_ptr_to_member_type(ptr_type)) {
-            func_type = pm_member_type(ptr_type);
-          }  /* if */
-          if (func_type != NULL) {
             if (is_function_type(func_type) &&
                 is_nothrow_type(func_type)) {
               might_throw = FALSE;
