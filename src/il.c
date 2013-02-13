@@ -17634,6 +17634,8 @@ a pointer to the new expression.  The returned node is designated an lvalue.
     check_assertion(!node->is_lvalue);
     if (is_any_reference_type(node->type)) {
       new_type = type_pointed_to(node->type);
+    } else if (!C_mode() && is_template_param_type(node->type)) {
+      new_type = type_of_unknown_templ_param_nontype;
     } else {
       check_assertion(is_error_type(node->type));
       new_type = error_type();
