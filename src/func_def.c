@@ -870,7 +870,7 @@ constructor.
            ctor_init != NULL;
            ctor_init = ctor_init->next) {
         a_constructor_init_ptr copy = copy_ctor_init(ctor_init,
-                                                     CE_NO_OPTIONS);
+                                                     CE_COPY_NOT_EVALUATED);
         *next_ptr_ptr = copy;
         next_ptr_ptr = &copy->next;
       }  /* for */
@@ -885,12 +885,14 @@ constructor.
       if (scope->has_constexpr_return_expr) {
         scope->variant.routine.variant.constexpr_return_expr = copy_expr_tree(
                           scope->variant.routine.variant.constexpr_return_expr,
-                          CE_COPY_CONSTANTS_UNCONDITIONALLY);
+                          CE_COPY_CONSTANTS_UNCONDITIONALLY |
+                          CE_COPY_NOT_EVALUATED);
       } else {
         scope->variant.routine.variant.constexpr_return_dynamic_init =
               copy_dynamic_init(
                   scope->variant.routine.variant.constexpr_return_dynamic_init,
-                  CE_COPY_CONSTANTS_UNCONDITIONALLY);
+                  CE_COPY_CONSTANTS_UNCONDITIONALLY |
+                  CE_COPY_NOT_EVALUATED);
       }  /* if */
     }  /* if */
   }  /* if */
