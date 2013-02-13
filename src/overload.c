@@ -20347,7 +20347,13 @@ resolution).
     if (!err && generate_il) {
       if (trivial_ctor) {
         /* For a class with a trivial constructor, just zero the object. */
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+        if (constexpr_enabled && curr_expr_kind_is_const()) {
+          /* In a constexpr constant expression, return an empty
+             aggregate constant. */
+          (void)make_value_initialized_constant(unqual_dest_type, &con);
+        } else {
+          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+        }  /* if */
       } else {
         /* Otherwise, use a dik_constructor entry.  For a nonreal class,
            ctor_routine is NULL to indicate the constructor is unknown.
@@ -20377,21 +20383,14 @@ resolution).
     /* Previous error. */
     err = TRUE;
   } else {
-    /* Scalar type.  Convert 0 to the type, producing a constant result. */
+    /* Scalar type. */
     check_assertion(is_scalar_type(dest_type) ||
                     is_ptr_to_member_type(dest_type));
     if (generate_il) {
-      a_boolean did_not_fold;
-      set_integer_constant(&con, (a_host_large_integer)0,
-                           (an_integer_kind)ik_int);
-      expr_type_change_constant(&con, unqual_dest_type,
-                                /*is_implicit_cast=*/TRUE,
-                                /*check_cast_access=*/TRUE,
-                                /*check_ambiguity=*/TRUE,
-                                /*is_reinterpret_cast=*/FALSE,
-                                /*maintain_expression=*/FALSE,
-                                &did_not_fold, pos);
-      check_assertion(!did_not_fold);
+      if (make_value_initialized_constant(unqual_dest_type, &con)) {
+      } else {
+        unexpected_condition();
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Here, dip != NULL means the result is non-constant. */

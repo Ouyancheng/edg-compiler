@@ -6353,15 +6353,15 @@ Provides some of the parameters from information in the expression stack.
 }  /* expr_unary_operation */
 
 
-void expr_type_change_constant(a_constant        *constant,
-                               a_type_ptr        new_type,
-                               a_boolean         is_implicit_cast,
-                               a_boolean         check_cast_access,
-                               a_boolean         check_ambiguity,
-                               a_boolean         is_reinterpret_cast,
-                               a_boolean         maintain_expression,
-                               a_boolean         *did_not_fold,
-                               a_source_position *err_pos)
+static void expr_type_change_constant(a_constant        *constant,
+                                      a_type_ptr        new_type,
+                                      a_boolean         is_implicit_cast,
+                                      a_boolean         check_cast_access,
+                                      a_boolean         check_ambiguity,
+                                      a_boolean         is_reinterpret_cast,
+                                      a_boolean         maintain_expression,
+                                      a_boolean         *did_not_fold,
+                                      a_source_position *err_pos)
 /*
 Interface to type_change_constant_full (which casts a constant to a new
 type) for use within the expression processing routines.  Provides some of
