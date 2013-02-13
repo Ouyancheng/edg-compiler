@@ -17701,6 +17701,29 @@ default constructor, or an array thereof.
 }  /* type_is_constexpr_default_constructible */
 
 
+void scan_field_initializer_if_needed(a_field_ptr  field,
+                                      a_type_ptr   class_type)
+/*
+Ensure that the given field (of the given class type) has its initializer
+scanned.  (It has already been established that the field has an initializer.)
+*/
+{
+  check_assertion(field->has_initializer);
+  if (!class_type->variant.class_struct_union.is_template_class ||
+      class_type->variant.class_struct_union.is_prototype_instantiation ||
+      class_type->variant.class_struct_union.is_specialized) {
+    /* Not a template instance (or a prototype instantiation): Make sure no
+       field initializer fixups are pending. */
+    inclass_initializer_fixup_for_class(
+               class_type,
+               class_type->variant.class_struct_union.is_template_class &&
+                 !class_type->variant.class_struct_union.is_specialized);
+  } else {
+    instantiate_field_initializer_if_needed(field);
+  }  /* if */
+}  /* scan_field_initializer_if_needed */
+
+
 static void ensure_all_field_initializers_scanned(a_type_ptr  class_type)
 /*
 Scan any field initializers of the given class type that haven't yet been

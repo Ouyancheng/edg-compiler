@@ -1368,7 +1368,7 @@ typedef struct a_field_symbol_supplement {
 			   initializer, for fields of non-template classes,
 			   and for fields of template classes if an
 			   instantiation has been done. */
-  a_bit_field	being_instantiated;
+  a_bit_field	being_instantiated:1;
 			/* TRUE for a field of a template class that is in
 			   the process of being instantiated. */
   a_bit_field	is_variant_member:1;

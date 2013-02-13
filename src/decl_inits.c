@@ -6098,8 +6098,8 @@ initialized.  These are addressed in the course of the processing.
           a_field_ptr   field = cip->variant.field;
           cip->use_field_initializer = TRUE;
           has_field_init = TRUE;
-          /* Ensure the field initializer is instantiated if necessary. */
-          instantiate_field_initializer_if_needed(field);
+          /* Ensure the field initializer is scanned if necessary. */
+          scan_field_initializer_if_needed(field, class_type);
           if (ctor_rout->is_constexpr) {
             if (field->has_nonconstant_initializer) {
               /* If the field initializer is known not to be a constant, it
