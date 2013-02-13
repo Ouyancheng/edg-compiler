@@ -3857,11 +3857,9 @@ returned set to TRUE.
         decl_pos_block->var_init_range.end = curr_construct_end_position;
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      /* If no dynamic init entry was created, there must have been an
-         error. */
-      init_dip = dps->init_state.init_dip;
       init_err = dps->init_state.init_error;
-      check_assertion(init_dip != NULL || init_err);
+      init_con = dps->init_state.init_con;
+      init_dip = dps->init_state.init_dip;
     } else {
       /* An entity with no constructor.  (If it's a C-style struct with no
          constructor, initialization with bitwise copy is allowed -- e.g.,

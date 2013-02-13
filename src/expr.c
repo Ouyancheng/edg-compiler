@@ -35731,6 +35731,43 @@ If an error is detected, use err_pos as the error position.
 }  /* prep_generated_arg_expr */
 
 
+static void wrap_up_init_state_initialization(an_init_state *is)
+/*
+Wrap up processing of an initialization whose interface to
+decl_inits.c is an init_state block (given by "is"), and whose processing
+so far has requested a dynamic-init form initialization.  Convert now to
+a constant initialization if possible.
+*/
+{
+  a_dynamic_init_ptr dip = is->init_dip;
+
+  if (dip == NULL || is->init_error) {
+    /* is->init_dip == NULL means there was an error. */
+    is->init_error = TRUE;
+    discard_curr_expr_object_lifetime();
+  } else {
+    wrap_up_dynamic_init_full_expression(dip);
+    if (dip->destructor == NULL && !is->force_dynamic_init) {
+      a_constant_ptr cp = NULL;
+      if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+        cp = dip->variant.constant;
+      } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+        if (is_constant_node(dip->variant.expression)) {
+          cp = dip->variant.expression->variant.constant;
+        }  /* if */
+      }  /* if */
+      if (cp != NULL) {
+        if (dip->is_partially_initialized) {
+          is->partial_initializer = TRUE;
+        }  /* if */
+        is->init_con = cp;
+        is->init_dip = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* wrap_up_init_state_initialization */
+
+
 void scan_class_initializer_expression(a_decl_parse_state  *dps)
 /*
 Scan an expression that is the initial value of a variable of class type.
@@ -35755,7 +35792,6 @@ As indicated, this is initialization with the "=" semantics
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   a_conv_context_set  conv_context = CCO_INITIALIZING_VARIABLE;
-  a_dynamic_init_ptr  dip;
 
   db_enter(3, "scan_class_initializer_expression");
   check_assertion(dps != NULL);
@@ -35775,30 +35811,7 @@ As indicated, this is initialization with the "=" semantics
                                    ec_bad_initializer_type,
                                    /*elision_done=*/(a_boolean *)NULL,
                                    &dps->init_state.init_dip);
-  dip = dps->init_state.init_dip;
-  wrap_up_dynamic_init_full_expression(dip);
-  if (dip == NULL) {
-    /* dps->init_state.init_dip == NULL means there was an error. */
-    dps->init_state.init_error = TRUE;
-  } else {
-    if (dip->destructor == NULL) {
-      a_constant_ptr  cp = NULL;
-      if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-        cp = dip->variant.constant;
-      } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-        if (is_constant_node(dip->variant.expression)) {
-          cp = dip->variant.expression->variant.constant;
-        }  /* if */
-      }  /* if */
-      if (cp != NULL) {
-        if (dip->is_partially_initialized) {
-          dps->init_state.partial_initializer = TRUE;
-        }  /* if */
-        dps->init_state.init_con = cp;
-        dps->init_state.init_dip = NULL;
-      }  /* if */
-    }  /* if */
-  }  /* if */
+  wrap_up_init_state_initialization(&dps->init_state);
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
@@ -36007,15 +36020,7 @@ source position to be used in overall errors.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (is->init_dip == NULL) {
-    /* An error or a trivial constructor call. */
-    is->init_error = TRUE;
-    discard_curr_expr_object_lifetime();
-  } else {
-    /* If there's an object lifetime around the initialization, transfer it
-       to the dynamic initialization entry. */
-    wrap_up_dynamic_init_full_expression(is->init_dip);
-  }  /* if */
+  wrap_up_init_state_initialization(is);
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  is->decl_parse_state, is);
