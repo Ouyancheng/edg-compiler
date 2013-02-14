@@ -12349,8 +12349,8 @@ static a_boolean recompute_partially_initialized_flag(a_constant_ptr aggr_con,
 Check the initialization constant, aggr_con, to determine if it partially
 initializes the aggregate type, aggr_type, that is being initialized.  Returns
 TRUE if the constant only partially initializes the aggregate; otherwise
-returns FALSE.  Also sets aggr_con->partial_aggr_value to reflect the new
-value.
+returns FALSE.  Also sets aggr_con->partial_aggr_value and
+aggr_con->is_partially_initialized to reflect the new value.
 */
 { 
   a_constant_ptr        temp_con;
@@ -12426,6 +12426,7 @@ value.
 done:
   /* Re-set partial_aggr_value for this aggregate based on our findings. */
   aggr_con->partial_aggr_value = is_partially_initialized;
+  aggr_con->is_partially_initialized = is_partially_initialized;
   return is_partially_initialized;
 }  /* recompute_partially_initialized_flag */
 
