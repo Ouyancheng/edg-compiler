@@ -14822,6 +14822,7 @@ initialization is in a condition declaration if is_condition is TRUE.
   a_boolean          braced_init = var->has_direct_braced_initializer;
   an_init_kind       init_kind;
   an_initializer_ptr initializer;
+  a_constant_ptr     con;
   a_boolean          context_pop_required = FALSE;
 
   get_variable_initializer(var, curr_name_context->assoc_scope,
@@ -14861,16 +14862,28 @@ initialization is in a condition declaration if is_condition is TRUE.
     }  /* if */
     switch (init_kind) {
       case initk_static:
-        /* We can safely express this initialization with the " = " notation.
-           However, if we know the original form used C++ braced-initialization
-           notation, we render that.  We don't attempt to render the
-           parenthesized notation to avoid having to deal with parsing
-           ambiguities. */
-        write_tok_str(braced_init ? (char*)"{" : (char*)" = ");
-        gen_initializer_constant(initializer->constant, var->type,
-                                 /*transparent_case=*/FALSE,
-                                 /*suppress_braces=*/braced_init);
-        if (braced_init) write_tok_ch('}');
+        con = initializer->constant;
+        if ((parenthesized_init || braced_init) &&
+            constant_should_be_put_out_as_expr(con) &&
+            con->expr->kind == (an_expr_node_kind)enk_temp_init) {
+          /* For a case like a folded constexpr constructor call, put out the
+             original form. */
+          gen_paren_or_brace_dynamic_init(con->expr->variant.init.dynamic_init,
+                                          var->type,
+                                          parenthesized_init,
+                                          /*is_var_init=*/TRUE);
+        } else {
+          /* We can safely express this initialization with the " = " notation.
+             However, if we know the original form used C++
+             braced-initialization notation, we render that.  We don't
+             attempt to render the parenthesized notation to avoid having
+             to deal with parsing ambiguities. */
+          write_tok_str(braced_init ? (char*)"{" : (char*)" = ");
+          gen_initializer_constant(con, var->type,
+                                   /*transparent_case=*/FALSE,
+                                   /*suppress_braces=*/braced_init);
+          if (braced_init) write_tok_ch('}');
+        }  /* if */
         break;
       case initk_dynamic:
         if (parenthesized_init || braced_init) {
