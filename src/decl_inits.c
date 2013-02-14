@@ -2275,7 +2275,7 @@ through *p_aggr_con (and its type through *p_class_type).
   append_constant_in_aggr(des_con, orig_aggr_con);
   orig_aggr_con->uses_designated_initializers = TRUE;
   if (orig_class_type->kind != (a_type_kind)tk_union) {
-    orig_class_type->is_partially_initialized = TRUE;
+    orig_aggr_con->is_partially_initialized = TRUE;
   }  /* if */
   append_constant_in_aggr(des_con->next, orig_aggr_con);
 }  /* make_designators_for_nested_anonymous_union */
