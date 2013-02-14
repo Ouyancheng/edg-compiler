@@ -21074,39 +21074,42 @@ empty_parentheses:
           /* void(). */
           cast_operand_to_void(result, type_cast_to);
         } else if (is_class_struct_union_type(type_cast_to)) {
-          /* A class with no constructor, followed by (), e.g., "A()". */
+          /* A class with no constructor, followed by (), e.g., "A()".
+             This is value-initialization, but we know the class has
+             no non-trivial constructor, so it's effectively
+             zero-initialization. */
+          a_dynamic_init_kind init_kind = (a_dynamic_init_kind)dik_zero;
+          /* Force generation of the trivial default constructor for a
+             non-POD class to detect any errors.  See core issue 302. */
+          if (expr_reference_to_trivial_default_constructor(type_cast_to,
+                                                            start_position)) {
+            if (!value_initialization_enabled) {
+              /* Value initialization is disabled, and this is a non-POD
+                 class with a trivial default constructor.  The
+                 initialization conceptually calls the constructor, which
+                 is a no-op. */
+              init_kind = (a_dynamic_init_kind)dik_none;
+            }  /* if */
+          } else if (microsoft_bugs &&
+                     emulate_msvc_value_initialization_bugs &&
+                     microsoft_version < 1310) {
+            /* MSVC++ up to version 7.0 did not initialize the entity
+               in this case. */
+            init_kind = (a_dynamic_init_kind)dik_none;
+          }  /* if */
+          temp_init_node = alloc_empty_parens_func_cast(type_cast_to,
+                                                        init_kind,
+                                                        start_position);
           if (constexpr_enabled && curr_expr_kind_is_const()) {
             /* Return an empty aggregate in a constexpr constant expression. */
             a_constant local_constant;
             (void)make_value_initialized_constant(type_cast_to,
                                                   &local_constant);
+            if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+              local_constant.expr = temp_init_node;
+            }  /* if */
             make_constant_operand(&local_constant, result);
           } else {
-            /* This is value-initialization, but we know the class has
-               no non-trivial constructor, so it's effectively
-               zero-initialization. */
-            a_dynamic_init_kind init_kind = (a_dynamic_init_kind)dik_zero;
-            /* Force generation of the trivial default constructor for a
-               non-POD class to detect any errors.  See core issue 302. */
-            if (expr_reference_to_trivial_default_constructor(type_cast_to,
-                                                             start_position)) {
-              if (!value_initialization_enabled) {
-                /* Value initialization is disabled, and this is a non-POD
-                   class with a trivial default constructor.  The
-                   initialization conceptually calls the constructor, which
-                   is a no-op. */
-                init_kind = (a_dynamic_init_kind)dik_none;
-              }  /* if */
-            } else if (microsoft_bugs &&
-                       emulate_msvc_value_initialization_bugs &&
-                       microsoft_version < 1310) {
-              /* MSVC++ up to version 7.0 did not initialize the entity
-                 in this case. */
-              init_kind = (a_dynamic_init_kind)dik_none;
-            }  /* if */
-            temp_init_node = alloc_empty_parens_func_cast(type_cast_to,
-                                                          init_kind,
-                                                          start_position);
             make_expression_operand(temp_init_node, result);
           }  /* if */
           rule_out_expr_kinds(ROEK_CONSTANT, result);

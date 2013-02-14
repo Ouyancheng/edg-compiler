@@ -20347,12 +20347,14 @@ resolution).
     if (!err && generate_il) {
       if (trivial_ctor) {
         /* For a class with a trivial constructor, just zero the object. */
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
         if (constexpr_enabled && curr_expr_kind_is_const()) {
           /* In a constexpr constant expression, return an empty
              aggregate constant. */
           (void)make_value_initialized_constant(unqual_dest_type, &con);
-        } else {
-          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+          if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+            add_temp_init_backing_expression(&con, dip);
+          } /* if */
         }  /* if */
       } else {
         /* Otherwise, use a dik_constructor entry.  For a nonreal class,
