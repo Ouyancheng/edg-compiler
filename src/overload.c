@@ -17711,23 +17711,24 @@ the temporary.
         do_operand_transformations(operand, TOPT_NO_OPTIONS);
       }  /* if */
       /* Do any necessary standard or trivial conversion. */
-      if (!cast_identical_types(operand->type, dest_type) &&
-          !is_error_operand(operand)) {
-        if (is_an_rvalue(operand)) {
-          cast_operand(dest_type, operand,
-                       /*is_implicit_cast=*/!is_explicit_cast);
-          if (is_explicit_cast && conv_function_call_node != NULL) {
-            /* The cast on top of the conversion function call is
-               the explicit conversion; the conversion function call is an
-               implicit side effect of that cast and should be marked as
-               compiler-generated. */
-            conv_function_call_node->variant.operation.compiler_generated =
-                                                                          TRUE;
-          }  /* if */
-        } else {
-          check_assertion(is_an_lvalue(operand));
-          adjust_lvalue_type(operand, dest_type);
+      if (is_error_operand(operand)) {
+        /* Do nothing. */
+      } else if (is_an_rvalue(operand)) {
+        an_expr_node_ptr before_cast = (is_expression_operand(operand)) ?
+                                            operand->variant.expression : NULL;
+        cast_operand(dest_type, operand,
+                     /*is_implicit_cast=*/!is_explicit_cast);
+        if (is_explicit_cast && conv_function_call_node != NULL &&
+            is_expression_operand(operand) &&
+            operand->variant.expression != before_cast) {
+          /* If there's a cast on top of the conversion function call, that is
+             the explicit conversion; the conversion function call is an
+             implicit side effect of that cast and should be marked as
+             compiler-generated. */
+          conv_function_call_node->variant.operation.compiler_generated = TRUE;
         }  /* if */
+      } else if (is_an_lvalue(operand)) {
+        adjust_lvalue_type(operand, dest_type);
       }  /* if */
     }  /* if */
   } else {
