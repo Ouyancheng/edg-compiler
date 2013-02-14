@@ -1476,6 +1476,10 @@ available.
   }  /* if */
   icp = icp->next;
   if (okay) {
+    /* Designators complicate the determination of whether an aggregate
+       initializer completely covers the target entity.  Assume partial
+       initialization by default. */
+    is->partial_initializer = TRUE;
     if (!is->check_validity_only) {
       /* Append the array designator constant to the end of the enclosing
          aggregate constant. */
@@ -1485,11 +1489,8 @@ available.
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
       append_constant_in_aggr(des_con, aggr_con);
       aggr_con->uses_designated_initializers = TRUE;
+      aggr_con->is_partially_initialized = TRUE;
     }  /* if */
-    /* Designators complicate the determination of whether an aggregate
-       initializer completely covers the target entity.  Assume partial
-       initialization by default. */
-    is->partial_initializer = TRUE;
     if (icp != NULL) {
       /* Process the component following this designator.  If it is another
          designator (i.e., a "chained" designator), special care must be taken
@@ -2377,6 +2378,10 @@ specific position is available.
   }  /* if */
   icp = icp->next;
   if (okay) {
+    /* Designators complicate the determination of whether an aggregate
+       initializer completely covers the target entity.  Assume partial
+       initialization by default. */
+    is->partial_initializer = TRUE;
     if (!is->check_validity_only) {
       a_constant_ptr  des_con;
       des_con = alloc_constant((a_constant_repr_kind)ck_designator);
@@ -2384,11 +2389,8 @@ specific position is available.
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
       append_constant_in_aggr(des_con, aggr_con);
       aggr_con->uses_designated_initializers = TRUE;
+      aggr_con->is_partially_initialized = TRUE;
     }  /* if */
-    /* Designators complicate the determination of whether an aggregate
-       initializer completely covers the target entity.  Assume partial
-       initialization by default. */
-    is->partial_initializer = TRUE;
     if (icp != NULL) {
       /* Process the component following this designator.  If it is another
          designator (i.e., a "chained" designator), special care must be taken

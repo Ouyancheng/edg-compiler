@@ -3791,7 +3791,9 @@ typedef struct a_constant {
   a_bit_field	is_partially_initialized:1;
 			/* Similar to partial_aggr_value but also TRUE if a
 			   direct or indirect subaggregate constant has
-			   partial_aggr_value set to TRUE. */
+			   partial_aggr_value set to TRUE, for a string
+			   constant that has fewer elements than its array
+			   type, or if uses_designated_initializers is TRUE. */
   a_bit_field	implicit_aggr_element:1;
 			/* TRUE if this constant was generated implicitly for
 			   an aggregate initializer that does not explicitly
