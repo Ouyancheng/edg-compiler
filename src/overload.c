@@ -17716,16 +17716,17 @@ the temporary.
         if (is_an_rvalue(operand)) {
           cast_operand(dest_type, operand,
                        /*is_implicit_cast=*/!is_explicit_cast);
+          if (is_explicit_cast && conv_function_call_node != NULL) {
+            /* The cast on top of the conversion function call is
+               the explicit conversion; the conversion function call is an
+               implicit side effect of that cast and should be marked as
+               compiler-generated. */
+            conv_function_call_node->variant.operation.compiler_generated =
+                                                                          TRUE;
+          }  /* if */
         } else {
           check_assertion(is_an_lvalue(operand));
           adjust_lvalue_type(operand, dest_type);
-        }  /* if */
-        if (is_explicit_cast && conv_function_call_node != NULL) {
-          /* The cast on top of the conversion function call is
-             the explicit conversion; the conversion function call is an
-             implicit side effect of that cast and should be marked as
-             compiler-generated. */
-          conv_function_call_node->variant.operation.compiler_generated = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
