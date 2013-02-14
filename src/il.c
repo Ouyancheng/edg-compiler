@@ -7464,6 +7464,7 @@ which case the resulting constant is an empty aggregate.
         next_initializable_field(type->variant.class_struct_union.field_list)
                                                                      != NULL) {
       con->partial_aggr_value = TRUE;
+      con->is_partially_initialized = TRUE;
     }  /* if */
     return_value = TRUE;
   }  /* if */

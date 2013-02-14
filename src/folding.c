@@ -7898,7 +7898,7 @@ evaluation.
   switch(dip->kind) {
     case dik_constant:
       copy_constant(dip->variant.constant, result_con);
-      if (result_con->partial_aggr_value) {
+      if (result_con->is_partially_initialized) {
         ceblock->is_partially_initialized = TRUE;
       }  /* if */
       folded = TRUE;
@@ -7958,7 +7958,7 @@ evaluation.
     case dik_none:
     case dik_zero:
       folded = make_value_initialized_constant(dest_type, result_con);
-      if (folded && result_con->partial_aggr_value) {
+      if (folded && result_con->is_partially_initialized) {
         ceblock->is_partially_initialized = TRUE;
       }  /* if */
       break;
