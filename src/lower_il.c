@@ -4862,6 +4862,13 @@ Do IL lowering of the indicated constant and everything under it.
            relies on next_initializable_field. */
         arrange_aggregate_constant_in_layout_order(constant);
 #endif /* IA64_ABI */
+        /* Initialize any vptr fields if they exist in the aggregate.  This
+           must be completed before the individual pieces of the aggregate
+           are themselves lowered, as well as before any designated
+           initializers are lowered. */
+        initialize_vptr_in_aggregate_constant(constant,
+                                              skip_typerefs(constant->type),
+                                              (a_base_class_ptr)NULL);
 #if LOWER_DESIGNATED_INITIALIZERS
         /* Re-write any designated initializers in the aggregate constant. */
         lower_designated_initializers(constant,
@@ -4876,12 +4883,6 @@ Do IL lowering of the indicated constant and everything under it.
           lower_c99_complex_aggregate_constant(constant);
         }  /* if */
 #endif /* LOWER_COMPLEX */
-        /* Initialize any vptr fields if they exist in the aggregate.  This
-           must be completed before the individual pieces of the aggregate
-           are themselves lowered. */
-        initialize_vptr_in_aggregate_constant(constant,
-                                              skip_typerefs(constant->type),
-                                              (a_base_class_ptr)NULL);
         lower_constant_list(constant->variant.aggregate.first_constant);
 #if IA64_ABI
         fill_out_aggregate_ptr_to_data_member_initialization(constant);

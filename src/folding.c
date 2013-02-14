@@ -9125,7 +9125,7 @@ fold_constexpr_ctor should usually be called instead.
              ctor_init = ctor_init->next) {
           a_field_ptr        field;
           a_constant         member_con;
-          a_constant_ptr     member_con_ptr;
+          a_constant_ptr     member_con_ptr, des_con = NULL;
           a_type_ptr         member_type = NULL;
           a_dynamic_init_ptr dip;
           if (ctor_init == NULL ||
@@ -9177,7 +9177,14 @@ fold_constexpr_ctor should usually be called instead.
               dip = field->initializer;
               check_assertion(dip != NULL);
             }  /* if */
-            /* FIXME: for non-first field of union, add designator. */
+            if (parent_class_of(field)->kind == (a_type_kind)tk_union &&
+                next_initializable_field(parent_class_of(field)->variant
+                                    .class_struct_union.field_list) != field) {
+              /* For a field other than the first in a union, add a
+                 designator. */
+              des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+              des_con->variant.designator.field = field;
+            }  /* if */
           }  /* if */
           /* Try to fold the initialization to a constant. */
           if (!fold_dynamic_init(dip, member_type, ceblock, &member_con)) {
@@ -9194,6 +9201,12 @@ fold_constexpr_ctor should usually be called instead.
               check_assertion(ctsp->anonymous_union_kind ==
                                            (an_anonymous_union_kind)auk_field);
               new_aggr_con= alloc_constant((a_constant_repr_kind)ck_aggregate);
+              if (des_con != NULL) {
+                /* Add the designator. */
+                add_constant_to_aggregate(des_con, new_aggr_con);
+                aggr_con.uses_designated_initializers = TRUE;
+                des_con = NULL;
+              }  /* if */
               add_constant_to_aggregate(member_con_ptr, new_aggr_con);
               new_aggr_con->type = curr_class;
               member_con_ptr = new_aggr_con;
@@ -9208,6 +9221,11 @@ fold_constexpr_ctor should usually be called instead.
             } /* if */
           }  /* if */
           /* Add the constant at the end of the aggregate. */
+          if (des_con != NULL) {
+            /* Add the designator for a union member. */
+            add_constant_to_aggregate(des_con, &aggr_con);
+            aggr_con.uses_designated_initializers = TRUE;
+          }  /* if */
           add_constant_to_aggregate(member_con_ptr, &aggr_con);
           if (field != NULL) {
             next_expected_field = next_initializable_field(field->next);

@@ -1493,7 +1493,9 @@ in the aggregate have not been lowered (and aren't lowered here).
 
   if (!constant->vptr_has_been_lowered &&
       is_class_struct_union_type(class_type) &&
-      needs_virtual_function_table(class_type)) {
+      (needs_virtual_function_table(class_type) ||
+       class_type->variant.class_struct_union.
+                            any_virtual_functions_including_in_base_classes)) {
     a_constant                  addr_constant;
     a_constant_ptr              aggr_con, vptr_con, prev_con = NULL;
     a_field_ptr                 field;
@@ -1514,13 +1516,15 @@ in the aggregate have not been lowered (and aren't lowered here).
     constant->vptr_has_been_lowered = TRUE;
     /* Make sure the class type has been lowered. */
     prelower_class_type(class_type);
-    check_assertion(ctsp->virtual_function_table_var != NULL);
-    if (ctsp->virtual_function_info_base_class != NULL) {
-      /* This class shares its vptr with a base class, so there's no
-         need to look for a vptr in this aggregate (it'll be set when
-         we visit the base class). */
+    if (!needs_virtual_function_table(class_type) ||
+        ctsp->virtual_function_info_base_class != NULL) {
+      /* This class has no virtual function table (though its has at least
+         one base class that does) or it shares its vptr with a base class,
+         so there's no need to look for a vptr in this aggregate (it'll be
+         set when we visit the base class). */
       modify_vptr_in_this_class = FALSE;
     } else {
+      check_assertion(ctsp->virtual_function_table_var != NULL);
       if (cot_ctsp->virtual_function_info_base_class != NULL &&
           identical_types(cot_ctsp->virtual_function_info_base_class->type,
                           class_type)) {
@@ -12327,7 +12331,13 @@ have already had their designated initializers lowered.
                        skip_typerefs(con_type)->variant.array.bound_is_zero) ||
                       /* Allow an array initializer of any length to initialize
                          an incomplete array. */
-                      is_incomplete_array_type(member_type))),
+                      is_incomplete_array_type(member_type))) ||
+                   (is_immediate_class_type(con_type) &&
+                    /* Allow a match if the class type is being used as a
+                       subobject. */
+                    identical_types(class_type_supp(con_type)->
+                                                             type_as_subobject,
+                                    member_type)),
                    "lower_aggregate_designated_initializers: type mismatch");
       }
 #endif /* CHECKING */
@@ -12444,8 +12454,7 @@ the type of dip->variable is used).  Note that this is called in C mode as well
 as C++ mode.
 */
 {
-  if (designators_allowed &&
-      init_con->kind == (a_constant_repr_kind)ck_aggregate &&
+  if (init_con->kind == (a_constant_repr_kind)ck_aggregate &&
       init_con->uses_designated_initializers) {
     a_memory_region_number region_to_switch_back_to = NULL_region_number;
     if (in_file_scope(init_con)) {
