@@ -9313,13 +9313,15 @@ otherwise, return FALSE.
     /* We've found a constexpr object.  Now find the element of the
        aggregate that corresponds to the specified field and set
        result_con to it. */
-    a_constant_ptr member_con = eff_obj_con->variant.aggregate.first_constant;
-    a_type_ptr     class_type = skip_typerefs(eff_obj_con->type);
-    a_field_ptr    curr_field = next_non_generated_initializable_field(
+    a_constant_ptr   member_con =
+                                 eff_obj_con->variant.aggregate.first_constant;
+    a_type_ptr       class_type = skip_typerefs(eff_obj_con->type);
+    a_field_ptr      curr_field = next_non_generated_initializable_field(
                             class_type->variant.class_struct_union.field_list);
-    a_type_ptr     parent_of_field = parent_class_of(field);
-    a_type_ptr     anon_union_member_type = NULL;
-    int            anon_union_member_depth = 0;
+    a_type_ptr       parent_of_field = parent_class_of(field);
+    a_type_ptr       anon_union_member_type = NULL;
+    int              anon_union_member_depth = 0;
+    a_base_class_ptr bp;
     /* Check to see if the requested field is a member of an anonymous
        union.  If so, set anon_union_member_type to be the type of the
        immediate anonymous union member of class_type and set
@@ -9331,6 +9333,19 @@ otherwise, return FALSE.
       ++anon_union_member_depth;
       parent_of_field = parent_class_of(parent_of_field);
     }  /* while */
+    /* First skip over any base class subobjects in the value. */
+    for (bp = class_type->variant.class_struct_union.extra_info->base_classes;
+         bp != NULL && member_con != NULL; bp = bp->next) {
+      if (bp->direct || bp->is_virtual) {
+        /* Step to the next subobject.  (Only direct and virtual base
+           classes have aggregate elements at this level, i.e., not nested
+           within sub-aggregates.) */
+        /* FIXME: Virtual base classes should only be skipped if this is
+           the most-derived class.  It's not clear how to determine that
+           here when the reference is to a base class member. */
+        member_con = member_con->next;
+      }  /* if */
+    }  /* for */
     /* Step through the elements of the initializer constant and the
        fields of class_type, breaking out of the loop when we've found
        either the indicated field or the anonymous union member of which
