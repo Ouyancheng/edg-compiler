@@ -7445,16 +7445,18 @@ this routine is a wrapper for make_zero_of_proper_type, or an aggregate, in
 which case the resulting constant is an empty aggregate.
 */
 {
-  a_boolean return_value = TRUE;
+  a_boolean return_value = FALSE;
 
   if (is_any_reference_type(type)) {
-    return_value = FALSE;
+    /* Cannot create a value-initialized reference type.  This can
+       result from upstream error recovery. */
   } else if (is_scalar_type(type)) {
     make_zero_of_proper_type(type, con);
+    return_value = TRUE;
   } else if (is_error_type(type)) {
     set_error_constant(con);
-  } else {
-    check_assertion(is_aggregate_type(type));
+    return_value = TRUE;
+  } else if (is_aggregate_type(type)) {
     clear_constant(con, (a_constant_repr_kind)ck_aggregate);
     con->type = type;
     type = skip_typerefs(type);
@@ -7463,6 +7465,7 @@ which case the resulting constant is an empty aggregate.
                                                                      != NULL) {
       con->partial_aggr_value = TRUE;
     }  /* if */
+    return_value = TRUE;
   }  /* if */
   return return_value;
 }  /* make_value_initialized_constant */
