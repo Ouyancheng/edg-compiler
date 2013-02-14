@@ -41,23 +41,6 @@ decl_inits.c -- Scanning of initializers in declarations.
   ((array_type)->size == 0 ? 1 : (array_type)->size / (elem_type)->size)
 
 
-static void append_constant_in_aggr(a_constant_ptr  econstant,
-                                    a_constant_ptr  aconstant)
-/*
-aconstant is a ck_aggregate constant.  Append econstant to the list embedded in
-aconstant.
-*/
-{
-  add_constant_to_aggregate(econstant, aconstant);
-  if (econstant->is_partially_initialized) {
-    aconstant->is_partially_initialized = TRUE;
-  }  /* if */
-  if (econstant->uses_designated_initializers) {
-    aconstant->uses_designated_initializers = TRUE;
-  }  /* if */
-}  /* append_constant_in_aggr */
-
-
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- init_info is not used in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -849,7 +832,7 @@ of the whole initialization (*is) as appropriate.
       a_constant_ptr  elem_con;
       aggr_init_generic_element(icp, dest_type, is, &elem_con);
       if (elem_con != NULL) {
-        append_constant_in_aggr(elem_con, *init_con);
+        add_constant_to_aggregate(elem_con, *init_con);
       } else {
         check_assertion(is->init_error);
       }  /* if */
@@ -958,7 +941,7 @@ diagnostics.
       a_constant_ptr  elem_con;
       aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
       if (!is->check_validity_only) {
-        append_constant_in_aggr(elem_con, *init_con);
+        add_constant_to_aggregate(elem_con, *init_con);
       }  /* if */
       if (is->pack_expansion_handled) {
         /* If a pack expansion was seen, don't try to track element counts. */
@@ -1044,11 +1027,11 @@ braced initializer (or NULL if there is none) is returned through *p_icp.
   check_assertion(icp != NULL && icp->next != NULL);
   aggr_init_element(&icp, ftype, is, diag_pos, &elem_con);
   if (!is->check_validity_only) {
-    append_constant_in_aggr(elem_con, *init_con);
+    add_constant_to_aggregate(elem_con, *init_con);
   }  /* if */
   aggr_init_element(&icp, ftype, is, diag_pos, &elem_con);
   if (!is->check_validity_only) {
-    append_constant_in_aggr(elem_con, *init_con);
+    add_constant_to_aggregate(elem_con, *init_con);
   }  /* if */
   /* Issue an error if there are extraneous elements. */
   if (icp != NULL) {
@@ -1170,7 +1153,7 @@ with every element initialized with the given constant.
   result->type = atp;
   count = num_array_elements(atp);
   if (count > 1) cp = add_repeat_con(cp, count);
-  if (count > 0) append_constant_in_aggr(cp, result);
+  if (count > 0) add_constant_to_aggregate(cp, result);
   return result;
 }  /* repeat_constant_for_array_init */
 
@@ -1339,7 +1322,7 @@ the position at which diagnostics should be issued.
           remainder_con = add_repeat_con(remainder_con, count);
           remainder_con->implicit_aggr_element = TRUE;
         }  /* if */
-        append_constant_in_aggr(remainder_con, array_con);
+        add_constant_to_aggregate(remainder_con, array_con);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1483,7 +1466,7 @@ available.
       des_con = alloc_constant((a_constant_repr_kind)ck_designator);
       des_con->variant.designator.array_element = *idx;
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
-      append_constant_in_aggr(des_con, aggr_con);
+      add_constant_to_aggregate(des_con, aggr_con);
       aggr_con->uses_designated_initializers = TRUE;
       aggr_con->is_partially_initialized = TRUE;
     }  /* if */
@@ -1530,7 +1513,7 @@ available.
           next_con = add_repeat_con(next_con, repeat_count);
           set_aggr_tail_not_repeated_flag(next_con);
         }  /* if */
-        append_constant_in_aggr(next_con, aggr_con);
+        add_constant_to_aggregate(next_con, aggr_con);
       }  /* if */
     } else {
       expect_error();
@@ -1683,7 +1666,7 @@ initialization).  *is describes the initialization as a whole.
         }  /* if */
         aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
         if (!is->check_validity_only) {
-          append_constant_in_aggr(elem_con, *init_con);
+          add_constant_to_aggregate(elem_con, *init_con);
         }  /* if */
         ++idx;
         if (idx > icount) icount = idx;
@@ -1847,7 +1830,7 @@ dims[rank].  Produce an aggregate constant representing this initialization in
         aggr_init_element(&icp, etype, is, init_component_pos(icp), &elem_con);
       }  /* if */
       if (!is->check_validity_only) {
-        append_constant_in_aggr(elem_con, *result);
+        add_constant_to_aggregate(elem_con, *result);
       }  /* if */
     }  /* for */
     if (deduce_dims && idx > dims[rank]) {
@@ -2060,7 +2043,7 @@ position for which diagnostics should be issued.
         }  /* if */
         /* Add the constant entry to the list of constants. */
         init_con->implicit_aggr_element = TRUE;
-        append_constant_in_aggr(init_con, aggr_con);
+        add_constant_to_aggregate(init_con, aggr_con);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -2199,7 +2182,7 @@ position is available).
     }  /* if */
   }  /* if */
   if (!is->check_validity_only) {
-    append_constant_in_aggr(elem_con, aggr_con);
+    add_constant_to_aggregate(elem_con, aggr_con);
   }  /* if */
   if (class_type->kind == (a_type_kind)tk_union) {
     /* In the case of a union, only one field is usually initialized.
@@ -2255,12 +2238,12 @@ through *p_aggr_con (and its type through *p_class_type).
     } else {
       /* We created a designator->anonymous-union-constant pair in a previous
          iteration.  Append it to the parent anonymous union. */
-      append_constant_in_aggr(des_con, au_con);
+      add_constant_to_aggregate(des_con, au_con);
       au_con->uses_designated_initializers = TRUE;
       if (anon_parent->kind != (a_type_kind)tk_union) {
         au_con->is_partially_initialized = TRUE;
       }  /* if */
-      append_constant_in_aggr(des_con->next, au_con);
+      add_constant_to_aggregate(des_con->next, au_con);
     }  /* if */
     /* Create the designator for the next level out. */
     des_con = alloc_constant((a_constant_repr_kind)ck_designator);
@@ -2272,12 +2255,12 @@ through *p_aggr_con (and its type through *p_class_type).
   /* This routine is only called for fields in anonymous unions that are not
      the original class type.  So we must have iterated at least once. */
   check_assertion(des_con != NULL);
-  append_constant_in_aggr(des_con, orig_aggr_con);
+  add_constant_to_aggregate(des_con, orig_aggr_con);
   orig_aggr_con->uses_designated_initializers = TRUE;
   if (orig_class_type->kind != (a_type_kind)tk_union) {
     orig_aggr_con->is_partially_initialized = TRUE;
   }  /* if */
-  append_constant_in_aggr(des_con->next, orig_aggr_con);
+  add_constant_to_aggregate(des_con->next, orig_aggr_con);
 }  /* make_designators_for_nested_anonymous_union */
 
 
@@ -2391,7 +2374,7 @@ specific position is available.
       des_con = alloc_constant((a_constant_repr_kind)ck_designator);
       des_con->variant.designator.field = *field;
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
-      append_constant_in_aggr(des_con, aggr_con);
+      add_constant_to_aggregate(des_con, aggr_con);
       aggr_con->uses_designated_initializers = TRUE;
       if (class_type->kind != (a_type_kind)tk_union) {
         aggr_con->is_partially_initialized = TRUE;
@@ -2415,7 +2398,7 @@ specific position is available.
         if (next_con == NULL) {
           check_assertion(is->init_error);
         } else if (!is->check_validity_only) {
-          append_constant_in_aggr(next_con, aggr_con);
+          add_constant_to_aggregate(next_con, aggr_con);
         }  /* if */
       } else {
         aggr_init_field(&icp, field, is, aggr_con, diag_pos);

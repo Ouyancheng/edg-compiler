@@ -4955,8 +4955,9 @@ character kind.
 void add_constant_to_aggregate(a_constant_ptr con,
                                a_constant_ptr aggr_con)
 /*
-Add con at the end of the list of constants in the aggregate constant
-aggr_con.
+Add con at the end of the list of constants in the aggregate constant aggr_con.
+Update some flags in aggr_con if appropriate (e.g., if con uses a designated
+initializer, then aggr_con does also).
 */
 {
   check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
@@ -4966,6 +4967,12 @@ aggr_con.
     aggr_con->variant.aggregate.last_constant->next = con;
   }  /* if */
   aggr_con->variant.aggregate.last_constant = con;
+  if (con->is_partially_initialized) {
+    aggr_con->is_partially_initialized = TRUE;
+  }  /* if */
+  if (con->uses_designated_initializers) {
+    aggr_con->uses_designated_initializers = TRUE;
+  }  /* if */
 }  /* add_constant_to_aggregate */
   
 
