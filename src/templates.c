@@ -11193,13 +11193,16 @@ accordingly.
                                               template_sym,
                                               rp->template_arg_list,
                                               /*push_lex_state=*/TRUE,
-				            ps_options);
+	                                      ps_options);
       /* Recreate a function prototype scope equivalent to the original. */
       (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                        rp->type, (a_routine_ptr)NULL);
       /* exception_spec_decl_seq is used in g++ mode to limit visibility
          of names used in exception specification to those previously
-         declared in a class. */
+         declared in a class.  The exception_specification flag is normally
+         set by the scopes pushed above, but in prototype instantiations
+         of class members this is sometimes not the case. */
+      scope_stack_top().exception_specification = TRUE;
       scope_stack_top().exception_spec_decl_seq = sym->decl_seq - 1;
       init_decl_parse_state(&dps);
       dps.sym = sym;
