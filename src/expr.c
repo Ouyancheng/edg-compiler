@@ -20769,6 +20769,7 @@ static void scan_functional_notation_type_conversion(
                                     a_boolean                arg_list_supplied,
                                     an_arg_list_elem_ptr     supplied_arg_list,
                                     a_type_ptr               type_cast_to,
+                                    a_boolean                force_dependent,
                                     a_source_position        *start_position,
                                     an_operand               *result,
                                     a_local_expr_options_set local_options)
@@ -20788,7 +20789,9 @@ If rescan_dip is non-NULL, use that as the cast in place of
 rcblock->expr.  If arg_list_supplied is TRUE, a third interface
 alternative: the possibly-empty list of arguments is supplied by
 supplied_arg_list, and no source is scanned.  supplied_arg_list is not
-freed by this routine.
+freed by this routine.  force_dependent is used for a particular
+Microsoft-mode bug and forces a cast to a class type to be seen as
+dependent even though type_cast_to is not dependent.
 */
 {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -20853,6 +20856,9 @@ freed by this routine.
     type_cast_to = map_cli_system_type_to_fundamental_type(type_cast_to);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (force_dependent && !is_class_struct_union_type(type_cast_to)) {
+    force_dependent = FALSE;
+  }  /* if */
   /* Check the type to see if it is valid in general terms.  Note that
      this does a worthwhile check even in the class case (abstract class).
      However, cv-qualifiers cannot syntactically appear in this sort of
@@ -20889,7 +20895,7 @@ freed by this routine.
     err = TRUE;
   }  /* if */
   /* See if we have a case that is clearly a constructor call. */
-  if (is_class_struct_union_type(type_cast_to)) {
+  if (is_class_struct_union_type(type_cast_to) && !force_dependent) {
     /* If the class is a template class, instantiate it to make its
        constructors visible. */
     instantiate_template_class(type_cast_to);
@@ -20973,7 +20979,7 @@ freed by this routine.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
-  } else if (could_be_dependent_class_type(type_cast_to)) {
+  } else if (could_be_dependent_class_type(type_cast_to) || force_dependent) {
     /* A cast to a template parameter type (which might be a class) or a
        nonreal class in a prototype instantiation.  This is handled specially
        because it may have more than one argument or zero arguments. */
@@ -21010,9 +21016,13 @@ freed by this routine.
         make_error_operand(result);
         err = TRUE;
       } else {
-        temp_init_node = alloc_temp_init_node(type_cast_to, dip,
-                                              /*is_lvalue=*/FALSE,
-                                              /*is_explicit_cast=*/TRUE);
+        temp_init_node = alloc_temp_init_node(
+                                        force_dependent ?
+                                          type_of_unknown_templ_param_nontype :
+                                          type_cast_to,
+                                        dip,
+                                        /*is_lvalue=*/FALSE,
+                                        /*is_explicit_cast=*/TRUE);
         make_expression_operand(temp_init_node, result);
       }  /* if */
       rule_out_expr_kinds(ROEK_CONSTANT, result);
@@ -26822,7 +26832,21 @@ overloaded_function:
               ((ntoken = next_token()) == tok_lparen ||
                (list_init_enabled && ntoken == tok_lbrace))) {
             /* In C++, a functional-notation type conversion. */
+            a_boolean  force_dependent = FALSE;
             a_type_ptr cast_type = type_symbol_type(sym_ptr);
+            if (microsoft_bugs && cpp11_sfinae_enabled &&
+                expr_stack->is_type_operator_arg_expression &&
+                sym_ptr->is_template_param &&
+                sym_ptr->kind == (a_symbol_kind)sk_type &&
+                scope_stack_top().kind ==
+                                      (a_scope_kind)sck_template_declaration &&
+                !is_template_param_type(sym_ptr->variant.type.ptr)) {
+              /* MSVC ignores tokens in decltypes in template declarations,
+                 so treat certain types in that context as dependent so
+                 we won't issue an error (then later SFINAE will get it
+                 right). */
+              force_dependent = TRUE;
+            }  /* if */
             if (microsoft_bugs && locator.is_qualified_name &&
                 !locator.is_file_scope_qualified_name) {
               /* The Microsoft compiler allows typename to be used in many
@@ -26837,6 +26861,7 @@ overloaded_function:
                                                   /*arg_list_supplied=*/FALSE,
                                                   (an_arg_list_elem *)NULL,
                                                   cast_type,
+                                                  force_dependent,
                                                   &start_position,
                                                   result,
                                                   local_options);
@@ -28935,6 +28960,7 @@ type_start:
                                                 /*arg_list_supplied=*/FALSE,
                                                 (an_arg_list_elem *)NULL,
                                                 cast_type,
+                                                /*force_dependent=*/FALSE,
                                                 &start_position,
                                                 &local_result,
                                                 local_options);
@@ -35125,6 +35151,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
                                                  /*arg_list_supplied=*/FALSE,
                                                  (an_arg_list_elem *)NULL,
                                                  (a_type_ptr)NULL,
+                                                 /*force_dependent=*/FALSE,
                                                  (a_source_position *)NULL,
                                                  result,
                                                  local_options);
@@ -35388,6 +35415,7 @@ dynamic initialization after substitution.
                                              /*arg_list_supplied=*/FALSE,
                                              (an_arg_list_elem *)NULL,
                                              (a_type_ptr)NULL,
+                                             /*force_dependent=*/FALSE,
                                              (a_source_position *)NULL,
                                              result,
                                              EOPT_NO_OPTIONS);
@@ -37030,6 +37058,7 @@ empty) list of type operands args, and returns TRUE if so.
                                              /*arg_list_supplied=*/TRUE,
                                              arg_list,
                                              dst_type,
+                                             /*force_dependent=*/FALSE,
                                              &null_source_position,
                                              &operand,
                                              EOPT_NO_OPTIONS);

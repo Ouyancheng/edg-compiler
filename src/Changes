@@ -1,5 +1,31 @@
 Version 4.6
 
+2/14/13  [EDGcpfe/13655]
+Microsoft C++: suppressing errors on decltype in nested template declaration
+
+The MSVC compiler does limited parsing of decltype expressions when a
+template declaration is scanned, and as a consequence in a case like
+the one below it gives no error on the declaration where the nested
+template uses a template parameter from the enclosing template that is
+known when the template declaration is processed in the instantiation
+of A<B> (that is, Fun().func() is not dependent then and should get an
+error).  We now avoid that error as well, leaving it to be caught
+(silently) during SFINAE processing.
+
+  template<typename Fun> struct A {
+    template<class U>
+    static decltype(Fun().func(), char()) Test(Fun* f); // Does not use U
+    template<class U> static int Test(...);
+    static const bool value = sizeof(Test<Fun>((Fun*)0)) == sizeof(char);
+  };
+  struct B {
+    void func(int);
+  };
+  int main() {
+    int a[!A<B>::value ? 1 : -1];
+  }
+
+
 2/14/13  [EDGcpfe/13657]
 Generation of special member definition on use in default argument
 
