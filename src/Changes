@@ -1,5 +1,27 @@
 Version 4.6
 
+2/14/13  [EDGcpfe/13657]
+Generation of special member definition on use in default argument
+
+The front end has for some time delayed instantiating template functions
+referenced within a default argument expression until the default
+argument is actually used.  It had not done similar processing for the
+generation of definitions of special member functions (e.g., default
+constructors).  As a consequence, in a case like the one below, it got
+very confused and generated a routine entry that was missing some
+parameters.  In a C-generating back end version this caused an abort
+in c_gen_be.c.  Now fixed, by delaying the generation of the special
+member definitions to the first use of the default argument.
+
+  struct X { X(); };
+  struct A {
+    X x;
+    A() = default;
+    template <class T> A(const volatile A&&, A&& = A(), char* = 0) {}
+  };
+  A a;
+
+
 2/12/13  [EDGcpfe/13578]
 C++-generating back end: #pragma pack for union defined in typedef
 

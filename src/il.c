@@ -19755,9 +19755,6 @@ but do not mark the routine as actually referenced.
       parent_class_of(routine)->source_corresp.referenced = TRUE;
     }  /* if */
   }  /* if */
-  /* If the routine is compiler-generated and its definition has not
-     yet been put out, force the definition now. */
-  force_definition_of_compiler_generated_routine(routine);
   /* In some modes, friend functions defined in class templates are
      only analyzed if they are used.  A non-NULL routine_fixup pointer
      indicates that the definition has not yet been processed.  This special
@@ -19786,6 +19783,11 @@ but do not mark the routine as actually referenced.
       check_assertion(curr_routine != NULL);
       if (!curr_routine->is_inline) instantiate = FALSE;
     }  /* if */
+  }  /* if */
+  /* If the routine is compiler-generated and its definition has not
+     yet been put out, force the definition now. */
+  if (instantiate) {
+    force_definition_of_compiler_generated_routine(routine);
   }  /* if */
   /* If the function is an instance of a function template, mark it
      as requiring an instantiation.  This is also done for extern inline
