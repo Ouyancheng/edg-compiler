@@ -2237,7 +2237,7 @@ The aggregate constant representing the innermost anonymous union is returned
 through *p_aggr_con (and its type through *p_class_type).
 */
 {
-  a_type_ptr      orig_class_type = *p_class_type;
+  a_type_ptr      orig_class_type = skip_typerefs(*p_class_type);
   a_constant_ptr  orig_aggr_con = *p_aggr_con, des_con = NULL, au_con;
 
   /* Move up the anonymous union parent object chain and create a designator
@@ -2257,6 +2257,9 @@ through *p_aggr_con (and its type through *p_class_type).
          iteration.  Append it to the parent anonymous union. */
       append_constant_in_aggr(des_con, au_con);
       au_con->uses_designated_initializers = TRUE;
+      if (anon_parent->kind != (a_type_kind)tk_union) {
+        au_con->is_partially_initialized = TRUE;
+      }  /* if */
       append_constant_in_aggr(des_con->next, au_con);
     }  /* if */
     /* Create the designator for the next level out. */
@@ -2271,6 +2274,9 @@ through *p_aggr_con (and its type through *p_class_type).
   check_assertion(des_con != NULL);
   append_constant_in_aggr(des_con, orig_aggr_con);
   orig_aggr_con->uses_designated_initializers = TRUE;
+  if (orig_class_type->kind != (a_type_kind)tk_union) {
+    orig_class_type->is_partially_initialized = TRUE;
+  }  /* if */
   append_constant_in_aggr(des_con->next, orig_aggr_con);
 }  /* make_designators_for_nested_anonymous_union */
 
@@ -2376,8 +2382,10 @@ specific position is available.
   if (okay) {
     /* Designators complicate the determination of whether an aggregate
        initializer completely covers the target entity.  Assume partial
-       initialization by default. */
-    is->partial_initializer = TRUE;
+       initialization by default (in non-unions). */
+    if (class_type->kind != (a_type_kind)tk_union) {
+      is->partial_initializer = TRUE;
+    }  /* if */
     if (!is->check_validity_only) {
       a_constant_ptr  des_con;
       des_con = alloc_constant((a_constant_repr_kind)ck_designator);
@@ -2385,7 +2393,9 @@ specific position is available.
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
       append_constant_in_aggr(des_con, aggr_con);
       aggr_con->uses_designated_initializers = TRUE;
-      aggr_con->is_partially_initialized = TRUE;
+      if (class_type->kind != (a_type_kind)tk_union) {
+        aggr_con->is_partially_initialized = TRUE;
+      }  /* if */
     }  /* if */
     if (icp != NULL) {
       /* Process the component following this designator.  If it is another
