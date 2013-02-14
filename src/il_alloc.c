@@ -870,6 +870,7 @@ associated variant fields to default values.
 #endif /* BACK_END_IS_C_GEN_BE */
   cp->is_named_constant_definition = FALSE;
   cp->partial_aggr_value = FALSE;
+  cp->is_partially_initialized = FALSE;
   cp->implicit_aggr_element = FALSE;
   cp->is_compound_literal = FALSE;
   cp->is_result_of_constexpr_call = FALSE;

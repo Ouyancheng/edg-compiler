@@ -1067,6 +1067,9 @@ Display the indicated constant entry.
   if (ptr->partial_aggr_value) {
     disp_boolean("partial_aggr_value", TRUE);
   }  /* if */
+  if (ptr->is_partially_initialized) {
+    disp_boolean("is_partially_initialized", TRUE);
+  }  /* if */
   if (ptr->implicit_aggr_element) {
     disp_boolean("implicit_aggr_element", TRUE);
   }  /* if */

@@ -49,6 +49,9 @@ aconstant.
 */
 {
   add_constant_to_aggregate(econstant, aconstant);
+  if (econstant->is_partially_initialized) {
+    aconstant->is_partially_initialized = TRUE;
+  }  /* if */
   if (econstant->uses_designated_initializers) {
     aconstant->uses_designated_initializers = TRUE;
   }  /* if */
@@ -970,6 +973,10 @@ diagnostics.
     } else if (icp == NULL && icount < ecount) {
       /* No more initializers, but not all elements were initialized. */
       is->partial_initializer = TRUE;
+      if (!is->check_validity_only) {
+        (*init_con)->partial_aggr_value = TRUE;
+        (*init_con)->is_partially_initialized = TRUE;
+      }  /* if */
     }  /* if */
     if (braced) {
       /* The caller should move on to the component that follows the braced
@@ -1193,13 +1200,17 @@ size.
       success = TRUE;
       if (check_string_constant_initializer_full(p_array_type, string_constant,
                                                  p_excess)) {
+        if (!is->check_validity_only) {
+          *result = alloc_unshared_constant(string_constant);
+        }  /* if */
         if (!has_unknown_specified_bound(*p_array_type) &&
             num_array_elements(*p_array_type) >
                                   num_array_elements(string_constant->type)) {
           is->partial_initializer = TRUE;
-        }  /* if */
-        if (!is->check_validity_only) {
-          *result = alloc_unshared_constant(string_constant);
+          if (!is->check_validity_only) {
+            (*result)->partial_aggr_value = TRUE;
+            (*result)->is_partially_initialized = TRUE;
+          }  /* if */
         }  /* if */
         if (strict_ansi_mode && !list_init_enabled && !is->no_diagnostics &&
             is_parenthesized_component(icp)) {
@@ -1340,7 +1351,10 @@ the position at which diagnostics should be issued.
     /* The missing initializations are not explicit in the initializer.  Set
        the partial initializer flag in the initializer state. */
     is->partial_initializer = TRUE;
-    if (array_con != NULL) array_con->partial_aggr_value = TRUE;
+    if (array_con != NULL) {
+      array_con->partial_aggr_value = TRUE;
+      array_con->is_partially_initialized = TRUE;
+    }  /* if */
   }  /* if */
 }  /* aggr_init_array_remainder_if_needed */
 
@@ -2043,6 +2057,7 @@ position for which diagnostics should be issued.
                  aggregate constant does not cover all the elements of the
                  destination type. */
               init_con->partial_aggr_value = TRUE;
+              init_con->is_partially_initialized = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -2056,11 +2071,17 @@ position for which diagnostics should be issued.
   if (last_dyn_field == NULL) {
     if (next_field != NULL) {
       is->partial_initializer = TRUE;
-      if (aggr_con != NULL) aggr_con->partial_aggr_value = TRUE;
+      if (aggr_con != NULL) {
+        aggr_con->partial_aggr_value = TRUE;
+        aggr_con->is_partially_initialized = TRUE;
+      }  /* if */
     }  /* if */
   } else if (next_initializable_field(last_dyn_field->next) != NULL) {
     is->partial_initializer = TRUE;
-    if (aggr_con != NULL) aggr_con->partial_aggr_value = TRUE;
+    if (aggr_con != NULL) {
+      aggr_con->partial_aggr_value = TRUE;
+      aggr_con->is_partially_initialized = TRUE;
+    }  /* if */
   }  /* if */
 }  /* aggr_init_class_remainder_if_needed */
 
@@ -4531,7 +4552,10 @@ FALSE is returned) for non-class objects.
           }  /* if */
           cp->type = tp;
           if (tp->variant.class_struct_union.has_zero_init_component) {
+            /* An empty aggregate doesn't actually explicitly initialize all
+               the subobjects.  Flag the constant accordingly. */
             cp->partial_aggr_value = TRUE;
+            cp->is_partially_initialized = TRUE;
           }  /* if */
         }  /* if */
       } else if (var->is_constexpr) {
@@ -5280,7 +5304,7 @@ cases, array_type is NULL).
     if (dependent_class_init) {
       scan_dependent_type_parenthesized_initializer(&is);
     } else {
-      a_type_ptr     object_class_type;
+      a_type_ptr  object_class_type;
       /* If it is a base class, the object being constructed is the whole
          class (and the base class is a subobject thereof).  If it is a field,
          the object being constructed is the field itself.  Set the object
