@@ -1207,10 +1207,6 @@ size.
             num_array_elements(*p_array_type) >
                                   num_array_elements(string_constant->type)) {
           is->partial_initializer = TRUE;
-          if (!is->check_validity_only) {
-            (*result)->partial_aggr_value = TRUE;
-            (*result)->is_partially_initialized = TRUE;
-          }  /* if */
         }  /* if */
         if (strict_ansi_mode && !list_init_enabled && !is->no_diagnostics &&
             is_parenthesized_component(icp)) {
