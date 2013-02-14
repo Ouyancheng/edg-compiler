@@ -10099,14 +10099,7 @@ was used).
     sym = NULL;
   } else {
     /* See if there's already a member function with this name. */
-    if (decl_info->is_constructor) {
-      /* For constructors retrieve the constructor symbol directly because in
-         some error cases ordinarily lookup might find a non-constructor entity
-         with the same name as the parent class. */
-      sym = symbol_supplement_for_class(class_type)->constructor;
-    } else {
-      sym = find_direct_member_function(locator, class_type);
-    }  /* if */
+    sym = find_direct_member_function(locator, class_type);
     if (sym != NULL) {
       /* A member function by this name has already been entered into the
          symbol table.  This could be a redeclaration, which is illegal for
