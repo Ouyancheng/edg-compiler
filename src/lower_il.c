@@ -4686,6 +4686,60 @@ constants in the aggregate will work properly).
   }  /* if */
 }  /* remove_initializers_for_empty_base_classes */
 
+#if IA64_ABI
+
+static void arrange_aggregate_constant_in_layout_order(a_constant_ptr aggr_con)
+/*
+If the type of the aggregate constant is one where lowering has re-ordered
+the base classes such that the base class order is different than the
+canonical ordering, re-arrange the initializers in the aggregate constant
+to match the layout ordering (the front end uses canonical ordering when
+creating an aggregate constant).  This routine only affects ordering in the
+top level of the aggregate constant (i.e., it's not recursive).
+This processing isn't necessary in the Cfront ABI.
+*/
+{
+  a_type_ptr  class_type = skip_typerefs(aggr_con->type);
+
+  if (is_immediate_class_type(class_type)) {
+    a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
+    a_constant_ptr  cp, prev = NULL;
+    if (ctsp->primary_base_class != NULL &&
+        ctsp->primary_base_class != ctsp->base_classes) {
+      /* In this case, lowering has placed the primary base class at offset
+         zero, which means that the ordering of constants in the aggregate
+         does not match the ordering of the fields that is returned
+         by next_initializable_field.  Find the initializer for the
+         primary base class and move it to the beginning of the aggregate
+         so it'll match the layout order. */
+#if CHECKING
+        a_boolean found = FALSE;
+#endif /* CHECKING */
+      for (cp = aggr_con->variant.aggregate.first_constant;
+           cp != NULL;
+           cp = cp->next) {
+        if (identical_types(cp->type, ctsp->primary_base_class->type)) {
+          if (prev != NULL) {
+            prev->next = cp->next;
+            cp->next = aggr_con->variant.aggregate.first_constant;
+            aggr_con->variant.aggregate.first_constant = cp;
+            if (aggr_con->variant.aggregate.last_constant == cp) {
+              aggr_con->variant.aggregate.last_constant = prev;
+            }  /* if */
+          }  /* if */
+#if CHECKING
+          found = TRUE;
+#endif /* CHECKING */
+          break;
+        }  /* if */
+        prev = cp;
+      }  /* for */
+      check_assertion(found || aggr_con->partial_aggr_value);
+    }  /* if */
+  }  /* if */
+}  /* arrange_aggregate_constant_in_layout_order */
+
+#endif /* IA64_ABI */
 
 void lower_constant(a_constant_ptr constant)
 /*
@@ -4802,6 +4856,12 @@ Do IL lowering of the indicated constant and everything under it.
            aggregate so those routines won't have to handle initializers
            for optimized empty base classes. */
         remove_initializers_for_empty_base_classes(constant);
+#if IA64_ABI
+        /* If necessary, re-arrange the initializers in the aggregate constant
+           to match the layout order.  Do this prior to any lowering that
+           relies on next_initializable_field. */
+        arrange_aggregate_constant_in_layout_order(constant);
+#endif /* IA64_ABI */
 #if LOWER_DESIGNATED_INITIALIZERS
         /* Re-write any designated initializers in the aggregate constant. */
         lower_designated_initializers(constant,
