@@ -4970,7 +4970,8 @@ initializer, then aggr_con does also).
   if (con->is_partially_initialized) {
     aggr_con->is_partially_initialized = TRUE;
   }  /* if */
-  if (con->uses_designated_initializers) {
+  if (con->uses_designated_initializers ||
+      con->kind == (a_constant_repr_kind)ck_designator) {
     aggr_con->uses_designated_initializers = TRUE;
   }  /* if */
 }  /* add_constant_to_aggregate */

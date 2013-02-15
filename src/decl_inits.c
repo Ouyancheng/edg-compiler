@@ -1467,7 +1467,6 @@ available.
       des_con->variant.designator.array_element = *idx;
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
       add_constant_to_aggregate(des_con, aggr_con);
-      aggr_con->uses_designated_initializers = TRUE;
       aggr_con->is_partially_initialized = TRUE;
     }  /* if */
     if (icp != NULL) {
@@ -2239,7 +2238,6 @@ through *p_aggr_con (and its type through *p_class_type).
       /* We created a designator->anonymous-union-constant pair in a previous
          iteration.  Append it to the parent anonymous union. */
       add_constant_to_aggregate(des_con, au_con);
-      au_con->uses_designated_initializers = TRUE;
       if (anon_parent->kind != (a_type_kind)tk_union) {
         au_con->is_partially_initialized = TRUE;
       }  /* if */
@@ -2256,7 +2254,6 @@ through *p_aggr_con (and its type through *p_class_type).
      the original class type.  So we must have iterated at least once. */
   check_assertion(des_con != NULL);
   add_constant_to_aggregate(des_con, orig_aggr_con);
-  orig_aggr_con->uses_designated_initializers = TRUE;
   if (orig_class_type->kind != (a_type_kind)tk_union) {
     orig_aggr_con->is_partially_initialized = TRUE;
   }  /* if */
@@ -2375,7 +2372,6 @@ specific position is available.
       des_con->variant.designator.field = *field;
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
       add_constant_to_aggregate(des_con, aggr_con);
-      aggr_con->uses_designated_initializers = TRUE;
       if (class_type->kind != (a_type_kind)tk_union) {
         aggr_con->is_partially_initialized = TRUE;
       }  /* if */
