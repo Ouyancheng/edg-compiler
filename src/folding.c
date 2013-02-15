@@ -9209,6 +9209,9 @@ fold_constexpr_ctor should usually be called instead.
           if (!fold_dynamic_init(dip, member_type, ceblock, &member_con)) {
             goto fail;
           }  /* if */
+          if (field == NULL) {
+            member_con.constant_for_base_class_from_constexpr_folding = TRUE;
+          }  /* if */
           member_con_ptr = alloc_unshared_constant(&member_con);
           if (field != NULL) {
             /* Add extra ck_aggregate levels for an anonymous union field. */

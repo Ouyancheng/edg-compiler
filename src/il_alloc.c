@@ -877,6 +877,7 @@ associated variant fields to default values.
 #if DO_IL_LOWERING
   cp->vptr_has_been_lowered = FALSE;
 #endif /* DO_IL_LOWERING */
+  cp->constant_for_base_class_from_constexpr_folding = FALSE;
 #if CENTERLINE_CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
