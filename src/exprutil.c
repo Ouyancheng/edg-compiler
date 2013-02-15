@@ -8024,7 +8024,7 @@ used only in C++ mode.
     }  /* if */
     if (did_not_fold) {
       /* The cast could not be folded to a constant. */
-      if (curr_expr_kind_is_evaluated_const() &&
+      if (curr_expr_kind_is_traditional_const() && curr_expr_is_evaluated() &&
           !(is_an_lvalue(operand) &&
             (curr_expr_kind_is(ek_template_arg) ||
              curr_expr_kind_is(ek_init_constant)))) {

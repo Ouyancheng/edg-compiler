@@ -9514,25 +9514,9 @@ rvalue result of the field selection.
           obj_expr_con = &local_con;
         }  /* if */
       } else {
-        /* The eok_dot_field case has three possibilities that might allow
-           folding: a constexpr variable, an aggregate constant, or another
-           eok_dot_field expression. */
-        if (is_variable_node(obj_expr)) {
-          /* Check to see if the variable has a constant initializer and,
-             if so, get it. */
-          obj_expr_con = var_constant_value(obj_expr->variant.variable);
-        } else if (is_constant_node(obj_expr)) {
-          /* The object expression has already been folded to a constant, so
-             we can use it directly. */
-          obj_expr_con = obj_expr->variant.constant;
-        } else if (is_operation_node(obj_expr) &&
-                   node_operator_is(obj_expr, eok_dot_field)) {
-          /* Recursively check to see if the object expression can be
-             folded to a constant. */
-          if (fold_constexpr_member_selection(obj_expr, &local_con)) {
-            obj_expr_con = &local_con;
-          }  /* if */
-        }  /* if */
+        /* The member selection can be folded if the object expression
+           addresses a constant value. */
+        obj_expr_con = constant_value_addressed_by_node(obj_expr);
       }  /* if */
       /* If we have a constant for the first operand, see if we can fold the
          whole selection to a constant result. */
