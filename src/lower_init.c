@@ -1526,6 +1526,7 @@ in the aggregate have not been lowered (and aren't lowered here).
     } else {
       check_assertion(ctsp->virtual_function_table_var != NULL);
       if (cot_ctsp->virtual_function_info_base_class != NULL &&
+          needs_virtual_function_table(complete_object_type) &&
           identical_types(cot_ctsp->virtual_function_info_base_class->type,
                           class_type)) {
         /* This base class is sharing a vptr with complete_object_type;
