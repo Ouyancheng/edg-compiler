@@ -1,5 +1,14 @@
 Version 4.6
 
+2/15/13  [EDGcpfe/13613]
+Spurious warning when building front end with Microsoft compilers
+
+Building the front end with Microsoft compilers could potentially produce a
+spurious warning about an uninitialized local variable "saved_is" in function
+process_simple_init_component (decl_inits.c).  Some code in that function has
+been rearranged to avoid that warning.
+
+
 2/15/13  [EDGcpfe/13639]
 GNU C++ compatibility: Effect of "packed" pragma on non-POD fields
 

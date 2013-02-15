@@ -2940,9 +2940,11 @@ variable initialization.
       icp = icp->variant.braced.list;
       icp2 = icp->next;
       icp->next = NULL;
-      saved_is = *is;
     }  /* if */
   }  /* if */
+  /* The following initialization of saved_is is done unconditionally to avoid
+     a spurious warning by Microsoft compilers. */
+  saved_is = *is;
   convert_initializer(icp, dtype, is_var_init, /*fill_in_dtor=*/TRUE, is);
   while (icp2 != NULL) {
     /* If there are more components following the second one, detach them:
