@@ -25615,9 +25615,17 @@ be a syntax error showing up in the next file.  I.e., something like:
   }  /* if */
 }  /* check_for_file_with_unterminated_type_definition */
 
+#if USER_CONTROL_OF_STRUCT_PACKING
 
 static void record_max_member_alignment_if_needed(a_type_ptr  class_type)
 /*
+If a "#pragma pack(n)" directive or an equivalent command-line option is in
+effect, record the implied maximum member alignment in the given class (which
+is about to be defined).  If any packing attributes have already been applied
+the presence of the directive is recorded as an internal attribute: It usually
+has no effect, but in some GNU modes the attribute is ignored for some fields
+(and the internal attribute is then consulted to determine the effective
+alignment of those fields).
 */
 { a_targ_alignment  max_member_alignment = 
                                     current_max_alignment_for_class_members();
@@ -25653,6 +25661,7 @@ static void record_max_member_alignment_if_needed(a_type_ptr  class_type)
   }  /* if */
 }  /* record_max_member_alignment_if_needed */
 
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
