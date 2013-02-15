@@ -25638,8 +25638,9 @@ static void record_max_member_alignment_if_needed(a_type_ptr  class_type)
       an_attribute_arg_ptr    aap = alloc_attribute_arg();
       a_memory_region_number  region_to_switch_back_to;
       a_constant              constant;
-      set_unsigned_integer_constant(&constant, max_member_alignment,
-                                    (an_integer_kind)ik_unsigned_long);
+      set_unsigned_integer_constant(
+                       &constant, (a_host_large_unsigned)max_member_alignment,
+                       (an_integer_kind)ik_unsigned_long);
       ap->kind = (a_byte_attribute_kind)ak_pragma_pack_state;
       ap->on_primary_declaration = TRUE;
       ap->arguments = aap;
