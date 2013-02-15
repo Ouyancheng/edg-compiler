@@ -767,16 +767,38 @@ only).
   if (gpp_mode && gnu_version >= 30400 && !field->is_packed &&
       class_type->variant.class_struct_union.max_member_alignment > 0 &&
       class_type->variant.class_struct_union.max_member_alignment
-                                                          < field_alignment) {
+                                                          < field_alignment &&
+      find_attribute(ak_packed, class_type->source_corresp.attributes)
+                                                                    != NULL) {
     /* Check whether the given field has a non-packed, non-POD type.  In that
-       case, class-level packing should be ignored. */
+       case, class-level packing coming from an attribute should be ignored
+       (but packing coming from a pragma remains in effect). */
     a_type_ptr  ftp = field->type;
     if (is_array_type(ftp)) ftp = underlying_array_element_type(ftp);
     ftp = skip_typerefs(ftp);
     if (is_immediate_class_type(ftp) &&
         !ftp->variant.class_struct_union.is_packed &&
         symbol_for(ftp) != NULL && !symbol_supplement_for_class(ftp)->is_POD) {
+      a_targ_alignment  pragma_alignment = 0;
+      an_attribute_ptr  psap = find_attribute(
+                                       ak_pragma_pack_state,
+                                       class_type->source_corresp.attributes);
       ignore_packing = TRUE;
+      if (psap != NULL) {
+        /* The presence of a ak_pragma_pack_state internal attribute indicates
+           that a "#pragma pack..." directive (or an equivalent command-line
+           option) was in effect at the time of the class definition.  Since
+           we are ignoring the "packed" attribute, we must fall back on that
+           directive. */
+        a_boolean  ovflo;
+        pragma_alignment = (a_targ_alignment)
+                             unsigned_value_of_integer_constant(
+                                   psap->arguments->variant.constant, &ovflo);
+        check_assertion(pragma_alignment != 0 && !ovflo);
+        if (pragma_alignment < field_alignment) {
+          field_alignment = pragma_alignment;
+        }  /* if */
+      }  /* if */
       if (!for_alignof) {
         pos_ty_warning(ec_no_packing_of_non_POD_field,
                        &field->source_corresp.decl_position, field->type);

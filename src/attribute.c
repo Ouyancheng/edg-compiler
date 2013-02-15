@@ -668,6 +668,9 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_edg_e1, "", apply_edg_e1_attr },
   { ak_edg_n1, "", apply_edg_n1_attr },
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
+
+  { ak_pragma_pack_state, "", NO_APPL_FN },
+
   { ak_last, "!!ERROR", NO_APPL_FN }
 };
 
@@ -5265,6 +5268,7 @@ entity.
 */
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
+  check_assertion(gnu_mode || sun_mode);
   if (entity_kind == iek_field) {
     ((a_field_ptr)entity)->is_packed = TRUE;
   } else if (entity_kind == iek_type) {

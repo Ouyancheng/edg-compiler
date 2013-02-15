@@ -25616,6 +25616,43 @@ be a syntax error showing up in the next file.  I.e., something like:
 }  /* check_for_file_with_unterminated_type_definition */
 
 
+static void record_max_member_alignment_if_needed(a_type_ptr  class_type)
+/*
+*/
+{ a_targ_alignment  max_member_alignment = 
+                                    current_max_alignment_for_class_members();
+  if (max_member_alignment != 0) {
+    /* The maximum alignment of a member is limited by a pragma or by a
+       command-line directive.  If an attribute has already been applied to
+       achieve the same effect, record this maximum in the class directly;
+       otherwise, record it as a pseudo-attribute (this is useful in some GNU
+       modes because for some members an attribute it ignored in favor of
+       a pragma). */
+    if (class_type->variant.class_struct_union.max_member_alignment == 0) {
+      class_type->variant.class_struct_union.max_member_alignment =
+                                                         max_member_alignment;
+    } else {
+      /* Create an internal attribute representing the maximum member alignment
+         currently in effect for classes without the "packed" attribute. */
+      an_attribute_ptr        ap = alloc_attribute();
+      an_attribute_arg_ptr    aap = alloc_attribute_arg();
+      a_memory_region_number  region_to_switch_back_to;
+      a_constant              constant;
+      set_unsigned_integer_constant(&constant, max_member_alignment,
+                                    (an_integer_kind)ik_unsigned_long);
+      ap->kind = (a_byte_attribute_kind)ak_pragma_pack_state;
+      ap->on_primary_declaration = TRUE;
+      ap->arguments = aap;
+      aap->kind = (an_attribute_arg_kind)aak_constant;
+      switch_to_file_scope_region(&region_to_switch_back_to);
+      aap->variant.constant = alloc_shareable_constant(&constant);
+      switch_back_to_original_region(region_to_switch_back_to);
+      *last_attribute_link(&class_type->source_corresp.attributes) = ap;
+    }  /* if */
+  }  /* if */
+}  /* record_max_member_alignment_if_needed */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL.
@@ -25705,12 +25742,7 @@ classes.
      for which bitwise copy is not allowed. */
   cssp->assignment_by_bitwise_copy_allowed = TRUE;
 #if USER_CONTROL_OF_STRUCT_PACKING
-  if (class_type->variant.class_struct_union.max_member_alignment == 0) {
-    /* Determine the alignment adjustment required for packing (unless it was
-       already set). */
-    class_type->variant.class_struct_union.max_member_alignment =
-                                  current_max_alignment_for_class_members();
-  }  /* if */
+  record_max_member_alignment_if_needed(class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

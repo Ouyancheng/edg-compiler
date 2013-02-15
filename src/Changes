@@ -1,5 +1,28 @@
 Version 4.6
 
+2/15/13  [EDGcpfe/13639]
+GNU C++ compatibility: Effect of "packed" pragma on non-POD fields
+
+The changes for EDGcpfe/12297 (see entry of 9/28/11) cause the front end to
+ignore a packing directive applied to a class when aligning its field of
+non-packed, non-POD class type.  However, it appears GCC only ignores the
+packing directive imposed by attributes in this way: Packing directives from
+"#pragma pack(n)" directives remain in effect.  For example:
+
+  struct NonPOD { NonPOD(); int x; };
+  #pragma pack(2)
+  struct __attribute((packed)) P {
+    NonPOD np;
+    char c;
+  };
+  #pragma pack()
+
+Assuming type int is 4-byte aligned and GNU mode with gnu_version >= 30400,
+field np would previously have been aligned to a 4-byte boundary, and type P
+would have had size 8.  Now field np is aligned to a 2-byte boundary (as
+constrained by the pragma) and type P has size 6.
+
+
 2/15/13  [EDGcpfe/8523]
 New ck_address/abk_temporary constant (IL CHANGE)
 

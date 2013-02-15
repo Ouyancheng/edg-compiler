@@ -2344,6 +2344,11 @@ typedef enum an_attribute_kind_tag {
   ak_edg_e1,		/* "edg::e1" (always triggers an error). */
   ak_edg_n1,		/* "edg::n1" (must appear in namespace scope). */
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
+
+  /* Other attributes. */
+  ak_pragma_pack_state,	/* A pseudo-attribute used to record the current
+			   value of "#pragma pack(n)" directives in some
+			   cases. */
   ak_last
 } an_attribute_kind;
 
