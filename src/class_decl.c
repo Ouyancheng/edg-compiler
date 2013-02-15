@@ -25627,15 +25627,15 @@ has no effect, but in some GNU modes the attribute is ignored for some fields
 (and the internal attribute is then consulted to determine the effective
 alignment of those fields).
 */
-{ a_targ_alignment  max_member_alignment = 
+{
+  a_targ_alignment  max_member_alignment = 
                                     current_max_alignment_for_class_members();
+
   if (max_member_alignment != 0) {
     /* The maximum alignment of a member is limited by a pragma or by a
        command-line directive.  If an attribute has already been applied to
        achieve the same effect, record this maximum in the class directly;
-       otherwise, record it as a pseudo-attribute (this is useful in some GNU
-       modes because for some members an attribute it ignored in favor of
-       a pragma). */
+       otherwise, record it as an internal attribute. */
     if (class_type->variant.class_struct_union.max_member_alignment == 0) {
       class_type->variant.class_struct_union.max_member_alignment =
                                                          max_member_alignment;
