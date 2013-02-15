@@ -9204,7 +9204,6 @@ fold_constexpr_ctor should usually be called instead.
               if (des_con != NULL) {
                 /* Add the designator. */
                 add_constant_to_aggregate(des_con, new_aggr_con);
-                aggr_con.uses_designated_initializers = TRUE;
                 des_con = NULL;
               }  /* if */
               add_constant_to_aggregate(member_con_ptr, new_aggr_con);
@@ -9225,7 +9224,6 @@ fold_constexpr_ctor should usually be called instead.
           if (des_con != NULL) {
             /* Add the designator for a union member. */
             add_constant_to_aggregate(des_con, &aggr_con);
-            aggr_con.uses_designated_initializers = TRUE;
           }  /* if */
           add_constant_to_aggregate(member_con_ptr, &aggr_con);
           if (field != NULL) {
