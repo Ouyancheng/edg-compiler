@@ -9213,9 +9213,10 @@ fold_constexpr_ctor should usually be called instead.
               field = ctsp->anonymous_union_field;
             }  /* while */
             /* See if the field being initialized is the one expected. */
-            if (next_expected_field != field) {
+            if (next_expected_field != field && des_con == NULL) {
               /* The constructor must fail to initialize a field.  An error
-                 should have been issued. */
+                 should have been issued.  Allow a difference if there's
+                 a designator. */
               if (expr_error_should_be_issued()) expect_error();
               break;
             } /* if */
@@ -9228,7 +9229,11 @@ fold_constexpr_ctor should usually be called instead.
           }  /* if */
           add_constant_to_aggregate(member_con_ptr, &aggr_con);
           if (field != NULL) {
-            next_expected_field = next_initializable_field(field->next);
+            if (parent_class_of(field)->kind == (a_type_kind)tk_union) {
+              next_expected_field = NULL;
+            } else {
+              next_expected_field = next_initializable_field(field->next);
+            }  /* if */
           }  /* if */
         }  /* for */
         folded = TRUE;
