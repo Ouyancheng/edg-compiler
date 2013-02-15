@@ -4772,6 +4772,8 @@ the indicated constant.
   con->variant.address.kind = (an_address_base_kind)abk_constant;
   con->variant.address.variant.constant = constant;
   con->type = make_pointer_type(constant->type);
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_string ||
+                  constant->kind == (a_constant_repr_kind)ck_error);
 }  /* set_constant_address_constant */
 
 
