@@ -1,5 +1,15 @@
 Version 4.6
 
+2/15/12  [EDGcpfe/8523]
+New ck_address/abk_temporary constant (IL CHANGE)
+
+As part of the changes for constexpr, we have added a new subkind under
+the ck_address constant kind.  The new subkind, abk_temporary, produces the
+address of a static temporary initialized with a given constant.  It's
+similar to abk_constant, but applicable to constants that don't have
+an inherent memory object, e.g., integer constants.
+
+
 2/14/13  [EDGcpfe/13655]
 Microsoft C++: suppressing errors on decltype in nested template declaration
 
