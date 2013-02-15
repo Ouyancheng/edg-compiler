@@ -4828,9 +4828,14 @@ Do IL lowering of the indicated constant and everything under it.
                  of a temporary variable initialized with the ck_aggregate
                  constant. */
               a_constant_ptr saved_next = constant->next;
+              a_boolean      has_implicit_cast = constant->implicit_cast;
+              a_type_ptr     orig_type = constant->type;
               set_variable_address_constant(temp_var, constant,
                                             /*set_address_taken_flag=*/TRUE);
               constant->next = saved_next;
+              /* Array cases may require an implicit cast to the decayed
+                 pointer type. */
+              if (has_implicit_cast) implicit_cast(constant, orig_type);
             }  /* if */
             break;
           case abk_uuidof:
