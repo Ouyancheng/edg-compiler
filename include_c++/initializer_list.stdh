@@ -30,7 +30,8 @@ namespace std {
   private:
     iterator __array;
     size_type __length;
-    initializer_list(_E __a[], std::size_t __l): __array(__a), __length(__l) {}
+    constexpr initializer_list(_E __a[], std::size_t __l)
+                                    : __array(__a), __length(__l) {}
   };
 
   template<typename _E>
