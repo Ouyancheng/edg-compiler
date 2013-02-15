@@ -2812,6 +2812,7 @@ enum an_address_base_kind_tag {
   abk_routine,          /* Pointer to a function. */
   abk_variable,         /* Pointer to a variable. */
   abk_constant,		/* Pointer to a constant. */
+  abk_temporary,	/* Pointer to a temporary initialized to a constant. */
   abk_uuidof,		/* Pointer to _GUID structure for Microsoft __uuidof
 			   operation. */
   abk_typeid,		/* Pointer to a std::type_info structure.  Used in
@@ -3900,20 +3901,30 @@ typedef struct a_constant {
         /* When kind == abk_variable: */
         a_variable_ptr
                 variable;
-        /* When kind == abk_constant: */
+        /* When kind == abk_constant or kind == abk_temporary: */
+	/* abk_constant produces the address of a constant that already has
+	   an inherent existence in memory, e.g., a string.  abk_temporary
+	   produces the address of a static temporary that is initialized
+	   with the pointed-to constant, for constants that don't necessarily
+	   have an existence in memory, e.g., an integer constant.  Each
+	   abk_constant that points to the same constant represents the
+	   same address; each abk_temporary creates a separate temporary,
+	   and therefore a different address, even when two abk_temporary
+	   constants point to the same underlying constant.  The constant
+	   may be a shared constant in either case. */
+	/* Note that in C++/CLI mode, a ck_address/abk_constant constant
+	   of type System::String^, where the addressed constant is a
+	   string literal, is used to represent the result of implicitly or
+	   explicitly converting a string literal to that type, even though
+	   that is a run-time operation (allocating the System::String object
+	   on the gc-heap and initializing it).  This is necessary because
+	   the Microsoft compiler treats such a construct as a compile-time
+	   constant. */
         a_constant_ptr
                 constant;
-			/* The constant may be a shared constant.  Note
-			   that in C++/CLI mode, a ck_address/abk_constant
-			   constant of type System::String^, where the
-			   addressed constant is a string literal, is used
-			   to represent the result of implicitly or
-			   explicitly converting a string literal to that
-			   type, even though that is a run-time operation
-			   (allocating the System::String object on the
-			   gc-heap and initializing it).  This is necessary
-			   because the Microsoft compiler treats such a
-			   construct as a compile-time constant. */
+			/* The constant whose address is taken (abk_constant),
+			   or whose value is placed in the temporary
+			   (abk_temporary). */
         /* When kind == abk_uuidof or abk_typeid: */
         a_type_ptr
 		type;	/* For abk_uuidof, the value of the constant is the

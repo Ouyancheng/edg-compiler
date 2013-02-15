@@ -4793,6 +4793,7 @@ Do IL lowering of the indicated constant and everything under it.
                lists attached to some scope. */
             break;
           case abk_constant:
+          case abk_temporary:  /* FIXME */
             addressed_con = constant->variant.address.variant.constant;
 #if LOWER_STRING_LITERALS_TO_NON_CONST
             if (string_literals_are_const &&

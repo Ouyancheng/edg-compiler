@@ -1164,6 +1164,11 @@ display_constant_value:
           disp_ptr("constant", (char *)ptr->variant.address.variant.constant,
                    iek_constant);
           break;
+        case abk_temporary:
+          (void)printf("abk_temporary\n");
+          disp_ptr("temporary", (char *)ptr->variant.address.variant.constant,
+                   iek_constant);
+          break;
         case abk_uuidof:
           (void)printf("abk_uuidof\n");
           disp_ptr("type", (char *)ptr->variant.address.variant.type,

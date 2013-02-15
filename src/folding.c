@@ -854,12 +854,15 @@ it points to the variable, routine, or constant entry.
       case abk_constant:
         object = (char *)constant->variant.address.variant.constant;
         break;
+      case abk_temporary:
       case abk_uuidof:
       case abk_typeid:
         /* Use the address constant as the "base object" for a __uuidof or
            typeid construct.  It's weird, but we need to return a non-NULL
            base object for this case, and the constant seems like the best of
-           the possibilities. */
+           the possibilities.  Same for abk_temporary, because it produces
+           a unique temporary for each abk_constant, even if the constant
+           pointed to is the same. */
         object = (char *)constant;
         break;
       case abk_label:
@@ -4458,6 +4461,10 @@ checking.
           object_size = cp->variant.string.length;
         }  /* if */
         break;
+      case abk_temporary:
+        cp = constant->variant.address.variant.constant;
+        object_size = skip_typerefs(cp->type)->size;
+        break;
       case abk_uuidof:
         tp = type_pointed_to(constant->type);
         object_size = tp->size;
@@ -7950,8 +7957,8 @@ evaluation.
         if (ref_case) {
           /* Return the address of the aggregate constant for the reference
              case. */
-          set_constant_address_constant(alloc_shareable_constant(new_aggr),
-                                        result_con);
+          set_temporary_address_constant(alloc_shareable_constant(new_aggr),
+                                         result_con);
         }  /* if */
       }
       break;
@@ -8075,8 +8082,14 @@ parameter values).
       con_val = var_constant_value(var);
     }  /* if */
   } else if (con->kind == (a_constant_repr_kind)ck_address &&
-             con->variant.address.kind == (an_address_base_kind)abk_constant) {
-    /* The constant is the address of a constant. */
+             (con->variant.address.kind ==
+                                        (an_address_base_kind)abk_constant ||
+              con->variant.address.kind ==
+                                        (an_address_base_kind)abk_temporary)) {
+    /* The constant is the address of a constant (for abk_temporary,
+       it's the address of a temporary containing the constant, but a
+       pointer to the temporary is a pointer to the constant in the
+       temporary's memory object). */
     con_val = con->variant.address.variant.constant;
   }  /* if */
   if (con_val != NULL) {
@@ -8129,16 +8142,21 @@ a new unshared constant will be allocated and returned.
     }  /* if */
   } else if (addr_con->kind == (a_constant_repr_kind)ck_address &&
              (addr_con->variant.address.kind ==
-                                          (an_address_base_kind)abk_variable ||
+                                        (an_address_base_kind)abk_variable ||
               addr_con->variant.address.kind ==
-                                         (an_address_base_kind)abk_constant)) {
-    a_type_ptr target_type = type_pointed_to(addr_con->type);
-    a_type_ptr base_type;
+                                        (an_address_base_kind)abk_constant ||
+              addr_con->variant.address.kind ==
+                                        (an_address_base_kind)abk_temporary)) {
+    an_address_base_kind abkind = addr_con->variant.address.kind;
+    a_type_ptr           target_type = type_pointed_to(addr_con->type);
+    a_type_ptr           base_type;
     target_type = skip_typerefs(target_type);
-    if (addr_con->variant.address.kind == (an_address_base_kind)abk_variable) {
+    if (abkind == (an_address_base_kind)abk_variable) {
       base_type =
                skip_typerefs(addr_con->variant.address.variant.variable->type);
     } else {
+      check_assertion(abkind == (an_address_base_kind)abk_constant ||
+                      abkind == (an_address_base_kind)abk_temporary);
       base_type =
                skip_typerefs(addr_con->variant.address.variant.constant->type);
     }  /* if */
@@ -8147,17 +8165,17 @@ a new unshared constant will be allocated and returned.
       /* The address is outside the bounds of the object, so this is not a
          constant expression.  (A warning will have been issued earlier, so
          no diagnostic is needed here.) */
-    } else if (addr_con->variant.address.kind ==
-                                          (an_address_base_kind)abk_variable) {
+    } else if (abkind == (an_address_base_kind)abk_variable) {
       /* The constant is the address of a variable, possibly with an offset
          designating a subobject.  See if it has a constant value and, if
          so, use it. */
       result_con =
                 var_constant_value(addr_con->variant.address.variant.variable);
-    } else if (addr_con->variant.address.kind ==
-                                          (an_address_base_kind)abk_constant) {
+    } else {
       /* The constant is the address of a constant, possibly with an offset
          designating a subobject.  Use it. */
+      check_assertion(abkind == (an_address_base_kind)abk_constant ||
+                      abkind == (an_address_base_kind)abk_temporary);
       result_con = addr_con->variant.address.variant.constant;
     }  /* if */
     if (result_con == NULL) {
@@ -8699,11 +8717,11 @@ ceblock gives context information for the evaluation.
     folded = TRUE;
   } else if (is_variable_node(expr)) {
     /* An lvalue variable node for a parameter can be replaced by the
-       address of the constant argument value. */
+       address of a temporary containing the constant argument value. */
     if (fold_variable_reference(expr, ceblock, &local_constant)) {
       folded = TRUE;
-      set_constant_address_constant(alloc_shareable_constant(&local_constant),
-                                    result_con);
+      set_temporary_address_constant(alloc_shareable_constant(&local_constant),
+                                     result_con);
     }  /* if */
   } else if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
@@ -8731,15 +8749,16 @@ ceblock gives context information for the evaluation.
     }  /* switch */
   } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
     /* A temp-init with a const type and a constant value can be considered
-       a constant, and the address of the constant returned. */
+       a constant, and the address of a temporary containing the constant
+       returned. */
     if (is_const_qualified_type(expr->type) &&
         fold_dynamic_init(expr->variant.init.dynamic_init,
                           expr->type,
                           ceblock,
                           &local_constant)) {
       folded = TRUE;
-      set_constant_address_constant(alloc_shareable_constant(&local_constant),
-                                    result_con);
+      set_temporary_address_constant(alloc_shareable_constant(&local_constant),
+                                     result_con);
     }  /* if */
   }  /* if */
   return folded;
@@ -8772,9 +8791,9 @@ member function call.
       /* The object is an rvalue constant (probably a ck_aggregate). */
       folded = TRUE;
       if (want_addr) {
-        /* Return the address of that constant. */
+        /* Return the address of a temporary containing that constant. */
         a_constant_ptr con = alloc_shareable_constant(result_con);
-        set_constant_address_constant(con, result_con);
+        set_temporary_address_constant(con, result_con);
       }  /* if */
     }  /* if */
   } else {
@@ -8802,9 +8821,9 @@ member function call.
                             result_con)) {
         folded = TRUE;
         if (want_addr) {
-          /* Return the address of that constant. */
+          /* Return the address of a temporary containing that constant. */
           a_constant_ptr con = alloc_shareable_constant(result_con);
-          set_constant_address_constant(con, result_con);
+          set_temporary_address_constant(con, result_con);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -9319,8 +9338,10 @@ otherwise, return FALSE.
                                       /*array_decay_allowed=*/FALSE)) {
       eff_obj_con = var_constant_value(var);
     } else if (object_con->kind == (a_constant_repr_kind)ck_address &&
-               object_con->variant.address.kind ==
-                                          (an_address_base_kind)abk_constant) {
+               (object_con->variant.address.kind ==
+                                        (an_address_base_kind)abk_constant ||
+                object_con->variant.address.kind ==
+                                        (an_address_base_kind)abk_temporary)) {
       eff_obj_con = object_con->variant.address.variant.constant;
     }  /* if */
   } else {

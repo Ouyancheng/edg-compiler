@@ -2697,8 +2697,11 @@ it's the initializer for an aggregate.
       }  /* if */
       if (tblock->process_non_dynamic_constants) {
         if (constant->variant.address.kind ==
-                                          (an_address_base_kind)abk_constant) {
-          /* The address of another constant, e.g., a string. */
+                                         (an_address_base_kind)abk_constant ||
+            constant->variant.address.kind ==
+                                         (an_address_base_kind)abk_temporary) {
+          /* The address of another constant, e.g., a string, or a
+             temporary initialized to a constant. */
           traverse_constant(constant->variant.address.variant.constant,
                             tblock);
         }  /* if */

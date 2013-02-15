@@ -750,6 +750,9 @@ extern void set_variable_address_constant(
 extern void set_constant_address_constant(a_constant_ptr constant,
                                           a_constant     *con);
 
+extern void set_temporary_address_constant(a_constant_ptr constant,
+                                           a_constant    *con);
+
 #if GNU_EXTENSIONS_ALLOWED
 extern a_boolean is_gnu_builtin_function(a_routine_ptr  rp);
 

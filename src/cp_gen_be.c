@@ -15405,6 +15405,7 @@ flags on the classes found on an earlier call.
               scp = &con->variant.address.variant.variable->source_corresp;
               break;
             case abk_constant:
+            case abk_temporary:
               scp = &con->variant.address.variant.constant->source_corresp;
               break;
             default:

@@ -16241,11 +16241,12 @@ is an rvalue reference.
                      is_error_type(operand->type)));
     orig_operand = *operand;
     if (is_constant_operand(operand)) {
-      /* With constexpr, a class value can be a constant. */
+      /* With constexpr, a class value can be a constant, more precisely here
+         the constant address of a temporary containing the class value. */
       a_constant_ptr con = &operand->variant.constant;
       a_constant     addr_con;
       check_assertion(con->is_result_of_constexpr_call);
-      set_constant_address_constant(alloc_unshared_constant(con), &addr_con);
+      set_temporary_address_constant(alloc_unshared_constant(con), &addr_con);
       addr_con.type = make_reference_type(operand->type);
       make_constant_operand(&addr_con, operand);
     } else {

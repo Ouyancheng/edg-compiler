@@ -4775,6 +4775,21 @@ the indicated constant.
 }  /* set_constant_address_constant */
 
 
+void set_temporary_address_constant(a_constant_ptr constant,
+                                    a_constant    *con)
+/*
+Fill in the constant "con" as a ck_address constant for the address of
+a unique temporary containing the value of the indicated constant.
+*/
+{
+  clear_constant(con, (a_constant_repr_kind)ck_address);
+  con->variant.address.kind = (an_address_base_kind)abk_temporary;
+  con->variant.address.variant.constant = constant;
+  con->type = make_pointer_type(constant->type);
+  check_assertion(!is_incomplete_type(constant->type));
+}  /* set_temporary_address_constant */
+
+
 a_boolean con_is_exact_addr_of_variable(a_constant_ptr con,
                                         a_variable_ptr *var,
                                         a_boolean      array_decay_allowed)
@@ -5357,7 +5372,9 @@ copy_constant_full should be called to start a copy.
                                             options_unshared, cblock);
   } else if (new_constant->kind == (a_constant_repr_kind)ck_address) {
     if (new_constant->variant.address.kind ==
-                                          (an_address_base_kind)abk_constant) {
+                                         (an_address_base_kind)abk_constant ||
+        new_constant->variant.address.kind ==
+                                         (an_address_base_kind)abk_temporary) {
       a_constant_ptr old_constant_pointed_to =
                                 old_constant->variant.address.variant.constant;
       if (!in_file_scope(old_constant_pointed_to)) {
@@ -5845,6 +5862,9 @@ Return the hash value for the indicated constant.
           } else {
             hash_value = hash_constant(cp->variant.address.variant.constant);
           }  /* if */
+          break;
+        case abk_temporary:
+          hash_value = hash_constant(cp->variant.address.variant.constant);
           break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case abk_uuidof:
@@ -6446,6 +6466,11 @@ definition of the CC flags in il.h for more information.
               eq = (cp1->variant.address.variant.constant ==
                     cp2->variant.address.variant.constant);
               break;
+            case abk_temporary:
+              /* Each abk_temporary generates a unique temporary, so two
+                 abk_temporary constants that point to the same constant
+                 don't have the same value. */
+              break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             case abk_uuidof:
               /* Microsoft __uuidof. */
@@ -6751,6 +6776,7 @@ argument because it references a non-external entity, e.g., a local variable.
         scp = &constant->variant.address.variant.variable->source_corresp;
         break;
       case abk_constant:
+      case abk_temporary:
         scp = &constant->variant.address.variant.constant->source_corresp;
         break;
       case abk_uuidof:
@@ -6847,6 +6873,7 @@ at the file scope (it would contain a pointer down into a function scope).
           has_nfs_ref = !in_file_scope(cp->variant.address.variant.variable);
           break;
         case abk_constant:
+        case abk_temporary:
           has_nfs_ref = !in_file_scope(cp->variant.address.variant.constant);
           break;
         case abk_uuidof:
@@ -6994,6 +7021,11 @@ alloc_shareable_constant would return a shareable constant.
   } else if (cp->kind == (a_constant_repr_kind)ck_string &&
              !string_literals_shared) {
     /* Don't share string literals if told not to. */
+    shareable = FALSE;
+  } else if (cp->kind == (a_constant_repr_kind)ck_address &&
+             cp->variant.address.kind == (an_address_base_kind)abk_temporary) {
+    /* Each abk_temporary generates a unique temporary, so we can't consider
+       them shareable. */
     shareable = FALSE;
   } else {
     /* Other cases are shareable. */

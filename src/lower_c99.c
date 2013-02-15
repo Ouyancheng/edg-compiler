@@ -3513,6 +3513,7 @@ replace them by a representation compatible with C89.
         case abk_label:
           /* Nothing to be done. */
           break;
+        case abk_temporary:
         default:
           unexpected_condition_str("Bad c99 address const kind");
       }  /* switch */

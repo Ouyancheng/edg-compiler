@@ -747,6 +747,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                           a_variable_ptr, iek_variable);
                 break;
               case abk_constant:
+              case abk_temporary:
                 /* Constants might not be on the scope constant list, so visit
                    their subtrees. */
                 walk_ptr(ptr->variant.address.variant.constant, a_constant_ptr,
