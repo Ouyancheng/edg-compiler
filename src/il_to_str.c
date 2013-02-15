@@ -3650,6 +3650,11 @@ parentheses are not needed.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
       type = con->type;
       break;
+    case abk_temporary:
+      /* Temporary with a constant value. */
+      con = constant->variant.address.variant.constant;
+      type = con->type;
+      break;
     case abk_uuidof:
     case abk_typeid:
       /* Address of a structure that represents the uuid or typeid information
@@ -3675,7 +3680,6 @@ parentheses are not needed.
         entity_scp = &label->source_corresp;
       }
       break;
-    case abk_temporary:
     default:
       unexpected_condition_str(
                    "form_lvalue_for_addressed_entity: bad addr constant kind");
