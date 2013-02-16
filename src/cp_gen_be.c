@@ -14228,6 +14228,12 @@ Return TRUE if the given expression will be put out as a braced-init-list.
          dip->is_creation_of_initializer_list_object)) {
       is_braced_init = TRUE;
     }  /* if */
+  } else if (is_constant_node(expr)) {
+    a_constant_ptr con = expr->variant.constant;
+    if (constant_should_be_put_out_as_expr(con) &&
+        expr_is_braced_init_list(con->expr)) {
+      is_braced_init = TRUE;
+    }  /* if */
   }  /* if */
   return is_braced_init;
 }  /* expr_is_braced_init_list */

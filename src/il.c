@@ -13484,16 +13484,20 @@ evaluation, return the dynamic init for the unfolded constructor call;
 otherwise, return the original dip.
 */
 {
+  a_constant_ptr con = NULL;
   if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-    a_constant_ptr con = dip->variant.constant;
-    if (con->is_result_of_constexpr_call) {
-      /* The original form of the constructor call is stored as a backing
-         expression under the constant. */
-      an_expr_node_ptr expr = con->expr;
-      if (expr != NULL &&
-          expr->kind == (an_expr_node_kind)enk_temp_init) {
-        dip = expr->variant.init.dynamic_init;
-      }  /* if */
+    con = dip->variant.constant;
+  } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+    an_expr_node_ptr expr = dip->variant.expression;
+    if (is_constant_node(expr)) con = expr->variant.constant;
+  }  /* if */
+  if (con != NULL && con->is_result_of_constexpr_call) {
+    /* The original form of the constructor call is stored as a backing
+       expression under the constant. */
+    an_expr_node_ptr expr = con->expr;
+    if (expr != NULL &&
+        expr->kind == (an_expr_node_kind)enk_temp_init) {
+      dip = expr->variant.init.dynamic_init;
     }  /* if */
   }  /* if */
   return dip;
