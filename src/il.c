@@ -6680,6 +6680,13 @@ definition of the CC flags in il.h for more information.
           }  /* switch */
         }  /* if */
         break;
+      case ck_designator:
+        if (cp1->variant.designator.field == cp2->variant.designator.field &&
+            cp1->variant.designator.array_element ==
+                                       cp2->variant.designator.array_element) {
+          eq = TRUE;
+        }  /* if */
+        break;
       default:
         unexpected_condition_str("compare_constants: bad constant kind");
     }  /* switch */
@@ -6844,6 +6851,7 @@ at the file scope (it would contain a pointer down into a function scope).
     case ck_imaginary:
     case ck_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case ck_designator:
 #if UPC_EXTENSIONS_ALLOWED
     case ck_upc_threads:
     case ck_upc_mythread:

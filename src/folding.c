@@ -7943,7 +7943,9 @@ evaluation.
           } else if (elem_con->kind == (a_constant_repr_kind)ck_init_repeat) {
             /* FIXME */
           } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
-            /* FIXME */
+            /* Just make a copy of the designator (the field and element
+               number are constant and don't change). */
+            new_elem_con = alloc_unshared_constant(elem_con);
           } else {
             /* Normal constant. */
             new_elem_con = alloc_unshared_constant(elem_con);
