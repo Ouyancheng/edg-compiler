@@ -13094,6 +13094,14 @@ typedef struct a_routine {
 			   declarations of functions that are not
 			   definitions. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_bit_field	considered_decider_function_at_some_point:1;
+			/* TRUE if at some point in the compilation this
+			   function was considered the decider ("key")
+			   function of a class for the virtual function table
+			   generation decision.  This is intended for front-end
+			   use only, to catch cases where a function was the
+			   decider and then becomes not the decider because of
+			   an out-of-class inline definition. */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier

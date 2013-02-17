@@ -1,5 +1,32 @@
 Version 4.6
 
+2/17/13  [EDGcpfe/13669]
+Out-of-class inline declaration of key function suppresses destructor
+
+In configurations where the key function for a class is determined at the
+end of the compilation (i.e., Cfront ABI and when IA64_ABI_VARIANT_KEY_FUNCTION
+is TRUE), a key function candidate that isn't declared inline, but whose
+out-of-class definition is inline (and therefore isn't eligible to be a
+key function) can result in a virtual destructor being suppressed.
+In this example, D::~D had not been emitted (even though it is referenced
+from the vtable):
+
+  struct B {
+    virtual void f();
+    virtual ~B() {}
+  };
+  struct D : B {
+    D() {}
+    virtual void f();
+  };
+  inline void D::f() {}
+  int main() {
+    D *d = new D();
+    d->f();
+    return 0;
+  }
+
+
 2/15/13  [EDGcpfe/13613]
 Spurious warning when building front end with Microsoft compilers
 

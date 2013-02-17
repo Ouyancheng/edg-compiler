@@ -2653,6 +2653,7 @@ to it.  The entry is allocated in the file scope memory region.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->embedded_source_sequence_entries = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  rp->considered_decider_function_at_some_point = FALSE;
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

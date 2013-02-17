@@ -282,15 +282,17 @@ indicated routine has just been processed.
       a_routine_ptr decider = vtbl_decider_function_for_class(
                                                             class_type,
                                                             (a_boolean *)NULL);
-      if (decider != NULL &&
-          (decider == routine || routine_has_been_defined(decider))) {
+      if (decider != NULL ?
+                    (decider == routine || routine_has_been_defined(decider)) :
+                    routine->considered_decider_function_at_some_point) {
         /* This routine is the decider function for definition of the
            virtual function table.  Since it's defined, the virtual function
            table definition will be put out in this compilation and therefore
            the virtual functions are needed. */
         /* Also mark the virtual functions as needed if the decider function
            was previously defined at a point when it wasn't known to be
-           the decider function.  This can happen only for ABIs (like
+           the decider function, or was thought to be the decider function
+           but is now known not to be.  This can happen only for ABIs (like
            the ARM EABI; see IA64_ABI_VARIANT_KEY_FUNCTION) where the
            decider function can be altered by an out-of-class definition
            that specifies "inline" for a function that otherwise would have
