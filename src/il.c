@@ -6919,6 +6919,9 @@ at the file scope (it would contain a pointer down into a function scope).
       /* The variable pointed to must be in the function scope. */
       break;
 #endif /* DO_IL_LOWERING && ... */
+    case ck_init_repeat:
+      has_nfs_ref = !in_file_scope(cp->variant.init_repeat.constant);
+      break;
     case ck_template_param:
       switch (cp->variant.template_param.kind) {
         case tpck_param:

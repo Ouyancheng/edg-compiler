@@ -7941,7 +7941,25 @@ evaluation.
               new_elem_con = alloc_unshared_constant(&con);
             }  /* if */
           } else if (elem_con->kind == (a_constant_repr_kind)ck_init_repeat) {
-            /* FIXME */
+            /* A repeated constant.  If the repeated constant is a
+               ck_dynamic_init, try to fold it via a recursive call.  If it
+               folds successfully, or for other kinds of repeated
+               constants, copy this constant and the repeated constant. */
+            a_constant_ptr rep_con = elem_con->variant.init_repeat.constant;
+            a_constant     init_con;
+            if (rep_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+              folded = fold_dynamic_init(rep_con->variant.dynamic_init,
+                                         rep_con->type, ceblock, &init_con);
+              rep_con = &init_con;
+            } else {
+              /* Not a dynamic init -- just copy the existing constant. */
+              folded = TRUE;
+            }  /* if */
+            if (folded) {
+              new_elem_con = alloc_unshared_constant(elem_con);
+              new_elem_con->variant.init_repeat.constant =
+                                              alloc_unshared_constant(rep_con);
+            }  /* if */
           } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
             /* Just make a copy of the designator (the field and element
                number are constant and don't change). */
@@ -8236,12 +8254,24 @@ a new unshared constant will be allocated and returned.
                again looking at that element. */
             curr_type = skip_typerefs(curr_type->variant.array.element_type);
             most_derived_type = curr_type;
-            while ((a_targ_ptrdiff_t)(cum_offset + curr_type->size) <=
+            if (result_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+              /* Each element of the array is a copy of the same constant.
+                 Set result_con to that constant and adjust cum_offset to
+                 reflect its position in the array. */
+              result_con = result_con->variant.init_repeat.constant;
+              cum_offset +=
+                   ((offset - cum_offset) / curr_type->size) * curr_type->size;
+            } else {
+              /* Each element of the array is a separate constant.  Step
+                 through them, incrementing cum_offset, until result_con
+                 points to the correct element. */
+              while ((a_targ_ptrdiff_t)(cum_offset + curr_type->size) <=
                                                                       offset &&
-                   result_con != NULL) {
-              cum_offset += curr_type->size;
-              result_con = result_con->next;
-            }  /* while */
+                     result_con != NULL) {
+                cum_offset += curr_type->size;
+                result_con = result_con->next;
+              }  /* while */
+            }  /* if */
           } else {
             /* A class type.  Scan through its subobjects (base classes and
                members) to find which is at or contains the specified
