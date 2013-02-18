@@ -4240,7 +4240,7 @@ IL entry for that field.
      literal.  (The literalness may depend on whether all field initializers
      are constants, but folding the field initializers may require knowing if
      this class is literal.  If this occurs, the type is considered not to be
-     a literal type; see set_literal_type_flag. */
+     a literal type; see set_literal_type_flag.) */
   parent_cssp = symbol_supplement_for_class(scope_stack_top().assoc_type);
   saved_scanning_field_initializer = parent_cssp->scanning_field_initializer;
   parent_cssp->scanning_field_initializer = TRUE;
@@ -4539,13 +4539,7 @@ FALSE is returned) for non-class objects.
             init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
             init_dip->variant.constant = cp;
           }  /* if */
-          cp->type = tp;
-          if (tp->variant.class_struct_union.has_zero_init_component) {
-            /* An empty aggregate doesn't actually explicitly initialize all
-               the subobjects.  Flag the constant accordingly. */
-            cp->partial_aggr_value = TRUE;
-            cp->is_partially_initialized = TRUE;
-          }  /* if */
+          make_value_initialized_constant(tp, cp);
         }  /* if */
       } else if (var->is_constexpr) {
         check_assertion_or_expect_error(!has_nontrivial_destructor(cssp));

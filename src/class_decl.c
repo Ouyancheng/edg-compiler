@@ -16922,9 +16922,9 @@ information about the member declaration, respectively.
     /* A field initializer.  For nontemplate classes (and prototype
        instantiations) it must be parsed in the context of the completed class
        definition.  This is handled by creating a fixup entry holding the
-       cached tokens of the initializer until we are ready to parse them.
-       For template instances, the cache is held in the field symbol
-       supplement instead so the initializer can be instantiate "on-demand". */
+       cached tokens of the initializer until we are ready to parse them.  For
+       template instances, the cache is held in the field symbol supplement
+       instead so the initializer can be instantiated "on-demand". */
     a_field_ptr                    field;
     a_boolean                      record_fixup = TRUE;
     a_field_symbol_supplement_ptr  fssp;
