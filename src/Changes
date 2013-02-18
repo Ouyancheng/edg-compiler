@@ -1,5 +1,20 @@
 Version 4.6
 
+2/18/13  [EDGcpfe/13652]
+Missing start position for direct braced initializer
+
+In modes accepting direct braced initialization of variables (such as C++11
+mode), the front end failed to record the position of the start of the
+initializer (in configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE).
+For example:
+
+  int v{1};  // Previously, vp->initializer_range.start (where vp points to
+             // the a_variable entry) did not represent the position of the
+             // left brace.
+
+This is now fixed.
+
+
 2/18/13  [EDGcpfe/13663]
 GNU compatibility: __builtin_nans in constant-expressions
 

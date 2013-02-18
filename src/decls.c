@@ -15333,7 +15333,11 @@ if one is present.
     has_initializer = TRUE;
     decl_pos_block->var_init_range.start = pos_curr_token;
   } else if (!C_mode() && curr_token == tok_lbrace) {
+    /* A C++11-style "direct" braced initializer.  It may not be valid in the
+       current C++ mode, but the diagnostic will be issued when processing the
+       initializer. */
     has_initializer = TRUE;
+    decl_pos_block->var_init_range.start = pos_curr_token;
 #if C_ANACHRONISMS_ALLOWED
   } else if (C_dialect == C_dialect_pcc && is_initializer_start()) {
     /* In pcc mode, the "=" may be omitted (K&R first edition, Appendix A,
