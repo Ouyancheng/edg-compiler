@@ -8259,8 +8259,8 @@ a new unshared constant will be allocated and returned.
                  Set result_con to that constant and adjust cum_offset to
                  reflect its position in the array. */
               result_con = result_con->variant.init_repeat.constant;
-              cum_offset +=
-                   ((offset - cum_offset) / curr_type->size) * curr_type->size;
+              cum_offset += ((a_targ_size_t)(offset - cum_offset) /
+                                            curr_type->size) * curr_type->size;
             } else {
               /* Each element of the array is a separate constant.  Step
                  through them, incrementing cum_offset, until result_con
