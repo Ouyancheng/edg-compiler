@@ -11,7 +11,7 @@ spurious errors.  For example:
    static const int S = __builtin_clzll(N);  // Previously an error; now
   };                                         // accepted.
 
-Now all direct calls to GNU __builtin_... functions for which all arguments
+Now calls to foldable GNU __builtin_... functions for which all arguments
 are constants are treated as potentially constant during generic template
 processing if at least one of the arguments is template-dependent in any way.
 (Such calls may still be considered nonconstant when they are instantiated.)
