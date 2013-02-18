@@ -7,7 +7,7 @@ Previously the front end treated calls to GNU __builtin_... functions that
 involve template-dependent arguments as not constant.  This could result in
 spurious errors.  For example:
 
-  template <int N> struct S {
+  template <int N> struct X {
    static const int S = __builtin_clzll(N);  // Previously an error; now
   };                                         // accepted.
 
