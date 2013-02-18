@@ -6219,10 +6219,9 @@ initialized.  These are addressed in the course of the processing.
           }  /* if */
         }  /* if */
         /* Consider dropping the ctor-initializer entry if it isn't needed. */
-        if (ctor_rout->is_constexpr &&
-            cip->kind == (a_constructor_init_kind)cik_direct_base_class) {
-          /* Every direct base class in a constexpr constructor must be
-             initialized, and we want that to be explicitly represented. */
+        if (ctor_rout->is_constexpr) {
+          /* Every subobject must be initialized by a constexpr constructor,
+             and we want that to be explicitly represented. */
         } else if (cssp == NULL ||
                    is_template_param_or_nonreal_class_type(tp) ||
                    (has_trivial_default_constructor(cssp) &&
@@ -6252,11 +6251,16 @@ initialized.  These are addressed in the course of the processing.
           }  /* if */
           continue;
         }  /* if */
-        rp = select_default_constructor(tp, &err_pos, object_class_type,
-                                        (a_boolean *)NULL);
+        if (is_immediate_class_type(tp)) {
+          rp = select_default_constructor(tp, &err_pos, object_class_type,
+                                          (a_boolean *)NULL);
+        } else {
+          rp = NULL;
+        }  /* if */
         if (rp == NULL) {
           /* No constructor to call. */
           if (ctor_rout->is_constexpr &&
+              is_immediate_class_type(tp) &&
               tp->variant.class_struct_union.has_zero_init_component) {
             /* The base has a component that requires initialization and the
                (trivial) default constructor won't do that initialization:
@@ -6267,6 +6271,8 @@ initialized.  These are addressed in the course of the processing.
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
             dip->variant.constant = alloc_error_constant();
           } else {
+            check_assertion(is_immediate_class_type(tp) ||
+                            tp->kind == (a_type_kind)tk_template_param);
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
           }  /* if */
         } else {
