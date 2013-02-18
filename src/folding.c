@@ -7948,14 +7948,18 @@ evaluation.
             a_constant_ptr rep_con = elem_con->variant.init_repeat.constant;
             a_constant     init_con;
             if (rep_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-              folded = fold_dynamic_init(rep_con->variant.dynamic_init,
-                                         rep_con->type, ceblock, &init_con);
-              rep_con = &init_con;
-            } else {
-              /* Not a dynamic init -- just copy the existing constant. */
-              folded = TRUE;
+              if (fold_dynamic_init(rep_con->variant.dynamic_init,
+                                    rep_con->type, ceblock, &init_con)) {
+                /* The repeated dynamic initialization folded to a constant,
+                   so use that in folding this constant. */
+                rep_con = &init_con;
+              } else {
+                /* The repeated dynamic initialization could not be folded,
+                   so this initialization cannot be folded. */
+                rep_con = NULL;
+              }  /* if */
             }  /* if */
-            if (folded) {
+            if (rep_con != NULL) {
               new_elem_con = alloc_unshared_constant(elem_con);
               new_elem_con->variant.init_repeat.constant =
                                               alloc_unshared_constant(rep_con);
