@@ -1993,6 +1993,17 @@ position for which diagnostics should be issued.
   }  /* for */
   if (last_dyn_field != NULL) {
     a_field_ptr  end_fp = next_initializable_field(last_dyn_field->next);
+    if (is_union_type(aggr_con->type)) {
+      a_field_ptr  field2 = next_initializable_field(next_field->next);
+      if (field2 != NULL) {
+        /* A value-initialized union that has multiple fields, at least one of
+           which requires nontrivial initialization: Issue an error since it
+           isn't clear which should be the initialized field. */
+        pos_error(ec_ambiguous_union_value_init, diag_pos);
+        /* For recovery purposes, just initialize the first field. */
+        end_fp = field2;
+      }  /* if */
+    }  /* if */
     for (fp = next_field;
          fp != end_fp;
          fp = next_initializable_field(fp->next)) {
