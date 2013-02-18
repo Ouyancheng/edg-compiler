@@ -3859,7 +3859,7 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
               result.type = call->type;
               folded = make_fp_nan(&result.variant.float_value,
                                    result_type->variant.float_kind,
-                                   /*signaling=*/TRUE);
+                                   signaling);
             }  /* if */
           }
           break;
