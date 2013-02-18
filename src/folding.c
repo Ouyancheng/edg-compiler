@@ -8254,7 +8254,8 @@ a new unshared constant will be allocated and returned.
                again looking at that element. */
             curr_type = skip_typerefs(curr_type->variant.array.element_type);
             most_derived_type = curr_type;
-            if (result_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+            if (result_con != NULL &&
+                result_con->kind == (a_constant_repr_kind)ck_init_repeat) {
               /* Each element of the array is a copy of the same constant.
                  Set result_con to that constant and adjust cum_offset to
                  reflect its position in the array. */
