@@ -25772,8 +25772,7 @@ classes.
   if (C_dialect == C_dialect_cplusplus) {
     if (scope_is(&scope_stack_top(), sck_class_struct_union) &&
         class_type->source_corresp.is_class_member &&
-        same_entities(scope_stack_top().assoc_type,
-                      parent_class_of(class_type))) {
+        scope_stack_top().assoc_type == parent_class_of(class_type)) {
       ctsp->defined_in_parent_class = TRUE;
     }  /* if */
 #if BACK_END_IS_CP_GEN_BE
