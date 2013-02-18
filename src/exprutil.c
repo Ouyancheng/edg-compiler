@@ -9195,7 +9195,7 @@ expands to this value.
     nan_constant = fs_constant((a_constant_repr_kind)ck_float);
     nan_constant->type = float_type((a_float_kind)fk_float);
     (void)make_fp_nan(&nan_constant->variant.float_value,
-                      (a_float_kind)fk_float);
+                      (a_float_kind)fk_float, /*signaling=*/FALSE);
   }  /* if */
   make_constant_operand(nan_constant, result);
 }  /* make_nan_operand */

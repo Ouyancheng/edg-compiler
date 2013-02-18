@@ -3823,7 +3823,8 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
               clear_constant(&result, (a_constant_repr_kind)ck_float);
               result.type = call->type;
               folded = make_fp_nan(&result.variant.float_value,
-                                   result_type->variant.float_kind);
+                                   result_type->variant.float_kind,
+                                   /*signaling=*/FALSE);
             }  /* if */
           }
           break;

@@ -669,28 +669,36 @@ static float float_zero = 0.0;
 #endif /* ifndef __CENTERLINE__ */
 
 a_boolean make_fp_nan(an_internal_float_value *value,
-                      a_float_kind             kind)
+                      a_float_kind             kind,
+                      a_boolean	               signaling)
 /*
-Make a quiet Not-a-Number value of the given floating-point kind in *value.
+Make a Not-a-Number value of the given floating-point kind in *value.
 Return FALSE if the operation did not succeed or if it is mode-dependent;
-return TRUE otherwise.
+return TRUE otherwise.  If signaling is TRUE, a signaling Nan is created,
+otherwise a quiet NaN is created.
 */
 {
   a_boolean  err = FALSE, fp_mode_dependent = FALSE;
   float nan_value;
+  union {
+    float f;
+    uint32_t u32;
+  } u;
 
 #ifdef __CENTERLINE__
   /* CodeCenter does not allow division by zero. */
-  union {
-    float x;
-    long  l;
-  } u;
-  u.l = 0x7fffffff;
-  nan_value = u.x;
+  u.u32 = 0x7fffffff;
+  nan_value = u.f;
 #else /* !defined(__CENTERLINE__) */
   /* 0.0 / 0.0 produces a NaN. */
   nan_value = float_zero / float_zero;
 #endif /* ifdef __CENTERLINE__ */
+  if (signaling) {
+    /* Add the signaling bit if a signaling NaN is desired. */
+    u.f = nan_value;
+    u.u32 |= 0x100000;
+    nan_value = u.f;
+  }  /* if */
   memzero((char *)value, sizeof(an_internal_float_value));
   (void)memcpy((char *)value, (char *)&nan_value, sizeof(float));
   if (kind != (a_float_kind)fk_float) {
@@ -716,11 +724,11 @@ return TRUE otherwise.
 #ifdef __CENTERLINE__
   /* CodeCenter does not allow division by zero. */
   union {
-    float x;
-    long l;
+    float f;
+    uint32_t u32;
   } u;
-  u.l = 0x7f800000;
-  infinity = u.x;
+  u.u32 = 0x7f800000;
+  infinity = u.f;
 #else /* !defined(__CENTERLINE__) */
   /* 1.0 / 0.0 produces positive Infinity. */
   infinity = ((float)1.0) / float_zero;

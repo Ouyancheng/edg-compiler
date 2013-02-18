@@ -103,7 +103,8 @@ extern a_host_fp_value fetch_host_fp_value(
 
 #if TARG_HAS_IEEE_FLOATING_POINT
 extern a_boolean make_fp_nan(an_internal_float_value *value,
-                             a_float_kind            kind);
+                             a_float_kind            kind,
+                             a_boolean	             signaling);
 
 extern a_boolean make_fp_infinity(an_internal_float_value *value,
                                   a_float_kind            kind);
