@@ -23349,7 +23349,7 @@ NULL if the result is unknown).
   }  /* if */
   if (*unknown) routine = NULL;
   if (routine != NULL) {
-    routine ->considered_decider_function_at_some_point = TRUE;
+    routine->considered_decider_function_at_some_point = TRUE;
   }  /* if */
   return routine;
 }  /* vtbl_decider_function_for_class */
