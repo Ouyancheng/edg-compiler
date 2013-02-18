@@ -1,5 +1,22 @@
 Version 4.6
 
+2/18/13  [EDGcpfe/13662]
+GNU C++ compatibility: Folding of dependent built-in function calls
+
+Previously the front end treated calls to GNU __builtin_... functions that
+involve template-dependent arguments as not constant.  This could result in
+spurious errors.  For example:
+
+  template <int N> struct S {
+   static const int S = __builtin_clzll(N);  // Previously an error; now
+  };                                         // accepted.
+
+Now all direct calls to GNU __builtin_... functions for which all arguments
+are constants are treated as potentially constant during generic template
+processing if at least one of the arguments is template-dependent in any way.
+(Such calls may still be considered nonconstant when they are instantiated.)
+
+
 2/17/13  [EDGcpfe/13669]
 Out-of-class inline declaration of key function suppresses destructor
 

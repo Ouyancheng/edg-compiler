@@ -3749,6 +3749,28 @@ address thereof.
 }  /* is_empty_string_literal */
 
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+
+static a_boolean is_dependent_list_of_constant_nodes(an_expr_node_ptr  list)
+/*
+Return TRUE if every node in the given list is a constant, and at least one is
+either a ck_template_param constant or has a template-dependent type.
+*/
+{
+  a_boolean        is_constant = TRUE, is_dependent = FALSE;
+  an_expr_node_ptr node;
+
+  for (node = list; node != NULL; node = node->next) {
+    an_expr_node_ptr expr = skip_parens(node);
+    if (!is_constant_node(expr)) {
+      is_constant = FALSE;
+      break;
+    } else if (expr_is_instantiation_dependent(expr)) {
+      is_dependent = TRUE;
+    }  /* if */
+  }  /* for */
+  return is_constant && is_dependent;
+}  /* is_dependent_list_of_constant_nodes */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static a_boolean check_call_and_fold_if_possible(an_operand       *op,
@@ -3785,7 +3807,7 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
     }  /* if */
     if (is_gnu_builtin_function(rp)) {
       a_type_ptr       result_type = skip_typerefs(call->type);
-      an_expr_node_ptr args2 = NULL;
+      an_expr_node_ptr orig_args = args, args2 = NULL;
       if (args != NULL) {
         args2 = args->next;
         args = skip_parens(args);
@@ -4028,6 +4050,11 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
           /* Nothing to be done. */
           break;
       }  /* switch */
+      if (!folded && is_template_dependent_context() &&
+          is_dependent_list_of_constant_nodes(orig_args)) {
+        make_template_param_expr_constant(call, &result);
+        folded = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
