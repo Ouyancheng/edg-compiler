@@ -5702,7 +5702,10 @@ curr_routine points to the routine entry; otherwise, it is NULL.
       if (decls_using_types_without_linkage_allowed &&
           sym->referenced &&
           (storage_class == (a_storage_class)sc_extern &&
-           (!rout_ptr->is_template_function || !will_be_instantiated(sym)))) {
+           (!rout_ptr->is_template_function ||
+            ((scope_kind == (a_scope_kind)sck_file ||
+             (scope_kind == (a_scope_kind)sck_namespace)) &&
+            !will_be_instantiated(sym))))) {
         /* Check if this routine was declared using a type with no
            linkage. */
         check_constituent_types_have_linkage(sym, &sym->decl_position,
