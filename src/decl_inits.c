@@ -4539,7 +4539,9 @@ FALSE is returned) for non-class objects.
             init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
             init_dip->variant.constant = cp;
           }  /* if */
-          make_value_initialized_constant(tp, cp);
+          if (!make_value_initialized_constant(tp, cp)) {
+            unexpected_condition();
+          }  /* if */
         }  /* if */
       } else if (var->is_constexpr) {
         check_assertion_or_expect_error(!has_nontrivial_destructor(cssp));
