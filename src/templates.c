@@ -1517,10 +1517,19 @@ corresponds to field_sym in an actual instantiation.
   check_assertion_or_expect_error(sym != NULL);
   if (sym != NULL) {
     orig_fssp = sym->variant.field.extra_info;
-    check_assertion(orig_fssp->token_sequence_number ==
-                                                   curr_token_sequence_number);
-    fssp->token_cache = orig_fssp->token_cache;
-    check_assertion(fssp->token_cache != NULL);
+    if (orig_fssp->token_sequence_number == curr_token_sequence_number) {
+      fssp->token_cache = orig_fssp->token_cache;
+      check_assertion(fssp->token_cache != NULL);
+    } else {
+      /* Some error occurred that caused us to be in an unexpected location.
+         Set the field initializer to an error constant. */
+      a_field_ptr	field;
+      expect_error();
+      field = field_sym->variant.field.ptr;
+      field->initializer =
+                         alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+      field->initializer->variant.constant = alloc_error_constant();
+    }  /* if */
   }  /* if */
 }  /* find_inclass_initializer_for_instance */
 
