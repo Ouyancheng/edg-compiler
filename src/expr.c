@@ -3532,6 +3532,9 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_nanf:
       case bfk_nan:
       case bfk_nanl:
+      case bfk_nansf:
+      case bfk_nans:
+      case bfk_nansl:
       case bfk_inff:
       case bfk_inf:
       case bfk_infl:
@@ -3833,6 +3836,9 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
           }  /* if */
           break;
 #if TARG_HAS_IEEE_FLOATING_POINT
+        case bfk_nansf:
+        case bfk_nans:
+        case bfk_nansl:
         case bfk_nanf:
         case bfk_nan:
         case bfk_nanl:
@@ -3842,11 +3848,18 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
                 expr_is_pointer_to_string_literal(args, &scon) &&
                 is_empty_string_literal(scon) &&
                 is_floating_type(result_type)) {
+              a_builtin_function_kind kind = rp->variant.builtin_function_kind;
+              a_boolean               signaling = FALSE;
+              if (kind == (a_builtin_function_kind)bfk_nansf ||
+                  kind == (a_builtin_function_kind)bfk_nans ||
+                  kind == (a_builtin_function_kind)bfk_nansl) {
+                signaling = TRUE;
+              }  /* if */
               clear_constant(&result, (a_constant_repr_kind)ck_float);
               result.type = call->type;
               folded = make_fp_nan(&result.variant.float_value,
                                    result_type->variant.float_kind,
-                                   /*signaling=*/FALSE);
+                                   /*signaling=*/TRUE);
             }  /* if */
           }
           break;

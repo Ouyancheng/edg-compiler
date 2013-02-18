@@ -1,5 +1,13 @@
 Version 4.6
 
+2/18/13  [EDGcpfe/13663]
+GNU compatibility: __builtin_nans in constant-expressions
+
+The front end now evaluated calls to __builtin_nans (and __builtin_nansf and
+__builtin_nansl) to constant floating-point values if the argument to the
+call is an empty string literal.  See also the Changes entry of 11/19/03.
+
+
 2/18/13  [EDGcpfe/13662]
 GNU C++ compatibility: Folding of dependent built-in function calls
 
