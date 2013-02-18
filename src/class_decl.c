@@ -2857,7 +2857,7 @@ If the given type is not yet in the given list of types, add it to that list.
 */
 {
   for (; *p_list != NULL; p_list = &(*p_list)->next) {
-    if (same_entities(type, (*p_list)->type)) break;
+    if (type == (*p_list)->type) break;
   }  /* for */
   if (*p_list == NULL) {
     /* The type was not yet in the list.  Add it now. */
