@@ -6219,9 +6219,11 @@ initialized.  These are addressed in the course of the processing.
           }  /* if */
         }  /* if */
         /* Consider dropping the ctor-initializer entry if it isn't needed. */
-        if (ctor_rout->is_constexpr) {
-          /* Every subobject must be initialized by a constexpr constructor,
-             and we want that to be explicitly represented. */
+        if (ctor_rout->is_constexpr && !is_union) {
+          /* For classes and structs, every subobject must be initialized by a
+             constexpr constructor, and we want that to be represented
+             explicitly.  (For unions, exactly one field should be initialized;
+             that is checked elsewhere.) */
         } else if (cssp == NULL ||
                    is_template_param_or_nonreal_class_type(tp) ||
                    (has_trivial_default_constructor(cssp) &&
