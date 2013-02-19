@@ -5346,11 +5346,14 @@ might turn out to be constant in the actual use.
 {
   a_boolean potential_constant_context = FALSE;
 
-  if (constexpr_enabled &&
-      innermost_function_scope != NULL &&
-      current_routine_entry()->is_constexpr &&
-      !curr_expr_kind_is_const()) {
-    potential_constant_context = TRUE;
+  if (constexpr_enabled) {
+    if (innermost_function_scope != NULL &&
+        current_routine_entry()->is_constexpr &&
+        !curr_expr_kind_is_const()) {
+      potential_constant_context = TRUE;
+    } else if (scope_stack_top().in_field_initializer) {
+      potential_constant_context = TRUE;
+    }  /* if */
   }  /* if */
   return potential_constant_context;
 }  /* in_potential_constant_constexpr_context */
