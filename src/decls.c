@@ -9619,6 +9619,11 @@ the symbol through dps->sym and its linkage (which is always "none") through
   a_symbol_reference_kind  srk_flags;
 
   db_enter(3, "define_static_data_member");
+  if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
+      !is_const_qualified_type(dps->type)) {
+    /* constexpr variables are implicitly const. */
+    dps->type = make_qualified_type(dps->type, (a_type_qualifier_set)TQ_CONST);
+  }  /* if */
   /* This routine is called after a qualified name has been seen, but be sure
      the object is a static data member.  (In invalid programs it could also
      be the name of a nonstatic data member or a member function.) */
