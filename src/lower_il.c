@@ -4071,6 +4071,61 @@ Do IL lowering of a pointer-to-member constant.
 }  /* lower_ptr_to_member_constant */
 
 
+static a_variable_ptr assoc_var_for_constant(a_constant_ptr constant,
+                                             a_boolean      const_okay)
+/*
+FIXME
+*/
+{
+  a_variable_ptr  assoc_var = NULL;
+
+  if (constant->assoc_var != NULL) {
+    assoc_var = constant->assoc_var;
+  } else {
+    a_type_ptr var_type = constant->type;
+    /* The variable must be allocated. */
+#if GNU_VECTOR_TYPES_ALLOWED && BACK_END_IS_C_GEN_BE
+    if (const_okay && is_vector_type(var_type) &&
+        gcc_is_generated_code_target) {
+      /* gcc doesn't permit initialization of static const vector types. */
+      const_okay = FALSE;
+    }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED && BACK_END_IS_C_GEN_BE */
+    if (const_okay) var_type = make_qualified_type(var_type, TQ_CONST);
+    if (in_file_scope((char *)constant)) {
+      /* The constant is in the file scope, so use a file-scope variable.
+         The constant is possibly shared, but we're going to rewrite
+         every use of it to reference the variable instead, so the constant
+         will end up being used only in the initialization of the
+         variable (and therefore unshared). */
+      assoc_var = make_file_scope_temporary(var_type);
+      /* Make the constant the initial value of the variable. */
+      assoc_var->init_kind = (an_init_kind)initk_static;
+      assoc_var->initializer.constant = constant;
+      /* Make sure the variable gets lowered so that the constant will
+         be lowered too. */
+      if (!lowering_file_scope) mark_as_not_visited(assoc_var);
+    } else {
+      /* The constant is in the function scope, so use a function-local
+         static variable. */
+      assoc_var = make_unnamed_local_static_variable(var_type,
+                                                   /*in_function_scope=*/TRUE);
+      /* To initialize a local static variable to an aggregate we use
+         a local-static-variable-init entry (to avoid memory region
+         problems). */
+      (void)make_local_static_variable_init(assoc_var, 
+                                            innermost_function_scope,
+                                            (an_init_kind)initk_static,
+                                            constant,
+                                            (a_dynamic_init_ptr)NULL);
+    }  /* if */
+    /* Save the pointer in the constant so the variable can be reused. */
+    constant->assoc_var = assoc_var;
+  }  /* if */
+  return assoc_var;
+}  /* assoc_var_for_constant */
+
+
 static a_boolean check_for_troublesome_aggregate_constant(
                                                      a_constant_ptr constant,
                                                      a_boolean      const_okay,
@@ -4112,49 +4167,7 @@ constant is being assigned, e.g.,
     troublesome = TRUE;
     /* See if the variable has been allocated already.  If so, a pointer to
        the variable will have been stored in the constant. */
-    if (constant->assoc_var != NULL) {
-      assoc_var = constant->assoc_var;
-    } else {
-      a_type_ptr var_type = constant->type;
-      /* The variable must be allocated. */
-#if GNU_VECTOR_TYPES_ALLOWED && BACK_END_IS_C_GEN_BE
-      if (const_okay && is_vector_type(var_type) &&
-          gcc_is_generated_code_target) {
-        /* gcc doesn't permit initialization of static const vector types. */
-        const_okay = FALSE;
-      }  /* if */
-#endif /* GNU_VECTOR_TYPES_ALLOWED && BACK_END_IS_C_GEN_BE */
-      if (const_okay) var_type = make_qualified_type(var_type, TQ_CONST);
-      if (in_file_scope((char *)constant)) {
-        /* The constant is in the file scope, so use a file-scope variable.
-           The constant is possibly shared, but we're going to rewrite
-           every use of it to reference the variable instead, so the constant
-           will end up being used only in the initialization of the
-           variable (and therefore unshared). */
-        assoc_var = make_file_scope_temporary(var_type);
-        /* Make the constant the initial value of the variable. */
-        assoc_var->init_kind = (an_init_kind)initk_static;
-        assoc_var->initializer.constant = constant;
-        /* Make sure the variable gets lowered so that the constant will
-           be lowered too. */
-        if (!lowering_file_scope) mark_as_not_visited(assoc_var);
-      } else {
-        /* The constant is in the function scope, so use a function-local
-           static variable. */
-        assoc_var = make_unnamed_local_static_variable(var_type,
-                                                   /*in_function_scope=*/TRUE);
-        /* To initialize a local static variable to an aggregate we use
-           a local-static-variable-init entry (to avoid memory region
-           problems). */
-        (void)make_local_static_variable_init(assoc_var, 
-                                              innermost_function_scope,
-                                              (an_init_kind)initk_static,
-                                              constant,
-                                              (a_dynamic_init_ptr)NULL);
-      }  /* if */
-      /* Save the pointer in the constant so the variable can be reused. */
-      constant->assoc_var = assoc_var;
-    }  /* if */
+    assoc_var = assoc_var_for_constant(constant, const_okay);
   }  /* if */
   *temp_var = assoc_var;
   return troublesome;
@@ -4793,7 +4806,6 @@ Do IL lowering of the indicated constant and everything under it.
                lists attached to some scope. */
             break;
           case abk_constant:
-          case abk_temporary:  /* FIXME */
             addressed_con = constant->variant.address.variant.constant;
 #if LOWER_STRING_LITERALS_TO_NON_CONST
             if (string_literals_are_const &&
@@ -4827,16 +4839,23 @@ Do IL lowering of the indicated constant and everything under it.
                  ck_aggregate constant is not allowed here, use the address
                  of a temporary variable initialized with the ck_aggregate
                  constant. */
-              a_constant_ptr saved_next = constant->next;
-              a_boolean      has_implicit_cast = constant->implicit_cast;
-              a_type_ptr     orig_type = constant->type;
-              set_variable_address_constant(temp_var, constant,
-                                            /*set_address_taken_flag=*/TRUE);
-              constant->next = saved_next;
-              /* Array cases may require an implicit cast to the decayed
-                 pointer type. */
-              if (has_implicit_cast) implicit_cast(constant, orig_type);
+              set_variable_address_constant_preserving_implicit_cast(
+                                              temp_var,
+                                              constant,
+                                              /*set_address_taken_flag=*/TRUE);
             }  /* if */
+            break;
+          case abk_temporary:
+            /* Re-write an abk_temporary with the address of a static
+               temporary that is created. */
+            addressed_con = constant->variant.address.variant.constant;
+            lower_os_constant(addressed_con);
+            temp_var = assoc_var_for_constant(addressed_con,
+                                              /*const_okay=*/TRUE);
+            set_variable_address_constant_preserving_implicit_cast(
+                                              temp_var,
+                                              constant,
+                                              /*set_address_taken_flag=*/TRUE);
             break;
           case abk_uuidof:
 #if MICROSOFT_EXTENSIONS_ALLOWED

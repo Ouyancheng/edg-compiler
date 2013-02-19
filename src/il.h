@@ -746,6 +746,12 @@ extern void set_variable_address_constant(
                                         a_variable_ptr variable,
                                         a_constant     *con,
                                         a_boolean      set_address_taken_flag);
+#if DO_IL_LOWERING
+extern void set_variable_address_constant_preserving_implicit_cast(
+                                        a_variable_ptr variable,
+                                        a_constant     *con,
+                                        a_boolean      set_address_taken_flag);
+#endif /* DO_IL_LOWERING */
 
 extern void set_constant_address_constant(a_constant_ptr constant,
                                           a_constant     *con);

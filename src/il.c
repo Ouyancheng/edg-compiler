@@ -4760,6 +4760,28 @@ the address of the variable, e.g., an lvalue).
   }  /* if */
 }  /* set_variable_address_constant */
 
+#if DO_IL_LOWERING
+
+void set_variable_address_constant_preserving_implicit_cast(
+                                         a_variable_ptr variable,
+                                         a_constant     *con,
+                                         a_boolean      set_address_taken_flag)
+/*
+A variant of set_variable_address_constant that preserves the value of
+*con's implicit_cast and next fields.  Used in lowering.
+*/
+{
+  a_constant_ptr saved_next = con->next;
+  a_boolean      has_implicit_cast = con->implicit_cast;
+  a_type_ptr     orig_type = con->type;
+  set_variable_address_constant(variable, con, set_address_taken_flag);
+  con->next = saved_next;
+  /* Array cases may require an implicit cast to the decayed
+     pointer type. */
+  if (has_implicit_cast) implicit_cast(con, orig_type);
+}  /* set_variable_address_constant_preserving_implicit_cast */
+
+#endif /* DO_IL_LOWERING */
 
 void set_constant_address_constant(a_constant_ptr constant,
                                    a_constant    *con)
