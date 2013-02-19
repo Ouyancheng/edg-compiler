@@ -4074,7 +4074,9 @@ Do IL lowering of a pointer-to-member constant.
 static a_variable_ptr assoc_var_for_constant(a_constant_ptr constant,
                                              a_boolean      const_okay)
 /*
-FIXME
+Returns the associated variable for a constant if one already exists, otherwise
+it creates an associated variable for the constant and returns that.
+When const_okay is TRUE, the associated variable type is const qualified.
 */
 {
   a_variable_ptr  assoc_var = NULL;
