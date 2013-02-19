@@ -16940,8 +16940,14 @@ information about the member declaration, respectively.
     } else if (in_class_instantiation(class_state)) {
       if (curr_token != tok_removed_expr) {
         /* In error cases, the declaration might not look like a nonstatic
-           data member in the prototype instantiation. */
+           data member in the prototype instantiation.  Record an error
+           constant as the initializer. */
         expect_error();
+        flush_tokens();
+        record_fixup = FALSE;
+        field->initializer =
+                        alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+        field->initializer->variant.constant = alloc_error_constant();
       } else {
         /* During a real instantiation, the token cache information is copied
            from the field of the prototype instantiation. */
