@@ -4180,7 +4180,8 @@ returned set to TRUE.
   }  /* if */
 #if CHECKING
   if (vp != NULL && vp->is_constexpr) {
-    check_assertion_or_expect_error(initializer_constant(vp) != NULL);
+    check_assertion_or_expect_error(initializer_constant(vp) != NULL ||
+                                    is_template_dependent_type(vp->type));
   }  /* if */
 #endif /* CHECKING */
 #if DEBUG
