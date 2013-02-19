@@ -7160,7 +7160,8 @@ the scope stack is no longer available.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if DO_IL_LOWERING
     if (!will_discard_function_body &&
-        (delayed || !routine->is_prototype_instantiation)) {
+        (delayed ||
+         !scope_stack[depth_scope_stack].in_prototype_instantiation)) {
       /* Do IL lowering (change the C++ IL into C IL). */
       lower_il_memory_region(routine->assoc_scope);
 #if MAINTAIN_NEEDED_FLAGS
