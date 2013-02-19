@@ -4679,7 +4679,7 @@ FALSE is returned) for non-class objects.
       def_init_performed = TRUE;
     }  /* if */
 #if CHECKING
-    if (var->is_constexpr) {
+    if (var->is_constexpr && !is_nonreal_class) {
       check_assertion_or_expect_error(initializer_constant(var) != NULL);
     }  /* if */
 #endif /* CHECKING */
