@@ -21507,6 +21507,12 @@ will be an lvalue instead of the usual rvalue.
               arg_match->match_level = aml_exact;
             }  /* if */
           }  /* if */
+        } else {
+          if (eff_is->init_error) {
+            dip = NULL;
+            constant = NULL;
+            make_error_operand(&operand);
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (could_be_dependent_class_type(dest_type)) {
