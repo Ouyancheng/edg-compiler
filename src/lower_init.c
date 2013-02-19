@@ -12316,7 +12316,7 @@ have already had their designated initializers lowered.
 #if CHECKING
       { a_type_ptr con_type = skip_typerefs(temp_con->type);
         check_assertion_str(
-                   identical_types(con_type, member_type) ||
+                   il_identical_types(con_type, member_type) ||
                    /* A short string literal can initialize a longer
                       char array.  Also an array of non-const chars
                       can initialize an array of const chars. */
