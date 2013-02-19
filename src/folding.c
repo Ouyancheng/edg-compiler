@@ -7912,7 +7912,8 @@ evaluation.
   if (dip->destructor != NULL) goto end_of_routine;
   switch(dip->kind) {
     case dik_constant:
-      copy_constant(dip->variant.constant, result_con);
+      (void)copy_constant_full(dip->variant.constant, result_con,
+                               CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL);
       if (result_con->is_partially_initialized) {
         ceblock->is_partially_initialized = TRUE;
       }  /* if */
