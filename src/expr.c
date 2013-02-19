@@ -14757,9 +14757,9 @@ the deallocation and return a pointer to it.
   dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
   dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
   dyn_init_to_free_storage->is_array_freeing = array_new;
+  /* Mark the routine IL entry referenced. */
+  if_evaluating_mark_routine_referenced(delete_routine);
   if (curr_expr_is_potentially_evaluated()) {
-    /* Mark the routine IL entry referenced. */
-    mark_routine_referenced(delete_routine);
     /* Mark the routine as called. */
     delete_routine->called = TRUE;
     record_end_of_lifetime_destruction(dyn_init_to_free_storage,

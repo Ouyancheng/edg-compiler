@@ -2651,7 +2651,8 @@ there was an error, and do not issue any diagnostics (including warnings).
        call might actually be of an overriding function. */
   } else {
     /* Non-virtual call. */
-    mark_routine_referenced_full(rp, instantiate, elided_reference);
+    mark_routine_referenced_full(rp, instantiate, elided_reference,
+                                 /*in_constant_expr=*/FALSE);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 

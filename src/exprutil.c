@@ -1448,7 +1448,9 @@ mark_routine_referenced.
     mark_routine_referenced_full(routine,
                                  /*instantiate=*/
                                        !expr_stack->is_default_arg_expression,
-                                 /*elided_reference=*/FALSE);
+                                 /*elided_reference=*/FALSE,
+                                 /*in_constant_expr=*/
+                                                    curr_expr_kind_is_const());
   }  /* if */
 }  /* if_evaluating_mark_routine_referenced */
 
