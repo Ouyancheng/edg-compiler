@@ -2141,7 +2141,15 @@ for any diagnostics issued.
                       "type_change_constant_full: nullptr to bad type");
       }  /* if */
       break;
-
+    case tk_class:
+    case tk_struct:
+    case tk_union:
+      /* Comes up in some constexpr error cases.  Note that class cases with
+         identical types are handled earlier in this routine. */
+      check_assertion(is_or_contains_error_type(constant_type) ||
+                      is_or_contains_error_type(new_type));
+      new_constant.type = new_type_with_typedefs;
+      break;
     default:
       unexpected_condition_str("type_change_constant_full: from bad type");
   }  /* switch */
