@@ -11194,18 +11194,20 @@ the same as innermost_function_scope, but not in all cases (say, when scanning
 a local class).
 */
 {
-  a_scope_ptr             result = NULL;
+  a_scope_ptr             result = innermost_function_scope;
   a_scope_stack_entry_ptr ssep;
 
-  for (ssep = &scope_stack_top();
-       ssep != &scope_stack[DEPTH_OF_FILE_SCOPE];
-       ssep = previous_scope_of(ssep)) {
-    if (ssep->il_scope != NULL &&
-        ssep->il_scope->kind == (a_scope_kind)sck_function) {
-      result = ssep->il_scope;
-      break;
-    }  /* if */
-  }  /* for */
+  if (result == NULL && inside_local_class) {
+    for (ssep = &scope_stack_top();
+         ssep != &scope_stack[DEPTH_OF_FILE_SCOPE];
+         ssep = previous_scope_of(ssep)) {
+      if (ssep->il_scope != NULL &&
+          ssep->il_scope->kind == (a_scope_kind)sck_function) {
+        result = ssep->il_scope;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   return result;
 }  /* get_innermost_function_scope */
 
