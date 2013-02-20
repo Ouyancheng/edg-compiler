@@ -25420,7 +25420,6 @@ bits of information that were acquired while parsing.
   a_symbol_ptr                   tag_sym = symbol_for(class_type);
   a_class_symbol_supplement_ptr  cssp
                               = tag_sym->variant.class_struct_union.extra_info;
-  a_class_type_supplement_ptr    ctsp = class_type_supp(class_type);
 
   if (class_state->last_field_is_incomplete_array) {
     /* The last field that was recorded was an incomplete array.  This is
@@ -25606,7 +25605,7 @@ bits of information that were acquired while parsing.
       }  /* if */
       check_names_reserved_by_cli_operators(class_type);
     }  /* if */
-    if (ctsp->decl_modifiers & DM_DLLEXPORT) {
+    if (class_type_supp(class_type)->decl_modifiers & DM_DLLEXPORT) {
       force_definition_of_generated_exported_members(class_type);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
