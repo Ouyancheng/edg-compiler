@@ -8213,6 +8213,12 @@ C99 mode for the same reason.
       }  /* for */
       check_assertion_str(lsvip != NULL,
                           "lower_dynamic_init: local static init not found");
+      /* Don't allow simple constant initialization for promoted local
+         static variables (in cases where the constant contains a "troublesome"
+         aggregate constant, the temporary that is created will be in the
+         function scope and the variable has been promoted to the file
+         scope).  This restriction might be able to be lifted in some cases. */
+      do_simple_constant_init_opt = FALSE;
     }  /* if */
     /* For local static variables, add a first-time flag and a test,
        but not if the initialization will be turned into a constant
