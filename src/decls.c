@@ -1853,24 +1853,34 @@ specified scope.
 }  /* make_routine */
 
 
-static void make_anonymous_union_variable(
-                                       a_type_ptr      anon_union_type,
-                                       a_storage_class declared_storage_class)
+static void decl_anonymous_union_variable(a_decl_parse_state  *dps)
 /*
-Create a variable to represent an anonymous union declared with the given
-union type and storage class.  Issue an error if its storage class is invalid.
-Also promote the fields of the union type to the current scope.
+Create a variable to represent an anonymous union declared by the current
+declaration (which is described by *dps).  Issue an error if its storage class
+is invalid.  Also promote the fields of the union type to the current scope.
 */
 {
+  a_type_ptr       anon_union_type = dps->specifiers_type;
   a_variable_ptr   vp;
   a_boolean        at_file_or_namespace_scope;
   a_symbol_ptr     assoc_object_sym;
   a_scope_depth    scope_depth;
-  a_storage_class  storage_class = declared_storage_class;
+  a_storage_class  storage_class = dps->declared_storage_class;
 
-  at_file_or_namespace_scope =
-                     (depth_scope_stack == depth_innermost_namespace_scope);
+  if (is_qualified_type(anon_union_type)) {
+    /* GNU and Microsoft compilers accept cv-qualified anonymous unions, but
+       recent GNU compilers no longer apply the qualifiers to the implied
+       variable. */
+    if (gpp_mode && gnu_version >= 40002) {
+      anon_union_type = skip_typerefs(anon_union_type);
+      pos_warning(ec_anonymous_union_qualifier_ignored, &dps->start_pos);
+    } else {
+      pos_warning(ec_nonstandard_anonymous_union_qualifier, &dps->start_pos);
+    }  /* if */
+  }  /* if */
   /* Check the storage class.  At file scope, only static is allowed. */
+  at_file_or_namespace_scope =
+                       (depth_scope_stack == depth_innermost_namespace_scope);
   if (at_file_or_namespace_scope) {
     switch (storage_class) {
       case sc_static:
@@ -1905,7 +1915,7 @@ Also promote the fields of the union type to the current scope.
         break;
       default:
         unexpected_condition_str(
-                           "make_anonymous_union_variable: bad storage class");
+                           "decl_anonymous_union_variable: bad storage class");
     }  /* switch */
   }  /* if */
   /* Allocate a variable to represent the anonymous union. */
@@ -1914,7 +1924,7 @@ Also promote the fields of the union type to the current scope.
   vp = make_variable(anon_union_type, storage_class, scope_depth);
   vp->is_anonymous_parent_object = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  vp->declared_storage_class = declared_storage_class;
+  vp->declared_storage_class = dps->declared_storage_class;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Promote the fields of the anonymous union to the current scope, and do
      some error checking on the anonymous union's members. */
@@ -1937,11 +1947,14 @@ Also promote the fields of the union type to the current scope.
   vp->declared_type = anon_union_type;
   add_to_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (unrestricted_unions_enabled) {
+    (void)def_initializer(assoc_object_sym, &dps->start_pos);
+  }  /* if */
   /* Promote symbols for anonymous unions members to the enclosing scope.
      Error checking is also done. */
   check_anonymous_union_symbols(assoc_object_sym, (a_type_ptr)NULL,
                                 /*is_nonstd=*/FALSE);
-}  /* make_anonymous_union_variable */
+}  /* decl_anonymous_union_variable */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
@@ -14013,23 +14026,8 @@ state describes the declaration parsed so far.
          required error checking and special processing, including creation
          of a variable which will represent the anonymous union and with
          which its fields will be aliased. */
-      a_type_ptr  anon_var_type = type_ptr;
-      if (is_qualified_type(type_ptr)) {
-        if (gpp_mode && gnu_version >= 40002) {
-          /* GNU and Microsoft compilers accept cv-qualified anonymous unions,
-             but recent GNU compilers no longer apply the qualifiers to the
-             implied variable. */
-          anon_var_type = tp;
-          pos_warning(ec_anonymous_union_qualifier_ignored, &state->start_pos);
-        } else {
-          pos_warning(ec_nonstandard_anonymous_union_qualifier,
-                      &state->start_pos);
-        }  /* if */
-      }  /* if */
-      check_assertion(is_unnamed_tag_symbol(
-                              (a_symbol_ptr)(tp->source_corresp.assoc_info)));
-      make_anonymous_union_variable(anon_var_type,
-                                    state->declared_storage_class);
+      check_assertion(is_unnamed_tag_symbol(symbol_for(tp)));
+      decl_anonymous_union_variable(state);
       /* The anonymous union variable is marked as referenced, as are all
          unnamed entities.  So its type is also marked referenced. */
       tp->source_corresp.referenced = TRUE;

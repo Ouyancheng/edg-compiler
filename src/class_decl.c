@@ -25519,11 +25519,9 @@ bits of information that were acquired while parsing.
     /* Check to see if a remark should be issued on direct base classes
        with nonvirtual destructors. */
     check_base_class_destructors(class_state);
-    if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_none) {
-      /* Create compiler-generated default constructor, copy constructor,
-         destructor, and assignment operator, if any is needed. */
-      check_special_member_functions(class_type, class_state);
-    }  /* if */
+    /* Create compiler-generated default constructor, copy constructor,
+       destructor, and assignment operator, if any is needed. */
+    check_special_member_functions(class_type, class_state);
     if (cssp->is_class_aggregate && !class_state->POD_ruled_out) {
       /* It was intentional to wait until check_special_member_functions
          was called to set the is_POD flag -- the check for copy
