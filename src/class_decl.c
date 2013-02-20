@@ -3022,8 +3022,17 @@ type must be complete.
        associated classes have a generated defaulted constructor that should
        be "constexpr", and determine whether those classes are "literal types".
        If there were no fixups, this is done when the type is completed. */
+    a_boolean     class_reactivated = FALSE;
     cssp = symbol_supplement_for_class(tlep->type);
     cssp->has_initializer_fixups = FALSE;
+    if (!(scope_is(&scope_stack_top(), sck_class_struct_union) &&
+        same_entities(scope_stack_top().assoc_type, tlep->type))) {
+      /* Reactivate the class scope. */
+      push_class_and_template_reactivation_scope(tlep->type,
+                                                 is_template_based,
+                                                 /*extend_namespace=*/TRUE);
+      class_reactivated = TRUE;
+    }  /* if */
     if (cssp->default_ctor_body_delayed) {
       /* An attempt to generate the body of the default constructor was delayed
          because it requires that the field initializers be available.  Now
@@ -3036,6 +3045,9 @@ type must be complete.
     if (constexpr_enabled) {
       (void)check_if_constexpr_generated_default_constructor(tlep->type);
       set_literal_type_flag(tlep->type);
+    }  /* if */
+    if (class_reactivated) {
+      pop_class_reactivation_scope();
     }  /* if */
   }  /* for */
   free_list_of_type_list_entries(type_list);

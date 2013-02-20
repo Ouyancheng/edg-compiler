@@ -95,6 +95,9 @@ typedef int a_push_scope_options_set;
 #define PS_EXCEPTION_SPEC		0x20000
 			/* TRUE when instantiating an exception
 			   specification. */
+#define PS_NEW_ACCESS_CONTEXT		0x40000
+			/* TRUE for a class reactivation scope if the scope
+			   should be considered a new access context. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
 			   a function. */

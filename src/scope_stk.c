@@ -3103,6 +3103,8 @@ the scope being pushed.
         kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_pragma ||
         kind == (a_scope_kind)sck_instantiation_context ||
+        (kind == (a_scope_kind)sck_class_reactivation &&
+         (options & PS_NEW_ACCESS_CONTEXT) != 0) ||
         (kind == (a_scope_kind)sck_function &&
          !assoc_routine->is_lambda_body) ||
         kind == (a_scope_kind)sck_block ||
@@ -3905,10 +3907,13 @@ to the namespace and class that must be reactivated.
 }  /* get_parent_information_for_template */
 
 
-static void push_single_class_reactivation_scope(a_type_ptr class_type)
+static void push_single_class_reactivation_scope(
+				a_type_ptr			class_type,
+				a_push_scope_options_set	options) 
 /*
 Reactivate the class indicated by class type.  Do not push the scopes for
-any enclosing class types or namespaces.
+any enclosing class types or namespaces.  "options" is the set of option
+flags passed to the push scope routines.
 */
 {
   a_scope_ptr	il_scope;
@@ -3918,8 +3923,15 @@ any enclosing class types or namespaces.
   check_assertion_str2(il_scope != NULL,
                        "push_single_class_reactivation_scope:",
                        "NULL assoc_scope");
-  (void)push_scope((a_scope_kind)sck_class_reactivation, il_scope->number,
-                   class_type, (a_routine_ptr)NULL);
+  (void)push_scope_full((a_scope_kind)sck_class_reactivation,
+                        il_scope->number, class_type,
+                        (a_routine_ptr)NULL, (a_namespace_ptr)NULL,
+                        (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                        (a_template_arg_ptr)NULL,
+                        (a_template_decl_info_ptr)NULL,
+                        (an_object_lifetime_ptr)NULL,
+                        (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
+                        options);
 }  /* push_single_class_reactivation_scope */
 
 
@@ -4040,7 +4052,7 @@ are non-NULL when they should be used for the outermost instantiation scope.
                           ps_options);
   }  /* if */
   /* Reactivate the enclosing class scope. */
-  push_single_class_reactivation_scope(class_type);
+  push_single_class_reactivation_scope(class_type, PS_NO_OPTIONS);
 }  /* reactivate_class_and_instantiation_scopes */
 
 
@@ -8620,9 +8632,11 @@ and that namespace is the current scope, no additional namespace scopes will
 be pushed.
 */
 {
-  a_symbol_ptr	class_sym;
-  a_boolean	namespace_pushed = FALSE;
-  a_scope_depth	orig_depth = NO_SCOPE_DEPTH;
+  a_symbol_ptr			class_sym;
+  a_boolean			namespace_pushed = FALSE;
+  a_scope_depth			orig_depth = NO_SCOPE_DEPTH;
+  a_scope_depth			starting_depth = depth_scope_stack;
+  a_push_scope_options_set	options;
 
   /* Get the symbol associated with the class. */
   class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
@@ -8650,7 +8664,13 @@ be pushed.
     namespace_pushed = TRUE;
   }  /* if */
   if (orig_depth == NO_SCOPE_DEPTH) orig_depth = depth_scope_stack;
-  push_single_class_reactivation_scope(class_type);
+  /* For the outermost class reactivation, indicate that this should
+     begin a new access checking context.  This is only done for
+     cases that are considered new contexts as indicated by the
+     extend_namespace flag. */
+  options = starting_depth == depth_scope_stack && extend_namespace 
+                                       ? PS_NEW_ACCESS_CONTEXT : PS_NO_OPTIONS;
+  push_single_class_reactivation_scope(class_type, options);
   scope_stack[depth_scope_stack].namespace_pushed = namespace_pushed;
   return orig_depth;
 }  /* reactivate_class_scope */
@@ -8840,7 +8860,7 @@ pushed.
          the parent class. */
       set_template_decl_lookup_sequence(initial_depth);
     }  /* if */
-    push_single_class_reactivation_scope(class_type);
+    push_single_class_reactivation_scope(class_type, PS_NO_OPTIONS);
     /* Indicate that a template instantiation scope was pushed so that,
        when popping the class and template reactivation, we know how the
        scopes should be popped. */
