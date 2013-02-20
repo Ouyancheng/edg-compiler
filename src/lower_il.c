@@ -4079,7 +4079,7 @@ it creates an associated variable for the constant and returns that.
 When const_okay is TRUE, the associated variable type is const qualified.
 */
 {
-  a_variable_ptr  assoc_var = NULL;
+  a_variable_ptr  assoc_var;
 
   if (constant->assoc_var != NULL) {
     assoc_var = constant->assoc_var;
@@ -4168,7 +4168,8 @@ constant is being assigned, e.g.,
        troublesome aggregate. */
     troublesome = TRUE;
     /* See if the variable has been allocated already.  If so, a pointer to
-       the variable will have been stored in the constant. */
+       the variable will have been stored in the constant; otherwise one
+       will be created. */
     assoc_var = assoc_var_for_constant(constant, const_okay);
   }  /* if */
   *temp_var = assoc_var;
