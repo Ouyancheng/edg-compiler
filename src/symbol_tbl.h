@@ -1296,6 +1296,13 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if this class has field initializers that are
 			   instantiated "on-demand" (normally this is the case
 			   for field initializers of template instances). */
+  a_bit_field	has_initializer_fixups:1;
+			/* TRUE if this class as associated initializer fixups
+			   (which may be recorded on the initializer_fixup_list
+			   of an enclosing class). */
+  a_bit_field	default_ctor_body_delayed:1;
+			/* TRUE if the generation of the default constructor
+			   body has been delayed. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block
 		pointers_block;

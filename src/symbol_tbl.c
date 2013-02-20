@@ -3593,6 +3593,8 @@ state.
         cssp->has_constexpr_nonstatic_member_function = FALSE;
         cssp->scanning_field_initializer = FALSE;
         cssp->has_instantiatable_field_initializers = FALSE;
+        cssp->has_initializer_fixups = FALSE;
+        cssp->default_ctor_body_delayed = FALSE;
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
         cssp->conversion_template_list = NULL;

@@ -2867,6 +2867,45 @@ If the given type is not yet in the given list of types, add it to that list.
 }  /* ensure_type_is_in_type_list */
 
 
+static a_boolean is_simple_default_constructor(a_routine_ptr  rp)
+/*
+Return TRUE if the given routine entry represents a constructor with no
+parameters, except perhaps for an ellipsis parameter.
+*/
+{
+  return special_kind_is(rp, sfk_constructor) &&
+         function_type_params(skip_typerefs(rp->type)) == NULL;
+}  /* is_simple_default_constructor */
+
+
+static a_symbol_ptr get_generated_default_ctor(
+                                          a_class_symbol_supplement_ptr  cssp)
+/*
+Return the symbol representing a generated (i.e., compiler-generated or
+defaulted) default constructor, or NULL if there is none.
+*/
+{
+  a_symbol_ptr  ctor = cssp->constructor;
+
+  check_assertion(constexpr_enabled);
+  /* Look for a generated default constructor that could be constexpr
+     (if any). */
+  if (ctor != NULL) {
+    a_boolean  is_list = symbol_is(ctor, sk_overloaded_function);
+    if (is_list) ctor = ctor->variant.overloaded_function.symbols;
+    for (; ctor != NULL; ctor = is_list ? ctor->next : NULL) {
+      a_routine_ptr  ctor_rp = ctor->variant.routine.ptr;
+      if ((ctor_rp->compiler_generated ||
+           (ctor_rp->is_defaulted && ctor_rp->is_constexpr)) &&
+          is_simple_default_constructor(ctor_rp)) {
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return ctor;
+}  /* get_generated_default_ctor */
+
+
 /* Forward declaration. */
 static a_boolean check_if_constexpr_generated_default_constructor(
                                                        a_type_ptr  class_type);
@@ -2983,6 +3022,17 @@ type must be complete.
        associated classes have a generated defaulted constructor that should
        be "constexpr", and determine whether those classes are "literal types".
        If there were no fixups, this is done when the type is completed. */
+    cssp = symbol_supplement_for_class(tlep->type);
+    cssp->has_initializer_fixups = FALSE;
+    if (cssp->default_ctor_body_delayed) {
+      /* An attempt to generate the body of the default constructor was delayed
+         because it requires that the field initializers be available.  Now
+         that they are, proceed with the generation of that definition. */
+      a_symbol_ptr  ctor = get_generated_default_ctor(cssp);
+      check_assertion(ctor != NULL);
+      force_definition_of_compiler_generated_routine(
+                                                   ctor->variant.routine.ptr);
+    }  /* if */
     if (constexpr_enabled) {
       (void)check_if_constexpr_generated_default_constructor(tlep->type);
       set_literal_type_flag(tlep->type);
@@ -12368,17 +12418,6 @@ function.
                                           rout_type, /*is_reverse_fn=*/FALSE);
 }  /* is_implicitly_callable_conversion_function */
 
-
-static a_boolean is_simple_default_constructor(a_routine_ptr  rp)
-/*
-Return TRUE if the given routine entry represents a constructor with no
-parameters, except perhaps for an ellipsis parameter.
-*/
-{
-  return special_kind_is(rp, sfk_constructor) &&
-         function_type_params(skip_typerefs(rp->type)) == NULL;
-}  /* is_simple_default_constructor */
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void exclude_special_members_from_value_class_type(
@@ -14305,6 +14344,10 @@ in the context of the completed class later on.
     ifp->symbol = dps->sym;
     ifp->token_cache = token_cache;
     check_assertion(scope_is(ssep, sck_class_struct_union));
+    /* Indicate that unprocessed initializer fixups are associated with this
+       class (e.g., to delay the generation of a default constructor body). */
+    symbol_supplement_for_class(ssep->assoc_type)->has_initializer_fixups =
+                                                                         TRUE;
     /* There's only one class-fixup-list, and it's associated with the
        outermost enclosing class.  If this is a nested class, move up the
        scope stack to find the appropriate entry. */
@@ -17904,24 +17947,18 @@ issue an error if it is not actually constexpr.
 {
   a_class_symbol_supplement_ptr
                  cssp = symbol_supplement_for_class(class_type);
-  a_symbol_ptr   ctor = cssp->constructor;
+  a_symbol_ptr   ctor = get_generated_default_ctor(cssp);
   a_routine_ptr  ctor_rp;
   a_boolean      is_constexpr = FALSE;
 
   check_assertion(constexpr_enabled);
-  /* Look for a generated default constructor that could be constexpr
-     (if any). */
   if (ctor != NULL) {
-    a_boolean  is_list = symbol_is(ctor, sk_overloaded_function);
-    if (is_list) ctor = ctor->variant.overloaded_function.symbols;
-    for (; ctor != NULL; ctor = is_list ? ctor->next : NULL) {
-      ctor_rp = ctor->variant.routine.ptr;
-      if ((ctor_rp->compiler_generated ||
-           (ctor_rp->is_defaulted && ctor_rp->is_constexpr)) &&
-          is_simple_default_constructor(ctor_rp)) {
-        break;
-      }  /* if */
-    }  /* for */
+    ctor_rp = ctor->variant.routine.ptr;
+    if (!ctor_rp->compiler_generated && !ctor_rp->is_constexpr) {
+      /* The default constructor was user-declared, but not declared
+         constexpr.  Nothing more needs to be done. */
+      ctor = NULL;
+    }
   }  /* if */
   if (ctor != NULL) {
     if (!class_type->variant.class_struct_union.any_virtual_base_classes) {

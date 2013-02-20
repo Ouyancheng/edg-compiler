@@ -2922,16 +2922,24 @@ is considered already defined), force the definition now.
           skind == (a_special_function_kind)sfk_destructor  ||
           (skind == (a_special_function_kind)sfk_operator &&
            rp->variant.opname_kind == (an_opname_kind)onk_assign)) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
         a_type_ptr  parent_type = parent_class_of(rp);
-        if (cppcli_enabled && is_immediate_delegate_type(parent_type) &&
-            skind == (a_special_function_kind)sfk_constructor) {
+        a_class_symbol_supplement_ptr
+                    cssp = symbol_supplement_for_class(parent_type);
+        if (skind == (a_special_function_kind)sfk_constructor &&
+            cssp->has_initializer_fixups &&
+            is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
+          /* Don't generate the default constructor body at this time because
+             required field initializers haven't been parsed yet.  Instead set
+             a flag indicating that the definition has been delayed so that it
+             can be generated once the field initializers have been parsed. */
+          cssp->default_ctor_body_delayed = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled && is_immediate_delegate_type(parent_type) &&
+                   skind == (a_special_function_kind)sfk_constructor) {
           /* The generated constructor declaration of a delegate class type
              is not one whose body can be generated. */
-        } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        {
+        } else {
           define_special_member_function(rp);
         }  /* if */
       }  /* if */
