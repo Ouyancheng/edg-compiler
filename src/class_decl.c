@@ -14479,6 +14479,7 @@ specific information about the member declaration, respectively.
      class will usually be set to extern (except sometimes in cfront mode). */
   var = make_variable(member_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
   if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
+    complete_type_is_needed(member_type);
     if (is_incomplete_type(member_type)) {
       /* A constexpr static data member cannot have an incomplete type. */
       pos_ty_error(ec_incomplete_type_for_constexpr_static_data_member,
@@ -14613,6 +14614,7 @@ specific information about the member declaration, respectively.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if ((is_const_qualified_type(member_type) &&
                 (is_integral_or_enum_type(member_type) ||
+                 (var->is_constexpr && is_literal_type(member_type)) ||
                  (gpp_mode &&
                   (is_floating_type(member_type) ||
                    (gnu_version < 30300 && is_pointer_type(member_type)))))) ||
@@ -14622,12 +14624,14 @@ specific information about the member declaration, respectively.
                (class_state->is_nonreal_instantiation &&
                 is_template_param_type(member_type))) {
       /* A const integral or const enumeration type may be initialized inside
-         the class definition (9.5.2).   This makes the static data member
-         usable as a member constant.  Note that the variable entry will have
-         an initializer but it is not yet considered defined.  GNU compilers
-         allow floating-point in-class initializers, and some versions even
-         allow pointers to be initialized in this way.  C++/CLI also allows
-         in-class initializers for initonly static data members. */
+         the class definition.  C++11 extended this to literal type members
+         for constexpr data members.  In either case the static data member
+         becomes usable as a member constant.  Note that the variable entry
+         will have an initializer but it is not yet considered defined.  GNU
+         compilers allow floating-point in-class initializers (also in the
+         non-constexpr case), and some versions even allow pointers to be
+         initialized in this way.  C++/CLI also allows in-class initializers
+         for initonly static data members. */
       decl_info->decl_pos_block.var_init_range.start = init_pos;
       /* Scan the constant expression. */
       scan_member_constant_initializer_expression(decl_state, &constant);
