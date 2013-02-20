@@ -8913,6 +8913,8 @@ storage_class_specifier:
           err = TRUE;
         } else if (decl_specifiers_seen & DS_VIRTUAL) {
           pos_error(ec_constexpr_virtual_combination, &pos_curr_token);
+        } else if ((input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0) {
+          pos_error(ec_constexpr_explicit_instantiation, &pos_curr_token);
         } else if (decl_specifiers_seen & DS_CONSTEXPR) {
           error(ec_dupl_decl_specifier);
         } else {

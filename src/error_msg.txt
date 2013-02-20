@@ -2483,6 +2483,7 @@ ec_constexpr_ctor_does_not_initialize_base;;"constexpr constructor must initiali
 ec_field_initializer_list;;"creation of an std::initializer_list object in a field initializer is unlikely to work as expected because the underlying array will be destroyed at the end of the full expression"
 ec_this_not_constant;;"\"this\" cannot be used in a constant expression"
 ec_ambiguous_union_value_init;;"an empty initializer is not valid for this union type (which member should be initialized is ambiguous)"
+ec_constexpr_explicit_instantiation;;"\"constexpr\" is not allowed on an explicit instantiation directive"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
