@@ -12443,7 +12443,11 @@ e.g., if the source operand is an lvalue.
                                   /*lvalue_expected=*/TRUE,
                                   /*rvalue_expected=*/FALSE);
       }  /* if */
-      opexpr = make_node_from_operand(operand);
+      if (source_form == csf_functional) {
+        opexpr = make_node_from_operand_for_expr_list(operand);
+      } else {
+        opexpr = make_node_from_operand(operand);
+      }  /* if */
       /* Certain kinds of casts are known not to create a new object.
          For others that might create a class object, use an enk_temp_init
          form. */
