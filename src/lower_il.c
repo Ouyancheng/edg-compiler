@@ -4855,7 +4855,8 @@ Do IL lowering of the indicated constant and everything under it.
                                               (a_constant_repr_kind)ck_string);
             lower_os_constant(addressed_con);
             temp_var = assoc_var_for_constant(addressed_con,
-                                              /*const_okay=*/TRUE);
+                                              is_const_qualified_type(
+                                                              constant->type));
             set_variable_address_constant_preserving_implicit_cast(
                                               temp_var,
                                               constant,
