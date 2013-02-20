@@ -2927,6 +2927,7 @@ is considered already defined), force the definition now.
                     cssp = symbol_supplement_for_class(parent_type);
         if (skind == (a_special_function_kind)sfk_constructor &&
             cssp->has_initializer_fixups &&
+            !is_immediate_managed_class_type(parent_type) &&
             is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
           /* Don't generate the default constructor body at this time because
              required field initializers haven't been parsed yet.  Instead set

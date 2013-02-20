@@ -2882,25 +2882,25 @@ static a_symbol_ptr get_generated_default_ctor(
                                           a_class_symbol_supplement_ptr  cssp)
 /*
 Return the symbol representing a generated (i.e., compiler-generated or
-defaulted) default constructor, or NULL if there is none.
+defaulted) default constructor associated with cssp, or NULL if there is none.
 */
 {
   a_symbol_ptr  ctor = cssp->constructor;
 
-  check_assertion(constexpr_enabled);
-  /* Look for a generated default constructor that could be constexpr
-     (if any). */
   if (ctor != NULL) {
     a_boolean  is_list = symbol_is(ctor, sk_overloaded_function);
     if (is_list) ctor = ctor->variant.overloaded_function.symbols;
+    /* Search the constructors for one that is generated/defaulted and is a
+       simple default constructor (i.e., has not explicit parameter). */
     for (; ctor != NULL; ctor = is_list ? ctor->next : NULL) {
       a_routine_ptr  ctor_rp = ctor->variant.routine.ptr;
-      if ((ctor_rp->compiler_generated ||
-           (ctor_rp->is_defaulted && ctor_rp->is_constexpr)) &&
+      if ((ctor_rp->compiler_generated || ctor_rp->is_defaulted) &&
           is_simple_default_constructor(ctor_rp)) {
         break;
       }  /* if */
     }  /* for */
+  } else {
+    ctor = cssp->trivial_default_constructor;
   }  /* if */
   return ctor;
 }  /* get_generated_default_ctor */
