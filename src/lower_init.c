@@ -8541,15 +8541,37 @@ C99 mode for the same reason.
       }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 do_assignment:;
-      check_assertion_str(!ipdp->array_element_sequence,
-                          "lower_dynamic_init: repeated const or expr init");
-      /* Make a node for the entity to be initialized. */
-      entity_node = make_init_entity_node(ipdp, /*result_is_lvalue=*/TRUE,
-                                          /*using_as_dest=*/TRUE);
-      add_init_assignment(dip, (a_constant *)NULL, entity_node,
-                          have_complete_object, eff_insert_location,
-                          (source_desc != NULL &&
-                           source_desc->capture != NULL));
+      if (ipdp->array_element_sequence) {
+        /* Create an assignment for each element of the array. */
+        an_init_pos_modifier *ipm = ipdp->modifiers;
+        /* The last modifier on the modifiers list should be an array index
+           modifier; find it. */
+        check_assertion(ipm != NULL);
+        while (ipm->next != NULL) ipm = ipm->next;
+        check_assertion(ipm->curr_field == NULL &&
+                        ipm->curr_base == NULL &&
+                        ipm->curr_elem == 0 &&
+                        ipdp->array_element_count != -1);
+        for (ipm->curr_elem = 0;
+             ipm->curr_elem < (a_targ_size_t)ipdp->array_element_count;
+             ipm->curr_elem++) {
+          entity_node = make_init_entity_node(ipdp, /*result_is_lvalue=*/TRUE,
+                                              /*using_as_dest=*/TRUE);
+          add_init_assignment(dip, (a_constant *)NULL, entity_node,
+                              have_complete_object, eff_insert_location,
+                              (source_desc != NULL &&
+                               source_desc->capture != NULL));
+        }  /* for */
+        ipm->curr_elem = 0;
+      } else {
+        /* Make a node for the entity to be initialized. */
+        entity_node = make_init_entity_node(ipdp, /*result_is_lvalue=*/TRUE,
+                                            /*using_as_dest=*/TRUE);
+        add_init_assignment(dip, (a_constant *)NULL, entity_node,
+                            have_complete_object, eff_insert_location,
+                            (source_desc != NULL &&
+                             source_desc->capture != NULL));
+      }  /* if */
       break;
     case dik_call_returning_class_via_cctor:
       /* Initialize the entry by calling a routine that returns its result
@@ -9577,74 +9599,84 @@ arrays with class elements.
       dtor_routine = NULL;
       needs_dynamic_initialization = TRUE;
     } else {
-      /* The array can be initialized by calling the same constructor
+      /* The array can be initialized by performing the same initialization
          for every element in the array. */
       elem_dip = elem_dynamic_init(dip);
       check_assertion(elem_dip != NULL);
-      /* All elements of the array receive the same initialization treatment
-         so we can use a call to a runtime routine to initialize the
-         entire array. */
-      check_assertion(elem_dip->kind == (a_dynamic_init_kind)dik_constructor);
-      zero_storage = need_zeroing_for_value_initialization(elem_dip);
-      /* Get the constructor routine to call. */
-      ctor_routine = elem_dip->variant.constructor.ptr;
+      if (elem_dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        /* All elements of the array receive the same initialization treatment
+           so we can use a call to a runtime routine to initialize the
+           entire array by calling the constructor for each element. */
+        zero_storage = need_zeroing_for_value_initialization(elem_dip);
+        /* Get the constructor routine to call. */
+        ctor_routine = elem_dip->variant.constructor.ptr;
 #if IA64_ABI
-      ctor_routine = alternate_entry_point(ctor_routine,
-                                           (a_ctor_or_dtor_kind)cdk_complete,
-                                           /*define_now=*/FALSE);
-#endif /* IA64_ABI */
-      /* If the constructor has default arguments, make a routine that
-         calls the constructor with the necessary default arguments. */
-      /* Note that elem_dip->variant.constructor.args must not be lowered
-         before passing it to default_version_of_routine. */
-      ctor_routine = default_version_of_routine(
-                                          ctor_routine,
-                                          elem_dip->variant.constructor.args);
-      if (elem_dip->init_expr_lifetime != NULL) {
-        unbind_object_lifetime(elem_dip->init_expr_lifetime);
-      }  /* if */
-#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
-      /* Remove unneeded construction/destructions if possible. */
-      if (call_to_ctor_or_dtor_has_no_effect(elem_dip->variant.constructor.ptr,
-                                            elem_dip->variant.constructor.args,
-                                             /*call_can_be_virtual=*/FALSE)) {
-        /* There's no need to call this constructor (zero_storage has already
-           been set above if zero-initialization is required). */
-#if DEBUG
-        if (db_flag_is_set("remove_ctors_dtors")) {
-          (void)fprintf(f_debug, "Removing array new construction for: ");
-          db_dynamic_initializer(elem_dip, 0);
-        }  /* if */
-#endif /* DEBUG */
-        remove_constructor_with_no_effect(elem_dip);
-        ctor_routine = NULL;
-      }  /* if */
-      if (elem_dip->destructor != NULL &&
-          call_to_ctor_or_dtor_has_no_effect(elem_dip->destructor,
-                                             (an_expr_node_ptr)NULL,
-                                             /*call_can_be_virtual=*/FALSE)) {
-        /* There's no need to call this destructor; any deletions that
-           may be necessary (i.e., a throw during construction) are handled by
-           the delete routine. */
-#if DEBUG
-        if (db_flag_is_set("remove_ctors_dtors")) {
-          (void)fprintf(f_debug, "Removing array new destruction for: ");
-          db_dynamic_initializer(elem_dip, 0);
-        }  /* if */
-#endif /* DEBUG */
-        elem_dip->destructor = NULL;
-      }  /* if */
-#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
-      /* If exceptions are enabled, a destructor will be specified if
-         appropriate. */
-      dtor_routine = elem_dip->destructor;
-#if IA64_ABI
-      if (dtor_routine != NULL) {
-        dtor_routine = alternate_entry_point(dtor_routine,
+        ctor_routine = alternate_entry_point(ctor_routine,
                                              (a_ctor_or_dtor_kind)cdk_complete,
                                              /*define_now=*/FALSE);
-      }  /* if */
 #endif /* IA64_ABI */
+        /* If the constructor has default arguments, make a routine that
+           calls the constructor with the necessary default arguments. */
+        /* Note that elem_dip->variant.constructor.args must not be lowered
+           before passing it to default_version_of_routine. */
+        ctor_routine = default_version_of_routine(
+                                           ctor_routine,
+                                           elem_dip->variant.constructor.args);
+        if (elem_dip->init_expr_lifetime != NULL) {
+          unbind_object_lifetime(elem_dip->init_expr_lifetime);
+        }  /* if */
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+        /* Remove unneeded construction/destructions if possible. */
+        if (call_to_ctor_or_dtor_has_no_effect(
+                                            elem_dip->variant.constructor.ptr,
+                                            elem_dip->variant.constructor.args,
+                                            /*call_can_be_virtual=*/FALSE)) {
+          /* There's no need to call this constructor (zero_storage has already
+             been set above if zero-initialization is required). */
+#if DEBUG
+          if (db_flag_is_set("remove_ctors_dtors")) {
+            (void)fprintf(f_debug, "Removing array new construction for: ");
+            db_dynamic_initializer(elem_dip, 0);
+          }  /* if */
+#endif /* DEBUG */
+          remove_constructor_with_no_effect(elem_dip);
+          ctor_routine = NULL;
+        }  /* if */
+        if (elem_dip->destructor != NULL &&
+            call_to_ctor_or_dtor_has_no_effect(elem_dip->destructor,
+                                               (an_expr_node_ptr)NULL,
+                                               /*call_can_be_virtual=*/FALSE)){
+          /* There's no need to call this destructor; any deletions that
+             may be necessary (i.e., a throw during construction) are handled
+             by the delete routine. */
+#if DEBUG
+          if (db_flag_is_set("remove_ctors_dtors")) {
+            (void)fprintf(f_debug, "Removing array new destruction for: ");
+            db_dynamic_initializer(elem_dip, 0);
+          }  /* if */
+#endif /* DEBUG */
+          elem_dip->destructor = NULL;
+        }  /* if */
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
+        /* If exceptions are enabled, a destructor will be specified if
+           appropriate. */
+        dtor_routine = elem_dip->destructor;
+#if IA64_ABI
+        if (dtor_routine != NULL) {
+          dtor_routine = alternate_entry_point(dtor_routine,
+                                             (a_ctor_or_dtor_kind)cdk_complete,
+                                             /*define_now=*/FALSE);
+        }  /* if */
+#endif /* IA64_ABI */
+      } else {
+        /* In this case a repeated constant is being used to initialize
+           the array; the initialization will be performed for each element
+           of the array. */
+        check_assertion(elem_dip->kind == (a_dynamic_init_kind)dik_constant);
+        ctor_routine = NULL;
+        dtor_routine = NULL;
+        needs_dynamic_initialization = TRUE;
+      }  /* if */
     }  /* if */
   } else {
     /* There is no dynamic init entry; the storage is not initialized after
