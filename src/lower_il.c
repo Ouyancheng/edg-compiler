@@ -4851,6 +4851,8 @@ Do IL lowering of the indicated constant and everything under it.
             /* Re-write an abk_temporary with the address of a static
                temporary that is created. */
             addressed_con = constant->variant.address.variant.constant;
+            check_assertion(addressed_con->kind !=
+                                              (a_constant_repr_kind)ck_string);
             lower_os_constant(addressed_con);
             temp_var = assoc_var_for_constant(addressed_con,
                                               /*const_okay=*/TRUE);
