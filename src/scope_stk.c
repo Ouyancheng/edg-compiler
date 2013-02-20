@@ -7459,6 +7459,13 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
        The lowering will be done later -- see
        finish_processing_for_function_bodies. */
     delay_lowering = TRUE;
+  } else if (routine->source_corresp.is_class_member &&
+             routine->type->variant.routine.extra_info->this_class == NULL &&
+             is_incomplete_type(parent_class_of(routine))) {
+    /* A member function of a class that is currently being defined.  This
+       should only occur for constexpr functions. */
+    check_assertion_or_expect_error(routine->is_constexpr);
+    delay_lowering = TRUE;
   } else if (at_initial_scope_pop && routine->is_lambda_body) {
     /* Lambda bodies are scanned while the parent closure class is still
        on the scope stack.  The lowering of the lambda body must be delayed

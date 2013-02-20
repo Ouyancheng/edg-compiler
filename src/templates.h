@@ -328,6 +328,10 @@ typedef int a_set_instance_required_options_set;
 			   is required because the C++-generating back end
 			   requires a definition in order for correct code
 			   to be generated. */
+#define SIR_CONSTANT_CONTEXT 0x8
+			/* TRUE if the instantiation is required in a constant
+			   constant.  This forces the immediate instantiation
+			   of constexpr functions when possible. */
 
 /*
 Structure used to represent the information found an in export information

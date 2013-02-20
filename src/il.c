@@ -19880,7 +19880,9 @@ is TRUE, the reference is in a constant expression.
   if (instantiate && assoc_sym != NULL) {
     a_set_instance_required_options_set options = SIR_NONE;
     if (in_constant_expr) {
-      /* FIXME options |= SIR_XXX */
+      /* In a constant expression a constexpr function must be instantiated
+         immediately. */
+      options |= SIR_CONSTANT_CONTEXT;
     }  /* if */
     set_instance_required(assoc_sym, TRUE, options);
   }  /* if */

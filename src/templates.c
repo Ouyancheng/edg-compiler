@@ -26382,6 +26382,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
                                    /* Not used in certain configurations. */
                                    /*lint -esym(550,defer_instantiation)*/
   a_boolean			   use_master_instance;
+  a_boolean	                   rout_is_constexpr = FALSE;
 
   db_enter(5, "update_instantiation_required_flag");
   defer_inline = (options & SIR_DEFER_INLINE) != 0;
@@ -26391,6 +26392,24 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   if (microsoft_bugs || gpp_mode) defer_inline = TRUE;
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
+  if ((options & SIR_CONSTANT_CONTEXT) != 0 && is_function_symbol(sym)) {
+    /* constexpr functions in constant contexts should always be instantiated
+       immediately, except for member functions of classes being defined.
+       For classes being defined, member functions are still instantiated in
+       g++ mode if they are static. */
+    a_routine_ptr	rp = sym->variant.routine.ptr;
+    a_type_ptr		parent_class = NULL;
+    if (rp->source_corresp.is_class_member) {
+      parent_class = parent_class_of(rp);
+    }  /* if */
+    if (parent_class == NULL || 
+        !is_incomplete_type(parent_class) ||
+        (gpp_mode &&
+         rp->type->variant.routine.extra_info->this_class == NULL)) {
+      rout_is_constexpr = rp->is_constexpr;
+      defer_inline = FALSE;
+    }  /* if */
+  }  /* if */
 #if DEBUG
   if (db_sym_trace("instantiations", sym) ||
       db_sym_trace("uirf", sym)) {
@@ -26469,9 +26488,10 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
       }  /* if */
       tip->instantiation_required = FALSE;
     }  /* if */
-  } else if (curr_class_fixup_header(/*for_instantiation=*/TRUE)->
+  } else if (!rout_is_constexpr &&
+             (curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                               pending_class_definitions != 0 ||
-             defer_instantiations != 0) {
+              defer_instantiations != 0)) {
     /* A class definition is in progress, or if only defer_instantiations is
        set, the default argument fixup after a class definition.  Any nonclass
        instantiations must be deferred until all class definitions are
