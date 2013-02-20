@@ -8541,15 +8541,37 @@ C99 mode for the same reason.
       }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 do_assignment:;
-      check_assertion_str(!ipdp->array_element_sequence,
-                          "lower_dynamic_init: repeated const or expr init");
-      /* Make a node for the entity to be initialized. */
-      entity_node = make_init_entity_node(ipdp, /*result_is_lvalue=*/TRUE,
-                                          /*using_as_dest=*/TRUE);
-      add_init_assignment(dip, (a_constant *)NULL, entity_node,
-                          have_complete_object, eff_insert_location,
-                          (source_desc != NULL &&
-                           source_desc->capture != NULL));
+      if (ipdp->array_element_sequence) {
+        /* Create an assignment for each element of the array. */
+        a_targ_size_t        curr_elem;
+        an_init_pos_modifier *ipm = ipdp->modifiers;
+        /* The last modifier on the modifiers list should be an array index
+           modifier; find it. */
+        check_assertion(ipm != NULL);
+        while (ipm->next != NULL) ipm = ipm->next;
+        check_assertion(ipm->curr_field == NULL && ipm->curr_base == NULL &&
+                        ipm->curr_elem == 0);
+        for (curr_elem = 0;
+             curr_elem < ipdp->array_element_count;
+             curr_elem++) {
+          ipm->curr_elem = curr_elem;
+          entity_node = make_init_entity_node(ipdp, /*result_is_lvalue=*/TRUE,
+                                              /*using_as_dest=*/TRUE);
+          add_init_assignment(dip, (a_constant *)NULL, entity_node,
+                              have_complete_object, eff_insert_location,
+                              (source_desc != NULL &&
+                               source_desc->capture != NULL));
+        }  /* for */
+        ipm->curr_elem = 0;
+      } else {
+        /* Make a node for the entity to be initialized. */
+        entity_node = make_init_entity_node(ipdp, /*result_is_lvalue=*/TRUE,
+                                            /*using_as_dest=*/TRUE);
+        add_init_assignment(dip, (a_constant *)NULL, entity_node,
+                            have_complete_object, eff_insert_location,
+                            (source_desc != NULL &&
+                             source_desc->capture != NULL));
+      }  /* if */
       break;
     case dik_call_returning_class_via_cctor:
       /* Initialize the entry by calling a routine that returns its result
@@ -9569,7 +9591,8 @@ arrays with class elements.
   if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_zero) {
     /* There is a dynamic init entry to initialize the storage after it is
        allocated.  dik_zero initialization is handled below. */
-    if (ndsp->new_initializer_is_brace_enclosed) {
+    if (ndsp->new_initializer_is_brace_enclosed ||
+        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
       /* The array needs to be initialized after it is allocated, but it
          can't be done by a call to the runtime routine.  Indicate that
          dynamic initialization is needed after the storage is allocated. */
