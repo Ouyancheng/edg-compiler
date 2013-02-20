@@ -21171,7 +21171,12 @@ will be an lvalue instead of the usual rvalue.
   a_dynamic_init_ptr   dip_to_reuse = NULL;
   a_dynamic_init_ptr   dip_to_mark = NULL;
   an_expr_node_ptr     preserved_temp_init = NULL;
+  an_init_component_ptr
+                       icp_next = icp->next;
 
+  /* If icp is on a list, break it off as a single element.  The next
+     pointer will be restored below. */
+  icp->next = NULL;
   /* The basic modes are:
                       issue_errors   generate_il
        Normal init    yes            yes
@@ -22152,6 +22157,7 @@ will be an lvalue instead of the usual rvalue.
       expr_stack->any_suppressed_error = saved_any_suppressed_error;
     }  /* if */
   }  /* if */
+  icp->next = icp_next;
 }  /* prep_list_initializer */
 
 
