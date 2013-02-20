@@ -20889,10 +20889,21 @@ errors should be suppressed (i.e., SFINAE mode).
                                          /*fold_constexpr=*/TRUE,
                                          pos);
       dip->is_creation_of_initializer_list_object = TRUE;
-      skip_constexpr_ctor_eval(dip)->is_creation_of_initializer_list_object
-                                                  = TRUE;
       dip->is_explicit_cast = is_cast;
-      skip_constexpr_ctor_eval(dip)->is_explicit_cast = is_cast;
+      if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+        /* The constructor call is constexpr and was folded to a constant. */
+        check_assertion(dip->variant.constant->is_result_of_constexpr_call);
+        if (dip->variant.constant->expr == NULL) {
+          /* No backing expression, so clear the main flag (the flag sort
+             of means "there's something implicit you can skip", and you
+             can't skip down if the backing expression is not there). */
+          dip->is_creation_of_initializer_list_object = FALSE;
+        } else {
+          a_dynamic_init_ptr dip2 = skip_constexpr_ctor_eval(dip);
+          dip2->is_creation_of_initializer_list_object = TRUE;
+          dip2->is_explicit_cast = is_cast;
+        }  /* if */
+      }  /* if */
       if (symbol_supplement_for_class(list_type)->destructor != NULL) {
         /* std::initializer_list is not supposed to have a destructor. */
         expr_pos_error(ec_std_initializer_list_has_dtor, pos);
