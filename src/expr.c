@@ -7182,6 +7182,11 @@ case).
          to be treated as overloaded. */
       rep = NULL;
       force_indefinite_function = TRUE;
+    } else if (is_microsoft_skipped_decltype_context()) {
+      /* MSVC skips tokens in certain dependent decltype contexts,
+         so we make all calls dependent there to avoid errors. */
+      rep = NULL;
+      force_indefinite_function = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && member_name_followed_by_left_paren &&
                hide_by_sig_lookup_applies(projection_member_sym)) {
@@ -26379,6 +26384,11 @@ if rescan_is_template_id is TRUE, and return the result in *operand
          that coexists with a using-declaration that might or might not
          overload it. */
       check_assertion(is_function_or_template_symbol(sym_ptr));
+      force_indefinite_function = TRUE;
+      rep = NULL;
+    } else if (is_microsoft_skipped_decltype_context()) {
+      /* MSVC skips tokens in certain dependent decltype contexts,
+         so we make all calls dependent there to avoid errors. */
       force_indefinite_function = TRUE;
       rep = NULL;
     } else if (sym_ptr->kind == (a_symbol_kind)sk_routine &&

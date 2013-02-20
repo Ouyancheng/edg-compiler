@@ -8016,6 +8016,26 @@ Specifically, this means type-dependent rather than value-dependent.
 }  /* arg_list_is_dependent */
 
 
+a_boolean is_microsoft_skipped_decltype_context(void)
+/*
+MSVC skips tokens in certain dependent decltype contexts, processing the
+expression only when it comes up later in a SFINAE context.  Return
+TRUE if we are in one of those decltypes.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (microsoft_bugs && cpp11_sfinae_enabled &&
+      expr_stack->is_type_operator_arg_expression &&
+      scope_stack_top().kind == (a_scope_kind)sck_template_declaration &&
+      is_prototype_instantiation_context() &&
+      is_real_instantiation_context()) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_microsoft_skipped_decltype_context */
+
+
 static a_boolean is_symbol_for_which_overload_resolution_should_be_deferred(
                                                               a_symbol_ptr sym)
 /*
@@ -8044,6 +8064,10 @@ dependent context.
   } else if (sym->potentially_overloaded) {
     /* The function coexists with a using-declaration that might or
        might not cause it to be overloaded. */
+    defer = TRUE;
+  } else if (is_microsoft_skipped_decltype_context()) {
+   /* MSVC skips tokens in certain dependent decltype contexts,
+      so defer all calls there to avoid errors. */
     defer = TRUE;
   }  /* if */
   return defer;
