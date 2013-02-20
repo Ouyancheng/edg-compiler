@@ -16788,8 +16788,7 @@ handle_empty_parens_new_initializer:
       if (dip != NULL) {
         /* The dynamic initialization has already been determined above. */
         if (array_new && !has_braced_initializer &&
-            (dip->kind == (a_dynamic_init_kind)dik_constructor ||
-             dip->kind == (a_dynamic_init_kind)dik_constant)) {
+            dip->kind == (a_dynamic_init_kind)dik_constructor) {
           /* The entity is an array whose elements have a class type that
              has a default constructor.  Use a dik_nonconstant_aggregate
              initialization. */
