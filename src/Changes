@@ -1,5 +1,19 @@
 Version 4.6
 
+2/21/13  [EDGcpfe/13674]
+Microsoft compatibility: checking of type in static data member instantiation
+
+The Microsoft compiler does not check that the type in a static data
+member explicit instantiation matches the declared type of the static
+data member.  We now emulate this in Microsoft mode (with a warning).
+
+  template <class T> struct A {
+    static int I;
+  };
+  template <class T> int A<T>::I = 1;
+  template void* A<int>::I;
+
+
 2/21/13  [EDGcpfe/12973]
 Scoped enumeration value as switch expression
 

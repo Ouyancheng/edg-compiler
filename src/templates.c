@@ -28935,14 +28935,21 @@ instantiation.
     if (sym->kind == (a_symbol_kind)sk_static_data_member) {
       if (sym->variant.static_data_member.instance_ptr != NULL) {
         /* A static data member -- set the instantiation flags. */
+        a_boolean	err = FALSE;
         if (!types_are_redecl_compatible(state.type,
                                          sym->variant.static_data_member.
                                                             variable->type)) {
+          an_error_severity	severity = es_error;
+          if (microsoft_mode) {
+            severity = es_warning;
+          }  /* if */
           /* The type of the static data member definition does not match
              the declaration in the class. */
-          pos_sy_error(ec_not_compatible_with_previous_decl,
-                       &locator.source_position, sym);
-        } else {
+          pos_sy_diagnostic(severity, ec_not_compatible_with_previous_decl,
+                            &locator.source_position, sym);
+          err = severity == es_error;
+        }  /* if */
+        if (!err) {
           update_instantiation_flags(sym, kind, start_pos,
                                      /*is_class_instantiation=*/FALSE,
                                      is_pragma, /*is_dll_directive=*/FALSE);
