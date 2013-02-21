@@ -876,6 +876,7 @@ associated variant fields to default values.
   cp->is_result_of_constexpr_call = FALSE;
 #if DO_IL_LOWERING
   cp->vptr_has_been_lowered = FALSE;
+  cp->empty_base_classes_have_been_removed = FALSE;
 #endif /* DO_IL_LOWERING */
   cp->constant_for_base_class_from_constexpr_folding = FALSE;
 #if CENTERLINE_CHECKING

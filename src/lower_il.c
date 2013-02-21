@@ -4650,12 +4650,10 @@ std::typeinfo object returned by the corresponding typeid(...) construct.
 static void remove_initializers_for_empty_base_classes(a_constant_ptr constant)
 /*
 Remove any initializers for optimized empty base classes that might appear
-in the ck_aggregate constant.  Only initializers for optimized empty base
-classes that appear at this level will be removed (i.e., the routine is
-not recursive).  The constant has not been lowered yet (in fact this processing
-is performed early in the lowering of the aggregate so that lowering
-routines that depend on a one-to-one mapping of initializable fields and
-constants in the aggregate will work properly).
+in the ck_aggregate constant or in any sub-aggregates.  The constant has not
+been lowered yet (in fact this processing is performed early in the lowering of
+the aggregate so that lowering routines that depend on a one-to-one mapping of
+initializable fields and constants in the aggregate will work properly).
 */
 {
   a_class_type_supplement_ptr ctsp;
@@ -4664,41 +4662,52 @@ constants in the aggregate will work properly).
   a_constant_ptr              cp, prev = NULL;
 
   check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
-  if (is_immediate_class_type(class_type) &&
-      (ctsp = class_type_supp(class_type),
-       ctsp->base_classes) != NULL) {
+  if (!constant->empty_base_classes_have_been_removed &&
+      is_immediate_class_type(class_type)) {
     prelower_class_type(class_type);
-    cp = constant->variant.aggregate.first_constant;
-    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct && bcp->is_optimized_empty_base) {
-#if CHECKING
-        a_boolean found = FALSE;
-#endif /* CHECKING */
-        for (; cp != NULL; cp = cp->next) {
-          if (identical_types(cp->type, bcp->type)) {
-            /* The type of the constant matches that of the optimized
-               empty base class; remove the constant from the aggregate
-               list. */
-            check_assertion(cp->kind == (a_constant_repr_kind)ck_aggregate);
-#if CHECKING
-            found = TRUE;
-#endif /* CHECKING */
-            if (prev == NULL) {
-              constant->variant.aggregate.first_constant = cp->next;
-            } else {
-              prev->next = cp->next;
-            }  /* if */
-            if (constant->variant.aggregate.last_constant == cp) {
-              constant->variant.aggregate.last_constant = prev;
-            }  /* if */
-            cp = cp->next;
-            break;
-          }  /* if */
-          prev = cp;
-        }  /* for */
-        check_assertion(found);
+    /* Recurse for any sub-aggregates. */
+    constant->empty_base_classes_have_been_removed = TRUE;
+    for (cp = constant->variant.aggregate.first_constant;
+         cp != NULL;
+         cp = cp->next) {
+      if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+        remove_initializers_for_empty_base_classes(cp);
       }  /* if */
     }  /* for */
+    ctsp = class_type_supp(class_type);
+    if (ctsp->base_classes != NULL) {
+      cp = constant->variant.aggregate.first_constant;
+      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+        if (bcp->direct && bcp->is_optimized_empty_base) {
+#if CHECKING
+          a_boolean found = FALSE;
+#endif /* CHECKING */
+          for (; cp != NULL; cp = cp->next) {
+            if (identical_types(cp->type, bcp->type)) {
+              /* The type of the constant matches that of the optimized
+                 empty base class; remove the constant from the aggregate
+                 list. */
+              check_assertion(cp->kind == (a_constant_repr_kind)ck_aggregate);
+#if CHECKING
+              found = TRUE;
+#endif /* CHECKING */
+              if (prev == NULL) {
+                constant->variant.aggregate.first_constant = cp->next;
+              } else {
+                prev->next = cp->next;
+              }  /* if */
+              if (constant->variant.aggregate.last_constant == cp) {
+                constant->variant.aggregate.last_constant = prev;
+              }  /* if */
+              cp = cp->next;
+              break;
+            }  /* if */
+            prev = cp;
+          }  /* for */
+          check_assertion(found);
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
 }  /* remove_initializers_for_empty_base_classes */
 

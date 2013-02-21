@@ -3820,6 +3820,12 @@ typedef struct a_constant {
 			   ck_aggregate constants are only visited one time.
 			   TRUE for ck_aggregate constants that have had
 			   a vptr field inserted. */
+  a_bit_field	empty_base_classes_have_been_removed:1;
+			/* Flag that is used during lowering to ensure that
+			   ck_aggregate constants only have their empty
+			   base classes removed one time.  TRUE for
+			   ck_aggregate constants that have had empty base
+			   classes removed. */
 #endif /* DO_IL_LOWERING */
   a_bit_field	constant_for_base_class_from_constexpr_folding:1;
 			/* TRUE if this constant (under a ck_aggregate) is
