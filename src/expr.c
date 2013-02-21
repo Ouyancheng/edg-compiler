@@ -35812,7 +35812,7 @@ a constant initialization if possible.
         }  /* if */
       }  /* if */
       if (cp != NULL) {
-        if (dip->is_partially_initialized) {
+        if (dip->is_partially_initialized || cp->is_partially_initialized) {
           is->partial_initializer = TRUE;
         }  /* if */
         is->init_con = cp;
