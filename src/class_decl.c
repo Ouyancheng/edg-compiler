@@ -10806,12 +10806,11 @@ when exception support is enabled.
       tp = skip_typedefs(tp);
       if (fp->has_initializer && first_param == NULL) {
         /* We're handling the default constructor and this is a field with an
-           in-class initializer. */
-        scan_field_initializer_if_needed(fp, class_type);
-        if (fp->initializer == NULL ||
-            dynamic_init_might_throw(fp->initializer)) {
-          throw_any = TRUE;
-        }  /* if */
+           in-class initializer.  FIXME: We need to identify the "function
+           directly invoked" for the initialization of this field (if any) and
+           merge its exception specification.  For now, we'll just assume it
+           might throw anything. */
+        throw_any = TRUE;
       } else if (is_template_dependent_type(tp)) {
         /* We cannot tell what dependent fields might end up throwing. */
         throw_any = TRUE;
