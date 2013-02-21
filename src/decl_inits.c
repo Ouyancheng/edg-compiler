@@ -371,7 +371,9 @@ recorded in the stmk_init statement.
        This must be done after record_end_of_lifetime_destruction is called.
        If the statement is associated with an initializer appearing in the
        source code, record the position of that initializer as the statement
-       position.  Otherwise, use the position of the variable declaration. */
+       position.  Otherwise, use the position of the variable declaration.
+       (In the case of anonymous union variables, extra source position
+       information may not be available.) */
     a_source_position  *stmt_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     a_source_position  *stmt_end_pos;
@@ -384,13 +386,19 @@ recorded in the stmk_init statement.
     } else {
       stmt_pos = &vp->source_corresp.decl_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      stmt_end_pos = &vp->source_corresp.decl_pos_info->identifier_range.end;
+      if (vp->source_corresp.decl_pos_info != NULL) {
+        stmt_end_pos = &vp->source_corresp.decl_pos_info->identifier_range.end;
+      } else {
+        stmt_end_pos = NULL;
+      }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
     init_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_init,
                                           stmt_pos);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    set_stmt_source_position(init_stmt->end_position, *stmt_end_pos);
+    if (stmt_end_pos != NULL) {
+      set_stmt_source_position(init_stmt->end_position, *stmt_end_pos);
+    }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (p_init_stmt != NULL) {
       *p_init_stmt = init_stmt;

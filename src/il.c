@@ -19462,6 +19462,22 @@ C++11 standard [expr.unary.noexcept].
   return tblock.result;
 }  /* expr_might_throw */
 
+
+a_boolean dynamic_init_might_throw(a_dynamic_init_ptr dip)
+/*
+Return TRUE if evaluating the given initialization might cause an exception to
+be thrown.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  set_up_might_throw_traversal_block(&tblock);
+  if (exceptions_enabled) {
+    traverse_dynamic_init(dip, &tblock);
+  }  /* if */
+  return tblock.result;
+}  /* dynamic_init_might_throw */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 static void check_expr_for_statement_expression(
