@@ -4071,8 +4071,8 @@ Do IL lowering of a pointer-to-member constant.
 }  /* lower_ptr_to_member_constant */
 
 
-static a_variable_ptr assoc_var_for_constant(a_constant_ptr constant,
-                                             a_boolean      const_okay)
+a_variable_ptr assoc_var_for_constant(a_constant_ptr constant,
+                                      a_boolean      const_okay)
 /*
 Returns the associated variable for a constant if one already exists, otherwise
 it creates an associated variable for the constant and returns that.

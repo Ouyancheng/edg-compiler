@@ -67,13 +67,20 @@ static void build_construction_vtbls_pointer_for_subobject_construction(
                                  an_expr_node_ptr       *implied_arg_node,
                                  a_boolean              *just_test);
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-#if IA64_ABI
-static a_routine_ptr helper_routine_to_zero_entity(
+static a_routine_ptr helper_routine_to_initialize_entity(
                                             a_type_ptr    type,
                                             a_boolean     have_complete_object,
                                             a_boolean     need_array_count,
+                                            a_boolean     zero_entity,
                                             a_routine_ptr ctor_routine);
-#endif /* IA64_ABI */
+static void insert_call_to_initialize_entity(
+                                       a_type_ptr         entity_type,
+                                       a_boolean          have_complete_object,
+                                       an_expr_node_ptr   entity_node,
+                                       an_expr_node_ptr   num_elem_node,
+                                       a_targ_size_t      array_element_count,
+                                       an_expr_node_ptr   source_node,
+                                       an_insert_location *insert_location);
 static void insert_call_to_zero_entity(a_type_ptr         entity_type,
                                        a_boolean          have_complete_object,
                                        an_expr_node_ptr   entity_node,
@@ -1410,11 +1417,15 @@ is the destination of an initialization operation.
     if (ipdp->array_element_sequence) {
       /* For an array element sequence that covers more than one dimension
          of an array, get the type right for the underlying element. */
-      entity_node = add_cast_to_lvalue_if_necessary(entity_node,
+      if (result_is_lvalue) {
+        entity_node = add_cast_to_lvalue_if_necessary(entity_node,
                                                     ipdp->array_element_type);
+      } else {
+        /* Perform array to pointer decay. */
+        entity_node = make_array_to_pointer_node(entity_node);
+      }  /* if */
     }  /* if */
-    check_assertion(entity_node->is_lvalue);
-    if (!result_is_lvalue) {
+    if (entity_node->is_lvalue && !result_is_lvalue) {
       /* Convert this to an rvalue. */
       entity_node = rvalue_expr_for_lvalue(entity_node);
     }  /* if */
@@ -1621,17 +1632,23 @@ static void add_init_assignment(a_dynamic_init_ptr     dip,
                                 an_expr_node_ptr       entity_node,
                                 a_boolean              have_complete_object,
                                 an_insert_location_ptr insert_location,
-                                a_boolean              is_lambda_capture)
+                                a_boolean              is_lambda_capture,
+                                an_init_pos_descr_ptr  ipdp)
 /*
-Make an assignment statement to implement the dynamic initialization
-described by dip.  If dip is NULL, con indicates the constant value of
-the initializer.  entity_node is an lvalue expression of the entity
-to be initialized.  have_complete_object is TRUE if the entity
-being initialized is a complete object; FALSE means a base
-class subobject.  Insert the statement at *insert_location and update
-*insert_location.  The assignment is being performed as part of a lambda
-capture operation if is_lambda_capture is TRUE.  The constant or expression
-initial value pointed to by dip or con is already lowered.
+Make an assignment statement (or call statement when
+ipdp->array_element_sequence is TRUE) to implement the dynamic initialization
+described by dip.  If dip is NULL, con indicates the constant value of the
+initializer.  entity_node is an expression of the entity to be initialized;
+generally entity_node is an lvalue, but in the case where the array is being
+initialized by a single element, entity_node is an rvalue.
+have_complete_object is TRUE if the entity being initialized is a complete
+object; FALSE means a base class subobject.  Insert the statement at
+*insert_location and update *insert_location.  The assignment is being
+performed as part of a lambda capture operation if is_lambda_capture is TRUE.
+The constant or expression initial value pointed to by dip or con is already
+lowered.  ipdp describes the destination for the initialization and is used
+in the case where an array is being initialized by a repeated constant
+initialization (when ipdp->array_element_sequence is TRUE).
 */
 {
   an_expr_node_ptr      init_val_node, assign_node;
@@ -1640,7 +1657,7 @@ initial value pointed to by dip or con is already lowered.
   a_boolean             array_assignment = FALSE, needs_cast = FALSE;
   a_type_ptr            entity_type = entity_node->type;
 
-  check_assertion(entity_node->is_lvalue);
+  check_assertion(ipdp->array_element_sequence || entity_node->is_lvalue);
   switch ((dip == NULL) ? (a_dynamic_init_kind)dik_constant : dip->kind) {
     case dik_zero:
       /* Set the entity to zero (default initialization). */
@@ -1695,6 +1712,25 @@ initial value pointed to by dip or con is already lowered.
                               variant.array.variant.number_of_elements == 0) {
     /* Don't bother to create an assignment from an array with zero elements.
        These come up in cases like "new int[0]{};". */
+  } else if (ipdp->array_element_sequence) {
+    /* In this case, the (rvalue) expression is a pointer to an array that
+       is being initialized by a repeated constant.  Create a helper routine
+       to do the initialization and call it. */
+    check_assertion(!entity_node->is_lvalue &&
+                    dip->kind == (a_dynamic_init_kind)dik_constant);
+    /* Use (or create) the temporary variable associated with this constant. */
+    init_val_node = add_address_of_to_node(
+                      var_lvalue_expr(
+                        assoc_var_for_constant(con,
+                                               is_const_qualified_type(
+                                                                 con->type))));
+    insert_call_to_initialize_entity(type_from_init_pos_descr(ipdp),
+                                     have_complete_object,
+                                     entity_node,
+                                     ipdp->num_elem_node,
+                                     ipdp->array_element_count,
+                                     init_val_node,
+                                     insert_location);
   } else {
     /* Make an assignment statement.  Note that we know that no constructor
        (copy or other) is involved because we have this kind of dynamic
@@ -2870,10 +2906,11 @@ IA-64 ABI; see comments below.
        nor could it because of the pointer-to-data-member problem.
        If zeroing is needed, use a wrapper routine that zeroes the
        storage and then calls the constructor (if any). */
-    ctor_routine = helper_routine_to_zero_entity(
+    ctor_routine = helper_routine_to_initialize_entity(
                                           type_pointed_to(entity_type),
                                           /*have_complete_object=*/TRUE,
                                           /*need_array_count=*/FALSE,
+                                          /*zero_entity=*/TRUE,
                                           ctor_routine);
   }  /* if */
 #else /* !IA64_ABI */
@@ -5507,7 +5544,8 @@ expression).
         add_init_assignment((a_dynamic_init *)NULL, con_ptr, entity_node,
                             /*have_complete_object=*/FALSE,
                             insert_location,
-                            /*is_lambda_capture=*/FALSE);
+                            /*is_lambda_capture=*/FALSE,
+                            &ipd);
       } else {
         /* Normal case.  Keep this as part of a constant aggregate. */
         *keep_constant = TRUE;
@@ -7092,29 +7130,39 @@ If the assignment is to a subobject, alter the assignment appropriately.
   return assign_node;
 }  /* make_assignment_expr_with_subobject_fix */
 
-#if IA64_ABI
 
-static a_routine_ptr helper_routine_to_zero_entity(
+static a_routine_ptr helper_routine_to_initialize_entity(
                                             a_type_ptr    type,
                                             a_boolean     have_complete_object,
                                             a_boolean     need_array_count,
+                                            a_boolean     zero_entity,
                                             a_routine_ptr ctor_routine)
 /*
-Build a routine to zero-initialize an entity of the indicated type
-(which should have its typerefs, if any, in place).
-This is needed in the IA-64 ABI because pointers to data members use
--1 as the NULL value.  If have_complete_object is TRUE we have a
-complete object; if it is FALSE, we have a base class subobject.
-If need_array_count is TRUE, the generated routine has a second
-parameter of type size_t that indicates the number of elements
-of an array to be initialized, and the routine body has a loop
-to do the initializations.  If ctor_routine is non-NULL, it points
-to a constructor to be called after the zeroing have been done.
+Build a routine to initialize an entity of the indicated type
+(which should have its typerefs, if any, in place).  When zero_entity
+is TRUE, the entity is initialized to "zero" (needed in the IA-64 ABI because
+pointers to data members use -1 as the NULL value).  When zero_entity
+is FALSE, each element of the entity is initialized to the value pointed to
+by a second or third parameter (see below).  If have_complete_object is TRUE we
+have a complete object; if it is FALSE, we have a base class subobject.  If
+need_array_count is TRUE, the generated routine has a second parameter of type
+size_t that indicates the number of elements of an array to be initialized, and
+the routine body has a loop to do the initializations.  If ctor_routine is
+non-NULL, it points to a constructor to be called after the zeroing have been
+done.
+
+Depending on the values for need_array_count and zero_entity, the generated
+routine will have one, two, or three parameters.  The first parameter is
+always a pointer to the entity to be initialized.  When need_array_count
+is TRUE a second parameter is added to specify the number of elements in
+the entity to initialize.  When zero_entity is FALSE, a (second or) third
+parameter is added that points to a value which is copied to each element
+of the array.
 */
 {
   a_routine_ptr                 rp;
   a_routine_type_supplement_ptr rtsp;
-  a_type_ptr                    pointer_type, count_type;
+  a_type_ptr                    pointer_type, count_type, model_type;
   a_memory_region_number        il_region;
   a_scope_ptr                   scope;
   an_insert_location            insert_location;
@@ -7122,46 +7170,72 @@ to a constructor to be called after the zeroing have been done.
   a_variable_ptr                model_var, entity_var, count_var;
   a_statement_ptr               loop_stmt, copy_stmt;
   an_expr_node_ptr              entity_expr, ctor_entity_expr, copy_expr;
+  an_expr_node_ptr              source_expr;
+  a_param_type_ptr              *last_param_type;
+  a_param_type_ptr              count_param_type, model_param_type;
+  a_variable_ptr                *last_param;
   
-  /* Build the routine entry.  It has two parameters: a pointer to an entity
-     of the indicated type and a count of the number of entities to
-     initialize. */
+  /* Build the routine entry.  It has one, two, or three parameters
+     depending on its purpose. */
   /* Skip any cv-qualifiers on the type for the purposes of the parameter
      to the routine, but leave the typerefs (especially the underlying
      typeref that indicates the type was a lowered pointer-to-data member)
      when making the temporary below. */
   pointer_type = make_pointer_type(skip_typerefs(type));
+  model_type = make_qualified_type(type, TQ_CONST);
   count_type = integer_type(targ_size_t_int_kind);
   rp = make_rout_entry((char *)NULL, (a_storage_class)sc_static,
                        void_type(), pointer_type);
   rtsp = rp->type->variant.routine.extra_info;
+  /* In addition to the parameter for the pointer to the entity, optionally
+     add one or two additional parameters. */
+  last_param_type = &rtsp->param_type_list;
   if (need_array_count) {
-    rtsp->param_type_list->next = alloc_param_type(count_type);
+    count_param_type = alloc_param_type(count_type);
+    (*last_param_type)->next = count_param_type;
+    last_param_type = &(*last_param_type)->next;
+  }  /* if */
+  if (!zero_entity) {
+    model_param_type = alloc_param_type(make_pointer_type(model_type));
+    (*last_param_type)->next = model_param_type;
   }  /* if */
   /* Build the definition of the routine.  */
   scope = make_routine_definition(rp, /*make_return=*/TRUE, &il_region);
   push_generated_routine_context(scope, il_region, &context);
-  /* Create the parameters. */
+  /* Create the parameters (there may be one, two, or three). */
   scope->variant.routine.parameters = entity_var = 
                      make_lowered_param_variable(rtsp->param_type_list->type);
+  last_param = &scope->variant.routine.parameters;
   if (need_array_count) {
-    scope->variant.routine.parameters->next = count_var = 
-               make_lowered_param_variable(rtsp->param_type_list->next->type);
+    count_var = make_lowered_param_variable(count_param_type->type);
+    (*last_param)->next = count_var;
+    last_param = &(*last_param)->next;
+  }  /* if */
+  if (!zero_entity) {
+    /* The "model" for the initialization is passed to us by the caller. */
+    model_var = make_lowered_param_variable(model_param_type->type);
+    (*last_param)->next = model_var;
+  } else {
+#if IA64_ABI
+    /* Build a model for the zero-initialized entity. */
+    model_var = make_temporary_in_scope(model_type,
+                                        scope, /*force_static=*/FALSE,
+                                        /*promote_if_necessary=*/FALSE);
+    model_var->init_kind = (an_init_kind)initk_zero;
+    lower_initializer(model_var, &model_var->init_kind,
+                      &model_var->initializer);
+#else /* !IA64_ABI */
+    unexpected_condition();
+#endif /* IA64_ABI */
   }  /* if */
   set_block_start_insert_location(scope->assoc_block, &insert_location);
-  /* Build a model for the zero-initialized entity. */
-  model_var = make_temporary_in_scope(make_qualified_type(type, TQ_CONST),
-                                      scope, /*force_static=*/FALSE,
-                                      /*promote_if_necessary=*/FALSE);
-  model_var->init_kind = (an_init_kind)initk_zero;
   /* Mark the location where any generated stmk_init statements should go. */
   set_insert_location_mark(&insert_location);
-  lower_initializer(model_var, &model_var->init_kind, &model_var->initializer);
   /* Insert any generated stmk_inits at the previously marked location. */
   insert_pending_stmk_init_statements_at_mark(&insert_location);
   if (need_array_count) {
     an_expr_node_ptr  expr;
-    /* Build a loop to zero-initialize the entities. */
+    /* Build a loop to initialize the entities. */
     loop_stmt = alloc_statement((a_statement_kind)stmk_while);
     expr = make_operator_node((an_expr_operator_kind)eok_post_decr,
                               count_type, var_lvalue_expr(count_var));
@@ -7187,10 +7261,16 @@ to a constructor to be called after the zeroing have been done.
   }  /* if */
   /* Build an expression to copy the model variable to the entity to
      be initialized. */
+  source_expr = var_rvalue_expr(model_var);
+  if (!zero_entity) {
+    /* An indirection is needed in the case where we're not zero-initializing
+       the entity. */
+    source_expr = rvalue_expr_for_lvalue(add_indirection_to_node(source_expr));
+  }  /* if */
   copy_expr = make_assignment_expr_with_subobject_fix(
                                             entity_expr, have_complete_object,
                                             (an_expr_operator_kind)eok_assign,
-                                            var_rvalue_expr(model_var));
+                                            source_expr);
   if (ctor_routine != NULL) {
     /* Add a call of the indicated constructor after the copying/zeroing
        code. */
@@ -7214,9 +7294,8 @@ to a constructor to be called after the zeroing have been done.
   /* Clean up. */
   pop_generated_routine_context(scope, il_region, &context);
   return rp;
-}  /* helper_routine_to_zero_entity */
+}  /* helper_routine_to_initialize_entity */
 
-#endif /* IA64_ABI */
 
 /*
 Pointer to the routine entry for the runtime routine __memzero.  NULL until
@@ -7267,16 +7346,20 @@ entity_size_node.  Insert the code at *insert_location.
 }  /* insert_runtime_zeroing_call */
 
 
-static void insert_call_to_zero_entity(a_type_ptr         entity_type,
+static void insert_call_to_initialize_entity(
+                                       a_type_ptr         entity_type,
                                        a_boolean          have_complete_object,
                                        an_expr_node_ptr   entity_node,
                                        an_expr_node_ptr   num_elem_node,
                                        a_targ_size_t      array_element_count,
+                                       an_expr_node_ptr   source_node,
                                        an_insert_location *insert_location)
 /*
-Create a runtime routine call to zero the entity specified by entity_node,
-whose type is entity_type; it is an rvalue pointer that points to
-a complete object if have_complete_object is TRUE.  If num_elem_node
+Create a runtime routine call to initialize the entity specified by
+entity_node, whose type is entity_type; it is an rvalue pointer that points
+to a complete object if have_complete_object is TRUE.  If source_node is
+NULL, the entity is zero-initialized; otherwise each element of the
+entity is set to the value pointed to by source_node.  If num_elem_node
 is non-NULL, the entity is an array and the expression value gives
 the number of elements (the entity_type in that case is the array
 element type).  num_elem_node must be non-NULL when initializing a
@@ -7306,11 +7389,17 @@ from entity_type itself.  Insert the code for the call at *insert_location.
   if (is_immediate_class_type(element_type) &&
       element_type->variant.class_struct_union.is_empty_class) {
     /* Put out no code at all to zero an empty class. */
+  } else if (source_node != NULL
 #if IA64_ABI
-  } else if (contains_ptr_to_data_member(orig_element_type)) {
-    /* If the entity type contains pointers to data members they must
-       be initialized to -1, not zero, for the IA-64 ABI. */
-    a_boolean array_case;
+             || contains_ptr_to_data_member(orig_element_type)
+#endif /* IA64_ABI */
+                                                              ) {
+    /* Each element in the array is being set to the same value -- either
+       the value pointed to by source_node or to a zero-value (but the
+       entity type contains pointers to data members that must be initialized
+       to -1, not zero, for the IA-64 ABI). */
+    a_boolean         array_case;
+    an_expr_node_ptr  *last_arg;
     if (num_elem_node == NULL) {
       array_case = (array_element_count != 1);
       if (array_case) {
@@ -7322,7 +7411,7 @@ from entity_type itself.  Insert the code for the call at *insert_location.
       /* num_elem_node gives the number of elements in the array. */
       array_case = TRUE;
       if (array_element_count != 1) {
-        /* Multiply num_elem_node it by the value of array_element_count to
+        /* Multiply num_elem_node by the value of array_element_count to
            get the actual number of elements. */
         num_elem_node = add_cast_if_necessary(
                                            num_elem_node,
@@ -7336,18 +7425,23 @@ from entity_type itself.  Insert the code for the call at *insert_location.
                                           num_elem_node);
       }  /* if */
     }  /* if */
-    /* Call a helper routine to zero the entity.  Note that in this case
+    /* Call a helper routine to initialize the entity.  Note that in this case
        the routine gets the count of array elements (or 1 for a non-array)
        rather than the size in bytes. */
     entity_node = add_cast_if_necessary(entity_node,
                                         make_pointer_type(element_type));
-    if (array_case) entity_node->next = num_elem_node;
-    make_call_statement(helper_routine_to_zero_entity(orig_element_type,
+    last_arg = &entity_node;
+    if (array_case) {
+      (*last_arg)->next = num_elem_node;
+      last_arg = &(*last_arg)->next;
+    }  /* if */
+    if (source_node != NULL) (*last_arg)->next = source_node;
+    make_call_statement(helper_routine_to_initialize_entity(orig_element_type,
                                                        have_complete_object,
                                                        array_case,
+                                                       source_node == NULL,
                                                        (a_routine_ptr)NULL),
                         entity_node, insert_location);
-#endif /* IA64_ABI */
   } else {
     /* The entity (not an empty base class) must be set to all zeroes. */
     an_expr_node_ptr entity_size_node;
@@ -7382,6 +7476,27 @@ from entity_type itself.  Insert the code for the call at *insert_location.
     insert_runtime_zeroing_call(entity_node, entity_size_node,
                                 insert_location);
   }  /* if */
+}  /* insert_call_to_initialize_entity */
+
+
+static void insert_call_to_zero_entity(a_type_ptr         entity_type,
+                                       a_boolean          have_complete_object,
+                                       an_expr_node_ptr   entity_node,
+                                       an_expr_node_ptr   num_elem_node,
+                                       a_targ_size_t      array_element_count,
+                                       an_insert_location *insert_location)
+/*
+A utility routine to zero the entity specified by entity_node.  See
+insert_call_to_initialize_entity above for a description of the arguments.
+*/
+{
+  insert_call_to_initialize_entity(entity_type,
+                                   have_complete_object,
+                                   entity_node,
+                                   num_elem_node,
+                                   array_element_count,
+                                   (an_expr_node_ptr)NULL,
+                                   insert_location);
 }  /* insert_call_to_zero_entity */
 
 
@@ -8541,37 +8656,34 @@ C99 mode for the same reason.
       }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 do_assignment:;
+      /* Make a node for the entity to be initialized. */
       if (ipdp->array_element_sequence) {
-        /* Create an assignment for each element of the array. */
-        an_init_pos_modifier *ipm = ipdp->modifiers;
-        /* The last modifier on the modifiers list should be an array index
-           modifier; find it. */
-        check_assertion(ipm != NULL);
-        while (ipm->next != NULL) ipm = ipm->next;
-        check_assertion(ipm->curr_field == NULL &&
-                        ipm->curr_base == NULL &&
-                        ipm->curr_elem == 0 &&
-                        ipdp->array_element_count != -1);
-        for (ipm->curr_elem = 0;
-             ipm->curr_elem < (a_targ_size_t)ipdp->array_element_count;
-             ipm->curr_elem++) {
-          entity_node = make_init_entity_node(ipdp, /*result_is_lvalue=*/TRUE,
-                                              /*using_as_dest=*/TRUE);
-          add_init_assignment(dip, (a_constant *)NULL, entity_node,
-                              have_complete_object, eff_insert_location,
-                              (source_desc != NULL &&
-                               source_desc->capture != NULL));
-        }  /* for */
-        ipm->curr_elem = 0;
-      } else {
-        /* Make a node for the entity to be initialized. */
-        entity_node = make_init_entity_node(ipdp, /*result_is_lvalue=*/TRUE,
+        /* The entity being initialized is an array with a repeated
+           constant initializer.  Temporarily remove the array modifier
+           (specifying element zero of the array) so the destination is an
+           array-decayed rvalue pointer. */
+        an_init_pos_modifier_ptr save_ipmp, *prev_ipmp = &(ipdp->modifiers);
+        check_assertion(*prev_ipmp != NULL);
+        while ((*prev_ipmp)->next != NULL) prev_ipmp = &((*prev_ipmp)->next);
+        check_assertion((*prev_ipmp)->curr_base == NULL &&
+                        (*prev_ipmp)->curr_field == NULL &&
+                        (*prev_ipmp)->curr_elem == 0);
+        save_ipmp = *prev_ipmp;
+        *prev_ipmp = NULL;
+        entity_node = make_init_entity_node(ipdp,
+                                            /*result_is_lvalue=*/FALSE,
                                             /*using_as_dest=*/TRUE);
-        add_init_assignment(dip, (a_constant *)NULL, entity_node,
-                            have_complete_object, eff_insert_location,
-                            (source_desc != NULL &&
-                             source_desc->capture != NULL));
+        *prev_ipmp = save_ipmp;
+      } else {
+        entity_node = make_init_entity_node(ipdp,
+                                            /*result_is_lvalue=*/TRUE,
+                                            /*using_as_dest=*/TRUE);
       }  /* if */
+      add_init_assignment(dip, (a_constant *)NULL, entity_node,
+                          have_complete_object, eff_insert_location,
+                          (source_desc != NULL &&
+                           source_desc->capture != NULL),
+                          ipdp);
       break;
     case dik_call_returning_class_via_cctor:
       /* Initialize the entry by calling a routine that returns its result
