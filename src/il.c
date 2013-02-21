@@ -18394,7 +18394,8 @@ already indicates the load.
             /* These are rvalueable if the first operand is an lvalue.
                If the first operand is an rvalue, there's no place we can
                load from; the rvalue has already been "loaded". */
-            rvalueable = node->variant.operation.operands->is_lvalue;
+            rvalueable = (node->variant.operation.operands->is_lvalue ||
+                          is_error_node(node->variant.operation.operands));
             break;
           case eok_points_to_field:
           case eok_pm_points_to_field:
