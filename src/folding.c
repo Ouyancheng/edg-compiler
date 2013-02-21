@@ -8151,6 +8151,44 @@ function for additional information.
 }  /* next_non_generated_initializable_field */
 
 
+static a_boolean aggregate_is_literal_type_constant(a_constant_ptr aggr_con)
+/*
+Return TRUE if aggr_con (which must be a ck_aggregate constant) is suitable
+for use in a C++11 constant expression.  In particular, if the type of
+aggr_con is or contains a non-union class for which a designated
+initializer was specified (a g++ extension), return FALSE (because we
+cannot tell whether the object is fully initialized or not).
+*/
+{
+  a_type_ptr     aggr_type = skip_typerefs(aggr_con->type);
+  a_boolean      result = is_literal_type(aggr_type);
+  a_constant_ptr cp;
+
+  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
+  if (result &&
+      (is_class_or_struct(aggr_type) || is_array_type(aggr_type)) &&
+      aggr_con->uses_designated_initializers &&
+      aggr_con->is_partially_initialized) {
+    /* The uses_designated_initializer and is_partially_initialized flags
+       are cumulative over nested aggregates as well, so we must walk
+       through the class member values and check those as well.  A
+       designated initializer in a union member does not disqualify the
+       containing aggregate, since the union will still be fully
+       initialized. */
+    for (cp = aggr_con->variant.aggregate.first_constant;
+         result && cp != NULL; cp = cp->next) {
+      if (cp->kind == (a_constant_repr_kind)ck_designator) {
+        result = FALSE;
+      } else if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+        /* Recursively check for designators. */
+        result = aggregate_is_literal_type_constant(cp);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* aggregate_is_literal_type_constant */
+
+
 a_constant_ptr constant_value_at_address(a_constant_ptr addr_con,
                                          a_constant_ptr target_con)
 /*
@@ -8222,6 +8260,10 @@ a new unshared constant will be allocated and returned.
       } else {
         result_con = alloc_error_constant();
       }  /* if */
+    } else if (result_con->kind == (a_constant_repr_kind)ck_aggregate &&
+               !aggregate_is_literal_type_constant(result_con)) {
+      /* The aggregate is not suitable for use in a constant expression. */
+      result_con = NULL;
     } else {
       /* Either the value is result_con or some subobject thereof or it's a
          zero value resulting from an aggregate initializer with fewer
