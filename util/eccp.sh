@@ -423,7 +423,9 @@ output_tmp_file=$eccp_tmpdir/output_filter.txt
 #
 # Trap the "abort" signal to eliminate the shell-supplied diagnostic line
 # that frequently includes the process number.
+trap "trap_function 1" 1 # Hangup
 trap "trap_function 1" 2 # Interrupt
+trap "trap_function 1" 15 # Termination
 trap "trap_function 134" 6 # abort
 trap "trap_function 137" 9 # kill (used by timeout detection)
 trap "trap_function 138" 10 # bus error
