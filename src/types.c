@@ -3779,7 +3779,7 @@ expects to receive an rvalue type.
 
   db_enter(5, "type_after_integral_promotion");
 
-  if (is_integral_or_enum(unqual_type)) {
+  if (is_integer_or_unscoped_enum(unqual_type)) {
     an_integer_kind ikind = unqual_type->variant.integer.int_kind;
     if (unqual_type->variant.integer.bool_type) {
       /* bool always promotes to int. */

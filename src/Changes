@@ -1,5 +1,19 @@
 Version 4.6
 
+2/21/13  [EDGcpfe/12973]
+Scoped enumeration value as switch expression
+
+The front end (in C++11 mode) now accepts a scoped enumerator value
+as a case expression.
+
+  enum class scoped_enum {se0};
+  void foo(scoped_enum p) {
+    switch(p) {
+      case scoped_enum::se0: break;
+    }
+  }
+
+
 2/20/13  [EDGcpfe/13664]
 Bug in handling of nested initializer lists
 
