@@ -20376,7 +20376,9 @@ resolution).
         if (constexpr_enabled && curr_expr_kind_is_const()) {
           /* In a constexpr constant expression, return an empty
              aggregate constant. */
-          (void)make_value_initialized_constant(unqual_dest_type, &con);
+          if (!make_value_initialized_constant(unqual_dest_type, &con)) {
+            unexpected_condition();
+          }  /* if */
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             add_temp_init_backing_expression(&con, dip);
           } /* if */
@@ -20414,8 +20416,7 @@ resolution).
     check_assertion(is_scalar_type(dest_type) ||
                     is_ptr_to_member_type(dest_type));
     if (generate_il) {
-      if (make_value_initialized_constant(unqual_dest_type, &con)) {
-      } else {
+      if (!make_value_initialized_constant(unqual_dest_type, &con)) {
         unexpected_condition();
       }  /* if */
     }  /* if */

@@ -21157,8 +21157,10 @@ empty_parentheses:
           if (constexpr_enabled && curr_expr_kind_is_const()) {
             /* Return an empty aggregate in a constexpr constant expression. */
             a_constant local_constant;
-            (void)make_value_initialized_constant(type_cast_to,
-                                                  &local_constant);
+            if (!make_value_initialized_constant(type_cast_to,
+                                                 &local_constant)) {
+              unexpected_condition();
+            }  /* if */
             if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
               local_constant.expr = temp_init_node;
             }  /* if */

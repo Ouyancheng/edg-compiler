@@ -7531,7 +7531,8 @@ which case the resulting constant is an empty aggregate.
   } else if (is_error_type(type)) {
     set_error_constant(con);
     return_value = TRUE;
-  } else if (is_aggregate_type(type)) {
+  } else if (is_aggregate_type(type) ||
+             (is_class_struct_union_type(type) && is_literal_type(type))) {
     clear_constant(con, (a_constant_repr_kind)ck_aggregate);
     con->type = type;
     type = skip_typerefs(type);
