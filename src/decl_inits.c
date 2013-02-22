@@ -6172,7 +6172,9 @@ initialized.  These are addressed in the course of the processing.
                        (is_const_qualified ?
                             cssp->has_user_provided_default_constructor
                           : has_any_default_constructor(cssp))) ||
-                      is_template_dependent_type(tp)
+                      (ctor_rout->is_constexpr ?
+                                               is_template_param_type(tp) :
+                                               is_template_dependent_type(tp))
                       if_microsoft_extensions(|| is_value_class_type(tp)))) {
             /* A non-reference field may be initialized without an explicit
                initializer if it is of class type and there is a default
