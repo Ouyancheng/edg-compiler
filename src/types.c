@@ -6950,7 +6950,7 @@ Return TRUE if the given exception specification is of the form "noexcept",
 {
   a_boolean  result = FALSE;
 
-  if (esp != NULL && !esp->arg_cached) {
+  if (esp != NULL && !esp->arg_cached && !esp->indeterminate) {
     if (esp->throw_any) {
       /* This case eliminates "noexcept(<false-constant>)" and
          "noexcept(<template-dependent-constant>)". */
@@ -6971,7 +6971,7 @@ The given type is a routine type.  Return TRUE if it has an associated
 "throw()" or "noexcept" specification or if exceptions are disabled (in which
 case the function is not expected to throw an exception either).
 The caller is responsible for ensuring that the type has no cached exception
-specification.
+specification and no indeterminate specification.
 */
 {
   a_boolean  result;
@@ -6979,6 +6979,11 @@ specification.
   if (exceptions_enabled) {
     a_routine_type_supplement_ptr   rtsp = type->variant.routine.extra_info;
     an_exception_specification_ptr  esp = rtsp->exception_specification;
+    if (esp != NULL && esp->indeterminate) {
+      form_exception_specification_for_generated_default_ctor(
+                                                         rtsp->assoc_routine);
+      esp = rtsp->exception_specification;
+    }  /* if */
     if (esp == NULL) {
       result = FALSE;
     } else {

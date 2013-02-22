@@ -2390,6 +2390,7 @@ region.
   num_exception_specifications_allocated++;
 #endif /* DEBUG */
   esp->is_noexcept = FALSE;
+  esp->indeterminate = FALSE;
   esp->throw_any = FALSE;
   esp->compiler_generated = FALSE;
   esp->arg_cached = FALSE;

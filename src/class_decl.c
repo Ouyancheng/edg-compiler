@@ -10804,13 +10804,16 @@ when exception support is enabled.
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       subobj_qual = get_type_qualifiers(tp);
       tp = skip_typedefs(tp);
-      if (fp->has_initializer && first_param == NULL) {
+      if (fp->has_initializer &&
+          sfkind == (a_special_function_kind)sfk_constructor &&
+          first_param == NULL) {
         /* We're handling the default constructor and this is a field with an
-           in-class initializer.  FIXME: We need to identify the "function
-           directly invoked" for the initialization of this field (if any) and
-           merge its exception specification.  For now, we'll just assume it
-           might throw anything. */
-        throw_any = TRUE;
+           in-class initializer.  We shouldn't get here until field
+           initializers have been scanned. */
+        check_assertion(fp->initializer != NULL);
+        if (dynamic_init_might_throw(fp->initializer)) {
+          throw_any = TRUE;
+        }  /* if */
       } else if (is_template_dependent_type(tp)) {
         /* We cannot tell what dependent fields might end up throwing. */
         throw_any = TRUE;
@@ -12655,6 +12658,60 @@ ensures this routine will issue an error on this example.
 }  /* remove_routine_typedef_if_needed */
 
 
+static void add_generated_exception_spec_if_needed(a_routine_ptr  rtn,
+                                                   a_type_ptr     class_type)
+/*
+If the given member function of the given class is a generated special member
+assign it an exception specification as appropriate (in the case of a default
+constructor, this may be an "indeterminate" specification).  If the routine is
+a member "delete" or "delete[]" operator, assign is a "noexcept" specification.
+Otherwise, the member is left unchanged.
+*/
+{
+  if (!is_immediate_managed_class_type(class_type) &&
+      !class_type->variant.class_struct_union.is_nonreal_class) {
+    a_routine_type_supplement_ptr rtsp;
+    rtsp = skip_typerefs(rtn->type)->variant.routine.extra_info;
+    if (rtsp->exception_specification == NULL) {
+      if (rtn->compiler_generated &&
+          (special_kind_is(rtn, sfk_constructor) ||
+           special_kind_is(rtn, sfk_destructor) ||
+           (special_kind_is(rtn, sfk_operator) &&
+            rtn->variant.opname_kind == (an_opname_kind)onk_assign))) {
+        /* A compiler-generated constructor, destructor, or assignment
+           operator is assumed to throw any exception that can be thrown by
+           any subobject function the generated function will call. */
+        a_class_symbol_supplement_ptr  cssp;
+        cssp = symbol_for(class_type)->variant.class_struct_union.extra_info;
+        if (special_kind_is(rtn, sfk_constructor) &&
+            rtsp->param_type_list == NULL &&
+            (cssp->has_instantiatable_field_initializers ||
+             cssp->has_initializer_fixups)) {
+          /* The exception specification of a generated default constructor
+             depends on the exceptions thrown by the field initializer.
+             However, field initializers have generally not been parsed yet
+             when the generated default constructor is being declared.  For
+             now, record an "indeterminate" exception specification, which
+             will be replaced later on. */
+          rtsp->exception_specification = alloc_exception_specification();
+          rtsp->exception_specification->indeterminate = TRUE;
+          rtsp->exception_specification->compiler_generated = TRUE;
+          rtsp->assoc_routine = rtn;
+        } else {
+          form_exception_specification_for_generated_function(rtn);
+        }  /* if */
+      } else if (implicit_noexcept_enabled &&
+                 special_kind_is(rtn, sfk_operator) &&
+                 is_delete_operator(rtn->variant.opname_kind)) {
+        /* A delete operator without an explicit exception specification is
+           treated as if declared "noexcept". */
+        add_noexcept_specification(rtsp);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* add_generated_exception_spec_if_needed */
+
+
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_func_info_block_ptr   func_info,
                                  a_class_def_state_ptr   class_state,
@@ -13316,28 +13373,10 @@ implicitly declared member functions.
       }  /* if */
     }  /* if */
     if (exceptions_enabled) {
-      if (!is_immediate_managed_class_type(class_type) &&
-          !class_type->variant.class_struct_union.is_nonreal_class &&
-          rtsp->exception_specification == NULL) {
-        if (compiler_generated &&
-            (special_kind_is(rtn, sfk_constructor) ||
-             special_kind_is(rtn, sfk_destructor) ||
-             (special_kind_is(rtn, sfk_operator) &&
-              rtn->variant.opname_kind == (an_opname_kind)onk_assign))) {
-          /* A compiler-generated constructor, destructor, or assignment
-             operator is assumed to throw any exception that can be thrown by
-             any subobject function the generated function will call. */
-          form_exception_specification_for_generated_function(rtn);
-        } else if (implicit_noexcept_enabled &&
-                   special_kind_is(rtn, sfk_operator) &&
-                   is_delete_operator(rtn->variant.opname_kind)) {
-          /* A delete operator without an explicit exception specification is
-             treated as if declared "noexcept". */
-          add_noexcept_specification(rtsp);
-        }  /* if */
-      }  /* if */
+      add_generated_exception_spec_if_needed(rtn, class_type);
       if (rtsp->exception_specification != NULL &&
           !rtsp->exception_specification->arg_cached &&
+          !rtsp->exception_specification->indeterminate &&
           is_nothrow_type(skip_typerefs(member_type))) {
         rtn->never_throws = TRUE;
       }  /* if */
@@ -17895,6 +17934,35 @@ must be initialized.  In all cases, the initializers must also be constants.
   }  /* if */
   return okay;
 }  /* fields_initialized_for_constexpr_constructor */
+
+
+void form_exception_specification_for_generated_default_ctor(a_routine_ptr  rp)
+/*
+The given generated default constructor has an indeterminate exception
+specification. Determine the actual exception specification now and update the
+routine type accordingly.  If a field initializer is being scanned, a circular
+dependency must exist and this routine issues an error accordingly.
+*/
+{
+  a_type_ptr  class_type = parent_class_of(rp);
+  a_routine_type_supplement_ptr
+              rtsp = rp->type->variant.routine.extra_info;
+  a_class_symbol_supplement_ptr
+              cssp;
+
+  cssp = symbol_for(class_type)->variant.class_struct_union.extra_info;
+  if (class_type->incomplete) {
+    expect_error();
+  } else if (cssp->scanning_field_initializer) {
+    pos_error(ec_generated_default_ctor_exception_spec_circularity,
+              &error_position);
+    rtsp->exception_specification = NULL;
+  } else {
+    ensure_all_field_initializers_scanned(class_type);
+    rtsp->exception_specification = NULL;
+    form_exception_specification_for_generated_function(rp);
+  }  /*  */
+}  /* form_exception_specification_for_generated_default_ctor */
 
 
 static a_boolean bases_initialized_for_constexpr_constructor(

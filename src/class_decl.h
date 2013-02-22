@@ -82,6 +82,9 @@ extern void merge_dll_flags_from_parent_class(a_type_ptr          class_type,
 extern void form_exception_specification_for_generated_function(
                                                            a_routine_ptr  rp);
 
+extern void form_exception_specification_for_generated_default_ctor(
+                                                           a_routine_ptr  rp);
+
 extern void remove_routine_typedef_if_needed(a_symbol_locator    *loc,
                                              a_decl_parse_state  *dps,
                                              a_boolean           no_cv_quals);

@@ -2484,6 +2484,7 @@ ec_field_initializer_list;;"creation of an std::initializer_list object in a fie
 ec_this_not_constant;;"\"this\" cannot be used in a constant expression"
 ec_ambiguous_union_value_init;;"an empty initializer is not valid for this union type (which member should be initialized is ambiguous)"
 ec_constexpr_explicit_instantiation;;"\"constexpr\" is not allowed on an explicit instantiation directive"
+ec_generated_default_ctor_exception_spec_circularity;;"cannot determine the exception specification of the default constructor due to a circular dependency"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

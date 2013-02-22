@@ -5563,6 +5563,11 @@ typedef struct an_exception_specification {
 			/* TRUE if the exception specification is a C++11-
 			   style noexcept form. */
   a_bit_field
+		indeterminate:1;
+			/* TRUE if the exception specification has not been
+			   determined yet.  (Only possible with generated
+			   special member functions.) */
+  a_bit_field
 		throw_any:1;
 			/* TRUE if "noexcept(<false-constant>)" or the
 			   Microsoft extension "throw (...)" was encountered.
@@ -5803,9 +5808,11 @@ typedef struct a_routine_type_supplement {
 			   non-NULL. */
 #endif /* DO_IL_LOWERING */
   a_routine_ptr assoc_routine;
-                        /* If this type is the type for a function that
-                           has been defined (has a body), this points to
-                           the associated function.  Otherwise, it is NULL. */
+                        /* If this type is the type for a function that has
+			   been defined (has a body) or if it is the type of
+			   a special member with an "indeterminate" exception
+			   specification, this points to the associated
+			   function.  Otherwise, it is NULL. */
   a_bit_field	has_ellipsis:1;
                         /* TRUE if there is an ellipsis ("...") at the end of
                            the prototyped parameter list, indicating a

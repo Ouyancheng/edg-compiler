@@ -1101,6 +1101,8 @@ extern a_boolean expr_has_reference_to_routine_scope_variable(
 
 extern a_boolean expr_might_throw(an_expr_node_ptr expr);
 
+extern a_boolean dynamic_init_might_throw(a_dynamic_init_ptr expr);
+
 extern a_boolean has_statement_expression(an_expr_node_ptr expr);
 
 extern a_boolean expr_is_dep_static_member_of_current_instantiation(

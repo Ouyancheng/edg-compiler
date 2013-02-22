@@ -4320,6 +4320,7 @@ Display the indicated exception-specification entry.
 */
 {
   if (ptr->is_noexcept) disp_boolean("is_noexcept", TRUE);
+  if (ptr->indeterminate) disp_boolean("indeterminate", TRUE);
   if (ptr->throw_any) disp_boolean("throw_any", TRUE);
   if (ptr->compiler_generated) disp_boolean("compiler_generated", TRUE);
   if (ptr->is_noexcept) {
