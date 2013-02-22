@@ -9325,6 +9325,14 @@ fold_constexpr_ctor should usually be called instead.
               new_aggr_con->type = curr_class;
               member_con_ptr = new_aggr_con;
               field = ctsp->anonymous_union_field;
+              if (parent_class_of(field)->kind == (a_type_kind)tk_union &&
+                  next_initializable_field(parent_class_of(field)->variant
+                                    .class_struct_union.field_list) != field) {
+                /* For a field other than the first in a union, add a
+                   designator. */
+                des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+                des_con->variant.designator.field = field;
+              }  /* if */
             }  /* while */
             /* See if the field being initialized is the one expected. */
             if (next_expected_field != field && des_con == NULL) {
