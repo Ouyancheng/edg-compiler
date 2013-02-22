@@ -299,7 +299,7 @@ extern a_boolean ctor_or_dtor_body_has_no_effect(a_scope_ptr scope);
 
 extern void initialize_vptr_in_aggregate_constant(
                                         a_constant_ptr   constant,
-                                        a_type_ptr       complete_object_type,
+                                        a_type_ptr       primary_vtbl_class,
                                         a_base_class_ptr subobject_bcp);
 
 extern void init_lower_one_time_init(void);

@@ -4907,7 +4907,7 @@ Do IL lowering of the indicated constant and everything under it.
            are themselves lowered, as well as before any designated
            initializers are lowered. */
         initialize_vptr_in_aggregate_constant(constant,
-                                              skip_typerefs(constant->type),
+                                              (a_type_ptr)NULL,
                                               (a_base_class_ptr)NULL);
 #if LOWER_DESIGNATED_INITIALIZERS
         /* Re-write any designated initializers in the aggregate constant. */

@@ -1483,19 +1483,19 @@ NULL pointer-to-data member in the IA-64 ABI.
 }  /* make_lowered_zero_of_proper_type */
 
 
-void initialize_vptr_in_aggregate_constant(
-                                        a_constant_ptr   constant,
-                                        a_type_ptr       complete_object_type,
-                                        a_base_class_ptr subobject_bcp)
+void initialize_vptr_in_aggregate_constant(a_constant_ptr   constant,
+                                           a_type_ptr       primary_vtbl_class,
+                                           a_base_class_ptr subobject_bcp)
 /*
 An aggregate constant is being lowered; if the constant is initializing a class
 that has a virtual function table pointer, add an entry to the aggregate
 constant to set the virtual function table pointer as appropriate.  Recurse to
 handle any base classes that may have vptr fields that need to be initialized.
-complete_object_type is the type of the complete object (constant may represent
+If non-NULL, primary_vtbl_class is the type of a more-derived class which this
+class (or a base class of this class) shares a vtable.  constant may represent
 the initialization of a subobject, in which case subobject_bcp represents the
-relationship between complete_object_type and the type of constant, and is NULL
-when those are the same).  There is no need to deal with construction vtables
+relationship between primary_vtbl_class and the type of constant, and is NULL
+when those are the same.  There is no need to deal with construction vtables
 because a constexpr constructor can't have virtual base classes.  The constants
 in the aggregate have not been lowered (and aren't lowered here).
 */
@@ -1512,10 +1512,10 @@ in the aggregate have not been lowered (and aren't lowered here).
     a_field_ptr                 field;
     a_base_class_ptr            bcp;
     a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
-    a_class_type_supplement_ptr cot_ctsp=class_type_supp(complete_object_type);
     a_boolean                   any_more_base_classes;
     a_boolean                   modify_vptr_in_this_class = TRUE;
     a_variable_ptr              vtbl_var;
+    a_type_ptr                  vtbl_class;
 
     check_assertion(!class_type->
                          variant.class_struct_union.any_virtual_base_classes &&
@@ -1536,23 +1536,32 @@ in the aggregate have not been lowered (and aren't lowered here).
       modify_vptr_in_this_class = FALSE;
     } else {
       check_assertion(ctsp->virtual_function_table_var != NULL);
-      if (cot_ctsp->virtual_function_info_base_class != NULL &&
-          needs_virtual_function_table(complete_object_type) &&
-          identical_types(cot_ctsp->virtual_function_info_base_class->type,
-                          class_type)) {
-        /* This base class is sharing a vptr with complete_object_type;
-           use the primary vptr. */
-        subobject_bcp = NULL;
+      if (primary_vtbl_class == NULL) {
+        /* Make an address constant pointer to the vtable for this class. */
+        vtbl_var = ctsp->virtual_function_table_var;
+        vtbl_class = class_type;
+      } else {
+        a_class_type_supplement_ptr pvtbl_ctsp =
+                                           class_type_supp(primary_vtbl_class);
+        check_assertion(pvtbl_ctsp->virtual_function_info_base_class != NULL &&
+                        needs_virtual_function_table(primary_vtbl_class));
+        if (identical_types(pvtbl_ctsp->virtual_function_info_base_class->type,
+                            class_type)) {
+          /* This base class is sharing a vptr with primary_vtbl_class;
+             use the primary vptr. */
+          subobject_bcp = NULL;
+        }  /* if */
+        /* Make an address constant pointer to the primary vtable. */
+        vtbl_var = pvtbl_ctsp->virtual_function_table_var;
+        vtbl_class = primary_vtbl_class;
       }  /* if */
-      /* Make an address constant pointer to the appropriate vtable. */
-      vtbl_var = cot_ctsp->virtual_function_table_var;
 #if !IA64_ABI
       if (subobject_bcp != NULL) {
         vtbl_var = subobject_bcp->virtual_function_table_var;
       }  /* if */
 #endif /* IA64_ABI */
       make_vtbl_address_constant(vtbl_var,
-                                 complete_object_type,
+                                 vtbl_class,
                                  subobject_bcp,
                                  &addr_constant);
       vptr_con = alloc_unshared_constant_in_region(&addr_constant,
@@ -1597,8 +1606,15 @@ in the aggregate have not been lowered (and aren't lowered here).
                 identical_types(field->type,
                                 class_type_supp(bcp->type)->
                                                           type_as_subobject)) {
+              if (primary_vtbl_class == NULL &&
+                  needs_virtual_function_table(class_type) &&
+                  ctsp->virtual_function_info_base_class != NULL) {
+                /* If there is no more-derived class that shares a vtable,
+                   use this class. */
+                primary_vtbl_class = class_type;
+              }  /* if */
               initialize_vptr_in_aggregate_constant(aggr_con,
-                                                    complete_object_type,
+                                                    primary_vtbl_class,
                                                     bcp);
               found = TRUE;
               break;
