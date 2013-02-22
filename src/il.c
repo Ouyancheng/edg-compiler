@@ -7533,16 +7533,32 @@ which case the resulting constant is an empty aggregate.
     return_value = TRUE;
   } else if (is_aggregate_type(type) ||
              (is_class_struct_union_type(type) && is_literal_type(type))) {
+    return_value = TRUE;
     clear_constant(con, (a_constant_repr_kind)ck_aggregate);
     con->type = type;
     type = skip_typerefs(type);
+    { a_base_class_ptr bcp;
+      for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
+        if (bcp->direct) {
+          /* Add an empty aggregate for each direct base class. */
+          a_constant_ptr base_con =
+                            alloc_constant((a_constant_repr_kind)ck_aggregate);
+          if (!make_value_initialized_constant(bcp->type, base_con)) {
+            return_value = FALSE;
+            break;
+          }  /* if */
+          check_assertion(constexpr_enabled && is_literal_type(type));
+          base_con->constant_for_base_class_from_constexpr_folding = TRUE;
+          add_constant_to_aggregate(base_con, con);
+        } /* if */
+      }  /* for */
+    }
     if (!is_immediate_class_type(type) ||
         next_initializable_field(type->variant.class_struct_union.field_list)
                                                                      != NULL) {
       con->partial_aggr_value = TRUE;
       con->is_partially_initialized = TRUE;
     }  /* if */
-    return_value = TRUE;
   }  /* if */
   return return_value;
 }  /* make_value_initialized_constant */
