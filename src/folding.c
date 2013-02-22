@@ -7923,8 +7923,12 @@ evaluation.
       folded = fold_expr(dip->variant.expression, ceblock, result_con);
       break;
     case dik_constructor:
-      check_assertion(!ref_case);
       folded = i_fold_constexpr_ctor(dip, ceblock, result_con);
+      if (ref_case && folded) {
+        set_temporary_address_constant(alloc_shareable_constant(result_con),
+                                       result_con);
+        result_con->type = dest_type;
+      }  /* if */
       break;
     case dik_nonconstant_aggregate:
       { a_constant_ptr new_aggr;
@@ -7992,6 +7996,7 @@ evaluation.
              case. */
           set_temporary_address_constant(alloc_shareable_constant(new_aggr),
                                          result_con);
+          result_con->type = dest_type;
         }  /* if */
       }
       break;
