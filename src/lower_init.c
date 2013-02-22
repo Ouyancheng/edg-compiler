@@ -1417,15 +1417,11 @@ is the destination of an initialization operation.
     if (ipdp->array_element_sequence) {
       /* For an array element sequence that covers more than one dimension
          of an array, get the type right for the underlying element. */
-      if (result_is_lvalue) {
-        entity_node = add_cast_to_lvalue_if_necessary(entity_node,
+      entity_node = add_cast_to_lvalue_if_necessary(entity_node,
                                                     ipdp->array_element_type);
-      } else {
-        /* Perform array to pointer decay. */
-        entity_node = make_array_to_pointer_node(entity_node);
-      }  /* if */
     }  /* if */
-    if (entity_node->is_lvalue && !result_is_lvalue) {
+    check_assertion(entity_node->is_lvalue);
+    if (!result_is_lvalue) {
       /* Convert this to an rvalue. */
       entity_node = rvalue_expr_for_lvalue(entity_node);
     }  /* if */
@@ -8673,27 +8669,14 @@ C99 mode for the same reason.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 do_assignment:;
       /* Make a node for the entity to be initialized. */
+      entity_node = make_init_entity_node(ipdp,
+                                          /*result_is_lvalue=*/TRUE,
+                                          /*using_as_dest=*/TRUE);
       if (ipdp->array_element_sequence) {
-        /* The entity being initialized is an array with a repeated
-           constant initializer.  Temporarily remove the array modifier
-           (specifying element zero of the array) so the destination is an
-           array-decayed rvalue pointer. */
-        an_init_pos_modifier_ptr save_ipmp, *prev_ipmp = &(ipdp->modifiers);
-        check_assertion(*prev_ipmp != NULL);
-        while ((*prev_ipmp)->next != NULL) prev_ipmp = &((*prev_ipmp)->next);
-        check_assertion((*prev_ipmp)->curr_base == NULL &&
-                        (*prev_ipmp)->curr_field == NULL &&
-                        (*prev_ipmp)->curr_elem == 0);
-        save_ipmp = *prev_ipmp;
-        *prev_ipmp = NULL;
-        entity_node = make_init_entity_node(ipdp,
-                                            /*result_is_lvalue=*/FALSE,
-                                            /*using_as_dest=*/TRUE);
-        *prev_ipmp = save_ipmp;
-      } else {
-        entity_node = make_init_entity_node(ipdp,
-                                            /*result_is_lvalue=*/TRUE,
-                                            /*using_as_dest=*/TRUE);
+        /* When initializing an entire array element sequence (to the
+           value of a repeated constant), use an rvalue pointer to the
+           entire array (rather than an lvalue for the first element). */
+        entity_node = add_address_of_to_node(entity_node);
       }  /* if */
       add_init_assignment(dip, (a_constant *)NULL, entity_node,
                           have_complete_object, eff_insert_location,
