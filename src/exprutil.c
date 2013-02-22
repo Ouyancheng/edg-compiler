@@ -16261,7 +16261,7 @@ is an rvalue reference.
          the constant address of a temporary containing the class value. */
       a_constant_ptr con = &operand->variant.constant;
       a_constant     addr_con;
-      check_assertion(con->is_result_of_constexpr_call);
+      check_assertion(constexpr_enabled && is_literal_type(operand->type));
       set_temporary_address_constant(alloc_unshared_constant(con), &addr_con);
       addr_con.type = make_reference_type(operand->type);
       make_constant_operand(&addr_con, operand);
