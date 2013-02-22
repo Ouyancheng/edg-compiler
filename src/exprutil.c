@@ -17936,7 +17936,6 @@ cases so we don't do it here.
         }  /* if */
       }  /* if */
       if (!constant_case) {
-        a_variable_ptr var;
         if (in_potential_constant_constexpr_context()) {
           /* For expressions in the body of a constexpr function, the
              constant_expr_ruled_out flag should be lenient, considering
@@ -17944,27 +17943,18 @@ cases so we don't do it here.
              function because the parameters may have constant values.
              So suppress setting that flag if the lvalue is one that might
              end of being constant. */
-          if (operand_is_lvalue_for_variable(operand, &var)) {
-            /* A reference to a parameter might be constant, but references
-               to other variables won't be. */
-            possibly_constant_with_constexpr = var->is_parameter;
-          } else {
-            /* Many more complex expressions can have embedded uses of
-               the parameters, like "this->i" or "*&(this->i)", so be
-               conservative.  The only downside is that we might not
-               issue an error on a constexpr function whose return can
-               never be constant. */
-            possibly_constant_with_constexpr = TRUE;
-            if (is_operation_node(node)) {
-              an_expr_node_ptr op1 = node->variant.operation.operands;
-              if (node_operator_is(node, eok_ref_indirect)) {
-                if (is_variable_node(op1) &&
-                    !op1->variant.variable->is_parameter &&
-                    !op1->variant.variable->is_constexpr) {
-                  possibly_constant_with_constexpr = FALSE;
-                }  /* if */
-              }  /* if */
-            }  /* if */
+          /* Many more complex expressions can have embedded uses of
+             the parameters, like "this->i" or "*&(this->i)", so be
+             conservative.  The only downside is that we might not
+             issue an error on a constexpr function whose return can
+             never be constant. */
+          an_expr_node_ptr test_node = expr_before_type_adjustment(node);
+          test_node = strip_ref_indirect(test_node, /*parens_also=*/TRUE);
+          possibly_constant_with_constexpr = TRUE;
+          if (is_variable_node(test_node)) {
+            a_variable_ptr var = test_node->variant.variable;
+            possibly_constant_with_constexpr = (var->is_parameter ||
+                                                var->constant_valued);
           }  /* if */
         }  /* if */
         /* Convert the expression to an rvalue. */
