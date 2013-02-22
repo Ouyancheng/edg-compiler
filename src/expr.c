@@ -317,7 +317,7 @@ opening parenthesis has already been swallowed); otherwise, it's
   an_expr_stack_entry   *saved_expr_stack;
   an_expression_kind    expr_kind = (an_expression_kind)ek_normal;
   an_init_component_ptr icp;
-  a_type_ptr            deduced_auto_type;
+  a_type_ptr            undeduced_type, deduced_auto_type;
   a_boolean             still_dependent;
   a_boolean             is_full_expr = !dps->is_new_expr_type;
 
@@ -364,7 +364,14 @@ opening parenthesis has already been swallowed); otherwise, it's
                                           /*to_front=*/TRUE,
                                           &dps->prescanned_initializer_cache);
   /* Do type deduction. */
-  if (!deduce_auto_type(dps->declared_type,
+  undeduced_type = dps->declared_type;
+  if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
+      !is_const_qualified_type(undeduced_type)) {
+    /* constexpr variables are implicitly const. */
+    undeduced_type = make_qualified_type(undeduced_type,
+                                         (a_type_qualifier_set)TQ_CONST);
+  }  /* if */
+  if (!deduce_auto_type(undeduced_type,
                         dps->auto_type,
                         (an_operand *)NULL,
                         icp,
@@ -374,7 +381,7 @@ opening parenthesis has already been swallowed); otherwise, it's
                         &still_dependent)) {
     if (still_dependent) {
       /* Deduction was not done because the types are still dependent. */
-      dps->type = dps->declared_type;
+      dps->type = undeduced_type;
       dps->deduced_auto_type = NULL;
     } else {
       /* Deduction failed. */
