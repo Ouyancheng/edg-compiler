@@ -7271,13 +7271,25 @@ block with state information for the processing.
           /* Check if we added some padding before this field, and if so
              generate initializers for that padding. */
           a_targ_size_t  padding, p;
-          padding = field_padding(prev_field, ipdp->curr_field, type);
-          if (padding != 0) {
-            start_initializer_constants(icbp);
-            for (p = 0; p < padding; ++p) {
-              write_tok_str("'\\0',");
-            }  /* for */
-          }  /* if */
+          do {
+            a_field_ptr after_prev = (prev_field != NULL) ? prev_field->next
+                                                          : ipdp->curr_field;
+            padding = field_padding(prev_field, after_prev, type);
+            if (padding != 0) {
+              start_initializer_constants(icbp);
+              for (p = 0; p < padding; ++p) {
+                write_tok_str("'\\0',");
+              }  /* for */
+            }  /* if */
+            if (after_prev != ipdp->curr_field) {
+              /* Adjust prev_field if next_initializable_field skipped some
+                 non-initializable fields. */
+              if (msvc_is_generated_code_target) {
+                track_microsoft_bit_field_allocation(prev_field);
+              }  /* if */
+              prev_field = prev_field->next;
+            }  /* if */
+          } while (prev_field != NULL && prev_field->next != ipdp->curr_field);
         } else if (annotate && !*gen_assignments &&
                    type->kind == (a_type_kind)tk_array) {
           /* Display element numbers in arrays. */
@@ -7357,14 +7369,6 @@ block with state information for the processing.
               track_microsoft_bit_field_allocation(prev_field);
             }  /* if */
             ipdp->curr_field= next_initializable_field(ipdp->curr_field->next);
-            while (prev_field->next != ipdp->curr_field) {
-              /* Adjust prev_field if next_initializable_field skipped some
-                 non-initializable fields. */
-              if (msvc_is_generated_code_target) {
-                track_microsoft_bit_field_allocation(prev_field);
-              }  /* if */
-              prev_field = prev_field->next;
-            }  /* while */
           }  /* if */
         }  /* if */
       }  /* for */
