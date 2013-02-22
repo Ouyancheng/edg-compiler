@@ -4689,7 +4689,8 @@ FALSE is returned) for non-class objects.
     }  /* if */
 #if CHECKING
     if (var->is_constexpr && !is_nonreal_class) {
-      check_assertion_or_expect_error(initializer_constant(var) != NULL);
+      check_assertion_or_expect_error(initializer_constant(var) != NULL ||
+                                      is_template_dependent_type(var->type));
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
