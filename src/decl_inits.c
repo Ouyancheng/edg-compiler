@@ -4188,8 +4188,14 @@ returned set to TRUE.
   }  /* if */
 #if CHECKING
   if (vp != NULL && vp->is_constexpr) {
-    check_assertion_or_expect_error(initializer_constant(vp) != NULL ||
-                                    is_template_dependent_type(vp->type));
+    a_type_ptr  tp = skip_typerefs(vp->type);
+    check_assertion_or_expect_error(
+                                 initializer_constant(vp) != NULL ||
+                                 is_template_dependent_type(tp) ||
+                                 (is_immediate_class_type(tp) &&
+                                  !cssp->has_nontrivial_default_constructor &&
+                                  !tp->variant.class_struct_union
+                                              .has_zero_init_component));
   }  /* if */
 #endif /* CHECKING */
 #if DEBUG
