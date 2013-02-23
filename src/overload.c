@@ -19852,6 +19852,16 @@ the conversion.
                                 /*lvalue_expected=*/!is_rvalue_ref,
                                 /*rvalue_expected=*/is_rvalue_ref);
     }  /* if */
+    if (is_rvalue_ref &&
+        is_an_rvalue(source_operand) &&
+        !is_class_struct_union_type(source_operand->type) &&
+        !is_template_param_type(source_operand->type) &&
+        !is_error_operand(source_operand)) {
+      /* When binding an rvalue reference, make sure we have something
+         we can bind to, and not, say, an integer constant. */
+      convert_operand_into_temp(source_operand, base_dest_type, dest_type,
+                                conversion, incompatible_err, &err);
+    }  /* if */
   } else if (direct_binding_conversion_possible) {
     /* The initial value can be converted to an lvalue of the right type
        through use of a conversion function returning a reference. */
@@ -20237,12 +20247,7 @@ the conversion.
   if (!leave_as_object) {
     /* Final step: add the reference-to to turn the lvalue or class rvalue
        into an rvalue for the reference. */
-    if (is_rvalue_ref && template_case) {
-      /* For some template-dependent rvalue reference cases we may still have
-         an rvalue here. */
-    } else {
-      take_reference_to_operand(source_operand, is_rvalue_ref);
-    }  /* if */
+    take_reference_to_operand(source_operand, is_rvalue_ref);
   }  /* if */
 end_of_routine:
   /* Restore the original source position, etc. */
