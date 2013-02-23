@@ -10132,8 +10132,7 @@ as well as any additional code needed to process the deletion.
              initialization portion must be covered by the internal "try/catch"
              mechanism here (but not the allocation portion -- otherwise there
              would be multiple deletes in some cases). */
-          check_assertion(dyn_init_to_free_storage->is_array_freeing &&
-                          ndsp->new_initializer_is_brace_enclosed);
+          check_assertion(dyn_init_to_free_storage->is_array_freeing);
           if (init_expr == NULL) {
             try_expr = init_expr;
           } else {

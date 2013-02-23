@@ -7886,6 +7886,44 @@ Decrement the call depth in the given constexpr evaluation block.
 }  /* decr_constexpr_call_depth */
 
 
+static a_boolean aggregate_is_literal_type_constant(a_constant_ptr aggr_con)
+/*
+Return TRUE if aggr_con (which must be a ck_aggregate constant) is suitable
+for use in a C++11 constant expression.  In particular, if the type of
+aggr_con is or contains a non-union class for which a designated
+initializer was specified (a g++ extension), return FALSE (because we
+cannot tell whether the object is fully initialized or not).
+*/
+{
+  a_type_ptr     aggr_type = skip_typerefs(aggr_con->type);
+  a_boolean      result = is_literal_type(aggr_type);
+  a_constant_ptr cp;
+
+  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
+  if (result &&
+      (is_class_or_struct(aggr_type) || is_array_type(aggr_type)) &&
+      aggr_con->uses_designated_initializers &&
+      aggr_con->is_partially_initialized) {
+    /* The uses_designated_initializer and is_partially_initialized flags
+       are cumulative over nested aggregates as well, so we must walk
+       through the class member values and check those as well.  A
+       designated initializer in a union member does not disqualify the
+       containing aggregate, since the union will still be fully
+       initialized. */
+    for (cp = aggr_con->variant.aggregate.first_constant;
+         result && cp != NULL; cp = cp->next) {
+      if (cp->kind == (a_constant_repr_kind)ck_designator) {
+        result = FALSE;
+      } else if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+        /* Recursively check for designators. */
+        result = aggregate_is_literal_type_constant(cp);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* aggregate_is_literal_type_constant */
+
+
 static a_boolean i_fold_constexpr_ctor(
                                      a_dynamic_init_ptr           ctor_dip,
                                      a_constexpr_evaluation_block *ceblock,
@@ -7935,6 +7973,11 @@ evaluation.
         a_constant_ptr elem_con;
         a_constant_ptr aggr = dip->variant.constant;
         check_assertion(aggr->kind == (a_constant_repr_kind)ck_aggregate);
+        if (!aggregate_is_literal_type_constant(aggr)) {
+          /* The constant is not (or may not be) fully initialized, so
+             folding fails. */
+          break;
+        }  /* if */
         new_aggr = result_con;
         clear_constant(new_aggr, (a_constant_repr_kind)ck_aggregate);
         new_aggr->type = aggr->type;
@@ -8154,44 +8197,6 @@ function for additional information.
   }  /* while */
   return field;
 }  /* next_non_generated_initializable_field */
-
-
-static a_boolean aggregate_is_literal_type_constant(a_constant_ptr aggr_con)
-/*
-Return TRUE if aggr_con (which must be a ck_aggregate constant) is suitable
-for use in a C++11 constant expression.  In particular, if the type of
-aggr_con is or contains a non-union class for which a designated
-initializer was specified (a g++ extension), return FALSE (because we
-cannot tell whether the object is fully initialized or not).
-*/
-{
-  a_type_ptr     aggr_type = skip_typerefs(aggr_con->type);
-  a_boolean      result = is_literal_type(aggr_type);
-  a_constant_ptr cp;
-
-  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
-  if (result &&
-      (is_class_or_struct(aggr_type) || is_array_type(aggr_type)) &&
-      aggr_con->uses_designated_initializers &&
-      aggr_con->is_partially_initialized) {
-    /* The uses_designated_initializer and is_partially_initialized flags
-       are cumulative over nested aggregates as well, so we must walk
-       through the class member values and check those as well.  A
-       designated initializer in a union member does not disqualify the
-       containing aggregate, since the union will still be fully
-       initialized. */
-    for (cp = aggr_con->variant.aggregate.first_constant;
-         result && cp != NULL; cp = cp->next) {
-      if (cp->kind == (a_constant_repr_kind)ck_designator) {
-        result = FALSE;
-      } else if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-        /* Recursively check for designators. */
-        result = aggregate_is_literal_type_constant(cp);
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return result;
-}  /* aggregate_is_literal_type_constant */
 
 
 a_constant_ptr constant_value_at_address(a_constant_ptr addr_con,
