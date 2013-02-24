@@ -20,13 +20,13 @@ namespace std {
     typedef _E const *const_iterator;
     typedef std::size_t size_type;
 
-    initializer_list(): __array(0), __length((size_t)0) {}
+    constexpr initializer_list(): __array(0), __length((size_t)0) {}
     /* Default copy constructor. */
     /* Default destructor. */
     /* Default copy assignment operator. */
-    size_type size() const { return this->__length; }
-    iterator begin() const { return this->__array; }
-    iterator end() const { return this->__array + this->__length; }
+    constexpr size_type size() const { return this->__length; }
+    constexpr iterator begin() const { return this->__array; }
+    constexpr iterator end() const { return this->__array + this->__length; }
   private:
     iterator __array;
     size_type __length;
@@ -34,12 +34,12 @@ namespace std {
                                     : __array(__a), __length(__l) {}
   };
 
-  template<typename _E>
+  template<typename _E> constexpr
     typename initializer_list<_E>::iterator begin(initializer_list<_E> il) {
       return il.begin();
     }  /* initializer_list<_E>::begin */
 
-  template<typename _E>
+  template<typename _E> constexpr
     typename initializer_list<_E>::iterator end(initializer_list<_E> il) {
       return il.end();
     }  /* initializer_list<_E>::end */
