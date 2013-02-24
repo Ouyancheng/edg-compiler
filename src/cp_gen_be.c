@@ -4950,7 +4950,7 @@ field designator.
        type in a single cast, so avoid that. */
     form_pm_constant(constant, /*minimal_casts*/TRUE, /*need_parens=*/TRUE,
                      &octl);
-  } else if (type != NULL && is_lvalue_reference_type(type)) {
+  } else if (type != NULL && is_any_reference_type(type)) {
     /* Initializing a reference.  Display the constant as an lvalue. */
     form_lvalue_address_constant(constant, /*need_parens=*/TRUE, &octl);
   } else if (il_header.source_language == sl_C &&
