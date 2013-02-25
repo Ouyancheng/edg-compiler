@@ -1331,7 +1331,13 @@ is TRUE, cache the argument tokens if this is a template-dependent context.
        placeholder.  Set the arg_cached field to indicate that the
        exception specification needs to be instantiated. */
     (void)get_token();
-    esp->arg_cached = TRUE;
+    if (esp != NULL) {
+      esp->arg_cached = TRUE;
+    } else {
+      /* We may end up here if a noexcept specifier appear on a non-function
+         declaration in a template context. */
+      expect_error();
+    }  /* if */
   } else if (cache_in_template &&
              (is_template_dependent_context() ||
               is_nonspecialized_instantiation_context())) {
