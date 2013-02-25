@@ -8373,9 +8373,13 @@ a new unshared constant will be allocated and returned.
               curr_field = next_non_generated_initializable_field(
                              curr_type->variant.class_struct_union.field_list);
               while (curr_field != NULL && result_con != NULL &&
-                     (a_targ_ptrdiff_t)(cum_offset + curr_field->offset +
+                     (curr_field->bit_size != 0 ||
+                      (a_targ_ptrdiff_t)(cum_offset + curr_field->offset +
                                         skip_typerefs(curr_field->type)->size)
-                                                                   <= offset) {
+                                                                  <= offset)) {
+                /* The address can't designate a bit-field, so we skip to
+                   the next field for bit-fields or if we haven't reached
+                   the member containing the address yet. */
                 curr_field =
                       next_non_generated_initializable_field(curr_field->next);
                 result_con = result_con->next;
