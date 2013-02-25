@@ -1,5 +1,21 @@
 Version 4.6
 
+2/25/13  [EDGcpfe/13560]
+Explicit declaration of operator delete wrongly treated as never throwing
+
+The implicit declaration of ::operator delete (and ::operator delete[]) is
+marked as never throwing (a_routine::never_throws flag is TRUE).  However, an
+explicit declaration of that function can override that behavior.  Previously,
+the front end failed to reset the never_throws flag in such cases, which e.g.
+resulted in a wrong result with the "noexcept" operator.  For example:
+
+  void operator delete(void*) noexcept(false) {}
+  static_assert(!noexcept(delete (char*)nullptr), "Error!");
+    // Previously this assertion failed; now accepted.
+
+This is now fixed.
+
+
 2/25/13  [EDGcpfe/13685]
 Assertion failure during generation of error message with anonymous union
 

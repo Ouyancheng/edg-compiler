@@ -1760,6 +1760,11 @@ consistent with that of the previous declaration.
       /* Ignore any differences between exception specifications on a
          compiler generated routine (e.g., predeclared operator new or delete)
          and the current declaration. */
+      if (new_esp != NULL) {
+        /* Reset the never_throws flag (it will be recomputed based on the
+           current declaration). */
+        rp->never_throws = FALSE;
+      }  /* if */
     } else if (new_esp != NULL && new_esp->arg_cached) {
       /* Compatibility cannot be checked in some template cases. */
     } else if (old_esp == NULL || old_esp->throw_any) {
