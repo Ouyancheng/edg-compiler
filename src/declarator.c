@@ -7203,6 +7203,10 @@ the parameters.
     state->type = error_type();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (state->type == NULL) {
+    expect_error();
+    state->type = error_type();
+  }  /* if */
 }  /* declarator */
 
 
