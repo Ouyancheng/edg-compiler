@@ -3208,8 +3208,10 @@ names suitably mangled to avoid collisions) to allow for reuse of the tail
 padding in the generated code.
 */
 {
-  a_field_ptr field;
-  a_field_ptr prev_field = NULL;
+  a_field_ptr   field;
+  a_field_ptr   prev_field = NULL;
+  a_targ_size_t union_padding_needed = 0;
+  a_targ_size_t max_field_size = 0;
 
   check_assertion(is_immediate_class_type(type));
   if (msvc_is_generated_code_target) {
@@ -3287,31 +3289,38 @@ padding in the generated code.
       (void)form_field_attributes(field, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
-      if (type->kind != (a_type_kind)tk_union &&
-          (skip_typerefs(field_type)->generated_as_empty_struct ||
-           (is_array_type(field_type) &&
-            f_skip_typerefs(underlying_array_element_type(field_type))->
-                                                 generated_as_empty_struct))) {
+      if (skip_typerefs(field_type)->generated_as_empty_struct ||
+          (is_array_type(field_type) &&
+           f_skip_typerefs(underlying_array_element_type(field_type))->
+                                                  generated_as_empty_struct)) {
         /* The layout of the containing struct was calculated assuming that
            the base type of this member was a one-byte struct.  Since that
            type was actually generated with zero length, we need to add a
            padding member to compensate.  (We can't use the normal field
            padding mechanism because that only adds padding before members
            of struct type and this padding must be added unconditionally.)
-           Note that this test must be matched with a similar one in
-           dump_initializer_part. */
+           For a union, to avoid multiple identical member declarations, we
+           add the padding (if still needed) at the end; for a struct, we
+           add the padding member immediately (and note that this test must
+           be matched with a similar one in dump_initializer_part). */
         a_targ_size_t field_size = skip_typerefs(field_type)->size;
-        write_tok_str("char ");
-        disable_line_wrapping();
-        dump_field_name_with_prefix("__dummy_empty", (a_field_ptr)NULL);
-        write_unsigned_num(offset_after_field(field));
-        enable_line_wrapping();
-        if (field_size > 1) {
-          write_tok_ch('[');
-          write_unsigned_num((a_host_large_unsigned)field_size);
-          write_tok_ch(']');
+        if (type->kind == (a_type_kind)tk_union) {
+          union_padding_needed = field_size;
+        } else {
+          write_tok_str("char ");
+          disable_line_wrapping();
+          dump_field_name_with_prefix("__dummy_empty", (a_field_ptr)NULL);
+          write_unsigned_num(offset_after_field(field));
+          enable_line_wrapping();
+          if (field_size > 1) {
+            write_tok_ch('[');
+            write_unsigned_num((a_host_large_unsigned)field_size);
+            write_tok_ch(']');
+          }  /* if */
+          write_tok_ch(';');
         }  /* if */
-        write_tok_ch(';');
+      } else {
+        max_field_size = skip_typerefs(field_type)->size;
       }  /* if */
     } else {
       /* Bit field. */
@@ -3455,6 +3464,18 @@ padding in the generated code.
         write_tok_ch(';');
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (union_padding_needed > 0 && max_field_size <= union_padding_needed) {
+    /* The union's only members were structs that have been generated as
+       empty, so we need padding to make the union the correct size. */
+    write_tok_str("char ");
+    dump_field_name_with_prefix("__dummy_empty", (a_field_ptr)NULL);
+    if (union_padding_needed > 1) {
+      write_tok_ch('[');
+      write_unsigned_num((a_host_large_unsigned)union_padding_needed);
+      write_tok_ch(']');
+    }  /* if */
+    write_tok_ch(';');
   }  /* if */
 }  /* dump_field_list */
 
