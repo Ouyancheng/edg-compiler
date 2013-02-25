@@ -1926,6 +1926,7 @@ is invalid.  Also promote the fields of the union type to the current scope.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   vp->declared_storage_class = dps->declared_storage_class;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  vp->source_corresp.decl_position = pos_curr_token;
   /* Promote the fields of the anonymous union to the current scope, and do
      some error checking on the anonymous union's members. */
   assoc_object_sym = make_anonymous_parent_object_symbol(

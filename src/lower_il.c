@@ -19121,7 +19121,8 @@ scope that is part of the indicated routine) to the file scope.
     scope->variables = NULL;
     while (list != NULL) {
       variable = list;
-      if (variable->source_corresp.decl_position.seq != 0) {
+      if (variable->source_corresp.decl_position.seq != 0 &&
+          !variable->is_anonymous_parent_object) {
         /* Count the number of variables declared in the source (that excludes
            compiler-generated variables).  The count is used later to optimize
            the removal of these variables from stmk_decl statements. */

@@ -1,5 +1,24 @@
 Version 4.6
 
+2/25/13  [EDGcpfe/13685]
+Assertion failure during generation of error message with anonymous union
+
+An error message (ec_name_at_decl_position) triggered with an anonymous
+union had generated an assertion failure ("diag_message: missing symbol
+substitution"); this is now fixed.  For example:
+
+  struct A {
+    A() {}
+  };
+  void f(int n) {
+    switch (n) {
+      union {A a;};
+      case 1:
+        break;
+    }
+  }
+
+
 2/21/13  [EDGcpfe/13674]
 Microsoft compatibility: checking of type in static data member instantiation
 
