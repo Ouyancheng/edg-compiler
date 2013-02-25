@@ -6580,9 +6580,7 @@ field represents a base class whose members have been promoted into the
 derived class, in which case variable will be NULL.
 */
 {
-  if (variable == NULL) {
-    check_assertion(name_prefix_components != NULL);
-  } else {
+  if (variable != NULL) {
     dump_variable_name(variable);
   }  /* if */
   while (ipdp != NULL) {
@@ -6595,9 +6593,6 @@ derived class, in which case variable will be NULL.
       write_tok_ch(']');
       ipdp = ipdp->next;
     } else {
-      if (variable != NULL) {
-        write_tok_ch('.');
-      }  /* if */
       if (ipdp->curr_field->base_class_subobject_with_tail_padding) {
         /* This field represents a base class whose members were promoted
            into the derived class.  Push a name component for the base
@@ -6606,12 +6601,16 @@ derived class, in which case variable will be NULL.
         a_member_name_prefix_component prefix;
         push_member_name_prefix_component(&prefix, ipdp->curr_field);
         dump_var_for_init((a_variable_ptr)NULL, ipdp->next);
-        pop_member_name_prefix_component(&prefix);
         ipdp = NULL;
       } else {
         /* An ordinary field: put out the name and continue to loop. */
+        write_tok_ch('.');
         dump_field_name(ipdp->curr_field);
         ipdp = ipdp->next;
+        /* Make sure any name prefix for this field does not carry over
+           to the next one. */
+        name_prefix_components = NULL;
+        last_name_prefix_component = NULL;
       }  /* if */
     }  /* if */
   }  /* for */
