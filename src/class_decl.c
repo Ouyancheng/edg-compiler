@@ -18057,19 +18057,12 @@ issue an error if it is not actually constexpr.
         cssp->has_constexpr_nonstatic_member_function = TRUE;
       }  /* if */
     } else if (ctor_rp->is_defaulted && ctor_rp->is_constexpr) {
-      an_error_severity  sev = es_error;
-      if (ctor_rp->is_prototype_instantiation) {
-        /* No instance can possible be constexpr: Issue a diagnostic. */
-        sev = strict_ansi_mode ? strict_ansi_discretionary_severity
-                               : es_warning;
-      } else if (ctor_rp->is_template_function) {
-        /* If this particular instance cannot be constexpr, silently make it
-           non-constexpr. */
-        sev = ec_no_error;
-      }  /* if */
-      if (sev != ec_no_error) {
-        pos_diagnostic(sev, ec_defaulted_default_ctor_cannot_be_constexpr,
-                       &ctor->decl_position);
+      /* A defaulted constructor cannot be constexpr if it wouldn't have been
+         constexpr by default.  For template instantiations, the constexpr is
+         silently dropped.  Other cases are errors. */
+      if (!ctor_rp->is_template_function || ctor_rp->is_specialized) {
+        pos_error(ec_defaulted_default_ctor_cannot_be_constexpr,
+                  &ctor->decl_position);
       }  /* if */
       ctor_rp->is_constexpr = FALSE;
     }  /* if */
