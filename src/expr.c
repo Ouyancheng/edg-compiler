@@ -7330,7 +7330,7 @@ case).
 nonstatic_member_function:
             /* Such a reference is not allowed in an initializer constant
                expression. */
-            if (curr_expr_kind_is(ek_init_constant)) {
+            if (curr_expr_kind_is(ek_init_constant) && !constexpr_enabled) {
               error_and_make_error_operand(ec_expr_not_constant, result);
             } else {
               if (!force_indefinite_function &&
