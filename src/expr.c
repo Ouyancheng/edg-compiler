@@ -27086,7 +27086,8 @@ called.
     /* "this" cannot be used in a constant expression. */
     expr_pos_error(ec_expr_not_constant, &start_position);
     make_error_operand(result);
-  } else if (construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
+  } else if (!in_potential_constant_constexpr_context() &&
+             construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
                                                           &start_position)) {
     /* "this" not allowed in C++11 constant expressions. */
     make_error_operand(result);
