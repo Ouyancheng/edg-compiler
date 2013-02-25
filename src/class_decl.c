@@ -21404,8 +21404,14 @@ function definition and cache its tokens if appropriate.
         /* The body cache is saved here, but will be updated later during
            routine fixup.  This is needed for the generation of template
            strings to be done properly. */
-        set_template_cache_info(&tssp->cache, &body_cache,
-                                class_tssp->cache.decl_info);
+        if (class_tssp != NULL) {
+          set_template_cache_info(&tssp->cache, &body_cache,
+                                  class_tssp->cache.decl_info);
+        } else {
+          /* We may get here with severe errors (e.g., with a class defined in
+             an alias template). */
+          expect_error();
+        }  /* if */
         tssp->cache_segment = alloc_template_cache_segment(rout_sym, tssp);
         tssp->cache_segment->first_token_number = first_token_number;
         tssp->cache_segment->last_token_number = last_token_number;
@@ -25914,13 +25920,13 @@ classes.
                   };
                 }                                                           */
     ctsp->surrounding_name_linkage_state =
-                          scope_stack[depth_scope_stack].default_name_linkage;
+                                       scope_stack_top().default_name_linkage;
 #endif /* BACK_END_IS_CP_GEN_BE */
     if (is_prototype_instantiation_or_cli_generic_type(class_type) ||
-        ((scope_stack[depth_scope_stack].in_prototype_instantiation ||
-          scope_stack[depth_scope_stack].in_generic_definition) &&
+        ((scope_stack_top().in_prototype_instantiation ||
+          scope_stack_top().in_generic_definition)/* &&
          (class_type->source_corresp.is_local_to_function ||
-          scope_stack[depth_scope_stack].in_class_specialization))) {
+          scope_stack_top().in_class_specialization)*/)) {
       /* This is a prototype instantiation, C++/CLI generic definition, or
          an instantiation of a local class type, so the resulting class
          is "nonreal" (i.e., based on template arguments that include
@@ -25929,10 +25935,10 @@ classes.
          detects classes nested within a Microsoft/Sun in-class
          specialization.   Note that for nested classes the flag is set
          later. */
-      if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+      if (scope_stack_top().in_prototype_instantiation) {
         class_state.is_nonreal_instantiation = TRUE;
         class_type->variant.class_struct_union.is_nonreal_class = TRUE;
-      } else if (scope_stack[depth_scope_stack].in_generic_definition) {
+      } else if (scope_stack_top().in_generic_definition) {
         class_state.is_generic_definition = TRUE;
       }  /* if */
       if (tag_sym->is_class_member &&
