@@ -22023,6 +22023,12 @@ will be an lvalue instead of the usual rvalue.
     } else if (constant != NULL) {
       check_assertion(!force_temp);
       make_constant_operand(constant, result);
+      if (dip_to_mark == NULL &&
+          init_handled_at_this_level &&
+          constant->expr != NULL &&
+          constant->expr->kind == (an_expr_node_kind)enk_temp_init) {
+        dip_to_mark = constant->expr->variant.init.dynamic_init;
+      }  /* if */
     } else {
       /* We want an operand, and we have an operand. */
       an_expr_node_ptr temp_init_node;
