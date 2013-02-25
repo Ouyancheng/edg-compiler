@@ -18799,10 +18799,11 @@ is instantiated in more than one translation unit.
   /* For member functions of local classes, move out to the ultimate
      enclosing function. */
   if (rout->source_corresp.is_local_to_function) {
-    a_routine_ptr  enclosing_rout;
-    check_assertion(rout->source_corresp.is_class_member);
-    enclosing_rout = enclosing_routine_for_local_type_or_null(
+    a_routine_ptr  enclosing_rout = NULL;
+    if (rout->source_corresp.is_class_member) {
+      enclosing_rout = enclosing_routine_for_local_type_or_null(
                                                         parent_class_of(rout));
+    }  /* if */
     if (enclosing_rout != NULL) {
       rout = enclosing_rout;
     } else {
