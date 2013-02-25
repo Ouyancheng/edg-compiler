@@ -2825,8 +2825,16 @@ empty statement block.
     }  /* if */
     rtsp = skip_typerefs(rout_ptr->type)->variant.routine.extra_info;
     rtsp->assoc_routine = rout_ptr;
-    if (rout_ptr->is_defaulted && !rout_ptr->defined_outside_of_parent &&
-        exceptions_enabled) {
+    if (rtsp->exception_specification != NULL &&
+        rtsp->exception_specification->indeterminate) {
+      /* A default constructor whose exception specification hasn't been
+         determined yet because it depended on field initializers. */
+      check_assertion(special_kind_is(rout_ptr, sfk_constructor) &&
+                      rtsp->param_type_list == NULL);
+      form_exception_specification_for_generated_default_ctor(rout_ptr);
+    } else if (rout_ptr->is_defaulted &&
+               !rout_ptr->defined_outside_of_parent &&
+               exceptions_enabled) {
       /* If a special member is defaulted inside the parent class, it
          implicitly gets the exception specification that the corresponding
          implicitly generated member would have had.  If an explicit exception
