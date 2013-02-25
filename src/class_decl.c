@@ -18057,8 +18057,20 @@ issue an error if it is not actually constexpr.
         cssp->has_constexpr_nonstatic_member_function = TRUE;
       }  /* if */
     } else if (ctor_rp->is_defaulted && ctor_rp->is_constexpr) {
-      pos_error(ec_defaulted_default_ctor_cannot_be_constexpr,
-                &ctor->decl_position);
+      an_error_severity  sev = es_error;
+      if (ctor_rp->is_prototype_instantiation) {
+        /* No instance can possible be constexpr: Issue a diagnostic. */
+        sev = strict_ansi_mode ? strict_ansi_discretionary_severity
+                               : es_warning;
+      } else if (ctor_rp->is_template_function) {
+        /* If this particular instance cannot be constexpr, silently make it
+           non-constexpr. */
+        sev = ec_no_error;
+      }  /* if */
+      if (sev != ec_no_error) {
+        pos_diagnostic(sev, ec_defaulted_default_ctor_cannot_be_constexpr,
+                       &ctor->decl_position);
+      }  /* if */
       ctor_rp->is_constexpr = FALSE;
     }  /* if */
   }  /* if */
