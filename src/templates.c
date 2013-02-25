@@ -20457,6 +20457,11 @@ caller.
        entry. */
     tssp->variant.function.routine->assoc_template = tssp->il_template_entry;
     tssp->is_variadic = decl_state->is_variadic;
+    if (decl_state->is_specialization && !decl_state->is_template_friend) {
+      /* This template is a specialization of a member template.  Update the
+         template information to reflect this. */
+      record_specialization(sym, tssp, decl_pos);
+    }  /* if */
     /* Update the exported flag, if necessary. */
     update_export_flag_for_function(decl_state, rout_ptr, sym, tssp);
     if (rout_ptr->type->kind == (a_type_kind)tk_routine) {
@@ -20543,11 +20548,6 @@ caller.
         tssp->cache_segment->first_token_number = first_token_number;
         tssp->cache_segment->last_token_number = last_token_number;
       }  /* if */
-    }  /* if */
-    if (decl_state->is_specialization && !decl_state->is_template_friend) {
-      /* This template is a specialization of a member template.  Update the
-         template information to reflect this. */
-      record_specialization(sym, tssp, decl_pos);
     }  /* if */
     if (tssp->variant.function.decl_cache.tokens.first_token == NULL) {
       /* The decl_token_cache is always saved from the initial declaration
