@@ -9524,15 +9524,14 @@ otherwise, return FALSE.
       /* If the field is a member of an anonymous union, scan through
          the aggregates in which the value is nested. */
       while (member_con != NULL && anon_union_member_depth-- > 0) {
-        if (is_error_constant(member_con)) {
+        if (is_error_constant(member_con) ||
+            !(member_con->kind == (a_constant_repr_kind)ck_aggregate &&
+              member_con->variant.aggregate.first_constant ==
+                                member_con->variant.aggregate.last_constant)) {
           /* There was an error in the initializer, so this access cannot
              be folded. */
           break;
         }  /* if */
-        check_assertion(member_con->kind ==
-                                          (a_constant_repr_kind)ck_aggregate &&
-                        member_con->variant.aggregate.first_constant ==
-                                  member_con->variant.aggregate.last_constant);
         member_con = member_con->variant.aggregate.first_constant;
         if (member_con == NULL) {
           empty_anonymous_union_initializer = TRUE;
