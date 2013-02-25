@@ -21058,11 +21058,6 @@ freed by this routine.
         expr_pos_error(ec_expr_not_constant, start_position);
         make_error_operand(result);
         err = TRUE;
-      } else if (construct_not_allowed_in_cpp11_constant_expr(
-                                                          ec_expr_not_constant,
-                                                          start_position)) {
-        make_error_operand(result);
-        err = TRUE;
       } else {
         temp_init_node = alloc_temp_init_node(type_cast_to, dip,
                                               /*is_lvalue=*/FALSE,
