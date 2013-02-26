@@ -5985,8 +5985,8 @@ initialized.  These are addressed in the course of the processing.
                         &field_sym->variant.field.anonymous_parent_object
                                   ->decl_position);
           }  /* if */
-        } else if (field_sym->variant.field.extra_info
-                            ->is_last_variant_member) {
+        }  /* if */
+        if (field_sym->variant.field.extra_info->is_last_variant_member) {
           variant_complete = TRUE;
         }  /* if */
       }  /* if */
