@@ -25923,10 +25923,8 @@ classes.
                                        scope_stack_top().default_name_linkage;
 #endif /* BACK_END_IS_CP_GEN_BE */
     if (is_prototype_instantiation_or_cli_generic_type(class_type) ||
-        ((scope_stack_top().in_prototype_instantiation ||
-          scope_stack_top().in_generic_definition)/* &&
-         (class_type->source_corresp.is_local_to_function ||
-          scope_stack_top().in_class_specialization)*/)) {
+        scope_stack_top().in_prototype_instantiation ||
+        scope_stack_top().in_generic_definition) {
       /* This is a prototype instantiation, C++/CLI generic definition, or
          an instantiation of a local class type, so the resulting class
          is "nonreal" (i.e., based on template arguments that include
