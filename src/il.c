@@ -4768,14 +4768,16 @@ void set_variable_address_constant_preserving_implicit_cast(
                                          a_boolean      set_address_taken_flag)
 /*
 A variant of set_variable_address_constant that preserves the value of
-*con's implicit_cast and next fields.  Used in lowering.
+*con's implicit_cast and next fields, as well as any offset.  Used in lowering.
 */
 {
   a_constant_ptr saved_next = con->next;
   a_boolean      has_implicit_cast = con->implicit_cast;
   a_type_ptr     orig_type = con->type;
+  a_targ_ptrdiff_t offset = con->variant.address.offset;
   set_variable_address_constant(variable, con, set_address_taken_flag);
   con->next = saved_next;
+  con->variant.address.offset = offset;
   /* Array cases may require an implicit cast to the decayed
      pointer type. */
   if (has_implicit_cast) implicit_cast(con, orig_type);
