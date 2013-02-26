@@ -12460,6 +12460,12 @@ Return a pointer to the variable that is declared.
     set_to_error_locator(locator);
     error_position = pos_curr_token;
   }  /* if */
+  if ((state.dso_flags & DSO_CONSTEXPR) != 0 &&
+      !is_const_qualified_type(state.type)) {
+    /* constexpr variables are implicitly const. */
+    state.type = make_qualified_type(state.type,
+                                     (a_type_qualifier_set)TQ_CONST);
+  }  /* if */
   check_pending_qualifiers_used(&state);
   complete_type_is_needed(state.type);
   if (is_function_type(state.type)) {
@@ -12487,6 +12493,9 @@ Return a pointer to the variable that is declared.
   set_source_corresp(&vp->source_corresp, sym);
   if (state.auto_type_specifier_seen) {
     vp->declared_with_auto_type_specifier = TRUE;
+  }  /* if */
+  if (state.dso_flags & DSO_CONSTEXPR) {
+    vp->is_constexpr = TRUE;
   }  /* if */
   attach_decl_attributes(&state, /*primary_decl=*/TRUE);
   /* Copy the decl-modifiers into the variable entry. */
@@ -12564,6 +12573,7 @@ Return a pointer to the variable that is declared.
   /* Both in the error and normal case consider the variable set.  Don't
      do this earlier so we can catch "if (int x = x);". */
   mark_variable_value_set(sym);
+  run_end_of_parse_actions(&state);
   db_exit();
   /* Return a pointer to the variable. */
   return vp;
