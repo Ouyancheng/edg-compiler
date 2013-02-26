@@ -5376,7 +5376,6 @@ construct).
 */
 {
   if (!is_error_operand(operand)) {
-    /* Unfolded routine calls are not allowed in constant expressions. */
     if (in_potential_constant_constexpr_context() &&
         (routine == NULL || routine->is_constexpr)) {
       /* This is a reference inside a constexpr function to a routine that
@@ -5388,11 +5387,12 @@ construct).
     } else if (constexpr_enabled &&
                curr_expr_kind_is_evaluated_const() &&
                is_template_dependent_context() &&
-               is_template_dependent_type(operand->type)) {
+               routine == NULL) {
       /* A dependent call might call a constexpr function and be folded,
          so turn it into a constant and await a real instantiation. */
       make_template_param_expr_constant_operand(operand);
     } else if (curr_expr_kind_is_traditional_const()) {
+      /* Unfolded routine calls are not allowed in constant expressions. */
       error_in_operand(err_code, operand);
     } else if (construct_not_allowed_in_cpp11_constant_expr(
                                                          err_code,
