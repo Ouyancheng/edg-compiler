@@ -8345,19 +8345,39 @@ a new unshared constant will be allocated and returned.
             a_base_class_ptr bp;
             check_assertion(is_immediate_class_type(curr_type));
             /* First examine the base class subobjects, if any. */
-            for (bp = curr_type->variant.class_struct_union.extra_info->
-                                                                base_classes;
-                 bp != NULL && result_con != NULL &&
-                   (a_targ_ptrdiff_t)(cum_offset + bp->offset +
-                                      bp->type->size) <= offset;
+            for (bp = base_classes_of(curr_type);
+                 bp != NULL && result_con != NULL;
                  bp = bp->next) {
-              if (bp->direct ||
-                  (bp->is_virtual &&
-                   identical_types(curr_type, most_derived_type))) {
-                /* Only direct base classes (and virtual base classes, if
-                   this is the most-derived class) are represented at this
-                   level in the constant; indirect base classes are in
-                   nested elements of the aggregate. */
+              /* Virtual bases cannot appear in literal types. */
+              check_assertion(!bp->is_virtual);
+              if (bp->direct) {
+                /* Only direct base classes are represented at this level
+                   in the constant; indirect base classes are in nested
+                   elements of the aggregate. */
+                a_type_ptr base_class = bp->type;
+#if DO_IL_LOWERING
+                if (class_type_supp(base_class)->type_as_subobject != NULL) {
+                  /* The size of a base class subobject can be different
+                     from that of a standalone object with that type, so
+                     use the subobject type for size calculations. */
+                  base_class = class_type_supp(base_class)->type_as_subobject;
+                }  /* if */
+#endif /* DO_IL_LOWERING */
+                /* The order in which base class subobjects appear in the
+                   derived class object can be different from the order in
+                   which they appear in the base class list.  The
+                   subobjects in the ck_aggregate follow the ordering of
+                   the base class list, but we need to check both the
+                   starting and ending offsets of the base class object to
+                   determine whether the address lies within it or not. */
+                if (offset >= cum_offset + bp->offset &&
+                    offset < (a_targ_ptrdiff_t)(cum_offset + bp->offset +
+                                                base_class->size)) {
+                  /* The address lies within this base class subobject. */
+                  break;
+                }  /* if */
+                /* The address is not in this base class subobject; step to
+                   the next base class and subobject in the value. */
                 result_con = result_con->next;
               }  /* if */
             }  /* for */
