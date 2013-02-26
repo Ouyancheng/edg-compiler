@@ -13757,7 +13757,9 @@ Generate the declaration associated with the given stmk_decl statement.
                statement expression).  This won't make this checking code fail,
                but it could mean that some invalid IL doesn't get caught. */
             ep = ep->next;
-          } else if (scp->decl_position.seq != 0) {
+          } else if (scp->decl_position.seq != 0 &&
+                     !(entry_kind == (an_il_entry_kind)iek_variable &&
+                       ((a_variable*)entry_ptr)->is_anonymous_parent_object)) {
             /* This is a user-declared type, routine, or variable (and not,
                e.g., a typeof/decltype type or an anonymous union parent
                object).  For it not to appear on the stmk_decl list it must
