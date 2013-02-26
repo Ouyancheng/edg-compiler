@@ -8281,7 +8281,10 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
     /* Check that a constexpr variable (or static data member) has a reference
        type or a literal type. */
     a_variable_ptr  vp = var_for_symbol(sym);
-    if (is_incomplete_type(vp->type)) {
+    if (vp->is_handler_param) {
+      pos_error(ec_invalid_constexpr, &dps->constexpr_pos);
+      vp->is_constexpr = FALSE;
+    } else if (is_incomplete_type(vp->type)) {
       /* We can get here in error situations, but we cannot test an incomplete
          type with is_literal_type (it can trigger an internal error). */
       expect_error();
@@ -8911,8 +8914,6 @@ storage_class_specifier:
           /* "constexpr" may not appear in a function parameter declaration. */
           error(ec_bad_param_specifier);
           err = TRUE;
-        } else if ((input_flags & DSI_IS_TEMPLATE_PARAMETER) != 0) {
-          error(ec_invalid_constexpr);
         } else if (decl_specifiers_seen & DS_VIRTUAL) {
           pos_error(ec_constexpr_virtual_combination, &pos_curr_token);
         } else if ((input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0) {

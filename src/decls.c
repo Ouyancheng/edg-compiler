@@ -12134,6 +12134,7 @@ a normal try.
                                            /*block_lifetime=*/TRUE);
         handler->dynamic_init = dip;
         type_ptr = state.type;
+        run_end_of_parse_actions(&state);
       }  /* if */
     }  /* if */
     prev_handler = try_block_stmt->variant.try_block->handlers;
