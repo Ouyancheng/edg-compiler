@@ -1,5 +1,23 @@
 Version 4.6
 
+2/26/13  [EDGcpfe/13690]
+Warning on unused variable whose initializer creates a temporary
+
+When an unused variable appears in the source program, the front end
+gives a warning unless the initializer for the variable has a side
+effect (if it does, the warning is reduced to a remark).  In the past,
+creation of a temporary was considered a side effect, so a declaration
+like the reference initialization in
+
+  int main() {
+    const int &i = 1;
+  }
+
+formerly got no warning.  Now, for this purpose, the act of creating
+the temporary itself is not considered a side effect, so an example
+like the above now gets a warning about an unused variable.
+
+
 2/25/13  [EDGcpfe/13560]
 Explicit declaration of operator delete wrongly treated as never throwing
 

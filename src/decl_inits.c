@@ -508,6 +508,7 @@ is not needed.
        local_static_var_init->init_kind != (an_init_kind)initk_dynamic ||
        !dynamic_init_has_side_effects(local_static_var_init->
                                                initializer.dynamic,
+                                      /*for_unused_var=*/FALSE,
                                       &suppress_warning)) &&
       is_useless_object_lifetime(local_static_lifetime)) {
     /* Don't bind the object lifetime, allowing it to be deleted on the pop.

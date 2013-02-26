@@ -5479,7 +5479,9 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                spurious diagnostics when the user defines a variable simply to
                assure that the constructor or destructor is called. */
             severity = es_none;
-          } else if (dynamic_init_has_side_effects(dip, &suppress_warning) ||
+          } else if (dynamic_init_has_side_effects(dip,
+                                                   /*for_unused_var=*/TRUE,
+                                                   &suppress_warning) ||
                      suppress_warning) {
             /* Initialization has side-effects -- issue a remark. */
             severity = es_remark;

@@ -5067,7 +5067,8 @@ expressions aren't copied; they're just linked together into one tree.
   if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
     a_dynamic_init_ptr dip = con->variant.dynamic_init;
     a_boolean          suppress_warning;
-    if (dynamic_init_has_side_effects(dip, &suppress_warning)) {
+    if (dynamic_init_has_side_effects(dip, /*for_unused_var=*/FALSE,
+                                      &suppress_warning)) {
       if (dip->kind == (a_dynamic_init_kind)dik_expression) {
         expr = dip->variant.expression;
       } else {
@@ -18858,7 +18859,15 @@ doing nothing should be suppressed.
     case enk_temp_init:
       /* There is always at least the side effect of initializing the
          temporary. */
-      has_side_effects = TRUE;
+      if (tblock->for_unused_variable_warning) {
+        /* When checking the initializer of an unused variable for side effects
+           to control a diagnostic, don't count the creation of the temporary
+           itself.  If the dynamic init has side effects (like calling a
+           constructor), that will be counted when the dynamic init is
+           handled. */
+      } else {
+        has_side_effects = TRUE;
+      }  /* if */
       break;
     case enk_condition:
       /* At the very least, this has the side effect of initializing
@@ -19044,17 +19053,22 @@ about the expression list doing nothing should be suppressed.
 
 
 a_boolean dynamic_init_has_side_effects(a_dynamic_init_ptr dip,
+                                        a_boolean          for_unused_var,
                                         a_boolean          *suppress_warning)
 /*
 Return TRUE if the indicated dynamic initialization has side effects,
 i.e., it does something other than just return a value for the initialization.
-If suppress_warning != NULL, return *suppress_warning TRUE if a warning
-about the dynamic initialization doing nothing should be suppressed.
+If for_unused_var is TRUE, this test is for the initializer on an unused
+variable, so certain things that nominally have a side effect but don't
+really do anything productive are not counted.  If suppress_warning != NULL,
+return *suppress_warning TRUE if a warning about the dynamic initialization
+doing nothing should be suppressed.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
 
   set_up_side_effect_traversal_block(&tblock);
+  tblock.for_unused_variable_warning = for_unused_var;
   traverse_dynamic_init(dip, &tblock);
   if (suppress_warning != NULL) *suppress_warning = tblock.suppress_warning;
   return tblock.result;

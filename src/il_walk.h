@@ -313,6 +313,11 @@ typedef struct an_expr_or_stmt_traversal_block {
   a_boolean	suppress_warning;
 			/* TRUE if a warning about an entity having no
 			   side effects should be suppressed. */
+  a_boolean	for_unused_variable_warning;
+			/* TRUE if the side effect scan is being done for the
+			   warning about an unused variable.  Certain things
+			   that are nominally side effects but don't really
+			   do anything productive are not counted. */
   /* Fields used by compute_checksum_for_expr: */
   unsigned long	checksum;
 			/* The running checksum for the expression. */

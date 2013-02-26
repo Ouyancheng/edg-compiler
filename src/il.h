@@ -1083,6 +1083,7 @@ extern a_boolean node_includes_lvalue_to_rvalue_conv(an_expr_node_ptr node);
 
 extern a_boolean dynamic_init_has_side_effects(
                                         a_dynamic_init_ptr dip,
+                                        a_boolean          for_unused_var,
                                         a_boolean          *suppress_warning);
 
 extern a_boolean expr_list_has_side_effects(

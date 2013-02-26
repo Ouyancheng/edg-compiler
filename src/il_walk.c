@@ -2610,6 +2610,7 @@ default values.
   tblock->relink_dynamic_inits = FALSE;
   tblock->last_relinked_dynamic_init = NULL;
   tblock->suppress_warning = FALSE;
+  tblock->for_unused_variable_warning = FALSE;
   tblock->checksum = 0;
   tblock->complete_object_type = NULL;
   tblock->call_case = FALSE;
