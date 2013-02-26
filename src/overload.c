@@ -22116,6 +22116,9 @@ will be an lvalue instead of the usual rvalue.
     /* Set init_error if appropriate. */
     if (is->init_con != NULL) {
       if (is_error_constant(is->init_con)) is->init_error = TRUE;
+      if (is->init_con->is_partially_initialized) {
+        is->partial_initializer = TRUE;
+      }  /* if */
     } else {
       check_assertion(is->init_dip != NULL);
       if (is_error_dynamic_init(is->init_dip)) is->init_error = TRUE;
