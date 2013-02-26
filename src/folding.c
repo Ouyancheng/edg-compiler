@@ -8904,6 +8904,7 @@ member function call.
 
   check_assertion(is_class_struct_union_type(expr->type) ||
                   is_array_type(expr->type) ||
+                  is_template_param_type(expr->type) ||
                   is_error_type(expr->type));
   if (!expr->is_lvalue) {
     if (fold_expr(expr, ceblock, result_con)) {
