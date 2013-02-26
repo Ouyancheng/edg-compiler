@@ -9649,10 +9649,13 @@ rvalue result of the field selection.
                                     /*address_escapes=*/FALSE)) {
           obj_expr_con = &local_con;
         }  /* if */
-      } else {
+      } else if (obj_expr->is_lvalue) {
         /* The member selection can be folded if the object expression
            addresses a constant value. */
         obj_expr_con = constant_value_addressed_by_node(obj_expr);
+      } else if (is_constant_node(obj_expr)) {
+        /* ... or if the object expression is a class value constant. */
+        obj_expr_con = obj_expr->variant.constant;
       }  /* if */
       /* If we have a constant for the first operand, see if we can fold the
          whole selection to a constant result. */

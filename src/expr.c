@@ -5608,6 +5608,20 @@ positions).
     make_lvalue_or_rvalue_expression_operand(orig_node, result);
   }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  if (!is_lvalue && constexpr_enabled) {
+    /* See if the field selection folds to a constant (usually this happens
+       on the lvalue-to-rvalue conversion, but in this case we're building
+       an rvalue immediately). */
+    a_constant constant;
+    check_assertion(is_expression_operand(result) && is_an_rvalue(result));
+    if (fold_constexpr_member_selection(result->variant.expression,
+                                        &constant)) {
+      an_operand orig_operand;
+      copy_operand(result, &orig_operand);
+      make_constant_operand(&constant, result);
+      restore_operand_details(result, &orig_operand);
+    }  /* if */
+  }  /* if */
 }  /* make_field_selection_operand */
 
 
