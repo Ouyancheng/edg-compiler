@@ -8911,6 +8911,8 @@ storage_class_specifier:
           /* "constexpr" may not appear in a function parameter declaration. */
           error(ec_bad_param_specifier);
           err = TRUE;
+        } else if ((input_flags & DSI_IS_TEMPLATE_PARAMETER) != 0) {
+          error(ec_invalid_constexpr);
         } else if (decl_specifiers_seen & DS_VIRTUAL) {
           pos_error(ec_constexpr_virtual_combination, &pos_curr_token);
         } else if ((input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0) {
