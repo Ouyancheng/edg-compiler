@@ -8284,7 +8284,6 @@ a new unshared constant will be allocated and returned.
       a_targ_ptrdiff_t offset = addr_con->variant.address.offset;
       a_boolean        found_value = FALSE;
       a_targ_ptrdiff_t cum_offset = 0;
-      a_type_ptr       most_derived_type = curr_type;
 
       while (!found_value && result_con != NULL) {
         if (cum_offset == offset &&
@@ -8318,7 +8317,6 @@ a new unshared constant will be allocated and returned.
                specified offset.  We'll then go back through the main loop
                again looking at that element. */
             curr_type = skip_typerefs(curr_type->variant.array.element_type);
-            most_derived_type = curr_type;
             if (result_con != NULL &&
                 result_con->kind == (a_constant_repr_kind)ck_init_repeat) {
               /* Each element of the array is a copy of the same constant.
@@ -8406,7 +8404,6 @@ a new unshared constant will be allocated and returned.
               }  /* while */
               check_assertion(curr_field != NULL);
               curr_type = skip_typerefs(curr_field->type);
-              most_derived_type = curr_type;
               cum_offset += curr_field->offset;
             }  /* if */
           }  /* if */
