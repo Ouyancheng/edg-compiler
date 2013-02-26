@@ -5270,6 +5270,19 @@ given type, and record the initializer in *cip if cip is non-NULL.
 }  /* braced_mem_initializer */
 
 
+static a_dynamic_init_ptr make_error_constant_dynamic_init(void)
+/*
+Return a dynamic init entry for an error constant.
+*/
+{
+  a_dynamic_init_ptr  dip = alloc_dynamic_init(
+                                           (a_dynamic_init_kind)dik_constant);
+
+  dip->variant.constant = alloc_error_constant();
+  return dip;
+}  /* make_error_constant_dynamic_init */
+
+
 static void scan_parenthesized_mem_init_args(
                                            a_routine_ptr           ctor,
                                            a_constructor_init_ptr  cip,
@@ -5391,9 +5404,7 @@ cases, array_type is NULL).
                         !is_tracking_reference_type(init_type));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         error(ec_default_init_of_reference);
-        /* Create a fake initializer to represent the error. */
-        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-        dip->variant.constant = alloc_error_constant();
+        dip = make_error_constant_dynamic_init();
       } else {
         /* Using "()" with the mem-initializer means, perform value
            initialization.  Note that the class and array-of-class cases have
@@ -6135,11 +6146,16 @@ initialized.  These are addressed in the course of the processing.
           /* Ensure the field initializer is scanned if necessary. */
           scan_field_initializer_if_needed(field, class_type);
           if (ctor_rout->is_constexpr) {
-            if (field->has_nonconstant_initializer) {
+            if (field->initializer == NULL) {
+              pos_sy_error(ec_unbounded_constexpr_ctor_init_recursion,
+                           &err_pos, field_sym);
+              field->initializer = make_error_constant_dynamic_init();
+            } else if (field->has_nonconstant_initializer) {
               /* If the field initializer is known not to be a constant, it
                  cannot be used for constexpr construction. */
               pos_sy_error(ec_nonconstant_field_initializer_in_mem_initializer,
                            &err_pos, field_sym);
+              ctor_rout->is_constexpr = FALSE;
             }  /* if */
           }  /* if */
           prev_cip = cip;
