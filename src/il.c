@@ -7535,7 +7535,9 @@ which case the resulting constant is an empty aggregate.
     set_error_constant(con);
     return_value = TRUE;
   } else if (is_aggregate_type(type) ||
-             (is_class_struct_union_type(type) && is_literal_type(type))) {
+             (is_class_struct_union_type(type) &&
+              has_trivial_default_constructor(
+                                         symbol_supplement_for_class(type)))) {
     return_value = TRUE;
     clear_constant(con, (a_constant_repr_kind)ck_aggregate);
     con->type = type;
@@ -7550,7 +7552,6 @@ which case the resulting constant is an empty aggregate.
             return_value = FALSE;
             break;
           }  /* if */
-          check_assertion(constexpr_enabled && is_literal_type(type));
           base_con->constant_for_base_class_from_constexpr_folding = TRUE;
           add_constant_to_aggregate(base_con, con);
         } /* if */

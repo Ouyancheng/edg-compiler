@@ -5613,7 +5613,7 @@ extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
    that a class could have a defaulted trivial default constructor, and one
    or more nontrivial default constructors that have parameters with default
    arguments.  This macro returns FALSE for such classes; default
-   initialization is ambiguous in such cases. */
+   initialization is ambiguous in such cases.) */
 #define has_trivial_default_constructor(cssp)                        \
   (!(cssp)->has_nontrivial_default_constructor &&                    \
    ((cssp)->trivial_default_constructor != NULL ||                   \
