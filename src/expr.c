@@ -2901,6 +2901,12 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         if (is_error_dynamic_init(dip)) {
           /* Some error. */
           dip = NULL;
+        } else if (dip->kind == (a_dynamic_init_kind)dik_constant &&
+                   dip->variant.constant->is_result_of_constexpr_call) {
+          /* The construction was folded to a constant result. */
+        } else {
+          call_did_not_fold_to_constant(ec_expr_not_constant, routine,
+                                        (an_operand *)NULL, source_pos);
         }  /* if */
       }  /* if */
       if (fill_in_dtor && dip != NULL) {
@@ -5466,7 +5472,8 @@ are expected to be NULL in that case.
                                         ec_bad_cpp11_constant_function_call :
                                         ec_bad_constant_function_call,
                                       routine,
-                                      result);
+                                      result,
+                                      (a_source_position *)NULL);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -21023,15 +21030,10 @@ freed by this routine.
       make_constant_operand(dip->variant.constant, result);
       result->position = *start_position;
     } else {
-      a_routine_ptr routine = NULL;
       dip->is_explicit_cast = TRUE;
       skip_constexpr_ctor_eval(dip)->is_explicit_cast = TRUE;
       make_expression_operand(temp_init_node, result);
       result->position = *start_position;
-      if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-        routine = dip->variant.constructor.ptr;
-      }  /* if */
-      call_did_not_fold_to_constant(ec_expr_not_constant, routine, result);
       rule_out_expr_kinds(ROEK_CONSTANT, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs && microsoft_version < 1100) {

@@ -2155,9 +2155,10 @@ extern void discard_operand(an_operand *operand);
 
 extern a_boolean in_potential_constant_constexpr_context(void);
 
-extern void call_did_not_fold_to_constant(an_error_code err_code,
-                                          a_routine_ptr routine,
-                                          an_operand    *operand);
+extern void call_did_not_fold_to_constant(an_error_code     err_code,
+                                          a_routine_ptr     routine,
+                                          an_operand        *operand,
+                                          a_source_position *pos);
 
 extern
 a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,

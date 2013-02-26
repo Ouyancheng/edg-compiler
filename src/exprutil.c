@@ -5361,9 +5361,10 @@ might turn out to be constant in the actual use.
 }  /* in_potential_constant_constexpr_context */
 
 
-void call_did_not_fold_to_constant(an_error_code err_code,
-                                   a_routine_ptr routine,
-                                   an_operand    *operand)
+void call_did_not_fold_to_constant(an_error_code     err_code,
+                                   a_routine_ptr     routine,
+                                   an_operand        *operand,
+                                   a_source_position *pos)
 /*
 A call (or call-like construct) has been allowed with the hope that it
 would fold to a constant.  It's now known that it has not, so issue the
@@ -5372,10 +5373,11 @@ expressions, so that for C++11 it can record something that rules out
 a constant expression.  routine indicates the routine that was called,
 or is NULL if we don't know the specific routine (e.g., because of
 an error, or because the call was mapped to some other nonconstant
-construct).
+construct).  operand can be NULL if it's not available; in that case
+pos gives the source position to use.
 */
 {
-  if (!is_error_operand(operand)) {
+  if (operand == NULL || !is_error_operand(operand)) {
     if (in_potential_constant_constexpr_context() &&
         (routine == NULL || routine->is_constexpr)) {
       /* This is a reference inside a constexpr function to a routine that
@@ -5390,14 +5392,22 @@ construct).
                routine == NULL) {
       /* A dependent call might call a constexpr function and be folded,
          so turn it into a constant and await a real instantiation. */
-      make_template_param_expr_constant_operand(operand);
+      if (operand != NULL) {
+        make_template_param_expr_constant_operand(operand);
+      }  /* if */
     } else if (curr_expr_kind_is_traditional_const()) {
       /* Unfolded routine calls are not allowed in constant expressions. */
-      error_in_operand(err_code, operand);
+      if (operand != NULL) {
+        error_in_operand(err_code, operand);
+      } else {
+        expr_pos_error(err_code, pos);
+      }  /* if */
     } else if (construct_not_allowed_in_cpp11_constant_expr(
                                                          err_code,
-                                                         &operand->position)) {
-      conv_to_error_operand(operand);
+                                                         operand != NULL ?
+                                                           &operand->position :
+                                                           pos)) {
+      if (operand != NULL) conv_to_error_operand(operand);
     }  /* if */
   }  /* if */
 }  /* call_did_not_fold_to_constant */
