@@ -19199,7 +19199,8 @@ like
       new_node = make_node_from_operand(&local_operand);
       /* Overwrite the original node so we alter the original expression,
          under any nodes we might have stripped off above. */
-      check_assertion(identical_types(node_copy->type, new_node->type));
+      check_assertion(identical_types(node_copy->type, new_node->type) ||
+                      is_error_node(new_node) || is_error_node(node_copy));
       overwrite_node(node, new_node);
     }  /* if */
     dip = NULL;
