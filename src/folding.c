@@ -8368,7 +8368,7 @@ a new unshared constant will be allocated and returned.
                    the base class list, but we need to check both the
                    starting and ending offsets of the base class object to
                    determine whether the address lies within it or not. */
-                if (offset >= cum_offset + bp->offset &&
+                if (offset >= (a_targ_ptrdiff_t)(cum_offset + bp->offset) &&
                     offset < (a_targ_ptrdiff_t)(cum_offset + bp->offset +
                                                 base_class->size)) {
                   /* The address lies within this base class subobject. */
