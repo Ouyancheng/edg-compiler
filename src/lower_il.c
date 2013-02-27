@@ -4783,11 +4783,14 @@ Do IL lowering of the indicated constant and everything under it.
       case ck_integer:
       case ck_float:
       case ck_designator:
-      case ck_init_repeat:
 #if GNU_EXTENSIONS_ALLOWED
       case ck_label_difference:
 #endif /* GNU_EXTENSIONS_ALLOWED */
         /* No handling required. */
+        break;
+      case ck_init_repeat:
+        /* Make sure the repeated constant is lowered. */
+        lower_constant(constant->variant.init_repeat.constant);
         break;
       case ck_string:
 #if LOWER_STRING_LITERALS_TO_NON_CONST
