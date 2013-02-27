@@ -17514,6 +17514,25 @@ it might produce an error).
                                                    op2->variant.constant,
                                                    &result_con)) {
                 con_expr_value = alloc_shareable_constant(&result_con);
+              } else if (constexpr_enabled) {
+                /* In C++11, the result of a constant subscript of a
+                   constant address designating a constant value can be
+                   folded. */
+                a_constant    addr_con;
+                a_boolean     did_not_fold;
+                a_boolean     template_constant;
+                an_error_code error_detected;
+                binary_operation(op, op1->variant.constant,
+                                 op2->variant.constant, node->type, &addr_con,
+                                 /*constant_context=*/FALSE,
+                                 /*evaluated_context=*/TRUE,
+                                 &did_not_fold, &template_constant,
+                                 &error_detected, err_pos);
+                if (!did_not_fold &&
+                    constant_value_at_address(&addr_con, &result_con) !=
+                                                                        NULL) {
+                  con_expr_value = copy_unshared_constant(&result_con);
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
