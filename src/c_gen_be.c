@@ -7357,7 +7357,17 @@ block with state information for the processing.
              initialization). */
           a_targ_size_t  count   = elem_con->variant.init_repeat.count;
           a_constant_ptr rep_con = elem_con->variant.init_repeat.constant;
-          ipdp->repetition_count = &count;
+          a_type_ptr     array_type = skip_typerefs(elem_type);
+          a_type_ptr     con_type = skip_typerefs(rep_con->type);
+          a_boolean      repeat_at_this_level = TRUE;
+          if (!standalone_identical_types(array_type, con_type)) {
+            /* A ck_init_repeat can apply either to the leaf elements or to
+               the top-level array in a multidimensional array.  If the
+               repeated constant matches the type at this level, don't
+               extend the count to the leaf elements. */
+            ipdp->repetition_count = &count;
+            repeat_at_this_level = FALSE;
+          }  /* if */
           if (annotate) {
             start_comment();
             write_tok_str(" ");
@@ -7374,8 +7384,9 @@ block with state information for the processing.
             dump_initializer_part(variable, elem_type, rep_con,
                                   gen_assignments, ipdp, icbp);
             ++ipdp->curr_elem;
-            if (!is_array_type(elem_type)) {
-              /* This is a leaf node, so the count must be decremented. */
+            if (repeat_at_this_level) {
+              /* The repetition applies at this level, so the count must be
+                 decremented. */
               --count;
             }  /* if */
             if (count > 0 && !*gen_assignments) {
