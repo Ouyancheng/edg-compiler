@@ -7148,7 +7148,13 @@ block with state information for the processing.
     ipdp->curr_field = NULL;
     if (outer_level_pos != NULL) {
       outer_level_pos->next = ipdp;
-      ipdp->repetition_count = outer_level_pos->repetition_count;
+      if (type->kind == (a_type_kind)tk_array) {
+        /* Propagate the effect of a ck_init_repeat over multidimensional
+           arrays. */
+        ipdp->repetition_count = outer_level_pos->repetition_count;
+      } else {
+        ipdp->repetition_count = NULL;
+      }  /* if */
     } else {
       ipdp->repetition_count = NULL;
     }  /* if */
