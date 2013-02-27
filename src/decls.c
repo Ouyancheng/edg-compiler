@@ -5935,9 +5935,8 @@ emit an error.
     a_type_ptr         redecl_type = skip_typerefs(dps->type);
     if (gcc_mode && gnu_version < 30000) {
       if (types_are_redecl_compatible(redecl_type, orig_type)) {
-        /* Earlier versions of GNU C (but not GNU C++) accept
-           redeclarations of variables that only differ in
-           cv-qualification (with a warning). */
+        /* Earlier versions of GNU C (but not GNU C++) accept redeclarations of
+           variables that only differ in cv-qualification (with a warning). */
         severity = es_warning;
         dps->type = make_qualified_type(redecl_type,
                                         (get_type_qualifiers(dps->type) |
@@ -5962,6 +5961,12 @@ emit an error.
     if (severity == es_none) {
       severity = es_error;      
       redecl_okay = FALSE;
+      if (dps->sym->defined) {
+        /* If the previous declaration was a definition, proceed with the
+           previous type since it may have to match up with an initializer
+           in what follows. */
+        dps->type = dps->prev_type;
+      }  /* if */
     }  /* if */
     pos_sy_diagnostic(severity, ec_not_compatible_with_previous_decl,
                       &dps->declarator_pos, dps->sym);
