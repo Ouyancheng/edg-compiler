@@ -17520,7 +17520,6 @@ it might produce an error).
                    folded. */
                 a_constant    addr_con;
                 a_boolean     did_not_fold;
-                a_boolean     template_constant;
                 an_error_code error_detected;
                 binary_operation(op, op1->variant.constant,
                                  op2->variant.constant, node->type, &addr_con,
