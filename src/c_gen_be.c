@@ -7374,6 +7374,10 @@ block with state information for the processing.
             dump_initializer_part(variable, elem_type, rep_con,
                                   gen_assignments, ipdp, icbp);
             ++ipdp->curr_elem;
+            if (!is_array_type(elem_type)) {
+              /* This is a leaf node, so the count must be decremented. */
+              --count;
+            }  /* if */
             if (count > 0 && !*gen_assignments) {
               /* Put out a comma between constants. */
               write_tok_ch(',');
