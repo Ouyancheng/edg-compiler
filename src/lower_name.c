@@ -5773,9 +5773,9 @@ is TRUE.
             /* If we're casting to a reference type, the reference isn't
                indicated in the type itself, so we create a new type for
                mangling purposes and mangle that here. */
-            a_type ref_cast;
-            destination_type_for_reference_cast(expr, &ref_cast);
-            mangled_encoding_for_type(&ref_cast, mctl);
+            a_type_ptr ref_cast = alloc_type((a_type_kind)tk_pointer);
+            destination_type_for_reference_cast(expr, ref_cast);
+            mangled_encoding_for_type(ref_cast, mctl);
           } else {
             mangled_encoding_for_type(expr->type, mctl);
           }  /* if */

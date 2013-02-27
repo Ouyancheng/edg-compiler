@@ -1,5 +1,22 @@
 Version 4.6
 
+2/27/13  [EDGcpfe/13691]
+Undefined behavior when mangling dependent dynamic_cast in IA-64 ABI
+
+The mangling of a dependent dynamic_cast in IA-64 ABI configurations had
+resulted in a stack pointer erroneously being used in the IA-64 ABI
+substitution mechanism, potentially causing undefined behavior.  Now fixed.
+Here's an example that had caused this issue in some configurations
+(with --c++11):
+
+  struct B {} b;
+  struct D : B {} d;
+  template <class T> auto f(T p1) -> decltype(dynamic_cast<B&>(p1),p1);
+  void g() {
+    f(d);
+  }
+
+
 2/26/13  [EDGcpfe/13690]
 Warning on unused variable whose initializer creates a temporary
 
