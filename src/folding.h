@@ -233,7 +233,8 @@ extern a_boolean expr_is_pointer_to_string_literal(an_expr_node_ptr expr,
 extern a_constant_ptr constant_value_at_address(a_constant_ptr addr_con,
                                                 a_constant_ptr target_con);
 
-extern a_constant_ptr constant_value_addressed_by_node(an_expr_node_ptr expr);
+extern a_constant_ptr constant_value_addressed_by_node(an_expr_node_ptr  expr,
+                                                       a_source_position *pos);
 
 extern void fold_builtin_operation_if_possible(
                                         an_expr_node_ptr   expr,
@@ -284,8 +285,9 @@ a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
                               a_boolean          *partially_initialized);
 
 extern
-a_boolean fold_constexpr_member_selection(an_expr_node_ptr expr,
-                                          a_constant       *result_con);
+a_boolean fold_constexpr_member_selection(an_expr_node_ptr  expr,
+                                          a_constant        *result_con,
+                                          a_source_position *pos);
 
 #if DEBUG
 extern unsigned long db_show_folding_fe_space_used(unsigned long grand_total);

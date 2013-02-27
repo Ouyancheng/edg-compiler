@@ -5622,7 +5622,7 @@ positions).
     a_constant constant;
     check_assertion(is_expression_operand(result) && is_an_rvalue(result));
     if (fold_constexpr_member_selection(result->variant.expression,
-                                        &constant)) {
+                                        &constant, &result->position)) {
       an_operand orig_operand;
       copy_operand(result, &orig_operand);
       make_constant_operand(&constant, result);

@@ -8474,20 +8474,24 @@ a new unshared constant will be allocated and returned.
 }  /* constant_value_at_address */
 
 
-a_constant_ptr constant_value_addressed_by_node(an_expr_node_ptr expr)
+a_constant_ptr constant_value_addressed_by_node(an_expr_node_ptr  expr,
+                                                a_source_position *pos)
 /*
 If expr (which must be an lvalue) is a constant address of a constant
 value, return that value; otherwise, return NULL.  For example, if the
 expression is something like *p, the value of p is an address constant, and
 the variable to which p points has a constant value, return that value.
+*pos is the source position at which to report any errors.
 */
 {
   a_constant_ptr result_con = NULL;
   a_constant     addr_con;
+  a_constexpr_evaluation_block ceblock;
 
+  clear_constexpr_evaluation_block(&ceblock, pos);
   if (constexpr_enabled &&
-      constant_lvalue_address_full(expr, (a_constexpr_evaluation_block *)NULL,
-                                   &addr_con, /*address_escapes=*/FALSE,
+      constant_lvalue_address_full(expr, &ceblock, &addr_con,
+                                   /*address_escapes=*/FALSE,
                                    CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
                                    (a_boolean *)NULL)) {
     result_con = constant_value_at_address(&addr_con, (a_constant_ptr)NULL);
@@ -9613,15 +9617,17 @@ otherwise, return FALSE.
 }  /* fold_constant_field_selection */
 
 
-a_boolean fold_constexpr_member_selection(an_expr_node_ptr expr,
-                                          a_constant       *result_con)
+a_boolean fold_constexpr_member_selection(an_expr_node_ptr  expr,
+                                          a_constant        *result_con,
+                                          a_source_position *pos)
 /*
 expr points to a field selection operation node (eok_dot_field or
 eok_points_to_field).  If the object expression is a constant object of
 literal type, set *result_con to the value of the field designated by
 the second operand and return TRUE; otherwise, return FALSE.
 Whether expr is an lvalue or not, the returned constant is the
-rvalue result of the field selection.
+rvalue result of the field selection.  *pos is the source position for any
+errors.
 */
 {
   a_boolean        folded = FALSE;
@@ -9670,7 +9676,7 @@ rvalue result of the field selection.
       } else if (obj_expr->is_lvalue) {
         /* The member selection can be folded if the object expression
            addresses a constant value. */
-        obj_expr_con = constant_value_addressed_by_node(obj_expr);
+        obj_expr_con = constant_value_addressed_by_node(obj_expr, pos);
       } else if (is_constant_node(obj_expr)) {
         /* ... or if the object expression is a class value constant. */
         obj_expr_con = obj_expr->variant.constant;

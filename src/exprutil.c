@@ -17453,7 +17453,7 @@ it might produce an error).
              initialized to a constant value allows use of a member
              value as a constant. */
           if (constexpr_enabled && allow_folding != NULL &&
-              fold_constexpr_member_selection(node, &result_con)) {
+              fold_constexpr_member_selection(node, &result_con, err_pos)) {
             con_expr_value = alloc_shareable_constant(&result_con);
             node->is_lvalue = FALSE;
             node->type = rvalue_node_type;
@@ -17463,8 +17463,8 @@ it might produce an error).
         case eok_indirect:
           op1 = skip_parens(op1);
           if (allow_folding != NULL &&
-              (con_expr_value = constant_value_addressed_by_node(node)) !=
-                                                                        NULL) {
+              (con_expr_value =
+                    constant_value_addressed_by_node(node, err_pos)) != NULL) {
             /* Indirection through a constexpr pointer that points to an
                object with a constant value.  Use that value as the result
                of the expression. */
@@ -17492,8 +17492,8 @@ it might produce an error).
           break;
         case eok_ref_indirect:
           if (allow_folding != NULL &&
-              (con_expr_value = constant_value_addressed_by_node(node)) !=
-                                                                        NULL) {
+              (con_expr_value =
+                    constant_value_addressed_by_node(node, err_pos)) != NULL) {
             /* Indirection through a constexpr reference that refers to an
                object with a constant value.  Use that value as the result
                of the expression. */
@@ -17677,7 +17677,7 @@ it might produce an error).
              constant, the result is the type-adjusted constant.
              Otherwise, it's rvalueable so we go to the general case. */
           if (allow_folding != NULL && op1->is_lvalue) {
-            con_expr_value = constant_value_addressed_by_node(op1);
+            con_expr_value = constant_value_addressed_by_node(op1, err_pos);
             if (con_expr_value != NULL) {
               a_boolean did_not_fold;
               copy_constant(con_expr_value, &result_con);
