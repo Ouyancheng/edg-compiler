@@ -448,6 +448,9 @@ information, such as its address and translation unit.
                                                "secondary" : "primary");
     fprintf(f_debug, ", in %s scope", in_file_scope(entry) ?
                                                "file" : "function");
+#if DO_IL_LOWERING
+    fprintf(f_debug, ", %slowered", visited_yet(entry) ?  "" : "un-");
+#endif /* DO_IL_LOWERING */
     if (kind == iek_type) {
       a_type_ptr type = (a_type_ptr)entry;
       if (is_immediate_class_type(type)) {
