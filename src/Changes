@@ -56,7 +56,7 @@ Assertion failure during generation of error message with anonymous union
 
 An error message (ec_name_at_decl_position) triggered with an anonymous
 union had generated an assertion failure ("diag_message: missing symbol
-substitution"); this is now fixed.  For example:
+substitution"); this is now fixed.  For example (with --c++11):
 
   struct A {
     A() {}
