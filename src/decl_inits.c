@@ -5228,6 +5228,32 @@ scan_paren:
 }  /* scan_mem_initializer_id */
 
 
+static void check_constexpr_ctor_init(a_routine_ptr      ctor,
+                                      an_init_state      *is,
+                                      a_source_position  *diag_pos)
+/*
+is described the initialization state for a mem-initializer of the given
+constructor.  If the constructor is "constexpr" and the initializer is not a
+constant, either issue an error if the constructor is not a template instance,
+or silently set the is_constexpr flag of the constructor to FALSE (except for
+the prototype instantiation).
+*/
+{
+  if (ctor->is_constexpr && is->constant_expr_ruled_out) {
+    /* A constexpr constructor requires constant initialization.  In the
+       template case, the "constexpr" property is silently dropped.  In other
+       cases, an error is issued. */
+    if (ctor->is_template_function && !ctor->is_specialized) {
+      if (!ctor->is_prototype_instantiation) {
+        ctor->is_constexpr = FALSE;
+      }  /* if */
+    } else {
+      pos_error(ec_nonconstant_mem_init_for_constexpr_ctor, diag_pos);
+    }  /* if */
+  }  /* if */
+}  /* check_constexpr_ctor_init */
+
+
 static void braced_mem_initializer(a_routine_ptr           ctor,
                                    a_type_ptr              dtype,
                                    a_constructor_init_ptr  cip)
@@ -5253,9 +5279,7 @@ given type, and record the initializer in *cip if cip is non-NULL.
   braced_initializer(dtype, (an_init_component*)NULL, &is,
                      (a_decl_parse_state*)NULL, (an_init_component**)NULL,
                      &lbrace_pos);
-  if (ctor->is_constexpr && is.constant_expr_ruled_out) {
-    pos_error(ec_nonconstant_mem_init_for_constexpr_ctor, &lbrace_pos);
-  }  /* if */
+  check_constexpr_ctor_init(ctor, &is, &lbrace_pos);
   if (cip != NULL) {
     /* A dynamic init entry has been produced: Record it in the
        constructor init entry. */
@@ -5352,12 +5376,14 @@ cases, array_type is NULL).
                                            &is);
     }  /* if */
     dip = is.init_dip;
-    check_assertion(dip != NULL || is.init_error);
     if (dip == NULL) {
-      /* Create a fake initializer to represent the error. */
+      /* An error occurred: Create a fake initializer to represent the
+         error. */
+      check_assertion(is.init_error);
       dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
       dip->variant.constant = alloc_error_constant();
     } else {
+      check_constexpr_ctor_init(ctor, &is, &lparen_pos);
       /* If the initializer produced an object lifetime for the full
          expression, remove it temporarily from the object lifetime tree and
          restore it in the correct position later. */
@@ -5456,9 +5482,7 @@ cases, array_type is NULL).
         dps.init_state.force_dynamic_init = TRUE;
         expr_direct_init_object(&dps, (an_id_linkage_kind)idl_none,
                                 &lparen_pos);
-        if (ctor->is_constexpr && dps.init_state.constant_expr_ruled_out) {
-          pos_error(ec_nonconstant_mem_init_for_constexpr_ctor, &lparen_pos);
-        }  /* if */
+        check_constexpr_ctor_init(ctor, &dps.init_state, &lparen_pos);
         dip = dps.init_state.init_dip;
         check_assertion(dip != NULL);
         /* If the initializer produced an object lifetime for the full
@@ -6154,9 +6178,15 @@ initialized.  These are addressed in the course of the processing.
             } else if (field->has_nonconstant_initializer) {
               /* If the field initializer is known not to be a constant, it
                  cannot be used for constexpr construction. */
-              pos_sy_error(ec_nonconstant_field_initializer_in_mem_initializer,
-                           &err_pos, field_sym);
-              ctor_rout->is_constexpr = FALSE;
+              if (!ctor_rout->is_template_function ||
+                  ctor_rout->is_specialized) {
+                pos_sy_error(
+                          ec_nonconstant_field_initializer_in_mem_initializer,
+                          &err_pos, field_sym);
+              }  /* if */
+              if (!ctor_rout->is_prototype_instantiation) {
+                ctor_rout->is_constexpr = FALSE;
+              }  /* if */
             }  /* if */
           }  /* if */
           prev_cip = cip;
