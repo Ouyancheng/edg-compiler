@@ -20387,6 +20387,7 @@ resolution).
           if (!make_value_initialized_constant(unqual_dest_type, &con)) {
             unexpected_condition();
           }  /* if */
+          con.is_result_of_constexpr_call = TRUE;
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             add_temp_init_backing_expression(&con, dip);
           } /* if */

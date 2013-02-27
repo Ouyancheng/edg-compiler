@@ -3813,7 +3813,9 @@ typedef struct a_constant {
 			   a constexpr function or constexpr constructor.
 			   The interesting case is when the constant is
 			   a ck_aggregate, but this flag can be set in
-			   any kind of constant. */
+			   any kind of constant.  Also set for something
+			   like "A()" when expanded to a constant for a
+			   trivial default constructor. */
 #if DO_IL_LOWERING
   a_bit_field	vptr_has_been_lowered:1;
 			/* Flag that is used during lowering to ensure that

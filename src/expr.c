@@ -21172,6 +21172,7 @@ empty_parentheses:
                                                  &local_constant)) {
               unexpected_condition();
             }  /* if */
+            local_constant.is_result_of_constexpr_call = TRUE;
             if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
               local_constant.expr = temp_init_node;
             }  /* if */
