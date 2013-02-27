@@ -2839,7 +2839,7 @@ not to contain any top level base class casts.
                                            is_const_qualified_type(expr->type),
                                            &temp)) {
       /* ck_aggregate constants can appear in cases where a constexpr
-         constructor or function returns an class value.  Return the
+         constructor or function returns a class value.  Return the
          temporary that has been created for this constant. */
       check_assertion(expr->variant.constant->is_result_of_constexpr_call ||
                       expr->variant.constant->is_compound_literal);
@@ -4104,9 +4104,8 @@ When const_okay is TRUE, the associated variable type is const qualified.
       /* Make the constant the initial value of the variable. */
       assoc_var->init_kind = (an_init_kind)initk_static;
       assoc_var->initializer.constant = constant;
-      /* Make sure the variable gets lowered so that the constant will
-         be lowered too. */
-      if (!lowering_file_scope) mark_as_not_visited(assoc_var);
+      /* Make sure the constant is lowered. */
+      lower_os_constant(constant);
     } else {
       /* The constant is in the function scope, so use a function-local
          static variable. */
