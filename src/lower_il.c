@@ -4122,6 +4122,14 @@ When const_okay is TRUE, the associated variable type is const qualified.
     }  /* if */
     /* Save the pointer in the constant so the variable can be reused. */
     constant->assoc_var = assoc_var;
+#if MAINTAIN_NEEDED_FLAGS
+    /* In cases where needed flag processing has already been done (e.g,
+       when processing orphans), make sure assoc_var has the same needed
+       flag settings as the constant it replaces. */
+    mark_as_needed_like((char *)assoc_var, iek_variable,
+                        &constant->source_corresp,
+                        /*set_class_defn_needed=*/FALSE);
+#endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
   return assoc_var;
 }  /* assoc_var_for_constant */
