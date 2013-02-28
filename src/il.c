@@ -5347,6 +5347,9 @@ copy_constant_full should be called to start a copy.
   a_boolean      new_constant_in_il;
   a_boolean      old_constant_in_il =
                                !(options & CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL);
+  a_boolean      copying_from_one_func_to_another =
+                        (options & (CE_DOING_INLINING_OF_FUNCTION_CALL |
+                                    CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER)) != 0;
   a_constant     local_constant;
   an_expr_copy_options_set
                  options_unshared;
@@ -5407,7 +5410,9 @@ copy_constant_full should be called to start a copy.
                                          (an_address_base_kind)abk_temporary) {
       a_constant_ptr old_constant_pointed_to =
                                 old_constant->variant.address.variant.constant;
-      if (!in_file_scope(old_constant_pointed_to)) {
+      if (!in_file_scope(old_constant_pointed_to) &&
+          (curr_il_region_number == file_scope_region_number ||
+           copying_from_one_func_to_another)) {
         /* For an address constant pointing to a constant, the constant must be
            copied too if it's in the wrong memory region.  This comes up for
            addresses of strings; without this copy the ck_address could end
@@ -5509,8 +5514,7 @@ copy_constant_full should be called to start a copy.
   }  /* if */
   if (old_constant->expr == NULL) {
     /* Skip some processing of backing expressions if there isn't one. */
-  } else if (options & (CE_DOING_INLINING_OF_FUNCTION_CALL |
-                        CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER)) {
+  } else if (copying_from_one_func_to_another) {
     /* When copying for inlining, the expression pointed to is in a
        function scope memory region and can't be used in the new function
        scope memory region.  The expression might be copyable in some cases,
@@ -6493,13 +6497,9 @@ definition of the CC flags in il.h for more information.
                                        cp2->variant.address.variant.variable);
               break;
             case abk_constant:
+            case abk_temporary:
               eq = (cp1->variant.address.variant.constant ==
                     cp2->variant.address.variant.constant);
-              break;
-            case abk_temporary:
-              /* Each abk_temporary generates a unique temporary, so two
-                 abk_temporary constants that point to the same constant
-                 don't have the same value. */
               break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             case abk_uuidof:
@@ -7062,11 +7062,6 @@ alloc_shareable_constant would return a shareable constant.
   } else if (cp->kind == (a_constant_repr_kind)ck_string &&
              !string_literals_shared) {
     /* Don't share string literals if told not to. */
-    shareable = FALSE;
-  } else if (cp->kind == (a_constant_repr_kind)ck_address &&
-             cp->variant.address.kind == (an_address_base_kind)abk_temporary) {
-    /* Each abk_temporary generates a unique temporary, so we can't consider
-       them shareable. */
     shareable = FALSE;
   } else {
     /* Other cases are shareable. */

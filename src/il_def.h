@@ -3925,10 +3925,9 @@ typedef struct a_constant {
 	   with the pointed-to constant, for constants that don't necessarily
 	   have an existence in memory, e.g., an integer constant.  Each
 	   abk_constant that points to the same constant represents the
-	   same address; each abk_temporary creates a separate temporary,
-	   and therefore a different address, even when two abk_temporary
-	   constants point to the same underlying constant.  The constant
-	   may be a shared constant in either case. */
+	   same address; each abk_temporary pointing to the same constant
+	   uses the same temporary and therefore represents the same address.
+	   The underlying constant may be a shared constant in either case. */
 	/* Note that in C++/CLI mode, a ck_address/abk_constant constant
 	   of type System::String^, where the addressed constant is a
 	   string literal, is used to represent the result of implicitly or
