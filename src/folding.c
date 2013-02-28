@@ -9498,6 +9498,7 @@ otherwise, return FALSE.
     a_type_ptr       parent_of_field = parent_class_of(field);
     a_type_ptr       anon_union_member_type = NULL;
     int              anon_union_member_depth = 0;
+    a_boolean        union_member_mismatch = FALSE;
     a_base_class_ptr bp;
     /* Check to see if the requested field is a member of an anonymous
        union.  If so, set anon_union_member_type to be the type of the
@@ -9523,25 +9524,45 @@ otherwise, return FALSE.
         member_con = member_con->next;
       }  /* if */
     }  /* for */
-    /* Step through the elements of the initializer constant and the
-       fields of class_type, breaking out of the loop when we've found
-       either the indicated field or the anonymous union member of which
-       the indicated field is a (possibly indirect) member. */
-    while (member_con != NULL && curr_field != NULL &&
-           curr_field != field) {
-      /* FIXME: The traversal of the ck_aggregate will need to be more
-         elaborate to allow for things like arrays initialized with string
-         literals, etc. */
-      if (curr_field->type == anon_union_member_type) {
-        /* We have found the anonymous union member to which field
-           belongs. */
-        check_assertion(curr_field->is_anonymous_parent_object);
-        break;
+    if (class_type->kind == (a_type_kind)tk_union) {
+      /* A union has only one active element, and in a constant it is the
+         one that was initialized: either the first element or, because of
+         a constructor initializer or non-static data member initializer,
+         the one identified by a ck_designator in the object's value. */
+      if (member_con != NULL &&
+          member_con->kind == (a_constant_repr_kind)ck_designator &&
+          member_con->variant.designator.field == field) {
+        /* The designator identifies the field being requested.  The
+           value follows the designator in the ck_aggregate. */
+        curr_field = field;
+        member_con = member_con->next;
+      } else if (curr_field != field &&
+                 curr_field->type != anon_union_member_type) {
+        /* The requested field is not active, so the expression is not a
+           constant expression. */
+        union_member_mismatch = TRUE;
       }  /* if */
-      member_con = member_con->next;
-      curr_field = next_non_generated_initializable_field(curr_field->next);
-    }  /* while */
-    if (member_con != NULL) {
+    } else {
+      /* Step through the elements of the initializer constant and the
+         fields of class_type, breaking out of the loop when we've found
+         either the indicated field or the anonymous union member of which
+         the indicated field is a (possibly indirect) member. */
+      while (member_con != NULL && curr_field != NULL &&
+             curr_field != field) {
+        /* FIXME: The traversal of the ck_aggregate will need to be more
+           elaborate to allow for things like arrays initialized with
+           string literals, etc. */
+        if (curr_field->type == anon_union_member_type) {
+          /* We have found the anonymous union member to which field
+             belongs. */
+          check_assertion(curr_field->is_anonymous_parent_object);
+          break;
+        }  /* if */
+        member_con = member_con->next;
+        curr_field = next_non_generated_initializable_field(curr_field->next);
+      }  /* while */
+    }  /* if */
+    if (member_con != NULL && !union_member_mismatch) {
       check_assertion(curr_field != NULL);
       /* If the field is a member of an anonymous union, scan through
          the aggregates in which the value is nested. */
@@ -9559,7 +9580,9 @@ otherwise, return FALSE.
           empty_anonymous_union_initializer = TRUE;
         }  /* if */
       }  /* while */
-      if (member_con == NULL) {
+      if (union_member_mismatch) {
+        /* The access cannot be folded. */
+      } else if (member_con == NULL) {
         /* We don't have an explicit constant, so the field was
            value-initialized, either explicitly or because of a short
            initializer.  Make a zero constant of the requisite type and use
@@ -9570,7 +9593,9 @@ otherwise, return FALSE.
       } else {
         copy_constant(member_con, result_con);
       }  /* if */
-      if (is_error_type(result_con->type)) {
+      if (union_member_mismatch) {
+        /* The access cannot be folded. */
+      } else if (is_error_type(result_con->type)) {
         /* There was an error in the initializer. */
         folded = TRUE;
         set_error_constant(result_con);
