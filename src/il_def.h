@@ -3156,8 +3156,7 @@ typedef struct a_dynamic_init {
 			   may be the only possible storage duration if the
 			   temporary is realized in the file scope.  Also,
 			   storage duration is different than object lifetime;
-			   see the lifetime information in the dynamic init
-			   entry pointed to. */
+			   see the "lifetime" field also. */
   a_bit_field	follows_an_exec_statement:1;
 			/* TRUE if this initialization is pointed to from
 			   an stmk_init and the stmk_init appears after
