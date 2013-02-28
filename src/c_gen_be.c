@@ -7383,15 +7383,20 @@ block with state information for the processing.
                element initializer is dumped. */
             dump_initializer_part(variable, elem_type, rep_con,
                                   gen_assignments, ipdp, icbp);
-            ++ipdp->curr_elem;
             if (repeat_at_this_level) {
               /* The repetition applies at this level, so the count must be
                  decremented. */
               --count;
             }  /* if */
-            if (count > 0 && !*gen_assignments) {
-              /* Put out a comma between constants. */
-              write_tok_ch(',');
+            if (count > 0) {
+              if (!*gen_assignments) {
+                /* Put out a comma between constants. */
+                write_tok_ch(',');
+              }  /* if */
+              /* Advance to the next element for the ck_init_repeat loop.
+                 (The increment after the final element will be done below,
+                 as part of the outer loop. */
+              ++ipdp->curr_elem;
             }  /* if */
           }  /* while */
           ipdp->repetition_count = NULL;
