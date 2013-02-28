@@ -4672,7 +4672,9 @@ initializable fields and constants in the aggregate will work properly).
   if (!constant->empty_base_classes_have_been_removed &&
       is_immediate_class_type(class_type)) {
     prelower_class_type(class_type);
-    /* Recurse for any sub-aggregates. */
+    /* Recurse for any sub-aggregates (needed because the routine that
+       does the vptr insertion does a depth first traversal and all empty
+       base classes must be removed before then). */
     constant->empty_base_classes_have_been_removed = TRUE;
     for (cp = constant->variant.aggregate.first_constant;
          cp != NULL;
@@ -4732,47 +4734,245 @@ top level of the aggregate constant (i.e., it's not recursive).
 This processing isn't necessary in the Cfront ABI.
 */
 {
-  a_type_ptr  class_type = skip_typerefs(aggr_con->type);
+  a_type_ptr                  class_type = skip_typerefs(aggr_con->type);
+  a_class_type_supplement_ptr ctsp;
+  a_constant_ptr              cp, prev = NULL;
 
-  if (is_immediate_class_type(class_type)) {
-    a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
-    a_constant_ptr  cp, prev = NULL;
-    if (ctsp->primary_base_class != NULL &&
-        ctsp->primary_base_class != ctsp->base_classes) {
-      /* In this case, lowering has placed the primary base class at offset
-         zero, which means that the ordering of constants in the aggregate
-         does not match the ordering of the fields that is returned
-         by next_initializable_field.  Find the initializer for the
-         primary base class and move it to the beginning of the aggregate
-         so it'll match the layout order. */
+  check_assertion(is_immediate_class_type(class_type));
+  ctsp = class_type_supp(class_type);
+  if (ctsp->primary_base_class != NULL &&
+      ctsp->primary_base_class != ctsp->base_classes) {
+    /* In this case, lowering has placed the primary base class at offset
+       zero, which means that the ordering of constants in the aggregate
+       does not match the ordering of the fields that is returned
+       by next_initializable_field.  Find the initializer for the
+       primary base class and move it to the beginning of the aggregate
+       so it'll match the layout order. */
 #if CHECKING
-        a_boolean found = FALSE;
+      a_boolean found = FALSE;
 #endif /* CHECKING */
-      for (cp = aggr_con->variant.aggregate.first_constant;
-           cp != NULL;
-           cp = cp->next) {
-        if (identical_types(cp->type, ctsp->primary_base_class->type)) {
-          if (prev != NULL) {
-            prev->next = cp->next;
-            cp->next = aggr_con->variant.aggregate.first_constant;
-            aggr_con->variant.aggregate.first_constant = cp;
-            if (aggr_con->variant.aggregate.last_constant == cp) {
-              aggr_con->variant.aggregate.last_constant = prev;
-            }  /* if */
+    for (cp = aggr_con->variant.aggregate.first_constant;
+         cp != NULL;
+         cp = cp->next) {
+      if (identical_types(cp->type, ctsp->primary_base_class->type)) {
+        if (prev != NULL) {
+          prev->next = cp->next;
+          cp->next = aggr_con->variant.aggregate.first_constant;
+          aggr_con->variant.aggregate.first_constant = cp;
+          if (aggr_con->variant.aggregate.last_constant == cp) {
+            aggr_con->variant.aggregate.last_constant = prev;
           }  /* if */
-#if CHECKING
-          found = TRUE;
-#endif /* CHECKING */
-          break;
         }  /* if */
-        prev = cp;
-      }  /* for */
-      check_assertion(found || aggr_con->partial_aggr_value);
-    }  /* if */
+#if CHECKING
+        found = TRUE;
+#endif /* CHECKING */
+        break;
+      }  /* if */
+      prev = cp;
+    }  /* for */
+    check_assertion(found || aggr_con->partial_aggr_value);
   }  /* if */
 }  /* arrange_aggregate_constant_in_layout_order */
 
 #endif /* IA64_ABI */
+
+static void initialize_vptr_in_aggregate_constant(
+                                           a_constant_ptr   constant,
+                                           a_type_ptr       primary_vtbl_class,
+                                           a_base_class_ptr subobject_bcp)
+/*
+An aggregate constant is being lowered; if the constant is initializing a class
+that has a virtual function table pointer, add an entry to the aggregate
+constant to set the virtual function table pointer as appropriate.  Recurse to
+handle any base classes that may have vptr fields that need to be initialized.
+If non-NULL, primary_vtbl_class is the type of a more-derived class which this
+class (or a base class of this class) shares a vtable.  constant may represent
+the initialization of a subobject, in which case subobject_bcp represents the
+relationship between primary_vtbl_class and the type of constant, and is NULL
+when those are the same.  There is no need to deal with construction vtables
+because a constexpr constructor can't have virtual base classes.  The constants
+in the aggregate have not been lowered (and aren't lowered here).
+*/
+{
+  a_type_ptr class_type = skip_typerefs(constant->type);
+
+  check_assertion(is_class_struct_union_type(class_type));
+  if (!constant->vptr_has_been_lowered &&
+      (needs_virtual_function_table(class_type) ||
+       class_type->variant.class_struct_union.
+                            any_virtual_functions_including_in_base_classes)) {
+    a_constant                  addr_constant;
+    a_constant_ptr              aggr_con, vptr_con, prev_con = NULL;
+    a_field_ptr                 field;
+    a_base_class_ptr            bcp;
+    a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
+    a_boolean                   any_more_base_classes;
+    a_boolean                   modify_vptr_in_this_class = TRUE;
+    a_variable_ptr              vtbl_var;
+    a_type_ptr                  vtbl_class;
+
+    check_assertion(!class_type->
+                         variant.class_struct_union.any_virtual_base_classes &&
+                    !constant->partial_aggr_value);
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+    check_assertion(ctsp->construction_vtbls == NULL);
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+    /* Make sure we only do this processing once. */
+    constant->vptr_has_been_lowered = TRUE;
+    if (!needs_virtual_function_table(class_type) ||
+        ctsp->virtual_function_info_base_class != NULL) {
+      /* This class has no virtual function table (though its has at least
+         one base class that does) or it shares its vptr with a base class,
+         so there's no need to look for a vptr in this aggregate (it'll be
+         set when we visit the base class). */
+      modify_vptr_in_this_class = FALSE;
+    } else {
+      check_assertion(ctsp->virtual_function_table_var != NULL);
+      if (primary_vtbl_class == NULL) {
+        /* Make an address constant pointer to the vtable for this class. */
+        vtbl_var = ctsp->virtual_function_table_var;
+        vtbl_class = class_type;
+      } else {
+        a_class_type_supplement_ptr pvtbl_ctsp =
+                                           class_type_supp(primary_vtbl_class);
+        check_assertion(pvtbl_ctsp->virtual_function_info_base_class != NULL &&
+                        needs_virtual_function_table(primary_vtbl_class));
+        if (identical_types(pvtbl_ctsp->virtual_function_info_base_class->type,
+                            class_type)) {
+          /* This base class is sharing a vptr with primary_vtbl_class;
+             use the primary vptr. */
+          subobject_bcp = NULL;
+        }  /* if */
+        /* Make an address constant pointer to the primary vtable. */
+        vtbl_var = pvtbl_ctsp->virtual_function_table_var;
+        vtbl_class = primary_vtbl_class;
+      }  /* if */
+#if !IA64_ABI
+      if (subobject_bcp != NULL) {
+        vtbl_var = subobject_bcp->virtual_function_table_var;
+      }  /* if */
+#endif /* IA64_ABI */
+      make_vtbl_address_constant(vtbl_var,
+                                 vtbl_class,
+                                 subobject_bcp,
+                                 &addr_constant);
+      vptr_con = alloc_unshared_constant_in_region(&addr_constant,
+                                                   in_file_scope(constant));
+    }  /* if */
+    any_more_base_classes = (ctsp->base_classes != NULL);
+    /* Iterate over the field list for the class, keeping track of which
+       items in the aggregate constant initialize each field (at least
+       until we've processed the vptr field and any applicable base
+       classes). */
+    check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
+    aggr_con = constant->variant.aggregate.first_constant;
+    for (field = next_initializable_field(
+                            class_type->variant.class_struct_union.field_list);
+         field != NULL;
+         field = next_initializable_field(field->next)) {
+      if (modify_vptr_in_this_class &&
+          field->offset == ctsp->virtual_function_info_offset &&
+          ctsp->virtual_function_info_base_class == NULL) {
+        /* We've found the vptr field for this aggregate; insert a constant
+           into the aggregate at this spot. */
+        if (prev_con == NULL) {
+          vptr_con->next = constant->variant.aggregate.first_constant;
+          constant->variant.aggregate.first_constant = vptr_con;
+        } else {
+          vptr_con->next = prev_con->next;
+          prev_con->next = vptr_con;
+        }  /* if */
+        if (constant->variant.aggregate.last_constant == prev_con) {
+          constant->variant.aggregate.last_constant = vptr_con;
+        }  /* if */
+        modify_vptr_in_this_class = FALSE;
+      } else {
+        if (any_more_base_classes &&
+            is_class_struct_union_type(field->type)) {
+          /* If this field in the aggregate represents a direct base class,
+             recurse to initialize any vptrs contained therein. */
+          a_boolean found = FALSE;
+          for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+            if (bcp->direct &&
+                bcp->offset == field->offset &&
+                identical_types(field->type,
+                                class_type_supp(bcp->type)->
+                                                          type_as_subobject)) {
+              if (primary_vtbl_class == NULL &&
+                  needs_virtual_function_table(class_type) &&
+                  ctsp->virtual_function_info_base_class != NULL) {
+                /* If there is no more-derived class that shares a vtable,
+                   use this class. */
+                primary_vtbl_class = class_type;
+              }  /* if */
+              initialize_vptr_in_aggregate_constant(aggr_con,
+                                                    primary_vtbl_class,
+                                                    bcp);
+              found = TRUE;
+              break;
+            }  /* if */
+          }  /* for */
+          if (!found) {
+            /* We've reached the end of any base classes; no need to check
+               for those any longer. */
+            any_more_base_classes = FALSE;
+          }  /* if */
+        }  /* if */
+        /* Advance to the next constant in the aggregate (which is fully
+           initialized). */
+        check_assertion(aggr_con != NULL);
+        prev_con = aggr_con;
+        aggr_con = aggr_con->next;
+      }  /* if */
+      if (!modify_vptr_in_this_class && !any_more_base_classes) {
+        /* There may be additional fields in the aggregate, but they don't
+           need to be visited. */
+        break;
+      }  /* if */
+    }  /* for */
+    check_assertion(!modify_vptr_in_this_class);
+  }  /* if */
+}  /* initialize_vptr_in_aggregate_constant */
+
+
+void prelower_aggregate_constant(a_constant_ptr constant)
+/*
+The aggregate constants that are generated for class/struct/unions by the
+front end are for the canonical layout and don't account for empty base classes
+that have been removed, layout re-ordering, or the insertion of pointers to
+virtual tables.  This routine massages the constant so that it will match the
+lowered layout.  Note that sub-aggregates in the constant will have
+their empty base classes removed and any base classes will have their
+vptrs initialized (as needed), but this routine is not recursive (relying
+instead on the caller to call it for each sub-aggregate as necessary).
+The routines invoked herein avoid unnecessary processing by setting flags
+in the constants that they've previously processed.
+*/
+{
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
+  if (is_class_struct_union_type(constant->type)) {
+    prelower_class_type(skip_typerefs(constant->type));
+    /* Remove any initializers that the front end may have added for
+       empty base classes.  Do this before other types of lowering on the
+       aggregate so those routines won't have to handle initializers
+       for optimized empty base classes. */
+    remove_initializers_for_empty_base_classes(constant);
+#if IA64_ABI
+    /* If necessary, re-arrange the initializers in the aggregate constant
+       to match the layout order.  Do this prior to any lowering that
+       relies on next_initializable_field. */
+    arrange_aggregate_constant_in_layout_order(constant);
+#endif /* IA64_ABI */
+    /* Initialize any vptr fields if they exist in the aggregate.  This
+       must be completed before the individual pieces of the aggregate
+       are themselves lowered, as well as before any designated
+       initializers are lowered. */
+    initialize_vptr_in_aggregate_constant(constant,
+                                          (a_type_ptr)NULL,
+                                          (a_base_class_ptr)NULL);
+  }  /* if */
+}  /* prelower_aggregate_constant */
+
 
 void lower_constant(a_constant_ptr constant)
 /*
@@ -4902,24 +5102,9 @@ Do IL lowering of the indicated constant and everything under it.
         lower_ptr_to_member_constant(constant);
         break;
       case ck_aggregate:
-        /* Remove any initializers that the front end may have added for
-           empty base classes.  Do this before other types of lowering on the
-           aggregate so those routines won't have to handle initializers
-           for optimized empty base classes. */
-        remove_initializers_for_empty_base_classes(constant);
-#if IA64_ABI
-        /* If necessary, re-arrange the initializers in the aggregate constant
-           to match the layout order.  Do this prior to any lowering that
-           relies on next_initializable_field. */
-        arrange_aggregate_constant_in_layout_order(constant);
-#endif /* IA64_ABI */
-        /* Initialize any vptr fields if they exist in the aggregate.  This
-           must be completed before the individual pieces of the aggregate
-           are themselves lowered, as well as before any designated
-           initializers are lowered. */
-        initialize_vptr_in_aggregate_constant(constant,
-                                              (a_type_ptr)NULL,
-                                              (a_base_class_ptr)NULL);
+        /* Make any necessary changes in constant so that it corresponds to
+           the fields in the lowered type. */
+        prelower_aggregate_constant(constant);
 #if LOWER_DESIGNATED_INITIALIZERS
         /* Re-write any designated initializers in the aggregate constant. */
         lower_designated_initializers(constant,

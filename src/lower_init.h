@@ -297,10 +297,10 @@ extern void remove_unneeded_constructions_and_destructions(a_scope_ptr scope);
 extern a_boolean ctor_or_dtor_body_has_no_effect(a_scope_ptr scope);
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 
-extern void initialize_vptr_in_aggregate_constant(
-                                        a_constant_ptr   constant,
-                                        a_type_ptr       primary_vtbl_class,
-                                        a_base_class_ptr subobject_bcp);
+extern void make_vtbl_address_constant(a_variable_ptr   var,
+                                       a_type_ptr       class_type,
+                                       a_base_class_ptr bcp,
+                                       a_constant       *addr_constant);
 
 extern void init_lower_one_time_init(void);
 

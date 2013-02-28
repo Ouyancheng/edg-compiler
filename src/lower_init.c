@@ -324,10 +324,10 @@ calling sequence.
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- class_type and bcp are unused in that case. */
 #endif /* !IA64_ABI */
-static void make_vtbl_address_constant(a_variable_ptr   var,
-                                       a_type_ptr       class_type,
-                                       a_base_class_ptr bcp,
-                                       a_constant       *addr_constant)
+void make_vtbl_address_constant(a_variable_ptr   var,
+                                a_type_ptr       class_type,
+                                a_base_class_ptr bcp,
+                                a_constant       *addr_constant)
 /*
 Make an address constant for the address of a virtual function table variable
 (var) and return it in *addr_constant.  class_type is the type whose
@@ -1477,166 +1477,6 @@ NULL pointer-to-data member in the IA-64 ABI.
     }  /* if */
   }  /* if */
 }  /* make_lowered_zero_of_proper_type */
-
-
-void initialize_vptr_in_aggregate_constant(a_constant_ptr   constant,
-                                           a_type_ptr       primary_vtbl_class,
-                                           a_base_class_ptr subobject_bcp)
-/*
-An aggregate constant is being lowered; if the constant is initializing a class
-that has a virtual function table pointer, add an entry to the aggregate
-constant to set the virtual function table pointer as appropriate.  Recurse to
-handle any base classes that may have vptr fields that need to be initialized.
-If non-NULL, primary_vtbl_class is the type of a more-derived class which this
-class (or a base class of this class) shares a vtable.  constant may represent
-the initialization of a subobject, in which case subobject_bcp represents the
-relationship between primary_vtbl_class and the type of constant, and is NULL
-when those are the same.  There is no need to deal with construction vtables
-because a constexpr constructor can't have virtual base classes.  The constants
-in the aggregate have not been lowered (and aren't lowered here).
-*/
-{
-  a_type_ptr class_type = skip_typerefs(constant->type);
-
-  if (!constant->vptr_has_been_lowered &&
-      is_class_struct_union_type(class_type) &&
-      (needs_virtual_function_table(class_type) ||
-       class_type->variant.class_struct_union.
-                            any_virtual_functions_including_in_base_classes)) {
-    a_constant                  addr_constant;
-    a_constant_ptr              aggr_con, vptr_con, prev_con = NULL;
-    a_field_ptr                 field;
-    a_base_class_ptr            bcp;
-    a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
-    a_boolean                   any_more_base_classes;
-    a_boolean                   modify_vptr_in_this_class = TRUE;
-    a_variable_ptr              vtbl_var;
-    a_type_ptr                  vtbl_class;
-
-    check_assertion(!class_type->
-                         variant.class_struct_union.any_virtual_base_classes &&
-                    !constant->partial_aggr_value);
-#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-    check_assertion(ctsp->construction_vtbls == NULL);
-#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-    /* Make sure we only do this processing once. */
-    constant->vptr_has_been_lowered = TRUE;
-    /* Make sure the class type has been lowered. */
-    prelower_class_type(class_type);
-    if (!needs_virtual_function_table(class_type) ||
-        ctsp->virtual_function_info_base_class != NULL) {
-      /* This class has no virtual function table (though its has at least
-         one base class that does) or it shares its vptr with a base class,
-         so there's no need to look for a vptr in this aggregate (it'll be
-         set when we visit the base class). */
-      modify_vptr_in_this_class = FALSE;
-    } else {
-      check_assertion(ctsp->virtual_function_table_var != NULL);
-      if (primary_vtbl_class == NULL) {
-        /* Make an address constant pointer to the vtable for this class. */
-        vtbl_var = ctsp->virtual_function_table_var;
-        vtbl_class = class_type;
-      } else {
-        a_class_type_supplement_ptr pvtbl_ctsp =
-                                           class_type_supp(primary_vtbl_class);
-        check_assertion(pvtbl_ctsp->virtual_function_info_base_class != NULL &&
-                        needs_virtual_function_table(primary_vtbl_class));
-        if (identical_types(pvtbl_ctsp->virtual_function_info_base_class->type,
-                            class_type)) {
-          /* This base class is sharing a vptr with primary_vtbl_class;
-             use the primary vptr. */
-          subobject_bcp = NULL;
-        }  /* if */
-        /* Make an address constant pointer to the primary vtable. */
-        vtbl_var = pvtbl_ctsp->virtual_function_table_var;
-        vtbl_class = primary_vtbl_class;
-      }  /* if */
-#if !IA64_ABI
-      if (subobject_bcp != NULL) {
-        vtbl_var = subobject_bcp->virtual_function_table_var;
-      }  /* if */
-#endif /* IA64_ABI */
-      make_vtbl_address_constant(vtbl_var,
-                                 vtbl_class,
-                                 subobject_bcp,
-                                 &addr_constant);
-      vptr_con = alloc_unshared_constant_in_region(&addr_constant,
-                                                   in_file_scope(constant));
-    }  /* if */
-    any_more_base_classes = (ctsp->base_classes != NULL);
-    /* Iterate over the field list for the class, keeping track of which
-       items in the aggregate constant initialize each field (at least
-       until we've processed the vptr field and any applicable base
-       classes). */
-    check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
-    aggr_con = constant->variant.aggregate.first_constant;
-    for (field = next_initializable_field(
-                            class_type->variant.class_struct_union.field_list);
-         field != NULL;
-         field = next_initializable_field(field->next)) {
-      if (modify_vptr_in_this_class &&
-          field->offset == ctsp->virtual_function_info_offset &&
-          ctsp->virtual_function_info_base_class == NULL) {
-        /* We've found the vptr field for this aggregate; insert a constant
-           into the aggregate at this spot. */
-        if (prev_con == NULL) {
-          vptr_con->next = constant->variant.aggregate.first_constant;
-          constant->variant.aggregate.first_constant = vptr_con;
-        } else {
-          vptr_con->next = prev_con->next;
-          prev_con->next = vptr_con;
-        }  /* if */
-        if (constant->variant.aggregate.last_constant == prev_con) {
-          constant->variant.aggregate.last_constant = vptr_con;
-        }  /* if */
-        modify_vptr_in_this_class = FALSE;
-      } else {
-        if (any_more_base_classes &&
-            is_class_struct_union_type(field->type)) {
-          /* If this field in the aggregate represents a direct base class,
-             recurse to initialize any vptrs contained therein. */
-          a_boolean found = FALSE;
-          for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-            if (bcp->direct &&
-                bcp->offset == field->offset &&
-                identical_types(field->type,
-                                class_type_supp(bcp->type)->
-                                                          type_as_subobject)) {
-              if (primary_vtbl_class == NULL &&
-                  needs_virtual_function_table(class_type) &&
-                  ctsp->virtual_function_info_base_class != NULL) {
-                /* If there is no more-derived class that shares a vtable,
-                   use this class. */
-                primary_vtbl_class = class_type;
-              }  /* if */
-              initialize_vptr_in_aggregate_constant(aggr_con,
-                                                    primary_vtbl_class,
-                                                    bcp);
-              found = TRUE;
-              break;
-            }  /* if */
-          }  /* for */
-          if (!found) {
-            /* We've reached the end of any base classes; no need to check
-               for those any longer. */
-            any_more_base_classes = FALSE;
-          }  /* if */
-        }  /* if */
-        /* Advance to the next constant in the aggregate (which is fully
-           initialized). */
-        check_assertion(aggr_con != NULL);
-        prev_con = aggr_con;
-        aggr_con = aggr_con->next;
-      }  /* if */
-      if (!modify_vptr_in_this_class && !any_more_base_classes) {
-        /* There may be additional fields in the aggregate, but they don't
-           need to be visited. */
-        break;
-      }  /* if */
-    }  /* for */
-    check_assertion(!modify_vptr_in_this_class);
-  }  /* if */
-}  /* initialize_vptr_in_aggregate_constant */
 
 
 static void add_init_assignment(a_dynamic_init_ptr     dip,
@@ -5390,7 +5230,6 @@ expression).
   }  /* if */
   ipmp = &ipm;
   add_init_pos_modifier(ipmp, &ipd);
-  con_ptr = aggr_const->variant.aggregate.first_constant;
   /* Determine the type of the first element of the aggregate being
      initialized. */
   array_aggr = (aggr_type->kind == (a_type_kind)tk_array);
@@ -5411,9 +5250,13 @@ expression).
     check_assertion_str(is_immediate_class_type(aggr_type),
                        "lower_dynamic_init_aggregate_constant: bad aggr kind");
     /* Class, struct, or union -- get first field (nonstatic data member). */
+    /* Adjust the aggregate constant so that it agrees with the lowered
+       type of the aggregate. */
+    prelower_aggregate_constant(aggr_const);
     ipmp->curr_field = next_initializable_field(
                              aggr_type->variant.class_struct_union.field_list);
   }  /* if */
+  con_ptr = aggr_const->variant.aggregate.first_constant;
   /* Work through the list of constants, pairing each one with a member of
      the aggregate. */
   for (prev_con = NULL;

@@ -1274,6 +1274,8 @@ extern a_boolean constant_must_remain_in_function_scope(
 extern a_variable_ptr assoc_var_for_constant(a_constant_ptr constant,
                                              a_boolean      const_okay);
 
+extern void prelower_aggregate_constant(a_constant_ptr constant);
+
 /*
 Macro that returns TRUE if the type specified by tp contains a function type
 with a parameter type that is passed via a copy constructor.  Such parameter
