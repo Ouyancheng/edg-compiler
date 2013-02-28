@@ -2045,6 +2045,8 @@ type, an lvalue is returned instead.
   if (check_for_troublesome_aggregate_constant(constant,
                                                /*const_okay=*/TRUE,
                                                &temp_var)) {
+    check_assertion(is_or_was_ptr_to_member_function_type(constant->type) ||
+                    !constant->implicit_cast);
     if (is_array_type(constant->type)) {
       node = var_lvalue_expr(temp_var);
     } else {
@@ -2843,6 +2845,9 @@ not to contain any top level base class casts.
          temporary that has been created for this constant. */
       check_assertion(expr->variant.constant->is_result_of_constexpr_call ||
                       expr->variant.constant->is_compound_literal);
+      check_assertion(is_or_was_ptr_to_member_function_type(
+                                               expr->variant.constant->type) ||
+                      !expr->variant.constant->implicit_cast);
       expr = var_addr_expr(temp);
     } else {
       temp = assign_expr_to_temp(expr);
@@ -12534,7 +12539,8 @@ variables can have changed since the first reference.
         check_for_troublesome_aggregate_constant(expr->variant.constant,
                                                  /*const_okay=*/TRUE,
                                                  &temp_var)) {
-      check_assertion(is_or_was_ptr_to_member_function_type(expr->type));
+      check_assertion(is_or_was_ptr_to_member_function_type(expr->type) &&
+                      !expr->variant.constant->implicit_cast);
       /* This expression node is a pointer-to-member-function constant, which
          has become a struct represented by a ck_aggregate constant.  Since a
          ck_aggregate constant is not allowed here, use the value of a
@@ -15077,6 +15083,8 @@ cast.  See lower_expr for typical invocation.
           if (check_for_troublesome_aggregate_constant(con,
                                                        /*const_okay=*/TRUE,
                                                        &temp_var)) {
+            check_assertion(is_or_was_ptr_to_member_function_type(con->type) ||
+                            !con->implicit_cast);
             /* This expression node is loading the value of a pointer-to-
                member-function, which has or will become a struct represented
                by a ck_aggregate constant.  Since a ck_aggregate constant is
