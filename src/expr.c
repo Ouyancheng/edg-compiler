@@ -23714,10 +23714,31 @@ that case.
         options |= TOPT_COPY_CLASS_ON_CONV_TO_RVALUE;
       }  /* if */
       expr_stack->evaluated = expr2_evaluated;
+      if (constexpr_enabled) {
+        saved_cpp11_constant_expr_ruled_out =
+                                           expr_stack->constant_expr_ruled_out;
+        expr_stack->constant_expr_ruled_out = FALSE;
+      }  /* if */
       do_operand_transformations(&operand_2, options);
+      if (constexpr_enabled) {
+        cpp11_constant_expr_ruled_out_in_operand_2 =
+                                           expr_stack->constant_expr_ruled_out;
+        expr_stack->constant_expr_ruled_out = FALSE;
+      }  /* if */
       expr_stack->evaluated = expr3_evaluated;
       do_operand_transformations(&operand_3, options);
       expr_stack->evaluated = saved_evaluated;
+      if (constexpr_enabled) {
+        if (expr_stack->constant_expr_ruled_out &&
+            cpp11_constant_expr_ruled_out_in_operand_2) {
+          /* Both branches of the "?" have something non-constant, so the
+             overall expression is known to be non-constant. */
+          expr_stack->constant_expr_ruled_out = TRUE;
+        } else {
+          expr_stack->constant_expr_ruled_out =
+                                           saved_cpp11_constant_expr_ruled_out;
+        }  /* if */
+      }  /* if */
       /* See if the types are the same in C++ mode after the
          transformations. */
       if (!C_mode()) {
