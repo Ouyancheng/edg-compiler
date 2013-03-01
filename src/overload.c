@@ -20406,6 +20406,7 @@ resolution).
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             add_temp_init_backing_expression(&con, dip);
           } /* if */
+          dip = NULL;
         }  /* if */
       } else {
         /* Otherwise, use a dik_constructor entry.  For a nonreal class,
