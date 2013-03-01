@@ -4217,7 +4217,7 @@ return the routine or variable.  This function may also be called for the
     } else {
       a_routine_ptr  rp = (a_routine_ptr)entity;
       rp->implicit_alias = FALSE;
-      if (ap->kind == (an_attribute_kind)ak_alias) {
+      if (ap->kind == (a_byte_attribute_kind)ak_alias) {
         rp->is_gnu_alias = TRUE;
       }  /* if */
       add_alias_fixup(symbol_for(rp), (char*)NULL, arg->variant.string.value,
@@ -4232,7 +4232,7 @@ return the routine or variable.  This function may also be called for the
                    ap->name);
       make_attr_unrecognized(ap);
     } else {
-      if (ap->kind == (an_attribute_kind)ak_alias) {
+      if (ap->kind == (a_byte_attribute_kind)ak_alias) {
         vp->is_gnu_alias = TRUE;
       }  /* if */
       add_alias_fixup(symbol_for(vp), (char*)NULL, arg->variant.string.value,
