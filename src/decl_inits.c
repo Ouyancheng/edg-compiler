@@ -916,6 +916,15 @@ diagnostics.
     ecount = num_vector_elements(vtype);
     etype = vtype->variant.vector.element_type;
     check_assertion(!is_aggregate_or_union_type(etype));
+    /* Create the result entry (unless we are only checking validity). */
+    if (is->check_validity_only) {
+      *init_con = NULL;
+    } else {
+      *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      (*init_con)->type = vtype;
+      (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+      (*init_con)->explicit_braces_on_aggregate = braced;
+    }  /* if */
     if (braced) {
       /* The element values are enclosed in braces. */
       /* Diagnostics not associated with a particular element should be issued
@@ -936,15 +945,6 @@ diagnostics.
         }  /* if */
         is->init_error = TRUE;
       }  /* if */
-    }  /* if */
-    /* Create the result entry (unless we are only checking validity). */
-    if (is->check_validity_only) {
-      *init_con = NULL;
-    } else {
-      *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-      (*init_con)->type = vtype;
-      (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
-      (*init_con)->explicit_braces_on_aggregate = TRUE;
     }  /* if */
     while (icp != NULL && (no_bound || icount < ecount)) {
       a_constant_ptr  elem_con;
@@ -1667,6 +1667,14 @@ initialization).  *is describes the initialization as a whole.
     a_boolean      no_bound = FALSE, braced = is_braced_init_component(icp),
                    zero_sized_element = FALSE, incomplete_array = FALSE;
     a_boolean      saved_pack_expansion_handled;
+    if (is->check_validity_only) {
+      *init_con = NULL;
+    } else {
+      *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      (*init_con)->type = atype;
+      (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+      (*init_con)->explicit_braces_on_aggregate = braced;
+    }  /* if */
     if (braced) {
       /* The element values are enclosed in braces. */
       /* Diagnostics not associated with a particular element should be issued
@@ -1692,14 +1700,6 @@ initialization).  *is describes the initialization as a whole.
         }  /* if */
         is->init_error = TRUE;
       }  /* if */
-    }  /* if */
-    if (is->check_validity_only) {
-      *init_con = NULL;
-    } else {
-      *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-      (*init_con)->type = atype;
-      (*init_con)->source_corresp.decl_position = *init_component_pos(*p_icp);
-      (*init_con)->explicit_braces_on_aggregate = braced;
     }  /* if */
     /* Determine the element count in the destination type if known. */
     if (has_any_unknown_specified_bound(atype)) {
