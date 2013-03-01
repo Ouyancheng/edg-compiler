@@ -2565,6 +2565,9 @@ Display the indicated variable.
   if (ptr->is_weakref) { 
     disp_boolean("is_weakref", TRUE);
   }  /* if */
+  if (ptr->is_gnu_alias) { 
+    disp_boolean("is_gnu_alias", TRUE);
+  }  /* if */
   if (ptr->has_gnu_unused_attribute) { 
     disp_boolean("has_gnu_unused_attribute", TRUE);
   }  /* if */
@@ -3259,6 +3262,9 @@ Display the indicated routine.
   }  /* if */
   if (ptr->is_weakref) {
     disp_boolean("is_weakref", TRUE);
+  }  /* if */
+  if (ptr->is_gnu_alias) { 
+    disp_boolean("is_gnu_alias", TRUE);
   }  /* if */
   if (ptr->has_gnu_unused_attribute) { 
     disp_boolean("has_gnu_unused_attribute", TRUE);

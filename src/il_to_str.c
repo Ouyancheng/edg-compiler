@@ -5827,22 +5827,12 @@ Do the output in the way described by octl.
                                   &need_leading_space, octl);
     }  /* if */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
-    if (var->aliased_variable != NULL) {
-      char  *attr_str = var->is_weakref ? (char*)"__weakref__"
-                                        : (char*)"__alias__";
-      char  *alias_name;
-      if (var->aliased_variable->asm_name_is_valid &&
-          var->aliased_variable->asm_name_or_reg.name != NULL) {
-        /* If the aliased variable has an asm name, reference that from the
-           alias. */
-        alias_name = var->aliased_variable->asm_name_or_reg.name;
-      } else {
-        alias_name = var->aliased_variable->source_corresp.name;
-      }  /* if */
-      form_string_argument_attribute(
-                             attr_str, alias_name, &need_leading_space, octl);
+    if (var->is_gnu_alias) {
+      form_recorded_gnu_attribute(ak_alias, var->source_corresp.attributes,
+                                  &need_leading_space, octl);
     } else if (var->is_weakref) {
-      form_simple_attribute("__weakref__", &need_leading_space, octl);
+      form_recorded_gnu_attribute(ak_weakref, var->source_corresp.attributes,
+                                  &need_leading_space, octl);
     }  /* if */
     if (is_pointer_type(var->type) &&
         is_function_type(type_pointed_to(var->type))) {
@@ -6020,19 +6010,12 @@ Do the output in the way described by octl.
       form_string_argument_attribute("__section__", rout->section,
                                      &need_leading_space, octl);
     }  /* if */
-    if (rout->aliased_routine != NULL && !rout->implicit_alias) {
-      char  *attr_str = rout->is_weakref ? (char*)"__weakref__"
-                                         : (char*)"__alias__";
-      /* If the aliased routine has an asm name, reference that from the
-         alias. */
-      char  *alias_name = rout->aliased_routine->asm_name;
-      if (alias_name == NULL) {
-        alias_name = rout->aliased_routine->source_corresp.name;
-      }  /* if */
-      form_string_argument_attribute(
-                             attr_str, alias_name, &need_leading_space, octl);
+    if (rout->is_gnu_alias) {
+      form_recorded_gnu_attribute(ak_alias, rout->source_corresp.attributes,
+                                  &need_leading_space, octl);
     } else if (rout->is_weakref) {
-      form_simple_attribute("__weakref__", &need_leading_space, octl);
+      form_recorded_gnu_attribute(ak_weakref, rout->source_corresp.attributes,
+                                  &need_leading_space, octl);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     form_ELF_visibility_attribute(rout->ELF_visibility, &need_leading_space,

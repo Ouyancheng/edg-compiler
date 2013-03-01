@@ -8965,6 +8965,9 @@ typedef struct a_variable {
   a_bit_field	is_weakref:1;
 			/* TRUE if this variable was declared with the 
 			   weakref attribute.*/
+  a_bit_field	is_gnu_alias:1;
+			/* TRUE if this variable was declared with the
+			   alias attribute. */
   a_bit_field   has_gnu_unused_attribute:1;
 			/* TRUE if this variable was declared with the
 			   GNU "unused" attribute. */
@@ -12788,11 +12791,14 @@ typedef struct a_routine {
 			/* TRUE if this routine was declared with the
 			   pure attribute. */
   a_bit_field	is_weak:1;
-			/* TRUE if this routine was declared with the 
+			/* TRUE if this routine was declared with the
 			   weak or weakref attribute. */
   a_bit_field	is_weakref:1;
-			/* TRUE if this routine was declared with the 
+			/* TRUE if this routine was declared with the
 			   weakref attribute. */
+  a_bit_field	is_gnu_alias:1;
+			/* TRUE if this routine was declared with the
+			   alias attribute. */
   a_bit_field   has_gnu_unused_attribute:1;
 			/* TRUE if this routine was declared with the
 			   GNU "unused" attribute. */

@@ -1,5 +1,30 @@
 Version 4.6
 
+3/1/13   [EDGcpfe/13689]
+Representation of unresolved alias and weakref attributes (IL CHANGE)
+
+Previously, when the front end could not resolve the name specified in an
+"alias" or "weakref" attribute to a declaration in the same translation unit,
+it instead recorded the attribute name as an "asm name".  This behavior was
+only an approximation of the GCC behavior, but allowed some significant cases
+to be handled correctly by the C-generating back end.  Now that attributes
+are recorded in detailed form in the IL (see entry for EDGcpfe/8293 etc.)
+this is no longer needed: The back end can consult the attribute to determine
+the aliased name if needed.  Instead, the front end now sets a new flag
+"is_gnu_alias" in variable and routine entries declared with the GNU "alias"
+attribute, and similarly with the pre-existing "is_weakref" flag.
+The new behavior also avoids problems with the C++-generating back end
+transforming a declaration like
+
+  static int xyz_alias() __attribute((weakref("xyz")));
+
+into
+
+  static int xyz_alias() __attribute((weakref("xyz"))) __asm("xyz");
+
+(the latter is not accepted by GCC).
+
+ 
 3/1/13   [EDGcpfe/13217]
 Microsoft compatibility: unterminated macro invocations inside macro arguments
 

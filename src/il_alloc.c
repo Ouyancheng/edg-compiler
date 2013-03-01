@@ -2169,6 +2169,7 @@ Clear the fields of the given variable to default values.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   vp->is_weak                     = FALSE;
   vp->is_weakref                  = FALSE;
+  vp->is_gnu_alias                = FALSE;
   vp->has_gnu_unused_attribute    = FALSE;
   vp->has_gnu_used_attribute      = FALSE;
   vp->is_not_common               = FALSE;
@@ -2559,6 +2560,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_pure                     = FALSE;
   rp->is_weak                     = FALSE;
   rp->is_weakref                  = FALSE;
+  rp->is_gnu_alias                = FALSE;
   rp->has_gnu_unused_attribute    = FALSE;
   rp->has_gnu_used_attribute      = FALSE;
   rp->allocates_memory            = FALSE;

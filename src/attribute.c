@@ -4213,15 +4213,14 @@ return the routine or variable.  This function may also be called for the
          declarations. */
       pos_st_warning(ec_local_function_attribute_ignored, &ap->position,
                      ap->name);
+      make_attr_unrecognized(ap);
     } else {
       a_routine_ptr  rp = (a_routine_ptr)entity;
       rp->implicit_alias = FALSE;
-      /* A separate copy of the string value is needed because the string
-         may become an asm_name, which is traversed as iek_other_text, not
-         iek_string_text. */
-      add_alias_fixup(symbol_for(rp), (char*)NULL,
-                      copy_string_to_region(file_scope_region_number,
-                                            arg->variant.string.value),
+      if (ap->kind == (an_attribute_kind)ak_alias) {
+        rp->is_gnu_alias = TRUE;
+      }  /* if */
+      add_alias_fixup(symbol_for(rp), (char*)NULL, arg->variant.string.value,
                       &ap->position);
     }  /* if */
   } else if (entity_kind == iek_variable) {
@@ -4233,12 +4232,10 @@ return the routine or variable.  This function may also be called for the
                    ap->name);
       make_attr_unrecognized(ap);
     } else {
-      /* A separate copy of the string value is needed because the string
-         may become an asm_name, which is traversed as iek_other_text, not
-         iek_string_text. */
-      add_alias_fixup(symbol_for(vp), (char*)NULL,
-                      copy_string_to_region(file_scope_region_number,
-                                            arg->variant.string.value),
+      if (ap->kind == (an_attribute_kind)ak_alias) {
+        vp->is_gnu_alias = TRUE;
+      }  /* if */
+      add_alias_fixup(symbol_for(vp), (char*)NULL, arg->variant.string.value,
                       &ap->position);
     }  /* if */
   } else {
@@ -6993,31 +6990,17 @@ Traverse the list of alias fixups and set the alias fields as needed.
          have a definition or be an alias itself).  GCC versions prior to 4.0
          (on Intel platforms) treat this as an alternative way to specify the
          asm name of the alias.  Newer GCC versions treat it as an error (as
-         do earlier versions on some non-Intel platforms).  We emulate the
-         behavior implemented for Intel-based platforms.  No error (or
-         warning) is issued if the alias is for a "weakref" attribute. */
+         do earlier versions on some non-Intel platforms).  We issue an error
+         when emulating newer GCC versions, and a warning otherwise (a back
+         end can still the name of the alias from the attribute entry).  No
+         diagnostic is issued if the alias is for a "weakref" attribute. */
       a_boolean  is_weakref = FALSE;
       switch (entry->alias->kind) {
         case sk_routine:
-          entry->alias->variant.routine.ptr->asm_name = entry->aliased_name;
           is_weakref = entry->alias->variant.routine.ptr->is_weakref;
-          if (!is_weakref) {
-            /* Drop the "weak" attribute to force a linker error if the
-               aliased entity is undefined.  This is not done if the "weakref"
-               attribute was specified. */
-            entry->alias->variant.routine.ptr->is_weak = FALSE;
-          }  /* if */
           break;
         case sk_variable:
-          entry->alias->variant.variable.ptr->asm_name_or_reg.name =
-                                                          entry->aliased_name;
           is_weakref = entry->alias->variant.variable.ptr->is_weakref;
-          if (!is_weakref) {
-            /* Drop the "weak" attribute to force a linker error if the
-               aliased entity is undefined.  This is not done if the "weakref"
-               attribute was specified. */
-            entry->alias->variant.variable.ptr->is_weak = FALSE;
-          }  /* if */
           break;
         default:
           unexpected_condition();
