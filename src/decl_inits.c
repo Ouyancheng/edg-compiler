@@ -1430,12 +1430,12 @@ the position at which diagnostics should be issued.
              new/delete supplement. */
           count = 0;
         }  /* if */
-        /* Add a ck_init_repeat constant if needed (which includes the case
-           of a run-time count, represented using a "zero" ck_init_repeat. */
-        if (count != 1) {
-          remainder_con = add_repeat_con(remainder_con, count);
-          remainder_con->implicit_aggr_element = TRUE;
-        }  /* if */
+        /* Add a ck_init_repeat constant.  The case of a run-time count is
+           represented using a "zero" ck_init_repeat.  A count of "one" is
+           strictly speaking superfluous, but it makes it easier to pattern-
+           match these implicit initializers. */
+        remainder_con = add_repeat_con(remainder_con, count);
+        remainder_con->implicit_aggr_element = TRUE;
         add_constant_to_aggregate(remainder_con, array_con);
       }  /* if */
     }  /* if */
