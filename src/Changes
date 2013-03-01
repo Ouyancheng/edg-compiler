@@ -1,5 +1,55 @@
 Version 4.6
 
+3/1/13   [EDGcpfe/13217]
+Microsoft compatibility: unterminated macro invocations inside macro arguments
+
+As noted below in the change for EDGcpfe/8933, the Microsoft preprocessor
+allows an invocation of a function-style macro to begin inside a macro
+argument and terminate in text following that invocation.  The change for
+EDGcpfe/8933 only permitted the closing parenthesis for such invocations to
+appear in the main program text following the top-level macro invocation.
+In fact, the Microsoft preprocessor accepts a closing parenthesis in the
+expanded text of a containing macro invocation as well, a feature used in
+some complex Microsoft-mode Boost preprocessing code.  The front end now
+accepts such cases in Microsoft bugs mode as well.  For example, the
+following now produces an empty expansion, as it does with the Microsoft
+preprocessor:
+
+  #define BOOST_PP_CAT(a,b) BOOST_PP_CAT_I(a, b)
+  #define BOOST_PP_CAT_I(a,b) BOOST_PP_CAT_II(a##b)
+  #define BOOST_PP_CAT_II(res) res
+  #define BOOST_MPL_PP_IS_SEQ(seq) BOOST_MPL_PP_IS_SEQ_(seq)
+  #define BOOST_MPL_PP_IS_SEQ_(seq) \
+     BOOST_PP_CAT(BOOST_MPL_PP_IS_SEQ_, BOOST_MPL_PP_IS_SEQ_0 seq ) )
+  #define BOOST_MPL_PP_IS_SEQ_0(x) BOOST_MPL_PP_IS_SEQ_1(x
+  #define BOOST_MPL_PP_IS_SEQ_ALWAYS_0(unused) 0
+  #define BOOST_MPL_PP_IS_SEQ_BOOST_MPL_PP_IS_SEQ_0 \
+     BOOST_MPL_PP_IS_SEQ_ALWAYS_0(
+  #define BOOST_MPL_PP_IS_SEQ_BOOST_MPL_PP_IS_SEQ_1(unused) 1
+  #define BOOST_PP_BOOL(x) BOOST_PP_BOOL_I(x)
+  #define BOOST_PP_BOOL_I(x) BOOST_PP_BOOL_##x
+  #define BOOST_PP_BOOL_0 0
+  #define BOOST_PP_BOOL_1 1
+  #define BOOST_PP_COMPL(x) BOOST_PP_COMPL_I(x)
+  #define BOOST_PP_COMPL_I(x) BOOST_PP_COMPL_ID(BOOST_PP_COMPL_##x)
+  #define BOOST_PP_COMPL_ID(id) id
+  #define BOOST_PP_COMPL_0 1
+  #define BOOST_PP_COMPL_1 0
+  #define BOOST_PP_NOT(x) BOOST_PP_COMPL(BOOST_PP_BOOL(x))
+  #define BOOST_PP_IIF(bit,t,f) BOOST_PP_IIF_I(bit, t, f)
+  #define BOOST_PP_IIF_I(bit,t,f) BOOST_PP_IIF_II(BOOST_PP_IIF_##bit(t, f))
+  #define BOOST_PP_IIF_II(id) id
+  #define BOOST_PP_IIF_0(t,f) f
+  #define BOOST_PP_IIF_1(t,f) t
+  #define BOOST_PP_TUPLE_EAT_1(e0)
+  #define BOOST_PP_ASSERT_D(cond) \
+     BOOST_PP_IIF(BOOST_PP_NOT(cond), \
+     BOOST_PP_ASSERT_ERROR, BOOST_PP_TUPLE_EAT_1)(...)
+  #define BOOST_PP_ASSERT_ERROR(x,y,z)
+
+  BOOST_PP_ASSERT_D( BOOST_PP_NOT( BOOST_MPL_PP_IS_SEQ(a) ) )
+
+
 2/27/13  [EDGcpfe/13691]
 Undefined behavior when mangling dependent dynamic_cast in IA-64 ABI
 

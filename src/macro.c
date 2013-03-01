@@ -2802,12 +2802,18 @@ The current token must have been scanned as a pp-token.
     *buffer++ = ' ';
   }  /* if */
   if (curr_token_is_temporarily_inert_macro) {
-    /* Prefix for a macro identifier name that indicates that the name came
-       from an attempted invocation for which the terminating right
-       parenthesis was not found and should not be expanded until after the
-       top-level expansion is complete. */
-    *buffer++ = LE_ESCAPE;
-    *buffer++ = LE_TEMPORARILY_INERT_MACRO;
+    /* This token is the name of a function-style macro that could not be
+       expanded when it was first encountered because the closing right
+       parenthesis was not found.  We do not mark it as such in this buffer
+       in order to allow a right parenthesis at this level to close the
+       invocation (a Microsoft quirk). */
+    if (!need_end_of_token_marker) {
+      /* The LE_TEMPORARILY_INERT_MACRO lexical escape would have
+         terminated the preceding token.  If we did not previously add an
+         end-of-token marker, do so now. */
+      *buffer++ = LE_ESCAPE;
+      *buffer++ = LE_END_OF_TOKEN;
+    }  /* if */
   } else if (curr_token_is_inert_macro) {
     /* Prefix for a macro identifier name that indicates that the name came
        from its own expansion and should not be expanded further. */
