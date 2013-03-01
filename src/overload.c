@@ -17586,20 +17586,31 @@ the temporary if result_is_lvalue is TRUE, an rvalue otherwise.
 is_explicit_cast is TRUE if this node represents an explicit cast.
 */
 {
-  a_dynamic_init_ptr dip;
-  an_expr_node_ptr   temp_init_node;
+  a_dynamic_init_ptr  dip;
+  an_expr_node_ptr    temp_init_node;
+  a_dynamic_init_kind kind = (a_dynamic_init_kind)dik_expression;
 
   if (temp_type == NULL) temp_type = operand->type;
+  conv_lvalue_to_rvalue(operand);
+  if (constexpr_enabled && curr_expr_kind_is_const()) {
+    force_operand_to_constant_if_possible(operand);
+    if (is_constant_operand(operand)) kind = (a_dynamic_init_kind)dik_constant;
+  }  /* if */
   /* Allocate the dynamic initialization entry and the enk_temp_init node. */
   temp_init_node = create_expr_temporary(temp_type,
                                          result_is_lvalue,
                                          is_explicit_cast,
                                          /*suppress_abstract_test=*/FALSE,
-                                         (a_dynamic_init_kind)dik_expression,
+                                         kind,
                                          &operand->position,
                                          &dip);
-  conv_lvalue_to_rvalue(operand);
-  dip->variant.expression = make_node_from_operand(operand);
+  if (kind == (a_dynamic_init_kind)dik_expression) {
+    dip->variant.expression = make_node_from_operand(operand);
+  } else {
+    a_constant con;
+    extract_constant_from_operand(operand, &con);
+    dip->variant.constant = alloc_unshared_constant(&con);
+  }  /* if */
   /* Make an operand for the overall expression. */
   make_lvalue_or_rvalue_expression_operand(temp_init_node, operand);
   rule_out_expr_kinds(ROEK_CONSTANT, operand);
