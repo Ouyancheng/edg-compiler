@@ -1119,8 +1119,6 @@ given position, unless is->no_diagnostics is TRUE.
             dip->variant.constant = result;
             result = NULL;
           }  /* if */
-        } else {
-          is->has_dynamic_init_component = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -1144,6 +1142,7 @@ given position, unless is->no_diagnostics is TRUE.
     result = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
     result->variant.dynamic_init = dip;
     result->type = tp;
+    is->has_dynamic_init_component = TRUE;
   }  /* if */
   return result;
 }  /* default_nontrivial_init_constant_for_aggr_member */
