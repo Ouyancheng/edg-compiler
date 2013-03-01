@@ -8115,23 +8115,18 @@ Otherwise, return NULL.
 static a_boolean fold_variable_reference(
                                       an_expr_node_ptr             expr,
                                       a_constexpr_evaluation_block *ceblock,
-                                      a_constant                   *result_con,
-                                      a_constant_ptr               *alloc_con)
+                                      a_constant                   *result_con)
 /*
 expr is an enk_variable node.  See if the variable appears on the
 constexpr remap list provided as ceblock->remap_list, and if so set
 *result_con to the variable's value and return TRUE; otherwise, return FALSE.
 Also replace constexpr variables by their values.  The expression node can
-be an lvalue or rvalue; it doesn't matter.  When returning TRUE, if
-there is already an allocated version of the constant, and alloc_con
-is non-NULL, return a pointer to the allocated constant in *alloc_con;
-otherwise set it to NULL.
+be an lvalue or rvalue; it doesn't matter.
 */
 {
   a_boolean      folded = FALSE;
   a_variable_ptr var = expr->variant.variable;
 
-  if (alloc_con != NULL ) *alloc_con = NULL;
   if (var->is_parameter) {
     a_constexpr_remap_ptr crp =
                         constant_remap_entry_for_variable(var,
@@ -8150,7 +8145,6 @@ otherwise set it to NULL.
     if (valcon != NULL) {
       folded = TRUE;
       copy_constant(valcon, result_con);
-      if (alloc_con != NULL) *alloc_con = valcon;
     }  /* if */
   }  /* if */
   return folded;
@@ -8573,8 +8567,7 @@ ceblock gives context information for the evaluation.
   } else if (is_variable_node(expr)) {
     /* An rvalue variable node for a parameter can be replaced by its
        value, if constant. */
-    if (fold_variable_reference(expr, ceblock, result_con,
-                                (a_constant **)NULL)) {
+    if (fold_variable_reference(expr, ceblock, result_con)) {
       folded = TRUE;
     }  /* if */
   } else if (is_operation_node(expr)) {
@@ -8867,16 +8860,21 @@ ceblock gives context information for the evaluation.
     /* The expression has a constant address. */
     folded = TRUE;
   } else if (is_variable_node(expr)) {
-    /* An lvalue variable node for a parameter can be replaced by the
-       address of a temporary containing the constant argument value. */
-    a_constant_ptr alloc_con = NULL;
-    if (fold_variable_reference(expr, ceblock, &local_constant,
-                                &alloc_con)) {
+    a_variable_ptr var = expr->variant.variable;
+    if (var->is_constexpr) {
+      /* An lvalue variable node for a constexpr variable can be replaced
+         by the constant address of the variable -- it points to the
+         constant value.  Consider even non-static constexpr variables to
+         have a "constant" address for this purpose. */
       folded = TRUE;
-      if (alloc_con == NULL) {
-        alloc_con = alloc_shareable_constant(&local_constant);
-      }  /* if */
-      set_temporary_address_constant(alloc_con, result_con);
+      set_variable_address_constant(var, result_con,
+                                    /*set_address_taken_flag=*/FALSE);
+    } else if (fold_variable_reference(expr, ceblock, &local_constant)) {
+      /* An lvalue variable node for a parameter can be replaced by the
+         address of a temporary containing the constant argument value. */
+      folded = TRUE;
+      set_temporary_address_constant(alloc_shareable_constant(&local_constant),
+                                     result_con);
     }  /* if */
   } else if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
@@ -8967,8 +8965,7 @@ member function call.
     } else if (!want_addr && is_variable_node(expr)) {
       /* An lvalue variable node for a parameter or constexpr variable
          can be replaced by the value of the variable. */
-      folded = fold_variable_reference(expr, ceblock, result_con,
-                                       (a_constant **)NULL);
+      folded = fold_variable_reference(expr, ceblock, result_con);
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       /* A dynamic initialization.  Try folding it to a constant.  This
          comes up when passing class values via copy constructor. */

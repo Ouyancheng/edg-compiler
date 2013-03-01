@@ -4753,7 +4753,8 @@ because the constant might be used in a way that doesn't really take
 the address of the variable, e.g., an lvalue).
 */
 {
-  check_assertion(has_static_storage_duration(variable->storage_class));
+  check_assertion(has_static_storage_duration(variable->storage_class) ||
+                  variable->is_constexpr);
   clear_constant(con, (a_constant_repr_kind)ck_address);
   con->variant.address.kind = (an_address_base_kind)abk_variable;
   con->variant.address.variant.variable = variable;
