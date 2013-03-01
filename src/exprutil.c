@@ -5211,16 +5211,28 @@ void force_operand_to_constant_if_possible(an_operand *operand)
 /*
 If possible, force the indicated operand to be a constant.  Specifically,
 if the operand is an addressing expression of pointer type whose address
-is constant, turn the operand into that constant.
+is constant, turn the operand into that constant.  Also, in constexpr
+constant expressions, fold to a constant result.
 */
 {
-  if (is_expression_operand(operand) &&
-      is_an_rvalue(operand) &&
-      is_pointer_type(operand->type)) {
+  a_constant con;
+  an_operand orig_operand;
+
+  if (constexpr_enabled && curr_expr_kind_is_const() &&
+      is_expression_operand(operand) && is_an_rvalue(operand) &&
+      fold_constexpr_expr(operand->variant.expression,
+                          &operand->position,
+                          &con)) {
+    /* With constexpr enabled, the expression can be folded to a constant. */
+    orig_operand = *operand;
+    make_constant_operand(&con, operand);
+    restore_operand_details(operand, &orig_operand);
+  } else if (is_expression_operand(operand) &&
+             is_an_rvalue(operand) &&
+             is_pointer_type(operand->type)) {
     a_constant conaddr;
     if (constant_rvalue_pointer(operand->variant.expression, &conaddr,
                                 /*address_escapes=*/TRUE)) {
-      an_operand orig_operand;
       orig_operand = *operand;
       if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
         conaddr.expr = operand->variant.expression;
