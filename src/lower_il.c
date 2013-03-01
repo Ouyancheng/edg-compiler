@@ -4863,6 +4863,16 @@ in the aggregate have not been lowered (and aren't lowered here).
                                  &addr_constant);
       vptr_con = alloc_unshared_constant_in_region(&addr_constant,
                                                    in_file_scope(constant));
+#if MAINTAIN_NEEDED_FLAGS
+      if (lowering_file_scope) {
+        /* If the lowering is taking place during orphan processing, ensure
+           that the constant we're adding has the same needed flag settings
+           as the aggregate it's being inserted into. */
+        mark_as_needed_like((char *)vptr_con, iek_constant,
+                            &constant->source_corresp,
+                            /*set_class_defn_needed=*/FALSE);
+      }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
     }  /* if */
     any_more_base_classes = (ctsp->base_classes != NULL);
     /* Iterate over the field list for the class, keeping track of which
