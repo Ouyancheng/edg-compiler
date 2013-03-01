@@ -272,6 +272,11 @@ extern a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
                                      a_source_position *pos,
                                      a_constant        *result_con);
 
+extern a_boolean fold_constexpr_dynamic_init(a_dynamic_init_ptr dip,
+                                             a_type_ptr         dest_type,
+                                             a_source_position  *pos,
+                                             a_constant         *result_con);
+
 extern a_boolean fold_constexpr_call(an_expr_node_ptr  call_expr,
                                      a_boolean         record_backing_expr,
                                      a_source_position *pos,

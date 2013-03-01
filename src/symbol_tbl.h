@@ -5723,12 +5723,17 @@ or sk_member_function symbol.
   (skip_typerefs((sym)->variant.routine.ptr->type))
 
 /*
+Extract a pointer to the class symbol supplement for a given class_type_symbol.
+*/
+#define class_symbol_supp(class_sym)                                  \
+  ((class_sym)->variant.class_struct_union.extra_info)
+
+/*
 Extract a pointer to the class symbol supplement for a given type for
 which is_class_struct_union_type is TRUE.
 */
 #define symbol_supplement_for_class(tp)                              \
-  (((a_symbol_ptr)(skip_typerefs(tp))->source_corresp.assoc_info)->  \
-                            variant.class_struct_union.extra_info)
+  class_symbol_supp(symbol_for(skip_typerefs(tp)))
 
 /*
 Extract a pointer to the enum symbol supplement for a given type for

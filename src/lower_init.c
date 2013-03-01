@@ -5309,15 +5309,16 @@ expression).
       check_assertion_str(array_aggr,
                  "lower_dynamic_init_aggregate_constant: repeat on non-array");
       repeated_con = con_ptr->variant.init_repeat.constant;
-      /* Repeat the constant the right number of times.  It must be a
-         ck_dynamic_init constant. */
+      /* Repeat the constant the right number of times. */
       if (repeated_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
-        /* With designated initializers, it is possible to get a repeated
-           constant.  Leave it alone, except for lowering the underlying
-           constant.  This comes up in C mode when IL lowering is used to
-           lower nonconstant initializers.  (However, the repeated constant
-           will be actually constant.) */
-        check_assertion(designators_allowed);
+        /* Repeated non-dynamic constants are possible with designators and
+           when constexpr default constructors are folded.  Either way, leave
+           leave it alone, except for lowering the underlying constant.  This
+           comes up in C mode when IL lowering is used to lower nonconstant
+           initializers.  (However, the repeated constant will be actually
+           constant.) */
+        check_assertion(designators_allowed ||
+                        repeated_con->is_result_of_constexpr_call);
 #if DO_C99_IL_LOWERING
         if (c99_mode || gcc_mode) {
           lower_c99_constant(repeated_con);

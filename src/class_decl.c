@@ -14915,9 +14915,9 @@ static a_boolean check_valid_union_field(a_type_ptr         field_type,
 In traditional C++, nonstatic data members of a union may not be objects with
 a constructor, a destructor, or a user-defined assignment operator.  (In C++11
 those restrictions were removed.)  If any such member functions are present
-and unrestricted_unions_enabled is FALSE, then:  in cfront mode issue a
-warning if there's only a user-defined assignment operator; otherwise, issue
-an error and return FALSE.  If any such member functions are present and
+and unrestricted_unions_enabled is FALSE, then: in cfront mode issue a warning
+if there's only a user-defined assignment operator; otherwise, issue an error
+and return FALSE.  If any such member functions are present and
 unrestricted_unions_enabled is TRUE, record that fact in the symbol supplement
 for the union type (class_type).
 */
@@ -15322,17 +15322,19 @@ nonstandard anonymous unions is_nonstd is TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     cssp->trivial_default_constructor = NULL;
     cssp->assignment_operator = NULL;
-    /* Also reset some flags to values that make sense after the union
-       is transformed. */
-    cssp->has_nontrivial_default_constructor = FALSE;
-    cssp->has_user_declared_default_constructor = FALSE;
-    cssp->has_user_provided_default_constructor = FALSE;
-    cssp->has_copy_constructor = FALSE;
-    cssp->has_copy_constructor_for_const_object = FALSE;
-    cssp->has_user_provided_copy_constructor = FALSE;
-    cssp->has_trivial_destructor = FALSE;
-    cssp->assignment_by_bitwise_copy_allowed = TRUE;
-    cssp->construction_by_bitwise_copy_allowed = TRUE;
+    if (!unrestricted_unions_enabled) {
+      /* Reset some flags to values that make sense after the union is
+         transformed. */
+      cssp->has_nontrivial_default_constructor = FALSE;
+      cssp->has_user_declared_default_constructor = FALSE;
+      cssp->has_user_provided_default_constructor = FALSE;
+      cssp->has_copy_constructor = FALSE;
+      cssp->has_copy_constructor_for_const_object = FALSE;
+      cssp->has_user_provided_copy_constructor = FALSE;
+      cssp->has_trivial_destructor = FALSE;
+      cssp->assignment_by_bitwise_copy_allowed = TRUE;
+      cssp->construction_by_bitwise_copy_allowed = TRUE;
+    }  /* if */
   }  /* if */
   /* Go through each of the symbols on the list. */
   check_assertion(decl_scope_level == depth_scope_stack || C_mode());
@@ -16581,7 +16583,7 @@ be entered.
     class_state->any_fields_other_than_unnamed_bitfields = TRUE;
   }  /* if */
   if (!C_mode() && class_type->kind == (a_type_kind)tk_union &&
-      !decl_info->is_anonymous_union) {
+      (!decl_info->is_anonymous_union || unrestricted_unions_enabled)) {
     /* An object of a class with a constructor, a destructor, or a user-
        defined assignment operator cannot be a member of a union. */
     if (!check_valid_union_field(member_type, class_type, /*is_nonstd=*/FALSE,

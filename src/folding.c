@@ -8059,6 +8059,29 @@ end_of_routine:
 }  /* fold_dynamic_init */
 
 
+a_boolean fold_constexpr_dynamic_init(a_dynamic_init_ptr dip,
+                                      a_type_ptr         dest_type,
+                                      a_source_position  *pos,
+                                      a_constant         *result_con)
+/*
+Attempt to fold the dynamic initialization "dip" to a constant as part
+of a constexpr evaluation.  dest_type is the type of the entity being
+initialized, which may be a reference.  If the dynamic init folds to a
+constant, place the constant in *result_con and return TRUE; otherwise,
+return FALSE.  For a reference case, the returned constant is the constant
+address for the reference.  pos gives a source position for the
+evaluation.
+*/
+{
+  a_boolean                    folded;
+  a_constexpr_evaluation_block ceblock;
+
+  clear_constexpr_evaluation_block(&ceblock, pos);
+  folded = fold_dynamic_init(dip, dest_type, &ceblock, result_con);
+  return folded;
+}  /* fold_constexpr_dynamic_init */
+
+
 static a_boolean i_fold_constexpr_call(
                               an_expr_node_ptr             call_expr,
                               a_constexpr_evaluation_block *ceblock,

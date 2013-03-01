@@ -543,7 +543,7 @@ given position and return an error constant.
   a_routine_ptr   ctor = dip->variant.constructor.ptr;
 
   if (ctor->is_constexpr) {
-    a_boolean partially_initialized;
+    a_boolean  partially_initialized;
     if (!fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE, diag_pos,
                              result, &partially_initialized)) {
       /* The call to the default constructor could not be folded. */
@@ -1071,7 +1071,6 @@ given position, unless is->no_diagnostics is TRUE.
   a_routine_ptr       ctor_rp, dtor_rp;
   a_boolean           err = FALSE, *p_err = NULL;
 
-
   /* Get the default constructor. */
   if (is->no_diagnostics) p_err = &err;
   /* No access checking is done during tentative matching for overload
@@ -1097,7 +1096,16 @@ given position, unless is->no_diagnostics is TRUE.
       if (is->initializer_must_be_constant) {
         result = get_default_constructed_constant(dip, tp, diag_pos);
       } else {
-        is->has_dynamic_init_component = TRUE;
+        a_boolean   partially_initialized;
+        a_constant  class_con;
+        if (ctor_rp->is_constexpr &&
+            fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE, diag_pos,
+                                &class_con, &partially_initialized)) {
+          if (partially_initialized) is->partial_initializer = TRUE;
+          result = alloc_unshared_constant(&class_con);
+        } else {
+          is->has_dynamic_init_component = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     /* If the default constructor is generated and some component of the class
@@ -1129,6 +1137,93 @@ given position, unless is->no_diagnostics is TRUE.
   }  /* if */
   return result;
 }  /* default_nontrivial_init_constant_for_aggr_member */
+
+
+static a_constant_ptr implicit_init_anonymous_union_member(
+                                                 a_type_ptr         tp,
+                                                 an_init_state      *is,
+                                                 a_source_position  *diag_pos)
+/*
+tp is an anonymous union type that is not explicitly initialized by an
+aggregate initializer.  Return a constant representing the implicit
+initialization of the anonymous union.  *is tracks the initialization as a
+whole and may be updated by this routine (e.g., to indicate that an error
+occurred).  Diagnostics should be issued at the given position, unless
+is->no_diagnostics is TRUE.
+*/
+{
+  a_constant_ptr                 result = NULL;
+  a_class_symbol_supplement_ptr  cssp;
+
+  check_assertion(is_immediate_class_type(tp) &&
+                  class_type_supp(tp)->anonymous_union_kind ==
+                                          (an_anonymous_union_kind)auk_field);
+  cssp = class_symbol_supp(symbol_for(tp));
+  if (cssp->variant_member_with_nontrivial_default_ctor ||
+      cssp->variant_member_with_nontrivial_dtor) {
+    /* A union with a variant member that has a nontrivial default constructor
+       has a deleted default constructor itself, which prevents its default
+       initialization.  Similarly with the destructor.  (For anonymous union
+       types, we don't record special members in the symbol table, but from
+       the standard's point of view the type of anonymous unions are ordinary
+       unions.) */
+    pos2_diagnostic(es_error, ec_cannot_default_initialize_anon_union,
+                    diag_pos, &tp->source_corresp.decl_position);
+    result = alloc_error_constant();
+  } else {
+    a_field_ptr  fp, first_field;
+    if (!is->check_validity_only) {
+      result = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      result->type = tp;
+      result->implicit_aggr_element = TRUE;
+    }  /* if */
+    first_field = tp->variant.class_struct_union.field_list;
+    /* Search for a field with a field initializer. */
+    for (fp = next_initializable_field(first_field);
+         fp != NULL;
+         fp = next_initializable_field(fp->next)) {
+      if (fp->has_initializer) break;
+    }  /* for */
+    if (fp != NULL) {
+      a_dynamic_init_ptr  dip;
+      a_constant_ptr      des_con, elem_con;
+      a_constant          folded_value;
+      scan_field_initializer_if_needed(fp, tp);
+      dip = fp->initializer;
+      check_assertion(dip != NULL);
+      if (fp != first_field && !is->check_validity_only) {
+        /* Add a designator to indicate the field to initialize. */
+        des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+        des_con->variant.designator.field = fp;
+        add_constant_to_aggregate(des_con, result);
+      }  /* if */
+      if (fold_constexpr_dynamic_init(dip, fp->type, diag_pos,
+                                      &folded_value)) {
+        /* Append a copy of the constant. */
+        if (!is->check_validity_only) {
+          elem_con = alloc_unshared_constant(&folded_value);
+        }  /* if */
+      } else {
+        if (!is->check_validity_only) {
+          /* Copy the initializer and place the copy under a ck_dynamic_init
+             constant. */
+          dip = copy_dynamic_init(dip, CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+          elem_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+          elem_con->variant.dynamic_init = dip;
+          elem_con->type = fp->type;
+        }  /* if */
+        is->has_dynamic_init_component = TRUE;
+      }  /* if */
+      if (!is->check_validity_only) {
+        elem_con->implicit_aggr_element = TRUE;
+        add_constant_to_aggregate(elem_con, result);
+      }  /* if */
+    } else {
+      /* A traditional (POD) union.  Just keep the empty aggregate constant. */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* implicit_init_anonymous_union_member */
 
 
 static a_constant_ptr add_repeat_con(a_constant_ptr  elem_con,
@@ -1992,7 +2087,10 @@ position for which diagnostics should be issued.
       if (is_real_class_type(ftp)) {
         a_class_symbol_supplement  *cssp = symbol_supplement_for_class(ftp);
         if (!has_trivial_default_constructor(cssp) ||
-            (exceptions_enabled && has_nontrivial_destructor(cssp))) {
+            (exceptions_enabled && has_nontrivial_destructor(cssp)) ||
+            (!cssp->is_class_aggregate &&
+             class_type_supp(ftp)->anonymous_union_kind ==
+                                         (an_anonymous_union_kind)auk_field)) {
           /* A default constructor and/or a destructor must be called to
              initialize this field. */
           last_dyn_field = fp;
@@ -2027,8 +2125,14 @@ position for which diagnostics should be issued.
         /* A field of class type (or array thereof): A constructor or
            destructor may be involved. */
         a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(ftp);
-        if (!has_trivial_default_constructor(cssp) ||
-            (exceptions_enabled && !cssp->has_trivial_destructor)) {
+        if (class_type_supp(ftp)->anonymous_union_kind ==
+                                         (an_anonymous_union_kind)auk_field) {
+          /* Anonymous union types don't have their own constructors or
+             destructors, but if they include a field with an initializer,
+             their initialization is not simply value initialization. */
+          init_con = implicit_init_anonymous_union_member(ftp, is, diag_pos);
+        } else if (!has_trivial_default_constructor(cssp) ||
+                   (exceptions_enabled && !cssp->has_trivial_destructor)) {
           /* Nontrivial initialization/destruction. */
           init_con = default_nontrivial_init_constant_for_aggr_member(
                                                            ftp, is, diag_pos);
@@ -2546,7 +2650,7 @@ issued if no more specific position is available.
         /* No more fields to initialize. */
         break;
       }  /* if */
-    }  /* for */
+    }  /* while */
     if (fp != NULL && !is->pack_expansion_handled) {
       /* Not all class fields are explicitly initialized: Append entries to
          initialize remaining fields if appropriate. */
