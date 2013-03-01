@@ -18831,17 +18831,17 @@ conversion_determined:
 }  /* prep_elision_initializer_operand */
 
 
-static void temp_init_from_operand_full(an_operand *operand,
-                                        a_type_ptr temp_type,
-                                        a_boolean  result_is_lvalue)
+void temp_init_from_operand_full(an_operand *operand,
+                                 a_type_ptr temp_type,
+                                 a_boolean  result_is_lvalue)
 /*
 Create an enk_temp_init node that initializes a temporary of type
 temp_type to a copy of the indicated operand.  temp_type should be
 the same as the operand type or differ only in cv-qualification.
-The source operand can be an rvalue or an lvalue.  On return, *operand
-will have been changed to an lvalue for the temporary if
-result_is_lvalue is TRUE, or an rvalue for the temporary if
-result_is_lvalue is FALSE.  Used only in C++ mode.
+If it's NULL, operand->type is used.  The source operand can be an
+rvalue or an lvalue.  On return, *operand will have been changed to an
+lvalue for the temporary if result_is_lvalue is TRUE, or an rvalue for
+the temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
 */
 {
   a_boolean          cctor_case, class_bitwise_copy;
@@ -18851,10 +18851,14 @@ result_is_lvalue is FALSE.  Used only in C++ mode.
   an_operand         orig_operand;
 
   orig_operand = *operand;
-  check_assertion(identical_types_ignoring_qualifiers(temp_type,
-                                                      operand->type) ||
-                  is_error_operand(operand) ||
-                  is_error_type(temp_type));
+  if (temp_type == NULL) {
+    temp_type = operand->type;
+  } else {
+    check_assertion(identical_types_ignoring_qualifiers(temp_type,
+                                                        operand->type) ||
+                    is_error_operand(operand) ||
+                    is_error_type(temp_type));
+  }  /* if */
   unqual_temp_type = skip_typerefs(temp_type);
   complete_type_is_needed(temp_type);
   check_assertion(!is_incomplete_type(temp_type));
@@ -18922,7 +18926,7 @@ the temporary if result_is_lvalue is TRUE, or an rvalue for the
 temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
 */
 {
-  temp_init_from_operand_full(operand, operand->type, result_is_lvalue);
+  temp_init_from_operand_full(operand, (a_type *)NULL, result_is_lvalue);
 }  /* temp_init_from_operand */
 
 

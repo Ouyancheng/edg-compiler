@@ -1023,6 +1023,10 @@ extern void prep_elision_initializer_operand(
                                   a_boolean          *elision_done,
                                   a_dynamic_init_ptr *dip);
 
+extern void temp_init_from_operand_full(an_operand *operand,
+                                        a_type_ptr temp_type,
+                                        a_boolean  result_is_lvalue);
+
 extern a_boolean conversion_for_direct_reference_binding_possible(
                                      an_operand               *source_operand,
                                      a_type_ptr               dest_type,

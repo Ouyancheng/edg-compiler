@@ -14358,7 +14358,8 @@ indication in *rcblock).
       if (rvalue_reference_case) {
         /* The IL operator takes an lvalue operand.  Convert an rvalue case
            to an lvalue case. */
-        conv_reference_cast_operand_to_lvalue_if_necessary(&operand);
+        conv_reference_cast_operand_to_lvalue_if_necessary(&operand,
+                                                           cast_type);
       }  /* if */
       expr = make_node_from_operand(&operand);
       set_used_in_exception_or_rtti_flag(expr->type);
@@ -19703,7 +19704,8 @@ is start_position.  The source form of the cast is given by source_form.
       /* When casting to a tracking reference, if the source operand is
          an rvalue, convert it to an lvalue. */
       eliminate_unusual_operand_kinds(operand);
-      conv_reference_cast_operand_to_lvalue_if_necessary(operand);
+      conv_reference_cast_operand_to_lvalue_if_necessary(operand,
+                                                         type_cast_to);
     } else {
       if (requires_boxing) {
         box_value_type_operand(operand, /*leave_as_handle=*/TRUE);

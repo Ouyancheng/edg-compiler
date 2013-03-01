@@ -8204,15 +8204,18 @@ Convert it to an rvalue instead.  This is the point of creation for
 }  /* conv_rvalue_reference_result_to_rvalue */
 
 
-void conv_reference_cast_operand_to_lvalue_if_necessary(an_operand *operand)
+void conv_reference_cast_operand_to_lvalue_if_necessary(an_operand *operand,
+                                                        a_type_ptr  dest_type)
 /*
 The indicated operand is the source of a cast to a reference type.  If it
 is an rvalue, convert it to an lvalue.  This is necessary because the IL
-operators for reference casts take an lvalue as their operand.
+operators for reference casts take an lvalue as their operand.  dest_type
+gives the destination reference type.
 */
 {
   an_expr_node_ptr temp_init_node;
 
+  check_assertion(dest_type != NULL && is_any_reference_type(dest_type));
   if (is_an_rvalue(operand)) {
     if (is_class_struct_union_type(operand->type)) {
       conv_class_rvalue_operand_to_lvalue(operand);
@@ -8234,7 +8237,18 @@ operators for reference casts take an lvalue as their operand.
       make_lvalue_expression_operand(temp_init_node, operand);
       restore_operand_details(operand, &orig_operand);
     } else {
-      temp_init_from_operand(operand, /*result_is_lvalue=*/TRUE);
+      a_type_ptr under_type = type_pointed_to(dest_type);
+      a_type_ptr req_type = NULL;
+      /* Pick req_type so that we get a const-qualified temporary if we're
+         casting to a reference to const. */
+      if (identical_types_ignoring_qualifiers(operand->type, under_type)) {
+        req_type = under_type;
+      } else if (!is_error_type(under_type) && !is_error_operand(operand)) {
+        req_type = type_plus_qualifiers_from_second_type(operand->type,
+                                                         under_type);
+      }  /* if */
+      temp_init_from_operand_full(operand, req_type,
+                                  /*result_is_lvalue=*/TRUE);
     }  /* if */
   }  /* if */
 }  /* conv_reference_cast_operand_to_lvalue_if_necessary */
@@ -8307,7 +8321,7 @@ is an lvalue reference to const.
     /* Previous error. */
   } else if (is_an_rvalue(operand)) {
     /* If the caller passes in an rvalue, convert it to an lvalue. */
-    conv_reference_cast_operand_to_lvalue_if_necessary(operand);
+    conv_reference_cast_operand_to_lvalue_if_necessary(operand, dest_type);
   } else {
     (void)check_for_taking_the_address_of_a_bit_field(operand,
                                                       &operand->position);

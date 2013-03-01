@@ -2228,7 +2228,8 @@ extern void adjust_lvalue_type(an_operand *operand,
 extern void conv_rvalue_reference_result_to_rvalue(an_operand *operand);
 
 extern
-void conv_reference_cast_operand_to_lvalue_if_necessary(an_operand *operand);
+void conv_reference_cast_operand_to_lvalue_if_necessary(an_operand *operand,
+                                                        a_type_ptr  dest_type);
 
 extern void mark_as_reference_cast(an_expr_node_ptr expr,
                                    a_type_ptr       type_cast_to);
