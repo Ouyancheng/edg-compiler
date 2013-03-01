@@ -17661,7 +17661,7 @@ it might produce an error).
             a_constant       addr_con;
             bcp = find_base_class_of(op1->type, node->type);
             check_assertion(bcp != NULL);
-            set_constant_address_constant(op1->variant.constant, &addr_con);
+            set_temporary_address_constant(op1->variant.constant, &addr_con);
             addr_con.variant.address.offset = bcp->offset;
             addr_con.type = make_pointer_type(node->type);
             con_expr_value = constant_value_at_address(&addr_con,
