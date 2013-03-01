@@ -12539,7 +12539,7 @@ variables can have changed since the first reference.
         check_for_troublesome_aggregate_constant(expr->variant.constant,
                                                  /*const_okay=*/TRUE,
                                                  &temp_var)) {
-      check_assertion(is_or_was_ptr_to_member_function_type(expr->type) &&
+      check_assertion(is_or_was_ptr_to_member_function_type(expr->type) ||
                       !expr->variant.constant->implicit_cast);
       /* This expression node is a pointer-to-member-function constant, which
          has become a struct represented by a ck_aggregate constant.  Since a
