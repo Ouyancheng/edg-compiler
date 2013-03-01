@@ -20928,9 +20928,9 @@ errors should be suppressed (i.e., SFINAE mode).
                                          pos);
       dip->is_creation_of_initializer_list_object = TRUE;
       dip->is_explicit_cast = is_cast;
-      if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+      if (dip->kind == (a_dynamic_init_kind)dik_constant &&
+          dip->variant.constant->is_result_of_constexpr_call) {
         /* The constructor call is constexpr and was folded to a constant. */
-        check_assertion(dip->variant.constant->is_result_of_constexpr_call);
         if (dip->variant.constant->expr == NULL) {
           /* No backing expression, so clear the main flag (the flag sort
              of means "there's something implicit you can skip", and you
