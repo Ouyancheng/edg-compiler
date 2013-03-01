@@ -1068,7 +1068,7 @@ given position, unless is->no_diagnostics is TRUE.
 {
   a_constant_ptr      result = NULL;
   a_dynamic_init_ptr  dip;
-  a_routine_ptr       ctor_rp, dtor_rp;
+  a_routine_ptr       ctor_rp, dtor_rp = NULL;
   a_boolean           err = FALSE, *p_err = NULL;
 
   /* Get the default constructor. */
@@ -1080,6 +1080,13 @@ given position, unless is->no_diagnostics is TRUE.
                                     /*check_access=*/!is->check_validity_only,
                                     p_err, (a_boolean *)NULL);
   if (err) is->init_error = TRUE;
+  /* Determine if a constructor call will be involved. */
+  if (exceptions_enabled && !is->initializer_must_be_constant) {
+    a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
+    if (has_nontrivial_destructor(cssp)) {
+      dtor_rp = get_init_destructor(tp, is, diag_pos);
+    }  /* if */
+  }  /* if */
   if (ctor_rp == NULL || is->init_error) {
     /* Trivial default constructor or error. */
     if (!is->check_validity_only) {
@@ -1103,6 +1110,15 @@ given position, unless is->no_diagnostics is TRUE.
                                 &class_con, &partially_initialized)) {
           if (partially_initialized) is->partial_initializer = TRUE;
           result = alloc_unshared_constant(&class_con);
+          if (dtor_rp != NULL) {
+            /* Despite construction being folded into a constant, a nontrivial
+               (and non-constexpr) destructor will still need to be called.
+               Proceed with a dik_constant entry to which the destructor call
+               can be added below. */
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+            dip->variant.constant = result;
+            result = NULL;
+          }  /* if */
         } else {
           is->has_dynamic_init_component = TRUE;
         }  /* if */
@@ -1116,18 +1132,12 @@ given position, unless is->no_diagnostics is TRUE.
       is->partial_initializer = TRUE;
     }  /* if */
   }  /* if */
-  if (exceptions_enabled && !is->initializer_must_be_constant) {
-    a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
-    if (has_nontrivial_destructor(cssp)) {
-      /* If appropriate, add a destructor pointer to the dynamic init entry.
-         This is for the case in which an exception is thrown by the
-         constructor before the entire array has been initialized. */
-      dtor_rp = get_init_destructor(tp, is, diag_pos);
-      if (dtor_rp != NULL && !is->check_validity_only) {
-        dip->destructor = dtor_rp;
-        record_partial_aggregate_cleanup_destruction(dip, is->evaluated);
-      }  /* if */
-    }  /* if */
+  /* If appropriate, add a destructor pointer to the dynamic init entry.
+     This is for the case in which an exception is thrown by the
+     constructor before the entire array has been initialized. */
+  if (dtor_rp != NULL && !is->check_validity_only) {
+    dip->destructor = dtor_rp;
+    record_partial_aggregate_cleanup_destruction(dip, is->evaluated);
   }  /* if */
   /* Now create the constant entry (if needed). */
   if (!is->check_validity_only && result == NULL) {
