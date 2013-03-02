@@ -14594,9 +14594,13 @@ output_functional_notation_cast_arguments:
           brace_list_case = TRUE;
         } else {
           /* Normal case, a single expression. */
-          check_assertion(args != NULL &&
-                          (args->next == NULL ||
-                           args->next->generated_default_arg));
+          /* When the assertion here fails, it's almost always because one of
+             the flags on the dynamic init was not set correctly in the front
+             end, e.g., is_explicit_cast, is_braced_initializer. */
+          check_assertion_str(args != NULL &&
+                              (args->next == NULL ||
+                               args->next->generated_default_arg),
+                        "gen_dynamic_init: flags on dyn init set incorrectly");
           if (avoid_top_level_comma && closing_parens_needed == 0 &&
               expr_has_comma_operation(args)) {
             /* Protect a top-level comma with extra parentheses. */
