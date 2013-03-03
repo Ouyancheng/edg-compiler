@@ -5458,7 +5458,8 @@ of the call.
              rvalue. */
           conv_rvalue_reference_result_to_rvalue(result);
         }  /* if */
-      } else if (!curr_expr_kind_is_const()) {
+      } else if (!curr_expr_kind_is_const() &&
+                 is_class_struct_union_type(result->type)) {
         temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
       }  /* if */
     } else if (failure_warning != ec_no_error) {
