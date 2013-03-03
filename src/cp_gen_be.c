@@ -8180,14 +8180,20 @@ Return TRUE if expr (which may be NULL) designates an enk_temp_init node
 representing either an explicit constructor call or a value initialization
 (i.e., something of the form "T(...)") and FALSE otherwise.  This is used
 to avoid putting unnecessary parentheses around such expressions, which can
-confuse early versions of g++.
+confuse some versions of g++ and the Sun compiler.
 */
 {
+  if (expr != NULL && is_operation_node(expr) &&
+      node_operator_is(expr, eok_class_rvalue_adjust)) {
+    /* Look at the operand to determine whether this node represents an
+       explicit temporary or not. */
+    expr = expr->variant.operation.operands;
+  }  /* if */
   return (expr != NULL && expr->kind == (an_expr_node_kind)enk_temp_init &&
           (expr->variant.init.dynamic_init->kind ==
                                         (a_dynamic_init_kind)dik_constructor ||
            expr->variant.init.dynamic_init->kind ==
-                                              (a_dynamic_init_kind)dik_zero));
+                                               (a_dynamic_init_kind)dik_zero));
 }  /* is_expl_ctor_or_value_init */
 
 
