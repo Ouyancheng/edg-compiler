@@ -6992,8 +6992,8 @@ Traverse the list of alias fixups and set the alias fields as needed.
          asm name of the alias.  Newer GCC versions treat it as an error (as
          do earlier versions on some non-Intel platforms).  We issue an error
          when emulating newer GCC versions, and a warning otherwise (a back
-         end can still the name of the alias from the attribute entry).  No
-         diagnostic is issued if the alias is for a "weakref" attribute. */
+         end can still obtain the name of the alias from the attribute entry).
+         No diagnostic is issued if the alias is for a "weakref" attribute. */
       a_boolean  is_weakref = FALSE;
       switch (entry->alias->kind) {
         case sk_routine:
