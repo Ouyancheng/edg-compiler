@@ -35492,7 +35492,14 @@ dynamic initialization after substitution.
   } else {
     /* The dynamic init is not an explicit cast or a compound literal, so
        it's an implicit operation.  Fetch and return its operand. */
-    an_expr_node_ptr expr = arg_list_from_dyn_init(dip);
+    an_expr_node_ptr expr;
+    if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+      /* For a constant (due to constexpr), use the backing expression. */
+      expr = dip->variant.constant->expr;
+      check_assertion(expr != NULL);
+    } else {
+      expr = arg_list_from_dyn_init(dip);
+    }  /* if */
     check_assertion(expr->next == NULL);
     make_rescan_operand(expr, rcblock, result);
   }  /* if */
