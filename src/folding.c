@@ -9522,17 +9522,7 @@ otherwise, return FALSE.
   if (object_is_pointer) {
     /* eok_points_to_field case.  See if the pointer value points to
        a constant. */
-    a_variable_ptr var;
-    if (con_is_exact_addr_of_variable(object_con, &var,
-                                      /*array_decay_allowed=*/FALSE)) {
-      eff_obj_con = var_constant_value(var);
-    } else if (object_con->kind == (a_constant_repr_kind)ck_address &&
-               (object_con->variant.address.kind ==
-                                        (an_address_base_kind)abk_constant ||
-                object_con->variant.address.kind ==
-                                        (an_address_base_kind)abk_temporary)) {
-      eff_obj_con = object_con->variant.address.variant.constant;
-    }  /* if */
+    eff_obj_con = constant_value_at_address(object_con, (a_constant_ptr)NULL);
   } else {
     /* eok_dot_field case. */
     eff_obj_con = object_con;
