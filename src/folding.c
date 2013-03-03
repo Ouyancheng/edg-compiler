@@ -9559,7 +9559,8 @@ otherwise, return FALSE.
        immediate anonymous union member of class_type and set
        anon_union_member_depth to indicate the number of layers of
        anonymous unions between class_type and field. */
-    while (parent_of_field != class_type) {
+    while (class_type_supp(parent_of_field)->anonymous_union_kind ==
+                                          (an_anonymous_union_kind)auk_field) {
       check_assertion(parent_of_field != NULL);
       anon_union_member_type = parent_of_field;
       ++anon_union_member_depth;
