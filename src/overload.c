@@ -21993,6 +21993,17 @@ will be an lvalue instead of the usual rvalue.
     }  /* if */
     force_temp = FALSE;
   }  /* if */
+  if (generate_il &&
+      dip_to_mark == NULL &&
+      dip == NULL &&
+      constant != NULL &&
+      init_handled_at_this_level &&
+      constant->expr != NULL &&
+      constant->expr->kind == (an_expr_node_kind)enk_temp_init) {
+    /* Remember a dynamic init in a backing expression under the constant
+       being returned, for future marking. */
+    dip_to_mark = constant->expr->variant.init.dynamic_init;
+  }  /* if */
   if (!generate_il) {
     /* Generate no IL if we're only checking validity. */
   } else if (result != NULL) {
@@ -22043,12 +22054,6 @@ will be an lvalue instead of the usual rvalue.
     } else if (constant != NULL) {
       check_assertion(!force_temp);
       make_constant_operand(constant, result);
-      if (dip_to_mark == NULL &&
-          init_handled_at_this_level &&
-          constant->expr != NULL &&
-          constant->expr->kind == (an_expr_node_kind)enk_temp_init) {
-        dip_to_mark = constant->expr->variant.init.dynamic_init;
-      }  /* if */
     } else {
       /* We want an operand, and we have an operand. */
       an_expr_node_ptr temp_init_node;
@@ -22145,7 +22150,7 @@ will be an lvalue instead of the usual rvalue.
     /* If we saved a related dynamic init entry to be marked, use it. */
     dip = dip_to_mark;
   }  /* if */
-  if (init_handled_at_this_level && dip != NULL) {
+  if (generate_il && init_handled_at_this_level && dip != NULL) {
     /* The initialization has a primary dynamic init entry, and the
        initialization was handled at this level, and not already done down
        one level (or eliminated, in the case of copy elision).  Therefore
