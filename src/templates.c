@@ -22185,9 +22185,7 @@ that follows.
   a_func_info_block             func_info;
   a_boolean			keep_func_info = FALSE;
   a_symbol_reference_kind       srk_flags = SRK_DECLARATION;
-#if DECL_MODIFIERS_IN_USE
   a_source_position             prev_sym_pos;
-#endif /* DECL_MODIFIERS_IN_USE */
   a_boolean                     has_parenthesized_initializer;
   a_source_correspondence       *scp;
   a_routine_ptr                 rp;
@@ -22605,9 +22603,7 @@ that follows.
       discard_curr_construct_pragmas();
     } else {
       /* The symbol is not NULL. */
-#if DECL_MODIFIERS_IN_USE
       prev_sym_pos = sym->decl_position;
-#endif /* DECL_MODIFIERS_IN_USE */
       dps->sym = sym;
       if (dps->is_definition) {
         srk_flags |= SRK_DEFINITION;
@@ -22799,8 +22795,35 @@ that follows.
           }  /* if */
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        rp->is_specialized = TRUE;
         set_inline_flag(rp, (a_boolean)func_info.is_inline);
+        if (!rp->is_specialized) {
+          /* This is the first specialization: Set the is_constexpr flag
+             depending on the presence of the "constexpr" keyword (it is
+             independent of that of the template). */
+          if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
+            rp->is_constexpr = TRUE;
+            /* constexpr implies inline. */
+            if (!rp->is_inline) set_inline_flag(rp, TRUE);
+          } else {
+            rp->is_constexpr = FALSE;
+          }  /* if */
+        } else if (rp->is_constexpr !=
+                                    ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
+          /* The previous specialization doesn't match the current one wrt.
+             the "constexpr" specifier.  Issue an error (but be careful to
+             ensure the previous declaration's position is mentioned). */
+          a_source_position  saved_sym_pos;
+          saved_sym_pos = sym->decl_position;
+          sym->decl_position = prev_sym_pos;
+          pos_sy_error(rp->is_constexpr ?
+                         ec_previous_constexpr_decl_conflict :
+                         ec_previous_nonconstexpr_decl_conflict,
+                       rp->is_constexpr ? &dps->declarator_pos
+                                        : &dps->constexpr_pos,
+                       sym);
+          sym->decl_position = saved_sym_pos;
+        }  /* if */
+        rp->is_specialized = TRUE;
         /* Except in Microsoft and GNU modes, an explicitly specified storage
            class is disallowed.  In Microsoft mode, it is allowed on in-class
            declarations but it doesn't affect linkage.  Microsoft ignores the

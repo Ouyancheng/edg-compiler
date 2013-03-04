@@ -7818,8 +7818,8 @@ for use in generating cross-reference output describing this declaration.
         pos_sy_error(routine_ptr->is_constexpr ?
                        ec_previous_constexpr_decl_conflict :
                        ec_previous_nonconstexpr_decl_conflict,
-                     routine_ptr->is_constexpr ? &dps->constexpr_pos
-                                               : &dps->declarator_pos,
+                     routine_ptr->is_constexpr ? &dps->declarator_pos
+                                               : &dps->constexpr_pos,
                      linked_symbol);
       }  /* if */
     } else {
