@@ -9601,7 +9601,7 @@ process_enum_specifier:
 	       (gpp_mode && locator_for_curr_id.is_template_id &&
 		gpp_type_name_matches_class_name(curr_token_type_symbol))) && 
 	      (!(decl_specifiers_seen &
-                 ~(DS_FRIEND | DS_INLINE | 
+                 ~(DS_FRIEND | DS_INLINE | DS_CONSTEXPR |
                    DS_MICROSOFT_INLINE | DS_FORCEINLINE))) &&
               /* g++ allows X::X to be used in most places as a type name.
                  A left parenthesis seems to be used to detect the constructor
