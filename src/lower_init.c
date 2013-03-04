@@ -1490,11 +1490,9 @@ static void add_init_assignment(a_dynamic_init_ptr     dip,
 Make an assignment statement (or call statement when
 ipdp->array_element_sequence is TRUE) to implement the dynamic initialization
 described by dip.  If dip is NULL, con indicates the constant value of the
-initializer.  entity_node is an expression of the entity to be initialized;
-generally entity_node is an lvalue, but in the case where the array is being
-initialized by a single element, entity_node is an rvalue.
-have_complete_object is TRUE if the entity being initialized is a complete
-object; FALSE means a base class subobject.  Insert the statement at
+initializer.  entity_node is an lvalue expression of the entity to be
+initialized.  have_complete_object is TRUE if the entity being initialized is a
+complete object; FALSE means a base class subobject.  Insert the statement at
 *insert_location and update *insert_location.  The assignment is being
 performed as part of a lambda capture operation if is_lambda_capture is TRUE.
 The constant or expression initial value pointed to by dip or con is already
@@ -1509,7 +1507,7 @@ initialization (when ipdp->array_element_sequence is TRUE).
   a_boolean             array_assignment = FALSE, needs_cast = FALSE;
   a_type_ptr            entity_type = entity_node->type;
 
-  check_assertion(ipdp->array_element_sequence || entity_node->is_lvalue);
+  check_assertion(entity_node->is_lvalue);
   switch ((dip == NULL) ? (a_dynamic_init_kind)dik_constant : dip->kind) {
     case dik_zero:
       /* Set the entity to zero (default initialization). */
@@ -1565,10 +1563,11 @@ initialization (when ipdp->array_element_sequence is TRUE).
     /* Don't bother to create an assignment from an array with zero elements.
        These come up in cases like "new int[0]{};". */
   } else if (ipdp->array_element_sequence) {
-    /* In this case, the (rvalue) expression is a pointer to an array that
-       is being initialized by a repeated constant.  Create a helper routine
-       to do the initialization and call it. */
-    check_assertion(!entity_node->is_lvalue &&
+    /* When initializing an entire array element sequence (to the
+       value of a repeated constant), use an rvalue pointer to the
+       entire array (rather than an lvalue for the first element). */
+    entity_node = add_address_of_to_node(entity_node);
+    check_assertion(dip == NULL ||
                     dip->kind == (a_dynamic_init_kind)dik_constant);
     /* Use (or create) the temporary variable associated with this constant. */
     init_val_node = add_address_of_to_node(
@@ -1576,6 +1575,7 @@ initialization (when ipdp->array_element_sequence is TRUE).
                         assoc_var_for_constant(con,
                                                is_const_qualified_type(
                                                                  con->type))));
+    /* Create a helper routine to do the initialization and call it. */
     insert_call_to_initialize_entity(type_from_init_pos_descr(ipdp),
                                      have_complete_object,
                                      entity_node,
@@ -8516,12 +8516,6 @@ do_assignment:;
       entity_node = make_init_entity_node(ipdp,
                                           /*result_is_lvalue=*/TRUE,
                                           /*using_as_dest=*/TRUE);
-      if (ipdp->array_element_sequence) {
-        /* When initializing an entire array element sequence (to the
-           value of a repeated constant), use an rvalue pointer to the
-           entire array (rather than an lvalue for the first element). */
-        entity_node = add_address_of_to_node(entity_node);
-      }  /* if */
       add_init_assignment(dip, (a_constant *)NULL, entity_node,
                           have_complete_object, eff_insert_location,
                           (source_desc != NULL &&
