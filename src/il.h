@@ -1289,10 +1289,14 @@ typedef int an_expr_copy_options_set;
 			/* TRUE if the source address provided to
 			   copy_constant_full might not be an IL address (e.g.,
 			   it's the address of a stack variable). */
-#define CE_COPY_CONSTANTS_UNCONDITIONALLY 0x800
-			/* When TRUE, constants in the source are
-			   unconditionally copied (typically they're only
-			   copied when needed). */
+#define CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR 0x800
+			/* When TRUE, the copy is being done to create the
+			   master copy of an expression to be used later to
+			   do constexpr evaluation.  The copy is made so
+			   that we still have a pristine copy if the original
+			   version is changed by lowering.  Therefore, copy
+			   all constants in the source, even in cases where
+			   we ordinarily wouldn't. */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,

@@ -5351,6 +5351,10 @@ copy_constant_full should be called to start a copy.
   a_boolean      copying_from_one_func_to_another =
                         (options & (CE_DOING_INLINING_OF_FUNCTION_CALL |
                                     CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER)) != 0;
+  a_boolean      constexpr_master_copy =
+                              (options & CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
+  a_boolean      force_copy = (constexpr_master_copy ||
+                               old_constant->part_of_constexpr_master_expr);
   a_constant     local_constant;
   an_expr_copy_options_set
                  options_unshared;
@@ -5411,9 +5415,10 @@ copy_constant_full should be called to start a copy.
                                          (an_address_base_kind)abk_temporary) {
       a_constant_ptr old_constant_pointed_to =
                                 old_constant->variant.address.variant.constant;
-      if (!in_file_scope(old_constant_pointed_to) &&
-          (curr_il_region_number == file_scope_region_number ||
-           copying_from_one_func_to_another)) {
+      if (force_copy ||
+          (!in_file_scope(old_constant_pointed_to) &&
+           (curr_il_region_number == file_scope_region_number ||
+            copying_from_one_func_to_another))) {
         /* For an address constant pointing to a constant, the constant must be
            copied too if it's in the wrong memory region.  This comes up for
            addresses of strings; without this copy the ck_address could end
@@ -5478,7 +5483,8 @@ copy_constant_full should be called to start a copy.
                                                              templ_sizeof.expr;
           if (old_expr != NULL) {
             /* Make a copy of the expression tree. */
-            if (!in_file_scope(old_expr) &&
+            if (!force_copy &&
+                !in_file_scope(old_expr) &&
                 curr_il_region_number == file_scope_region_number) {
               /* There's a memory region problem, so drop the expression
                  (we still have the type). */
@@ -5539,6 +5545,11 @@ copy_constant_full should be called to start a copy.
          appears that a copied constant has become lowered and this isn't
          the case). */
       copy_il_lowering_flag(old_constant, new_constant);
+    }  /* if */
+    if (constexpr_master_copy) {
+      /* Constants created in making the master copy of a constexpr evaluation
+         expression are marked as such. */
+      new_constant->part_of_constexpr_master_expr = TRUE;
     }  /* if */
   }  /* if */
   return new_constant; /*lint !e809*/
@@ -16827,7 +16838,8 @@ be called to start a copy.
       /* Nothing more to copy. */
       break;
     case enk_constant:
-      if ((options & CE_COPY_CONSTANTS_UNCONDITIONALLY) ||
+      if ((options & CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR) ||
+          expr->variant.constant->part_of_constexpr_master_expr ||
           (!in_file_scope(expr->variant.constant) &&
            (in_file_scope(expr_copy) ||
             (options & (CE_DOING_INLINING_OF_FUNCTION_CALL |
