@@ -2082,8 +2082,8 @@ static void aggr_init_class_remainder_if_needed(a_constant_ptr     aggr_con,
 /*
 We have processed an aggregate initializer for the given type, but it does not
 explicitly initialize the given field nor any subsequent fields.  Append any
-needed constants to the list embedded in aggr_con if is->no_diagnostics is
-FALSE (if it is TRUE, aggr_con will be NULL).
+needed constants to the list embedded in aggr_con if the no_diagnostics flag
+is FALSE (if it is TRUE, aggr_con will be NULL).
 *is describes the initialization as a whole, and diag_pos indicates the
 position for which diagnostics should be issued.
 */
@@ -3036,6 +3036,9 @@ the type pointed to is opaque to declaration processing.
     default:
       unexpected_condition();
   }  /* switch */
+  if (is->has_dynamic_init_component && !is->constant_expr_ruled_out) {
+    is->constant_expr_ruled_out = TRUE;
+  }  /* if */
   is->force_dynamic_init = saved_force_dynamic_init;
   if (!is->check_validity_only) {
     /* Ensure is->init_con and is->init_dip are set properly. */
@@ -3282,6 +3285,9 @@ initializer, already copied and substituted.
       process_simple_init_component(icp, dtype, is, is_var_init);
       break;
   }  /* switch */
+  if (is->has_dynamic_init_component && !is->constant_expr_ruled_out) {
+    is->constant_expr_ruled_out = TRUE;
+  }  /* if */
   if (return_icp != NULL) {
     /* Return the init-component tree to the caller, as requested. */
     *return_icp = icp_tree;
