@@ -1179,8 +1179,11 @@ is->no_diagnostics is TRUE.
        types, we don't record special members in the symbol table, but from
        the standard's point of view the type of anonymous unions are ordinary
        unions.) */
-    pos2_diagnostic(es_error, ec_cannot_default_initialize_anon_union,
-                    diag_pos, &tp->source_corresp.decl_position);
+    if (!is->no_diagnostics) {
+      pos2_diagnostic(es_error, ec_cannot_default_initialize_anon_union,
+                      diag_pos, &tp->source_corresp.decl_position);
+    }  /* if */
+    is->init_error = TRUE;
     result = alloc_error_constant();
   } else {
     a_field_ptr  fp, first_field;
@@ -2072,13 +2075,15 @@ Return TRUE if the given class type has an initializable field.
 
 
 static void aggr_init_class_remainder_if_needed(a_constant_ptr     aggr_con,
+                                                a_type_ptr         aggr_type,
                                                 a_field_ptr        next_field,
                                                 an_init_state      *is,
                                                 a_source_position  *diag_pos)
 /*
-The given ck_aggregate constant initializes an aggregate class, but does not
+We have processed an aggregate initializer for the given type, but it does not
 explicitly initialize the given field nor any subsequent fields.  Append any
-needed constants to the list embedded in aggr_con.
+needed constants to the list embedded in aggr_con if is->no_diagnostics is
+FALSE (if it is TRUE, aggr_con will be NULL).
 *is describes the initialization as a whole, and diag_pos indicates the
 position for which diagnostics should be issued.
 */
@@ -2112,13 +2117,16 @@ position for which diagnostics should be issued.
   }  /* for */
   if (last_dyn_field != NULL) {
     a_field_ptr  end_fp = next_initializable_field(last_dyn_field->next);
-    if (is_union_type(aggr_con->type)) {
+    if (is_union_type(aggr_type)) {
       a_field_ptr  field2 = next_initializable_field(next_field->next);
       if (field2 != NULL) {
         /* A value-initialized union that has multiple fields, at least one of
            which requires nontrivial initialization: Issue an error since it
            isn't clear which should be the initialized field. */
-        pos_error(ec_ambiguous_union_value_init, diag_pos);
+        if (!is->no_diagnostics) {
+          pos_error(ec_ambiguous_union_value_init, diag_pos);
+        }  /* if */
+        is->init_error = TRUE;
         /* For recovery purposes, just initialize the first field. */
         end_fp = field2;
       }  /* if */
@@ -2666,7 +2674,8 @@ issued if no more specific position is available.
     if (fp != NULL && !is->pack_expansion_handled) {
       /* Not all class fields are explicitly initialized: Append entries to
          initialize remaining fields if appropriate. */
-      aggr_init_class_remainder_if_needed(*init_con, fp, is, diag_pos);
+      aggr_init_class_remainder_if_needed(*init_con, class_type, fp, is,
+                                          diag_pos);
     }  /* if */
     if (braced) {
       /* The caller should move on to the component that follows the braced
