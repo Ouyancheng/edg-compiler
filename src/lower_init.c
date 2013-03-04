@@ -8443,7 +8443,7 @@ C99 mode for the same reason.
            of the entity if necessary. */
         stretch_partial_initialization_if_necessary(dip, ipdp,
                                                     have_complete_object,
-                                                    insert_location);
+                                                    eff_insert_location);
       }  /* if */
       /* For the normal cases, go on and generate an assignment. */
       goto do_assignment;
@@ -8623,7 +8623,7 @@ do_assignment:;
            of the entity if necessary. */
         stretch_partial_initialization_if_necessary(dip, ipdp,
                                                     have_complete_object,
-                                                    insert_location);
+                                                    eff_insert_location);
       }  /* if */
       lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
                                             /*dtor_case=*/FALSE, source_desc,
