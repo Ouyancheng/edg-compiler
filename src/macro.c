@@ -2321,6 +2321,7 @@ beyond the operator has not yet been fetched.
   a_boolean     paren_or_id_found;
   a_boolean     in_macro_expansion =
                                  !within_curr_source_line(start_of_curr_token);
+  a_boolean     parenthesized_form;
 
   db_enter(4, "scan_defined_operator");
   copy_source_position(pos_curr_token, start_position);
@@ -2343,6 +2344,7 @@ beyond the operator has not yet been fetched.
       expand_macros = FALSE;
       if (get_token() == tok_identifier) {
         /* First form -- "defined identifier". */
+        parenthesized_form = FALSE;
         /* The identifier __VA_ARGS__ is not allowed if variadic macros are
            accepted. */
         check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
@@ -2355,6 +2357,7 @@ beyond the operator has not yet been fetched.
           internal_error("scan_defined_operator: next is not id or \"(\"");
         }  /* if */
 #endif /* CHECKING */
+        parenthesized_form = TRUE;
         if (get_token() != tok_identifier) {
           /* Error -- Expected an identifier. */
           error(ec_exp_identifier);
@@ -2403,10 +2406,12 @@ beyond the operator has not yet been fetched.
         if (assoc_symbol != NULL) {
           mark_referenced(assoc_symbol, &locator_for_curr_id.source_position);
         }  /* if */
-        if (microsoft_bugs && in_macro_expansion) {
-          /* The Microsoft preprocessor has a bug that results in "defined"
-             unconditionally having the value 0 if it appears in a macro
-             expansion, and some system headers depend on this behavior. */
+        if (microsoft_bugs && in_macro_expansion && parenthesized_form) {
+          /* The Microsoft preprocessor has a bug that results in the
+             parenthesized form of "defined" unconditionally having the
+             value 0 if it appears in a macro expansion, and some system
+             headers depend on this behavior.  (The unparenthesized form
+             is processed correctly.) */
           pos_warning(ec_defined_always_false, &start_position);
           assoc_symbol = NULL;
         }  /* if */

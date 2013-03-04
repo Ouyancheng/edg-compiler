@@ -1,5 +1,30 @@
 Version 4.6
 
+3/4/13   [EDGcpfe/13703]
+Microsoft compatibility: defined() operator in macro expansion
+
+As noted below in the change for EDGcpfe/13211, the Microsoft compiler has
+a bug in the handling of the "defined" operator when it appears in the
+expansion of a macro instead of directly in the source.  The bug only
+occurs, however, when the operand is parenthesized -- "defined(X)" but not
+"defined X" -- but the change for EDGcpfe/13211 applied to both forms.
+This has now been corrected.  For example:
+
+  #define A 1
+  #define PARENS defined(A)
+  #define NO_PARENS defined A
+  #if PARENS
+  #error The Microsoft bug is not emulated
+  #endif
+  #if !NO_PARENS
+  #error The Microsoft bug does not occur without parentheses
+  #endif
+
+The front end previously triggered the second #error when microsoft_bugs is
+TRUE.  It now, like the Microsoft compiler, processes this example without
+error.
+
+
 3/1/13   [EDGcpfe/13689]
 Representation of unresolved alias and weakref attributes (IL CHANGE)
 
