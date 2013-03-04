@@ -13561,9 +13561,11 @@ decl_member_function, which handles in-class member function declarations.)
   a_symbol_ptr                      other_sym, overload_sym = NULL;
   a_class_symbol_supplement_ptr     cssp;
   a_scope_depth                     effective_decl_level;
+  a_boolean                         is_static_member;
 
   db_enter(3, "decl_member_function_template");
   check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
+  is_static_member = dps->storage_class == (a_storage_class)sc_static;
   dps->is_definition = func_info->is_definition;
   if (!is_error_locator(*locator)) {
     if (is_single_param_operator_new_or_delete(locator, member_type)) {
@@ -13684,8 +13686,12 @@ decl_member_function, which handles in-class member function declarations.)
   prototype_sym->variant.routine.instance_ptr->prototype_scope_symbols =
                                             func_info->prototype_scope_symbols;
   func_info->keep_param_id_list = TRUE;
+  cssp = symbol_supplement_for_class(class_type);
   if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
     rtn->is_constexpr = TRUE;
+    if (!is_static_member) {
+      cssp->has_constexpr_nonstatic_member_function = TRUE;
+    }  /* if */
     /* constexpr functions are implicitly inline. */
     set_inline_flag(rtn, TRUE);
   }  /* if */
@@ -13723,7 +13729,6 @@ decl_member_function, which handles in-class member function declarations.)
   if (overload_sym != NULL) {
     set_mixed_static_nonstatic_flag(overload_sym);
   }  /* if */
-  cssp = symbol_supplement_for_class(class_type);
   if (!is_error_locator(*locator)) {
     /* Do processing for special member functions, including assignment
        operators, constructors and destructors. */

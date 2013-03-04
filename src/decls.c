@@ -7228,8 +7228,9 @@ a_boolean check_constexpr_routine_def_type(a_routine_ptr      rp,
 /*
 Return TRUE if and only if the given function type is a valid type for a
 constexpr function definition (these checks are not performed for a
-declaration that isn't a definition).  Otherwise, return FALSE and issue a
-diagnostic at the given position.
+declaration that isn't a definition).  Otherwise, return FALSE and, if the
+given routine is not a template instance, issue a diagnostic at the given
+position.
 */
 {
   a_boolean   okay = TRUE;
@@ -7244,20 +7245,26 @@ diagnostic at the given position.
        literal types.  Since destructors don't have a return type, this
        implies they cannot be constexpr. */
     if (special_kind_is(rp, sfk_destructor)) {
-      pos_error(ec_constexpr_destructor, diag_pos);
+      if (!rout_is_real_template_instance(rp)) {
+        pos_error(ec_constexpr_destructor, diag_pos);
+      }  /* if */
       okay = FALSE;
     } else if (!special_kind_is(rp, sfk_constructor) &&
                !could_be_literal_type(rtp->variant.routine.return_type)) {
       okay = FALSE;
-      pos_ty_error(ec_nonliteral_return_type_in_constexpr_function, diag_pos,
-                   rtp->variant.routine.return_type);
+      if (!rout_is_real_template_instance(rp)) {
+        pos_ty_error(ec_nonliteral_return_type_in_constexpr_function, diag_pos,
+                     rtp->variant.routine.return_type);
+      }  /* if */
     } else {
       a_param_type_ptr  ptp = rtp->variant.routine.extra_info->param_type_list;
       for (; ptp != NULL; ptp = ptp->next) {
         if (!could_be_literal_type(ptp->type)) {
           okay = FALSE;
-          pos_ty_error(ec_nonliteral_param_type_in_constexpr_function,
-                       diag_pos, ptp->type);
+          if (!rout_is_real_template_instance(rp)) {
+            pos_ty_error(ec_nonliteral_param_type_in_constexpr_function,
+                         diag_pos, ptp->type);
+          }  /* if */
           break;
         }  /* if */
       }  /* for */

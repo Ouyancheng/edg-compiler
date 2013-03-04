@@ -496,6 +496,15 @@ extern a_boolean instantiation_needed_flag_is_set(
 #define needed_flag_is_set(scp) ((scp)->needed)
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+/* Produce TRUE if a given routine is a real template instance (not an
+   explicit specialization nor a prototype instantiation). */
+#define rout_is_real_template_instance(rp)                              \
+  ((rp)->is_template_function &&                                        \
+   !(rp)->is_specialized &&                                             \
+   !(rp)->is_prototype_instantiation)
+
+
+
 /* Test a routine to see whether it is inline.  When it is a template
    instance, this may require looking at the template because the
    is_inline flag is not recorded until the function is fully instantiated. */
