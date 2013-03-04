@@ -9174,21 +9174,24 @@ instead.
         /* Substitute values for parameters and attempt to fold the call to
            a constant. */
         folded = fold_expr(expr, ceblock, result_con);
-        if (is_reference_type(il_return_type)) {
-          if (returns_reference != NULL) {
-            *returns_reference = TRUE;
-            /* Adjust lvalue reference to rvalue reference if necessary. */
-            result_con->type = il_return_type;
-          } else {
-            /* The caller is not expecting a reference result, so try
-               to convert to an underlying constant value.  If we can't,
-               the folding fails. */
-            a_constant copy;
-            copy_constant(result_con, &copy);
-            if (points_to_constant(&copy, ceblock, result_con)) {
-              /* Okay. */
+        if (folded) {
+          result_con->null_pointer_constant_ruled_out = TRUE;
+          if (is_reference_type(il_return_type)) {
+            if (returns_reference != NULL) {
+              *returns_reference = TRUE;
+              /* Adjust lvalue reference to rvalue reference if necessary. */
+              result_con->type = il_return_type;
             } else {
-              folded = FALSE;
+              /* The caller is not expecting a reference result, so try
+                 to convert to an underlying constant value.  If we can't,
+                 the folding fails. */
+              a_constant copy;
+              copy_constant(result_con, &copy);
+              if (points_to_constant(&copy, ceblock, result_con)) {
+                /* Okay. */
+              } else {
+                folded = FALSE;
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
