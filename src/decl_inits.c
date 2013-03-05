@@ -3036,9 +3036,6 @@ the type pointed to is opaque to declaration processing.
     default:
       unexpected_condition();
   }  /* switch */
-  if (is->has_dynamic_init_component && !is->constant_expr_ruled_out) {
-    is->constant_expr_ruled_out = TRUE;
-  }  /* if */
   is->force_dynamic_init = saved_force_dynamic_init;
   if (!is->check_validity_only) {
     /* Ensure is->init_con and is->init_dip are set properly. */
@@ -3285,9 +3282,6 @@ initializer, already copied and substituted.
       process_simple_init_component(icp, dtype, is, is_var_init);
       break;
   }  /* switch */
-  if (is->has_dynamic_init_component && !is->constant_expr_ruled_out) {
-    is->constant_expr_ruled_out = TRUE;
-  }  /* if */
   if (return_icp != NULL) {
     /* Return the init-component tree to the caller, as requested. */
     *return_icp = icp_tree;
