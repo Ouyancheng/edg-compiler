@@ -5421,11 +5421,9 @@ error.  *err_pos is used as the position for any diagnostics issued.
                    &err_severity);
           break;
         case eok_padd:
-        case eok_subscript:
           { a_constant_ptr ptr_con = constant_1;
             a_constant_ptr int_con = constant_2;
-            /* The operands of pointer "+" and subscript can be in either
-               order. */
+            /* The operands of pointer "+" can be in either order. */
             if (is_pointer_type(constant_2->type)) {
               ptr_con = constant_2;
               int_con = constant_1;
@@ -8769,7 +8767,6 @@ field_selection:
             case eok_pdiff:
             case eok_padd:
             case eok_psubtract:
-            case eok_subscript:
               /* Foldable binary (two-operand) operators. */
               binary_operation(op, &op1_constant, &op2_constant, expr->type,
                                result_con,
@@ -8781,8 +8778,24 @@ field_selection:
                                &pos);
               if (error_detected == ec_no_error && !did_not_fold) {
                 folded = TRUE;
-                if (op == (an_expr_operator_kind)eok_subscript &&
-                    !expr->is_lvalue) {
+              }  /* if */
+              break;
+            case eok_subscript:
+              /* Subscripting is essentially the same as pointer addition,
+                 except that if the result of the operation is not an
+                 lvalue, it is the value pointed to by the result of the
+                 addition is desired. */
+              binary_operation(eok_padd, &op1_constant, &op2_constant,
+                               expr->type, result_con,
+                               /*constant_context=*/TRUE,
+                               /*evaluated_context=*/TRUE,
+                               &did_not_fold,
+                               &template_constant,
+                               &error_detected,
+                               &pos);
+              if (error_detected == ec_no_error && !did_not_fold) {
+                folded = TRUE;
+                if (!expr->is_lvalue) {
                   /* The value, not the address, of the element is
                      desired. */
                   a_constant value_con;

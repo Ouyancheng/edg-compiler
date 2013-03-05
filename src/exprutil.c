@@ -17548,7 +17548,7 @@ it might produce an error).
                 a_constant    addr_con;
                 a_boolean     did_not_fold;
                 an_error_code error_detected;
-                binary_operation(op, op1->variant.constant,
+                binary_operation(eok_padd, op1->variant.constant,
                                  op2->variant.constant, node->type, &addr_con,
                                  /*constant_context=*/FALSE,
                                  /*evaluated_context=*/TRUE,
