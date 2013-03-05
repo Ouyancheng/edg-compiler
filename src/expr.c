@@ -3509,96 +3509,6 @@ been scanned: builtin_func represents the reference to the builtin function
 
 #if GNU_EXTENSIONS_ALLOWED
 
-a_boolean is_foldable_gnu_builtin_function(a_routine_ptr rp,
-                                           a_boolean     *pseudo_call)
-/*
-Return TRUE if and only if the routine rp is a GNU built-in function and
-calls to that function might be valid constant-expressions.
-*pseudo_call is set to TRUE if the arguments to the built-in function call
-are not treated like standard call arguments (e.g., if they behave like
-sizeof arguments); otherwise, *pseudo_call is set to FALSE.
-pseudo_call can be NULL if that information is not needed.
-*/
-{
-  a_boolean  result = FALSE;
-
-  if (pseudo_call != NULL) *pseudo_call = FALSE;
-  if (rp != NULL && is_gnu_builtin_function(rp)) {
-    switch (rp->variant.builtin_function_kind) {
-      case bfk_classify_type:
-      case bfk_constant_p:
-      case bfk_choose_expr:
-#if GCC_BUILTIN_VARARGS
-      case bfk_stdarg_start:
-      case bfk_va_start:
-      case bfk_va_arg:
-      case bfk_va_end:
-      case bfk_va_copy:
-      case bfk_varargs_start:
-#endif /* GCC_BUILTIN_VARARGS */
-        if (pseudo_call != NULL) *pseudo_call = TRUE;
-        /*FALLTHROUGH*/
-      case bfk_huge_valf:
-      case bfk_huge_val:
-      case bfk_huge_vall:
-#if TARG_HAS_IEEE_FLOATING_POINT
-      case bfk_nanf:
-      case bfk_nan:
-      case bfk_nanl:
-      case bfk_nansf:
-      case bfk_nans:
-      case bfk_nansl:
-      case bfk_inff:
-      case bfk_inf:
-      case bfk_infl:
-      case bfk_isnan:
-      case bfk_isnanf:
-      case bfk_isnanl:
-      case bfk_isinf:
-      case bfk_isinff:
-      case bfk_isinfl:
-      case bfk_isfinite:
-      case bfk_isnormal:
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
-      case bfk_fpclassify:
-      case bfk_ffs:
-      case bfk_ffsl:
-      case bfk_clz:
-      case bfk_clzl:
-      case bfk_ctz:
-      case bfk_ctzl:
-      case bfk_popcount:
-      case bfk_popcountl:
-      case bfk_parity:
-      case bfk_parityl:
-#if LONG_LONG_ALLOWED
-      case bfk_ffsll:
-      case bfk_clzll:
-      case bfk_ctzll:
-      case bfk_popcountll:
-      case bfk_parityll:
-#endif /* LONG_LONG_ALLOWED */
-      case bfk_strlen:
-      case bfk_abs:
-      case bfk_pow:
-      case bfk_powf:
-      case bfk_powl:
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-      case bfk_atomic_always_lock_free:
-      case bfk_atomic_is_lock_free:
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
-      case bfk_assume_aligned:
-        result = TRUE;
-        break;
-      default:
-        /* Nothing to be done. */
-        break;
-    }  /* switch */
-  }  /* if */
-  return result;
-}  /* is_foldable_gnu_builtin_function */
-
-
 static void check_gnu_builtin_function_for_call(an_operand  *op,
                                                 a_boolean   *foldable,
                                                 a_boolean   *pseudo_call)
@@ -3739,58 +3649,13 @@ of gcc and g++ return slightly different values for some expression types.
   return tck;
 }  /* gnu_type_class_for_type */
 
-#if TARG_HAS_IEEE_FLOATING_POINT
-
-static a_boolean is_empty_string_literal(a_constant_ptr  cp)
-/*
-Return TRUE if the given constant is the empty string literal ("") or the
-address thereof.
-*/
-{
-  a_boolean  result;
-
-  if (cp->kind == (a_constant_repr_kind)ck_address &&
-      cp->variant.address.kind == (an_address_base_kind)abk_constant &&
-      cp->variant.address.offset == 0) {
-    cp = cp->variant.address.variant.constant;
-  }  /* if */
-  if (cp->kind == (a_constant_repr_kind)ck_string &&
-      cp->variant.string.length == 1 &&
-      cp->variant.string.value[0] == '\0') {
-    result = TRUE;
-  } else {
-    result = FALSE;
-  }  /* if */
-  return result;
-}  /* is_empty_string_literal */
-
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
-
-static a_boolean is_dependent_list_of_constant_nodes(an_expr_node_ptr  list)
-/*
-Return TRUE if every node in the given list is a constant, and at least one is
-either a ck_template_param constant or has a template-dependent type.
-*/
-{
-  a_boolean        is_constant = TRUE, is_dependent = FALSE;
-  an_expr_node_ptr node;
-
-  for (node = list; node != NULL; node = node->next) {
-    an_expr_node_ptr expr = skip_parens(node);
-    if (!is_constant_node(expr)) {
-      is_constant = FALSE;
-      break;
-    } else if (expr_is_instantiation_dependent(expr)) {
-      is_dependent = TRUE;
-    }  /* if */
-  }  /* for */
-  return is_constant && is_dependent;
-}  /* is_dependent_list_of_constant_nodes */
-
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-static a_boolean check_call_and_fold_if_possible(an_operand       *op,
-                                                 an_expr_node_ptr call)
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- arguments not used in that case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
+static a_boolean fold_gnu_call_if_possible(an_operand       *op,
+                                           an_expr_node_ptr call)
 /*
 The given operand must represent a function call, and call is the
 function call node from that call.  Some GNU __builtin_xxx
@@ -3800,302 +3665,46 @@ case *op is replaced by a constant operand).  A diagnostic may be issued if the
 arguments are invalid (and *op is replaced by an error operand in such cases).
 */
 {
-  a_boolean         folded = FALSE;
-  a_constant        result;
-#if GNU_EXTENSIONS_ALLOWED
-  a_routine_ptr     rp;
-  an_expr_node_ptr  args;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  a_boolean folded = FALSE;
 
   check_assertion(is_expression_operand(op));
   check_assertion(call != NULL &&
                   call->kind == (an_expr_node_kind)enk_operation);
 #if GNU_EXTENSIONS_ALLOWED
-  args = call->variant.operation.operands;
-  if (call->variant.operation.kind == (an_expr_operator_kind)eok_call &&
-      (rp = routine_from_function_expr(args)) != NULL) {
-    /* A direct call: Examine which routine is called. */
+  if (gnu_mode &&
+      call->variant.operation.kind == (an_expr_operator_kind)eok_call) {
+    an_expr_node_ptr args = call->variant.operation.operands;
+    a_routine_ptr    routine = routine_from_function_expr(args);
     args = args->next;
-    if (rp->implicit_alias) {
-      /* A call to a user-defined routine that is implicitly assumed equivalent
-         to a built-in function (recorded in rp->aliased_routine). */
-      rp = rp->aliased_routine;
-    }  /* if */
-    if (is_gnu_builtin_function(rp)) {
-      a_type_ptr       result_type = skip_typerefs(call->type);
-      an_expr_node_ptr orig_args = args, args2 = NULL;
-      if (args != NULL) {
-        args2 = args->next;
-        args = skip_parens(args);
-      }  /* if */
-      switch (rp->variant.builtin_function_kind) {
-        case bfk_constant_p:
-        case bfk_classify_type:
-          /* Pseudo-calls to these functions should have been scanned and
-             folded in scan_gnu_builtin_pseudo_call. */
-          unexpected_condition();
-          break;
-        case bfk_huge_valf:
-        case bfk_huge_val:
-        case bfk_huge_vall:
-          /* A "huge" floating-point value.  (I.e., positive Infinity if
-             that is available, or the largest possible value of the
-             associated floating-point type.) */
-          if (args == NULL && is_floating_type(result_type)) {
-            clear_constant(&result, (a_constant_repr_kind)ck_float);
-            result.type = call->type;
-            folded = make_huge_fp_val(&result.variant.float_value,
-                                      result_type->variant.float_kind);
-          }  /* if */
-          break;
-#if TARG_HAS_IEEE_FLOATING_POINT
-        case bfk_nansf:
-        case bfk_nans:
-        case bfk_nansl:
-        case bfk_nanf:
-        case bfk_nan:
-        case bfk_nanl:
-          /* A non-signaling (or "quiet") Not-a-Number value. */
-          { a_constant_ptr scon;
-            if (args != NULL && args2 == NULL &&
-                expr_is_pointer_to_string_literal(args, &scon) &&
-                is_empty_string_literal(scon) &&
-                is_floating_type(result_type)) {
-              a_builtin_function_kind kind = rp->variant.builtin_function_kind;
-              a_boolean               signaling = FALSE;
-              if (kind == (a_builtin_function_kind)bfk_nansf ||
-                  kind == (a_builtin_function_kind)bfk_nans ||
-                  kind == (a_builtin_function_kind)bfk_nansl) {
-                signaling = TRUE;
-              }  /* if */
-              clear_constant(&result, (a_constant_repr_kind)ck_float);
-              result.type = call->type;
-              folded = make_fp_nan(&result.variant.float_value,
-                                   result_type->variant.float_kind,
-                                   signaling);
-            }  /* if */
-          }
-          break;
-        case bfk_inff:
-        case bfk_inf:
-        case bfk_infl:
-          /* A positive infinity value. */
-          if (args == NULL && is_floating_type(result_type)) {
-            clear_constant(&result, (a_constant_repr_kind)ck_float);
-            result.type = call->type;
-            folded = make_fp_infinity(&result.variant.float_value,
-                                      result_type->variant.float_kind);
-          }  /* if */
-          break;
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
-        case bfk_ffs:
-        case bfk_ffsl:
-        case bfk_clz:
-        case bfk_clzl:
-        case bfk_ctz:
-        case bfk_ctzl:
-        case bfk_popcount:
-        case bfk_popcountl:
-        case bfk_parity:
-        case bfk_parityl:
-#if LONG_LONG_ALLOWED
-        case bfk_ffsll:
-        case bfk_clzll:
-        case bfk_ctzll:
-        case bfk_popcountll:
-        case bfk_parityll:
-#endif /* LONG_LONG_ALLOWED */
-          /* Bit counting functions. */
-          if (args != NULL && args2 == NULL) {
-            folded = fold_bit_count_operation_if_possible(rp, args, &result);
-          }  /* if */
-          break;
-#if TARG_HAS_IEEE_FLOATING_POINT
-        case bfk_isnan:
-        case bfk_isnanf:
-        case bfk_isnanl:
-        case bfk_isinf:
-        case bfk_isinff:
-        case bfk_isinfl:
-        case bfk_isfinite:
-        case bfk_isnormal:
-          /* Unlike some other functions handled here, __builtin_isnan and
-             __builtin_isinf are ellipsis functions, and hence ordinary call
-             processing will not diagnose invalid arguments.  GCC, however,
-             does check that there is exactly one argument of a real floating-
-             point type. */
-          if (args == NULL || args2 != NULL) {
-            expr_pos_error(ec_call_requires_one_argument, &op->position);
-            conv_to_error_operand(op);
-          } else if (!is_real_floating_type(args->type) &&
-                     !is_template_param_type(args->type)) {
-            expr_pos_error(ec_call_requires_floating_point_argument,
-                           &op->position);
-            conv_to_error_operand(op);
-          } else {
-            folded = fold_fptest_if_possible(rp, args, &result);
-          }  /* if */
-          break;
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
-        case bfk_fpclassify:
-          /* We currently never fold calls to __builtin_fpclassify, but we do
-             check that the last argument has a floating-point type. */
-          if (args == NULL || args2 == NULL || args2->next == NULL ||
-              args2->next->next == NULL || args2->next->next->next == NULL) {
-            /* The routine type of __builtin_fpclassify is
-                 int (int, int, int, int, int, ...);
-               So if we have less than five arguments, an error should be
-               issued elsewhere. */
-            if (expr_error_should_be_issued()) expect_error();
-          } else if (args2->next->next->next->next == NULL ||
-                     args2->next->next->next->next->next != NULL) {
-            /* Five arguments or more than six: Issue an error. */
-            expr_pos_error(ec_invalid_builtin_fpclassify_args, &op->position);
-          } else {
-            /* Check that the last (sixth) argument has floating-point type. */
-            an_expr_node_ptr  fparg = args2->next->next->next->next;
-            if (!is_real_floating_type(fparg->type) &&
-                !is_template_param_type(fparg->type)) {
-              if (is_error_type(fparg->type)) {
-                if (expr_error_should_be_issued()) expect_error();
-              } else {
-                expr_pos_error(ec_bad_final_builtin_fpclassify_arg,
-                               &op->position);
-              }  /* if */
-              conv_to_error_operand(op);
-            }  /* if */
-          }  /* if */
-          break;
-        case bfk_strlen:
-          /* strlen of a constant string can be folded in C mode. */
-          { a_constant_ptr scon;
-            if (C_mode() && args != NULL && args2 == NULL &&
-                expr_is_pointer_to_string_literal(args, &scon) &&
-                is_normal_character_kind(scon->character_kind) &&
-                is_integral_type(call->type)) {
-              a_targ_size_t len;
-              check_assertion(scon->kind == (a_constant_repr_kind)ck_string);
-              /* Watch out for strings that don't have a terminating null. */
-              for (len = 0; len < scon->variant.string.length; len++) {
-                if (scon->variant.string.value[len] == '\0') {
-                  /* Found first null character, so we know the length. */
-                  folded = TRUE;
-                  set_integer_constant(&result,
-                                       (a_host_large_integer)len,
-                                       skip_typerefs(call->type)->
-                                                     variant.integer.int_kind);
-                  break;
-                }  /* if */
-              }  /* for */
-            }  /* if */
-          }
-          break;
-        case bfk_abs:
-          /* abs of a constant integer can be folded in C mode. */
-          { a_constant_ptr con;
-            if (C_mode() && args != NULL && args2 == NULL &&
-                is_constant_node(args) &&
-                (con = args->variant.constant)->kind ==
-                                            (a_constant_repr_kind)ck_integer &&
-                is_integral_type(con->type) &&
-                is_integral_type(call->type)) {
-              a_boolean err = FALSE;
-              copy_constant(con, &result);
-              /* Probably no type difference between the parameter type and
-                 the result type, but change it just in case. */
-              result.type = call->type;
-              if (sign_of_integer_constant(con) < 0) {
-                /* Negate a negative value. */
-                negate_integer_value(&result.variant.integer_value, &err);
-                if (!err &&
-                    !in_range_for_integer_kind(&result, &result,
-                       skip_typerefs(result.type)->variant.integer.int_kind)) {
-                  err = TRUE;
-                }  /* if */
-              }  /* if */
-              if (!err) folded = TRUE;
-            }  /* if */
-          }
-          break;
-        case bfk_pow:
-        case bfk_powf:
-        case bfk_powl:
-          /* pow(x, y) can sometimes be folded in gcc mode. */
-          { check_assertion(is_real_floating_type(result_type));
-            if (gcc_mode && gnu_version >= 30400 &&
-                args != NULL && args2 != NULL && args2->next == NULL) {
-              args2 = skip_parens(args2);
-              if (is_constant_node(args) && is_constant_node(args2)) {
-                /* GCC folds only certain combinations of values.  E.g., if the
-                   base is not an integer, it would appear that only raising to
-                   the power of -1, 0, 1, 2, and 3 is folded.  If the base is a
-                   power of 2, many more powers are folded.  The call to
-                   fold_pow_if_possible folds a different set of combinations,
-                   but the cases somewhat likely to show up in real code should
-                   be covered. */
-                folded = fold_pow_if_possible(args->variant.constant,
-                                              args2->variant.constant,
-                                              &result, result_type);
-              }  /* if */
-            }  /* if */
-          }
-          break;
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-        case bfk_atomic_always_lock_free:
-          if (!is_constant_node(args)) {
-            /* __atomic_always_lock_free's first argument must be a
-               constant. */
-            expr_pos_error(ec_first_arg_must_be_integer_constant,
-                           &op->position);
-          }  /* if */
-          /*FALLTHROUGH*/
-        case bfk_atomic_is_lock_free:
-          check_assertion(args2 != NULL);
-          folded = fold_lock_free_query_if_possible(
-                                           rp->variant.builtin_function_kind,
-                                           args, args2, &result, result_type);
-          break;
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
-        case bfk_assume_aligned:
-          /* Calls to __builtin_assume_aligned are never actually folded, but
-             we treat it as "potentially folded" to simplify checking for
-             extraneous call arguments. */
-          if (args2 != NULL && args2->next != NULL) {
-            /* A optional third argument is permitted but must be of integer
-               type.  A fourth argument is not permitted. */
-            if (args2->next->next != NULL) {
-              expr_pos_error(ec_too_many_arguments, &op->position);
-            } else if (!is_integral_type(args2->next->type)) {
-              expr_pos_error(ec_3rd_arg_of_assume_aligned_must_be_integral,
-                             &op->position);
-            }  /* if */
-          }  /* if */
-          folded = FALSE;
-          break;
-        default:
-          /* Nothing to be done. */
-          break;
-      }  /* switch */
-      if (!folded && is_template_dependent_context() &&
-          is_dependent_list_of_constant_nodes(orig_args)) {
-        make_template_param_expr_constant(call, &result);
-        folded = TRUE;
+    if (routine != NULL) {
+      an_error_code err_code;
+      a_constant    result;
+      folded = fold_gnu_builtin_function_call_if_possible(routine, args,
+                                                          call,
+                                                          &result,
+                                                          &err_code);
+      if (err_code != ec_no_error) {
+        check_assertion(!folded);
+        expr_pos_error(err_code, &op->position);
+        conv_to_error_operand(op);
+      } else if (folded) {
+        /* Replace the call with a constant result. */
+        an_operand orig_op;
+        copy_operand(op, &orig_op);
+        make_constant_operand(&result, op);
+        restore_operand_details(op, &orig_op);
+        if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
+            result.kind != (a_constant_repr_kind)ck_template_param) {
+          /* Record the call as a backing expression, but not when the
+             call was put into a template parameter constant result. */
+          op->variant.constant.expr = call;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (folded) {
-    /* Replace the call with a constant result. */
-    an_operand  orig_op;
-    copy_operand(op, &orig_op);
-    make_constant_operand(&result, op);
-    restore_operand_details(op, &orig_op);
-    if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-      op->variant.constant.expr = call;
-    }  /* if */
-  }  /* if */
   return folded;
-}  /* check_call_and_fold_if_possible */
+}  /* fold_gnu_call_if_possible */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -5462,7 +5071,7 @@ are expected to be NULL in that case.
         call_folded_to_constant = TRUE;
       } else if (call_may_be_folded) {
         /* Some __builtin_xxx functions act as constant-expressions. */
-        call_folded_to_constant = check_call_and_fold_if_possible(
+        call_folded_to_constant = fold_gnu_call_if_possible(
                                                            result,
                                                            function_call_node);
       }  /* if */

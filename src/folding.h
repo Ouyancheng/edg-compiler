@@ -244,29 +244,16 @@ extern void fold_builtin_operation_if_possible(
                                         a_boolean          *not_a_constant);
 
 #if GNU_EXTENSIONS_ALLOWED
-extern a_boolean fold_bit_count_operation_if_possible(
-                                               a_routine_ptr     rp,
-                                               an_expr_node_ptr  arg,
-                                               a_constant        *result_con);
+extern a_boolean is_foldable_gnu_builtin_function(a_routine_ptr rp,
+                                                  a_boolean     *pseudo_call);
 
-extern a_boolean fold_fptest_if_possible(a_routine_ptr     rp,
-                                         an_expr_node_ptr  arg,
-                                         a_constant        *result_con);
-
-extern a_boolean fold_pow_if_possible(a_constant_ptr  base,
-                                      a_constant_ptr  exp,
-                                      a_constant_ptr  result,
-                                      a_type_ptr      result_type);
+extern a_boolean fold_gnu_builtin_function_call_if_possible(
+                                                  a_routine_ptr    rp,
+                                                  an_expr_node_ptr args,
+                                                  an_expr_node_ptr call_expr,
+                                                  a_constant       *result_con,
+                                                  an_error_code    *err_code);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-extern a_boolean fold_lock_free_query_if_possible(
-                                         a_builtin_function_kind  bfk,
-                                         an_expr_node_ptr         size_arg,
-                                         an_expr_node_ptr         ptr_arg,
-                                         a_constant_ptr           result,
-                                         a_type_ptr               result_type);
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
 extern a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
                                      a_source_position *pos,
