@@ -8830,7 +8830,8 @@ a new unshared constant will be allocated and returned.
                 /* Only direct base classes are represented at this level
                    in the constant; indirect base classes are in nested
                    elements of the aggregate. */
-                a_type_ptr base_class = bp->type;
+                a_type_ptr    base_class = bp->type;
+                a_targ_size_t base_class_size;
 #if DO_IL_LOWERING
                 if (class_type_supp(base_class)->type_as_subobject != NULL) {
                   /* The size of a base class subobject can be different
@@ -8839,6 +8840,8 @@ a new unshared constant will be allocated and returned.
                   base_class = class_type_supp(base_class)->type_as_subobject;
                 }  /* if */
 #endif /* DO_IL_LOWERING */
+                base_class_size = class_type_supp(base_class)->
+                                             size_without_virtual_base_classes;
                 /* The order in which base class subobjects appear in the
                    derived class object can be different from the order in
                    which they appear in the base class list.  The
@@ -8848,7 +8851,7 @@ a new unshared constant will be allocated and returned.
                    determine whether the address lies within it or not. */
                 if (offset >= (a_targ_ptrdiff_t)(cum_offset + bp->offset) &&
                     offset < (a_targ_ptrdiff_t)(cum_offset + bp->offset +
-                                                base_class->size)) {
+                                                base_class_size)) {
                   /* The address lies within this base class subobject. */
                   break;
                 }  /* if */
