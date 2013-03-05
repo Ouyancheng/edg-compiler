@@ -5391,9 +5391,12 @@ pos gives the source position to use.
 {
   if (operand == NULL || !is_error_operand(operand)) {
     if (in_potential_constant_constexpr_context() &&
-        (routine == NULL || routine->is_constexpr ||
-         (gnu_mode &&
-          is_foldable_gnu_builtin_function(routine, (a_boolean*)NULL)))) {
+        (routine == NULL || routine->is_constexpr
+#if GNU_EXTENSIONS_ALLOWED
+         || (gnu_mode &&
+             is_foldable_gnu_builtin_function(routine, (a_boolean*)NULL))
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        )) {
       /* This is a reference inside a constexpr function to a routine that
          is or might be constexpr.  Do not set the flag indicating that
          a constant expression has been ruled out, because in an invocation
