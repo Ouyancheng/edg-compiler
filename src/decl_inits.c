@@ -5849,6 +5849,7 @@ initialized.  These are addressed in the course of the processing.
   a_boolean                     in_variant = FALSE, variant_complete = FALSE;
   a_boolean                     variant_init = FALSE;
   a_boolean                     variant_explicit_init = FALSE;
+  a_boolean                     bad_call_for_constexpr_ctor_reported = FALSE;
 
   db_enter(3, "ctor_initializer");
   cib.cip_list = cib.end_of_cip_list = NULL;
@@ -6314,8 +6315,8 @@ initialized.  These are addressed in the course of the processing.
                 pos_sy_error(
                           ec_nonconstant_field_initializer_in_mem_initializer,
                           &err_pos, field_sym);
-              }  /* if */
-              if (!ctor_rout->is_prototype_instantiation) {
+                bad_call_for_constexpr_ctor_reported = TRUE;
+              } else if (!ctor_rout->is_prototype_instantiation) {
                 ctor_rout->is_constexpr = FALSE;
               }  /* if */
             }  /* if */
@@ -6477,9 +6478,16 @@ initialized.  These are addressed in the course of the processing.
           /* A default constructor does exist.  Generate the dynamic init
              entry. */
           dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/FALSE);
-          if (ctor_rout->is_constexpr && !rp->is_constexpr) {
-            pos_sy_error(ec_nonconstexpr_call_in_mem_initializer, &err_pos,
-                         symbol_for(rp));
+          if (ctor_rout->is_constexpr && !rp->is_constexpr &&
+              !bad_call_for_constexpr_ctor_reported) {
+            if (!ctor_rout->is_template_function ||
+                ctor_rout->is_specialized) {
+              pos_sy_error(ec_nonconstexpr_call_in_mem_initializer, &err_pos,
+                           symbol_for(rp));
+              bad_call_for_constexpr_ctor_reported = TRUE;
+            } else if (!ctor_rout->is_prototype_instantiation) {
+              ctor_rout->is_constexpr = FALSE;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
