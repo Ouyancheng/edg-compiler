@@ -184,6 +184,7 @@ extern void reference_to_implicitly_invoked_function
                                      a_boolean          instantiate,
                                      a_boolean          check_access,
                                      a_boolean          elided_reference,
+                                     a_boolean          in_constant_expr,
                                      a_boolean          *error_detected);
 
 extern a_boolean reference_to_trivial_default_constructor(

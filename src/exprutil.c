@@ -1479,6 +1479,7 @@ parameters from values on the expression stack.
                                      evaluated, instantiate,
                                      expr_access_checking_should_be_done(),
                                      /*elided_reference=*/FALSE,
+                                     curr_expr_kind_is_const(),
                                      p_error_detected);
   if (error_detected) record_suppressed_error();
 }  /* expr_reference_to_implicitly_invoked_function_full */

@@ -2530,6 +2530,7 @@ void reference_to_implicitly_invoked_function
                                  a_boolean          instantiate,
                                  a_boolean          check_access,
                                  a_boolean          elided_reference,
+                                 a_boolean          in_constant_expr,
                                  a_boolean          *error_detected)
 /*
 sym is points to a symbol for a special member function that is invoked
@@ -2556,8 +2557,10 @@ unevaluated expression; again, access control checking is done, but
 the IL entry is not marked as referenced.  If instantiate is TRUE and
 the function is a template function, it should be instantiated.
 If elided_reference is TRUE, the reference has been elided.
-If error_detected is non-NULL, return *error_detected set to TRUE if
-there was an error, and do not issue any diagnostics (including warnings).
+If in_constant_expr is TRUE, the reference is in a constant
+expression.  If error_detected is non-NULL, return *error_detected set
+to TRUE if there was an error, and do not issue any diagnostics
+(including warnings).
 */
 {
   a_symbol_ptr  base_sym = fundamental_symbol_of(sym);
@@ -2652,7 +2655,7 @@ there was an error, and do not issue any diagnostics (including warnings).
   } else {
     /* Non-virtual call. */
     mark_routine_referenced_full(rp, instantiate, elided_reference,
-                                 /*in_constant_expr=*/FALSE);
+                                 in_constant_expr);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 
@@ -2685,6 +2688,7 @@ there was an error, and do not issue any diagnostics (including warnings).
                                              /*instantiate=*/TRUE,
                                              check_access,
                                              /*elided_reference=*/FALSE,
+                                             /*in_constant_expr=*/FALSE,
                                              error_detected);
   }  /* if */
   return (ctor_sym != NULL);
@@ -2730,6 +2734,7 @@ any diagnostics (including warnings).
                                                  /*instantiate=*/FALSE,
                                                  check_access,
                                                  elided_reference,
+                                                 /*is_constant_expr=*/FALSE,
                                                  error_detected);
         break;
       }  /* if */
