@@ -5416,6 +5416,7 @@ copy_constant_full should be called to start a copy.
       a_constant_ptr old_constant_pointed_to =
                                 old_constant->variant.address.variant.constant;
       if (force_copy ||
+          old_constant_pointed_to->part_of_constexpr_master_expr ||
           (!in_file_scope(old_constant_pointed_to) &&
            (curr_il_region_number == file_scope_region_number ||
             copying_from_one_func_to_another))) {
@@ -5535,6 +5536,11 @@ copy_constant_full should be called to start a copy.
        prevent memory region issues. */
     new_constant->expr = NULL;
   }  /* if */
+  if (constexpr_master_copy) {
+    /* Constants created in making the master copy of a constexpr evaluation
+       expression are marked as such. */
+    new_constant->part_of_constexpr_master_expr = TRUE;
+  }  /* if */
   if (may_be_shared) {
     new_constant = alloc_shareable_constant(new_constant);
   } else if (new_constant_in_il) {
@@ -5545,11 +5551,6 @@ copy_constant_full should be called to start a copy.
          appears that a copied constant has become lowered and this isn't
          the case). */
       copy_il_lowering_flag(old_constant, new_constant);
-    }  /* if */
-    if (constexpr_master_copy) {
-      /* Constants created in making the master copy of a constexpr evaluation
-         expression are marked as such. */
-      new_constant->part_of_constexpr_master_expr = TRUE;
     }  /* if */
   }  /* if */
   return new_constant; /*lint !e809*/
