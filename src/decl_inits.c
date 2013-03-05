@@ -1125,6 +1125,9 @@ given position, unless is->no_diagnostics is TRUE.
         }  /* if */
       }  /* if */
     }  /* if */
+    if (!ctor_rp->is_constexpr) {
+      is->constant_expr_ruled_out = TRUE;
+    }  /* if */
     /* If the default constructor is generated and some component of the class
        requires zeroing, initialization is not really done because the
        value-initialization rules require that the zeroing occurs. */
