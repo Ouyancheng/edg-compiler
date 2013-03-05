@@ -4465,6 +4465,8 @@ checking.
         cp = constant->variant.address.variant.constant;
         if (cp->kind == (a_constant_repr_kind)ck_string) {
           object_size = cp->variant.string.length;
+        } else {
+          object_size = skip_typerefs(cp->type)->size;
         }  /* if */
         break;
       case abk_temporary:
