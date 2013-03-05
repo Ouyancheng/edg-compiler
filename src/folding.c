@@ -8785,8 +8785,8 @@ field_selection:
                  except that if the result of the operation is not an
                  lvalue, it is the value pointed to by the result of the
                  addition is desired. */
-              binary_operation(eok_padd, &op1_constant, &op2_constant,
-                               expr->type, result_con,
+              binary_operation((an_expr_operator_kind)eok_padd, &op1_constant,
+                               &op2_constant, expr->type, result_con,
                                /*constant_context=*/TRUE,
                                /*evaluated_context=*/TRUE,
                                &did_not_fold,
