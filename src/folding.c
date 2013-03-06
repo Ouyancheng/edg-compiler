@@ -5823,7 +5823,6 @@ a constexpr expansion, and the block provides context information.
         an_expr_node_ptr      op2 = op1->next;
         an_expr_operator_kind op = expr->variant.operation.kind;
         a_constant            conaddr1;
-        a_constant_ptr        pconaddr1;
         op1 = skip_parens(op1);
         if (op2 != NULL) op2 = skip_parens(op2);
         switch (op) {
@@ -5834,15 +5833,19 @@ a constexpr expansion, and the block provides context information.
                 constant_lvalue_address_full(op1, ceblock, &conaddr1,
                                              address_escapes,
                                              options, template_constant)) {
-              pconaddr1 = &conaddr1;
               goto handle_field_selection;
             }  /* if */
             break;
           case eok_points_to_field:
             /* Field selection, p->y.  If the left operand is a constant
                address, we can develop an address for the field. */
-            if (!is_constant_node(op1)) break;
-            pconaddr1 = op1->variant.constant;
+            if (is_pointer_type(op1->type) &&
+                constant_rvalue_pointer_full(op1, ceblock, &conaddr1,
+                                             address_escapes,
+                                             options, template_constant)) {
+              goto handle_field_selection;
+            }  /* if */
+            break;
 handle_field_selection:
             { a_field_ptr field;
               check_assertion(op2->kind == (an_expr_node_kind)enk_field);
@@ -5856,7 +5859,7 @@ handle_field_selection:
                 /* Not a bit field, or a bit field whose address can be taken
                    because it falls on byte boundaries. */
                 is_constant_addr = TRUE;
-                fold_field_selection(pconaddr1, field,
+                fold_field_selection(&conaddr1, field,
                                      make_pointer_type(expr->type),
                                      con, template_constant);
                 if (*template_constant) is_constant_addr = FALSE;
