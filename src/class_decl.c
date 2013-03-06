@@ -2850,23 +2850,6 @@ nested class.
 }  /* inline_function_fixup_for_class */
 
 
-static void ensure_type_is_in_type_list(a_type_ptr             type,
-                                        a_type_list_entry_ptr  *p_list)
-/*
-If the given type is not yet in the given list of types, add it to that list.
-*/
-{
-  for (; *p_list != NULL; p_list = &(*p_list)->next) {
-    if (type == (*p_list)->type) break;
-  }  /* for */
-  if (*p_list == NULL) {
-    /* The type was not yet in the list.  Add it now. */
-    *p_list = alloc_type_list_entry();
-    (*p_list)->type = type;
-  }  /* if */
-}  /* ensure_type_is_in_type_list */
-
-
 static a_boolean is_simple_default_constructor(a_routine_ptr  rp)
 /*
 Return TRUE if the given routine entry represents a constructor with no
@@ -2910,6 +2893,34 @@ defaulted) default constructor associated with cssp, or NULL if there is none.
 static a_boolean check_if_constexpr_generated_default_constructor(
                                                        a_type_ptr  class_type);
 
+void update_class_for_last_parsed_field_initializer(a_type_ptr  class_type)
+/*
+This is routine is called when the last field initializer of the given class
+type is parsed.  At that point we can determine if a generated default
+constructor is constexpr and whether the "literal class" property holds.
+In some cases the generation of the default constructor body may also have
+been delayed until this point.
+*/
+{
+  a_class_symbol_supplement  *cssp = class_symbol_supp(symbol_for(class_type));
+
+  /* If there were any initializer fixups before, we're done with them now. */
+  cssp->has_initializer_fixups = FALSE;
+  if (cssp->default_ctor_body_delayed) {
+    /* An attempt to generate the body of the default constructor was delayed
+       because it requires that the field initializers be available.  Now that
+       they are, proceed with the generation of that definition. */
+    a_symbol_ptr  ctor = get_generated_default_ctor(cssp);
+    check_assertion(ctor != NULL);
+    force_definition_of_compiler_generated_routine(ctor->variant.routine.ptr);
+  }  /* if */
+  if (constexpr_enabled) {
+    (void)check_if_constexpr_generated_default_constructor(class_type);
+    set_literal_type_flag(class_type);
+  }  /* if */
+}  /* update_class_for_last_parsed_field_initializer */
+
+
 static void inclass_initializer_fixup_for_class(a_type_ptr  class_type,
                                                 a_boolean   is_template_based)
 /*
@@ -2920,7 +2931,6 @@ for template instantiations (including prototype instantiations).  The class
 type must be complete.
 */
 {
-  a_type_list_entry_ptr          type_list = NULL, tlep;
   a_class_symbol_supplement_ptr  cssp;
   an_initializer_fixup_ptr       fixup_list, ifp, next_ifp;
 
@@ -2950,9 +2960,6 @@ type must be complete.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     a_boolean               class_reactivated = FALSE;
     push_lexical_state_stack();
-    if (!parent_type->incomplete) {
-      ensure_type_is_in_type_list(parent_type, &type_list);
-    }  /* if */
     if (!(scope_is(&scope_stack_top(), sck_class_struct_union) &&
           same_entities(scope_stack_top().assoc_type, parent_type))) {
       /* Reactivate the class scope and parse the initializer. */
@@ -3017,40 +3024,6 @@ type must be complete.
     free_initializer_fixup(ifp);
     pop_lexical_state_stack();
   }  /* for */
-  for (tlep = type_list; tlep != NULL; tlep = tlep->next) {
-    /* If actual initializer fixups were processed, check to see if the
-       associated classes have a generated defaulted constructor that should
-       be "constexpr", and determine whether those classes are "literal types".
-       If there were no fixups, this is done when the type is completed. */
-    a_boolean     class_reactivated = FALSE;
-    cssp = symbol_supplement_for_class(tlep->type);
-    cssp->has_initializer_fixups = FALSE;
-    if (!(scope_is(&scope_stack_top(), sck_class_struct_union) &&
-        same_entities(scope_stack_top().assoc_type, tlep->type))) {
-      /* Reactivate the class scope. */
-      push_class_and_template_reactivation_scope(tlep->type,
-                                                 is_template_based,
-                                                 /*extend_namespace=*/TRUE);
-      class_reactivated = TRUE;
-    }  /* if */
-    if (cssp->default_ctor_body_delayed) {
-      /* An attempt to generate the body of the default constructor was delayed
-         because it requires that the field initializers be available.  Now
-         that they are, proceed with the generation of that definition. */
-      a_symbol_ptr  ctor = get_generated_default_ctor(cssp);
-      check_assertion(ctor != NULL);
-      force_definition_of_compiler_generated_routine(
-                                                   ctor->variant.routine.ptr);
-    }  /* if */
-    if (constexpr_enabled) {
-      (void)check_if_constexpr_generated_default_constructor(tlep->type);
-      set_literal_type_flag(tlep->type);
-    }  /* if */
-    if (class_reactivated) {
-      pop_class_reactivation_scope();
-    }  /* if */
-  }  /* for */
-  free_list_of_type_list_entries(type_list);
 }  /* inclass_initializer_fixup_for_class */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -17032,10 +17005,28 @@ information about the member declaration, respectively.
        instead so the initializer can be instantiated "on-demand". */
     a_field_ptr                    field;
     a_boolean                      record_fixup = TRUE;
+    a_type_ptr                     class_type = class_state->class_type;
     a_field_symbol_supplement_ptr  fssp;
+    a_class_symbol_supplement_ptr  cssp = class_symbol_supp(
+                                                      symbol_for(class_type));
     check_assertion(symbol_is(dps->sym, sk_field));
     field = dps->sym->variant.field.ptr;
     fssp = dps->sym->variant.field.extra_info;
+    if (class_type->kind == (a_type_kind)tk_union &&
+        class_state->has_field_initializer) {
+      /* Unions can only have a single member with a field initializer. */
+      a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
+      for (; fp != NULL; fp = fp->next) {
+        if (fp->has_initializer) break;
+      }  /* for */
+      check_assertion(fp != NULL && fp != field);
+      pos_sy_error(ec_multiple_union_field_initializers,
+                   &dps->declarator_pos, symbol_for(fp));
+    } else {
+      class_state->has_field_initializer = TRUE;
+    }  /* if */
+    field->has_initializer = TRUE;
+    ++cssp->num_unparsed_field_initializers;
     dps->auto_type_allowed = FALSE;
     if (in_class_template_definition(class_state)) {
       /* During the prototype instantiation, save the token sequence
@@ -17053,6 +17044,7 @@ information about the member declaration, respectively.
         field->initializer =
                         alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
         field->initializer->variant.constant = alloc_error_constant();
+        --cssp->num_unparsed_field_initializers;
       } else {
         /* During a real instantiation, the token cache information is copied
            from the field of the prototype instantiation. */
@@ -17061,29 +17053,13 @@ information about the member declaration, respectively.
         /* No fixup is done because field initializers in templates are only
            instantiated if used. */
         record_fixup = FALSE;
-        symbol_supplement_for_class(class_state->class_type)
-                               ->has_instantiatable_field_initializers = TRUE;
+        cssp->has_instantiatable_field_initializers = TRUE;
         (void)get_token();
       }  /* if */
     }  /* if */
     if (record_fixup) {
       record_inclass_initializer_fixup(class_state, dps);
     }  /* if */
-    if (class_state->class_type->kind == (a_type_kind)tk_union &&
-        class_state->has_field_initializer) {
-      /* Unions can only have a single member with a field initializer. */
-      a_field_ptr  fp = class_state->class_type
-                                   ->variant.class_struct_union.field_list;
-      for (; fp != NULL; fp = fp->next) {
-        if (fp->has_initializer) break;
-      }  /* for */
-      check_assertion(fp != NULL && fp != field);
-      pos_sy_error(ec_multiple_union_field_initializers,
-                   &dps->declarator_pos, symbol_for(fp));
-    } else {
-      class_state->has_field_initializer = TRUE;
-    }  /* if */
-    field->has_initializer = TRUE;
     /* Field initializers make the class a non-POD and a non-aggregate.  Also,
        it makes the default constructor nontrivial. */
     class_state->POD_ruled_out = TRUE;

@@ -656,7 +656,7 @@ and indentation is the indentation desired.
   }  /* if */
 
   if (sym->decl_seq > 0) {
-    (void)sprintf(buffer, "#%lu", sym->decl_seq);
+    (void)sprintf(buffer, "#%lu", (unsigned long)sym->decl_seq);
     put_separator("", strlen(buffer));
     fputs(buffer, f_debug);
     col += (int)strlen(buffer);
@@ -3603,6 +3603,7 @@ state.
         cssp->class_template = NULL;
         cssp->template_info = NULL;
         cssp->member_decl_scope = NO_SCOPE_NUMBER;
+        cssp->num_unparsed_field_initializers = 0;
         cssp->instantiation_position = null_source_position;
         cssp->template_param_for_proxy_class = NULL;
         cssp->corresp_prototype_sym = NULL;

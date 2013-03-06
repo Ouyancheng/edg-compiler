@@ -2172,14 +2172,14 @@ in the scope in which the using-directives apply.
     an_active_using_directive_ptr	audp;
     fprintf(f_debug, "g++ using-dir lookup:\n");
     fprintf(f_debug, "  nssp->using_dir_decl_seq=%lu\n",
-            nssp->using_dir_decl_seq);
+            (unsigned long)nssp->using_dir_decl_seq);
     fprintf(f_debug, "  lookup_state->using_dir_decl_seq=%lu\n",
-            lookup_state->using_dir_decl_seq);
+            (unsigned long)lookup_state->using_dir_decl_seq);
     for (audp = ssep->using_directives_that_apply_here;
          audp != NULL; audp = audp->next_that_applies_at_depth) {
       if (nssp == audp->namespace_supplement) {
         fprintf(f_debug, "  effective_decl_seq=%lu\n",
-               audp->effective_decl_seq);
+                (unsigned long)audp->effective_decl_seq);
       }  /* if */
     }  /* for */
   }  /* if */

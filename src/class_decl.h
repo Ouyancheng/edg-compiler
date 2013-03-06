@@ -143,6 +143,9 @@ extern void default_argument_fixup_for_class(a_type_ptr  class_type,
 extern void scan_field_initializer_if_needed(a_field_ptr  field,
                                              a_type_ptr   class_type);
 
+extern void update_class_for_last_parsed_field_initializer(
+                                                      a_type_ptr  class_type);
+
 extern void process_deferred_class_fixups_and_instantiations(
 						a_boolean for_instantiation);
 

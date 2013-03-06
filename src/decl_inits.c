@@ -4373,7 +4373,7 @@ IL entry for that field.
 {
   an_init_state      *is = &dps->init_state;
   a_field_ptr        field;
-  a_type_ptr         dtype;
+  a_type_ptr         dtype, class_type;
   a_source_position  init_pos;
   a_boolean          saved_in_field_initializer = 
                                        scope_stack_top().in_field_initializer;
@@ -4385,6 +4385,7 @@ IL entry for that field.
 
   check_assertion(scope_is(&scope_stack_top(), sck_class_struct_union) ||
                   scope_is(&scope_stack_top(), sck_class_reactivation));
+  class_type = scope_stack_top().assoc_type;
   /* Indicate in the scope stack that we are parsing a field initializer.
      (E.g., so that the expression routines know that the keyword "this" is
      meaningful.)  Also temporarily set the current object lifetime to file
@@ -4396,7 +4397,7 @@ IL entry for that field.
      are constants, but folding the field initializers may require knowing if
      this class is literal.  If this occurs, the type is considered not to be
      a literal type; see set_literal_type_flag.) */
-  parent_cssp = symbol_supplement_for_class(scope_stack_top().assoc_type);
+  parent_cssp = class_symbol_supp(symbol_for(class_type));
   saved_scanning_field_initializer = parent_cssp->scanning_field_initializer;
   parent_cssp->scanning_field_initializer = TRUE;
   curr_object_lifetime = il_header.primary_scope->lifetime;
@@ -4481,6 +4482,11 @@ IL entry for that field.
   curr_object_lifetime = saved_curr_object_lifetime;
   scope_stack_top().in_field_initializer = saved_in_field_initializer;
   parent_cssp->scanning_field_initializer = saved_scanning_field_initializer;
+  if (--parent_cssp->num_unparsed_field_initializers == 0) {
+    /* This was the last unparsed field initializer.  Some actions and
+       properties may have been delayed until now. */
+    update_class_for_last_parsed_field_initializer(class_type);
+  }  /* if */
 }  /* field_initializer */
 
 

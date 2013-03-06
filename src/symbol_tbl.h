@@ -82,7 +82,7 @@ problems.
 typedef unsigned long a_symbol_reference_kind;
 
 /* Unique sequence number identifying a declaration in a given scope. */
-typedef unsigned long a_decl_sequence_number;
+typedef uint32_t a_decl_sequence_number;
   
 EXTERN a_decl_sequence_number
 		decl_seq_counter;
@@ -970,6 +970,12 @@ typedef struct a_class_symbol_supplement {
 			   normal classes this is set by push_scope.  For
 			   proxy and nonreal classes this is assigned when
 			   a lookup is done. */
+  a_decl_sequence_number
+		num_unparsed_field_initializers;
+			/* The number of field initializers in this class
+			   that haven't yet been parsed.  (When this number
+			   drops to zero, certain properties of the class can
+			   be established.) */
   a_type_ptr    template_param_for_proxy_class;
 			/* If the class is a proxy class associated with
 			   a template parameter type, dependent decltype or
