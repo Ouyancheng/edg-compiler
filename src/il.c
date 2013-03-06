@@ -7554,7 +7554,8 @@ which case the resulting constant is an empty aggregate.
     clear_constant(con, (a_constant_repr_kind)ck_aggregate);
     con->type = type;
     type = skip_typerefs(type);
-    { a_base_class_ptr bcp;
+    if (is_immediate_class_type(type)) {
+      a_base_class_ptr bcp;
       for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
         if (bcp->direct) {
           /* Add an empty aggregate for each direct base class. */
@@ -7568,7 +7569,7 @@ which case the resulting constant is an empty aggregate.
           add_constant_to_aggregate(base_con, con);
         } /* if */
       }  /* for */
-    }
+    }  /* if */
     if (!is_immediate_class_type(type) ||
         next_initializable_field(type->variant.class_struct_union.field_list)
                                                                      != NULL) {
