@@ -5916,6 +5916,14 @@ qualified_name_check:
                                     /*update_il_entry=*/FALSE);
           }
         }  /* if */
+      } else if (constexpr_enabled &&
+                 is_dtor_like_locator(locator_for_curr_id) &&
+                 !locator_for_curr_id.is_vacuous_destructor_reference &&
+                 construct_not_allowed_in_cpp11_constant_expr(
+                                                         ec_expr_not_constant,
+                                                         &pos_curr_token)) {
+        /* Vacuous destructor references are not allowed in C++11 constant
+           expressions. */
       }  /* if */
     }  /* if */
     /* The locator is copied back even on an error so that the caller can
@@ -33373,7 +33381,9 @@ handle_implicit_lambda_return_type:
     if (void_return_case) set_expr_result_not_used(expression);
   }  /* if */
   if (curr_routine->is_constexpr &&
-      (!curr_routine->is_template_function || curr_routine->is_specialized) &&
+      (!curr_routine->is_template_function ||
+       curr_routine->is_prototype_instantiation ||
+       curr_routine->is_specialized) &&
       expr_stack->constant_expr_ruled_out) {
     /* If the return of a constexpr function can't be a constant, issue
        an error. */
