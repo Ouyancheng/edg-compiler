@@ -24976,12 +24976,14 @@ return that.  If not, return the original expression.
      is compiler-generated. */
   if (is_operation_node(texpr) &&
       (node_operator_is(texpr, eok_class_rvalue_adjust) ||
-       (node_operator_is(texpr, eok_lvalue_adjust) &&
-        standalone_identical_types(
-                 f_skip_typerefs(texpr->type),
-                 f_skip_typerefs(texpr->variant.operation.operands->type))))) {
-    /* Drop a cv-qualification-adjusting operator. */
-    texpr = texpr->variant.operation.operands;
+       (node_operator_is(texpr, eok_lvalue_adjust)))) {
+    a_type_ptr expr_type = skip_typerefs(texpr->type);
+    a_type_ptr opnd_type =
+                        skip_typerefs(texpr->variant.operation.operands->type);
+    if (standalone_identical_types(expr_type, opnd_type)) {
+      /* Drop a cv-qualification-adjusting operator. */
+      texpr = texpr->variant.operation.operands;
+    }  /* if */
   }  /* if */
   while (is_operation_node(texpr) &&
          node_operator_is(texpr, eok_base_class_cast) &&
