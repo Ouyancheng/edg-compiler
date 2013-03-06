@@ -9579,6 +9579,20 @@ there is some kind of failure.
 }  /* constexpr_remap_list_for_args */
 
 
+static a_boolean constexpr_routine_has_definition(a_routine_ptr routine)
+/*
+See if the indicated constexpr routine has a definition, forcing one
+(via instantiation) if necessary.
+*/
+{
+  a_symbol_ptr sym = symbol_for(routine);
+
+  check_assertion(sym != NULL);
+  set_instance_required(sym, TRUE, SIR_CONSTANT_CONTEXT);
+  return routine->assoc_scope != NULL_region_number;
+}  /* constexpr_routine_has_definition */
+
+
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- gnu_builtins_too is not used in that case. */
 #endif /* !GNU_EXTENSIONS_ALLOWED */
@@ -9659,7 +9673,7 @@ gnu_builtin_fail:;
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  } else if (routine->assoc_scope == NULL_region_number) {
+  } else if (!constexpr_routine_has_definition(routine)) {
     /* The routine has no definition, so can't fold. */
   } else if (!(opkind == (an_expr_operator_kind)eok_call ||
                opkind == (an_expr_operator_kind)eok_dot_member_call ||
@@ -9811,7 +9825,7 @@ fold_constexpr_ctor should usually be called instead.
        fold. */
   } else if (!ctor_routine->is_constexpr) {
     /* The constructor is not constexpr, so can't fold. */
-  } else if (ctor_routine->assoc_scope == NULL_region_number) {
+  } else if (!constexpr_routine_has_definition(ctor_routine)) {
     /* The constructor has no definition, so can't fold. */
   } else {
     a_scope_ptr scope = scope_for_routine(ctor_routine);
