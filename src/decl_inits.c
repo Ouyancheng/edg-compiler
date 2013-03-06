@@ -5523,7 +5523,9 @@ cases, array_type is NULL).
          along with members of array type that are not explicitly specified in
          the mem-initializer list. */
       if (array_type != NULL) {
-        check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor);
+        check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor ||
+                        (dip->kind == (a_dynamic_init_kind)dik_constant &&
+                         dip->variant.constant->is_result_of_constexpr_call));
       }  /* if */
 #endif /* CHECKING */
     }  /* if */
