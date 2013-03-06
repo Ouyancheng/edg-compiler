@@ -10098,9 +10098,18 @@ otherwise, return FALSE.
       parent_of_field = parent_class_of(parent_of_field);
     }  /* while */
     /* First skip over any base class subobjects in the value. */
-    while (member_con->constant_for_base_class_from_constexpr_folding) {
-      member_con = member_con->next;
-    }  /* while */
+    for (bp = class_type->variant.class_struct_union.extra_info->base_classes;
+         bp != NULL && member_con != NULL; bp = bp->next) {
+      if (bp->direct || bp->is_virtual) {
+        /* Step to the next subobject.  (Only direct and virtual base
+           classes have aggregate elements at this level, i.e., not nested
+           within sub-aggregates.) */
+        /* FIXME: Virtual base classes should only be skipped if this is
+           the most-derived class.  It's not clear how to determine that
+           here when the reference is to a base class member. */
+        member_con = member_con->next;
+      }  /* if */
+    }  /* for */
     if (class_type->kind == (a_type_kind)tk_union) {
       /* A union has only one active element, and in a constant it is the
          one that was initialized: either the first element or, because of
@@ -10126,6 +10135,9 @@ otherwise, return FALSE.
          the indicated field is a (possibly indirect) member. */
       while (member_con != NULL && curr_field != NULL &&
              curr_field != field) {
+        /* FIXME: The traversal of the ck_aggregate will need to be more
+           elaborate to allow for things like arrays initialized with
+           string literals, etc. */
         if (curr_field->type == anon_union_member_type) {
           /* We have found the anonymous union member to which field
              belongs. */
