@@ -1563,6 +1563,7 @@ initialization (when ipdp->array_element_sequence is TRUE).
     /* Don't bother to create an assignment from an array with zero elements.
        These come up in cases like "new int[0]{};". */
   } else if (ipdp->array_element_sequence) {
+    an_expr_node_ptr num_elem_node = NULL;
     /* When initializing an entire array element sequence (to the
        value of a repeated constant), use an rvalue pointer to the
        entire array (rather than an lvalue for the first element). */
@@ -1575,11 +1576,15 @@ initialization (when ipdp->array_element_sequence is TRUE).
                         assoc_var_for_constant(con,
                                                is_const_qualified_type(
                                                                  con->type))));
+    if (ipdp->num_elem_node != NULL) {
+      num_elem_node = make_reusable_copy(ipdp->num_elem_node,
+                                         /*vars_can_change=*/FALSE);
+    } /* if */
     /* Create a helper routine to do the initialization and call it. */
     insert_call_to_initialize_entity(type_from_init_pos_descr(ipdp),
                                      have_complete_object,
                                      entity_node,
-                                     ipdp->num_elem_node,
+                                     num_elem_node,
                                      ipdp->array_element_count,
                                      init_val_node,
                                      insert_location);
