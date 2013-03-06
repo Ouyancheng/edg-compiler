@@ -17289,6 +17289,37 @@ constant if k is a constant.
 }  /* current_mode_allows_dot_static_folding */
 
 
+a_constant_ptr fold_constant_base_class_cast(an_expr_node_ptr expr,
+                                             a_constant_ptr   alloc_con)
+/*
+If expr is a base-class cast operation whose operand is a class constant,
+do the slicing and return a constant for the base class.  Otherwise,
+return NULL.  If alloc_con is non-NULL, return the base class value
+there and return alloc_con.  Otherwise, allocate a new constant, put
+the value there, and return the address of the new constant.
+*/
+{
+  a_constant_ptr result = NULL;
+ 
+  if (is_operation_node(expr) &&
+      node_operator_is(expr, eok_base_class_cast)) {
+    an_expr_node_ptr op1 = expr->variant.operation.operands;
+    if (is_constant_node(op1) &&
+        op1->variant.constant->kind == (a_constant_repr_kind)ck_aggregate) {
+      a_constant       addr_con;
+      a_base_class_ptr bcp = find_base_class_of(op1->type, expr->type);
+      check_assertion(bcp != NULL);
+      /* Make a temporary address so we can use constant_value_at_address. */
+      set_temporary_address_constant(op1->variant.constant, &addr_con);
+      addr_con.variant.address.offset = bcp->offset;
+      addr_con.type = make_pointer_type(expr->type);
+      result = constant_value_at_address(&addr_con, alloc_con);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* fold_constant_base_class_cast */
+
+
 an_expr_node_ptr conv_lvalue_expr_to_rvalue(an_expr_node_ptr  node,
                                             a_boolean         *constant_case,
                                             a_constant_ptr    *con_value,
@@ -17625,18 +17656,9 @@ it might produce an error).
               allow_folding != NULL) {
             /* This is a cast of a class constant to a base class.
                Extract the required base class subobject from the class
-               object by setting up an address constant pointing to the
-               subobject and getting the value at that address and use
-               that base class object constant as the result. */
-            a_base_class_ptr bcp;
-            a_constant       addr_con;
-            bcp = find_base_class_of(op1->type, node->type);
-            check_assertion(bcp != NULL);
-            set_temporary_address_constant(op1->variant.constant, &addr_con);
-            addr_con.variant.address.offset = bcp->offset;
-            addr_con.type = make_pointer_type(node->type);
-            con_expr_value = constant_value_at_address(&addr_con,
-                                                       (a_constant_ptr)NULL);
+               object. */
+            con_expr_value = fold_constant_base_class_cast(node,
+                                                           (a_constant *)NULL);
           } else {
             node->variant.operation.operands = op1;
           }  /* if */

@@ -17354,8 +17354,23 @@ the class type is already correct and nothing should be done to it.
     /* Adjust the class object type if necessary. */
     full_adjust_class_object_type(source_operand, dest_type);
   }  /* if */
-  /* Make the source an rvalue. */
-  do_operand_transformations(source_operand, TOPT_NO_OPTIONS);
+  if (!is_an_rvalue(source_operand)) {
+    /* Make the source an rvalue. */
+    do_operand_transformations(source_operand, TOPT_NO_OPTIONS);
+  } else if (constexpr_enabled) {
+    a_constant result_con;
+    if (curr_expr_kind_is_const() &&
+        is_expression_operand(source_operand) &&
+        fold_constant_base_class_cast(source_operand->variant.expression,
+                                      &result_con) != NULL) {
+      /* Produce a constant value, doing the slice, for a base class cast
+         over a constant class value. */
+      an_operand orig_operand;
+      orig_operand = *source_operand;
+      make_constant_operand(&result_con, source_operand);
+      restore_operand_details(source_operand, &orig_operand);
+    }  /* if */
+  }  /* if */
 }  /* prep_class_bitwise_copy_operand */
 
 
@@ -18533,13 +18548,24 @@ happen only in C++ mode.
                                 ctor_arg_conversion, &arg_expr_list,
                                 &class_bitwise_copy);
     if (class_bitwise_copy) {
-      /* Use a dik_expression entry to do a bitwise copy. */
-      dip = alloc_dynamic_init_possibly_with_dtor(
+      if (is_constant_node(arg_expr_list)) {
+        /* The result is a constant, so use a dik_constant. */
+        dip = alloc_dynamic_init_possibly_with_dtor(
+                                           (a_dynamic_init_kind)dik_constant,
+                                           fill_in_dtor,
+                                           class_type,
+                                           &source_operand->position);
+        dip->variant.constant =
+                      alloc_unshared_constant(arg_expr_list->variant.constant);
+      } else {
+        /* Use a dik_expression entry to do a bitwise copy. */
+        dip = alloc_dynamic_init_possibly_with_dtor(
                                            (a_dynamic_init_kind)dik_expression,
                                            fill_in_dtor,
                                            class_type,
                                            &source_operand->position);
-      dip->variant.expression = arg_expr_list;
+        dip->variant.expression = arg_expr_list;
+      }  /* if */
     } else {
       /* Use a dik_constructor entry to call the constructor, possibly
          folding to a constant if it is constexpr. */

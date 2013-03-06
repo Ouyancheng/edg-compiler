@@ -1472,6 +1472,10 @@ extern
 a_boolean current_mode_allows_dot_static_folding(an_expr_node_ptr lhs_expr);
 
 extern
+a_constant_ptr fold_constant_base_class_cast(an_expr_node_ptr expr,
+                                             a_constant_ptr   alloc_con);
+
+extern
 an_expr_node_ptr conv_lvalue_expr_to_rvalue(an_expr_node_ptr node,
                                             a_boolean        *constant_case,
                                             a_constant_ptr   *con_value,
