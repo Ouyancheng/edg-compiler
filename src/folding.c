@@ -9886,6 +9886,9 @@ fold_constexpr_ctor should usually be called instead.
               anon_union_aggr->type = next_expected_field->type;
               next_expected_field =
                            next_initializable_field(next_expected_field->next);
+              /* Beware of unions containing multiple empty anonymous unions:
+                 Only one should be initialized. */
+              if (class_type->kind == (a_type_kind)tk_union) break;
             }  /* while */
           }  /* if */
           if (ctor_init == NULL) break;
