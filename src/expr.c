@@ -33373,6 +33373,7 @@ handle_implicit_lambda_return_type:
     if (void_return_case) set_expr_result_not_used(expression);
   }  /* if */
   if (curr_routine->is_constexpr &&
+      (!curr_routine->is_template_function || curr_routine->is_specialized) &&
       expr_stack->constant_expr_ruled_out) {
     /* If the return of a constexpr function can't be a constant, issue
        an error. */
