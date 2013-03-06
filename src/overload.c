@@ -18151,8 +18151,7 @@ cases.
       if (!microsoft_mode) {
         mark_routine_referenced_full(cctor_sym->variant.routine.ptr,
                                     /*instantiate=*/TRUE,
-                                    /*elided_reference=*/TRUE,
-                                    curr_expr_kind_is_const());
+                                    /*elided_reference=*/TRUE);
       }  /* if */
       check_use_of_deleted_function(cctor_sym, /*elided_ref=*/TRUE, err_pos);
     }  /* if */

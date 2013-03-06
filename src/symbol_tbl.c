@@ -9385,7 +9385,6 @@ that can be called with zero arguments.
                                              /*instantiate=*/TRUE,
                                              check_access,
                                              /*elided_reference=*/FALSE,
-                                             /*in_constant_expr=*/FALSE,
                                              error_detected);
   }  /* if */
   if (err != NULL) *err = local_err;
@@ -9480,7 +9479,6 @@ and do not issue any diagnostics (including warnings).
                                                  instantiate,
                                                  check_access,
                                                  /*elided_reference=*/FALSE,
-                                                 /*in_constant_expr=*/FALSE,
                                                  error_detected);
         dtor_routine = dtor_sym->variant.routine.ptr;
       }  /* if */
@@ -9632,7 +9630,6 @@ and do not issue any diagnostics (including warnings).
                                                /*instantiate=*/TRUE,
                                                check_access,
                                                /*elided_reference=*/FALSE,
-                                               /*in_constant_expr=*/FALSE,
                                                error_detected);
     }  /* if */
     cctor_routine = cctor_sym->variant.routine.ptr;

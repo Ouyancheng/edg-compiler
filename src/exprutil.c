@@ -1448,9 +1448,7 @@ mark_routine_referenced.
     mark_routine_referenced_full(routine,
                                  /*instantiate=*/
                                        !expr_stack->is_default_arg_expression,
-                                 /*elided_reference=*/FALSE,
-                                 /*in_constant_expr=*/
-                                                    curr_expr_kind_is_const());
+                                 /*elided_reference=*/FALSE);
   }  /* if */
 }  /* if_evaluating_mark_routine_referenced */
 
@@ -1479,7 +1477,6 @@ parameters from values on the expression stack.
                                      evaluated, instantiate,
                                      expr_access_checking_should_be_done(),
                                      /*elided_reference=*/FALSE,
-                                     curr_expr_kind_is_const(),
                                      p_error_detected);
   if (error_detected) record_suppressed_error();
 }  /* expr_reference_to_implicitly_invoked_function_full */

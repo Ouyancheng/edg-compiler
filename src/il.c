@@ -19871,8 +19871,7 @@ the case if the return type was incomplete at the point of definition.
 
 void mark_routine_referenced_full(a_routine_ptr routine,
                                   a_boolean     instantiate,
-                                  a_boolean     elided_reference,
-                                  a_boolean     in_constant_expr)
+                                  a_boolean     elided_reference)
 /*
 Mark the indicated routine as actually referenced.  "Actually" means
 as opposed to referenced in a virtual function call that may call some
@@ -19883,8 +19882,7 @@ is a template function, and/or definition if the function is the right kind
 of compiler-generated function (e.g., a constructor).  Instantiation is
 forced only if instantiate is TRUE.  If elided_reference is TRUE, the
 reference has been elided by copy constructor elision; force instantiation
-but do not mark the routine as actually referenced.  If in_constant_expr
-is TRUE, the reference is in a constant expression.
+but do not mark the routine as actually referenced.
 */
 {
   a_symbol_ptr  assoc_sym;
@@ -19942,13 +19940,7 @@ is TRUE, the reference is in a constant expression.
      mechanism like the template instantiation mechanism. */
   assoc_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
   if (instantiate && assoc_sym != NULL) {
-    a_set_instance_required_options_set options = SIR_NONE;
-    if (in_constant_expr) {
-      /* In a constant expression a constexpr function must be instantiated
-         immediately. */
-      options |= SIR_CONSTANT_CONTEXT;
-    }  /* if */
-    set_instance_required(assoc_sym, TRUE, options);
+    set_instance_required(assoc_sym, TRUE, SIR_NONE);
   }  /* if */
 }  /* mark_routine_referenced_full */
 
@@ -19959,8 +19951,7 @@ Interface to mark_routine_referenced_full for the simple case.
 */
 {
   mark_routine_referenced_full(routine, /*instantiate=*/TRUE,
-                               /*elided_reference=*/FALSE,
-                               /*in_constant_expr=*/FALSE);
+                               /*elided_reference=*/FALSE);
 }  /* mark_routine_referenced */
 
 
