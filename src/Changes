@@ -1,5 +1,24 @@
 Version 4.6
 
+3/5/13   [EDGcpfe/13711]
+Wrong type on implicit initializer for array field in braced initialization
+
+In some cases, the front end creates implicit entries representing the
+initialization of fields in braced initialization.  For example:
+
+  struct D { D() {} };
+  struct A {
+    char x[2];
+    D d;
+  } a = {};
+
+Here the constant representing the "{}" initializer is a ck_aggregate constant
+with two sub-constants: One for A::x and one for A::d.  Previously, such
+constants for array fields (like for A::x in this example) were given the
+wrong type; specifically, they were given the element type instead of the
+array type.  This is now fixed.
+
+
 3/4/13   [EDGcpfe/13703]
 Microsoft compatibility: defined() operator in macro expansion
 

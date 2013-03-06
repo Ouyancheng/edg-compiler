@@ -2175,7 +2175,7 @@ position for which diagnostics should be issued.
           if (is_scalar_type(ftp) && atp == NULL) {
             make_zero_of_proper_type(ftp, init_con);
           } else {
-            init_con->type = ftp;
+            init_con->type = (atp == NULL) ? ftp : atp;
             if (!(is_immediate_class_type(ftp) &&
                   has_initializable_field(ftp)) &&
                 !(atp != NULL && has_any_zero_bound(atp))) {
