@@ -254,7 +254,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         if (in_front_end) {
           if (sym != NULL && sym->decl_seq > 0) {
             fprintf(f_debug, "%s#%lu", (lparen_printed ? ", " : " ("),
-                    sym->decl_seq);
+                    (unsigned long)sym->decl_seq);
             lparen_printed = TRUE;
           }  /* if */
         }  /* if */

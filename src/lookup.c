@@ -1706,7 +1706,8 @@ scope lookup.  options specifies the options being used for the lookup.
             "add_symbol_to_lookup_set: symbols at start - curr=%lu, new=%lu\n",
             functions_represented_by_symbol(curr_sym),
             functions_represented_by_symbol(new_sym));
-    fprintf(f_debug, "  decl_seq_of_symbol=%lu\n", decl_seq_of_symbol);
+    fprintf(f_debug, "  decl_seq_of_symbol=%lu\n",
+            (unsigned long)decl_seq_of_symbol);
   }  /* if */
 #endif  /* DEBUG */
   if (curr_sym == NULL) {
