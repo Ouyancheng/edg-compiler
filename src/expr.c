@@ -13192,8 +13192,10 @@ indication in *rcblock).
   } else {
     /* Create a typeid operand. */
     make_typeid_operand(typeid_type, expr, is_cli_typeid,
-                        /*make_constant=*/microsoft_template_arg_case &&
-                                          !is_cli_typeid,
+                        /*make_constant=*/((curr_expr_kind_is_const() &&
+                                            expr == NULL) ||
+                                           microsoft_template_arg_case) &&
+                                           !is_cli_typeid,
                         result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
