@@ -9466,21 +9466,26 @@ member function call.
 
 
 a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
+                              a_boolean         treat_as_object,
                               a_source_position *pos,
                               a_constant        *result_con)
 /*
 Attempt to fold the expression "expr" to a constant as part of a
 constexpr evaluation.  If the expression folds to a constant, place
 the constant in *result_con and return TRUE; otherwise, return FALSE.
-The expression can be an rvalue or an rvalue.  pos gives the source
-position of the evaluation.
+The expression can be an rvalue or an rvalue.  If treat_as_object
+is TRUE, treat the expression as an object (class or array) and
+look for and return a constant address for the object.  pos gives
+the source position of the evaluation.
 */
 {
   a_boolean                    folded;
   a_constexpr_evaluation_block ceblock;
 
   clear_constexpr_evaluation_block(&ceblock, pos);
-  if (expr->is_lvalue) {
+  if (treat_as_object) {
+    folded = fold_object_expr(expr, &ceblock, /*want_addr=*/TRUE, result_con);
+  } else if (expr->is_lvalue) {
     folded = fold_lvalue_expr(expr, &ceblock, result_con);
   } else {
     folded = fold_expr(expr, &ceblock, result_con);

@@ -5219,6 +5219,7 @@ constant expressions, fold to a constant result.
   if (constexpr_enabled && curr_expr_kind_is_const() &&
       is_expression_operand(operand) && is_an_rvalue(operand) &&
       fold_constexpr_expr(operand->variant.expression,
+                          /*treat_as_object=*/FALSE,
                           &operand->position,
                           &con)) {
     /* With constexpr enabled, the expression can be folded to a constant. */
@@ -18176,9 +18177,12 @@ current mode -- just do it.
     /* Array-to-pointer decay is not allowed in an integral constant
        expression. */
     error_in_operand(ec_expr_not_integral_constant, operand);
-  } else if (expr_stack->favor_constant_result && expr->is_lvalue &&
-             constant_lvalue_address(expr, &conaddr,
-                                     /*address_escapes=*/TRUE)) {
+  } else if ((expr_stack->favor_constant_result && expr->is_lvalue &&
+              constant_lvalue_address(expr, &conaddr,
+                                      /*address_escapes=*/TRUE)) ||
+             (constexpr_enabled && curr_expr_kind_is_const() &&
+              fold_constexpr_expr(expr, /*treat_as_object=*/TRUE,
+                                  &operand->position, &conaddr))) {
     /* The array has a constant address, so make an address constant for
        the pointer. */
     a_type_ptr ptr_type =

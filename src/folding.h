@@ -256,6 +256,7 @@ extern a_boolean fold_gnu_builtin_function_call_if_possible(
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
+                                     a_boolean         treat_as_object,
                                      a_source_position *pos,
                                      a_constant        *result_con);
 
