@@ -24957,6 +24957,41 @@ it can be used by back ends.
   ref_type->variant.pointer.type = dest_type;
 }  /* destination_type_for_reference_cast */
 
+
+an_expr_node_ptr expr_before_type_adjustment(an_expr_node_ptr expr)
+/*
+expr is an expression that may have been passed through adjust_lvalue_type
+or adjust_class_rvalue_type to adjust its type.  If it is, strip off the
+adjustment to get back to the original unadjusted lvalue expression, and
+return that.  If not, return the original expression.
+*/
+{
+  an_expr_node_ptr texpr = expr;
+
+  /* A type adjustment is zero or more base class casts followed optionally
+     by an lvalue or rvalue type adjustment to adjust the cv-qualification.
+     That's based on what adjust_lvalue_type and adjust_class_rvalue_type
+     do, and the code here would have to change if those routines change. */
+  /* No skip_parens needed here because the sequence we are looking for
+     is compiler-generated. */
+  if (is_operation_node(texpr) &&
+      (node_operator_is(texpr, eok_class_rvalue_adjust) ||
+       (node_operator_is(texpr, eok_lvalue_adjust) &&
+        identical_types_ignoring_qualifiers(
+                                  texpr->type,
+                                  texpr->variant.operation.operands->type)))) {
+    /* Drop a cv-qualification-adjusting operator. */
+    texpr = texpr->variant.operation.operands;
+  }  /* if */
+  while (is_operation_node(texpr) &&
+         node_operator_is(texpr, eok_base_class_cast) &&
+         texpr->variant.operation.compiler_generated) {
+    /* Drop base class casts. */
+    texpr = texpr->variant.operation.operands;
+  }  /* while */
+  return texpr;
+}  /* expr_before_type_adjustment */
+
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 /*
 GNU C and C++ distinguishes between two alignments for fundamental types:

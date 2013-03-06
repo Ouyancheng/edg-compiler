@@ -2498,6 +2498,8 @@ extern void clear_instantiation_required_on_unneeded_entities(
 
 extern an_expr_node_ptr make_dummy_lvalue_expr(a_type_ptr type);
 
+extern an_expr_node_ptr expr_before_type_adjustment(an_expr_node_ptr expr);
+
 #endif /* ifndef IL_H */
 
 /******************************************************************************

@@ -2245,8 +2245,6 @@ void cast_operand_for_reference_cast(an_operand        *operand,
 extern void adjust_class_rvalue_type(an_operand *operand,
                                      a_type_ptr dest_type);
 
-extern an_expr_node_ptr expr_before_type_adjustment(an_expr_node_ptr expr);
-
 extern a_boolean is_a_cplusplus_lvalue(an_operand *operand);
 
 extern a_type_ptr type_after_bit_field_integral_promotion(
