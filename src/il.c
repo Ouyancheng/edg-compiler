@@ -24977,9 +24977,9 @@ return that.  If not, return the original expression.
   if (is_operation_node(texpr) &&
       (node_operator_is(texpr, eok_class_rvalue_adjust) ||
        (node_operator_is(texpr, eok_lvalue_adjust) &&
-        identical_types_ignoring_qualifiers(
-                                  texpr->type,
-                                  texpr->variant.operation.operands->type)))) {
+        standalone_identical_types(
+                 f_skip_typerefs(texpr->type),
+                 f_skip_typerefs(texpr->variant.operation.operands->type))))) {
     /* Drop a cv-qualification-adjusting operator. */
     texpr = texpr->variant.operation.operands;
   }  /* if */
