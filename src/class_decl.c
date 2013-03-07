@@ -2876,10 +2876,12 @@ defaulted) default constructor associated with cssp, or NULL if there is none.
     /* Search the constructors for one that is generated/defaulted and is a
        simple default constructor (i.e., has not explicit parameter). */
     for (; ctor != NULL; ctor = is_list ? ctor->next : NULL) {
-      a_routine_ptr  ctor_rp = ctor->variant.routine.ptr;
-      if ((ctor_rp->compiler_generated || ctor_rp->is_defaulted) &&
-          is_simple_default_constructor(ctor_rp)) {
-        break;
+      if (symbol_is(ctor, sk_member_function)) {
+        a_routine_ptr  ctor_rp = ctor->variant.routine.ptr;
+        if ((ctor_rp->compiler_generated || ctor_rp->is_defaulted) &&
+            is_simple_default_constructor(ctor_rp)) {
+          break;
+        }  /* if */
       }  /* if */
     }  /* for */
   } else {
