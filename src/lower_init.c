@@ -1501,11 +1501,13 @@ in the case where an array is being initialized by a repeated constant
 initialization (when ipdp->array_element_sequence is TRUE).
 */
 {
-  an_expr_node_ptr      init_val_node, assign_node;
+  an_expr_node_ptr      init_val_node, assign_node, prev_init_count = NULL;
   a_statement_ptr       assign_stmt;
   an_expr_operator_kind op;
   a_boolean             array_assignment = FALSE, needs_cast = FALSE;
+  a_boolean             repeated_constant_initialization = FALSE;
   a_type_ptr            entity_type = entity_node->type;
+  a_constant            prev_init_con;
 
   check_assertion(entity_node->is_lvalue);
   switch ((dip == NULL) ? (a_dynamic_init_kind)dik_constant : dip->kind) {
@@ -1539,6 +1541,35 @@ initialization (when ipdp->array_element_sequence is TRUE).
                                                           new_type);
         }  /* if */
         array_assignment = TRUE;
+      } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
+        /* An assignment of a repeated constant.  This can occur when
+           initializing a portion of a variably-sized array with
+           a constant that is the result of a constexpr constructor
+           call (e.g, new A[n]{ {1, 2} }).  Use the repeated constant
+           to initialize the remaining elements in the array.  Note that
+           this repeated initialization may follow initialization for
+           earlier array elements, so ensure that we account for that
+           when deciding how many elements to initialize. */
+        check_assertion(con->variant.init_repeat.count == 0 &&
+                        ipdp->num_elem_node != NULL);
+        con = con->variant.init_repeat.constant;
+        check_assertion(con->is_result_of_constexpr_call);
+        if (!ipdp->array_element_sequence) {
+          /* We're not initializing the entire array; the top-level modifier
+             should indicate which array element we're starting at.  Create
+             an expression that reflects this. */
+          check_assertion(ipdp->modifiers != NULL &&
+                          ipdp->modifiers->curr_field == NULL &&
+                          ipdp->modifiers->curr_base == NULL &&
+                          ipdp->modifiers->curr_elem != 0);
+          set_unsigned_integer_constant_with_overflow_check(
+                                                    &prev_init_con,
+                                                    ipdp->modifiers->curr_elem,
+                                                    targ_size_t_int_kind,
+                                                    (a_type_ptr)NULL);
+          prev_init_count = alloc_node_for_constant(&prev_init_con);
+        }  /* if */
+        repeated_constant_initialization = TRUE;
       } else {
         /* Normal case, not a string literal. */
         init_val_node = make_node_for_il_constant(con);
@@ -1547,6 +1578,7 @@ initialization (when ipdp->array_element_sequence is TRUE).
           check_assertion(is_array_type(con->type));
           array_assignment = TRUE;
         }  /* if */
+        repeated_constant_initialization = ipdp->array_element_sequence;
       }  /* if */
       break;
     case dik_expression:
@@ -1562,12 +1594,10 @@ initialization (when ipdp->array_element_sequence is TRUE).
                               variant.array.variant.number_of_elements == 0) {
     /* Don't bother to create an assignment from an array with zero elements.
        These come up in cases like "new int[0]{};". */
-  } else if (ipdp->array_element_sequence) {
+  } else if (repeated_constant_initialization) {
+    /* We're assigning a constant value to an entire array or some portion
+       thereof. */
     an_expr_node_ptr num_elem_node = NULL;
-    /* When initializing an entire array element sequence (to the
-       value of a repeated constant), use an rvalue pointer to the
-       entire array (rather than an lvalue for the first element). */
-    entity_node = add_address_of_to_node(entity_node);
     check_assertion(dip == NULL ||
                     dip->kind == (a_dynamic_init_kind)dik_constant);
     /* Use (or create) the temporary variable associated with this constant. */
@@ -1579,11 +1609,22 @@ initialization (when ipdp->array_element_sequence is TRUE).
     if (ipdp->num_elem_node != NULL) {
       num_elem_node = make_reusable_copy(ipdp->num_elem_node,
                                          /*vars_can_change=*/FALSE);
+      if (prev_init_count != NULL) {
+        /* If some elements of the array have already been initialized,
+           make sure we adjust the count accordingly.  A run-time check
+           has already been inserted to ensure that the value represented
+           by num_elem_node is valid, so this subtraction won't underflow
+           (though it can return zero). */
+        num_elem_node->next = prev_init_count;
+        num_elem_node = make_operator_node((an_expr_operator_kind)eok_subtract,
+                                           num_elem_node->type,
+                                           num_elem_node);
+      }  /* if */
     } /* if */
     /* Create a helper routine to do the initialization and call it. */
     insert_call_to_initialize_entity(type_from_init_pos_descr(ipdp),
                                      have_complete_object,
-                                     entity_node,
+                                     add_address_of_to_node(entity_node),
                                      num_elem_node,
                                      ipdp->array_element_count,
                                      init_val_node,
@@ -5316,12 +5357,6 @@ expression).
       repeated_con = con_ptr->variant.init_repeat.constant;
       /* Repeat the constant the right number of times. */
       if (repeated_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
-        /* Repeated non-dynamic constants are possible with designators and
-           when constexpr default constructors are folded.  Either way, leave
-           leave it alone, except for lowering the underlying constant.  This
-           comes up in C mode when IL lowering is used to lower nonconstant
-           initializers.  (However, the repeated constant will be actually
-           constant.) */
         check_assertion(designators_allowed ||
                         repeated_con->is_result_of_constexpr_call);
 #if DO_C99_IL_LOWERING
@@ -5332,7 +5367,32 @@ expression).
         {
           lower_constant(repeated_con);
         }  /* if */
-        *keep_constant = TRUE;
+        if (ipd.indirect_through_variable) {
+          /* The entity being initialized is not a simple variable, so we
+             don't want to keep any part of the initialization as a constant
+             aggregate initialization.  This can occur when initializing
+             a (portion of a) variably-sized array with a constant value
+             (from a constexpr constructor).  Generate executable statements
+             to perform the initialization. */
+          an_expr_node_ptr entity_node;
+          entity_node = make_init_entity_node(&ipd,
+                                              /*result_is_lvalue=*/TRUE,
+                                              /*using_as_dest=*/TRUE);
+          repeated_con->next = NULL;
+          add_init_assignment((a_dynamic_init *)NULL, con_ptr, entity_node,
+                              /*have_complete_object=*/FALSE,
+                              insert_location,
+                              /*is_lambda_capture=*/FALSE,
+                              &ipd);
+        } else {
+          /* Repeated non-dynamic constants are possible with designators and
+             when constexpr default constructors are folded.  Either way, leave
+             leave it alone, except for lowering the underlying constant.  This
+             comes up in C mode when IL lowering is used to lower nonconstant
+             initializers.  (However, the repeated constant will be actually
+             constant.) */
+          *keep_constant = TRUE;
+        }  /* if */
       } else {
         /* Repeated ck_dynamic_init constant. */
         check_assertion(!C_mode());
