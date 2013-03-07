@@ -4038,9 +4038,8 @@ list passed in.  The pointer to the start of the list is returned.
 #endif /* DEBUG */
     }  /* if */
   }  /* for */
-  check_assertion_or_expect_error(total_errors > 0 ||
-                                  (curr_tcsp == NULL &&
-                                   start_found_list == NULL));
+  check_assertion_or_expect_error(curr_tcsp == NULL &&
+                                  start_found_list == NULL);
   return complete_list;
 }  /* map_token_numbers_to_cache_pointers */
 
