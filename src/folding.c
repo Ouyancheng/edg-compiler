@@ -9170,6 +9170,15 @@ field_selection:
         } /* if */
         if (folded) result_con->type = expr->type;
         break;
+      case eok_lvalue_adjust:
+        /* An lvalue adjust with an implicit lvalue-to-rvalue conversion.
+           If we know the address of the underlying lvalue, we can look
+           and see if we have a constant there. */
+        if (fold_lvalue_expr(op1, ceblock, &op1_constant) &&
+            constant_value_at_address(&op1_constant, result_con) != NULL) {
+          folded = TRUE;
+        }  /* if */
+        break;
       default:
         /* "Normal" operators.  For these, the operands have to be constant
             for folding to be possible. */
