@@ -7940,7 +7940,8 @@ TRUE.
 {
   a_boolean  folded = FALSE, err;
 
-  if (is_constant_node(size_arg)) {
+  if (is_constant_node(size_arg) &&
+      size_arg->variant.constant->kind == (a_constant_repr_kind)ck_integer) {
     /* These queries can only be folded if the first argument is a
        constant. */
     a_constant_ptr         size_con = size_arg->variant.constant;
