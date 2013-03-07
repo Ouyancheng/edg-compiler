@@ -1106,12 +1106,10 @@ given position, unless is->no_diagnostics is TRUE.
         a_boolean   partially_initialized;
         a_constant  class_con;
         if (ctor_rp->is_constexpr &&
-            dtor_rp == NULL &&  /* FIXME: Shouldn't be needed? */
             fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE, diag_pos,
                                 &class_con, &partially_initialized)) {
           if (partially_initialized) is->partial_initializer = TRUE;
           result = alloc_unshared_constant(&class_con);
-#if /*FIXME*/0
           if (dtor_rp != NULL) {
             /* Despite construction being folded into a constant, a nontrivial
                (and non-constexpr) destructor will still need to be called.
@@ -1121,7 +1119,6 @@ given position, unless is->no_diagnostics is TRUE.
             dip->variant.constant = result;
             result = NULL;
           }  /* if */
-#endif /*FIXME*/
         }  /* if */
       }  /* if */
     }  /* if */
