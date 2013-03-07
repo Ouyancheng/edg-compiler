@@ -871,8 +871,10 @@ constructor.
       for (ctor_init = scope->variant.routine.constructor_inits;
            ctor_init != NULL;
            ctor_init = ctor_init->next) {
-        a_constructor_init_ptr copy = copy_ctor_init(ctor_init,
-                                                     CE_COPY_NOT_EVALUATED);
+        a_constructor_init_ptr copy = copy_ctor_init(
+                                         ctor_init,
+                                         CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR |
+                                         CE_COPY_NOT_EVALUATED);
         *next_ptr_ptr = copy;
         next_ptr_ptr = &copy->next;
       }  /* for */

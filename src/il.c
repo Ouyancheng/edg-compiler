@@ -5522,12 +5522,13 @@ copy_constant_full should be called to start a copy.
   }  /* if */
   if (old_constant->expr == NULL) {
     /* Skip some processing of backing expressions if there isn't one. */
-  } else if (copying_from_one_func_to_another) {
+  } else if (copying_from_one_func_to_another || force_copy) {
     /* When copying for inlining, the expression pointed to is in a
        function scope memory region and can't be used in the new function
        scope memory region.  The expression might be copyable in some cases,
        but there's no point in trying too hard since the copy does not
        correspond to anything in the source. */
+    /* Also when copying into or out of the constexpr master copy. */
     new_constant->expr = NULL;
   } else if (old_constant_in_il && new_constant_in_il &&
              in_file_scope(old_constant) && !in_file_scope(new_constant)) {
