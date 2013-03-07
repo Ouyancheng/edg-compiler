@@ -33394,10 +33394,13 @@ handle_implicit_lambda_return_type:
          clear the constexpr flag and issue no error. */
       curr_routine->is_constexpr = FALSE;
     } else {
-      expr_pos_diagnostic(es_discretionary_error,
+      a_source_position *pos = (use_icp ? init_component_pos(icp) :
+                                           &result.position);
+      expr_pos_diagnostic(seq_is_in_system_header(pos->seq) ?
+                            es_warning :
+                            es_discretionary_error,
                           ec_constexpr_return_not_constant,
-                          use_icp ? init_component_pos(icp) :
-                                    &result.position);
+                          pos);
     }  /* if */
   }  /* if */
   free_init_component_list(icp);
