@@ -1,5 +1,18 @@
 Version 4.6
 
+3/7/13   [EDGcpfe/13721]
+Result of "?" is accidentally considered an xvalue because of folding
+
+The folding of "?" operators with the first operand constant, which
+uses the second or third operand value as the folded result, accidentally
+made the result an xvalue when the preserved operand is an xvalue.
+Now fixed (the folding is not done in such cases).
+
+  int &&f();
+  int i;
+  decltype(true ? f() : f()) x = i;  // Got spurious error previously
+
+
 3/5/13   [EDGcpfe/13711]
 Wrong type on implicit initializer for array field in braced initialization
 

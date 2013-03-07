@@ -13167,6 +13167,10 @@ question_position and colon_position give the position of the "?" and ":".
       /* Can't fold cases where the operand types do not match (e.g.,
          because one is a throw and the other is not). */
       do_folding = FALSE;
+    } else if (is_rvalue_reference_object_operand(preserved_operand)) {
+      /* Can't fold if the preserved operand is an rvalue reference object,
+         because the result of the "?" is not. */
+      do_folding = FALSE;
     } else if (curr_expr_kind_is_const()) {
       /* In constant expressions we must always fold. */
       do_folding = TRUE;
