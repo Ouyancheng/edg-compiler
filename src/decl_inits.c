@@ -4730,6 +4730,7 @@ FALSE is returned) for non-class objects.
                dynamic init entry. */
             init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
             init_dip->variant.constant = cp;
+            init_dip->is_partially_initialized = cp->is_partially_initialized;
           }  /* if */
         }  /* if */
       } else {
