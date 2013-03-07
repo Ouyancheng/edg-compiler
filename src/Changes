@@ -1,5 +1,23 @@
 Version 4.6
 
+3/7/13  [EDGcpfe/13722]
+No instantiation of elided copy constructor for reference in default argument
+
+The change for EDGcpfe/12490 caused elided copy constructors to be
+instantiated in certain modes.  In a refinement of that change, the
+front end now does not instantiate such copy constructors on an
+elided reference in a default argument expression except in strict mode.
+
+  template <class T> struct A {
+    A(T *);
+    A(A &);  // Suppress A(const A&) copy constructor
+    template <class U> A(const A<U>&) {
+      int x[-(int)sizeof(U)];  // Cause error, but only in instantiation
+    }
+  };
+  void f(int, A<int> p = 0);  // Formerly provoked error, e.g., in g++ mode
+
+
 3/7/13   [EDGcpfe/13721]
 Result of "?" is accidentally considered an xvalue because of folding
 

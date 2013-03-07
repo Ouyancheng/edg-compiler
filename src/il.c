@@ -19882,8 +19882,8 @@ of the routine.  It does, however, force instantiation if the function
 is a template function, and/or definition if the function is the right kind
 of compiler-generated function (e.g., a constructor).  Instantiation is
 forced only if instantiate is TRUE.  If elided_reference is TRUE, the
-reference has been elided by copy constructor elision; force instantiation
-but do not mark the routine as actually referenced.
+reference has been elided by copy constructor elision; do not mark the
+routine as actually referenced.
 */
 {
   a_symbol_ptr  assoc_sym;
@@ -19914,7 +19914,7 @@ but do not mark the routine as actually referenced.
   if (routine->routine_fixup != NULL) {
     add_to_deferred_friend_function_fixup_list(routine->routine_fixup);
   }  /* if */
-  if (elided_reference) instantiate = TRUE;
+  if (elided_reference && strict_ansi_mode) instantiate = TRUE;
   if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Do not instantiate things referenced from prototype instantiations. */
     instantiate = FALSE;

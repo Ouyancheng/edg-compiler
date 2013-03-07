@@ -18166,7 +18166,8 @@ cases.
          force that now. */
       if (!microsoft_mode) {
         mark_routine_referenced_full(cctor_sym->variant.routine.ptr,
-                                    /*instantiate=*/TRUE,
+                                     /*instantiate=*/
+                                       !expr_stack->is_default_arg_expression,
                                     /*elided_reference=*/TRUE);
       }  /* if */
       check_use_of_deleted_function(cctor_sym, /*elided_ref=*/TRUE, err_pos);
