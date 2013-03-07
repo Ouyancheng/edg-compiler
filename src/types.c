@@ -1641,7 +1641,15 @@ an error type (or an array thereof).
 
   tp = skip_array_types(tp);
   tp = skip_typerefs(tp);
-  result = is_literal_type(tp) || is_template_param(tp) || is_error(tp);
+  if (is_template_param(tp) || is_error(tp) ||
+      (is_immediate_class_type(tp) &&
+       tp->variant.class_struct_union.is_nonreal_class)) {
+    /* We cannot reliably tell whether the type is literal: Assume it might
+       be. */
+    result = TRUE;
+  } else {
+    result = is_literal_type(tp);
+  }  /* if */
   return result;
 }  /* could_be_literal_type */
 
