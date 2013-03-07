@@ -15586,6 +15586,10 @@ nonstandard anonymous unions is_nonstd is TRUE.
       cssp->has_instantiatable_field_initializers = FALSE;
       parent_cssp->has_instantiatable_field_initializers = TRUE;
     }  /* if */
+    /* The unparsed field initializers now also below to the parent class. */
+    parent_cssp->num_unparsed_field_initializers +=
+                                        cssp->num_unparsed_field_initializers;
+    cssp->num_unparsed_field_initializers = 0;
   }  /* if */
   db_exit();
 }  /* check_anonymous_union_symbols */
