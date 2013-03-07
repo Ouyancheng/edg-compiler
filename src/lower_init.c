@@ -12387,6 +12387,7 @@ have already had their designated initializers lowered.
                    (is_immediate_class_type(con_type) &&
                     /* Allow a match if the class type is being used as a
                        subobject. */
+                    class_type_supp(con_type)->type_as_subobject != NULL &&
                     identical_types(class_type_supp(con_type)->
                                                              type_as_subobject,
                                     member_type)),

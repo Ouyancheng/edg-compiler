@@ -4662,8 +4662,8 @@ std::typeinfo object returned by the corresponding typeid(...) construct.
 static void remove_initializers_for_empty_base_classes(a_constant_ptr constant)
 /*
 Remove any initializers for optimized empty base classes that might appear
-in the ck_aggregate constant or in any sub-aggregates.  The constant has not
-been lowered yet (in fact this processing is performed early in the lowering of
+in the ck_aggregate constant or any sub-aggregates.  The constant has not
+been lowered yet (in fact this processing is performed as part of pre-lowering
 the aggregate so that lowering routines that depend on a one-to-one mapping of
 initializable fields and constants in the aggregate will work properly).
 */
@@ -4786,13 +4786,15 @@ static void initialize_vptr_in_aggregate_constant(
                                            a_type_ptr       primary_vtbl_class,
                                            a_base_class_ptr subobject_bcp)
 /*
-An aggregate constant is being lowered; if the constant is initializing a class
-that has a virtual function table pointer, add an entry to the aggregate
-constant to set the virtual function table pointer as appropriate.  Recurse to
-handle any base classes that may have vptr fields that need to be initialized.
-If non-NULL, primary_vtbl_class is the type of a more-derived class which this
-class (or a base class of this class) shares a vtable.  constant may represent
-the initialization of a subobject, in which case subobject_bcp represents the
+An aggregate constant for a class/struct/union is being pre-lowered; if the
+constant is initializing a class that has a virtual function table pointer, add
+an entry to the aggregate constant to set the virtual function table pointer as
+appropriate.  Recurse to handle any base classes that may have vptr fields that
+need to be initialized (the recursion is done here so that the case where a
+vptr is shared between two classes can be handled).  If non-NULL,
+primary_vtbl_class is the type of a more-derived class which this class (or a
+base class of this class) shares a vtable.  constant may represent the
+initialization of a subobject, in which case subobject_bcp represents the
 relationship between primary_vtbl_class and the type of constant, and is NULL
 when those are the same.  There is no need to deal with construction vtables
 because a constexpr constructor can't have virtual base classes.  The constants
@@ -4950,41 +4952,67 @@ in the aggregate have not been lowered (and aren't lowered here).
 }  /* initialize_vptr_in_aggregate_constant */
 
 
-void prelower_aggregate_constant(a_constant_ptr constant)
+/*ARGSUSED*/  /* <-- tblock is not used. */
+static void prelower_class_in_aggregate(
+                                      a_constant_ptr                  constant,
+                                      an_expr_or_stmt_traversal_block *tblock)
 /*
-The aggregate constants that are generated for class/struct/unions by the
-front end are for the canonical layout and don't account for empty base classes
-that have been removed, layout re-ordering, or the insertion of pointers to
-virtual tables.  This routine massages the constant so that it will match the
-lowered layout.  Note that sub-aggregates in the constant will have
-their empty base classes removed and any base classes will have their
-vptrs initialized (as needed), but this routine is not recursive (relying
-instead on the caller to call it for each sub-aggregate as necessary).
+Called during a constant traversal to pre-lower the specified constant
+(if it's an aggregate).  The aggregate constants that are generated for
+class/struct/unions by the front end reflect the canonical layout and don't
+account for empty base classes that have been removed, layout re-ordering, or
+the insertion of pointers to virtual tables.  This routine massages the
+aggregate constant so that it will match the lowered layout.  Note that
+sub-aggregates in the constant will have their empty base classes removed and
+any base classes will have their vptrs initialized (as needed), but this
+routine itself is not recursive (relying instead on the caller).
 The routines invoked herein avoid unnecessary processing by setting flags
 in the constants that they've previously processed.
 */
 {
-  check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
-  if (is_class_struct_union_type(constant->type)) {
-    prelower_class_type(skip_typerefs(constant->type));
-    /* Remove any initializers that the front end may have added for
-       empty base classes.  Do this before other types of lowering on the
-       aggregate so those routines won't have to handle initializers
-       for optimized empty base classes. */
-    remove_initializers_for_empty_base_classes(constant);
+  check_assertion(!constant->has_been_prelowered);
+  if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
+    a_type_ptr  con_type = skip_typerefs(constant->type);
+    if (is_immediate_class_type(con_type)) {
+      prelower_class_type(con_type);
+      /* Remove any initializers that the front end may have added for
+         empty base classes.  Do this before vptrs are inserted below. */
+      remove_initializers_for_empty_base_classes(constant);
 #if IA64_ABI
-    /* If necessary, re-arrange the initializers in the aggregate constant
-       to match the layout order.  Do this prior to any lowering that
-       relies on next_initializable_field. */
-    arrange_aggregate_constant_in_layout_order(constant);
+      /* If necessary, re-arrange the initializers in the aggregate constant
+         to match the layout order. */
+      arrange_aggregate_constant_in_layout_order(constant);
 #endif /* IA64_ABI */
-    /* Initialize any vptr fields if they exist in the aggregate.  This
-       must be completed before the individual pieces of the aggregate
-       are themselves lowered, as well as before any designated
-       initializers are lowered. */
-    initialize_vptr_in_aggregate_constant(constant,
-                                          (a_type_ptr)NULL,
-                                          (a_base_class_ptr)NULL);
+      /* Initialize any vptr fields if they exist in the aggregate.  This
+         must be completed before the individual pieces of the aggregate
+         are themselves lowered, as well as before any designated
+         initializers are lowered. */
+      initialize_vptr_in_aggregate_constant(constant,
+                                            (a_type_ptr)NULL,
+                                            (a_base_class_ptr)NULL);
+    }  /* if */
+    constant->has_been_prelowered = TRUE;
+  }  /* if */
+}  /* prelower_class_in_aggregate */
+
+
+void prelower_aggregate_constant(a_constant_ptr constant)
+/*
+The aggregate constants that are generated for class/struct/unions by the
+front end reflect the canonical layout and don't account for empty base classes
+that have been removed, layout re-ordering, or the insertion of pointers to
+virtual tables.  This routine pre-lowers the specified constant and any
+aggregate constants it contains.  Pre-lowering is only needed once (and skipped
+if the constant has already been pre-lowered).
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
+  if (!constant->has_been_prelowered) {
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_constant = prelower_class_in_aggregate;
+    traverse_constant(constant, &tblock);
   }  /* if */
 }  /* prelower_aggregate_constant */
 

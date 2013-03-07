@@ -3816,6 +3816,10 @@ typedef struct a_constant {
 			   like "A()" when expanded to a constant for a
 			   trivial default constructor. */
 #if DO_IL_LOWERING
+  a_bit_field	has_been_prelowered:1;
+			/* Flag that is used during lowering to ensure that
+			   ck_aggregate constants are pre-lowered only once.
+			   TRUE if the ck_aggregate has been pre-lowered. */
   a_bit_field	vptr_has_been_lowered:1;
 			/* Flag that is used during lowering to ensure that
 			   ck_aggregate constants are only visited one time.
