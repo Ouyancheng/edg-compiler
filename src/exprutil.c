@@ -17290,20 +17290,23 @@ constant if k is a constant.
 
 
 a_constant_ptr fold_constant_base_class_cast(an_expr_node_ptr expr,
+                                             an_expr_node_ptr op1,
                                              a_constant_ptr   alloc_con)
 /*
 If expr is a base-class cast operation whose operand is a class constant,
 do the slicing and return a constant for the base class.  Otherwise,
-return NULL.  If alloc_con is non-NULL, return the base class value
-there and return alloc_con.  Otherwise, allocate a new constant, put
-the value there, and return the address of the new constant.
+return NULL.  If op1 is non-NULL, it is a folded version of the operand
+of the base-class cast.  If alloc_con is non-NULL, return the base
+class value there and return alloc_con.  Otherwise, allocate a new
+constant, put the value there, and return the address of the new
+constant.
 */
 {
   a_constant_ptr result = NULL;
  
   if (is_operation_node(expr) &&
       node_operator_is(expr, eok_base_class_cast)) {
-    an_expr_node_ptr op1 = expr->variant.operation.operands;
+    if (op1 == NULL) op1 = expr->variant.operation.operands;
     if (is_constant_node(op1) &&
         op1->variant.constant->kind == (a_constant_repr_kind)ck_aggregate) {
       a_constant       addr_con;
@@ -17657,7 +17660,7 @@ it might produce an error).
             /* This is a cast of a class constant to a base class.
                Extract the required base class subobject from the class
                object. */
-            con_expr_value = fold_constant_base_class_cast(node,
+            con_expr_value = fold_constant_base_class_cast(node, op1,
                                                            (a_constant *)NULL);
           } else {
             node->variant.operation.operands = op1;

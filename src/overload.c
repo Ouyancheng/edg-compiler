@@ -17362,6 +17362,7 @@ the class type is already correct and nothing should be done to it.
     if (curr_expr_kind_is_const() &&
         is_expression_operand(source_operand) &&
         fold_constant_base_class_cast(source_operand->variant.expression,
+                                      (an_expr_node *)NULL,
                                       &result_con) != NULL) {
       /* Produce a constant value, doing the slice, for a base class cast
          over a constant class value. */
