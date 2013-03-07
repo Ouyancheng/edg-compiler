@@ -33381,15 +33381,18 @@ handle_implicit_lambda_return_type:
     if (void_return_case) set_expr_result_not_used(expression);
   }  /* if */
   if (curr_routine->is_constexpr &&
-      (!curr_routine->is_template_function ||
-       curr_routine->is_prototype_instantiation ||
-       curr_routine->is_specialized) &&
       expr_stack->constant_expr_ruled_out) {
     /* If the return of a constexpr function can't be a constant, issue
        an error. */
     a_boolean use_icp = (icp != NULL && !return_by_cctor_case);
     if (use_icp ? init_state.init_error : is_error_operand(&result)) {
       /* There was a previous error. */
+    } else if (curr_routine->is_template_function &&
+               !curr_routine->is_prototype_instantiation &&
+               !curr_routine->is_specialized) {
+      /* For an instance of a template, if the instantiation is non-constant
+         clear the constexpr flag and issue no error. */
+      curr_routine->is_constexpr = FALSE;
     } else {
       expr_pos_diagnostic(es_discretionary_error,
                           ec_constexpr_return_not_constant,
