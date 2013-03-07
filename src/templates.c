@@ -12681,7 +12681,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     rp->variant = templ_rout->variant;
     rp->is_deleted = templ_rout->is_deleted;
     rp->is_defaulted = templ_rout->is_defaulted;
-    if (templ_rout->is_constexpr) {
+    if (templ_rout->is_declared_constexpr) {
+      rp->is_declared_constexpr = TRUE;
       rp->is_constexpr = TRUE;
     }  /* if */
     set_inline_flag(rp, (a_boolean)templ_rout->is_inline);
@@ -22801,13 +22802,15 @@ that follows.
              depending on the presence of the "constexpr" keyword (it is
              independent of that of the template). */
           if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
+            rp->is_declared_constexpr = TRUE;
             rp->is_constexpr = TRUE;
             /* constexpr implies inline. */
             if (!rp->is_inline) set_inline_flag(rp, TRUE);
           } else {
+            rp->is_declared_constexpr = FALSE;
             rp->is_constexpr = FALSE;
           }  /* if */
-        } else if (rp->is_constexpr !=
+        } else if (rp->is_declared_constexpr !=
                                     ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
           /* The previous specialization doesn't match the current one wrt.
              the "constexpr" specifier.  Issue an error (but be careful to
@@ -22815,11 +22818,11 @@ that follows.
           a_source_position  saved_sym_pos;
           saved_sym_pos = sym->decl_position;
           sym->decl_position = prev_sym_pos;
-          pos_sy_error(rp->is_constexpr ?
+          pos_sy_error(rp->is_declared_constexpr ?
                          ec_previous_constexpr_decl_conflict :
                          ec_previous_nonconstexpr_decl_conflict,
-                       rp->is_constexpr ? &dps->declarator_pos
-                                        : &dps->constexpr_pos,
+                       rp->is_declared_constexpr ? &dps->declarator_pos
+                                                 : &dps->constexpr_pos,
                        sym);
           sym->decl_position = saved_sym_pos;
         }  /* if */

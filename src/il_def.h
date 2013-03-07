@@ -12628,9 +12628,18 @@ typedef struct a_routine {
 			   determine if a routine would be inline if
 			   instantiated, the is_inline_template_function and
 			   rout_is_inline_template_function can be used. */
-  a_bit_field	is_constexpr:1;
+  a_bit_field	is_declared_constexpr:1;
 			/* TRUE for functions that were declared with the
 			   C++11 "constexpr" specifier. */
+  a_bit_field	is_constexpr:1;
+			/* TRUE for "constexpr" functions.  For non-template
+			   user-declared functions this usually equals the
+			   is_declared_constexpr flag, but for template
+			   functions it may be cleared if an instantiation
+			   turns out not to meet the "constexpr" constraints.
+			   It can also be TRUE for generated default
+			   constructors (for which is_declared_constexpr is
+			   FALSE). */
   a_bit_field	compiler_generated:1;
 			/* TRUE for functions that are created by the
 			   compiler and have not been declared in the source,

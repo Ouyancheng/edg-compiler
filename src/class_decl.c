@@ -12931,6 +12931,7 @@ implicitly declared member functions.
   check_defaulted_or_deleted_function(&decl_info->decl_state, func_info,
                                       &locator->source_position);
   if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
+    rtn->is_declared_constexpr = TRUE;
     rtn->is_constexpr = TRUE;
     if (!is_static_member) {
       cssp->has_constexpr_nonstatic_member_function = TRUE;
@@ -13661,6 +13662,7 @@ decl_member_function, which handles in-class member function declarations.)
   func_info->keep_param_id_list = TRUE;
   cssp = symbol_supplement_for_class(class_type);
   if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
+    rtn->is_declared_constexpr = TRUE;
     rtn->is_constexpr = TRUE;
     if (!is_static_member) {
       cssp->has_constexpr_nonstatic_member_function = TRUE;

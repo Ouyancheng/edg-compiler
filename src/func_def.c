@@ -1681,14 +1681,16 @@ member declaration (allowed in some Microsoft modes only).
     rp = sym->variant.routine.ptr;
     orig_pos = sym->decl_position;
     dps->prev_type = *old_type = routine_symbol_type(sym);
-    if (rp->is_constexpr != ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
+    if (rp->is_declared_constexpr != ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
       /* The previous declaration doesn't match the current one wrt. the
          "constexpr" specifier.  Issue an error. */
-      pos_sy_error(rp->is_constexpr ? ec_previous_constexpr_decl_conflict :
-                                      ec_previous_nonconstexpr_decl_conflict,
-                   rp->is_constexpr ? &dps->constexpr_pos
-                                    : &dps->declarator_pos,
+      pos_sy_error(rp->is_declared_constexpr ?
+                                       ec_previous_constexpr_decl_conflict :
+                                       ec_previous_nonconstexpr_decl_conflict,
+                   rp->is_declared_constexpr ? &dps->constexpr_pos
+                                             : &dps->declarator_pos,
                    sym);
+      rp->is_declared_constexpr = TRUE;
       rp->is_constexpr = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

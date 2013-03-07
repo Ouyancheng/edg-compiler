@@ -8560,6 +8560,7 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   if (!redeclaration && (dps->dso_flags & DSO_CONSTEXPR) != 0) {
+    routine_ptr->is_declared_constexpr = TRUE;
     routine_ptr->is_constexpr = TRUE;
     /* constexpr implies inline. */
     if (!routine_ptr->is_inline) set_inline_flag(routine_ptr, TRUE);
@@ -9225,6 +9226,7 @@ definition of a member function of a class template.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (func_info->is_inline) set_inline_flag(rout_ptr, TRUE);
     if (dps->dso_flags & DSO_CONSTEXPR) {
+      rout_ptr->is_declared_constexpr = TRUE;
       rout_ptr->is_constexpr = TRUE;
       /* constexpr implies inline. */
       if (!rout_ptr->is_inline) set_inline_flag(rout_ptr, TRUE);
@@ -9279,13 +9281,15 @@ definition of a member function of a class template.
     }  /* if */
   } else {
     redeclaration = TRUE;
-    if (rout_ptr->is_constexpr != ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
+    if (rout_ptr->is_declared_constexpr !=
+                                    ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
       /* The previous declaration doesn't match the current one wrt. the
          "constexpr" specifier.  Issue an error. */
-      pos_sy_error(rout_ptr->is_constexpr ?
+      pos_sy_error(rout_ptr->is_declared_constexpr ?
                      ec_previous_constexpr_decl_conflict :
                      ec_previous_nonconstexpr_decl_conflict,
                    &dps->specifiers_pos, sym);
+      rout_ptr->is_declared_constexpr = TRUE;
       if (!sym->defined) {
         /* If the function was not previously defined, treat it as constexpr
            from here on at least. */
@@ -9293,7 +9297,7 @@ definition of a member function of a class template.
       }  /* if */
     }  /* if */
     if (!rout_ptr->is_inline) {
-      if (func_info->is_inline || rout_ptr->is_constexpr) {
+      if (func_info->is_inline || rout_ptr->is_declared_constexpr) {
         set_inline_flag(rout_ptr, TRUE);
         changed_to_inline = TRUE;
       }  /* if */

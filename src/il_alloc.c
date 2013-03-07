@@ -2522,6 +2522,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->covariant_return_virtual_override
                                   = FALSE;
   rp->is_inline                   = FALSE;
+  rp->is_declared_constexpr       = FALSE;
   rp->is_constexpr                = FALSE;
   rp->compiler_generated          = FALSE;
   rp->defined                     = FALSE;

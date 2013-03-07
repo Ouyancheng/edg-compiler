@@ -16174,7 +16174,10 @@ handle_as_definition:
     gen_sun_link_scope_specifiers(rout->decl_modifiers);
     if (rout->is_constexpr) {
       /* Put out the "constexpr" keyword.  Since a constexpr function is
-         implicitly inline, we suppress the "inline" keyword in this case. */
+         implicitly inline, we suppress the "inline" keyword in this case.
+         (Note that we test is_constexpr rather than is_declared_constexpr.
+         This is significant for configurations that put out implicit
+         instantiations as explicit specializations.) */
       write_tok_str("constexpr ");
       suppress_inline_kwd = TRUE;
     } else if (rout->is_inline && !is_definition && c99_mode &&

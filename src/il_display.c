@@ -3157,6 +3157,9 @@ Display the indicated routine.
   if (ptr->is_inline) {
     disp_boolean("is_inline", TRUE);
   }  /* if */
+  if (ptr->is_declared_constexpr) {
+    disp_boolean("is_declared_constexpr", TRUE);
+  }  /* if */
   if (ptr->is_constexpr) {
     disp_boolean("is_constexpr", TRUE);
   }  /* if */
