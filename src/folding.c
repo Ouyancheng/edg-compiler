@@ -1117,6 +1117,7 @@ static void conv_pointer_to_whatever(
                                     a_boolean         is_implicit_cast,
                                     a_boolean         fold_constant_addr_exprs,
                                     a_boolean         is_reinterpret_cast,
+                                    a_boolean         is_object_pointer,
                                     a_boolean         *did_not_fold,
                                     a_source_position *err_pos,
                                     an_error_code     *err_code,
@@ -1131,6 +1132,9 @@ fold_constant_addr_exprs is TRUE, fold related class casts in constant
 form; if it's FALSE, do not do such folding and return *did_not_fold
 TRUE.  If is_reinterpret_cast is TRUE, this is a reinterpret_cast;
 related class casts are treated like casts between unrelated classes.
+If is_object_pointer is TRUE, the pointer is considered a pointer to
+an object; that's used to implement offsetof, where we want a zero
+pointer not to be treated like a null pointer.
 If there is an error, either issue it immediately at *err_pos (if it
 cannot be reduced to a warning in a nonconstant context), or return
 *err_code and *err_severity set appropriately.  If suppress_complex_diags
@@ -1204,7 +1208,7 @@ type.
                            new_constant,
                            check_cast_access, check_ambiguity,
                            is_implicit_cast,
-                           /*is_object_pointer=*/FALSE, did_not_fold, err_pos,
+                           is_object_pointer, did_not_fold, err_pos,
                            p_err_code);
       if (p_err_code != NULL && *err_code != ec_no_error) {
         *err_severity = es_error;
@@ -1914,6 +1918,7 @@ for any diagnostics issued.
     conv_pointer_to_whatever(constant, &new_constant, check_cast_access,
                              check_ambiguity, is_implicit_cast,
                              fold_constant_addr_exprs, is_reinterpret_cast,
+                             /*is_object_pointer=*/FALSE,
                              did_not_fold, err_pos, &err_code, &err_severity,
                              suppress_diags);
     goto exit;
@@ -2096,6 +2101,7 @@ for any diagnostics issued.
       conv_pointer_to_whatever(constant, &new_constant, check_cast_access,
                                check_ambiguity, is_implicit_cast,
                                fold_constant_addr_exprs, is_reinterpret_cast,
+                               /*is_object_pointer=*/FALSE,
                                did_not_fold, err_pos,
                                &err_code, &err_severity,
                                suppress_diags);
@@ -5842,7 +5848,8 @@ a constexpr expansion, and the block provides context information.
             if (is_pointer_type(op1->type) &&
                 constant_rvalue_pointer_full(op1, ceblock, &conaddr1,
                                              address_escapes,
-                                             options, template_constant)) {
+                                             options | CAO_IS_OBJECT_POINTER,
+                                             template_constant)) {
               goto handle_field_selection;
             }  /* if */
             break;
@@ -5927,7 +5934,7 @@ handle_field_selection:
                                      /*check_ambiguity=*/FALSE,
                                      (a_boolean)expr->variant.operation.
                                                             compiler_generated,
-                                     /*is_object_pointer=*/FALSE,
+                                     (options & CAO_IS_OBJECT_POINTER) != 0,
                                      &did_not_fold,
                                      &error_position,
                                      &error_detected);
@@ -6230,6 +6237,7 @@ cast_case:
                                        /*fold_constant_addr_exprs=*/TRUE,
                                        (a_boolean)expr->variant.operation.
                                                            is_reinterpret_cast,
+                                       (options & CAO_IS_OBJECT_POINTER) != 0,
                                        &did_not_fold,
                                        &error_position,
                                        &err_code, &err_severity,

@@ -207,6 +207,13 @@ typedef int a_constant_address_option_set;
 			   with this option might be invalid and therefore
 			   one should be careful not to preserve them in the
 			   final IL. */
+#define CAO_IS_OBJECT_POINTER \
+                            ((a_constant_address_option_set)0x2)
+			/* The pointer value being processed is considered to
+			   point to an object.  This is significant when
+			   folding offsetof, where a zero pointer should be
+			   considered an object pointer and not a null pointer
+			   constant. */
 
 extern a_boolean constant_lvalue_address(an_expr_node_ptr expr,
                                          a_constant       *con,
