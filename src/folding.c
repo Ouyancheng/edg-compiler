@@ -10127,18 +10127,17 @@ otherwise, return FALSE.
       /* A union has only one active element, and in a constant it is the
          one that was initialized: either the first element or, because of
          a constructor initializer or non-static data member initializer,
-         the one identified by a ck_designator in the object's value. */
+         the one identified by a ck_designator in the object's value.  If
+         the requested field is not the active element, the expression is
+         not a constant expression. */
       if (member_con != NULL &&
-          member_con->kind == (a_constant_repr_kind)ck_designator &&
-          member_con->variant.designator.field == field) {
+          member_con->kind == (a_constant_repr_kind)ck_designator) {
         /* The designator identifies the field being requested.  The
            value follows the designator in the ck_aggregate. */
-        curr_field = field;
+        curr_field = member_con->variant.designator.field;
         member_con = member_con->next;
-      } else if (curr_field != field &&
-                 curr_field->type != anon_union_member_type) {
-        /* The requested field is not active, so the expression is not a
-           constant expression. */
+      }  /* if */
+      if (curr_field != field && curr_field->type != anon_union_member_type) {
         union_member_mismatch = TRUE;
       }  /* if */
     } else {
