@@ -9170,13 +9170,17 @@ field_selection:
         } /* if */
         if (folded) result_con->type = expr->type;
         break;
+      case eok_ref_cast:
       case eok_lvalue_adjust:
-        /* An lvalue adjust with an implicit lvalue-to-rvalue conversion.
-           If we know the address of the underlying lvalue, we can look
-           and see if we have a constant there. */
-        if (fold_lvalue_expr(op1, ceblock, &op1_constant) &&
+        /* An lvalue adjust or reference cast with an implicit lvalue-to-rvalue
+           conversion.  If the type change is only of cv-qualifiers, and we
+           know the address of the underlying lvalue, we can look and see if
+           we have a constant there. */
+        if (identical_types_ignoring_qualifiers(expr->type, op1->type) &&
+            fold_lvalue_expr(op1, ceblock, &op1_constant) &&
             constant_value_at_address(&op1_constant, result_con) != NULL) {
           folded = TRUE;
+          result_con->type = expr->type;
         }  /* if */
         break;
       default:
