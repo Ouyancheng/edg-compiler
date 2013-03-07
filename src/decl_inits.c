@@ -5786,6 +5786,55 @@ field initializer), set *variant_explicit_init to TRUE.
 }  /* check_variant_has_initializer */
 
 
+static a_dynamic_init_ptr repeat_mem_init_for_array(a_dynamic_init_ptr  dip,
+                                                    a_type_ptr          atype)
+/*
+dip represents the initialization of a constructible element of an array of the
+given type.  Return a corresponding dynamic initializer entry to initialize the
+whole array.
+*/
+{
+  a_dynamic_init_ptr  result;
+  a_type_ptr          etype = underlying_array_element_type(atype);
+
+  etype = skip_typerefs(etype);
+  if (dip->kind == (a_dynamic_init_kind)dik_constant &&
+      dip->destructor == NULL) {
+    /* We get here with folded constexpr constructor calls. */
+    a_constant_ptr  econ = dip->variant.constant, acon;
+    check_assertion(econ->is_result_of_constexpr_call);
+    acon = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    acon->type = atype;
+    add_constant_to_aggregate(
+                      add_repeat_con(econ, array_element_count(atype, etype)),
+                      acon);
+    dip->variant.constant = acon;
+    result = dip;
+  } else {
+    result =
+           alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+    /* Build the looping constant entry. */
+    repeat_nonconstant_init(dip, atype, etype, result,
+                            array_element_count(atype, etype));
+    if (dip->destructor != NULL) {
+      /* A destructor is recorded in the array element dynamic-init entry.
+         This is in case an exception is thrown in the midst of constructing
+         the array, so that the already-constructed elements can be properly
+         destroyed. */
+      check_assertion(exceptions_enabled);
+      dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+      /* The dynamic init for the array as a whole should also indicate
+         destruction. */
+      result->destructor = dip->destructor;
+      record_end_of_lifetime_destruction(result, /*static_lifetime=*/FALSE,
+                                         /*block_lifetime=*/TRUE);
+    }  /* if */
+  }  /* if */
+  result->is_constructor_init = TRUE;
+  return result;
+}  /* repeat_mem_init_for_array */
+
+
 a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
                                         a_boolean      user_defined)
 /*
@@ -5845,7 +5894,7 @@ initialized.  These are addressed in the course of the processing.
   a_class_type_supplement_ptr   ctsp;
   a_class_symbol_supplement_ptr cssp;
   a_routine_ptr                 rp;
-  a_dynamic_init_ptr            dip, ctor_dip;
+  a_dynamic_init_ptr            dip;
   a_constructor_init_ptr        uninit_list = NULL, end_of_uninit_list = NULL;
   a_boolean                     any_ref_member_on_uninit_list = FALSE;
   a_boolean                     in_variant = FALSE, variant_complete = FALSE;
@@ -6523,33 +6572,14 @@ initialized.  These are addressed in the course of the processing.
     }  /* if */
     /* Do processing for both implicitly and explicitly initialized members
        when the field is an array of constructible elements. */
-    if (array_type != NULL &&
-        dip->kind == (a_dynamic_init_kind)dik_constructor) {
+    if (array_type != NULL && dip->is_constructor_init &&
+        (dip->kind == (a_dynamic_init_kind)dik_constructor ||
+         (dip->kind == (a_dynamic_init_kind)dik_constant &&
+                       dip->variant.constant->is_result_of_constexpr_call))) {
       /* We have an array whose elements are constructible.  dip is the
          dynamic init entry for the element.  Create a dynamic init entry to
          represent the initialization of the array as a whole. */
-      check_assertion(dip->is_constructor_init);
-      ctor_dip = dip;
-      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-      /* Build the looping constant entry. */
-      repeat_nonconstant_init(ctor_dip, array_type, tp, dip,
-                              array_element_count(array_type, tp));
-      dip->is_constructor_init = TRUE;
-      if (ctor_dip->destructor != NULL) {
-        /* A destructor is recorded in the array element dynamic-init entry.
-           This is in case an exception is thrown in the midst of constructing
-           the array, so that the already-constructed elements can be
-           properly destroyed. */
-        check_assertion(exceptions_enabled);
-        ctor_dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-        /* The dynamic init for the array as a whole should also indicate
-           destruction. */
-        dip->destructor = ctor_dip->destructor;
-        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                           /*block_lifetime=*/TRUE);
-      }  /* if */
-      /* Overwrite the dynamic-init pointer in the current ctor-init entry. */
-      cip->initializer = dip;
+      cip->initializer = repeat_mem_init_for_array(dip, array_type);
     }  /* if */
     /* Continue through the ctor-init list. */
     prev_cip = cip;
