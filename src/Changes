@@ -1,5 +1,27 @@
 Version 4.6
 
+3/8/13  [EDGcpfe/11680, EDGcpfe/13645]
+Conversion of lvalue to rvalue on volatile discarded-value expression in C++
+
+In C, an lvalue expression at the top level is converted to an rvalue.
+In C++03, that was not true.  That surprised some people who counted
+on that conversion to force loads from volatile-typed variables, e.g.,
+
+  volatile int x;
+  void f() {
+    x;    // Fetches x in C, not in C++03
+  }
+
+With core issue 1054, the C++11 standard added lvalue-to-rvalue conversions
+for volatile lvalues having certain forms in "discarded-value expressions".
+This covers only a small fraction of the cases where the conversion is
+done in C, but it does cover the cases people were complaining about
+and makes C and C++ essentially the same in practical terms.
+The front end now does this conversion in C++11 mode, and also in g++
+mode (since g++ seems to have done something like this all along,
+possibly just following the C rule).
+
+
 3/7/13  [EDGcpfe/13722]
 No instantiation of elided copy constructor for reference in default argument
 

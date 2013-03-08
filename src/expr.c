@@ -487,6 +487,49 @@ on the next_operand_ref field.
 }  /* merge_ref_lists */
 
 
+static a_boolean expr_gets_volatile_lvalue_to_rvalue_conv(
+                                                         an_expr_node_ptr expr)
+/*
+Return TRUE if the expression expr has one of the forms described in
+[expr]p11 for discarded-value expressions that get the lvalue-to-rvalue
+conversion for a volatile lvalue.
+*/
+{
+  a_boolean do_conv = FALSE;
+
+  expr = skip_parens(expr);
+  if (is_variable_node(expr)) {
+    /* id-expression. */
+    do_conv = TRUE;
+  } else if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    an_expr_node_ptr      op1 = expr->variant.operation.operands;
+    switch (op) {
+      case eok_subscript:
+      case eok_dot_field:
+      case eok_points_to_field:
+      case eok_indirect:
+      case eok_pm_field:
+      case eok_pm_points_to_field:
+        do_conv = TRUE;
+        break;
+      case eok_question:
+        /* "?" gets the conversion if both the 2nd and 3rd operands do. */
+        do_conv = (expr_gets_volatile_lvalue_to_rvalue_conv(op1->next) &&
+                   expr_gets_volatile_lvalue_to_rvalue_conv(op1->next->next));
+        break;
+      case eok_comma:
+        /* "," gets the conversion if the 2nd operand does. */
+        do_conv = expr_gets_volatile_lvalue_to_rvalue_conv(op1->next);
+        break;
+      default:
+        break;
+    }  /* switch */
+  }  /* if */
+  return do_conv;
+}  /* expr_gets_volatile_lvalue_to_rvalue_conv */
+
+
 static void do_void_operand_transformations(an_operand *operand,
                                             a_boolean  force_lvalue_to_rvalue)
 /*
@@ -500,8 +543,22 @@ TRUE, the lvalue-to-rvalue (etc.) transformations are forced even in C++ mode.
   if (!C_mode() && !force_lvalue_to_rvalue) {
     /* In C++, lvalue-to-rvalue transformations are not done on an expression
        scanned as a void expression. */
+    options = TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION;
+    if ((cpp11_mode || gpp_mode) &&
+        is_volatile_qualified_type(operand->type)) {
+      /* C++11 requires an lvalue-to-rvalue conversion on lvalues with a
+         volatile type that have a certain form.  g++ seems to have done this
+         (or just the C semantics) all along. */
+      if (is_expression_operand(operand) &&
+          expr_gets_volatile_lvalue_to_rvalue_conv(
+                                                operand->variant.expression)) {
+        /* Do not suppress the lvalue-to-rvalue conversion. */
+        options = TOPT_NO_OPTIONS;
+      }  /* if */
+    }  /* if */
+    /* The array-to-pointer and function-to-pointer conversions are
+       suppressed in all cases in C++ mode. */
     options |= (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
   }  /* if */
   do_operand_transformations(operand, options);
