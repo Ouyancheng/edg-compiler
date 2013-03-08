@@ -6268,7 +6268,14 @@ for use in generating cross-reference output describing this declaration.
           dps->type = type_ptr;
           if (!check_variable_redecl_compatible(dps)) {
             redecl_error_already_issued = TRUE;
-            linked_redecl_error = TRUE;
+            /* If this is a definition, ignore the prior declaration and
+               proceed with the current type.  Otherwise, proceed with an
+               error type. */
+            if (is_variable_def) {
+              linked_redecl_error = TRUE;
+            } else {
+              dps->type = error_type();
+            }  /* if */
           }  /* if */
           type_ptr = dps->type;
         }  /* if */
