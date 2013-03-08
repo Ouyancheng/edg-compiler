@@ -2488,6 +2488,7 @@ ec_generated_default_ctor_exception_spec_circularity;;"cannot determine the exce
 ec_anon_union_at_decl_position;;"anonymous union defined %p"
 ec_unbounded_constexpr_ctor_init_recursion;;"this constructor uses the initializer of %nd, which would result in unbounded recursion"
 ec_cannot_default_initialize_anon_union;;"anonymous union defined %p cannot be default-initialized because it has a deleted default constructor or destructor"
+ec_block_extern_initializer_not_allowed;;"an initializer is not allowed on a local declaration of an extern variable"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

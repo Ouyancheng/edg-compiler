@@ -15446,6 +15446,13 @@ if one is present.
       if (decl_scope_level == depth_innermost_namespace_scope ||
           state->storage_class != (a_storage_class)sc_extern) {
         is_variable_def = TRUE;
+      } else {
+        /* A block-extern declaration with an initializer is invalid.  Set the
+           error locator to an error to avoid the possibility that the
+           initializer be associated with another declaration of the same
+           variable but with a mismatched type. */
+        pos_error(ec_block_extern_initializer_not_allowed, &pos_curr_token);
+        set_to_error_locator(*locator);
       }  /* if */
       srk_flags |= SRK_INITIALIZATION;
     } else if (C_dialect == C_dialect_cplusplus) {
