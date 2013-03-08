@@ -13821,9 +13821,10 @@ be returned for a C mode const variable.
     /* Clear the backing expression in the original constant so the copy
        will not have one.  The pointer will be restored below. */
     con_val->expr = NULL;
-    if (con_val->kind == (a_constant_repr_kind)ck_template_param) {
+    if (con_val->kind == (a_constant_repr_kind)ck_template_param ||
+        con_val->kind == (a_constant_repr_kind)ck_aggregate) {
       /* For template parameter constants, do a deep copy because there might
-         be an expression subtree. */
+         be an expression subtree.  Likewise for aggregate constants. */
       an_expr_copy_options_set options = CE_COPIED_CONSTANTS_MAY_BE_SHARED;
       if (!in_file_scope(con_val) &&
           var->source_corresp.enclosing_routine != NULL &&
