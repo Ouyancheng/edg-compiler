@@ -5547,7 +5547,6 @@ pos gives a default source position.
   ceblock->remap_list = NULL;
   ceblock->source_position = *pos;
   ceblock->do_not_call_back = FALSE;
-  ceblock->is_partially_initialized = FALSE;
   ceblock->call_depth = 0;
   ceblock->call_count = 0;
   ceblock->failure_warning = ec_no_error;
@@ -8418,9 +8417,6 @@ evaluation.
     case dik_constant:
       (void)copy_constant_full(dip->variant.constant, result_con,
                                CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL);
-      if (result_con->is_partially_initialized) {
-        ceblock->is_partially_initialized = TRUE;
-      }  /* if */
       folded = TRUE;
       break;
     case dik_expression:
@@ -8512,9 +8508,6 @@ evaluation.
     case dik_none:
     case dik_zero:
       folded = make_value_initialized_constant(dest_type, result_con);
-      if (folded && result_con->is_partially_initialized) {
-        ceblock->is_partially_initialized = TRUE;
-      }  /* if */
       break;
     case dik_call_returning_class_via_cctor:
     case dik_bitwise_copy:
@@ -10045,8 +10038,7 @@ node pointing to the dynamic init "dip".
 a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
                               a_boolean          record_backing_expr,
                               a_source_position  *pos,
-                              a_constant         *result_con,
-                              a_boolean          *partially_initialized)
+                              a_constant         *result_con)
 /*
 ctor_dip is a dik_constructor dynamic initialization.  If the
 constructor invoked is declared constexpr, try to fold the
@@ -10054,9 +10046,7 @@ construction to a constant class object.  If that's possible, place
 the constant in *result_con and return TRUE; otherwise, return FALSE.
 pos gives the source position of the initialization.  If
 record_backing_expr is TRUE, record a temp-init over ctor_dip as a
-backing expression for the resulting constant.  *partially_initialized
-is returned TRUE if the construction was folded and the result constant
-does not initialize every member of the class.
+backing expression for the resulting constant.
 */
 {
   a_boolean                    folded;
@@ -10069,7 +10059,6 @@ does not initialize every member of the class.
   if (folded && record_backing_expr) {
     add_temp_init_backing_expression(result_con, ctor_dip);
   }  /* if */
-  *partially_initialized = ceblock.is_partially_initialized;
   return folded;
 }  /* fold_constexpr_ctor */
 

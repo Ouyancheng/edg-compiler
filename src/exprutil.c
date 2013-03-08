@@ -5477,8 +5477,7 @@ of the call.
 static a_boolean expr_fold_constexpr_ctor(
                                      a_dynamic_init_ptr ctor_dip,
                                      a_source_position  *pos,
-                                     a_constant         *result_con,
-                                     a_boolean          *partially_initialized)
+                                     a_constant         *result_con)
 /*
 Interface to fold_constexpr_ctor for use within the expression-processing
 routines.  See fold_constexpr_ctor for the description of the parameters.
@@ -5489,8 +5488,7 @@ routines.  See fold_constexpr_ctor for the description of the parameters.
   if (constexpr_enabled && curr_expr_is_evaluated()) {
     a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
-    if (fold_constexpr_ctor(ctor_dip, need_backing_expr, pos, result_con,
-                            partially_initialized)) {
+    if (fold_constexpr_ctor(ctor_dip, need_backing_expr, pos, result_con)) {
       folded = TRUE;
     }  /* if */
   }  /* if */
@@ -14247,17 +14245,15 @@ entry is returned).
   dip->variant.constructor.args = args;
   if (fold_constexpr && ctor_routine != NULL && ctor_routine->is_constexpr) {
     a_constant folded_con;
-    a_boolean  partially_initialized;
     check_assertion(pos != NULL);
-    if (expr_fold_constexpr_ctor(dip, pos, &folded_con,
-                                 &partially_initialized)) {
+    if (expr_fold_constexpr_ctor(dip, pos, &folded_con)) {
       /* The constructor is declared constexpr and the construction has
          been folded to a constant. */
       folded = TRUE;
       if (dest_type != NULL) folded_con.type = dest_type;
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
       dip->variant.constant = alloc_unshared_constant(&folded_con);
-      dip->is_partially_initialized = partially_initialized;
+      dip->is_partially_initialized = folded_con.is_partially_initialized;
     }  /* if */
   }  /* if */
   if (constexpr_enabled && ctor_routine != NULL && !folded) {

@@ -543,9 +543,8 @@ given position and return an error constant.
   a_routine_ptr   ctor = dip->variant.constructor.ptr;
 
   if (ctor->is_constexpr) {
-    a_boolean  partially_initialized;
     if (!fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE, diag_pos,
-                             result, &partially_initialized)) {
+                             result)) {
       /* The call to the default constructor could not be folded. */
       pos_ty_error(ec_default_ctor_call_not_constant, diag_pos, tp);
       set_error_constant(result);
@@ -1103,12 +1102,13 @@ given position, unless is->no_diagnostics is TRUE.
       if (is->initializer_must_be_constant) {
         result = get_default_constructed_constant(dip, tp, diag_pos);
       } else {
-        a_boolean   partially_initialized;
         a_constant  class_con;
         if (ctor_rp->is_constexpr &&
             fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE, diag_pos,
-                                &class_con, &partially_initialized)) {
-          if (partially_initialized) is->partial_initializer = TRUE;
+                                &class_con)) {
+          if (class_con.is_partially_initialized) {
+            is->partial_initializer = TRUE;
+          }  /* if */
           result = alloc_unshared_constant(&class_con);
           if (dtor_rp != NULL) {
             /* Despite construction being folded into a constant, a nontrivial
