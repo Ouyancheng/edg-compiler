@@ -15440,21 +15440,18 @@ if one is present.
          Treat this as a definition. */
       is_variable_def = TRUE;
     } else if (has_initializer) {
-      /* A variable declaration involving an initializer is usually considered
-         to be a definition.  An exception is when the initialization is ill-
-         formed -- e.g., when it appears on a block-extern declaration. */
-      if (decl_scope_level == depth_innermost_namespace_scope ||
-          state->storage_class != (a_storage_class)sc_extern) {
-        is_variable_def = TRUE;
-      } else {
-        /* A block-extern declaration with an initializer is invalid.  Set the
-           error locator to an error to avoid the possibility that the
-           initializer be associated with another declaration of the same
-           variable but with a mismatched type. */
-        pos_error(ec_block_extern_initializer_not_allowed, &pos_curr_token);
-        set_to_error_locator(*locator);
-      }  /* if */
+      /* A variable declaration involving an initializer is a definition. */
+      is_variable_def = TRUE;
       srk_flags |= SRK_INITIALIZATION;
+      if (decl_scope_level != depth_innermost_namespace_scope &&
+          state->storage_class == (a_storage_class)sc_extern) {
+        /* A block-extern declaration with an initializer is invalid.  For
+           recovery purposes, treat the variable as a local static declaration
+           instead (this avoids having the initializer associated with another
+           declaration of the same variable but with a mismatched type). */
+        pos_error(ec_block_extern_initializer_not_allowed, &pos_curr_token);
+        state->storage_class = (a_storage_class)sc_static;
+      }  /* if */
     } else if (C_dialect == C_dialect_cplusplus) {
       /* Variable declaration in C++ mode with no explicit initializer. */
       if (microsoft_mode &&
