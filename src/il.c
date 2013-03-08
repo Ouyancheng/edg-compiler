@@ -12266,7 +12266,9 @@ options for the copy.  cblock is a control block for the copy.
                                                      init_expr_lifetime->kind);
     need_object_lifetime_pop = TRUE;
   }  /* if */
+#if DO_IL_LOWERING
   new_dip->destructible_entity_descr = NULL;
+#endif /* DO_IL_LOWERING */
   switch (dip->kind) {
     case dik_none:
     case dik_zero:
