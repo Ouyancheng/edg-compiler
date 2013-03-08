@@ -13672,6 +13672,11 @@ initializer, is done in var_constant_value[_full].
     /* C++11 also allows other literal types (e.g., classes) if the variable
        is declared "constexpr". */
     is_const = TRUE;
+  } else if (constexpr_enabled &&
+             is_any_reference_type(var_type)) {
+    /* C++11 also allows reference-typed variables (they're essentially
+       "const" always). */
+    is_const = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
   } else if (gpp_mode && is_scalar_type(var_type) &&
              is_const_qualified_type(var_type)) {
@@ -13779,9 +13784,10 @@ be returned for a C mode const variable.
       con_val = NULL;
     }  /* if */
     if (con_val != NULL) {
-      if (constexpr_enabled && var->is_constexpr) {
+      if (constexpr_enabled &&
+          (var->is_constexpr || is_any_reference_type(var->type))) {
         /* C++11 allows more kinds of constants for variables declared
-           "constexpr" (e.g., class types). */
+           "constexpr" (e.g., class types) and for references. */
       } else if (con_val->kind == (a_constant_repr_kind)ck_aggregate) {
         /* An aggregate cannot be considered a constant value in pre-C++11
            code. */
