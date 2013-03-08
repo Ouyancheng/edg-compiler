@@ -6048,12 +6048,17 @@ variable.
 
   if (!C_mode() && vp != NULL && !dps->init_state.init_error &&
       is_potentially_constant_valued_variable(vp)) {
+    a_constant ref_val;
     /* See if the variable is initialized with a constant. */
     a_constant_ptr con_val = initializer_constant(vp);
     if (con_val != NULL) {
       if (strict_ansi_mode && dps->init_state.constant_expr_ruled_out) {
         /* In strict mode, rule out some subtle cases that produce a constant
            but don't have the form of a "constant expression". */
+      } else if (is_any_reference_type(vp->type) &&
+                 constant_value_at_address(con_val, &ref_val) == NULL) {
+        /* A reference is constant-valued only if the constant reference
+           address points at a constant. */
       } else {
         vp->constant_valued = TRUE;
       }  /* if */

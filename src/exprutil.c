@@ -18001,11 +18001,19 @@ cases so we don't do it here.
              conservative.  The only downside is that we might not
              issue an error on a constexpr function whose return can
              never be constant. */
+          a_variable_ptr   var = NULL;
           an_expr_node_ptr test_node = expr_before_type_adjustment(node);
           test_node = strip_ref_indirect(test_node, /*parens_also=*/TRUE);
           possibly_constant_with_constexpr = TRUE;
           if (is_variable_node(test_node)) {
-            a_variable_ptr var = test_node->variant.variable;
+            var = test_node->variant.variable;
+          } else if (is_constant_node(test_node)) {
+            if (con_is_exact_addr_of_variable(test_node->variant.constant,
+                                              &var,
+                                              /*array_decay_allowed=*/TRUE)) {
+            }  /* if */
+          }  /* if */
+          if (var != NULL) {
             possibly_constant_with_constexpr = (var->is_parameter ||
                                                 var->constant_valued);
           }  /* if */
