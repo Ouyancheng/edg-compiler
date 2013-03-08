@@ -1117,6 +1117,9 @@ given position, unless is->no_diagnostics is TRUE.
                can be added below. */
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
             dip->variant.constant = result;
+            if (result->is_partially_initialized) {
+              dip->is_partially_initialized = TRUE;
+            }  /* if */
             result = NULL;
           }  /* if */
         }  /* if */
