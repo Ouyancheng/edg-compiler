@@ -115,6 +115,7 @@ static void turn_off_freeing_of_storage_on_exception(
                              an_insert_location          *insert_location);
 static void insert_pending_stmk_init_statements_at_mark(
                                           an_insert_location *insert_location);
+static an_expr_node_ptr num_elem_node_if_array(an_init_pos_descr_ptr ipdp);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -1501,13 +1502,11 @@ in the case where an array is being initialized by a repeated constant
 initialization (when ipdp->array_element_sequence is TRUE).
 */
 {
-  an_expr_node_ptr      init_val_node, assign_node, prev_init_count = NULL;
+  an_expr_node_ptr      init_val_node, assign_node;
   a_statement_ptr       assign_stmt;
   an_expr_operator_kind op;
   a_boolean             array_assignment = FALSE, needs_cast = FALSE;
-  a_boolean             repeated_constant_initialization = FALSE;
   a_type_ptr            entity_type = entity_node->type;
-  a_constant            prev_init_con;
 
   check_assertion(entity_node->is_lvalue);
   switch ((dip == NULL) ? (a_dynamic_init_kind)dik_constant : dip->kind) {
@@ -1541,35 +1540,6 @@ initialization (when ipdp->array_element_sequence is TRUE).
                                                           new_type);
         }  /* if */
         array_assignment = TRUE;
-      } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
-        /* An assignment of a repeated constant.  This can occur when
-           initializing a portion of a variably-sized array with
-           a constant that is the result of a constexpr constructor
-           call (e.g, new A[n]{ {1, 2} }).  Use the repeated constant
-           to initialize the remaining elements in the array.  Note that
-           this repeated initialization may follow initialization for
-           earlier array elements, so ensure that we account for that
-           when deciding how many elements to initialize. */
-        check_assertion(con->variant.init_repeat.count == 0 &&
-                        ipdp->num_elem_node != NULL);
-        con = con->variant.init_repeat.constant;
-        check_assertion(con->is_result_of_constexpr_call);
-        if (!ipdp->array_element_sequence) {
-          /* We're not initializing the entire array; the top-level modifier
-             should indicate which array element we're starting at.  Create
-             an expression that reflects this. */
-          check_assertion(ipdp->modifiers != NULL &&
-                          ipdp->modifiers->curr_field == NULL &&
-                          ipdp->modifiers->curr_base == NULL &&
-                          ipdp->modifiers->curr_elem != 0);
-          set_unsigned_integer_constant_with_overflow_check(
-                                                    &prev_init_con,
-                                                    ipdp->modifiers->curr_elem,
-                                                    targ_size_t_int_kind,
-                                                    (a_type_ptr)NULL);
-          prev_init_count = alloc_node_for_constant(&prev_init_con);
-        }  /* if */
-        repeated_constant_initialization = TRUE;
       } else {
         /* Normal case, not a string literal. */
         init_val_node = make_node_for_il_constant(con);
@@ -1578,7 +1548,6 @@ initialization (when ipdp->array_element_sequence is TRUE).
           check_assertion(is_array_type(con->type));
           array_assignment = TRUE;
         }  /* if */
-        repeated_constant_initialization = ipdp->array_element_sequence;
       }  /* if */
       break;
     case dik_expression:
@@ -1594,10 +1563,9 @@ initialization (when ipdp->array_element_sequence is TRUE).
                               variant.array.variant.number_of_elements == 0) {
     /* Don't bother to create an assignment from an array with zero elements.
        These come up in cases like "new int[0]{};". */
-  } else if (repeated_constant_initialization) {
+  } else if (ipdp->array_element_sequence) {
     /* We're assigning a constant value to an entire array or some portion
        thereof. */
-    an_expr_node_ptr num_elem_node = NULL;
     check_assertion(dip == NULL ||
                     dip->kind == (a_dynamic_init_kind)dik_constant);
     /* Use (or create) the temporary variable associated with this constant. */
@@ -1606,26 +1574,11 @@ initialization (when ipdp->array_element_sequence is TRUE).
                         assoc_var_for_constant(con,
                                                is_const_qualified_type(
                                                                  con->type))));
-    if (ipdp->num_elem_node != NULL) {
-      num_elem_node = make_reusable_copy(ipdp->num_elem_node,
-                                         /*vars_can_change=*/FALSE);
-      if (prev_init_count != NULL) {
-        /* If some elements of the array have already been initialized,
-           make sure we adjust the count accordingly.  A run-time check
-           has already been inserted to ensure that the value represented
-           by num_elem_node is valid, so this subtraction won't underflow
-           (though it can return zero). */
-        num_elem_node->next = prev_init_count;
-        num_elem_node = make_operator_node((an_expr_operator_kind)eok_subtract,
-                                           num_elem_node->type,
-                                           num_elem_node);
-      }  /* if */
-    } /* if */
     /* Create a helper routine to do the initialization and call it. */
     insert_call_to_initialize_entity(type_from_init_pos_descr(ipdp),
                                      have_complete_object,
                                      add_address_of_to_node(entity_node),
-                                     num_elem_node,
+                                     num_elem_node_if_array(ipdp),
                                      ipdp->array_element_count,
                                      init_val_node,
                                      insert_location);
@@ -5375,11 +5328,32 @@ expression).
              (from a constexpr constructor).  Generate executable statements
              to perform the initialization. */
           an_expr_node_ptr entity_node;
+          ipd.array_element_sequence = TRUE;
+          ipd.array_element_type = repeated_con->type;
+          if (con_ptr->variant.init_repeat.count == 0) {
+            /* If the repeat count is zero, this initialization is being used
+               to complete a partial-initialization of a variably-sized array.
+               Make a note of the starting element that needs initialization
+               (which could be zero, in cases like "new A[n] {}"). */
+            check_assertion(ipd.num_elem_node != NULL);
+            ipd.partial_initialization_starting_element = ipmp->curr_elem;
+            if (is_array_type(array_element_type(aggr_type))) {
+              /* For the multi-dimensional array case, ensure that the
+                 starting element takes into account all of the elements
+                 that have already been initialized. */
+              ipd.partial_initialization_starting_element *=
+                             num_array_elements(array_element_type(aggr_type));
+            }  /* if */
+          } else {
+            ipd.array_element_count =
+                          (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
+          }  /* if */
           entity_node = make_init_entity_node(&ipd,
                                               /*result_is_lvalue=*/TRUE,
                                               /*using_as_dest=*/TRUE);
           repeated_con->next = NULL;
-          add_init_assignment((a_dynamic_init *)NULL, con_ptr, entity_node,
+          add_init_assignment((a_dynamic_init *)NULL, repeated_con,
+                              entity_node,
                               /*have_complete_object=*/FALSE,
                               insert_location,
                               /*is_lambda_capture=*/FALSE,
