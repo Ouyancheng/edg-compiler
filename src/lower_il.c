@@ -4377,7 +4377,8 @@ pointers to data members are properly initialized to -1 for NULL.
        this routine so they fully initialize any pointer to data
        members. */
     cp = constant->variant.aggregate.first_constant;
-    if (cp->kind == (a_constant_repr_kind)ck_init_repeat) {
+    if (cp != NULL &&
+        cp->kind == (a_constant_repr_kind)ck_init_repeat) {
       elem = cp->variant.init_repeat.count;
     } else {
       for (; cp != NULL; cp = cp->next) {
