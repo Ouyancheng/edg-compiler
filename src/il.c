@@ -12221,9 +12221,8 @@ options for the copy.  cblock is a control block for the copy.
 */
 {
   a_dynamic_init_ptr      new_dip;
-#if DO_IL_LOWERING
+  a_boolean               need_object_lifetime_pop = FALSE;
   an_object_lifetime_ptr  init_expr_lifetime;
-#endif /* DO_IL_LOWERING */
   a_boolean               saved_overlaps_temps_in_inner_lifetime;
 
   new_dip = alloc_dynamic_init(dip->kind);
@@ -12256,16 +12255,18 @@ options for the copy.  cblock is a control block for the copy.
   saved_overlaps_temps_in_inner_lifetime =
                                          dip->overlaps_temps_in_inner_lifetime;
   new_dip->init_expr_lifetime = NULL;
-#if DO_IL_LOWERING
   /* Push an object lifetime if copying a dynamic initializer that
-     has an init_expr_lifetime. */
+     has an init_expr_lifetime and there's not already an expression lifetime
+     on the object lifetime stack. */
   init_expr_lifetime = dip->init_expr_lifetime; 
-  if (init_expr_lifetime != NULL) {
+  if (init_expr_lifetime != NULL &&
+      curr_object_lifetime->kind !=
+                                 (an_object_lifetime_kind)olk_expr_temporary) {
     push_object_lifetime(iek_dynamic_init, (char *)new_dip,
                                                      init_expr_lifetime->kind);
+    need_object_lifetime_pop = TRUE;
   }  /* if */
   new_dip->destructible_entity_descr = NULL;
-#endif /* DO_IL_LOWERING */
   switch (dip->kind) {
     case dik_none:
     case dik_zero:
@@ -12304,13 +12305,11 @@ options for the copy.  cblock is a control block for the copy.
     default:
       unexpected_condition_str("i_copy_dynamic_init: bad kind");
   }  /* switch */
-#if DO_IL_LOWERING
   /* Pop an init_expr_lifetime object lifetime if we had pushed one
      previously. */
-  if (init_expr_lifetime != NULL) {
+  if (need_object_lifetime_pop) {
     (void)pop_object_lifetime();
   }  /* if */
-#endif /* DO_IL_LOWERING */
   if (dip->lifetime != NULL) {
     /* This dynamic init is on a destruction list, so the copy must be
        put on a destruction list in the current context. */
