@@ -41,6 +41,19 @@ decl_inits.c -- Scanning of initializers in declarations.
   ((array_type)->size == 0 ? 1 : (array_type)->size / (elem_type)->size)
 
 
+static a_dynamic_init_ptr make_error_constant_dynamic_init(void)
+/*
+Return a dynamic init entry for an error constant.
+*/
+{
+  a_dynamic_init_ptr  dip = alloc_dynamic_init(
+                                           (a_dynamic_init_kind)dik_constant);
+
+  dip->variant.constant = alloc_error_constant();
+  return dip;
+}  /* make_error_constant_dynamic_init */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- init_info is not used in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1208,7 +1221,19 @@ is->no_diagnostics is TRUE.
       a_constant          folded_value;
       scan_field_initializer_if_needed(fp, tp);
       dip = fp->initializer;
-      check_assertion(dip != NULL);
+      if (dip == NULL) {
+        /* This can happen when a field initializer depends on a generated
+           default constructor that depends itself on the field initializer. */
+        is->init_error = TRUE;
+        if (!is->no_diagnostics) {
+          pos_ty_error(
+                   ec_generated_default_constructor_used_in_field_initializer,
+                   diag_pos, sym_parent_class(symbol_for(fp)));
+        }  /* if */
+        if (!is->check_validity_only) {
+          dip = make_error_constant_dynamic_init();
+        }  /* if */
+      }  /* if */
       if (fp != first_field && !is->check_validity_only) {
         /* Add a designator to indicate the field to initialize. */
         des_con = alloc_constant((a_constant_repr_kind)ck_designator);
@@ -5428,19 +5453,6 @@ given type, and record the initializer in *cip if cip is non-NULL.
     detach_object_lifetime_for_dynamic_init(cip->initializer);
   }  /* if */
 }  /* braced_mem_initializer */
-
-
-static a_dynamic_init_ptr make_error_constant_dynamic_init(void)
-/*
-Return a dynamic init entry for an error constant.
-*/
-{
-  a_dynamic_init_ptr  dip = alloc_dynamic_init(
-                                           (a_dynamic_init_kind)dik_constant);
-
-  dip->variant.constant = alloc_error_constant();
-  return dip;
-}  /* make_error_constant_dynamic_init */
 
 
 static void scan_parenthesized_mem_init_args(

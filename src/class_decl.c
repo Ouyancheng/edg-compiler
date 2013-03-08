@@ -25440,38 +25440,38 @@ flag is set in the class symbol supplement of the given type.
         cssp->known_not_to_be_a_literal_type = TRUE;
       }  /* if */
     }  /* if */
-  }  /* if */
-  if (!type->variant.class_struct_union.is_nonreal_class &&
-      cssp->known_not_to_be_a_literal_type &&
-      cssp->has_constexpr_nonstatic_member_function) {
-    /* If there were any nonstatic constexpr member functions in the class
-       issue an error (nonstatic non-constructor member functions can be
-       constexpr only if their parent class is a literal type).  Since we
-       cannot reliably tell whether a nonreal class is a literal type, this
-       check is not performed for nonreal class types. */
-    a_symbol_ptr  sym = cssp->symbols;
-    for (; sym != NULL; sym = sym->next_in_scope) {
-      a_symbol_ptr  member_sym = sym;
-      a_boolean     is_list = FALSE;
-      if (symbol_is(member_sym, sk_overloaded_function)) {
-        is_list = TRUE;
-        member_sym = member_sym->variant.overloaded_function.symbols;
-      }  /* if */
-      for (; member_sym != NULL; member_sym = is_list ? member_sym->next
-                                                      : (a_symbol_ptr)NULL) {
-        if (symbol_is(member_sym, sk_member_function)) {
-          a_routine_ptr  rp = member_sym->variant.routine.ptr;
-          if (rp->is_constexpr &&
-              !special_kind_is(rp, sfk_constructor) &&
-              routine_type_is_nonstatic_member_function(rp->type)) {
-            pos_error(ec_constexpr_nonstatic_member_func_in_nonliteral_class,
-                      &member_sym->decl_position);
-            goto done;
-          }  /* if */
+    if (!type->variant.class_struct_union.is_nonreal_class &&
+        cssp->known_not_to_be_a_literal_type &&
+        cssp->has_constexpr_nonstatic_member_function) {
+      /* If there were any nonstatic constexpr member functions in the class
+         issue an error (nonstatic non-constructor member functions can be
+         constexpr only if their parent class is a literal type).  Since we
+         cannot reliably tell whether a nonreal class is a literal type, this
+         check is not performed for nonreal class types. */
+      a_symbol_ptr  sym = cssp->symbols;
+      for (; sym != NULL; sym = sym->next_in_scope) {
+        a_symbol_ptr  member_sym = sym;
+        a_boolean     is_list = FALSE;
+        if (symbol_is(member_sym, sk_overloaded_function)) {
+          is_list = TRUE;
+          member_sym = member_sym->variant.overloaded_function.symbols;
         }  /* if */
+        for (; member_sym != NULL; member_sym = is_list ? member_sym->next
+                                                        : (a_symbol_ptr)NULL) {
+          if (symbol_is(member_sym, sk_member_function)) {
+            a_routine_ptr  rp = member_sym->variant.routine.ptr;
+            if (rp->is_constexpr &&
+                !special_kind_is(rp, sfk_constructor) &&
+                routine_type_is_nonstatic_member_function(rp->type)) {
+              pos_error(ec_constexpr_nonstatic_member_func_in_nonliteral_class,
+                        &member_sym->decl_position);
+              goto done;
+            }  /* if */
+          }  /* if */
+        }  /* for */
       }  /* for */
-    }  /* for */
 done:;
+    }  /* if */
   }  /* if */
 }  /* set_literal_type_flag */
 
