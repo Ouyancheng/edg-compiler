@@ -5832,24 +5832,36 @@ a constexpr expansion, and the block provides context information.
         if (op2 != NULL) op2 = skip_parens(op2);
         switch (op) {
           case eok_dot_field:
-            /* Field selection, x.y.  If the left operand is an lvalue with a
-               constant address, we can develop an address for the field. */
+          case eok_pm_field:
+            /* Field selection, x.y, or pointer-to-member field selection,
+               x.*y.  If the left operand is an lvalue with a constant
+               address, we can develop an address for the field. */
             if (op1->is_lvalue &&
                 constant_lvalue_address_full(op1, ceblock, &conaddr1,
                                              address_escapes,
                                              options, template_constant)) {
-              goto handle_field_selection;
+              if (op == (an_expr_operator_kind)eok_dot_field) {
+                goto handle_field_selection;
+              } else {
+                goto handle_pm_field_selection;
+              }  /* if */
             }  /* if */
             break;
           case eok_points_to_field:
-            /* Field selection, p->y.  If the left operand is a constant
-               address, we can develop an address for the field. */
+          case eok_pm_points_to_field:
+            /* Field selection, p->y, or pointer-to-member field selection,
+               p->*y.  If the left operand is a constant address, we can
+               develop an address for the field. */
             if (is_pointer_type(op1->type) &&
                 constant_rvalue_pointer_full(op1, ceblock, &conaddr1,
                                              address_escapes,
                                              options | CAO_IS_OBJECT_POINTER,
                                              template_constant)) {
-              goto handle_field_selection;
+              if (op == (an_expr_operator_kind)eok_points_to_field) {
+                goto handle_field_selection;
+              } else {
+                goto handle_pm_field_selection;
+              }  /* if */
             }  /* if */
             break;
 handle_field_selection:
@@ -5871,6 +5883,24 @@ handle_field_selection:
                 if (*template_constant) is_constant_addr = FALSE;
               }  /* if */
             }
+            break;
+handle_pm_field_selection:
+            { a_constant  pm_constant;
+              if (fold_expr(op2, ceblock, &pm_constant)) {
+                /* The second operand is a constant, so we can fold the
+                   access. */
+                check_assertion(pm_constant.kind ==
+                                      (a_constant_repr_kind)ck_ptr_to_member &&
+                                !pm_constant.variant.ptr_to_member.
+                                                              is_function_ptr);
+                fold_field_selection(
+                               &conaddr1,
+                               pm_constant.variant.ptr_to_member.variant.field,
+                               make_pointer_type(expr->type), con,
+                               template_constant);
+                is_constant_addr = !*template_constant;
+              }  /* if */
+            }  /* if */
             break;
           case eok_subscript:
             /* Subscript operation. */
@@ -9126,6 +9156,8 @@ ceblock gives context information for the evaluation.
       case eok_call:
       case eok_dot_member_call:
       case eok_points_to_member_call:
+      case eok_dot_pm_call:
+      case eok_points_to_pm_call:
         /* Try to fold a call if it's to a constexpr function. */
         if (i_fold_constexpr_call(expr,
                                   ceblock,
@@ -9136,14 +9168,23 @@ ceblock gives context information for the evaluation.
         }  /* if */
         break;
       case eok_dot_field:
-        /* a.field. */
+      case eok_pm_field:
+        /* a.field or a.*field. */
         op1_folded = fold_object_expr(op1, ceblock, /*want_addr=*/FALSE,
                                       &op1_constant);
-        goto field_selection;
+        if (op == (an_expr_operator_kind)eok_dot_field) {
+          goto field_selection;
+        } else {
+          goto pm_field_selection;
+        }  /* if */
       case eok_points_to_field:
-        /* a.field or p->field.  Try to fold the left operand to a constant,
-           then try to fold the field selection. */
+      case eok_pm_points_to_field:
+        /* p->field or p->*field.  Try to fold the left operand to a
+           constant, then try to fold the field selection. */
         op1_folded = fold_expr(op1, ceblock, &op1_constant);
+        if (op == (an_expr_operator_kind)eok_pm_points_to_field) {
+          goto pm_field_selection;
+        }  /* if */
 field_selection:
         if (op1_folded) {
           a_boolean points_to =
@@ -9153,6 +9194,25 @@ field_selection:
                                             op2->variant.field,
                                             result_con)) {
             folded = TRUE;
+          }  /* if */
+        }  /* if */
+        break;
+pm_field_selection:
+        if (op1_folded) {
+          a_constant pm_constant;
+          if (fold_expr(op2, ceblock, &pm_constant)) {
+            a_boolean points_to =
+                         (op == (an_expr_operator_kind)eok_pm_points_to_field);
+            check_assertion(pm_constant.kind ==
+                                      (a_constant_repr_kind)ck_ptr_to_member &&
+                            !pm_constant.variant.ptr_to_member.
+                                                              is_function_ptr);
+            if (fold_constant_field_selection(
+                               &op1_constant, points_to,
+                               pm_constant.variant.ptr_to_member.variant.field,
+                               result_con)) {
+              folded = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
         break;
@@ -9643,16 +9703,29 @@ called instead.
   a_boolean             folded = FALSE;
   a_routine_ptr         routine;
   an_expr_node_ptr      args;
-  an_expr_operator_kind opkind;
   a_boolean             this_arg_is_pointer;
 
   if (returns_reference != NULL) *returns_reference = FALSE;
   check_assertion(is_call_node(call_expr));
   args = call_expr->variant.operation.operands;
-  opkind = call_expr->variant.operation.kind;
-  this_arg_is_pointer = (opkind ==
-                             (an_expr_operator_kind)eok_points_to_member_call);
+  this_arg_is_pointer =
+                      node_operator_is(call_expr, eok_points_to_member_call) ||
+                      node_operator_is(call_expr, eok_points_to_pm_call);
   routine = routine_from_function_expr(args);
+  if (routine == NULL) {
+    /* Check to see if we can fold the expression to a constant that
+       designates a routine. */
+    a_constant rout_constant;
+    if (fold_expr(args, ceblock, &rout_constant)) {
+      if (con_is_exact_addr_of_routine(&rout_constant)) {
+        routine = rout_constant.variant.address.variant.routine;
+      } else if (rout_constant.kind ==
+                                      (a_constant_repr_kind)ck_ptr_to_member &&
+                 rout_constant.variant.ptr_to_member.is_function_ptr) {
+        routine = rout_constant.variant.ptr_to_member.variant.routine;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   args = args->next;
   if (incr_constexpr_call_depth(ceblock)) {
     /* Calls too deep -- possible infinite recursion. */
@@ -9698,10 +9771,6 @@ gnu_builtin_fail:;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (!constexpr_routine_has_definition(routine)) {
     /* The routine has no definition, so can't fold. */
-  } else if (!(opkind == (an_expr_operator_kind)eok_call ||
-               opkind == (an_expr_operator_kind)eok_dot_member_call ||
-               this_arg_is_pointer)) {
-    /* Non-foldable kind of call, e.g., a pointer-to-member call. */
   } else if (special_kind_is(routine, sfk_constructor)) {
     /* When a constructor is called like a member function, we can't
        fold it. */
