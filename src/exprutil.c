@@ -17320,7 +17320,9 @@ the value there, and return the address of the new constant.
       set_temporary_address_constant(op1->variant.constant, &addr_con);
       addr_con.variant.address.offset = bcp->offset;
       addr_con.type = make_pointer_type(expr->type);
-      result = constant_value_at_address(&addr_con, alloc_con);
+      result = constant_value_at_address(&addr_con,
+                                         (a_constexpr_evaluation_block *)NULL,
+                                         alloc_con);
     }  /* if */
   }  /* if */
   return result;
@@ -17563,8 +17565,10 @@ it might produce an error).
                                  &did_not_fold, &template_constant,
                                  &error_detected, err_pos);
                 if (!did_not_fold &&
-                    constant_value_at_address(&addr_con, &result_con) !=
-                                                                        NULL) {
+                    constant_value_at_address(
+                                          &addr_con,
+                                          (a_constexpr_evaluation_block *)NULL,
+                                          &result_con) != NULL) {
                   con_expr_value = copy_unshared_constant(&result_con);
                 }  /* if */
               }  /* if */

@@ -8643,58 +8643,6 @@ be an lvalue or rvalue; it doesn't matter.
 }  /* fold_variable_reference */
 
 
-static a_boolean points_to_constant(
-                                  a_constant                   *con,
-                                  a_constexpr_evaluation_block *ceblock,
-                                  a_constant                   *pointed_to_con)
-/*
-If the constant "con" is a pointer to a constant, set *pointed_to_con to
-the value of the underlying constant, and return TRUE.  Otherwise, return
-FALSE.  ceblock gives context information for the evaluation (e.g.,
-parameter values).
-*/
-{
-  a_boolean      is_con = FALSE;
-  a_variable_ptr var;
-  a_constant     *con_val = NULL;
-
-  if (con_is_exact_addr_of_variable(con, &var,
-                                    /*array_decay_allowed=*/FALSE)) {
-    /* The constant points to a variable.  See if the variable has a constant
-       value. */
-    if (var->is_parameter) {
-      a_constexpr_remap_ptr crp =
-                        constant_remap_entry_for_variable(var,
-                                                          ceblock->remap_list);
-      if (crp != NULL) {
-        /* The variable is a parameter with an associated constant argument
-           value. */
-        con_val = &crp->constant_value;
-      }  /* if */
-    } else {
-      /* See if the variable has a constant value. */
-      con_val = var_constant_value(var);
-    }  /* if */
-  } else if (con->kind == (a_constant_repr_kind)ck_address &&
-             (con->variant.address.kind ==
-                                        (an_address_base_kind)abk_constant ||
-              con->variant.address.kind ==
-                                        (an_address_base_kind)abk_temporary)) {
-    /* The constant is the address of a constant (for abk_temporary,
-       it's the address of a temporary containing the constant, but a
-       pointer to the temporary is a pointer to the constant in the
-       temporary's memory object). */
-    con_val = con->variant.address.variant.constant;
-  }  /* if */
-  if (con_val != NULL) {
-    /* The constant does point to a constant. */
-    is_con = TRUE;
-    copy_constant(con_val, pointed_to_con);
-  }  /* if */
-  return is_con;
-}  /* points_to_constant */
-
-
 static a_field_ptr next_non_generated_initializable_field(a_field_ptr field)
 /*
 Return a pointer to the first field at or after field that is
@@ -8712,14 +8660,18 @@ function for additional information.
 }  /* next_non_generated_initializable_field */
 
 
-a_constant_ptr constant_value_at_address(a_constant_ptr addr_con,
-                                         a_constant_ptr target_con)
+a_constant_ptr constant_value_at_address(
+                                       a_constant_ptr               addr_con,
+                                       a_constexpr_evaluation_block *ceblock,
+                                       a_constant_ptr               target_con)
 /*
-If addr_con is a ck_address constant designating a variable with a constant
-value or a subobject thereof, return the value of that variable or
-subobject; otherwise, return NULL.  If target_con is non-NULL, the value is
-copied into the designated constant and target_con is returned; otherwise,
-a new unshared constant will be allocated and returned.
+If addr_con is a ck_address constant designating a constant, a variable
+with a constant value, or a subobject of one of those, return the value of
+that constant, variable, or subobject; otherwise, return NULL.  If
+target_con is non-NULL, the value is copied into the designated constant
+and target_con is returned; otherwise, a new unshared constant will be
+allocated and returned.  ceblock gives context information for the
+evaluation (e.g., parameter values).
 */
 {
   a_constant_ptr result_con = NULL;
@@ -8763,8 +8715,21 @@ a new unshared constant will be allocated and returned.
       /* The constant is the address of a variable, possibly with an offset
          designating a subobject.  See if it has a constant value and, if
          so, use it. */
-      result_con =
+      a_variable_ptr var;
+      a_constexpr_remap_ptr crp = NULL;
+      if (con_is_exact_addr_of_variable(addr_con, &var,
+                                        /*array_decay_allowed=*/FALSE) &&
+          var->is_parameter) {
+        crp = constant_remap_entry_for_variable(var, ceblock->remap_list);
+      }  /* if */
+      if (crp != NULL) {
+        /* The variable is a parameter with an associated constant argument
+           value. */
+        result_con = &crp->constant_value;
+      } else {
+        result_con =
                 var_constant_value(addr_con->variant.address.variant.variable);
+      }  /* if */
     } else {
       /* The constant is the address of a constant, possibly with an offset
          designating a subobject.  Use it. */
@@ -9010,7 +8975,10 @@ the variable to which p points has a constant value, return that value.
                                    /*address_escapes=*/FALSE,
                                    CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
                                    (a_boolean *)NULL)) {
-    result_con = constant_value_at_address(&addr_con, (a_constant_ptr)NULL);
+    result_con = constant_value_at_address(
+                                          &addr_con,
+                                          (a_constexpr_evaluation_block *)NULL,
+                                          (a_constant_ptr)NULL);
   }  /* if */
   return result_con;
 }  /* constant_value_addressed_by_node */
@@ -9082,7 +9050,9 @@ ceblock gives context information for the evaluation.
            folds to a constant that addresses a constant value, the
            expression can be folded. */
         if (fold_expr(op1, ceblock, &op1_constant) &&
-            constant_value_at_address(&op1_constant, result_con) != NULL) {
+            constant_value_at_address(&op1_constant,
+                                      (a_constexpr_evaluation_block *)NULL,
+                                      result_con) != NULL) {
           folded = TRUE;
         }  /* if */
         break;
@@ -9240,7 +9210,9 @@ pm_field_selection:
            we have a constant there. */
         if (identical_types_ignoring_qualifiers(expr->type, op1->type) &&
             fold_lvalue_expr(op1, ceblock, &op1_constant) &&
-            constant_value_at_address(&op1_constant, result_con) != NULL) {
+            constant_value_at_address(&op1_constant,
+                                      (a_constexpr_evaluation_block *)NULL,
+                                      result_con) != NULL) {
           folded = TRUE;
           result_con->type = expr->type;
         }  /* if */
@@ -9342,8 +9314,10 @@ pm_field_selection:
                   /* The value, not the address, of the element is
                      desired. */
                   a_constant value_con;
-                  if (constant_value_at_address(result_con, &value_con) !=
-                                                                        NULL) {
+                  if (constant_value_at_address(
+                                          result_con,
+                                          (a_constexpr_evaluation_block *)NULL,
+                                          &value_con) != NULL) {
                     /* The addressed element is a constant; use it. */
                     copy_constant(&value_con, result_con);
                   } else {
@@ -9513,7 +9487,8 @@ member function call.
       folded = TRUE;
       if (!want_addr) {
         a_constant pointed_to_con;
-        if (points_to_constant(result_con, ceblock, &pointed_to_con)) {
+        if (constant_value_at_address(result_con, ceblock,
+                                      &pointed_to_con) != NULL) {
           copy_constant(&pointed_to_con, result_con);
         } else {
           folded = FALSE;
@@ -9813,7 +9788,8 @@ gnu_builtin_fail:;
                  the folding fails. */
               a_constant copy;
               copy_constant(result_con, &copy);
-              if (points_to_constant(&copy, ceblock, result_con)) {
+              if (constant_value_at_address(&copy, ceblock,
+                                            result_con) != NULL) {
                 /* Okay. */
               } else {
                 folded = FALSE;
@@ -10151,7 +10127,10 @@ otherwise, return FALSE.
   if (object_is_pointer) {
     /* eok_points_to_field case.  See if the pointer value points to
        a constant. */
-    eff_obj_con = constant_value_at_address(object_con, (a_constant_ptr)NULL);
+    eff_obj_con = constant_value_at_address(
+                                          object_con,
+                                          (a_constexpr_evaluation_block *)NULL,
+                                          (a_constant_ptr)NULL);
   } else {
     /* eok_dot_field case. */
     eff_obj_con = object_con;

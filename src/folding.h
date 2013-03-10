@@ -231,8 +231,10 @@ extern a_boolean constant_is_pointer_to_string_literal(a_constant *con,
 extern a_boolean expr_is_pointer_to_string_literal(an_expr_node_ptr expr,
                                                    a_constant       **scon);
 
-extern a_constant_ptr constant_value_at_address(a_constant_ptr addr_con,
-                                                a_constant_ptr target_con);
+extern a_constant_ptr constant_value_at_address(
+                                      a_constant_ptr               addr_con,
+                                      a_constexpr_evaluation_block *ceblock,
+                                      a_constant_ptr               target_con);
 
 extern a_constant_ptr constant_value_addressed_by_node(an_expr_node_ptr  expr,
                                                        a_source_position *pos);

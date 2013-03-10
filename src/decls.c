@@ -6056,7 +6056,10 @@ variable.
         /* In strict mode, rule out some subtle cases that produce a constant
            but don't have the form of a "constant expression". */
       } else if (is_any_reference_type(vp->type) &&
-                 constant_value_at_address(con_val, &ref_val) == NULL) {
+                 constant_value_at_address(
+                                          con_val,
+                                          (a_constexpr_evaluation_block *)NULL,
+                                          &ref_val) == NULL) {
         /* A reference is constant-valued only if the constant reference
            address points at a constant. */
       } else {
