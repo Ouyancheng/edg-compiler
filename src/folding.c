@@ -8717,7 +8717,8 @@ evaluation (e.g., parameter values).
          so, use it. */
       a_variable_ptr var;
       a_constexpr_remap_ptr crp = NULL;
-      if (con_is_exact_addr_of_variable(addr_con, &var,
+      if (ceblock != NULL &&
+          con_is_exact_addr_of_variable(addr_con, &var,
                                         /*array_decay_allowed=*/FALSE) &&
           var->is_parameter) {
         crp = constant_remap_entry_for_variable(var, ceblock->remap_list);
