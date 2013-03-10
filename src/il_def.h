@@ -4052,10 +4052,16 @@ typedef struct a_constant {
                            Both pointers are NULL if the list is empty. */
     } aggregate;
     /* When kind == ck_init_repeat: */
-    /* A ck_init_repeat constant is used only in initialization.  As such, it
-       is always an unshared constant.  Used in C++ to initialize an array
-       of class objects with constructor initialization; the constant entry is
-       a ck_dynamic_init constant that identifies the default constructor. */
+    /* A ck_init_repeat constant is used only in initialization.  As such,
+       it is always an unshared constant.  Used in C++ to initialize an
+       array of class objects with constructor initialization and with
+       designators to indicate a repeated value.  In a multidimensional
+       array, the repeated constant can be an aggregate initializing the
+       array elements at that level or a constant giving the value of the
+       leaf elements of the array; in the latter case, the count gives the
+       number of leaf elements to be initialized, not the number of array
+       elements at the level at which the repeated constant appears.  The
+       cases can be distinguished by the type of the repeated constant. */
     struct {
       a_constant_ptr
                 constant;
