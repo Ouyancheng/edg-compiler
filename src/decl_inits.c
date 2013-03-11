@@ -5921,6 +5921,7 @@ initialized.  These are addressed in the course of the processing.
   a_boolean                     variant_init = FALSE;
   a_boolean                     variant_explicit_init = FALSE;
   a_boolean                     bad_call_for_constexpr_ctor_reported = FALSE;
+  a_boolean                     clear_constexpr_flag = FALSE;
 
   db_enter(3, "ctor_initializer");
   cib.cip_list = cib.end_of_cip_list = NULL;
@@ -6388,7 +6389,9 @@ initialized.  These are addressed in the course of the processing.
                           &err_pos, field_sym);
                 bad_call_for_constexpr_ctor_reported = TRUE;
               } else if (!ctor_rout->is_prototype_instantiation) {
-                ctor_rout->is_constexpr = FALSE;
+                /* The is_constexpr flag must be cleared, but not until all
+                   fields have been examined. */
+                clear_constexpr_flag = TRUE;
               }  /* if */
             }  /* if */
           }  /* if */
@@ -6653,6 +6656,9 @@ initialized.  These are addressed in the course of the processing.
        explicitly. */
     pos_error(ec_union_constexpr_constructor_initializes_no_field,
               &error_position);
+  }  /* if */
+  if (clear_constexpr_flag) {
+    ctor_rout->is_constexpr = FALSE;
   }  /* if */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   if (ctor_rout->is_trivial_default_constructor && !ctor_rout->is_defaulted) {
