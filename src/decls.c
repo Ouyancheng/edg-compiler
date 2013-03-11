@@ -12491,12 +12491,6 @@ Return a pointer to the variable that is declared.
     set_to_error_locator(locator);
     error_position = pos_curr_token;
   }  /* if */
-  if ((state.dso_flags & DSO_CONSTEXPR) != 0 &&
-      !is_const_qualified_type(state.type)) {
-    /* constexpr variables are implicitly const. */
-    state.type = make_qualified_type(state.type,
-                                     (a_type_qualifier_set)TQ_CONST);
-  }  /* if */
   check_pending_qualifiers_used(&state);
   complete_type_is_needed(state.type);
   if (is_function_type(state.type)) {
@@ -12511,6 +12505,12 @@ Return a pointer to the variable that is declared.
       pos_error(ec_array_type_not_allowed, &state.start_pos);
       invalidate_type(&state);
     }  /* if */
+  }  /* if */
+  if ((state.dso_flags & DSO_CONSTEXPR) != 0 &&
+      !is_const_qualified_type(state.type)) {
+    /* constexpr variables are implicitly const. */
+    state.type = make_qualified_type(state.type,
+                                     (a_type_qualifier_set)TQ_CONST);
   }  /* if */
   /* Enter the symbol in the current scope, which should be an sck_condition
      scope. */
