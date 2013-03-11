@@ -3531,6 +3531,29 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                                  curr_token, tag_kind, is_ref_within_new_expr,
                                  no_definition_allowed);
     definition_removed = FALSE;
+    if (is_class_definition && tag_sym != NULL &&
+        is_proxy_class(type_symbol_type(tag_sym))) {
+      /* A qualified class name could potentially result in an attempt to
+         define a proxy class, which would lead to all kinds of surprises
+         since lookup in a proxy class creates new members.  Catch this early
+         and drop the proxy-class connection. */
+      a_type_ptr  parent_type;
+      check_assertion(locator.is_class_member);
+      parent_type = locator.parent.class_type;
+      if (parent_type->kind == (a_type_kind)tk_template_param &&
+          parent_type->variant.template_param.extra_info
+                     ->orig_nested_type != NULL) {
+        /* The indicated nested type exists in the template, but in this
+           context it cannot be defined. */
+        pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
+      } else {
+        pos_stsy_error(ec_not_a_member_class, &tag_position,
+                       locator.symbol_header->identifier,
+                       symbol_for(locator.parent.class_type));
+      }  /* if */
+      tag_sym = NULL;
+      set_to_named_error_locator(locator);
+    }  /* if */
   }  /* if */
   if ((is_class_definition || definition_removed) &&
       constexpr_enabled && !gpp_mode &&
