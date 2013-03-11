@@ -8110,7 +8110,6 @@ to FALSE before returning).
       bcp_type->variant.class_struct_union.any_virtual_base_classes) {
     class_type->variant.class_struct_union.any_virtual_base_classes = TRUE;
     cssp->standard_layout = FALSE;
-    cssp->known_not_to_be_a_literal_type = TRUE;
   }  /* if */
   if (bcp_type->variant.class_struct_union
                            .any_virtual_functions_including_in_base_classes) {
@@ -8128,7 +8127,6 @@ to FALSE before returning).
   }  /* if */
   if (bcp_type->variant.class_struct_union.any_volatile_member) {
     class_type->variant.class_struct_union.any_volatile_member = TRUE;
-    cssp->known_not_to_be_a_literal_type = TRUE;
   }  /* if */
   if (bcp_type->variant.class_struct_union.any_mutable_member) {
     class_type->variant.class_struct_union.any_mutable_member = TRUE;
@@ -16808,7 +16806,6 @@ be entered.
      correctly. */
   if (is_or_has_volatile_qualified_type(member_type)) {
     class_type->variant.class_struct_union.any_volatile_member = TRUE;
-    cssp->known_not_to_be_a_literal_type = TRUE;
   }  /* if */
   if (decl_info->is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
@@ -19270,9 +19267,6 @@ The routine body is not generated until it is known to be needed.
        !class_state->member_destruction_required &&
        !class_state->base_destruction_required)) {
     cssp->has_trivial_destructor = TRUE;
-  } else {
-    /* Class types with nontrivial destructors cannot be literal types. */
-    cssp->known_not_to_be_a_literal_type = TRUE;
   }  /* if */
   /* Create a default assignment operator to copy an object of the current
      class if one doesn't already exist.  Note that in cfront mode, the
@@ -25363,17 +25357,25 @@ flag is set in the class symbol supplement of the given type.
       cssp->known_to_be_a_literal_type) {
     /* We already know whether this type is a literal type. */
   } else {
-    /* All the members and bases are of literal type, and the destructor is
-       trivial.  To be a literal type, the class should additionally be an
-       aggregate, or it should have at least one constexpr constructor that
-       is not a copy or move constructor. */
+    /* Check the various constraints on literal class types: */
     if (is_immediate_managed_class_type(type)) {
       /* Don't treat managed class types as literal types. */
       cssp->known_not_to_be_a_literal_type = TRUE;
+    } else if (has_nontrivial_destructor(cssp)) {
+      /* Literal class types must have trivial destructors. */
+      cssp->known_not_to_be_a_literal_type = TRUE;
+    } else if (type->variant.class_struct_union.any_volatile_member) {
+      /* Literal class types cannot have volatile subobjects. */
+      cssp->known_not_to_be_a_literal_type = TRUE;
+    } else if (type->variant.class_struct_union.any_virtual_base_classes) {
+      /* Literal class types cannot have virtual base classes. */
+      cssp->known_not_to_be_a_literal_type = TRUE;
     } else if (has_nonliteral_type_subobject(type)) {
+      /* Literal class types cannot have a subobject of nonliteral type. */
       cssp->known_not_to_be_a_literal_type = TRUE;
     } else if (cssp->is_class_aggregate) {
-      /* Aggregate class types are literal types. */
+      /* Aggregate class types are literal types if they meet the previous
+         constraints. */
       cssp->known_to_be_a_literal_type = TRUE;
     } else if ((cssp->trivial_default_constructor != NULL &&
                 cssp->trivial_default_constructor
