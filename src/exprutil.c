@@ -5372,10 +5372,10 @@ might turn out to be constant in the actual use.
 }  /* in_potential_constant_constexpr_context */
 
 
-void call_did_not_fold_to_constant(an_error_code     err_code,
-                                   a_routine_ptr     routine,
-                                   an_operand        *operand,
-                                   a_source_position *pos)
+a_boolean call_did_not_fold_to_constant(an_error_code     err_code,
+                                        a_routine_ptr     routine,
+                                        an_operand        *operand,
+                                        a_source_position *pos)
 /*
 A call (or call-like construct) has been allowed with the hope that it
 would fold to a constant.  It's now known that it has not, so issue the
@@ -5385,9 +5385,12 @@ a constant expression.  routine indicates the routine that was called,
 or is NULL if we don't know the specific routine (e.g., because of
 an error, or because the call was mapped to some other nonconstant
 construct).  operand can be NULL if it's not available; in that case
-pos gives the source position to use.
+pos gives the source position to use.  Return TRUE if an error was
+issued.
 */
 {
+  a_boolean err = FALSE;
+
   if (operand == NULL || !is_error_operand(operand)) {
     if (in_potential_constant_constexpr_context() &&
         (routine == NULL || routine->is_constexpr
@@ -5413,6 +5416,7 @@ pos gives the source position to use.
       }  /* if */
     } else if (curr_expr_kind_is_traditional_const()) {
       /* Unfolded routine calls are not allowed in constant expressions. */
+      err = TRUE;
       if (operand != NULL) {
         error_in_operand(err_code, operand);
       } else {
@@ -5423,9 +5427,11 @@ pos gives the source position to use.
                                                          operand != NULL ?
                                                            &operand->position :
                                                            pos)) {
+      err = TRUE;
       if (operand != NULL) conv_to_error_operand(operand);
     }  /* if */
   }  /* if */
+  return err;
 }  /* call_did_not_fold_to_constant */
 
 
@@ -14267,9 +14273,10 @@ entry is returned).
     /* Construction was not folded to a constant.  In a constant expression,
        that's an error.  Pre-C++11 cases should be detected earlier. */
     check_assertion(pos != NULL);
-    if (!in_potential_constant_constexpr_context() &&
-        construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
-                                                     pos)) {
+    if (call_did_not_fold_to_constant(ec_expr_not_constant,
+                                      ctor_routine,
+                                      (an_operand *)NULL,
+                                      pos)) {
       set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
       dip->variant.constant = alloc_error_constant();
     }  /* if */

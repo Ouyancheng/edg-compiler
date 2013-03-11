@@ -15911,9 +15911,9 @@ no_applicable_operator_function:
               } else {
                 a_routine_ptr rp =
                               routine_from_function_operand(&function_operand);
-                call_did_not_fold_to_constant(ec_expr_not_constant,
-                                              rp, result,
-                                              (a_source_position *)NULL);
+                (void)call_did_not_fold_to_constant(ec_expr_not_constant,
+                                                    rp, result,
+                                                    (a_source_position *)NULL);
               }  /* if */
             }  /* if */
           }  /* if */
@@ -17733,10 +17733,10 @@ the temporary.
       /* The conversion function is constexpr and the call was folded to a
          constant result. */
     } else {
-      call_did_not_fold_to_constant(ec_expr_not_constant,
-                                    conversion_routine,
-                                    operand,
-                                    (a_source_position *)NULL);
+      (void)call_did_not_fold_to_constant(ec_expr_not_constant,
+                                          conversion_routine,
+                                          operand,
+                                          (a_source_position *)NULL);
     }  /* if */
     if (dest_type == NULL) {
       /* No specified destination type.  The result type of the conversion
