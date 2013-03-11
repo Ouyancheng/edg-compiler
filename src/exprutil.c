@@ -17569,7 +17569,10 @@ it might produce an error).
                                           &addr_con,
                                           (a_constexpr_evaluation_block *)NULL,
                                           &result_con) != NULL) {
-                  con_expr_value = copy_unshared_constant(&result_con);
+                  con_expr_value = copy_constant_full(
+                                           &result_con,
+                                           (a_constant *)NULL,
+                                           CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL);
                 }  /* if */
               }  /* if */
             }  /* if */
