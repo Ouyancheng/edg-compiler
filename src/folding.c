@@ -8851,9 +8851,10 @@ evaluation (e.g., parameter values).
                    starting and ending offsets of the base class object to
                    determine whether the address lies within it or not. */
                 if (offset >= (a_targ_ptrdiff_t)(cum_offset + bp->offset) &&
-                    offset < (a_targ_ptrdiff_t)(cum_offset + bp->offset +
-                                                base_class_size)) {
-                  /* The address lies within this base class subobject. */
+                    offset <= (a_targ_ptrdiff_t)(cum_offset + bp->offset +
+                                                 base_class_size)) {
+                  /* The address designates or lies within this base class
+                     subobject. */
                   break;
                 }  /* if */
                 /* The address is not in this base class subobject; step to
@@ -8862,8 +8863,9 @@ evaluation (e.g., parameter values).
               }  /* if */
             }  /* for */
             if (bp != NULL) {
-              /* The offset is in a base class subobject.  Go back through
-                 the main loop to examine that class. */
+              /* The offset designates or lies within a base class
+                 subobject.  Go back through the main loop to examine that
+                 class. */
               cum_offset += bp->offset;
               curr_type = bp->type;
             } else {
