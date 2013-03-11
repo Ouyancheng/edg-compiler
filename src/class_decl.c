@@ -2936,7 +2936,13 @@ type must be complete.
   a_class_symbol_supplement_ptr  cssp;
   an_initializer_fixup_ptr       fixup_list, ifp, next_ifp;
 
-  check_assertion(!class_type->incomplete);
+  if (class_type->incomplete) {
+    /* We can end up here with unusual error cases involving template
+       declarations (deferred class fixups are processed at the end of a
+       template declaration). */
+    expect_error();
+    goto done;
+  }  /* if */
   while (class_type_supp(class_type)->defined_in_parent_class) {
     /* For nested classes defined inside their parent class, the fixups are
        actually recorded in the outermost enclosing class. */
@@ -3026,6 +3032,7 @@ type must be complete.
     free_initializer_fixup(ifp);
     pop_lexical_state_stack();
   }  /* for */
+done:;
 }  /* inclass_initializer_fixup_for_class */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
