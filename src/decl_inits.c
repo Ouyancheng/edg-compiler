@@ -4726,7 +4726,11 @@ FALSE is returned) for non-class objects.
             init_dip->variant.constant = cp;
           }  /* if */
           if (!make_value_initialized_constant(tp, cp)) {
-            unexpected_condition();
+            /* The constant couldn't be created, presumably because default
+               initialization is not possible.  An error must have been issued
+               earlier. */
+            expect_error();
+            set_error_constant(cp);
           }  /* if */
         }  /* if */
       } else if (var->is_constexpr) {
