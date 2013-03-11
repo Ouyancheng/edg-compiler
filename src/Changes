@@ -3,6 +3,19 @@ Version 4.6
 3/11/13
 Version number changed to 4.6
 
+3/11/13  [EDGcpfe/9249]
+Nonstatic data member initializers
+
+We have implemented the "nonstatic data member initializers" (NSDMIs)
+feature of C++11, which allows initializers on nonstatic data member
+declarations within the class.  See N2756.  For example:
+
+  struct A {
+    int i = 1;
+    constexpr A() {}  // i gets initial value of 1
+    constexpr A(int p) : i(p) {} // Default initial value for i is overridden
+  };
+
 
 3/11/13  [EDGcpfe/8523]
 constexpr
