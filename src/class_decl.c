@@ -26834,7 +26834,7 @@ caller has already moved past the '[', and this routine leaves the trailing
           if (!variable_this_exists(&var, (a_type_ptr *)NULL)) {
             /* We should be in a nonstatic member function. */
             error(ec_this_used_incorrectly);
-          } else if (var == NULL) {
+          } else if (var == NULL && !scope_stack_top().in_field_initializer) {
             /* A "this" in a prototype scope.  There should be an error about
                the lambda not being allowed in this context. */
             expect_error();
