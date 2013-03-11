@@ -2874,7 +2874,7 @@ defaulted) default constructor associated with cssp, or NULL if there is none.
     a_boolean  is_list = symbol_is(ctor, sk_overloaded_function);
     if (is_list) ctor = ctor->variant.overloaded_function.symbols;
     /* Search the constructors for one that is generated/defaulted and is a
-       simple default constructor (i.e., has not explicit parameter). */
+       simple default constructor (i.e., has no explicit parameter). */
     for (; ctor != NULL; ctor = is_list ? ctor->next : NULL) {
       if (symbol_is(ctor, sk_member_function)) {
         a_routine_ptr  ctor_rp = ctor->variant.routine.ptr;

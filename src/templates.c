@@ -5158,8 +5158,14 @@ Instantiate the body of the template function associated with tip.
   } else if (func_info_ptr->is_defaulted) {
     /* Instantiating a "= default" function (which must be a special member
        function) means generating its implicit definition. */
-    rout_ptr->is_defaulted = TRUE;
-    force_definition_of_compiler_generated_routine(rout_ptr);
+    if (rout_ptr->template_arg_list != NULL) {
+      /* A member template cannot be defaulted.  An error should already have
+         been issued on the member template declaration. */
+      expect_error();
+    } else {
+      rout_ptr->is_defaulted = TRUE;
+      force_definition_of_compiler_generated_routine(rout_ptr);
+    }  /* if */
     goto done;
   }  /* if */
   if (template_sym->kind == (a_symbol_kind)sk_function_template) {
