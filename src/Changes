@@ -1,5 +1,21 @@
 Version 4.6
 
+3/11/13 [EDGcpfe/13715]
+Spurious ambiguity in partial ordering and nondeduced contexts
+
+The front end failed to properly order function templates when a template
+parameter was only used in nondeduced contexts in the parameter types
+of a function template.  Now fixed.
+
+  template<class T> struct A { typedef T type; };
+  template<class T> void f(typename A<T>::type&){} // #1
+  template <class T, class U> void f(U& t);        // #2
+  int main() {
+    int i = 1;
+    f<int>(i);  // should call #1
+  }
+
+
 3/8/13  [EDGcpfe/11680, EDGcpfe/13645]
 Conversion of lvalue to rvalue on volatile discarded-value expression in C++
 

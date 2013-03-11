@@ -1561,24 +1561,29 @@ Return TRUE if the template argument specified by "tap" has been given a value.
 			
 
 static a_boolean template_param_used_in_type(a_symbol_ptr param_sym,
-                                             a_type_ptr   tp)
+                                             a_type_ptr   tp,
+					     a_boolean	  deduced_only)
 /*
 Returns TRUE if the template parameter specified by param_sym is used in
-the type specified by tp.
+the type specified by tp.  If deduced_only is TRUE, nondeduced contexts
+are excluded from the check.
 */
 {
   a_boolean	result;
 
   if (param_sym->kind == (a_symbol_kind)sk_type) {
     result =
-       is_or_contains_specific_template_param(tp, param_sym->variant.type.ptr);
+       is_or_contains_specific_template_param(tp, param_sym->variant.type.ptr,
+                                              deduced_only);
   } else if (param_sym->kind == (a_symbol_kind)sk_constant) {
     result = type_contains_specific_template_param_constant(
-                                              tp, param_sym->variant.constant);
+                                              tp, param_sym->variant.constant,
+                                              deduced_only);
   } else {
     /* A template template argument. */
     result = type_contains_specific_template_template_param(
-                      tp, param_sym->variant.template_info->il_template_entry);
+                      tp, param_sym->variant.template_info->il_template_entry,
+                      deduced_only);
   }  /* if */
   return result;
 }  /* template_param_used_in_type */
@@ -1586,11 +1591,13 @@ the type specified by tp.
 
 static a_boolean template_param_appears_in_param_list
 				(a_symbol_ptr param_sym,
-                                 a_type_ptr   rout_type)
+                                 a_type_ptr   rout_type,
+                                 a_boolean    deduced_only)
 /*
 tparam_type is a tk_template_parameter type entry used in a template
 declaration, and rout_type is a routine type.  Search each of the routine's
-parameter types to see if tparam_type appears in it.  If
+parameter types to see if tparam_type appears in it.  If deduced_only is
+TRUE, nondeduced contexts are excluded from the check.
 */
 {
   a_boolean         found = FALSE;
@@ -1601,7 +1608,7 @@ parameter types to see if tparam_type appears in it.  If
     /* Inspect all template parameters, not just those that involve
        deduced template parameters.  A template parameter can affect the
        type even in a nondeduced location. */
-    if (template_param_used_in_type(param_sym, ptp->type)) {
+    if (template_param_used_in_type(param_sym, ptp->type, deduced_only)) {
       found = TRUE;
       break;
     }  /* if */
@@ -1733,12 +1740,13 @@ symbol supplement.
            partial ordering comparison. */
         if (is_conversion_operator) {
           if (!template_param_used_in_type(
-                  tpp->param_symbol, rout_type->variant.routine.return_type)) {
+                  tpp->param_symbol, rout_type->variant.routine.return_type,
+                  /*deduced_only=*/FALSE)) {
             okay_if_no_value = TRUE;
           }  /* if */
         } else {
-          if (!template_param_appears_in_param_list(tpp->param_symbol,
-                                                         rout_type)) {
+          if (!template_param_appears_in_param_list(
+                       tpp->param_symbol, rout_type, /*deduced_only=*/FALSE)) {
             okay_if_no_value = TRUE;
           }  /* if */
         }  /* if */
@@ -15406,7 +15414,8 @@ list and template argument list of a partial specialization are valid.
      specialization. */
   for (tpp = templ_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr	param_sym = tpp->param_symbol;
-    if (!template_param_used_in_type(param_sym, prototype_type)) {
+    if (!template_param_used_in_type(param_sym, prototype_type,
+                                     /*deduced_only=*/TRUE)) {
       /* g++ accepts unusable partial specializations.  They are accepted
          but otherwise ignored. */
       an_error_severity severity = gpp_mode ? es_warning : es_error;
@@ -20016,7 +20025,8 @@ done here.
       /* Determine whether all template parameters are used by
          function parameter types. */
       param_used = template_param_appears_in_param_list(param_sym,
-                                                        rout_type);
+                                                        rout_type,
+                                                        /*deduced_only=*/TRUE);
     }  /* if */
     if (is_conversion_operator && !param_used) {
       /* For conversion functions, the template parameters can be used in the
@@ -20025,7 +20035,8 @@ done here.
          C++/CLI static conversion functions, there is a function parameter
          where the template parameter can be used.) */
       param_used = template_param_used_in_type(
-                          param_sym, rout_type->variant.routine.return_type);
+                          param_sym, rout_type->variant.routine.return_type,
+                          /*deduced_only=*/TRUE);
     }  /* if */
     if (!param_used && routine_type_is_nonstatic_member_function(rout_type)) {
       /* In friend template declarations appearing in prototype instantiations
@@ -20033,7 +20044,8 @@ done here.
          parameter.  For example, "friend A<T>::A();". */
       param_used = template_param_used_in_type(
                            param_sym,
-                           rout_type->variant.routine.extra_info->this_class);
+                           rout_type->variant.routine.extra_info->this_class,
+                           /*deduced_only=*/TRUE);
     }  /* if */
     if (pack_seen && !param_used) {
       /* This is a non-initial pack that is not used in the function

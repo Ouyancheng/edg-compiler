@@ -12532,23 +12532,30 @@ used in expression contexts.
 
 
 a_boolean is_or_contains_specific_template_param(a_type_ptr  type_ptr,
-						 a_type_ptr  tparam_type)
+						 a_type_ptr  tparam_type,
+                                                 a_boolean   deduced_only)
 /*
 Return TRUE if the type pointed to by type_ptr is itself the specific
 template parameter specified by tparam_type or is a type tree
-containing such a reference to the type.
+containing such a reference to the type.  If deduced_only is TRUE, nondeduced
+contexts are excluded from the check.
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
                                                TTT_TEMPLATE_ARGS |
-                                               TTT_CLI_GENERIC_PARAMETERS |
-					       TTT_DEDUCED_CONTEXTS_ONLY);
-
+                                               TTT_CLI_GENERIC_PARAMETERS);
+  
+  /* When including non-deduced contexts, also include parent classes. */
+  if (deduced_only) {
+    ttt_flags |= TTT_DEDUCED_CONTEXTS_ONLY;
+  } else {
+    ttt_flags |= TTT_PARENT_CLASSES;
+  }  /* if */
   /* This indicates that only a specific template parameter may be found. */
   specific_template_param_type = tparam_type;
   specific_template_param_constant = NULL;
-  deduced_contexts_only = FALSE;
+  deduced_contexts_only = deduced_only;
   find_all_dependent_types = FALSE;
   if (nonstandard_qualifier_deduction) {
     /* The template parameters of parent classes are normally not deduced, but
@@ -12562,18 +12569,25 @@ containing such a reference to the type.
 
 a_boolean type_contains_specific_template_template_param(
 					a_type_ptr	type_ptr,
-					a_template_ptr	tparam_template)
+					a_template_ptr	tparam_template,
+					a_boolean	deduced_only)
 /*
 Return TRUE if the type tree pointed to by type_ptr contains a type
 that is an instance of the template template parameter specified
-by tparam_template.
+by tparam_template.  If deduced_only is TRUE, nondeduced contexts are
+excluded from the check.
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
-                                               TTT_TEMPLATE_ARGS |
-					       TTT_DEDUCED_CONTEXTS_ONLY);
+                                               TTT_TEMPLATE_ARGS);
 
+  /* When including non-deduced contexts, also include parent classes. */
+  if (deduced_only) {
+    ttt_flags |= TTT_DEDUCED_CONTEXTS_ONLY;
+  } else {
+    ttt_flags |= TTT_PARENT_CLASSES;
+  }  /* if */
   specific_template_template_param = tparam_template;
   if (nonstandard_qualifier_deduction) {
     /* The template parameters of parent classes are normally not deduced, but
@@ -12586,23 +12600,31 @@ by tparam_template.
 }  /* type_contains_specific_template_template_param */
 
 
-a_boolean type_contains_specific_template_param_constant(a_type_ptr     tp,
-                                                         a_constant_ptr cp)
+a_boolean type_contains_specific_template_param_constant(
+						a_type_ptr	tp,
+						a_constant_ptr	cp,
+						a_boolean	deduced_only)
 /*
 Return TRUE if the template parameter constant pointed to by cp is involved
-in the type tree represented by tp.
+in the type tree represented by tp.  If deduced_only is TRUE, nondeduced
+contexts are excluded from the check.
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
-                                               TTT_TEMPLATE_ARGS |
-					       TTT_DEDUCED_CONTEXTS_ONLY);
+                                               TTT_TEMPLATE_ARGS);
 
+  /* When including non-deduced contexts, also include parent classes. */
+  if (deduced_only) {
+    ttt_flags |= TTT_DEDUCED_CONTEXTS_ONLY;
+  } else {
+    ttt_flags |= TTT_PARENT_CLASSES;
+  }  /* if */
   /* This indicates that only a specific template param constant may be
      found. */
   specific_template_param_constant = cp;
   specific_template_param_type = NULL;
-  deduced_contexts_only = FALSE;
+  deduced_contexts_only = deduced_only;
   find_all_dependent_types = FALSE;
   if (nonstandard_qualifier_deduction) {
     /* The template parameters of parent classes are normally not deduced, but
