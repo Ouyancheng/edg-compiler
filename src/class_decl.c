@@ -12637,6 +12637,32 @@ ensures this routine will issue an error on this example.
   }  /* if */
 }  /* remove_routine_typedef_if_needed */
 
+static void adjust_constexpr_member_type_if_needed(
+                                         a_decl_parse_state  *dps,
+                                         a_boolean           is_static_member)
+/*
+dps describes a member function declaration (a static member function if
+is_static_member is TRUE).  If the declaration is for a nonstatic constexpr
+member function  and dps->type does not represent a const-qualified member
+function type, replace dps->type by a copy of the routine type with added
+const qualification.
+*/
+{
+  if ((dps->dso_flags & DSO_CONSTEXPR) != 0 && !is_static_member) {
+    a_type_ptr  rtp = skip_typerefs(dps->type);
+    if (rtp->kind == (a_type_kind)tk_routine) {
+      a_routine_type_supplement_ptr  rtsp = rtp->variant.routine.extra_info;
+      if (routine_type_is_nonstatic_member_function(rtp) &&
+          (rtsp->qualifiers & TQ_CONST) == 0) {
+        dps->type = alloc_type((a_type_kind)tk_routine);
+        copy_type(rtp, dps->type);
+        rtsp = dps->type->variant.routine.extra_info;
+        rtsp->qualifiers |= (a_type_qualifier_set)TQ_CONST;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* adjust_constexpr_member_type_if_needed */
+
 
 static void add_generated_exception_spec_if_needed(a_routine_ptr  rtn,
                                                    a_type_ptr     class_type)
@@ -12731,6 +12757,7 @@ implicitly declared member functions.
 
   db_enter(3, "decl_member_function");
   is_static_member = decl_state->storage_class == (a_storage_class)sc_static;
+  adjust_constexpr_member_type_if_needed(decl_state, is_static_member);
   remove_routine_typedef_if_needed(locator, decl_state, is_static_member);
   decl_state->is_definition = func_info->is_definition;
   rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
