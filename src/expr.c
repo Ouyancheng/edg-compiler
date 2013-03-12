@@ -9498,6 +9498,45 @@ for the sizeof result is built and returned there.
 }  /* make_sizeof_expr */
 
 
+static void switch_to_scope_region_and_lifetime(
+                            a_scope_depth          scope_depth,
+                            a_memory_region_number *region_to_switch_back_to,
+                            an_object_lifetime_ptr *saved_object_lifetime)
+/*
+Switch to the memory region associated with the given scope depth if not
+already there.  Also change the current object lifetime if appropriate.
+Set region_to_switch_back_to and saved_object_lifetime for use later by
+switch_back_region_and_lifetime.
+*/
+{
+  switch_to_scope_region(scope_depth, region_to_switch_back_to);
+  *saved_object_lifetime = curr_object_lifetime;
+  if (curr_object_lifetime != NULL) {
+    /* Find the object lifetime for the scope.  Only stop on an object lifetime
+       in the right memory region. */
+    while (scope_stack[scope_depth].curr_scope_object_lifetime == NULL ||
+           scope_stack[scope_depth].il_memory_region != curr_il_region_number){
+      scope_depth = scope_stack[scope_depth].previous_scope;
+      check_assertion(scope_depth != NO_SCOPE_DEPTH);
+    }  /* while */
+    curr_object_lifetime = scope_stack[scope_depth].curr_scope_object_lifetime;
+  }  /* if */
+}  /* switch_to_scope_region_and_lifetime */
+
+
+static void switch_back_region_and_lifetime(
+                               a_memory_region_number region_to_switch_back_to,
+                               an_object_lifetime_ptr saved_object_lifetime)
+/*
+Switch back to the memory region and object lifetime that were current when
+switch_to_file_scope_region_and_lifetime was called.
+*/
+{
+  switch_back_to_original_region(region_to_switch_back_to);
+  curr_object_lifetime = saved_object_lifetime;
+}  /* switch_back_region_and_lifetime */
+
+
 static void scan_sizeof_pack_operator(a_rescan_control_block *rcblock,
                                       an_operand             *result)
 /*
@@ -9766,6 +9805,8 @@ previously-scanned sizeof expression, and return the result in *result
   a_boolean             operand_was_created = FALSE, operand_was_used = FALSE;
   a_memory_region_number
                         region_to_switch_back_to;
+  an_object_lifetime_ptr
+                        saved_object_lifetime;
   a_boolean             nonconstant_case = FALSE;
   a_boolean             sizeof_itself_is_in_const_expr =
                                          curr_expr_kind_is_traditional_const();
@@ -9828,7 +9869,9 @@ previously-scanned sizeof expression, and return the result in *result
      memory region because we're scanning something like an array bound,
      switch back.  Any expression nodes allocated must be in the function-scope
      memory region. */
-  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+  switch_to_scope_region_and_lifetime(depth_scope_stack,
+                                      &region_to_switch_back_to,
+                                      &saved_object_lifetime);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
@@ -10236,7 +10279,8 @@ previously-scanned sizeof expression, and return the result in *result
     /* Non-constant sizeof not allowed in a C++11 constant expression. */
     conv_to_error_operand(result);
   }  /* if */
-  switch_back_to_original_region(region_to_switch_back_to);
+  switch_back_region_and_lifetime(region_to_switch_back_to,
+                                  saved_object_lifetime);
 end_of_routine:
   db_exit();
 }  /* scan_sizeof_operator */
@@ -10281,6 +10325,8 @@ result in *result (or an error indication in *rcblock).
   a_boolean           operand_was_created = FALSE, operand_was_used = FALSE;
   a_memory_region_number
                       region_to_switch_back_to;
+  an_object_lifetime_ptr
+                      saved_object_lifetime;
 
   db_enter(4, "scan_alignof_operator");
 
@@ -10307,7 +10353,9 @@ result in *result (or an error indication in *rcblock).
      memory region because we're scanning something like an array bound,
      switch back.  Any expression nodes allocated must be in the function-scope
      memory region. */
-  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+  switch_to_scope_region_and_lifetime(depth_scope_stack,
+                                      &region_to_switch_back_to,
+                                      &saved_object_lifetime);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
@@ -10556,7 +10604,8 @@ result in *result (or an error indication in *rcblock).
                                           NO_TOKEN_SEQUENCE_NUMBER,
                                           &type_position);
   pop_expr_stack();
-  switch_back_to_original_region(region_to_switch_back_to);
+  switch_back_region_and_lifetime(region_to_switch_back_to,
+                                  saved_object_lifetime);
 
   db_exit();
 }  /* scan_alignof_operator */
@@ -11445,6 +11494,7 @@ outside of the expression-processing routines.
   an_operand              operand;
   a_scope_depth           expr_scope_depth;
   a_memory_region_number  region_to_switch_back_to;
+  an_object_lifetime_ptr  saved_object_lifetime;
   a_boolean               saved_in_decltype_context;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
@@ -11473,7 +11523,9 @@ outside of the expression-processing routines.
      switch back.  If we're in a function, any expression nodes allocated must
      be in the function-scope memory region. */
   expr_scope_depth = scope_depth_to_allocate_decltype_expr();
-  switch_to_scope_region(expr_scope_depth, &region_to_switch_back_to);
+  switch_to_scope_region_and_lifetime(expr_scope_depth,
+                                      &region_to_switch_back_to,
+                                      &saved_object_lifetime);
   save_expr_stack(&saved_expr_stack);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
@@ -11581,7 +11633,8 @@ outside of the expression-processing routines.
   }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
-  switch_back_to_original_region(region_to_switch_back_to);
+  switch_back_region_and_lifetime(region_to_switch_back_to,
+                                  saved_object_lifetime);
   return result;
 }  /* scan_decltype_operator */
 
@@ -11833,6 +11886,7 @@ the expression-processing routines.
   an_expr_stack_entry_ptr     saved_expr_stack;
   a_scope_depth               expr_scope_depth;
   a_memory_region_number      region_to_switch_back_to;
+  an_object_lifetime_ptr      saved_object_lifetime;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -11906,7 +11960,9 @@ the expression-processing routines.
        switch back.  If we're in a function, any expression nodes allocated
        must be in the function-scope memory region. */
     expr_scope_depth = scope_depth_to_allocate_decltype_expr();
-    switch_to_scope_region(expr_scope_depth, &region_to_switch_back_to);
+    switch_to_scope_region_and_lifetime(expr_scope_depth,
+                                        &region_to_switch_back_to,
+                                        &saved_object_lifetime);
     save_expr_stack(&saved_expr_stack);
     push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                  &expr_stack_entry,
@@ -12046,7 +12102,8 @@ the expression-processing routines.
   if (!is_type) {
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
-    switch_back_to_original_region(region_to_switch_back_to);
+    switch_back_region_and_lifetime(region_to_switch_back_to,
+                                    saved_object_lifetime);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
@@ -12593,6 +12650,8 @@ previously-scanned noexcept expression, and return the result in
   a_boolean           dependent_case;
   a_memory_region_number
                       region_to_switch_back_to;
+  an_object_lifetime_ptr
+                      saved_object_lifetime;
 
   db_enter(4, "scan_noexcept_operator");
   check_assertion(noexcept_enabled);
@@ -12625,7 +12684,9 @@ previously-scanned noexcept expression, and return the result in
      memory region because we're scanning something like an array bound,
      switch back.  Any expression nodes allocated must be in the function-scope
      memory region. */
-  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+  switch_to_scope_region_and_lifetime(depth_scope_stack,
+                                      &region_to_switch_back_to,
+                                      &saved_object_lifetime);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
@@ -12686,7 +12747,8 @@ previously-scanned noexcept expression, and return the result in
                                           (a_token_sequence_number)0,
                                           (a_source_position *)NULL);
   pop_expr_stack();
-  switch_back_to_original_region(region_to_switch_back_to);
+  switch_back_region_and_lifetime(region_to_switch_back_to,
+                                  saved_object_lifetime);
   db_exit();
 }  /* scan_noexcept_operator */
 
@@ -12944,6 +13006,8 @@ indication in *rcblock).
                     expr_stack_entry;
   a_memory_region_number
                     region_to_switch_back_to;
+  an_object_lifetime_ptr
+                    saved_object_lifetime;
   a_boolean         objectless_nonstatic_data_ref_seen = FALSE;
   a_source_position objectless_nonstatic_data_ref_pos;
   a_boolean         saved_cpp11_constant_expr_ruled_out;
@@ -13009,7 +13073,9 @@ indication in *rcblock).
     /* Something like X<... typeid(<expr>) ...>.  Scan the <expr> argument
        like a sizeof expression so that function calls etc. are accepted in
        what is otherwise a constant-expression context. */
-    switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+    switch_to_scope_region_and_lifetime(depth_scope_stack,
+                                        &region_to_switch_back_to,
+                                        &saved_object_lifetime);
     push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                  &expr_stack_entry,
                                  /*force_object_lifetime=*/FALSE,
@@ -13251,7 +13317,8 @@ indication in *rcblock).
   }  /* if */
   pop_expr_stack();
   if (microsoft_template_arg_case) {
-    switch_back_to_original_region(region_to_switch_back_to);
+    switch_back_region_and_lifetime(region_to_switch_back_to,
+                                    saved_object_lifetime);
   }  /* if */
   if (err) {
     make_error_operand(result);
@@ -13398,7 +13465,8 @@ indication in *rcblock).  after_keyword is ignored in that case.
   an_expr_stack_entry expr_stack_entry;
   a_memory_region_number
                       region_to_switch_back_to;
-
+  an_object_lifetime_ptr
+                      saved_object_lifetime;
 
   db_enter(4, "scan_uuidof_operator");
   if (rcblock != NULL) {
@@ -13432,7 +13500,9 @@ indication in *rcblock).  after_keyword is ignored in that case.
      memory region because we're scanning something like an array bound,
      switch back.  Any expression nodes allocated must be in the function-scope
      memory region. */
-  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+  switch_to_scope_region_and_lifetime(depth_scope_stack,
+                                      &region_to_switch_back_to,
+                                      &saved_object_lifetime);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
@@ -13561,7 +13631,8 @@ indication in *rcblock).  after_keyword is ignored in that case.
                                           &operand_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   pop_expr_stack();
-  switch_back_to_original_region(region_to_switch_back_to);
+  switch_back_region_and_lifetime(region_to_switch_back_to,
+                                  saved_object_lifetime);
   db_exit();
 }  /* scan_uuidof_operator */
 

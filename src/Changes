@@ -1,5 +1,19 @@
 Version 4.6
 
+3/12/13  [EDGcpfe/13740]
+Abort on "new" inside "noexcept" inside template argument in function body
+
+The front end got confused on object lifetime memory region issues on
+a "new" operator (or other construct that requires object lifetime cleanup)
+inside a "noexcept" inside a nontype template argument inside a function
+body.  Now fixed.
+
+  int main() {
+    int x = 1;
+    [](int a[sizeof x]){};  // Formerly aborted with --c++11; now gets error
+  }
+
+
 3/11/13
 Version number changed to 4.6
 
