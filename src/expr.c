@@ -18628,7 +18628,11 @@ indicates which.
             if (reinterpret_semantics) {
               /* A reinterpret_cast is not allowed in C++11 constant
                  expressions, including when hidden inside other casts. */
-              if (construct_not_allowed_in_cpp11_constant_expr(
+              if (!strict_ansi_mode &&
+                  is_pointer_type(type_cast_to) &&
+                  is_pointer_type(operand->type)) {
+                /* Allow pointer to pointer in non-strict mode. */
+              } else if (construct_not_allowed_in_cpp11_constant_expr(
                                                           ec_expr_not_constant,
                                                           start_position)) {
                 conv_to_error_operand(operand);
