@@ -4430,7 +4430,6 @@ IL entry for that field.
   if (symbol_is(dps->sym, sk_field)) {
     field = dps->sym->variant.field.ptr;
     dtype = field->type;
-    check_assertion(field->initializer == NULL);
   } else {
     field = NULL;
     dtype = error_type();
