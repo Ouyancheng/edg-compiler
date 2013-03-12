@@ -1634,6 +1634,11 @@ typedef int a_ctws_options_set;
 			   explicitly supplied template arguments so that
 			   the resulting type will still be usable to deduce
 			   the remaining pack. */
+#define CTWS_NONTYPE_TEMPLATE_ARG	0x80
+			/* TRUE when the substitution routines are called
+			   from rescan contexts and the entity being
+			   substituted is a nontype template argument
+			   expression. */
 
 /*
 Structure used to represent a set of function parameters that resulted from

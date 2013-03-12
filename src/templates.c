@@ -9484,7 +9484,9 @@ parameters.
                                                    templ_param_list,
 						   new_const_type,
                                                    source_pos,
-                                                   options, copy_error,
+                                                   options |
+                                                     CTWS_NONTYPE_TEMPLATE_ARG,
+                                                   copy_error,
                                                    ctws_state);
     tap->is_pack = constant_is_pack(tap->variant.constant);
     if (new_const_type != NULL) {

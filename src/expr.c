@@ -33917,6 +33917,24 @@ escape at the end of the expression.)
 }  /* check_nontype_template_argument_type */
 
 
+static void determine_traditional_const_for_template_arg_expression(
+                                                         a_type_ptr param_type)
+/*
+We're about to process a nontype template argument of type param_type.
+If we're in C++11 mode, set the traditional_const_expr_required flag in the
+expression stack appropriately.  param_type can be NULL if it's not known.
+*/
+{
+  check_assertion(expr_stack->expression_kind ==
+                                          (an_expression_kind)ek_template_arg);
+  expr_stack->traditional_const_expr_required = TRUE;
+  if (constexpr_enabled && param_type != NULL && !microsoft_mode &&
+      is_integral_or_unscoped_enum_type(param_type)) {
+    expr_stack->traditional_const_expr_required = FALSE;
+  }  /* if */
+}  /* determine_traditional_const_for_template_arg_expression */
+
+
 void scan_template_argument_constant_expression(a_type_ptr param_type,
                                                 a_constant *constant)
 /*
@@ -33938,10 +33956,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
-  if (constexpr_enabled && param_type != NULL && !microsoft_mode &&
-      is_integral_or_unscoped_enum_type(param_type)) {
-    expr_stack_entry.traditional_const_expr_required = FALSE;
-  }  /* if */
+  determine_traditional_const_for_template_arg_expression(param_type);
   switch_to_file_scope_region(&region_to_switch_back_to);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
@@ -35100,15 +35115,26 @@ function or template.
   an_operand                  result;
   a_saved_expr_rescan_context saved_context;
   an_expr_stack_entry         expr_stack_entry;
+  a_boolean                   nontype_template_arg = FALSE;
 
   push_expr_rescan_context_if_necessary(rcblock, &saved_context);
+  if (rcblock->options & CTWS_NONTYPE_TEMPLATE_ARG) {
+    /* Rescanning a nontype template argument. */
+    nontype_template_arg = TRUE;
+    rcblock->options &= ~(a_ctws_options_set)CTWS_NONTYPE_TEMPLATE_ARG;
+  }  /* if */
   /* We push our own stack entry at this level, instead of just letting
      rescan_expr_with_substitution_internal handle it, because we
      want to have the entry on the stack still at the end of this
      routine when we extract the expression from the operand. */
-  push_expr_stack_for_expr_rescan((an_expression_kind)ek_sizeof,
+  push_expr_stack_for_expr_rescan(nontype_template_arg ?
+                                    (an_expression_kind)ek_template_arg :
+                                    (an_expression_kind)ek_sizeof,
                                   rcblock,
                                   &expr_stack_entry);
+  if (nontype_template_arg) {
+    determine_traditional_const_for_template_arg_expression(guide_type);
+  }  /* if */
   rescan_expr_with_substitution_internal(expr, rcblock,
                                          EOPT_NO_OPTIONS,
                                          &result,
