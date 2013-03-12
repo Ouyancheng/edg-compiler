@@ -9336,8 +9336,14 @@ pm_field_selection:
             case eok_bool_cast:
             case eok_class_rvalue_adjust:
               /* Cast. */
-              /* Can't fold something like a cast to void. */
-              if (!is_incomplete_type(expr->type)) {
+              if (is_incomplete_type(expr->type)) {
+                /* Can't fold something like a cast to void. */
+              } else if (is_pointer_type(op1_constant.type) &&
+                         is_void_type(type_pointed_to(op1_constant.type)) &&
+                         is_pointer_to_object_type(expr->type)) {
+                /* Core issue 1312: can't fold a cast from pointer-to-void to
+                   pointer-to-object. */
+              } else {
                 type_change_constant(&op1_constant, expr->type,
                                     expr->variant.operation.compiler_generated,
                                      /*maintain_expression=*/FALSE,
