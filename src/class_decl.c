@@ -15202,9 +15202,8 @@ promotion is for a nonstandard anonymous union.
 }  /* promote_anonymous_union_field_symbol */
 
 
-void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
-                                   a_type_ptr    class_type,
-                                   a_boolean     is_nonstd)
+void check_anonymous_union_symbols(a_symbol_ptr           assoc_object_sym,
+                                   a_boolean              is_nonstd)
 /*
 assoc_object_sym is a symbol for an unnamed field or variable that is the
 object associated with an anonymous union.  The type of the field or
@@ -15222,6 +15221,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
 */
 {
   a_symbol_ptr                   sym, next_sym, mf_sym, last_prev_sym = NULL;
+  a_type_ptr                     class_type;
   a_class_symbol_supplement_ptr  cssp, parent_cssp;
   a_class_type_supplement_ptr    ctsp;
   an_access_specifier            access, assoc_object_access;
@@ -15234,11 +15234,19 @@ nonstandard anonymous unions is_nonstd is TRUE.
   a_symbol_ptr                   new_apo_sym_list = NULL;
 
   db_enter(4, "check_anonymous_union_symbols");
+  /* If the anonymous union is a class member, set class_type to the
+     enclosing class type. */
+  if (scope_is(&scope_stack[decl_scope_level], sck_class_struct_union)) {
+    class_type = scope_stack[decl_scope_level].assoc_type;
+  } else {
+    class_type = NULL;
+  }  /* if */
   if (class_type != NULL) {
     /* Record the last symbol in the class prior to the addition of promoted
        fields.  This simplifies traversing the added symbols later on. */
     check_assertion(scope_is(&scope_stack_top(), sck_class_struct_union));
     last_prev_sym = assoc_pointers_block_of(&scope_stack_top())->last_symbol;
+    parent_cssp = symbol_supplement_for_class(class_type);
   }  /* if */
   switch (assoc_object_sym->kind) {
     case sk_variable:
@@ -15413,6 +15421,15 @@ nonstandard anonymous unions is_nonstd is TRUE.
         promote_anonymous_union_field_symbol(
                          sym, class_type, &new_apo_sym_list, assoc_object_sym,
                          assoc_object_access, reuse_symbol, is_nonstd);
+        if (sym->variant.field.ptr->has_initializer && class_type != NULL) {
+          /* Class types with data members that have field initializers aren't
+             aggregate types.  We take the view here that promoted fields
+             also make the parent class a non-aggregate. */
+          a_class_def_state_ptr
+                         cdsp = scope_stack[decl_scope_level].class_def_state;
+          check_assertion(cdsp != NULL);
+          cdsp->class_aggregate_ruled_out = TRUE;
+        }  /* if */
         break;
       case sk_member_function:
       case sk_overloaded_function:
@@ -15555,7 +15572,6 @@ nonstandard anonymous unions is_nonstd is TRUE.
   if (class_type != NULL) {
     /* If the anonymous union included members with nontrivial special member
        functions propagate that information to the parent class. */
-    parent_cssp = symbol_supplement_for_class(class_type);
     if (cssp->variant_member_with_nontrivial_default_ctor) {
       parent_cssp->variant_member_with_nontrivial_default_ctor = TRUE;
     }  /* if */
@@ -16842,9 +16858,8 @@ be entered.
   }  /* if */
   if (decl_info->is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
-    check_anonymous_union_symbols(member_sym, class_type,
-                                  (a_boolean)decl_info->
-                                               is_nonstd_anonymous_union);
+    check_anonymous_union_symbols(member_sym,
+                                  decl_info->is_nonstd_anonymous_union);
   }  /* if */
   if (is_aggregate_or_union_type(member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,

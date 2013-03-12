@@ -196,7 +196,6 @@ extern void abstract_class_diagnostic(an_error_severity  severity,
                                       a_source_position  *error_pos);
 
 extern void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
-                                          a_type_ptr    class_type,
                                           a_boolean     is_nonstd);
 
 #if NEW_CAN_BE_FOLDED_INTO_CTOR

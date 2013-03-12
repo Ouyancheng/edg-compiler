@@ -1958,8 +1958,7 @@ is invalid.  Also promote the fields of the union type to the current scope.
   }  /* if */
   /* Promote symbols for anonymous unions members to the enclosing scope.
      Error checking is also done. */
-  check_anonymous_union_symbols(assoc_object_sym, (a_type_ptr)NULL,
-                                /*is_nonstd=*/FALSE);
+  check_anonymous_union_symbols(assoc_object_sym, /*is_nonstd=*/FALSE);
 }  /* decl_anonymous_union_variable */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
