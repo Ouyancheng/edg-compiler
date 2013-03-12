@@ -8850,9 +8850,10 @@ evaluation (e.g., parameter values).
                    the base class list, but we need to check both the
                    starting and ending offsets of the base class object to
                    determine whether the address lies within it or not. */
-                if (offset >= (a_targ_ptrdiff_t)(cum_offset + bp->offset) &&
-                    offset <= (a_targ_ptrdiff_t)(cum_offset + bp->offset +
-                                                 base_class_size)) {
+                if (offset == (a_targ_ptrdiff_t)(cum_offset + bp->offset) ||
+                    (offset > (a_targ_ptrdiff_t)(cum_offset + bp->offset) &&
+                     offset < (a_targ_ptrdiff_t)(cum_offset + bp->offset +
+                                                 base_class_size))) {
                   /* The address designates or lies within this base class
                      subobject. */
                   break;
