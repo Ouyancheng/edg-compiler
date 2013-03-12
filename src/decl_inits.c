@@ -5395,7 +5395,7 @@ static void check_constexpr_ctor_init(a_routine_ptr      ctor,
                                       an_init_state      *is,
                                       a_source_position  *diag_pos)
 /*
-is described the initialization state for a mem-initializer of the given
+is describes the initialization state for a mem-initializer of the given
 constructor.  If the constructor is "constexpr" and the initializer is not a
 constant, either issue an error if the constructor is not a template instance,
 or silently set the is_constexpr flag of the constructor to FALSE (except for
