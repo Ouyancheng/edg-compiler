@@ -15242,8 +15242,8 @@ nonstandard anonymous unions is_nonstd is TRUE.
   db_enter(4, "check_anonymous_union_symbols");
   /* If the anonymous union is a class member, set class_type to the
      enclosing class type. */
-  if (scope_is(&scope_stack[decl_scope_level], sck_class_struct_union)) {
-    class_type = scope_stack[decl_scope_level].assoc_type;
+  if (scope_is(&scope_stack_top(), sck_class_struct_union)) {
+    class_type = scope_stack_top().assoc_type;
   } else {
     class_type = NULL;
   }  /* if */
@@ -15431,8 +15431,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
           /* Class types with data members that have field initializers aren't
              aggregate types.  We take the view here that promoted fields
              also make the parent class a non-aggregate. */
-          a_class_def_state_ptr
-                         cdsp = scope_stack[decl_scope_level].class_def_state;
+          a_class_def_state_ptr  cdsp = scope_stack_top().class_def_state;
           check_assertion(cdsp != NULL);
           cdsp->class_aggregate_ruled_out = TRUE;
         }  /* if */
