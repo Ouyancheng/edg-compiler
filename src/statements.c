@@ -4886,11 +4886,16 @@ issue a diagnostic complaining about skipping over an initialization.
         if (vp != NULL) {
           /* Issue the diagnostic addendum that identifies this particular
              variable. */
-          sym_add_diag_info((sp != NULL &&
-                             sp->kind == (a_statement_kind)stmk_vla_decl) ?
-                               ec_vla_name_at_decl_position :
-                               ec_name_at_decl_position,
-                            (a_symbol_ptr)vp->source_corresp.assoc_info);
+          if (vp->is_anonymous_parent_object) {
+            add_diag_info_with_pos_insert(ec_anon_union_at_decl_position,
+                                            &vp->source_corresp.decl_position);
+          } else {
+            sym_add_diag_info((sp != NULL &&
+                               sp->kind == (a_statement_kind)stmk_vla_decl) ?
+                                 ec_vla_name_at_decl_position :
+                                 ec_name_at_decl_position,
+                              (a_symbol_ptr)vp->source_corresp.assoc_info);
+          }  /* if */
         } else {
           /* Diagnostic addendum that identifies the VLA declaration. */
           a_source_position  pos;
