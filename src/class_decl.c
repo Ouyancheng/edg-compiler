@@ -10790,8 +10790,13 @@ when exception support is enabled.
         /* We're handling the default constructor and this is a field with an
            in-class initializer.  We shouldn't get here until field
            initializers have been scanned. */
-        check_assertion(fp->initializer != NULL);
-        if (dynamic_init_might_throw(fp->initializer)) {
+        if (fp->initializer == NULL) {
+          /* This can only happen if a field initializer expression depends
+             on its own value (typically via the generated default
+             constructor). */
+          expect_error();
+          throw_any = TRUE;
+        } else if (dynamic_init_might_throw(fp->initializer)) {
           throw_any = TRUE;
         }  /* if */
       } else if (is_template_dependent_type(tp)) {
