@@ -14474,7 +14474,7 @@ the front end uses them to represent "this" in some instances (e.g.,
 the implicit use in a case like "struct A { int i = 0; int j = i; };").
 Replace the enk_param_ref with an enk_variable node for the parameter that
 represents "this" in the member function.  Note that the method used to
-find "this" assumes that the expression is being in the context of a
+find "this" assumes that the expression is being lowered in the context of a
 member function (i.e., as a constructor init) and doesn't work in cases
 where an enk_param_ref is found in a constant or non-constant aggregate
 (currently not enabled in the front end).
