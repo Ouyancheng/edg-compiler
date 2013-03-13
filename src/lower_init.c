@@ -9288,6 +9288,8 @@ and its initialization put in insert_location).
   if (number_of_elements != NULL) {
     /* An array new where the number of elements is specified at run time. */
     check_assertion(is_incomplete_array_type(ndsp->type) &&
+                    is_integral_or_unscoped_enum_type(
+                                                   number_of_elements->type) &&
                     !number_of_elements->is_lvalue);
     elem_type = array_element_type(ndsp->type);
     underlying_elem_type =
@@ -9300,6 +9302,13 @@ and its initialization put in insert_location).
       temp_node = node_for_host_large_integer(
                            (a_host_large_integer)num_array_elements(elem_type),
                            targ_ptrdiff_t_int_kind);
+      if (is_unscoped_enum_type(number_of_elements->type)) {
+        /* Use the underlying type for an unscoped enum type. */
+        number_of_elements = add_cast(number_of_elements,
+                                      integer_type(skip_typerefs(
+                                                    number_of_elements->type)->
+                                                    variant.integer.int_kind));
+      }  /* if */
       number_of_elements->next = temp_node;
       number_of_elements = make_operator_node(
                                            (an_expr_operator_kind)eok_multiply,

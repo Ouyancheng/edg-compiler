@@ -1,5 +1,20 @@
 Version 4.6
 
+3/13/13  [EDGcpfe/13714]
+Enumerator type in lowered multiplication operation
+
+An operand of a multiplication operation had an enumeration type 
+when lowering an array new operation where one of a multi-dimensional
+array index was an enumeration type.  A cast has been added to the
+underlying type.  For example:
+
+  struct A {}; 
+  enum E {} e;
+  void f() {
+    new A [e][2];
+  } 
+
+
 3/13/13  [EDGcpfe/13748]
 GNU C++ compatibility: prototype instantiations not deferred in some cases
 
