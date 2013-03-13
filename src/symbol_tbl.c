@@ -3696,6 +3696,8 @@ state.
         fssp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
         fssp->token_cache = NULL;
         fssp->being_instantiated = FALSE;
+        fssp->prototype_field = 0;
+        fssp->pending_instantiations = 0;
         fssp->is_variant_member = FALSE;
         fssp->is_first_variant_member = FALSE;
         fssp->is_last_variant_member = FALSE;

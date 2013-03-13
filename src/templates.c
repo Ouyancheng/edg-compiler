@@ -1520,6 +1520,7 @@ corresponds to field_sym in an actual instantiation.
     if (orig_fssp->token_sequence_number == curr_token_sequence_number) {
       fssp->token_cache = orig_fssp->token_cache;
       check_assertion(fssp->token_cache != NULL);
+      fssp->prototype_field = orig_fssp;
     } else {
       /* Some error occurred that caused us to be in an unexpected location.
          Set the field initializer to an error constant. */
@@ -11284,11 +11285,14 @@ instantiation of a class template or member of class template.
 {
   a_symbol_ptr			field_sym = symbol_for(field);
   a_field_symbol_supplement_ptr	fssp;
+  a_field_symbol_supplement_ptr	prototype_fssp;
   a_boolean			instantiate = TRUE;
 
   check_assertion(field_sym != NULL);
   fssp = field_sym->variant.field.extra_info;
   check_assertion(fssp->token_cache != NULL);
+  prototype_fssp = fssp->prototype_field;
+  check_assertion(prototype_fssp != NULL);
   if (fssp->being_instantiated) {
     /* This default argument (for this instance) is already being instantiated.
        Don't attempt another instantiation. */
@@ -11296,6 +11300,13 @@ instantiation of a class template or member of class template.
                  field_sym);
     /* The field is expected to have an initializer upon return from this
        routine.  Create an error constant initializer. */
+    field->initializer = make_error_constant_dynamic_init();
+    instantiate = FALSE;
+  } else if (prototype_fssp->pending_instantiations ==
+                                                  max_pending_instantiations) {
+    /* There are two many instantiations of fields based on the same
+       template.  Issue an error and create an error constant initializer. */
+    sym_error(ec_runaway_recursive_instantiation, field_sym);
     field->initializer = make_error_constant_dynamic_init();
     instantiate = FALSE;
   }  /* if */
@@ -11323,6 +11334,7 @@ instantiation of a class template or member of class template.
     trans_unit_pushed = push_translation_unit_if_needed(field_sym);
     /* Indicate that an instantiation of this initializer is pending. */
     fssp->being_instantiated = TRUE;
+    prototype_fssp->pending_instantiations++;
     push_lexical_state_stack();
     if (!(scope_is(&scope_stack_top(), sck_class_struct_union) &&
           same_entities(scope_stack_top().assoc_type, parent_type))) {
@@ -11360,6 +11372,7 @@ instantiation of a class template or member of class template.
     /* If the translation unit stack was pushed above, pop it now. */
     if (trans_unit_pushed) pop_translation_unit_stack();
     fssp->being_instantiated = FALSE;
+    prototype_fssp->pending_instantiations--;
   }  /* if */
 }  /* instantiate_field_initializer */
 

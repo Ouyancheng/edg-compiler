@@ -1363,6 +1363,14 @@ typedef struct an_enum_symbol_supplement {
 } an_enum_symbol_supplement;
 
 
+/* Used to track the number of pending instantiations of a given class. */
+typedef uint32_t a_pending_instantiation_count;
+
+/* Used to track the number of instantiations performed in tim_all mode that
+   were not actually required. */
+typedef short an_unused_instantiation_count;
+
+
 typedef struct a_field_symbol_supplement *a_field_symbol_supplement_ptr;
 typedef struct a_field_symbol_supplement {
   /* Additional information about a field, supplementing the information
@@ -1385,6 +1393,20 @@ typedef struct a_field_symbol_supplement {
 			   initializer, for fields of non-template classes,
 			   and for fields of template classes if an
 			   instantiation has been done. */
+  a_field_symbol_supplement_ptr
+		prototype_field;
+			/* For a field that is a member of an instance of
+			   a class template or nested class of a class
+			   template, this points to the field symbol
+			   supplement of the corresponding field from the
+			   prototype instantiation. */
+  a_pending_instantiation_count
+		pending_instantiations;
+			/* The number of instantiations of this template
+			   that are in the process of being instantiated.
+			   Used to detect runaway recursive instantiations.
+			   This is only used for the entry of the field
+			   from the prototype instantiation. */
   a_bit_field	being_instantiated:1;
 			/* TRUE for a field of a template class that is in
 			   the process of being instantiated. */
@@ -2299,14 +2321,6 @@ typedef struct an_out_of_class_partial_spec {
 			   state entry used when the partial specialization
 			   was first scanned. */
 } an_out_of_class_partial_spec;
-
-
-/* Used to track the number of pending instantiations of a given class. */
-typedef uint32_t a_pending_instantiation_count;
-
-/* Used to track the number of instantiations performed in tim_all mode that
-   were not actually required. */
-typedef short an_unused_instantiation_count;
 
 
 typedef struct a_template_symbol_supplement {
