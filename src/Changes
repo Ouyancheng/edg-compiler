@@ -1,6 +1,6 @@
 Version 4.6
 
-3/13/12  [EDGcpfe/13746]
+3/13/13  [EDGcpfe/13746]
 Incorrect alignment of certain types in defines.h.solaris on Intel Solaris
 
 The sample configuration provided by the defines.h.solaris file specified
