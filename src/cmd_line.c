@@ -3786,16 +3786,6 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
          command line option, set it now. */
       nonclass_prototype_instantiations = TRUE;
     }  /* if */
-#if FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED
-    if (!(option_kind_used[(int)optk_defer_parse_function_templates])) {
-      /* Only do function prototype instantiations for functions that actually
-         need to be instantiated.  This is done to avoid diagnostics on unused
-         functions.  Prototype instantiations cannot be deferred in some
-         modes. */
-      defer_function_prototype_instantiations =
-                                             nonclass_prototype_instantiations;
-    }  /* if */
-#endif /* FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
   }  /* if */
   if (!option_kind_used[(int)optk_nonstandard_default_arg_deduction]) {
     /* Default arguments are part of the deduced function type in g++ mode
@@ -3936,6 +3926,20 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
        been disabled. */
     gnu_bases_operators_enabled = TRUE;
   }  /* if */
+#if FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED
+  if (gnu_version >= 30400) {
+    if (!(option_kind_used[(int)optk_defer_parse_function_templates])) {
+      /* Only do function prototype instantiations for functions that actually
+         need to be instantiated.  This is done to avoid diagnostics on unused
+         functions.  Prototype instantiations cannot be deferred in some
+         modes.  This is set when variadic templates are enabled because
+         variadic templates always have prototype instantiations done. */
+      defer_function_prototype_instantiations =
+                                          nonclass_prototype_instantiations ||
+                                          variadic_templates_enabled;
+    }  /* if */
+  }  /* if */
+#endif /* FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
 }  /* check_and_set_gpp_mode_options */
 
 

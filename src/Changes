@@ -1,5 +1,26 @@
 Version 4.6
 
+3/13/13  [EDGcpfe/13748]
+GNU C++ compatibility: prototype instantiations not deferred in some cases
+
+In g++ mode in certain configurations, function prototype instantiations
+are deferred until the function is first called to allow unused invalid
+templates to be accepted as they often are by g++.  Variadic templates
+have prototype instantiations done in all modes, but their prototype
+instantiations were not being deferred (but should have been) if the
+--no_parse_templates option was used.  Now fixed.  This example should
+get an error when prototype instantiations are not deferred but not when
+they are deferred.
+
+  struct A { };
+  template <class ... T> struct B : A {
+    const B<T...>& operator=(const B<T...>& rhs) const {
+      A::operator=(rhs);
+      return *this;
+    }
+  };
+
+
 3/13/13  [EDGcpfe/13746]
 Incorrect alignment of certain types in defines.h.solaris on Intel Solaris
 
