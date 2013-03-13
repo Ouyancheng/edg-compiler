@@ -15463,8 +15463,12 @@ if one is present.
            recovery purposes, treat the variable as a local static declaration
            instead (this avoids having the initializer associated with another
            declaration of the same variable but with a mismatched type). */
-        pos_error(ec_block_extern_initializer_not_allowed, &pos_curr_token);
+        pos_error(state->register_id == 0 ?
+                              ec_block_extern_initializer_not_allowed :
+                              ec_local_named_register_initializer_not_allowed,
+                    &pos_curr_token);
         state->storage_class = (a_storage_class)sc_static;
+        state->type = error_type();
       }  /* if */
     } else if (C_dialect == C_dialect_cplusplus) {
       /* Variable declaration in C++ mode with no explicit initializer. */
