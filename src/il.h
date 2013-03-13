@@ -745,6 +745,8 @@ extern void set_error_constant(a_constant *cp);
 
 extern a_constant_ptr alloc_error_constant(void);
 
+extern a_dynamic_init_ptr make_error_constant_dynamic_init(void);
+
 extern void set_routine_address_constant(a_routine_ptr routine,
                                          a_constant    *con,
                                          a_boolean     set_address_taken_flag);

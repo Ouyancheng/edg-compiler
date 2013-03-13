@@ -10791,10 +10791,11 @@ when exception support is enabled.
            in-class initializer.  We shouldn't get here until field
            initializers have been scanned. */
         if (fp->initializer == NULL) {
-          /* This can only happen if a field initializer expression depends
-             on its own value (typically via the generated default
-             constructor). */
-          expect_error();
+          /* This can happen when a field initializer depends on a generated
+             default constructor that depends itself on the field
+             initializer. */
+          pos_error(ec_generated_default_ctor_exception_spec_circularity, pos);
+          fp->initializer = make_error_constant_dynamic_init();
           throw_any = TRUE;
         } else if (dynamic_init_might_throw(fp->initializer)) {
           throw_any = TRUE;

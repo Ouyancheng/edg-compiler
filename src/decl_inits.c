@@ -41,19 +41,6 @@ decl_inits.c -- Scanning of initializers in declarations.
   ((array_type)->size == 0 ? 1 : (array_type)->size / (elem_type)->size)
 
 
-static a_dynamic_init_ptr make_error_constant_dynamic_init(void)
-/*
-Return a dynamic init entry for an error constant.
-*/
-{
-  a_dynamic_init_ptr  dip = alloc_dynamic_init(
-                                           (a_dynamic_init_kind)dik_constant);
-
-  dip->variant.constant = alloc_error_constant();
-  return dip;
-}  /* make_error_constant_dynamic_init */
-
-
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- init_info is not used in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */

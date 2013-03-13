@@ -4701,6 +4701,19 @@ file scope and is unshared.
 }  /* alloc_error_constant */
 
 
+a_dynamic_init_ptr make_error_constant_dynamic_init(void)
+/*
+Return a dynamic init entry for an error constant.
+*/
+{
+  a_dynamic_init_ptr  dip = alloc_dynamic_init(
+                                           (a_dynamic_init_kind)dik_constant);
+
+  dip->variant.constant = alloc_error_constant();
+  return dip;
+}  /* make_error_constant_dynamic_init */
+
+
 void set_routine_address_constant(a_routine_ptr routine,
                                   a_constant    *con,
                                   a_boolean     set_address_taken_flag)
