@@ -62,13 +62,25 @@ This version is for the Sun Solaris operating system.
 #define TARG_SIZEOF_FLOAT 4
 #define TARG_ALIGNOF_FLOAT 4
 #define TARG_SIZEOF_DOUBLE 8
+#ifdef __sparc
 #define TARG_ALIGNOF_DOUBLE 8
+#define TARG_ALIGNOF_LONG_DOUBLE 8
+#define TARG_ALIGNOF_LONG_LONG 8
+#else /* ifndef __sparc */
+#define TARG_ALIGNOF_DOUBLE 4
+#define TARG_ALIGNOF_LONG_DOUBLE 4
+#define TARG_ALIGNOF_LONG_LONG 4
+#endif /* ifdef __sparc */
+
 
 #ifndef TARG_SIZEOF_LONG_DOUBLE
+#ifdef __sparc
 #define TARG_SIZEOF_LONG_DOUBLE 16
+#else /* ifndef __sparc */
+#define TARG_SIZEOF_LONG_DOUBLE 12
+#endif /* ifdef __sparc */
 #endif /* ifndef TARG_SIZEOF_LONG_DOUBLE */
 
-#define TARG_ALIGNOF_LONG_DOUBLE 8
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #ifndef _lint
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */

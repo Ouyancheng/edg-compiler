@@ -1,5 +1,14 @@
 Version 4.6
 
+3/13/12  [EDGcpfe/13746]
+Incorrect alignment of certain types in defines.h.solaris on Intel Solaris
+
+The sample configuration provided by the defines.h.solaris file specified
+incorrect alignment values for long long, double, and long double.  This
+could result in incorrect behavior when using structures containing
+those data types.  Now fixed.
+
+
 3/12/13  [EDGcpfe/13740]
 Abort on "new" inside "noexcept" inside template argument in function body
 
