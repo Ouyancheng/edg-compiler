@@ -112,6 +112,8 @@ elided reference in a default argument expression except in strict mode.
   };
   void f(int, A<int> p = 0);  // Formerly provoked error, e.g., in g++ mode
 
+[EDGcpfe/13745, 3/13/13] The same is now done for elided destructors.
+
 
 3/7/13   [EDGcpfe/13721]
 Result of "?" is accidentally considered an xvalue because of folding

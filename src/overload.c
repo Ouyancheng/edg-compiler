@@ -17983,8 +17983,8 @@ source position to be used for any errors.
       a_routine_ptr dtor = dtor_sym->variant.routine.ptr;
       /* g++ seems to instantiate the destructor even if the temporary is
          elided, at least if the destructor is inline. */
-      if (gpp_mode && rout_is_inline(dtor) &&
-          curr_expr_is_potentially_evaluated()) {
+      if (gpp_mode && !expr_stack->is_default_arg_expression &&
+          rout_is_inline(dtor) && curr_expr_is_potentially_evaluated()) {
         set_instance_required(dtor_sym, TRUE, SIR_NONE);
       }  /* if */
       if (expr_access_checking_should_be_done() &&
