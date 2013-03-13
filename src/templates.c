@@ -11296,8 +11296,7 @@ instantiation of a class template or member of class template.
                  field_sym);
     /* The field is expected to have an initializer upon return from this
        routine.  Create an error constant initializer. */
-    field->initializer = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-    field->initializer->variant.constant = alloc_error_constant();
+    field->initializer = make_error_constant_dynamic_init();
     instantiate = FALSE;
   }  /* if */
   if (instantiate) {
