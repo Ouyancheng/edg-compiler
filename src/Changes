@@ -1,5 +1,25 @@
 Version 4.6
 
+3/13/13  [EDGcpfe/13741]
+GNU C++ compatibility: default arguments not considered in certain
+prototype instantiations
+
+A change made in version 4.5 could cause spurious errors in the prototype
+instantiation of a member function of a class template when a call required
+the use of a default argument of another member function of the class
+template.  This required g++ mode, a gnu_version >= 40700, a mode or
+configuration in which deferral of prototype instantiations is not done
+(e.g., a C++-generating back end version), and the --no_parse_templates
+option.  Now fixed.
+
+  template <typename T> class A {
+    void f(const T& t) {
+      return g(t);  // spurious "too few arguments"
+    }
+    void g(const T&, int = 0);
+  };
+
+
 3/13/13  [EDGcpfe/13714]
 Enumerator type in lowered multiplication operation
 

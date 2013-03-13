@@ -2055,7 +2055,7 @@ and for member functions of template classes.
            prototype instantiation. */
         if (!fixup_class_is_real_template_instantiation) {
           sym = rfp->symbol;
-          if (daefp != NULL && nonclass_prototype_instantiations &&
+          if (daefp != NULL && some_nonclass_prototype_instantiations &&
               template_second_pass) {
             default_arg_prototype_instantiation(
                                      sym, daefp, rfp->prototype_scope_symbols,
@@ -2116,19 +2116,20 @@ and for member functions of template classes.
               }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
               /* The declared type fixup is suppressed on the first pass
-                 for templates when nonclass_prototype_instantiations are
-                 being performed. */
-              do_declared_type_fixup = !nonclass_prototype_instantiations;
+                 for templates when nonclass prototype instantiations might
+                 be performed. */
+              do_declared_type_fixup = !some_nonclass_prototype_instantiations;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
             } else /* if (template_second_pass) */ {
-              if (nonclass_prototype_instantiations) {
+              if (some_nonclass_prototype_instantiations) {
                 /* Do the prototype instantiations of the default arguments. */
                 default_arg_prototype_instantiation(
                            sym, daefp, rfp->func_info.prototype_scope_symbols,
                            /*update_declared_type=*/FALSE);
               }  /* if */
             }  /* if */
-            if (template_second_pass || !nonclass_prototype_instantiations) {
+            if (template_second_pass ||
+                !some_nonclass_prototype_instantiations) {
               /* On the last pass clear the default argument fixup list to
                  prevent it from being freed. */
               rfp->def_arg_expr_fixup_list = NULL;
@@ -2609,7 +2610,7 @@ nested class.
              classes -- instantiate_function_template does its thing based
              on the tokens saved during prototype instantiation. */
           discard_token_cache(&rfp->function_body_token_cache);
-        } else if (!nonclass_prototype_instantiations &&
+        } else if (!some_nonclass_prototype_instantiations &&
                    is_nonreal_template_instantiation &&
                    (is_friend || rfp->is_specialization ||
                     (microsoft_mode && in_class_specialization))) {
@@ -3213,7 +3214,7 @@ after a class instantiation.
                                        cfp->is_template_instantiation,
                                        /*template_second_pass=*/FALSE);
     }  /* for */
-    if (nonclass_prototype_instantiations) {
+    if (some_nonclass_prototype_instantiations) {
       /* Do the second pass of default argument fixup to do prototype
          instantiations of template default arguments. */
       for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
@@ -24077,7 +24078,7 @@ passed via template_decl.
       }  /* if */
       if (!func_info.is_definition ||
           (prototype_instantiations_in_il &&
-           !nonclass_prototype_instantiations &&
+           !prototype_instantiation_should_be_done_for_function(rout_sym) &&
            class_type
                    ->variant.class_struct_union.is_prototype_instantiation)) {
         /* Update xref info on param ids.  Note that if we are in a prototype

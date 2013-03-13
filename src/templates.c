@@ -11180,7 +11180,7 @@ accordingly.
     }  /* if */
     tssp = template_supplement_for_symbol(template_sym);
     check_assertion(tssp != NULL);
-    if (nonclass_prototype_instantiations &&
+    if (prototype_instantiation_should_be_done_for_function(template_sym) &&
         !tssp->variant.function.exception_spec_prototype_instantiation_done) {
       a_routine_ptr	proto_rout = tssp->variant.function.routine;
       a_symbol_ptr	proto_sym = symbol_for(proto_rout);
@@ -20319,7 +20319,7 @@ instantiation.
     /* We are using the newly specified default arguments.  Do a prototype
        instantiation of the new defaults.  For declarations within classes
        this is done in class fixup processing. */
-    if (nonclass_prototype_instantiations) {
+    if (some_nonclass_prototype_instantiations) {
       if (decl_state->class_declared_in == NULL) {
         /* Record the declaration sequence number for the default argument.
            This is done here because the value for the containing declaration

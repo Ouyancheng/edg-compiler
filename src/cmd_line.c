@@ -9332,6 +9332,11 @@ enable_microsoft_mode:
   }  /* if */
 #endif /* NEED_NAME_MANGLING && MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ABI_COMPATIBILITY_VERSION < 402 */
+  /* Set the flag that indicates whether it is possible for some nonclass
+     prototype instantiations to be performed. */
+  if (nonclass_prototype_instantiations || variadic_templates_enabled) {
+    some_nonclass_prototype_instantiations = TRUE;
+  }  /* if */
   /* warning_on_for_init_difference may be TRUE only if the new for-init
      scoping rules are in effect. */
   if (use_nonstandard_for_init_scope) warning_on_for_init_difference = FALSE;
@@ -9791,6 +9796,7 @@ variables declared in cmd_line.h.
   gnu_namespace_and_class_in_same_scope = FALSE;
   friend_class_decl_can_find_using_dir = FALSE;
   nonclass_prototype_instantiations = DEFAULT_DEPENDENT_NAME_PROCESSING;
+  some_nonclass_prototype_instantiations = FALSE;
   defer_function_prototype_instantiations = FALSE;
   defer_friend_instantiation = TRUE;
   nonstandard_instantiation_lookup_enabled =
