@@ -70,6 +70,8 @@ This version is for the Sun Solaris operating system.
 #define TARG_ALIGNOF_DOUBLE 4
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define TARG_ALIGNOF_LONG_LONG 4
+#define TARG_ALIGNOF_SIGNED_LONG_ACCUM 4
+#define TARG_ALIGNOF_UNSIGNED_LONG_ACCUM 4
 #endif /* ifdef __sparc */
 
 
