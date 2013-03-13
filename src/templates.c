@@ -17243,7 +17243,8 @@ friend_template_checks_done:
           symbol_for_namespace_std != NULL &&
           sym->parent.namespace_ptr == 
                         symbol_for_namespace_std->variant.namespace_info.ptr) {
-        if (check_std_initializer_list_parameter(templ_params,
+        if (symbol_for_std_initializer_list == NULL &&
+            check_std_initializer_list_parameter(templ_params,
                                                  &locator.source_position)) {
           /* This is std::initializer_list: Keep a global variable pointing to
              the associated symbol for quick recognition, and prohibit attempts
