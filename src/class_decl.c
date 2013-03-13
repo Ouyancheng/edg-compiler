@@ -2039,7 +2039,9 @@ and for member functions of template classes.
       a_boolean	fixup_class_is_nonreal_template_instantiation =
 					     is_nonreal_template_instantiation;
       if (is_nonreal_template_instantiation &&
-          rfp->class_type->variant.class_struct_union.is_specialized) {
+          (rfp->class_type->variant.class_struct_union.is_specialized ||
+           rfp->class_type
+              ->variant.class_struct_union.is_in_class_specialization)) {
         /* In Microsoft mode a class specialization may appear in a prototype
            instantiation.  Process such a class as a real instantiation. */
         fixup_class_is_real_template_instantiation = TRUE;
