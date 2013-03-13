@@ -9445,8 +9445,10 @@ ceblock gives context information for the evaluation.
     /* A temp-init with a const type and a constant value can be considered
        a constant, and the address of a temporary containing the constant
        returned. */
-    if (is_const_qualified_type(expr->type) &&
-        fold_dynamic_init(expr->variant.init.dynamic_init,
+    a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+    if ((is_const_qualified_type(expr->type) ||
+         dip->is_top_temporary_for_constexpr_reference_param) &&
+        fold_dynamic_init(dip,
                           expr->type,
                           ceblock,
                           &local_constant)) {
@@ -9622,7 +9624,27 @@ there is some kind of failure.
       crp->is_constant = fold_object_expr(arg, ceblock, /*want_addr=*/FALSE,
                                           &crp->constant_value);
     } else {
+      a_dynamic_init_ptr top_temp_dip = NULL;
+      a_boolean          saved_flag;
+      if (ptp != NULL && is_any_reference_type(ptp->type) &&
+          is_operation_node(arg) && node_operator_is(arg, eok_reference_to)) {
+        /* The temporary bound to a reference parameter gets special
+           treatment (it's more constant than is usually assumed), so
+           find it and mark it. */
+        an_expr_node_ptr under_arg = arg->variant.operation.operands;
+        top_temp_dip = find_top_temporary(under_arg,
+                                          /*create_class_temp=*/FALSE);
+        if (top_temp_dip != NULL) {
+          saved_flag = top_temp_dip
+                              ->is_top_temporary_for_constexpr_reference_param;
+          top_temp_dip->is_top_temporary_for_constexpr_reference_param = TRUE;
+        }  /* if */
+      }  /* if */
       crp->is_constant = fold_expr(arg, ceblock, &crp->constant_value);
+      if (top_temp_dip != NULL) {
+        top_temp_dip->is_top_temporary_for_constexpr_reference_param =
+                                                                    saved_flag;
+      }  /* if */
     }  /* if */
     if (!crp->is_constant) {
       /* It's okay to have an argument that's non-constant, if it isn't used,

@@ -711,6 +711,9 @@ extern void free_arg_match_summary_list(an_arg_match_summary_ptr amsp);
 
 extern a_type_ptr operand_complete_object_type(an_operand *operand,
                                                a_boolean  call_case);
+extern
+a_dynamic_init_ptr find_top_temporary(an_expr_node_ptr node,
+                                      a_boolean        create_class_temp);
 
 extern void force_complete_type_if_a_variable(an_operand *operand);
 

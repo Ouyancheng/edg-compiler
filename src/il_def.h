@@ -3303,6 +3303,11 @@ typedef struct a_dynamic_init {
 			   an initializer list object from an array of
 			   values of type X, provided in a temporary passed
 			   as the first argument of the constructor call. */
+  a_bit_field	is_top_temporary_for_constexpr_reference_param:1;
+			/* Set for the top temporary in an expression passed
+			   as the argument for a reference parameter of a
+			   constexpr function.  Short-term use in the front end
+			   only. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */

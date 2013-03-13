@@ -2047,6 +2047,7 @@ Initialize a dynamic_init entry of the kind specified.
 #endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
   dip->is_creation_of_initializer_list_object = FALSE;
+  dip->is_top_temporary_for_constexpr_reference_param = FALSE;
 #if CENTERLINE_CHECKING
   dip->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

@@ -19135,6 +19135,73 @@ be a reference type.  Only used in C++.  This is copy-initialization.
 }  /* convert_operand_into_temp */
 
 
+a_dynamic_init_ptr find_top_temporary(an_expr_node_ptr node,
+                                      a_boolean        create_class_temp)
+/*
+Return the dynamic init entry for the top temporary of the indicated
+expression, if there is one.  Return NULL if not.  The top temporary is
+the one whose lifetime is extended if the expression is bound to a
+reference (see [class.temporary]p5).  If create_class_temp is TRUE,
+create a temporary for a by-value class return so we can mark it
+(that option should be used only within the expression processing
+routines).
+*/
+{
+  a_dynamic_init_ptr dip = NULL;
+
+  node = skip_parens(node);
+  /* Drop any adjustment of the type. */
+  node = expr_before_type_adjustment(node);
+  while (is_operation_node(node) &&
+         node_operator_is(node, eok_ref_cast)) {
+    /* Drop reference casts (they are also type adjustments that don't
+       create a new object). */
+    node = node->variant.operation.operands;
+    node = expr_before_type_adjustment(node);
+  }  /* while */
+  /* Drop any field selections on top of the expression.  (The C++ standard
+     says that if the object bound to is a subobject of a complete object
+     that is a temporary, the complete object temporary has its lifetime
+     extended.)  The lifetime of a temporary is also extended when it is
+     the second operand of a comma operation (core issue 462). */
+  node = skip_parens(node);
+  while (is_operation_node(node)) {
+    if (node_operator_is(node, eok_dot_field)) {
+      node = node->variant.operation.operands;
+    } else if (node_operator_is(node, eok_comma)) {
+      node = node->variant.operation.operands->next;
+    } else {
+      break;
+    }  /* if */
+    node = skip_parens(node);
+  }  /* while */
+  if (create_class_temp &&
+      !node->is_lvalue &&
+      is_call_node(node) &&
+      is_class_struct_union_type(node->type)) {
+    /* A call returning a class object by value.  Add an enk_temp_init
+       to create a front-end temporary so we can adjust its lifetime. */
+    an_expr_node_ptr node_copy, new_node;
+    an_operand       local_operand;
+    node_copy = copy_node(node);
+    make_expression_operand(node_copy, &local_operand);
+    temp_init_from_operand(&local_operand, /*result_is_lvalue=*/FALSE);
+    new_node = make_node_from_operand(&local_operand);
+    /* Overwrite the original node so we alter the original expression,
+       under any nodes we might have stripped off above. */
+    check_assertion(identical_types(node_copy->type, new_node->type) ||
+                    is_error_node(new_node) || is_error_node(node_copy));
+    overwrite_node(node, new_node);
+  }  /* if */
+  if (node->kind == (an_expr_node_kind)enk_temp_init) {
+    dip = node->variant.init.dynamic_init;
+  } else if (node->kind == (an_expr_node_kind)enk_lambda) {
+    dip = node->variant.lambda.initialization;
+  }  /* if */
+  return dip;
+}  /* find_top_temporary */
+
+
 static void extend_temporary_lifetime(a_dynamic_init_ptr dip,
                                       a_boolean          static_lifetime)
 /*
@@ -19196,60 +19263,9 @@ like
 
 */
 {
-  an_expr_node_ptr   node;
-  a_dynamic_init_ptr dip;
-
   if (is_expression_operand(operand)) {
-    node = operand->variant.expression;
-    node = skip_parens(node);
-    /* Drop any adjustment of the type. */
-    node = expr_before_type_adjustment(node);
-    while (is_operation_node(node) &&
-           node_operator_is(node, eok_ref_cast)) {
-      /* Drop reference casts (they are also type adjustments that don't
-         create a new object). */
-      node = node->variant.operation.operands;
-      node = expr_before_type_adjustment(node);
-    }  /* while */
-    /* Drop any field selections on top of the expression.  (The C++ standard
-       says that if the object bound to is a subobject of a complete object
-       that is a temporary, the complete object temporary has its lifetime
-       extended.)  The lifetime of a temporary is also extended when it is
-       the second operand of a comma operation (core issue 462). */
-    node = skip_parens(node);
-    while (is_operation_node(node)) {
-      if (node_operator_is(node, eok_dot_field)) {
-        node = node->variant.operation.operands;
-      } else if (node_operator_is(node, eok_comma)) {
-        node = node->variant.operation.operands->next;
-      } else {
-        break;
-      }  /* if */
-      node = skip_parens(node);
-    }  /* while */
-    if (!node->is_lvalue &&
-        is_call_node(node) &&
-        is_class_struct_union_type(node->type)) {
-      /* A call returning a class object by value.  Add an enk_temp_init
-         to create a front-end temporary so we can adjust its lifetime. */
-      an_expr_node_ptr node_copy, new_node;
-      an_operand       local_operand;
-      node_copy = copy_node(node);
-      make_expression_operand(node_copy, &local_operand);
-      temp_init_from_operand(&local_operand, /*result_is_lvalue=*/FALSE);
-      new_node = make_node_from_operand(&local_operand);
-      /* Overwrite the original node so we alter the original expression,
-         under any nodes we might have stripped off above. */
-      check_assertion(identical_types(node_copy->type, new_node->type) ||
-                      is_error_node(new_node) || is_error_node(node_copy));
-      overwrite_node(node, new_node);
-    }  /* if */
-    dip = NULL;
-    if (node->kind == (an_expr_node_kind)enk_temp_init) {
-      dip = node->variant.init.dynamic_init;
-    } else if (node->kind == (an_expr_node_kind)enk_lambda) {
-      dip = node->variant.lambda.initialization;
-    }  /* if */
+    a_dynamic_init_ptr dip = find_top_temporary(operand->variant.expression,
+                                                /*create_class_temp=*/TRUE);
     if (dip != NULL) {
       /* Extend the temporary lifetime appropriately. */
       extend_temporary_lifetime(dip, static_lifetime);
