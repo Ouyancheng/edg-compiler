@@ -24082,6 +24082,7 @@ passed via template_decl.
           (prototype_instantiations_in_il &&
            class_type
                    ->variant.class_struct_union.is_prototype_instantiation &&
+           rout_sym->variant.routine.instance_ptr != NULL &&
            !prototype_instantiation_should_be_done_for_function(rout_sym))) {
         /* Update xref info on param ids.  Note that if we are in a prototype
            instantiation and nonclass templates are not parsed in their generic
