@@ -1640,6 +1640,7 @@ is pushed regardless of any of the other factors.
   new_entry->potentially_evaluated = TRUE;
   new_entry->potentially_unevaluated = FALSE;
   new_entry->objectless_nonstatic_data_ref_seen = FALSE;
+  new_entry->potentially_unevaluated_lambda_seen = FALSE;
   new_entry->is_type_operator_arg_expression = FALSE;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
@@ -1671,6 +1672,7 @@ is pushed regardless of any of the other factors.
   new_entry->last_source_seq_entry_preceding_expr = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   new_entry->objectless_nonstatic_data_ref_pos = null_source_position;
+  new_entry->potentially_unevaluated_lambda_pos = null_source_position;
   new_entry->current_lambda_in_header = NULL;
   new_entry->p_end_of_entities_defined_in_expression = NULL;
   new_entry->default_rescan_info = NULL;

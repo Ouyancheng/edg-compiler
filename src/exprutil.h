@@ -731,6 +731,11 @@ typedef struct an_expr_stack_entry {
 			   reference to a nonstatic data member occurs in a
 			   context that permits such constructs. */
   a_byte_boolean
+		potentially_unevaluated_lambda_seen;
+			/* Initially FALSE, set to TRUE if a lambda definition
+			   occurs in a potentially unevaluated context
+			   (e.g., the operand of a typeid). */
+  a_byte_boolean
 		is_type_operator_arg_expression;
 			/* TRUE if the expression is the argument for a C++11
 			   decltype construct, a GNU typeof construct, or an
@@ -894,6 +899,12 @@ typedef struct an_expr_stack_entry {
 			/* The source position of the most recent objectless
 			   reference to a nonstatic data member, for use in
 			   diagnostic messages if the reference is later
+			   deemed invalid. */
+  a_source_position
+		potentially_unevaluated_lambda_pos;
+			/* The source position of the most recent potentially
+			   unevaluated lambda definition, for use in
+			   diagnostic messages if the definition is later
 			   deemed invalid. */
   a_lambda_ptr
 		current_lambda_in_header;

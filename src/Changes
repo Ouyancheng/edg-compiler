@@ -1,5 +1,18 @@
 Version 4.6
 
+3/14/13  [EDGcpfe/13754]
+Lambda in operand of non-polymorphic typeid should get an error
+
+The operand of a typeid is unevaluated if the expression type is not
+polymorphic, so a lambda should not be allowed in such an operand.
+Now fixed.
+
+  #include <typeinfo>
+  struct A {
+    const std :: type_info & x = typeid ( [this]{} ) ;
+  };
+
+
 3/13/13  [EDGcpfe/13741]
 GNU C++ compatibility: default arguments not considered in certain
 prototype instantiations

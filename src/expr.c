@@ -13010,6 +13010,8 @@ indication in *rcblock).
                     saved_object_lifetime;
   a_boolean         objectless_nonstatic_data_ref_seen = FALSE;
   a_source_position objectless_nonstatic_data_ref_pos;
+  a_boolean         potentially_unevaluated_lambda_seen = FALSE;
+  a_source_position potentially_unevaluated_lambda_pos;
   a_boolean         saved_cpp11_constant_expr_ruled_out;
 
   db_enter(4, "scan_typeid_operator");
@@ -13130,6 +13132,10 @@ indication in *rcblock).
                                 expr_stack->objectless_nonstatic_data_ref_seen;
         objectless_nonstatic_data_ref_pos =
                                  expr_stack->objectless_nonstatic_data_ref_pos;
+        potentially_unevaluated_lambda_seen =
+                               expr_stack->potentially_unevaluated_lambda_seen;
+        potentially_unevaluated_lambda_pos =
+                                expr_stack->potentially_unevaluated_lambda_pos;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -13219,6 +13225,13 @@ indication in *rcblock).
        that appear within the operand don't count. */
     if (constexpr_enabled) {
       expr_stack->constant_expr_ruled_out= saved_cpp11_constant_expr_ruled_out;
+    }  /* if */
+    if (potentially_unevaluated_lambda_seen) {
+      /* A lambda appeared in the operand, and it's now known to be
+         unevaluated. */
+      expr_pos_error(ec_bad_unevaluated_lambda,
+                     &potentially_unevaluated_lambda_pos);
+      err = TRUE;
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -27903,6 +27916,11 @@ Scan a C++ lambda expression, e.g., something like
     /* A lambda is not allowed in an unevaluated expression. */
     expr_pos_error(ec_bad_unevaluated_lambda, &start_pos);
     err = TRUE;
+  } else if (curr_expr_is_potentially_unevaluated()) {
+    /* A lambda in a context where we won't know until later if the
+       context is evaluated (e.g., the operand of a typeid). */
+    expr_stack->potentially_unevaluated_lambda_seen = TRUE;
+    expr_stack->potentially_unevaluated_lambda_pos = start_pos;
   } else if (construct_not_allowed_in_cpp11_constant_expr(
                                                         ec_bad_constant_lambda,
                                                         &start_pos)) {
