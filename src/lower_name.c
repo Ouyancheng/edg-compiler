@@ -2414,6 +2414,7 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
     pack_expr = expr->variant.sizeof_pack.variant.expr;
     pack_expr = skip_compiler_generated_expressions(pack_expr,
                                                     &suppress_address_of);
+    check_assertion(pack_expr != NULL);
     if (is_constant_node(pack_expr) &&
         pack_expr->variant.constant->kind ==
                                      (a_constant_repr_kind)ck_template_param &&
@@ -4194,14 +4195,16 @@ when mangling the expression that is returned (otherwise the value of
 tpck_typeid template parameter constant (because the compiler-generated "*" has
 been removed here).  Note that not all compiler-generated expressions are
 stripped here; some are intentionally left so that the construct can be
-explicitly dealt with later in expression mangling.
+explicitly dealt with later in expression mangling.  Can return NULL in some
+unusual situations (e.g., a compiler-generated dynamic init constructor
+call that has no arguments).
 */
 {
   an_expr_operator_kind op;
   an_expr_node_ptr      prev_expr = NULL;
 
   /* Drop implicit operations. */
-  while (expr != prev_expr) {
+  while (expr != prev_expr && expr != NULL) {
     /* Drop any parentheses. */
     expr = skip_parens(expr);
     prev_expr = expr;
@@ -4778,6 +4781,7 @@ expression that was used to select expr (NULL if no selector was used).
   /* Skip any expressions (e.g., compiler added) that don't belong in the
      mangled output. */
   expr = skip_compiler_generated_expressions(expr, &suppress_address_of);
+  check_assertion(expr != NULL);
   name_reference = expr->name_reference;
 #if IA64_ABI
   if (emulate_gnu_abi_bugs && selector != NULL) {
@@ -4785,6 +4789,7 @@ expression that was used to select expr (NULL if no selector was used).
        is no selector (i.e., for non-member operators). */
     suppress_operation_indicator = TRUE;
     selector = skip_compiler_generated_expressions(selector, &dummy);
+    check_assertion(selector != NULL);
     if (!is_template_dependent_type(selector->type)) {
       /* g++ provides different manglings if the selector has a known type. */
       selector_has_known_type = TRUE;
@@ -5670,6 +5675,7 @@ is TRUE.
 #endif /* IA64_ABI */
 
   expr = skip_compiler_generated_expressions(expr, &suppress_address_of);
+  if (expr == NULL) goto done;
   switch (expr->kind) {
     case enk_error:
       check_assertion(total_errors != 0);
@@ -6170,6 +6176,7 @@ is TRUE.
     add_to_mangled_name('O', mctl);
   }  /* if */
 #endif /* !IA64_ABI */
+done:;
 }  /* mangled_encoding_for_expression_full */
 
 
