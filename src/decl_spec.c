@@ -8292,7 +8292,12 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
     expect_error();
   } else if (symbol_is(sym, sk_member_function)) {
     a_routine_ptr  rp = sym->variant.routine.ptr;
-    if (special_kind_is(rp, sfk_constructor)) {
+    if (special_kind_is(rp, sfk_destructor)) {
+      if (!rout_is_real_template_instance(rp)) {
+        pos_error(ec_constexpr_destructor, &dps->constexpr_pos);
+      }  /* if */
+      rp->is_constexpr = FALSE;
+    } else if (special_kind_is(rp, sfk_constructor)) {
       a_type_ptr  class_type = parent_class_of(rp);
       if (class_type->variant.class_struct_union.any_virtual_base_classes) {
         pos_error(ec_constexpr_ctor_with_virtual_base, &dps->constexpr_pos);
